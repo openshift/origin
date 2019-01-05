@@ -1,6 +1,6 @@
 // +build !windows
 
-package archive
+package archive // import "github.com/docker/docker/pkg/archive"
 
 import (
 	"os"
@@ -29,7 +29,7 @@ func (info *FileInfo) isDir() bool {
 }
 
 func getIno(fi os.FileInfo) uint64 {
-	return uint64(fi.Sys().(*syscall.Stat_t).Ino)
+	return fi.Sys().(*syscall.Stat_t).Ino
 }
 
 func hasHardlinks(fi os.FileInfo) bool {

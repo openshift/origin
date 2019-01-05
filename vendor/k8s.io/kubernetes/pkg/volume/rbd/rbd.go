@@ -61,6 +61,7 @@ var _ volume.ProvisionableVolumePlugin = &rbdPlugin{}
 var _ volume.AttachableVolumePlugin = &rbdPlugin{}
 var _ volume.ExpandableVolumePlugin = &rbdPlugin{}
 var _ volume.BlockVolumePlugin = &rbdPlugin{}
+var _ volume.DeviceMountableVolumePlugin = &rbdPlugin{}
 
 const (
 	rbdPluginName                  = "kubernetes.io/rbd"
@@ -162,7 +163,7 @@ func (plugin *rbdPlugin) getAdminAndSecret(spec *volume.Spec) (string, string, e
 
 func (plugin *rbdPlugin) ExpandVolumeDevice(spec *volume.Spec, newSize resource.Quantity, oldSize resource.Quantity) (resource.Quantity, error) {
 	if spec.PersistentVolume != nil && spec.PersistentVolume.Spec.RBD == nil {
-		return oldSize, fmt.Errorf("spec.PersistentVolumeSource.Spec.RBD is nil")
+		return oldSize, fmt.Errorf("spec.PersistentVolume.Spec.RBD is nil")
 	}
 
 	// get admin and secret
@@ -412,10 +413,10 @@ func (plugin *rbdPlugin) ConstructBlockVolumeSpec(podUID types.UID, volumeName, 
 	if len(globalMapPath) == 1 {
 		return nil, fmt.Errorf("failed to retrieve volume plugin information from globalMapPathUUID: %v", globalMapPathUUID)
 	}
-	return getVolumeSpecFromGlobalMapPath(globalMapPath)
+	return getVolumeSpecFromGlobalMapPath(globalMapPath, volumeName)
 }
 
-func getVolumeSpecFromGlobalMapPath(globalMapPath string) (*volume.Spec, error) {
+func getVolumeSpecFromGlobalMapPath(globalMapPath, volumeName string) (*volume.Spec, error) {
 	// Retrieve volume spec information from globalMapPath
 	// globalMapPath example:
 	//   plugins/kubernetes.io/{PluginName}/{DefaultKubeletVolumeDevicesDirName}/{volumePluginDependentPath}
@@ -425,6 +426,9 @@ func getVolumeSpecFromGlobalMapPath(globalMapPath string) (*volume.Spec, error) 
 	}
 	block := v1.PersistentVolumeBlock
 	rbdVolume := &v1.PersistentVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: volumeName,
+		},
 		Spec: v1.PersistentVolumeSpec{
 			PersistentVolumeSource: v1.PersistentVolumeSource{
 				RBD: &v1.RBDPersistentVolumeSource{
@@ -537,7 +541,7 @@ func (plugin *rbdPlugin) getDeviceNameFromOldMountPath(mounter mount.Interface, 
 
 func (plugin *rbdPlugin) NewDeleter(spec *volume.Spec) (volume.Deleter, error) {
 	if spec.PersistentVolume != nil && spec.PersistentVolume.Spec.RBD == nil {
-		return nil, fmt.Errorf("spec.PersistentVolumeSource.Spec.RBD is nil")
+		return nil, fmt.Errorf("spec.PersistentVolume.Spec.RBD is nil")
 	}
 
 	admin, secret, err := plugin.getAdminAndSecret(spec)

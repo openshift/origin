@@ -67,11 +67,7 @@ func (sb *sandbox) setupResolutionFiles() error {
 		return err
 	}
 
-	if err := sb.setupDNS(); err != nil {
-		return err
-	}
-
-	return nil
+	return sb.setupDNS()
 }
 
 func (sb *sandbox) buildHostsFile() error {
@@ -85,7 +81,9 @@ func (sb *sandbox) buildHostsFile() error {
 	}
 
 	// This is for the host mode networking
-	if sb.config.originHostsPath != "" {
+	if sb.config.useDefaultSandBox && len(sb.config.extraHosts) == 0 {
+		// We are working under the assumption that the origin file option had been properly expressed by the upper layer
+		// if not here we are going to error out
 		if err := copyFile(sb.config.originHostsPath, sb.config.hostsPath); err != nil && !os.IsNotExist(err) {
 			return types.InternalErrorf("could not copy source hosts file %s to %s: %v", sb.config.originHostsPath, sb.config.hostsPath, err)
 		}
@@ -194,8 +192,13 @@ func (sb *sandbox) setupDNS() error {
 		return err
 	}
 
-	// This is for the host mode networking
-	if sb.config.originResolvConfPath != "" {
+	// When the user specify a conainter in the host namespace and do no have any dns option specified
+	// we just copy the host resolv.conf from the host itself
+	if sb.config.useDefaultSandBox &&
+		len(sb.config.dnsList) == 0 && len(sb.config.dnsSearchList) == 0 && len(sb.config.dnsOptionsList) == 0 {
+
+		// We are working under the assumption that the origin file option had been properly expressed by the upper layer
+		// if not here we are going to error out
 		if err := copyFile(sb.config.originResolvConfPath, sb.config.resolvConfPath); err != nil {
 			if !os.IsNotExist(err) {
 				return fmt.Errorf("could not copy source resolv.conf file %s to %s: %v", sb.config.originResolvConfPath, sb.config.resolvConfPath, err)
@@ -208,7 +211,12 @@ func (sb *sandbox) setupDNS() error {
 		return nil
 	}
 
-	currRC, err := resolvconf.Get()
+	originResolvConfPath := sb.config.originResolvConfPath
+	if originResolvConfPath == "" {
+		// if not specified fallback to default /etc/resolv.conf
+		originResolvConfPath = resolvconf.DefaultResolvConf
+	}
+	currRC, err := resolvconf.GetSpecific(originResolvConfPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return err
@@ -245,7 +253,7 @@ func (sb *sandbox) setupDNS() error {
 		sb.setExternalResolvers(newRC.Content, types.IPv4, false)
 	} else {
 		// If the host resolv.conf file has 127.0.0.x container should
-		// use the host restolver for queries. This is supported by the
+		// use the host resolver for queries. This is supported by the
 		// docker embedded DNS server. Hence save the external resolvers
 		// before filtering it out.
 		sb.setExternalResolvers(currRC.Content, types.IPv4, true)
@@ -275,7 +283,7 @@ func (sb *sandbox) updateDNS(ipv6Enabled bool) error {
 	)
 
 	// This is for the host mode networking
-	if sb.config.originResolvConfPath != "" {
+	if sb.config.useDefaultSandBox {
 		return nil
 	}
 
@@ -373,17 +381,24 @@ dnsOpt:
 						return fmt.Errorf("invalid ndots option %v", option)
 					}
 					if num, err := strconv.Atoi(parts[1]); err != nil {
-						return fmt.Errorf("invalid number for ndots option %v", option)
-					} else if num > 0 {
+						return fmt.Errorf("invalid number for ndots option: %v", parts[1])
+					} else if num >= 0 {
+						// if the user sets ndots, use the user setting
 						sb.ndotsSet = true
 						break dnsOpt
+					} else {
+						return fmt.Errorf("invalid number for ndots option: %v", num)
 					}
 				}
 			}
 		}
 	}
 
-	dnsOptionsList = append(dnsOptionsList, resOptions...)
+	if !sb.ndotsSet {
+		// if the user did not set the ndots, set it to 0 to prioritize the service name resolution
+		// Ref: https://linux.die.net/man/5/resolv.conf
+		dnsOptionsList = append(dnsOptionsList, resOptions...)
+	}
 
 	_, err = resolvconf.Build(sb.config.resolvConfPath, dnsList, dnsSearchList, dnsOptionsList)
 	return err

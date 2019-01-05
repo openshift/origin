@@ -1,7 +1,11 @@
-package fscache
+package fscache // import "github.com/docker/docker/builder/fscache"
 
 import (
+	"archive/tar"
+	"context"
+	"crypto/sha256"
 	"encoding/json"
+	"hash"
 	"os"
 	"path/filepath"
 	"sort"
@@ -11,13 +15,14 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/docker/docker/builder"
 	"github.com/docker/docker/builder/remotecontext"
+	"github.com/docker/docker/pkg/archive"
 	"github.com/docker/docker/pkg/directory"
 	"github.com/docker/docker/pkg/stringid"
+	"github.com/docker/docker/pkg/tarsum"
 	"github.com/moby/buildkit/session/filesync"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/tonistiigi/fsutil"
-	"golang.org/x/net/context"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -149,8 +154,8 @@ func (fsc *FSCache) SyncFrom(ctx context.Context, id RemoteIdentifier) (builder.
 }
 
 // DiskUsage reports how much data is allocated by the cache
-func (fsc *FSCache) DiskUsage() (int64, error) {
-	return fsc.store.DiskUsage()
+func (fsc *FSCache) DiskUsage(ctx context.Context) (int64, error) {
+	return fsc.store.DiskUsage(ctx)
 }
 
 // Prune allows manually cleaning up the cache
@@ -212,7 +217,6 @@ func syncFrom(ctx context.Context, cs *cachedSourceRef, transport Transport, id 
 }
 
 type fsCacheStore struct {
-	root     string
 	mu       sync.Mutex
 	sources  map[string]*cachedSource
 	db       *bolt.DB
@@ -378,14 +382,14 @@ func (s *fsCacheStore) Get(id string) (*cachedSourceRef, error) {
 }
 
 // DiskUsage reports how much data is allocated by the cache
-func (s *fsCacheStore) DiskUsage() (int64, error) {
+func (s *fsCacheStore) DiskUsage(ctx context.Context) (int64, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var size int64
 
 	for _, snap := range s.sources {
 		if len(snap.refs) == 0 {
-			ss, err := snap.getSize()
+			ss, err := snap.getSize(ctx)
 			if err != nil {
 				return 0, err
 			}
@@ -410,7 +414,7 @@ func (s *fsCacheStore) Prune(ctx context.Context) (uint64, error) {
 		default:
 		}
 		if len(snap.refs) == 0 {
-			ss, err := snap.getSize()
+			ss, err := snap.getSize(ctx)
 			if err != nil {
 				return size, err
 			}
@@ -429,6 +433,7 @@ func (s *fsCacheStore) GC() error {
 	defer s.mu.Unlock()
 	var size uint64
 
+	ctx := context.Background()
 	cutoff := time.Now().Add(-s.gcPolicy.MaxKeepDuration)
 	var blacklist []*cachedSource
 
@@ -439,7 +444,7 @@ func (s *fsCacheStore) GC() error {
 					return errors.Wrapf(err, "failed to delete %s", id)
 				}
 			} else {
-				ss, err := snap.getSize()
+				ss, err := snap.getSize(ctx)
 				if err != nil {
 					return err
 				}
@@ -454,7 +459,7 @@ func (s *fsCacheStore) GC() error {
 		if size <= s.gcPolicy.MaxSize {
 			break
 		}
-		ss, err := snap.getSize()
+		ss, err := snap.getSize(ctx)
 		if err != nil {
 			return err
 		}
@@ -481,10 +486,7 @@ func (s *fsCacheStore) delete(id string) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.fs.Remove(src.BackendID); err != nil {
-		return err
-	}
-	return nil
+	return s.fs.Remove(src.BackendID)
 }
 
 type sourceMeta struct {
@@ -520,9 +522,9 @@ func (cs *cachedSource) getRef() *cachedSourceRef {
 }
 
 // hold storage lock before calling
-func (cs *cachedSource) getSize() (int64, error) {
+func (cs *cachedSource) getSize(ctx context.Context) (int64, error) {
 	if cs.sourceMeta.Size < 0 {
-		ss, err := directory.Size(cs.dir)
+		ss, err := directory.Size(ctx, cs.dir)
 		if err != nil {
 			return 0, err
 		}
@@ -578,6 +580,10 @@ func (dc *detectChanges) MarkSupported(v bool) {
 	dc.supported = v
 }
 
+func (dc *detectChanges) ContentHasher() fsutil.ContentHasher {
+	return newTarsumHash
+}
+
 type wrappedContext struct {
 	builder.Source
 	closer func() error
@@ -606,4 +612,41 @@ func (s sortableCacheSources) Less(i, j int) bool {
 // Swap swaps the elements with indexes i and j.
 func (s sortableCacheSources) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
+}
+
+func newTarsumHash(stat *fsutil.Stat) (hash.Hash, error) {
+	fi := &fsutil.StatInfo{Stat: stat}
+	p := stat.Path
+	if fi.IsDir() {
+		p += string(os.PathSeparator)
+	}
+	h, err := archive.FileInfoHeader(p, fi, stat.Linkname)
+	if err != nil {
+		return nil, err
+	}
+	h.Name = p
+	h.Uid = int(stat.Uid)
+	h.Gid = int(stat.Gid)
+	h.Linkname = stat.Linkname
+	if stat.Xattrs != nil {
+		h.Xattrs = make(map[string]string)
+		for k, v := range stat.Xattrs {
+			h.Xattrs[k] = string(v)
+		}
+	}
+
+	tsh := &tarsumHash{h: h, Hash: sha256.New()}
+	tsh.Reset()
+	return tsh, nil
+}
+
+// Reset resets the Hash to its initial state.
+func (tsh *tarsumHash) Reset() {
+	tsh.Hash.Reset()
+	tarsum.WriteV1Header(tsh.h, tsh.Hash)
+}
+
+type tarsumHash struct {
+	hash.Hash
+	h *tar.Header
 }

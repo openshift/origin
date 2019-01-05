@@ -1,4 +1,4 @@
-package daemon
+package daemon // import "github.com/docker/docker/daemon"
 
 import (
 	"fmt"
@@ -13,12 +13,14 @@ import (
 	"github.com/docker/docker/api/types/strslice"
 	"github.com/docker/docker/container"
 	"github.com/docker/docker/daemon/network"
+	"github.com/docker/docker/errdefs"
 	"github.com/docker/docker/image"
 	"github.com/docker/docker/opts"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/pkg/system"
 	"github.com/docker/docker/pkg/truncindex"
 	"github.com/docker/docker/runconfig"
+	volumemounts "github.com/docker/docker/volume/mounts"
 	"github.com/docker/go-connections/nat"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -53,7 +55,7 @@ func (daemon *Daemon) GetContainer(prefixOrName string) (*container.Container, e
 		if indexError == truncindex.ErrNotExist {
 			return nil, containerNotFound(prefixOrName)
 		}
-		return nil, systemError{indexError}
+		return nil, errdefs.System(indexError)
 	}
 	return daemon.containers.Get(containerID), nil
 }
@@ -123,7 +125,7 @@ func (daemon *Daemon) Register(c *container.Container) error {
 	return c.CheckpointTo(daemon.containersReplica)
 }
 
-func (daemon *Daemon) newContainer(name string, platform string, config *containertypes.Config, hostConfig *containertypes.HostConfig, imgID image.ID, managed bool) (*container.Container, error) {
+func (daemon *Daemon) newContainer(name string, operatingSystem string, config *containertypes.Config, hostConfig *containertypes.HostConfig, imgID image.ID, managed bool) (*container.Container, error) {
 	var (
 		id             string
 		err            error
@@ -138,7 +140,7 @@ func (daemon *Daemon) newContainer(name string, platform string, config *contain
 		if config.Hostname == "" {
 			config.Hostname, err = os.Hostname()
 			if err != nil {
-				return nil, systemError{err}
+				return nil, errdefs.System(err)
 			}
 		}
 	} else {
@@ -156,8 +158,8 @@ func (daemon *Daemon) newContainer(name string, platform string, config *contain
 	base.ImageID = imgID
 	base.NetworkSettings = &network.Settings{IsAnonymousEndpoint: noExplicitName}
 	base.Name = name
-	base.Driver = daemon.GraphDriverName(platform)
-	base.Platform = platform
+	base.Driver = daemon.imageService.GraphDriverForOS(operatingSystem)
+	base.OS = operatingSystem
 	return base, err
 }
 
@@ -293,6 +295,14 @@ func (daemon *Daemon) verifyContainerSettings(platform string, hostConfig *conta
 		return nil, errors.Errorf("can't create 'AutoRemove' container with restart policy")
 	}
 
+	// Validate mounts; check if host directories still exist
+	parser := volumemounts.NewParser(platform)
+	for _, cfg := range hostConfig.Mounts {
+		if err := parser.ValidateMountConfig(&cfg); err != nil {
+			return nil, err
+		}
+	}
+
 	for _, extraHost := range hostConfig.ExtraHosts {
 		if _, err := opts.ValidateExtraHost(extraHost); err != nil {
 			return nil, err
@@ -329,6 +339,20 @@ func (daemon *Daemon) verifyContainerSettings(platform string, hostConfig *conta
 		return nil, errors.Errorf("invalid restart policy '%s'", p.Name)
 	}
 
+	if !hostConfig.Isolation.IsValid() {
+		return nil, errors.Errorf("invalid isolation '%s' on %s", hostConfig.Isolation, runtime.GOOS)
+	}
+
+	var (
+		err      error
+		warnings []string
+	)
 	// Now do platform-specific verification
-	return verifyPlatformContainerSettings(daemon, hostConfig, config, update)
+	if warnings, err = verifyPlatformContainerSettings(daemon, hostConfig, config, update); err != nil {
+		return warnings, err
+	}
+	if hostConfig.NetworkMode.IsHost() && len(hostConfig.PortBindings) > 0 {
+		warnings = append(warnings, "Published ports are discarded when using host network mode")
+	}
+	return warnings, err
 }

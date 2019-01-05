@@ -41,10 +41,11 @@ func NewWebTestsClientWithBaseURI(baseURI string, subscriptionID string) WebTest
 }
 
 // CreateOrUpdate creates or updates an Application Insights web test definition.
-//
-// resourceGroupName is the name of the resource group. webTestName is the name of the Application Insights webtest
-// resource. webTestDefinition is properties that need to be specified to create or update an Application Insights
-// web test definition.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// webTestName - the name of the Application Insights webtest resource.
+// webTestDefinition - properties that need to be specified to create or update an Application Insights web
+// test definition.
 func (client WebTestsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, webTestName string, webTestDefinition WebTest) (result WebTest, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: webTestDefinition,
@@ -91,10 +92,10 @@ func (client WebTestsClient) CreateOrUpdatePreparer(ctx context.Context, resourc
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/microsoft.insights/webtests/{webTestName}", pathParameters),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Insights/webtests/{webTestName}", pathParameters),
 		autorest.WithJSON(webTestDefinition),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -121,9 +122,9 @@ func (client WebTestsClient) CreateOrUpdateResponder(resp *http.Response) (resul
 }
 
 // Delete deletes an Application Insights web test.
-//
-// resourceGroupName is the name of the resource group. webTestName is the name of the Application Insights webtest
-// resource.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// webTestName - the name of the Application Insights webtest resource.
 func (client WebTestsClient) Delete(ctx context.Context, resourceGroupName string, webTestName string) (result autorest.Response, err error) {
 	req, err := client.DeletePreparer(ctx, resourceGroupName, webTestName)
 	if err != nil {
@@ -162,7 +163,7 @@ func (client WebTestsClient) DeletePreparer(ctx context.Context, resourceGroupNa
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
 		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/microsoft.insights/webtests/{webTestName}", pathParameters),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Insights/webtests/{webTestName}", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -187,9 +188,9 @@ func (client WebTestsClient) DeleteResponder(resp *http.Response) (result autore
 }
 
 // Get get a specific Application Insights web test definition.
-//
-// resourceGroupName is the name of the resource group. webTestName is the name of the Application Insights webtest
-// resource.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// webTestName - the name of the Application Insights webtest resource.
 func (client WebTestsClient) Get(ctx context.Context, resourceGroupName string, webTestName string) (result WebTest, err error) {
 	req, err := client.GetPreparer(ctx, resourceGroupName, webTestName)
 	if err != nil {
@@ -228,7 +229,7 @@ func (client WebTestsClient) GetPreparer(ctx context.Context, resourceGroupName 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
 		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/microsoft.insights/webtests/{webTestName}", pathParameters),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Insights/webtests/{webTestName}", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -291,7 +292,7 @@ func (client WebTestsClient) ListPreparer(ctx context.Context) (*http.Request, e
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
 		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/subscriptions/{subscriptionId}/providers/microsoft.insights/webtests", pathParameters),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/providers/Microsoft.Insights/webtests", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -343,9 +344,104 @@ func (client WebTestsClient) ListComplete(ctx context.Context) (result WebTestLi
 	return
 }
 
+// ListByComponent get all Application Insights web tests defined for the specified component.
+// Parameters:
+// componentName - the name of the Application Insights component resource.
+// resourceGroupName - the name of the resource group.
+func (client WebTestsClient) ListByComponent(ctx context.Context, componentName string, resourceGroupName string) (result WebTestListResultPage, err error) {
+	result.fn = client.listByComponentNextResults
+	req, err := client.ListByComponentPreparer(ctx, componentName, resourceGroupName)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "insights.WebTestsClient", "ListByComponent", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.ListByComponentSender(req)
+	if err != nil {
+		result.wtlr.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "insights.WebTestsClient", "ListByComponent", resp, "Failure sending request")
+		return
+	}
+
+	result.wtlr, err = client.ListByComponentResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "insights.WebTestsClient", "ListByComponent", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ListByComponentPreparer prepares the ListByComponent request.
+func (client WebTestsClient) ListByComponentPreparer(ctx context.Context, componentName string, resourceGroupName string) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"componentName":     autorest.Encode("path", componentName),
+		"resourceGroupName": autorest.Encode("path", resourceGroupName),
+		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2015-05-01"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Insights/components/{componentName}/webtests", pathParameters),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// ListByComponentSender sends the ListByComponent request. The method will close the
+// http.Response Body if it receives an error.
+func (client WebTestsClient) ListByComponentSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+}
+
+// ListByComponentResponder handles the response to the ListByComponent request. The method always
+// closes the http.Response Body.
+func (client WebTestsClient) ListByComponentResponder(resp *http.Response) (result WebTestListResult, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// listByComponentNextResults retrieves the next set of results, if any.
+func (client WebTestsClient) listByComponentNextResults(lastResults WebTestListResult) (result WebTestListResult, err error) {
+	req, err := lastResults.webTestListResultPreparer()
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "insights.WebTestsClient", "listByComponentNextResults", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+	resp, err := client.ListByComponentSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "insights.WebTestsClient", "listByComponentNextResults", resp, "Failure sending next results request")
+	}
+	result, err = client.ListByComponentResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "insights.WebTestsClient", "listByComponentNextResults", resp, "Failure responding to next results request")
+	}
+	return
+}
+
+// ListByComponentComplete enumerates all values, automatically crossing page boundaries as required.
+func (client WebTestsClient) ListByComponentComplete(ctx context.Context, componentName string, resourceGroupName string) (result WebTestListResultIterator, err error) {
+	result.page, err = client.ListByComponent(ctx, componentName, resourceGroupName)
+	return
+}
+
 // ListByResourceGroup get all Application Insights web tests defined within a specified resource group.
-//
-// resourceGroupName is the name of the resource group.
+// Parameters:
+// resourceGroupName - the name of the resource group.
 func (client WebTestsClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result WebTestListResultPage, err error) {
 	result.fn = client.listByResourceGroupNextResults
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName)
@@ -384,7 +480,7 @@ func (client WebTestsClient) ListByResourceGroupPreparer(ctx context.Context, re
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
 		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/microsoft.insights/webtests", pathParameters),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Insights/webtests", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -437,9 +533,10 @@ func (client WebTestsClient) ListByResourceGroupComplete(ctx context.Context, re
 }
 
 // UpdateTags creates or updates an Application Insights web test definition.
-//
-// resourceGroupName is the name of the resource group. webTestName is the name of the Application Insights webtest
-// resource. webTestTags is updated tag information to set into the web test instance.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// webTestName - the name of the Application Insights webtest resource.
+// webTestTags - updated tag information to set into the web test instance.
 func (client WebTestsClient) UpdateTags(ctx context.Context, resourceGroupName string, webTestName string, webTestTags TagsResource) (result WebTest, err error) {
 	req, err := client.UpdateTagsPreparer(ctx, resourceGroupName, webTestName, webTestTags)
 	if err != nil {
@@ -476,10 +573,10 @@ func (client WebTestsClient) UpdateTagsPreparer(ctx context.Context, resourceGro
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
 		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/microsoft.insights/webtests/{webTestName}", pathParameters),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Insights/webtests/{webTestName}", pathParameters),
 		autorest.WithJSON(webTestTags),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))

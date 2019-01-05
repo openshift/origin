@@ -336,6 +336,9 @@ type ClusterConfig struct {
 	// per-location bucket for you.
 	ConfigBucket string `json:"configBucket,omitempty"`
 
+	// EncryptionConfig: Optional. Encryption settings for the cluster.
+	EncryptionConfig *EncryptionConfig `json:"encryptionConfig,omitempty"`
+
 	// GceClusterConfig: Required. The shared Compute Engine config settings
 	// for all instances in a cluster.
 	GceClusterConfig *GceClusterConfig `json:"gceClusterConfig,omitempty"`
@@ -747,6 +750,36 @@ type Empty struct {
 	// ServerResponse contains the HTTP response code and headers from the
 	// server.
 	googleapi.ServerResponse `json:"-"`
+}
+
+// EncryptionConfig: Encryption settings for the cluster.
+type EncryptionConfig struct {
+	// GcePdKmsKeyName: Optional. The Cloud KMS key name to use for PD disk
+	// encryption for all instances in the cluster.
+	GcePdKmsKeyName string `json:"gcePdKmsKeyName,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "GcePdKmsKeyName") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "GcePdKmsKeyName") to
+	// include in API requests with the JSON null value. By default, fields
+	// with empty values are omitted from API requests. However, any field
+	// with an empty value appearing in NullFields will be sent to the
+	// server as null. It is an error if a field in this list has a
+	// non-empty value. This may be used to include null fields in Patch
+	// requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *EncryptionConfig) MarshalJSON() ([]byte, error) {
+	type NoMethod EncryptionConfig
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
 // GceClusterConfig: Common config settings for resources of Compute

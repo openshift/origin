@@ -1,8 +1,9 @@
 // +build !windows
 
-package container
+package container // import "github.com/docker/docker/daemon/cluster/executor/container"
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/docker/docker/daemon"
 	"github.com/docker/docker/daemon/events"
 	"github.com/docker/swarmkit/api"
-	"golang.org/x/net/context"
 )
 
 func TestHealthStates(t *testing.T) {
@@ -52,7 +52,7 @@ func TestHealthStates(t *testing.T) {
 		EventsService: e,
 	}
 
-	controller, err := newController(daemon, task, nil)
+	controller, err := newController(daemon, nil, nil, task, nil, nil)
 	if err != nil {
 		t.Fatalf("create controller fail %v", err)
 	}

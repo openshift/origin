@@ -43,6 +43,11 @@ const (
 	Week CalculationWindowTypes = "Week"
 )
 
+// PossibleCalculationWindowTypesValues returns an array of possible values for the CalculationWindowTypes const type.
+func PossibleCalculationWindowTypesValues() []CalculationWindowTypes {
+	return []CalculationWindowTypes{Day, Hour, Lifetime, Month, Week}
+}
+
 // CardinalityTypes enumerates the values for cardinality types.
 type CardinalityTypes string
 
@@ -55,6 +60,11 @@ const (
 	OneToOne CardinalityTypes = "OneToOne"
 )
 
+// PossibleCardinalityTypesValues returns an array of possible values for the CardinalityTypes const type.
+func PossibleCardinalityTypesValues() []CardinalityTypes {
+	return []CardinalityTypes{ManyToMany, OneToMany, OneToOne}
+}
+
 // CompletionOperationTypes enumerates the values for completion operation types.
 type CompletionOperationTypes string
 
@@ -66,6 +76,11 @@ const (
 	// MoveFile ...
 	MoveFile CompletionOperationTypes = "MoveFile"
 )
+
+// PossibleCompletionOperationTypesValues returns an array of possible values for the CompletionOperationTypes const type.
+func PossibleCompletionOperationTypesValues() []CompletionOperationTypes {
+	return []CompletionOperationTypes{DeleteFile, DoNothing, MoveFile}
+}
 
 // ConnectorMappingStates enumerates the values for connector mapping states.
 type ConnectorMappingStates string
@@ -87,6 +102,11 @@ const (
 	Stopped ConnectorMappingStates = "Stopped"
 )
 
+// PossibleConnectorMappingStatesValues returns an array of possible values for the ConnectorMappingStates const type.
+func PossibleConnectorMappingStatesValues() []ConnectorMappingStates {
+	return []ConnectorMappingStates{Created, Creating, Expiring, Failed, Ready, Running, Stopped}
+}
+
 // ConnectorStates enumerates the values for connector states.
 type ConnectorStates string
 
@@ -104,6 +124,11 @@ const (
 	// ConnectorStatesReady ...
 	ConnectorStatesReady ConnectorStates = "Ready"
 )
+
+// PossibleConnectorStatesValues returns an array of possible values for the ConnectorStates const type.
+func PossibleConnectorStatesValues() []ConnectorStates {
+	return []ConnectorStates{ConnectorStatesCreated, ConnectorStatesCreating, ConnectorStatesDeleting, ConnectorStatesExpiring, ConnectorStatesFailed, ConnectorStatesReady}
+}
 
 // ConnectorTypes enumerates the values for connector types.
 type ConnectorTypes string
@@ -123,6 +148,11 @@ const (
 	Salesforce ConnectorTypes = "Salesforce"
 )
 
+// PossibleConnectorTypesValues returns an array of possible values for the ConnectorTypes const type.
+func PossibleConnectorTypesValues() []ConnectorTypes {
+	return []ConnectorTypes{AzureBlob, CRM, ExchangeOnline, None, Outbound, Salesforce}
+}
+
 // DataSourceType enumerates the values for data source type.
 type DataSourceType string
 
@@ -134,6 +164,11 @@ const (
 	// DataSourceTypeSystemDefault ...
 	DataSourceTypeSystemDefault DataSourceType = "SystemDefault"
 )
+
+// PossibleDataSourceTypeValues returns an array of possible values for the DataSourceType const type.
+func PossibleDataSourceTypeValues() []DataSourceType {
+	return []DataSourceType{DataSourceTypeConnector, DataSourceTypeLinkInteraction, DataSourceTypeSystemDefault}
+}
 
 // EntityTypes enumerates the values for entity types.
 type EntityTypes string
@@ -149,6 +184,11 @@ const (
 	EntityTypesRelationship EntityTypes = "Relationship"
 )
 
+// PossibleEntityTypesValues returns an array of possible values for the EntityTypes const type.
+func PossibleEntityTypesValues() []EntityTypes {
+	return []EntityTypes{EntityTypesInteraction, EntityTypesNone, EntityTypesProfile, EntityTypesRelationship}
+}
+
 // ErrorManagementTypes enumerates the values for error management types.
 type ErrorManagementTypes string
 
@@ -160,6 +200,11 @@ const (
 	// StopImport ...
 	StopImport ErrorManagementTypes = "StopImport"
 )
+
+// PossibleErrorManagementTypesValues returns an array of possible values for the ErrorManagementTypes const type.
+func PossibleErrorManagementTypesValues() []ErrorManagementTypes {
+	return []ErrorManagementTypes{RejectAndContinue, RejectUntilLimit, StopImport}
+}
 
 // FrequencyTypes enumerates the values for frequency types.
 type FrequencyTypes string
@@ -177,6 +222,11 @@ const (
 	FrequencyTypesWeek FrequencyTypes = "Week"
 )
 
+// PossibleFrequencyTypesValues returns an array of possible values for the FrequencyTypes const type.
+func PossibleFrequencyTypesValues() []FrequencyTypes {
+	return []FrequencyTypes{FrequencyTypesDay, FrequencyTypesHour, FrequencyTypesMinute, FrequencyTypesMonth, FrequencyTypesWeek}
+}
+
 // InstanceOperationType enumerates the values for instance operation type.
 type InstanceOperationType string
 
@@ -186,6 +236,11 @@ const (
 	// Upsert ...
 	Upsert InstanceOperationType = "Upsert"
 )
+
+// PossibleInstanceOperationTypeValues returns an array of possible values for the InstanceOperationType const type.
+func PossibleInstanceOperationTypeValues() []InstanceOperationType {
+	return []InstanceOperationType{Delete, Upsert}
+}
 
 // KpiFunctions enumerates the values for kpi functions.
 type KpiFunctions string
@@ -209,6 +264,11 @@ const (
 	KpiFunctionsSum KpiFunctions = "Sum"
 )
 
+// PossibleKpiFunctionsValues returns an array of possible values for the KpiFunctions const type.
+func PossibleKpiFunctionsValues() []KpiFunctions {
+	return []KpiFunctions{KpiFunctionsAvg, KpiFunctionsCount, KpiFunctionsCountDistinct, KpiFunctionsLast, KpiFunctionsMax, KpiFunctionsMin, KpiFunctionsNone, KpiFunctionsSum}
+}
+
 // LinkTypes enumerates the values for link types.
 type LinkTypes string
 
@@ -218,6 +278,11 @@ const (
 	// UpdateAlways ...
 	UpdateAlways LinkTypes = "UpdateAlways"
 )
+
+// PossibleLinkTypesValues returns an array of possible values for the LinkTypes const type.
+func PossibleLinkTypesValues() []LinkTypes {
+	return []LinkTypes{CopyIfNull, UpdateAlways}
+}
 
 // PermissionTypes enumerates the values for permission types.
 type PermissionTypes string
@@ -230,6 +295,11 @@ const (
 	// Write ...
 	Write PermissionTypes = "Write"
 )
+
+// PossiblePermissionTypesValues returns an array of possible values for the PermissionTypes const type.
+func PossiblePermissionTypesValues() []PermissionTypes {
+	return []PermissionTypes{Manage, Read, Write}
+}
 
 // ProvisioningStates enumerates the values for provisioning states.
 type ProvisioningStates string
@@ -249,6 +319,11 @@ const (
 	ProvisioningStatesSucceeded ProvisioningStates = "Succeeded"
 )
 
+// PossibleProvisioningStatesValues returns an array of possible values for the ProvisioningStates const type.
+func PossibleProvisioningStatesValues() []ProvisioningStates {
+	return []ProvisioningStates{ProvisioningStatesDeleting, ProvisioningStatesExpiring, ProvisioningStatesFailed, ProvisioningStatesHumanIntervention, ProvisioningStatesProvisioning, ProvisioningStatesSucceeded}
+}
+
 // RoleTypes enumerates the values for role types.
 type RoleTypes string
 
@@ -267,6 +342,11 @@ const (
 	Reader RoleTypes = "Reader"
 )
 
+// PossibleRoleTypesValues returns an array of possible values for the RoleTypes const type.
+func PossibleRoleTypesValues() []RoleTypes {
+	return []RoleTypes{Admin, DataAdmin, DataReader, ManageAdmin, ManageReader, Reader}
+}
+
 // Status enumerates the values for status.
 type Status string
 
@@ -278,6 +358,11 @@ const (
 	// StatusNone ...
 	StatusNone Status = "None"
 )
+
+// PossibleStatusValues returns an array of possible values for the Status const type.
+func PossibleStatusValues() []Status {
+	return []Status{StatusActive, StatusDeleted, StatusNone}
+}
 
 // AssignmentPrincipal the AssignmentPrincipal
 type AssignmentPrincipal struct {
@@ -432,6 +517,24 @@ type AuthorizationPolicyResourceFormat struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for AuthorizationPolicyResourceFormat.
+func (aprf AuthorizationPolicyResourceFormat) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if aprf.AuthorizationPolicy != nil {
+		objectMap["properties"] = aprf.AuthorizationPolicy
+	}
+	if aprf.ID != nil {
+		objectMap["id"] = aprf.ID
+	}
+	if aprf.Name != nil {
+		objectMap["name"] = aprf.Name
+	}
+	if aprf.Type != nil {
+		objectMap["type"] = aprf.Type
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for AuthorizationPolicyResourceFormat struct.
 func (aprf *AuthorizationPolicyResourceFormat) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -524,7 +627,9 @@ func (c Connector) MarshalJSON() ([]byte, error) {
 	if c.ConnectorName != nil {
 		objectMap["connectorName"] = c.ConnectorName
 	}
-	objectMap["connectorType"] = c.ConnectorType
+	if c.ConnectorType != "" {
+		objectMap["connectorType"] = c.ConnectorType
+	}
 	if c.DisplayName != nil {
 		objectMap["displayName"] = c.DisplayName
 	}
@@ -540,7 +645,9 @@ func (c Connector) MarshalJSON() ([]byte, error) {
 	if c.LastModified != nil {
 		objectMap["lastModified"] = c.LastModified
 	}
-	objectMap["state"] = c.State
+	if c.State != "" {
+		objectMap["state"] = c.State
+	}
 	if c.TenantID != nil {
 		objectMap["tenantId"] = c.TenantID
 	}
@@ -861,6 +968,24 @@ type ConnectorMappingResourceFormat struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for ConnectorMappingResourceFormat.
+func (cmrf ConnectorMappingResourceFormat) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if cmrf.ConnectorMapping != nil {
+		objectMap["properties"] = cmrf.ConnectorMapping
+	}
+	if cmrf.ID != nil {
+		objectMap["id"] = cmrf.ID
+	}
+	if cmrf.Name != nil {
+		objectMap["name"] = cmrf.Name
+	}
+	if cmrf.Type != nil {
+		objectMap["type"] = cmrf.Type
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for ConnectorMappingResourceFormat struct.
 func (cmrf *ConnectorMappingResourceFormat) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -936,6 +1061,24 @@ type ConnectorResourceFormat struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for ConnectorResourceFormat.
+func (crf ConnectorResourceFormat) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if crf.Connector != nil {
+		objectMap["properties"] = crf.Connector
+	}
+	if crf.ID != nil {
+		objectMap["id"] = crf.ID
+	}
+	if crf.Name != nil {
+		objectMap["name"] = crf.Name
+	}
+	if crf.Type != nil {
+		objectMap["type"] = crf.Type
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for ConnectorResourceFormat struct.
 func (crf *ConnectorResourceFormat) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -991,12 +1134,11 @@ func (crf *ConnectorResourceFormat) UnmarshalJSON(body []byte) error {
 // operation.
 type ConnectorsCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ConnectorsCreateOrUpdateFuture) Result(client ConnectorsClient) (crf ConnectorResourceFormat, err error) {
+func (future *ConnectorsCreateOrUpdateFuture) Result(client ConnectorsClient) (crf ConnectorResourceFormat, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1004,34 +1146,15 @@ func (future ConnectorsCreateOrUpdateFuture) Result(client ConnectorsClient) (cr
 		return
 	}
 	if !done {
-		return crf, azure.NewAsyncOpIncompleteError("customerinsights.ConnectorsCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		crf, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "customerinsights.ConnectorsCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("customerinsights.ConnectorsCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if crf.Response.Response, err = future.GetResult(sender); err == nil && crf.Response.Response.StatusCode != http.StatusNoContent {
+		crf, err = client.CreateOrUpdateResponder(crf.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "customerinsights.ConnectorsCreateOrUpdateFuture", "Result", crf.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.ConnectorsCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	crf, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.ConnectorsCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -1039,12 +1162,11 @@ func (future ConnectorsCreateOrUpdateFuture) Result(client ConnectorsClient) (cr
 // ConnectorsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ConnectorsDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ConnectorsDeleteFuture) Result(client ConnectorsClient) (ar autorest.Response, err error) {
+func (future *ConnectorsDeleteFuture) Result(client ConnectorsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1052,35 +1174,10 @@ func (future ConnectorsDeleteFuture) Result(client ConnectorsClient) (ar autores
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("customerinsights.ConnectorsDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "customerinsights.ConnectorsDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("customerinsights.ConnectorsDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.ConnectorsDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.ConnectorsDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -1128,6 +1225,18 @@ type DataSourcePrecedence struct {
 	*DataSource `json:"dataSource,omitempty"`
 	// Precedence - the precedence value.
 	Precedence *int32 `json:"precedence,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for DataSourcePrecedence.
+func (dsp DataSourcePrecedence) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if dsp.DataSource != nil {
+		objectMap["dataSource"] = dsp.DataSource
+	}
+	if dsp.Precedence != nil {
+		objectMap["precedence"] = dsp.Precedence
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for DataSourcePrecedence struct.
@@ -1208,7 +1317,9 @@ type EnrichingKpi struct {
 // MarshalJSON is the custom marshaler for EnrichingKpi.
 func (ek EnrichingKpi) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	objectMap["entityType"] = ek.EntityType
+	if ek.EntityType != "" {
+		objectMap["entityType"] = ek.EntityType
+	}
 	if ek.EntityTypeName != nil {
 		objectMap["entityTypeName"] = ek.EntityTypeName
 	}
@@ -1224,11 +1335,15 @@ func (ek EnrichingKpi) MarshalJSON() ([]byte, error) {
 	if ek.Description != nil {
 		objectMap["description"] = ek.Description
 	}
-	objectMap["calculationWindow"] = ek.CalculationWindow
+	if ek.CalculationWindow != "" {
+		objectMap["calculationWindow"] = ek.CalculationWindow
+	}
 	if ek.CalculationWindowFieldName != nil {
 		objectMap["calculationWindowFieldName"] = ek.CalculationWindowFieldName
 	}
-	objectMap["function"] = ek.Function
+	if ek.Function != "" {
+		objectMap["function"] = ek.Function
+	}
 	if ek.Expression != nil {
 		objectMap["expression"] = ek.Expression
 	}
@@ -1247,7 +1362,9 @@ func (ek EnrichingKpi) MarshalJSON() ([]byte, error) {
 	if ek.ParticipantProfilesMetadata != nil {
 		objectMap["participantProfilesMetadata"] = ek.ParticipantProfilesMetadata
 	}
-	objectMap["provisioningState"] = ek.ProvisioningState
+	if ek.ProvisioningState != "" {
+		objectMap["provisioningState"] = ek.ProvisioningState
+	}
 	if ek.ThresHolds != nil {
 		objectMap["thresHolds"] = ek.ThresHolds
 	}
@@ -1304,7 +1421,9 @@ func (etd EntityTypeDefinition) MarshalJSON() ([]byte, error) {
 	if etd.APIEntitySetName != nil {
 		objectMap["apiEntitySetName"] = etd.APIEntitySetName
 	}
-	objectMap["entityType"] = etd.EntityType
+	if etd.EntityType != "" {
+		objectMap["entityType"] = etd.EntityType
+	}
 	if etd.Fields != nil {
 		objectMap["fields"] = etd.Fields
 	}
@@ -1314,7 +1433,9 @@ func (etd EntityTypeDefinition) MarshalJSON() ([]byte, error) {
 	if etd.LastChangedUtc != nil {
 		objectMap["lastChangedUtc"] = etd.LastChangedUtc
 	}
-	objectMap["provisioningState"] = etd.ProvisioningState
+	if etd.ProvisioningState != "" {
+		objectMap["provisioningState"] = etd.ProvisioningState
+	}
 	if etd.SchemaItemTypeLink != nil {
 		objectMap["schemaItemTypeLink"] = etd.SchemaItemTypeLink
 	}
@@ -1599,12 +1720,11 @@ type HubPropertiesFormat struct {
 // HubsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type HubsDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future HubsDeleteFuture) Result(client HubsClient) (ar autorest.Response, err error) {
+func (future *HubsDeleteFuture) Result(client HubsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1612,35 +1732,10 @@ func (future HubsDeleteFuture) Result(client HubsClient) (ar autorest.Response, 
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("customerinsights.HubsDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "customerinsights.HubsDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("customerinsights.HubsDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.HubsDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.HubsDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -1769,6 +1864,24 @@ type InteractionResourceFormat struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for InteractionResourceFormat.
+func (irf InteractionResourceFormat) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if irf.InteractionTypeDefinition != nil {
+		objectMap["properties"] = irf.InteractionTypeDefinition
+	}
+	if irf.ID != nil {
+		objectMap["id"] = irf.ID
+	}
+	if irf.Name != nil {
+		objectMap["name"] = irf.Name
+	}
+	if irf.Type != nil {
+		objectMap["type"] = irf.Type
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for InteractionResourceFormat struct.
 func (irf *InteractionResourceFormat) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -1824,12 +1937,11 @@ func (irf *InteractionResourceFormat) UnmarshalJSON(body []byte) error {
 // operation.
 type InteractionsCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future InteractionsCreateOrUpdateFuture) Result(client InteractionsClient) (irf InteractionResourceFormat, err error) {
+func (future *InteractionsCreateOrUpdateFuture) Result(client InteractionsClient) (irf InteractionResourceFormat, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1837,34 +1949,15 @@ func (future InteractionsCreateOrUpdateFuture) Result(client InteractionsClient)
 		return
 	}
 	if !done {
-		return irf, azure.NewAsyncOpIncompleteError("customerinsights.InteractionsCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		irf, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "customerinsights.InteractionsCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("customerinsights.InteractionsCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if irf.Response.Response, err = future.GetResult(sender); err == nil && irf.Response.Response.StatusCode != http.StatusNoContent {
+		irf, err = client.CreateOrUpdateResponder(irf.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "customerinsights.InteractionsCreateOrUpdateFuture", "Result", irf.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.InteractionsCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	irf, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.InteractionsCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -1943,7 +2036,9 @@ func (itd InteractionTypeDefinition) MarshalJSON() ([]byte, error) {
 	if itd.APIEntitySetName != nil {
 		objectMap["apiEntitySetName"] = itd.APIEntitySetName
 	}
-	objectMap["entityType"] = itd.EntityType
+	if itd.EntityType != "" {
+		objectMap["entityType"] = itd.EntityType
+	}
 	if itd.Fields != nil {
 		objectMap["fields"] = itd.Fields
 	}
@@ -1953,7 +2048,9 @@ func (itd InteractionTypeDefinition) MarshalJSON() ([]byte, error) {
 	if itd.LastChangedUtc != nil {
 		objectMap["lastChangedUtc"] = itd.LastChangedUtc
 	}
-	objectMap["provisioningState"] = itd.ProvisioningState
+	if itd.ProvisioningState != "" {
+		objectMap["provisioningState"] = itd.ProvisioningState
+	}
 	if itd.SchemaItemTypeLink != nil {
 		objectMap["schemaItemTypeLink"] = itd.SchemaItemTypeLink
 	}
@@ -2223,12 +2320,11 @@ type KpiAlias struct {
 // KpiCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type KpiCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future KpiCreateOrUpdateFuture) Result(client KpiClient) (krf KpiResourceFormat, err error) {
+func (future *KpiCreateOrUpdateFuture) Result(client KpiClient) (krf KpiResourceFormat, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2236,34 +2332,15 @@ func (future KpiCreateOrUpdateFuture) Result(client KpiClient) (krf KpiResourceF
 		return
 	}
 	if !done {
-		return krf, azure.NewAsyncOpIncompleteError("customerinsights.KpiCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		krf, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "customerinsights.KpiCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("customerinsights.KpiCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if krf.Response.Response, err = future.GetResult(sender); err == nil && krf.Response.Response.StatusCode != http.StatusNoContent {
+		krf, err = client.CreateOrUpdateResponder(krf.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "customerinsights.KpiCreateOrUpdateFuture", "Result", krf.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.KpiCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	krf, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.KpiCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -2313,7 +2390,9 @@ type KpiDefinition struct {
 // MarshalJSON is the custom marshaler for KpiDefinition.
 func (kd KpiDefinition) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	objectMap["entityType"] = kd.EntityType
+	if kd.EntityType != "" {
+		objectMap["entityType"] = kd.EntityType
+	}
 	if kd.EntityTypeName != nil {
 		objectMap["entityTypeName"] = kd.EntityTypeName
 	}
@@ -2329,11 +2408,15 @@ func (kd KpiDefinition) MarshalJSON() ([]byte, error) {
 	if kd.Description != nil {
 		objectMap["description"] = kd.Description
 	}
-	objectMap["calculationWindow"] = kd.CalculationWindow
+	if kd.CalculationWindow != "" {
+		objectMap["calculationWindow"] = kd.CalculationWindow
+	}
 	if kd.CalculationWindowFieldName != nil {
 		objectMap["calculationWindowFieldName"] = kd.CalculationWindowFieldName
 	}
-	objectMap["function"] = kd.Function
+	if kd.Function != "" {
+		objectMap["function"] = kd.Function
+	}
 	if kd.Expression != nil {
 		objectMap["expression"] = kd.Expression
 	}
@@ -2352,7 +2435,9 @@ func (kd KpiDefinition) MarshalJSON() ([]byte, error) {
 	if kd.ParticipantProfilesMetadata != nil {
 		objectMap["participantProfilesMetadata"] = kd.ParticipantProfilesMetadata
 	}
-	objectMap["provisioningState"] = kd.ProvisioningState
+	if kd.ProvisioningState != "" {
+		objectMap["provisioningState"] = kd.ProvisioningState
+	}
 	if kd.ThresHolds != nil {
 		objectMap["thresHolds"] = kd.ThresHolds
 	}
@@ -2368,12 +2453,11 @@ func (kd KpiDefinition) MarshalJSON() ([]byte, error) {
 // KpiDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type KpiDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future KpiDeleteFuture) Result(client KpiClient) (ar autorest.Response, err error) {
+func (future *KpiDeleteFuture) Result(client KpiClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2381,35 +2465,10 @@ func (future KpiDeleteFuture) Result(client KpiClient) (ar autorest.Response, er
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("customerinsights.KpiDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "customerinsights.KpiDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("customerinsights.KpiDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.KpiDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.KpiDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -2566,6 +2625,24 @@ type KpiResourceFormat struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for KpiResourceFormat.
+func (krf KpiResourceFormat) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if krf.KpiDefinition != nil {
+		objectMap["properties"] = krf.KpiDefinition
+	}
+	if krf.ID != nil {
+		objectMap["id"] = krf.ID
+	}
+	if krf.Name != nil {
+		objectMap["name"] = krf.Name
+	}
+	if krf.Type != nil {
+		objectMap["type"] = krf.Type
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for KpiResourceFormat struct.
 func (krf *KpiResourceFormat) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -2680,11 +2757,15 @@ func (ld LinkDefinition) MarshalJSON() ([]byte, error) {
 	if ld.ParticipantPropertyReferences != nil {
 		objectMap["participantPropertyReferences"] = ld.ParticipantPropertyReferences
 	}
-	objectMap["provisioningState"] = ld.ProvisioningState
+	if ld.ProvisioningState != "" {
+		objectMap["provisioningState"] = ld.ProvisioningState
+	}
 	if ld.ReferenceOnly != nil {
 		objectMap["referenceOnly"] = ld.ReferenceOnly
 	}
-	objectMap["operationType"] = ld.OperationType
+	if ld.OperationType != "" {
+		objectMap["operationType"] = ld.OperationType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -2802,6 +2883,24 @@ type LinkResourceFormat struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for LinkResourceFormat.
+func (lrf LinkResourceFormat) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if lrf.LinkDefinition != nil {
+		objectMap["properties"] = lrf.LinkDefinition
+	}
+	if lrf.ID != nil {
+		objectMap["id"] = lrf.ID
+	}
+	if lrf.Name != nil {
+		objectMap["name"] = lrf.Name
+	}
+	if lrf.Type != nil {
+		objectMap["type"] = lrf.Type
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for LinkResourceFormat struct.
 func (lrf *LinkResourceFormat) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -2856,12 +2955,11 @@ func (lrf *LinkResourceFormat) UnmarshalJSON(body []byte) error {
 // LinksCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type LinksCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future LinksCreateOrUpdateFuture) Result(client LinksClient) (lrf LinkResourceFormat, err error) {
+func (future *LinksCreateOrUpdateFuture) Result(client LinksClient) (lrf LinkResourceFormat, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2869,34 +2967,15 @@ func (future LinksCreateOrUpdateFuture) Result(client LinksClient) (lrf LinkReso
 		return
 	}
 	if !done {
-		return lrf, azure.NewAsyncOpIncompleteError("customerinsights.LinksCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		lrf, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "customerinsights.LinksCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("customerinsights.LinksCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if lrf.Response.Response, err = future.GetResult(sender); err == nil && lrf.Response.Response.StatusCode != http.StatusNoContent {
+		lrf, err = client.CreateOrUpdateResponder(lrf.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "customerinsights.LinksCreateOrUpdateFuture", "Result", lrf.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.LinksCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	lrf, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.LinksCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3255,6 +3334,24 @@ type ProfileResourceFormat struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for ProfileResourceFormat.
+func (prf ProfileResourceFormat) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if prf.ProfileTypeDefinition != nil {
+		objectMap["properties"] = prf.ProfileTypeDefinition
+	}
+	if prf.ID != nil {
+		objectMap["id"] = prf.ID
+	}
+	if prf.Name != nil {
+		objectMap["name"] = prf.Name
+	}
+	if prf.Type != nil {
+		objectMap["type"] = prf.Type
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for ProfileResourceFormat struct.
 func (prf *ProfileResourceFormat) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -3310,12 +3407,11 @@ func (prf *ProfileResourceFormat) UnmarshalJSON(body []byte) error {
 // operation.
 type ProfilesCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ProfilesCreateOrUpdateFuture) Result(client ProfilesClient) (prf ProfileResourceFormat, err error) {
+func (future *ProfilesCreateOrUpdateFuture) Result(client ProfilesClient) (prf ProfileResourceFormat, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3323,34 +3419,15 @@ func (future ProfilesCreateOrUpdateFuture) Result(client ProfilesClient) (prf Pr
 		return
 	}
 	if !done {
-		return prf, azure.NewAsyncOpIncompleteError("customerinsights.ProfilesCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		prf, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "customerinsights.ProfilesCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("customerinsights.ProfilesCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if prf.Response.Response, err = future.GetResult(sender); err == nil && prf.Response.Response.StatusCode != http.StatusNoContent {
+		prf, err = client.CreateOrUpdateResponder(prf.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "customerinsights.ProfilesCreateOrUpdateFuture", "Result", prf.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.ProfilesCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	prf, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.ProfilesCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3358,12 +3435,11 @@ func (future ProfilesCreateOrUpdateFuture) Result(client ProfilesClient) (prf Pr
 // ProfilesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ProfilesDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ProfilesDeleteFuture) Result(client ProfilesClient) (ar autorest.Response, err error) {
+func (future *ProfilesDeleteFuture) Result(client ProfilesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3371,35 +3447,10 @@ func (future ProfilesDeleteFuture) Result(client ProfilesClient) (ar autorest.Re
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("customerinsights.ProfilesDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "customerinsights.ProfilesDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("customerinsights.ProfilesDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.ProfilesDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.ProfilesDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -3452,7 +3503,9 @@ func (ptd ProfileTypeDefinition) MarshalJSON() ([]byte, error) {
 	if ptd.APIEntitySetName != nil {
 		objectMap["apiEntitySetName"] = ptd.APIEntitySetName
 	}
-	objectMap["entityType"] = ptd.EntityType
+	if ptd.EntityType != "" {
+		objectMap["entityType"] = ptd.EntityType
+	}
 	if ptd.Fields != nil {
 		objectMap["fields"] = ptd.Fields
 	}
@@ -3462,7 +3515,9 @@ func (ptd ProfileTypeDefinition) MarshalJSON() ([]byte, error) {
 	if ptd.LastChangedUtc != nil {
 		objectMap["lastChangedUtc"] = ptd.LastChangedUtc
 	}
-	objectMap["provisioningState"] = ptd.ProvisioningState
+	if ptd.ProvisioningState != "" {
+		objectMap["provisioningState"] = ptd.ProvisioningState
+	}
 	if ptd.SchemaItemTypeLink != nil {
 		objectMap["schemaItemTypeLink"] = ptd.SchemaItemTypeLink
 	}
@@ -3576,7 +3631,9 @@ type RelationshipDefinition struct {
 // MarshalJSON is the custom marshaler for RelationshipDefinition.
 func (rd RelationshipDefinition) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
-	objectMap["cardinality"] = rd.Cardinality
+	if rd.Cardinality != "" {
+		objectMap["cardinality"] = rd.Cardinality
+	}
 	if rd.DisplayName != nil {
 		objectMap["displayName"] = rd.DisplayName
 	}
@@ -3595,7 +3652,9 @@ func (rd RelationshipDefinition) MarshalJSON() ([]byte, error) {
 	if rd.ProfileType != nil {
 		objectMap["profileType"] = rd.ProfileType
 	}
-	objectMap["provisioningState"] = rd.ProvisioningState
+	if rd.ProvisioningState != "" {
+		objectMap["provisioningState"] = rd.ProvisioningState
+	}
 	if rd.RelationshipName != nil {
 		objectMap["relationshipName"] = rd.RelationshipName
 	}
@@ -3658,7 +3717,9 @@ func (rld RelationshipLinkDefinition) MarshalJSON() ([]byte, error) {
 	if rld.ProfilePropertyReferences != nil {
 		objectMap["profilePropertyReferences"] = rld.ProfilePropertyReferences
 	}
-	objectMap["provisioningState"] = rld.ProvisioningState
+	if rld.ProvisioningState != "" {
+		objectMap["provisioningState"] = rld.ProvisioningState
+	}
 	if rld.RelatedProfilePropertyReferences != nil {
 		objectMap["relatedProfilePropertyReferences"] = rld.RelatedProfilePropertyReferences
 	}
@@ -3799,6 +3860,24 @@ type RelationshipLinkResourceFormat struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for RelationshipLinkResourceFormat.
+func (rlrf RelationshipLinkResourceFormat) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if rlrf.RelationshipLinkDefinition != nil {
+		objectMap["properties"] = rlrf.RelationshipLinkDefinition
+	}
+	if rlrf.ID != nil {
+		objectMap["id"] = rlrf.ID
+	}
+	if rlrf.Name != nil {
+		objectMap["name"] = rlrf.Name
+	}
+	if rlrf.Type != nil {
+		objectMap["type"] = rlrf.Type
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for RelationshipLinkResourceFormat struct.
 func (rlrf *RelationshipLinkResourceFormat) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -3854,12 +3933,11 @@ func (rlrf *RelationshipLinkResourceFormat) UnmarshalJSON(body []byte) error {
 // operation.
 type RelationshipLinksCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future RelationshipLinksCreateOrUpdateFuture) Result(client RelationshipLinksClient) (rlrf RelationshipLinkResourceFormat, err error) {
+func (future *RelationshipLinksCreateOrUpdateFuture) Result(client RelationshipLinksClient) (rlrf RelationshipLinkResourceFormat, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3867,34 +3945,15 @@ func (future RelationshipLinksCreateOrUpdateFuture) Result(client RelationshipLi
 		return
 	}
 	if !done {
-		return rlrf, azure.NewAsyncOpIncompleteError("customerinsights.RelationshipLinksCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rlrf, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "customerinsights.RelationshipLinksCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("customerinsights.RelationshipLinksCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rlrf.Response.Response, err = future.GetResult(sender); err == nil && rlrf.Response.Response.StatusCode != http.StatusNoContent {
+		rlrf, err = client.CreateOrUpdateResponder(rlrf.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "customerinsights.RelationshipLinksCreateOrUpdateFuture", "Result", rlrf.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.RelationshipLinksCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rlrf, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.RelationshipLinksCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3903,12 +3962,11 @@ func (future RelationshipLinksCreateOrUpdateFuture) Result(client RelationshipLi
 // operation.
 type RelationshipLinksDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future RelationshipLinksDeleteFuture) Result(client RelationshipLinksClient) (ar autorest.Response, err error) {
+func (future *RelationshipLinksDeleteFuture) Result(client RelationshipLinksClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3916,35 +3974,10 @@ func (future RelationshipLinksDeleteFuture) Result(client RelationshipLinksClien
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("customerinsights.RelationshipLinksDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "customerinsights.RelationshipLinksDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("customerinsights.RelationshipLinksDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.RelationshipLinksDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.RelationshipLinksDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -4062,6 +4095,24 @@ type RelationshipResourceFormat struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for RelationshipResourceFormat.
+func (rrf RelationshipResourceFormat) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if rrf.RelationshipDefinition != nil {
+		objectMap["properties"] = rrf.RelationshipDefinition
+	}
+	if rrf.ID != nil {
+		objectMap["id"] = rrf.ID
+	}
+	if rrf.Name != nil {
+		objectMap["name"] = rrf.Name
+	}
+	if rrf.Type != nil {
+		objectMap["type"] = rrf.Type
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for RelationshipResourceFormat struct.
 func (rrf *RelationshipResourceFormat) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -4117,12 +4168,11 @@ func (rrf *RelationshipResourceFormat) UnmarshalJSON(body []byte) error {
 // operation.
 type RelationshipsCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future RelationshipsCreateOrUpdateFuture) Result(client RelationshipsClient) (rrf RelationshipResourceFormat, err error) {
+func (future *RelationshipsCreateOrUpdateFuture) Result(client RelationshipsClient) (rrf RelationshipResourceFormat, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -4130,34 +4180,15 @@ func (future RelationshipsCreateOrUpdateFuture) Result(client RelationshipsClien
 		return
 	}
 	if !done {
-		return rrf, azure.NewAsyncOpIncompleteError("customerinsights.RelationshipsCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rrf, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "customerinsights.RelationshipsCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("customerinsights.RelationshipsCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rrf.Response.Response, err = future.GetResult(sender); err == nil && rrf.Response.Response.StatusCode != http.StatusNoContent {
+		rrf, err = client.CreateOrUpdateResponder(rrf.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "customerinsights.RelationshipsCreateOrUpdateFuture", "Result", rrf.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.RelationshipsCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rrf, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.RelationshipsCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -4165,12 +4196,11 @@ func (future RelationshipsCreateOrUpdateFuture) Result(client RelationshipsClien
 // RelationshipsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type RelationshipsDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future RelationshipsDeleteFuture) Result(client RelationshipsClient) (ar autorest.Response, err error) {
+func (future *RelationshipsDeleteFuture) Result(client RelationshipsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -4178,35 +4208,10 @@ func (future RelationshipsDeleteFuture) Result(client RelationshipsClient) (ar a
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("customerinsights.RelationshipsDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "customerinsights.RelationshipsDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("customerinsights.RelationshipsDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.RelationshipsDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.RelationshipsDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -4348,8 +4353,12 @@ func (ra RoleAssignment) MarshalJSON() ([]byte, error) {
 	if ra.Description != nil {
 		objectMap["description"] = ra.Description
 	}
-	objectMap["provisioningState"] = ra.ProvisioningState
-	objectMap["role"] = ra.Role
+	if ra.ProvisioningState != "" {
+		objectMap["provisioningState"] = ra.ProvisioningState
+	}
+	if ra.Role != "" {
+		objectMap["role"] = ra.Role
+	}
 	if ra.Principals != nil {
 		objectMap["principals"] = ra.Principals
 	}
@@ -4509,6 +4518,24 @@ type RoleAssignmentResourceFormat struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for RoleAssignmentResourceFormat.
+func (rarf RoleAssignmentResourceFormat) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if rarf.RoleAssignment != nil {
+		objectMap["properties"] = rarf.RoleAssignment
+	}
+	if rarf.ID != nil {
+		objectMap["id"] = rarf.ID
+	}
+	if rarf.Name != nil {
+		objectMap["name"] = rarf.Name
+	}
+	if rarf.Type != nil {
+		objectMap["type"] = rarf.Type
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for RoleAssignmentResourceFormat struct.
 func (rarf *RoleAssignmentResourceFormat) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -4564,12 +4591,11 @@ func (rarf *RoleAssignmentResourceFormat) UnmarshalJSON(body []byte) error {
 // operation.
 type RoleAssignmentsCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future RoleAssignmentsCreateOrUpdateFuture) Result(client RoleAssignmentsClient) (rarf RoleAssignmentResourceFormat, err error) {
+func (future *RoleAssignmentsCreateOrUpdateFuture) Result(client RoleAssignmentsClient) (rarf RoleAssignmentResourceFormat, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -4577,34 +4603,15 @@ func (future RoleAssignmentsCreateOrUpdateFuture) Result(client RoleAssignmentsC
 		return
 	}
 	if !done {
-		return rarf, azure.NewAsyncOpIncompleteError("customerinsights.RoleAssignmentsCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rarf, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "customerinsights.RoleAssignmentsCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("customerinsights.RoleAssignmentsCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rarf.Response.Response, err = future.GetResult(sender); err == nil && rarf.Response.Response.StatusCode != http.StatusNoContent {
+		rarf, err = client.CreateOrUpdateResponder(rarf.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "customerinsights.RoleAssignmentsCreateOrUpdateFuture", "Result", rarf.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.RoleAssignmentsCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rarf, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "customerinsights.RoleAssignmentsCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -4720,6 +4727,24 @@ type RoleResourceFormat struct {
 	Name *string `json:"name,omitempty"`
 	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for RoleResourceFormat.
+func (rrf RoleResourceFormat) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if rrf.Role != nil {
+		objectMap["properties"] = rrf.Role
+	}
+	if rrf.ID != nil {
+		objectMap["id"] = rrf.ID
+	}
+	if rrf.Name != nil {
+		objectMap["name"] = rrf.Name
+	}
+	if rrf.Type != nil {
+		objectMap["type"] = rrf.Type
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for RoleResourceFormat struct.
@@ -5011,6 +5036,24 @@ type ViewResourceFormat struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for ViewResourceFormat.
+func (vrf ViewResourceFormat) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if vrf.View != nil {
+		objectMap["properties"] = vrf.View
+	}
+	if vrf.ID != nil {
+		objectMap["id"] = vrf.ID
+	}
+	if vrf.Name != nil {
+		objectMap["name"] = vrf.Name
+	}
+	if vrf.Type != nil {
+		objectMap["type"] = vrf.Type
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for ViewResourceFormat struct.
 func (vrf *ViewResourceFormat) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -5229,6 +5272,24 @@ type WidgetTypeResourceFormat struct {
 	Name *string `json:"name,omitempty"`
 	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for WidgetTypeResourceFormat.
+func (wtrf WidgetTypeResourceFormat) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if wtrf.WidgetType != nil {
+		objectMap["properties"] = wtrf.WidgetType
+	}
+	if wtrf.ID != nil {
+		objectMap["id"] = wtrf.ID
+	}
+	if wtrf.Name != nil {
+		objectMap["name"] = wtrf.Name
+	}
+	if wtrf.Type != nil {
+		objectMap["type"] = wtrf.Type
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for WidgetTypeResourceFormat struct.

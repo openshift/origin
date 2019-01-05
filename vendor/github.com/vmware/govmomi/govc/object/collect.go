@@ -26,6 +26,7 @@ import (
 	"reflect"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	"github.com/vmware/govmomi/govc/cli"
 	"github.com/vmware/govmomi/govc/flags"
@@ -47,6 +48,7 @@ type collect struct {
 	dump   bool
 	n      int
 	kind   kinds
+	wait   time.Duration
 
 	filter property.Filter
 	obj    string
@@ -65,6 +67,7 @@ func (cmd *collect) Register(ctx context.Context, f *flag.FlagSet) {
 	f.StringVar(&cmd.raw, "R", "", "Raw XML encoded CreateFilter request")
 	f.IntVar(&cmd.n, "n", 0, "Wait for N property updates")
 	f.Var(&cmd.kind, "type", "Resource type.  If specified, MOID is used for a container view root")
+	f.DurationVar(&cmd.wait, "wait", 0, "Max wait time for updates")
 }
 
 func (cmd *collect) Usage() string {
@@ -388,41 +391,48 @@ func (cmd *collect) Run(ctx context.Context, f *flag.FlagSet) error {
 	entered := false
 	hasFilter := len(cmd.filter) != 0
 
-	return property.WaitForUpdates(ctx, p, filter, func(updates []types.ObjectUpdate) bool {
-		matches := 0
+	if cmd.wait != 0 {
+		filter.Options = &types.WaitOptions{
+			MaxWaitSeconds: types.NewInt32(int32(cmd.wait.Seconds())),
+		}
+	}
 
-		for _, update := range updates {
-			if entered && update.Kind == types.ObjectUpdateKindEnter {
-				// on the first update we only get kind "enter"
-				// if a new object is added, the next update with have both "enter" and "modify".
-				continue
-			}
-
-			c := &change{cmd, update}
-
-			if hasFilter {
-				if cmd.match(update) {
-					matches++
-				} else {
+	return cmd.WithCancel(ctx, func(wctx context.Context) error {
+		return property.WaitForUpdates(wctx, p, filter, func(updates []types.ObjectUpdate) bool {
+			matches := 0
+			for _, update := range updates {
+				if entered && update.Kind == types.ObjectUpdateKindEnter {
+					// on the first update we only get kind "enter"
+					// if a new object is added, the next update with have both "enter" and "modify".
 					continue
 				}
+
+				c := &change{cmd, update}
+
+				if hasFilter {
+					if cmd.match(update) {
+						matches++
+					} else {
+						continue
+					}
+				}
+
+				_ = cmd.WriteResult(c)
 			}
 
-			_ = cmd.WriteResult(c)
-		}
+			entered = true
 
-		entered = true
+			if hasFilter {
+				if matches > 0 {
+					return true
+				}
 
-		if hasFilter {
-			if matches > 0 {
-				return true
+				return false
 			}
 
-			return false
-		}
+			cmd.n--
 
-		cmd.n--
-
-		return cmd.n == -1
+			return cmd.n == -1 && cmd.wait == 0
+		})
 	})
 }

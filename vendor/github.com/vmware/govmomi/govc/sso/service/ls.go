@@ -34,6 +34,7 @@ type ls struct {
 	*flags.OutputFlag
 
 	long bool
+	url  bool
 
 	types.LookupServiceRegistrationFilter
 }
@@ -50,6 +51,7 @@ func (cmd *ls) Register(ctx context.Context, f *flag.FlagSet) {
 	cmd.OutputFlag.Register(ctx, f)
 
 	f.BoolVar(&cmd.long, "l", false, "Long listing format")
+	f.BoolVar(&cmd.url, "U", false, "List endpoint URL(s) only")
 
 	cmd.LookupServiceRegistrationFilter.EndpointType = new(types.LookupServiceRegistrationEndpointType)
 	cmd.LookupServiceRegistrationFilter.ServiceType = new(types.LookupServiceRegistrationServiceType)
@@ -68,6 +70,7 @@ Examples:
   govc sso.service.ls
   govc sso.service.ls -t vcenterserver -P vmomi
   govc sso.service.ls -t sso:sts
+  govc sso.service.ls -t sso:sts -U
   govc sso.service.ls -t sso:sts -json | jq -r .[].ServiceEndpoints[].Url`
 }
 
@@ -114,6 +117,22 @@ func (r infoResultLong) Write(w io.Writer) error {
 	return tw.Flush()
 }
 
+type infoResultURL []types.LookupServiceRegistrationInfo
+
+func (r infoResultURL) Dump() interface{} {
+	return []types.LookupServiceRegistrationInfo(r)
+}
+
+func (r infoResultURL) Write(w io.Writer) error {
+	for _, info := range r {
+		for _, s := range info.ServiceEndpoints {
+			fmt.Fprintln(w, s.Url)
+		}
+	}
+
+	return nil
+}
+
 func (cmd *ls) Run(ctx context.Context, f *flag.FlagSet) error {
 	vc, err := cmd.Client()
 	if err != nil {
@@ -130,8 +149,12 @@ func (cmd *ls) Run(ctx context.Context, f *flag.FlagSet) error {
 		return err
 	}
 
-	if cmd.long {
+	switch {
+	case cmd.long:
 		return cmd.WriteResult(infoResultLong(info))
+	case cmd.url:
+		return cmd.WriteResult(infoResultURL(info))
+	default:
+		return cmd.WriteResult(infoResult(info))
 	}
-	return cmd.WriteResult(infoResult(info))
 }

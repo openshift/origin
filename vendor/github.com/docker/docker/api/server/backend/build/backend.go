@@ -1,6 +1,7 @@
-package build
+package build // import "github.com/docker/docker/api/server/backend/build"
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/docker/distribution/reference"
@@ -11,13 +12,12 @@ import (
 	"github.com/docker/docker/image"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/pkg/errors"
-	"golang.org/x/net/context"
 )
 
 // ImageComponent provides an interface for working with images
 type ImageComponent interface {
 	SquashImage(from string, to string) (string, error)
-	TagImageWithReference(image.ID, string, reference.Named) error
+	TagImageWithReference(image.ID, reference.Named) error
 }
 
 // Builder defines interface for running a build

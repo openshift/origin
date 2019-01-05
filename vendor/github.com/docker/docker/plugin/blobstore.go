@@ -1,11 +1,13 @@
-package plugin
+package plugin // import "github.com/docker/docker/plugin"
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/docker/docker/distribution/xfer"
 	"github.com/docker/docker/image"
@@ -14,9 +16,9 @@ import (
 	"github.com/docker/docker/pkg/chrootarchive"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/opencontainers/go-digest"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 )
 
 type blobstore interface {
@@ -126,8 +128,7 @@ type downloadManager struct {
 	configDigest digest.Digest
 }
 
-func (dm *downloadManager) Download(ctx context.Context, initialRootFS image.RootFS, platform layer.Platform, layers []xfer.DownloadDescriptor, progressOutput progress.Output) (image.RootFS, func(), error) {
-	// TODO @jhowardmsft LCOW: May need revisiting.
+func (dm *downloadManager) Download(ctx context.Context, initialRootFS image.RootFS, os string, layers []xfer.DownloadDescriptor, progressOutput progress.Output) (image.RootFS, func(), error) {
 	for _, l := range layers {
 		b, err := dm.blobStore.New()
 		if err != nil {
@@ -144,6 +145,7 @@ func (dm *downloadManager) Download(ctx context.Context, initialRootFS image.Roo
 		if err != nil {
 			return initialRootFS, nil, err
 		}
+		defer inflatedLayerData.Close()
 		digester := digest.Canonical.Digester()
 		if _, err := chrootarchive.ApplyLayer(dm.tmpDir, io.TeeReader(inflatedLayerData, digester.Hash())); err != nil {
 			return initialRootFS, nil, err
@@ -179,6 +181,10 @@ func (dm *downloadManager) Put(dt []byte) (digest.Digest, error) {
 func (dm *downloadManager) Get(d digest.Digest) ([]byte, error) {
 	return nil, fmt.Errorf("digest not found")
 }
-func (dm *downloadManager) RootFSAndPlatformFromConfig(c []byte) (*image.RootFS, layer.Platform, error) {
+func (dm *downloadManager) RootFSFromConfig(c []byte) (*image.RootFS, error) {
 	return configToRootFS(c)
+}
+func (dm *downloadManager) PlatformFromConfig(c []byte) (*specs.Platform, error) {
+	// TODO: LCOW/Plugins. This will need revisiting. For now use the runtime OS
+	return &specs.Platform{OS: runtime.GOOS}, nil
 }

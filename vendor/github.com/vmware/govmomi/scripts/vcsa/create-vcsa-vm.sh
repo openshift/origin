@@ -25,8 +25,8 @@ export GOVC_INSECURE=1
 
 name=vcsa
 
-# 6.5 U1g - https://docs.vmware.com/en/VMware-vSphere/6.5/rn/vsphere-vcenter-server-65u1g-release-notes.html
-ova=VMware-vCenter-Server-Appliance-6.5.0.15000-8024368_OVF10.ova
+# 6.7.0c https://docs.vmware.com/en/VMware-vSphere/6.7/rn/vsphere-esxi-vcenter-server-67-release-notes.html
+ova=VMware-vCenter-Server-Appliance-6.7.0.13000-9232925_OVF10.ova
 
 while getopts a:i:n: flag
 do
@@ -140,5 +140,6 @@ else
 EOF
 fi
 
+govc vm.change -vm "$name" -g vmwarePhoton64Guest
 govc vm.power -on "$name"
 govc vm.ip "$name"

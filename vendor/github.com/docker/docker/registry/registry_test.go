@@ -1,12 +1,11 @@
-// +build !solaris
-
-package registry
+package registry // import "github.com/docker/docker/registry"
 
 import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 
@@ -14,6 +13,8 @@ import (
 	"github.com/docker/distribution/registry/client/transport"
 	"github.com/docker/docker/api/types"
 	registrytypes "github.com/docker/docker/api/types/registry"
+	"github.com/gotestyourself/gotestyourself/assert"
+	"github.com/gotestyourself/gotestyourself/skip"
 )
 
 var (
@@ -33,7 +34,7 @@ func spawnTestRegistrySession(t *testing.T) *Session {
 	}
 	userAgent := "docker test client"
 	var tr http.RoundTripper = debugTransport{NewTransport(nil), t.Log}
-	tr = transport.NewTransport(AuthTransport(tr, authConfig, false), DockerHeaders(userAgent, nil)...)
+	tr = transport.NewTransport(AuthTransport(tr, authConfig, false), Headers(userAgent, nil)...)
 	client := HTTPClient(tr)
 	r, err := NewSession(client, authConfig, endpoint)
 	if err != nil {
@@ -54,6 +55,7 @@ func spawnTestRegistrySession(t *testing.T) *Session {
 }
 
 func TestPingRegistryEndpoint(t *testing.T) {
+	skip.If(t, os.Getuid() != 0, "skipping test that requires root")
 	testPing := func(index *registrytypes.IndexInfo, expectedStandalone bool, assertMessage string) {
 		ep, err := NewV1Endpoint(index, "", nil)
 		if err != nil {
@@ -73,6 +75,7 @@ func TestPingRegistryEndpoint(t *testing.T) {
 }
 
 func TestEndpoint(t *testing.T) {
+	skip.If(t, os.Getuid() != 0, "skipping test that requires root")
 	// Simple wrapper to fail test if err != nil
 	expandEndpoint := func(index *registrytypes.IndexInfo) *V1Endpoint {
 		endpoint, err := NewV1Endpoint(index, "", nil)
@@ -539,8 +542,8 @@ func TestNewIndexInfo(t *testing.T) {
 		}
 	}
 
-	config := newServiceConfig(ServiceOptions{})
-	noMirrors := []string{}
+	config := emptyServiceConfig
+	var noMirrors []string
 	expectedIndexInfos := map[string]*registrytypes.IndexInfo{
 		IndexName: {
 			Name:     IndexName,
@@ -570,7 +573,11 @@ func TestNewIndexInfo(t *testing.T) {
 	testIndexInfo(config, expectedIndexInfos)
 
 	publicMirrors := []string{"http://mirror1.local", "http://mirror2.local"}
-	config = makeServiceConfig(publicMirrors, []string{"example.com"})
+	var err error
+	config, err = makeServiceConfig(publicMirrors, []string{"example.com"})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	expectedIndexInfos = map[string]*registrytypes.IndexInfo{
 		IndexName: {
@@ -618,7 +625,10 @@ func TestNewIndexInfo(t *testing.T) {
 	}
 	testIndexInfo(config, expectedIndexInfos)
 
-	config = makeServiceConfig(nil, []string{"42.42.0.0/16"})
+	config, err = makeServiceConfig(nil, []string{"42.42.0.0/16"})
+	if err != nil {
+		t.Fatal(err)
+	}
 	expectedIndexInfos = map[string]*registrytypes.IndexInfo{
 		"example.com": {
 			Name:     "example.com",
@@ -655,6 +665,7 @@ func TestNewIndexInfo(t *testing.T) {
 }
 
 func TestMirrorEndpointLookup(t *testing.T) {
+	skip.If(t, os.Getuid() != 0, "skipping test that requires root")
 	containsMirror := func(endpoints []APIEndpoint) bool {
 		for _, pe := range endpoints {
 			if pe.URL.Host == "my.mirror" {
@@ -663,7 +674,11 @@ func TestMirrorEndpointLookup(t *testing.T) {
 		}
 		return false
 	}
-	s := DefaultService{config: makeServiceConfig([]string{"https://my.mirror"}, nil)}
+	cfg, err := makeServiceConfig([]string{"https://my.mirror"}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := DefaultService{config: cfg}
 
 	imageName, err := reference.WithName(IndexName + "/test/image")
 	if err != nil {
@@ -747,16 +762,12 @@ func TestSearchRepositories(t *testing.T) {
 func TestTrustedLocation(t *testing.T) {
 	for _, url := range []string{"http://example.com", "https://example.com:7777", "http://docker.io", "http://test.docker.com", "https://fakedocker.com"} {
 		req, _ := http.NewRequest("GET", url, nil)
-		if trustedLocation(req) == true {
-			t.Fatalf("'%s' shouldn't be detected as a trusted location", url)
-		}
+		assert.Check(t, !trustedLocation(req))
 	}
 
 	for _, url := range []string{"https://docker.io", "https://test.docker.com:80"} {
 		req, _ := http.NewRequest("GET", url, nil)
-		if trustedLocation(req) == false {
-			t.Fatalf("'%s' should be detected as a trusted location", url)
-		}
+		assert.Check(t, trustedLocation(req))
 	}
 }
 
@@ -844,9 +855,12 @@ func TestAllowNondistributableArtifacts(t *testing.T) {
 		{"invalid.domain.com:5000", []string{"invalid.domain.com:5000"}, true},
 	}
 	for _, tt := range tests {
-		config := newServiceConfig(ServiceOptions{
+		config, err := newServiceConfig(ServiceOptions{
 			AllowNondistributableArtifacts: tt.registries,
 		})
+		if err != nil {
+			t.Error(err)
+		}
 		if v := allowNondistributableArtifacts(config, tt.addr); v != tt.expected {
 			t.Errorf("allowNondistributableArtifacts failed for %q %v, expected %v got %v", tt.addr, tt.registries, tt.expected, v)
 		}
@@ -886,7 +900,10 @@ func TestIsSecureIndex(t *testing.T) {
 		{"invalid.domain.com:5000", []string{"invalid.domain.com:5000"}, false},
 	}
 	for _, tt := range tests {
-		config := makeServiceConfig(nil, tt.insecureRegistries)
+		config, err := makeServiceConfig(nil, tt.insecureRegistries)
+		if err != nil {
+			t.Error(err)
+		}
 		if sec := isSecureIndex(config, tt.addr); sec != tt.expected {
 			t.Errorf("isSecureIndex failed for %q %v, expected %v got %v", tt.addr, tt.insecureRegistries, tt.expected, sec)
 		}

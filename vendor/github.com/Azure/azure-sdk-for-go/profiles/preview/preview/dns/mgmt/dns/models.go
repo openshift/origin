@@ -26,14 +26,6 @@ const (
 )
 
 type BaseClient = original.BaseClient
-
-func New(subscriptionID string) BaseClient {
-	return original.New(subscriptionID)
-}
-func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
-	return original.NewWithBaseURI(baseURI, subscriptionID)
-}
-
 type RecordType = original.RecordType
 
 const (
@@ -49,20 +41,12 @@ const (
 	TXT   RecordType = original.TXT
 )
 
-func PossibleRecordTypeValues() []RecordType {
-	return original.PossibleRecordTypeValues()
-}
-
 type ZoneType = original.ZoneType
 
 const (
 	Private ZoneType = original.Private
 	Public  ZoneType = original.Public
 )
-
-func PossibleZoneTypeValues() []ZoneType {
-	return original.PossibleZoneTypeValues()
-}
 
 type AaaaRecord = original.AaaaRecord
 type ARecord = original.ARecord
@@ -92,7 +76,20 @@ type ZoneProperties = original.ZoneProperties
 type ZonesDeleteFuture = original.ZonesDeleteFuture
 type ZoneUpdate = original.ZoneUpdate
 type RecordSetsClient = original.RecordSetsClient
+type ZonesClient = original.ZonesClient
 
+func New(subscriptionID string) BaseClient {
+	return original.New(subscriptionID)
+}
+func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
+	return original.NewWithBaseURI(baseURI, subscriptionID)
+}
+func PossibleRecordTypeValues() []RecordType {
+	return original.PossibleRecordTypeValues()
+}
+func PossibleZoneTypeValues() []ZoneType {
+	return original.PossibleZoneTypeValues()
+}
 func NewRecordSetsClient(subscriptionID string) RecordSetsClient {
 	return original.NewRecordSetsClient(subscriptionID)
 }
@@ -105,9 +102,6 @@ func UserAgent() string {
 func Version() string {
 	return original.Version()
 }
-
-type ZonesClient = original.ZonesClient
-
 func NewZonesClient(subscriptionID string) ZonesClient {
 	return original.NewZonesClient(subscriptionID)
 }

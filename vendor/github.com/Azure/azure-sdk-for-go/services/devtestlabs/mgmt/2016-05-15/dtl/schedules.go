@@ -41,9 +41,11 @@ func NewSchedulesClientWithBaseURI(baseURI string, subscriptionID string) Schedu
 }
 
 // CreateOrUpdate create or replace an existing schedule.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// schedule. schedule is a schedule.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the schedule.
+// schedule - a schedule.
 func (client SchedulesClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, labName string, name string, schedule Schedule) (result Schedule, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: schedule,
@@ -87,7 +89,7 @@ func (client SchedulesClient) CreateOrUpdatePreparer(ctx context.Context, resour
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DevTestLab/labs/{labName}/schedules/{name}", pathParameters),
@@ -117,9 +119,10 @@ func (client SchedulesClient) CreateOrUpdateResponder(resp *http.Response) (resu
 }
 
 // Delete delete schedule.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// schedule.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the schedule.
 func (client SchedulesClient) Delete(ctx context.Context, resourceGroupName string, labName string, name string) (result autorest.Response, err error) {
 	req, err := client.DeletePreparer(ctx, resourceGroupName, labName, name)
 	if err != nil {
@@ -184,9 +187,10 @@ func (client SchedulesClient) DeleteResponder(resp *http.Response) (result autor
 }
 
 // Execute execute a schedule. This operation can take a while to complete.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// schedule.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the schedule.
 func (client SchedulesClient) Execute(ctx context.Context, resourceGroupName string, labName string, name string) (result SchedulesExecuteFuture, err error) {
 	req, err := client.ExecutePreparer(ctx, resourceGroupName, labName, name)
 	if err != nil {
@@ -228,15 +232,17 @@ func (client SchedulesClient) ExecutePreparer(ctx context.Context, resourceGroup
 // ExecuteSender sends the Execute request. The method will close the
 // http.Response Body if it receives an error.
 func (client SchedulesClient) ExecuteSender(req *http.Request) (future SchedulesExecuteFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -253,9 +259,11 @@ func (client SchedulesClient) ExecuteResponder(resp *http.Response) (result auto
 }
 
 // Get get schedule.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// schedule. expand is specify the $expand query. Example: 'properties($select=status)'
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the schedule.
+// expand - specify the $expand query. Example: 'properties($select=status)'
 func (client SchedulesClient) Get(ctx context.Context, resourceGroupName string, labName string, name string, expand string) (result Schedule, err error) {
 	req, err := client.GetPreparer(ctx, resourceGroupName, labName, name, expand)
 	if err != nil {
@@ -324,11 +332,13 @@ func (client SchedulesClient) GetResponder(resp *http.Response) (result Schedule
 }
 
 // List list schedules in a given lab.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. expand is specify the
-// $expand query. Example: 'properties($select=status)' filter is the filter to apply to the operation. top is the
-// maximum number of resources to return from the operation. orderby is the ordering expression for the results,
-// using OData notation.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// expand - specify the $expand query. Example: 'properties($select=status)'
+// filter - the filter to apply to the operation.
+// top - the maximum number of resources to return from the operation.
+// orderby - the ordering expression for the results, using OData notation.
 func (client SchedulesClient) List(ctx context.Context, resourceGroupName string, labName string, expand string, filter string, top *int32, orderby string) (result ResponseWithContinuationSchedulePage, err error) {
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName, labName, expand, filter, top, orderby)
@@ -433,9 +443,10 @@ func (client SchedulesClient) ListComplete(ctx context.Context, resourceGroupNam
 }
 
 // ListApplicable lists all applicable schedules
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// schedule.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the schedule.
 func (client SchedulesClient) ListApplicable(ctx context.Context, resourceGroupName string, labName string, name string) (result ResponseWithContinuationSchedulePage, err error) {
 	result.fn = client.listApplicableNextResults
 	req, err := client.ListApplicablePreparer(ctx, resourceGroupName, labName, name)
@@ -529,9 +540,11 @@ func (client SchedulesClient) ListApplicableComplete(ctx context.Context, resour
 }
 
 // Update modify properties of schedules.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// schedule. schedule is a schedule.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the schedule.
+// schedule - a schedule.
 func (client SchedulesClient) Update(ctx context.Context, resourceGroupName string, labName string, name string, schedule ScheduleFragment) (result Schedule, err error) {
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, labName, name, schedule)
 	if err != nil {
@@ -569,7 +582,7 @@ func (client SchedulesClient) UpdatePreparer(ctx context.Context, resourceGroupN
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DevTestLab/labs/{labName}/schedules/{name}", pathParameters),

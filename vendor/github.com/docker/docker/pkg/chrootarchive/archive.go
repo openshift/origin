@@ -1,4 +1,4 @@
-package chrootarchive
+package chrootarchive // import "github.com/docker/docker/pkg/chrootarchive"
 
 import (
 	"fmt"
@@ -16,7 +16,10 @@ func NewArchiver(idMappings *idtools.IDMappings) *archive.Archiver {
 	if idMappings == nil {
 		idMappings = &idtools.IDMappings{}
 	}
-	return &archive.Archiver{Untar: Untar, IDMappings: idMappings}
+	return &archive.Archiver{
+		Untar:         Untar,
+		IDMappingsVar: idMappings,
+	}
 }
 
 // Untar reads a stream of bytes from `archive`, parses it as a tar archive,

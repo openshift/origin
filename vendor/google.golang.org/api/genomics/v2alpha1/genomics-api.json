@@ -62,11 +62,6 @@
       "location": "query",
       "type": "string"
     },
-    "bearer_token": {
-      "description": "OAuth bearer token.",
-      "location": "query",
-      "type": "string"
-    },
     "callback": {
       "description": "JSONP",
       "location": "query",
@@ -86,12 +81,6 @@
       "description": "OAuth 2.0 token for the current user.",
       "location": "query",
       "type": "string"
-    },
-    "pp": {
-      "default": "true",
-      "description": "Pretty-print response.",
-      "location": "query",
-      "type": "boolean"
     },
     "prettyPrint": {
       "default": "true",
@@ -278,7 +267,7 @@
       }
     }
   },
-  "revision": "20180528",
+  "revision": "20180607",
   "rootUrl": "https://genomics.googleapis.com/",
   "schemas": {
     "Accelerator": {
@@ -742,7 +731,11 @@
       "id": "Network",
       "properties": {
         "name": {
-          "description": "The network name to attach the VM's network interface to.  If unspecified,\nthe global default network is used.",
+          "description": "The network name to attach the VM's network interface to.  The value will\nbe prefixed with \"global/networks/\" unless it contains a \"/\" in which case\nit is assumed to be a fully specified network resource URL.\n\nIf unspecified, the global default network is used.",
+          "type": "string"
+        },
+        "subnetwork": {
+          "description": "If the specified network is configured for custom subnet creation, the\nname of the subnetwork to attach the instance to must be specified here.\n\nThe value is prefixed with \"regions/*/subnetworks/\" unless it contains a\n\"/\" in which case it is assumed to be a full specified subnetwork resource\nURL.\n\nIf the '*' character appears in the value, it is replaced with the region\nthat the virtual machine has been allocated in.",
           "type": "string"
         },
         "usePrivateAddress": {

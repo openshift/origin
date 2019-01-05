@@ -40,7 +40,11 @@ type iscsiAttacher struct {
 
 var _ volume.Attacher = &iscsiAttacher{}
 
+var _ volume.DeviceMounter = &iscsiAttacher{}
+
 var _ volume.AttachableVolumePlugin = &iscsiPlugin{}
+
+var _ volume.DeviceMountableVolumePlugin = &iscsiPlugin{}
 
 func (plugin *iscsiPlugin) NewAttacher() (volume.Attacher, error) {
 	return &iscsiAttacher{
@@ -50,9 +54,13 @@ func (plugin *iscsiPlugin) NewAttacher() (volume.Attacher, error) {
 	}, nil
 }
 
+func (plugin *iscsiPlugin) NewDeviceMounter() (volume.DeviceMounter, error) {
+	return plugin.NewAttacher()
+}
+
 func (plugin *iscsiPlugin) GetDeviceMountRefs(deviceMountPath string) ([]string, error) {
 	mounter := plugin.host.GetMounter(iscsiPluginName)
-	return mount.GetMountRefs(mounter, deviceMountPath)
+	return mounter.GetMountRefs(deviceMountPath)
 }
 
 func (attacher *iscsiAttacher) Attach(spec *volume.Spec, nodeName types.NodeName) (string, error) {
@@ -134,6 +142,8 @@ type iscsiDetacher struct {
 
 var _ volume.Detacher = &iscsiDetacher{}
 
+var _ volume.DeviceUnmounter = &iscsiDetacher{}
+
 func (plugin *iscsiPlugin) NewDetacher() (volume.Detacher, error) {
 	return &iscsiDetacher{
 		host:    plugin.host,
@@ -141,6 +151,10 @@ func (plugin *iscsiPlugin) NewDetacher() (volume.Detacher, error) {
 		manager: &ISCSIUtil{},
 		plugin:  plugin,
 	}, nil
+}
+
+func (plugin *iscsiPlugin) NewDeviceUnmounter() (volume.DeviceUnmounter, error) {
+	return plugin.NewDetacher()
 }
 
 func (detacher *iscsiDetacher) Detach(volumeName string, nodeName types.NodeName) error {

@@ -1,4 +1,4 @@
-package layer
+package layer // import "github.com/docker/docker/layer"
 
 import (
 	"bytes"
@@ -90,11 +90,8 @@ func TestLayerMigration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fms, err := NewFSMetadataStore(filepath.Join(td, "layers"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	ls, err := NewStoreFromGraphDriver(fms, graph, runtime.GOOS)
+	root := filepath.Join(td, "layers")
+	ls, err := newStoreFromGraphDriver(root, graph, runtime.GOOS)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,14 +107,14 @@ func TestLayerMigration(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	layer1b, err := ls.Register(bytes.NewReader(tar1), "", Platform(runtime.GOOS))
+	layer1b, err := ls.Register(bytes.NewReader(tar1), "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	assertReferences(t, layer1a, layer1b)
 	// Attempt register, should be same
-	layer2a, err := ls.Register(bytes.NewReader(tar2), layer1a.ChainID(), Platform(runtime.GOOS))
+	layer2a, err := ls.Register(bytes.NewReader(tar2), layer1a.ChainID())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -218,11 +215,8 @@ func TestLayerMigrationNoTarsplit(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fms, err := NewFSMetadataStore(filepath.Join(td, "layers"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	ls, err := NewStoreFromGraphDriver(fms, graph, runtime.GOOS)
+	root := filepath.Join(td, "layers")
+	ls, err := newStoreFromGraphDriver(root, graph, runtime.GOOS)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -238,7 +232,7 @@ func TestLayerMigrationNoTarsplit(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	layer1b, err := ls.Register(bytes.NewReader(tar1), "", Platform(runtime.GOOS))
+	layer1b, err := ls.Register(bytes.NewReader(tar1), "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -246,7 +240,7 @@ func TestLayerMigrationNoTarsplit(t *testing.T) {
 	assertReferences(t, layer1a, layer1b)
 
 	// Attempt register, should be same
-	layer2a, err := ls.Register(bytes.NewReader(tar2), layer1a.ChainID(), Platform(runtime.GOOS))
+	layer2a, err := ls.Register(bytes.NewReader(tar2), layer1a.ChainID())
 	if err != nil {
 		t.Fatal(err)
 	}

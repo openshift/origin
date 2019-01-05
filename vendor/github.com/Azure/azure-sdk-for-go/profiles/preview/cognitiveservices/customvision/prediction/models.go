@@ -26,6 +26,10 @@ const (
 )
 
 type BaseClient = original.BaseClient
+type BoundingBox = original.BoundingBox
+type ImagePrediction = original.ImagePrediction
+type ImageURL = original.ImageURL
+type Model = original.Model
 
 func New(aPIKey string) BaseClient {
 	return original.New(aPIKey)
@@ -33,11 +37,6 @@ func New(aPIKey string) BaseClient {
 func NewWithBaseURI(baseURI string, aPIKey string) BaseClient {
 	return original.NewWithBaseURI(baseURI, aPIKey)
 }
-
-type ImagePredictionResultModel = original.ImagePredictionResultModel
-type ImageTagPredictionModel = original.ImageTagPredictionModel
-type ImageURL = original.ImageURL
-
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"
 }

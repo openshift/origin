@@ -206,6 +206,7 @@ type ProjectsJobTriggersService struct {
 
 // GooglePrivacyDlpV2Action: A task to execute on the completion of a
 // job.
+// See https://cloud.google.com/dlp/docs/concepts-actions to learn more.
 type GooglePrivacyDlpV2Action struct {
 	// PubSub: Publish a notification to a pubsub topic.
 	PubSub *GooglePrivacyDlpV2PublishToPubSub `json:"pubSub,omitempty"`
@@ -552,6 +553,8 @@ func (s *GooglePrivacyDlpV2Bucket) MarshalJSON() ([]byte, error) {
 // will first attempt converting the type of the data to be transformed
 // to match
 // the type of the bound before comparing.
+// See https://cloud.google.com/dlp/docs/concepts-bucketing to learn
+// more.
 type GooglePrivacyDlpV2BucketingConfig struct {
 	// Buckets: Set of buckets. Ranges must be non-overlapping.
 	Buckets []*GooglePrivacyDlpV2Bucket `json:"buckets,omitempty"`
@@ -1106,6 +1109,10 @@ type GooglePrivacyDlpV2ContentItem struct {
 	ByteItem *GooglePrivacyDlpV2ByteContentItem `json:"byteItem,omitempty"`
 
 	// Table: Structured content for inspection.
+	// See
+	// https://cloud.google.com/dlp/docs/inspecting-text#inspecting_a_tab
+	// le to
+	// learn more.
 	Table *GooglePrivacyDlpV2Table `json:"table,omitempty"`
 
 	// Value: String data to inspect or redact.
@@ -1424,7 +1431,7 @@ func (s *GooglePrivacyDlpV2CryptoKey) MarshalJSON() ([]byte, error) {
 // Identifiers must be at least two characters long.
 // In the case that the identifier is the empty string, it will be
 // skipped.
-// See [Pseudonymization](/dlp/docs/pseudonymization) for example usage.
+// See https://cloud.google.com/dlp/docs/pseudonymization to learn more.
 type GooglePrivacyDlpV2CryptoReplaceFfxFpeConfig struct {
 	// Possible values:
 	//   "FFX_COMMON_NATIVE_ALPHABET_UNSPECIFIED"
@@ -1679,7 +1686,9 @@ func (s *GooglePrivacyDlpV2DatastoreOptions) MarshalJSON() ([]byte, error) {
 
 // GooglePrivacyDlpV2DateShiftConfig: Shifts dates by random number of
 // days, with option to be consistent for the
-// same context.
+// same context. See
+// https://cloud.google.com/dlp/docs/concepts-date-shifting
+// to learn more.
 type GooglePrivacyDlpV2DateShiftConfig struct {
 	// Context: Points to the field that contains the context, for example,
 	// an entity id.
@@ -1919,6 +1928,8 @@ func (s *GooglePrivacyDlpV2DeidentifyContentResponse) MarshalJSON() ([]byte, err
 
 // GooglePrivacyDlpV2DeidentifyTemplate: The DeidentifyTemplates
 // contains instructions on how to deidentify content.
+// See https://cloud.google.com/dlp/docs/concepts-templates to learn
+// more.
 type GooglePrivacyDlpV2DeidentifyTemplate struct {
 	// CreateTime: The creation timestamp of a inspectTemplate, output only
 	// field.
@@ -2629,10 +2640,10 @@ type GooglePrivacyDlpV2Finding struct {
 	CreateTime string `json:"createTime,omitempty"`
 
 	// InfoType: The type of content that might have been found.
-	// Provided if requested by the `InspectConfig`.
+	// Provided if `excluded_types` is false.
 	InfoType *GooglePrivacyDlpV2InfoType `json:"infoType,omitempty"`
 
-	// Likelihood: Estimate of how likely it is that the `info_type` is
+	// Likelihood: Confidence of how likely it is that the `info_type` is
 	// correct.
 	//
 	// Possible values:
@@ -2650,7 +2661,7 @@ type GooglePrivacyDlpV2Finding struct {
 	// Quote: The content that was found. Even if the content is not
 	// textual, it
 	// may be converted to a textual representation here.
-	// Provided if requested by the `InspectConfig` and the finding is
+	// Provided if `include_quote` is true and the finding is
 	// less than or equal to 4096 bytes long. If the finding exceeds 4096
 	// bytes
 	// in length, the quote may be omitted.
@@ -2750,6 +2761,9 @@ func (s *GooglePrivacyDlpV2FindingLimits) MarshalJSON() ([]byte, error) {
 // being transformed, we will first attempt converting the type of the
 // data to
 // be transformed to match the type of the bound before comparing.
+//
+// See https://cloud.google.com/dlp/docs/concepts-bucketing to learn
+// more.
 type GooglePrivacyDlpV2FixedSizeBucketingConfig struct {
 	// BucketSize: Size of each bucket (except for minimum and maximum
 	// buckets). So if
@@ -2910,7 +2924,7 @@ type GooglePrivacyDlpV2ImageRedactionConfig struct {
 
 	// RedactAllText: If true, all text found in the image, regardless
 	// whether it matches an
-	// info_type, is redacted.
+	// info_type, is redacted. Only one should be provided.
 	RedactAllText bool `json:"redactAllText,omitempty"`
 
 	// RedactionColor: The color to use when redacting content from an
@@ -3088,9 +3102,11 @@ func (s *GooglePrivacyDlpV2InfoTypeStats) MarshalJSON() ([]byte, error) {
 // to text that is identified as a specific
 // info_type.
 type GooglePrivacyDlpV2InfoTypeTransformation struct {
-	// InfoTypes: InfoTypes to apply the transformation to. Empty list will
-	// match all
-	// available infoTypes for this transformation.
+	// InfoTypes: InfoTypes to apply the transformation to. An empty list
+	// will cause
+	// this transformation to apply to all findings that correspond
+	// to
+	// infoTypes that were requested in `InspectConfig`.
 	InfoTypes []*GooglePrivacyDlpV2InfoType `json:"infoTypes,omitempty"`
 
 	// PrimitiveTransformation: Primitive transformation to apply to the
@@ -3174,7 +3190,10 @@ type GooglePrivacyDlpV2InspectConfig struct {
 	//   "CONTENT_IMAGE" - Images found in the data.
 	ContentOptions []string `json:"contentOptions,omitempty"`
 
-	// CustomInfoTypes: Custom infoTypes provided by the user.
+	// CustomInfoTypes: CustomInfoTypes provided by the user.
+	// See
+	// https://cloud.google.com/dlp/docs/creating-custom-infotypes to learn
+	// more.
 	CustomInfoTypes []*GooglePrivacyDlpV2CustomInfoType `json:"customInfoTypes,omitempty"`
 
 	// ExcludeInfoTypes: When true, excludes type information of the
@@ -3191,6 +3210,12 @@ type GooglePrivacyDlpV2InspectConfig struct {
 	// InfoType values returned by ListInfoTypes or listed
 	// at
 	// https://cloud.google.com/dlp/docs/infotypes-reference.
+	//
+	// When no InfoTypes or CustomInfoTypes are specified in a request,
+	// the
+	// system may automatically choose what detectors to run. By default
+	// this may
+	// be all types, but may change over time as detectors are updated.
 	InfoTypes []*GooglePrivacyDlpV2InfoType `json:"infoTypes,omitempty"`
 
 	Limits *GooglePrivacyDlpV2FindingLimits `json:"limits,omitempty"`
@@ -3198,6 +3223,7 @@ type GooglePrivacyDlpV2InspectConfig struct {
 	// MinLikelihood: Only returns findings equal or above this threshold.
 	// The default is
 	// POSSIBLE.
+	// See https://cloud.google.com/dlp/docs/likelihood to learn more.
 	//
 	// Possible values:
 	//   "LIKELIHOOD_UNSPECIFIED" - Default value; same as POSSIBLE.
@@ -3431,7 +3457,9 @@ func (s *GooglePrivacyDlpV2InspectResult) MarshalJSON() ([]byte, error) {
 // configuration (set of types of sensitive data
 // to be detected) to be used anywhere you otherwise would normally
 // specify
-// InspectConfig.
+// InspectConfig. See
+// https://cloud.google.com/dlp/docs/concepts-templates
+// to learn more.
 type GooglePrivacyDlpV2InspectTemplate struct {
 	// CreateTime: The creation timestamp of a inspectTemplate, output only
 	// field.
@@ -3489,6 +3517,8 @@ func (s *GooglePrivacyDlpV2InspectTemplate) MarshalJSON() ([]byte, error) {
 
 // GooglePrivacyDlpV2JobTrigger: Contains a configuration to make dlp
 // api calls on a repeating basis.
+// See https://cloud.google.com/dlp/docs/concepts-job-triggers to learn
+// more.
 type GooglePrivacyDlpV2JobTrigger struct {
 	// CreateTime: The creation timestamp of a triggeredJob, output only
 	// field.
@@ -4562,13 +4592,15 @@ func (s *GooglePrivacyDlpV2NumericalStatsResult) MarshalJSON() ([]byte, error) {
 // GooglePrivacyDlpV2OutputStorageConfig: Cloud repository for storing
 // output.
 type GooglePrivacyDlpV2OutputStorageConfig struct {
-	// OutputSchema: Schema used for writing the findings. Columns are
-	// derived from the
-	// `Finding` object. If appending to an existing table, any columns from
-	// the
-	// predefined schema that are missing will be added. No columns in
-	// the
-	// existing table will be deleted.
+	// OutputSchema: Schema used for writing the findings for Inspect jobs.
+	// This field is only
+	// used for Inspect and must be unspecified for Risk jobs. Columns are
+	// derived
+	// from the `Finding` object. If appending to an existing table, any
+	// columns
+	// from the predefined schema that are missing will be added. No columns
+	// in
+	// the existing table will be deleted.
 	//
 	// If unspecified, then all available columns will be used for a new
 	// table,
@@ -4590,15 +4622,26 @@ type GooglePrivacyDlpV2OutputStorageConfig struct {
 
 	// Table: Store findings in an existing table or a new table in an
 	// existing
-	// dataset. Each column in an existing table must have the same name,
-	// type,
-	// and mode of a field in the `Finding` object. If table_id is not set a
-	// new
-	// one will be generated for you with the following
+	// dataset. If table_id is not set a new one will be generated
+	// for you with the following
 	// format:
 	// dlp_googleapis_yyyy_mm_dd_[dlp_job_id]. Pacific timezone will be used
 	// for
 	// generating the date details.
+	//
+	// For Inspect, each column in an existing output table must have the
+	// same
+	// name, type, and mode of a field in the `Finding` object.
+	//
+	// For Risk, an existing output table should be the output of a
+	// previous
+	// Risk analysis job run on the same source table, with the same
+	// privacy
+	// metric and quasi-identifiers. Risk jobs that analyze the same table
+	// but
+	// compute a different privacy metric, or use different sets
+	// of
+	// quasi-identifiers, cannot store their results in the same table.
 	Table *GooglePrivacyDlpV2BigQueryTable `json:"table,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "OutputSchema") to
@@ -5227,8 +5270,8 @@ type GooglePrivacyDlpV2RedactConfig struct {
 }
 
 // GooglePrivacyDlpV2RedactImageRequest: Request to search for
-// potentially sensitive info in a list of items
-// and replace it with a default or provided content.
+// potentially sensitive info in an image and redact it
+// by covering it with a colored rectangle.
 type GooglePrivacyDlpV2RedactImageRequest struct {
 	// ByteItem: The content must be PNG, JPEG, SVG or BMP.
 	ByteItem *GooglePrivacyDlpV2ByteContentItem `json:"byteItem,omitempty"`
@@ -5236,6 +5279,11 @@ type GooglePrivacyDlpV2RedactImageRequest struct {
 	// ImageRedactionConfigs: The configuration for specifying what content
 	// to redact from images.
 	ImageRedactionConfigs []*GooglePrivacyDlpV2ImageRedactionConfig `json:"imageRedactionConfigs,omitempty"`
+
+	// IncludeFindings: Whether the response should include findings along
+	// with the redacted
+	// image.
+	IncludeFindings bool `json:"includeFindings,omitempty"`
 
 	// InspectConfig: Configuration for the inspector.
 	InspectConfig *GooglePrivacyDlpV2InspectConfig `json:"inspectConfig,omitempty"`
@@ -5271,6 +5319,10 @@ type GooglePrivacyDlpV2RedactImageResponse struct {
 	// found
 	// in the image.
 	ExtractedText string `json:"extractedText,omitempty"`
+
+	// InspectResult: The findings. Populated when include_findings in the
+	// request is true.
+	InspectResult *GooglePrivacyDlpV2InspectResult `json:"inspectResult,omitempty"`
 
 	// RedactedImage: The redacted image. The type will be the same as the
 	// original image.
@@ -5542,6 +5594,9 @@ func (s *GooglePrivacyDlpV2Result) MarshalJSON() ([]byte, error) {
 
 // GooglePrivacyDlpV2RiskAnalysisJobConfig: Configuration for a risk
 // analysis job.
+// See
+// https://cloud.google.com/dlp/docs/concepts-risk-analysis to learn
+// more.
 type GooglePrivacyDlpV2RiskAnalysisJobConfig struct {
 	// Actions: Actions to execute at the completion of the job. Are
 	// executed in the order
@@ -5608,7 +5663,7 @@ func (s *GooglePrivacyDlpV2Row) MarshalJSON() ([]byte, error) {
 // OutputStorageConfig. Only a single instance of this action can
 // be
 // specified.
-// Compatible with: Inspect
+// Compatible with: Inspect, Risk
 type GooglePrivacyDlpV2SaveFindings struct {
 	OutputConfig *GooglePrivacyDlpV2OutputStorageConfig `json:"outputConfig,omitempty"`
 
@@ -5639,13 +5694,13 @@ func (s *GooglePrivacyDlpV2SaveFindings) MarshalJSON() ([]byte, error) {
 type GooglePrivacyDlpV2Schedule struct {
 	// RecurrencePeriodDuration: With this option a job is started a regular
 	// periodic basis. For
-	// example: every 10 minutes.
+	// example: every day (86400 seconds).
 	//
 	// A scheduled start time will be skipped if the previous
 	// execution has not ended when its scheduled time occurs.
 	//
 	// This value must be set to a time duration greater than or equal
-	// to 60 minutes and can be no longer than 60 days.
+	// to 1 day and can be no longer than 60 days.
 	RecurrencePeriodDuration string `json:"recurrencePeriodDuration,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g.
@@ -5819,6 +5874,10 @@ type GooglePrivacyDlpV2SurrogateType struct {
 
 // GooglePrivacyDlpV2Table: Structured content to inspect. Up to 50,000
 // `Value`s per request allowed.
+// See
+// https://cloud.google.com/dlp/docs/inspecting-text#inspecting_a_table
+// to
+// learn more.
 type GooglePrivacyDlpV2Table struct {
 	Headers []*GooglePrivacyDlpV2FieldId `json:"headers,omitempty"`
 
@@ -6721,9 +6780,9 @@ type InfoTypesListCall struct {
 
 // List: Returns a list of the sensitive information types that the DLP
 // API
-// supports. For more information, see [Listing supported
-// predefined
-// infoTypes](/dlp/docs/listing-infotypes).
+// supports. See https://cloud.google.com/dlp/docs/infotypes-reference
+// to
+// learn more.
 func (r *InfoTypesService) List() *InfoTypesListCall {
 	c := &InfoTypesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	return c
@@ -6838,7 +6897,7 @@ func (c *InfoTypesListCall) Do(opts ...googleapi.CallOption) (*GooglePrivacyDlpV
 	}
 	return ret, nil
 	// {
-	//   "description": "Returns a list of the sensitive information types that the DLP API\nsupports. For more information, see [Listing supported predefined\ninfoTypes](/dlp/docs/listing-infotypes).",
+	//   "description": "Returns a list of the sensitive information types that the DLP API\nsupports. See https://cloud.google.com/dlp/docs/infotypes-reference to\nlearn more.",
 	//   "flatPath": "v2/infoTypes",
 	//   "httpMethod": "GET",
 	//   "id": "dlp.infoTypes.list",
@@ -6880,6 +6939,9 @@ type OrganizationsDeidentifyTemplatesCreateCall struct {
 // Create: Creates a DeidentifyTemplate for re-using frequently used
 // configuration
 // for de-identifying content, images, and storage.
+// See https://cloud.google.com/dlp/docs/creating-templates-deid to
+// learn
+// more.
 func (r *OrganizationsDeidentifyTemplatesService) Create(parent string, googleprivacydlpv2createdeidentifytemplaterequest *GooglePrivacyDlpV2CreateDeidentifyTemplateRequest) *OrganizationsDeidentifyTemplatesCreateCall {
 	c := &OrganizationsDeidentifyTemplatesCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -6974,7 +7036,7 @@ func (c *OrganizationsDeidentifyTemplatesCreateCall) Do(opts ...googleapi.CallOp
 	}
 	return ret, nil
 	// {
-	//   "description": "Creates a DeidentifyTemplate for re-using frequently used configuration\nfor de-identifying content, images, and storage.",
+	//   "description": "Creates a DeidentifyTemplate for re-using frequently used configuration\nfor de-identifying content, images, and storage.\nSee https://cloud.google.com/dlp/docs/creating-templates-deid to learn\nmore.",
 	//   "flatPath": "v2/organizations/{organizationsId}/deidentifyTemplates",
 	//   "httpMethod": "POST",
 	//   "id": "dlp.organizations.deidentifyTemplates.create",
@@ -7015,6 +7077,9 @@ type OrganizationsDeidentifyTemplatesDeleteCall struct {
 }
 
 // Delete: Deletes a DeidentifyTemplate.
+// See https://cloud.google.com/dlp/docs/creating-templates-deid to
+// learn
+// more.
 func (r *OrganizationsDeidentifyTemplatesService) Delete(name string) *OrganizationsDeidentifyTemplatesDeleteCall {
 	c := &OrganizationsDeidentifyTemplatesDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -7102,7 +7167,7 @@ func (c *OrganizationsDeidentifyTemplatesDeleteCall) Do(opts ...googleapi.CallOp
 	}
 	return ret, nil
 	// {
-	//   "description": "Deletes a DeidentifyTemplate.",
+	//   "description": "Deletes a DeidentifyTemplate.\nSee https://cloud.google.com/dlp/docs/creating-templates-deid to learn\nmore.",
 	//   "flatPath": "v2/organizations/{organizationsId}/deidentifyTemplates/{deidentifyTemplatesId}",
 	//   "httpMethod": "DELETE",
 	//   "id": "dlp.organizations.deidentifyTemplates.delete",
@@ -7141,6 +7206,9 @@ type OrganizationsDeidentifyTemplatesGetCall struct {
 }
 
 // Get: Gets a DeidentifyTemplate.
+// See https://cloud.google.com/dlp/docs/creating-templates-deid to
+// learn
+// more.
 func (r *OrganizationsDeidentifyTemplatesService) Get(name string) *OrganizationsDeidentifyTemplatesGetCall {
 	c := &OrganizationsDeidentifyTemplatesGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -7242,7 +7310,7 @@ func (c *OrganizationsDeidentifyTemplatesGetCall) Do(opts ...googleapi.CallOptio
 	}
 	return ret, nil
 	// {
-	//   "description": "Gets a DeidentifyTemplate.",
+	//   "description": "Gets a DeidentifyTemplate.\nSee https://cloud.google.com/dlp/docs/creating-templates-deid to learn\nmore.",
 	//   "flatPath": "v2/organizations/{organizationsId}/deidentifyTemplates/{deidentifyTemplatesId}",
 	//   "httpMethod": "GET",
 	//   "id": "dlp.organizations.deidentifyTemplates.get",
@@ -7281,6 +7349,9 @@ type OrganizationsDeidentifyTemplatesListCall struct {
 }
 
 // List: Lists DeidentifyTemplates.
+// See https://cloud.google.com/dlp/docs/creating-templates-deid to
+// learn
+// more.
 func (r *OrganizationsDeidentifyTemplatesService) List(parent string) *OrganizationsDeidentifyTemplatesListCall {
 	c := &OrganizationsDeidentifyTemplatesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -7399,7 +7470,7 @@ func (c *OrganizationsDeidentifyTemplatesListCall) Do(opts ...googleapi.CallOpti
 	}
 	return ret, nil
 	// {
-	//   "description": "Lists DeidentifyTemplates.",
+	//   "description": "Lists DeidentifyTemplates.\nSee https://cloud.google.com/dlp/docs/creating-templates-deid to learn\nmore.",
 	//   "flatPath": "v2/organizations/{organizationsId}/deidentifyTemplates",
 	//   "httpMethod": "GET",
 	//   "id": "dlp.organizations.deidentifyTemplates.list",
@@ -7470,6 +7541,9 @@ type OrganizationsDeidentifyTemplatesPatchCall struct {
 }
 
 // Patch: Updates the DeidentifyTemplate.
+// See https://cloud.google.com/dlp/docs/creating-templates-deid to
+// learn
+// more.
 func (r *OrganizationsDeidentifyTemplatesService) Patch(name string, googleprivacydlpv2updatedeidentifytemplaterequest *GooglePrivacyDlpV2UpdateDeidentifyTemplateRequest) *OrganizationsDeidentifyTemplatesPatchCall {
 	c := &OrganizationsDeidentifyTemplatesPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -7564,7 +7638,7 @@ func (c *OrganizationsDeidentifyTemplatesPatchCall) Do(opts ...googleapi.CallOpt
 	}
 	return ret, nil
 	// {
-	//   "description": "Updates the DeidentifyTemplate.",
+	//   "description": "Updates the DeidentifyTemplate.\nSee https://cloud.google.com/dlp/docs/creating-templates-deid to learn\nmore.",
 	//   "flatPath": "v2/organizations/{organizationsId}/deidentifyTemplates/{deidentifyTemplatesId}",
 	//   "httpMethod": "PATCH",
 	//   "id": "dlp.organizations.deidentifyTemplates.patch",
@@ -7608,6 +7682,8 @@ type OrganizationsInspectTemplatesCreateCall struct {
 // Create: Creates an InspectTemplate for re-using frequently used
 // configuration
 // for inspecting content, images, and storage.
+// See https://cloud.google.com/dlp/docs/creating-templates to learn
+// more.
 func (r *OrganizationsInspectTemplatesService) Create(parent string, googleprivacydlpv2createinspecttemplaterequest *GooglePrivacyDlpV2CreateInspectTemplateRequest) *OrganizationsInspectTemplatesCreateCall {
 	c := &OrganizationsInspectTemplatesCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -7702,7 +7778,7 @@ func (c *OrganizationsInspectTemplatesCreateCall) Do(opts ...googleapi.CallOptio
 	}
 	return ret, nil
 	// {
-	//   "description": "Creates an InspectTemplate for re-using frequently used configuration\nfor inspecting content, images, and storage.",
+	//   "description": "Creates an InspectTemplate for re-using frequently used configuration\nfor inspecting content, images, and storage.\nSee https://cloud.google.com/dlp/docs/creating-templates to learn more.",
 	//   "flatPath": "v2/organizations/{organizationsId}/inspectTemplates",
 	//   "httpMethod": "POST",
 	//   "id": "dlp.organizations.inspectTemplates.create",
@@ -7743,6 +7819,8 @@ type OrganizationsInspectTemplatesDeleteCall struct {
 }
 
 // Delete: Deletes an InspectTemplate.
+// See https://cloud.google.com/dlp/docs/creating-templates to learn
+// more.
 func (r *OrganizationsInspectTemplatesService) Delete(name string) *OrganizationsInspectTemplatesDeleteCall {
 	c := &OrganizationsInspectTemplatesDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -7830,7 +7908,7 @@ func (c *OrganizationsInspectTemplatesDeleteCall) Do(opts ...googleapi.CallOptio
 	}
 	return ret, nil
 	// {
-	//   "description": "Deletes an InspectTemplate.",
+	//   "description": "Deletes an InspectTemplate.\nSee https://cloud.google.com/dlp/docs/creating-templates to learn more.",
 	//   "flatPath": "v2/organizations/{organizationsId}/inspectTemplates/{inspectTemplatesId}",
 	//   "httpMethod": "DELETE",
 	//   "id": "dlp.organizations.inspectTemplates.delete",
@@ -7869,6 +7947,8 @@ type OrganizationsInspectTemplatesGetCall struct {
 }
 
 // Get: Gets an InspectTemplate.
+// See https://cloud.google.com/dlp/docs/creating-templates to learn
+// more.
 func (r *OrganizationsInspectTemplatesService) Get(name string) *OrganizationsInspectTemplatesGetCall {
 	c := &OrganizationsInspectTemplatesGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -7970,7 +8050,7 @@ func (c *OrganizationsInspectTemplatesGetCall) Do(opts ...googleapi.CallOption) 
 	}
 	return ret, nil
 	// {
-	//   "description": "Gets an InspectTemplate.",
+	//   "description": "Gets an InspectTemplate.\nSee https://cloud.google.com/dlp/docs/creating-templates to learn more.",
 	//   "flatPath": "v2/organizations/{organizationsId}/inspectTemplates/{inspectTemplatesId}",
 	//   "httpMethod": "GET",
 	//   "id": "dlp.organizations.inspectTemplates.get",
@@ -8009,6 +8089,8 @@ type OrganizationsInspectTemplatesListCall struct {
 }
 
 // List: Lists InspectTemplates.
+// See https://cloud.google.com/dlp/docs/creating-templates to learn
+// more.
 func (r *OrganizationsInspectTemplatesService) List(parent string) *OrganizationsInspectTemplatesListCall {
 	c := &OrganizationsInspectTemplatesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -8127,7 +8209,7 @@ func (c *OrganizationsInspectTemplatesListCall) Do(opts ...googleapi.CallOption)
 	}
 	return ret, nil
 	// {
-	//   "description": "Lists InspectTemplates.",
+	//   "description": "Lists InspectTemplates.\nSee https://cloud.google.com/dlp/docs/creating-templates to learn more.",
 	//   "flatPath": "v2/organizations/{organizationsId}/inspectTemplates",
 	//   "httpMethod": "GET",
 	//   "id": "dlp.organizations.inspectTemplates.list",
@@ -8198,6 +8280,8 @@ type OrganizationsInspectTemplatesPatchCall struct {
 }
 
 // Patch: Updates the InspectTemplate.
+// See https://cloud.google.com/dlp/docs/creating-templates to learn
+// more.
 func (r *OrganizationsInspectTemplatesService) Patch(name string, googleprivacydlpv2updateinspecttemplaterequest *GooglePrivacyDlpV2UpdateInspectTemplateRequest) *OrganizationsInspectTemplatesPatchCall {
 	c := &OrganizationsInspectTemplatesPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -8292,7 +8376,7 @@ func (c *OrganizationsInspectTemplatesPatchCall) Do(opts ...googleapi.CallOption
 	}
 	return ret, nil
 	// {
-	//   "description": "Updates the InspectTemplate.",
+	//   "description": "Updates the InspectTemplate.\nSee https://cloud.google.com/dlp/docs/creating-templates to learn more.",
 	//   "flatPath": "v2/organizations/{organizationsId}/inspectTemplates/{inspectTemplatesId}",
 	//   "httpMethod": "PATCH",
 	//   "id": "dlp.organizations.inspectTemplates.patch",
@@ -8336,7 +8420,15 @@ type ProjectsContentDeidentifyCall struct {
 // Deidentify: De-identifies potentially sensitive info from a
 // ContentItem.
 // This method has limits on input size and output size.
-// [How-to guide](/dlp/docs/deidentify-sensitive-data)
+// See https://cloud.google.com/dlp/docs/deidentify-sensitive-data
+// to
+// learn more.
+//
+// When no InfoTypes or CustomInfoTypes are specified in this request,
+// the
+// system will automatically choose what detectors to run. By default
+// this may
+// be all types, but may change over time as detectors are updated.
 func (r *ProjectsContentService) Deidentify(parent string, googleprivacydlpv2deidentifycontentrequest *GooglePrivacyDlpV2DeidentifyContentRequest) *ProjectsContentDeidentifyCall {
 	c := &ProjectsContentDeidentifyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -8432,7 +8524,7 @@ func (c *ProjectsContentDeidentifyCall) Do(opts ...googleapi.CallOption) (*Googl
 	}
 	return ret, nil
 	// {
-	//   "description": "De-identifies potentially sensitive info from a ContentItem.\nThis method has limits on input size and output size.\n[How-to guide](/dlp/docs/deidentify-sensitive-data)",
+	//   "description": "De-identifies potentially sensitive info from a ContentItem.\nThis method has limits on input size and output size.\nSee https://cloud.google.com/dlp/docs/deidentify-sensitive-data to\nlearn more.\n\nWhen no InfoTypes or CustomInfoTypes are specified in this request, the\nsystem will automatically choose what detectors to run. By default this may\nbe all types, but may change over time as detectors are updated.",
 	//   "flatPath": "v2/projects/{projectsId}/content:deidentify",
 	//   "httpMethod": "POST",
 	//   "id": "dlp.projects.content.deidentify",
@@ -8476,9 +8568,16 @@ type ProjectsContentInspectCall struct {
 // Inspect: Finds potentially sensitive info in content.
 // This method has limits on input size, processing time, and output
 // size.
-// [How-to guide for text](/dlp/docs/inspecting-text), [How-to guide
-// for
-// images](/dlp/docs/inspecting-images)
+//
+// When no InfoTypes or CustomInfoTypes are specified in this request,
+// the
+// system will automatically choose what detectors to run. By default
+// this may
+// be all types, but may change over time as detectors are updated.
+//
+// For how to guides, see
+// https://cloud.google.com/dlp/docs/inspecting-images
+// and https://cloud.google.com/dlp/docs/inspecting-text,
 func (r *ProjectsContentService) Inspect(parent string, googleprivacydlpv2inspectcontentrequest *GooglePrivacyDlpV2InspectContentRequest) *ProjectsContentInspectCall {
 	c := &ProjectsContentInspectCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -8574,7 +8673,7 @@ func (c *ProjectsContentInspectCall) Do(opts ...googleapi.CallOption) (*GooglePr
 	}
 	return ret, nil
 	// {
-	//   "description": "Finds potentially sensitive info in content.\nThis method has limits on input size, processing time, and output size.\n[How-to guide for text](/dlp/docs/inspecting-text), [How-to guide for\nimages](/dlp/docs/inspecting-images)",
+	//   "description": "Finds potentially sensitive info in content.\nThis method has limits on input size, processing time, and output size.\n\nWhen no InfoTypes or CustomInfoTypes are specified in this request, the\nsystem will automatically choose what detectors to run. By default this may\nbe all types, but may change over time as detectors are updated.\n\nFor how to guides, see https://cloud.google.com/dlp/docs/inspecting-images\nand https://cloud.google.com/dlp/docs/inspecting-text,",
 	//   "flatPath": "v2/projects/{projectsId}/content:inspect",
 	//   "httpMethod": "POST",
 	//   "id": "dlp.projects.content.inspect",
@@ -8615,7 +8714,12 @@ type ProjectsContentReidentifyCall struct {
 	header_                                    http.Header
 }
 
-// Reidentify: Re-identifies content that has been de-identified.
+// Reidentify: Re-identifies content that has been
+// de-identified.
+// See
+// https://cloud.google.com/dlp/docs/pseudonymization#
+// re-identification_in_free_text_code_example
+// to learn more.
 func (r *ProjectsContentService) Reidentify(parent string, googleprivacydlpv2reidentifycontentrequest *GooglePrivacyDlpV2ReidentifyContentRequest) *ProjectsContentReidentifyCall {
 	c := &ProjectsContentReidentifyCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -8711,7 +8815,7 @@ func (c *ProjectsContentReidentifyCall) Do(opts ...googleapi.CallOption) (*Googl
 	}
 	return ret, nil
 	// {
-	//   "description": "Re-identifies content that has been de-identified.",
+	//   "description": "Re-identifies content that has been de-identified.\nSee\nhttps://cloud.google.com/dlp/docs/pseudonymization#re-identification_in_free_text_code_example\nto learn more.",
 	//   "flatPath": "v2/projects/{projectsId}/content:reidentify",
 	//   "httpMethod": "POST",
 	//   "id": "dlp.projects.content.reidentify",
@@ -8755,6 +8859,9 @@ type ProjectsDeidentifyTemplatesCreateCall struct {
 // Create: Creates a DeidentifyTemplate for re-using frequently used
 // configuration
 // for de-identifying content, images, and storage.
+// See https://cloud.google.com/dlp/docs/creating-templates-deid to
+// learn
+// more.
 func (r *ProjectsDeidentifyTemplatesService) Create(parent string, googleprivacydlpv2createdeidentifytemplaterequest *GooglePrivacyDlpV2CreateDeidentifyTemplateRequest) *ProjectsDeidentifyTemplatesCreateCall {
 	c := &ProjectsDeidentifyTemplatesCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -8849,7 +8956,7 @@ func (c *ProjectsDeidentifyTemplatesCreateCall) Do(opts ...googleapi.CallOption)
 	}
 	return ret, nil
 	// {
-	//   "description": "Creates a DeidentifyTemplate for re-using frequently used configuration\nfor de-identifying content, images, and storage.",
+	//   "description": "Creates a DeidentifyTemplate for re-using frequently used configuration\nfor de-identifying content, images, and storage.\nSee https://cloud.google.com/dlp/docs/creating-templates-deid to learn\nmore.",
 	//   "flatPath": "v2/projects/{projectsId}/deidentifyTemplates",
 	//   "httpMethod": "POST",
 	//   "id": "dlp.projects.deidentifyTemplates.create",
@@ -8890,6 +8997,9 @@ type ProjectsDeidentifyTemplatesDeleteCall struct {
 }
 
 // Delete: Deletes a DeidentifyTemplate.
+// See https://cloud.google.com/dlp/docs/creating-templates-deid to
+// learn
+// more.
 func (r *ProjectsDeidentifyTemplatesService) Delete(name string) *ProjectsDeidentifyTemplatesDeleteCall {
 	c := &ProjectsDeidentifyTemplatesDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -8977,7 +9087,7 @@ func (c *ProjectsDeidentifyTemplatesDeleteCall) Do(opts ...googleapi.CallOption)
 	}
 	return ret, nil
 	// {
-	//   "description": "Deletes a DeidentifyTemplate.",
+	//   "description": "Deletes a DeidentifyTemplate.\nSee https://cloud.google.com/dlp/docs/creating-templates-deid to learn\nmore.",
 	//   "flatPath": "v2/projects/{projectsId}/deidentifyTemplates/{deidentifyTemplatesId}",
 	//   "httpMethod": "DELETE",
 	//   "id": "dlp.projects.deidentifyTemplates.delete",
@@ -9016,6 +9126,9 @@ type ProjectsDeidentifyTemplatesGetCall struct {
 }
 
 // Get: Gets a DeidentifyTemplate.
+// See https://cloud.google.com/dlp/docs/creating-templates-deid to
+// learn
+// more.
 func (r *ProjectsDeidentifyTemplatesService) Get(name string) *ProjectsDeidentifyTemplatesGetCall {
 	c := &ProjectsDeidentifyTemplatesGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -9117,7 +9230,7 @@ func (c *ProjectsDeidentifyTemplatesGetCall) Do(opts ...googleapi.CallOption) (*
 	}
 	return ret, nil
 	// {
-	//   "description": "Gets a DeidentifyTemplate.",
+	//   "description": "Gets a DeidentifyTemplate.\nSee https://cloud.google.com/dlp/docs/creating-templates-deid to learn\nmore.",
 	//   "flatPath": "v2/projects/{projectsId}/deidentifyTemplates/{deidentifyTemplatesId}",
 	//   "httpMethod": "GET",
 	//   "id": "dlp.projects.deidentifyTemplates.get",
@@ -9156,6 +9269,9 @@ type ProjectsDeidentifyTemplatesListCall struct {
 }
 
 // List: Lists DeidentifyTemplates.
+// See https://cloud.google.com/dlp/docs/creating-templates-deid to
+// learn
+// more.
 func (r *ProjectsDeidentifyTemplatesService) List(parent string) *ProjectsDeidentifyTemplatesListCall {
 	c := &ProjectsDeidentifyTemplatesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -9274,7 +9390,7 @@ func (c *ProjectsDeidentifyTemplatesListCall) Do(opts ...googleapi.CallOption) (
 	}
 	return ret, nil
 	// {
-	//   "description": "Lists DeidentifyTemplates.",
+	//   "description": "Lists DeidentifyTemplates.\nSee https://cloud.google.com/dlp/docs/creating-templates-deid to learn\nmore.",
 	//   "flatPath": "v2/projects/{projectsId}/deidentifyTemplates",
 	//   "httpMethod": "GET",
 	//   "id": "dlp.projects.deidentifyTemplates.list",
@@ -9345,6 +9461,9 @@ type ProjectsDeidentifyTemplatesPatchCall struct {
 }
 
 // Patch: Updates the DeidentifyTemplate.
+// See https://cloud.google.com/dlp/docs/creating-templates-deid to
+// learn
+// more.
 func (r *ProjectsDeidentifyTemplatesService) Patch(name string, googleprivacydlpv2updatedeidentifytemplaterequest *GooglePrivacyDlpV2UpdateDeidentifyTemplateRequest) *ProjectsDeidentifyTemplatesPatchCall {
 	c := &ProjectsDeidentifyTemplatesPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -9439,7 +9558,7 @@ func (c *ProjectsDeidentifyTemplatesPatchCall) Do(opts ...googleapi.CallOption) 
 	}
 	return ret, nil
 	// {
-	//   "description": "Updates the DeidentifyTemplate.",
+	//   "description": "Updates the DeidentifyTemplate.\nSee https://cloud.google.com/dlp/docs/creating-templates-deid to learn\nmore.",
 	//   "flatPath": "v2/projects/{projectsId}/deidentifyTemplates/{deidentifyTemplatesId}",
 	//   "httpMethod": "PATCH",
 	//   "id": "dlp.projects.deidentifyTemplates.patch",
@@ -9485,6 +9604,10 @@ type ProjectsDlpJobsCancelCall struct {
 // makes a best effort to cancel the DlpJob, but success is
 // not
 // guaranteed.
+// See https://cloud.google.com/dlp/docs/inspecting-storage
+// and
+// https://cloud.google.com/dlp/docs/compute-risk-analysis to learn
+// more.
 func (r *ProjectsDlpJobsService) Cancel(name string, googleprivacydlpv2canceldlpjobrequest *GooglePrivacyDlpV2CancelDlpJobRequest) *ProjectsDlpJobsCancelCall {
 	c := &ProjectsDlpJobsCancelCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -9578,7 +9701,7 @@ func (c *ProjectsDlpJobsCancelCall) Do(opts ...googleapi.CallOption) (*GooglePro
 	}
 	return ret, nil
 	// {
-	//   "description": "Starts asynchronous cancellation on a long-running DlpJob. The server\nmakes a best effort to cancel the DlpJob, but success is not\nguaranteed.",
+	//   "description": "Starts asynchronous cancellation on a long-running DlpJob. The server\nmakes a best effort to cancel the DlpJob, but success is not\nguaranteed.\nSee https://cloud.google.com/dlp/docs/inspecting-storage and\nhttps://cloud.google.com/dlp/docs/compute-risk-analysis to learn more.",
 	//   "flatPath": "v2/projects/{projectsId}/dlpJobs/{dlpJobsId}:cancel",
 	//   "httpMethod": "POST",
 	//   "id": "dlp.projects.dlpJobs.cancel",
@@ -9621,7 +9744,16 @@ type ProjectsDlpJobsCreateCall struct {
 
 // Create: Creates a new job to inspect storage or calculate risk
 // metrics.
-// [How-to guide](/dlp/docs/compute-risk-analysis).
+// See https://cloud.google.com/dlp/docs/inspecting-storage
+// and
+// https://cloud.google.com/dlp/docs/compute-risk-analysis to learn
+// more.
+//
+// When no InfoTypes or CustomInfoTypes are specified in inspect jobs,
+// the
+// system will automatically choose what detectors to run. By default
+// this may
+// be all types, but may change over time as detectors are updated.
 func (r *ProjectsDlpJobsService) Create(parent string, googleprivacydlpv2createdlpjobrequest *GooglePrivacyDlpV2CreateDlpJobRequest) *ProjectsDlpJobsCreateCall {
 	c := &ProjectsDlpJobsCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -9715,7 +9847,7 @@ func (c *ProjectsDlpJobsCreateCall) Do(opts ...googleapi.CallOption) (*GooglePri
 	}
 	return ret, nil
 	// {
-	//   "description": "Creates a new job to inspect storage or calculate risk metrics.\n[How-to guide](/dlp/docs/compute-risk-analysis).",
+	//   "description": "Creates a new job to inspect storage or calculate risk metrics.\nSee https://cloud.google.com/dlp/docs/inspecting-storage and\nhttps://cloud.google.com/dlp/docs/compute-risk-analysis to learn more.\n\nWhen no InfoTypes or CustomInfoTypes are specified in inspect jobs, the\nsystem will automatically choose what detectors to run. By default this may\nbe all types, but may change over time as detectors are updated.",
 	//   "flatPath": "v2/projects/{projectsId}/dlpJobs",
 	//   "httpMethod": "POST",
 	//   "id": "dlp.projects.dlpJobs.create",
@@ -9760,6 +9892,10 @@ type ProjectsDlpJobsDeleteCall struct {
 // no longer interested in the DlpJob result. The job will be cancelled
 // if
 // possible.
+// See https://cloud.google.com/dlp/docs/inspecting-storage
+// and
+// https://cloud.google.com/dlp/docs/compute-risk-analysis to learn
+// more.
 func (r *ProjectsDlpJobsService) Delete(name string) *ProjectsDlpJobsDeleteCall {
 	c := &ProjectsDlpJobsDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -9847,7 +9983,7 @@ func (c *ProjectsDlpJobsDeleteCall) Do(opts ...googleapi.CallOption) (*GooglePro
 	}
 	return ret, nil
 	// {
-	//   "description": "Deletes a long-running DlpJob. This method indicates that the client is\nno longer interested in the DlpJob result. The job will be cancelled if\npossible.",
+	//   "description": "Deletes a long-running DlpJob. This method indicates that the client is\nno longer interested in the DlpJob result. The job will be cancelled if\npossible.\nSee https://cloud.google.com/dlp/docs/inspecting-storage and\nhttps://cloud.google.com/dlp/docs/compute-risk-analysis to learn more.",
 	//   "flatPath": "v2/projects/{projectsId}/dlpJobs/{dlpJobsId}",
 	//   "httpMethod": "DELETE",
 	//   "id": "dlp.projects.dlpJobs.delete",
@@ -9886,6 +10022,10 @@ type ProjectsDlpJobsGetCall struct {
 }
 
 // Get: Gets the latest state of a long-running DlpJob.
+// See https://cloud.google.com/dlp/docs/inspecting-storage
+// and
+// https://cloud.google.com/dlp/docs/compute-risk-analysis to learn
+// more.
 func (r *ProjectsDlpJobsService) Get(name string) *ProjectsDlpJobsGetCall {
 	c := &ProjectsDlpJobsGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -9986,7 +10126,7 @@ func (c *ProjectsDlpJobsGetCall) Do(opts ...googleapi.CallOption) (*GooglePrivac
 	}
 	return ret, nil
 	// {
-	//   "description": "Gets the latest state of a long-running DlpJob.",
+	//   "description": "Gets the latest state of a long-running DlpJob.\nSee https://cloud.google.com/dlp/docs/inspecting-storage and\nhttps://cloud.google.com/dlp/docs/compute-risk-analysis to learn more.",
 	//   "flatPath": "v2/projects/{projectsId}/dlpJobs/{dlpJobsId}",
 	//   "httpMethod": "GET",
 	//   "id": "dlp.projects.dlpJobs.get",
@@ -10024,7 +10164,12 @@ type ProjectsDlpJobsListCall struct {
 	header_      http.Header
 }
 
-// List: Lists DlpJobs that match the specified filter in the request.
+// List: Lists DlpJobs that match the specified filter in the
+// request.
+// See https://cloud.google.com/dlp/docs/inspecting-storage
+// and
+// https://cloud.google.com/dlp/docs/compute-risk-analysis to learn
+// more.
 func (r *ProjectsDlpJobsService) List(parent string) *ProjectsDlpJobsListCall {
 	c := &ProjectsDlpJobsListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -10184,7 +10329,7 @@ func (c *ProjectsDlpJobsListCall) Do(opts ...googleapi.CallOption) (*GooglePriva
 	}
 	return ret, nil
 	// {
-	//   "description": "Lists DlpJobs that match the specified filter in the request.",
+	//   "description": "Lists DlpJobs that match the specified filter in the request.\nSee https://cloud.google.com/dlp/docs/inspecting-storage and\nhttps://cloud.google.com/dlp/docs/compute-risk-analysis to learn more.",
 	//   "flatPath": "v2/projects/{projectsId}/dlpJobs",
 	//   "httpMethod": "GET",
 	//   "id": "dlp.projects.dlpJobs.list",
@@ -10272,7 +10417,15 @@ type ProjectsImageRedactCall struct {
 // Redact: Redacts potentially sensitive info from an image.
 // This method has limits on input size, processing time, and output
 // size.
-// [How-to guide](/dlp/docs/redacting-sensitive-data-images)
+// See https://cloud.google.com/dlp/docs/redacting-sensitive-data-images
+// to
+// learn more.
+//
+// When no InfoTypes or CustomInfoTypes are specified in this request,
+// the
+// system will automatically choose what detectors to run. By default
+// this may
+// be all types, but may change over time as detectors are updated.
 func (r *ProjectsImageService) Redact(parent string, googleprivacydlpv2redactimagerequest *GooglePrivacyDlpV2RedactImageRequest) *ProjectsImageRedactCall {
 	c := &ProjectsImageRedactCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -10367,7 +10520,7 @@ func (c *ProjectsImageRedactCall) Do(opts ...googleapi.CallOption) (*GooglePriva
 	}
 	return ret, nil
 	// {
-	//   "description": "Redacts potentially sensitive info from an image.\nThis method has limits on input size, processing time, and output size.\n[How-to guide](/dlp/docs/redacting-sensitive-data-images)",
+	//   "description": "Redacts potentially sensitive info from an image.\nThis method has limits on input size, processing time, and output size.\nSee https://cloud.google.com/dlp/docs/redacting-sensitive-data-images to\nlearn more.\n\nWhen no InfoTypes or CustomInfoTypes are specified in this request, the\nsystem will automatically choose what detectors to run. By default this may\nbe all types, but may change over time as detectors are updated.",
 	//   "flatPath": "v2/projects/{projectsId}/image:redact",
 	//   "httpMethod": "POST",
 	//   "id": "dlp.projects.image.redact",
@@ -10411,6 +10564,8 @@ type ProjectsInspectTemplatesCreateCall struct {
 // Create: Creates an InspectTemplate for re-using frequently used
 // configuration
 // for inspecting content, images, and storage.
+// See https://cloud.google.com/dlp/docs/creating-templates to learn
+// more.
 func (r *ProjectsInspectTemplatesService) Create(parent string, googleprivacydlpv2createinspecttemplaterequest *GooglePrivacyDlpV2CreateInspectTemplateRequest) *ProjectsInspectTemplatesCreateCall {
 	c := &ProjectsInspectTemplatesCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -10505,7 +10660,7 @@ func (c *ProjectsInspectTemplatesCreateCall) Do(opts ...googleapi.CallOption) (*
 	}
 	return ret, nil
 	// {
-	//   "description": "Creates an InspectTemplate for re-using frequently used configuration\nfor inspecting content, images, and storage.",
+	//   "description": "Creates an InspectTemplate for re-using frequently used configuration\nfor inspecting content, images, and storage.\nSee https://cloud.google.com/dlp/docs/creating-templates to learn more.",
 	//   "flatPath": "v2/projects/{projectsId}/inspectTemplates",
 	//   "httpMethod": "POST",
 	//   "id": "dlp.projects.inspectTemplates.create",
@@ -10546,6 +10701,8 @@ type ProjectsInspectTemplatesDeleteCall struct {
 }
 
 // Delete: Deletes an InspectTemplate.
+// See https://cloud.google.com/dlp/docs/creating-templates to learn
+// more.
 func (r *ProjectsInspectTemplatesService) Delete(name string) *ProjectsInspectTemplatesDeleteCall {
 	c := &ProjectsInspectTemplatesDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -10633,7 +10790,7 @@ func (c *ProjectsInspectTemplatesDeleteCall) Do(opts ...googleapi.CallOption) (*
 	}
 	return ret, nil
 	// {
-	//   "description": "Deletes an InspectTemplate.",
+	//   "description": "Deletes an InspectTemplate.\nSee https://cloud.google.com/dlp/docs/creating-templates to learn more.",
 	//   "flatPath": "v2/projects/{projectsId}/inspectTemplates/{inspectTemplatesId}",
 	//   "httpMethod": "DELETE",
 	//   "id": "dlp.projects.inspectTemplates.delete",
@@ -10672,6 +10829,8 @@ type ProjectsInspectTemplatesGetCall struct {
 }
 
 // Get: Gets an InspectTemplate.
+// See https://cloud.google.com/dlp/docs/creating-templates to learn
+// more.
 func (r *ProjectsInspectTemplatesService) Get(name string) *ProjectsInspectTemplatesGetCall {
 	c := &ProjectsInspectTemplatesGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -10773,7 +10932,7 @@ func (c *ProjectsInspectTemplatesGetCall) Do(opts ...googleapi.CallOption) (*Goo
 	}
 	return ret, nil
 	// {
-	//   "description": "Gets an InspectTemplate.",
+	//   "description": "Gets an InspectTemplate.\nSee https://cloud.google.com/dlp/docs/creating-templates to learn more.",
 	//   "flatPath": "v2/projects/{projectsId}/inspectTemplates/{inspectTemplatesId}",
 	//   "httpMethod": "GET",
 	//   "id": "dlp.projects.inspectTemplates.get",
@@ -10812,6 +10971,8 @@ type ProjectsInspectTemplatesListCall struct {
 }
 
 // List: Lists InspectTemplates.
+// See https://cloud.google.com/dlp/docs/creating-templates to learn
+// more.
 func (r *ProjectsInspectTemplatesService) List(parent string) *ProjectsInspectTemplatesListCall {
 	c := &ProjectsInspectTemplatesListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -10930,7 +11091,7 @@ func (c *ProjectsInspectTemplatesListCall) Do(opts ...googleapi.CallOption) (*Go
 	}
 	return ret, nil
 	// {
-	//   "description": "Lists InspectTemplates.",
+	//   "description": "Lists InspectTemplates.\nSee https://cloud.google.com/dlp/docs/creating-templates to learn more.",
 	//   "flatPath": "v2/projects/{projectsId}/inspectTemplates",
 	//   "httpMethod": "GET",
 	//   "id": "dlp.projects.inspectTemplates.list",
@@ -11001,6 +11162,8 @@ type ProjectsInspectTemplatesPatchCall struct {
 }
 
 // Patch: Updates the InspectTemplate.
+// See https://cloud.google.com/dlp/docs/creating-templates to learn
+// more.
 func (r *ProjectsInspectTemplatesService) Patch(name string, googleprivacydlpv2updateinspecttemplaterequest *GooglePrivacyDlpV2UpdateInspectTemplateRequest) *ProjectsInspectTemplatesPatchCall {
 	c := &ProjectsInspectTemplatesPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -11095,7 +11258,7 @@ func (c *ProjectsInspectTemplatesPatchCall) Do(opts ...googleapi.CallOption) (*G
 	}
 	return ret, nil
 	// {
-	//   "description": "Updates the InspectTemplate.",
+	//   "description": "Updates the InspectTemplate.\nSee https://cloud.google.com/dlp/docs/creating-templates to learn more.",
 	//   "flatPath": "v2/projects/{projectsId}/inspectTemplates/{inspectTemplatesId}",
 	//   "httpMethod": "PATCH",
 	//   "id": "dlp.projects.inspectTemplates.patch",
@@ -11139,6 +11302,8 @@ type ProjectsJobTriggersCreateCall struct {
 // Create: Creates a job trigger to run DLP actions such as scanning
 // storage for
 // sensitive information on a set schedule.
+// See https://cloud.google.com/dlp/docs/creating-job-triggers to learn
+// more.
 func (r *ProjectsJobTriggersService) Create(parent string, googleprivacydlpv2createjobtriggerrequest *GooglePrivacyDlpV2CreateJobTriggerRequest) *ProjectsJobTriggersCreateCall {
 	c := &ProjectsJobTriggersCreateCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -11232,7 +11397,7 @@ func (c *ProjectsJobTriggersCreateCall) Do(opts ...googleapi.CallOption) (*Googl
 	}
 	return ret, nil
 	// {
-	//   "description": "Creates a job trigger to run DLP actions such as scanning storage for\nsensitive information on a set schedule.",
+	//   "description": "Creates a job trigger to run DLP actions such as scanning storage for\nsensitive information on a set schedule.\nSee https://cloud.google.com/dlp/docs/creating-job-triggers to learn more.",
 	//   "flatPath": "v2/projects/{projectsId}/jobTriggers",
 	//   "httpMethod": "POST",
 	//   "id": "dlp.projects.jobTriggers.create",
@@ -11273,6 +11438,8 @@ type ProjectsJobTriggersDeleteCall struct {
 }
 
 // Delete: Deletes a job trigger.
+// See https://cloud.google.com/dlp/docs/creating-job-triggers to learn
+// more.
 func (r *ProjectsJobTriggersService) Delete(name string) *ProjectsJobTriggersDeleteCall {
 	c := &ProjectsJobTriggersDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -11360,7 +11527,7 @@ func (c *ProjectsJobTriggersDeleteCall) Do(opts ...googleapi.CallOption) (*Googl
 	}
 	return ret, nil
 	// {
-	//   "description": "Deletes a job trigger.",
+	//   "description": "Deletes a job trigger.\nSee https://cloud.google.com/dlp/docs/creating-job-triggers to learn more.",
 	//   "flatPath": "v2/projects/{projectsId}/jobTriggers/{jobTriggersId}",
 	//   "httpMethod": "DELETE",
 	//   "id": "dlp.projects.jobTriggers.delete",
@@ -11399,6 +11566,8 @@ type ProjectsJobTriggersGetCall struct {
 }
 
 // Get: Gets a job trigger.
+// See https://cloud.google.com/dlp/docs/creating-job-triggers to learn
+// more.
 func (r *ProjectsJobTriggersService) Get(name string) *ProjectsJobTriggersGetCall {
 	c := &ProjectsJobTriggersGetCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -11499,7 +11668,7 @@ func (c *ProjectsJobTriggersGetCall) Do(opts ...googleapi.CallOption) (*GooglePr
 	}
 	return ret, nil
 	// {
-	//   "description": "Gets a job trigger.",
+	//   "description": "Gets a job trigger.\nSee https://cloud.google.com/dlp/docs/creating-job-triggers to learn more.",
 	//   "flatPath": "v2/projects/{projectsId}/jobTriggers/{jobTriggersId}",
 	//   "httpMethod": "GET",
 	//   "id": "dlp.projects.jobTriggers.get",
@@ -11538,6 +11707,8 @@ type ProjectsJobTriggersListCall struct {
 }
 
 // List: Lists job triggers.
+// See https://cloud.google.com/dlp/docs/creating-job-triggers to learn
+// more.
 func (r *ProjectsJobTriggersService) List(parent string) *ProjectsJobTriggersListCall {
 	c := &ProjectsJobTriggersListCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.parent = parent
@@ -11546,20 +11717,20 @@ func (r *ProjectsJobTriggersService) List(parent string) *ProjectsJobTriggersLis
 
 // OrderBy sets the optional parameter "orderBy": Optional comma
 // separated list of triggeredJob fields to order by,
-// followed by 'asc/desc' postfix, i.e.
-// "create_time asc,name desc,schedule_mode asc". This list
-// is
-// case-insensitive.
+// followed by `asc` or `desc` postfix. This list is
+// case-insensitive,
+// default sorting order is ascending, redundant space characters
+// are
+// insignificant.
 //
-// Example: "name asc,schedule_mode desc, status desc"
+// Example: `name asc,update_time, create_time desc`
 //
-// Supported filters keys and values are:
+// Supported fields are:
 //
 // - `create_time`: corresponds to time the triggeredJob was created.
 // - `update_time`: corresponds to time the triggeredJob was last
 // updated.
-// - `name`: corresponds to JobTrigger's display name.
-// - `status`: corresponds to the triggeredJob status.
+// - `name`: corresponds to JobTrigger's name.
 func (c *ProjectsJobTriggersListCall) OrderBy(orderBy string) *ProjectsJobTriggersListCall {
 	c.urlParams_.Set("orderBy", orderBy)
 	return c
@@ -11574,9 +11745,8 @@ func (c *ProjectsJobTriggersListCall) PageSize(pageSize int64) *ProjectsJobTrigg
 
 // PageToken sets the optional parameter "pageToken": Optional page
 // token to continue retrieval. Comes from previous call
-// to ListJobTriggers. `order_by` and `filter` should not change
-// for
-// subsequent calls, but can be omitted if token is specified.
+// to ListJobTriggers. `order_by` field must not
+// change for subsequent calls.
 func (c *ProjectsJobTriggersListCall) PageToken(pageToken string) *ProjectsJobTriggersListCall {
 	c.urlParams_.Set("pageToken", pageToken)
 	return c
@@ -11678,7 +11848,7 @@ func (c *ProjectsJobTriggersListCall) Do(opts ...googleapi.CallOption) (*GoogleP
 	}
 	return ret, nil
 	// {
-	//   "description": "Lists job triggers.",
+	//   "description": "Lists job triggers.\nSee https://cloud.google.com/dlp/docs/creating-job-triggers to learn more.",
 	//   "flatPath": "v2/projects/{projectsId}/jobTriggers",
 	//   "httpMethod": "GET",
 	//   "id": "dlp.projects.jobTriggers.list",
@@ -11687,7 +11857,7 @@ func (c *ProjectsJobTriggersListCall) Do(opts ...googleapi.CallOption) (*GoogleP
 	//   ],
 	//   "parameters": {
 	//     "orderBy": {
-	//       "description": "Optional comma separated list of triggeredJob fields to order by,\nfollowed by 'asc/desc' postfix, i.e.\n`\"create_time asc,name desc,schedule_mode asc\"`. This list is\ncase-insensitive.\n\nExample: `\"name asc,schedule_mode desc, status desc\"`\n\nSupported filters keys and values are:\n\n- `create_time`: corresponds to time the triggeredJob was created.\n- `update_time`: corresponds to time the triggeredJob was last updated.\n- `name`: corresponds to JobTrigger's display name.\n- `status`: corresponds to the triggeredJob status.",
+	//       "description": "Optional comma separated list of triggeredJob fields to order by,\nfollowed by `asc` or `desc` postfix. This list is case-insensitive,\ndefault sorting order is ascending, redundant space characters are\ninsignificant.\n\nExample: `name asc,update_time, create_time desc`\n\nSupported fields are:\n\n- `create_time`: corresponds to time the triggeredJob was created.\n- `update_time`: corresponds to time the triggeredJob was last updated.\n- `name`: corresponds to JobTrigger's name.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -11698,12 +11868,12 @@ func (c *ProjectsJobTriggersListCall) Do(opts ...googleapi.CallOption) (*GoogleP
 	//       "type": "integer"
 	//     },
 	//     "pageToken": {
-	//       "description": "Optional page token to continue retrieval. Comes from previous call\nto ListJobTriggers. `order_by` and `filter` should not change for\nsubsequent calls, but can be omitted if token is specified.",
+	//       "description": "Optional page token to continue retrieval. Comes from previous call\nto ListJobTriggers. `order_by` field must not\nchange for subsequent calls.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
 	//     "parent": {
-	//       "description": "The parent resource name, for example projects/my-project-id.",
+	//       "description": "The parent resource name, for example `projects/my-project-id`.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+$",
 	//       "required": true,
@@ -11754,6 +11924,8 @@ type ProjectsJobTriggersPatchCall struct {
 }
 
 // Patch: Updates a job trigger.
+// See https://cloud.google.com/dlp/docs/creating-job-triggers to learn
+// more.
 func (r *ProjectsJobTriggersService) Patch(name string, googleprivacydlpv2updatejobtriggerrequest *GooglePrivacyDlpV2UpdateJobTriggerRequest) *ProjectsJobTriggersPatchCall {
 	c := &ProjectsJobTriggersPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -11847,7 +12019,7 @@ func (c *ProjectsJobTriggersPatchCall) Do(opts ...googleapi.CallOption) (*Google
 	}
 	return ret, nil
 	// {
-	//   "description": "Updates a job trigger.",
+	//   "description": "Updates a job trigger.\nSee https://cloud.google.com/dlp/docs/creating-job-triggers to learn more.",
 	//   "flatPath": "v2/projects/{projectsId}/jobTriggers/{jobTriggersId}",
 	//   "httpMethod": "PATCH",
 	//   "id": "dlp.projects.jobTriggers.patch",

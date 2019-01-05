@@ -33,11 +33,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
+	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
 )
@@ -190,16 +190,15 @@ func (o *PatchOptions) RunPatch() error {
 		return fmt.Errorf("unable to parse %q: %v", o.Patch, err)
 	}
 
-	b := o.builder.
+	r := o.builder.
 		Unstructured().
 		ContinueOnError().
+		LocalParam(o.Local).
 		NamespaceParam(o.namespace).DefaultNamespace().
 		FilenameParam(o.enforceNamespace, &o.FilenameOptions).
-		LocalParam(o.Local).
 		ResourceTypeOrNameArgs(false, o.args...).
-		Flatten()
-
-	r := b.Do()
+		Flatten().
+		Do()
 	err = r.Err()
 	if err != nil {
 		return err
@@ -212,6 +211,7 @@ func (o *PatchOptions) RunPatch() error {
 		}
 		count++
 		name, namespace := info.Name, info.Namespace
+
 		if !o.Local && !o.dryRun {
 			mapping := info.ResourceMapping()
 			client, err := o.unstructuredClientForMapping(mapping)
@@ -220,7 +220,7 @@ func (o *PatchOptions) RunPatch() error {
 			}
 
 			helper := resource.NewHelper(client, mapping)
-			patchedObj, err := helper.Patch(namespace, name, patchType, patchBytes)
+			patchedObj, err := helper.Patch(namespace, name, patchType, patchBytes, nil)
 			if err != nil {
 				return err
 			}
@@ -231,7 +231,7 @@ func (o *PatchOptions) RunPatch() error {
 			if mergePatch, err := o.Recorder.MakeRecordMergePatch(patchedObj); err != nil {
 				glog.V(4).Infof("error recording current command: %v", err)
 			} else if len(mergePatch) > 0 {
-				if recordedObj, err := helper.Patch(info.Namespace, info.Name, types.MergePatchType, mergePatch); err != nil {
+				if recordedObj, err := helper.Patch(info.Namespace, info.Name, types.MergePatchType, mergePatch, nil); err != nil {
 					glog.V(4).Infof("error recording reason: %v", err)
 				} else {
 					patchedObj = recordedObj
@@ -261,7 +261,6 @@ func (o *PatchOptions) RunPatch() error {
 		}
 
 		didPatch := !reflect.DeepEqual(info.Object, targetObj)
-
 		printer, err := o.ToPrinter(patchOperation(didPatch))
 		if err != nil {
 			return err
@@ -284,7 +283,15 @@ func getPatchedJSON(patchType types.PatchType, originalJS, patchJS []byte, gvk s
 		if err != nil {
 			return nil, err
 		}
-		return patchObj.Apply(originalJS)
+		bytes, err := patchObj.Apply(originalJS)
+		// TODO: This is pretty hacky, we need a better structured error from the json-patch
+		if err != nil && strings.Contains(err.Error(), "doc is missing key") {
+			msg := err.Error()
+			ix := strings.Index(msg, "key:")
+			key := msg[ix+5:]
+			return bytes, fmt.Errorf("Object to be patched is missing field (%s)", key)
+		}
+		return bytes, err
 
 	case types.MergePatchType:
 		return jsonpatch.MergePatch(originalJS, patchJS)
@@ -307,5 +314,5 @@ func patchOperation(didPatch bool) string {
 	if didPatch {
 		return "patched"
 	}
-	return "not patched"
+	return "patched (no change)"
 }

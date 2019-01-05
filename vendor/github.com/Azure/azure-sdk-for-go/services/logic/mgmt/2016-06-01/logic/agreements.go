@@ -41,9 +41,11 @@ func NewAgreementsClientWithBaseURI(baseURI string, subscriptionID string) Agree
 }
 
 // CreateOrUpdate creates or updates an integration account agreement.
-//
-// resourceGroupName is the resource group name. integrationAccountName is the integration account name.
-// agreementName is the integration account agreement name. agreement is the integration account agreement.
+// Parameters:
+// resourceGroupName - the resource group name.
+// integrationAccountName - the integration account name.
+// agreementName - the integration account agreement name.
+// agreement - the integration account agreement.
 func (client AgreementsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, integrationAccountName string, agreementName string, agreement IntegrationAccountAgreement) (result IntegrationAccountAgreement, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: agreement,
@@ -516,7 +518,7 @@ func (client AgreementsClient) CreateOrUpdatePreparer(ctx context.Context, resou
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Logic/integrationAccounts/{integrationAccountName}/agreements/{agreementName}", pathParameters),
@@ -546,9 +548,10 @@ func (client AgreementsClient) CreateOrUpdateResponder(resp *http.Response) (res
 }
 
 // Delete deletes an integration account agreement.
-//
-// resourceGroupName is the resource group name. integrationAccountName is the integration account name.
-// agreementName is the integration account agreement name.
+// Parameters:
+// resourceGroupName - the resource group name.
+// integrationAccountName - the integration account name.
+// agreementName - the integration account agreement name.
 func (client AgreementsClient) Delete(ctx context.Context, resourceGroupName string, integrationAccountName string, agreementName string) (result autorest.Response, err error) {
 	req, err := client.DeletePreparer(ctx, resourceGroupName, integrationAccountName, agreementName)
 	if err != nil {
@@ -613,9 +616,10 @@ func (client AgreementsClient) DeleteResponder(resp *http.Response) (result auto
 }
 
 // Get gets an integration account agreement.
-//
-// resourceGroupName is the resource group name. integrationAccountName is the integration account name.
-// agreementName is the integration account agreement name.
+// Parameters:
+// resourceGroupName - the resource group name.
+// integrationAccountName - the integration account name.
+// agreementName - the integration account agreement name.
 func (client AgreementsClient) Get(ctx context.Context, resourceGroupName string, integrationAccountName string, agreementName string) (result IntegrationAccountAgreement, err error) {
 	req, err := client.GetPreparer(ctx, resourceGroupName, integrationAccountName, agreementName)
 	if err != nil {
@@ -681,9 +685,11 @@ func (client AgreementsClient) GetResponder(resp *http.Response) (result Integra
 }
 
 // ListByIntegrationAccounts gets a list of integration account agreements.
-//
-// resourceGroupName is the resource group name. integrationAccountName is the integration account name. top is the
-// number of items to be included in the result. filter is the filter to apply on the operation.
+// Parameters:
+// resourceGroupName - the resource group name.
+// integrationAccountName - the integration account name.
+// top - the number of items to be included in the result.
+// filter - the filter to apply on the operation. Options for filters include: AgreementType.
 func (client AgreementsClient) ListByIntegrationAccounts(ctx context.Context, resourceGroupName string, integrationAccountName string, top *int32, filter string) (result IntegrationAccountAgreementListResultPage, err error) {
 	result.fn = client.listByIntegrationAccountsNextResults
 	req, err := client.ListByIntegrationAccountsPreparer(ctx, resourceGroupName, integrationAccountName, top, filter)
@@ -778,5 +784,76 @@ func (client AgreementsClient) listByIntegrationAccountsNextResults(lastResults 
 // ListByIntegrationAccountsComplete enumerates all values, automatically crossing page boundaries as required.
 func (client AgreementsClient) ListByIntegrationAccountsComplete(ctx context.Context, resourceGroupName string, integrationAccountName string, top *int32, filter string) (result IntegrationAccountAgreementListResultIterator, err error) {
 	result.page, err = client.ListByIntegrationAccounts(ctx, resourceGroupName, integrationAccountName, top, filter)
+	return
+}
+
+// ListContentCallbackURL get the content callback url.
+// Parameters:
+// resourceGroupName - the resource group name.
+// integrationAccountName - the integration account name.
+// agreementName - the integration account agreement name.
+func (client AgreementsClient) ListContentCallbackURL(ctx context.Context, resourceGroupName string, integrationAccountName string, agreementName string, listContentCallbackURL GetCallbackURLParameters) (result WorkflowTriggerCallbackURL, err error) {
+	req, err := client.ListContentCallbackURLPreparer(ctx, resourceGroupName, integrationAccountName, agreementName, listContentCallbackURL)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "logic.AgreementsClient", "ListContentCallbackURL", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.ListContentCallbackURLSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "logic.AgreementsClient", "ListContentCallbackURL", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.ListContentCallbackURLResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "logic.AgreementsClient", "ListContentCallbackURL", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ListContentCallbackURLPreparer prepares the ListContentCallbackURL request.
+func (client AgreementsClient) ListContentCallbackURLPreparer(ctx context.Context, resourceGroupName string, integrationAccountName string, agreementName string, listContentCallbackURL GetCallbackURLParameters) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"agreementName":          autorest.Encode("path", agreementName),
+		"integrationAccountName": autorest.Encode("path", integrationAccountName),
+		"resourceGroupName":      autorest.Encode("path", resourceGroupName),
+		"subscriptionId":         autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2016-06-01"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsContentType("application/json; charset=utf-8"),
+		autorest.AsPost(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Logic/integrationAccounts/{integrationAccountName}/agreements/{agreementName}/listContentCallbackUrl", pathParameters),
+		autorest.WithJSON(listContentCallbackURL),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// ListContentCallbackURLSender sends the ListContentCallbackURL request. The method will close the
+// http.Response Body if it receives an error.
+func (client AgreementsClient) ListContentCallbackURLSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+}
+
+// ListContentCallbackURLResponder handles the response to the ListContentCallbackURL request. The method always
+// closes the http.Response Body.
+func (client AgreementsClient) ListContentCallbackURLResponder(resp *http.Response) (result WorkflowTriggerCallbackURL, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
 	return
 }

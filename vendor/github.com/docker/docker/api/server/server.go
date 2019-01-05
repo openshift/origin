@@ -1,6 +1,7 @@
-package server
+package server // import "github.com/docker/docker/api/server"
 
 import (
+	"context"
 	"crypto/tls"
 	"net"
 	"net/http"
@@ -13,7 +14,6 @@ import (
 	"github.com/docker/docker/dockerversion"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 )
 
 // versionMatcher defines a variable matcher to be parsed by the router
@@ -23,7 +23,6 @@ const versionMatcher = "/v{version:[0-9.]+}"
 // Config provides the configuration for the API server
 type Config struct {
 	Logging     bool
-	EnableCors  bool
 	CorsHeaders string
 	Version     string
 	SocketGroup string
@@ -127,7 +126,11 @@ func (s *Server) makeHTTPHandler(handler httputils.APIFunc) http.HandlerFunc {
 		// apply to all requests. Data that is specific to the
 		// immediate function being called should still be passed
 		// as 'args' on the function call.
-		ctx := context.WithValue(context.Background(), dockerversion.UAStringKey, r.Header.Get("User-Agent"))
+
+		// use intermediate variable to prevent "should not use basic type
+		// string as key in context.WithValue" golint errors
+		var ki interface{} = dockerversion.UAStringKey
+		ctx := context.WithValue(context.Background(), ki, r.Header.Get("User-Agent"))
 		handlerFunc := s.handlerWithGlobalMiddlewares(handler)
 
 		vars := mux.Vars(r)

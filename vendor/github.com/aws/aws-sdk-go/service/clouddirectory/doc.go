@@ -10,14 +10,14 @@
 // about AWS Directory Services features, see AWS Directory Service (https://aws.amazon.com/directoryservice/)
 // and the AWS Directory Service Administration Guide (http://docs.aws.amazon.com/directoryservice/latest/admin-guide/what_is.html).
 //
-// See https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2016-05-10 for more information on this service.
+// See https://docs.aws.amazon.com/goto/WebAPI/clouddirectory-2017-01-11 for more information on this service.
 //
 // See clouddirectory package documentation for more information.
 // https://docs.aws.amazon.com/sdk-for-go/api/service/clouddirectory/
 //
 // Using the Client
 //
-// To Amazon CloudDirectory with the SDK use the New function to create
+// To contact Amazon CloudDirectory with the SDK use the New function to create
 // a new service client. With that client you can make API requests to the service.
 // These clients are safe to use concurrently.
 //

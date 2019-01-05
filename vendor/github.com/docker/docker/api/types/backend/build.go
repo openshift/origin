@@ -1,4 +1,4 @@
-package backend
+package backend // import "github.com/docker/docker/api/types/backend"
 
 import (
 	"io"
@@ -40,5 +40,5 @@ type GetImageAndLayerOptions struct {
 	PullOption PullOption
 	AuthConfig map[string]types.AuthConfig
 	Output     io.Writer
-	Platform   string
+	OS         string
 }

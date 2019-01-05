@@ -90,6 +90,24 @@ func TestSearchIndex(t *testing.T) {
 			t.Errorf("moref mismatch %s != %s", ref, vm.Reference())
 		}
 
+		ref, err = si.FindByUuid(ctx, dc, vm.Config.Uuid, true, types.NewBool(false))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if ref.Reference() != vm.Reference() {
+			t.Errorf("moref mismatch %s != %s", ref, vm.Reference())
+		}
+
+		ref, err = si.FindByUuid(ctx, dc, vm.Config.InstanceUuid, true, types.NewBool(true))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if ref.Reference() != vm.Reference() {
+			t.Errorf("moref mismatch %s != %s", ref, vm.Reference())
+		}
+
 		ref, err = si.FindByUuid(ctx, dc, vm.Config.Uuid, false, nil)
 		if err != nil {
 			t.Fatal(err)

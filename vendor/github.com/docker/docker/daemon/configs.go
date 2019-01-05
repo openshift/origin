@@ -1,4 +1,4 @@
-package daemon
+package daemon // import "github.com/docker/docker/daemon"
 
 import (
 	swarmtypes "github.com/docker/docker/api/types/swarm"
@@ -16,8 +16,6 @@ func (daemon *Daemon) SetContainerConfigReferences(name string, refs []*swarmtyp
 	if err != nil {
 		return err
 	}
-
-	c.ConfigReferences = refs
-
+	c.ConfigReferences = append(c.ConfigReferences, refs...)
 	return nil
 }

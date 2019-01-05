@@ -18,8 +18,6 @@ package projected
 
 import (
 	"fmt"
-	"sort"
-	"strings"
 
 	authenticationv1 "k8s.io/api/authentication/v1"
 	"k8s.io/api/core/v1"
@@ -200,6 +198,8 @@ func (s *projectedVolumeMounter) SetUpAt(dir string, fsGroup *int64) error {
 		glog.Errorf("Error preparing data for projected volume %v for pod %v/%v: %s", s.volName, s.pod.Namespace, s.pod.Name, err.Error())
 		return err
 	}
+
+	setupSuccess := false
 	if err := wrapped.SetUpAt(dir, fsGroup); err != nil {
 		return err
 	}
@@ -207,6 +207,21 @@ func (s *projectedVolumeMounter) SetUpAt(dir string, fsGroup *int64) error {
 	if err := volumeutil.MakeNestedMountpoints(s.volName, dir, *s.pod); err != nil {
 		return err
 	}
+
+	defer func() {
+		// Clean up directories if setup fails
+		if !setupSuccess {
+			unmounter, unmountCreateErr := s.plugin.NewUnmounter(s.volName, s.podUID)
+			if unmountCreateErr != nil {
+				glog.Errorf("error cleaning up mount %s after failure. Create unmounter failed with %v", s.volName, unmountCreateErr)
+				return
+			}
+			tearDownErr := unmounter.TearDown()
+			if tearDownErr != nil {
+				glog.Errorf("error tearing down volume %s with : %v", s.volName, tearDownErr)
+			}
+		}
+	}()
 
 	writerContext := fmt.Sprintf("pod %v/%v volume %v", s.pod.Namespace, s.pod.Name, s.volName)
 	writer, err := volumeutil.NewAtomicWriter(dir, writerContext)
@@ -226,6 +241,7 @@ func (s *projectedVolumeMounter) SetUpAt(dir string, fsGroup *int64) error {
 		glog.Errorf("Error applying volume ownership settings for group: %v", fsGroup)
 		return err
 	}
+	setupSuccess = true
 	return nil
 }
 
@@ -335,12 +351,6 @@ func (s *projectedVolumeMounter) collectData() (map[string]volumeutil.FileProjec
 	return payload, utilerrors.NewAggregate(errlist)
 }
 
-func sortLines(values string) string {
-	splitted := strings.Split(values, "\n")
-	sort.Strings(splitted)
-	return strings.Join(splitted, "\n")
-}
-
 type projectedVolumeUnmounter struct {
 	*projectedVolume
 }
@@ -362,13 +372,9 @@ func (c *projectedVolumeUnmounter) TearDownAt(dir string) error {
 }
 
 func getVolumeSource(spec *volume.Spec) (*v1.ProjectedVolumeSource, bool, error) {
-	var readOnly bool
-	var volumeSource *v1.ProjectedVolumeSource
-
 	if spec.Volume != nil && spec.Volume.Projected != nil {
-		volumeSource = spec.Volume.Projected
-		readOnly = spec.ReadOnly
+		return spec.Volume.Projected, spec.ReadOnly, nil
 	}
 
-	return volumeSource, readOnly, fmt.Errorf("Spec does not reference a projected volume type")
+	return nil, false, fmt.Errorf("Spec does not reference a projected volume type")
 }

@@ -260,13 +260,25 @@ type GameLiftAPI interface {
 	SearchGameSessionsWithContext(aws.Context, *gamelift.SearchGameSessionsInput, ...request.Option) (*gamelift.SearchGameSessionsOutput, error)
 	SearchGameSessionsRequest(*gamelift.SearchGameSessionsInput) (*request.Request, *gamelift.SearchGameSessionsOutput)
 
+	StartFleetActions(*gamelift.StartFleetActionsInput) (*gamelift.StartFleetActionsOutput, error)
+	StartFleetActionsWithContext(aws.Context, *gamelift.StartFleetActionsInput, ...request.Option) (*gamelift.StartFleetActionsOutput, error)
+	StartFleetActionsRequest(*gamelift.StartFleetActionsInput) (*request.Request, *gamelift.StartFleetActionsOutput)
+
 	StartGameSessionPlacement(*gamelift.StartGameSessionPlacementInput) (*gamelift.StartGameSessionPlacementOutput, error)
 	StartGameSessionPlacementWithContext(aws.Context, *gamelift.StartGameSessionPlacementInput, ...request.Option) (*gamelift.StartGameSessionPlacementOutput, error)
 	StartGameSessionPlacementRequest(*gamelift.StartGameSessionPlacementInput) (*request.Request, *gamelift.StartGameSessionPlacementOutput)
 
+	StartMatchBackfill(*gamelift.StartMatchBackfillInput) (*gamelift.StartMatchBackfillOutput, error)
+	StartMatchBackfillWithContext(aws.Context, *gamelift.StartMatchBackfillInput, ...request.Option) (*gamelift.StartMatchBackfillOutput, error)
+	StartMatchBackfillRequest(*gamelift.StartMatchBackfillInput) (*request.Request, *gamelift.StartMatchBackfillOutput)
+
 	StartMatchmaking(*gamelift.StartMatchmakingInput) (*gamelift.StartMatchmakingOutput, error)
 	StartMatchmakingWithContext(aws.Context, *gamelift.StartMatchmakingInput, ...request.Option) (*gamelift.StartMatchmakingOutput, error)
 	StartMatchmakingRequest(*gamelift.StartMatchmakingInput) (*request.Request, *gamelift.StartMatchmakingOutput)
+
+	StopFleetActions(*gamelift.StopFleetActionsInput) (*gamelift.StopFleetActionsOutput, error)
+	StopFleetActionsWithContext(aws.Context, *gamelift.StopFleetActionsInput, ...request.Option) (*gamelift.StopFleetActionsOutput, error)
+	StopFleetActionsRequest(*gamelift.StopFleetActionsInput) (*request.Request, *gamelift.StopFleetActionsOutput)
 
 	StopGameSessionPlacement(*gamelift.StopGameSessionPlacementInput) (*gamelift.StopGameSessionPlacementOutput, error)
 	StopGameSessionPlacementWithContext(aws.Context, *gamelift.StopGameSessionPlacementInput, ...request.Option) (*gamelift.StopGameSessionPlacementOutput, error)

@@ -41,10 +41,13 @@ func NewBackupsClientWithBaseURI(baseURI string, subscriptionID string) BackupsC
 }
 
 // Clone clones the backup element as a new volume.
-//
-// deviceName is the device name backupName is the backup name. backupElementName is the backup element name.
-// parameters is the clone request object. resourceGroupName is the resource group name managerName is the manager
-// name
+// Parameters:
+// deviceName - the device name
+// backupName - the backup name.
+// backupElementName - the backup element name.
+// parameters - the clone request object.
+// resourceGroupName - the resource group name
+// managerName - the manager name
 func (client BackupsClient) Clone(ctx context.Context, deviceName string, backupName string, backupElementName string, parameters CloneRequest, resourceGroupName string, managerName string) (result BackupsCloneFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
@@ -97,7 +100,7 @@ func (client BackupsClient) ClonePreparer(ctx context.Context, deviceName string
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.StorSimple/managers/{managerName}/devices/{deviceName}/backups/{backupName}/elements/{backupElementName}/clone", pathParameters),
@@ -109,15 +112,17 @@ func (client BackupsClient) ClonePreparer(ctx context.Context, deviceName string
 // CloneSender sends the Clone request. The method will close the
 // http.Response Body if it receives an error.
 func (client BackupsClient) CloneSender(req *http.Request) (future BackupsCloneFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -134,9 +139,11 @@ func (client BackupsClient) CloneResponder(resp *http.Response) (result autorest
 }
 
 // Delete deletes the backup.
-//
-// deviceName is the device name backupName is the backup name. resourceGroupName is the resource group name
-// managerName is the manager name
+// Parameters:
+// deviceName - the device name
+// backupName - the backup name.
+// resourceGroupName - the resource group name
+// managerName - the manager name
 func (client BackupsClient) Delete(ctx context.Context, deviceName string, backupName string, resourceGroupName string, managerName string) (result BackupsDeleteFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
@@ -186,15 +193,17 @@ func (client BackupsClient) DeletePreparer(ctx context.Context, deviceName strin
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client BackupsClient) DeleteSender(req *http.Request) (future BackupsDeleteFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -211,9 +220,11 @@ func (client BackupsClient) DeleteResponder(resp *http.Response) (result autores
 }
 
 // ListByDevice retrieves all the backups in a device.
-//
-// deviceName is the device name resourceGroupName is the resource group name managerName is the manager name
-// filter is oData Filter options
+// Parameters:
+// deviceName - the device name
+// resourceGroupName - the resource group name
+// managerName - the manager name
+// filter - oData Filter options
 func (client BackupsClient) ListByDevice(ctx context.Context, deviceName string, resourceGroupName string, managerName string, filter string) (result BackupListPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
@@ -317,9 +328,11 @@ func (client BackupsClient) ListByDeviceComplete(ctx context.Context, deviceName
 }
 
 // Restore restores the backup on the device.
-//
-// deviceName is the device name backupName is the backupSet name resourceGroupName is the resource group name
-// managerName is the manager name
+// Parameters:
+// deviceName - the device name
+// backupName - the backupSet name
+// resourceGroupName - the resource group name
+// managerName - the manager name
 func (client BackupsClient) Restore(ctx context.Context, deviceName string, backupName string, resourceGroupName string, managerName string) (result BackupsRestoreFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
@@ -369,15 +382,17 @@ func (client BackupsClient) RestorePreparer(ctx context.Context, deviceName stri
 // RestoreSender sends the Restore request. The method will close the
 // http.Response Body if it receives an error.
 func (client BackupsClient) RestoreSender(req *http.Request) (future BackupsRestoreFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 

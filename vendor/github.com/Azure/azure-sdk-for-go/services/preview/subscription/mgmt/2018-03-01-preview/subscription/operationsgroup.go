@@ -24,8 +24,7 @@ import (
 	"net/http"
 )
 
-// OperationsGroupClient is the subscription client provides an interface to create and manage Azure subscriptions
-// programmatically.
+// OperationsGroupClient is the the subscription client
 type OperationsGroupClient struct {
 	BaseClient
 }

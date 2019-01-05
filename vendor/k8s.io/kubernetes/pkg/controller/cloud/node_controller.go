@@ -256,7 +256,7 @@ func (cnc *CloudNodeController) MonitorNode() {
 				// does not delete node from kubernetes cluster when instance it is shutdown see issue #46442
 				shutdown, err := nodectrlutil.ShutdownInCloudProvider(context.TODO(), cnc.cloud, node)
 				if err != nil {
-					glog.Errorf("Error getting data for node %s from cloud: %v", node.Name, err)
+					glog.Errorf("Error checking if node %s is shutdown: %v", node.Name, err)
 				}
 
 				if shutdown && err == nil {
@@ -273,7 +273,7 @@ func (cnc *CloudNodeController) MonitorNode() {
 				// doesn't, delete the node immediately.
 				exists, err := ensureNodeExistsByProviderID(instances, node)
 				if err != nil {
-					glog.Errorf("Error getting data for node %s from cloud: %v", node.Name, err)
+					glog.Errorf("Error checking if node %s exists: %v", node.Name, err)
 					continue
 				}
 
@@ -337,6 +337,21 @@ func (cnc *CloudNodeController) AddCloudNode(obj interface{}) {
 	}
 
 	err := clientretry.RetryOnConflict(UpdateNodeSpecBackoff, func() error {
+		// TODO(wlan0): Move this logic to the route controller using the node taint instead of condition
+		// Since there are node taints, do we still need this?
+		// This condition marks the node as unusable until routes are initialized in the cloud provider
+		if cnc.cloud.ProviderName() == "gce" {
+			if err := nodeutil.SetNodeCondition(cnc.kubeClient, types.NodeName(node.Name), v1.NodeCondition{
+				Type:               v1.NodeNetworkUnavailable,
+				Status:             v1.ConditionTrue,
+				Reason:             "NoRouteCreated",
+				Message:            "Node created without a route",
+				LastTransitionTime: metav1.Now(),
+			}); err != nil {
+				return err
+			}
+		}
+
 		curNode, err := cnc.kubeClient.CoreV1().Nodes().Get(node.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
@@ -372,19 +387,6 @@ func (cnc *CloudNodeController) AddCloudNode(obj interface{}) {
 		} else if instanceType != "" {
 			glog.V(2).Infof("Adding node label from cloud provider: %s=%s", kubeletapis.LabelInstanceType, instanceType)
 			curNode.ObjectMeta.Labels[kubeletapis.LabelInstanceType] = instanceType
-		}
-
-		// TODO(wlan0): Move this logic to the route controller using the node taint instead of condition
-		// Since there are node taints, do we still need this?
-		// This condition marks the node as unusable until routes are initialized in the cloud provider
-		if cnc.cloud.ProviderName() == "gce" {
-			curNode.Status.Conditions = append(node.Status.Conditions, v1.NodeCondition{
-				Type:               v1.NodeNetworkUnavailable,
-				Status:             v1.ConditionTrue,
-				Reason:             "NoRouteCreated",
-				Message:            "Node created without a route",
-				LastTransitionTime: metav1.Now(),
-			})
 		}
 
 		if zones, ok := cnc.cloud.Zones(); ok {

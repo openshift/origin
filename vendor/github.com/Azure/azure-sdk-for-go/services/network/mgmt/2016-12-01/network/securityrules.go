@@ -41,10 +41,11 @@ func NewSecurityRulesClientWithBaseURI(baseURI string, subscriptionID string) Se
 }
 
 // CreateOrUpdate creates or updates a security rule in the specified network security group.
-//
-// resourceGroupName is the name of the resource group. networkSecurityGroupName is the name of the network
-// security group. securityRuleName is the name of the security rule. securityRuleParameters is parameters supplied
-// to the create or update network security rule operation.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// networkSecurityGroupName - the name of the network security group.
+// securityRuleName - the name of the security rule.
+// securityRuleParameters - parameters supplied to the create or update network security rule operation.
 func (client SecurityRulesClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, networkSecurityGroupName string, securityRuleName string, securityRuleParameters SecurityRule) (result SecurityRulesCreateOrUpdateFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: securityRuleParameters,
@@ -85,7 +86,7 @@ func (client SecurityRulesClient) CreateOrUpdatePreparer(ctx context.Context, re
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/networkSecurityGroups/{networkSecurityGroupName}/securityRules/{securityRuleName}", pathParameters),
@@ -97,15 +98,17 @@ func (client SecurityRulesClient) CreateOrUpdatePreparer(ctx context.Context, re
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client SecurityRulesClient) CreateOrUpdateSender(req *http.Request) (future SecurityRulesCreateOrUpdateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -123,9 +126,10 @@ func (client SecurityRulesClient) CreateOrUpdateResponder(resp *http.Response) (
 }
 
 // Delete deletes the specified network security rule.
-//
-// resourceGroupName is the name of the resource group. networkSecurityGroupName is the name of the network
-// security group. securityRuleName is the name of the security rule.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// networkSecurityGroupName - the name of the network security group.
+// securityRuleName - the name of the security rule.
 func (client SecurityRulesClient) Delete(ctx context.Context, resourceGroupName string, networkSecurityGroupName string, securityRuleName string) (result SecurityRulesDeleteFuture, err error) {
 	req, err := client.DeletePreparer(ctx, resourceGroupName, networkSecurityGroupName, securityRuleName)
 	if err != nil {
@@ -167,15 +171,17 @@ func (client SecurityRulesClient) DeletePreparer(ctx context.Context, resourceGr
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client SecurityRulesClient) DeleteSender(req *http.Request) (future SecurityRulesDeleteFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -192,9 +198,10 @@ func (client SecurityRulesClient) DeleteResponder(resp *http.Response) (result a
 }
 
 // Get get the specified network security rule.
-//
-// resourceGroupName is the name of the resource group. networkSecurityGroupName is the name of the network
-// security group. securityRuleName is the name of the security rule.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// networkSecurityGroupName - the name of the network security group.
+// securityRuleName - the name of the security rule.
 func (client SecurityRulesClient) Get(ctx context.Context, resourceGroupName string, networkSecurityGroupName string, securityRuleName string) (result SecurityRule, err error) {
 	req, err := client.GetPreparer(ctx, resourceGroupName, networkSecurityGroupName, securityRuleName)
 	if err != nil {
@@ -260,9 +267,9 @@ func (client SecurityRulesClient) GetResponder(resp *http.Response) (result Secu
 }
 
 // List gets all security rules in a network security group.
-//
-// resourceGroupName is the name of the resource group. networkSecurityGroupName is the name of the network
-// security group.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// networkSecurityGroupName - the name of the network security group.
 func (client SecurityRulesClient) List(ctx context.Context, resourceGroupName string, networkSecurityGroupName string) (result SecurityRuleListResultPage, err error) {
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName, networkSecurityGroupName)

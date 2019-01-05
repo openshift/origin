@@ -7,6 +7,7 @@
     "protocol":"json",
     "serviceAbbreviation":"Firehose",
     "serviceFullName":"Amazon Kinesis Firehose",
+    "serviceId":"Firehose",
     "signatureVersion":"v4",
     "targetPrefix":"Firehose_20150804",
     "uid":"firehose-2015-08-04"
@@ -51,21 +52,6 @@
         {"shape":"ResourceNotFoundException"}
       ]
     },
-    "GetKinesisStream":{
-      "name":"GetKinesisStream",
-      "http":{
-        "method":"POST",
-        "requestUri":"/"
-      },
-      "input":{"shape":"GetKinesisStreamInput"},
-      "output":{"shape":"GetKinesisStreamOutput"},
-      "errors":[
-        {"shape":"ResourceNotFoundException"},
-        {"shape":"InvalidArgumentException"},
-        {"shape":"InvalidStreamTypeException"}
-      ],
-      "internalonly":true
-    },
     "ListDeliveryStreams":{
       "name":"ListDeliveryStreams",
       "http":{
@@ -74,6 +60,20 @@
       },
       "input":{"shape":"ListDeliveryStreamsInput"},
       "output":{"shape":"ListDeliveryStreamsOutput"}
+    },
+    "ListTagsForDeliveryStream":{
+      "name":"ListTagsForDeliveryStream",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListTagsForDeliveryStreamInput"},
+      "output":{"shape":"ListTagsForDeliveryStreamOutput"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InvalidArgumentException"},
+        {"shape":"LimitExceededException"}
+      ]
     },
     "PutRecord":{
       "name":"PutRecord",
@@ -103,6 +103,36 @@
         {"shape":"ServiceUnavailableException"}
       ]
     },
+    "TagDeliveryStream":{
+      "name":"TagDeliveryStream",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"TagDeliveryStreamInput"},
+      "output":{"shape":"TagDeliveryStreamOutput"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ResourceInUseException"},
+        {"shape":"InvalidArgumentException"},
+        {"shape":"LimitExceededException"}
+      ]
+    },
+    "UntagDeliveryStream":{
+      "name":"UntagDeliveryStream",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UntagDeliveryStreamInput"},
+      "output":{"shape":"UntagDeliveryStreamOutput"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"ResourceInUseException"},
+        {"shape":"InvalidArgumentException"},
+        {"shape":"LimitExceededException"}
+      ]
+    },
     "UpdateDestination":{
       "name":"UpdateDestination",
       "http":{
@@ -126,7 +156,10 @@
       "min":1,
       "pattern":"arn:.*"
     },
-    "AccessKeyId":{"type":"string"},
+    "BlockSizeBytes":{
+      "type":"integer",
+      "min":67108864
+    },
     "BooleanObject":{"type":"boolean"},
     "BucketARN":{
       "type":"string",
@@ -153,6 +186,11 @@
       "type":"string",
       "min":1,
       "pattern":"jdbc:(redshift|postgresql)://((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)+redshift\\.amazonaws\\.com:\\d{1,5}/[a-zA-Z0-9_$]+"
+    },
+    "ColumnToJsonKeyMappings":{
+      "type":"map",
+      "key":{"shape":"NonEmptyStringWithoutWhitespace"},
+      "value":{"shape":"NonEmptyString"}
     },
     "CompressionFormat":{
       "type":"string",
@@ -193,7 +231,8 @@
         },
         "ExtendedS3DestinationConfiguration":{"shape":"ExtendedS3DestinationConfiguration"},
         "RedshiftDestinationConfiguration":{"shape":"RedshiftDestinationConfiguration"},
-        "ElasticsearchDestinationConfiguration":{"shape":"ElasticsearchDestinationConfiguration"}
+        "ElasticsearchDestinationConfiguration":{"shape":"ElasticsearchDestinationConfiguration"},
+        "SplunkDestinationConfiguration":{"shape":"SplunkDestinationConfiguration"}
       }
     },
     "CreateDeliveryStreamOutput":{
@@ -206,6 +245,15 @@
       "type":"blob",
       "max":1024000,
       "min":0
+    },
+    "DataFormatConversionConfiguration":{
+      "type":"structure",
+      "members":{
+        "SchemaConfiguration":{"shape":"SchemaConfiguration"},
+        "InputFormatConfiguration":{"shape":"InputFormatConfiguration"},
+        "OutputFormatConfiguration":{"shape":"OutputFormatConfiguration"},
+        "Enabled":{"shape":"BooleanObject"}
+      }
     },
     "DataTableColumns":{"type":"string"},
     "DataTableName":{
@@ -307,6 +355,13 @@
         "DeliveryStreamDescription":{"shape":"DeliveryStreamDescription"}
       }
     },
+    "Deserializer":{
+      "type":"structure",
+      "members":{
+        "OpenXJsonSerDe":{"shape":"OpenXJsonSerDe"},
+        "HiveJsonSerDe":{"shape":"HiveJsonSerDe"}
+      }
+    },
     "DestinationDescription":{
       "type":"structure",
       "required":["DestinationId"],
@@ -315,7 +370,8 @@
         "S3DestinationDescription":{"shape":"S3DestinationDescription"},
         "ExtendedS3DestinationDescription":{"shape":"ExtendedS3DestinationDescription"},
         "RedshiftDestinationDescription":{"shape":"RedshiftDestinationDescription"},
-        "ElasticsearchDestinationDescription":{"shape":"ElasticsearchDestinationDescription"}
+        "ElasticsearchDestinationDescription":{"shape":"ElasticsearchDestinationDescription"},
+        "SplunkDestinationDescription":{"shape":"SplunkDestinationDescription"}
       }
     },
     "DestinationDescriptionList":{
@@ -467,7 +523,8 @@
         "CloudWatchLoggingOptions":{"shape":"CloudWatchLoggingOptions"},
         "ProcessingConfiguration":{"shape":"ProcessingConfiguration"},
         "S3BackupMode":{"shape":"S3BackupMode"},
-        "S3BackupConfiguration":{"shape":"S3DestinationConfiguration"}
+        "S3BackupConfiguration":{"shape":"S3DestinationConfiguration"},
+        "DataFormatConversionConfiguration":{"shape":"DataFormatConversionConfiguration"}
       }
     },
     "ExtendedS3DestinationDescription":{
@@ -489,7 +546,8 @@
         "CloudWatchLoggingOptions":{"shape":"CloudWatchLoggingOptions"},
         "ProcessingConfiguration":{"shape":"ProcessingConfiguration"},
         "S3BackupMode":{"shape":"S3BackupMode"},
-        "S3BackupDescription":{"shape":"S3DestinationDescription"}
+        "S3BackupDescription":{"shape":"S3DestinationDescription"},
+        "DataFormatConversionConfiguration":{"shape":"DataFormatConversionConfiguration"}
       }
     },
     "ExtendedS3DestinationUpdate":{
@@ -504,22 +562,34 @@
         "CloudWatchLoggingOptions":{"shape":"CloudWatchLoggingOptions"},
         "ProcessingConfiguration":{"shape":"ProcessingConfiguration"},
         "S3BackupMode":{"shape":"S3BackupMode"},
-        "S3BackupUpdate":{"shape":"S3DestinationUpdate"}
+        "S3BackupUpdate":{"shape":"S3DestinationUpdate"},
+        "DataFormatConversionConfiguration":{"shape":"DataFormatConversionConfiguration"}
       }
     },
-    "FirehoseSource":{"type":"string"},
-    "GetKinesisStreamInput":{
+    "HECAcknowledgmentTimeoutInSeconds":{
+      "type":"integer",
+      "max":600,
+      "min":180
+    },
+    "HECEndpoint":{"type":"string"},
+    "HECEndpointType":{
+      "type":"string",
+      "enum":[
+        "Raw",
+        "Event"
+      ]
+    },
+    "HECToken":{"type":"string"},
+    "HiveJsonSerDe":{
       "type":"structure",
-      "required":["DeliveryStreamARN"],
       "members":{
-        "DeliveryStreamARN":{"shape":"DeliveryStreamARN"}
+        "TimestampFormats":{"shape":"ListOfNonEmptyStrings"}
       }
     },
-    "GetKinesisStreamOutput":{
+    "InputFormatConfiguration":{
       "type":"structure",
       "members":{
-        "KinesisStreamARN":{"shape":"KinesisStreamARN"},
-        "CredentialsForReadingKinesisStream":{"shape":"SessionCredentials"}
+        "Deserializer":{"shape":"Deserializer"}
       }
     },
     "IntervalInSeconds":{
@@ -531,14 +601,6 @@
       "type":"structure",
       "members":{
         "message":{"shape":"ErrorMessage"}
-      },
-      "exception":true
-    },
-    "InvalidStreamTypeException":{
-      "type":"structure",
-      "members":{
-        "message":{"shape":"ErrorMessage"},
-        "source":{"shape":"FirehoseSource"}
       },
       "exception":true
     },
@@ -605,15 +667,144 @@
         "HasMoreDeliveryStreams":{"shape":"BooleanObject"}
       }
     },
+    "ListOfNonEmptyStrings":{
+      "type":"list",
+      "member":{"shape":"NonEmptyString"}
+    },
+    "ListOfNonEmptyStringsWithoutWhitespace":{
+      "type":"list",
+      "member":{"shape":"NonEmptyStringWithoutWhitespace"}
+    },
+    "ListTagsForDeliveryStreamInput":{
+      "type":"structure",
+      "required":["DeliveryStreamName"],
+      "members":{
+        "DeliveryStreamName":{"shape":"DeliveryStreamName"},
+        "ExclusiveStartTagKey":{"shape":"TagKey"},
+        "Limit":{"shape":"ListTagsForDeliveryStreamInputLimit"}
+      }
+    },
+    "ListTagsForDeliveryStreamInputLimit":{
+      "type":"integer",
+      "max":50,
+      "min":1
+    },
+    "ListTagsForDeliveryStreamOutput":{
+      "type":"structure",
+      "required":[
+        "Tags",
+        "HasMoreTags"
+      ],
+      "members":{
+        "Tags":{"shape":"ListTagsForDeliveryStreamOutputTagList"},
+        "HasMoreTags":{"shape":"BooleanObject"}
+      }
+    },
+    "ListTagsForDeliveryStreamOutputTagList":{
+      "type":"list",
+      "member":{"shape":"Tag"},
+      "max":50,
+      "min":0
+    },
     "LogGroupName":{"type":"string"},
     "LogStreamName":{"type":"string"},
     "NoEncryptionConfig":{
       "type":"string",
       "enum":["NoEncryption"]
     },
+    "NonEmptyString":{
+      "type":"string",
+      "pattern":"^(?!\\s*$).+"
+    },
+    "NonEmptyStringWithoutWhitespace":{
+      "type":"string",
+      "pattern":"^\\S+$"
+    },
     "NonNegativeIntegerObject":{
       "type":"integer",
       "min":0
+    },
+    "OpenXJsonSerDe":{
+      "type":"structure",
+      "members":{
+        "ConvertDotsInJsonKeysToUnderscores":{"shape":"BooleanObject"},
+        "CaseInsensitive":{"shape":"BooleanObject"},
+        "ColumnToJsonKeyMappings":{"shape":"ColumnToJsonKeyMappings"}
+      }
+    },
+    "OrcCompression":{
+      "type":"string",
+      "enum":[
+        "NONE",
+        "ZLIB",
+        "SNAPPY"
+      ]
+    },
+    "OrcFormatVersion":{
+      "type":"string",
+      "enum":[
+        "V0_11",
+        "V0_12"
+      ]
+    },
+    "OrcRowIndexStride":{
+      "type":"integer",
+      "min":1000
+    },
+    "OrcSerDe":{
+      "type":"structure",
+      "members":{
+        "StripeSizeBytes":{"shape":"OrcStripeSizeBytes"},
+        "BlockSizeBytes":{"shape":"BlockSizeBytes"},
+        "RowIndexStride":{"shape":"OrcRowIndexStride"},
+        "EnablePadding":{"shape":"BooleanObject"},
+        "PaddingTolerance":{"shape":"Proportion"},
+        "Compression":{"shape":"OrcCompression"},
+        "BloomFilterColumns":{"shape":"ListOfNonEmptyStringsWithoutWhitespace"},
+        "BloomFilterFalsePositiveProbability":{"shape":"Proportion"},
+        "DictionaryKeyThreshold":{"shape":"Proportion"},
+        "FormatVersion":{"shape":"OrcFormatVersion"}
+      }
+    },
+    "OrcStripeSizeBytes":{
+      "type":"integer",
+      "min":8388608
+    },
+    "OutputFormatConfiguration":{
+      "type":"structure",
+      "members":{
+        "Serializer":{"shape":"Serializer"}
+      }
+    },
+    "ParquetCompression":{
+      "type":"string",
+      "enum":[
+        "UNCOMPRESSED",
+        "GZIP",
+        "SNAPPY"
+      ]
+    },
+    "ParquetPageSizeBytes":{
+      "type":"integer",
+      "min":65536
+    },
+    "ParquetSerDe":{
+      "type":"structure",
+      "members":{
+        "BlockSizeBytes":{"shape":"BlockSizeBytes"},
+        "PageSizeBytes":{"shape":"ParquetPageSizeBytes"},
+        "Compression":{"shape":"ParquetCompression"},
+        "EnableDictionaryCompression":{"shape":"BooleanObject"},
+        "MaxPaddingBytes":{"shape":"NonNegativeIntegerObject"},
+        "WriterVersion":{"shape":"ParquetWriterVersion"}
+      }
+    },
+    "ParquetWriterVersion":{
+      "type":"string",
+      "enum":[
+        "V1",
+        "V2"
+      ]
     },
     "Password":{
       "type":"string",
@@ -659,7 +850,10 @@
       "type":"string",
       "enum":[
         "LambdaArn",
-        "NumberOfRetries"
+        "NumberOfRetries",
+        "RoleArn",
+        "BufferSizeInMBs",
+        "BufferIntervalInSeconds"
       ]
     },
     "ProcessorParameterValue":{
@@ -670,6 +864,11 @@
     "ProcessorType":{
       "type":"string",
       "enum":["Lambda"]
+    },
+    "Proportion":{
+      "type":"double",
+      "max":1,
+      "min":0
     },
     "PutRecordBatchInput":{
       "type":"structure",
@@ -896,7 +1095,24 @@
         "CloudWatchLoggingOptions":{"shape":"CloudWatchLoggingOptions"}
       }
     },
-    "SecretAccessKey":{"type":"string"},
+    "SchemaConfiguration":{
+      "type":"structure",
+      "members":{
+        "RoleARN":{"shape":"NonEmptyStringWithoutWhitespace"},
+        "CatalogId":{"shape":"NonEmptyStringWithoutWhitespace"},
+        "DatabaseName":{"shape":"NonEmptyStringWithoutWhitespace"},
+        "TableName":{"shape":"NonEmptyStringWithoutWhitespace"},
+        "Region":{"shape":"NonEmptyStringWithoutWhitespace"},
+        "VersionId":{"shape":"NonEmptyStringWithoutWhitespace"}
+      }
+    },
+    "Serializer":{
+      "type":"structure",
+      "members":{
+        "ParquetSerDe":{"shape":"ParquetSerDe"},
+        "OrcSerDe":{"shape":"OrcSerDe"}
+      }
+    },
     "ServiceUnavailableException":{
       "type":"structure",
       "members":{
@@ -905,22 +1121,6 @@
       "exception":true,
       "fault":true
     },
-    "SessionCredentials":{
-      "type":"structure",
-      "required":[
-        "AccessKeyId",
-        "SecretAccessKey",
-        "SessionToken",
-        "Expiration"
-      ],
-      "members":{
-        "AccessKeyId":{"shape":"AccessKeyId"},
-        "SecretAccessKey":{"shape":"SecretAccessKey"},
-        "SessionToken":{"shape":"SessionToken"},
-        "Expiration":{"shape":"Timestamp"}
-      }
-    },
-    "SessionToken":{"type":"string"},
     "SizeInMBs":{
       "type":"integer",
       "max":128,
@@ -932,7 +1132,135 @@
         "KinesisStreamSourceDescription":{"shape":"KinesisStreamSourceDescription"}
       }
     },
+    "SplunkDestinationConfiguration":{
+      "type":"structure",
+      "required":[
+        "HECEndpoint",
+        "HECEndpointType",
+        "HECToken",
+        "S3Configuration"
+      ],
+      "members":{
+        "HECEndpoint":{"shape":"HECEndpoint"},
+        "HECEndpointType":{"shape":"HECEndpointType"},
+        "HECToken":{"shape":"HECToken"},
+        "HECAcknowledgmentTimeoutInSeconds":{"shape":"HECAcknowledgmentTimeoutInSeconds"},
+        "RetryOptions":{"shape":"SplunkRetryOptions"},
+        "S3BackupMode":{"shape":"SplunkS3BackupMode"},
+        "S3Configuration":{"shape":"S3DestinationConfiguration"},
+        "ProcessingConfiguration":{"shape":"ProcessingConfiguration"},
+        "CloudWatchLoggingOptions":{"shape":"CloudWatchLoggingOptions"}
+      }
+    },
+    "SplunkDestinationDescription":{
+      "type":"structure",
+      "members":{
+        "HECEndpoint":{"shape":"HECEndpoint"},
+        "HECEndpointType":{"shape":"HECEndpointType"},
+        "HECToken":{"shape":"HECToken"},
+        "HECAcknowledgmentTimeoutInSeconds":{"shape":"HECAcknowledgmentTimeoutInSeconds"},
+        "RetryOptions":{"shape":"SplunkRetryOptions"},
+        "S3BackupMode":{"shape":"SplunkS3BackupMode"},
+        "S3DestinationDescription":{"shape":"S3DestinationDescription"},
+        "ProcessingConfiguration":{"shape":"ProcessingConfiguration"},
+        "CloudWatchLoggingOptions":{"shape":"CloudWatchLoggingOptions"}
+      }
+    },
+    "SplunkDestinationUpdate":{
+      "type":"structure",
+      "members":{
+        "HECEndpoint":{"shape":"HECEndpoint"},
+        "HECEndpointType":{"shape":"HECEndpointType"},
+        "HECToken":{"shape":"HECToken"},
+        "HECAcknowledgmentTimeoutInSeconds":{"shape":"HECAcknowledgmentTimeoutInSeconds"},
+        "RetryOptions":{"shape":"SplunkRetryOptions"},
+        "S3BackupMode":{"shape":"SplunkS3BackupMode"},
+        "S3Update":{"shape":"S3DestinationUpdate"},
+        "ProcessingConfiguration":{"shape":"ProcessingConfiguration"},
+        "CloudWatchLoggingOptions":{"shape":"CloudWatchLoggingOptions"}
+      }
+    },
+    "SplunkRetryDurationInSeconds":{
+      "type":"integer",
+      "max":7200,
+      "min":0
+    },
+    "SplunkRetryOptions":{
+      "type":"structure",
+      "members":{
+        "DurationInSeconds":{"shape":"SplunkRetryDurationInSeconds"}
+      }
+    },
+    "SplunkS3BackupMode":{
+      "type":"string",
+      "enum":[
+        "FailedEventsOnly",
+        "AllEvents"
+      ]
+    },
+    "Tag":{
+      "type":"structure",
+      "required":["Key"],
+      "members":{
+        "Key":{"shape":"TagKey"},
+        "Value":{"shape":"TagValue"}
+      }
+    },
+    "TagDeliveryStreamInput":{
+      "type":"structure",
+      "required":[
+        "DeliveryStreamName",
+        "Tags"
+      ],
+      "members":{
+        "DeliveryStreamName":{"shape":"DeliveryStreamName"},
+        "Tags":{"shape":"TagDeliveryStreamInputTagList"}
+      }
+    },
+    "TagDeliveryStreamInputTagList":{
+      "type":"list",
+      "member":{"shape":"Tag"},
+      "max":50,
+      "min":1
+    },
+    "TagDeliveryStreamOutput":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "TagKey":{
+      "type":"string",
+      "max":128,
+      "min":1
+    },
+    "TagKeyList":{
+      "type":"list",
+      "member":{"shape":"TagKey"},
+      "max":50,
+      "min":1
+    },
+    "TagValue":{
+      "type":"string",
+      "max":256,
+      "min":0
+    },
     "Timestamp":{"type":"timestamp"},
+    "UntagDeliveryStreamInput":{
+      "type":"structure",
+      "required":[
+        "DeliveryStreamName",
+        "TagKeys"
+      ],
+      "members":{
+        "DeliveryStreamName":{"shape":"DeliveryStreamName"},
+        "TagKeys":{"shape":"TagKeyList"}
+      }
+    },
+    "UntagDeliveryStreamOutput":{
+      "type":"structure",
+      "members":{
+      }
+    },
     "UpdateDestinationInput":{
       "type":"structure",
       "required":[
@@ -950,7 +1278,8 @@
         },
         "ExtendedS3DestinationUpdate":{"shape":"ExtendedS3DestinationUpdate"},
         "RedshiftDestinationUpdate":{"shape":"RedshiftDestinationUpdate"},
-        "ElasticsearchDestinationUpdate":{"shape":"ElasticsearchDestinationUpdate"}
+        "ElasticsearchDestinationUpdate":{"shape":"ElasticsearchDestinationUpdate"},
+        "SplunkDestinationUpdate":{"shape":"SplunkDestinationUpdate"}
       }
     },
     "UpdateDestinationOutput":{

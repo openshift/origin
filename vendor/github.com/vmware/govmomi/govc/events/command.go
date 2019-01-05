@@ -164,24 +164,17 @@ func (cmd *events) Run(ctx context.Context, f *flag.FlagSet) error {
 		return err
 	}
 
-	if len(objs) > 0 {
-		// need an event manager
-		m := event.NewManager(c)
+	m := event.NewManager(c)
 
-		// get the event stream
-		err = m.Events(ctx, objs, cmd.Max, cmd.Tail, cmd.Force, func(obj types.ManagedObjectReference, ee []types.BaseEvent) error {
-			var o *types.ManagedObjectReference
-			if len(objs) > 1 {
-				o = &obj
-			}
+	return cmd.WithCancel(ctx, func(wctx context.Context) error {
+		return m.Events(wctx, objs, cmd.Max, cmd.Tail, cmd.Force,
+			func(obj types.ManagedObjectReference, ee []types.BaseEvent) error {
+				var o *types.ManagedObjectReference
+				if len(objs) > 1 {
+					o = &obj
+				}
 
-			return cmd.printEvents(ctx, o, ee, m)
-		}, cmd.Kind...)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+				return cmd.printEvents(ctx, o, ee, m)
+			}, cmd.Kind...)
+	})
 }

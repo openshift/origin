@@ -19,7 +19,6 @@ package dns
 import (
 	"encoding/json"
 	"fmt"
-	"runtime"
 	"strings"
 
 	"github.com/mholt/caddy/caddyfile"
@@ -70,14 +69,14 @@ func DeployedDNSAddon(client clientset.Interface) (string, string, error) {
 }
 
 // EnsureDNSAddon creates the kube-dns or CoreDNS addon
-func EnsureDNSAddon(cfg *kubeadmapi.MasterConfiguration, client clientset.Interface) error {
+func EnsureDNSAddon(cfg *kubeadmapi.InitConfiguration, client clientset.Interface) error {
 	if features.Enabled(cfg.FeatureGates, features.CoreDNS) {
 		return coreDNSAddon(cfg, client)
 	}
 	return kubeDNSAddon(cfg, client)
 }
 
-func kubeDNSAddon(cfg *kubeadmapi.MasterConfiguration, client clientset.Interface) error {
+func kubeDNSAddon(cfg *kubeadmapi.InitConfiguration, client clientset.Interface) error {
 	if err := CreateServiceAccount(client); err != nil {
 		return err
 	}
@@ -97,9 +96,8 @@ func kubeDNSAddon(cfg *kubeadmapi.MasterConfiguration, client clientset.Interfac
 	}
 
 	dnsDeploymentBytes, err := kubeadmutil.ParseTemplate(KubeDNSDeployment,
-		struct{ ImageRepository, Arch, Version, DNSBindAddr, DNSProbeAddr, DNSDomain, MasterTaintKey string }{
+		struct{ ImageRepository, Version, DNSBindAddr, DNSProbeAddr, DNSDomain, MasterTaintKey string }{
 			ImageRepository: cfg.ImageRepository,
-			Arch:            runtime.GOARCH,
 			Version:         kubeadmconstants.KubeDNSVersion,
 			DNSBindAddr:     dnsBindAddr,
 			DNSProbeAddr:    dnsProbeAddr,
@@ -150,7 +148,7 @@ func createKubeDNSAddon(deploymentBytes, serviceBytes []byte, client clientset.I
 	return createDNSService(kubednsService, serviceBytes, client)
 }
 
-func coreDNSAddon(cfg *kubeadmapi.MasterConfiguration, client clientset.Interface) error {
+func coreDNSAddon(cfg *kubeadmapi.InitConfiguration, client clientset.Interface) error {
 	// Get the YAML manifest
 	coreDNSDeploymentBytes, err := kubeadmutil.ParseTemplate(CoreDNSDeployment, struct{ ImageRepository, MasterTaintKey, Version string }{
 		ImageRepository: cfg.ImageRepository,
@@ -310,6 +308,7 @@ func translateStubDomainOfKubeDNSToProxyCoreDNS(dataField string, kubeDNSConfigM
 			pStanza["body"] = [][]string{
 				{"errors"},
 				{"cache", "30"},
+				{"loop"},
 				append([]string{"proxy", "."}, proxyIP...),
 			}
 			proxyStanza = append(proxyStanza, pStanza)

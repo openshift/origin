@@ -1,6 +1,7 @@
-package distribution
+package distribution // import "github.com/docker/docker/distribution"
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,7 +20,7 @@ import (
 	"github.com/docker/docker/registry"
 	"github.com/docker/libtrust"
 	"github.com/opencontainers/go-digest"
-	"golang.org/x/net/context"
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // Config stores configuration for communicating
@@ -59,9 +60,9 @@ type ImagePullConfig struct {
 	// Schema2Types is the valid schema2 configuration types allowed
 	// by the pull operation.
 	Schema2Types []string
-	// Platform is the requested platform of the image being pulled to ensure it can be validated
-	// when the host platform supports multiple image operating systems.
-	Platform string
+	// OS is the requested operating system of the image being pulled to ensure it can be validated
+	// when the host OS supports multiple image operating systems.
+	OS string
 }
 
 // ImagePushConfig stores push configuration.
@@ -71,8 +72,8 @@ type ImagePushConfig struct {
 	// ConfigMediaType is the configuration media type for
 	// schema2 manifests.
 	ConfigMediaType string
-	// LayerStore manages layers.
-	LayerStore PushLayerProvider
+	// LayerStores (indexed by operating system) manages layers.
+	LayerStores map[string]PushLayerProvider
 	// TrustKey is the private key for legacy signatures. This is typically
 	// an ephemeral key, since these signatures are no longer verified.
 	TrustKey libtrust.PrivateKey
@@ -86,7 +87,8 @@ type ImagePushConfig struct {
 type ImageConfigStore interface {
 	Put([]byte) (digest.Digest, error)
 	Get(digest.Digest) ([]byte, error)
-	RootFSAndPlatformFromConfig([]byte) (*image.RootFS, layer.Platform, error)
+	RootFSFromConfig([]byte) (*image.RootFS, error)
+	PlatformFromConfig([]byte) (*specs.Platform, error)
 }
 
 // PushLayerProvider provides layers to be pushed by ChainID.
@@ -112,7 +114,7 @@ type RootFSDownloadManager interface {
 	// returns the final rootfs.
 	// Given progress output to track download progress
 	// Returns function to release download resources
-	Download(ctx context.Context, initialRootFS image.RootFS, platform layer.Platform, layers []xfer.DownloadDescriptor, progressOutput progress.Output) (image.RootFS, func(), error)
+	Download(ctx context.Context, initialRootFS image.RootFS, os string, layers []xfer.DownloadDescriptor, progressOutput progress.Output) (image.RootFS, func(), error)
 }
 
 type imageConfigStore struct {
@@ -140,38 +142,51 @@ func (s *imageConfigStore) Get(d digest.Digest) ([]byte, error) {
 	return img.RawJSON(), nil
 }
 
-func (s *imageConfigStore) RootFSAndPlatformFromConfig(c []byte) (*image.RootFS, layer.Platform, error) {
+func (s *imageConfigStore) RootFSFromConfig(c []byte) (*image.RootFS, error) {
 	var unmarshalledConfig image.Image
 	if err := json.Unmarshal(c, &unmarshalledConfig); err != nil {
-		return nil, "", err
+		return nil, err
+	}
+	return unmarshalledConfig.RootFS, nil
+}
+
+func (s *imageConfigStore) PlatformFromConfig(c []byte) (*specs.Platform, error) {
+	var unmarshalledConfig image.Image
+	if err := json.Unmarshal(c, &unmarshalledConfig); err != nil {
+		return nil, err
 	}
 
 	// fail immediately on Windows when downloading a non-Windows image
 	// and vice versa. Exception on Windows if Linux Containers are enabled.
 	if runtime.GOOS == "windows" && unmarshalledConfig.OS == "linux" && !system.LCOWSupported() {
-		return nil, "", fmt.Errorf("image operating system %q cannot be used on this platform", unmarshalledConfig.OS)
+		return nil, fmt.Errorf("image operating system %q cannot be used on this platform", unmarshalledConfig.OS)
 	} else if runtime.GOOS != "windows" && unmarshalledConfig.OS == "windows" {
-		return nil, "", fmt.Errorf("image operating system %q cannot be used on this platform", unmarshalledConfig.OS)
+		return nil, fmt.Errorf("image operating system %q cannot be used on this platform", unmarshalledConfig.OS)
 	}
 
-	platform := ""
-	if runtime.GOOS == "windows" {
-		platform = unmarshalledConfig.OS
+	os := unmarshalledConfig.OS
+	if os == "" {
+		os = runtime.GOOS
 	}
-	return unmarshalledConfig.RootFS, layer.Platform(platform), nil
+	if !system.IsOSSupported(os) {
+		return nil, system.ErrNotSupportedOperatingSystem
+	}
+	return &specs.Platform{OS: os, OSVersion: unmarshalledConfig.OSVersion}, nil
 }
 
 type storeLayerProvider struct {
 	ls layer.Store
 }
 
-// NewLayerProviderFromStore returns a layer provider backed by
+// NewLayerProvidersFromStores returns layer providers backed by
 // an instance of LayerStore. Only getting layers as gzipped
 // tars is supported.
-func NewLayerProviderFromStore(ls layer.Store) PushLayerProvider {
-	return &storeLayerProvider{
-		ls: ls,
+func NewLayerProvidersFromStores(lss map[string]layer.Store) map[string]PushLayerProvider {
+	plps := make(map[string]PushLayerProvider)
+	for os, ls := range lss {
+		plps[os] = &storeLayerProvider{ls: ls}
 	}
+	return plps
 }
 
 func (p *storeLayerProvider) Get(lid layer.ChainID) (PushLayer, error) {

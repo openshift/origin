@@ -42,11 +42,13 @@ func NewIntegrationRuntimesClientWithBaseURI(baseURI string, subscriptionID stri
 }
 
 // CreateOrUpdate creates or updates an integration runtime.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name. integrationRuntimeName is the
-// integration runtime name. integrationRuntime is integration runtime resource definition. ifMatch is eTag of the
-// integration runtime entity. Should only be specified for update, for which it should match existing entity or
-// can be * for unconditional update.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// integrationRuntimeName - the integration runtime name.
+// integrationRuntime - integration runtime resource definition.
+// ifMatch - eTag of the integration runtime entity. Should only be specified for update, for which it should
+// match existing entity or can be * for unconditional update.
 func (client IntegrationRuntimesClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, factoryName string, integrationRuntimeName string, integrationRuntime IntegrationRuntimeResource, ifMatch string) (result IntegrationRuntimeResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -102,7 +104,7 @@ func (client IntegrationRuntimesClient) CreateOrUpdatePreparer(ctx context.Conte
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DataFactory/factories/{factoryName}/integrationRuntimes/{integrationRuntimeName}", pathParameters),
@@ -136,9 +138,10 @@ func (client IntegrationRuntimesClient) CreateOrUpdateResponder(resp *http.Respo
 }
 
 // Delete deletes an integration runtime.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name. integrationRuntimeName is the
-// integration runtime name.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// integrationRuntimeName - the integration runtime name.
 func (client IntegrationRuntimesClient) Delete(ctx context.Context, resourceGroupName string, factoryName string, integrationRuntimeName string) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -219,9 +222,10 @@ func (client IntegrationRuntimesClient) DeleteResponder(resp *http.Response) (re
 }
 
 // Get gets an integration runtime.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name. integrationRuntimeName is the
-// integration runtime name.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// integrationRuntimeName - the integration runtime name.
 func (client IntegrationRuntimesClient) Get(ctx context.Context, resourceGroupName string, factoryName string, integrationRuntimeName string) (result IntegrationRuntimeResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -304,9 +308,10 @@ func (client IntegrationRuntimesClient) GetResponder(resp *http.Response) (resul
 
 // GetConnectionInfo gets the on-premises integration runtime connection information for encrypting the on-premises
 // data source credentials.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name. integrationRuntimeName is the
-// integration runtime name.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// integrationRuntimeName - the integration runtime name.
 func (client IntegrationRuntimesClient) GetConnectionInfo(ctx context.Context, resourceGroupName string, factoryName string, integrationRuntimeName string) (result IntegrationRuntimeConnectionInfo, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -389,9 +394,10 @@ func (client IntegrationRuntimesClient) GetConnectionInfoResponder(resp *http.Re
 
 // GetMonitoringData get the integration runtime monitoring data, which includes the monitor data for all the nodes
 // under this integration runtime.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name. integrationRuntimeName is the
-// integration runtime name.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// integrationRuntimeName - the integration runtime name.
 func (client IntegrationRuntimesClient) GetMonitoringData(ctx context.Context, resourceGroupName string, factoryName string, integrationRuntimeName string) (result IntegrationRuntimeMonitoringData, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -473,9 +479,10 @@ func (client IntegrationRuntimesClient) GetMonitoringDataResponder(resp *http.Re
 }
 
 // GetStatus gets detailed status information for an integration runtime.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name. integrationRuntimeName is the
-// integration runtime name.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// integrationRuntimeName - the integration runtime name.
 func (client IntegrationRuntimesClient) GetStatus(ctx context.Context, resourceGroupName string, factoryName string, integrationRuntimeName string) (result IntegrationRuntimeStatusResponse, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -557,9 +564,10 @@ func (client IntegrationRuntimesClient) GetStatusResponder(resp *http.Response) 
 }
 
 // ListAuthKeys retrieves the authentication keys for an integration runtime.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name. integrationRuntimeName is the
-// integration runtime name.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// integrationRuntimeName - the integration runtime name.
 func (client IntegrationRuntimesClient) ListAuthKeys(ctx context.Context, resourceGroupName string, factoryName string, integrationRuntimeName string) (result IntegrationRuntimeAuthKeys, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -641,8 +649,9 @@ func (client IntegrationRuntimesClient) ListAuthKeysResponder(resp *http.Respons
 }
 
 // ListByFactory lists integration runtimes.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
 func (client IntegrationRuntimesClient) ListByFactory(ctx context.Context, resourceGroupName string, factoryName string) (result IntegrationRuntimeListResponsePage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -747,10 +756,11 @@ func (client IntegrationRuntimesClient) ListByFactoryComplete(ctx context.Contex
 }
 
 // RegenerateAuthKey regenerates the authentication key for an integration runtime.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name. integrationRuntimeName is the
-// integration runtime name. regenerateKeyParameters is the parameters for regenerating integration runtime
-// authentication key.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// integrationRuntimeName - the integration runtime name.
+// regenerateKeyParameters - the parameters for regenerating integration runtime authentication key.
 func (client IntegrationRuntimesClient) RegenerateAuthKey(ctx context.Context, resourceGroupName string, factoryName string, integrationRuntimeName string, regenerateKeyParameters IntegrationRuntimeRegenerateKeyParameters) (result IntegrationRuntimeAuthKeys, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -804,7 +814,7 @@ func (client IntegrationRuntimesClient) RegenerateAuthKeyPreparer(ctx context.Co
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DataFactory/factories/{factoryName}/integrationRuntimes/{integrationRuntimeName}/regenerateAuthKey", pathParameters),
@@ -834,10 +844,11 @@ func (client IntegrationRuntimesClient) RegenerateAuthKeyResponder(resp *http.Re
 }
 
 // RemoveNode remove a node from integration runtime.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name. integrationRuntimeName is the
-// integration runtime name. removeNodeParameters is the name of the node to be removed from an integration
-// runtime.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// integrationRuntimeName - the integration runtime name.
+// removeNodeParameters - the name of the node to be removed from an integration runtime.
 func (client IntegrationRuntimesClient) RemoveNode(ctx context.Context, resourceGroupName string, factoryName string, integrationRuntimeName string, removeNodeParameters IntegrationRuntimeRemoveNodeRequest) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -891,7 +902,7 @@ func (client IntegrationRuntimesClient) RemoveNodePreparer(ctx context.Context, 
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DataFactory/factories/{factoryName}/integrationRuntimes/{integrationRuntimeName}/removeNode", pathParameters),
@@ -920,9 +931,10 @@ func (client IntegrationRuntimesClient) RemoveNodeResponder(resp *http.Response)
 }
 
 // Start starts a ManagedReserved type integration runtime.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name. integrationRuntimeName is the
-// integration runtime name.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// integrationRuntimeName - the integration runtime name.
 func (client IntegrationRuntimesClient) Start(ctx context.Context, resourceGroupName string, factoryName string, integrationRuntimeName string) (result IntegrationRuntimesStartFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -1006,9 +1018,10 @@ func (client IntegrationRuntimesClient) StartResponder(resp *http.Response) (res
 }
 
 // Stop stops a ManagedReserved type integration runtime.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name. integrationRuntimeName is the
-// integration runtime name.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// integrationRuntimeName - the integration runtime name.
 func (client IntegrationRuntimesClient) Stop(ctx context.Context, resourceGroupName string, factoryName string, integrationRuntimeName string) (result IntegrationRuntimesStopFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -1094,9 +1107,10 @@ func (client IntegrationRuntimesClient) StopResponder(resp *http.Response) (resu
 // will override the credentials across all worker nodes with those available on the dispatcher node. If you already
 // have the latest credential backup file, you should manually import it (preferred) on any self-hosted integration
 // runtime node than using this API directly.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name. integrationRuntimeName is the
-// integration runtime name.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// integrationRuntimeName - the integration runtime name.
 func (client IntegrationRuntimesClient) SyncCredentials(ctx context.Context, resourceGroupName string, factoryName string, integrationRuntimeName string) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -1177,9 +1191,11 @@ func (client IntegrationRuntimesClient) SyncCredentialsResponder(resp *http.Resp
 }
 
 // Update updates an integration runtime.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name. integrationRuntimeName is the
-// integration runtime name. updateIntegrationRuntimeRequest is the parameters for updating an integration runtime.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// integrationRuntimeName - the integration runtime name.
+// updateIntegrationRuntimeRequest - the parameters for updating an integration runtime.
 func (client IntegrationRuntimesClient) Update(ctx context.Context, resourceGroupName string, factoryName string, integrationRuntimeName string, updateIntegrationRuntimeRequest UpdateIntegrationRuntimeRequest) (result IntegrationRuntimeStatusResponse, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -1233,7 +1249,7 @@ func (client IntegrationRuntimesClient) UpdatePreparer(ctx context.Context, reso
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DataFactory/factories/{factoryName}/integrationRuntimes/{integrationRuntimeName}", pathParameters),
@@ -1263,9 +1279,10 @@ func (client IntegrationRuntimesClient) UpdateResponder(resp *http.Response) (re
 }
 
 // Upgrade upgrade self-hosted integration runtime to latest version if availably.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name. integrationRuntimeName is the
-// integration runtime name.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// integrationRuntimeName - the integration runtime name.
 func (client IntegrationRuntimesClient) Upgrade(ctx context.Context, resourceGroupName string, factoryName string, integrationRuntimeName string) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,

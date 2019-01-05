@@ -106,7 +106,7 @@ var _ = SIGDescribe("Load capacity", func() {
 		close(profileGathererStopCh)
 		wg := sync.WaitGroup{}
 		wg.Add(1)
-		framework.GatherApiserverMemoryProfile(&wg, "load")
+		framework.GatherMemoryProfile("kube-apiserver", "load", &wg)
 		wg.Wait()
 
 		// Verify latency metrics
@@ -159,7 +159,7 @@ var _ = SIGDescribe("Load capacity", func() {
 
 		// Start apiserver CPU profile gatherer with frequency based on cluster size.
 		profileGatheringDelay := time.Duration(5+nodeCount/100) * time.Minute
-		profileGathererStopCh = framework.StartApiserverCPUProfileGatherer(profileGatheringDelay)
+		profileGathererStopCh = framework.StartCPUProfileGatherer("kube-apiserver", "load", profileGatheringDelay)
 	})
 
 	type Load struct {
@@ -320,14 +320,12 @@ var _ = SIGDescribe("Load capacity", func() {
 			// We would like to spread scaling replication controllers over time
 			// to make it possible to create/schedule & delete them in the meantime.
 			// Currently we assume that <throughput> pods/second average throughput.
-			// The expected number of created/deleted pods is less than totalPods/3.
-			scalingTime := time.Duration(totalPods/(3*throughput)) * time.Second
+
+			// The expected number of created/deleted pods is totalPods/4 when scaling,
+			// as each RC changes its size from X to a uniform random value in [X/2, 3X/2].
+			scalingTime := time.Duration(totalPods/(4*throughput)) * time.Second
 			framework.Logf("Starting to scale %v objects first time...", itArg.kind)
 			scaleAllResources(configs, scalingTime, testPhaseDurations.StartPhase(300, "scaling first time"))
-			By("============================================================================")
-
-			framework.Logf("Starting to scale %v objects second time...", itArg.kind)
-			scaleAllResources(configs, scalingTime, testPhaseDurations.StartPhase(400, "scaling second time"))
 			By("============================================================================")
 
 			// Cleanup all created replication controllers.

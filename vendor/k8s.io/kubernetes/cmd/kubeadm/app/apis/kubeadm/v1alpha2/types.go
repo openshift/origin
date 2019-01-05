@@ -19,15 +19,15 @@ package v1alpha2
 import (
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kubeletconfigv1beta1 "k8s.io/kubernetes/pkg/kubelet/apis/kubeletconfig/v1beta1"
-	kubeproxyconfigv1alpha1 "k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig/v1alpha1"
+	kubeproxyconfigv1alpha1 "k8s.io/kube-proxy/config/v1alpha1"
+	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// MasterConfiguration contains a list of elements which make up master's
+// InitConfiguration contains a list of elements which make up master's
 // configuration object.
-type MasterConfiguration struct {
+type InitConfiguration struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// `kubeadm init`-only information. These fields are solely used the first time `kubeadm init` runs.
@@ -229,9 +229,9 @@ type ExternalEtcd struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// NodeConfiguration contains elements describing a particular node.
+// JoinConfiguration contains elements describing a particular node.
 // TODO: This struct should be replaced by dynamic kubelet configuration.
-type NodeConfiguration struct {
+type JoinConfiguration struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// NodeRegistration holds fields that relate to registering the new master node to the cluster
@@ -276,6 +276,18 @@ type NodeConfiguration struct {
 	// without CA verification via DiscoveryTokenCACertHashes. This can weaken
 	// the security of kubeadm since other nodes can impersonate the master.
 	DiscoveryTokenUnsafeSkipCAVerification bool `json:"discoveryTokenUnsafeSkipCAVerification"`
+
+	// ControlPlane flag specifies that the joining node should host an additional
+	// control plane instance.
+	ControlPlane bool `json:"controlPlane,omitempty"`
+
+	// AdvertiseAddress sets the IP address for the API server to advertise; the
+	// API server will be installed only on nodes hosting an additional control plane instance.
+	AdvertiseAddress string `json:"advertiseAddress,omitempty"`
+
+	// BindPort sets the secure port for the API Server to bind to.
+	// Defaults to 6443.
+	BindPort int32 `json:"bindPort,omitempty"`
 
 	// FeatureGates enabled by the user.
 	FeatureGates map[string]bool `json:"featureGates,omitempty"`

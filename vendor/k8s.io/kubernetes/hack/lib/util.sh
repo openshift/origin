@@ -18,6 +18,20 @@ kube::util::sortable_date() {
   date "+%Y%m%d-%H%M%S"
 }
 
+# arguments: target, item1, item2, item3, ...
+# returns 0 if target is in the given items, 1 otherwise.
+kube::util::array_contains() {
+  local search="$1"
+  local element
+  shift
+  for element; do
+    if [[ "${element}" == "${search}" ]]; then
+      return 0
+     fi
+  done
+  return 1
+}
+
 kube::util::wait_for_url() {
   local url=$1
   local prefix=${2:-}
@@ -308,7 +322,7 @@ kube::util::gv-to-swagger-name() {
 # Assumed vars:
 # SWAGGER_API_PATH: Base path for swaggerapi on apiserver. Ex:
 # http://localhost:8080/swaggerapi.
-# SWAGGER_ROOT_DIR: Root dir where we want to to save the fetched spec.
+# SWAGGER_ROOT_DIR: Root dir where we want to save the fetched spec.
 # VERSIONS: Array of group versions to include in swagger spec.
 kube::util::fetch-swagger-spec() {
   for ver in ${VERSIONS}; do
@@ -435,7 +449,7 @@ kube::util::ensure_godep_version() {
   fi
 
   kube::log::status "Installing godep version ${GODEP_VERSION}"
-  go install ./vendor/github.com/tools/godep/
+  go install k8s.io/kubernetes/vendor/github.com/tools/godep/
   if ! which godep >/dev/null 2>&1; then
     kube::log::error "Can't find godep - is your GOPATH 'bin' in your PATH?"
     kube::log::error "  GOPATH: ${GOPATH}"
@@ -540,6 +554,7 @@ function kube::util::test_openssl_installed {
       echo "Failed to run openssl. Please ensure openssl is installed"
       exit 1
     fi
+
     OPENSSL_BIN=$(command -v openssl)
 }
 
@@ -787,6 +802,8 @@ if [[ -z "${color_start-}" ]]; then
   declare -r color_red="${color_start}0;31m"
   declare -r color_yellow="${color_start}0;33m"
   declare -r color_green="${color_start}0;32m"
+  declare -r color_blue="${color_start}1;34m"
+  declare -r color_cyan="${color_start}1;36m"
   declare -r color_norm="${color_start}0m"
 fi
 

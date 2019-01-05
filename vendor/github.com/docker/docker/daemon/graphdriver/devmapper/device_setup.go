@@ -1,4 +1,4 @@
-package devmapper
+package devmapper // import "github.com/docker/docker/daemon/graphdriver/devmapper"
 
 import (
 	"bufio"
@@ -129,15 +129,10 @@ func verifyBlockDevice(dev string, force bool) error {
 	if err := checkDevInVG(dev); err != nil {
 		return err
 	}
-
 	if force {
 		return nil
 	}
-
-	if err := checkDevHasFS(dev); err != nil {
-		return err
-	}
-	return nil
+	return checkDevHasFS(dev)
 }
 
 func readLVMConfig(root string) (directLVMConfig, error) {

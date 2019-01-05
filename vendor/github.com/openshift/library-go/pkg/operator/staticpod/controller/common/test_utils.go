@@ -1,11 +1,15 @@
 package common
 
 import (
+	"fmt"
+	"strconv"
 	"time"
 
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	corelisterv1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
@@ -79,11 +83,18 @@ func (c *fakeStaticPodOperatorClient) Informer() cache.SharedIndexInformer {
 }
 
 func (c *fakeStaticPodOperatorClient) Get() (*operatorv1.OperatorSpec, *operatorv1.StaticPodOperatorStatus, string, error) {
-	return c.fakeOperatorSpec, c.fakeStaticPodOperatorStatus, "1", nil
+	return c.fakeOperatorSpec, c.fakeStaticPodOperatorStatus, c.resourceVersion, nil
 }
 
 func (c *fakeStaticPodOperatorClient) UpdateStatus(resourceVersion string, status *operatorv1.StaticPodOperatorStatus) (*operatorv1.StaticPodOperatorStatus, error) {
-	c.resourceVersion = resourceVersion
+	if c.resourceVersion != resourceVersion {
+		return nil, errors.NewConflict(schema.GroupResource{Group: operatorv1.GroupName, Resource: "TestOperatorConfig"}, "instance", fmt.Errorf("invalid resourceVersion"))
+	}
+	rv, err := strconv.Atoi(resourceVersion)
+	if err != nil {
+		return nil, err
+	}
+	c.resourceVersion = strconv.Itoa(rv + 1)
 	if c.triggerStatusUpdateError != nil {
 		if err := c.triggerStatusUpdateError(resourceVersion, status); err != nil {
 			return nil, err

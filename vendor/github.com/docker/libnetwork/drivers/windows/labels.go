@@ -39,4 +39,13 @@ const (
 
 	// DisableDNS label
 	DisableDNS = "com.docker.network.windowsshim.disable_dns"
+
+	// DisableGatewayDNS label
+	DisableGatewayDNS = "com.docker.network.windowsshim.disable_gatewaydns"
+
+	// EnableOutboundNat label
+	EnableOutboundNat = "com.docker.network.windowsshim.enable_outboundnat"
+
+	// OutboundNatExceptions label
+	OutboundNatExceptions = "com.docker.network.windowsshim.outboundnat_exceptions"
 )

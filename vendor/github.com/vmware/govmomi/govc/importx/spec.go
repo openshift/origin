@@ -159,6 +159,7 @@ func (cmd *spec) Spec(fpath string) error {
 		DiskProvisioning:   allDiskProvisioningOptions[0],
 		IPAllocationPolicy: allIPAllocationPolicyOptions[0],
 		IPProtocol:         allIPProtocolOptions[0],
+		MarkAsTemplate:     false,
 		PowerOn:            false,
 		WaitForIP:          false,
 		InjectOvfEnv:       false,

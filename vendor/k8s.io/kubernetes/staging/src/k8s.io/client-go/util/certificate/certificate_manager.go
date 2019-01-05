@@ -138,6 +138,8 @@ type Gauge interface {
 // NoCertKeyError indicates there is no cert/key currently available.
 type NoCertKeyError string
 
+// CSRClientFunc returns a new client for requesting CSRs. It passes the
+// current certificate if one is available and valid.
 type CSRClientFunc func(current *tls.Certificate) (certificatesclient.CertificateSigningRequestInterface, error)
 
 func (e *NoCertKeyError) Error() string { return string(*e) }

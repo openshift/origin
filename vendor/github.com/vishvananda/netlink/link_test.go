@@ -1038,6 +1038,37 @@ func TestLinkSubscribe(t *testing.T) {
 	}
 }
 
+func TestLinkSubscribeWithOptions(t *testing.T) {
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+
+	ch := make(chan LinkUpdate)
+	done := make(chan struct{})
+	defer close(done)
+	var lastError error
+	defer func() {
+		if lastError != nil {
+			t.Fatalf("Fatal error received during subscription: %v", lastError)
+		}
+	}()
+	if err := LinkSubscribeWithOptions(ch, done, LinkSubscribeOptions{
+		ErrorCallback: func(err error) {
+			lastError = err
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	link := &Veth{LinkAttrs{Name: "foo", TxQLen: testTxQLen, MTU: 1400}, "bar"}
+	if err := LinkAdd(link); err != nil {
+		t.Fatal(err)
+	}
+
+	if !expectLinkUpdate(ch, "foo", false) {
+		t.Fatal("Add update not received as expected")
+	}
+}
+
 func TestLinkSubscribeAt(t *testing.T) {
 	skipUnlessRoot(t)
 

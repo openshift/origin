@@ -79,7 +79,7 @@ fi
 
 if [ -z "$(govc ls "$dvs_path")" ] ; then
   echo "Creating dvs ${dvs_path}..."
-  govc dvs.create -product-version 5.5.0 -folder "$(dirname "$dvs_path")" "$(basename "$dvs_path")"
+  govc dvs.create -product-version 6.0.0 -folder "$(dirname "$dvs_path")" "$(basename "$dvs_path")"
 fi
 
 if [ -z "$(govc ls "$public_network")" ] ; then

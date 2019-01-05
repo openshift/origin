@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 )
 
@@ -114,7 +115,9 @@ func TestNewNodeController(t *testing.T) {
 				nil,
 			)
 
-			c := NewNodeController(fakeStaticPodOperatorClient, kubeInformers)
+			eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &v1.ObjectReference{})
+
+			c := NewNodeController(fakeStaticPodOperatorClient, kubeInformers, eventRecorder)
 			// override the lister so we don't have to run the informer to list nodes
 			c.nodeLister = fakeLister
 			if err := c.sync(); err != nil {

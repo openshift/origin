@@ -1,18 +1,20 @@
 package: github.com/openshift/library-go
 import:
 - package: k8s.io/apimachinery
-  version: kubernetes-1.11.1
+  version: kubernetes-1.12.2
 - package: k8s.io/api
-  version: kubernetes-1.11.1
+  version: kubernetes-1.12.2
 - package: k8s.io/apiserver
-  version: kubernetes-1.11.1
+  version: kubernetes-1.12.2
 - package: k8s.io/apiextensions-apiserver
-  version: kubernetes-1.11.1
+  version: kubernetes-1.12.2
 - package: k8s.io/kube-aggregator
-  version: kubernetes-1.11.1
+  version: kubernetes-1.12.2
 - package: k8s.io/client-go
-  version: kubernetes-1.11.1
+  version: kubernetes-1.12.2
 - package: github.com/openshift/api
+  version: master
+- package: github.com/openshift/client-go
   version: master
 
 

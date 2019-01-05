@@ -20,6 +20,7 @@ import (
 
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
 	"github.com/openshift/library-go/pkg/assets"
+	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/v1alpha1helpers"
 	"github.com/openshift/library-go/pkg/operator/v1alpha1staticpod/controller/backingresource/bindata"
@@ -45,7 +46,8 @@ type BackingResourceController struct {
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
 	queue workqueue.RateLimitingInterface
 
-	kubeClient kubernetes.Interface
+	kubeClient    kubernetes.Interface
+	eventRecorder events.Recorder
 }
 
 func NewBackingResourceController(
@@ -53,6 +55,7 @@ func NewBackingResourceController(
 	operatorConfigClient common.OperatorClient,
 	kubeInformersForTargetNamespace informers.SharedInformerFactory,
 	kubeClient kubernetes.Interface,
+	eventRecorder events.Recorder,
 ) *BackingResourceController {
 	c := &BackingResourceController{
 		targetNamespace:      targetNamespace,
@@ -64,8 +67,9 @@ func NewBackingResourceController(
 		clusterRoleBindingListerSynced: kubeInformersForTargetNamespace.Core().V1().ServiceAccounts().Informer().HasSynced,
 		clusterRoleBindingLister:       kubeInformersForTargetNamespace.Rbac().V1().ClusterRoleBindings().Lister(),
 
-		queue:      workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "BackingResourceController"),
-		kubeClient: kubeClient,
+		queue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "BackingResourceController"),
+		kubeClient:    kubeClient,
+		eventRecorder: eventRecorder,
 	}
 
 	operatorConfigClient.Informer().AddEventHandler(c.eventHandler())
@@ -115,7 +119,7 @@ func (c BackingResourceController) sync() error {
 	}
 
 	errors := []string{}
-	directResourceResults := resourceapply.ApplyDirectly(c.kubeClient, c.mustTemplateAsset,
+	directResourceResults := resourceapply.ApplyDirectly(c.kubeClient, c.eventRecorder, c.mustTemplateAsset,
 		"manifests/installer-sa.yaml",
 		"manifests/installer-cluster-rolebinding.yaml",
 	)

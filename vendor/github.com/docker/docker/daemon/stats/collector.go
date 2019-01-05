@@ -1,8 +1,8 @@
-// +build !solaris
-
-package stats
+package stats // import "github.com/docker/docker/daemon/stats"
 
 import (
+	"bufio"
+	"sync"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -10,6 +10,37 @@ import (
 	"github.com/docker/docker/pkg/pubsub"
 	"github.com/sirupsen/logrus"
 )
+
+// Collector manages and provides container resource stats
+type Collector struct {
+	m          sync.Mutex
+	supervisor supervisor
+	interval   time.Duration
+	publishers map[*container.Container]*pubsub.Publisher
+	bufReader  *bufio.Reader
+
+	// The following fields are not set on Windows currently.
+	clockTicksPerSecond uint64
+}
+
+// NewCollector creates a stats collector that will poll the supervisor with the specified interval
+func NewCollector(supervisor supervisor, interval time.Duration) *Collector {
+	s := &Collector{
+		interval:   interval,
+		supervisor: supervisor,
+		publishers: make(map[*container.Container]*pubsub.Publisher),
+		bufReader:  bufio.NewReaderSize(nil, 128),
+	}
+
+	platformNewStatsCollector(s)
+
+	return s
+}
+
+type supervisor interface {
+	// GetContainerStats collects all the stats related to a container
+	GetContainerStats(container *container.Container) (*types.StatsJSON, error)
+}
 
 // Collect registers the container with the collector and adds it to
 // the event loop for collection on the specified interval returning
@@ -59,7 +90,11 @@ func (s *Collector) Run() {
 	// it will grow enough in first iteration
 	var pairs []publishersPair
 
-	for range time.Tick(s.interval) {
+	for {
+		// Put sleep at the start so that it will always be hit,
+		// preventing a tight loop if no stats are collected.
+		time.Sleep(s.interval)
+
 		// it does not make sense in the first iteration,
 		// but saves allocations in further iterations
 		pairs = pairs[:0]
@@ -74,12 +109,6 @@ func (s *Collector) Run() {
 			continue
 		}
 
-		systemUsage, err := s.getSystemCPUUsage()
-		if err != nil {
-			logrus.Errorf("collecting system cpu usage: %v", err)
-			continue
-		}
-
 		onlineCPUs, err := s.getNumberOnlineCPUs()
 		if err != nil {
 			logrus.Errorf("collecting system online cpu count: %v", err)
@@ -91,6 +120,14 @@ func (s *Collector) Run() {
 
 			switch err.(type) {
 			case nil:
+				// Sample system CPU usage close to container usage to avoid
+				// noise in metric calculations.
+				systemUsage, err := s.getSystemCPUUsage()
+				if err != nil {
+					logrus.WithError(err).WithField("container_id", pair.container.ID).Errorf("collecting system cpu usage")
+					continue
+				}
+
 				// FIXME: move to containerd on Linux (not Windows)
 				stats.CPUStats.SystemUsage = systemUsage
 				stats.CPUStats.OnlineCPUs = onlineCPUs

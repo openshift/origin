@@ -40,6 +40,11 @@ const (
 	LatestProcessed A2ARpRecoveryPointType = "LatestProcessed"
 )
 
+// PossibleA2ARpRecoveryPointTypeValues returns an array of possible values for the A2ARpRecoveryPointType const type.
+func PossibleA2ARpRecoveryPointTypeValues() []A2ARpRecoveryPointType {
+	return []A2ARpRecoveryPointType{Latest, LatestApplicationConsistent, LatestCrashConsistent, LatestProcessed}
+}
+
 // AlternateLocationRecoveryOption enumerates the values for alternate location recovery option.
 type AlternateLocationRecoveryOption string
 
@@ -49,6 +54,11 @@ const (
 	// NoAction ...
 	NoAction AlternateLocationRecoveryOption = "NoAction"
 )
+
+// PossibleAlternateLocationRecoveryOptionValues returns an array of possible values for the AlternateLocationRecoveryOption const type.
+func PossibleAlternateLocationRecoveryOptionValues() []AlternateLocationRecoveryOption {
+	return []AlternateLocationRecoveryOption{CreateVMIfNotFound, NoAction}
+}
 
 // DataSyncStatus enumerates the values for data sync status.
 type DataSyncStatus string
@@ -60,6 +70,11 @@ const (
 	ForSynchronization DataSyncStatus = "ForSynchronization"
 )
 
+// PossibleDataSyncStatusValues returns an array of possible values for the DataSyncStatus const type.
+func PossibleDataSyncStatusValues() []DataSyncStatus {
+	return []DataSyncStatus{ForDownTime, ForSynchronization}
+}
+
 // DisableProtectionReason enumerates the values for disable protection reason.
 type DisableProtectionReason string
 
@@ -69,6 +84,11 @@ const (
 	// NotSpecified ...
 	NotSpecified DisableProtectionReason = "NotSpecified"
 )
+
+// PossibleDisableProtectionReasonValues returns an array of possible values for the DisableProtectionReason const type.
+func PossibleDisableProtectionReasonValues() []DisableProtectionReason {
+	return []DisableProtectionReason{MigrationComplete, NotSpecified}
+}
 
 // FailoverDeploymentModel enumerates the values for failover deployment model.
 type FailoverDeploymentModel string
@@ -82,6 +102,11 @@ const (
 	ResourceManager FailoverDeploymentModel = "ResourceManager"
 )
 
+// PossibleFailoverDeploymentModelValues returns an array of possible values for the FailoverDeploymentModel const type.
+func PossibleFailoverDeploymentModelValues() []FailoverDeploymentModel {
+	return []FailoverDeploymentModel{Classic, NotApplicable, ResourceManager}
+}
+
 // HealthErrorCategory enumerates the values for health error category.
 type HealthErrorCategory string
 
@@ -93,6 +118,11 @@ const (
 	// TestFailover ...
 	TestFailover HealthErrorCategory = "TestFailover"
 )
+
+// PossibleHealthErrorCategoryValues returns an array of possible values for the HealthErrorCategory const type.
+func PossibleHealthErrorCategoryValues() []HealthErrorCategory {
+	return []HealthErrorCategory{Configuration, Replication, TestFailover}
+}
 
 // HyperVReplicaAzureRpRecoveryPointType enumerates the values for hyper v replica azure rp recovery point
 // type.
@@ -107,6 +137,11 @@ const (
 	HyperVReplicaAzureRpRecoveryPointTypeLatestProcessed HyperVReplicaAzureRpRecoveryPointType = "LatestProcessed"
 )
 
+// PossibleHyperVReplicaAzureRpRecoveryPointTypeValues returns an array of possible values for the HyperVReplicaAzureRpRecoveryPointType const type.
+func PossibleHyperVReplicaAzureRpRecoveryPointTypeValues() []HyperVReplicaAzureRpRecoveryPointType {
+	return []HyperVReplicaAzureRpRecoveryPointType{HyperVReplicaAzureRpRecoveryPointTypeLatest, HyperVReplicaAzureRpRecoveryPointTypeLatestApplicationConsistent, HyperVReplicaAzureRpRecoveryPointTypeLatestProcessed}
+}
+
 // IdentityProviderType enumerates the values for identity provider type.
 type IdentityProviderType string
 
@@ -116,6 +151,11 @@ const (
 	// RecoveryServicesActiveDirectory ...
 	RecoveryServicesActiveDirectory IdentityProviderType = "RecoveryServicesActiveDirectory"
 )
+
+// PossibleIdentityProviderTypeValues returns an array of possible values for the IdentityProviderType const type.
+func PossibleIdentityProviderTypeValues() []IdentityProviderType {
+	return []IdentityProviderType{CustomerActiveDirectory, RecoveryServicesActiveDirectory}
+}
 
 // InMageV2RpRecoveryPointType enumerates the values for in mage v2 rp recovery point type.
 type InMageV2RpRecoveryPointType string
@@ -130,6 +170,11 @@ const (
 	// InMageV2RpRecoveryPointTypeLatestProcessed ...
 	InMageV2RpRecoveryPointTypeLatestProcessed InMageV2RpRecoveryPointType = "LatestProcessed"
 )
+
+// PossibleInMageV2RpRecoveryPointTypeValues returns an array of possible values for the InMageV2RpRecoveryPointType const type.
+func PossibleInMageV2RpRecoveryPointTypeValues() []InMageV2RpRecoveryPointType {
+	return []InMageV2RpRecoveryPointType{InMageV2RpRecoveryPointTypeLatest, InMageV2RpRecoveryPointTypeLatestApplicationConsistent, InMageV2RpRecoveryPointTypeLatestCrashConsistent, InMageV2RpRecoveryPointTypeLatestProcessed}
+}
 
 // InstanceType enumerates the values for instance type.
 type InstanceType string
@@ -151,6 +196,11 @@ const (
 	InstanceTypeInMageAzureV2 InstanceType = "InMageAzureV2"
 )
 
+// PossibleInstanceTypeValues returns an array of possible values for the InstanceType const type.
+func PossibleInstanceTypeValues() []InstanceType {
+	return []InstanceType{InstanceTypeA2A, InstanceTypeEventProviderSpecificDetails, InstanceTypeHyperVReplica2012, InstanceTypeHyperVReplica2012R2, InstanceTypeHyperVReplicaAzure, InstanceTypeHyperVReplicaBaseEventDetails, InstanceTypeInMageAzureV2}
+}
+
 // InstanceTypeBasicApplyRecoveryPointProviderSpecificInput enumerates the values for instance type basic apply
 // recovery point provider specific input.
 type InstanceTypeBasicApplyRecoveryPointProviderSpecificInput string
@@ -166,6 +216,11 @@ const (
 	InstanceTypeBasicApplyRecoveryPointProviderSpecificInputInstanceTypeInMageAzureV2 InstanceTypeBasicApplyRecoveryPointProviderSpecificInput = "InMageAzureV2"
 )
 
+// PossibleInstanceTypeBasicApplyRecoveryPointProviderSpecificInputValues returns an array of possible values for the InstanceTypeBasicApplyRecoveryPointProviderSpecificInput const type.
+func PossibleInstanceTypeBasicApplyRecoveryPointProviderSpecificInputValues() []InstanceTypeBasicApplyRecoveryPointProviderSpecificInput {
+	return []InstanceTypeBasicApplyRecoveryPointProviderSpecificInput{InstanceTypeBasicApplyRecoveryPointProviderSpecificInputInstanceTypeA2A, InstanceTypeBasicApplyRecoveryPointProviderSpecificInputInstanceTypeApplyRecoveryPointProviderSpecificInput, InstanceTypeBasicApplyRecoveryPointProviderSpecificInputInstanceTypeHyperVReplicaAzure, InstanceTypeBasicApplyRecoveryPointProviderSpecificInputInstanceTypeInMageAzureV2}
+}
+
 // InstanceTypeBasicConfigurationSettings enumerates the values for instance type basic configuration settings.
 type InstanceTypeBasicConfigurationSettings string
 
@@ -180,6 +235,11 @@ const (
 	InstanceTypeVMwareVirtualMachine InstanceTypeBasicConfigurationSettings = "VMwareVirtualMachine"
 )
 
+// PossibleInstanceTypeBasicConfigurationSettingsValues returns an array of possible values for the InstanceTypeBasicConfigurationSettings const type.
+func PossibleInstanceTypeBasicConfigurationSettingsValues() []InstanceTypeBasicConfigurationSettings {
+	return []InstanceTypeBasicConfigurationSettings{InstanceTypeConfigurationSettings, InstanceTypeHyperVVirtualMachine, InstanceTypeReplicationGroupDetails, InstanceTypeVMwareVirtualMachine}
+}
+
 // InstanceTypeBasicDisableProtectionProviderSpecificInput enumerates the values for instance type basic
 // disable protection provider specific input.
 type InstanceTypeBasicDisableProtectionProviderSpecificInput string
@@ -190,6 +250,11 @@ const (
 	// InstanceTypeInMage ...
 	InstanceTypeInMage InstanceTypeBasicDisableProtectionProviderSpecificInput = "InMage"
 )
+
+// PossibleInstanceTypeBasicDisableProtectionProviderSpecificInputValues returns an array of possible values for the InstanceTypeBasicDisableProtectionProviderSpecificInput const type.
+func PossibleInstanceTypeBasicDisableProtectionProviderSpecificInputValues() []InstanceTypeBasicDisableProtectionProviderSpecificInput {
+	return []InstanceTypeBasicDisableProtectionProviderSpecificInput{InstanceTypeDisableProtectionProviderSpecificInput, InstanceTypeInMage}
+}
 
 // InstanceTypeBasicEnableProtectionProviderSpecificInput enumerates the values for instance type basic enable
 // protection provider specific input.
@@ -210,6 +275,11 @@ const (
 	InstanceTypeBasicEnableProtectionProviderSpecificInputInstanceTypeSan InstanceTypeBasicEnableProtectionProviderSpecificInput = "San"
 )
 
+// PossibleInstanceTypeBasicEnableProtectionProviderSpecificInputValues returns an array of possible values for the InstanceTypeBasicEnableProtectionProviderSpecificInput const type.
+func PossibleInstanceTypeBasicEnableProtectionProviderSpecificInputValues() []InstanceTypeBasicEnableProtectionProviderSpecificInput {
+	return []InstanceTypeBasicEnableProtectionProviderSpecificInput{InstanceTypeBasicEnableProtectionProviderSpecificInputInstanceTypeA2A, InstanceTypeBasicEnableProtectionProviderSpecificInputInstanceTypeEnableProtectionProviderSpecificInput, InstanceTypeBasicEnableProtectionProviderSpecificInputInstanceTypeHyperVReplicaAzure, InstanceTypeBasicEnableProtectionProviderSpecificInputInstanceTypeInMage, InstanceTypeBasicEnableProtectionProviderSpecificInputInstanceTypeInMageAzureV2, InstanceTypeBasicEnableProtectionProviderSpecificInputInstanceTypeSan}
+}
+
 // InstanceTypeBasicEventSpecificDetails enumerates the values for instance type basic event specific details.
 type InstanceTypeBasicEventSpecificDetails string
 
@@ -219,6 +289,11 @@ const (
 	// InstanceTypeJobStatus ...
 	InstanceTypeJobStatus InstanceTypeBasicEventSpecificDetails = "JobStatus"
 )
+
+// PossibleInstanceTypeBasicEventSpecificDetailsValues returns an array of possible values for the InstanceTypeBasicEventSpecificDetails const type.
+func PossibleInstanceTypeBasicEventSpecificDetailsValues() []InstanceTypeBasicEventSpecificDetails {
+	return []InstanceTypeBasicEventSpecificDetails{InstanceTypeEventSpecificDetails, InstanceTypeJobStatus}
+}
 
 // InstanceTypeBasicFabricSpecificCreateNetworkMappingInput enumerates the values for instance type basic
 // fabric specific create network mapping input.
@@ -235,6 +310,11 @@ const (
 	InstanceTypeVmmToVmm InstanceTypeBasicFabricSpecificCreateNetworkMappingInput = "VmmToVmm"
 )
 
+// PossibleInstanceTypeBasicFabricSpecificCreateNetworkMappingInputValues returns an array of possible values for the InstanceTypeBasicFabricSpecificCreateNetworkMappingInput const type.
+func PossibleInstanceTypeBasicFabricSpecificCreateNetworkMappingInputValues() []InstanceTypeBasicFabricSpecificCreateNetworkMappingInput {
+	return []InstanceTypeBasicFabricSpecificCreateNetworkMappingInput{InstanceTypeAzureToAzure, InstanceTypeFabricSpecificCreateNetworkMappingInput, InstanceTypeVmmToAzure, InstanceTypeVmmToVmm}
+}
+
 // InstanceTypeBasicFabricSpecificCreationInput enumerates the values for instance type basic fabric specific
 // creation input.
 type InstanceTypeBasicFabricSpecificCreationInput string
@@ -247,6 +327,11 @@ const (
 	// InstanceTypeVMwareV2 ...
 	InstanceTypeVMwareV2 InstanceTypeBasicFabricSpecificCreationInput = "VMwareV2"
 )
+
+// PossibleInstanceTypeBasicFabricSpecificCreationInputValues returns an array of possible values for the InstanceTypeBasicFabricSpecificCreationInput const type.
+func PossibleInstanceTypeBasicFabricSpecificCreationInputValues() []InstanceTypeBasicFabricSpecificCreationInput {
+	return []InstanceTypeBasicFabricSpecificCreationInput{InstanceTypeAzure, InstanceTypeFabricSpecificCreationInput, InstanceTypeVMwareV2}
+}
 
 // InstanceTypeBasicFabricSpecificDetails enumerates the values for instance type basic fabric specific
 // details.
@@ -267,6 +352,11 @@ const (
 	InstanceTypeBasicFabricSpecificDetailsInstanceTypeVMwareV2 InstanceTypeBasicFabricSpecificDetails = "VMwareV2"
 )
 
+// PossibleInstanceTypeBasicFabricSpecificDetailsValues returns an array of possible values for the InstanceTypeBasicFabricSpecificDetails const type.
+func PossibleInstanceTypeBasicFabricSpecificDetailsValues() []InstanceTypeBasicFabricSpecificDetails {
+	return []InstanceTypeBasicFabricSpecificDetails{InstanceTypeBasicFabricSpecificDetailsInstanceTypeAzure, InstanceTypeBasicFabricSpecificDetailsInstanceTypeFabricSpecificDetails, InstanceTypeBasicFabricSpecificDetailsInstanceTypeHyperVSite, InstanceTypeBasicFabricSpecificDetailsInstanceTypeVMM, InstanceTypeBasicFabricSpecificDetailsInstanceTypeVMware, InstanceTypeBasicFabricSpecificDetailsInstanceTypeVMwareV2}
+}
+
 // InstanceTypeBasicFabricSpecificUpdateNetworkMappingInput enumerates the values for instance type basic
 // fabric specific update network mapping input.
 type InstanceTypeBasicFabricSpecificUpdateNetworkMappingInput string
@@ -282,6 +372,11 @@ const (
 	InstanceTypeBasicFabricSpecificUpdateNetworkMappingInputInstanceTypeVmmToVmm InstanceTypeBasicFabricSpecificUpdateNetworkMappingInput = "VmmToVmm"
 )
 
+// PossibleInstanceTypeBasicFabricSpecificUpdateNetworkMappingInputValues returns an array of possible values for the InstanceTypeBasicFabricSpecificUpdateNetworkMappingInput const type.
+func PossibleInstanceTypeBasicFabricSpecificUpdateNetworkMappingInputValues() []InstanceTypeBasicFabricSpecificUpdateNetworkMappingInput {
+	return []InstanceTypeBasicFabricSpecificUpdateNetworkMappingInput{InstanceTypeBasicFabricSpecificUpdateNetworkMappingInputInstanceTypeAzureToAzure, InstanceTypeBasicFabricSpecificUpdateNetworkMappingInputInstanceTypeFabricSpecificUpdateNetworkMappingInput, InstanceTypeBasicFabricSpecificUpdateNetworkMappingInputInstanceTypeVmmToAzure, InstanceTypeBasicFabricSpecificUpdateNetworkMappingInputInstanceTypeVmmToVmm}
+}
+
 // InstanceTypeBasicGroupTaskDetails enumerates the values for instance type basic group task details.
 type InstanceTypeBasicGroupTaskDetails string
 
@@ -295,6 +390,11 @@ const (
 	// InstanceTypeRecoveryPlanShutdownGroupTaskDetails ...
 	InstanceTypeRecoveryPlanShutdownGroupTaskDetails InstanceTypeBasicGroupTaskDetails = "RecoveryPlanShutdownGroupTaskDetails"
 )
+
+// PossibleInstanceTypeBasicGroupTaskDetailsValues returns an array of possible values for the InstanceTypeBasicGroupTaskDetails const type.
+func PossibleInstanceTypeBasicGroupTaskDetailsValues() []InstanceTypeBasicGroupTaskDetails {
+	return []InstanceTypeBasicGroupTaskDetails{InstanceTypeGroupTaskDetails, InstanceTypeInlineWorkflowTaskDetails, InstanceTypeRecoveryPlanGroupTaskDetails, InstanceTypeRecoveryPlanShutdownGroupTaskDetails}
+}
 
 // InstanceTypeBasicJobDetails enumerates the values for instance type basic job details.
 type InstanceTypeBasicJobDetails string
@@ -314,6 +414,11 @@ const (
 	InstanceTypeTestFailoverJobDetails InstanceTypeBasicJobDetails = "TestFailoverJobDetails"
 )
 
+// PossibleInstanceTypeBasicJobDetailsValues returns an array of possible values for the InstanceTypeBasicJobDetails const type.
+func PossibleInstanceTypeBasicJobDetailsValues() []InstanceTypeBasicJobDetails {
+	return []InstanceTypeBasicJobDetails{InstanceTypeAsrJobDetails, InstanceTypeExportJobDetails, InstanceTypeFailoverJobDetails, InstanceTypeJobDetails, InstanceTypeSwitchProtectionJobDetails, InstanceTypeTestFailoverJobDetails}
+}
+
 // InstanceTypeBasicNetworkMappingFabricSpecificSettings enumerates the values for instance type basic network
 // mapping fabric specific settings.
 type InstanceTypeBasicNetworkMappingFabricSpecificSettings string
@@ -328,6 +433,11 @@ const (
 	// InstanceTypeBasicNetworkMappingFabricSpecificSettingsInstanceTypeVmmToVmm ...
 	InstanceTypeBasicNetworkMappingFabricSpecificSettingsInstanceTypeVmmToVmm InstanceTypeBasicNetworkMappingFabricSpecificSettings = "VmmToVmm"
 )
+
+// PossibleInstanceTypeBasicNetworkMappingFabricSpecificSettingsValues returns an array of possible values for the InstanceTypeBasicNetworkMappingFabricSpecificSettings const type.
+func PossibleInstanceTypeBasicNetworkMappingFabricSpecificSettingsValues() []InstanceTypeBasicNetworkMappingFabricSpecificSettings {
+	return []InstanceTypeBasicNetworkMappingFabricSpecificSettings{InstanceTypeBasicNetworkMappingFabricSpecificSettingsInstanceTypeAzureToAzure, InstanceTypeBasicNetworkMappingFabricSpecificSettingsInstanceTypeNetworkMappingFabricSpecificSettings, InstanceTypeBasicNetworkMappingFabricSpecificSettingsInstanceTypeVmmToAzure, InstanceTypeBasicNetworkMappingFabricSpecificSettingsInstanceTypeVmmToVmm}
+}
 
 // InstanceTypeBasicPolicyProviderSpecificDetails enumerates the values for instance type basic policy provider
 // specific details.
@@ -358,6 +468,11 @@ const (
 	InstanceTypeBasicPolicyProviderSpecificDetailsInstanceTypeVMwareCbt InstanceTypeBasicPolicyProviderSpecificDetails = "VMwareCbt"
 )
 
+// PossibleInstanceTypeBasicPolicyProviderSpecificDetailsValues returns an array of possible values for the InstanceTypeBasicPolicyProviderSpecificDetails const type.
+func PossibleInstanceTypeBasicPolicyProviderSpecificDetailsValues() []InstanceTypeBasicPolicyProviderSpecificDetails {
+	return []InstanceTypeBasicPolicyProviderSpecificDetails{InstanceTypeBasicPolicyProviderSpecificDetailsInstanceTypeA2A, InstanceTypeBasicPolicyProviderSpecificDetailsInstanceTypeHyperVReplica2012, InstanceTypeBasicPolicyProviderSpecificDetailsInstanceTypeHyperVReplica2012R2, InstanceTypeBasicPolicyProviderSpecificDetailsInstanceTypeHyperVReplicaAzure, InstanceTypeBasicPolicyProviderSpecificDetailsInstanceTypeHyperVReplicaBasePolicyDetails, InstanceTypeBasicPolicyProviderSpecificDetailsInstanceTypeInMage, InstanceTypeBasicPolicyProviderSpecificDetailsInstanceTypeInMageAzureV2, InstanceTypeBasicPolicyProviderSpecificDetailsInstanceTypeInMageBasePolicyDetails, InstanceTypeBasicPolicyProviderSpecificDetailsInstanceTypePolicyProviderSpecificDetails, InstanceTypeBasicPolicyProviderSpecificDetailsInstanceTypeRcmAzureMigration, InstanceTypeBasicPolicyProviderSpecificDetailsInstanceTypeVMwareCbt}
+}
+
 // InstanceTypeBasicPolicyProviderSpecificInput enumerates the values for instance type basic policy provider
 // specific input.
 type InstanceTypeBasicPolicyProviderSpecificInput string
@@ -381,6 +496,11 @@ const (
 	InstanceTypeBasicPolicyProviderSpecificInputInstanceTypeVMwareCbt InstanceTypeBasicPolicyProviderSpecificInput = "VMwareCbt"
 )
 
+// PossibleInstanceTypeBasicPolicyProviderSpecificInputValues returns an array of possible values for the InstanceTypeBasicPolicyProviderSpecificInput const type.
+func PossibleInstanceTypeBasicPolicyProviderSpecificInputValues() []InstanceTypeBasicPolicyProviderSpecificInput {
+	return []InstanceTypeBasicPolicyProviderSpecificInput{InstanceTypeBasicPolicyProviderSpecificInputInstanceTypeA2A, InstanceTypeBasicPolicyProviderSpecificInputInstanceTypeHyperVReplica2012, InstanceTypeBasicPolicyProviderSpecificInputInstanceTypeHyperVReplica2012R2, InstanceTypeBasicPolicyProviderSpecificInputInstanceTypeHyperVReplicaAzure, InstanceTypeBasicPolicyProviderSpecificInputInstanceTypeInMage, InstanceTypeBasicPolicyProviderSpecificInputInstanceTypeInMageAzureV2, InstanceTypeBasicPolicyProviderSpecificInputInstanceTypePolicyProviderSpecificInput, InstanceTypeBasicPolicyProviderSpecificInputInstanceTypeVMwareCbt}
+}
+
 // InstanceTypeBasicProviderSpecificFailoverInput enumerates the values for instance type basic provider
 // specific failover input.
 type InstanceTypeBasicProviderSpecificFailoverInput string
@@ -400,6 +520,11 @@ const (
 	InstanceTypeBasicProviderSpecificFailoverInputInstanceTypeProviderSpecificFailoverInput InstanceTypeBasicProviderSpecificFailoverInput = "ProviderSpecificFailoverInput"
 )
 
+// PossibleInstanceTypeBasicProviderSpecificFailoverInputValues returns an array of possible values for the InstanceTypeBasicProviderSpecificFailoverInput const type.
+func PossibleInstanceTypeBasicProviderSpecificFailoverInputValues() []InstanceTypeBasicProviderSpecificFailoverInput {
+	return []InstanceTypeBasicProviderSpecificFailoverInput{InstanceTypeBasicProviderSpecificFailoverInputInstanceTypeA2A, InstanceTypeBasicProviderSpecificFailoverInputInstanceTypeHyperVReplicaAzure, InstanceTypeBasicProviderSpecificFailoverInputInstanceTypeHyperVReplicaAzureFailback, InstanceTypeBasicProviderSpecificFailoverInputInstanceTypeInMage, InstanceTypeBasicProviderSpecificFailoverInputInstanceTypeInMageAzureV2, InstanceTypeBasicProviderSpecificFailoverInputInstanceTypeProviderSpecificFailoverInput}
+}
+
 // InstanceTypeBasicRecoveryPlanActionDetails enumerates the values for instance type basic recovery plan
 // action details.
 type InstanceTypeBasicRecoveryPlanActionDetails string
@@ -414,6 +539,11 @@ const (
 	// InstanceTypeScriptActionDetails ...
 	InstanceTypeScriptActionDetails InstanceTypeBasicRecoveryPlanActionDetails = "ScriptActionDetails"
 )
+
+// PossibleInstanceTypeBasicRecoveryPlanActionDetailsValues returns an array of possible values for the InstanceTypeBasicRecoveryPlanActionDetails const type.
+func PossibleInstanceTypeBasicRecoveryPlanActionDetailsValues() []InstanceTypeBasicRecoveryPlanActionDetails {
+	return []InstanceTypeBasicRecoveryPlanActionDetails{InstanceTypeAutomationRunbookActionDetails, InstanceTypeManualActionDetails, InstanceTypeRecoveryPlanActionDetails, InstanceTypeScriptActionDetails}
+}
 
 // InstanceTypeBasicRecoveryPlanProviderSpecificFailoverInput enumerates the values for instance type basic
 // recovery plan provider specific failover input.
@@ -434,6 +564,11 @@ const (
 	InstanceTypeBasicRecoveryPlanProviderSpecificFailoverInputInstanceTypeRecoveryPlanProviderSpecificFailoverInput InstanceTypeBasicRecoveryPlanProviderSpecificFailoverInput = "RecoveryPlanProviderSpecificFailoverInput"
 )
 
+// PossibleInstanceTypeBasicRecoveryPlanProviderSpecificFailoverInputValues returns an array of possible values for the InstanceTypeBasicRecoveryPlanProviderSpecificFailoverInput const type.
+func PossibleInstanceTypeBasicRecoveryPlanProviderSpecificFailoverInputValues() []InstanceTypeBasicRecoveryPlanProviderSpecificFailoverInput {
+	return []InstanceTypeBasicRecoveryPlanProviderSpecificFailoverInput{InstanceTypeBasicRecoveryPlanProviderSpecificFailoverInputInstanceTypeA2A, InstanceTypeBasicRecoveryPlanProviderSpecificFailoverInputInstanceTypeHyperVReplicaAzure, InstanceTypeBasicRecoveryPlanProviderSpecificFailoverInputInstanceTypeHyperVReplicaAzureFailback, InstanceTypeBasicRecoveryPlanProviderSpecificFailoverInputInstanceTypeInMage, InstanceTypeBasicRecoveryPlanProviderSpecificFailoverInputInstanceTypeInMageAzureV2, InstanceTypeBasicRecoveryPlanProviderSpecificFailoverInputInstanceTypeRecoveryPlanProviderSpecificFailoverInput}
+}
+
 // InstanceTypeBasicReplicationProviderSpecificContainerCreationInput enumerates the values for instance type
 // basic replication provider specific container creation input.
 type InstanceTypeBasicReplicationProviderSpecificContainerCreationInput string
@@ -444,6 +579,11 @@ const (
 	// InstanceTypeBasicReplicationProviderSpecificContainerCreationInputInstanceTypeReplicationProviderSpecificContainerCreationInput ...
 	InstanceTypeBasicReplicationProviderSpecificContainerCreationInputInstanceTypeReplicationProviderSpecificContainerCreationInput InstanceTypeBasicReplicationProviderSpecificContainerCreationInput = "ReplicationProviderSpecificContainerCreationInput"
 )
+
+// PossibleInstanceTypeBasicReplicationProviderSpecificContainerCreationInputValues returns an array of possible values for the InstanceTypeBasicReplicationProviderSpecificContainerCreationInput const type.
+func PossibleInstanceTypeBasicReplicationProviderSpecificContainerCreationInputValues() []InstanceTypeBasicReplicationProviderSpecificContainerCreationInput {
+	return []InstanceTypeBasicReplicationProviderSpecificContainerCreationInput{InstanceTypeBasicReplicationProviderSpecificContainerCreationInputInstanceTypeA2A, InstanceTypeBasicReplicationProviderSpecificContainerCreationInputInstanceTypeReplicationProviderSpecificContainerCreationInput}
+}
 
 // InstanceTypeBasicReplicationProviderSpecificSettings enumerates the values for instance type basic
 // replication provider specific settings.
@@ -468,6 +608,11 @@ const (
 	InstanceTypeBasicReplicationProviderSpecificSettingsInstanceTypeReplicationProviderSpecificSettings InstanceTypeBasicReplicationProviderSpecificSettings = "ReplicationProviderSpecificSettings"
 )
 
+// PossibleInstanceTypeBasicReplicationProviderSpecificSettingsValues returns an array of possible values for the InstanceTypeBasicReplicationProviderSpecificSettings const type.
+func PossibleInstanceTypeBasicReplicationProviderSpecificSettingsValues() []InstanceTypeBasicReplicationProviderSpecificSettings {
+	return []InstanceTypeBasicReplicationProviderSpecificSettings{InstanceTypeBasicReplicationProviderSpecificSettingsInstanceTypeA2A, InstanceTypeBasicReplicationProviderSpecificSettingsInstanceTypeHyperVReplica2012, InstanceTypeBasicReplicationProviderSpecificSettingsInstanceTypeHyperVReplica2012R2, InstanceTypeBasicReplicationProviderSpecificSettingsInstanceTypeHyperVReplicaAzure, InstanceTypeBasicReplicationProviderSpecificSettingsInstanceTypeHyperVReplicaBaseReplicationDetails, InstanceTypeBasicReplicationProviderSpecificSettingsInstanceTypeInMage, InstanceTypeBasicReplicationProviderSpecificSettingsInstanceTypeInMageAzureV2, InstanceTypeBasicReplicationProviderSpecificSettingsInstanceTypeReplicationProviderSpecificSettings}
+}
+
 // InstanceTypeBasicReverseReplicationProviderSpecificInput enumerates the values for instance type basic
 // reverse replication provider specific input.
 type InstanceTypeBasicReverseReplicationProviderSpecificInput string
@@ -485,6 +630,11 @@ const (
 	InstanceTypeBasicReverseReplicationProviderSpecificInputInstanceTypeReverseReplicationProviderSpecificInput InstanceTypeBasicReverseReplicationProviderSpecificInput = "ReverseReplicationProviderSpecificInput"
 )
 
+// PossibleInstanceTypeBasicReverseReplicationProviderSpecificInputValues returns an array of possible values for the InstanceTypeBasicReverseReplicationProviderSpecificInput const type.
+func PossibleInstanceTypeBasicReverseReplicationProviderSpecificInputValues() []InstanceTypeBasicReverseReplicationProviderSpecificInput {
+	return []InstanceTypeBasicReverseReplicationProviderSpecificInput{InstanceTypeBasicReverseReplicationProviderSpecificInputInstanceTypeA2A, InstanceTypeBasicReverseReplicationProviderSpecificInputInstanceTypeHyperVReplicaAzure, InstanceTypeBasicReverseReplicationProviderSpecificInputInstanceTypeInMage, InstanceTypeBasicReverseReplicationProviderSpecificInputInstanceTypeInMageAzureV2, InstanceTypeBasicReverseReplicationProviderSpecificInputInstanceTypeReverseReplicationProviderSpecificInput}
+}
+
 // InstanceTypeBasicSwitchProtectionProviderSpecificInput enumerates the values for instance type basic switch
 // protection provider specific input.
 type InstanceTypeBasicSwitchProtectionProviderSpecificInput string
@@ -495,6 +645,11 @@ const (
 	// InstanceTypeBasicSwitchProtectionProviderSpecificInputInstanceTypeSwitchProtectionProviderSpecificInput ...
 	InstanceTypeBasicSwitchProtectionProviderSpecificInputInstanceTypeSwitchProtectionProviderSpecificInput InstanceTypeBasicSwitchProtectionProviderSpecificInput = "SwitchProtectionProviderSpecificInput"
 )
+
+// PossibleInstanceTypeBasicSwitchProtectionProviderSpecificInputValues returns an array of possible values for the InstanceTypeBasicSwitchProtectionProviderSpecificInput const type.
+func PossibleInstanceTypeBasicSwitchProtectionProviderSpecificInputValues() []InstanceTypeBasicSwitchProtectionProviderSpecificInput {
+	return []InstanceTypeBasicSwitchProtectionProviderSpecificInput{InstanceTypeBasicSwitchProtectionProviderSpecificInputInstanceTypeA2A, InstanceTypeBasicSwitchProtectionProviderSpecificInputInstanceTypeSwitchProtectionProviderSpecificInput}
+}
 
 // InstanceTypeBasicTaskTypeDetails enumerates the values for instance type basic task type details.
 type InstanceTypeBasicTaskTypeDetails string
@@ -520,6 +675,11 @@ const (
 	InstanceTypeVMNicUpdatesTaskDetails InstanceTypeBasicTaskTypeDetails = "VmNicUpdatesTaskDetails"
 )
 
+// PossibleInstanceTypeBasicTaskTypeDetailsValues returns an array of possible values for the InstanceTypeBasicTaskTypeDetails const type.
+func PossibleInstanceTypeBasicTaskTypeDetailsValues() []InstanceTypeBasicTaskTypeDetails {
+	return []InstanceTypeBasicTaskTypeDetails{InstanceTypeAutomationRunbookTaskDetails, InstanceTypeConsistencyCheckTaskDetails, InstanceTypeFabricReplicationGroupTaskDetails, InstanceTypeJobTaskDetails, InstanceTypeManualActionTaskDetails, InstanceTypeScriptActionTaskDetails, InstanceTypeTaskTypeDetails, InstanceTypeVirtualMachineTaskDetails, InstanceTypeVMNicUpdatesTaskDetails}
+}
+
 // InstanceTypeBasicUpdateReplicationProtectedItemProviderInput enumerates the values for instance type basic
 // update replication protected item provider input.
 type InstanceTypeBasicUpdateReplicationProtectedItemProviderInput string
@@ -535,6 +695,11 @@ const (
 	InstanceTypeBasicUpdateReplicationProtectedItemProviderInputInstanceTypeUpdateReplicationProtectedItemProviderInput InstanceTypeBasicUpdateReplicationProtectedItemProviderInput = "UpdateReplicationProtectedItemProviderInput"
 )
 
+// PossibleInstanceTypeBasicUpdateReplicationProtectedItemProviderInputValues returns an array of possible values for the InstanceTypeBasicUpdateReplicationProtectedItemProviderInput const type.
+func PossibleInstanceTypeBasicUpdateReplicationProtectedItemProviderInputValues() []InstanceTypeBasicUpdateReplicationProtectedItemProviderInput {
+	return []InstanceTypeBasicUpdateReplicationProtectedItemProviderInput{InstanceTypeBasicUpdateReplicationProtectedItemProviderInputInstanceTypeA2A, InstanceTypeBasicUpdateReplicationProtectedItemProviderInputInstanceTypeHyperVReplicaAzure, InstanceTypeBasicUpdateReplicationProtectedItemProviderInputInstanceTypeInMageAzureV2, InstanceTypeBasicUpdateReplicationProtectedItemProviderInputInstanceTypeUpdateReplicationProtectedItemProviderInput}
+}
+
 // LicenseType enumerates the values for license type.
 type LicenseType string
 
@@ -547,6 +712,11 @@ const (
 	LicenseTypeWindowsServer LicenseType = "WindowsServer"
 )
 
+// PossibleLicenseTypeValues returns an array of possible values for the LicenseType const type.
+func PossibleLicenseTypeValues() []LicenseType {
+	return []LicenseType{LicenseTypeNoLicenseType, LicenseTypeNotSpecified, LicenseTypeWindowsServer}
+}
+
 // MultiVMSyncStatus enumerates the values for multi vm sync status.
 type MultiVMSyncStatus string
 
@@ -556,6 +726,11 @@ const (
 	// Enabled ...
 	Enabled MultiVMSyncStatus = "Enabled"
 )
+
+// PossibleMultiVMSyncStatusValues returns an array of possible values for the MultiVMSyncStatus const type.
+func PossibleMultiVMSyncStatusValues() []MultiVMSyncStatus {
+	return []MultiVMSyncStatus{Disabled, Enabled}
+}
 
 // PossibleOperationsDirections enumerates the values for possible operations directions.
 type PossibleOperationsDirections string
@@ -567,6 +742,11 @@ const (
 	RecoveryToPrimary PossibleOperationsDirections = "RecoveryToPrimary"
 )
 
+// PossiblePossibleOperationsDirectionsValues returns an array of possible values for the PossibleOperationsDirections const type.
+func PossiblePossibleOperationsDirectionsValues() []PossibleOperationsDirections {
+	return []PossibleOperationsDirections{PrimaryToRecovery, RecoveryToPrimary}
+}
+
 // RecoveryPlanActionLocation enumerates the values for recovery plan action location.
 type RecoveryPlanActionLocation string
 
@@ -576,6 +756,11 @@ const (
 	// Recovery ...
 	Recovery RecoveryPlanActionLocation = "Recovery"
 )
+
+// PossibleRecoveryPlanActionLocationValues returns an array of possible values for the RecoveryPlanActionLocation const type.
+func PossibleRecoveryPlanActionLocationValues() []RecoveryPlanActionLocation {
+	return []RecoveryPlanActionLocation{Primary, Recovery}
+}
 
 // RecoveryPlanGroupType enumerates the values for recovery plan group type.
 type RecoveryPlanGroupType string
@@ -589,6 +774,11 @@ const (
 	Shutdown RecoveryPlanGroupType = "Shutdown"
 )
 
+// PossibleRecoveryPlanGroupTypeValues returns an array of possible values for the RecoveryPlanGroupType const type.
+func PossibleRecoveryPlanGroupTypeValues() []RecoveryPlanGroupType {
+	return []RecoveryPlanGroupType{Boot, Failover, Shutdown}
+}
+
 // RecoveryPointType enumerates the values for recovery point type.
 type RecoveryPointType string
 
@@ -600,6 +790,11 @@ const (
 	// LatestTime ...
 	LatestTime RecoveryPointType = "LatestTime"
 )
+
+// PossibleRecoveryPointTypeValues returns an array of possible values for the RecoveryPointType const type.
+func PossibleRecoveryPointTypeValues() []RecoveryPointType {
+	return []RecoveryPointType{Custom, LatestTag, LatestTime}
+}
 
 // ReplicationProtectedItemOperation enumerates the values for replication protected item operation.
 type ReplicationProtectedItemOperation string
@@ -633,6 +828,11 @@ const (
 	ReplicationProtectedItemOperationUnplannedFailover ReplicationProtectedItemOperation = "UnplannedFailover"
 )
 
+// PossibleReplicationProtectedItemOperationValues returns an array of possible values for the ReplicationProtectedItemOperation const type.
+func PossibleReplicationProtectedItemOperationValues() []ReplicationProtectedItemOperation {
+	return []ReplicationProtectedItemOperation{ReplicationProtectedItemOperationChangePit, ReplicationProtectedItemOperationCommit, ReplicationProtectedItemOperationCompleteMigration, ReplicationProtectedItemOperationDisableProtection, ReplicationProtectedItemOperationFailback, ReplicationProtectedItemOperationFinalizeFailback, ReplicationProtectedItemOperationPlannedFailover, ReplicationProtectedItemOperationRepairReplication, ReplicationProtectedItemOperationReverseReplicate, ReplicationProtectedItemOperationSwitchProtection, ReplicationProtectedItemOperationTestFailover, ReplicationProtectedItemOperationTestFailoverCleanup, ReplicationProtectedItemOperationUnplannedFailover}
+}
+
 // RpInMageRecoveryPointType enumerates the values for rp in mage recovery point type.
 type RpInMageRecoveryPointType string
 
@@ -645,6 +845,11 @@ const (
 	RpInMageRecoveryPointTypeLatestTime RpInMageRecoveryPointType = "LatestTime"
 )
 
+// PossibleRpInMageRecoveryPointTypeValues returns an array of possible values for the RpInMageRecoveryPointType const type.
+func PossibleRpInMageRecoveryPointTypeValues() []RpInMageRecoveryPointType {
+	return []RpInMageRecoveryPointType{RpInMageRecoveryPointTypeCustom, RpInMageRecoveryPointTypeLatestTag, RpInMageRecoveryPointTypeLatestTime}
+}
+
 // SetMultiVMSyncStatus enumerates the values for set multi vm sync status.
 type SetMultiVMSyncStatus string
 
@@ -654,6 +859,11 @@ const (
 	// Enable ...
 	Enable SetMultiVMSyncStatus = "Enable"
 )
+
+// PossibleSetMultiVMSyncStatusValues returns an array of possible values for the SetMultiVMSyncStatus const type.
+func PossibleSetMultiVMSyncStatusValues() []SetMultiVMSyncStatus {
+	return []SetMultiVMSyncStatus{Disable, Enable}
+}
 
 // Severity enumerates the values for severity.
 type Severity string
@@ -669,6 +879,11 @@ const (
 	Warning Severity = "Warning"
 )
 
+// PossibleSeverityValues returns an array of possible values for the Severity const type.
+func PossibleSeverityValues() []Severity {
+	return []Severity{Error, Info, NONE, Warning}
+}
+
 // SourceSiteOperations enumerates the values for source site operations.
 type SourceSiteOperations string
 
@@ -678,6 +893,11 @@ const (
 	// Required ...
 	Required SourceSiteOperations = "Required"
 )
+
+// PossibleSourceSiteOperationsValues returns an array of possible values for the SourceSiteOperations const type.
+func PossibleSourceSiteOperationsValues() []SourceSiteOperations {
+	return []SourceSiteOperations{NotRequired, Required}
+}
 
 // A2AApplyRecoveryPointInput applyRecoveryPoint input specific to A2A provider.
 type A2AApplyRecoveryPointInput struct {
@@ -689,7 +909,9 @@ type A2AApplyRecoveryPointInput struct {
 func (aarpi A2AApplyRecoveryPointInput) MarshalJSON() ([]byte, error) {
 	aarpi.InstanceType = InstanceTypeBasicApplyRecoveryPointProviderSpecificInputInstanceTypeA2A
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = aarpi.InstanceType
+	if aarpi.InstanceType != "" {
+		objectMap["instanceType"] = aarpi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -728,7 +950,9 @@ type A2AContainerCreationInput struct {
 func (acci A2AContainerCreationInput) MarshalJSON() ([]byte, error) {
 	acci.InstanceType = InstanceTypeBasicReplicationProviderSpecificContainerCreationInputInstanceTypeA2A
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = acci.InstanceType
+	if acci.InstanceType != "" {
+		objectMap["instanceType"] = acci.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -792,7 +1016,9 @@ func (aepi A2AEnableProtectionInput) MarshalJSON() ([]byte, error) {
 	if aepi.VMManagedDisks != nil {
 		objectMap["vmManagedDisks"] = aepi.VMManagedDisks
 	}
-	objectMap["instanceType"] = aepi.InstanceType
+	if aepi.InstanceType != "" {
+		objectMap["instanceType"] = aepi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -871,7 +1097,9 @@ func (aed A2AEventDetails) MarshalJSON() ([]byte, error) {
 	if aed.RemoteFabricLocation != nil {
 		objectMap["remoteFabricLocation"] = aed.RemoteFabricLocation
 	}
-	objectMap["instanceType"] = aed.InstanceType
+	if aed.InstanceType != "" {
+		objectMap["instanceType"] = aed.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -935,7 +1163,9 @@ func (afpi A2AFailoverProviderInput) MarshalJSON() ([]byte, error) {
 	if afpi.CloudServiceCreationOption != nil {
 		objectMap["cloudServiceCreationOption"] = afpi.CloudServiceCreationOption
 	}
-	objectMap["instanceType"] = afpi.InstanceType
+	if afpi.InstanceType != "" {
+		objectMap["instanceType"] = afpi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1001,8 +1231,12 @@ func (apci A2APolicyCreationInput) MarshalJSON() ([]byte, error) {
 	if apci.AppConsistentFrequencyInMinutes != nil {
 		objectMap["appConsistentFrequencyInMinutes"] = apci.AppConsistentFrequencyInMinutes
 	}
-	objectMap["multiVmSyncStatus"] = apci.MultiVMSyncStatus
-	objectMap["instanceType"] = apci.InstanceType
+	if apci.MultiVMSyncStatus != "" {
+		objectMap["multiVmSyncStatus"] = apci.MultiVMSyncStatus
+	}
+	if apci.InstanceType != "" {
+		objectMap["instanceType"] = apci.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1086,7 +1320,9 @@ func (apd A2APolicyDetails) MarshalJSON() ([]byte, error) {
 	if apd.CrashConsistentFrequencyInMinutes != nil {
 		objectMap["crashConsistentFrequencyInMinutes"] = apd.CrashConsistentFrequencyInMinutes
 	}
-	objectMap["instanceType"] = apd.InstanceType
+	if apd.InstanceType != "" {
+		objectMap["instanceType"] = apd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1363,7 +1599,9 @@ func (ard A2AReplicationDetails) MarshalJSON() ([]byte, error) {
 	if ard.LastRpoCalculatedTime != nil {
 		objectMap["lastRpoCalculatedTime"] = ard.LastRpoCalculatedTime
 	}
-	objectMap["instanceType"] = ard.InstanceType
+	if ard.InstanceType != "" {
+		objectMap["instanceType"] = ard.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1452,7 +1690,9 @@ func (ari A2AReprotectInput) MarshalJSON() ([]byte, error) {
 	if ari.PolicyID != nil {
 		objectMap["policyId"] = ari.PolicyID
 	}
-	objectMap["instanceType"] = ari.InstanceType
+	if ari.InstanceType != "" {
+		objectMap["instanceType"] = ari.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1531,7 +1771,9 @@ func (aspi A2ASwitchProtectionInput) MarshalJSON() ([]byte, error) {
 	if aspi.PolicyID != nil {
 		objectMap["policyId"] = aspi.PolicyID
 	}
-	objectMap["instanceType"] = aspi.InstanceType
+	if aspi.InstanceType != "" {
+		objectMap["instanceType"] = aspi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1570,7 +1812,9 @@ func (aurpii A2AUpdateReplicationProtectedItemInput) MarshalJSON() ([]byte, erro
 	if aurpii.RecoveryResourceGroupID != nil {
 		objectMap["recoveryResourceGroupId"] = aurpii.RecoveryResourceGroupID
 	}
-	objectMap["instanceType"] = aurpii.InstanceType
+	if aurpii.InstanceType != "" {
+		objectMap["instanceType"] = aurpii.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1875,7 +2119,9 @@ func unmarshalBasicApplyRecoveryPointProviderSpecificInputArray(body []byte) ([]
 func (arppsi ApplyRecoveryPointProviderSpecificInput) MarshalJSON() ([]byte, error) {
 	arppsi.InstanceType = InstanceTypeBasicApplyRecoveryPointProviderSpecificInputInstanceTypeApplyRecoveryPointProviderSpecificInput
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = arppsi.InstanceType
+	if arppsi.InstanceType != "" {
+		objectMap["instanceType"] = arppsi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1985,7 +2231,9 @@ func (ajd AsrJobDetails) MarshalJSON() ([]byte, error) {
 	if ajd.AffectedObjectDetails != nil {
 		objectMap["affectedObjectDetails"] = ajd.AffectedObjectDetails
 	}
-	objectMap["instanceType"] = ajd.InstanceType
+	if ajd.InstanceType != "" {
+		objectMap["instanceType"] = ajd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -2228,7 +2476,9 @@ func (artd AutomationRunbookTaskDetails) MarshalJSON() ([]byte, error) {
 	if artd.IsPrimarySideScript != nil {
 		objectMap["isPrimarySideScript"] = artd.IsPrimarySideScript
 	}
-	objectMap["instanceType"] = artd.InstanceType
+	if artd.InstanceType != "" {
+		objectMap["instanceType"] = artd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -2297,7 +2547,9 @@ func (afci AzureFabricCreationInput) MarshalJSON() ([]byte, error) {
 	if afci.Location != nil {
 		objectMap["location"] = afci.Location
 	}
-	objectMap["instanceType"] = afci.InstanceType
+	if afci.InstanceType != "" {
+		objectMap["instanceType"] = afci.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -2341,7 +2593,9 @@ func (afsd AzureFabricSpecificDetails) MarshalJSON() ([]byte, error) {
 	if afsd.ContainerIds != nil {
 		objectMap["containerIds"] = afsd.ContainerIds
 	}
-	objectMap["instanceType"] = afsd.InstanceType
+	if afsd.InstanceType != "" {
+		objectMap["instanceType"] = afsd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -2396,7 +2650,9 @@ func (atacnmi AzureToAzureCreateNetworkMappingInput) MarshalJSON() ([]byte, erro
 	if atacnmi.PrimaryNetworkID != nil {
 		objectMap["primaryNetworkId"] = atacnmi.PrimaryNetworkID
 	}
-	objectMap["instanceType"] = atacnmi.InstanceType
+	if atacnmi.InstanceType != "" {
+		objectMap["instanceType"] = atacnmi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -2445,7 +2701,9 @@ func (atanms AzureToAzureNetworkMappingSettings) MarshalJSON() ([]byte, error) {
 	if atanms.RecoveryFabricLocation != nil {
 		objectMap["recoveryFabricLocation"] = atanms.RecoveryFabricLocation
 	}
-	objectMap["instanceType"] = atanms.InstanceType
+	if atanms.InstanceType != "" {
+		objectMap["instanceType"] = atanms.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -2489,7 +2747,9 @@ func (ataunmi AzureToAzureUpdateNetworkMappingInput) MarshalJSON() ([]byte, erro
 	if ataunmi.PrimaryNetworkID != nil {
 		objectMap["primaryNetworkId"] = ataunmi.PrimaryNetworkID
 	}
-	objectMap["instanceType"] = ataunmi.InstanceType
+	if ataunmi.InstanceType != "" {
+		objectMap["instanceType"] = ataunmi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -2624,7 +2884,9 @@ func unmarshalBasicConfigurationSettingsArray(body []byte) ([]BasicConfiguration
 func (cs ConfigurationSettings) MarshalJSON() ([]byte, error) {
 	cs.InstanceType = InstanceTypeConfigurationSettings
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = cs.InstanceType
+	if cs.InstanceType != "" {
+		objectMap["instanceType"] = cs.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -2685,7 +2947,9 @@ func (cctd ConsistencyCheckTaskDetails) MarshalJSON() ([]byte, error) {
 	if cctd.VMDetails != nil {
 		objectMap["vmDetails"] = cctd.VMDetails
 	}
-	objectMap["instanceType"] = cctd.InstanceType
+	if cctd.InstanceType != "" {
+		objectMap["instanceType"] = cctd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -3023,7 +3287,9 @@ func unmarshalBasicDisableProtectionProviderSpecificInputArray(body []byte) ([]B
 func (dppsi DisableProtectionProviderSpecificInput) MarshalJSON() ([]byte, error) {
 	dppsi.InstanceType = InstanceTypeDisableProtectionProviderSpecificInput
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = dppsi.InstanceType
+	if dppsi.InstanceType != "" {
+		objectMap["instanceType"] = dppsi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -3222,7 +3488,9 @@ func unmarshalBasicEnableProtectionProviderSpecificInputArray(body []byte) ([]Ba
 func (eppsi EnableProtectionProviderSpecificInput) MarshalJSON() ([]byte, error) {
 	eppsi.InstanceType = InstanceTypeBasicEnableProtectionProviderSpecificInputInstanceTypeEnableProtectionProviderSpecificInput
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = eppsi.InstanceType
+	if eppsi.InstanceType != "" {
+		objectMap["instanceType"] = eppsi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -3593,7 +3861,9 @@ func unmarshalBasicEventProviderSpecificDetailsArray(body []byte) ([]BasicEventP
 func (epsd EventProviderSpecificDetails) MarshalJSON() ([]byte, error) {
 	epsd.InstanceType = InstanceTypeEventProviderSpecificDetails
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = epsd.InstanceType
+	if epsd.InstanceType != "" {
+		objectMap["instanceType"] = epsd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -3708,7 +3978,9 @@ func unmarshalBasicEventSpecificDetailsArray(body []byte) ([]BasicEventSpecificD
 func (esd EventSpecificDetails) MarshalJSON() ([]byte, error) {
 	esd.InstanceType = InstanceTypeEventSpecificDetails
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = esd.InstanceType
+	if esd.InstanceType != "" {
+		objectMap["instanceType"] = esd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -3752,7 +4024,9 @@ func (ejd ExportJobDetails) MarshalJSON() ([]byte, error) {
 	if ejd.AffectedObjectDetails != nil {
 		objectMap["affectedObjectDetails"] = ejd.AffectedObjectDetails
 	}
-	objectMap["instanceType"] = ejd.InstanceType
+	if ejd.InstanceType != "" {
+		objectMap["instanceType"] = ejd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -4074,7 +4348,9 @@ func (frgtd FabricReplicationGroupTaskDetails) MarshalJSON() ([]byte, error) {
 	if frgtd.JobTask != nil {
 		objectMap["jobTask"] = frgtd.JobTask
 	}
-	objectMap["instanceType"] = frgtd.InstanceType
+	if frgtd.InstanceType != "" {
+		objectMap["instanceType"] = frgtd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -4191,7 +4467,9 @@ func unmarshalBasicFabricSpecificCreateNetworkMappingInputArray(body []byte) ([]
 func (fscnmi FabricSpecificCreateNetworkMappingInput) MarshalJSON() ([]byte, error) {
 	fscnmi.InstanceType = InstanceTypeFabricSpecificCreateNetworkMappingInput
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = fscnmi.InstanceType
+	if fscnmi.InstanceType != "" {
+		objectMap["instanceType"] = fscnmi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -4278,7 +4556,9 @@ func unmarshalBasicFabricSpecificCreationInputArray(body []byte) ([]BasicFabricS
 func (fsci FabricSpecificCreationInput) MarshalJSON() ([]byte, error) {
 	fsci.InstanceType = InstanceTypeFabricSpecificCreationInput
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = fsci.InstanceType
+	if fsci.InstanceType != "" {
+		objectMap["instanceType"] = fsci.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -4375,7 +4655,9 @@ func unmarshalBasicFabricSpecificDetailsArray(body []byte) ([]BasicFabricSpecifi
 func (fsd FabricSpecificDetails) MarshalJSON() ([]byte, error) {
 	fsd.InstanceType = InstanceTypeBasicFabricSpecificDetailsInstanceTypeFabricSpecificDetails
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = fsd.InstanceType
+	if fsd.InstanceType != "" {
+		objectMap["instanceType"] = fsd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -4477,7 +4759,9 @@ func unmarshalBasicFabricSpecificUpdateNetworkMappingInputArray(body []byte) ([]
 func (fsunmi FabricSpecificUpdateNetworkMappingInput) MarshalJSON() ([]byte, error) {
 	fsunmi.InstanceType = InstanceTypeBasicFabricSpecificUpdateNetworkMappingInputInstanceTypeFabricSpecificUpdateNetworkMappingInput
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = fsunmi.InstanceType
+	if fsunmi.InstanceType != "" {
+		objectMap["instanceType"] = fsunmi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -4526,7 +4810,9 @@ func (fjd FailoverJobDetails) MarshalJSON() ([]byte, error) {
 	if fjd.AffectedObjectDetails != nil {
 		objectMap["affectedObjectDetails"] = fjd.AffectedObjectDetails
 	}
-	objectMap["instanceType"] = fjd.InstanceType
+	if fjd.InstanceType != "" {
+		objectMap["instanceType"] = fjd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -4677,7 +4963,9 @@ func (gtd GroupTaskDetails) MarshalJSON() ([]byte, error) {
 	if gtd.ChildTasks != nil {
 		objectMap["childTasks"] = gtd.ChildTasks
 	}
-	objectMap["instanceType"] = gtd.InstanceType
+	if gtd.InstanceType != "" {
+		objectMap["instanceType"] = gtd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -4780,7 +5068,9 @@ func (hvr2ed HyperVReplica2012EventDetails) MarshalJSON() ([]byte, error) {
 	if hvr2ed.RemoteFabricName != nil {
 		objectMap["remoteFabricName"] = hvr2ed.RemoteFabricName
 	}
-	objectMap["instanceType"] = hvr2ed.InstanceType
+	if hvr2ed.InstanceType != "" {
+		objectMap["instanceType"] = hvr2ed.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -4854,7 +5144,9 @@ func (hvr2ed HyperVReplica2012R2EventDetails) MarshalJSON() ([]byte, error) {
 	if hvr2ed.RemoteFabricName != nil {
 		objectMap["remoteFabricName"] = hvr2ed.RemoteFabricName
 	}
-	objectMap["instanceType"] = hvr2ed.InstanceType
+	if hvr2ed.InstanceType != "" {
+		objectMap["instanceType"] = hvr2ed.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -4923,7 +5215,9 @@ func (hvraarpi HyperVReplicaAzureApplyRecoveryPointInput) MarshalJSON() ([]byte,
 	if hvraarpi.SecondaryKekCertificatePfx != nil {
 		objectMap["secondaryKekCertificatePfx"] = hvraarpi.SecondaryKekCertificatePfx
 	}
-	objectMap["instanceType"] = hvraarpi.InstanceType
+	if hvraarpi.InstanceType != "" {
+		objectMap["instanceType"] = hvraarpi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -5032,7 +5326,9 @@ func (hvraepi HyperVReplicaAzureEnableProtectionInput) MarshalJSON() ([]byte, er
 	if hvraepi.UseManagedDisks != nil {
 		objectMap["useManagedDisks"] = hvraepi.UseManagedDisks
 	}
-	objectMap["instanceType"] = hvraepi.InstanceType
+	if hvraepi.InstanceType != "" {
+		objectMap["instanceType"] = hvraepi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -5096,7 +5392,9 @@ func (hvraed HyperVReplicaAzureEventDetails) MarshalJSON() ([]byte, error) {
 	if hvraed.RemoteContainerName != nil {
 		objectMap["remoteContainerName"] = hvraed.RemoteContainerName
 	}
-	objectMap["instanceType"] = hvraed.InstanceType
+	if hvraed.InstanceType != "" {
+		objectMap["instanceType"] = hvraed.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -5165,7 +5463,9 @@ func (hvrafpi HyperVReplicaAzureFailbackProviderInput) MarshalJSON() ([]byte, er
 	if hvrafpi.ProviderIDForAlternateRecovery != nil {
 		objectMap["providerIdForAlternateRecovery"] = hvrafpi.ProviderIDForAlternateRecovery
 	}
-	objectMap["instanceType"] = hvrafpi.InstanceType
+	if hvrafpi.InstanceType != "" {
+		objectMap["instanceType"] = hvrafpi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -5234,7 +5534,9 @@ func (hvrafpi HyperVReplicaAzureFailoverProviderInput) MarshalJSON() ([]byte, er
 	if hvrafpi.RecoveryPointID != nil {
 		objectMap["recoveryPointId"] = hvrafpi.RecoveryPointID
 	}
-	objectMap["instanceType"] = hvrafpi.InstanceType
+	if hvrafpi.InstanceType != "" {
+		objectMap["instanceType"] = hvrafpi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -5313,7 +5615,9 @@ func (hvrapd HyperVReplicaAzurePolicyDetails) MarshalJSON() ([]byte, error) {
 	if hvrapd.ActiveStorageAccountID != nil {
 		objectMap["activeStorageAccountId"] = hvrapd.ActiveStorageAccountID
 	}
-	objectMap["instanceType"] = hvrapd.InstanceType
+	if hvrapd.InstanceType != "" {
+		objectMap["instanceType"] = hvrapd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -5417,7 +5721,9 @@ func (hvrapi HyperVReplicaAzurePolicyInput) MarshalJSON() ([]byte, error) {
 	if hvrapi.StorageAccounts != nil {
 		objectMap["storageAccounts"] = hvrapi.StorageAccounts
 	}
-	objectMap["instanceType"] = hvrapi.InstanceType
+	if hvrapi.InstanceType != "" {
+		objectMap["instanceType"] = hvrapi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -5581,7 +5887,9 @@ func (hvrard HyperVReplicaAzureReplicationDetails) MarshalJSON() ([]byte, error)
 	if hvrard.LicenseType != nil {
 		objectMap["licenseType"] = hvrard.LicenseType
 	}
-	objectMap["instanceType"] = hvrard.InstanceType
+	if hvrard.InstanceType != "" {
+		objectMap["instanceType"] = hvrard.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -5670,7 +5978,9 @@ func (hvrari HyperVReplicaAzureReprotectInput) MarshalJSON() ([]byte, error) {
 	if hvrari.LogStorageAccountID != nil {
 		objectMap["logStorageAccountId"] = hvrari.LogStorageAccountID
 	}
-	objectMap["instanceType"] = hvrari.InstanceType
+	if hvrari.InstanceType != "" {
+		objectMap["instanceType"] = hvrari.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -5730,7 +6040,9 @@ func (hvraurpii HyperVReplicaAzureUpdateReplicationProtectedItemInput) MarshalJS
 	if hvraurpii.UseManagedDisks != nil {
 		objectMap["useManagedDisks"] = hvraurpii.UseManagedDisks
 	}
-	objectMap["instanceType"] = hvraurpii.InstanceType
+	if hvraurpii.InstanceType != "" {
+		objectMap["instanceType"] = hvraurpii.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -5789,7 +6101,9 @@ func (hvrbed HyperVReplicaBaseEventDetails) MarshalJSON() ([]byte, error) {
 	if hvrbed.RemoteFabricName != nil {
 		objectMap["remoteFabricName"] = hvrbed.RemoteFabricName
 	}
-	objectMap["instanceType"] = hvrbed.InstanceType
+	if hvrbed.InstanceType != "" {
+		objectMap["instanceType"] = hvrbed.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -5893,7 +6207,9 @@ func (hvrbpd HyperVReplicaBasePolicyDetails) MarshalJSON() ([]byte, error) {
 	if hvrbpd.ReplicaDeletionOption != nil {
 		objectMap["replicaDeletionOption"] = hvrbpd.ReplicaDeletionOption
 	}
-	objectMap["instanceType"] = hvrbpd.InstanceType
+	if hvrbpd.InstanceType != "" {
+		objectMap["instanceType"] = hvrbpd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -6002,7 +6318,9 @@ func (hvrbrd HyperVReplicaBaseReplicationDetails) MarshalJSON() ([]byte, error) 
 	if hvrbrd.VMDiskDetails != nil {
 		objectMap["vMDiskDetails"] = hvrbrd.VMDiskDetails
 	}
-	objectMap["instanceType"] = hvrbrd.InstanceType
+	if hvrbrd.InstanceType != "" {
+		objectMap["instanceType"] = hvrbrd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -6116,7 +6434,9 @@ func (hvrbpd HyperVReplicaBluePolicyDetails) MarshalJSON() ([]byte, error) {
 	if hvrbpd.ReplicaDeletionOption != nil {
 		objectMap["replicaDeletionOption"] = hvrbpd.ReplicaDeletionOption
 	}
-	objectMap["instanceType"] = hvrbpd.InstanceType
+	if hvrbpd.InstanceType != "" {
+		objectMap["instanceType"] = hvrbpd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -6245,7 +6565,9 @@ func (hvrbpi HyperVReplicaBluePolicyInput) MarshalJSON() ([]byte, error) {
 	if hvrbpi.ReplicaDeletion != nil {
 		objectMap["replicaDeletion"] = hvrbpi.ReplicaDeletion
 	}
-	objectMap["instanceType"] = hvrbpi.InstanceType
+	if hvrbpi.InstanceType != "" {
+		objectMap["instanceType"] = hvrbpi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -6339,7 +6661,9 @@ func (hvrbrd HyperVReplicaBlueReplicationDetails) MarshalJSON() ([]byte, error) 
 	if hvrbrd.VMDiskDetails != nil {
 		objectMap["vMDiskDetails"] = hvrbrd.VMDiskDetails
 	}
-	objectMap["instanceType"] = hvrbrd.InstanceType
+	if hvrbrd.InstanceType != "" {
+		objectMap["instanceType"] = hvrbrd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -6448,7 +6772,9 @@ func (hvrpd HyperVReplicaPolicyDetails) MarshalJSON() ([]byte, error) {
 	if hvrpd.ReplicaDeletionOption != nil {
 		objectMap["replicaDeletionOption"] = hvrpd.ReplicaDeletionOption
 	}
-	objectMap["instanceType"] = hvrpd.InstanceType
+	if hvrpd.InstanceType != "" {
+		objectMap["instanceType"] = hvrpd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -6572,7 +6898,9 @@ func (hvrpi HyperVReplicaPolicyInput) MarshalJSON() ([]byte, error) {
 	if hvrpi.ReplicaDeletion != nil {
 		objectMap["replicaDeletion"] = hvrpi.ReplicaDeletion
 	}
-	objectMap["instanceType"] = hvrpi.InstanceType
+	if hvrpi.InstanceType != "" {
+		objectMap["instanceType"] = hvrpi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -6666,7 +6994,9 @@ func (hvrrd HyperVReplicaReplicationDetails) MarshalJSON() ([]byte, error) {
 	if hvrrd.VMDiskDetails != nil {
 		objectMap["vMDiskDetails"] = hvrrd.VMDiskDetails
 	}
-	objectMap["instanceType"] = hvrrd.InstanceType
+	if hvrrd.InstanceType != "" {
+		objectMap["instanceType"] = hvrrd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -6725,7 +7055,9 @@ type HyperVSiteDetails struct {
 func (hvsd HyperVSiteDetails) MarshalJSON() ([]byte, error) {
 	hvsd.InstanceType = InstanceTypeBasicFabricSpecificDetailsInstanceTypeHyperVSite
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = hvsd.InstanceType
+	if hvsd.InstanceType != "" {
+		objectMap["instanceType"] = hvsd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -6794,7 +7126,9 @@ func (hvvmd HyperVVirtualMachineDetails) MarshalJSON() ([]byte, error) {
 	if hvvmd.DiskDetails != nil {
 		objectMap["diskDetails"] = hvvmd.DiskDetails
 	}
-	objectMap["instanceType"] = hvvmd.InstanceType
+	if hvvmd.InstanceType != "" {
+		objectMap["instanceType"] = hvvmd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -6882,7 +7216,9 @@ func (iwtd InlineWorkflowTaskDetails) MarshalJSON() ([]byte, error) {
 	if iwtd.ChildTasks != nil {
 		objectMap["childTasks"] = iwtd.ChildTasks
 	}
-	objectMap["instanceType"] = iwtd.InstanceType
+	if iwtd.InstanceType != "" {
+		objectMap["instanceType"] = iwtd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -6936,7 +7272,9 @@ func (imavarpi InMageAzureV2ApplyRecoveryPointInput) MarshalJSON() ([]byte, erro
 	if imavarpi.VaultLocation != nil {
 		objectMap["vaultLocation"] = imavarpi.VaultLocation
 	}
-	objectMap["instanceType"] = imavarpi.InstanceType
+	if imavarpi.InstanceType != "" {
+		objectMap["instanceType"] = imavarpi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -7050,7 +7388,9 @@ func (imavepi InMageAzureV2EnableProtectionInput) MarshalJSON() ([]byte, error) 
 	if imavepi.UseManagedDisks != nil {
 		objectMap["useManagedDisks"] = imavepi.UseManagedDisks
 	}
-	objectMap["instanceType"] = imavepi.InstanceType
+	if imavepi.InstanceType != "" {
+		objectMap["instanceType"] = imavepi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -7134,7 +7474,9 @@ func (imaved InMageAzureV2EventDetails) MarshalJSON() ([]byte, error) {
 	if imaved.SiteName != nil {
 		objectMap["siteName"] = imaved.SiteName
 	}
-	objectMap["instanceType"] = imaved.InstanceType
+	if imaved.InstanceType != "" {
+		objectMap["instanceType"] = imaved.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -7198,7 +7540,9 @@ func (imavfpi InMageAzureV2FailoverProviderInput) MarshalJSON() ([]byte, error) 
 	if imavfpi.RecoveryPointID != nil {
 		objectMap["recoveryPointId"] = imavfpi.RecoveryPointID
 	}
-	objectMap["instanceType"] = imavfpi.InstanceType
+	if imavfpi.InstanceType != "" {
+		objectMap["instanceType"] = imavfpi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -7272,7 +7616,9 @@ func (imavpd InMageAzureV2PolicyDetails) MarshalJSON() ([]byte, error) {
 	if imavpd.MultiVMSyncStatus != nil {
 		objectMap["multiVmSyncStatus"] = imavpd.MultiVMSyncStatus
 	}
-	objectMap["instanceType"] = imavpd.InstanceType
+	if imavpd.InstanceType != "" {
+		objectMap["instanceType"] = imavpd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -7368,8 +7714,12 @@ func (imavpi InMageAzureV2PolicyInput) MarshalJSON() ([]byte, error) {
 	if imavpi.AppConsistentFrequencyInMinutes != nil {
 		objectMap["appConsistentFrequencyInMinutes"] = imavpi.AppConsistentFrequencyInMinutes
 	}
-	objectMap["multiVmSyncStatus"] = imavpi.MultiVMSyncStatus
-	objectMap["instanceType"] = imavpi.InstanceType
+	if imavpi.MultiVMSyncStatus != "" {
+		objectMap["multiVmSyncStatus"] = imavpi.MultiVMSyncStatus
+	}
+	if imavpi.InstanceType != "" {
+		objectMap["instanceType"] = imavpi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -7707,7 +8057,9 @@ func (imavrd InMageAzureV2ReplicationDetails) MarshalJSON() ([]byte, error) {
 	if imavrd.OsVersion != nil {
 		objectMap["osVersion"] = imavrd.OsVersion
 	}
-	objectMap["instanceType"] = imavrd.InstanceType
+	if imavrd.InstanceType != "" {
+		objectMap["instanceType"] = imavrd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -7801,7 +8153,9 @@ func (imavri InMageAzureV2ReprotectInput) MarshalJSON() ([]byte, error) {
 	if imavri.DisksToInclude != nil {
 		objectMap["disksToInclude"] = imavri.DisksToInclude
 	}
-	objectMap["instanceType"] = imavri.InstanceType
+	if imavri.InstanceType != "" {
+		objectMap["instanceType"] = imavri.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -7860,7 +8214,9 @@ func (imavurpii InMageAzureV2UpdateReplicationProtectedItemInput) MarshalJSON() 
 	if imavurpii.UseManagedDisks != nil {
 		objectMap["useManagedDisks"] = imavurpii.UseManagedDisks
 	}
-	objectMap["instanceType"] = imavurpii.InstanceType
+	if imavurpii.InstanceType != "" {
+		objectMap["instanceType"] = imavurpii.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -7919,7 +8275,9 @@ func (imbpd InMageBasePolicyDetails) MarshalJSON() ([]byte, error) {
 	if imbpd.MultiVMSyncStatus != nil {
 		objectMap["multiVmSyncStatus"] = imbpd.MultiVMSyncStatus
 	}
-	objectMap["instanceType"] = imbpd.InstanceType
+	if imbpd.InstanceType != "" {
+		objectMap["instanceType"] = imbpd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -7998,7 +8356,9 @@ func (imdppsi InMageDisableProtectionProviderSpecificInput) MarshalJSON() ([]byt
 	if imdppsi.ReplicaVMDeletionStatus != nil {
 		objectMap["replicaVmDeletionStatus"] = imdppsi.ReplicaVMDeletionStatus
 	}
-	objectMap["instanceType"] = imdppsi.InstanceType
+	if imdppsi.InstanceType != "" {
+		objectMap["instanceType"] = imdppsi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -8108,7 +8468,9 @@ func (imepi InMageEnableProtectionInput) MarshalJSON() ([]byte, error) {
 	if imepi.DisksToInclude != nil {
 		objectMap["disksToInclude"] = imepi.DisksToInclude
 	}
-	objectMap["instanceType"] = imepi.InstanceType
+	if imepi.InstanceType != "" {
+		objectMap["instanceType"] = imepi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -8161,11 +8523,15 @@ type InMageFailoverProviderInput struct {
 func (imfpi InMageFailoverProviderInput) MarshalJSON() ([]byte, error) {
 	imfpi.InstanceType = InstanceTypeBasicProviderSpecificFailoverInputInstanceTypeInMage
 	objectMap := make(map[string]interface{})
-	objectMap["recoveryPointType"] = imfpi.RecoveryPointType
+	if imfpi.RecoveryPointType != "" {
+		objectMap["recoveryPointType"] = imfpi.RecoveryPointType
+	}
 	if imfpi.RecoveryPointID != nil {
 		objectMap["recoveryPointId"] = imfpi.RecoveryPointID
 	}
-	objectMap["instanceType"] = imfpi.InstanceType
+	if imfpi.InstanceType != "" {
+		objectMap["instanceType"] = imfpi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -8234,7 +8600,9 @@ func (impd InMagePolicyDetails) MarshalJSON() ([]byte, error) {
 	if impd.MultiVMSyncStatus != nil {
 		objectMap["multiVmSyncStatus"] = impd.MultiVMSyncStatus
 	}
-	objectMap["instanceType"] = impd.InstanceType
+	if impd.InstanceType != "" {
+		objectMap["instanceType"] = impd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -8325,8 +8693,12 @@ func (impi InMagePolicyInput) MarshalJSON() ([]byte, error) {
 	if impi.AppConsistentFrequencyInMinutes != nil {
 		objectMap["appConsistentFrequencyInMinutes"] = impi.AppConsistentFrequencyInMinutes
 	}
-	objectMap["multiVmSyncStatus"] = impi.MultiVMSyncStatus
-	objectMap["instanceType"] = impi.InstanceType
+	if impi.MultiVMSyncStatus != "" {
+		objectMap["multiVmSyncStatus"] = impi.MultiVMSyncStatus
+	}
+	if impi.InstanceType != "" {
+		objectMap["instanceType"] = impi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -8604,7 +8976,9 @@ func (imrd InMageReplicationDetails) MarshalJSON() ([]byte, error) {
 	if imrd.OsVersion != nil {
 		objectMap["osVersion"] = imrd.OsVersion
 	}
-	objectMap["instanceType"] = imrd.InstanceType
+	if imrd.InstanceType != "" {
+		objectMap["instanceType"] = imrd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -8703,7 +9077,9 @@ func (imri InMageReprotectInput) MarshalJSON() ([]byte, error) {
 	if imri.DisksToInclude != nil {
 		objectMap["disksToInclude"] = imri.DisksToInclude
 	}
-	objectMap["instanceType"] = imri.InstanceType
+	if imri.InstanceType != "" {
+		objectMap["instanceType"] = imri.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -8961,7 +9337,9 @@ func (jd JobDetails) MarshalJSON() ([]byte, error) {
 	if jd.AffectedObjectDetails != nil {
 		objectMap["affectedObjectDetails"] = jd.AffectedObjectDetails
 	}
-	objectMap["instanceType"] = jd.InstanceType
+	if jd.InstanceType != "" {
+		objectMap["instanceType"] = jd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -9246,7 +9624,9 @@ func (jsed JobStatusEventDetails) MarshalJSON() ([]byte, error) {
 	if jsed.AffectedObjectType != nil {
 		objectMap["affectedObjectType"] = jsed.AffectedObjectType
 	}
-	objectMap["instanceType"] = jsed.InstanceType
+	if jsed.InstanceType != "" {
+		objectMap["instanceType"] = jsed.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -9281,7 +9661,9 @@ func (jtd JobTaskDetails) MarshalJSON() ([]byte, error) {
 	if jtd.JobTask != nil {
 		objectMap["jobTask"] = jtd.JobTask
 	}
-	objectMap["instanceType"] = jtd.InstanceType
+	if jtd.InstanceType != "" {
+		objectMap["instanceType"] = jtd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -9489,7 +9871,9 @@ func (matd ManualActionTaskDetails) MarshalJSON() ([]byte, error) {
 	if matd.Observation != nil {
 		objectMap["observation"] = matd.Observation
 	}
-	objectMap["instanceType"] = matd.InstanceType
+	if matd.InstanceType != "" {
+		objectMap["instanceType"] = matd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -9895,7 +10279,9 @@ func unmarshalBasicNetworkMappingFabricSpecificSettingsArray(body []byte) ([]Bas
 func (nmfss NetworkMappingFabricSpecificSettings) MarshalJSON() ([]byte, error) {
 	nmfss.InstanceType = InstanceTypeBasicNetworkMappingFabricSpecificSettingsInstanceTypeNetworkMappingFabricSpecificSettings
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = nmfss.InstanceType
+	if nmfss.InstanceType != "" {
+		objectMap["instanceType"] = nmfss.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -10494,7 +10880,9 @@ func unmarshalBasicPolicyProviderSpecificDetailsArray(body []byte) ([]BasicPolic
 func (ppsd PolicyProviderSpecificDetails) MarshalJSON() ([]byte, error) {
 	ppsd.InstanceType = InstanceTypeBasicPolicyProviderSpecificDetailsInstanceTypePolicyProviderSpecificDetails
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = ppsd.InstanceType
+	if ppsd.InstanceType != "" {
+		objectMap["instanceType"] = ppsd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -10641,7 +11029,9 @@ func unmarshalBasicPolicyProviderSpecificInputArray(body []byte) ([]BasicPolicyP
 func (ppsi PolicyProviderSpecificInput) MarshalJSON() ([]byte, error) {
 	ppsi.InstanceType = InstanceTypeBasicPolicyProviderSpecificInputInstanceTypePolicyProviderSpecificInput
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = ppsi.InstanceType
+	if ppsi.InstanceType != "" {
+		objectMap["instanceType"] = ppsi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -11344,7 +11734,9 @@ func unmarshalBasicProviderSpecificFailoverInputArray(body []byte) ([]BasicProvi
 func (psfi ProviderSpecificFailoverInput) MarshalJSON() ([]byte, error) {
 	psfi.InstanceType = InstanceTypeBasicProviderSpecificFailoverInputInstanceTypeProviderSpecificFailoverInput
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = psfi.InstanceType
+	if psfi.InstanceType != "" {
+		objectMap["instanceType"] = psfi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -11418,11 +11810,15 @@ func (rampd RcmAzureMigrationPolicyDetails) MarshalJSON() ([]byte, error) {
 	if rampd.AppConsistentFrequencyInMinutes != nil {
 		objectMap["appConsistentFrequencyInMinutes"] = rampd.AppConsistentFrequencyInMinutes
 	}
-	objectMap["multiVmSyncStatus"] = rampd.MultiVMSyncStatus
+	if rampd.MultiVMSyncStatus != "" {
+		objectMap["multiVmSyncStatus"] = rampd.MultiVMSyncStatus
+	}
 	if rampd.CrashConsistentFrequencyInMinutes != nil {
 		objectMap["crashConsistentFrequencyInMinutes"] = rampd.CrashConsistentFrequencyInMinutes
 	}
-	objectMap["instanceType"] = rampd.InstanceType
+	if rampd.InstanceType != "" {
+		objectMap["instanceType"] = rampd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -11515,11 +11911,15 @@ type RecoveryPlanA2AFailoverInput struct {
 func (rpafi RecoveryPlanA2AFailoverInput) MarshalJSON() ([]byte, error) {
 	rpafi.InstanceType = InstanceTypeBasicRecoveryPlanProviderSpecificFailoverInputInstanceTypeA2A
 	objectMap := make(map[string]interface{})
-	objectMap["recoveryPointType"] = rpafi.RecoveryPointType
+	if rpafi.RecoveryPointType != "" {
+		objectMap["recoveryPointType"] = rpafi.RecoveryPointType
+	}
 	if rpafi.CloudServiceCreationOption != nil {
 		objectMap["cloudServiceCreationOption"] = rpafi.CloudServiceCreationOption
 	}
-	objectMap["instanceType"] = rpafi.InstanceType
+	if rpafi.InstanceType != "" {
+		objectMap["instanceType"] = rpafi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -11683,7 +12083,9 @@ func unmarshalBasicRecoveryPlanActionDetailsArray(body []byte) ([]BasicRecoveryP
 func (rpad RecoveryPlanActionDetails) MarshalJSON() ([]byte, error) {
 	rpad.InstanceType = InstanceTypeRecoveryPlanActionDetails
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = rpad.InstanceType
+	if rpad.InstanceType != "" {
+		objectMap["instanceType"] = rpad.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -11734,8 +12136,12 @@ func (rparad RecoveryPlanAutomationRunbookActionDetails) MarshalJSON() ([]byte, 
 	if rparad.Timeout != nil {
 		objectMap["timeout"] = rparad.Timeout
 	}
-	objectMap["fabricLocation"] = rparad.FabricLocation
-	objectMap["instanceType"] = rparad.InstanceType
+	if rparad.FabricLocation != "" {
+		objectMap["fabricLocation"] = rparad.FabricLocation
+	}
+	if rparad.InstanceType != "" {
+		objectMap["instanceType"] = rparad.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -11908,7 +12314,9 @@ func (rpgtd RecoveryPlanGroupTaskDetails) MarshalJSON() ([]byte, error) {
 	if rpgtd.ChildTasks != nil {
 		objectMap["childTasks"] = rpgtd.ChildTasks
 	}
-	objectMap["instanceType"] = rpgtd.InstanceType
+	if rpgtd.InstanceType != "" {
+		objectMap["instanceType"] = rpgtd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -11951,9 +12359,15 @@ type RecoveryPlanHyperVReplicaAzureFailbackInput struct {
 func (rphvrafi RecoveryPlanHyperVReplicaAzureFailbackInput) MarshalJSON() ([]byte, error) {
 	rphvrafi.InstanceType = InstanceTypeBasicRecoveryPlanProviderSpecificFailoverInputInstanceTypeHyperVReplicaAzureFailback
 	objectMap := make(map[string]interface{})
-	objectMap["dataSyncOption"] = rphvrafi.DataSyncOption
-	objectMap["recoveryVmCreationOption"] = rphvrafi.RecoveryVMCreationOption
-	objectMap["instanceType"] = rphvrafi.InstanceType
+	if rphvrafi.DataSyncOption != "" {
+		objectMap["dataSyncOption"] = rphvrafi.DataSyncOption
+	}
+	if rphvrafi.RecoveryVMCreationOption != "" {
+		objectMap["recoveryVmCreationOption"] = rphvrafi.RecoveryVMCreationOption
+	}
+	if rphvrafi.InstanceType != "" {
+		objectMap["instanceType"] = rphvrafi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -12019,8 +12433,12 @@ func (rphvrafi RecoveryPlanHyperVReplicaAzureFailoverInput) MarshalJSON() ([]byt
 	if rphvrafi.SecondaryKekCertificatePfx != nil {
 		objectMap["secondaryKekCertificatePfx"] = rphvrafi.SecondaryKekCertificatePfx
 	}
-	objectMap["recoveryPointType"] = rphvrafi.RecoveryPointType
-	objectMap["instanceType"] = rphvrafi.InstanceType
+	if rphvrafi.RecoveryPointType != "" {
+		objectMap["recoveryPointType"] = rphvrafi.RecoveryPointType
+	}
+	if rphvrafi.InstanceType != "" {
+		objectMap["instanceType"] = rphvrafi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -12078,11 +12496,15 @@ func (rpimavfi RecoveryPlanInMageAzureV2FailoverInput) MarshalJSON() ([]byte, er
 	if rpimavfi.VaultLocation != nil {
 		objectMap["vaultLocation"] = rpimavfi.VaultLocation
 	}
-	objectMap["recoveryPointType"] = rpimavfi.RecoveryPointType
+	if rpimavfi.RecoveryPointType != "" {
+		objectMap["recoveryPointType"] = rpimavfi.RecoveryPointType
+	}
 	if rpimavfi.UseMultiVMSyncPoint != nil {
 		objectMap["useMultiVmSyncPoint"] = rpimavfi.UseMultiVMSyncPoint
 	}
-	objectMap["instanceType"] = rpimavfi.InstanceType
+	if rpimavfi.InstanceType != "" {
+		objectMap["instanceType"] = rpimavfi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -12133,8 +12555,12 @@ type RecoveryPlanInMageFailoverInput struct {
 func (rpimfi RecoveryPlanInMageFailoverInput) MarshalJSON() ([]byte, error) {
 	rpimfi.InstanceType = InstanceTypeBasicRecoveryPlanProviderSpecificFailoverInputInstanceTypeInMage
 	objectMap := make(map[string]interface{})
-	objectMap["recoveryPointType"] = rpimfi.RecoveryPointType
-	objectMap["instanceType"] = rpimfi.InstanceType
+	if rpimfi.RecoveryPointType != "" {
+		objectMap["recoveryPointType"] = rpimfi.RecoveryPointType
+	}
+	if rpimfi.InstanceType != "" {
+		objectMap["instanceType"] = rpimfi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -12188,7 +12614,9 @@ func (rpmad RecoveryPlanManualActionDetails) MarshalJSON() ([]byte, error) {
 	if rpmad.Description != nil {
 		objectMap["description"] = rpmad.Description
 	}
-	objectMap["instanceType"] = rpmad.InstanceType
+	if rpmad.InstanceType != "" {
+		objectMap["instanceType"] = rpmad.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -12378,7 +12806,9 @@ func unmarshalBasicRecoveryPlanProviderSpecificFailoverInputArray(body []byte) (
 func (rppsfi RecoveryPlanProviderSpecificFailoverInput) MarshalJSON() ([]byte, error) {
 	rppsfi.InstanceType = InstanceTypeBasicRecoveryPlanProviderSpecificFailoverInputInstanceTypeRecoveryPlanProviderSpecificFailoverInput
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = rppsfi.InstanceType
+	if rppsfi.InstanceType != "" {
+		objectMap["instanceType"] = rppsfi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -12439,8 +12869,12 @@ func (rpsad RecoveryPlanScriptActionDetails) MarshalJSON() ([]byte, error) {
 	if rpsad.Timeout != nil {
 		objectMap["timeout"] = rpsad.Timeout
 	}
-	objectMap["fabricLocation"] = rpsad.FabricLocation
-	objectMap["instanceType"] = rpsad.InstanceType
+	if rpsad.FabricLocation != "" {
+		objectMap["fabricLocation"] = rpsad.FabricLocation
+	}
+	if rpsad.InstanceType != "" {
+		objectMap["instanceType"] = rpsad.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -12499,7 +12933,9 @@ func (rpsgtd RecoveryPlanShutdownGroupTaskDetails) MarshalJSON() ([]byte, error)
 	if rpsgtd.ChildTasks != nil {
 		objectMap["childTasks"] = rpsgtd.ChildTasks
 	}
-	objectMap["instanceType"] = rpsgtd.InstanceType
+	if rpsgtd.InstanceType != "" {
+		objectMap["instanceType"] = rpsgtd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -12981,12 +13417,11 @@ type RenewCertificateInputProperties struct {
 // long-running operation.
 type ReplicationFabricsCheckConsistencyFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationFabricsCheckConsistencyFuture) Result(client ReplicationFabricsClient) (f Fabric, err error) {
+func (future *ReplicationFabricsCheckConsistencyFuture) Result(client ReplicationFabricsClient) (f Fabric, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -12994,34 +13429,15 @@ func (future ReplicationFabricsCheckConsistencyFuture) Result(client Replication
 		return
 	}
 	if !done {
-		return f, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationFabricsCheckConsistencyFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		f, err = client.CheckConsistencyResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsCheckConsistencyFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationFabricsCheckConsistencyFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if f.Response.Response, err = future.GetResult(sender); err == nil && f.Response.Response.StatusCode != http.StatusNoContent {
+		f, err = client.CheckConsistencyResponder(f.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsCheckConsistencyFuture", "Result", f.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsCheckConsistencyFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	f, err = client.CheckConsistencyResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsCheckConsistencyFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -13030,12 +13446,11 @@ func (future ReplicationFabricsCheckConsistencyFuture) Result(client Replication
 // operation.
 type ReplicationFabricsCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationFabricsCreateFuture) Result(client ReplicationFabricsClient) (f Fabric, err error) {
+func (future *ReplicationFabricsCreateFuture) Result(client ReplicationFabricsClient) (f Fabric, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -13043,34 +13458,15 @@ func (future ReplicationFabricsCreateFuture) Result(client ReplicationFabricsCli
 		return
 	}
 	if !done {
-		return f, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationFabricsCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		f, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationFabricsCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if f.Response.Response, err = future.GetResult(sender); err == nil && f.Response.Response.StatusCode != http.StatusNoContent {
+		f, err = client.CreateResponder(f.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsCreateFuture", "Result", f.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	f, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -13079,12 +13475,11 @@ func (future ReplicationFabricsCreateFuture) Result(client ReplicationFabricsCli
 // operation.
 type ReplicationFabricsDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationFabricsDeleteFuture) Result(client ReplicationFabricsClient) (ar autorest.Response, err error) {
+func (future *ReplicationFabricsDeleteFuture) Result(client ReplicationFabricsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -13092,35 +13487,10 @@ func (future ReplicationFabricsDeleteFuture) Result(client ReplicationFabricsCli
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationFabricsDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationFabricsDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -13128,12 +13498,11 @@ func (future ReplicationFabricsDeleteFuture) Result(client ReplicationFabricsCli
 // operation.
 type ReplicationFabricsMigrateToAadFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationFabricsMigrateToAadFuture) Result(client ReplicationFabricsClient) (ar autorest.Response, err error) {
+func (future *ReplicationFabricsMigrateToAadFuture) Result(client ReplicationFabricsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -13141,35 +13510,10 @@ func (future ReplicationFabricsMigrateToAadFuture) Result(client ReplicationFabr
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationFabricsMigrateToAadFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.MigrateToAadResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsMigrateToAadFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationFabricsMigrateToAadFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsMigrateToAadFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.MigrateToAadResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsMigrateToAadFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -13177,12 +13521,11 @@ func (future ReplicationFabricsMigrateToAadFuture) Result(client ReplicationFabr
 // operation.
 type ReplicationFabricsPurgeFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationFabricsPurgeFuture) Result(client ReplicationFabricsClient) (ar autorest.Response, err error) {
+func (future *ReplicationFabricsPurgeFuture) Result(client ReplicationFabricsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -13190,35 +13533,10 @@ func (future ReplicationFabricsPurgeFuture) Result(client ReplicationFabricsClie
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationFabricsPurgeFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.PurgeResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsPurgeFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationFabricsPurgeFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsPurgeFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.PurgeResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsPurgeFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -13226,12 +13544,11 @@ func (future ReplicationFabricsPurgeFuture) Result(client ReplicationFabricsClie
 // long-running operation.
 type ReplicationFabricsReassociateGatewayFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationFabricsReassociateGatewayFuture) Result(client ReplicationFabricsClient) (f Fabric, err error) {
+func (future *ReplicationFabricsReassociateGatewayFuture) Result(client ReplicationFabricsClient) (f Fabric, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -13239,34 +13556,15 @@ func (future ReplicationFabricsReassociateGatewayFuture) Result(client Replicati
 		return
 	}
 	if !done {
-		return f, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationFabricsReassociateGatewayFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		f, err = client.ReassociateGatewayResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsReassociateGatewayFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationFabricsReassociateGatewayFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if f.Response.Response, err = future.GetResult(sender); err == nil && f.Response.Response.StatusCode != http.StatusNoContent {
+		f, err = client.ReassociateGatewayResponder(f.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsReassociateGatewayFuture", "Result", f.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsReassociateGatewayFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	f, err = client.ReassociateGatewayResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsReassociateGatewayFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -13275,12 +13573,11 @@ func (future ReplicationFabricsReassociateGatewayFuture) Result(client Replicati
 // long-running operation.
 type ReplicationFabricsRenewCertificateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationFabricsRenewCertificateFuture) Result(client ReplicationFabricsClient) (f Fabric, err error) {
+func (future *ReplicationFabricsRenewCertificateFuture) Result(client ReplicationFabricsClient) (f Fabric, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -13288,34 +13585,15 @@ func (future ReplicationFabricsRenewCertificateFuture) Result(client Replication
 		return
 	}
 	if !done {
-		return f, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationFabricsRenewCertificateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		f, err = client.RenewCertificateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsRenewCertificateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationFabricsRenewCertificateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if f.Response.Response, err = future.GetResult(sender); err == nil && f.Response.Response.StatusCode != http.StatusNoContent {
+		f, err = client.RenewCertificateResponder(f.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsRenewCertificateFuture", "Result", f.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsRenewCertificateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	f, err = client.RenewCertificateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationFabricsRenewCertificateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -13330,7 +13608,9 @@ type ReplicationGroupDetails struct {
 func (rgd ReplicationGroupDetails) MarshalJSON() ([]byte, error) {
 	rgd.InstanceType = InstanceTypeReplicationGroupDetails
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = rgd.InstanceType
+	if rgd.InstanceType != "" {
+		objectMap["instanceType"] = rgd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -13363,12 +13643,11 @@ func (rgd ReplicationGroupDetails) AsBasicConfigurationSettings() (BasicConfigur
 // operation.
 type ReplicationJobsCancelFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationJobsCancelFuture) Result(client ReplicationJobsClient) (j Job, err error) {
+func (future *ReplicationJobsCancelFuture) Result(client ReplicationJobsClient) (j Job, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -13376,34 +13655,15 @@ func (future ReplicationJobsCancelFuture) Result(client ReplicationJobsClient) (
 		return
 	}
 	if !done {
-		return j, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationJobsCancelFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		j, err = client.CancelResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationJobsCancelFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationJobsCancelFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if j.Response.Response, err = future.GetResult(sender); err == nil && j.Response.Response.StatusCode != http.StatusNoContent {
+		j, err = client.CancelResponder(j.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationJobsCancelFuture", "Result", j.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationJobsCancelFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	j, err = client.CancelResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationJobsCancelFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -13412,12 +13672,11 @@ func (future ReplicationJobsCancelFuture) Result(client ReplicationJobsClient) (
 // operation.
 type ReplicationJobsExportFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationJobsExportFuture) Result(client ReplicationJobsClient) (j Job, err error) {
+func (future *ReplicationJobsExportFuture) Result(client ReplicationJobsClient) (j Job, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -13425,34 +13684,15 @@ func (future ReplicationJobsExportFuture) Result(client ReplicationJobsClient) (
 		return
 	}
 	if !done {
-		return j, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationJobsExportFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		j, err = client.ExportResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationJobsExportFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationJobsExportFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if j.Response.Response, err = future.GetResult(sender); err == nil && j.Response.Response.StatusCode != http.StatusNoContent {
+		j, err = client.ExportResponder(j.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationJobsExportFuture", "Result", j.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationJobsExportFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	j, err = client.ExportResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationJobsExportFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -13461,12 +13701,11 @@ func (future ReplicationJobsExportFuture) Result(client ReplicationJobsClient) (
 // operation.
 type ReplicationJobsRestartFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationJobsRestartFuture) Result(client ReplicationJobsClient) (j Job, err error) {
+func (future *ReplicationJobsRestartFuture) Result(client ReplicationJobsClient) (j Job, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -13474,34 +13713,15 @@ func (future ReplicationJobsRestartFuture) Result(client ReplicationJobsClient) 
 		return
 	}
 	if !done {
-		return j, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationJobsRestartFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		j, err = client.RestartResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationJobsRestartFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationJobsRestartFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if j.Response.Response, err = future.GetResult(sender); err == nil && j.Response.Response.StatusCode != http.StatusNoContent {
+		j, err = client.RestartResponder(j.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationJobsRestartFuture", "Result", j.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationJobsRestartFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	j, err = client.RestartResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationJobsRestartFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -13510,12 +13730,11 @@ func (future ReplicationJobsRestartFuture) Result(client ReplicationJobsClient) 
 // operation.
 type ReplicationJobsResumeFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationJobsResumeFuture) Result(client ReplicationJobsClient) (j Job, err error) {
+func (future *ReplicationJobsResumeFuture) Result(client ReplicationJobsClient) (j Job, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -13523,34 +13742,15 @@ func (future ReplicationJobsResumeFuture) Result(client ReplicationJobsClient) (
 		return
 	}
 	if !done {
-		return j, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationJobsResumeFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		j, err = client.ResumeResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationJobsResumeFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationJobsResumeFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if j.Response.Response, err = future.GetResult(sender); err == nil && j.Response.Response.StatusCode != http.StatusNoContent {
+		j, err = client.ResumeResponder(j.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationJobsResumeFuture", "Result", j.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationJobsResumeFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	j, err = client.ResumeResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationJobsResumeFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -13559,12 +13759,11 @@ func (future ReplicationJobsResumeFuture) Result(client ReplicationJobsClient) (
 // long-running operation.
 type ReplicationNetworkMappingsCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationNetworkMappingsCreateFuture) Result(client ReplicationNetworkMappingsClient) (nm NetworkMapping, err error) {
+func (future *ReplicationNetworkMappingsCreateFuture) Result(client ReplicationNetworkMappingsClient) (nm NetworkMapping, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -13572,34 +13771,15 @@ func (future ReplicationNetworkMappingsCreateFuture) Result(client ReplicationNe
 		return
 	}
 	if !done {
-		return nm, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationNetworkMappingsCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		nm, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationNetworkMappingsCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationNetworkMappingsCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if nm.Response.Response, err = future.GetResult(sender); err == nil && nm.Response.Response.StatusCode != http.StatusNoContent {
+		nm, err = client.CreateResponder(nm.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationNetworkMappingsCreateFuture", "Result", nm.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationNetworkMappingsCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	nm, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationNetworkMappingsCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -13608,12 +13788,11 @@ func (future ReplicationNetworkMappingsCreateFuture) Result(client ReplicationNe
 // long-running operation.
 type ReplicationNetworkMappingsDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationNetworkMappingsDeleteFuture) Result(client ReplicationNetworkMappingsClient) (ar autorest.Response, err error) {
+func (future *ReplicationNetworkMappingsDeleteFuture) Result(client ReplicationNetworkMappingsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -13621,35 +13800,10 @@ func (future ReplicationNetworkMappingsDeleteFuture) Result(client ReplicationNe
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationNetworkMappingsDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationNetworkMappingsDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationNetworkMappingsDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationNetworkMappingsDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationNetworkMappingsDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -13657,12 +13811,11 @@ func (future ReplicationNetworkMappingsDeleteFuture) Result(client ReplicationNe
 // long-running operation.
 type ReplicationNetworkMappingsUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationNetworkMappingsUpdateFuture) Result(client ReplicationNetworkMappingsClient) (nm NetworkMapping, err error) {
+func (future *ReplicationNetworkMappingsUpdateFuture) Result(client ReplicationNetworkMappingsClient) (nm NetworkMapping, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -13670,34 +13823,15 @@ func (future ReplicationNetworkMappingsUpdateFuture) Result(client ReplicationNe
 		return
 	}
 	if !done {
-		return nm, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationNetworkMappingsUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		nm, err = client.UpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationNetworkMappingsUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationNetworkMappingsUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if nm.Response.Response, err = future.GetResult(sender); err == nil && nm.Response.Response.StatusCode != http.StatusNoContent {
+		nm, err = client.UpdateResponder(nm.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationNetworkMappingsUpdateFuture", "Result", nm.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationNetworkMappingsUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	nm, err = client.UpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationNetworkMappingsUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -13706,12 +13840,11 @@ func (future ReplicationNetworkMappingsUpdateFuture) Result(client ReplicationNe
 // operation.
 type ReplicationPoliciesCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationPoliciesCreateFuture) Result(client ReplicationPoliciesClient) (p Policy, err error) {
+func (future *ReplicationPoliciesCreateFuture) Result(client ReplicationPoliciesClient) (p Policy, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -13719,34 +13852,15 @@ func (future ReplicationPoliciesCreateFuture) Result(client ReplicationPoliciesC
 		return
 	}
 	if !done {
-		return p, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationPoliciesCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		p, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationPoliciesCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationPoliciesCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if p.Response.Response, err = future.GetResult(sender); err == nil && p.Response.Response.StatusCode != http.StatusNoContent {
+		p, err = client.CreateResponder(p.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationPoliciesCreateFuture", "Result", p.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationPoliciesCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	p, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationPoliciesCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -13755,12 +13869,11 @@ func (future ReplicationPoliciesCreateFuture) Result(client ReplicationPoliciesC
 // operation.
 type ReplicationPoliciesDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationPoliciesDeleteFuture) Result(client ReplicationPoliciesClient) (ar autorest.Response, err error) {
+func (future *ReplicationPoliciesDeleteFuture) Result(client ReplicationPoliciesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -13768,35 +13881,10 @@ func (future ReplicationPoliciesDeleteFuture) Result(client ReplicationPoliciesC
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationPoliciesDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationPoliciesDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationPoliciesDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationPoliciesDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationPoliciesDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -13804,12 +13892,11 @@ func (future ReplicationPoliciesDeleteFuture) Result(client ReplicationPoliciesC
 // operation.
 type ReplicationPoliciesUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationPoliciesUpdateFuture) Result(client ReplicationPoliciesClient) (p Policy, err error) {
+func (future *ReplicationPoliciesUpdateFuture) Result(client ReplicationPoliciesClient) (p Policy, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -13817,34 +13904,15 @@ func (future ReplicationPoliciesUpdateFuture) Result(client ReplicationPoliciesC
 		return
 	}
 	if !done {
-		return p, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationPoliciesUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		p, err = client.UpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationPoliciesUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationPoliciesUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if p.Response.Response, err = future.GetResult(sender); err == nil && p.Response.Response.StatusCode != http.StatusNoContent {
+		p, err = client.UpdateResponder(p.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationPoliciesUpdateFuture", "Result", p.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationPoliciesUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	p, err = client.UpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationPoliciesUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -14286,12 +14354,11 @@ func (rpip *ReplicationProtectedItemProperties) UnmarshalJSON(body []byte) error
 // long-running operation.
 type ReplicationProtectedItemsApplyRecoveryPointFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationProtectedItemsApplyRecoveryPointFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
+func (future *ReplicationProtectedItemsApplyRecoveryPointFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -14299,34 +14366,15 @@ func (future ReplicationProtectedItemsApplyRecoveryPointFuture) Result(client Re
 		return
 	}
 	if !done {
-		return rpi, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsApplyRecoveryPointFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rpi, err = client.ApplyRecoveryPointResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsApplyRecoveryPointFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsApplyRecoveryPointFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rpi.Response.Response, err = future.GetResult(sender); err == nil && rpi.Response.Response.StatusCode != http.StatusNoContent {
+		rpi, err = client.ApplyRecoveryPointResponder(rpi.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsApplyRecoveryPointFuture", "Result", rpi.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsApplyRecoveryPointFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rpi, err = client.ApplyRecoveryPointResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsApplyRecoveryPointFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -14335,12 +14383,11 @@ func (future ReplicationProtectedItemsApplyRecoveryPointFuture) Result(client Re
 // operation.
 type ReplicationProtectedItemsCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationProtectedItemsCreateFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
+func (future *ReplicationProtectedItemsCreateFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -14348,34 +14395,15 @@ func (future ReplicationProtectedItemsCreateFuture) Result(client ReplicationPro
 		return
 	}
 	if !done {
-		return rpi, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rpi, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rpi.Response.Response, err = future.GetResult(sender); err == nil && rpi.Response.Response.StatusCode != http.StatusNoContent {
+		rpi, err = client.CreateResponder(rpi.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsCreateFuture", "Result", rpi.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rpi, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -14384,12 +14412,11 @@ func (future ReplicationProtectedItemsCreateFuture) Result(client ReplicationPro
 // operation.
 type ReplicationProtectedItemsDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationProtectedItemsDeleteFuture) Result(client ReplicationProtectedItemsClient) (ar autorest.Response, err error) {
+func (future *ReplicationProtectedItemsDeleteFuture) Result(client ReplicationProtectedItemsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -14397,35 +14424,10 @@ func (future ReplicationProtectedItemsDeleteFuture) Result(client ReplicationPro
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -14433,12 +14435,11 @@ func (future ReplicationProtectedItemsDeleteFuture) Result(client ReplicationPro
 // long-running operation.
 type ReplicationProtectedItemsFailoverCommitFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationProtectedItemsFailoverCommitFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
+func (future *ReplicationProtectedItemsFailoverCommitFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -14446,34 +14447,15 @@ func (future ReplicationProtectedItemsFailoverCommitFuture) Result(client Replic
 		return
 	}
 	if !done {
-		return rpi, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsFailoverCommitFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rpi, err = client.FailoverCommitResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsFailoverCommitFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsFailoverCommitFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rpi.Response.Response, err = future.GetResult(sender); err == nil && rpi.Response.Response.StatusCode != http.StatusNoContent {
+		rpi, err = client.FailoverCommitResponder(rpi.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsFailoverCommitFuture", "Result", rpi.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsFailoverCommitFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rpi, err = client.FailoverCommitResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsFailoverCommitFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -14482,12 +14464,11 @@ func (future ReplicationProtectedItemsFailoverCommitFuture) Result(client Replic
 // long-running operation.
 type ReplicationProtectedItemsPlannedFailoverFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationProtectedItemsPlannedFailoverFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
+func (future *ReplicationProtectedItemsPlannedFailoverFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -14495,34 +14476,15 @@ func (future ReplicationProtectedItemsPlannedFailoverFuture) Result(client Repli
 		return
 	}
 	if !done {
-		return rpi, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsPlannedFailoverFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rpi, err = client.PlannedFailoverResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsPlannedFailoverFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsPlannedFailoverFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rpi.Response.Response, err = future.GetResult(sender); err == nil && rpi.Response.Response.StatusCode != http.StatusNoContent {
+		rpi, err = client.PlannedFailoverResponder(rpi.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsPlannedFailoverFuture", "Result", rpi.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsPlannedFailoverFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rpi, err = client.PlannedFailoverResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsPlannedFailoverFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -14531,12 +14493,11 @@ func (future ReplicationProtectedItemsPlannedFailoverFuture) Result(client Repli
 // operation.
 type ReplicationProtectedItemsPurgeFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationProtectedItemsPurgeFuture) Result(client ReplicationProtectedItemsClient) (ar autorest.Response, err error) {
+func (future *ReplicationProtectedItemsPurgeFuture) Result(client ReplicationProtectedItemsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -14544,35 +14505,10 @@ func (future ReplicationProtectedItemsPurgeFuture) Result(client ReplicationProt
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsPurgeFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.PurgeResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsPurgeFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsPurgeFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsPurgeFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.PurgeResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsPurgeFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -14580,12 +14516,11 @@ func (future ReplicationProtectedItemsPurgeFuture) Result(client ReplicationProt
 // long-running operation.
 type ReplicationProtectedItemsRepairReplicationFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationProtectedItemsRepairReplicationFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
+func (future *ReplicationProtectedItemsRepairReplicationFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -14593,34 +14528,15 @@ func (future ReplicationProtectedItemsRepairReplicationFuture) Result(client Rep
 		return
 	}
 	if !done {
-		return rpi, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsRepairReplicationFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rpi, err = client.RepairReplicationResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsRepairReplicationFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsRepairReplicationFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rpi.Response.Response, err = future.GetResult(sender); err == nil && rpi.Response.Response.StatusCode != http.StatusNoContent {
+		rpi, err = client.RepairReplicationResponder(rpi.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsRepairReplicationFuture", "Result", rpi.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsRepairReplicationFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rpi, err = client.RepairReplicationResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsRepairReplicationFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -14629,12 +14545,11 @@ func (future ReplicationProtectedItemsRepairReplicationFuture) Result(client Rep
 // long-running operation.
 type ReplicationProtectedItemsReprotectFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationProtectedItemsReprotectFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
+func (future *ReplicationProtectedItemsReprotectFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -14642,34 +14557,15 @@ func (future ReplicationProtectedItemsReprotectFuture) Result(client Replication
 		return
 	}
 	if !done {
-		return rpi, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsReprotectFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rpi, err = client.ReprotectResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsReprotectFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsReprotectFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rpi.Response.Response, err = future.GetResult(sender); err == nil && rpi.Response.Response.StatusCode != http.StatusNoContent {
+		rpi, err = client.ReprotectResponder(rpi.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsReprotectFuture", "Result", rpi.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsReprotectFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rpi, err = client.ReprotectResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsReprotectFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -14678,12 +14574,11 @@ func (future ReplicationProtectedItemsReprotectFuture) Result(client Replication
 // long-running operation.
 type ReplicationProtectedItemsTestFailoverCleanupFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationProtectedItemsTestFailoverCleanupFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
+func (future *ReplicationProtectedItemsTestFailoverCleanupFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -14691,34 +14586,15 @@ func (future ReplicationProtectedItemsTestFailoverCleanupFuture) Result(client R
 		return
 	}
 	if !done {
-		return rpi, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsTestFailoverCleanupFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rpi, err = client.TestFailoverCleanupResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsTestFailoverCleanupFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsTestFailoverCleanupFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rpi.Response.Response, err = future.GetResult(sender); err == nil && rpi.Response.Response.StatusCode != http.StatusNoContent {
+		rpi, err = client.TestFailoverCleanupResponder(rpi.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsTestFailoverCleanupFuture", "Result", rpi.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsTestFailoverCleanupFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rpi, err = client.TestFailoverCleanupResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsTestFailoverCleanupFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -14727,12 +14603,11 @@ func (future ReplicationProtectedItemsTestFailoverCleanupFuture) Result(client R
 // long-running operation.
 type ReplicationProtectedItemsTestFailoverFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationProtectedItemsTestFailoverFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
+func (future *ReplicationProtectedItemsTestFailoverFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -14740,34 +14615,15 @@ func (future ReplicationProtectedItemsTestFailoverFuture) Result(client Replicat
 		return
 	}
 	if !done {
-		return rpi, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsTestFailoverFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rpi, err = client.TestFailoverResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsTestFailoverFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsTestFailoverFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rpi.Response.Response, err = future.GetResult(sender); err == nil && rpi.Response.Response.StatusCode != http.StatusNoContent {
+		rpi, err = client.TestFailoverResponder(rpi.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsTestFailoverFuture", "Result", rpi.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsTestFailoverFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rpi, err = client.TestFailoverResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsTestFailoverFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -14776,12 +14632,11 @@ func (future ReplicationProtectedItemsTestFailoverFuture) Result(client Replicat
 // long-running operation.
 type ReplicationProtectedItemsUnplannedFailoverFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationProtectedItemsUnplannedFailoverFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
+func (future *ReplicationProtectedItemsUnplannedFailoverFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -14789,34 +14644,15 @@ func (future ReplicationProtectedItemsUnplannedFailoverFuture) Result(client Rep
 		return
 	}
 	if !done {
-		return rpi, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsUnplannedFailoverFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rpi, err = client.UnplannedFailoverResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsUnplannedFailoverFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsUnplannedFailoverFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rpi.Response.Response, err = future.GetResult(sender); err == nil && rpi.Response.Response.StatusCode != http.StatusNoContent {
+		rpi, err = client.UnplannedFailoverResponder(rpi.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsUnplannedFailoverFuture", "Result", rpi.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsUnplannedFailoverFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rpi, err = client.UnplannedFailoverResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsUnplannedFailoverFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -14825,12 +14661,11 @@ func (future ReplicationProtectedItemsUnplannedFailoverFuture) Result(client Rep
 // operation.
 type ReplicationProtectedItemsUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationProtectedItemsUpdateFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
+func (future *ReplicationProtectedItemsUpdateFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -14838,34 +14673,15 @@ func (future ReplicationProtectedItemsUpdateFuture) Result(client ReplicationPro
 		return
 	}
 	if !done {
-		return rpi, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rpi, err = client.UpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rpi.Response.Response, err = future.GetResult(sender); err == nil && rpi.Response.Response.StatusCode != http.StatusNoContent {
+		rpi, err = client.UpdateResponder(rpi.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsUpdateFuture", "Result", rpi.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rpi, err = client.UpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -14874,12 +14690,11 @@ func (future ReplicationProtectedItemsUpdateFuture) Result(client ReplicationPro
 // a long-running operation.
 type ReplicationProtectedItemsUpdateMobilityServiceFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationProtectedItemsUpdateMobilityServiceFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
+func (future *ReplicationProtectedItemsUpdateMobilityServiceFuture) Result(client ReplicationProtectedItemsClient) (rpi ReplicationProtectedItem, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -14887,34 +14702,15 @@ func (future ReplicationProtectedItemsUpdateMobilityServiceFuture) Result(client
 		return
 	}
 	if !done {
-		return rpi, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsUpdateMobilityServiceFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rpi, err = client.UpdateMobilityServiceResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsUpdateMobilityServiceFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectedItemsUpdateMobilityServiceFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rpi.Response.Response, err = future.GetResult(sender); err == nil && rpi.Response.Response.StatusCode != http.StatusNoContent {
+		rpi, err = client.UpdateMobilityServiceResponder(rpi.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsUpdateMobilityServiceFuture", "Result", rpi.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsUpdateMobilityServiceFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rpi, err = client.UpdateMobilityServiceResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectedItemsUpdateMobilityServiceFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -14923,12 +14719,11 @@ func (future ReplicationProtectedItemsUpdateMobilityServiceFuture) Result(client
 // long-running operation.
 type ReplicationProtectionContainerMappingsCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationProtectionContainerMappingsCreateFuture) Result(client ReplicationProtectionContainerMappingsClient) (pcm ProtectionContainerMapping, err error) {
+func (future *ReplicationProtectionContainerMappingsCreateFuture) Result(client ReplicationProtectionContainerMappingsClient) (pcm ProtectionContainerMapping, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -14936,34 +14731,15 @@ func (future ReplicationProtectionContainerMappingsCreateFuture) Result(client R
 		return
 	}
 	if !done {
-		return pcm, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectionContainerMappingsCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		pcm, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainerMappingsCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectionContainerMappingsCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if pcm.Response.Response, err = future.GetResult(sender); err == nil && pcm.Response.Response.StatusCode != http.StatusNoContent {
+		pcm, err = client.CreateResponder(pcm.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainerMappingsCreateFuture", "Result", pcm.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainerMappingsCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	pcm, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainerMappingsCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -14972,12 +14748,11 @@ func (future ReplicationProtectionContainerMappingsCreateFuture) Result(client R
 // long-running operation.
 type ReplicationProtectionContainerMappingsDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationProtectionContainerMappingsDeleteFuture) Result(client ReplicationProtectionContainerMappingsClient) (ar autorest.Response, err error) {
+func (future *ReplicationProtectionContainerMappingsDeleteFuture) Result(client ReplicationProtectionContainerMappingsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -14985,35 +14760,10 @@ func (future ReplicationProtectionContainerMappingsDeleteFuture) Result(client R
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectionContainerMappingsDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainerMappingsDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectionContainerMappingsDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainerMappingsDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainerMappingsDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -15021,12 +14771,11 @@ func (future ReplicationProtectionContainerMappingsDeleteFuture) Result(client R
 // long-running operation.
 type ReplicationProtectionContainerMappingsPurgeFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationProtectionContainerMappingsPurgeFuture) Result(client ReplicationProtectionContainerMappingsClient) (ar autorest.Response, err error) {
+func (future *ReplicationProtectionContainerMappingsPurgeFuture) Result(client ReplicationProtectionContainerMappingsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -15034,35 +14783,10 @@ func (future ReplicationProtectionContainerMappingsPurgeFuture) Result(client Re
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectionContainerMappingsPurgeFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.PurgeResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainerMappingsPurgeFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectionContainerMappingsPurgeFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainerMappingsPurgeFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.PurgeResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainerMappingsPurgeFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -15070,12 +14794,11 @@ func (future ReplicationProtectionContainerMappingsPurgeFuture) Result(client Re
 // long-running operation.
 type ReplicationProtectionContainersCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationProtectionContainersCreateFuture) Result(client ReplicationProtectionContainersClient) (pc ProtectionContainer, err error) {
+func (future *ReplicationProtectionContainersCreateFuture) Result(client ReplicationProtectionContainersClient) (pc ProtectionContainer, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -15083,34 +14806,15 @@ func (future ReplicationProtectionContainersCreateFuture) Result(client Replicat
 		return
 	}
 	if !done {
-		return pc, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectionContainersCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		pc, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainersCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectionContainersCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if pc.Response.Response, err = future.GetResult(sender); err == nil && pc.Response.Response.StatusCode != http.StatusNoContent {
+		pc, err = client.CreateResponder(pc.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainersCreateFuture", "Result", pc.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainersCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	pc, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainersCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -15119,12 +14823,11 @@ func (future ReplicationProtectionContainersCreateFuture) Result(client Replicat
 // long-running operation.
 type ReplicationProtectionContainersDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationProtectionContainersDeleteFuture) Result(client ReplicationProtectionContainersClient) (ar autorest.Response, err error) {
+func (future *ReplicationProtectionContainersDeleteFuture) Result(client ReplicationProtectionContainersClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -15132,35 +14835,10 @@ func (future ReplicationProtectionContainersDeleteFuture) Result(client Replicat
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectionContainersDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainersDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectionContainersDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainersDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainersDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -15168,12 +14846,11 @@ func (future ReplicationProtectionContainersDeleteFuture) Result(client Replicat
 // results of a long-running operation.
 type ReplicationProtectionContainersDiscoverProtectableItemFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationProtectionContainersDiscoverProtectableItemFuture) Result(client ReplicationProtectionContainersClient) (pc ProtectionContainer, err error) {
+func (future *ReplicationProtectionContainersDiscoverProtectableItemFuture) Result(client ReplicationProtectionContainersClient) (pc ProtectionContainer, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -15181,34 +14858,15 @@ func (future ReplicationProtectionContainersDiscoverProtectableItemFuture) Resul
 		return
 	}
 	if !done {
-		return pc, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectionContainersDiscoverProtectableItemFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		pc, err = client.DiscoverProtectableItemResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainersDiscoverProtectableItemFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectionContainersDiscoverProtectableItemFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if pc.Response.Response, err = future.GetResult(sender); err == nil && pc.Response.Response.StatusCode != http.StatusNoContent {
+		pc, err = client.DiscoverProtectableItemResponder(pc.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainersDiscoverProtectableItemFuture", "Result", pc.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainersDiscoverProtectableItemFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	pc, err = client.DiscoverProtectableItemResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainersDiscoverProtectableItemFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -15217,12 +14875,11 @@ func (future ReplicationProtectionContainersDiscoverProtectableItemFuture) Resul
 // of a long-running operation.
 type ReplicationProtectionContainersSwitchProtectionFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationProtectionContainersSwitchProtectionFuture) Result(client ReplicationProtectionContainersClient) (pc ProtectionContainer, err error) {
+func (future *ReplicationProtectionContainersSwitchProtectionFuture) Result(client ReplicationProtectionContainersClient) (pc ProtectionContainer, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -15230,34 +14887,15 @@ func (future ReplicationProtectionContainersSwitchProtectionFuture) Result(clien
 		return
 	}
 	if !done {
-		return pc, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectionContainersSwitchProtectionFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		pc, err = client.SwitchProtectionResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainersSwitchProtectionFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationProtectionContainersSwitchProtectionFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if pc.Response.Response, err = future.GetResult(sender); err == nil && pc.Response.Response.StatusCode != http.StatusNoContent {
+		pc, err = client.SwitchProtectionResponder(pc.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainersSwitchProtectionFuture", "Result", pc.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainersSwitchProtectionFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	pc, err = client.SwitchProtectionResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationProtectionContainersSwitchProtectionFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -15321,7 +14959,9 @@ func unmarshalBasicReplicationProviderSpecificContainerCreationInputArray(body [
 func (rpscci ReplicationProviderSpecificContainerCreationInput) MarshalJSON() ([]byte, error) {
 	rpscci.InstanceType = InstanceTypeBasicReplicationProviderSpecificContainerCreationInputInstanceTypeReplicationProviderSpecificContainerCreationInput
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = rpscci.InstanceType
+	if rpscci.InstanceType != "" {
+		objectMap["instanceType"] = rpscci.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -15429,7 +15069,9 @@ func unmarshalBasicReplicationProviderSpecificSettingsArray(body []byte) ([]Basi
 func (rpss ReplicationProviderSpecificSettings) MarshalJSON() ([]byte, error) {
 	rpss.InstanceType = InstanceTypeBasicReplicationProviderSpecificSettingsInstanceTypeReplicationProviderSpecificSettings
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = rpss.InstanceType
+	if rpss.InstanceType != "" {
+		objectMap["instanceType"] = rpss.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -15482,12 +15124,11 @@ func (rpss ReplicationProviderSpecificSettings) AsBasicReplicationProviderSpecif
 // operation.
 type ReplicationRecoveryPlansCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationRecoveryPlansCreateFuture) Result(client ReplicationRecoveryPlansClient) (rp RecoveryPlan, err error) {
+func (future *ReplicationRecoveryPlansCreateFuture) Result(client ReplicationRecoveryPlansClient) (rp RecoveryPlan, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -15495,34 +15136,15 @@ func (future ReplicationRecoveryPlansCreateFuture) Result(client ReplicationReco
 		return
 	}
 	if !done {
-		return rp, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryPlansCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rp, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryPlansCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rp.Response.Response, err = future.GetResult(sender); err == nil && rp.Response.Response.StatusCode != http.StatusNoContent {
+		rp, err = client.CreateResponder(rp.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansCreateFuture", "Result", rp.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rp, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -15531,12 +15153,11 @@ func (future ReplicationRecoveryPlansCreateFuture) Result(client ReplicationReco
 // operation.
 type ReplicationRecoveryPlansDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationRecoveryPlansDeleteFuture) Result(client ReplicationRecoveryPlansClient) (ar autorest.Response, err error) {
+func (future *ReplicationRecoveryPlansDeleteFuture) Result(client ReplicationRecoveryPlansClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -15544,35 +15165,10 @@ func (future ReplicationRecoveryPlansDeleteFuture) Result(client ReplicationReco
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryPlansDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryPlansDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -15580,12 +15176,11 @@ func (future ReplicationRecoveryPlansDeleteFuture) Result(client ReplicationReco
 // long-running operation.
 type ReplicationRecoveryPlansFailoverCommitFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationRecoveryPlansFailoverCommitFuture) Result(client ReplicationRecoveryPlansClient) (rp RecoveryPlan, err error) {
+func (future *ReplicationRecoveryPlansFailoverCommitFuture) Result(client ReplicationRecoveryPlansClient) (rp RecoveryPlan, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -15593,34 +15188,15 @@ func (future ReplicationRecoveryPlansFailoverCommitFuture) Result(client Replica
 		return
 	}
 	if !done {
-		return rp, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryPlansFailoverCommitFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rp, err = client.FailoverCommitResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansFailoverCommitFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryPlansFailoverCommitFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rp.Response.Response, err = future.GetResult(sender); err == nil && rp.Response.Response.StatusCode != http.StatusNoContent {
+		rp, err = client.FailoverCommitResponder(rp.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansFailoverCommitFuture", "Result", rp.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansFailoverCommitFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rp, err = client.FailoverCommitResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansFailoverCommitFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -15629,12 +15205,11 @@ func (future ReplicationRecoveryPlansFailoverCommitFuture) Result(client Replica
 // long-running operation.
 type ReplicationRecoveryPlansPlannedFailoverFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationRecoveryPlansPlannedFailoverFuture) Result(client ReplicationRecoveryPlansClient) (rp RecoveryPlan, err error) {
+func (future *ReplicationRecoveryPlansPlannedFailoverFuture) Result(client ReplicationRecoveryPlansClient) (rp RecoveryPlan, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -15642,34 +15217,15 @@ func (future ReplicationRecoveryPlansPlannedFailoverFuture) Result(client Replic
 		return
 	}
 	if !done {
-		return rp, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryPlansPlannedFailoverFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rp, err = client.PlannedFailoverResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansPlannedFailoverFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryPlansPlannedFailoverFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rp.Response.Response, err = future.GetResult(sender); err == nil && rp.Response.Response.StatusCode != http.StatusNoContent {
+		rp, err = client.PlannedFailoverResponder(rp.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansPlannedFailoverFuture", "Result", rp.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansPlannedFailoverFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rp, err = client.PlannedFailoverResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansPlannedFailoverFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -15678,12 +15234,11 @@ func (future ReplicationRecoveryPlansPlannedFailoverFuture) Result(client Replic
 // long-running operation.
 type ReplicationRecoveryPlansReprotectFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationRecoveryPlansReprotectFuture) Result(client ReplicationRecoveryPlansClient) (rp RecoveryPlan, err error) {
+func (future *ReplicationRecoveryPlansReprotectFuture) Result(client ReplicationRecoveryPlansClient) (rp RecoveryPlan, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -15691,34 +15246,15 @@ func (future ReplicationRecoveryPlansReprotectFuture) Result(client ReplicationR
 		return
 	}
 	if !done {
-		return rp, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryPlansReprotectFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rp, err = client.ReprotectResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansReprotectFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryPlansReprotectFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rp.Response.Response, err = future.GetResult(sender); err == nil && rp.Response.Response.StatusCode != http.StatusNoContent {
+		rp, err = client.ReprotectResponder(rp.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansReprotectFuture", "Result", rp.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansReprotectFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rp, err = client.ReprotectResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansReprotectFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -15727,12 +15263,11 @@ func (future ReplicationRecoveryPlansReprotectFuture) Result(client ReplicationR
 // long-running operation.
 type ReplicationRecoveryPlansTestFailoverCleanupFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationRecoveryPlansTestFailoverCleanupFuture) Result(client ReplicationRecoveryPlansClient) (rp RecoveryPlan, err error) {
+func (future *ReplicationRecoveryPlansTestFailoverCleanupFuture) Result(client ReplicationRecoveryPlansClient) (rp RecoveryPlan, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -15740,34 +15275,15 @@ func (future ReplicationRecoveryPlansTestFailoverCleanupFuture) Result(client Re
 		return
 	}
 	if !done {
-		return rp, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryPlansTestFailoverCleanupFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rp, err = client.TestFailoverCleanupResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansTestFailoverCleanupFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryPlansTestFailoverCleanupFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rp.Response.Response, err = future.GetResult(sender); err == nil && rp.Response.Response.StatusCode != http.StatusNoContent {
+		rp, err = client.TestFailoverCleanupResponder(rp.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansTestFailoverCleanupFuture", "Result", rp.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansTestFailoverCleanupFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rp, err = client.TestFailoverCleanupResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansTestFailoverCleanupFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -15776,12 +15292,11 @@ func (future ReplicationRecoveryPlansTestFailoverCleanupFuture) Result(client Re
 // long-running operation.
 type ReplicationRecoveryPlansTestFailoverFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationRecoveryPlansTestFailoverFuture) Result(client ReplicationRecoveryPlansClient) (rp RecoveryPlan, err error) {
+func (future *ReplicationRecoveryPlansTestFailoverFuture) Result(client ReplicationRecoveryPlansClient) (rp RecoveryPlan, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -15789,34 +15304,15 @@ func (future ReplicationRecoveryPlansTestFailoverFuture) Result(client Replicati
 		return
 	}
 	if !done {
-		return rp, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryPlansTestFailoverFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rp, err = client.TestFailoverResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansTestFailoverFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryPlansTestFailoverFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rp.Response.Response, err = future.GetResult(sender); err == nil && rp.Response.Response.StatusCode != http.StatusNoContent {
+		rp, err = client.TestFailoverResponder(rp.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansTestFailoverFuture", "Result", rp.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansTestFailoverFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rp, err = client.TestFailoverResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansTestFailoverFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -15825,12 +15321,11 @@ func (future ReplicationRecoveryPlansTestFailoverFuture) Result(client Replicati
 // long-running operation.
 type ReplicationRecoveryPlansUnplannedFailoverFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationRecoveryPlansUnplannedFailoverFuture) Result(client ReplicationRecoveryPlansClient) (rp RecoveryPlan, err error) {
+func (future *ReplicationRecoveryPlansUnplannedFailoverFuture) Result(client ReplicationRecoveryPlansClient) (rp RecoveryPlan, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -15838,34 +15333,15 @@ func (future ReplicationRecoveryPlansUnplannedFailoverFuture) Result(client Repl
 		return
 	}
 	if !done {
-		return rp, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryPlansUnplannedFailoverFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rp, err = client.UnplannedFailoverResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansUnplannedFailoverFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryPlansUnplannedFailoverFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rp.Response.Response, err = future.GetResult(sender); err == nil && rp.Response.Response.StatusCode != http.StatusNoContent {
+		rp, err = client.UnplannedFailoverResponder(rp.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansUnplannedFailoverFuture", "Result", rp.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansUnplannedFailoverFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rp, err = client.UnplannedFailoverResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansUnplannedFailoverFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -15874,12 +15350,11 @@ func (future ReplicationRecoveryPlansUnplannedFailoverFuture) Result(client Repl
 // operation.
 type ReplicationRecoveryPlansUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationRecoveryPlansUpdateFuture) Result(client ReplicationRecoveryPlansClient) (rp RecoveryPlan, err error) {
+func (future *ReplicationRecoveryPlansUpdateFuture) Result(client ReplicationRecoveryPlansClient) (rp RecoveryPlan, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -15887,34 +15362,15 @@ func (future ReplicationRecoveryPlansUpdateFuture) Result(client ReplicationReco
 		return
 	}
 	if !done {
-		return rp, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryPlansUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rp, err = client.UpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryPlansUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rp.Response.Response, err = future.GetResult(sender); err == nil && rp.Response.Response.StatusCode != http.StatusNoContent {
+		rp, err = client.UpdateResponder(rp.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansUpdateFuture", "Result", rp.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rp, err = client.UpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryPlansUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -15923,12 +15379,11 @@ func (future ReplicationRecoveryPlansUpdateFuture) Result(client ReplicationReco
 // long-running operation.
 type ReplicationRecoveryServicesProvidersDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationRecoveryServicesProvidersDeleteFuture) Result(client ReplicationRecoveryServicesProvidersClient) (ar autorest.Response, err error) {
+func (future *ReplicationRecoveryServicesProvidersDeleteFuture) Result(client ReplicationRecoveryServicesProvidersClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -15936,35 +15391,10 @@ func (future ReplicationRecoveryServicesProvidersDeleteFuture) Result(client Rep
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryServicesProvidersDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryServicesProvidersDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryServicesProvidersDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryServicesProvidersDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryServicesProvidersDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -15972,12 +15402,11 @@ func (future ReplicationRecoveryServicesProvidersDeleteFuture) Result(client Rep
 // long-running operation.
 type ReplicationRecoveryServicesProvidersPurgeFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationRecoveryServicesProvidersPurgeFuture) Result(client ReplicationRecoveryServicesProvidersClient) (ar autorest.Response, err error) {
+func (future *ReplicationRecoveryServicesProvidersPurgeFuture) Result(client ReplicationRecoveryServicesProvidersClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -15985,35 +15414,10 @@ func (future ReplicationRecoveryServicesProvidersPurgeFuture) Result(client Repl
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryServicesProvidersPurgeFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.PurgeResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryServicesProvidersPurgeFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryServicesProvidersPurgeFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryServicesProvidersPurgeFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.PurgeResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryServicesProvidersPurgeFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -16021,12 +15425,11 @@ func (future ReplicationRecoveryServicesProvidersPurgeFuture) Result(client Repl
 // results of a long-running operation.
 type ReplicationRecoveryServicesProvidersRefreshProviderFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationRecoveryServicesProvidersRefreshProviderFuture) Result(client ReplicationRecoveryServicesProvidersClient) (rsp RecoveryServicesProvider, err error) {
+func (future *ReplicationRecoveryServicesProvidersRefreshProviderFuture) Result(client ReplicationRecoveryServicesProvidersClient) (rsp RecoveryServicesProvider, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -16034,34 +15437,15 @@ func (future ReplicationRecoveryServicesProvidersRefreshProviderFuture) Result(c
 		return
 	}
 	if !done {
-		return rsp, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryServicesProvidersRefreshProviderFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rsp, err = client.RefreshProviderResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryServicesProvidersRefreshProviderFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationRecoveryServicesProvidersRefreshProviderFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rsp.Response.Response, err = future.GetResult(sender); err == nil && rsp.Response.Response.StatusCode != http.StatusNoContent {
+		rsp, err = client.RefreshProviderResponder(rsp.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryServicesProvidersRefreshProviderFuture", "Result", rsp.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryServicesProvidersRefreshProviderFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rsp, err = client.RefreshProviderResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationRecoveryServicesProvidersRefreshProviderFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -16070,12 +15454,11 @@ func (future ReplicationRecoveryServicesProvidersRefreshProviderFuture) Result(c
 // a long-running operation.
 type ReplicationStorageClassificationMappingsCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationStorageClassificationMappingsCreateFuture) Result(client ReplicationStorageClassificationMappingsClient) (scm StorageClassificationMapping, err error) {
+func (future *ReplicationStorageClassificationMappingsCreateFuture) Result(client ReplicationStorageClassificationMappingsClient) (scm StorageClassificationMapping, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -16083,34 +15466,15 @@ func (future ReplicationStorageClassificationMappingsCreateFuture) Result(client
 		return
 	}
 	if !done {
-		return scm, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationStorageClassificationMappingsCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		scm, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationStorageClassificationMappingsCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationStorageClassificationMappingsCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if scm.Response.Response, err = future.GetResult(sender); err == nil && scm.Response.Response.StatusCode != http.StatusNoContent {
+		scm, err = client.CreateResponder(scm.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationStorageClassificationMappingsCreateFuture", "Result", scm.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationStorageClassificationMappingsCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	scm, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationStorageClassificationMappingsCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -16119,12 +15483,11 @@ func (future ReplicationStorageClassificationMappingsCreateFuture) Result(client
 // a long-running operation.
 type ReplicationStorageClassificationMappingsDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationStorageClassificationMappingsDeleteFuture) Result(client ReplicationStorageClassificationMappingsClient) (ar autorest.Response, err error) {
+func (future *ReplicationStorageClassificationMappingsDeleteFuture) Result(client ReplicationStorageClassificationMappingsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -16132,35 +15495,10 @@ func (future ReplicationStorageClassificationMappingsDeleteFuture) Result(client
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationStorageClassificationMappingsDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationStorageClassificationMappingsDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationStorageClassificationMappingsDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationStorageClassificationMappingsDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationStorageClassificationMappingsDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -16168,12 +15506,11 @@ func (future ReplicationStorageClassificationMappingsDeleteFuture) Result(client
 // operation.
 type ReplicationvCentersCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationvCentersCreateFuture) Result(client ReplicationvCentersClient) (vc VCenter, err error) {
+func (future *ReplicationvCentersCreateFuture) Result(client ReplicationvCentersClient) (vc VCenter, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -16181,34 +15518,15 @@ func (future ReplicationvCentersCreateFuture) Result(client ReplicationvCentersC
 		return
 	}
 	if !done {
-		return vc, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationvCentersCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		vc, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationvCentersCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationvCentersCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if vc.Response.Response, err = future.GetResult(sender); err == nil && vc.Response.Response.StatusCode != http.StatusNoContent {
+		vc, err = client.CreateResponder(vc.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationvCentersCreateFuture", "Result", vc.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationvCentersCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	vc, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationvCentersCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -16217,12 +15535,11 @@ func (future ReplicationvCentersCreateFuture) Result(client ReplicationvCentersC
 // operation.
 type ReplicationvCentersDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationvCentersDeleteFuture) Result(client ReplicationvCentersClient) (ar autorest.Response, err error) {
+func (future *ReplicationvCentersDeleteFuture) Result(client ReplicationvCentersClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -16230,35 +15547,10 @@ func (future ReplicationvCentersDeleteFuture) Result(client ReplicationvCentersC
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationvCentersDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationvCentersDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationvCentersDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationvCentersDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationvCentersDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -16266,12 +15558,11 @@ func (future ReplicationvCentersDeleteFuture) Result(client ReplicationvCentersC
 // operation.
 type ReplicationvCentersUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReplicationvCentersUpdateFuture) Result(client ReplicationvCentersClient) (vc VCenter, err error) {
+func (future *ReplicationvCentersUpdateFuture) Result(client ReplicationvCentersClient) (vc VCenter, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -16279,34 +15570,15 @@ func (future ReplicationvCentersUpdateFuture) Result(client ReplicationvCentersC
 		return
 	}
 	if !done {
-		return vc, azure.NewAsyncOpIncompleteError("siterecovery.ReplicationvCentersUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		vc, err = client.UpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationvCentersUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("siterecovery.ReplicationvCentersUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if vc.Response.Response, err = future.GetResult(sender); err == nil && vc.Response.Response.StatusCode != http.StatusNoContent {
+		vc, err = client.UpdateResponder(vc.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "siterecovery.ReplicationvCentersUpdateFuture", "Result", vc.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationvCentersUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	vc, err = client.UpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "siterecovery.ReplicationvCentersUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -16469,7 +15741,9 @@ func unmarshalBasicReverseReplicationProviderSpecificInputArray(body []byte) ([]
 func (rrpsi ReverseReplicationProviderSpecificInput) MarshalJSON() ([]byte, error) {
 	rrpsi.InstanceType = InstanceTypeBasicReverseReplicationProviderSpecificInputInstanceTypeReverseReplicationProviderSpecificInput
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = rrpsi.InstanceType
+	if rrpsi.InstanceType != "" {
+		objectMap["instanceType"] = rrpsi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -16535,7 +15809,9 @@ type SanEnableProtectionInput struct {
 func (sepi SanEnableProtectionInput) MarshalJSON() ([]byte, error) {
 	sepi.InstanceType = InstanceTypeBasicEnableProtectionProviderSpecificInputInstanceTypeSan
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = sepi.InstanceType
+	if sepi.InstanceType != "" {
+		objectMap["instanceType"] = sepi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -16604,7 +15880,9 @@ func (satd ScriptActionTaskDetails) MarshalJSON() ([]byte, error) {
 	if satd.IsPrimarySideScript != nil {
 		objectMap["isPrimarySideScript"] = satd.IsPrimarySideScript
 	}
-	objectMap["instanceType"] = satd.InstanceType
+	if satd.InstanceType != "" {
+		objectMap["instanceType"] = satd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -17007,7 +16285,9 @@ func (spjd SwitchProtectionJobDetails) MarshalJSON() ([]byte, error) {
 	if spjd.AffectedObjectDetails != nil {
 		objectMap["affectedObjectDetails"] = spjd.AffectedObjectDetails
 	}
-	objectMap["instanceType"] = spjd.InstanceType
+	if spjd.InstanceType != "" {
+		objectMap["instanceType"] = spjd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -17099,7 +16379,9 @@ func unmarshalBasicSwitchProtectionProviderSpecificInputArray(body []byte) ([]Ba
 func (sppsi SwitchProtectionProviderSpecificInput) MarshalJSON() ([]byte, error) {
 	sppsi.InstanceType = InstanceTypeBasicSwitchProtectionProviderSpecificInputInstanceTypeSwitchProtectionProviderSpecificInput
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = sppsi.InstanceType
+	if sppsi.InstanceType != "" {
+		objectMap["instanceType"] = sppsi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -17206,7 +16488,9 @@ func unmarshalBasicTaskTypeDetailsArray(body []byte) ([]BasicTaskTypeDetails, er
 func (ttd TaskTypeDetails) MarshalJSON() ([]byte, error) {
 	ttd.InstanceType = InstanceTypeTaskTypeDetails
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = ttd.InstanceType
+	if ttd.InstanceType != "" {
+		objectMap["instanceType"] = ttd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -17396,7 +16680,9 @@ func (tfjd TestFailoverJobDetails) MarshalJSON() ([]byte, error) {
 	if tfjd.AffectedObjectDetails != nil {
 		objectMap["affectedObjectDetails"] = tfjd.AffectedObjectDetails
 	}
-	objectMap["instanceType"] = tfjd.InstanceType
+	if tfjd.InstanceType != "" {
+		objectMap["instanceType"] = tfjd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -17783,7 +17069,9 @@ func unmarshalBasicUpdateReplicationProtectedItemProviderInputArray(body []byte)
 func (urpipi UpdateReplicationProtectedItemProviderInput) MarshalJSON() ([]byte, error) {
 	urpipi.InstanceType = InstanceTypeBasicUpdateReplicationProtectedItemProviderInputInstanceTypeUpdateReplicationProtectedItemProviderInput
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = urpipi.InstanceType
+	if urpipi.InstanceType != "" {
+		objectMap["instanceType"] = urpipi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -18023,7 +17311,9 @@ func (vmtd VirtualMachineTaskDetails) MarshalJSON() ([]byte, error) {
 	if vmtd.JobTask != nil {
 		objectMap["jobTask"] = vmtd.JobTask
 	}
-	objectMap["instanceType"] = vmtd.InstanceType
+	if vmtd.InstanceType != "" {
+		objectMap["instanceType"] = vmtd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -18087,7 +17377,9 @@ type VmmDetails struct {
 func (vd VmmDetails) MarshalJSON() ([]byte, error) {
 	vd.InstanceType = InstanceTypeBasicFabricSpecificDetailsInstanceTypeVMM
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = vd.InstanceType
+	if vd.InstanceType != "" {
+		objectMap["instanceType"] = vd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -18137,7 +17429,9 @@ type VmmToAzureCreateNetworkMappingInput struct {
 func (vtacnmi VmmToAzureCreateNetworkMappingInput) MarshalJSON() ([]byte, error) {
 	vtacnmi.InstanceType = InstanceTypeVmmToAzure
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = vtacnmi.InstanceType
+	if vtacnmi.InstanceType != "" {
+		objectMap["instanceType"] = vtacnmi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -18176,7 +17470,9 @@ type VmmToAzureNetworkMappingSettings struct {
 func (vtanms VmmToAzureNetworkMappingSettings) MarshalJSON() ([]byte, error) {
 	vtanms.InstanceType = InstanceTypeBasicNetworkMappingFabricSpecificSettingsInstanceTypeVmmToAzure
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = vtanms.InstanceType
+	if vtanms.InstanceType != "" {
+		objectMap["instanceType"] = vtanms.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -18215,7 +17511,9 @@ type VmmToAzureUpdateNetworkMappingInput struct {
 func (vtaunmi VmmToAzureUpdateNetworkMappingInput) MarshalJSON() ([]byte, error) {
 	vtaunmi.InstanceType = InstanceTypeBasicFabricSpecificUpdateNetworkMappingInputInstanceTypeVmmToAzure
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = vtaunmi.InstanceType
+	if vtaunmi.InstanceType != "" {
+		objectMap["instanceType"] = vtaunmi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -18255,7 +17553,9 @@ type VmmToVmmCreateNetworkMappingInput struct {
 func (vtvcnmi VmmToVmmCreateNetworkMappingInput) MarshalJSON() ([]byte, error) {
 	vtvcnmi.InstanceType = InstanceTypeVmmToVmm
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = vtvcnmi.InstanceType
+	if vtvcnmi.InstanceType != "" {
+		objectMap["instanceType"] = vtvcnmi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -18294,7 +17594,9 @@ type VmmToVmmNetworkMappingSettings struct {
 func (vtvnms VmmToVmmNetworkMappingSettings) MarshalJSON() ([]byte, error) {
 	vtvnms.InstanceType = InstanceTypeBasicNetworkMappingFabricSpecificSettingsInstanceTypeVmmToVmm
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = vtvnms.InstanceType
+	if vtvnms.InstanceType != "" {
+		objectMap["instanceType"] = vtvnms.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -18333,7 +17635,9 @@ type VmmToVmmUpdateNetworkMappingInput struct {
 func (vtvunmi VmmToVmmUpdateNetworkMappingInput) MarshalJSON() ([]byte, error) {
 	vtvunmi.InstanceType = InstanceTypeBasicFabricSpecificUpdateNetworkMappingInputInstanceTypeVmmToVmm
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = vtvunmi.InstanceType
+	if vtvunmi.InstanceType != "" {
+		objectMap["instanceType"] = vtvunmi.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -18427,7 +17731,9 @@ func (vnutd VMNicUpdatesTaskDetails) MarshalJSON() ([]byte, error) {
 	if vnutd.Name != nil {
 		objectMap["name"] = vnutd.Name
 	}
-	objectMap["instanceType"] = vnutd.InstanceType
+	if vnutd.InstanceType != "" {
+		objectMap["instanceType"] = vnutd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -18506,7 +17812,9 @@ func (vmcpci VMwareCbtPolicyCreationInput) MarshalJSON() ([]byte, error) {
 	if vmcpci.AppConsistentFrequencyInMinutes != nil {
 		objectMap["appConsistentFrequencyInMinutes"] = vmcpci.AppConsistentFrequencyInMinutes
 	}
-	objectMap["instanceType"] = vmcpci.InstanceType
+	if vmcpci.InstanceType != "" {
+		objectMap["instanceType"] = vmcpci.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -18585,7 +17893,9 @@ func (vcpd VmwareCbtPolicyDetails) MarshalJSON() ([]byte, error) {
 	if vcpd.CrashConsistentFrequencyInMinutes != nil {
 		objectMap["crashConsistentFrequencyInMinutes"] = vcpd.CrashConsistentFrequencyInMinutes
 	}
-	objectMap["instanceType"] = vcpd.InstanceType
+	if vcpd.InstanceType != "" {
+		objectMap["instanceType"] = vcpd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -18809,7 +18119,9 @@ func (vmd VMwareDetails) MarshalJSON() ([]byte, error) {
 	if vmd.PsTemplateVersion != nil {
 		objectMap["psTemplateVersion"] = vmd.PsTemplateVersion
 	}
-	objectMap["instanceType"] = vmd.InstanceType
+	if vmd.InstanceType != "" {
+		objectMap["instanceType"] = vmd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -18858,7 +18170,9 @@ type VMwareV2FabricCreationInput struct {
 func (vmvfci VMwareV2FabricCreationInput) MarshalJSON() ([]byte, error) {
 	vmvfci.InstanceType = InstanceTypeVMwareV2
 	objectMap := make(map[string]interface{})
-	objectMap["instanceType"] = vmvfci.InstanceType
+	if vmvfci.InstanceType != "" {
+		objectMap["instanceType"] = vmvfci.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -18902,7 +18216,9 @@ func (vmvfsd VMwareV2FabricSpecificDetails) MarshalJSON() ([]byte, error) {
 	if vmvfsd.RcmServiceEndpoint != nil {
 		objectMap["rcmServiceEndpoint"] = vmvfsd.RcmServiceEndpoint
 	}
-	objectMap["instanceType"] = vmvfsd.InstanceType
+	if vmvfsd.InstanceType != "" {
+		objectMap["instanceType"] = vmvfsd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -19001,7 +18317,9 @@ func (vmvmd VMwareVirtualMachineDetails) MarshalJSON() ([]byte, error) {
 	if vmvmd.ValidationErrors != nil {
 		objectMap["validationErrors"] = vmvmd.ValidationErrors
 	}
-	objectMap["instanceType"] = vmvmd.InstanceType
+	if vmvmd.InstanceType != "" {
+		objectMap["instanceType"] = vmvmd.InstanceType
+	}
 	return json.Marshal(objectMap)
 }
 

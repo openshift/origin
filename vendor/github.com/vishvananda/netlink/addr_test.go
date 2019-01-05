@@ -7,6 +7,7 @@ import (
 	"os"
 	"syscall"
 	"testing"
+	"time"
 )
 
 func TestAddrAdd(t *testing.T) {
@@ -189,5 +190,57 @@ func TestAddrAddReplace(t *testing.T) {
 
 	if len(addrs) != 0 {
 		t.Fatal("Address not removed properly")
+	}
+}
+
+func expectAddrUpdate(ch <-chan AddrUpdate, add bool, dst net.IP) bool {
+	for {
+		timeout := time.After(time.Minute)
+		select {
+		case update := <-ch:
+			if update.NewAddr == add && update.LinkAddress.IP.Equal(dst) {
+				return true
+			}
+		case <-timeout:
+			return false
+		}
+	}
+}
+
+func TestAddrSubscribeWithOptions(t *testing.T) {
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+
+	ch := make(chan AddrUpdate)
+	done := make(chan struct{})
+	defer close(done)
+	var lastError error
+	defer func() {
+		if lastError != nil {
+			t.Fatalf("Fatal error received during subscription: %v", lastError)
+		}
+	}()
+	if err := AddrSubscribeWithOptions(ch, done, AddrSubscribeOptions{
+		ErrorCallback: func(err error) {
+			lastError = err
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// get loopback interface
+	link, err := LinkByName("lo")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// bring the interface up
+	if err = LinkSetUp(link); err != nil {
+		t.Fatal(err)
+	}
+
+	ip := net.IPv4(127, 0, 0, 1)
+	if !expectAddrUpdate(ch, true, ip) {
+		t.Fatal("Add update not received as expected")
 	}
 }

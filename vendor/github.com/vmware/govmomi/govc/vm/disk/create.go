@@ -40,6 +40,7 @@ type create struct {
 	Thick      bool
 	Eager      bool
 	DiskMode   string
+	Sharing    string
 }
 
 var vdmTypes = []string{
@@ -49,6 +50,11 @@ var vdmTypes = []string{
 	string(types.VirtualDiskModeIndependent_persistent),
 	string(types.VirtualDiskModeIndependent_nonpersistent),
 	string(types.VirtualDiskModeAppend),
+}
+
+var sharing = []string{
+	string(types.VirtualDiskSharingSharingNone),
+	string(types.VirtualDiskSharingSharingMultiWriter),
 }
 
 func init() {
@@ -73,7 +79,8 @@ func (cmd *create) Register(ctx context.Context, f *flag.FlagSet) {
 	f.Var(&cmd.Bytes, "size", "Size of new disk")
 	f.BoolVar(&cmd.Thick, "thick", false, "Thick provision new disk")
 	f.BoolVar(&cmd.Eager, "eager", false, "Eagerly scrub new disk")
-	f.StringVar(&cmd.DiskMode, "mode", "persistent", fmt.Sprintf("Disk mode (%s)", strings.Join(vdmTypes, "|")))
+	f.StringVar(&cmd.DiskMode, "mode", vdmTypes[0], fmt.Sprintf("Disk mode (%s)", strings.Join(vdmTypes, "|")))
+	f.StringVar(&cmd.Sharing, "sharing", "", fmt.Sprintf("Sharing (%s)", strings.Join(sharing, "|")))
 }
 
 func (cmd *create) Process(ctx context.Context) error {
@@ -93,7 +100,8 @@ func (cmd *create) Description() string {
 	return `Create disk and attach to VM.
 
 Examples:
-  govc vm.disk.create -vm $name -name $name/disk1 -size 10G`
+  govc vm.disk.create -vm $name -name $name/disk1 -size 10G
+  govc vm.disk.create -vm $name -name $name/disk2 -size 10G -eager -thick -sharing sharingMultiWriter`
 }
 
 func (cmd *create) Run(ctx context.Context, f *flag.FlagSet) error {
@@ -152,6 +160,7 @@ func (cmd *create) Run(ctx context.Context, f *flag.FlagSet) error {
 	}
 
 	backing.DiskMode = cmd.DiskMode
+	backing.Sharing = cmd.Sharing
 
 	cmd.Log("Creating disk\n")
 	disk.CapacityInKB = int64(cmd.Bytes) / 1024

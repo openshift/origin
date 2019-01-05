@@ -21,7 +21,7 @@ import (
 
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	"k8s.io/apiextensions-apiserver/test/integration/testserver"
+	"k8s.io/apiextensions-apiserver/test/integration/fixtures"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -63,14 +63,14 @@ var _ = SIGDescribe("CustomResourceDefinition Watch", func() {
 				framework.Failf("failed to initialize apiExtensionClient: %v", err)
 			}
 
-			noxuDefinition := testserver.NewNoxuCustomResourceDefinition(apiextensionsv1beta1.ClusterScoped)
-			noxuDefinition, err = testserver.CreateNewCustomResourceDefinition(noxuDefinition, apiExtensionClient, f.DynamicClient)
+			noxuDefinition := fixtures.NewNoxuCustomResourceDefinition(apiextensionsv1beta1.ClusterScoped)
+			noxuDefinition, err = fixtures.CreateNewCustomResourceDefinition(noxuDefinition, apiExtensionClient, f.DynamicClient)
 			if err != nil {
 				framework.Failf("failed to create CustomResourceDefinition: %v", err)
 			}
 
 			defer func() {
-				err = testserver.DeleteCustomResourceDefinition(noxuDefinition, apiExtensionClient)
+				err = fixtures.DeleteCustomResourceDefinition(noxuDefinition, apiExtensionClient)
 				if err != nil {
 					framework.Failf("failed to delete CustomResourceDefinition: %v", err)
 				}
@@ -85,8 +85,8 @@ var _ = SIGDescribe("CustomResourceDefinition Watch", func() {
 			watchB, err := watchCRWithName(noxuResourceClient, watchCRNameB)
 			Expect(err).NotTo(HaveOccurred())
 
-			testCrA := testserver.NewNoxuInstance(ns, watchCRNameA)
-			testCrB := testserver.NewNoxuInstance(ns, watchCRNameB)
+			testCrA := fixtures.NewNoxuInstance(ns, watchCRNameA)
+			testCrB := fixtures.NewNoxuInstance(ns, watchCRNameB)
 
 			By("Creating first CR ")
 			testCrA, err = instantiateCustomResource(testCrA, noxuResourceClient, noxuDefinition)
@@ -125,7 +125,7 @@ func watchCRWithName(crdResourceClient dynamic.ResourceInterface, name string) (
 }
 
 func instantiateCustomResource(instanceToCreate *unstructured.Unstructured, client dynamic.ResourceInterface, definition *apiextensionsv1beta1.CustomResourceDefinition) (*unstructured.Unstructured, error) {
-	createdInstance, err := client.Create(instanceToCreate)
+	createdInstance, err := client.Create(instanceToCreate, metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
 	}

@@ -26,32 +26,8 @@ const (
 )
 
 type BaseClient = original.BaseClient
-
-func New(subscriptionID string) BaseClient {
-	return original.New(subscriptionID)
-}
-func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
-	return original.NewWithBaseURI(baseURI, subscriptionID)
-}
-
 type FirewallRulesClient = original.FirewallRulesClient
-
-func NewFirewallRulesClient(subscriptionID string) FirewallRulesClient {
-	return original.NewFirewallRulesClient(subscriptionID)
-}
-func NewFirewallRulesClientWithBaseURI(baseURI string, subscriptionID string) FirewallRulesClient {
-	return original.NewFirewallRulesClientWithBaseURI(baseURI, subscriptionID)
-}
-
 type LinkedServerClient = original.LinkedServerClient
-
-func NewLinkedServerClient(subscriptionID string) LinkedServerClient {
-	return original.NewLinkedServerClient(subscriptionID)
-}
-func NewLinkedServerClientWithBaseURI(baseURI string, subscriptionID string) LinkedServerClient {
-	return original.NewLinkedServerClientWithBaseURI(baseURI, subscriptionID)
-}
-
 type DayOfWeek = original.DayOfWeek
 
 const (
@@ -66,20 +42,12 @@ const (
 	Weekend   DayOfWeek = original.Weekend
 )
 
-func PossibleDayOfWeekValues() []DayOfWeek {
-	return original.PossibleDayOfWeekValues()
-}
-
 type KeyType = original.KeyType
 
 const (
 	Primary   KeyType = original.Primary
 	Secondary KeyType = original.Secondary
 )
-
-func PossibleKeyTypeValues() []KeyType {
-	return original.PossibleKeyTypeValues()
-}
 
 type ProvisioningState = original.ProvisioningState
 
@@ -98,10 +66,6 @@ const (
 	Updating               ProvisioningState = original.Updating
 )
 
-func PossibleProvisioningStateValues() []ProvisioningState {
-	return original.PossibleProvisioningStateValues()
-}
-
 type RebootType = original.RebootType
 
 const (
@@ -110,10 +74,6 @@ const (
 	SecondaryNode RebootType = original.SecondaryNode
 )
 
-func PossibleRebootTypeValues() []RebootType {
-	return original.PossibleRebootTypeValues()
-}
-
 type ReplicationRole = original.ReplicationRole
 
 const (
@@ -121,20 +81,12 @@ const (
 	ReplicationRoleSecondary ReplicationRole = original.ReplicationRoleSecondary
 )
 
-func PossibleReplicationRoleValues() []ReplicationRole {
-	return original.PossibleReplicationRoleValues()
-}
-
 type SkuFamily = original.SkuFamily
 
 const (
 	C SkuFamily = original.C
 	P SkuFamily = original.P
 )
-
-func PossibleSkuFamilyValues() []SkuFamily {
-	return original.PossibleSkuFamilyValues()
-}
 
 type SkuName = original.SkuName
 
@@ -144,10 +96,6 @@ const (
 	Standard SkuName = original.Standard
 )
 
-func PossibleSkuNameValues() []SkuName {
-	return original.PossibleSkuNameValues()
-}
-
 type TLSVersion = original.TLSVersion
 
 const (
@@ -155,10 +103,6 @@ const (
 	OneFullStopTwo  TLSVersion = original.OneFullStopTwo
 	OneFullStopZero TLSVersion = original.OneFullStopZero
 )
-
-func PossibleTLSVersionValues() []TLSVersion {
-	return original.PossibleTLSVersionValues()
-}
 
 type AccessKeys = original.AccessKeys
 type CheckNameAvailabilityParameters = original.CheckNameAvailabilityParameters
@@ -197,6 +141,9 @@ type OperationListResult = original.OperationListResult
 type OperationListResultIterator = original.OperationListResultIterator
 type OperationListResultPage = original.OperationListResultPage
 type PatchSchedule = original.PatchSchedule
+type PatchScheduleListResult = original.PatchScheduleListResult
+type PatchScheduleListResultIterator = original.PatchScheduleListResultIterator
+type PatchScheduleListResultPage = original.PatchScheduleListResultPage
 type Properties = original.Properties
 type ProxyResource = original.ProxyResource
 type RebootParameters = original.RebootParameters
@@ -211,25 +158,63 @@ type UpdateParameters = original.UpdateParameters
 type UpdateProperties = original.UpdateProperties
 type UpgradeNotification = original.UpgradeNotification
 type OperationsClient = original.OperationsClient
+type PatchSchedulesClient = original.PatchSchedulesClient
+type Client = original.Client
 
+func New(subscriptionID string) BaseClient {
+	return original.New(subscriptionID)
+}
+func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
+	return original.NewWithBaseURI(baseURI, subscriptionID)
+}
+func NewFirewallRulesClient(subscriptionID string) FirewallRulesClient {
+	return original.NewFirewallRulesClient(subscriptionID)
+}
+func NewFirewallRulesClientWithBaseURI(baseURI string, subscriptionID string) FirewallRulesClient {
+	return original.NewFirewallRulesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewLinkedServerClient(subscriptionID string) LinkedServerClient {
+	return original.NewLinkedServerClient(subscriptionID)
+}
+func NewLinkedServerClientWithBaseURI(baseURI string, subscriptionID string) LinkedServerClient {
+	return original.NewLinkedServerClientWithBaseURI(baseURI, subscriptionID)
+}
+func PossibleDayOfWeekValues() []DayOfWeek {
+	return original.PossibleDayOfWeekValues()
+}
+func PossibleKeyTypeValues() []KeyType {
+	return original.PossibleKeyTypeValues()
+}
+func PossibleProvisioningStateValues() []ProvisioningState {
+	return original.PossibleProvisioningStateValues()
+}
+func PossibleRebootTypeValues() []RebootType {
+	return original.PossibleRebootTypeValues()
+}
+func PossibleReplicationRoleValues() []ReplicationRole {
+	return original.PossibleReplicationRoleValues()
+}
+func PossibleSkuFamilyValues() []SkuFamily {
+	return original.PossibleSkuFamilyValues()
+}
+func PossibleSkuNameValues() []SkuName {
+	return original.PossibleSkuNameValues()
+}
+func PossibleTLSVersionValues() []TLSVersion {
+	return original.PossibleTLSVersionValues()
+}
 func NewOperationsClient(subscriptionID string) OperationsClient {
 	return original.NewOperationsClient(subscriptionID)
 }
 func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string) OperationsClient {
 	return original.NewOperationsClientWithBaseURI(baseURI, subscriptionID)
 }
-
-type PatchSchedulesClient = original.PatchSchedulesClient
-
 func NewPatchSchedulesClient(subscriptionID string) PatchSchedulesClient {
 	return original.NewPatchSchedulesClient(subscriptionID)
 }
 func NewPatchSchedulesClientWithBaseURI(baseURI string, subscriptionID string) PatchSchedulesClient {
 	return original.NewPatchSchedulesClientWithBaseURI(baseURI, subscriptionID)
 }
-
-type Client = original.Client
-
 func NewClient(subscriptionID string) Client {
 	return original.NewClient(subscriptionID)
 }

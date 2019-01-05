@@ -19,21 +19,13 @@
 
 package dns
 
-import original "github.com/Azure/azure-sdk-for-go/services/dns/mgmt/2017-09-01/dns"
+import original "github.com/Azure/azure-sdk-for-go/services/dns/mgmt/2018-03-01-preview/dns"
 
 const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
 type BaseClient = original.BaseClient
-
-func New(subscriptionID string) BaseClient {
-	return original.New(subscriptionID)
-}
-func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
-	return original.NewWithBaseURI(baseURI, subscriptionID)
-}
-
 type RecordType = original.RecordType
 
 const (
@@ -47,6 +39,13 @@ const (
 	SOA   RecordType = original.SOA
 	SRV   RecordType = original.SRV
 	TXT   RecordType = original.TXT
+)
+
+type ZoneType = original.ZoneType
+
+const (
+	Private ZoneType = original.Private
+	Public  ZoneType = original.Public
 )
 
 type AaaaRecord = original.AaaaRecord
@@ -75,8 +74,22 @@ type ZoneListResultIterator = original.ZoneListResultIterator
 type ZoneListResultPage = original.ZoneListResultPage
 type ZoneProperties = original.ZoneProperties
 type ZonesDeleteFuture = original.ZonesDeleteFuture
+type ZoneUpdate = original.ZoneUpdate
 type RecordSetsClient = original.RecordSetsClient
+type ZonesClient = original.ZonesClient
 
+func New(subscriptionID string) BaseClient {
+	return original.New(subscriptionID)
+}
+func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
+	return original.NewWithBaseURI(baseURI, subscriptionID)
+}
+func PossibleRecordTypeValues() [10]RecordType {
+	return original.PossibleRecordTypeValues()
+}
+func PossibleZoneTypeValues() [2]ZoneType {
+	return original.PossibleZoneTypeValues()
+}
 func NewRecordSetsClient(subscriptionID string) RecordSetsClient {
 	return original.NewRecordSetsClient(subscriptionID)
 }
@@ -89,9 +102,6 @@ func UserAgent() string {
 func Version() string {
 	return original.Version()
 }
-
-type ZonesClient = original.ZonesClient
-
 func NewZonesClient(subscriptionID string) ZonesClient {
 	return original.NewZonesClient(subscriptionID)
 }

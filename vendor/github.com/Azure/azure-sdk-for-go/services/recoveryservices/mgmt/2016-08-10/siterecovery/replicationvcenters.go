@@ -40,9 +40,10 @@ func NewReplicationvCentersClientWithBaseURI(baseURI string, subscriptionID stri
 }
 
 // Create the operation to create a vCenter object..
-//
-// fabricName is fabric name. vCenterName is vCenter name. addVCenterRequest is the input to the add vCenter
-// operation.
+// Parameters:
+// fabricName - fabric name.
+// vCenterName - vCenter name.
+// addVCenterRequest - the input to the add vCenter operation.
 func (client ReplicationvCentersClient) Create(ctx context.Context, fabricName string, vCenterName string, addVCenterRequest AddVCenterRequest) (result ReplicationvCentersCreateFuture, err error) {
 	req, err := client.CreatePreparer(ctx, fabricName, vCenterName, addVCenterRequest)
 	if err != nil {
@@ -75,7 +76,7 @@ func (client ReplicationvCentersClient) CreatePreparer(ctx context.Context, fabr
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/Subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.RecoveryServices/vaults/{resourceName}/replicationFabrics/{fabricName}/replicationvCenters/{vCenterName}", pathParameters),
@@ -87,15 +88,17 @@ func (client ReplicationvCentersClient) CreatePreparer(ctx context.Context, fabr
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationvCentersClient) CreateSender(req *http.Request) (future ReplicationvCentersCreateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -113,8 +116,9 @@ func (client ReplicationvCentersClient) CreateResponder(resp *http.Response) (re
 }
 
 // Delete the operation to remove(unregister) a registered vCenter server from the vault.
-//
-// fabricName is fabric name. vCenterName is vCenter name.
+// Parameters:
+// fabricName - fabric name.
+// vCenterName - vCenter name.
 func (client ReplicationvCentersClient) Delete(ctx context.Context, fabricName string, vCenterName string) (result ReplicationvCentersDeleteFuture, err error) {
 	req, err := client.DeletePreparer(ctx, fabricName, vCenterName)
 	if err != nil {
@@ -157,15 +161,17 @@ func (client ReplicationvCentersClient) DeletePreparer(ctx context.Context, fabr
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationvCentersClient) DeleteSender(req *http.Request) (future ReplicationvCentersDeleteFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -182,8 +188,9 @@ func (client ReplicationvCentersClient) DeleteResponder(resp *http.Response) (re
 }
 
 // Get gets the details of a registered vCenter server(Add vCenter server.)
-//
-// fabricName is fabric name. vCenterName is vCenter name.
+// Parameters:
+// fabricName - fabric name.
+// vCenterName - vCenter name.
 func (client ReplicationvCentersClient) Get(ctx context.Context, fabricName string, vCenterName string) (result VCenter, err error) {
 	req, err := client.GetPreparer(ctx, fabricName, vCenterName)
 	if err != nil {
@@ -342,8 +349,8 @@ func (client ReplicationvCentersClient) ListComplete(ctx context.Context) (resul
 }
 
 // ListByReplicationFabrics lists the vCenter servers registered in a fabric.
-//
-// fabricName is fabric name.
+// Parameters:
+// fabricName - fabric name.
 func (client ReplicationvCentersClient) ListByReplicationFabrics(ctx context.Context, fabricName string) (result VCenterCollectionPage, err error) {
 	result.fn = client.listByReplicationFabricsNextResults
 	req, err := client.ListByReplicationFabricsPreparer(ctx, fabricName)
@@ -437,9 +444,10 @@ func (client ReplicationvCentersClient) ListByReplicationFabricsComplete(ctx con
 }
 
 // Update the operation to update a registered vCenter.
-//
-// fabricName is fabric name. vCenterName is vCeneter name updateVCenterRequest is the input to the update vCenter
-// operation.
+// Parameters:
+// fabricName - fabric name.
+// vCenterName - vCeneter name
+// updateVCenterRequest - the input to the update vCenter operation.
 func (client ReplicationvCentersClient) Update(ctx context.Context, fabricName string, vCenterName string, updateVCenterRequest UpdateVCenterRequest) (result ReplicationvCentersUpdateFuture, err error) {
 	req, err := client.UpdatePreparer(ctx, fabricName, vCenterName, updateVCenterRequest)
 	if err != nil {
@@ -472,7 +480,7 @@ func (client ReplicationvCentersClient) UpdatePreparer(ctx context.Context, fabr
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/Subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.RecoveryServices/vaults/{resourceName}/replicationFabrics/{fabricName}/replicationvCenters/{vCenterName}", pathParameters),
@@ -484,15 +492,17 @@ func (client ReplicationvCentersClient) UpdatePreparer(ctx context.Context, fabr
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationvCentersClient) UpdateSender(req *http.Request) (future ReplicationvCentersUpdateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 

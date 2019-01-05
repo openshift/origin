@@ -38,6 +38,11 @@ const (
 	BindingTypeMicrosoftStreamAnalyticsJavascriptUdf BindingType = "Microsoft.StreamAnalytics/JavascriptUdf"
 )
 
+// PossibleBindingTypeValues returns an array of possible values for the BindingType const type.
+func PossibleBindingTypeValues() []BindingType {
+	return []BindingType{BindingTypeFunctionRetrieveDefaultDefinitionParameters, BindingTypeMicrosoftMachineLearningWebService, BindingTypeMicrosoftStreamAnalyticsJavascriptUdf}
+}
+
 // CompatibilityLevel enumerates the values for compatibility level.
 type CompatibilityLevel string
 
@@ -46,6 +51,11 @@ const (
 	OneFullStopZero CompatibilityLevel = "1.0"
 )
 
+// PossibleCompatibilityLevelValues returns an array of possible values for the CompatibilityLevel const type.
+func PossibleCompatibilityLevelValues() []CompatibilityLevel {
+	return []CompatibilityLevel{OneFullStopZero}
+}
+
 // Encoding enumerates the values for encoding.
 type Encoding string
 
@@ -53,6 +63,11 @@ const (
 	// UTF8 ...
 	UTF8 Encoding = "UTF8"
 )
+
+// PossibleEncodingValues returns an array of possible values for the Encoding const type.
+func PossibleEncodingValues() []Encoding {
+	return []Encoding{UTF8}
+}
 
 // EventsOutOfOrderPolicy enumerates the values for events out of order policy.
 type EventsOutOfOrderPolicy string
@@ -64,6 +79,11 @@ const (
 	Drop EventsOutOfOrderPolicy = "Drop"
 )
 
+// PossibleEventsOutOfOrderPolicyValues returns an array of possible values for the EventsOutOfOrderPolicy const type.
+func PossibleEventsOutOfOrderPolicyValues() []EventsOutOfOrderPolicy {
+	return []EventsOutOfOrderPolicy{Adjust, Drop}
+}
+
 // JSONOutputSerializationFormat enumerates the values for json output serialization format.
 type JSONOutputSerializationFormat string
 
@@ -74,6 +94,11 @@ const (
 	LineSeparated JSONOutputSerializationFormat = "LineSeparated"
 )
 
+// PossibleJSONOutputSerializationFormatValues returns an array of possible values for the JSONOutputSerializationFormat const type.
+func PossibleJSONOutputSerializationFormatValues() []JSONOutputSerializationFormat {
+	return []JSONOutputSerializationFormat{Array, LineSeparated}
+}
+
 // OutputErrorPolicy enumerates the values for output error policy.
 type OutputErrorPolicy string
 
@@ -83,6 +108,11 @@ const (
 	// OutputErrorPolicyStop ...
 	OutputErrorPolicyStop OutputErrorPolicy = "Stop"
 )
+
+// PossibleOutputErrorPolicyValues returns an array of possible values for the OutputErrorPolicy const type.
+func PossibleOutputErrorPolicyValues() []OutputErrorPolicy {
+	return []OutputErrorPolicy{OutputErrorPolicyDrop, OutputErrorPolicyStop}
+}
 
 // OutputStartMode enumerates the values for output start mode.
 type OutputStartMode string
@@ -96,6 +126,11 @@ const (
 	LastOutputEventTime OutputStartMode = "LastOutputEventTime"
 )
 
+// PossibleOutputStartModeValues returns an array of possible values for the OutputStartMode const type.
+func PossibleOutputStartModeValues() []OutputStartMode {
+	return []OutputStartMode{CustomTime, JobStartTime, LastOutputEventTime}
+}
+
 // SkuName enumerates the values for sku name.
 type SkuName string
 
@@ -103,6 +138,11 @@ const (
 	// Standard ...
 	Standard SkuName = "Standard"
 )
+
+// PossibleSkuNameValues returns an array of possible values for the SkuName const type.
+func PossibleSkuNameValues() []SkuName {
+	return []SkuName{Standard}
+}
 
 // Type enumerates the values for type.
 type Type string
@@ -118,6 +158,11 @@ const (
 	TypeSerialization Type = "Serialization"
 )
 
+// PossibleTypeValues returns an array of possible values for the Type const type.
+func PossibleTypeValues() []Type {
+	return []Type{TypeAvro, TypeCsv, TypeJSON, TypeSerialization}
+}
+
 // TypeBasicFunctionBinding enumerates the values for type basic function binding.
 type TypeBasicFunctionBinding string
 
@@ -130,6 +175,11 @@ const (
 	TypeMicrosoftStreamAnalyticsJavascriptUdf TypeBasicFunctionBinding = "Microsoft.StreamAnalytics/JavascriptUdf"
 )
 
+// PossibleTypeBasicFunctionBindingValues returns an array of possible values for the TypeBasicFunctionBinding const type.
+func PossibleTypeBasicFunctionBindingValues() []TypeBasicFunctionBinding {
+	return []TypeBasicFunctionBinding{TypeFunctionBinding, TypeMicrosoftMachineLearningWebService, TypeMicrosoftStreamAnalyticsJavascriptUdf}
+}
+
 // TypeBasicFunctionProperties enumerates the values for type basic function properties.
 type TypeBasicFunctionProperties string
 
@@ -139,6 +189,11 @@ const (
 	// TypeScalar ...
 	TypeScalar TypeBasicFunctionProperties = "Scalar"
 )
+
+// PossibleTypeBasicFunctionPropertiesValues returns an array of possible values for the TypeBasicFunctionProperties const type.
+func PossibleTypeBasicFunctionPropertiesValues() []TypeBasicFunctionProperties {
+	return []TypeBasicFunctionProperties{TypeFunctionProperties, TypeScalar}
+}
 
 // TypeBasicInputProperties enumerates the values for type basic input properties.
 type TypeBasicInputProperties string
@@ -151,6 +206,11 @@ const (
 	// TypeStream ...
 	TypeStream TypeBasicInputProperties = "Stream"
 )
+
+// PossibleTypeBasicInputPropertiesValues returns an array of possible values for the TypeBasicInputProperties const type.
+func PossibleTypeBasicInputPropertiesValues() []TypeBasicInputProperties {
+	return []TypeBasicInputProperties{TypeInputProperties, TypeReference, TypeStream}
+}
 
 // TypeBasicOutputDataSource enumerates the values for type basic output data source.
 type TypeBasicOutputDataSource string
@@ -178,6 +238,11 @@ const (
 	TypePowerBI TypeBasicOutputDataSource = "PowerBI"
 )
 
+// PossibleTypeBasicOutputDataSourceValues returns an array of possible values for the TypeBasicOutputDataSource const type.
+func PossibleTypeBasicOutputDataSourceValues() []TypeBasicOutputDataSource {
+	return []TypeBasicOutputDataSource{TypeMicrosoftDataLakeAccounts, TypeMicrosoftServiceBusEventHub, TypeMicrosoftServiceBusQueue, TypeMicrosoftServiceBusTopic, TypeMicrosoftSQLServerDatabase, TypeMicrosoftStorageBlob, TypeMicrosoftStorageDocumentDB, TypeMicrosoftStorageTable, TypeOutputDataSource, TypePowerBI}
+}
+
 // TypeBasicReferenceInputDataSource enumerates the values for type basic reference input data source.
 type TypeBasicReferenceInputDataSource string
 
@@ -187,6 +252,11 @@ const (
 	// TypeBasicReferenceInputDataSourceTypeReferenceInputDataSource ...
 	TypeBasicReferenceInputDataSourceTypeReferenceInputDataSource TypeBasicReferenceInputDataSource = "ReferenceInputDataSource"
 )
+
+// PossibleTypeBasicReferenceInputDataSourceValues returns an array of possible values for the TypeBasicReferenceInputDataSource const type.
+func PossibleTypeBasicReferenceInputDataSourceValues() []TypeBasicReferenceInputDataSource {
+	return []TypeBasicReferenceInputDataSource{TypeBasicReferenceInputDataSourceTypeMicrosoftStorageBlob, TypeBasicReferenceInputDataSourceTypeReferenceInputDataSource}
+}
 
 // TypeBasicStreamInputDataSource enumerates the values for type basic stream input data source.
 type TypeBasicStreamInputDataSource string
@@ -202,6 +272,11 @@ const (
 	TypeBasicStreamInputDataSourceTypeStreamInputDataSource TypeBasicStreamInputDataSource = "StreamInputDataSource"
 )
 
+// PossibleTypeBasicStreamInputDataSourceValues returns an array of possible values for the TypeBasicStreamInputDataSource const type.
+func PossibleTypeBasicStreamInputDataSourceValues() []TypeBasicStreamInputDataSource {
+	return []TypeBasicStreamInputDataSource{TypeBasicStreamInputDataSourceTypeMicrosoftDevicesIotHubs, TypeBasicStreamInputDataSourceTypeMicrosoftServiceBusEventHub, TypeBasicStreamInputDataSourceTypeMicrosoftStorageBlob, TypeBasicStreamInputDataSourceTypeStreamInputDataSource}
+}
+
 // UdfType enumerates the values for udf type.
 type UdfType string
 
@@ -209,6 +284,11 @@ const (
 	// Scalar ...
 	Scalar UdfType = "Scalar"
 )
+
+// PossibleUdfTypeValues returns an array of possible values for the UdfType const type.
+func PossibleUdfTypeValues() []UdfType {
+	return []UdfType{Scalar}
+}
 
 // AvroSerialization describes how data from an input is serialized or how data is serialized when written to an
 // output in Avro format.
@@ -224,7 +304,9 @@ func (as AvroSerialization) MarshalJSON() ([]byte, error) {
 	as.Type = TypeAvro
 	objectMap := make(map[string]interface{})
 	objectMap["properties"] = as.Properties
-	objectMap["type"] = as.Type
+	if as.Type != "" {
+		objectMap["type"] = as.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -268,7 +350,9 @@ func (adlsods AzureDataLakeStoreOutputDataSource) MarshalJSON() ([]byte, error) 
 	if adlsods.AzureDataLakeStoreOutputDataSourceProperties != nil {
 		objectMap["properties"] = adlsods.AzureDataLakeStoreOutputDataSourceProperties
 	}
-	objectMap["type"] = adlsods.Type
+	if adlsods.Type != "" {
+		objectMap["type"] = adlsods.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -395,7 +479,9 @@ func (amlwsfb AzureMachineLearningWebServiceFunctionBinding) MarshalJSON() ([]by
 	if amlwsfb.AzureMachineLearningWebServiceFunctionBindingProperties != nil {
 		objectMap["properties"] = amlwsfb.AzureMachineLearningWebServiceFunctionBindingProperties
 	}
-	objectMap["type"] = amlwsfb.Type
+	if amlwsfb.Type != "" {
+		objectMap["type"] = amlwsfb.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -492,7 +578,9 @@ func (amlwsfrddp AzureMachineLearningWebServiceFunctionRetrieveDefaultDefinition
 	if amlwsfrddp.AzureMachineLearningWebServiceFunctionBindingRetrievalProperties != nil {
 		objectMap["bindingRetrievalProperties"] = amlwsfrddp.AzureMachineLearningWebServiceFunctionBindingRetrievalProperties
 	}
-	objectMap["bindingType"] = amlwsfrddp.BindingType
+	if amlwsfrddp.BindingType != "" {
+		objectMap["bindingType"] = amlwsfrddp.BindingType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -606,7 +694,9 @@ func (asdods AzureSQLDatabaseOutputDataSource) MarshalJSON() ([]byte, error) {
 	if asdods.AzureSQLDatabaseOutputDataSourceProperties != nil {
 		objectMap["properties"] = asdods.AzureSQLDatabaseOutputDataSourceProperties
 	}
-	objectMap["type"] = asdods.Type
+	if asdods.Type != "" {
+		objectMap["type"] = asdods.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -727,7 +817,9 @@ func (atods AzureTableOutputDataSource) MarshalJSON() ([]byte, error) {
 	if atods.AzureTableOutputDataSourceProperties != nil {
 		objectMap["properties"] = atods.AzureTableOutputDataSourceProperties
 	}
-	objectMap["type"] = atods.Type
+	if atods.Type != "" {
+		objectMap["type"] = atods.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -866,7 +958,9 @@ func (bods BlobOutputDataSource) MarshalJSON() ([]byte, error) {
 	if bods.BlobOutputDataSourceProperties != nil {
 		objectMap["properties"] = bods.BlobOutputDataSourceProperties
 	}
-	objectMap["type"] = bods.Type
+	if bods.Type != "" {
+		objectMap["type"] = bods.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -987,7 +1081,9 @@ func (brids BlobReferenceInputDataSource) MarshalJSON() ([]byte, error) {
 	if brids.BlobReferenceInputDataSourceProperties != nil {
 		objectMap["properties"] = brids.BlobReferenceInputDataSourceProperties
 	}
-	objectMap["type"] = brids.Type
+	if brids.Type != "" {
+		objectMap["type"] = brids.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1069,7 +1165,9 @@ func (bsids BlobStreamInputDataSource) MarshalJSON() ([]byte, error) {
 	if bsids.BlobStreamInputDataSourceProperties != nil {
 		objectMap["properties"] = bsids.BlobStreamInputDataSourceProperties
 	}
-	objectMap["type"] = bsids.Type
+	if bsids.Type != "" {
+		objectMap["type"] = bsids.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1163,7 +1261,9 @@ func (cs CsvSerialization) MarshalJSON() ([]byte, error) {
 	if cs.CsvSerializationProperties != nil {
 		objectMap["properties"] = cs.CsvSerializationProperties
 	}
-	objectMap["type"] = cs.Type
+	if cs.Type != "" {
+		objectMap["type"] = cs.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1266,7 +1366,9 @@ func (ddods DocumentDbOutputDataSource) MarshalJSON() ([]byte, error) {
 	if ddods.DocumentDbOutputDataSourceProperties != nil {
 		objectMap["properties"] = ddods.DocumentDbOutputDataSourceProperties
 	}
-	objectMap["type"] = ddods.Type
+	if ddods.Type != "" {
+		objectMap["type"] = ddods.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1409,7 +1511,9 @@ func (ehods EventHubOutputDataSource) MarshalJSON() ([]byte, error) {
 	if ehods.EventHubOutputDataSourceProperties != nil {
 		objectMap["properties"] = ehods.EventHubOutputDataSourceProperties
 	}
-	objectMap["type"] = ehods.Type
+	if ehods.Type != "" {
+		objectMap["type"] = ehods.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1530,7 +1634,9 @@ func (ehsids EventHubStreamInputDataSource) MarshalJSON() ([]byte, error) {
 	if ehsids.EventHubStreamInputDataSourceProperties != nil {
 		objectMap["properties"] = ehsids.EventHubStreamInputDataSourceProperties
 	}
-	objectMap["type"] = ehsids.Type
+	if ehsids.Type != "" {
+		objectMap["type"] = ehsids.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1731,7 +1837,9 @@ func unmarshalBasicFunctionBindingArray(body []byte) ([]BasicFunctionBinding, er
 func (fb FunctionBinding) MarshalJSON() ([]byte, error) {
 	fb.Type = TypeFunctionBinding
 	objectMap := make(map[string]interface{})
-	objectMap["type"] = fb.Type
+	if fb.Type != "" {
+		objectMap["type"] = fb.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -1929,7 +2037,9 @@ func (fp FunctionProperties) MarshalJSON() ([]byte, error) {
 	if fp.Etag != nil {
 		objectMap["etag"] = fp.Etag
 	}
-	objectMap["type"] = fp.Type
+	if fp.Type != "" {
+		objectMap["type"] = fp.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -2008,7 +2118,9 @@ func unmarshalBasicFunctionRetrieveDefaultDefinitionParametersArray(body []byte)
 func (frddp FunctionRetrieveDefaultDefinitionParameters) MarshalJSON() ([]byte, error) {
 	frddp.BindingType = BindingTypeFunctionRetrieveDefaultDefinitionParameters
 	objectMap := make(map[string]interface{})
-	objectMap["bindingType"] = frddp.BindingType
+	if frddp.BindingType != "" {
+		objectMap["bindingType"] = frddp.BindingType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -2035,12 +2147,11 @@ func (frddp FunctionRetrieveDefaultDefinitionParameters) AsBasicFunctionRetrieve
 // FunctionsTestFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type FunctionsTestFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future FunctionsTestFuture) Result(client FunctionsClient) (rts ResourceTestStatus, err error) {
+func (future *FunctionsTestFuture) Result(client FunctionsClient) (rts ResourceTestStatus, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2048,34 +2159,15 @@ func (future FunctionsTestFuture) Result(client FunctionsClient) (rts ResourceTe
 		return
 	}
 	if !done {
-		return rts, azure.NewAsyncOpIncompleteError("streamanalytics.FunctionsTestFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rts, err = client.TestResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "streamanalytics.FunctionsTestFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("streamanalytics.FunctionsTestFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rts.Response.Response, err = future.GetResult(sender); err == nil && rts.Response.Response.StatusCode != http.StatusNoContent {
+		rts, err = client.TestResponder(rts.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "streamanalytics.FunctionsTestFuture", "Result", rts.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "streamanalytics.FunctionsTestFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rts, err = client.TestResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "streamanalytics.FunctionsTestFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -2317,7 +2409,9 @@ func (IP InputProperties) MarshalJSON() ([]byte, error) {
 	if IP.Etag != nil {
 		objectMap["etag"] = IP.Etag
 	}
-	objectMap["type"] = IP.Type
+	if IP.Type != "" {
+		objectMap["type"] = IP.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -2394,12 +2488,11 @@ func (IP *InputProperties) UnmarshalJSON(body []byte) error {
 // InputsTestFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type InputsTestFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future InputsTestFuture) Result(client InputsClient) (rts ResourceTestStatus, err error) {
+func (future *InputsTestFuture) Result(client InputsClient) (rts ResourceTestStatus, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2407,34 +2500,15 @@ func (future InputsTestFuture) Result(client InputsClient) (rts ResourceTestStat
 		return
 	}
 	if !done {
-		return rts, azure.NewAsyncOpIncompleteError("streamanalytics.InputsTestFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rts, err = client.TestResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "streamanalytics.InputsTestFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("streamanalytics.InputsTestFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rts.Response.Response, err = future.GetResult(sender); err == nil && rts.Response.Response.StatusCode != http.StatusNoContent {
+		rts, err = client.TestResponder(rts.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "streamanalytics.InputsTestFuture", "Result", rts.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "streamanalytics.InputsTestFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rts, err = client.TestResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "streamanalytics.InputsTestFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -2454,7 +2528,9 @@ func (ithsids IoTHubStreamInputDataSource) MarshalJSON() ([]byte, error) {
 	if ithsids.IoTHubStreamInputDataSourceProperties != nil {
 		objectMap["properties"] = ithsids.IoTHubStreamInputDataSourceProperties
 	}
-	objectMap["type"] = ithsids.Type
+	if ithsids.Type != "" {
+		objectMap["type"] = ithsids.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -2546,7 +2622,9 @@ func (jsfb JavaScriptFunctionBinding) MarshalJSON() ([]byte, error) {
 	if jsfb.JavaScriptFunctionBindingProperties != nil {
 		objectMap["properties"] = jsfb.JavaScriptFunctionBindingProperties
 	}
-	objectMap["type"] = jsfb.Type
+	if jsfb.Type != "" {
+		objectMap["type"] = jsfb.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -2634,7 +2712,9 @@ func (jsfrddp JavaScriptFunctionRetrieveDefaultDefinitionParameters) MarshalJSON
 	if jsfrddp.JavaScriptFunctionBindingRetrievalProperties != nil {
 		objectMap["bindingRetrievalProperties"] = jsfrddp.JavaScriptFunctionBindingRetrievalProperties
 	}
-	objectMap["bindingType"] = jsfrddp.BindingType
+	if jsfrddp.BindingType != "" {
+		objectMap["bindingType"] = jsfrddp.BindingType
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -2707,7 +2787,9 @@ func (js JSONSerialization) MarshalJSON() ([]byte, error) {
 	if js.JSONSerializationProperties != nil {
 		objectMap["properties"] = js.JSONSerializationProperties
 	}
-	objectMap["type"] = js.Type
+	if js.Type != "" {
+		objectMap["type"] = js.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -2925,6 +3007,24 @@ type Output struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for Output.
+func (o Output) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if o.OutputProperties != nil {
+		objectMap["properties"] = o.OutputProperties
+	}
+	if o.ID != nil {
+		objectMap["id"] = o.ID
+	}
+	if o.Name != nil {
+		objectMap["name"] = o.Name
+	}
+	if o.Type != nil {
+		objectMap["type"] = o.Type
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for Output struct.
 func (o *Output) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -3069,7 +3169,9 @@ func unmarshalBasicOutputDataSourceArray(body []byte) ([]BasicOutputDataSource, 
 func (ods OutputDataSource) MarshalJSON() ([]byte, error) {
 	ods.Type = TypeOutputDataSource
 	objectMap := make(map[string]interface{})
-	objectMap["type"] = ods.Type
+	if ods.Type != "" {
+		objectMap["type"] = ods.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -3294,12 +3396,11 @@ func (op *OutputProperties) UnmarshalJSON(body []byte) error {
 // OutputsTestFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type OutputsTestFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future OutputsTestFuture) Result(client OutputsClient) (rts ResourceTestStatus, err error) {
+func (future *OutputsTestFuture) Result(client OutputsClient) (rts ResourceTestStatus, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3307,34 +3408,15 @@ func (future OutputsTestFuture) Result(client OutputsClient) (rts ResourceTestSt
 		return
 	}
 	if !done {
-		return rts, azure.NewAsyncOpIncompleteError("streamanalytics.OutputsTestFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rts, err = client.TestResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "streamanalytics.OutputsTestFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("streamanalytics.OutputsTestFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rts.Response.Response, err = future.GetResult(sender); err == nil && rts.Response.Response.StatusCode != http.StatusNoContent {
+		rts, err = client.TestResponder(rts.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "streamanalytics.OutputsTestFuture", "Result", rts.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "streamanalytics.OutputsTestFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rts, err = client.TestResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "streamanalytics.OutputsTestFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3354,7 +3436,9 @@ func (pbods PowerBIOutputDataSource) MarshalJSON() ([]byte, error) {
 	if pbods.PowerBIOutputDataSourceProperties != nil {
 		objectMap["properties"] = pbods.PowerBIOutputDataSourceProperties
 	}
-	objectMap["type"] = pbods.Type
+	if pbods.Type != "" {
+		objectMap["type"] = pbods.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -3517,7 +3601,9 @@ func unmarshalBasicReferenceInputDataSourceArray(body []byte) ([]BasicReferenceI
 func (rids ReferenceInputDataSource) MarshalJSON() ([]byte, error) {
 	rids.Type = TypeBasicReferenceInputDataSourceTypeReferenceInputDataSource
 	objectMap := make(map[string]interface{})
-	objectMap["type"] = rids.Type
+	if rids.Type != "" {
+		objectMap["type"] = rids.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -3562,7 +3648,9 @@ func (rip ReferenceInputProperties) MarshalJSON() ([]byte, error) {
 	if rip.Etag != nil {
 		objectMap["etag"] = rip.Etag
 	}
-	objectMap["type"] = rip.Type
+	if rip.Type != "" {
+		objectMap["type"] = rip.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -3759,7 +3847,9 @@ func (sfp ScalarFunctionProperties) MarshalJSON() ([]byte, error) {
 	if sfp.Etag != nil {
 		objectMap["etag"] = sfp.Etag
 	}
-	objectMap["type"] = sfp.Type
+	if sfp.Type != "" {
+		objectMap["type"] = sfp.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -3885,7 +3975,9 @@ func unmarshalBasicSerializationArray(body []byte) ([]BasicSerialization, error)
 func (s Serialization) MarshalJSON() ([]byte, error) {
 	s.Type = TypeSerialization
 	objectMap := make(map[string]interface{})
-	objectMap["type"] = s.Type
+	if s.Type != "" {
+		objectMap["type"] = s.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -3940,7 +4032,9 @@ func (sbqods ServiceBusQueueOutputDataSource) MarshalJSON() ([]byte, error) {
 	if sbqods.ServiceBusQueueOutputDataSourceProperties != nil {
 		objectMap["properties"] = sbqods.ServiceBusQueueOutputDataSourceProperties
 	}
-	objectMap["type"] = sbqods.Type
+	if sbqods.Type != "" {
+		objectMap["type"] = sbqods.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -4061,7 +4155,9 @@ func (sbtods ServiceBusTopicOutputDataSource) MarshalJSON() ([]byte, error) {
 	if sbtods.ServiceBusTopicOutputDataSourceProperties != nil {
 		objectMap["properties"] = sbtods.ServiceBusTopicOutputDataSourceProperties
 	}
-	objectMap["type"] = sbtods.Type
+	if sbtods.Type != "" {
+		objectMap["type"] = sbtods.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -4447,12 +4543,11 @@ type StreamingJobProperties struct {
 // operation.
 type StreamingJobsCreateOrReplaceFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future StreamingJobsCreateOrReplaceFuture) Result(client StreamingJobsClient) (sj StreamingJob, err error) {
+func (future *StreamingJobsCreateOrReplaceFuture) Result(client StreamingJobsClient) (sj StreamingJob, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -4460,34 +4555,15 @@ func (future StreamingJobsCreateOrReplaceFuture) Result(client StreamingJobsClie
 		return
 	}
 	if !done {
-		return sj, azure.NewAsyncOpIncompleteError("streamanalytics.StreamingJobsCreateOrReplaceFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		sj, err = client.CreateOrReplaceResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsCreateOrReplaceFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("streamanalytics.StreamingJobsCreateOrReplaceFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if sj.Response.Response, err = future.GetResult(sender); err == nil && sj.Response.Response.StatusCode != http.StatusNoContent {
+		sj, err = client.CreateOrReplaceResponder(sj.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsCreateOrReplaceFuture", "Result", sj.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsCreateOrReplaceFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	sj, err = client.CreateOrReplaceResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsCreateOrReplaceFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -4495,12 +4571,11 @@ func (future StreamingJobsCreateOrReplaceFuture) Result(client StreamingJobsClie
 // StreamingJobsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type StreamingJobsDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future StreamingJobsDeleteFuture) Result(client StreamingJobsClient) (ar autorest.Response, err error) {
+func (future *StreamingJobsDeleteFuture) Result(client StreamingJobsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -4508,47 +4583,21 @@ func (future StreamingJobsDeleteFuture) Result(client StreamingJobsClient) (ar a
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("streamanalytics.StreamingJobsDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("streamanalytics.StreamingJobsDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
 // StreamingJobsStartFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type StreamingJobsStartFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future StreamingJobsStartFuture) Result(client StreamingJobsClient) (ar autorest.Response, err error) {
+func (future *StreamingJobsStartFuture) Result(client StreamingJobsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -4556,47 +4605,21 @@ func (future StreamingJobsStartFuture) Result(client StreamingJobsClient) (ar au
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("streamanalytics.StreamingJobsStartFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.StartResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsStartFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("streamanalytics.StreamingJobsStartFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsStartFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.StartResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsStartFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
 // StreamingJobsStopFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type StreamingJobsStopFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future StreamingJobsStopFuture) Result(client StreamingJobsClient) (ar autorest.Response, err error) {
+func (future *StreamingJobsStopFuture) Result(client StreamingJobsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -4604,35 +4627,10 @@ func (future StreamingJobsStopFuture) Result(client StreamingJobsClient) (ar aut
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("streamanalytics.StreamingJobsStopFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.StopResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsStopFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("streamanalytics.StreamingJobsStopFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsStopFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.StopResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "streamanalytics.StreamingJobsStopFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -4699,7 +4697,9 @@ func unmarshalBasicStreamInputDataSourceArray(body []byte) ([]BasicStreamInputDa
 func (sids StreamInputDataSource) MarshalJSON() ([]byte, error) {
 	sids.Type = TypeBasicStreamInputDataSourceTypeStreamInputDataSource
 	objectMap := make(map[string]interface{})
-	objectMap["type"] = sids.Type
+	if sids.Type != "" {
+		objectMap["type"] = sids.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -4754,7 +4754,9 @@ func (sip StreamInputProperties) MarshalJSON() ([]byte, error) {
 	if sip.Etag != nil {
 		objectMap["etag"] = sip.Etag
 	}
-	objectMap["type"] = sip.Type
+	if sip.Type != "" {
+		objectMap["type"] = sip.Type
+	}
 	return json.Marshal(objectMap)
 }
 
@@ -4858,6 +4860,24 @@ type SubscriptionQuota struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for SubscriptionQuota.
+func (sq SubscriptionQuota) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if sq.SubscriptionQuotaProperties != nil {
+		objectMap["properties"] = sq.SubscriptionQuotaProperties
+	}
+	if sq.ID != nil {
+		objectMap["id"] = sq.ID
+	}
+	if sq.Name != nil {
+		objectMap["name"] = sq.Name
+	}
+	if sq.Type != nil {
+		objectMap["type"] = sq.Type
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for SubscriptionQuota struct.
 func (sq *SubscriptionQuota) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -4937,6 +4957,24 @@ type Transformation struct {
 	Name *string `json:"name,omitempty"`
 	// Type - Resource type
 	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for Transformation.
+func (t Transformation) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if t.TransformationProperties != nil {
+		objectMap["properties"] = t.TransformationProperties
+	}
+	if t.ID != nil {
+		objectMap["id"] = t.ID
+	}
+	if t.Name != nil {
+		objectMap["name"] = t.Name
+	}
+	if t.Type != nil {
+		objectMap["type"] = t.Type
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for Transformation struct.

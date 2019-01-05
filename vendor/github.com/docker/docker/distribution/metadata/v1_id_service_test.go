@@ -1,12 +1,12 @@
-package metadata
+package metadata // import "github.com/docker/docker/distribution/metadata"
 
 import (
 	"io/ioutil"
 	"os"
-	"runtime"
 	"testing"
 
 	"github.com/docker/docker/layer"
+	"github.com/gotestyourself/gotestyourself/assert"
 )
 
 func TestV1IDService(t *testing.T) {
@@ -16,11 +16,15 @@ func TestV1IDService(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	metadataStore, err := NewFSMetadataStore(tmpDir, runtime.GOOS)
+	metadataStore, err := NewFSMetadataStore(tmpDir)
 	if err != nil {
 		t.Fatalf("could not create metadata store: %v", err)
 	}
 	v1IDService := NewV1IDService(metadataStore)
+
+	ns := v1IDService.namespace()
+
+	assert.Equal(t, "v1id", ns)
 
 	testVectors := []struct {
 		registry string

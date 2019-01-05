@@ -25,7 +25,7 @@ import (
 	"net/http"
 )
 
-// ClustersClient is the client for the Clusters methods of the Servicefabric service.
+// ClustersClient is the service Fabric Management Client
 type ClustersClient struct {
 	BaseClient
 }
@@ -41,9 +41,10 @@ func NewClustersClientWithBaseURI(baseURI string, subscriptionID string) Cluster
 }
 
 // Create create cluster resource
-//
-// resourceGroupName is the name of the resource group to which the resource belongs or get created clusterName is
-// the name of the cluster resource parameters is put Request
+// Parameters:
+// resourceGroupName - the name of the resource group to which the resource belongs or get created
+// clusterName - the name of the cluster resource
+// parameters - put Request
 func (client ClustersClient) Create(ctx context.Context, resourceGroupName string, clusterName string, parameters Cluster) (result ClustersCreateFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
@@ -126,7 +127,7 @@ func (client ClustersClient) CreatePreparer(ctx context.Context, resourceGroupNa
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ServiceFabric/clusters/{clusterName}", pathParameters),
@@ -138,15 +139,17 @@ func (client ClustersClient) CreatePreparer(ctx context.Context, resourceGroupNa
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client ClustersClient) CreateSender(req *http.Request) (future ClustersCreateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -164,9 +167,9 @@ func (client ClustersClient) CreateResponder(resp *http.Response) (result Cluste
 }
 
 // Delete delete cluster resource
-//
-// resourceGroupName is the name of the resource group to which the resource belongs or get created clusterName is
-// the name of the cluster resource
+// Parameters:
+// resourceGroupName - the name of the resource group to which the resource belongs or get created
+// clusterName - the name of the cluster resource
 func (client ClustersClient) Delete(ctx context.Context, resourceGroupName string, clusterName string) (result autorest.Response, err error) {
 	req, err := client.DeletePreparer(ctx, resourceGroupName, clusterName)
 	if err != nil {
@@ -230,9 +233,9 @@ func (client ClustersClient) DeleteResponder(resp *http.Response) (result autore
 }
 
 // Get get cluster resource
-//
-// resourceGroupName is the name of the resource group to which the resource belongs or get created clusterName is
-// the name of the cluster resource
+// Parameters:
+// resourceGroupName - the name of the resource group to which the resource belongs or get created
+// clusterName - the name of the cluster resource
 func (client ClustersClient) Get(ctx context.Context, resourceGroupName string, clusterName string) (result Cluster, err error) {
 	req, err := client.GetPreparer(ctx, resourceGroupName, clusterName)
 	if err != nil {
@@ -387,8 +390,8 @@ func (client ClustersClient) ListComplete(ctx context.Context) (result ClusterLi
 }
 
 // ListByResourceGroup list cluster resource by resource group
-//
-// resourceGroupName is the name of the resource group to which the resource belongs or get created
+// Parameters:
+// resourceGroupName - the name of the resource group to which the resource belongs or get created
 func (client ClustersClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result ClusterListResultPage, err error) {
 	result.fn = client.listByResourceGroupNextResults
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName)
@@ -480,10 +483,11 @@ func (client ClustersClient) ListByResourceGroupComplete(ctx context.Context, re
 }
 
 // Update update cluster configuration
-//
-// resourceGroupName is the name of the resource group to which the resource belongs or get created clusterName is
-// the name of the cluster resource parameters is the parameters which contains the property value and property
-// name which used to update the cluster configuration
+// Parameters:
+// resourceGroupName - the name of the resource group to which the resource belongs or get created
+// clusterName - the name of the cluster resource
+// parameters - the parameters which contains the property value and property name which used to update the
+// cluster configuration
 func (client ClustersClient) Update(ctx context.Context, resourceGroupName string, clusterName string, parameters ClusterUpdateParameters) (result ClustersUpdateFuture, err error) {
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, clusterName, parameters)
 	if err != nil {
@@ -514,7 +518,7 @@ func (client ClustersClient) UpdatePreparer(ctx context.Context, resourceGroupNa
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ServiceFabric/clusters/{clusterName}", pathParameters),
@@ -526,15 +530,17 @@ func (client ClustersClient) UpdatePreparer(ctx context.Context, resourceGroupNa
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client ClustersClient) UpdateSender(req *http.Request) (future ClustersUpdateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 

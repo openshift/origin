@@ -30,8 +30,8 @@ EOF
 
 disk=48
 mem=16
-# 6.5U1 (EP6) https://docs.vmware.com/en/VMware-vSphere/6.5/rn/vsphere-esxi-651-release-notes.html
-iso=VMware-VMvisor-6.5.0-8023194.x86_64.iso
+# 6.7 GA https://docs.vmware.com/en/VMware-vSphere/6.7/rn/vsphere-esxi-vcenter-server-67-release-notes.html
+iso=VMware-VMvisor-6.7.0-9214924.x86_64.iso
 
 while getopts d:hi:m:s flag
 do
@@ -78,7 +78,7 @@ username=$GOVC_USERNAME
 password=$GOVC_PASSWORD
 unset GOVC_USERNAME GOVC_PASSWORD
 
-guest=${GUEST:-"vmkernel6Guest"}
+guest=${GUEST:-"vmkernel65Guest"}
 
 if [ -z "$password" ] ; then
   # extract password from $GOVC_URL

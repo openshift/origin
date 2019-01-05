@@ -55,6 +55,11 @@ const (
 	Updating ProvisioningState = "Updating"
 )
 
+// PossibleProvisioningStateValues returns an array of possible values for the ProvisioningState const type.
+func PossibleProvisioningStateValues() []ProvisioningState {
+	return []ProvisioningState{Deleting, Failed, Paused, Pausing, Preparing, Provisioning, Resuming, Scaling, Succeeded, Suspended, Suspending, Updating}
+}
+
 // SkuTier enumerates the values for sku tier.
 type SkuTier string
 
@@ -62,6 +67,11 @@ const (
 	// PBIEAzure ...
 	PBIEAzure SkuTier = "PBIE_Azure"
 )
+
+// PossibleSkuTierValues returns an array of possible values for the SkuTier const type.
+func PossibleSkuTierValues() []SkuTier {
+	return []SkuTier{PBIEAzure}
+}
 
 // State enumerates the values for state.
 type State string
@@ -93,15 +103,19 @@ const (
 	StateUpdating State = "Updating"
 )
 
+// PossibleStateValues returns an array of possible values for the State const type.
+func PossibleStateValues() []State {
+	return []State{StateDeleting, StateFailed, StatePaused, StatePausing, StatePreparing, StateProvisioning, StateResuming, StateScaling, StateSucceeded, StateSuspended, StateSuspending, StateUpdating}
+}
+
 // CapacitiesCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type CapacitiesCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future CapacitiesCreateFuture) Result(client CapacitiesClient) (dc DedicatedCapacity, err error) {
+func (future *CapacitiesCreateFuture) Result(client CapacitiesClient) (dc DedicatedCapacity, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -109,34 +123,15 @@ func (future CapacitiesCreateFuture) Result(client CapacitiesClient) (dc Dedicat
 		return
 	}
 	if !done {
-		return dc, azure.NewAsyncOpIncompleteError("powerbidedicated.CapacitiesCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		dc, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "powerbidedicated.CapacitiesCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("powerbidedicated.CapacitiesCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if dc.Response.Response, err = future.GetResult(sender); err == nil && dc.Response.Response.StatusCode != http.StatusNoContent {
+		dc, err = client.CreateResponder(dc.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "powerbidedicated.CapacitiesCreateFuture", "Result", dc.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "powerbidedicated.CapacitiesCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	dc, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "powerbidedicated.CapacitiesCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -144,12 +139,11 @@ func (future CapacitiesCreateFuture) Result(client CapacitiesClient) (dc Dedicat
 // CapacitiesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type CapacitiesDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future CapacitiesDeleteFuture) Result(client CapacitiesClient) (ar autorest.Response, err error) {
+func (future *CapacitiesDeleteFuture) Result(client CapacitiesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -157,47 +151,21 @@ func (future CapacitiesDeleteFuture) Result(client CapacitiesClient) (ar autores
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("powerbidedicated.CapacitiesDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "powerbidedicated.CapacitiesDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("powerbidedicated.CapacitiesDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "powerbidedicated.CapacitiesDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "powerbidedicated.CapacitiesDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
 // CapacitiesResumeFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type CapacitiesResumeFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future CapacitiesResumeFuture) Result(client CapacitiesClient) (ar autorest.Response, err error) {
+func (future *CapacitiesResumeFuture) Result(client CapacitiesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -205,47 +173,21 @@ func (future CapacitiesResumeFuture) Result(client CapacitiesClient) (ar autores
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("powerbidedicated.CapacitiesResumeFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.ResumeResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "powerbidedicated.CapacitiesResumeFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("powerbidedicated.CapacitiesResumeFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "powerbidedicated.CapacitiesResumeFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.ResumeResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "powerbidedicated.CapacitiesResumeFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
 // CapacitiesSuspendFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type CapacitiesSuspendFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future CapacitiesSuspendFuture) Result(client CapacitiesClient) (ar autorest.Response, err error) {
+func (future *CapacitiesSuspendFuture) Result(client CapacitiesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -253,47 +195,21 @@ func (future CapacitiesSuspendFuture) Result(client CapacitiesClient) (ar autore
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("powerbidedicated.CapacitiesSuspendFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.SuspendResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "powerbidedicated.CapacitiesSuspendFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("powerbidedicated.CapacitiesSuspendFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "powerbidedicated.CapacitiesSuspendFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.SuspendResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "powerbidedicated.CapacitiesSuspendFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
 // CapacitiesUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type CapacitiesUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future CapacitiesUpdateFuture) Result(client CapacitiesClient) (dc DedicatedCapacity, err error) {
+func (future *CapacitiesUpdateFuture) Result(client CapacitiesClient) (dc DedicatedCapacity, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -301,34 +217,15 @@ func (future CapacitiesUpdateFuture) Result(client CapacitiesClient) (dc Dedicat
 		return
 	}
 	if !done {
-		return dc, azure.NewAsyncOpIncompleteError("powerbidedicated.CapacitiesUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		dc, err = client.UpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "powerbidedicated.CapacitiesUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("powerbidedicated.CapacitiesUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if dc.Response.Response, err = future.GetResult(sender); err == nil && dc.Response.Response.StatusCode != http.StatusNoContent {
+		dc, err = client.UpdateResponder(dc.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "powerbidedicated.CapacitiesUpdateFuture", "Result", dc.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "powerbidedicated.CapacitiesUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	dc, err = client.UpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "powerbidedicated.CapacitiesUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }

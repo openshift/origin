@@ -60,11 +60,6 @@
       "location": "query",
       "type": "string"
     },
-    "bearer_token": {
-      "description": "OAuth bearer token.",
-      "location": "query",
-      "type": "string"
-    },
     "callback": {
       "description": "JSONP",
       "location": "query",
@@ -84,12 +79,6 @@
       "description": "OAuth 2.0 token for the current user.",
       "location": "query",
       "type": "string"
-    },
-    "pp": {
-      "default": "true",
-      "description": "Pretty-print response.",
-      "location": "query",
-      "type": "boolean"
     },
     "prettyPrint": {
       "default": "true",
@@ -371,7 +360,7 @@
       }
     }
   },
-  "revision": "20180510",
+  "revision": "20180611",
   "rootUrl": "https://composer.googleapis.com/",
   "schemas": {
     "Empty": {
@@ -509,7 +498,7 @@
       "id": "NodeConfig",
       "properties": {
         "diskSizeGb": {
-          "description": "Optional. The disk size in GB used for node VMs. Minimum size is 10GB.\nIf unspecified, defaults to 100GB. Cannot be updated.",
+          "description": "Optional. The disk size in GB used for node VMs. Minimum size is 20GB.\nIf unspecified, defaults to 100GB. Cannot be updated.",
           "format": "int32",
           "type": "integer"
         },

@@ -19,111 +19,24 @@
 
 package web
 
-import original "github.com/Azure/azure-sdk-for-go/services/web/mgmt/2016-09-01/web"
+import original "github.com/Azure/azure-sdk-for-go/services/web/mgmt/2018-02-01/web"
 
 type AppsClient = original.AppsClient
-
-func NewAppsClient(subscriptionID string) AppsClient {
-	return original.NewAppsClient(subscriptionID)
-}
-func NewAppsClientWithBaseURI(baseURI string, subscriptionID string) AppsClient {
-	return original.NewAppsClientWithBaseURI(baseURI, subscriptionID)
-}
-
 type AppServiceCertificateOrdersClient = original.AppServiceCertificateOrdersClient
-
-func NewAppServiceCertificateOrdersClient(subscriptionID string) AppServiceCertificateOrdersClient {
-	return original.NewAppServiceCertificateOrdersClient(subscriptionID)
-}
-func NewAppServiceCertificateOrdersClientWithBaseURI(baseURI string, subscriptionID string) AppServiceCertificateOrdersClient {
-	return original.NewAppServiceCertificateOrdersClientWithBaseURI(baseURI, subscriptionID)
-}
-
 type AppServiceEnvironmentsClient = original.AppServiceEnvironmentsClient
-
-func NewAppServiceEnvironmentsClient(subscriptionID string) AppServiceEnvironmentsClient {
-	return original.NewAppServiceEnvironmentsClient(subscriptionID)
-}
-func NewAppServiceEnvironmentsClientWithBaseURI(baseURI string, subscriptionID string) AppServiceEnvironmentsClient {
-	return original.NewAppServiceEnvironmentsClientWithBaseURI(baseURI, subscriptionID)
-}
-
 type AppServicePlansClient = original.AppServicePlansClient
-
-func NewAppServicePlansClient(subscriptionID string) AppServicePlansClient {
-	return original.NewAppServicePlansClient(subscriptionID)
-}
-func NewAppServicePlansClientWithBaseURI(baseURI string, subscriptionID string) AppServicePlansClient {
-	return original.NewAppServicePlansClientWithBaseURI(baseURI, subscriptionID)
-}
-
 type CertificateRegistrationProviderClient = original.CertificateRegistrationProviderClient
-
-func NewCertificateRegistrationProviderClient(subscriptionID string) CertificateRegistrationProviderClient {
-	return original.NewCertificateRegistrationProviderClient(subscriptionID)
-}
-func NewCertificateRegistrationProviderClientWithBaseURI(baseURI string, subscriptionID string) CertificateRegistrationProviderClient {
-	return original.NewCertificateRegistrationProviderClientWithBaseURI(baseURI, subscriptionID)
-}
-
 type CertificatesClient = original.CertificatesClient
-
-func NewCertificatesClient(subscriptionID string) CertificatesClient {
-	return original.NewCertificatesClient(subscriptionID)
-}
-func NewCertificatesClientWithBaseURI(baseURI string, subscriptionID string) CertificatesClient {
-	return original.NewCertificatesClientWithBaseURI(baseURI, subscriptionID)
-}
 
 const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
 type BaseClient = original.BaseClient
-
-func New(subscriptionID string) BaseClient {
-	return original.New(subscriptionID)
-}
-func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
-	return original.NewWithBaseURI(baseURI, subscriptionID)
-}
-
 type DeletedWebAppsClient = original.DeletedWebAppsClient
-
-func NewDeletedWebAppsClient(subscriptionID string) DeletedWebAppsClient {
-	return original.NewDeletedWebAppsClient(subscriptionID)
-}
-func NewDeletedWebAppsClientWithBaseURI(baseURI string, subscriptionID string) DeletedWebAppsClient {
-	return original.NewDeletedWebAppsClientWithBaseURI(baseURI, subscriptionID)
-}
-
 type DiagnosticsClient = original.DiagnosticsClient
-
-func NewDiagnosticsClient(subscriptionID string) DiagnosticsClient {
-	return original.NewDiagnosticsClient(subscriptionID)
-}
-func NewDiagnosticsClientWithBaseURI(baseURI string, subscriptionID string) DiagnosticsClient {
-	return original.NewDiagnosticsClientWithBaseURI(baseURI, subscriptionID)
-}
-
 type DomainRegistrationProviderClient = original.DomainRegistrationProviderClient
-
-func NewDomainRegistrationProviderClient(subscriptionID string) DomainRegistrationProviderClient {
-	return original.NewDomainRegistrationProviderClient(subscriptionID)
-}
-func NewDomainRegistrationProviderClientWithBaseURI(baseURI string, subscriptionID string) DomainRegistrationProviderClient {
-	return original.NewDomainRegistrationProviderClientWithBaseURI(baseURI, subscriptionID)
-}
-
 type DomainsClient = original.DomainsClient
-
-func NewDomainsClient(subscriptionID string) DomainsClient {
-	return original.NewDomainsClient(subscriptionID)
-}
-func NewDomainsClientWithBaseURI(baseURI string, subscriptionID string) DomainsClient {
-	return original.NewDomainsClientWithBaseURI(baseURI, subscriptionID)
-}
-
 type AccessControlEntryAction = original.AccessControlEntryAction
 
 const (
@@ -176,6 +89,7 @@ type BackupRestoreOperationType = original.BackupRestoreOperationType
 
 const (
 	BackupRestoreOperationTypeClone      BackupRestoreOperationType = original.BackupRestoreOperationTypeClone
+	BackupRestoreOperationTypeCloudFS    BackupRestoreOperationType = original.BackupRestoreOperationTypeCloudFS
 	BackupRestoreOperationTypeDefault    BackupRestoreOperationType = original.BackupRestoreOperationTypeDefault
 	BackupRestoreOperationTypeRelocation BackupRestoreOperationType = original.BackupRestoreOperationTypeRelocation
 	BackupRestoreOperationTypeSnapshot   BackupRestoreOperationType = original.BackupRestoreOperationTypeSnapshot
@@ -368,6 +282,14 @@ const (
 	Hour FrequencyUnit = original.Hour
 )
 
+type FtpsState = original.FtpsState
+
+const (
+	AllAllowed FtpsState = original.AllAllowed
+	Disabled   FtpsState = original.Disabled
+	FtpsOnly   FtpsState = original.FtpsOnly
+)
+
 type HostingEnvironmentStatus = original.HostingEnvironmentStatus
 
 const (
@@ -404,6 +326,13 @@ const (
 	InternalLoadBalancingModeNone       InternalLoadBalancingMode = original.InternalLoadBalancingModeNone
 	InternalLoadBalancingModePublishing InternalLoadBalancingMode = original.InternalLoadBalancingModePublishing
 	InternalLoadBalancingModeWeb        InternalLoadBalancingMode = original.InternalLoadBalancingModeWeb
+)
+
+type IPFilterTag = original.IPFilterTag
+
+const (
+	Default  IPFilterTag = original.Default
+	XffProxy IPFilterTag = original.XffProxy
 )
 
 type IssueType = original.IssueType
@@ -457,6 +386,13 @@ type ManagedPipelineMode = original.ManagedPipelineMode
 const (
 	Classic    ManagedPipelineMode = original.Classic
 	Integrated ManagedPipelineMode = original.Integrated
+)
+
+type ManagedServiceIdentityType = original.ManagedServiceIdentityType
+
+const (
+	SystemAssigned ManagedServiceIdentityType = original.SystemAssigned
+	UserAssigned   ManagedServiceIdentityType = original.UserAssigned
 )
 
 type MSDeployLogEntryType = original.MSDeployLogEntryType
@@ -527,6 +463,15 @@ const (
 	FileZilla3 PublishingProfileFormat = original.FileZilla3
 	Ftp        PublishingProfileFormat = original.Ftp
 	WebDeploy  PublishingProfileFormat = original.WebDeploy
+)
+
+type RenderingType = original.RenderingType
+
+const (
+	NoGraph               RenderingType = original.NoGraph
+	Table                 RenderingType = original.Table
+	TimeSeries            RenderingType = original.TimeSeries
+	TimeSeriesPerInstance RenderingType = original.TimeSeriesPerInstance
 )
 
 type ResourceScopeType = original.ResourceScopeType
@@ -612,9 +557,9 @@ const (
 type SslState = original.SslState
 
 const (
-	Disabled       SslState = original.Disabled
-	IPBasedEnabled SslState = original.IPBasedEnabled
-	SniEnabled     SslState = original.SniEnabled
+	SslStateDisabled       SslState = original.SslStateDisabled
+	SslStateIPBasedEnabled SslState = original.SslStateIPBasedEnabled
+	SslStateSniEnabled     SslState = original.SslStateSniEnabled
 )
 
 type StatusOptions = original.StatusOptions
@@ -665,13 +610,13 @@ const (
 type WorkerSizeOptions = original.WorkerSizeOptions
 
 const (
-	D1      WorkerSizeOptions = original.D1
-	D2      WorkerSizeOptions = original.D2
-	D3      WorkerSizeOptions = original.D3
-	Default WorkerSizeOptions = original.Default
-	Large   WorkerSizeOptions = original.Large
-	Medium  WorkerSizeOptions = original.Medium
-	Small   WorkerSizeOptions = original.Small
+	WorkerSizeOptionsD1      WorkerSizeOptions = original.WorkerSizeOptionsD1
+	WorkerSizeOptionsD2      WorkerSizeOptions = original.WorkerSizeOptionsD2
+	WorkerSizeOptionsD3      WorkerSizeOptions = original.WorkerSizeOptionsD3
+	WorkerSizeOptionsDefault WorkerSizeOptions = original.WorkerSizeOptionsDefault
+	WorkerSizeOptionsLarge   WorkerSizeOptions = original.WorkerSizeOptionsLarge
+	WorkerSizeOptionsMedium  WorkerSizeOptions = original.WorkerSizeOptionsMedium
+	WorkerSizeOptionsSmall   WorkerSizeOptions = original.WorkerSizeOptionsSmall
 )
 
 type AbnormalTimePeriod = original.AbnormalTimePeriod
@@ -688,6 +633,10 @@ type AppInstanceCollection = original.AppInstanceCollection
 type AppInstanceCollectionIterator = original.AppInstanceCollectionIterator
 type AppInstanceCollectionPage = original.AppInstanceCollectionPage
 type ApplicationLogsConfig = original.ApplicationLogsConfig
+type ApplicationStack = original.ApplicationStack
+type ApplicationStackCollection = original.ApplicationStackCollection
+type ApplicationStackCollectionIterator = original.ApplicationStackCollectionIterator
+type ApplicationStackCollectionPage = original.ApplicationStackCollectionPage
 type AppsCreateFunctionFuture = original.AppsCreateFunctionFuture
 type AppsCreateInstanceFunctionSlotFuture = original.AppsCreateInstanceFunctionSlotFuture
 type AppsCreateInstanceMSDeployOperationFuture = original.AppsCreateInstanceMSDeployOperationFuture
@@ -719,6 +668,8 @@ type AppServiceEnvironmentCollectionIterator = original.AppServiceEnvironmentCol
 type AppServiceEnvironmentCollectionPage = original.AppServiceEnvironmentCollectionPage
 type AppServiceEnvironmentPatchResource = original.AppServiceEnvironmentPatchResource
 type AppServiceEnvironmentResource = original.AppServiceEnvironmentResource
+type AppServiceEnvironmentsChangeVnetAllFuture = original.AppServiceEnvironmentsChangeVnetAllFuture
+type AppServiceEnvironmentsChangeVnetFuture = original.AppServiceEnvironmentsChangeVnetFuture
 type AppServiceEnvironmentsCreateOrUpdateFuture = original.AppServiceEnvironmentsCreateOrUpdateFuture
 type AppServiceEnvironmentsCreateOrUpdateMultiRolePoolFuture = original.AppServiceEnvironmentsCreateOrUpdateMultiRolePoolFuture
 type AppServiceEnvironmentsCreateOrUpdateWorkerPoolFuture = original.AppServiceEnvironmentsCreateOrUpdateWorkerPoolFuture
@@ -741,10 +692,14 @@ type AppsListPublishingCredentialsFuture = original.AppsListPublishingCredential
 type AppsListPublishingCredentialsSlotFuture = original.AppsListPublishingCredentialsSlotFuture
 type AppsMigrateMySQLFuture = original.AppsMigrateMySQLFuture
 type AppsMigrateStorageFuture = original.AppsMigrateStorageFuture
-type AppsRecoverFuture = original.AppsRecoverFuture
-type AppsRecoverSlotFuture = original.AppsRecoverSlotFuture
+type AppsRestoreFromBackupBlobFuture = original.AppsRestoreFromBackupBlobFuture
+type AppsRestoreFromBackupBlobSlotFuture = original.AppsRestoreFromBackupBlobSlotFuture
+type AppsRestoreFromDeletedAppFuture = original.AppsRestoreFromDeletedAppFuture
+type AppsRestoreFromDeletedAppSlotFuture = original.AppsRestoreFromDeletedAppSlotFuture
 type AppsRestoreFuture = original.AppsRestoreFuture
 type AppsRestoreSlotFuture = original.AppsRestoreSlotFuture
+type AppsRestoreSnapshotFuture = original.AppsRestoreSnapshotFuture
+type AppsRestoreSnapshotSlotFuture = original.AppsRestoreSnapshotSlotFuture
 type AppsSwapSlotSlotFuture = original.AppsSwapSlotSlotFuture
 type AppsSwapSlotWithProductionFuture = original.AppsSwapSlotWithProductionFuture
 type AutoHealActions = original.AutoHealActions
@@ -762,6 +717,11 @@ type BackupItemProperties = original.BackupItemProperties
 type BackupRequest = original.BackupRequest
 type BackupRequestProperties = original.BackupRequestProperties
 type BackupSchedule = original.BackupSchedule
+type BillingMeter = original.BillingMeter
+type BillingMeterCollection = original.BillingMeterCollection
+type BillingMeterCollectionIterator = original.BillingMeterCollectionIterator
+type BillingMeterCollectionPage = original.BillingMeterCollectionPage
+type BillingMeterProperties = original.BillingMeterProperties
 type Capability = original.Capability
 type Certificate = original.Certificate
 type CertificateCollection = original.CertificateCollection
@@ -803,6 +763,13 @@ type CustomHostnameAnalysisResult = original.CustomHostnameAnalysisResult
 type CustomHostnameAnalysisResultProperties = original.CustomHostnameAnalysisResultProperties
 type DatabaseBackupSetting = original.DatabaseBackupSetting
 type DataSource = original.DataSource
+type DataTableResponseColumn = original.DataTableResponseColumn
+type DataTableResponseObject = original.DataTableResponseObject
+type DefaultErrorResponse = original.DefaultErrorResponse
+type DefaultErrorResponseError = original.DefaultErrorResponseError
+type DefaultErrorResponseErrorDetailsItem = original.DefaultErrorResponseErrorDetailsItem
+type DeletedAppRestoreRequest = original.DeletedAppRestoreRequest
+type DeletedAppRestoreRequestProperties = original.DeletedAppRestoreRequestProperties
 type DeletedSite = original.DeletedSite
 type DeletedWebAppCollection = original.DeletedWebAppCollection
 type DeletedWebAppCollectionIterator = original.DeletedWebAppCollectionIterator
@@ -816,6 +783,12 @@ type DeploymentProperties = original.DeploymentProperties
 type DetectorAbnormalTimePeriod = original.DetectorAbnormalTimePeriod
 type DetectorDefinition = original.DetectorDefinition
 type DetectorDefinitionProperties = original.DetectorDefinitionProperties
+type DetectorInfo = original.DetectorInfo
+type DetectorResponse = original.DetectorResponse
+type DetectorResponseCollection = original.DetectorResponseCollection
+type DetectorResponseCollectionIterator = original.DetectorResponseCollectionIterator
+type DetectorResponseCollectionPage = original.DetectorResponseCollectionPage
+type DetectorResponseProperties = original.DetectorResponseProperties
 type DiagnosticAnalysis = original.DiagnosticAnalysis
 type DiagnosticAnalysisCollection = original.DiagnosticAnalysisCollection
 type DiagnosticAnalysisCollectionIterator = original.DiagnosticAnalysisCollectionIterator
@@ -826,6 +799,7 @@ type DiagnosticCategoryCollection = original.DiagnosticCategoryCollection
 type DiagnosticCategoryCollectionIterator = original.DiagnosticCategoryCollectionIterator
 type DiagnosticCategoryCollectionPage = original.DiagnosticCategoryCollectionPage
 type DiagnosticCategoryProperties = original.DiagnosticCategoryProperties
+type DiagnosticData = original.DiagnosticData
 type DiagnosticDetectorCollection = original.DiagnosticDetectorCollection
 type DiagnosticDetectorCollectionIterator = original.DiagnosticDetectorCollectionIterator
 type DiagnosticDetectorCollectionPage = original.DiagnosticDetectorCollectionPage
@@ -853,7 +827,6 @@ type DomainRecommendationSearchParameters = original.DomainRecommendationSearchP
 type DomainsCreateOrUpdateFuture = original.DomainsCreateOrUpdateFuture
 type EnabledConfig = original.EnabledConfig
 type ErrorEntity = original.ErrorEntity
-type ErrorResponse = original.ErrorResponse
 type Experiments = original.Experiments
 type FileSystemApplicationLogsConfig = original.FileSystemApplicationLogsConfig
 type FileSystemHTTPLogsConfig = original.FileSystemHTTPLogsConfig
@@ -907,10 +880,10 @@ type ListCertificateEmail = original.ListCertificateEmail
 type ListCertificateOrderAction = original.ListCertificateOrderAction
 type ListHostingEnvironmentDiagnostics = original.ListHostingEnvironmentDiagnostics
 type ListOperation = original.ListOperation
-type ListRecommendation = original.ListRecommendation
 type ListVnetInfo = original.ListVnetInfo
 type ListVnetRoute = original.ListVnetRoute
 type LocalizableString = original.LocalizableString
+type LogSpecification = original.LogSpecification
 type ManagedServiceIdentity = original.ManagedServiceIdentity
 type MetricAvailabilily = original.MetricAvailabilily
 type MetricAvailability = original.MetricAvailability
@@ -949,7 +922,13 @@ type PremierAddOnOfferCollection = original.PremierAddOnOfferCollection
 type PremierAddOnOfferCollectionIterator = original.PremierAddOnOfferCollectionIterator
 type PremierAddOnOfferCollectionPage = original.PremierAddOnOfferCollectionPage
 type PremierAddOnOfferProperties = original.PremierAddOnOfferProperties
+type PremierAddOnPatchResource = original.PremierAddOnPatchResource
+type PremierAddOnPatchResourceProperties = original.PremierAddOnPatchResourceProperties
 type PremierAddOnProperties = original.PremierAddOnProperties
+type PrivateAccess = original.PrivateAccess
+type PrivateAccessProperties = original.PrivateAccessProperties
+type PrivateAccessSubnet = original.PrivateAccessSubnet
+type PrivateAccessVirtualNetwork = original.PrivateAccessVirtualNetwork
 type ProcessInfo = original.ProcessInfo
 type ProcessInfoCollection = original.ProcessInfoCollection
 type ProcessInfoCollectionIterator = original.ProcessInfoCollectionIterator
@@ -976,11 +955,17 @@ type PushSettingsProperties = original.PushSettingsProperties
 type RampUpRule = original.RampUpRule
 type ReadCloser = original.ReadCloser
 type Recommendation = original.Recommendation
+type RecommendationCollection = original.RecommendationCollection
+type RecommendationCollectionIterator = original.RecommendationCollectionIterator
+type RecommendationCollectionPage = original.RecommendationCollectionPage
+type RecommendationProperties = original.RecommendationProperties
 type RecommendationRule = original.RecommendationRule
+type RecommendationRuleProperties = original.RecommendationRuleProperties
 type ReissueCertificateOrderRequest = original.ReissueCertificateOrderRequest
 type ReissueCertificateOrderRequestProperties = original.ReissueCertificateOrderRequestProperties
 type RelayServiceConnectionEntity = original.RelayServiceConnectionEntity
 type RelayServiceConnectionEntityProperties = original.RelayServiceConnectionEntityProperties
+type Rendering = original.Rendering
 type RenewCertificateOrderRequest = original.RenewCertificateOrderRequest
 type RenewCertificateOrderRequestProperties = original.RenewCertificateOrderRequestProperties
 type RequestsBasedTrigger = original.RequestsBasedTrigger
@@ -1006,8 +991,6 @@ type ResourceNameAvailabilityRequest = original.ResourceNameAvailabilityRequest
 type ResponseMetaData = original.ResponseMetaData
 type RestoreRequest = original.RestoreRequest
 type RestoreRequestProperties = original.RestoreRequestProperties
-type RestoreResponse = original.RestoreResponse
-type RestoreResponseProperties = original.RestoreResponseProperties
 type ServiceSpecification = original.ServiceSpecification
 type SetObject = original.SetObject
 type Site = original.Site
@@ -1066,15 +1049,17 @@ type SnapshotCollection = original.SnapshotCollection
 type SnapshotCollectionIterator = original.SnapshotCollectionIterator
 type SnapshotCollectionPage = original.SnapshotCollectionPage
 type SnapshotProperties = original.SnapshotProperties
-type SnapshotRecoveryRequest = original.SnapshotRecoveryRequest
-type SnapshotRecoveryRequestProperties = original.SnapshotRecoveryRequestProperties
-type SnapshotRecoveryTarget = original.SnapshotRecoveryTarget
+type SnapshotRecoverySource = original.SnapshotRecoverySource
+type SnapshotRestoreRequest = original.SnapshotRestoreRequest
+type SnapshotRestoreRequestProperties = original.SnapshotRestoreRequestProperties
 type Solution = original.Solution
 type SourceControl = original.SourceControl
 type SourceControlCollection = original.SourceControlCollection
 type SourceControlCollectionIterator = original.SourceControlCollectionIterator
 type SourceControlCollectionPage = original.SourceControlCollectionPage
 type SourceControlProperties = original.SourceControlProperties
+type StackMajorVersion = original.StackMajorVersion
+type StackMinorVersion = original.StackMinorVersion
 type StampCapacity = original.StampCapacity
 type StampCapacityCollection = original.StampCapacityCollection
 type StampCapacityCollectionIterator = original.StampCapacityCollectionIterator
@@ -1086,6 +1071,8 @@ type StorageMigrationResponse = original.StorageMigrationResponse
 type StorageMigrationResponseProperties = original.StorageMigrationResponseProperties
 type String = original.String
 type StringDictionary = original.StringDictionary
+type SwiftVirtualNetwork = original.SwiftVirtualNetwork
+type SwiftVirtualNetworkProperties = original.SwiftVirtualNetworkProperties
 type TldLegalAgreement = original.TldLegalAgreement
 type TldLegalAgreementCollection = original.TldLegalAgreementCollection
 type TldLegalAgreementCollectionIterator = original.TldLegalAgreementCollectionIterator
@@ -1141,25 +1128,270 @@ type WorkerPoolCollectionIterator = original.WorkerPoolCollectionIterator
 type WorkerPoolCollectionPage = original.WorkerPoolCollectionPage
 type WorkerPoolResource = original.WorkerPoolResource
 type ProviderClient = original.ProviderClient
+type RecommendationsClient = original.RecommendationsClient
+type TopLevelDomainsClient = original.TopLevelDomainsClient
 
+func NewAppsClient(subscriptionID string) AppsClient {
+	return original.NewAppsClient(subscriptionID)
+}
+func NewAppsClientWithBaseURI(baseURI string, subscriptionID string) AppsClient {
+	return original.NewAppsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewAppServiceCertificateOrdersClient(subscriptionID string) AppServiceCertificateOrdersClient {
+	return original.NewAppServiceCertificateOrdersClient(subscriptionID)
+}
+func NewAppServiceCertificateOrdersClientWithBaseURI(baseURI string, subscriptionID string) AppServiceCertificateOrdersClient {
+	return original.NewAppServiceCertificateOrdersClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewAppServiceEnvironmentsClient(subscriptionID string) AppServiceEnvironmentsClient {
+	return original.NewAppServiceEnvironmentsClient(subscriptionID)
+}
+func NewAppServiceEnvironmentsClientWithBaseURI(baseURI string, subscriptionID string) AppServiceEnvironmentsClient {
+	return original.NewAppServiceEnvironmentsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewAppServicePlansClient(subscriptionID string) AppServicePlansClient {
+	return original.NewAppServicePlansClient(subscriptionID)
+}
+func NewAppServicePlansClientWithBaseURI(baseURI string, subscriptionID string) AppServicePlansClient {
+	return original.NewAppServicePlansClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewCertificateRegistrationProviderClient(subscriptionID string) CertificateRegistrationProviderClient {
+	return original.NewCertificateRegistrationProviderClient(subscriptionID)
+}
+func NewCertificateRegistrationProviderClientWithBaseURI(baseURI string, subscriptionID string) CertificateRegistrationProviderClient {
+	return original.NewCertificateRegistrationProviderClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewCertificatesClient(subscriptionID string) CertificatesClient {
+	return original.NewCertificatesClient(subscriptionID)
+}
+func NewCertificatesClientWithBaseURI(baseURI string, subscriptionID string) CertificatesClient {
+	return original.NewCertificatesClientWithBaseURI(baseURI, subscriptionID)
+}
+func New(subscriptionID string) BaseClient {
+	return original.New(subscriptionID)
+}
+func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
+	return original.NewWithBaseURI(baseURI, subscriptionID)
+}
+func NewDeletedWebAppsClient(subscriptionID string) DeletedWebAppsClient {
+	return original.NewDeletedWebAppsClient(subscriptionID)
+}
+func NewDeletedWebAppsClientWithBaseURI(baseURI string, subscriptionID string) DeletedWebAppsClient {
+	return original.NewDeletedWebAppsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewDiagnosticsClient(subscriptionID string) DiagnosticsClient {
+	return original.NewDiagnosticsClient(subscriptionID)
+}
+func NewDiagnosticsClientWithBaseURI(baseURI string, subscriptionID string) DiagnosticsClient {
+	return original.NewDiagnosticsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewDomainRegistrationProviderClient(subscriptionID string) DomainRegistrationProviderClient {
+	return original.NewDomainRegistrationProviderClient(subscriptionID)
+}
+func NewDomainRegistrationProviderClientWithBaseURI(baseURI string, subscriptionID string) DomainRegistrationProviderClient {
+	return original.NewDomainRegistrationProviderClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewDomainsClient(subscriptionID string) DomainsClient {
+	return original.NewDomainsClient(subscriptionID)
+}
+func NewDomainsClientWithBaseURI(baseURI string, subscriptionID string) DomainsClient {
+	return original.NewDomainsClientWithBaseURI(baseURI, subscriptionID)
+}
+func PossibleAccessControlEntryActionValues() []AccessControlEntryAction {
+	return original.PossibleAccessControlEntryActionValues()
+}
+func PossibleAppServicePlanRestrictionsValues() []AppServicePlanRestrictions {
+	return original.PossibleAppServicePlanRestrictionsValues()
+}
+func PossibleAutoHealActionTypeValues() []AutoHealActionType {
+	return original.PossibleAutoHealActionTypeValues()
+}
+func PossibleAzureResourceTypeValues() []AzureResourceType {
+	return original.PossibleAzureResourceTypeValues()
+}
+func PossibleBackupItemStatusValues() []BackupItemStatus {
+	return original.PossibleBackupItemStatusValues()
+}
+func PossibleBackupRestoreOperationTypeValues() []BackupRestoreOperationType {
+	return original.PossibleBackupRestoreOperationTypeValues()
+}
+func PossibleBuiltInAuthenticationProviderValues() []BuiltInAuthenticationProvider {
+	return original.PossibleBuiltInAuthenticationProviderValues()
+}
+func PossibleCertificateOrderActionTypeValues() []CertificateOrderActionType {
+	return original.PossibleCertificateOrderActionTypeValues()
+}
+func PossibleCertificateOrderStatusValues() []CertificateOrderStatus {
+	return original.PossibleCertificateOrderStatusValues()
+}
+func PossibleCertificateProductTypeValues() []CertificateProductType {
+	return original.PossibleCertificateProductTypeValues()
+}
+func PossibleChannelsValues() []Channels {
+	return original.PossibleChannelsValues()
+}
+func PossibleCheckNameResourceTypesValues() []CheckNameResourceTypes {
+	return original.PossibleCheckNameResourceTypesValues()
+}
+func PossibleCloneAbilityResultValues() []CloneAbilityResult {
+	return original.PossibleCloneAbilityResultValues()
+}
+func PossibleComputeModeOptionsValues() []ComputeModeOptions {
+	return original.PossibleComputeModeOptionsValues()
+}
+func PossibleConnectionStringTypeValues() []ConnectionStringType {
+	return original.PossibleConnectionStringTypeValues()
+}
+func PossibleContinuousWebJobStatusValues() []ContinuousWebJobStatus {
+	return original.PossibleContinuousWebJobStatusValues()
+}
+func PossibleCustomHostNameDNSRecordTypeValues() []CustomHostNameDNSRecordType {
+	return original.PossibleCustomHostNameDNSRecordTypeValues()
+}
+func PossibleDatabaseTypeValues() []DatabaseType {
+	return original.PossibleDatabaseTypeValues()
+}
+func PossibleDNSTypeValues() []DNSType {
+	return original.PossibleDNSTypeValues()
+}
+func PossibleDNSVerificationTestResultValues() []DNSVerificationTestResult {
+	return original.PossibleDNSVerificationTestResultValues()
+}
+func PossibleDomainStatusValues() []DomainStatus {
+	return original.PossibleDomainStatusValues()
+}
+func PossibleDomainTypeValues() []DomainType {
+	return original.PossibleDomainTypeValues()
+}
+func PossibleFrequencyUnitValues() []FrequencyUnit {
+	return original.PossibleFrequencyUnitValues()
+}
+func PossibleFtpsStateValues() []FtpsState {
+	return original.PossibleFtpsStateValues()
+}
+func PossibleHostingEnvironmentStatusValues() []HostingEnvironmentStatus {
+	return original.PossibleHostingEnvironmentStatusValues()
+}
+func PossibleHostNameTypeValues() []HostNameType {
+	return original.PossibleHostNameTypeValues()
+}
+func PossibleHostTypeValues() []HostType {
+	return original.PossibleHostTypeValues()
+}
+func PossibleInAvailabilityReasonTypeValues() []InAvailabilityReasonType {
+	return original.PossibleInAvailabilityReasonTypeValues()
+}
+func PossibleInternalLoadBalancingModeValues() []InternalLoadBalancingMode {
+	return original.PossibleInternalLoadBalancingModeValues()
+}
+func PossibleIPFilterTagValues() []IPFilterTag {
+	return original.PossibleIPFilterTagValues()
+}
+func PossibleIssueTypeValues() []IssueType {
+	return original.PossibleIssueTypeValues()
+}
+func PossibleJobTypeValues() []JobType {
+	return original.PossibleJobTypeValues()
+}
+func PossibleKeyVaultSecretStatusValues() []KeyVaultSecretStatus {
+	return original.PossibleKeyVaultSecretStatusValues()
+}
+func PossibleLogLevelValues() []LogLevel {
+	return original.PossibleLogLevelValues()
+}
+func PossibleManagedPipelineModeValues() []ManagedPipelineMode {
+	return original.PossibleManagedPipelineModeValues()
+}
+func PossibleManagedServiceIdentityTypeValues() []ManagedServiceIdentityType {
+	return original.PossibleManagedServiceIdentityTypeValues()
+}
+func PossibleMSDeployLogEntryTypeValues() []MSDeployLogEntryType {
+	return original.PossibleMSDeployLogEntryTypeValues()
+}
+func PossibleMSDeployProvisioningStateValues() []MSDeployProvisioningState {
+	return original.PossibleMSDeployProvisioningStateValues()
+}
+func PossibleMySQLMigrationTypeValues() []MySQLMigrationType {
+	return original.PossibleMySQLMigrationTypeValues()
+}
+func PossibleNotificationLevelValues() []NotificationLevel {
+	return original.PossibleNotificationLevelValues()
+}
+func PossibleOperationStatusValues() []OperationStatus {
+	return original.PossibleOperationStatusValues()
+}
+func PossibleProvisioningStateValues() []ProvisioningState {
+	return original.PossibleProvisioningStateValues()
+}
+func PossiblePublicCertificateLocationValues() []PublicCertificateLocation {
+	return original.PossiblePublicCertificateLocationValues()
+}
+func PossiblePublishingProfileFormatValues() []PublishingProfileFormat {
+	return original.PossiblePublishingProfileFormatValues()
+}
+func PossibleRenderingTypeValues() []RenderingType {
+	return original.PossibleRenderingTypeValues()
+}
+func PossibleResourceScopeTypeValues() []ResourceScopeType {
+	return original.PossibleResourceScopeTypeValues()
+}
+func PossibleRouteTypeValues() []RouteType {
+	return original.PossibleRouteTypeValues()
+}
+func PossibleScmTypeValues() []ScmType {
+	return original.PossibleScmTypeValues()
+}
+func PossibleSiteAvailabilityStateValues() []SiteAvailabilityState {
+	return original.PossibleSiteAvailabilityStateValues()
+}
+func PossibleSiteExtensionTypeValues() []SiteExtensionType {
+	return original.PossibleSiteExtensionTypeValues()
+}
+func PossibleSiteLoadBalancingValues() []SiteLoadBalancing {
+	return original.PossibleSiteLoadBalancingValues()
+}
+func PossibleSkuNameValues() []SkuName {
+	return original.PossibleSkuNameValues()
+}
+func PossibleSolutionTypeValues() []SolutionType {
+	return original.PossibleSolutionTypeValues()
+}
+func PossibleSslStateValues() []SslState {
+	return original.PossibleSslStateValues()
+}
+func PossibleStatusOptionsValues() []StatusOptions {
+	return original.PossibleStatusOptionsValues()
+}
+func PossibleSupportedTLSVersionsValues() []SupportedTLSVersions {
+	return original.PossibleSupportedTLSVersionsValues()
+}
+func PossibleTriggeredWebJobStatusValues() []TriggeredWebJobStatus {
+	return original.PossibleTriggeredWebJobStatusValues()
+}
+func PossibleUnauthenticatedClientActionValues() []UnauthenticatedClientAction {
+	return original.PossibleUnauthenticatedClientActionValues()
+}
+func PossibleUsageStateValues() []UsageState {
+	return original.PossibleUsageStateValues()
+}
+func PossibleValidateResourceTypesValues() []ValidateResourceTypes {
+	return original.PossibleValidateResourceTypesValues()
+}
+func PossibleWorkerSizeOptionsValues() []WorkerSizeOptions {
+	return original.PossibleWorkerSizeOptionsValues()
+}
 func NewProviderClient(subscriptionID string) ProviderClient {
 	return original.NewProviderClient(subscriptionID)
 }
 func NewProviderClientWithBaseURI(baseURI string, subscriptionID string) ProviderClient {
 	return original.NewProviderClientWithBaseURI(baseURI, subscriptionID)
 }
-
-type RecommendationsClient = original.RecommendationsClient
-
 func NewRecommendationsClient(subscriptionID string) RecommendationsClient {
 	return original.NewRecommendationsClient(subscriptionID)
 }
 func NewRecommendationsClientWithBaseURI(baseURI string, subscriptionID string) RecommendationsClient {
 	return original.NewRecommendationsClientWithBaseURI(baseURI, subscriptionID)
 }
-
-type TopLevelDomainsClient = original.TopLevelDomainsClient
-
 func NewTopLevelDomainsClient(subscriptionID string) TopLevelDomainsClient {
 	return original.NewTopLevelDomainsClient(subscriptionID)
 }

@@ -418,6 +418,8 @@ func (rq *ResourceQuotaController) replenishQuota(groupResource schema.GroupReso
 		}
 	}
 }
+
+// Sync periodically resyncs the controller when new resources are observed from discovery.
 func (rq *ResourceQuotaController) Sync(discoveryFunc NamespacedResourcesFunc, period time.Duration, stopCh <-chan struct{}) {
 	// Something has changed, so track the new state and perform a sync.
 	oldResources := make(map[schema.GroupVersionResource]struct{})

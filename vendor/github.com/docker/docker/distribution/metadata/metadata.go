@@ -1,4 +1,4 @@
-package metadata
+package metadata // import "github.com/docker/docker/distribution/metadata"
 
 import (
 	"io/ioutil"
@@ -26,17 +26,15 @@ type Store interface {
 type FSMetadataStore struct {
 	sync.RWMutex
 	basePath string
-	platform string
 }
 
 // NewFSMetadataStore creates a new filesystem-based metadata store.
-func NewFSMetadataStore(basePath, platform string) (*FSMetadataStore, error) {
+func NewFSMetadataStore(basePath string) (*FSMetadataStore, error) {
 	if err := os.MkdirAll(basePath, 0700); err != nil {
 		return nil, err
 	}
 	return &FSMetadataStore{
 		basePath: basePath,
-		platform: platform,
 	}, nil
 }
 

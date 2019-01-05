@@ -1,6 +1,6 @@
 // +build linux,seccomp
 
-package seccomp
+package seccomp // import "github.com/docker/docker/profiles/seccomp"
 
 import (
 	"github.com/docker/docker/api/types"
@@ -315,6 +315,7 @@ func DefaultProfile() *types.Seccomp {
 				"stat64",
 				"statfs",
 				"statfs64",
+				"statx",
 				"symlink",
 				"symlinkat",
 				"sync",

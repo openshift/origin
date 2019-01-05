@@ -17,6 +17,9 @@
         "https://www.googleapis.com/auth/admin.directory.user": {
           "description": "View and manage the provisioning of users on your domain"
         },
+        "https://www.googleapis.com/auth/documents": {
+          "description": "View and manage your Google Docs documents"
+        },
         "https://www.googleapis.com/auth/drive": {
           "description": "View and manage the files in your Google Drive"
         },
@@ -90,11 +93,6 @@
       "location": "query",
       "type": "string"
     },
-    "bearer_token": {
-      "description": "OAuth bearer token.",
-      "location": "query",
-      "type": "string"
-    },
     "callback": {
       "description": "JSONP",
       "location": "query",
@@ -114,12 +112,6 @@
       "description": "OAuth 2.0 token for the current user.",
       "location": "query",
       "type": "string"
-    },
-    "pp": {
-      "default": "true",
-      "description": "Pretty-print response.",
-      "location": "query",
-      "type": "boolean"
     },
     "prettyPrint": {
       "default": "true",
@@ -746,6 +738,7 @@
             "https://www.google.com/m8/feeds",
             "https://www.googleapis.com/auth/admin.directory.group",
             "https://www.googleapis.com/auth/admin.directory.user",
+            "https://www.googleapis.com/auth/documents",
             "https://www.googleapis.com/auth/drive",
             "https://www.googleapis.com/auth/forms",
             "https://www.googleapis.com/auth/forms.currentonly",
@@ -757,7 +750,7 @@
       }
     }
   },
-  "revision": "20180531",
+  "revision": "20180601",
   "rootUrl": "https://script.googleapis.com/",
   "schemas": {
     "Content": {

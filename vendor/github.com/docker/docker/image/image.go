@@ -1,4 +1,4 @@
-package image
+package image // import "github.com/docker/docker/image"
 
 import (
 	"encoding/json"
@@ -96,8 +96,17 @@ func (img *Image) RunConfig() *container.Config {
 	return img.Config
 }
 
-// Platform returns the image's operating system. If not populated, defaults to the host runtime OS.
-func (img *Image) Platform() string {
+// BaseImgArch returns the image's architecture. If not populated, defaults to the host runtime arch.
+func (img *Image) BaseImgArch() string {
+	arch := img.Architecture
+	if arch == "" {
+		arch = runtime.GOARCH
+	}
+	return arch
+}
+
+// OperatingSystem returns the image's operating system. If not populated, defaults to the host runtime OS.
+func (img *Image) OperatingSystem() string {
 	os := img.OS
 	if os == "" {
 		os = runtime.GOOS
@@ -157,7 +166,7 @@ func NewChildImage(img *Image, child ChildConfig, platform string) *Image {
 		V1Image: V1Image{
 			DockerVersion:   dockerversion.Version,
 			Config:          child.Config,
-			Architecture:    runtime.GOARCH,
+			Architecture:    img.BaseImgArch(),
 			OS:              platform,
 			Container:       child.ContainerID,
 			ContainerConfig: *child.ContainerConfig,

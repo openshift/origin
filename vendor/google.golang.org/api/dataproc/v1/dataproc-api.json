@@ -60,11 +60,6 @@
       "location": "query",
       "type": "string"
     },
-    "bearer_token": {
-      "description": "OAuth bearer token.",
-      "location": "query",
-      "type": "string"
-    },
     "callback": {
       "description": "JSONP",
       "location": "query",
@@ -84,12 +79,6 @@
       "description": "OAuth 2.0 token for the current user.",
       "location": "query",
       "type": "string"
-    },
-    "pp": {
-      "default": "true",
-      "description": "Pretty-print response.",
-      "location": "query",
-      "type": "boolean"
     },
     "prettyPrint": {
       "default": "true",
@@ -783,7 +772,7 @@
       }
     }
   },
-  "revision": "20180502",
+  "revision": "20180612",
   "rootUrl": "https://dataproc.googleapis.com/",
   "schemas": {
     "AcceleratorConfig": {
@@ -910,6 +899,25 @@
           },
           "description": "The YARN metrics.",
           "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "ClusterOperation": {
+      "description": "The cluster operation triggered by a workflow.",
+      "id": "ClusterOperation",
+      "properties": {
+        "done": {
+          "description": "Output only. Indicates the operation is done.",
+          "type": "boolean"
+        },
+        "error": {
+          "description": "Output only. Error, if operation failed.",
+          "type": "string"
+        },
+        "operationId": {
+          "description": "Output only. The id of the cluster operation.",
+          "type": "string"
         }
       },
       "type": "object"
@@ -1073,6 +1081,10 @@
           "description": "Optional. Size in GB of the boot disk (default is 500GB).",
           "format": "int32",
           "type": "integer"
+        },
+        "bootDiskType": {
+          "description": "Optional. Type of the boot disk (default is \"pd-standard\"). Valid values: \"pd-ssd\" (Persistent Disk Solid State Drive) or \"pd-standard\" (Persistent Disk Hard Disk Drive).",
+          "type": "string"
         },
         "numLocalSsds": {
           "description": "Optional. Number of attached SSDs, from 0 to 4 (default is 0). If SSDs are not attached, the boot disk is used to store runtime logs and HDFS (https://hadoop.apache.org/docs/r1.2.1/hdfs_user_guide.html) data. If one or more SSDs are attached, this runtime bulk data is spread across them, and the boot disk contains only basic config and installed binaries.",
@@ -1863,6 +1875,121 @@
         },
         "requestId": {
           "description": "Optional. A unique id used to identify the request. If the server receives two SubmitJobRequest requests with the same id, then the second request will be ignored and the first Job created and stored in the backend is returned.It is recommended to always set this value to a UUID (https://en.wikipedia.org/wiki/Universally_unique_identifier).The id must contain only letters (a-z, A-Z), numbers (0-9), underscores (_), and hyphens (-). The maximum length is 40 characters.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "WorkflowGraph": {
+      "description": "The workflow graph.",
+      "id": "WorkflowGraph",
+      "properties": {
+        "nodes": {
+          "description": "Output only. The workflow nodes.",
+          "items": {
+            "$ref": "WorkflowNode"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "WorkflowMetadata": {
+      "description": "A Cloud Dataproc workflow template resource.",
+      "id": "WorkflowMetadata",
+      "properties": {
+        "clusterName": {
+          "description": "Output only. The name of the managed cluster.",
+          "type": "string"
+        },
+        "createCluster": {
+          "$ref": "ClusterOperation",
+          "description": "Output only. The create cluster operation metadata."
+        },
+        "deleteCluster": {
+          "$ref": "ClusterOperation",
+          "description": "Output only. The delete cluster operation metadata."
+        },
+        "graph": {
+          "$ref": "WorkflowGraph",
+          "description": "Output only. The workflow graph."
+        },
+        "parameters": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Map from parameter names to values that were used for those parameters.",
+          "type": "object"
+        },
+        "state": {
+          "description": "Output only. The workflow state.",
+          "enum": [
+            "UNKNOWN",
+            "PENDING",
+            "RUNNING",
+            "DONE"
+          ],
+          "enumDescriptions": [
+            "Unused.",
+            "The operation has been created.",
+            "The operation is running.",
+            "The operation is done; either cancelled or completed."
+          ],
+          "type": "string"
+        },
+        "template": {
+          "description": "Output only. The \"resource name\" of the template.",
+          "type": "string"
+        },
+        "version": {
+          "description": "Output only. The version of template at the time of workflow instantiation.",
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "WorkflowNode": {
+      "description": "The workflow node.",
+      "id": "WorkflowNode",
+      "properties": {
+        "error": {
+          "description": "Output only. The error detail.",
+          "type": "string"
+        },
+        "jobId": {
+          "description": "Output only. The job id; populated after the node enters RUNNING state.",
+          "type": "string"
+        },
+        "prerequisiteStepIds": {
+          "description": "Output only. Node's prerequisite nodes.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "state": {
+          "description": "Output only. The node state.",
+          "enum": [
+            "NODE_STATE_UNSPECIFIED",
+            "BLOCKED",
+            "RUNNABLE",
+            "RUNNING",
+            "COMPLETED",
+            "FAILED"
+          ],
+          "enumDescriptions": [
+            "State is unspecified.",
+            "The node is awaiting prerequisite node to finish.",
+            "The node is runnable but not running.",
+            "The node is running.",
+            "The node completed successfully.",
+            "The node failed. A node can be marked FAILED because its ancestor or peer failed."
+          ],
+          "type": "string"
+        },
+        "stepId": {
+          "description": "Output only. The name of the node.",
           "type": "string"
         }
       },

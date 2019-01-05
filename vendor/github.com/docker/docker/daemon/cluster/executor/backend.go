@@ -1,6 +1,7 @@
-package executor
+package executor // import "github.com/docker/docker/daemon/cluster/executor"
 
 import (
+	"context"
 	"io"
 	"time"
 
@@ -15,22 +16,22 @@ import (
 	swarmtypes "github.com/docker/docker/api/types/swarm"
 	containerpkg "github.com/docker/docker/container"
 	clustertypes "github.com/docker/docker/daemon/cluster/provider"
+	networkSettings "github.com/docker/docker/daemon/network"
 	"github.com/docker/docker/plugin"
+	volumeopts "github.com/docker/docker/volume/service/opts"
 	"github.com/docker/libnetwork"
 	"github.com/docker/libnetwork/cluster"
 	networktypes "github.com/docker/libnetwork/types"
 	"github.com/docker/swarmkit/agent/exec"
-	"golang.org/x/net/context"
 )
 
 // Backend defines the executor component for a swarm agent.
 type Backend interface {
 	CreateManagedNetwork(clustertypes.NetworkCreateRequest) error
-	DeleteManagedNetwork(name string) error
+	DeleteManagedNetwork(networkID string) error
 	FindNetwork(idName string) (libnetwork.Network, error)
 	SetupIngress(clustertypes.NetworkCreateRequest, string) (<-chan struct{}, error)
 	ReleaseIngress() (<-chan struct{}, error)
-	PullImage(ctx context.Context, image, tag, platform string, metaHeaders map[string][]string, authConfig *types.AuthConfig, outStream io.Writer) error
 	CreateManagedContainer(config types.ContainerCreateConfig) (container.ContainerCreateCreatedBody, error)
 	ContainerStart(name string, hostConfig *container.HostConfig, checkpoint string, checkpointDir string) error
 	ContainerStop(name string, seconds *int) error
@@ -47,7 +48,6 @@ type Backend interface {
 	SetContainerSecretReferences(name string, refs []*swarmtypes.SecretReference) error
 	SetContainerConfigReferences(name string, refs []*swarmtypes.ConfigReference) error
 	SystemInfo() (*types.Info, error)
-	VolumeCreate(name, driverName string, opts, labels map[string]string) (*types.Volume, error)
 	Containers(config *types.ContainerListOptions) ([]*types.Container, error)
 	SetNetworkBootstrapKeys([]*networktypes.EncryptionKey) error
 	DaemonJoinsCluster(provider cluster.Provider)
@@ -57,8 +57,19 @@ type Backend interface {
 	UnsubscribeFromEvents(listener chan interface{})
 	UpdateAttachment(string, string, string, *network.NetworkingConfig) error
 	WaitForDetachment(context.Context, string, string, string, string) error
-	GetRepository(context.Context, reference.Named, *types.AuthConfig) (distribution.Repository, bool, error)
-	LookupImage(name string) (*types.ImageInspect, error)
 	PluginManager() *plugin.Manager
 	PluginGetter() *plugin.Store
+	GetAttachmentStore() *networkSettings.AttachmentStore
+}
+
+// VolumeBackend is used by an executor to perform volume operations
+type VolumeBackend interface {
+	Create(ctx context.Context, name, driverName string, opts ...volumeopts.CreateOption) (*types.Volume, error)
+}
+
+// ImageBackend is used by an executor to perform image operations
+type ImageBackend interface {
+	PullImage(ctx context.Context, image, tag, platform string, metaHeaders map[string][]string, authConfig *types.AuthConfig, outStream io.Writer) error
+	GetRepository(context.Context, reference.Named, *types.AuthConfig) (distribution.Repository, bool, error)
+	LookupImage(name string) (*types.ImageInspect, error)
 }

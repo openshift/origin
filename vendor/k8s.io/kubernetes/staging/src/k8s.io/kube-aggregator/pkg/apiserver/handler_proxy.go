@@ -18,7 +18,6 @@ package apiserver
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"sync/atomic"
@@ -31,7 +30,6 @@ import (
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/proxy"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
-	endpointmetrics "k8s.io/apiserver/pkg/endpoints/metrics"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	genericfeatures "k8s.io/apiserver/pkg/features"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
@@ -62,8 +60,6 @@ type proxyHandlingInfo struct {
 	// local indicates that this APIService is locally satisfied
 	local bool
 
-	// name is the name of the APIService
-	name string
 	// restConfig holds the information for building a roundtripper
 	restConfig *restclient.Config
 	// transportBuildingError is an error produced while building the transport.  If this
@@ -77,19 +73,6 @@ type proxyHandlingInfo struct {
 	serviceNamespace string
 	// serviceAvailable indicates this APIService is available or not
 	serviceAvailable bool
-}
-
-func proxyError(w http.ResponseWriter, req *http.Request, error string, code int) {
-	http.Error(w, error, code)
-
-	ctx := req.Context()
-	info, ok := genericapirequest.RequestInfoFrom(ctx)
-	if !ok {
-		glog.Warning("no RequestInfo found in the context")
-		return
-	}
-	// TODO: record long-running request differently? The long-running check func does not necessarily match the one of the aggregated apiserver
-	endpointmetrics.Record(req, info, "", code, 0, 0)
 }
 
 func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -109,18 +92,18 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if !handlingInfo.serviceAvailable {
-		proxyError(w, req, "service unavailable", http.StatusServiceUnavailable)
+		http.Error(w, "service unavailable", http.StatusServiceUnavailable)
 		return
 	}
 
 	if handlingInfo.transportBuildingError != nil {
-		proxyError(w, req, handlingInfo.transportBuildingError.Error(), http.StatusInternalServerError)
+		http.Error(w, handlingInfo.transportBuildingError.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	user, ok := genericapirequest.UserFrom(req.Context())
 	if !ok {
-		proxyError(w, req, "missing user", http.StatusInternalServerError)
+		http.Error(w, "missing user", http.StatusInternalServerError)
 		return
 	}
 
@@ -130,7 +113,7 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	rloc, err := r.serviceResolver.ResolveEndpoint(handlingInfo.serviceNamespace, handlingInfo.serviceName)
 	if err != nil {
 		glog.Errorf("error resolving %s/%s: %v", handlingInfo.serviceNamespace, handlingInfo.serviceName, err)
-		proxyError(w, req, "service unavailable", http.StatusServiceUnavailable)
+		http.Error(w, "service unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	location.Host = rloc.Host
@@ -143,14 +126,14 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	newReq.URL = location
 
 	if handlingInfo.proxyRoundTripper == nil {
-		proxyError(w, req, "", http.StatusNotFound)
+		http.Error(w, "", http.StatusNotFound)
 		return
 	}
 
 	// we need to wrap the roundtripper in another roundtripper which will apply the front proxy headers
 	proxyRoundTripper, upgrade, err := maybeWrapForConnectionUpgrades(handlingInfo.restConfig, handlingInfo.proxyRoundTripper, req)
 	if err != nil {
-		proxyError(w, req, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	proxyRoundTripper = transport.NewAuthProxyRoundTripper(user.GetName(), user.GetGroups(), user.GetExtra(), proxyRoundTripper)
@@ -178,7 +161,8 @@ func maybeWrapForConnectionUpgrades(restConfig *restclient.Config, rt http.Round
 		return nil, true, err
 	}
 	followRedirects := utilfeature.DefaultFeatureGate.Enabled(genericfeatures.StreamingProxyRedirects)
-	upgradeRoundTripper := spdy.NewRoundTripper(tlsConfig, followRedirects)
+	requireSameHostRedirects := utilfeature.DefaultFeatureGate.Enabled(genericfeatures.ValidateProxyRedirects)
+	upgradeRoundTripper := spdy.NewRoundTripper(tlsConfig, followRedirects, requireSameHostRedirects)
 	wrappedRT, err := restclient.HTTPWrappersForConfig(restConfig, upgradeRoundTripper)
 	if err != nil {
 		return nil, true, err
@@ -211,7 +195,6 @@ func (r *proxyHandler) updateAPIService(apiService *apiregistrationapi.APIServic
 	}
 
 	newInfo := proxyHandlingInfo{
-		name: apiService.Name,
 		restConfig: &restclient.Config{
 			TLSClientConfig: restclient.TLSClientConfig{
 				Insecure:   apiService.Spec.InsecureSkipTLSVerify,
@@ -225,15 +208,12 @@ func (r *proxyHandler) updateAPIService(apiService *apiregistrationapi.APIServic
 		serviceNamespace: apiService.Spec.Service.Namespace,
 		serviceAvailable: apiregistrationapi.IsAPIServiceConditionTrue(apiService, apiregistrationapi.Available),
 	}
+	if r.proxyTransport != nil && r.proxyTransport.DialContext != nil {
+		newInfo.restConfig.Dial = r.proxyTransport.DialContext
+	}
 	newInfo.proxyRoundTripper, newInfo.transportBuildingError = restclient.TransportFor(newInfo.restConfig)
-	if newInfo.transportBuildingError == nil && r.proxyTransport != nil && r.proxyTransport.DialContext != nil {
-		switch transport := newInfo.proxyRoundTripper.(type) {
-		case *http.Transport:
-			transport.DialContext = r.proxyTransport.DialContext
-		default:
-			newInfo.transportBuildingError = fmt.Errorf("unable to set dialer for %s/%s as rest transport is of type %T", apiService.Spec.Service.Namespace, apiService.Spec.Service.Name, newInfo.proxyRoundTripper)
-			glog.Warning(newInfo.transportBuildingError.Error())
-		}
+	if newInfo.transportBuildingError != nil {
+		glog.Warning(newInfo.transportBuildingError.Error())
 	}
 	r.handlingInfo.Store(newInfo)
 }

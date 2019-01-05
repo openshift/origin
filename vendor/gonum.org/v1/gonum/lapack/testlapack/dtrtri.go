@@ -1,0 +1,100 @@
+// Copyright ©2015 The Gonum Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+package testlapack
+
+import (
+	"math"
+	"testing"
+
+	"golang.org/x/exp/rand"
+
+	"gonum.org/v1/gonum/blas"
+	"gonum.org/v1/gonum/blas/blas64"
+)
+
+type Dtrtrier interface {
+	Dtrconer
+	Dtrtri(uplo blas.Uplo, diag blas.Diag, n int, a []float64, lda int) bool
+}
+
+func DtrtriTest(t *testing.T, impl Dtrtrier) {
+	const tol = 1e-10
+	rnd := rand.New(rand.NewSource(1))
+	bi := blas64.Implementation()
+	for _, uplo := range []blas.Uplo{blas.Upper, blas.Lower} {
+		for _, diag := range []blas.Diag{blas.NonUnit, blas.Unit} {
+			for _, test := range []struct {
+				n, lda int
+			}{
+				{3, 0},
+				{70, 0},
+				{200, 0},
+				{3, 5},
+				{70, 92},
+				{200, 205},
+			} {
+				n := test.n
+				lda := test.lda
+				if lda == 0 {
+					lda = n
+				}
+				a := make([]float64, n*lda)
+				for i := range a {
+					a[i] = rnd.Float64()
+				}
+				for i := 0; i < n; i++ {
+					// This keeps the matrices well conditioned.
+					a[i*lda+i] += float64(n)
+				}
+				aCopy := make([]float64, len(a))
+				copy(aCopy, a)
+				impl.Dtrtri(uplo, diag, n, a, lda)
+				if uplo == blas.Upper {
+					for i := 1; i < n; i++ {
+						for j := 0; j < i; j++ {
+							aCopy[i*lda+j] = 0
+							a[i*lda+j] = 0
+						}
+					}
+				} else {
+					for i := 0; i < n; i++ {
+						for j := i + 1; j < n; j++ {
+							aCopy[i*lda+j] = 0
+							a[i*lda+j] = 0
+						}
+					}
+				}
+				if diag == blas.Unit {
+					for i := 0; i < n; i++ {
+						a[i*lda+i] = 1
+						aCopy[i*lda+i] = 1
+					}
+				}
+				ans := make([]float64, len(a))
+				bi.Dgemm(blas.NoTrans, blas.NoTrans, n, n, n, 1, a, lda, aCopy, lda, 0, ans, lda)
+				iseye := true
+				for i := 0; i < n; i++ {
+					for j := 0; j < n; j++ {
+						if i == j {
+							if math.Abs(ans[i*lda+i]-1) > tol {
+								iseye = false
+								break
+							}
+						} else {
+							if math.Abs(ans[i*lda+j]) > tol {
+								iseye = false
+								break
+							}
+						}
+					}
+				}
+				if !iseye {
+					t.Errorf("inv(A) * A != I. Upper = %v, unit = %v, n = %v, lda = %v",
+						uplo == blas.Upper, diag == blas.Unit, n, lda)
+				}
+			}
+		}
+	}
+}

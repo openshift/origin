@@ -41,17 +41,18 @@ func NewEventSubscriptionsClientWithBaseURI(baseURI string, subscriptionID strin
 
 // CreateOrUpdate asynchronously creates a new event subscription or updates an existing event subscription based on
 // the specified scope.
-//
-// scope is the identifier of the resource to which the event subscription needs to be created or updated. The
+// Parameters:
+// scope - the identifier of the resource to which the event subscription needs to be created or updated. The
 // scope can be a subscription, or a resource group, or a top level resource belonging to a resource provider
 // namespace, or an EventGrid topic. For example, use '/subscriptions/{subscriptionId}/' for a subscription,
 // '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}' for a resource group, and
 // '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}'
 // for a resource, and
 // '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.EventGrid/topics/{topicName}'
-// for an EventGrid topic. eventSubscriptionName is name of the event subscription. Event subscription names must
-// be between 3 and 64 characters in length and should use alphanumeric letters only. eventSubscriptionInfo is
-// event subscription properties containing the destination and filter information
+// for an EventGrid topic.
+// eventSubscriptionName - name of the event subscription. Event subscription names must be between 3 and 64
+// characters in length and should use alphanumeric letters only.
+// eventSubscriptionInfo - event subscription properties containing the destination and filter information
 func (client EventSubscriptionsClient) CreateOrUpdate(ctx context.Context, scope string, eventSubscriptionName string, eventSubscriptionInfo EventSubscription) (result EventSubscriptionsCreateOrUpdateFuture, err error) {
 	req, err := client.CreateOrUpdatePreparer(ctx, scope, eventSubscriptionName, eventSubscriptionInfo)
 	if err != nil {
@@ -81,7 +82,7 @@ func (client EventSubscriptionsClient) CreateOrUpdatePreparer(ctx context.Contex
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/{scope}/providers/Microsoft.EventGrid/eventSubscriptions/{eventSubscriptionName}", pathParameters),
@@ -93,15 +94,17 @@ func (client EventSubscriptionsClient) CreateOrUpdatePreparer(ctx context.Contex
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client EventSubscriptionsClient) CreateOrUpdateSender(req *http.Request) (future EventSubscriptionsCreateOrUpdateFuture, err error) {
-	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -119,15 +122,16 @@ func (client EventSubscriptionsClient) CreateOrUpdateResponder(resp *http.Respon
 }
 
 // Delete delete an existing event subscription
-//
-// scope is the scope of the event subscription. The scope can be a subscription, or a resource group, or a top
+// Parameters:
+// scope - the scope of the event subscription. The scope can be a subscription, or a resource group, or a top
 // level resource belonging to a resource provider namespace, or an EventGrid topic. For example, use
 // '/subscriptions/{subscriptionId}/' for a subscription,
 // '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}' for a resource group, and
 // '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}'
 // for a resource, and
 // '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.EventGrid/topics/{topicName}'
-// for an EventGrid topic. eventSubscriptionName is name of the event subscription
+// for an EventGrid topic.
+// eventSubscriptionName - name of the event subscription
 func (client EventSubscriptionsClient) Delete(ctx context.Context, scope string, eventSubscriptionName string) (result EventSubscriptionsDeleteFuture, err error) {
 	req, err := client.DeletePreparer(ctx, scope, eventSubscriptionName)
 	if err != nil {
@@ -167,15 +171,17 @@ func (client EventSubscriptionsClient) DeletePreparer(ctx context.Context, scope
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client EventSubscriptionsClient) DeleteSender(req *http.Request) (future EventSubscriptionsDeleteFuture, err error) {
-	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -192,15 +198,16 @@ func (client EventSubscriptionsClient) DeleteResponder(resp *http.Response) (res
 }
 
 // Get get properties of an event subscription
-//
-// scope is the scope of the event subscription. The scope can be a subscription, or a resource group, or a top
+// Parameters:
+// scope - the scope of the event subscription. The scope can be a subscription, or a resource group, or a top
 // level resource belonging to a resource provider namespace, or an EventGrid topic. For example, use
 // '/subscriptions/{subscriptionId}/' for a subscription,
 // '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}' for a resource group, and
 // '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}'
 // for a resource, and
 // '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.EventGrid/topics/{topicName}'
-// for an EventGrid topic. eventSubscriptionName is name of the event subscription
+// for an EventGrid topic.
+// eventSubscriptionName - name of the event subscription
 func (client EventSubscriptionsClient) Get(ctx context.Context, scope string, eventSubscriptionName string) (result EventSubscription, err error) {
 	req, err := client.GetPreparer(ctx, scope, eventSubscriptionName)
 	if err != nil {
@@ -264,15 +271,16 @@ func (client EventSubscriptionsClient) GetResponder(resp *http.Response) (result
 }
 
 // GetFullURL get the full endpoint URL for an event subscription
-//
-// scope is the scope of the event subscription. The scope can be a subscription, or a resource group, or a top
+// Parameters:
+// scope - the scope of the event subscription. The scope can be a subscription, or a resource group, or a top
 // level resource belonging to a resource provider namespace, or an EventGrid topic. For example, use
 // '/subscriptions/{subscriptionId}/' for a subscription,
 // '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}' for a resource group, and
 // '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}'
 // for a resource, and
 // '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.EventGrid/topics/{topicName}'
-// for an EventGrid topic. eventSubscriptionName is name of the event subscription
+// for an EventGrid topic.
+// eventSubscriptionName - name of the event subscription
 func (client EventSubscriptionsClient) GetFullURL(ctx context.Context, scope string, eventSubscriptionName string) (result EventSubscriptionFullURL, err error) {
 	req, err := client.GetFullURLPreparer(ctx, scope, eventSubscriptionName)
 	if err != nil {
@@ -336,10 +344,11 @@ func (client EventSubscriptionsClient) GetFullURLResponder(resp *http.Response) 
 }
 
 // ListByResource list all event subscriptions that have been created for a specific topic
-//
-// resourceGroupName is the name of the resource group within the user's subscription. providerNamespace is
-// namespace of the provider of the topic resourceTypeName is name of the resource type resourceName is name of the
-// resource
+// Parameters:
+// resourceGroupName - the name of the resource group within the user's subscription.
+// providerNamespace - namespace of the provider of the topic
+// resourceTypeName - name of the resource type
+// resourceName - name of the resource
 func (client EventSubscriptionsClient) ListByResource(ctx context.Context, resourceGroupName string, providerNamespace string, resourceTypeName string, resourceName string) (result EventSubscriptionsListResult, err error) {
 	req, err := client.ListByResourcePreparer(ctx, resourceGroupName, providerNamespace, resourceTypeName, resourceName)
 	if err != nil {
@@ -406,8 +415,8 @@ func (client EventSubscriptionsClient) ListByResourceResponder(resp *http.Respon
 }
 
 // ListGlobalByResourceGroup list all global event subscriptions under a specific Azure subscription and resource group
-//
-// resourceGroupName is the name of the resource group within the user's subscription.
+// Parameters:
+// resourceGroupName - the name of the resource group within the user's subscription.
 func (client EventSubscriptionsClient) ListGlobalByResourceGroup(ctx context.Context, resourceGroupName string) (result EventSubscriptionsListResult, err error) {
 	req, err := client.ListGlobalByResourceGroupPreparer(ctx, resourceGroupName)
 	if err != nil {
@@ -472,9 +481,9 @@ func (client EventSubscriptionsClient) ListGlobalByResourceGroupResponder(resp *
 
 // ListGlobalByResourceGroupForTopicType list all global event subscriptions under a resource group for a specific
 // topic type.
-//
-// resourceGroupName is the name of the resource group within the user's subscription. topicTypeName is name of the
-// topic type
+// Parameters:
+// resourceGroupName - the name of the resource group within the user's subscription.
+// topicTypeName - name of the topic type
 func (client EventSubscriptionsClient) ListGlobalByResourceGroupForTopicType(ctx context.Context, resourceGroupName string, topicTypeName string) (result EventSubscriptionsListResult, err error) {
 	req, err := client.ListGlobalByResourceGroupForTopicTypePreparer(ctx, resourceGroupName, topicTypeName)
 	if err != nil {
@@ -602,8 +611,8 @@ func (client EventSubscriptionsClient) ListGlobalBySubscriptionResponder(resp *h
 
 // ListGlobalBySubscriptionForTopicType list all global event subscriptions under an Azure subscription for a topic
 // type.
-//
-// topicTypeName is name of the topic type
+// Parameters:
+// topicTypeName - name of the topic type
 func (client EventSubscriptionsClient) ListGlobalBySubscriptionForTopicType(ctx context.Context, topicTypeName string) (result EventSubscriptionsListResult, err error) {
 	req, err := client.ListGlobalBySubscriptionForTopicTypePreparer(ctx, topicTypeName)
 	if err != nil {
@@ -668,9 +677,9 @@ func (client EventSubscriptionsClient) ListGlobalBySubscriptionForTopicTypeRespo
 
 // ListRegionalByResourceGroup list all event subscriptions from the given location under a specific Azure subscription
 // and resource group
-//
-// resourceGroupName is the name of the resource group within the user's subscription. location is name of the
-// location
+// Parameters:
+// resourceGroupName - the name of the resource group within the user's subscription.
+// location - name of the location
 func (client EventSubscriptionsClient) ListRegionalByResourceGroup(ctx context.Context, resourceGroupName string, location string) (result EventSubscriptionsListResult, err error) {
 	req, err := client.ListRegionalByResourceGroupPreparer(ctx, resourceGroupName, location)
 	if err != nil {
@@ -736,9 +745,10 @@ func (client EventSubscriptionsClient) ListRegionalByResourceGroupResponder(resp
 
 // ListRegionalByResourceGroupForTopicType list all event subscriptions from the given location under a specific Azure
 // subscription and resource group and topic type
-//
-// resourceGroupName is the name of the resource group within the user's subscription. location is name of the
-// location topicTypeName is name of the topic type
+// Parameters:
+// resourceGroupName - the name of the resource group within the user's subscription.
+// location - name of the location
+// topicTypeName - name of the topic type
 func (client EventSubscriptionsClient) ListRegionalByResourceGroupForTopicType(ctx context.Context, resourceGroupName string, location string, topicTypeName string) (result EventSubscriptionsListResult, err error) {
 	req, err := client.ListRegionalByResourceGroupForTopicTypePreparer(ctx, resourceGroupName, location, topicTypeName)
 	if err != nil {
@@ -804,8 +814,8 @@ func (client EventSubscriptionsClient) ListRegionalByResourceGroupForTopicTypeRe
 }
 
 // ListRegionalBySubscription list all event subscriptions from the given location under a specific Azure subscription
-//
-// location is name of the location
+// Parameters:
+// location - name of the location
 func (client EventSubscriptionsClient) ListRegionalBySubscription(ctx context.Context, location string) (result EventSubscriptionsListResult, err error) {
 	req, err := client.ListRegionalBySubscriptionPreparer(ctx, location)
 	if err != nil {
@@ -870,8 +880,9 @@ func (client EventSubscriptionsClient) ListRegionalBySubscriptionResponder(resp 
 
 // ListRegionalBySubscriptionForTopicType list all event subscriptions from the given location under a specific Azure
 // subscription and topic type.
-//
-// location is name of the location topicTypeName is name of the topic type
+// Parameters:
+// location - name of the location
+// topicTypeName - name of the topic type
 func (client EventSubscriptionsClient) ListRegionalBySubscriptionForTopicType(ctx context.Context, location string, topicTypeName string) (result EventSubscriptionsListResult, err error) {
 	req, err := client.ListRegionalBySubscriptionForTopicTypePreparer(ctx, location, topicTypeName)
 	if err != nil {
@@ -936,16 +947,17 @@ func (client EventSubscriptionsClient) ListRegionalBySubscriptionForTopicTypeRes
 }
 
 // Update asynchronously updates an existing event subscription.
-//
-// scope is the scope of existing event subscription. The scope can be a subscription, or a resource group, or a
+// Parameters:
+// scope - the scope of existing event subscription. The scope can be a subscription, or a resource group, or a
 // top level resource belonging to a resource provider namespace, or an EventGrid topic. For example, use
 // '/subscriptions/{subscriptionId}/' for a subscription,
 // '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}' for a resource group, and
 // '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{resourceType}/{resourceName}'
 // for a resource, and
 // '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.EventGrid/topics/{topicName}'
-// for an EventGrid topic. eventSubscriptionName is name of the event subscription to be created
-// eventSubscriptionUpdateParameters is updated event subscription information
+// for an EventGrid topic.
+// eventSubscriptionName - name of the event subscription to be created
+// eventSubscriptionUpdateParameters - updated event subscription information
 func (client EventSubscriptionsClient) Update(ctx context.Context, scope string, eventSubscriptionName string, eventSubscriptionUpdateParameters EventSubscriptionUpdateParameters) (result EventSubscriptionsUpdateFuture, err error) {
 	req, err := client.UpdatePreparer(ctx, scope, eventSubscriptionName, eventSubscriptionUpdateParameters)
 	if err != nil {
@@ -975,7 +987,7 @@ func (client EventSubscriptionsClient) UpdatePreparer(ctx context.Context, scope
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/{scope}/providers/Microsoft.EventGrid/eventSubscriptions/{eventSubscriptionName}", pathParameters),
@@ -987,15 +999,17 @@ func (client EventSubscriptionsClient) UpdatePreparer(ctx context.Context, scope
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client EventSubscriptionsClient) UpdateSender(req *http.Request) (future EventSubscriptionsUpdateFuture, err error) {
-	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 

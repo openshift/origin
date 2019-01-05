@@ -17,6 +17,7 @@ limitations under the License.
 package generators
 
 import (
+	"path/filepath"
 	"testing"
 )
 
@@ -24,12 +25,14 @@ func TestRemoveLastDir(t *testing.T) {
 	table := map[string]struct{ newPath, removedDir string }{
 		"a/b/c": {"a/c", "b"},
 	}
-	for input, expect := range table {
+	for slashInput, expect := range table {
+		input := filepath.FromSlash(slashInput)
+
 		gotPath, gotRemoved := removeLastDir(input)
-		if e, a := expect.newPath, gotPath; e != a {
+		if e, a := filepath.FromSlash(expect.newPath), gotPath; e != a {
 			t.Errorf("%v: wanted %v, got %v", input, e, a)
 		}
-		if e, a := expect.removedDir, gotRemoved; e != a {
+		if e, a := filepath.FromSlash(expect.removedDir), gotRemoved; e != a {
 			t.Errorf("%v: wanted %v, got %v", input, e, a)
 		}
 	}

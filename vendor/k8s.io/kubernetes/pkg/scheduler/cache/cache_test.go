@@ -108,7 +108,7 @@ func TestAssumePodScheduled(t *testing.T) {
 			allocatableResource: &Resource{},
 			pods:                []*v1.Pod{testPods[0]},
 			usedPorts:           newHostPortInfoBuilder().add("TCP", "127.0.0.1", 80).build(),
-			imageSizes:          map[string]int64{},
+			imageStates:         make(map[string]*ImageStateSummary),
 		},
 	}, {
 		pods: []*v1.Pod{testPods[1], testPods[2]},
@@ -125,7 +125,7 @@ func TestAssumePodScheduled(t *testing.T) {
 			allocatableResource: &Resource{},
 			pods:                []*v1.Pod{testPods[1], testPods[2]},
 			usedPorts:           newHostPortInfoBuilder().add("TCP", "127.0.0.1", 80).add("TCP", "127.0.0.1", 8080).build(),
-			imageSizes:          map[string]int64{},
+			imageStates:         make(map[string]*ImageStateSummary),
 		},
 	}, { // test non-zero request
 		pods: []*v1.Pod{testPods[3]},
@@ -142,7 +142,7 @@ func TestAssumePodScheduled(t *testing.T) {
 			allocatableResource: &Resource{},
 			pods:                []*v1.Pod{testPods[3]},
 			usedPorts:           newHostPortInfoBuilder().add("TCP", "127.0.0.1", 80).build(),
-			imageSizes:          map[string]int64{},
+			imageStates:         make(map[string]*ImageStateSummary),
 		},
 	}, {
 		pods: []*v1.Pod{testPods[4]},
@@ -160,7 +160,7 @@ func TestAssumePodScheduled(t *testing.T) {
 			allocatableResource: &Resource{},
 			pods:                []*v1.Pod{testPods[4]},
 			usedPorts:           newHostPortInfoBuilder().add("TCP", "127.0.0.1", 80).build(),
-			imageSizes:          map[string]int64{},
+			imageStates:         make(map[string]*ImageStateSummary),
 		},
 	}, {
 		pods: []*v1.Pod{testPods[4], testPods[5]},
@@ -178,7 +178,7 @@ func TestAssumePodScheduled(t *testing.T) {
 			allocatableResource: &Resource{},
 			pods:                []*v1.Pod{testPods[4], testPods[5]},
 			usedPorts:           newHostPortInfoBuilder().add("TCP", "127.0.0.1", 80).add("TCP", "127.0.0.1", 8080).build(),
-			imageSizes:          map[string]int64{},
+			imageStates:         make(map[string]*ImageStateSummary),
 		},
 	}, {
 		pods: []*v1.Pod{testPods[6]},
@@ -195,7 +195,7 @@ func TestAssumePodScheduled(t *testing.T) {
 			allocatableResource: &Resource{},
 			pods:                []*v1.Pod{testPods[6]},
 			usedPorts:           newHostPortInfoBuilder().build(),
-			imageSizes:          map[string]int64{},
+			imageStates:         make(map[string]*ImageStateSummary),
 		},
 	},
 	}
@@ -275,7 +275,7 @@ func TestExpirePod(t *testing.T) {
 			allocatableResource: &Resource{},
 			pods:                []*v1.Pod{testPods[1]},
 			usedPorts:           newHostPortInfoBuilder().add("TCP", "127.0.0.1", 8080).build(),
-			imageSizes:          map[string]int64{},
+			imageStates:         make(map[string]*ImageStateSummary),
 		},
 	}}
 
@@ -328,7 +328,7 @@ func TestAddPodWillConfirm(t *testing.T) {
 			allocatableResource: &Resource{},
 			pods:                []*v1.Pod{testPods[0]},
 			usedPorts:           newHostPortInfoBuilder().add("TCP", "127.0.0.1", 80).build(),
-			imageSizes:          map[string]int64{},
+			imageStates:         make(map[string]*ImageStateSummary),
 		},
 	}}
 
@@ -425,7 +425,7 @@ func TestAddPodWillReplaceAssumed(t *testing.T) {
 				allocatableResource: &Resource{},
 				pods:                []*v1.Pod{updatedPod.DeepCopy()},
 				usedPorts:           newHostPortInfoBuilder().add("TCP", "0.0.0.0", 90).build(),
-				imageSizes:          map[string]int64{},
+				imageStates:         make(map[string]*ImageStateSummary),
 			},
 		},
 	}}
@@ -481,7 +481,7 @@ func TestAddPodAfterExpiration(t *testing.T) {
 			allocatableResource: &Resource{},
 			pods:                []*v1.Pod{basePod},
 			usedPorts:           newHostPortInfoBuilder().add("TCP", "127.0.0.1", 80).build(),
-			imageSizes:          map[string]int64{},
+			imageStates:         make(map[string]*ImageStateSummary),
 		},
 	}}
 
@@ -537,7 +537,7 @@ func TestUpdatePod(t *testing.T) {
 			allocatableResource: &Resource{},
 			pods:                []*v1.Pod{testPods[1]},
 			usedPorts:           newHostPortInfoBuilder().add("TCP", "127.0.0.1", 8080).build(),
-			imageSizes:          map[string]int64{},
+			imageStates:         make(map[string]*ImageStateSummary),
 		}, {
 			requestedResource: &Resource{
 				MilliCPU: 100,
@@ -551,7 +551,7 @@ func TestUpdatePod(t *testing.T) {
 			allocatableResource: &Resource{},
 			pods:                []*v1.Pod{testPods[0]},
 			usedPorts:           newHostPortInfoBuilder().add("TCP", "127.0.0.1", 80).build(),
-			imageSizes:          map[string]int64{},
+			imageStates:         make(map[string]*ImageStateSummary),
 		}},
 	}}
 
@@ -573,6 +573,65 @@ func TestUpdatePod(t *testing.T) {
 			// check after expiration. confirmed pods shouldn't be expired.
 			n := cache.nodes[nodeName]
 			deepEqualWithoutGeneration(t, i, n, tt.wNodeInfo[i-1])
+		}
+	}
+}
+
+// TestUpdatePodAndGet tests get always return latest pod state
+func TestUpdatePodAndGet(t *testing.T) {
+	nodeName := "node"
+	ttl := 10 * time.Second
+	testPods := []*v1.Pod{
+		makeBasePod(t, nodeName, "test", "100m", "500", "", []v1.ContainerPort{{HostIP: "127.0.0.1", HostPort: 80, Protocol: "TCP"}}),
+		makeBasePod(t, nodeName, "test", "200m", "1Ki", "", []v1.ContainerPort{{HostIP: "127.0.0.1", HostPort: 8080, Protocol: "TCP"}}),
+	}
+	tests := []struct {
+		pod *v1.Pod
+
+		podToUpdate *v1.Pod
+		handler     func(cache Cache, pod *v1.Pod) error
+
+		assumePod bool
+	}{
+		{
+			pod: testPods[0],
+
+			podToUpdate: testPods[0],
+			handler: func(cache Cache, pod *v1.Pod) error {
+				return cache.AssumePod(pod)
+			},
+			assumePod: true,
+		},
+		{
+			pod: testPods[0],
+
+			podToUpdate: testPods[1],
+			handler: func(cache Cache, pod *v1.Pod) error {
+				return cache.AddPod(pod)
+			},
+			assumePod: false,
+		},
+	}
+
+	for _, tt := range tests {
+		cache := newSchedulerCache(ttl, time.Second, nil)
+
+		if err := tt.handler(cache, tt.pod); err != nil {
+			t.Fatalf("unexpected err: %v", err)
+		}
+
+		if !tt.assumePod {
+			if err := cache.UpdatePod(tt.pod, tt.podToUpdate); err != nil {
+				t.Fatalf("UpdatePod failed: %v", err)
+			}
+		}
+
+		cachedPod, err := cache.GetPod(tt.pod)
+		if err != nil {
+			t.Fatalf("GetPod failed: %v", err)
+		}
+		if !reflect.DeepEqual(tt.podToUpdate, cachedPod) {
+			t.Fatalf("pod get=%s, want=%s", cachedPod, tt.podToUpdate)
 		}
 	}
 }
@@ -610,7 +669,7 @@ func TestExpireAddUpdatePod(t *testing.T) {
 			allocatableResource: &Resource{},
 			pods:                []*v1.Pod{testPods[1]},
 			usedPorts:           newHostPortInfoBuilder().add("TCP", "127.0.0.1", 8080).build(),
-			imageSizes:          map[string]int64{},
+			imageStates:         make(map[string]*ImageStateSummary),
 		}, {
 			requestedResource: &Resource{
 				MilliCPU: 100,
@@ -624,7 +683,7 @@ func TestExpireAddUpdatePod(t *testing.T) {
 			allocatableResource: &Resource{},
 			pods:                []*v1.Pod{testPods[0]},
 			usedPorts:           newHostPortInfoBuilder().add("TCP", "127.0.0.1", 80).build(),
-			imageSizes:          map[string]int64{},
+			imageStates:         make(map[string]*ImageStateSummary),
 		}},
 	}}
 
@@ -702,7 +761,7 @@ func TestEphemeralStorageResource(t *testing.T) {
 				allocatableResource: &Resource{},
 				pods:                []*v1.Pod{podE},
 				usedPorts:           schedutil.HostPortInfo{},
-				imageSizes:          map[string]int64{},
+				imageStates:         make(map[string]*ImageStateSummary),
 			},
 		},
 	}
@@ -749,7 +808,7 @@ func TestRemovePod(t *testing.T) {
 			allocatableResource: &Resource{},
 			pods:                []*v1.Pod{basePod},
 			usedPorts:           newHostPortInfoBuilder().add("TCP", "127.0.0.1", 80).build(),
-			imageSizes:          map[string]int64{},
+			imageStates:         make(map[string]*ImageStateSummary),
 		},
 	}}
 
@@ -1006,6 +1065,9 @@ func TestNodeOperators(t *testing.T) {
 		if !found {
 			t.Errorf("Failed to find node %v in schedulercache.", node.Name)
 		}
+		if cache.nodeTree.NumNodes != 1 || cache.nodeTree.Next() != node.Name {
+			t.Errorf("cache.nodeTree is not updated correctly after adding node: %v", node.Name)
+		}
 
 		// Generations are globally unique. We check in our unit tests that they are incremented correctly.
 		expected.generation = got.generation
@@ -1041,11 +1103,20 @@ func TestNodeOperators(t *testing.T) {
 		if !reflect.DeepEqual(got, expected) {
 			t.Errorf("Failed to update node in schedulercache:\n got: %+v \nexpected: %+v", got, expected)
 		}
+		// Check nodeTree after update
+		if cache.nodeTree.NumNodes != 1 || cache.nodeTree.Next() != node.Name {
+			t.Errorf("unexpected cache.nodeTree after updating node: %v", node.Name)
+		}
 
 		// Case 4: the node can not be removed if pods is not empty.
 		cache.RemoveNode(node)
 		if _, found := cache.nodes[node.Name]; !found {
 			t.Errorf("The node %v should not be removed if pods is not empty.", node.Name)
+		}
+		// Check nodeTree after remove. The node should be removed from the nodeTree even if there are
+		// still pods on it.
+		if cache.nodeTree.NumNodes != 0 || cache.nodeTree.Next() != "" {
+			t.Errorf("unexpected cache.nodeTree after removing node: %v", node.Name)
 		}
 	}
 }
@@ -1069,16 +1140,18 @@ func BenchmarkUpdate1kNodes30kPods(b *testing.B) {
 	}
 }
 
-func BenchmarkExpire100Pods(b *testing.B) {
-	benchmarkExpire(b, 100)
-}
-
-func BenchmarkExpire1kPods(b *testing.B) {
-	benchmarkExpire(b, 1000)
-}
-
-func BenchmarkExpire10kPods(b *testing.B) {
-	benchmarkExpire(b, 10000)
+func BenchmarkExpirePods(b *testing.B) {
+	podNums := []int{
+		100,
+		1000,
+		10000,
+	}
+	for _, podNum := range podNums {
+		name := fmt.Sprintf("%dPods", podNum)
+		b.Run(name, func(b *testing.B) {
+			benchmarkExpire(b, podNum)
+		})
+	}
 }
 
 func benchmarkExpire(b *testing.B, podNum int) {

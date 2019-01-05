@@ -22,12 +22,12 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	kubeproxyconfigv1alpha1 "k8s.io/kube-proxy/config/v1alpha1"
+	kubeletconfigv1beta1 "k8s.io/kubelet/config/v1beta1"
 	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
-	kubeletscheme "k8s.io/kubernetes/pkg/kubelet/apis/kubeletconfig/scheme"
-	kubeletconfigv1beta1 "k8s.io/kubernetes/pkg/kubelet/apis/kubeletconfig/v1beta1"
-	kubeproxyscheme "k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig/scheme"
-	kubeproxyconfigv1alpha1 "k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig/v1alpha1"
-	utilpointer "k8s.io/kubernetes/pkg/util/pointer"
+	kubeletscheme "k8s.io/kubernetes/pkg/kubelet/apis/config/scheme"
+	kubeproxyscheme "k8s.io/kubernetes/pkg/proxy/apis/config/scheme"
+	utilpointer "k8s.io/utils/pointer"
 )
 
 const (
@@ -38,7 +38,7 @@ const (
 	// DefaultClusterDNSIP defines default DNS IP
 	DefaultClusterDNSIP = "10.96.0.10"
 	// DefaultKubernetesVersion defines default kubernetes version
-	DefaultKubernetesVersion = "stable-1.11"
+	DefaultKubernetesVersion = "stable-1"
 	// DefaultAPIBindPort defines default API port
 	DefaultAPIBindPort = 6443
 	// DefaultCertificatesDir defines default certificate directory
@@ -47,8 +47,6 @@ const (
 	DefaultImageRepository = "k8s.gcr.io"
 	// DefaultManifestsDir defines default manifests directory
 	DefaultManifestsDir = "/etc/kubernetes/manifests"
-	// DefaultCRISocket defines the default cri socket
-	DefaultCRISocket = "/var/run/dockershim.sock"
 	// DefaultClusterName defines the default cluster name
 	DefaultClusterName = "kubernetes"
 
@@ -61,7 +59,7 @@ const (
 	// KubeproxyKubeConfigFileName defines the file name for the kube-proxy's KubeConfig file
 	KubeproxyKubeConfigFileName = "/var/lib/kube-proxy/kubeconfig.conf"
 
-	// DefaultDiscoveryTimeout specifies the default discovery timeout for kubeadm (used unless one is specified in the NodeConfiguration)
+	// DefaultDiscoveryTimeout specifies the default discovery timeout for kubeadm (used unless one is specified in the JoinConfiguration)
 	DefaultDiscoveryTimeout = 5 * time.Minute
 )
 
@@ -75,8 +73,8 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 	return RegisterDefaults(scheme)
 }
 
-// SetDefaults_MasterConfiguration assigns default values to Master node
-func SetDefaults_MasterConfiguration(obj *MasterConfiguration) {
+// SetDefaults_InitConfiguration assigns default values to Master node
+func SetDefaults_InitConfiguration(obj *InitConfiguration) {
 	if obj.KubernetesVersion == "" {
 		obj.KubernetesVersion = DefaultKubernetesVersion
 	}
@@ -114,7 +112,7 @@ func SetDefaults_MasterConfiguration(obj *MasterConfiguration) {
 }
 
 // SetDefaults_Etcd assigns default values for the Proxy
-func SetDefaults_Etcd(obj *MasterConfiguration) {
+func SetDefaults_Etcd(obj *InitConfiguration) {
 	if obj.Etcd.External == nil && obj.Etcd.Local == nil {
 		obj.Etcd.Local = &LocalEtcd{}
 	}
@@ -126,7 +124,9 @@ func SetDefaults_Etcd(obj *MasterConfiguration) {
 }
 
 // SetDefaults_ProxyConfiguration assigns default values for the Proxy
-func SetDefaults_ProxyConfiguration(obj *MasterConfiguration) {
+func SetDefaults_ProxyConfiguration(obj *InitConfiguration) {
+	// IMPORTANT NOTE: If you're changing this code you should mirror it to cmd/kubeadm/app/componentconfig/defaults.go
+	// and cmd/kubeadm/app/apis/kubeadm/v1alpha3/conversion.go.
 	if obj.KubeProxy.Config == nil {
 		obj.KubeProxy.Config = &kubeproxyconfigv1alpha1.KubeProxyConfiguration{}
 	}
@@ -134,15 +134,15 @@ func SetDefaults_ProxyConfiguration(obj *MasterConfiguration) {
 		obj.KubeProxy.Config.ClusterCIDR = obj.Networking.PodSubnet
 	}
 
-	if obj.KubeProxy.Config.ClientConnection.KubeConfigFile == "" {
-		obj.KubeProxy.Config.ClientConnection.KubeConfigFile = KubeproxyKubeConfigFileName
+	if obj.KubeProxy.Config.ClientConnection.Kubeconfig == "" {
+		obj.KubeProxy.Config.ClientConnection.Kubeconfig = KubeproxyKubeConfigFileName
 	}
 
 	kubeproxyscheme.Scheme.Default(obj.KubeProxy.Config)
 }
 
-// SetDefaults_NodeConfiguration assigns default values to a regular node
-func SetDefaults_NodeConfiguration(obj *NodeConfiguration) {
+// SetDefaults_JoinConfiguration assigns default values to a regular node
+func SetDefaults_JoinConfiguration(obj *JoinConfiguration) {
 	if obj.CACertPath == "" {
 		obj.CACertPath = DefaultCACertPath
 	}
@@ -168,11 +168,17 @@ func SetDefaults_NodeConfiguration(obj *NodeConfiguration) {
 		obj.ClusterName = DefaultClusterName
 	}
 
+	if obj.BindPort == 0 {
+		obj.BindPort = DefaultAPIBindPort
+	}
+
 	SetDefaults_NodeRegistrationOptions(&obj.NodeRegistration)
 }
 
 // SetDefaults_KubeletConfiguration assigns default values to kubelet
-func SetDefaults_KubeletConfiguration(obj *MasterConfiguration) {
+func SetDefaults_KubeletConfiguration(obj *InitConfiguration) {
+	// IMPORTANT NOTE: If you're changing this code you should mirror it to cmd/kubeadm/app/componentconfig/defaults.go
+	// and cmd/kubeadm/app/apis/kubeadm/v1alpha3/conversion.go.
 	if obj.KubeletConfiguration.BaseConfig == nil {
 		obj.KubeletConfiguration.BaseConfig = &kubeletconfigv1beta1.KubeletConfiguration{}
 	}
@@ -212,7 +218,7 @@ func SetDefaults_KubeletConfiguration(obj *MasterConfiguration) {
 
 	// Serve a /healthz webserver on localhost:10248 that kubeadm can talk to
 	obj.KubeletConfiguration.BaseConfig.HealthzBindAddress = "127.0.0.1"
-	obj.KubeletConfiguration.BaseConfig.HealthzPort = utilpointer.Int32Ptr(10248)
+	obj.KubeletConfiguration.BaseConfig.HealthzPort = utilpointer.Int32Ptr(constants.KubeletHealthzPort)
 
 	scheme, _, _ := kubeletscheme.NewSchemeAndCodecs()
 	if scheme != nil {
@@ -227,7 +233,7 @@ func SetDefaults_NodeRegistrationOptions(obj *NodeRegistrationOptions) {
 }
 
 // SetDefaults_AuditPolicyConfiguration sets default values for the AuditPolicyConfiguration
-func SetDefaults_AuditPolicyConfiguration(obj *MasterConfiguration) {
+func SetDefaults_AuditPolicyConfiguration(obj *InitConfiguration) {
 	if obj.AuditPolicyConfiguration.LogDir == "" {
 		obj.AuditPolicyConfiguration.LogDir = constants.StaticPodAuditPolicyLogDir
 	}
@@ -241,14 +247,14 @@ func SetDefaults_AuditPolicyConfiguration(obj *MasterConfiguration) {
 // through the slice and sets the defaults for the omitempty fields that are TTL,
 // Usages and Groups. Token is NOT defaulted with a random one in the API defaulting
 // layer, but set to a random value later at runtime if not set before.
-func SetDefaults_BootstrapTokens(obj *MasterConfiguration) {
+func SetDefaults_BootstrapTokens(obj *InitConfiguration) {
 
 	if obj.BootstrapTokens == nil || len(obj.BootstrapTokens) == 0 {
 		obj.BootstrapTokens = []BootstrapToken{{}}
 	}
 
-	for _, bt := range obj.BootstrapTokens {
-		SetDefaults_BootstrapToken(&bt)
+	for i := range obj.BootstrapTokens {
+		SetDefaults_BootstrapToken(&obj.BootstrapTokens[i])
 	}
 }
 

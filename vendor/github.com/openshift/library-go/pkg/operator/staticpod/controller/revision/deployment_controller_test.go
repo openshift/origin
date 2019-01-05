@@ -13,6 +13,7 @@ import (
 	clienttesting "k8s.io/client-go/testing"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 )
 
@@ -144,6 +145,8 @@ func TestRevisionController(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.targetNamespace, func(t *testing.T) {
 			kubeClient := fake.NewSimpleClientset(tc.startingObjects...)
+			eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &v1.ObjectReference{})
+
 			c := NewRevisionController(
 				tc.targetNamespace,
 				tc.testConfigs,
@@ -151,6 +154,7 @@ func TestRevisionController(t *testing.T) {
 				informers.NewSharedInformerFactoryWithOptions(kubeClient, 1*time.Minute, informers.WithNamespace(tc.targetNamespace)),
 				tc.staticPodOperatorClient,
 				kubeClient,
+				eventRecorder,
 			)
 			syncErr := c.sync()
 			if tc.validateStatus != nil {

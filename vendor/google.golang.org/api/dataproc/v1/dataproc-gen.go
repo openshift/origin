@@ -350,6 +350,40 @@ func (s *ClusterMetrics) MarshalJSON() ([]byte, error) {
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }
 
+// ClusterOperation: The cluster operation triggered by a workflow.
+type ClusterOperation struct {
+	// Done: Output only. Indicates the operation is done.
+	Done bool `json:"done,omitempty"`
+
+	// Error: Output only. Error, if operation failed.
+	Error string `json:"error,omitempty"`
+
+	// OperationId: Output only. The id of the cluster operation.
+	OperationId string `json:"operationId,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Done") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Done") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *ClusterOperation) MarshalJSON() ([]byte, error) {
+	type NoMethod ClusterOperation
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
 // ClusterOperationMetadata: Metadata describing the operation.
 type ClusterOperationMetadata struct {
 	// ClusterName: Output only. Name of the cluster for the operation.
@@ -544,6 +578,11 @@ type DiskConfig struct {
 	// BootDiskSizeGb: Optional. Size in GB of the boot disk (default is
 	// 500GB).
 	BootDiskSizeGb int64 `json:"bootDiskSizeGb,omitempty"`
+
+	// BootDiskType: Optional. Type of the boot disk (default is
+	// "pd-standard"). Valid values: "pd-ssd" (Persistent Disk Solid State
+	// Drive) or "pd-standard" (Persistent Disk Hard Disk Drive).
+	BootDiskType string `json:"bootDiskType,omitempty"`
 
 	// NumLocalSsds: Optional. Number of attached SSDs, from 0 to 4 (default
 	// is 0). If SSDs are not attached, the boot disk is used to store
@@ -1871,6 +1910,141 @@ type SubmitJobRequest struct {
 
 func (s *SubmitJobRequest) MarshalJSON() ([]byte, error) {
 	type NoMethod SubmitJobRequest
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// WorkflowGraph: The workflow graph.
+type WorkflowGraph struct {
+	// Nodes: Output only. The workflow nodes.
+	Nodes []*WorkflowNode `json:"nodes,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Nodes") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Nodes") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *WorkflowGraph) MarshalJSON() ([]byte, error) {
+	type NoMethod WorkflowGraph
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// WorkflowMetadata: A Cloud Dataproc workflow template resource.
+type WorkflowMetadata struct {
+	// ClusterName: Output only. The name of the managed cluster.
+	ClusterName string `json:"clusterName,omitempty"`
+
+	// CreateCluster: Output only. The create cluster operation metadata.
+	CreateCluster *ClusterOperation `json:"createCluster,omitempty"`
+
+	// DeleteCluster: Output only. The delete cluster operation metadata.
+	DeleteCluster *ClusterOperation `json:"deleteCluster,omitempty"`
+
+	// Graph: Output only. The workflow graph.
+	Graph *WorkflowGraph `json:"graph,omitempty"`
+
+	// Parameters: Map from parameter names to values that were used for
+	// those parameters.
+	Parameters map[string]string `json:"parameters,omitempty"`
+
+	// State: Output only. The workflow state.
+	//
+	// Possible values:
+	//   "UNKNOWN" - Unused.
+	//   "PENDING" - The operation has been created.
+	//   "RUNNING" - The operation is running.
+	//   "DONE" - The operation is done; either cancelled or completed.
+	State string `json:"state,omitempty"`
+
+	// Template: Output only. The "resource name" of the template.
+	Template string `json:"template,omitempty"`
+
+	// Version: Output only. The version of template at the time of workflow
+	// instantiation.
+	Version int64 `json:"version,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "ClusterName") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "ClusterName") to include
+	// in API requests with the JSON null value. By default, fields with
+	// empty values are omitted from API requests. However, any field with
+	// an empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *WorkflowMetadata) MarshalJSON() ([]byte, error) {
+	type NoMethod WorkflowMetadata
+	raw := NoMethod(*s)
+	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
+}
+
+// WorkflowNode: The workflow node.
+type WorkflowNode struct {
+	// Error: Output only. The error detail.
+	Error string `json:"error,omitempty"`
+
+	// JobId: Output only. The job id; populated after the node enters
+	// RUNNING state.
+	JobId string `json:"jobId,omitempty"`
+
+	// PrerequisiteStepIds: Output only. Node's prerequisite nodes.
+	PrerequisiteStepIds []string `json:"prerequisiteStepIds,omitempty"`
+
+	// State: Output only. The node state.
+	//
+	// Possible values:
+	//   "NODE_STATE_UNSPECIFIED" - State is unspecified.
+	//   "BLOCKED" - The node is awaiting prerequisite node to finish.
+	//   "RUNNABLE" - The node is runnable but not running.
+	//   "RUNNING" - The node is running.
+	//   "COMPLETED" - The node completed successfully.
+	//   "FAILED" - The node failed. A node can be marked FAILED because its
+	// ancestor or peer failed.
+	State string `json:"state,omitempty"`
+
+	// StepId: Output only. The name of the node.
+	StepId string `json:"stepId,omitempty"`
+
+	// ForceSendFields is a list of field names (e.g. "Error") to
+	// unconditionally include in API requests. By default, fields with
+	// empty values are omitted from API requests. However, any non-pointer,
+	// non-interface field appearing in ForceSendFields will be sent to the
+	// server regardless of whether the field is empty or not. This may be
+	// used to include empty fields in Patch requests.
+	ForceSendFields []string `json:"-"`
+
+	// NullFields is a list of field names (e.g. "Error") to include in API
+	// requests with the JSON null value. By default, fields with empty
+	// values are omitted from API requests. However, any field with an
+	// empty value appearing in NullFields will be sent to the server as
+	// null. It is an error if a field in this list has a non-empty value.
+	// This may be used to include null fields in Patch requests.
+	NullFields []string `json:"-"`
+}
+
+func (s *WorkflowNode) MarshalJSON() ([]byte, error) {
+	type NoMethod WorkflowNode
 	raw := NoMethod(*s)
 	return gensupport.MarshalJSON(raw, s.ForceSendFields, s.NullFields)
 }

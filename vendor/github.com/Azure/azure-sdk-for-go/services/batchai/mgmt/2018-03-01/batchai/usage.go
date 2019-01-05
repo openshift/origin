@@ -41,8 +41,8 @@ func NewUsageClientWithBaseURI(baseURI string, subscriptionID string) UsageClien
 }
 
 // List gets the current usage information as well as limits for Batch AI resources for given subscription.
-//
-// location is the location for which resource usage is queried.
+// Parameters:
+// location - the location for which resource usage is queried.
 func (client UsageClient) List(ctx context.Context, location string) (result ListUsagesResultPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: location,

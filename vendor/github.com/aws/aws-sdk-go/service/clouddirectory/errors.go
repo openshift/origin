@@ -45,7 +45,7 @@ const (
 	// ErrCodeDirectoryNotEnabledException for service response error code
 	// "DirectoryNotEnabledException".
 	//
-	// An operation can only operate on a directory that is not enabled.
+	// Operations are only permitted on enabled directories.
 	ErrCodeDirectoryNotEnabledException = "DirectoryNotEnabledException"
 
 	// ErrCodeFacetAlreadyExistsException for service response error code
@@ -73,6 +73,14 @@ const (
 	// The Facet that you provided was not well formed or could not be validated
 	// with the schema.
 	ErrCodeFacetValidationException = "FacetValidationException"
+
+	// ErrCodeIncompatibleSchemaException for service response error code
+	// "IncompatibleSchemaException".
+	//
+	// Indicates a failure occurred while performing a check for backward compatibility
+	// between the specified schema and the schema that is currently applied to
+	// the directory.
+	ErrCodeIncompatibleSchemaException = "IncompatibleSchemaException"
 
 	// ErrCodeIndexedAttributeMissingException for service response error code
 	// "IndexedAttributeMissingException".

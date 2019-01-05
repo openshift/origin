@@ -1,4 +1,4 @@
-package logger
+package logger // import "github.com/docker/docker/daemon/logger"
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 
 	containertypes "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/pkg/plugingetter"
-	units "github.com/docker/go-units"
+	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 )
 
@@ -93,7 +93,7 @@ func (lf *logdriverFactory) getLogOptValidator(name string) LogOptValidator {
 	lf.m.Lock()
 	defer lf.m.Unlock()
 
-	c, _ := lf.optValidator[name]
+	c := lf.optValidator[name]
 	return c
 }
 

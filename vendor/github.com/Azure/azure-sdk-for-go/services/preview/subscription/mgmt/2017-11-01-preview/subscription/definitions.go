@@ -42,9 +42,9 @@ func NewDefinitionsClientWithBaseURI(baseURI string) DefinitionsClient {
 }
 
 // Create create an Azure subscription definition.
-//
-// subscriptionDefinitionName is the name of the Azure subscription definition. body is the subscription definition
-// creation.
+// Parameters:
+// subscriptionDefinitionName - the name of the Azure subscription definition.
+// body - the subscription definition creation.
 func (client DefinitionsClient) Create(ctx context.Context, subscriptionDefinitionName string, body Definition) (result DefinitionsCreateFuture, err error) {
 	req, err := client.CreatePreparer(ctx, subscriptionDefinitionName, body)
 	if err != nil {
@@ -73,7 +73,7 @@ func (client DefinitionsClient) CreatePreparer(ctx context.Context, subscription
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/providers/Microsoft.Subscription/subscriptionDefinitions/{subscriptionDefinitionName}", pathParameters),
@@ -85,15 +85,17 @@ func (client DefinitionsClient) CreatePreparer(ctx context.Context, subscription
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client DefinitionsClient) CreateSender(req *http.Request) (future DefinitionsCreateFuture, err error) {
-	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -111,8 +113,8 @@ func (client DefinitionsClient) CreateResponder(resp *http.Response) (result Def
 }
 
 // Get get an Azure subscription definition.
-//
-// subscriptionDefinitionName is the name of the Azure subscription definition.
+// Parameters:
+// subscriptionDefinitionName - the name of the Azure subscription definition.
 func (client DefinitionsClient) Get(ctx context.Context, subscriptionDefinitionName string) (result Definition, err error) {
 	req, err := client.GetPreparer(ctx, subscriptionDefinitionName)
 	if err != nil {
@@ -176,8 +178,8 @@ func (client DefinitionsClient) GetResponder(resp *http.Response) (result Defini
 
 // GetOperationStatus retrieves the status of the subscription definition PUT operation. The URI of this API is
 // returned in the Location field of the response header.
-//
-// operationID is the operation ID, which can be found from the Location field in the generate recommendation
+// Parameters:
+// operationID - the operation ID, which can be found from the Location field in the generate recommendation
 // response header.
 func (client DefinitionsClient) GetOperationStatus(ctx context.Context, operationID uuid.UUID) (result Definition, err error) {
 	req, err := client.GetOperationStatusPreparer(ctx, operationID)

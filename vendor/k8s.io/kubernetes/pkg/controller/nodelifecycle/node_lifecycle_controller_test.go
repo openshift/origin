@@ -2163,6 +2163,14 @@ func TestTaintsNodeByCondition(t *testing.T) {
 		Key:    algorithm.TaintNodeNetworkUnavailable,
 		Effect: v1.TaintEffectNoSchedule,
 	}
+	notReadyTaint := &v1.Taint{
+		Key:    algorithm.TaintNodeNotReady,
+		Effect: v1.TaintEffectNoSchedule,
+	}
+	unreachableTaint := &v1.Taint{
+		Key:    algorithm.TaintNodeUnreachable,
+		Effect: v1.TaintEffectNoSchedule,
+	}
 
 	tests := []struct {
 		Name           string
@@ -2271,6 +2279,54 @@ func TestTaintsNodeByCondition(t *testing.T) {
 			},
 			ExpectedTaints: []*v1.Taint{networkUnavailableTaint},
 		},
+		{
+			Name: "Ready is false",
+			Node: &v1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "node0",
+					CreationTimestamp: metav1.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
+					Labels: map[string]string{
+						kubeletapis.LabelZoneRegion:        "region1",
+						kubeletapis.LabelZoneFailureDomain: "zone1",
+					},
+				},
+				Status: v1.NodeStatus{
+					Conditions: []v1.NodeCondition{
+						{
+							Type:               v1.NodeReady,
+							Status:             v1.ConditionFalse,
+							LastHeartbeatTime:  metav1.Date(2015, 1, 1, 12, 0, 0, 0, time.UTC),
+							LastTransitionTime: metav1.Date(2015, 1, 1, 12, 0, 0, 0, time.UTC),
+						},
+					},
+				},
+			},
+			ExpectedTaints: []*v1.Taint{notReadyTaint},
+		},
+		{
+			Name: "Ready is unknown",
+			Node: &v1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "node0",
+					CreationTimestamp: metav1.Date(2012, 1, 1, 0, 0, 0, 0, time.UTC),
+					Labels: map[string]string{
+						kubeletapis.LabelZoneRegion:        "region1",
+						kubeletapis.LabelZoneFailureDomain: "zone1",
+					},
+				},
+				Status: v1.NodeStatus{
+					Conditions: []v1.NodeCondition{
+						{
+							Type:               v1.NodeReady,
+							Status:             v1.ConditionUnknown,
+							LastHeartbeatTime:  metav1.Date(2015, 1, 1, 12, 0, 0, 0, time.UTC),
+							LastTransitionTime: metav1.Date(2015, 1, 1, 12, 0, 0, 0, time.UTC),
+						},
+					},
+				},
+			},
+			ExpectedTaints: []*v1.Taint{unreachableTaint},
+		},
 	}
 
 	for _, test := range tests {
@@ -2278,7 +2334,7 @@ func TestTaintsNodeByCondition(t *testing.T) {
 		if err := nodeController.syncNodeStore(fakeNodeHandler); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
-		nodeController.doNoScheduleTaintingPass(test.Node)
+		nodeController.doNoScheduleTaintingPass(test.Node.Name)
 		if err := nodeController.syncNodeStore(fakeNodeHandler); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
