@@ -5,7 +5,7 @@ Hacking on OpenShift
 
 To build an OpenShift release you create the `make release` target on a
 system with Docker, which will create a build environment image and then
-execute a cross platform Go build within it. The build output will be copied
+execute a cross-platform Go build within it. The build output will be copied
 to `_output/releases` as a set of tars containing each version. It will also
 build the `openshift/origin-base` image which is the common parent image for all
 OpenShift Docker images.
@@ -65,7 +65,7 @@ action is taken, use `$OS_BUILD_ENV_PRESERVE`. By default, `_output/local/bin`,
 
 While `make release` and `make build` will both build all of the binaries required
 for a full release of OpenShift, it is also possible to build individual
-binaries. Binary entrypoints are kept under the `cmd/` directory and can be
+binaries. Binary entry points are kept under the `cmd/` directory and can be
 specified to build with the `WHAT` parameter, for instance, to build just `oc`:
 
     $ make build WHAT=cmd/oc
@@ -202,12 +202,12 @@ We break integration tests into two categories, those that use Docker and those
 that do not.  In general, high-level components that depend on the behavior of code
 running inside a Docker container should have at least one or two integration tests
 that test all the way down to Docker, but those should be part of their own
-test suite.  Testing the API and high level API functions should generally
+test suite.  Testing the API and high-level API functions should generally
 not depend on calling into Docker. They are denoted by special test tags and
 should be in their own files so we can selectively build them.
 
 All integration tests are located under `test/integration/*`. For special function
-sets please create sub directories like `test/integration/deployimages`.
+sets please create subdirectories like `test/integration/deployimages`.
 
 Run all of the integration tests with:
 
@@ -257,7 +257,7 @@ the test suite, use:
 
 The final test category is end to end tests (e2e) which should verify a long
 set of flows in the product as a user would see them.  Two e2e tests should not
-overlap more than 10% of function, and are not intended to test error conditions
+overlap more than 10% of function and are not intended to test error conditions
 in detail. The project
 examples should be driven by e2e tests. e2e tests can also test external
 components working together.
@@ -280,7 +280,7 @@ and can be run individually by specifying `--ginkgo.focus` and a regex filter:
 
     $ test/extended/core.sh --ginkgo.focus=<regex>
 
-In addition, the extended tests can be ran against an existing OpenShift
+In addition, the extended tests can be run against an existing OpenShift
 cluster:
 
     $ KUBECONFIG=/path/to/admin.kubeconfig TEST_ONLY=true test/extended/core.sh --ginkgo.focus=<regex>
@@ -316,8 +316,8 @@ changes.  When you're done open a PR against the aforementioned repository and p
 [@openshift/sig-master](https://github.com/orgs/openshift/teams/sig-master) for a review.
 
 3. The final step happens in [openshift/origin](https://github.com/openshift/origin/) repository.
-As previously, run `make update-deps` to pick up the changes from previous two steps.  Afterwards
-run `make update` to generated the remaining bits in origin repository. When you're done open
+As previously, run `make update-deps` to pick up the changes from previous two steps.  Afterwards,
+run `make update` to generate the remaining bits in origin repository. When you're done open
 a PR against the aforementioned repository and ping [@openshift/sig-master](https://github.com/orgs/openshift/teams/sig-master)
 for a review.
 
@@ -371,7 +371,7 @@ If this fails, then it's possible you may need to pick multiple commits.
 Assuming you read the bullets above... If your patch is really far behind, for
 example, if there have been 5 commits modifying the directory you care about,
 cherry picking will be increasingly difficult and you should consider waiting
-for the next rebase, which will likely include the commit you care about, or at
+for the next rebase, which will likely include the commit you care about or at
 least decrease the amount of cherry picks you need to do to merge.
 
 To really know the answer, you need to know *how many commits behind you are in
@@ -434,7 +434,7 @@ To pull an upstream commit, run:
 
 This will attempt to create a patch from the current Kube rebase version in
 Origin that contains the commits added in the PR. If the PR has already been
-merged to the Kube version, you'll get an error. If there are conflicts, you'll
+merged into the Kube version, you'll get an error. If there are conflicts, you'll
 have to resolve them in the upstream repo, then hit ENTER to continue. The end
 result will be a single commit in your Origin repo that contains the changes.
 
@@ -606,7 +606,7 @@ by the `hack/rebase-kube.sh` script, make sure you update it accordingly to help
 
 ### 3. cherry-pick upstream changes pushed to the Origin repo
 
-Eventually during the development cycle we introduce changes to dependencies
+Eventually, during the development cycle, we introduce changes to dependencies
 right in the Origin
 repository. This is not a largely recommended practice, but it's useful if we
 need something that,
@@ -624,7 +624,7 @@ looking for a message like
 `bump(k8s.io/kubernetes):...`).
 2. For every commit tagged UPSTREAM, do `git cherry-pick <commit SHA>`.
 3. Notice that eventually the cherry-pick will be empty. This probably means
-the given change were
+the given change was
 already merged in Kubernetes and we don't need to specifically add it to our
 Godeps. Nice!
 4. Read over the commit history and make sure you have every UPSTREAM commit
