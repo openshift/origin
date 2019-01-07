@@ -169,7 +169,7 @@ func (rt *authProxyRoundTripper) CancelRequest(req *http.Request) {
 	if canceler, ok := rt.rt.(requestCanceler); ok {
 		canceler.CancelRequest(req)
 	} else {
-		glog.Errorf("CancelRequest not implemented")
+		glog.Errorf("CancelRequest not implemented by %T", rt.rt)
 	}
 }
 
@@ -197,7 +197,7 @@ func (rt *userAgentRoundTripper) CancelRequest(req *http.Request) {
 	if canceler, ok := rt.rt.(requestCanceler); ok {
 		canceler.CancelRequest(req)
 	} else {
-		glog.Errorf("CancelRequest not implemented")
+		glog.Errorf("CancelRequest not implemented by %T", rt.rt)
 	}
 }
 
@@ -228,7 +228,7 @@ func (rt *basicAuthRoundTripper) CancelRequest(req *http.Request) {
 	if canceler, ok := rt.rt.(requestCanceler); ok {
 		canceler.CancelRequest(req)
 	} else {
-		glog.Errorf("CancelRequest not implemented")
+		glog.Errorf("CancelRequest not implemented by %T", rt.rt)
 	}
 }
 
@@ -288,7 +288,7 @@ func (rt *impersonatingRoundTripper) CancelRequest(req *http.Request) {
 	if canceler, ok := rt.delegate.(requestCanceler); ok {
 		canceler.CancelRequest(req)
 	} else {
-		glog.Errorf("CancelRequest not implemented")
+		glog.Errorf("CancelRequest not implemented by %T", rt.delegate)
 	}
 }
 
@@ -319,7 +319,7 @@ func (rt *bearerAuthRoundTripper) CancelRequest(req *http.Request) {
 	if canceler, ok := rt.rt.(requestCanceler); ok {
 		canceler.CancelRequest(req)
 	} else {
-		glog.Errorf("CancelRequest not implemented")
+		glog.Errorf("CancelRequest not implemented by %T", rt.rt)
 	}
 }
 
@@ -403,7 +403,7 @@ func (rt *debuggingRoundTripper) CancelRequest(req *http.Request) {
 	if canceler, ok := rt.delegatedRoundTripper.(requestCanceler); ok {
 		canceler.CancelRequest(req)
 	} else {
-		glog.Errorf("CancelRequest not implemented")
+		glog.Errorf("CancelRequest not implemented by %T", rt.delegatedRoundTripper)
 	}
 }
 
