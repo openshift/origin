@@ -62,9 +62,8 @@ type TestSuite struct {
 	Matches func(name string) bool
 
 	Parallelism int
-	// If true, the test will pass when the only failures have been proven to be
-	// flakes.
-	AllowPassWithFlakes bool
+	// The number of flakes that may occur before this test is marked as a failure.
+	MaximumAllowedFlakes int
 
 	TestTimeout time.Duration
 }
