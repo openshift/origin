@@ -205,6 +205,9 @@ func GetDeploymentCondition(status appsv1.DeploymentConfigStatus, condType appsv
 }
 
 func deploymentReachedCompletion(dc *appsv1.DeploymentConfig, rcs []*corev1.ReplicationController, pods []corev1.Pod) (bool, error) {
+	if dc.Status.ObservedGeneration != dc.Generation {
+		return false, nil
+	}
 	if len(rcs) == 0 {
 		return false, nil
 	}
