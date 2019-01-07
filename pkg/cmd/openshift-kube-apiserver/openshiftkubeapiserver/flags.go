@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -19,6 +20,8 @@ import (
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/configconversion"
 )
+
+const defaultAuditPolicyFilePath = "openshift.local.audit/policy.yaml"
 
 func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) ([]string, error) {
 	args := map[string][]string{}
@@ -174,38 +177,53 @@ func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) 
 	return arguments, nil
 }
 
-// currently for cluster up, audit is just broken.
-// TODO fix this
 func auditFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) map[string][]string {
-	setAudit := false
 	args := map[string][]string{}
+
 	for key, slice := range kubeAPIServerConfig.APIServerArguments {
 		if !strings.HasPrefix("audit-", key) {
 			continue
 		}
-		setAudit = true
 		for _, val := range slice {
 			args[key] = append(args[key], val)
 		}
 	}
-	if setAudit {
+
+	if !kubeAPIServerConfig.AuditConfig.Enabled {
 		return args
 	}
 
-	// if the user has not attempted to set any audit values and the user has not explicitly said to disable audit logging
-	// then we set a default audit to stdout
-	defaultAuditPolicyFile := "openshift.local.log/audit-policy.yaml"
-	if err := os.MkdirAll(filepath.Dir(defaultAuditPolicyFile), 0755); err != nil {
-		utilruntime.HandleError(err)
+	auditPolicyFilePath := kubeAPIServerConfig.AuditConfig.PolicyFile
+	if len(kubeAPIServerConfig.AuditConfig.PolicyConfiguration.Raw) > 0 && string(kubeAPIServerConfig.AuditConfig.PolicyConfiguration.Raw) != "null" {
+		if len(auditPolicyFilePath) == 0 {
+			auditPolicyFilePath = defaultAuditPolicyFilePath
+		}
+		if err := os.MkdirAll(filepath.Dir(auditPolicyFilePath), 0755); err != nil {
+			utilruntime.HandleError(err)
+		}
+		if err := ioutil.WriteFile(auditPolicyFilePath, kubeAPIServerConfig.AuditConfig.PolicyConfiguration.Raw, 0644); err != nil {
+			utilruntime.HandleError(err)
+		}
 	}
-	if err := ioutil.WriteFile(defaultAuditPolicyFile, []byte(defaultAuditPolicy), 0644); err != nil {
-		utilruntime.HandleError(err)
-	} else {
-		setIfUnset(args, "audit-log-maxbackup", "10")
-		setIfUnset(args, "audit-log-maxsize", "100")
-		setIfUnset(args, "audit-log-path", "openshift.local.log/audit.log")
-		setIfUnset(args, "audit-policy-file", defaultAuditPolicyFile)
+
+	setIfUnset(args, "audit-log-maxbackup", strconv.Itoa(int(kubeAPIServerConfig.AuditConfig.MaximumRetainedFiles)))
+	setIfUnset(args, "audit-log-maxsize", strconv.Itoa(int(kubeAPIServerConfig.AuditConfig.MaximumFileSizeMegabytes)))
+	setIfUnset(args, "audit-log-maxage", strconv.Itoa(int(kubeAPIServerConfig.AuditConfig.MaximumFileRetentionDays)))
+	auditFilePath := kubeAPIServerConfig.AuditConfig.AuditFilePath
+	if len(auditFilePath) == 0 {
+		auditFilePath = "-"
 	}
+	setIfUnset(args, "audit-log-path", auditFilePath)
+	if len(auditPolicyFilePath) > 0 {
+		setIfUnset(args, "audit-policy-file", auditPolicyFilePath)
+	}
+	if len(kubeAPIServerConfig.AuditConfig.LogFormat) > 0 {
+		setIfUnset(args, "audit-log-format", string(kubeAPIServerConfig.AuditConfig.LogFormat))
+	}
+	if len(kubeAPIServerConfig.AuditConfig.WebHookMode) > 0 {
+		setIfUnset(args, "audit-webhook-mode", string(kubeAPIServerConfig.AuditConfig.WebHookMode))
+	}
+	setIfUnset(args, "audit-webhook-config-file", string(kubeAPIServerConfig.AuditConfig.WebHookKubeConfig))
 
 	return args
 }
