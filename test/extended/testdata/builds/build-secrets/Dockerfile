@@ -1,4 +1,4 @@
-FROM centos/ruby-22-centos7
+FROM docker.io/busybox
 
 USER root
 ADD ./secret-dir /secrets

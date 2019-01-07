@@ -9,14 +9,14 @@
     "triggers":[],
     "source":{
       "type":"Dockerfile",
-      "dockerfile":"FROM centos:7\nRUN sleep 10m"
+      "dockerfile":"FROM docker.io/busybox:latest\nRUN sleep 10m"
     },
     "strategy":{
       "type":"Docker",
       "dockerStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"centos/ruby-22-centos7"
+          "name":"docker.io/busybox:latest"
         }
       }
     }

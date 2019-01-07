@@ -25,7 +25,7 @@
       "sourceStrategy": {
         "from": {
           "kind":"DockerImage",
-          "name":"docker.io/busybox"
+          "name":"docker.io/openshift/test-build-simples2i:latest"
         },
         "env": [
           {

@@ -14,14 +14,13 @@ items:
     source:
       type: Git
       git:
-        uri: 'https://github.com/sclorg/s2i-php-container'
-      contextDir: 7.0/test/test-app
+        uri: 'https://github.com/sclorg/nodejs-ex'
     strategy:
       type: Source
       sourceStrategy:
         from:
           kind: DockerImage
-          name: centos/php-70-centos7
+          name: docker.io/openshift/test-build-simples2i:latest
     resources: {}
     postCommit: {}
     nodeSelector: null
@@ -47,15 +46,7 @@ items:
         containers:
         - image:
           imagePullPolicy: Always
-          readinessProbe:
-            httpGet:
-              port: 8080
           name: mys2itest
-          ports:
-          - containerPort: 8080
-            protocol: TCP
-          - containerPort: 8888
-            protocol: TCP
           terminationMessagePath: /dev/termination-log
         dnsPolicy: ClusterFirst
         restartPolicy: Always

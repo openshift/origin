@@ -12,7 +12,7 @@
     "source": {
       "type": "Git",
       "git": {
-        "uri":"https://github.com/sclorg/nodejs-ex"
+        "uri":"https://github.com/sclorg/nodejs-ex"        
       }
     },
     "strategy": {

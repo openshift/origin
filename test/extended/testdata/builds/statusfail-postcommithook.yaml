@@ -13,5 +13,5 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: centos/ruby-23-centos7:latest
+        name: docker.io/openshift/test-build-simples2i:latest
     type: Source

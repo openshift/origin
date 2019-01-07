@@ -663,14 +663,13 @@ items:
     source:
       type: Git
       git:
-        uri: 'https://github.com/sclorg/s2i-php-container'
-      contextDir: 7.0/test/test-app
+        uri: 'https://github.com/sclorg/nodejs-ex'
     strategy:
       type: Source
       sourceStrategy:
         from:
           kind: DockerImage
-          name: centos/php-70-centos7
+          name: docker.io/openshift/test-build-simples2i:latest
     resources: {}
     postCommit: {}
     nodeSelector: null
@@ -696,15 +695,7 @@ items:
         containers:
         - image:
           imagePullPolicy: Always
-          readinessProbe:
-            httpGet:
-              port: 8080
           name: mys2itest
-          ports:
-          - containerPort: 8080
-            protocol: TCP
-          - containerPort: 8888
-            protocol: TCP
           terminationMessagePath: /dev/termination-log
         dnsPolicy: ClusterFirst
         restartPolicy: Always
@@ -1067,7 +1058,7 @@ func testExtendedTestdataBuildsBuildQuotaDockerfile() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildSecretsDockerfile = []byte(`FROM centos/ruby-22-centos7
+var _testExtendedTestdataBuildsBuildSecretsDockerfile = []byte(`FROM docker.io/busybox
 
 USER root
 ADD ./secret-dir /secrets
@@ -1361,7 +1352,7 @@ var _testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson = []byte(`{
       "dockerStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "centos/ruby-22-centos7"
+          "name": "docker.io/busybox:latest"
         },
         "env": [
           {
@@ -1466,7 +1457,7 @@ var _testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson = []byte(`{
       "sourceStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "centos/ruby-22-centos7"
+          "name": "docker.io/centos/ruby-22-centos7"
         },
         "env": [
           {
@@ -1582,7 +1573,7 @@ func testExtendedTestdataBuildsBuildTimingDockerfile() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinAssemble = []byte(`#!/bin/bash
+var _testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinAssemble = []byte(`#!/bin/sh
 
 `)
 
@@ -1601,7 +1592,7 @@ func testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinAssemble() (*asset, 
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinRun = []byte(`#!/bin/bash
+var _testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinRun = []byte(`#!/bin/sh
 
 `)
 
@@ -1679,7 +1670,7 @@ var _testExtendedTestdataBuildsBuildTimingTestDockerBuildJson = []byte(`{
         "forcePull": true,
         "from": {
           "kind": "DockerImage",
-          "name": "centos/ruby-22-centos7"
+          "name": "docker.io/busybox:latest"
         },
         "env": [
           {
@@ -1758,7 +1749,7 @@ var _testExtendedTestdataBuildsBuildTimingTestS2iBuildJson = []byte(`{
       "sourceStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "centos/ruby-22-centos7"
+          "name": "docker.io/openshift/test-build-simples2i:latest"
         },
         "env": [
           {
@@ -2074,7 +2065,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: centos/ruby-23-centos7:latest
+        name: docker.io/openshift/test-build-simples2i:latest
 `)
 
 func testExtendedTestdataBuildsStatusfailFailedassembleYamlBytes() ([]byte, error) {
@@ -2269,7 +2260,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: centos/ruby-23-centos7:latest
+        name: docker.io/openshift/test-build-simples2i:latest
     type: Source
 `)
 
@@ -2304,7 +2295,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: centos/ruby-23-centos7:latest
+        name: docker.io/openshift/test-build-simples2i:latest
     type: Source
 `)
 
@@ -2356,9 +2347,8 @@ objects:
         - name: BUILD_LOGLEVEL
           value: "5"
         from:
-          kind: ImageStreamTag
-          name: ruby:latest
-          namespace: openshift
+          kind: DockerImage
+          name: docker.io/openshift/test-build-simples2i:latest
       type: Source
     # this test specifically does a push, to help exercise the code that sets
     # environment variables on build pods (i.e., by having a source secret and
@@ -2630,7 +2620,7 @@ items:
           value: 127.0.0.1:3128
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: docker.io/openshift/test-build-simples2i:latest
 - kind: BuildConfig
   apiVersion: v1
   metadata:
@@ -2652,7 +2642,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: docker.io/openshift/test-build-simples2i:latest
         env:
         - name: SOME_HTTP_PROXY
           value: https://envuser:password@proxy3.com
@@ -2679,7 +2669,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: docker.io/centos/ruby-22-centos7
         env:
         - name: SOME_HTTP_PROXY
           value: https://envuser:password@proxy3.com
@@ -2726,7 +2716,7 @@ var _testExtendedTestdataBuildsTestBuildRevisionJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "docker.io/openshift/test-build-simples2i:latest"
             }
           }
         },
@@ -2945,7 +2935,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: docker.io/busybox:latest
     resources: {}
     postCommit: {}
     nodeSelector: 
@@ -2971,7 +2961,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: docker.io/busybox:latest
         buildArgs:
         - name: foo
           value: default
@@ -3115,14 +3105,14 @@ var _testExtendedTestdataBuildsTestCdsDockerbuildJson = []byte(`{
     "triggers":[],
     "source":{
       "type":"Dockerfile",
-      "dockerfile":"FROM centos:7\nRUN sleep 10m"
+      "dockerfile":"FROM docker.io/busybox:latest\nRUN sleep 10m"
     },
     "strategy":{
       "type":"Docker",
       "dockerStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"centos/ruby-22-centos7"
+          "name":"docker.io/busybox:latest"
         }
       }
     }
@@ -3179,7 +3169,7 @@ var _testExtendedTestdataBuildsTestCdsSourcebuildJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "docker.io/busybox:latest"
             }
           }
         }
@@ -3419,14 +3409,14 @@ var _testExtendedTestdataBuildsTestDockerBuildPullsecretJson = []byte(`{
     },
     "spec": {
       "source": {
-        "dockerfile": "FROM centos:7"
+        "dockerfile": "FROM docker.io/busybox:latest"
       },
       "strategy": {
         "type": "Docker",
         "dockerStrategy": {
           "from": {
             "kind": "DockerImage",
-            "name": "centos:7"
+            "name": "docker.io/busybox:latest"
           }
         }
       },
@@ -3449,7 +3439,7 @@ var _testExtendedTestdataBuildsTestDockerBuildPullsecretJson = []byte(`{
     },
     "spec": {
       "source": {
-        "dockerfile": "FROM centos:7"
+        "dockerfile": "FROM docker.io/busybox:latest"
       },
       "strategy": {
         "type": "Docker",
@@ -3493,14 +3483,17 @@ var _testExtendedTestdataBuildsTestDockerBuildJson = []byte(`{
   "spec":{
     "triggers":[],
     "source":{
-      "dockerfile": "FROM busybox@sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6"
+      "git": {
+        "uri":"https://github.com/sclorg/nodejs-ex"        
+      },
+      "dockerfile": "FROM docker.io/busybox:latest"
     },
     "strategy":{
       "type":"Docker",
       "dockerStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"docker.io/busybox"
+          "name":"docker.io/busybox:latest"
         }
       }
     },
@@ -3556,9 +3549,7 @@ var _testExtendedTestdataBuildsTestDockerNoOutputnameJson = []byte(`{
     "triggers": [],
     "source": {
       "type": "Git",
-      "git": {
-        "uri": "https://github.com/openshift/ruby-hello-world"
-      }
+      "dockerfile": "FROM docker.io/busybox:latest"
     },
     "strategy": {
       "type": "Docker",
@@ -3571,7 +3562,7 @@ var _testExtendedTestdataBuildsTestDockerNoOutputnameJson = []byte(`{
         ],
         "from": {
           "kind": "DockerImage",
-          "name": "centos/ruby-22-centos7"
+          "name": "docker.io/busybox:latest"
         }
       }
     }
@@ -4117,7 +4108,7 @@ var _testExtendedTestdataBuildsTestNosrcBuildJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "docker.io/openshift/test-build-simples2i:latest"
             }
           }
         }
@@ -4169,7 +4160,7 @@ var _testExtendedTestdataBuildsTestS2iBuildQuotaJson = []byte(`{
       "sourceStrategy": {
         "from": {
           "kind":"DockerImage",
-          "name":"docker.io/busybox"
+          "name":"docker.io/openshift/test-build-simples2i:latest"
         },
         "env": [
           {
@@ -4212,7 +4203,7 @@ var _testExtendedTestdataBuildsTestS2iBuildJson = []byte(`{
     "source": {
       "type": "Git",
       "git": {
-        "uri":"https://github.com/sclorg/nodejs-ex"
+        "uri":"https://github.com/sclorg/nodejs-ex"        
       }
     },
     "strategy": {
@@ -4297,7 +4288,7 @@ var _testExtendedTestdataBuildsTestS2iNoOutputnameJson = []byte(`{
         ],
         "from": {
           "kind": "DockerImage",
-          "name": "centos/ruby-22-centos7"
+          "name": "docker.io/openshift/test-build-simples2i:latest"
         }
       }
     }
