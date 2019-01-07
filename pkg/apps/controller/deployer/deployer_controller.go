@@ -262,9 +262,7 @@ func (c *DeploymentController) handle(deployment *corev1.ReplicationController, 
 		}
 
 	case appsv1.DeploymentStatusComplete:
-		if err := c.cleanupDeployerPods(deployment); err != nil {
-			return err
-		}
+		// preserve deployer pods on completed deployments
 	}
 
 	deploymentCopy := deployment.DeepCopy()
