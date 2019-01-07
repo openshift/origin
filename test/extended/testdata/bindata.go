@@ -3493,18 +3493,14 @@ var _testExtendedTestdataBuildsTestDockerBuildJson = []byte(`{
   "spec":{
     "triggers":[],
     "source":{
-      "type":"Git",
-      "git":{
-        "uri":"https://github.com/sclorg/s2i-ruby-container"
-      },
-      "contextDir":"2.3"
+      "dockerfile": "FROM busybox@sha256:a59906e33509d14c036c8678d687bd4eec81ed7c4b8ce907b888c607f6a1e0e6"
     },
     "strategy":{
       "type":"Docker",
       "dockerStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"centos/s2i-base-centos7"
+          "name":"docker.io/busybox"
         }
       }
     },
@@ -4216,9 +4212,8 @@ var _testExtendedTestdataBuildsTestS2iBuildJson = []byte(`{
     "source": {
       "type": "Git",
       "git": {
-        "uri":"https://github.com/sclorg/s2i-ruby-container"
-      },
-      "contextDir": "2.3/test/puma-test-app"
+        "uri":"https://github.com/sclorg/nodejs-ex"
+      }
     },
     "strategy": {
       "type": "Source",
@@ -4231,7 +4226,7 @@ var _testExtendedTestdataBuildsTestS2iBuildJson = []byte(`{
         ],
         "from": {
           "kind": "DockerImage",
-          "name": "centos/ruby-23-centos7"
+          "name": "docker.io/openshift/test-build-simples2i:latest"
         }
       }
     },
