@@ -4442,14 +4442,13 @@ spec:
   source:
     type: Git
     git:
-      uri: 'https://github.com/sclorg/s2i-php-container'
-    contextDir: 7.0/test/test-app
+      uri: 'https://github.com/sclorg/nodejs-ex'
   strategy:
     type: Source
     sourceStrategy:
       from:
         kind: DockerImage
-        name: centos/php-70-centos7
+        name: docker.io/openshift/test-build-simples2i:latest
       env:
         - name: BUILD_LOGLEVEL
           value: "5"
@@ -4579,14 +4578,13 @@ spec:
   source:
     type: Git
     git:
-      uri: 'https://github.com/sclorg/s2i-php-container'
-    contextDir: 7.0/test/test-app
+      uri: 'https://github.com/sclorg/nodejs-ex'
   strategy:
     type: Source
     sourceStrategy:
       from:
         kind: DockerImage
-        name: centos/php-70-centos7
+        name: docker.io/openshift/test-build-simples2i:latest
       env:
         - name: BUILD_LOGLEVEL
           value: "5"
