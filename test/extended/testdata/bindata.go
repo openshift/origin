@@ -206,6 +206,7 @@
 // test/extended/testdata/signer-buildconfig.yaml
 // test/extended/testdata/templates/templateinstance_badobject.yaml
 // test/extended/testdata/templates/templateinstance_objectkinds.yaml
+// test/extended/testdata/templates/templateinstance_readiness.yaml
 // test/extended/testdata/templates/templateservicebroker_bind.yaml
 // test/extended/testdata/test-cli-debug.yaml
 // test/extended/testdata/test-env-pod.json
@@ -11737,6 +11738,130 @@ func testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml() (*asset, er
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/templates/templateinstance_objectkinds.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataTemplatesTemplateinstance_readinessYaml = []byte(`kind: Template
+apiVersion: v1
+metadata:
+  name: simple-example
+  annotations:
+objects:
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    annotations:
+      description: Exposes and load balances the application pods
+  spec:
+    ports:
+    - name: web
+      port: 8080
+      targetPort: 8080
+    selector:
+      name: "${NAME}"
+- kind: Route
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    host: "${APPLICATION_DOMAIN}"
+    to:
+      kind: Service
+      name: "${NAME}"
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    annotations:
+      description: Keeps track of changes in the application image
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    annotations:
+      description: Defines how to build the application
+      template.alpha.openshift.io/wait-for-ready: 'true'
+  spec:
+    source:
+      type: Git
+      git:
+        uri: ${SOURCE_REPOSITORY_URL}
+    strategy:
+      type: Source
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: docker.io/openshift/test-build-simples2i:latest
+    output:
+      to:
+        kind: ImageStreamTag
+        name: "${NAME}:latest"
+    triggers:
+    - type: ConfigChange
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    annotations:
+      description: Defines how to deploy the application server
+      template.alpha.openshift.io/wait-for-ready: 'true'
+  spec:
+    strategy:
+      type: Rolling
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - simple-example
+        from:
+          kind: ImageStreamTag
+          name: "${NAME}:latest"
+    - type: ConfigChange
+    replicas: 1
+    selector:
+      name: "${NAME}"
+    template:
+      metadata:
+        name: "${NAME}"
+        labels:
+          name: "${NAME}"
+      spec:
+        containers:
+        - name: simple-example
+          image: " "
+          ports:
+          - containerPort: 8080
+parameters:
+- name: NAME
+  displayName: Name
+  description: The name assigned to all of the frontend objects defined in this template.
+  required: true
+  value: simple-example
+- name: SOURCE_REPOSITORY_URL
+  displayName: sourceurl
+  required: true
+  value: https://github.com/sclorg/nodejs-ex
+- name: APPLICATION_DOMAIN
+  displayName: Application Hostname
+  description: The exposed hostname that will route to the Node.js service, if left
+    blank a value will be defaulted.
+  value: ''
+`)
+
+func testExtendedTestdataTemplatesTemplateinstance_readinessYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataTemplatesTemplateinstance_readinessYaml, nil
+}
+
+func testExtendedTestdataTemplatesTemplateinstance_readinessYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataTemplatesTemplateinstance_readinessYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/templates/templateinstance_readiness.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -32827,6 +32952,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/signer-buildconfig.yaml": testExtendedTestdataSignerBuildconfigYaml,
 	"test/extended/testdata/templates/templateinstance_badobject.yaml": testExtendedTestdataTemplatesTemplateinstance_badobjectYaml,
 	"test/extended/testdata/templates/templateinstance_objectkinds.yaml": testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml,
+	"test/extended/testdata/templates/templateinstance_readiness.yaml": testExtendedTestdataTemplatesTemplateinstance_readinessYaml,
 	"test/extended/testdata/templates/templateservicebroker_bind.yaml": testExtendedTestdataTemplatesTemplateservicebroker_bindYaml,
 	"test/extended/testdata/test-cli-debug.yaml": testExtendedTestdataTestCliDebugYaml,
 	"test/extended/testdata/test-env-pod.json": testExtendedTestdataTestEnvPodJson,
@@ -33333,6 +33459,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"templates": &bintree{nil, map[string]*bintree{
 					"templateinstance_badobject.yaml": &bintree{testExtendedTestdataTemplatesTemplateinstance_badobjectYaml, map[string]*bintree{}},
 					"templateinstance_objectkinds.yaml": &bintree{testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml, map[string]*bintree{}},
+					"templateinstance_readiness.yaml": &bintree{testExtendedTestdataTemplatesTemplateinstance_readinessYaml, map[string]*bintree{}},
 					"templateservicebroker_bind.yaml": &bintree{testExtendedTestdataTemplatesTemplateservicebroker_bindYaml, map[string]*bintree{}},
 				}},
 				"test-cli-debug.yaml": &bintree{testExtendedTestdataTestCliDebugYaml, map[string]*bintree{}},
