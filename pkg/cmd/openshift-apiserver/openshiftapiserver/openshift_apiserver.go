@@ -22,6 +22,7 @@ import (
 	genericmux "k8s.io/apiserver/pkg/server/mux"
 	kubeinformers "k8s.io/client-go/informers"
 	restclient "k8s.io/client-go/rest"
+	openapicontroller "k8s.io/kube-aggregator/pkg/controllers/openapi"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -67,6 +68,7 @@ import (
 	securityapiv1 "github.com/openshift/api/security/v1"
 	templateapiv1 "github.com/openshift/api/template/v1"
 	userapiv1 "github.com/openshift/api/user/v1"
+	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 
 	// register api groups
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -509,6 +511,28 @@ func (c *completedConfig) withUserAPIServer(delegateAPIServer genericapiserver.D
 	return server.GenericAPIServer, &legacyStorageVersionMutator{version: userapiv1.SchemeGroupVersion, storage: storage}, nil
 }
 
+func (c *completedConfig) withOpenAPIAggregator(delegatedAPIServer *genericapiserver.GenericAPIServer) (*genericapiserver.GenericAPIServer, error) {
+	delegatedAPIServer.RemoveOpenAPIData()
+
+	specDownloader := openapicontroller.NewDownloader()
+	openAPIAggregator, err := openapicontroller.BuildAndRegisterAggregator(
+		&specDownloader,
+		delegatedAPIServer,
+		delegatedAPIServer.Handler.GoRestfulContainer.RegisteredWebServices(),
+		configprocessing.DefaultOpenAPIConfig(nil),
+		delegatedAPIServer.Handler.NonGoRestfulMux)
+	if err != nil {
+		return nil, err
+	}
+	openAPIAggregationController := openapicontroller.NewAggregationController(&specDownloader, openAPIAggregator)
+
+	delegatedAPIServer.AddPostStartHook("apiservice-openapi-controller", func(context genericapiserver.PostStartHookContext) error {
+		go openAPIAggregationController.Run(context.StopCh)
+		return nil
+	})
+	return delegatedAPIServer, nil
+}
+
 type apiServerAppenderFunc func(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error)
 
 func addAPIServerOrDie(delegateAPIServer genericapiserver.DelegationTarget, legacyStorageModifiers legacyStorageMutators, apiServerAppenderFn apiServerAppenderFunc) (genericapiserver.DelegationTarget, legacyStorageMutators) {
@@ -541,6 +565,12 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget,
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withUserAPIServer)
 
 	genericServer, err := c.GenericConfig.New("openshift-apiserver", delegateAPIServer)
+	if err != nil {
+		return nil, err
+	}
+
+	// add aggregator last
+	genericServer, err = c.withOpenAPIAggregator(genericServer)
 	if err != nil {
 		return nil, err
 	}
