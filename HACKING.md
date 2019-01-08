@@ -87,7 +87,7 @@ binaries or files with the `hack/build-local-images.py` script. For example:
     build-local-images.py f5-router
 
     # build with a different image prefix
-    OS_IMAGE_PREFIX=openshift3/ose build-local-images.sh
+    OS_IMAGE_PREFIX=openshift3/ose build-local-images.py
 
 
 ## Test Suites
@@ -770,7 +770,7 @@ on the secured HTTPS port for the `openshift` binary:
 To view profiles, you use
 [pprof](http://goog-perftools.sourceforge.net/doc/cpu_profiler.html) which is
 part of `go tool`.  You must pass the captured pprof file (for source lines
-you will need to build the binary locally).  For instance, to view a `cpu` profile 
+you will need to build the binary locally).  For instance, to view a `cpu` profile
 from above, you would run OpenShift to completion, and then run:
 
     $ go tool pprof cpu.pprof
@@ -805,7 +805,7 @@ but you can also see the allocated object counts:
     $ go tool pprof --alloc_objects mem.pprof
 
 Finally, when using the `web` profile mode, you can have the go tool directly
-fetch your profiles via HTTP for services that only expose their profiling 
+fetch your profiles via HTTP for services that only expose their profiling
 contents over an unsecured HTTP endpoint:
 
     # for a 30s CPU trace

@@ -430,7 +430,13 @@ func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig
 	// we need to set enable-aggregator-routing so that APIServices are resolved from Endpoints
 	kubeAPIServerConfig.APIServerArguments["enable-aggregator-routing"] = kubecontrolplanev1.Arguments{"true"}
 	kubeAPIServerConfig.APIServerArguments["audit-log-format"] = kubecontrolplanev1.Arguments{"json"}
-	go openshift_kube_apiserver.RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig, stopCh)
+	go func() {
+		if err := openshift_kube_apiserver.RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig, stopCh); err != nil {
+			glog.Errorf("openshift-kube-apiserver terminated: %v", err)
+		} else {
+			glog.Info("openshift-kube-apiserver terminated cleanly")
+		}
+	}()
 
 	url, err := url.Parse(fmt.Sprintf("https://%s", masterConfig.ServingInfo.BindAddress))
 	if err := waitForServerHealthy(url); err != nil {
@@ -467,7 +473,13 @@ func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig 
 		return fmt.Errorf("couldn't find free address for OpenShift API: %v", err)
 	}
 	openshiftAPIServerConfig.ServingInfo.BindAddress = openshiftAddrStr
-	go openshift_apiserver.RunOpenShiftAPIServer(openshiftAPIServerConfig, stopCh)
+	go func() {
+		if err := openshift_apiserver.RunOpenShiftAPIServer(openshiftAPIServerConfig, stopCh); err != nil {
+			glog.Errorf("openshift-apiserver terminated: %v", err)
+		} else {
+			glog.Info("openshift-apiserver terminated cleanly")
+		}
+	}()
 
 	openshiftAddr, err := url.Parse(fmt.Sprintf("https://%s", openshiftAddrStr))
 	if err != nil {
@@ -622,9 +634,11 @@ func startKubernetesControllers(masterConfig *configapi.MasterConfig, adminKubeC
 	go func() {
 		cmd := kube_controller_manager.NewControllerManagerCommand()
 		if err := cmd.ParseFlags(args); err != nil {
+			glog.Errorf("kube-controller-manager failed to parse flags: %v", err)
 			return
 		}
 		cmd.Run(cmd, nil)
+		// TODO: print errors here. Now cmd.Run will call os.Exit on error, which stops the test.
 	}()
 
 	if err := waitForServerHealthy(kubeAddr); err != nil {
@@ -663,7 +677,12 @@ func startOpenShiftControllers(masterConfig *configapi.MasterConfig) error {
 		return fmt.Errorf("couldn't find free address for OpenShift controller-manager: %v", err)
 	}
 	openshiftControllerConfig.ServingInfo.BindAddress = openshiftAddrStr
-	go openshift_controller_manager.RunOpenShiftControllerManager(openshiftControllerConfig, privilegedLoopbackConfig)
+	go func() {
+		if err := openshift_controller_manager.RunOpenShiftControllerManager(openshiftControllerConfig, privilegedLoopbackConfig); err != nil {
+			glog.Errorf("openshift-controller-manager terminated: %v", err)
+		}
+		// TODO: stop openshift-controller-manager on exit of the test
+	}()
 
 	openshiftAddr, err := url.Parse(fmt.Sprintf("https://%s", openshiftAddrStr))
 	if err != nil {
