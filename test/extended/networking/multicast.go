@@ -77,31 +77,24 @@ func makeNamespaceMulticastEnabled(ns *kapiv1.Namespace) {
 	expectNoError(err)
 }
 
-// We run 'omping -c 1 -T 60 -q -q ${ip1} ${ip2} ${ip3}' in each pod:
-//   -c 1  : exchange 1 multicast packet with each peer and then exit
+// We run 'omping -c 5 -T 60 -q -q ${ip1} ${ip2} ${ip3}' in each pod:
+//   -c 5  : exchange 5 multicast packets with each peer and then exit
 //   -T 60 : time out and exit after 60 seconds no matter what
 //   -q -q : extra quiet, only print final status
 //
 // (Since we need to pass all three pod IPs to each omping command, we launch the pods
 // with the command "sleep 1000" first and then use "oc exec" to run omping.)
 //
-// Each omping instance will try to send a unicast packet to other instance until it
-// succeeds or times out. Once it succeeds, it will then send a multicast packet to that
-// peer, and expect to receive a multicast packet. After it has communicated with both
-// peers, it will exit.
+// The output should look like:
 //
-// The 60-second timeout only gets hit if unicast communication fails; if unicast works
-// but multicast doesn't then omping will fail within a few seconds of exchanging unicast
-// packets.
+//   10.130.0.3 :   unicast, xmt/rcv/%loss = 5/5/0%, min/avg/max/std-dev = 0.046/0.046/0.046/0.000
+//   10.130.0.3 : multicast, xmt/rcv/%loss = 5/5/0%, min/avg/max/std-dev = 0.068/0.068/0.068/0.000
+//   10.129.0.2 :   unicast, xmt/rcv/%loss = 5/5/0%, min/avg/max/std-dev = 0.066/0.066/0.066/0.000
+//   10.129.0.2 : multicast, xmt/rcv/%loss = 5/5/0%, min/avg/max/std-dev = 0.095/0.095/0.095/0.000
 //
-// The output looks like:
-//
-//   10.130.0.3 :   unicast, xmt/rcv/%loss = 1/1/0%, min/avg/max/std-dev = 0.046/0.046/0.046/0.000
-//   10.130.0.3 : multicast, xmt/rcv/%loss = 1/1/0%, min/avg/max/std-dev = 0.068/0.068/0.068/0.000
-//   10.129.0.2 :   unicast, xmt/rcv/%loss = 1/1/0%, min/avg/max/std-dev = 0.066/0.066/0.066/0.000
-//   10.129.0.2 : multicast, xmt/rcv/%loss = 1/1/0%, min/avg/max/std-dev = 0.095/0.095/0.095/0.000
-//
-// (or, on failure, "multicast, xmt/rcv/%loss = 1/0/100%, ...")
+// However, network congestion may cause some packets to be dropped. We only consider the
+// test to have failed if we see "multicast, xmt/rcv/%loss = 5/0/100%" in the output (ie,
+// at least one of the pods was completely unable to communicate via multicast).
 
 func testMulticast(f *e2e.Framework, oc *testexutil.CLI) error {
 	makeNamespaceScheduleToAllNodes(f)
@@ -114,22 +107,22 @@ func testMulticast(f *e2e.Framework, oc *testexutil.CLI) error {
 	var pod, ip, out [3]string
 	var err [3]error
 	var ch [3]chan struct{}
-	var matchIP [3]*regexp.Regexp
+	var failMatch [3]*regexp.Regexp
 
 	for i := range pod {
-		pod[i] = fmt.Sprintf("multicast-%d", i)
+		pod[i] = fmt.Sprintf("multicast-%d", i+1)
 		ip[i], err[i] = launchTestMulticastPod(f, nodes[i/2].Name, pod[i])
 		expectNoError(err[i])
 		var zero int64
 		defer f.ClientSet.CoreV1().Pods(f.Namespace.Name).Delete(pod[i], &metav1.DeleteOptions{GracePeriodSeconds: &zero})
-		matchIP[i] = regexp.MustCompile(ip[i] + ".*multicast.*1/1/0%")
+		failMatch[i] = regexp.MustCompile(ip[i] + ".*multicast.*/100%")
 		ch[i] = make(chan struct{})
 	}
 
 	for i := range pod {
 		i := i
 		go func() {
-			out[i], err[i] = oc.Run("exec").Args(pod[i], "--", "omping", "-c", "1", "-T", "60", "-q", "-q", ip[0], ip[1], ip[2]).Output()
+			out[i], err[i] = oc.Run("exec").Args(pod[i], "--", "omping", "-c", "5", "-T", "60", "-q", "-q", ip[0], ip[1], ip[2]).Output()
 			close(ch[i])
 		}()
 	}
@@ -140,8 +133,8 @@ func testMulticast(f *e2e.Framework, oc *testexutil.CLI) error {
 		}
 		for j := range pod {
 			if i != j {
-				if !matchIP[j].MatchString(out[i]) {
-					return fmt.Errorf("pod %d failed to send multicast to pod %d", i, j)
+				if failMatch[j].MatchString(out[i]) {
+					return fmt.Errorf("pod %d failed to send multicast to pod %d", i+1, j+1)
 				}
 			}
 		}
