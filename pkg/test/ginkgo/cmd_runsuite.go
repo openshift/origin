@@ -22,12 +22,11 @@ import (
 // Options is used to run a suite of tests by invoking each test
 // as a call to a child worker (the run-tests command).
 type Options struct {
-	Parallelism  int
-	Timeout      time.Duration
-	JUnitDir     string
-	TestFile     string
-	OutFile      string
-	DetectFlakes int
+	Parallelism int
+	Timeout     time.Duration
+	JUnitDir    string
+	TestFile    string
+	OutFile     string
 
 	IncludeSuccessOutput bool
 
@@ -267,11 +266,11 @@ func (opt *Options) Run(args []string) error {
 	}
 
 	// attempt to retry failures to do flake detection
-	if fail > 0 && fail <= opt.DetectFlakes {
+	if fail > 0 && fail <= suite.MaximumAllowedFlakes {
 		var retries []*testCase
 		for _, test := range failing {
 			retries = append(retries, test.Retry())
-			if len(retries) > opt.DetectFlakes {
+			if len(retries) > suite.MaximumAllowedFlakes {
 				break
 			}
 		}
@@ -308,7 +307,7 @@ func (opt *Options) Run(args []string) error {
 	}
 
 	if fail > 0 {
-		if len(failing) > 0 || !suite.AllowPassWithFlakes {
+		if len(failing) > 0 || suite.MaximumAllowedFlakes == 0 {
 			return fmt.Errorf("%d fail, %d pass, %d skip (%s)", fail, pass, skip, duration)
 		}
 		fmt.Fprintf(opt.Out, "%d flakes detected, suite allows passing with only flakes\n\n", fail)

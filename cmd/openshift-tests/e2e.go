@@ -31,7 +31,8 @@ var staticSuites = []*ginkgo.TestSuite{
 		Matches: func(name string) bool {
 			return strings.Contains(name, "[Suite:openshift/conformance/parallel")
 		},
-		Parallelism: 30,
+		Parallelism:          30,
+		MaximumAllowedFlakes: 5,
 	},
 	{
 		Name: "openshift/conformance/serial",
@@ -61,6 +62,8 @@ var staticSuites = []*ginkgo.TestSuite{
 			return strings.Contains(name, "[Feature:Builds]")
 		},
 		Parallelism: 7,
+		// TODO: Builds are really flaky right now, remove when we land perf updates and fix io on workers
+		MaximumAllowedFlakes: 3,
 		// Jenkins tests can take a really long time
 		TestTimeout: 60 * time.Minute,
 	},
@@ -87,7 +90,7 @@ var staticSuites = []*ginkgo.TestSuite{
 	{
 		Name: "openshift/jenkins-e2e",
 		Description: templates.LongDesc(`
-		Tests that exercise the OpensShift / Jenkins integrations provided by the OpenShift Jenkins image/plugins and the Pipeline Build Strategy.
+		Tests that exercise the OpenShift / Jenkins integrations provided by the OpenShift Jenkins image/plugins and the Pipeline Build Strategy.
 		`),
 		Matches: func(name string) bool {
 			return strings.Contains(name, "openshift pipeline")
@@ -96,44 +99,28 @@ var staticSuites = []*ginkgo.TestSuite{
 		TestTimeout: 20 * time.Minute,
 	},
 	{
-		Name: "openshift/smoke-4",
+		Name: "openshift/scalability",
 		Description: templates.LongDesc(`
-		Tests that verify a 4.X cluster (using the new operator based core) is ready. This
-		suite will be removed in favor of openshift/conformance once all functionality is
-		available.
+		Tests that verify the scalability characteristics of the cluster. Currently this is focused on core performance behaviors and preventing regressions.
 		`),
 		Matches: func(name string) bool {
-			if !strings.Contains(name, "[Suite:openshift/conformance/parallel") {
-				return false
-			}
-			_, skip := map[string]struct{}{
-				"[sig-cli] Kubectl client [k8s.io] Kubectl taint [Serial] should remove all the taints with the same key off a node [Suite:openshift/conformance/serial] [Suite:k8s]": {},
-				"[sig-cli] Kubectl client [k8s.io] Kubectl taint [Serial] should update the taint on a node [Suite:openshift/conformance/serial] [Suite:k8s]":                         {},
-				"[sig-network] Services should be able to create a functioning NodePort service [Suite:openshift/conformance/parallel] [Suite:k8s]":                                   {},
-				"[sig-network] Services should be able to switch session affinity for NodePort service [Suite:openshift/conformance/parallel] [Suite:k8s]":                            {},
-				"[sig-network] Services should have session affinity work for NodePort service [Suite:openshift/conformance/parallel] [Suite:k8s]":                                    {},
-				"[sig-scheduling] SchedulerPredicates [Serial] validates that taints-tolerations is respected if matching [Suite:openshift/conformance/serial] [Suite:k8s]":           {},
-				"[sig-scheduling] SchedulerPredicates [Serial] validates that taints-tolerations is respected if not matching [Suite:openshift/conformance/serial] [Suite:k8s]":       {},
-				"[sig-scheduling] SchedulerPriorities [Serial] Pod should perfer to scheduled to nodes pod can tolerate [Suite:openshift/conformance/serial] [Suite:k8s]":             {},
-				"[sig-storage] Dynamic Provisioning DynamicProvisioner deletion should be idempotent [Suite:openshift/conformance/parallel] [Suite:k8s]":                              {},
-			}[name]
-			return !skip
+			return strings.Contains(name, "[Suite:openshift/scalability]")
 		},
-		AllowPassWithFlakes: true,
-		Parallelism:         30,
+		Parallelism: 1,
+		TestTimeout: 20 * time.Minute,
 	},
 	{
-		Name: "openshift/all",
+		Name: "openshift/conformance-excluded",
+		Description: templates.LongDesc(`
+		Run only tests that are excluded from conformance. Makes identifying omitted tests easier.
+		`),
+		Matches: func(name string) bool { return !strings.Contains(name, "[Suite:openshift/conformance/") },
+	},
+	{
+		Name: "all",
 		Description: templates.LongDesc(`
 		Run all tests.
 		`),
 		Matches: func(name string) bool { return true },
-	},
-	{
-		Name: "kubernetes/all",
-		Description: templates.LongDesc(`
-		Run all Kubernetes tests.
-		`),
-		Matches: func(name string) bool { return strings.Contains(name, "[k8s.io]") },
 	},
 }

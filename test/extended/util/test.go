@@ -401,70 +401,15 @@ var (
 
 			`Should be able to support the 1.7 Sample API Server using the current Aggregator`, // down apiservices break other clients today https://bugzilla.redhat.com/show_bug.cgi?id=1623195
 		},
-		// tests that will pass in 4.0
-		// TODO: this will be removed once 4.0 passes all conformance tests
-		"[Suite:openshift/smoke-4]": {
-			`Managed cluster should start all core operators`,
-
-			regexp.QuoteMeta("[sig-storage] Subpath [Volume type"),
-			regexp.QuoteMeta("[sig-storage] Volume Placement"),
-			regexp.QuoteMeta("[sig-storage] Subpath Atomic writer volumes should support subpaths with"),
-			regexp.QuoteMeta("[sig-storage] Secrets should be consumable from pods in volume"),
-			regexp.QuoteMeta("[sig-storage] Projected should be consumable"),
-			regexp.QuoteMeta("[sig-storage] HostPath should give a volume the correct mode"),
-			regexp.QuoteMeta("[sig-storage] HostPath should support r/w"),
-			regexp.QuoteMeta("[sig-storage] Dynamic Provisioning DynamicProvisioner"),
-			regexp.QuoteMeta("[sig-storage] ConfigMap should be consumable from pods"),
-			regexp.QuoteMeta("[sig-storage] ConfigMap should be consumable from pods"),
-			regexp.QuoteMeta("[sig-storage] Downward API volume should"),
-			regexp.QuoteMeta("[sig-storage] CSI Volumes CSI plugin test using CSI driver: hostPath should provision storage"),
-			regexp.QuoteMeta("[sig-scheduling] ResourceQuota should"),
-			regexp.QuoteMeta("[sig-scheduling] LimitRange should create a LimitRange with defaults"),
-			regexp.QuoteMeta("[sig-network] Services should"),
-			regexp.QuoteMeta("[sig-network] Networking Granular Checks: Pods should function for"),
-			regexp.QuoteMeta("[sig-network] DNS"),
-			regexp.QuoteMeta("[sig-cli] Kubectl client [k8s.io]"),
-			regexp.QuoteMeta("[sig-auth] [Feature:NodeAuthorizer]"),
-			regexp.QuoteMeta("[sig-auth] PodSecurityPolicy should"),
-			regexp.QuoteMeta("[sig-apps] ReplicaSet should"),
-			regexp.QuoteMeta("[sig-apps] Job should"),
-			regexp.QuoteMeta("[sig-apps] DisruptionController"),
-			regexp.QuoteMeta("[sig-apps] Deployment deployment"),
-			regexp.QuoteMeta("[sig-apps] CronJob should"),
-			regexp.QuoteMeta("[sig-api-machinery]"),
-			regexp.QuoteMeta("[k8s.io] [sig-node] Security Context [Feature:SecurityContext]"),
-			regexp.QuoteMeta("[k8s.io] [sig-node] Events should be sent by kubelets"),
-			regexp.QuoteMeta("[k8s.io] Pods should"),
-			regexp.QuoteMeta("[k8s.io] Docker Containers should"),
-			regexp.QuoteMeta("[Feature:DeploymentConfig] deploymentconfigs with multiple image change triggers"),
-			regexp.QuoteMeta("[Conformance][templates] templateinstance object kinds test should create and delete objects from varying API groups"),
-			regexp.QuoteMeta("[Conformance][Area:Networking][Feature:Router]"),
-			regexp.QuoteMeta("[Area:Networking] NetworkPolicy"),
-			regexp.QuoteMeta("[Area:Networking] network isolation"),
-			regexp.QuoteMeta("[Area:Networking] services when using a plugin"),
-			regexp.QuoteMeta("[Feature:Builds] result image should have proper labels set"),
-			regexp.QuoteMeta("[Feature:Builds][Conformance] oc new-app"),
+		"[Suite:openshift/scalability]": {
+			`Density .* should allow starting 30 pods per node .*Deployment.* with 0 secrets, 2 configmaps and 0 daemons`,
+			`Density .* should allow starting 100 pods per node .*ReplicationController.* with 0 secrets, 0 configmaps and 0 daemons`,
+			`Load capacity .* should be able to handle 30 pods per node .*Job.* with 0 secrets, 0 configmaps and 0 daemons`,
 		},
 	}
 
 	// labelExcludes temporarily block tests out of a specific suite
-	labelExcludes = map[string][]string{
-		"[Suite:openshift/smoke-4]": {
-			`\[sig-network\] Services .* NodePort`,
-			`DynamicProvisioner deletion should be idempotent`,
-			`Kubectl taint \[Serial\]`,
-			// flaking, very slow
-			`100 namespaces in 150 seconds`,
-
-			// appear to be flaking
-			`should run a successful deployment with multiple triggers`,
-			`should run a successful deployment with a trigger used by different containers`,
-
-			// flaking left and right
-			// Dec  1 01:23:01.913: INFO: resource secrets, expected 6, actual 7
-			`should create a ResourceQuota and capture the life of a secret`,
-		},
-	}
+	labelExcludes = map[string][]string{}
 
 	excludedTests = []string{
 		`\[Disabled:.+\]`,

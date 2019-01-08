@@ -46,8 +46,7 @@ func main() {
 	suites := staticSuites
 
 	suiteOpt := &testginkgo.Options{
-		DetectFlakes: 6,
-		Suites:       suites,
+		Suites: suites,
 	}
 	cmd := &cobra.Command{
 		Use:   "run SUITE",
