@@ -84,14 +84,12 @@ func (a *validateCustomResource) Validate(uncastAttributes admission.Attributes)
 			return apierrors.NewInvalid(attributes.GetKind().GroupKind(), attributes.GetName(), errors)
 
 		default:
-			admission.NewForbidden(attributes, fmt.Errorf("unhandled subresource: %v", attributes.GetSubresource()))
+			return admission.NewForbidden(attributes, fmt.Errorf("unhandled subresource: %v", attributes.GetSubresource()))
 		}
 
 	default:
-		admission.NewForbidden(attributes, fmt.Errorf("unhandled operation: %v", attributes.GetOperation()))
+		return admission.NewForbidden(attributes, fmt.Errorf("unhandled operation: %v", attributes.GetOperation()))
 	}
-
-	return nil
 }
 
 func (a *validateCustomResource) shouldIgnore(attributes admission.Attributes) bool {
