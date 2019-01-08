@@ -10,19 +10,6 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 )
 
-func RequireNameCluster(name string, prefix bool) []string {
-	if name != "cluster" {
-		return []string{"must be cluster"}
-	}
-	return nil
-}
-
-type ValidateObjCreateFunc func(obj runtime.Object) field.ErrorList
-
-type ValidateObjUpdateFunc func(obj runtime.Object, oldObj runtime.Object) field.ErrorList
-
-type ValidateStatusUpdateFunc func(obj runtime.Object, oldObj runtime.Object) field.ErrorList
-
 type ObjectValidator interface {
 	ValidateCreate(obj runtime.Object) field.ErrorList
 	ValidateUpdate(obj runtime.Object, oldObj runtime.Object) field.ErrorList
@@ -48,12 +35,17 @@ func NewValidator(resources map[schema.GroupResource]bool, validators map[schema
 
 var _ admission.ValidationInterface = &validateCustomResource{}
 
+// Validate is an admission function that will validate a CRD in config.openshift.io.  uncastAttributes are attributes
+// that are of type unstructured.
 func (a *validateCustomResource) Validate(uncastAttributes admission.Attributes) error {
 	attributes := &unstructuredUnpackingAttributes{Attributes: uncastAttributes}
 	if a.shouldIgnore(attributes) {
 		return nil
 	}
-	validator := a.validators[attributes.GetKind()]
+	validator, ok := a.validators[attributes.GetKind()]
+	if !ok {
+		return admission.NewForbidden(attributes, fmt.Errorf("unhandled kind: %v", attributes.GetKind()))
+	}
 
 	switch attributes.GetOperation() {
 	case admission.Create:

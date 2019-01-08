@@ -5,6 +5,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 )
 
+// AllCustomResourceValidators are the names of all custom resource validators that should be registered
 var AllCustomResourceValidators = []string{
 	"config.openshift.io/ValidateImage",
 }

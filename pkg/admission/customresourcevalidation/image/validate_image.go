@@ -4,16 +4,14 @@ import (
 	"fmt"
 	"io"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	configv1 "github.com/openshift/api/config/v1"
-
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation"
 	"k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-
 	"k8s.io/apiserver/pkg/admission"
+
+	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/origin/pkg/admission/customresourcevalidation"
 )
 
 // Register registers a plugin
@@ -50,51 +48,45 @@ type imageV1 struct {
 }
 
 func (imageV1) ValidateCreate(uncastObj runtime.Object) field.ErrorList {
-	obj, castErrors := toImageV1(uncastObj)
-	if len(castErrors) > 0 {
-		return castErrors
+	obj, errs := toImageV1(uncastObj)
+	if len(errs) > 0 {
+		return errs
 	}
 
-	allErrs := field.ErrorList{}
-
 	// TODO validate the obj
-	allErrs = append(allErrs, validation.ValidateObjectMeta(&obj.ObjectMeta, false, customresourcevalidation.RequireNameCluster, field.NewPath("metadata"))...)
+	errs = append(errs, validation.ValidateObjectMeta(&obj.ObjectMeta, false, customresourcevalidation.RequireNameCluster, field.NewPath("metadata"))...)
 
-	return allErrs
+	return errs
 }
 
 func (imageV1) ValidateUpdate(uncastObj runtime.Object, uncastOldObj runtime.Object) field.ErrorList {
-	obj, castErrors := toImageV1(uncastObj)
-	if len(castErrors) > 0 {
-		return castErrors
+	obj, errs := toImageV1(uncastObj)
+	if len(errs) > 0 {
+		return errs
 	}
-	oldObj, castErrors := toImageV1(uncastOldObj)
-	if len(castErrors) > 0 {
-		return castErrors
+	oldObj, errs := toImageV1(uncastOldObj)
+	if len(errs) > 0 {
+		return errs
 	}
-
-	allErrs := field.ErrorList{}
 
 	// TODO validate the obj
-	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &oldObj.ObjectMeta, field.NewPath("metadata"))...)
+	errs = append(errs, validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &oldObj.ObjectMeta, field.NewPath("metadata"))...)
 
-	return allErrs
+	return errs
 }
 
 func (imageV1) ValidateStatusUpdate(uncastObj runtime.Object, uncastOldObj runtime.Object) field.ErrorList {
-	obj, castErrors := toImageV1(uncastObj)
-	if len(castErrors) > 0 {
-		return castErrors
+	obj, errs := toImageV1(uncastObj)
+	if len(errs) > 0 {
+		return errs
 	}
-	oldObj, castErrors := toImageV1(uncastOldObj)
-	if len(castErrors) > 0 {
-		return castErrors
+	oldObj, errs := toImageV1(uncastOldObj)
+	if len(errs) > 0 {
+		return errs
 	}
-
-	allErrs := field.ErrorList{}
 
 	// TODO validate the obj.  remember that status validation should *never* fail on spec validation errors.
-	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &oldObj.ObjectMeta, field.NewPath("metadata"))...)
+	errs = append(errs, validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &oldObj.ObjectMeta, field.NewPath("metadata"))...)
 
-	return allErrs
+	return errs
 }
