@@ -217,12 +217,6 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 			}
 			dsts = append(dsts, serviceIPNet)
 
-			dnsIP := net.ParseIP(config.DNSIP)
-			if dnsIP == nil {
-				return fmt.Errorf("failed to parse dns IP: %v", err)
-			}
-			dsts = append(dsts, &net.IPNet{IP: dnsIP, Mask: net.CIDRMask(32, 32)})
-
 			for _, dst := range dsts {
 				route := &netlink.Route{
 					Dst: dst,
