@@ -82,7 +82,7 @@ func (d *MetricsApiProxy) Check() types.DiagnosticResult {
 	}
 
 	// the service should respond; see if we can reach it via API proxy
-	uri := fmt.Sprintf("/api/v1/proxy/namespaces/%[1]s/services/https:%[2]s:/api/v1/model/metrics", MetricsApiProxyProject, MetricsApiProxyService)
+	uri := fmt.Sprintf("/api/v1/namespaces/%[1]s/services/https:%[2]s:/proxy/api/v1/model/metrics", MetricsApiProxyProject, MetricsApiProxyService)
 	// note in above, project and service name are already URL-safe
 	result := d.KubeClient.Core().RESTClient().Get().RequestURI(uri).Do()
 	if err := result.Error(); err != nil {
