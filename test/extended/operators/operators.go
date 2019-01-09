@@ -80,12 +80,12 @@ var _ = g.Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 
 		// gate on all clusteroperators being ready
 		available := make(map[string]struct{})
-		for _, group := range []string{"config.openshift.io", "operatorstatus.openshift.io"} {
+		for _, group := range []string{"config.openshift.io"} {
 			g.By(fmt.Sprintf("waiting for all cluster operators in %s to be available", group))
 			coc := dc.Resource(schema.GroupVersionResource{Group: group, Resource: "clusteroperators", Version: "v1"})
 			lastErr = nil
 			var lastCOs []objx.Map
-			if err := wait.PollImmediate(time.Second, operatorWait, func() (bool, error) {
+			wait.PollImmediate(time.Second, operatorWait, func() (bool, error) {
 				obj, err := coc.List(metav1.ListOptions{})
 				if err != nil {
 					lastErr = err
@@ -119,35 +119,38 @@ var _ = g.Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 					return false, nil
 				}
 				return true, nil
-			}); err != nil {
-				o.Expect(lastErr).NotTo(o.HaveOccurred())
-				var unavailable []string
-				buf := &bytes.Buffer{}
-				w := tabwriter.NewWriter(buf, 0, 4, 1, ' ', 0)
-				fmt.Fprintf(w, "NAMESPACE\tNAME\tPROGRESSING\tAVAILABLE\tVERSION\tMESSAGE\n")
-				for _, co := range lastCOs {
-					ns := co.Get("metadata.namespace").String()
-					name := co.Get("metadata.name").String()
-					if condition(co, "Available").Get("status").String() != "True" {
-						unavailable = append(unavailable, fmt.Sprintf("%s/%s", ns, name))
-					} else {
-						available[fmt.Sprintf("%s/%s", ns, name)] = struct{}{}
-					}
-					fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
-						ns,
-						name,
-						condition(co, "Progressing").Get("status").String(),
-						condition(co, "Available").Get("status").String(),
-						co.Get("status.version").String(),
-						condition(co, "Failing").Get("message").String(),
-					)
+			})
+
+			o.Expect(lastErr).NotTo(o.HaveOccurred())
+			var unavailable []string
+			buf := &bytes.Buffer{}
+			w := tabwriter.NewWriter(buf, 0, 4, 1, ' ', 0)
+			fmt.Fprintf(w, "NAMESPACE\tNAME\tPROGRESSING\tAVAILABLE\tVERSION\tMESSAGE\n")
+			for _, co := range lastCOs {
+				ns := co.Get("metadata.namespace").String()
+				name := co.Get("metadata.name").String()
+				if condition(co, "Available").Get("status").String() != "True" {
+					unavailable = append(unavailable, fmt.Sprintf("%s/%s", ns, name))
+				} else {
+					available[fmt.Sprintf("%s/%s", ns, name)] = struct{}{}
 				}
-				w.Flush()
-				e2e.Logf("ClusterOperators:\n%s", buf.String())
-				// TODO: make this an e2e.Failf()
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
+					ns,
+					name,
+					condition(co, "Progressing").Get("status").String(),
+					condition(co, "Available").Get("status").String(),
+					co.Get("status.version").String(),
+					condition(co, "Failing").Get("message").String(),
+				)
+			}
+			w.Flush()
+			e2e.Logf("ClusterOperators:\n%s", buf.String())
+			// TODO: make this an e2e.Failf()
+			if len(unavailable) > 0 {
 				e2e.Logf("Some cluster operators never became available %s", strings.Join(unavailable, ", "))
 			}
 		}
+
 		// Check at least one core operator is available
 		if len(available) == 0 {
 			e2e.Failf("None of the required core operators are available")
