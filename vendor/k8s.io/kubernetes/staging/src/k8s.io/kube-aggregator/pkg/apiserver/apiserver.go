@@ -184,6 +184,8 @@ func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.Deleg
 		c.GenericConfig.SharedInformerFactory.Core().V1().Endpoints(),
 		apiregistrationClient.Apiregistration(),
 		c.ExtraConfig.ProxyTransport,
+		c.ExtraConfig.ProxyClientCert,
+		c.ExtraConfig.ProxyClientKey,
 		s.serviceResolver,
 	)
 
