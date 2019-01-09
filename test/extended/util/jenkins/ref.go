@@ -369,6 +369,31 @@ func OverridePodTemplateImages(newAppArgs []string) []string {
 	return newAppArgs
 }
 
+// SetupDockerhubImage pull in a jenkins image from docker.io for aws-build testing;
+// at some point during 4.0 dev, the jenkins imagestream in the openshift namespace
+// will leverage the rhel images from the terms based registry at registry.redhat.io
+// where credentials will be needed; we want to test against pre-release images
+func SetupDockerhubImage(localImageName, snapshotImageStream string, newAppArgs []string, oc *exutil.CLI) []string {
+	g.By("Creating a Jenkins imagestream for overridding the default Jenkins imagestream in the openshift namespace")
+
+	// Create an imagestream based on the Jenkins' plugin PR-Testing image (https://github.com/openshift/jenkins-plugin/blob/master/PR-Testing/README).
+	err := oc.Run("new-build").Args("-D", fmt.Sprintf("FROM %s", localImageName), "--to", snapshotImageStream).Execute()
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	g.By("waiting for build to finish")
+	err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), snapshotImageStream+"-1", exutil.CheckBuildSuccess, exutil.CheckBuildFailed, exutil.CheckBuildCancelled)
+	if err != nil {
+		exutil.DumpBuildLogs(snapshotImageStream, oc)
+	}
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	// Supplant the normal imagestream with the local imagestream using template parameters
+	newAppArgs = append(newAppArgs, "-p", fmt.Sprintf("NAMESPACE=%s", oc.Namespace()))
+	newAppArgs = append(newAppArgs, "-p", fmt.Sprintf("JENKINS_IMAGE_STREAM_TAG=%s:latest", snapshotImageStream))
+
+	return newAppArgs
+}
+
 // pulls in a jenkins image built from a PR change for one of our plugins
 func SetupSnapshotImage(envVarName, localImageName, snapshotImageStream string, newAppArgs []string, oc *exutil.CLI) ([]string, bool) {
 	tag := []string{localImageName}
