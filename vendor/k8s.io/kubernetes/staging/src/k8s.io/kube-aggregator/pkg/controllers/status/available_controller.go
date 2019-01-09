@@ -17,7 +17,6 @@ limitations under the License.
 package apiserver
 
 import (
-	"crypto/tls"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -36,7 +35,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	v1informers "k8s.io/client-go/informers/core/v1"
 	v1listers "k8s.io/client-go/listers/core/v1"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/transport"
 	"k8s.io/client-go/util/workqueue"
 
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
@@ -78,6 +79,8 @@ func NewAvailableConditionController(
 	endpointsInformer v1informers.EndpointsInformer,
 	apiServiceClient apiregistrationclient.APIServicesGetter,
 	proxyTransport *http.Transport,
+	proxyClientCert []byte,
+	proxyClientKey []byte,
 	serviceResolver ServiceResolver,
 ) *AvailableConditionController {
 	c := &AvailableConditionController{
@@ -99,10 +102,19 @@ func NewAvailableConditionController(
 
 	// construct an http client that will ignore TLS verification (if someone owns the network and messes with your status
 	// that's not so bad) and sets a very short timeout.
-	discoveryClient := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	restConfig := &rest.Config{
+		TLSClientConfig: rest.TLSClientConfig{
+			Insecure: true,
+			CertData: proxyClientCert,
+			KeyData:  proxyClientKey,
 		},
+	}
+	transport, err := rest.TransportFor(restConfig)
+	if err != nil {
+		panic(err)
+	}
+	discoveryClient := &http.Client{
+		Transport: transport,
 		// the request should happen quickly.
 		Timeout: 5 * time.Second,
 	}
@@ -244,9 +256,20 @@ func (c *AvailableConditionController) sync(key string) error {
 
 				errCh := make(chan error)
 				go func() {
-					resp, err := c.discoveryClient.Get(discoveryURL.String())
+					newReq, err := http.NewRequest("GET", discoveryURL.String(), nil)
+					if err != nil {
+						errCh <- err
+						return
+					}
+
+					transport.SetAuthProxyHeaders(newReq, "system:kube-aggregator", []string{"system:masters"}, nil)
+					resp, err := c.discoveryClient.Do(newReq)
 					if resp != nil {
 						resp.Body.Close()
+						if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+							errCh <- fmt.Errorf("bad status from %v: %v", discoveryURL, resp.StatusCode)
+							return
+						}
 					}
 					errCh <- err
 				}()
