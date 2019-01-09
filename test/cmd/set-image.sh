@@ -27,13 +27,10 @@ os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-he
 os::cmd::expect_success_and_text 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag -o yaml' 'name: test-deployment-config'
 
 os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.3 --source=istag'
-os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" ':5000/cmd-set-image/ruby@sha256'
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" 'docker.io/centos/ruby-23-centos7@sha256'
 
 os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag'
-os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" ':5000/cmd-set-image/ruby@sha256'
-
-os::cmd::expect_success 'oc set image dc/test-deployment-config ruby-helloworld=ruby:2.0 --source=istag'
-os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" ':5000/cmd-set-image/ruby@sha256'
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" 'docker.io/openshift/ruby-20-centos7@sha256'
 
 os::cmd::expect_failure 'oc set image dc/test-deployment-config ruby-helloworld=ruby:XYZ --source=istag'
 os::cmd::expect_failure 'oc set image dc/test-deployment-config ruby-helloworld=ruby:XYZ --source=isimage'
@@ -48,8 +45,8 @@ os::cmd::expect_success 'oc set image pod/hello-openshift hello-openshift=nginx:
 os::cmd::expect_success_and_text "oc get pod/hello-openshift -o jsonpath='{.spec.containers[0].image}'" 'nginx:1.9.1'
 
 os::cmd::expect_success 'oc set image pods,dc *=ruby:2.3 --all --source=imagestreamtag'
-os::cmd::expect_success_and_text "oc get pod/hello-openshift -o jsonpath='{.spec.containers[0].image}'" ':5000/cmd-set-image/ruby@sha256'
-os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" ':5000/cmd-set-image/ruby@sha256'
+os::cmd::expect_success_and_text "oc get pod/hello-openshift -o jsonpath='{.spec.containers[0].image}'" 'docker.io/centos/ruby-23-centos7@sha256'
+os::cmd::expect_success_and_text "oc get dc/test-deployment-config -o jsonpath='{.spec.template.spec.containers[0].image}'" 'docker.io/centos/ruby-23-centos7@sha256'
 
 echo "set-image: ok"
 os::test::junit::declare_suite_end

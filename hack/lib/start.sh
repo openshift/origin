@@ -612,23 +612,3 @@ function os::start::router() {
 	fi
 }
 readonly -f os::start::router
-
-# os::start::registry installs the OpenShift integrated registry
-#
-# Globals:
-#  - ADMIN_KUBECONFIG
-#  - USE_IMAGES
-# Arguments:
-#  None
-# Returns:
-#  None
-function os::start::registry() {
-	# The --mount-host option is provided to reuse local storage.
-	os::log::debug "Installing the registry"
-	# For testing purposes, ensure the quota objects are always up to date in the registry by
-	# disabling project cache.
-	oc adm registry --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --enforce-quota -o json | \
-		oc set env --config="${ADMIN_KUBECONFIG}" --local -f - --output json "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_PROJECTCACHETTL=0" | \
-		oc create --config="${ADMIN_KUBECONFIG}" -f -
-}
-readonly -f os::start::registry
