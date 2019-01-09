@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/monitor"
 
 	"github.com/onsi/ginkgo/config"
+	"github.com/openshift/origin/test/extended/util"
 )
 
 // Options is used to run a suite of tests by invoking each test
@@ -294,6 +295,34 @@ func (opt *Options) Run(args []string) error {
 			fmt.Fprintf(opt.Out, "Flaky tests:\n\n%s\n\n", strings.Join(flaky, "\n"))
 		}
 	}
+
+	// Monitor operator metrics
+	operatorMetricsTc := &testCase{
+		name:    "[Top Level] Measure Operator Performance",
+		success: true,
+		out:     []byte("No operator performance anomalies were observed"),
+	}
+
+	ns := "operators-metrics-test-e2e"
+	oc := util.NewCLI(ns, util.KubeConfigPath())
+	if err := util.CalculatePodMetrics(oc.AdminKubeClient(), oc.AdminConfig(), ns); err != nil {
+		fail++
+		operatorMetricsTc.failed = true
+		operatorMetricsTc.success = false
+		operatorMetricsTc.out = []byte(err.Error())
+
+		failing = append(tests, operatorMetricsTc)
+		syntheticTestResults = append(syntheticTestResults, &JUnitTestCase{
+			Name:      "[Top Level] Measure Operator Performance",
+			SystemOut: err.Error(),
+			FailureOutput: &FailureOutput{
+				Output: fmt.Sprintf("%s:\n\n%s", "Some operators have exceeded maximum allowed QPS limit.", err.Error()),
+			},
+		})
+	} else {
+		pass++
+	}
+	tests = append(tests, operatorMetricsTc)
 
 	if len(failing) > 0 {
 		names := testNames(failing)

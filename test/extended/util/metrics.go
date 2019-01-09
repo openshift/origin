@@ -56,7 +56,7 @@ type podInfo struct {
 	skipped   bool
 }
 
-func calculatePodMetrics(adminClient kubernetes.Interface, adminConfig *restclient.Config, testNamespace string) error {
+func CalculatePodMetrics(adminClient kubernetes.Interface, adminConfig *restclient.Config, testNamespace string) error {
 	namespaces, err := adminClient.CoreV1().Namespaces().List(metav1.ListOptions{})
 	if err != nil {
 		return err
