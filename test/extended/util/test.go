@@ -62,10 +62,11 @@ func InitTest() {
 	// interpret synthetic input in `--ginkgo.focus` and/or `--ginkgo.skip`
 	ginkgo.BeforeEach(checkSyntheticInput)
 
-	oc := NewCLI("operators-metrics-test-e2e", KubeConfigPath())
+	ns := "operators-metrics-test-e2e"
+	oc := NewCLI(ns, KubeConfigPath())
 	ginkgo.AfterEach(func() {
-		e2e.Logf("About to gather operator metrics. QPS Threshold: %v", maxQPSAllowed)
-		if err := calculatePodMetrics(oc.AdminKubeClient(), oc.AdminConfig()); err != nil {
+		if err := calculatePodMetrics(oc.AdminKubeClient(), oc.AdminConfig(), ns); err != nil {
+			e2e.Logf("About to gather operator metrics. QPS Threshold: %v", maxQPSAllowed)
 			FatalErr(fmt.Errorf("error gathering operator metrics: %v", err))
 		}
 	})

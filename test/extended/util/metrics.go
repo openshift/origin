@@ -13,8 +13,11 @@ import (
 	"github.com/prometheus/common/expfmt"
 
 	"k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -26,7 +29,10 @@ import (
 
 // pods whose metrics show a larger ratio of requests per
 // second than maxQPSAllowed are considered "unhealthy".
-const maxQPSAllowed = 1.5
+const (
+	maxQPSAllowed              = 1.5
+	bearerTokenCreationTimeout = 10 * time.Second
+)
 
 var (
 	// TODO: these exceptions should not exist. Update operators to have a better request-rate per second
@@ -37,6 +43,7 @@ var (
 		"openshift-cluster-kube-scheduler-operator":               1.8,
 		"openshift-cluster-openshift-controller-manager-operator": 1.7,
 	}
+	calculatedBearerToken = ""
 )
 
 type podInfo struct {
@@ -49,12 +56,12 @@ type podInfo struct {
 	skipped   bool
 }
 
-func calculatePodMetrics(adminClient kubernetes.Interface, adminConfig *restclient.Config) error {
+func calculatePodMetrics(adminClient kubernetes.Interface, adminConfig *restclient.Config, testNamespace string) error {
 	namespaces, err := adminClient.CoreV1().Namespaces().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
-	bearerToken, err := getBearerToken(adminClient, "openshift-apiserver")
+	bearerToken, err := getBearerToken(adminClient, testNamespace)
 	if err != nil {
 		return err
 	}
@@ -185,27 +192,84 @@ func getPodInfoForNamespace(adminClient kubernetes.Interface, adminConfig *restc
 }
 
 func getBearerToken(adminClient kubernetes.Interface, namespace string) (string, error) {
-	secrets, err := adminClient.CoreV1().Secrets(namespace).List(metav1.ListOptions{})
-	if err != nil {
+	if len(calculatedBearerToken) > 0 {
+		return calculatedBearerToken, nil
+	}
+
+	sa := &v1.ServiceAccount{
+		TypeMeta:   metav1.TypeMeta{APIVersion: v1.SchemeGroupVersion.String(), Kind: "ServiceAccount"},
+		ObjectMeta: metav1.ObjectMeta{Name: namespace + "-sa", Namespace: namespace},
+	}
+
+	// ensure our namespace exists
+	_, err := adminClient.CoreV1().Namespaces().Create(&v1.Namespace{
+		TypeMeta:   metav1.TypeMeta{APIVersion: v1.SchemeGroupVersion.String(), Kind: "Namespace"},
+		ObjectMeta: metav1.ObjectMeta{Name: namespace},
+	})
+	if err != nil && !kapierrs.IsAlreadyExists(err) {
 		return "", err
 	}
 
-	bearerToken := ""
-	for _, s := range secrets.Items {
-		if !strings.HasPrefix(s.Name, namespace) {
-			continue
-		}
-		if s.Type != v1.SecretTypeServiceAccountToken {
-			continue
-		}
-		bearerToken = string(s.Data[v1.ServiceAccountTokenKey])
-		break
-	}
-	if len(bearerToken) == 0 {
-		return "", fmt.Errorf("no Bearer Token found for SA in namespace %q", namespace)
+	// ensure our service account can GET /metrics
+	_, err = adminClient.RbacV1().ClusterRoleBindings().Create(&rbacv1.ClusterRoleBinding{
+		TypeMeta: metav1.TypeMeta{APIVersion: rbacv1.SchemeGroupVersion.String(), Kind: "ClusterRoleBinding"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace + "-metrics-viewer",
+		},
+		RoleRef: rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "ClusterRole", Name: "cluster-admin"},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      "ServiceAccount",
+				Name:      sa.Name,
+				Namespace: namespace,
+			},
+		},
+	})
+	if err != nil && !kapierrs.IsAlreadyExists(err) {
+		return "", err
 	}
 
-	return bearerToken, nil
+	_, err = adminClient.CoreV1().ServiceAccounts(namespace).Create(sa)
+	if err != nil && !kapierrs.IsAlreadyExists(err) {
+		return "", err
+	}
+
+	// create secret to store the generated token for our serviceaccount
+	saSecret, err := adminClient.CoreV1().Secrets(namespace).Create(&v1.Secret{
+		TypeMeta: metav1.TypeMeta{APIVersion: v1.SchemeGroupVersion.String(), Kind: "Secret"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      namespace + "-sa-token",
+			Namespace: namespace,
+			Annotations: map[string]string{
+				v1.ServiceAccountNameKey: sa.Name,
+			},
+		},
+		Type: v1.SecretTypeServiceAccountToken,
+	})
+	if err != nil && !kapierrs.IsAlreadyExists(err) {
+		return "", err
+	}
+
+	// wait until a token secret is created for our service account secret, then extract token
+	wait.PollImmediate(100*time.Millisecond, bearerTokenCreationTimeout, func() (bool, error) {
+		secret, err := adminClient.CoreV1().Secrets(namespace).Get(saSecret.Name, metav1.GetOptions{})
+		if err != nil && !kapierrs.IsNotFound(err) {
+			return false, err
+		}
+
+		bearerTokenBytes, ok := secret.Data[v1.ServiceAccountTokenKey]
+		if !ok || len(bearerTokenBytes) == 0 {
+			return false, nil
+		}
+
+		calculatedBearerToken = string(bearerTokenBytes)
+		return true, nil
+	})
+
+	if len(calculatedBearerToken) == 0 {
+		return "", fmt.Errorf("no Bearer Token found for SA in namespace %q", namespace)
+	}
+	return calculatedBearerToken, nil
 }
 
 func getPodMetrics(adminConfig *restclient.Config, pod *v1.Pod, token string) (map[string]*dto.MetricFamily, error) {
