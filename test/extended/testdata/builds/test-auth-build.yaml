@@ -31,9 +31,8 @@ objects:
         - name: BUILD_LOGLEVEL
           value: "5"
         from:
-          kind: ImageStreamTag
-          name: ruby:latest
-          namespace: openshift
+          kind: DockerImage
+          name: docker.io/openshift/test-build-simples2i:latest
       type: Source
     # this test specifically does a push, to help exercise the code that sets
     # environment variables on build pods (i.e., by having a source secret and

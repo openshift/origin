@@ -111,7 +111,6 @@ func ExpectOpenShiftLabels(labels map[string]string) error {
 		"io.openshift.build.commit.ref",
 		"io.openshift.build.commit.message",
 		"io.openshift.build.source-location",
-		"io.openshift.build.source-context-dir",
 		"user-specified-label",
 	}
 

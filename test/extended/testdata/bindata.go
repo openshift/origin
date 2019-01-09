@@ -206,6 +206,7 @@
 // test/extended/testdata/signer-buildconfig.yaml
 // test/extended/testdata/templates/templateinstance_badobject.yaml
 // test/extended/testdata/templates/templateinstance_objectkinds.yaml
+// test/extended/testdata/templates/templateinstance_readiness.yaml
 // test/extended/testdata/templates/templateservicebroker_bind.yaml
 // test/extended/testdata/test-cli-debug.yaml
 // test/extended/testdata/test-env-pod.json
@@ -662,14 +663,13 @@ items:
     source:
       type: Git
       git:
-        uri: 'https://github.com/sclorg/s2i-php-container'
-      contextDir: 7.0/test/test-app
+        uri: 'https://github.com/sclorg/nodejs-ex'
     strategy:
       type: Source
       sourceStrategy:
         from:
           kind: DockerImage
-          name: centos/php-70-centos7
+          name: docker.io/openshift/test-build-simples2i:latest
     resources: {}
     postCommit: {}
     nodeSelector: null
@@ -695,15 +695,7 @@ items:
         containers:
         - image:
           imagePullPolicy: Always
-          readinessProbe:
-            httpGet:
-              port: 8080
           name: mys2itest
-          ports:
-          - containerPort: 8080
-            protocol: TCP
-          - containerPort: 8888
-            protocol: TCP
           terminationMessagePath: /dev/termination-log
         dnsPolicy: ClusterFirst
         restartPolicy: Always
@@ -1066,7 +1058,7 @@ func testExtendedTestdataBuildsBuildQuotaDockerfile() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildSecretsDockerfile = []byte(`FROM centos/ruby-22-centos7
+var _testExtendedTestdataBuildsBuildSecretsDockerfile = []byte(`FROM docker.io/busybox
 
 USER root
 ADD ./secret-dir /secrets
@@ -1360,7 +1352,7 @@ var _testExtendedTestdataBuildsBuildSecretsTestDockerBuildJson = []byte(`{
       "dockerStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "centos/ruby-22-centos7"
+          "name": "docker.io/busybox:latest"
         },
         "env": [
           {
@@ -1465,7 +1457,7 @@ var _testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson = []byte(`{
       "sourceStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "centos/ruby-22-centos7"
+          "name": "docker.io/centos/ruby-22-centos7"
         },
         "env": [
           {
@@ -1581,7 +1573,7 @@ func testExtendedTestdataBuildsBuildTimingDockerfile() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinAssemble = []byte(`#!/bin/bash
+var _testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinAssemble = []byte(`#!/bin/sh
 
 `)
 
@@ -1600,7 +1592,7 @@ func testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinAssemble() (*asset, 
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinRun = []byte(`#!/bin/bash
+var _testExtendedTestdataBuildsBuildTimingS2iBinaryDirS2iBinRun = []byte(`#!/bin/sh
 
 `)
 
@@ -1678,7 +1670,7 @@ var _testExtendedTestdataBuildsBuildTimingTestDockerBuildJson = []byte(`{
         "forcePull": true,
         "from": {
           "kind": "DockerImage",
-          "name": "centos/ruby-22-centos7"
+          "name": "docker.io/busybox:latest"
         },
         "env": [
           {
@@ -1757,7 +1749,7 @@ var _testExtendedTestdataBuildsBuildTimingTestS2iBuildJson = []byte(`{
       "sourceStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "centos/ruby-22-centos7"
+          "name": "docker.io/openshift/test-build-simples2i:latest"
         },
         "env": [
           {
@@ -2073,7 +2065,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: centos/ruby-23-centos7:latest
+        name: docker.io/openshift/test-build-simples2i:latest
 `)
 
 func testExtendedTestdataBuildsStatusfailFailedassembleYamlBytes() ([]byte, error) {
@@ -2268,7 +2260,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: centos/ruby-23-centos7:latest
+        name: docker.io/openshift/test-build-simples2i:latest
     type: Source
 `)
 
@@ -2303,7 +2295,7 @@ spec:
     sourceStrategy:
       from:
         kind: DockerImage
-        name: centos/ruby-23-centos7:latest
+        name: docker.io/openshift/test-build-simples2i:latest
     type: Source
 `)
 
@@ -2355,9 +2347,8 @@ objects:
         - name: BUILD_LOGLEVEL
           value: "5"
         from:
-          kind: ImageStreamTag
-          name: ruby:latest
-          namespace: openshift
+          kind: DockerImage
+          name: docker.io/openshift/test-build-simples2i:latest
       type: Source
     # this test specifically does a push, to help exercise the code that sets
     # environment variables on build pods (i.e., by having a source secret and
@@ -2629,7 +2620,7 @@ items:
           value: 127.0.0.1:3128
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: docker.io/openshift/test-build-simples2i:latest
 - kind: BuildConfig
   apiVersion: v1
   metadata:
@@ -2651,7 +2642,7 @@ items:
       sourceStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: docker.io/openshift/test-build-simples2i:latest
         env:
         - name: SOME_HTTP_PROXY
           value: https://envuser:password@proxy3.com
@@ -2678,7 +2669,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: docker.io/centos/ruby-22-centos7
         env:
         - name: SOME_HTTP_PROXY
           value: https://envuser:password@proxy3.com
@@ -2725,7 +2716,7 @@ var _testExtendedTestdataBuildsTestBuildRevisionJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "docker.io/openshift/test-build-simples2i:latest"
             }
           }
         },
@@ -2944,7 +2935,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: docker.io/busybox:latest
     resources: {}
     postCommit: {}
     nodeSelector: 
@@ -2970,7 +2961,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: docker.io/busybox:latest
         buildArgs:
         - name: foo
           value: default
@@ -3114,14 +3105,14 @@ var _testExtendedTestdataBuildsTestCdsDockerbuildJson = []byte(`{
     "triggers":[],
     "source":{
       "type":"Dockerfile",
-      "dockerfile":"FROM centos:7\nRUN sleep 10m"
+      "dockerfile":"FROM docker.io/busybox:latest\nRUN sleep 10m"
     },
     "strategy":{
       "type":"Docker",
       "dockerStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"centos/ruby-22-centos7"
+          "name":"docker.io/busybox:latest"
         }
       }
     }
@@ -3178,7 +3169,7 @@ var _testExtendedTestdataBuildsTestCdsSourcebuildJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "docker.io/busybox:latest"
             }
           }
         }
@@ -3418,14 +3409,14 @@ var _testExtendedTestdataBuildsTestDockerBuildPullsecretJson = []byte(`{
     },
     "spec": {
       "source": {
-        "dockerfile": "FROM centos:7"
+        "dockerfile": "FROM docker.io/busybox:latest"
       },
       "strategy": {
         "type": "Docker",
         "dockerStrategy": {
           "from": {
             "kind": "DockerImage",
-            "name": "centos:7"
+            "name": "docker.io/busybox:latest"
           }
         }
       },
@@ -3448,7 +3439,7 @@ var _testExtendedTestdataBuildsTestDockerBuildPullsecretJson = []byte(`{
     },
     "spec": {
       "source": {
-        "dockerfile": "FROM centos:7"
+        "dockerfile": "FROM docker.io/busybox:latest"
       },
       "strategy": {
         "type": "Docker",
@@ -3492,18 +3483,17 @@ var _testExtendedTestdataBuildsTestDockerBuildJson = []byte(`{
   "spec":{
     "triggers":[],
     "source":{
-      "type":"Git",
-      "git":{
-        "uri":"https://github.com/sclorg/s2i-ruby-container"
+      "git": {
+        "uri":"https://github.com/sclorg/nodejs-ex"        
       },
-      "contextDir":"2.3"
+      "dockerfile": "FROM docker.io/busybox:latest"
     },
     "strategy":{
       "type":"Docker",
       "dockerStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"centos/s2i-base-centos7"
+          "name":"docker.io/busybox:latest"
         }
       }
     },
@@ -3559,9 +3549,7 @@ var _testExtendedTestdataBuildsTestDockerNoOutputnameJson = []byte(`{
     "triggers": [],
     "source": {
       "type": "Git",
-      "git": {
-        "uri": "https://github.com/openshift/ruby-hello-world"
-      }
+      "dockerfile": "FROM docker.io/busybox:latest"
     },
     "strategy": {
       "type": "Docker",
@@ -3574,7 +3562,7 @@ var _testExtendedTestdataBuildsTestDockerNoOutputnameJson = []byte(`{
         ],
         "from": {
           "kind": "DockerImage",
-          "name": "centos/ruby-22-centos7"
+          "name": "docker.io/busybox:latest"
         }
       }
     }
@@ -4120,7 +4108,7 @@ var _testExtendedTestdataBuildsTestNosrcBuildJson = []byte(`{
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "docker.io/openshift/test-build-simples2i:latest"
             }
           }
         }
@@ -4172,7 +4160,7 @@ var _testExtendedTestdataBuildsTestS2iBuildQuotaJson = []byte(`{
       "sourceStrategy": {
         "from": {
           "kind":"DockerImage",
-          "name":"docker.io/busybox"
+          "name":"docker.io/openshift/test-build-simples2i:latest"
         },
         "env": [
           {
@@ -4215,9 +4203,8 @@ var _testExtendedTestdataBuildsTestS2iBuildJson = []byte(`{
     "source": {
       "type": "Git",
       "git": {
-        "uri":"https://github.com/sclorg/s2i-ruby-container"
-      },
-      "contextDir": "2.3/test/puma-test-app"
+        "uri":"https://github.com/sclorg/nodejs-ex"        
+      }
     },
     "strategy": {
       "type": "Source",
@@ -4230,7 +4217,7 @@ var _testExtendedTestdataBuildsTestS2iBuildJson = []byte(`{
         ],
         "from": {
           "kind": "DockerImage",
-          "name": "centos/ruby-23-centos7"
+          "name": "docker.io/openshift/test-build-simples2i:latest"
         }
       }
     },
@@ -4301,7 +4288,7 @@ var _testExtendedTestdataBuildsTestS2iNoOutputnameJson = []byte(`{
         ],
         "from": {
           "kind": "DockerImage",
-          "name": "centos/ruby-22-centos7"
+          "name": "docker.io/openshift/test-build-simples2i:latest"
         }
       }
     }
@@ -4441,14 +4428,13 @@ spec:
   source:
     type: Git
     git:
-      uri: 'https://github.com/sclorg/s2i-php-container'
-    contextDir: 7.0/test/test-app
+      uri: 'https://github.com/sclorg/nodejs-ex'
   strategy:
     type: Source
     sourceStrategy:
       from:
         kind: DockerImage
-        name: centos/php-70-centos7
+        name: docker.io/openshift/test-build-simples2i:latest
       env:
         - name: BUILD_LOGLEVEL
           value: "5"
@@ -4578,14 +4564,13 @@ spec:
   source:
     type: Git
     git:
-      uri: 'https://github.com/sclorg/s2i-php-container'
-    contextDir: 7.0/test/test-app
+      uri: 'https://github.com/sclorg/nodejs-ex'
   strategy:
     type: Source
     sourceStrategy:
       from:
         kind: DockerImage
-        name: centos/php-70-centos7
+        name: docker.io/openshift/test-build-simples2i:latest
       env:
         - name: BUILD_LOGLEVEL
           value: "5"
@@ -11737,6 +11722,130 @@ func testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml() (*asset, er
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/templates/templateinstance_objectkinds.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataTemplatesTemplateinstance_readinessYaml = []byte(`kind: Template
+apiVersion: v1
+metadata:
+  name: simple-example
+  annotations:
+objects:
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    annotations:
+      description: Exposes and load balances the application pods
+  spec:
+    ports:
+    - name: web
+      port: 8080
+      targetPort: 8080
+    selector:
+      name: "${NAME}"
+- kind: Route
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+  spec:
+    host: "${APPLICATION_DOMAIN}"
+    to:
+      kind: Service
+      name: "${NAME}"
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    annotations:
+      description: Keeps track of changes in the application image
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    annotations:
+      description: Defines how to build the application
+      template.alpha.openshift.io/wait-for-ready: 'true'
+  spec:
+    source:
+      type: Git
+      git:
+        uri: ${SOURCE_REPOSITORY_URL}
+    strategy:
+      type: Source
+      sourceStrategy:
+        from:
+          kind: DockerImage
+          name: docker.io/openshift/test-build-simples2i:latest
+    output:
+      to:
+        kind: ImageStreamTag
+        name: "${NAME}:latest"
+    triggers:
+    - type: ConfigChange
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: "${NAME}"
+    annotations:
+      description: Defines how to deploy the application server
+      template.alpha.openshift.io/wait-for-ready: 'true'
+  spec:
+    strategy:
+      type: Rolling
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - simple-example
+        from:
+          kind: ImageStreamTag
+          name: "${NAME}:latest"
+    - type: ConfigChange
+    replicas: 1
+    selector:
+      name: "${NAME}"
+    template:
+      metadata:
+        name: "${NAME}"
+        labels:
+          name: "${NAME}"
+      spec:
+        containers:
+        - name: simple-example
+          image: " "
+          ports:
+          - containerPort: 8080
+parameters:
+- name: NAME
+  displayName: Name
+  description: The name assigned to all of the frontend objects defined in this template.
+  required: true
+  value: simple-example
+- name: SOURCE_REPOSITORY_URL
+  displayName: sourceurl
+  required: true
+  value: https://github.com/sclorg/nodejs-ex
+- name: APPLICATION_DOMAIN
+  displayName: Application Hostname
+  description: The exposed hostname that will route to the Node.js service, if left
+    blank a value will be defaulted.
+  value: ''
+`)
+
+func testExtendedTestdataTemplatesTemplateinstance_readinessYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataTemplatesTemplateinstance_readinessYaml, nil
+}
+
+func testExtendedTestdataTemplatesTemplateinstance_readinessYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataTemplatesTemplateinstance_readinessYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/templates/templateinstance_readiness.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -32827,6 +32936,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/signer-buildconfig.yaml": testExtendedTestdataSignerBuildconfigYaml,
 	"test/extended/testdata/templates/templateinstance_badobject.yaml": testExtendedTestdataTemplatesTemplateinstance_badobjectYaml,
 	"test/extended/testdata/templates/templateinstance_objectkinds.yaml": testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml,
+	"test/extended/testdata/templates/templateinstance_readiness.yaml": testExtendedTestdataTemplatesTemplateinstance_readinessYaml,
 	"test/extended/testdata/templates/templateservicebroker_bind.yaml": testExtendedTestdataTemplatesTemplateservicebroker_bindYaml,
 	"test/extended/testdata/test-cli-debug.yaml": testExtendedTestdataTestCliDebugYaml,
 	"test/extended/testdata/test-env-pod.json": testExtendedTestdataTestEnvPodJson,
@@ -33333,6 +33443,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"templates": &bintree{nil, map[string]*bintree{
 					"templateinstance_badobject.yaml": &bintree{testExtendedTestdataTemplatesTemplateinstance_badobjectYaml, map[string]*bintree{}},
 					"templateinstance_objectkinds.yaml": &bintree{testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml, map[string]*bintree{}},
+					"templateinstance_readiness.yaml": &bintree{testExtendedTestdataTemplatesTemplateinstance_readinessYaml, map[string]*bintree{}},
 					"templateservicebroker_bind.yaml": &bintree{testExtendedTestdataTemplatesTemplateservicebroker_bindYaml, map[string]*bintree{}},
 				}},
 				"test-cli-debug.yaml": &bintree{testExtendedTestdataTestCliDebugYaml, map[string]*bintree{}},

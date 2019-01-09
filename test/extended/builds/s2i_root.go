@@ -14,111 +14,102 @@ import (
 	s2istatus "github.com/openshift/source-to-image/pkg/util/status"
 )
 
+func Before(oc *exutil.CLI) {
+	exutil.PreTestDump()
+
+	g.By("waiting for default service account")
+	err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
+	o.Expect(err).NotTo(o.HaveOccurred())
+	g.By("waiting for builder service account")
+	err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+func After(oc *exutil.CLI) {
+	if g.CurrentGinkgoTestDescription().Failed {
+		exutil.DumpPodStates(oc)
+		exutil.DumpConfigMapStates(oc)
+		exutil.DumpPodLogsStartingWith("", oc)
+	}
+}
+
 var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user image", func() {
 	defer g.GinkgoRecover()
+	oc := exutil.NewCLI("s2i-build-root", exutil.KubeConfigPath())
 
-	var (
-		oc = exutil.NewCLI("s2i-build-root", exutil.KubeConfigPath())
-	)
+	g.It("should create a root build and fail without a privileged SCC", func() {
+		g.Skip("TODO: figure out why we aren't properly denying this, also consider whether we still need to deny it")
+		Before(oc)
+		defer After(oc)
 
-	g.Context("", func() {
-		g.BeforeEach(func() {
-			exutil.PreTestDump()
-		})
+		err := oc.Run("new-app").Args("docker.io/openshift/test-build-roots2i~https://github.com/sclorg/nodejs-ex", "--name", "nodejsfail").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.JustBeforeEach(func() {
-			g.By("waiting for default service account")
-			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
+		err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "nodejsfail-1", nil, nil, nil)
+		o.Expect(err).To(o.HaveOccurred())
 
-			g.By("creating a root build container")
-			err = oc.Run("new-build").Args("-D", "FROM centos/nodejs-6-centos7\nUSER 0", "--name", "nodejsroot").Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
+		build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get("nodejsfail-1", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(build.Status.Phase).To(o.Equal(buildv1.BuildPhaseFailed))
+		o.Expect(build.Status.Reason).To(o.BeEquivalentTo(s2istatus.ReasonPullBuilderImageFailed))
+		o.Expect(build.Status.Message).To(o.BeEquivalentTo(s2istatus.ReasonMessagePullBuilderImageFailed))
 
-			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "nodejsroot-1", nil, nil, nil)
-			o.Expect(err).NotTo(o.HaveOccurred())
-		})
+		podname := build.Annotations[buildutil.BuildPodNameAnnotation]
+		pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.AfterEach(func() {
-			if g.CurrentGinkgoTestDescription().Failed {
-				exutil.DumpPodStates(oc)
-				exutil.DumpConfigMapStates(oc)
-				exutil.DumpPodLogsStartingWith("", oc)
+		containers := make([]corev1.Container, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
+		copy(containers, pod.Spec.Containers)
+		copy(containers[len(pod.Spec.Containers):], pod.Spec.InitContainers)
+
+		for _, c := range containers {
+			env := map[string]string{}
+			for _, e := range c.Env {
+				env[e.Name] = e.Value
 			}
+			o.Expect(env["DROP_CAPS"]).To(o.Equal("KILL,MKNOD,SETGID,SETUID"))
+			o.Expect(env["ALLOWED_UIDS"]).To(o.Equal("1-"))
+		}
+	})
+
+	g.It("should create a root build and pass with a privileged SCC", func() {
+		Before(oc)
+		defer After(oc)
+		g.By("adding builder account to privileged SCC")
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			scc, err := oc.AdminSecurityClient().Security().SecurityContextConstraints().Get("privileged", metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			scc.Users = append(scc.Users, "system:serviceaccount:"+oc.Namespace()+":builder")
+			_, err = oc.AdminSecurityClient().Security().SecurityContextConstraints().Update(scc)
+			return err
 		})
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.It("should create a root build and fail without a privileged SCC", func() {
-			g.Skip("TODO: figure out why we aren't properly denying this, also consider whether we still need to deny it")
-			err := oc.Run("new-app").Args("nodejsroot~https://github.com/sclorg/nodejs-ex", "--name", "nodejsfail").Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.Run("new-build").Args("docker.io/openshift/test-build-roots2i~https://github.com/sclorg/nodejs-ex", "--name", "nodejspass").Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "nodejsfail-1", nil, nil, nil)
-			o.Expect(err).To(o.HaveOccurred())
+		err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "nodejspass-1", nil, nil, nil)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-			build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get("nodejsfail-1", metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(build.Status.Phase).To(o.Equal(buildv1.BuildPhaseFailed))
-			o.Expect(build.Status.Reason).To(o.BeEquivalentTo(s2istatus.ReasonPullBuilderImageFailed))
-			o.Expect(build.Status.Message).To(o.BeEquivalentTo(s2istatus.ReasonMessagePullBuilderImageFailed))
+		build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get("nodejspass-1", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-			podname := build.Annotations[buildutil.BuildPodNameAnnotation]
-			pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred())
+		podname := build.Annotations[buildutil.BuildPodNameAnnotation]
+		pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-			containers := make([]corev1.Container, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
-			copy(containers, pod.Spec.Containers)
-			copy(containers[len(pod.Spec.Containers):], pod.Spec.InitContainers)
+		containers := make([]corev1.Container, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
+		copy(containers, pod.Spec.Containers)
+		copy(containers[len(pod.Spec.Containers):], pod.Spec.InitContainers)
 
-			for _, c := range containers {
-				env := map[string]string{}
-				for _, e := range c.Env {
-					env[e.Name] = e.Value
-				}
-				o.Expect(env["DROP_CAPS"]).To(o.Equal("KILL,MKNOD,SETGID,SETUID"))
-				o.Expect(env["ALLOWED_UIDS"]).To(o.Equal("1-"))
+		for _, c := range containers {
+			env := map[string]string{}
+			for _, e := range c.Env {
+				env[e.Name] = e.Value
 			}
-		})
-
-		g.It("should create a root build and pass with a privileged SCC", func() {
-			g.By("adding builder account to privileged SCC")
-			err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				scc, err := oc.AdminSecurityClient().Security().SecurityContextConstraints().Get("privileged", metav1.GetOptions{})
-				o.Expect(err).NotTo(o.HaveOccurred())
-
-				scc.Users = append(scc.Users, "system:serviceaccount:"+oc.Namespace()+":builder")
-				_, err = oc.AdminSecurityClient().Security().SecurityContextConstraints().Update(scc)
-				return err
-			})
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			err = oc.Run("new-app").Args("nodejsroot~https://github.com/sclorg/nodejs-ex", "--name", "nodejspass").Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "nodejspass-1", nil, nil, nil)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get("nodejspass-1", metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			podname := build.Annotations[buildutil.BuildPodNameAnnotation]
-			pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			containers := make([]corev1.Container, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
-			copy(containers, pod.Spec.Containers)
-			copy(containers[len(pod.Spec.Containers):], pod.Spec.InitContainers)
-
-			for _, c := range containers {
-				env := map[string]string{}
-				for _, e := range c.Env {
-					env[e.Name] = e.Value
-				}
-				o.Expect(env).NotTo(o.HaveKey("DROP_CAPS"))
-				o.Expect(env).NotTo(o.HaveKey("ALLOWED_UIDS"))
-			}
-		})
+			o.Expect(env).NotTo(o.HaveKey("DROP_CAPS"))
+			o.Expect(env).NotTo(o.HaveKey("ALLOWED_UIDS"))
+		}
 	})
 })

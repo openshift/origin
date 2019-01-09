@@ -32,7 +32,7 @@
           "sourceStrategy": {
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "docker.io/openshift/test-build-simples2i:latest"
             }
           }
         }

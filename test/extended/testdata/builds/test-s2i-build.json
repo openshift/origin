@@ -12,9 +12,8 @@
     "source": {
       "type": "Git",
       "git": {
-        "uri":"https://github.com/sclorg/s2i-ruby-container"
-      },
-      "contextDir": "2.3/test/puma-test-app"
+        "uri":"https://github.com/sclorg/nodejs-ex"        
+      }
     },
     "strategy": {
       "type": "Source",
@@ -27,7 +26,7 @@
         ],
         "from": {
           "kind": "DockerImage",
-          "name": "centos/ruby-23-centos7"
+          "name": "docker.io/openshift/test-build-simples2i:latest"
         }
       }
     },

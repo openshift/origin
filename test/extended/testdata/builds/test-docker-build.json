@@ -10,18 +10,17 @@
   "spec":{
     "triggers":[],
     "source":{
-      "type":"Git",
-      "git":{
-        "uri":"https://github.com/sclorg/s2i-ruby-container"
+      "git": {
+        "uri":"https://github.com/sclorg/nodejs-ex"        
       },
-      "contextDir":"2.3"
+      "dockerfile": "FROM docker.io/busybox:latest"
     },
     "strategy":{
       "type":"Docker",
       "dockerStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"centos/s2i-base-centos7"
+          "name":"docker.io/busybox:latest"
         }
       }
     },

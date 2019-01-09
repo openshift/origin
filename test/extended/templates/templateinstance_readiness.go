@@ -30,7 +30,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 		cli              = exutil.NewCLI("templates", exutil.KubeConfigPath())
 		template         *templatev1.Template
 		templateinstance *templatev1.TemplateInstance
-		templatefixture  = exutil.FixturePath("..", "..", "examples", "quickstarts", "cakephp-mysql.json")
+		templatefixture  = exutil.FixturePath("testdata", "templates", "templateinstance_readiness.yaml")
 	)
 
 	waitSettle := func() (bool, error) {
@@ -42,7 +42,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 			return false, err
 		}
 
-		build, err := cli.BuildClient().Build().Builds(cli.Namespace()).Get("cakephp-mysql-example-1", metav1.GetOptions{})
+		build, err := cli.BuildClient().Build().Builds(cli.Namespace()).Get("simple-example-1", metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				err = nil
@@ -50,7 +50,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 			return false, err
 		}
 
-		dc, err := cli.AppsClient().AppsV1().DeploymentConfigs(cli.Namespace()).Get("cakephp-mysql-example", metav1.GetOptions{})
+		dc, err := cli.AppsClient().AppsV1().DeploymentConfigs(cli.Namespace()).Get("simple-example", metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				err = nil
@@ -111,7 +111,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 			err = cli.Run("create").Args("-f", templatefixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			template, err = cli.TemplateClient().TemplateV1().Templates(cli.Namespace()).Get("cakephp-mysql-example", metav1.GetOptions{})
+			template, err = cli.TemplateClient().TemplateV1().Templates(cli.Namespace()).Get("simple-example", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 

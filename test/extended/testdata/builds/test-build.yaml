@@ -188,7 +188,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: docker.io/busybox:latest
     resources: {}
     postCommit: {}
     nodeSelector: 
@@ -214,7 +214,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: docker.io/busybox:latest
         buildArgs:
         - name: foo
           value: default
