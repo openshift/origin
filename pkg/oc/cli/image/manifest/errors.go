@@ -14,19 +14,56 @@ func NewImageNotFound(msg string, err error) error {
 	return &imageNotFound{msg: msg, err: err}
 }
 
-func IsImageNotFound(err error) bool {
+func (e *imageNotFound) Error() string {
+	return e.msg
+}
+
+type imageForbidden struct {
+	msg string
+	err error
+}
+
+func NewImageForbidden(msg string, err error) error {
+	return &imageForbidden{msg: msg, err: err}
+}
+
+func (e *imageForbidden) Error() string {
+	return e.msg
+}
+
+func IsImageForbidden(err error) bool {
 	switch t := err.(type) {
 	case errcode.Errors:
-		return len(t) == 1 && IsImageNotFound(t[0])
+		for _, err := range t {
+			if IsImageForbidden(err) {
+				return true
+			}
+		}
+		return false
 	case errcode.Error:
-		return t.Code == registryapiv2.ErrorCodeManifestUnknown
-	case *imageNotFound:
+		return t.Code == errcode.ErrorCodeDenied
+	case *imageForbidden:
 		return true
 	default:
 		return false
 	}
 }
-
-func (e *imageNotFound) Error() string {
-	return e.msg
+func IsImageNotFound(err error) bool {
+	switch t := err.(type) {
+	case errcode.Errors:
+		for _, err := range t {
+			if IsImageNotFound(err) {
+				return true
+			}
+		}
+		return false
+	case errcode.Error:
+		return t.Code == registryapiv2.ErrorCodeManifestUnknown
+	case *imageNotFound:
+		return true
+	case *imageForbidden:
+		return true
+	default:
+		return false
+	}
 }

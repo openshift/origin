@@ -296,6 +296,15 @@ func (o *Options) Run() error {
 
 				srcManifest, srcDigest, location, err := imagemanifest.FirstManifest(ctx, from, repo, o.FilterOptions.Include)
 				if err != nil {
+					if imagemanifest.IsImageForbidden(err) {
+						var msg string
+						if len(o.Mappings) == 1 {
+							msg = "image does not exist or you don't have permission to access the repository"
+						} else {
+							msg = fmt.Sprintf("image %q does not exist or you don't have permission to access the repository", from)
+						}
+						return imagemanifest.NewImageForbidden(msg, err)
+					}
 					if imagemanifest.IsImageNotFound(err) {
 						var msg string
 						if len(o.Mappings) == 1 {

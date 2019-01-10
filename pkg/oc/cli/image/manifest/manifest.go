@@ -16,7 +16,7 @@ import (
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/api/errcode"
-	"github.com/docker/distribution/registry/api/v2"
+	v2 "github.com/docker/distribution/registry/api/v2"
 
 	"github.com/docker/libtrust"
 	"github.com/golang/glog"
@@ -108,8 +108,10 @@ func FirstManifest(ctx context.Context, from imagereference.DockerImageReference
 			return nil, "", "", err
 		}
 		srcDigest = desc.Digest
-	} else {
+	} else if len(from.ID) > 0 {
 		srcDigest = digest.Digest(from.ID)
+	} else {
+		return nil, "", "", fmt.Errorf("no tag or digest specified")
 	}
 	manifests, err := repo.Manifests(ctx)
 	if err != nil {
