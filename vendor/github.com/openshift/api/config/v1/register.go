@@ -42,8 +42,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ConsoleList{},
 		&DNS{},
 		&DNSList{},
-		&IdentityProvider{},
-		&IdentityProviderList{},
 		&Image{},
 		&ImageList{},
 		&Infrastructure{},
@@ -56,6 +54,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&OAuthList{},
 		&Project{},
 		&ProjectList{},
+		&Proxy{},
+		&ProxyList{},
 		&Scheduling{},
 		&SchedulingList{},
 	)

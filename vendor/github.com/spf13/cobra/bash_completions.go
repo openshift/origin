@@ -129,13 +129,7 @@ __%[1]s_handle_reply()
     fi
 
     if [[ ${#COMPREPLY[@]} -eq 0 ]]; then
-		if declare -F __%[1]s_custom_func >/dev/null; then
-			# try command name qualified custom func
-			__%[1]s_custom_func
-		else
-			# otherwise fall back to unqualified for compatibility
-			declare -F __custom_func >/dev/null && __custom_func
-		fi
+        declare -F __custom_func >/dev/null && __custom_func
     fi
 
     # available in bash-completion >= 2, not always present on macOS
@@ -257,14 +251,6 @@ __%[1]s_handle_word()
         __%[1]s_handle_command
     elif [[ $c -eq 0 ]]; then
         __%[1]s_handle_command
-    elif __%[1]s_contains_word "${words[c]}" "${command_aliases[@]}"; then
-        # aliashash variable is an associative array which is only supported in bash > 3.
-        if [[ -z "${BASH_VERSION}" || "${BASH_VERSINFO[0]}" -gt 3 ]]; then
-            words[c]=${aliashash[${words[c]}]}
-            __%[1]s_handle_command
-        else
-            __%[1]s_handle_noun
-        fi
     else
         __%[1]s_handle_noun
     fi
@@ -280,7 +266,6 @@ func writePostscript(buf *bytes.Buffer, name string) {
 	buf.WriteString(fmt.Sprintf(`{
     local cur prev words cword
     declare -A flaghash 2>/dev/null || :
-    declare -A aliashash 2>/dev/null || :
     if declare -F _init_completion >/dev/null 2>&1; then
         _init_completion -s || return
     else
@@ -320,7 +305,6 @@ func writeCommands(buf *bytes.Buffer, cmd *Command) {
 			continue
 		}
 		buf.WriteString(fmt.Sprintf("    commands+=(%q)\n", c.Name()))
-		writeCmdAliases(buf, c)
 	}
 	buf.WriteString("\n")
 }
@@ -459,21 +443,6 @@ func writeRequiredNouns(buf *bytes.Buffer, cmd *Command) {
 	}
 }
 
-func writeCmdAliases(buf *bytes.Buffer, cmd *Command) {
-	if len(cmd.Aliases) == 0 {
-		return
-	}
-
-	sort.Sort(sort.StringSlice(cmd.Aliases))
-
-	buf.WriteString(fmt.Sprint(`    if [[ -z "${BASH_VERSION}" || "${BASH_VERSINFO[0]}" -gt 3 ]]; then`, "\n"))
-	for _, value := range cmd.Aliases {
-		buf.WriteString(fmt.Sprintf("        command_aliases+=(%q)\n", value))
-		buf.WriteString(fmt.Sprintf("        aliashash[%q]=%q\n", value, cmd.Name()))
-	}
-	buf.WriteString(`    fi`)
-	buf.WriteString("\n")
-}
 func writeArgAliases(buf *bytes.Buffer, cmd *Command) {
 	buf.WriteString("    noun_aliases=()\n")
 	sort.Sort(sort.StringSlice(cmd.ArgAliases))
@@ -500,10 +469,6 @@ func gen(buf *bytes.Buffer, cmd *Command) {
 	}
 
 	buf.WriteString(fmt.Sprintf("    last_command=%q\n", commandName))
-	buf.WriteString("\n")
-	buf.WriteString("    command_aliases=()\n")
-	buf.WriteString("\n")
-
 	writeCommands(buf, cmd)
 	writeFlags(buf, cmd)
 	writeRequiredFlag(buf, cmd)

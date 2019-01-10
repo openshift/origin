@@ -1,5 +1,5 @@
 hash: c8ac0c0bb0e2eada6660066d264865b8581a69cd19ccecac917e67b84559fa12
-updated: 2019-01-04T12:42:03.92078615-05:00
+updated: 2019-01-11T13:12:02.66636+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -606,7 +606,7 @@ imports:
 - name: github.com/gorilla/context
   version: 51ce91d2eaddeca0ef29a71d766bb3634dadf729
 - name: github.com/gorilla/mux
-  version: f3ff42f93a451d7ffb2ff11cb9485f3f88089c83
+  version: 08e7f807d38d6a870193019bb439056118661505
 - name: github.com/gorilla/securecookie
   version: e65cf8c5df817c89aeb47ecb46064e802e2de943
 - name: github.com/gorilla/sessions
@@ -814,7 +814,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: bf3bcbe7672e22185952847d5ae5a01ea278f8f0
+  version: 1ef604446c39f0e4a15366ffe3a44a57b2724858
   subpackages:
   - apps
   - apps/v1
@@ -860,7 +860,7 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 960f72aa32a8e9b4dd769b90ff1cb5bd4c898eec
+  version: f3714b1f9df49ae0d998d882f510ed1d8d10f4aa
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/fake
@@ -977,7 +977,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 69f96fc4874bfcb5ba1084b0be072f7b02f3d35c
+  version: 4f8f123c1e157e7099eb4b8ee3f0811c11b63407
   subpackages:
   - pkg/config/configdefaults
   - pkg/config/helpers
@@ -1102,7 +1102,7 @@ imports:
 - name: github.com/spf13/cast
   version: e31f36ffc91a2ba9ddb72a4b6a607ff9b3d3cb63
 - name: github.com/spf13/cobra
-  version: d2d81d9a96e23f0255397222bb0b4e3165e492dc
+  version: c439c4fa093711d42e1b01acb1235b52004753c1
 - name: github.com/spf13/jwalterweatherman
   version: 33c24e77fb80341fe7130ee7c594256ff08ccc46
 - name: github.com/spf13/pflag
@@ -1854,7 +1854,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 7400e169142ed213441bdc2a32ce344436f070e2
+  version: 02544651e17df2c441691f237eeb63f149e7319f
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app

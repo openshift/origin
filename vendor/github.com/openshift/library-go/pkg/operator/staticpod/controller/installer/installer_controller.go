@@ -9,7 +9,6 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/golang/glog"
-	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -25,6 +24,7 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/installer/bindata"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
@@ -38,6 +38,9 @@ const (
 
 	hostResourceDirDir = "/etc/kubernetes/static-pod-resources"
 	hostPodManifestDir = "/etc/kubernetes/manifests"
+
+	revisionLabel       = "revision"
+	statusConfigMapName = "revision-status"
 )
 
 // InstallerController is a controller that watches the currentRevision and targetRevision fields for each node and spawn
@@ -77,9 +80,7 @@ const (
 	staticPodStateFailed
 )
 
-const revisionLabel = "revision"
-
-// NewBackingResourceController creates a new installer controller.
+// NewInstallerController creates a new installer controller.
 func NewInstallerController(
 	targetNamespace, staticPodName string,
 	configMaps []string,
@@ -224,11 +225,15 @@ func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.Op
 			// it's an extra write/read, but it makes the state debuggable from outside this process
 			if !equality.Semantic.DeepEqual(newCurrNodeState, currNodeState) {
 				glog.Infof("%q moving to %v", currNodeState.NodeName, spew.Sdump(*newCurrNodeState))
-				if updated, updateError := common.UpdateStatus(c.operatorConfigClient, setNodeStatusFn(newCurrNodeState), setAvailableProgressingConditions); updateError != nil {
+				newOperatorStatus, updated, updateError := common.UpdateStatus(c.operatorConfigClient, setNodeStatusFn(newCurrNodeState), setAvailableProgressingConditions)
+				if updateError != nil {
 					return false, updateError
 				} else if updated && currNodeState.CurrentRevision != newCurrNodeState.CurrentRevision {
 					c.eventRecorder.Eventf("NodeCurrentRevisionChanged", "Updated node %q from revision %d to %d", currNodeState.NodeName,
 						currNodeState.CurrentRevision, newCurrNodeState.CurrentRevision)
+				}
+				if err := c.updateRevisionStatus(newOperatorStatus); err != nil {
+					glog.Errorf("error updating revision status configmap: %v", err)
 				}
 				return false, nil
 			} else {
@@ -253,7 +258,7 @@ func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.Op
 		// it's an extra write/read, but it makes the state debuggable from outside this process
 		if !equality.Semantic.DeepEqual(newCurrNodeState, currNodeState) {
 			glog.Infof("%q moving to %v", currNodeState.NodeName, spew.Sdump(*newCurrNodeState))
-			if updated, updateError := common.UpdateStatus(c.operatorConfigClient, setNodeStatusFn(newCurrNodeState), setAvailableProgressingConditions); updateError != nil {
+			if _, updated, updateError := common.UpdateStatus(c.operatorConfigClient, setNodeStatusFn(newCurrNodeState), setAvailableProgressingConditions); updateError != nil {
 				return false, updateError
 			} else if updated && currNodeState.TargetRevision != newCurrNodeState.TargetRevision && newCurrNodeState.TargetRevision != 0 {
 				c.eventRecorder.Eventf("NodeTargetRevisionChanged", "Updating node %q from revision %d to %d", currNodeState.NodeName,
@@ -266,6 +271,43 @@ func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.Op
 	}
 
 	return false, nil
+}
+
+func (c *InstallerController) updateRevisionStatus(operatorStatus *operatorv1.StaticPodOperatorStatus) error {
+	failedRevisions := make(map[int32]struct{})
+	currentRevisions := make(map[int32]struct{})
+	for _, nodeState := range operatorStatus.NodeStatuses {
+		failedRevisions[nodeState.LastFailedRevision] = struct{}{}
+		currentRevisions[nodeState.CurrentRevision] = struct{}{}
+	}
+	delete(failedRevisions, 0)
+
+	// If all current revisions point to the same revision, then mark it successful
+	if len(currentRevisions) == 1 {
+		err := c.updateConfigMapForRevision(currentRevisions, string(corev1.PodSucceeded))
+		if err != nil {
+			return err
+		}
+	}
+	return c.updateConfigMapForRevision(failedRevisions, string(corev1.PodFailed))
+}
+
+func (c *InstallerController) updateConfigMapForRevision(currentRevisions map[int32]struct{}, phase string) error {
+	for currentRevision := range currentRevisions {
+		statusConfigMap, err := c.kubeClient.CoreV1().ConfigMaps(c.targetNamespace).Get(statusConfigMapNameForRevision(currentRevision), metav1.GetOptions{})
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		statusConfigMap.Data["phase"] = phase
+		_, _, err = resourceapply.ApplyConfigMap(c.kubeClient.CoreV1(), c.eventRecorder, statusConfigMap)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func setNodeStatusFn(status *operatorv1.NodeStatus) common.UpdateStatusFunc {
@@ -491,7 +533,7 @@ func (c InstallerController) sync() error {
 		cond.Reason = "Error"
 		cond.Message = err.Error()
 	}
-	if _, updateError := common.UpdateStatus(c.operatorConfigClient, common.UpdateConditionFn(cond), setAvailableProgressingConditions); updateError != nil {
+	if _, _, updateError := common.UpdateStatus(c.operatorConfigClient, common.UpdateConditionFn(cond), setAvailableProgressingConditions); updateError != nil {
 		if err == nil {
 			return updateError
 		}
@@ -549,4 +591,8 @@ func (c *InstallerController) eventHandler() cache.ResourceEventHandler {
 
 func mirrorPodNameForNode(staticPodName, nodeName string) string {
 	return staticPodName + "-" + nodeName
+}
+
+func statusConfigMapNameForRevision(revision int32) string {
+	return fmt.Sprintf("%s-%d", statusConfigMapName, revision)
 }
