@@ -315,7 +315,7 @@ install -d -m 0755 %{buildroot}%{_unitdir}/%{name}-node.service.d
 
 # Install bash completions
 install -d -m 755 %{buildroot}%{_sysconfdir}/bash_completion.d/
-for bin in oc openshift
+for bin in oc kubectl openshift
 do
   echo "+++ INSTALLING BASH COMPLETIONS FOR ${bin} "
   %{buildroot}%{_bindir}/${bin} completion bash > %{buildroot}%{_sysconfdir}/bash_completion.d/${bin}
@@ -406,6 +406,7 @@ touch --reference=%{SOURCE0} $RPM_BUILD_ROOT/usr/sbin/%{name}-docker-excluder
 %{_bindir}/openshift-manage-dockerfile
 %{_bindir}/openshift-recycle
 %{_sysconfdir}/bash_completion.d/oc
+%{_sysconfdir}/bash_completion.d/kubectl
 %{_mandir}/man1/oc*
 
 %if 0%{?make_redistributable}
