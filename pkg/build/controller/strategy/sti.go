@@ -89,12 +89,22 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildv1.Build, includeAddit
 							Name:      "buildworkdir",
 							MountPath: buildutil.BuildWorkDirMount,
 						},
+						{
+							Name:      "buildcachedir",
+							MountPath: buildutil.BuildBlobsMetaCache,
+						},
 					},
 					ImagePullPolicy: corev1.PullIfNotPresent,
 					Resources:       build.Spec.Resources,
 				},
 			},
 			Volumes: []corev1.Volume{
+				{
+					Name: "buildcachedir",
+					VolumeSource: corev1.VolumeSource{
+						HostPath: &corev1.HostPathVolumeSource{Path: buildutil.BuildBlobsMetaCache},
+					},
+				},
 				{
 					Name: "buildworkdir",
 					VolumeSource: corev1.VolumeSource{
@@ -145,6 +155,10 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildv1.Build, includeAddit
 				{
 					Name:      "buildworkdir",
 					MountPath: buildutil.BuildWorkDirMount,
+				},
+				{
+					Name:      "buildcachedir",
+					MountPath: buildutil.BuildBlobsMetaCache,
 				},
 			},
 			ImagePullPolicy: corev1.PullIfNotPresent,

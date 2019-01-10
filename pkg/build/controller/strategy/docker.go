@@ -81,12 +81,22 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildv1.Build, includeAddit
 							Name:      "buildworkdir",
 							MountPath: buildutil.BuildWorkDirMount,
 						},
+						{
+							Name:      "buildcachedir",
+							MountPath: buildutil.BuildBlobsMetaCache,
+						},
 					},
 					ImagePullPolicy: v1.PullIfNotPresent,
 					Resources:       build.Spec.Resources,
 				},
 			},
 			Volumes: []v1.Volume{
+				{
+					Name: "buildcachedir",
+					VolumeSource: v1.VolumeSource{
+						HostPath: &v1.HostPathVolumeSource{Path: buildutil.BuildBlobsMetaCache},
+					},
+				},
 				{
 					Name: "buildworkdir",
 					VolumeSource: v1.VolumeSource{
@@ -140,6 +150,10 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildv1.Build, includeAddit
 				{
 					Name:      "buildworkdir",
 					MountPath: buildutil.BuildWorkDirMount,
+				},
+				{
+					Name:      "buildcachedir",
+					MountPath: buildutil.BuildBlobsMetaCache,
 				},
 			},
 			ImagePullPolicy: v1.PullIfNotPresent,
