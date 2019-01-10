@@ -6,8 +6,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/opencontainers/go-digest"
-
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/manifestlist"
 	"github.com/docker/distribution/manifest/schema2"
@@ -16,6 +14,7 @@ import (
 
 	units "github.com/docker/go-units"
 	"github.com/golang/glog"
+	digest "github.com/opencontainers/go-digest"
 	godigest "github.com/opencontainers/go-digest"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/rest"
@@ -119,6 +118,7 @@ func NewCmdMirrorImage(name string, streams genericclioptions.IOStreams) *cobra.
 		Example: fmt.Sprintf(mirrorExample, name+" mirror"),
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(c, args))
+			kcmdutil.CheckErr(o.Validate())
 			kcmdutil.CheckErr(o.Run())
 		},
 	}
@@ -187,6 +187,10 @@ func (o *MirrorImageOptions) Repository(ctx context.Context, context *registrycl
 	default:
 		return nil, fmt.Errorf("unrecognized destination type %s", t)
 	}
+}
+
+func (o *MirrorImageOptions) Validate() error {
+	return o.FilterOptions.Validate()
 }
 
 func (o *MirrorImageOptions) Run() error {

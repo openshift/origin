@@ -143,6 +143,7 @@ func New(name string, streams genericclioptions.IOStreams) *cobra.Command {
 		Example: fmt.Sprintf(example, name+" extract"),
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(c, args))
+			kcmdutil.CheckErr(o.Validate())
 			kcmdutil.CheckErr(o.Run())
 		},
 	}
@@ -266,6 +267,10 @@ func (o *Options) Complete(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	return nil
+}
+
+func (o *Options) Validate() error {
+	return o.FilterOptions.Validate()
 }
 
 func (o *Options) Run() error {

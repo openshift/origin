@@ -59,7 +59,7 @@ func (o *FilterOptions) Complete(flags *pflag.FlagSet) error {
 		o.DefaultOSFilter = true
 		o.FilterByOS = regexp.QuoteMeta(fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH))
 	}
-	return o.Validate()
+	return nil
 }
 
 // Include returns true if the provided manifest should be included, or the first image if the user didn't alter the

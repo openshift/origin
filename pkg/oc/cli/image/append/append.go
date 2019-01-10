@@ -114,6 +114,7 @@ func NewCmdAppendImage(name string, streams genericclioptions.IOStreams) *cobra.
 		Example: fmt.Sprintf(example, name+" append"),
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(c, args))
+			kcmdutil.CheckErr(o.Validate())
 			kcmdutil.CheckErr(o.Run())
 		},
 	}
@@ -162,6 +163,10 @@ func (o *AppendImageOptions) Complete(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+func (o *AppendImageOptions) Validate() error {
+	return o.FilterOptions.Validate()
 }
 
 func (o *AppendImageOptions) Run() error {
