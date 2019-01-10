@@ -96,6 +96,7 @@ type TarEntryFunc func(*tar.Header, LayerInfo, io.Reader) (cont bool, err error)
 type Options struct {
 	Mappings []Mapping
 
+	Files []string
 	Paths []string
 
 	OnlyFiles           bool
@@ -125,7 +126,7 @@ type Options struct {
 
 func NewOptions(streams genericclioptions.IOStreams) *Options {
 	return &Options{
-		Paths: []string{"/:."},
+		Paths: []string{},
 
 		IOStreams:      streams,
 		MaxPerRegistry: 1,
@@ -155,6 +156,7 @@ func New(name string, streams genericclioptions.IOStreams) *cobra.Command {
 	flag.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the actions that would be taken and exit without writing any contents.")
 	flag.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow pull operations to registries to be made over HTTP")
 
+	flag.StringSliceVar(&o.Files, "file", o.Files, "Extract the specified files to the current directory.")
 	flag.StringSliceVar(&o.Paths, "path", o.Paths, "Extract only part of an image. Must be SRC:DST where SRC is the path within the image and DST a local directory. If not specified the default is to extract everything to the current directory.")
 	flag.BoolVarP(&o.PreservePermissions, "preserve-ownership", "p", o.PreservePermissions, "Preserve the permissions of extracted files.")
 	flag.BoolVar(&o.OnlyFiles, "only-files", o.OnlyFiles, "Only extract regular files and directories from the image.")
@@ -184,11 +186,24 @@ type Mapping struct {
 	ConditionFn func(m *Mapping, dgst digest.Digest, imageConfig *docker10.DockerImageConfig) (bool, error)
 }
 
-func parseMappings(images, paths []string, requireEmpty bool) ([]Mapping, error) {
+func parseMappings(images, paths, files []string, requireEmpty bool) ([]Mapping, error) {
 	layerFilter := regexp.MustCompile(`^(.*)\[([^\]]*)\](.*)$`)
 
 	var mappings []Mapping
+
+	// convert paths and files to mappings for each image
 	for _, image := range images {
+		for _, arg := range files {
+			if strings.HasSuffix(arg, "/") {
+				return nil, fmt.Errorf("invalid file: %s must not end with a slash", arg)
+			}
+			mappings = append(mappings, Mapping{
+				Image: image,
+				From:  strings.TrimPrefix(arg, "/"),
+				To:    ".",
+			})
+		}
+
 		for _, arg := range paths {
 			parts := strings.SplitN(arg, ":", 2)
 			var mapping Mapping
@@ -197,17 +212,6 @@ func parseMappings(images, paths []string, requireEmpty bool) ([]Mapping, error)
 				mapping = Mapping{Image: image, From: parts[0], To: parts[1]}
 			default:
 				return nil, fmt.Errorf("--paths must be of the form SRC:DST")
-			}
-			if matches := layerFilter.FindStringSubmatch(mapping.Image); len(matches) > 0 {
-				if len(matches[1]) == 0 || len(matches[2]) == 0 || len(matches[3]) != 0 {
-					return nil, fmt.Errorf("layer selectors must be of the form IMAGE[\\d:\\d]")
-				}
-				mapping.Image = matches[1]
-				var err error
-				mapping.LayerFilter, err = parseLayerFilter(matches[2])
-				if err != nil {
-					return nil, err
-				}
 			}
 			if len(mapping.From) > 0 {
 				mapping.From = strings.TrimPrefix(mapping.From, "/")
@@ -238,17 +242,36 @@ func parseMappings(images, paths []string, requireEmpty bool) ([]Mapping, error)
 					}
 				}
 			}
-			src, err := imagereference.Parse(mapping.Image)
-			if err != nil {
-				return nil, err
-			}
-			if len(src.Tag) == 0 && len(src.ID) == 0 {
-				return nil, fmt.Errorf("source image must point to an image ID or image tag")
-			}
-			mapping.ImageRef = src
 			mappings = append(mappings, mapping)
 		}
 	}
+
+	// extract layer filter and set the ref
+	for i := range mappings {
+		mapping := &mappings[i]
+
+		if matches := layerFilter.FindStringSubmatch(mapping.Image); len(matches) > 0 {
+			if len(matches[1]) == 0 || len(matches[2]) == 0 || len(matches[3]) != 0 {
+				return nil, fmt.Errorf("layer selectors must be of the form IMAGE[\\d:\\d]")
+			}
+			mapping.Image = matches[1]
+			var err error
+			mapping.LayerFilter, err = parseLayerFilter(matches[2])
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		src, err := imagereference.Parse(mapping.Image)
+		if err != nil {
+			return nil, err
+		}
+		if len(src.Tag) == 0 && len(src.ID) == 0 {
+			return nil, fmt.Errorf("source image must point to an image ID or image tag")
+		}
+		mapping.ImageRef = src
+	}
+
 	return mappings, nil
 }
 
@@ -261,8 +284,12 @@ func (o *Options) Complete(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("you must specify at least one image to extract as an argument")
 	}
 
+	if len(o.Paths) == 0 && len(o.Files) == 0 {
+		o.Paths = append(o.Paths, "/:.")
+	}
+
 	var err error
-	o.Mappings, err = parseMappings(args, o.Paths, !o.Confirm && !o.DryRun)
+	o.Mappings, err = parseMappings(args, o.Paths, o.Files, !o.Confirm && !o.DryRun)
 	if err != nil {
 		return err
 	}
@@ -270,6 +297,9 @@ func (o *Options) Complete(cmd *cobra.Command, args []string) error {
 }
 
 func (o *Options) Validate() error {
+	if len(o.Mappings) == 0 {
+		return fmt.Errorf("you must specify one or more paths or files")
+	}
 	return o.FilterOptions.Validate()
 }
 
