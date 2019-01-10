@@ -171,7 +171,7 @@ func TestAutomaticCreationOfPullSecrets(t *testing.T) {
 		t.Fatalf("error creating config: %v", err)
 	}
 	masterConfig.ImagePolicyConfig.InternalRegistryHostname = "internal.registry.com:8080"
-	masterConfig.ImagePolicyConfig.ExternalRegistryHostname = "external.registry.com"
+	masterConfig.ImagePolicyConfig.ExternalRegistryHostnames = []string{"external.registry.com"}
 	clusterAdminConfig, err := testserver.StartConfiguredMaster(masterConfig)
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
@@ -202,8 +202,8 @@ func TestAutomaticCreationOfPullSecrets(t *testing.T) {
 	if !strings.Contains(saPullSecret, masterConfig.ImagePolicyConfig.InternalRegistryHostname) {
 		t.Errorf("missing %q in %v", masterConfig.ImagePolicyConfig.InternalRegistryHostname, saPullSecret)
 	}
-	if !strings.Contains(saPullSecret, masterConfig.ImagePolicyConfig.ExternalRegistryHostname) {
-		t.Errorf("missing %q in %v", masterConfig.ImagePolicyConfig.ExternalRegistryHostname, saPullSecret)
+	if !strings.Contains(saPullSecret, masterConfig.ImagePolicyConfig.ExternalRegistryHostnames[0]) {
+		t.Errorf("missing %q in %v", masterConfig.ImagePolicyConfig.ExternalRegistryHostnames[0], saPullSecret)
 	}
 }
 
@@ -334,7 +334,7 @@ func TestDockercfgTokenDeletedController(t *testing.T) {
 		t.Fatalf("error creating config: %v", err)
 	}
 	masterConfig.ImagePolicyConfig.InternalRegistryHostname = "internal.registry.com:8080"
-	masterConfig.ImagePolicyConfig.ExternalRegistryHostname = "external.registry.com"
+	masterConfig.ImagePolicyConfig.ExternalRegistryHostnames = []string{"external.registry.com"}
 	clusterAdminConfig, err := testserver.StartConfiguredMaster(masterConfig)
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)

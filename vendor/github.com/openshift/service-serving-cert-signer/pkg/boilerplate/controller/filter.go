@@ -1,6 +1,9 @@
 package controller
 
-import "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
+)
 
 type ParentFilter interface {
 	Parent(obj v1.Object) (namespace, name string)
@@ -13,8 +16,10 @@ type Filter interface {
 	Delete(obj v1.Object) bool
 }
 
+type ParentFunc func(obj v1.Object) (namespace, name string)
+
 type FilterFuncs struct {
-	ParentFunc func(obj v1.Object) (namespace, name string)
+	ParentFunc ParentFunc
 	AddFunc    func(obj v1.Object) bool
 	UpdateFunc func(oldObj, newObj v1.Object) bool
 	DeleteFunc func(obj v1.Object) bool
@@ -46,4 +51,19 @@ func (f FilterFuncs) Delete(obj v1.Object) bool {
 		return false
 	}
 	return f.DeleteFunc(obj)
+}
+
+func FilterByNames(parentFunc ParentFunc, names ...string) ParentFilter {
+	set := sets.NewString(names...)
+	has := func(obj v1.Object) bool {
+		return set.Has(obj.GetName())
+	}
+	return FilterFuncs{
+		ParentFunc: parentFunc,
+		AddFunc:    has,
+		UpdateFunc: func(oldObj, newObj v1.Object) bool {
+			return has(newObj)
+		},
+		DeleteFunc: has,
+	}
 }

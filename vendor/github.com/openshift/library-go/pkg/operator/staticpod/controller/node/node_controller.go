@@ -2,11 +2,11 @@ package node
 
 import (
 	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -17,14 +17,16 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 )
 
 const nodeControllerWorkQueueKey = "key"
 
-// NodeController watches for new master nodes and adds them to the list for an operator
+// NodeController watches for new master nodes and adds them to the node status list in the operator config status.
 type NodeController struct {
 	operatorConfigClient common.OperatorClient
+	eventRecorder        events.Recorder
 
 	nodeListerSynced cache.InformerSynced
 	nodeLister       corelisterv1.NodeLister
@@ -33,12 +35,15 @@ type NodeController struct {
 	queue workqueue.RateLimitingInterface
 }
 
+// NewNodeController creates a new node controller.
 func NewNodeController(
 	operatorConfigClient common.OperatorClient,
 	kubeInformersClusterScoped informers.SharedInformerFactory,
+	eventRecorder events.Recorder,
 ) *NodeController {
 	c := &NodeController{
 		operatorConfigClient: operatorConfigClient,
+		eventRecorder:        eventRecorder,
 		nodeListerSynced:     kubeInformersClusterScoped.Core().V1().Nodes().Informer().HasSynced,
 		nodeLister:           kubeInformersClusterScoped.Core().V1().Nodes().Lister(),
 
@@ -78,6 +83,8 @@ func (c NodeController) sync() error {
 		}
 		if found {
 			newTargetNodeStates = append(newTargetNodeStates, originalOperatorStatus.NodeStatuses[i])
+		} else {
+			c.eventRecorder.Warningf("MasterNodeRemoved", "Observed removal of master node %s", nodeState.NodeName)
 		}
 	}
 
@@ -93,13 +100,15 @@ func (c NodeController) sync() error {
 			continue
 		}
 
+		c.eventRecorder.Eventf("MasterNodeObserved", "Observed new master node %s", node.Name)
 		newTargetNodeStates = append(newTargetNodeStates, operatorv1.NodeStatus{NodeName: node.Name})
 	}
-	operatorStatus.NodeStatuses = newTargetNodeStates
 
-	if !reflect.DeepEqual(originalOperatorStatus, operatorStatus) {
-		_, updateError := c.operatorConfigClient.UpdateStatus(resourceVersion, operatorStatus)
-		return updateError
+	operatorStatus.NodeStatuses = newTargetNodeStates
+	if !equality.Semantic.DeepEqual(originalOperatorStatus, operatorStatus) {
+		if _, updateError := c.operatorConfigClient.UpdateStatus(resourceVersion, operatorStatus); updateError != nil {
+			return updateError
+		}
 	}
 
 	return nil

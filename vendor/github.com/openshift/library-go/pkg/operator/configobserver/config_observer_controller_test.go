@@ -6,13 +6,17 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-
 	"github.com/ghodss/yaml"
+	"github.com/imdario/mergo"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/kubernetes/fake"
+	ktesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
@@ -55,6 +59,7 @@ func TestSyncStatus(t *testing.T) {
 		observers  []ObserveConfigFunc
 
 		expectError            bool
+		expectEvents           [][]string
 		expectedObservedConfig *unstructured.Unstructured
 		expectedCondition      *operatorv1.OperatorCondition
 	}{
@@ -65,14 +70,17 @@ func TestSyncStatus(t *testing.T) {
 					startingSpec: &operatorv1.OperatorSpec{},
 				}
 			},
+			expectEvents: [][]string{
+				{"ObservedConfigChanged", "Writing updated observed config"},
+			},
 			observers: []ObserveConfigFunc{
-				func(listers Listers, existingConfig map[string]interface{}) (observedConfig map[string]interface{}, errs []error) {
+				func(listers Listers, recorder events.Recorder, existingConfig map[string]interface{}) (observedConfig map[string]interface{}, errs []error) {
 					return map[string]interface{}{"foo": "one"}, nil
 				},
-				func(listers Listers, existingConfig map[string]interface{}) (observedConfig map[string]interface{}, errs []error) {
+				func(listers Listers, recorder events.Recorder, existingConfig map[string]interface{}) (observedConfig map[string]interface{}, errs []error) {
 					return map[string]interface{}{"bar": "two"}, nil
 				},
-				func(listers Listers, existingConfig map[string]interface{}) (observedConfig map[string]interface{}, errs []error) {
+				func(listers Listers, recorder events.Recorder, existingConfig map[string]interface{}) (observedConfig map[string]interface{}, errs []error) {
 					return map[string]interface{}{"baz": "three"}, nil
 				},
 			},
@@ -95,14 +103,17 @@ func TestSyncStatus(t *testing.T) {
 					startingSpec: &operatorv1.OperatorSpec{},
 				}
 			},
+			expectEvents: [][]string{
+				{"ObservedConfigChanged", "Writing updated observed config"},
+			},
 			observers: []ObserveConfigFunc{
-				func(listers Listers, existingConfig map[string]interface{}) (observedConfig map[string]interface{}, errs []error) {
+				func(listers Listers, recorder events.Recorder, existingConfig map[string]interface{}) (observedConfig map[string]interface{}, errs []error) {
 					return map[string]interface{}{"foo": "one"}, nil
 				},
-				func(listers Listers, existingConfig map[string]interface{}) (observedConfig map[string]interface{}, errs []error) {
+				func(listers Listers, recorder events.Recorder, existingConfig map[string]interface{}) (observedConfig map[string]interface{}, errs []error) {
 					return map[string]interface{}{"bar": "two"}, nil
 				},
-				func(listers Listers, existingConfig map[string]interface{}) (observedConfig map[string]interface{}, errs []error) {
+				func(listers Listers, recorder events.Recorder, existingConfig map[string]interface{}) (observedConfig map[string]interface{}, errs []error) {
 					errs = append(errs, fmt.Errorf("some failure"))
 					return observedConfig, errs
 				},
@@ -116,7 +127,7 @@ func TestSyncStatus(t *testing.T) {
 			expectedCondition: &operatorv1.OperatorCondition{
 				Type:    operatorStatusTypeConfigObservationFailing,
 				Status:  operatorv1.ConditionTrue,
-				Reason:  configObservationErrorConditionReason,
+				Reason:  "Error",
 				Message: "some failure",
 			},
 		},
@@ -128,8 +139,11 @@ func TestSyncStatus(t *testing.T) {
 					specUpdateFailure: fmt.Errorf("update spec failure"),
 				}
 			},
+			expectEvents: [][]string{
+				{"ObservedConfigWriteError", "Failed to write observed config: update spec failure"},
+			},
 			observers: []ObserveConfigFunc{
-				func(listers Listers, existingConfig map[string]interface{}) (observedConfig map[string]interface{}, errs []error) {
+				func(listers Listers, recorder events.Recorder, existingConfig map[string]interface{}) (observedConfig map[string]interface{}, errs []error) {
 					return map[string]interface{}{"foo": "one"}, nil
 				},
 			},
@@ -139,7 +153,7 @@ func TestSyncStatus(t *testing.T) {
 			expectedCondition: &operatorv1.OperatorCondition{
 				Type:    operatorStatusTypeConfigObservationFailing,
 				Status:  operatorv1.ConditionTrue,
-				Reason:  configObservationErrorConditionReason,
+				Reason:  "Error",
 				Message: "error writing updated observed config: update spec failure",
 			},
 		},
@@ -148,11 +162,13 @@ func TestSyncStatus(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			operatorConfigClient := tc.fakeClient()
+			eventClient := fake.NewSimpleClientset()
 
 			configObserver := ConfigObserver{
-				listers:        &fakeLister{},
-				operatorClient: operatorConfigClient,
-				observers:      tc.observers,
+				listers:              &fakeLister{},
+				operatorConfigClient: operatorConfigClient,
+				observers:            tc.observers,
+				eventRecorder:        events.NewRecorder(eventClient.CoreV1().Events("test"), "test-operator", &corev1.ObjectReference{}),
 			}
 			err := configObserver.sync()
 			if tc.expectError && err == nil {
@@ -160,6 +176,26 @@ func TestSyncStatus(t *testing.T) {
 			}
 			if err != nil {
 				t.Fatal(err)
+			}
+
+			observedEvents := [][]string{}
+			for _, action := range eventClient.Actions() {
+				if !action.Matches("create", "events") {
+					continue
+				}
+				event := action.(ktesting.CreateAction).GetObject().(*corev1.Event)
+				observedEvents = append(observedEvents, []string{event.Reason, event.Message})
+			}
+			for i, event := range tc.expectEvents {
+				if observedEvents[i][0] != event[0] {
+					t.Errorf("expected %d event reason to be %q, got %q", i, event[0], observedEvents[i][0])
+				}
+				if observedEvents[i][1] != event[1] {
+					t.Errorf("expected %d event message to be %q, got %q", i, event[0], observedEvents[i][0])
+				}
+			}
+			if len(tc.expectEvents) != len(observedEvents) {
+				t.Errorf("expected %d events, got %d (%#v)", len(tc.expectEvents), len(observedEvents), observedEvents)
 			}
 
 			switch {
@@ -191,6 +227,16 @@ func TestSyncStatus(t *testing.T) {
 			}
 
 		})
+	}
+}
+
+func TestMergoVersion(t *testing.T) {
+	type test struct{ A string }
+	src := test{"src"}
+	dest := test{"dest"}
+	mergo.Merge(&dest, &src)
+	if dest.A != "src" {
+		t.Errorf("incompatible version of github.com/imdario/mergo found")
 	}
 }
 

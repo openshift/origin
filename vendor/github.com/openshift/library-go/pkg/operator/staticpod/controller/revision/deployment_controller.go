@@ -2,7 +2,6 @@ package revision
 
 import (
 	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/golang/glog"
@@ -20,13 +19,17 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 
+	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
-	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
+const operatorStatusRevisionControllerFailing = "RevisionControllerFailing"
 const revisionControllerWorkQueueKey = "key"
 
+// RevisionController is a controller that watches a set of configmaps and secrets and them against a revision snapshot
+// of them. If the original resources changes, the revision counter is increased, stored in LatestAvailableRevision
+// field of the operator config and new snapshots suffixed by the revision are created.
 type RevisionController struct {
 	targetNamespace string
 	// configMaps is the list of configmaps that are directly copied.A different actor/controller modifies these.
@@ -41,8 +44,11 @@ type RevisionController struct {
 
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
 	queue workqueue.RateLimitingInterface
+
+	eventRecorder events.Recorder
 }
 
+// NewRevisionController create a new revision controller.
 func NewRevisionController(
 	targetNamespace string,
 	configMaps []string,
@@ -50,6 +56,7 @@ func NewRevisionController(
 	kubeInformersForTargetNamespace informers.SharedInformerFactory,
 	operatorConfigClient common.OperatorClient,
 	kubeClient kubernetes.Interface,
+	eventRecorder events.Recorder,
 ) *RevisionController {
 	c := &RevisionController{
 		targetNamespace: targetNamespace,
@@ -58,6 +65,7 @@ func NewRevisionController(
 
 		operatorConfigClient: operatorConfigClient,
 		kubeClient:           kubeClient,
+		eventRecorder:        eventRecorder,
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "RevisionController"),
 	}
@@ -85,29 +93,30 @@ func (c RevisionController) createRevisionIfNeeded(operatorSpec *operatorv1.Oper
 	nextRevision := latestRevision + 1
 	glog.Infof("new revision %d triggered by %q", nextRevision, reason)
 	if err := c.createNewRevision(nextRevision); err != nil {
-		v1helpers.SetOperatorCondition(&operatorStatus.Conditions, operatorv1.OperatorCondition{
+		cond := operatorv1.OperatorCondition{
 			Type:    "RevisionControllerFailing",
 			Status:  operatorv1.ConditionTrue,
 			Reason:  "ContentCreationError",
 			Message: err.Error(),
-		})
-		if !reflect.DeepEqual(operatorStatusOriginal, operatorStatus) {
-			_, updateError := c.operatorConfigClient.UpdateStatus(resourceVersion, operatorStatus)
+		}
+		if _, updateError := common.UpdateStatus(c.operatorConfigClient, common.UpdateConditionFn(cond)); updateError != nil {
+			c.eventRecorder.Warningf("RevisionCreateFailed", "Failed to create revision %d: %v", nextRevision, err.Error())
 			return true, updateError
 		}
 		return true, nil
 	}
 
-	v1helpers.SetOperatorCondition(&operatorStatus.Conditions, operatorv1.OperatorCondition{
+	cond := operatorv1.OperatorCondition{
 		Type:   "RevisionControllerFailing",
 		Status: operatorv1.ConditionFalse,
-	})
-	operatorStatus.LatestAvailableRevision = nextRevision
-	if !reflect.DeepEqual(operatorStatusOriginal, operatorStatus) {
-		_, updateError := c.operatorConfigClient.UpdateStatus(resourceVersion, operatorStatus)
-		if updateError != nil {
-			return true, updateError
-		}
+	}
+	if updated, updateError := common.UpdateStatus(c.operatorConfigClient, common.UpdateConditionFn(cond), func(operatorStatus *operatorv1.StaticPodOperatorStatus) error {
+		operatorStatus.LatestAvailableRevision = nextRevision
+		return nil
+	}); updateError != nil {
+		return true, updateError
+	} else if updated {
+		c.eventRecorder.Eventf("RevisionCreate", "Revision %d created because %s", operatorStatus.LatestAvailableRevision, reason)
 	}
 
 	return false, nil
@@ -151,7 +160,7 @@ func (c RevisionController) isLatestRevisionCurrent(revision int32) (bool, strin
 
 func (c RevisionController) createNewRevision(revision int32) error {
 	for _, name := range c.configMaps {
-		obj, _, err := resourceapply.SyncConfigMap(c.kubeClient.CoreV1(), c.targetNamespace, name, c.targetNamespace, nameFor(name, revision))
+		obj, _, err := resourceapply.SyncConfigMap(c.kubeClient.CoreV1(), c.eventRecorder, c.targetNamespace, name, c.targetNamespace, nameFor(name, revision))
 		if err != nil {
 			return err
 		}
@@ -160,7 +169,7 @@ func (c RevisionController) createNewRevision(revision int32) error {
 		}
 	}
 	for _, name := range c.secrets {
-		obj, _, err := resourceapply.SyncSecret(c.kubeClient.CoreV1(), c.targetNamespace, name, c.targetNamespace, nameFor(name, revision))
+		obj, _, err := resourceapply.SyncSecret(c.kubeClient.CoreV1(), c.eventRecorder, c.targetNamespace, name, c.targetNamespace, nameFor(name, revision))
 		if err != nil {
 			return err
 		}
@@ -193,22 +202,23 @@ func (c RevisionController) sync() error {
 	}
 	err = syncErr
 
+	// update failing condition
+	cond := operatorv1.OperatorCondition{
+		Type:   operatorStatusRevisionControllerFailing,
+		Status: operatorv1.ConditionFalse,
+	}
 	if err != nil {
-		v1helpers.SetOperatorCondition(&operatorStatus.Conditions, operatorv1.OperatorCondition{
-			Type:    operatorv1.OperatorStatusTypeFailing,
-			Status:  operatorv1.ConditionTrue,
-			Reason:  "StatusUpdateError",
-			Message: err.Error(),
-		})
-		if !reflect.DeepEqual(originalOperatorStatus, operatorStatus) {
-			if _, updateError := c.operatorConfigClient.UpdateStatus(resourceVersion, operatorStatus); updateError != nil {
-				glog.Error(updateError)
-			}
+		cond.Status = operatorv1.ConditionTrue
+		cond.Reason = "Error"
+		cond.Message = err.Error()
+	}
+	if _, updateError := common.UpdateStatus(c.operatorConfigClient, common.UpdateConditionFn(cond)); updateError != nil {
+		if err == nil {
+			return updateError
 		}
-		return err
 	}
 
-	return nil
+	return err
 }
 
 // Run starts the kube-apiserver and blocks until stopCh is closed.

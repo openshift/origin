@@ -118,6 +118,22 @@ func TestCrypto(t *testing.T) {
 	}, true, 4)
 }
 
+// Can be used for CA or intermediate signing certs
+func newSigningCertificateTemplate(subject pkix.Name, expireDays int, currentTime func() time.Time) *x509.Certificate {
+	var caLifetimeInDays = DefaultCACertificateLifetimeInDays
+	if expireDays > 0 {
+		caLifetimeInDays = expireDays
+	}
+
+	if caLifetimeInDays > DefaultCACertificateLifetimeInDays {
+		warnAboutCertificateLifeTime(subject.CommonName, DefaultCACertificateLifetimeInDays)
+	}
+
+	caLifetime := time.Duration(caLifetimeInDays) * 24 * time.Hour
+
+	return newSigningCertificateTemplateForDuration(subject, caLifetime, currentTime)
+}
+
 func buildCA(t *testing.T) (crypto.PrivateKey, *x509.Certificate) {
 	caPublicKey, caPrivateKey, err := NewKeyPair()
 	if err != nil {

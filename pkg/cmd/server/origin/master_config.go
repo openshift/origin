@@ -131,7 +131,11 @@ func BuildMasterConfig(
 		return nil, err
 	}
 
-	registryHostnameRetriever, err := registryhostname.DefaultRegistryHostnameRetriever(privilegedLoopbackConfig, options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname)
+	var externalRegistryHostname string
+	if len(options.ImagePolicyConfig.ExternalRegistryHostnames) > 0 {
+		externalRegistryHostname = options.ImagePolicyConfig.ExternalRegistryHostnames[0]
+	}
+	registryHostnameRetriever, err := registryhostname.DefaultRegistryHostnameRetriever(privilegedLoopbackConfig, externalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +159,8 @@ func BuildMasterConfig(
 	if err != nil {
 		return nil, err
 	}
-	admissionInitializer, err := originadmission.NewPluginInitializer(options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname, cloudConfigFile, privilegedLoopbackConfig, informers, authorizer, projectCache, restMapper, clusterQuotaMappingController)
+
+	admissionInitializer, err := originadmission.NewPluginInitializer(options.ImagePolicyConfig.ExternalRegistryHostnames, options.ImagePolicyConfig.InternalRegistryHostname, cloudConfigFile, privilegedLoopbackConfig, informers, authorizer, projectCache, restMapper, clusterQuotaMappingController)
 	if err != nil {
 		return nil, err
 	}

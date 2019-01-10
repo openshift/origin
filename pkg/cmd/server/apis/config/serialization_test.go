@@ -92,6 +92,9 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 					obj.NetworkConfig.ServiceNetworkCIDR = "10.0.0.0/24"
 				}
 			}
+			if len(obj.ImagePolicyConfig.ExternalRegistryHostnames) == 1 && len(obj.ImagePolicyConfig.ExternalRegistryHostnames[0]) == 0 {
+				obj.ImagePolicyConfig.ExternalRegistryHostnames = []string{"externalhost.example.com"}
+			}
 			if c.RandBool() {
 				if len(obj.NetworkConfig.ClusterNetworks) == 0 {
 					clusterNetwork := []configapi.ClusterNetworkEntry{

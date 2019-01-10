@@ -1,0 +1,26 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: monitor
+  namespace: {{ .TargetNamespace }}
+spec:
+  endpoints:
+    - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+      interval: 30s
+      metricRelabelings:
+        - action: drop
+          regex: etcd_(debugging|disk|request|server).*
+          sourceLabels:
+            - __name__
+      port: https
+      scheme: https
+      tlsConfig:
+        caFile: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+        serverName: apiserver.{{ .TargetNamespace }}.svc
+  jobLabel: component
+  namespaceSelector:
+    matchNames:
+      - {{ .TargetNamespace }}
+  selector:
+    matchLabels:
+      app: {{ .TargetNamespace }}

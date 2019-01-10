@@ -14,6 +14,8 @@ import:
   version: kubernetes-1.11.1
 - package: github.com/openshift/api
   version: master
+- package: github.com/openshift/client-go
+  version: master
 
 
 # sig-master - needed for file observer
@@ -40,3 +42,5 @@ import:
   version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 - package: github.com/blang/semver
   version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
+- package: github.com/imdario/mergo
+  version: 6633656539c1639d9d78127b7d47c622b5d7b6dc

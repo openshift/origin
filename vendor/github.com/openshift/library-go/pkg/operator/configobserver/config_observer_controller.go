@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -22,18 +21,13 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 const operatorStatusTypeConfigObservationFailing = "ConfigObservationFailing"
-const configObservationErrorConditionReason = "ConfigObservationError"
 const configObserverWorkKey = "key"
-
-type OperatorClient interface {
-	GetOperatorState() (spec *operatorv1.OperatorSpec, status *operatorv1.OperatorStatus, resourceVersion string, err error)
-	UpdateOperatorSpec(string, *operatorv1.OperatorSpec) (spec *operatorv1.OperatorSpec, resourceVersion string, err error)
-	UpdateOperatorStatus(string, *operatorv1.OperatorStatus) (status *operatorv1.OperatorStatus, resourceVersion string, err error)
-}
 
 // Listers is an interface which will be passed to the config observer funcs.  It is expected to be hard-cast to the "correct" type
 type Listers interface {
@@ -44,10 +38,11 @@ type Listers interface {
 // observedConfig that would cause the service being managed by the operator to crash. For example, if a required
 // configuration key cannot be observed, consider reusing the configuration key's previous value. Errors that occur
 // while attempting to generate the observedConfig should be returned in the errs slice.
-type ObserveConfigFunc func(listers Listers, existingConfig map[string]interface{}) (observedConfig map[string]interface{}, errs []error)
+type ObserveConfigFunc func(listers Listers, recorder events.Recorder, existingConfig map[string]interface{}) (observedConfig map[string]interface{}, errs []error)
 
 type ConfigObserver struct {
-	operatorClient OperatorClient
+	operatorConfigClient v1helpers.OperatorClient
+	eventRecorder        events.Recorder
 
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
 	queue workqueue.RateLimitingInterface
@@ -62,12 +57,14 @@ type ConfigObserver struct {
 }
 
 func NewConfigObserver(
-	operatorClient OperatorClient,
+	operatorClient v1helpers.OperatorClient,
+	eventRecorder events.Recorder,
 	listers Listers,
 	observers ...ObserveConfigFunc,
 ) *ConfigObserver {
 	return &ConfigObserver{
-		operatorClient: operatorClient,
+		operatorConfigClient: operatorClient,
+		eventRecorder:        eventRecorder,
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ConfigObserver"),
 
@@ -80,65 +77,62 @@ func NewConfigObserver(
 // sync reacts to a change in prereqs by finding information that is required to match another value in the cluster. This
 // must be information that is logically "owned" by another component.
 func (c ConfigObserver) sync() error {
-	originalSpec, originalStatus, resourceVersion, err := c.operatorClient.GetOperatorState()
+	originalSpec, _, resourceVersion, err := c.operatorConfigClient.GetOperatorState()
 	if err != nil {
 		return err
 	}
 	spec := originalSpec.DeepCopy()
+
 	// don't worry about errors.  If we can't decode, we'll simply stomp over the field.
 	existingConfig := map[string]interface{}{}
-	json.NewDecoder(bytes.NewBuffer(spec.ObservedConfig.Raw)).Decode(&existingConfig)
+	if err := json.NewDecoder(bytes.NewBuffer(spec.ObservedConfig.Raw)).Decode(&existingConfig); err != nil {
+		glog.V(4).Infof("decode of existing config failed with error: %v", err)
+	}
 
 	var errs []error
 	var observedConfigs []map[string]interface{}
 	for _, i := range rand.Perm(len(c.observers)) {
 		var currErrs []error
-		observedConfig, currErrs := c.observers[i](c.listers, existingConfig)
+		observedConfig, currErrs := c.observers[i](c.listers, c.eventRecorder, existingConfig)
 		observedConfigs = append(observedConfigs, observedConfig)
 		errs = append(errs, currErrs...)
 	}
 
 	mergedObservedConfig := map[string]interface{}{}
 	for _, observedConfig := range observedConfigs {
-		mergo.Merge(&mergedObservedConfig, observedConfig)
+		if err := mergo.Merge(&mergedObservedConfig, observedConfig); err != nil {
+			glog.Warningf("merging observed config failed: %v", err)
+		}
 	}
 
 	if !equality.Semantic.DeepEqual(existingConfig, mergedObservedConfig) {
 		glog.Infof("writing updated observedConfig: %v", diff.ObjectDiff(existingConfig, mergedObservedConfig))
 		spec.ObservedConfig = runtime.RawExtension{Object: &unstructured.Unstructured{Object: mergedObservedConfig}}
-		_, resourceVersion, err = c.operatorClient.UpdateOperatorSpec(resourceVersion, spec)
+		_, resourceVersion, err = c.operatorConfigClient.UpdateOperatorSpec(resourceVersion, spec)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("error writing updated observed config: %v", err))
+			c.eventRecorder.Warningf("ObservedConfigWriteError", "Failed to write observed config: %v", err)
+		} else {
+			c.eventRecorder.Eventf("ObservedConfigChanged", "Writing updated observed config")
 		}
 	}
+	err = common.NewMultiLineAggregate(errs)
 
-	status := originalStatus.DeepCopy()
-	if len(errs) > 0 {
-		var messages []string
-		for _, currentError := range errs {
-			messages = append(messages, currentError.Error())
-		}
-		v1helpers.SetOperatorCondition(&status.Conditions, operatorv1.OperatorCondition{
-			Type:    operatorStatusTypeConfigObservationFailing,
-			Status:  operatorv1.ConditionTrue,
-			Reason:  configObservationErrorConditionReason,
-			Message: strings.Join(messages, "\n"),
-		})
-
-	} else {
-		v1helpers.SetOperatorCondition(&status.Conditions, operatorv1.OperatorCondition{
-			Type:   operatorStatusTypeConfigObservationFailing,
-			Status: operatorv1.ConditionFalse,
-		})
+	// update failing condition
+	cond := operatorv1.OperatorCondition{
+		Type:   operatorStatusTypeConfigObservationFailing,
+		Status: operatorv1.ConditionFalse,
+	}
+	if err != nil {
+		cond.Status = operatorv1.ConditionTrue
+		cond.Reason = "Error"
+		cond.Message = err.Error()
+	}
+	if _, updateError := v1helpers.UpdateStatus(c.operatorConfigClient, v1helpers.UpdateConditionFn(cond)); updateError != nil {
+		return updateError
 	}
 
-	if !equality.Semantic.DeepEqual(originalStatus, status) {
-		_, _, err = c.operatorClient.UpdateOperatorStatus(resourceVersion, status)
-		if err != nil {
-			return err
-		}
-	}
-
+	// explicitly ignore errs, we are requeued by input changes anyway
 	return nil
 }
 

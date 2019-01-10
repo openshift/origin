@@ -90,7 +90,12 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 		if err != nil {
 			return nil, err
 		}
-		registryHostnameRetriever, err := registryhostname.DefaultRegistryHostnameRetriever(genericConfig.LoopbackClientConfig, kubeAPIServerConfig.ImagePolicyConfig.ExternalRegistryHostname, kubeAPIServerConfig.ImagePolicyConfig.InternalRegistryHostname)
+
+		var externalRegistryHostname string
+		if len(kubeAPIServerConfig.ImagePolicyConfig.ExternalRegistryHostnames) > 0 {
+			externalRegistryHostname = kubeAPIServerConfig.ImagePolicyConfig.ExternalRegistryHostnames[0]
+		}
+		registryHostnameRetriever, err := registryhostname.DefaultRegistryHostnameRetriever(genericConfig.LoopbackClientConfig, externalRegistryHostname, kubeAPIServerConfig.ImagePolicyConfig.InternalRegistryHostname)
 		if err != nil {
 			return nil, err
 		}

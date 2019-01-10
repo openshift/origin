@@ -20,7 +20,10 @@ type Ingress struct {
 }
 
 type IngressSpec struct {
-	// default suffix.  It goes here or it gets removed from server
+	// domain is used to generate a default host name for a route when the
+	// route's host name is empty.  The generated host name will follow this
+	// pattern: "<route-name>.<route-namespace>.<domain>".
+	Domain string `json:"domain"`
 }
 
 type IngressStatus struct {

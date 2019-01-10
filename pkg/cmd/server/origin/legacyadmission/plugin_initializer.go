@@ -44,7 +44,7 @@ type InformerAccess interface {
 }
 
 func NewPluginInitializer(
-	externalImageRegistryHostname string,
+	externalImageRegistryHostnames []string,
 	internalImageRegistryHostname string,
 	cloudConfigFile string,
 	privilegedLoopbackConfig *rest.Config,
@@ -77,6 +77,10 @@ func NewPluginInitializer(
 		quotaRegistry.Add(imageEvaluators[i])
 	}
 
+	var externalImageRegistryHostname string
+	if len(externalImageRegistryHostnames) > 0 {
+		externalImageRegistryHostname = externalImageRegistryHostnames[0]
+	}
 	registryHostnameRetriever, err := registryhostname.DefaultRegistryHostnameRetriever(privilegedLoopbackConfig, externalImageRegistryHostname, internalImageRegistryHostname)
 	if err != nil {
 		return nil, err

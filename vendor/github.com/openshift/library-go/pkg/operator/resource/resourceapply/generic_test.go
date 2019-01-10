@@ -3,6 +3,7 @@ package resourceapply
 import (
 	"testing"
 
+	"github.com/openshift/library-go/pkg/operator/events"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/davecgh/go-spew/spew"
@@ -27,18 +28,18 @@ func TestApplyDirectlyUnhandledType(t *testing.T) {
 	fakeClient := fake.NewSimpleClientset()
 	content := func(name string) ([]byte, error) {
 		return []byte(`apiVersion: v1
-kind: Pod
+kind: PersistentVolumeClaim
 metadata:
-  name: openshift-apiserver
+  name: sample-claim
   labels:
     openshift.io/run-level: "1"
 `), nil
 	}
-
-	ret := ApplyDirectly(fakeClient, content, "pod")
+	recorder := events.NewInMemoryRecorder("")
+	ret := ApplyDirectly(fakeClient, recorder, content, "pvc")
 	if ret[0].Error == nil {
 		t.Fatal("missing expected error")
-	} else if ret[0].Error.Error() != "unhandled type *v1.Pod" {
+	} else if ret[0].Error.Error() != "unhandled type *v1.PersistentVolumeClaim" {
 		t.Fatal(ret[0].Error)
 	}
 }

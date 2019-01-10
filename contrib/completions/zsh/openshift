@@ -250,7 +250,13 @@ __openshift_handle_reply()
     fi
 
     if [[ ${#COMPREPLY[@]} -eq 0 ]]; then
-        declare -F __custom_func >/dev/null && __custom_func
+		if declare -F __openshift_custom_func >/dev/null; then
+			# try command name qualified custom func
+			__openshift_custom_func
+		else
+			# otherwise fall back to unqualified for compatibility
+			declare -F __custom_func >/dev/null && __custom_func
+		fi
     fi
 
     # available in bash-completion >= 2, not always present on macOS
@@ -372,6 +378,14 @@ __openshift_handle_word()
         __openshift_handle_command
     elif [[ $c -eq 0 ]]; then
         __openshift_handle_command
+    elif __openshift_contains_word "${words[c]}" "${command_aliases[@]}"; then
+        # aliashash variable is an associative array which is only supported in bash > 3.
+        if [[ -z "${BASH_VERSION}" || "${BASH_VERSINFO[0]}" -gt 3 ]]; then
+            words[c]=${aliashash[${words[c]}]}
+            __openshift_handle_command
+        else
+            __openshift_handle_noun
+        fi
     else
         __openshift_handle_noun
     fi
@@ -381,6 +395,9 @@ __openshift_handle_word()
 _openshift_completion()
 {
     last_command="openshift_completion"
+
+    command_aliases=()
+
     commands=()
 
     flags=()
@@ -405,6 +422,9 @@ _openshift_completion()
 _openshift_options()
 {
     last_command="openshift_options"
+
+    command_aliases=()
+
     commands=()
 
     flags=()
@@ -424,6 +444,9 @@ _openshift_options()
 _openshift_version()
 {
     last_command="openshift_version"
+
+    command_aliases=()
+
     commands=()
 
     flags=()
@@ -443,6 +466,9 @@ _openshift_version()
 _openshift_root_command()
 {
     last_command="openshift"
+
+    command_aliases=()
+
     commands=()
     commands+=("completion")
     commands+=("options")
@@ -466,6 +492,7 @@ __start_openshift()
 {
     local cur prev words cword
     declare -A flaghash 2>/dev/null || :
+    declare -A aliashash 2>/dev/null || :
     if declare -F _init_completion >/dev/null 2>&1; then
         _init_completion -s || return
     else

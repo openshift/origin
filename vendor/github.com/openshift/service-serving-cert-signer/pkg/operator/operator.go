@@ -21,8 +21,8 @@ import (
 	scsinformerv1alpha1 "github.com/openshift/client-go/servicecertsigner/informers/externalversions/servicecertsigner/v1alpha1"
 	"github.com/openshift/library-go/pkg/operator/v1alpha1helpers"
 	"github.com/openshift/library-go/pkg/operator/versioning"
-	"github.com/openshift/service-serving-cert-signer/pkg/boilerplate/controller"
 	"github.com/openshift/service-serving-cert-signer/pkg/boilerplate/operator"
+	"github.com/openshift/service-serving-cert-signer/pkg/controller/api"
 )
 
 const targetNamespaceName = "openshift-service-cert-signer"
@@ -51,31 +51,40 @@ func NewServiceCertSignerOperator(
 		rbacv1Client: rbacv1Client,
 	}
 
-	// TODO we need to filter by name
-	allEvents := controller.FilterFuncs{
-		AddFunc: func(obj metav1.Object) bool {
-			return true
-		},
-		UpdateFunc: func(oldObj, newObj metav1.Object) bool {
-			return true
-		},
-		DeleteFunc: func(obj metav1.Object) bool {
-			return true
-		},
-	}
+	configEvents := operator.FilterByNames(api.OperatorConfigInstanceName)
+	configMapEvents := operator.FilterByNames(
+		api.SignerControllerConfigMapName,
+		api.APIServiceInjectorConfigMapName,
+		api.ConfigMapInjectorConfigMapName,
+		api.SigningCABundleConfigMapName,
+	)
+	saEvents := operator.FilterByNames(
+		api.SignerControllerSAName,
+		api.APIServiceInjectorSAName,
+		api.ConfigMapInjectorSAName,
+	)
+	serviceEvents := operator.FilterByNames(api.SignerControllerServiceName)
+	secretEvents := operator.FilterByNames(api.SignerControllerSecretName)
+	deploymentEvents := operator.FilterByNames(
+		api.SignerControllerDeploymentName,
+		api.APIServiceInjectorDeploymentName,
+		api.ConfigMapInjectorDeploymentName,
+	)
+	namespaceEvents := operator.FilterByNames(targetNamespaceName)
 
 	return operator.New("ServiceCertSignerOperator", c,
-		operator.WithInformer(serviceCertSignerConfigInformer, allEvents),
-		operator.WithInformer(namespacedKubeInformers.Core().V1().ConfigMaps(), allEvents),
-		operator.WithInformer(namespacedKubeInformers.Core().V1().ServiceAccounts(), allEvents),
-		operator.WithInformer(namespacedKubeInformers.Core().V1().Services(), allEvents),
-		operator.WithInformer(namespacedKubeInformers.Apps().V1().Deployments(), allEvents),
-		operator.WithInformer(namespacedKubeInformers.Core().V1().Namespaces(), allEvents),
+		operator.WithInformer(serviceCertSignerConfigInformer, configEvents),
+		operator.WithInformer(namespacedKubeInformers.Core().V1().ConfigMaps(), configMapEvents),
+		operator.WithInformer(namespacedKubeInformers.Core().V1().ServiceAccounts(), saEvents),
+		operator.WithInformer(namespacedKubeInformers.Core().V1().Services(), serviceEvents),
+		operator.WithInformer(namespacedKubeInformers.Core().V1().Secrets(), secretEvents),
+		operator.WithInformer(namespacedKubeInformers.Apps().V1().Deployments(), deploymentEvents),
+		operator.WithInformer(namespacedKubeInformers.Core().V1().Namespaces(), namespaceEvents),
 	)
 }
 
 func (c serviceCertSignerOperator) Key() (metav1.Object, error) {
-	return c.operatorConfigClient.ServiceCertSignerOperatorConfigs().Get("instance", metav1.GetOptions{})
+	return c.operatorConfigClient.ServiceCertSignerOperatorConfigs().Get(api.OperatorConfigInstanceName, metav1.GetOptions{})
 }
 
 func (c serviceCertSignerOperator) Sync(obj metav1.Object) error {

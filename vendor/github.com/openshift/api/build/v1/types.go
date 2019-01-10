@@ -561,7 +561,8 @@ type GitBuildSource struct {
 	// ref is the branch/tag/ref to build.
 	Ref string `json:"ref,omitempty" protobuf:"bytes,2,opt,name=ref"`
 
-	// proxyConfig defines the proxies to use for the git clone operation
+	// proxyConfig defines the proxies to use for the git clone operation. Values
+	// not set here are inherited from cluster-wide build git proxy settings.
 	ProxyConfig `json:",inline" protobuf:"bytes,3,opt,name=proxyConfig"`
 }
 

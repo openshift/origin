@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	configv1 "github.com/openshift/api/config/v1"
-	operatorsv1alpha1api "github.com/openshift/api/operator/v1alpha1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -14,15 +14,13 @@ import (
 type ServiceServingCertSignerConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// ServingInfo is the HTTP serving information for the controller's endpoints
-	ServingInfo configv1.HTTPServingInfo `json:"servingInfo,omitempty"`
+	// This configuration is not meant to be edited by humans as
+	// it is normally managed by the service cert signer operator.
+	// ServiceCertSignerOperatorConfig's spec.serviceServingCertSignerConfig
+	// can be used to override the defaults for this configuration.
+	configv1.GenericControllerConfig `json:",inline"`
 
-	// authentication allows configuration of authentication for the endpoints
-	Authentication DelegatedAuthentication `json:"authentication,omitempty"`
-	// authorization allows configuration of authentication for the endpoints
-	Authorization DelegatedAuthorization `json:"authorization,omitempty"`
-
-	// Signer holds the signing information used to automatically sign serving certificates.
+	// signer holds the signing information used to automatically sign serving certificates.
 	Signer configv1.CertInfo `json:"signer"`
 }
 
@@ -32,15 +30,13 @@ type ServiceServingCertSignerConfig struct {
 type APIServiceCABundleInjectorConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// ServingInfo is the HTTP serving information for the controller's endpoints
-	ServingInfo configv1.HTTPServingInfo `json:"servingInfo,omitempty"`
+	// This configuration is not meant to be edited by humans as
+	// it is normally managed by the service cert signer operator.
+	// ServiceCertSignerOperatorConfig's spec.apiServiceCABundleInjectorConfig
+	// can be used to override the defaults for this configuration.
+	configv1.GenericControllerConfig `json:",inline"`
 
-	// authentication allows configuration of authentication for the endpoints
-	Authentication DelegatedAuthentication `json:"authentication,omitempty"`
-	// authorization allows configuration of authentication for the endpoints
-	Authorization DelegatedAuthorization `json:"authorization,omitempty"`
-
-	// caBundleFile holds the ca bundle to apply to APIServices
+	// caBundleFile holds the ca bundle to apply to APIServices.
 	CABundleFile string `json:"caBundleFile"`
 }
 
@@ -50,28 +46,14 @@ type APIServiceCABundleInjectorConfig struct {
 type ConfigMapCABundleInjectorConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// ServingInfo is the HTTP serving information for the controller's endpoints
-	ServingInfo configv1.HTTPServingInfo `json:"servingInfo,omitempty"`
+	// This configuration is not meant to be edited by humans as
+	// it is normally managed by the service cert signer operator.
+	// ServiceCertSignerOperatorConfig's spec.configMapCABundleInjectorConfig
+	// can be used to override the defaults for this configuration.
+	configv1.GenericControllerConfig `json:",inline"`
 
-	// authentication allows configuration of authentication for the endpoints
-	Authentication DelegatedAuthentication `json:"authentication,omitempty"`
-	// authorization allows configuration of authentication for the endpoints
-	Authorization DelegatedAuthorization `json:"authorization,omitempty"`
-
-	// caBundleFile holds the ca bundle to apply to ConfigMaps
+	// caBundleFile holds the ca bundle to apply to ConfigMaps.
 	CABundleFile string `json:"caBundleFile"`
-}
-
-// DelegatedAuthentication allows authentication to be disabled.
-type DelegatedAuthentication struct {
-	// disabled indicates that authentication should be disabled.  By default it will use delegated authentication.
-	Disabled bool `json:"disabled,omitempty"`
-}
-
-// DelegatedAuthorization allows authorization to be disabled.
-type DelegatedAuthorization struct {
-	// disabled indicates that authorization should be disabled.  By default it will use delegated authorization.
-	Disabled bool `json:"disabled,omitempty"`
 }
 
 // +genclient
@@ -88,7 +70,7 @@ type ServiceCertSignerOperatorConfig struct {
 }
 
 type ServiceCertSignerOperatorConfigSpec struct {
-	operatorsv1alpha1api.OperatorSpec `json:",inline"`
+	operatorv1.OperatorSpec `json:",inline"`
 
 	// serviceServingCertSignerConfig holds a sparse config that the user wants for this component.  It only needs to be the overrides from the defaults
 	// it will end up overlaying in the following order:
@@ -110,7 +92,7 @@ type ServiceCertSignerOperatorConfigSpec struct {
 }
 
 type ServiceCertSignerOperatorConfigStatus struct {
-	operatorsv1alpha1api.OperatorStatus `json:",inline"`
+	operatorv1.OperatorStatus `json:",inline"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
