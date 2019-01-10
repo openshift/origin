@@ -62,10 +62,7 @@ func okDeploymentController(client kclientset.Interface, deployment *corev1.Repl
 		podInformer.Informer().GetIndexer().Add(pod)
 	}
 
-	return &deploymentController{
-		c,
-		podInformer.Informer().GetIndexer(),
-	}
+	return &deploymentController{c, podInformer.Informer().GetIndexer()}
 }
 
 func deployerPod(deployment *corev1.ReplicationController, alternateName string, related bool) *corev1.Pod {
@@ -73,8 +70,6 @@ func deployerPod(deployment *corev1.ReplicationController, alternateName string,
 	if len(alternateName) > 0 {
 		deployerPodName = alternateName
 	}
-
-	deployment.Namespace = "test"
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -671,7 +666,7 @@ func TestHandle_cleanupPodNoop(t *testing.T) {
 }
 
 // TestHandle_cleanupPodFail ensures that a failed attempt to clean up the
-// deployer pod for a completed deployment results in an actionable error.
+// deployer pod for a cancelled and failed deployment results in an actionable error.
 func TestHandle_cleanupPodFail(t *testing.T) {
 	client := &fake.Clientset{}
 	client.AddReactor("delete", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -690,9 +685,10 @@ func TestHandle_cleanupPodFail(t *testing.T) {
 	config := appstest.OkDeploymentConfig(1)
 	deployment, _ := appsutil.MakeDeployment(config)
 	deployment.CreationTimestamp = metav1.Now()
-	deployment.Annotations[appsv1.DeploymentStatusAnnotation] = string(appsv1.DeploymentStatusComplete)
+	deployment.Annotations[appsv1.DeploymentStatusAnnotation] = string(appsv1.DeploymentStatusFailed)
+	appsutil.SetCancelledByUserReason(deployment)
 
-	controller := okDeploymentController(client, deployment, nil, true, corev1.PodSucceeded)
+	controller := okDeploymentController(client, deployment, nil, true, corev1.PodFailed)
 
 	err := controller.handle(deployment, false)
 	if err == nil {
@@ -818,39 +814,41 @@ func TestHandle_cleanupPostNew(t *testing.T) {
 			deploymentPhase: appsv1.DeploymentStatusComplete,
 			podPhase:        corev1.PodSucceeded,
 
-			expected: len(hookPods) + 1,
+			expected: 0,
 		},
 	}
 
 	for _, test := range tests {
-		deletedPods := 0
+		t.Run(test.name, func(t *testing.T) {
+			deletedPods := 0
 
-		client := &fake.Clientset{}
-		client.AddReactor("delete", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-			deletedPods++
-			return true, nil, nil
+			client := &fake.Clientset{}
+			client.AddReactor("delete", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+				deletedPods++
+				return true, nil, nil
+			})
+			client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+				// None of these tests should transition the phase.
+				t.Errorf("unexpected call to update a deployment")
+				return true, nil, nil
+			})
+
+			dc := appstest.OkDeploymentConfig(1)
+			deployment, _ := appsutil.MakeDeployment(dc)
+			deployment.CreationTimestamp = metav1.Now()
+			deployment.Annotations["openshift.io/deployment.cancelled"] = "true"
+			deployment.Annotations[appsv1.DeploymentStatusAnnotation] = string(test.deploymentPhase)
+
+			controller := okDeploymentController(client, deployment, hookPods, true, test.podPhase)
+
+			if err := controller.handle(deployment, false); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if e, a := test.expected, deletedPods; e != a {
+				t.Errorf("expected %d deleted pods, got %d", e, a)
+			}
 		})
-		client.AddReactor("update", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-			// None of these tests should transition the phase.
-			t.Errorf("%s: unexpected call to update a deployment", test.name)
-			return true, nil, nil
-		})
-
-		deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1))
-		deployment.CreationTimestamp = metav1.Now()
-		deployment.Annotations["openshift.io/deployment.cancelled"] = "true"
-		deployment.Annotations[appsv1.DeploymentStatusAnnotation] = string(test.deploymentPhase)
-
-		controller := okDeploymentController(client, deployment, hookPods, true, test.podPhase)
-
-		if err := controller.handle(deployment, false); err != nil {
-			t.Errorf("%s: unexpected error: %v", test.name, err)
-			continue
-		}
-
-		if e, a := test.expected, deletedPods; e != a {
-			t.Errorf("%s: expected %d deleted pods, got %d", test.name, e, a)
-		}
 	}
 }
 
