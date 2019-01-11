@@ -109,6 +109,8 @@ type OpenshiftAPIExtraConfig struct {
 	// oauth API server
 	ServiceAccountMethod string
 
+	EnableDeprecatedOAPI bool
+
 	ClusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController
 }
 
@@ -549,20 +551,24 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget,
 		GenericAPIServer: genericServer,
 	}
 
-	legacyStorage := map[schema.GroupVersion]map[string]rest.Storage{
-		v1.SchemeGroupVersion: {},
-	}
-	legacyStorageModifier.mutate(legacyStorage)
+	// we want to remove oapi by default
+	if c.ExtraConfig.EnableDeprecatedOAPI {
+		legacyStorage := map[schema.GroupVersion]map[string]rest.Storage{
+			v1.SchemeGroupVersion: {},
+		}
+		legacyStorageModifier.mutate(legacyStorage)
 
-	if err := s.GenericAPIServer.InstallLegacyAPIGroup(legacy.RESTPrefix, apiLegacyV1(LegacyStorage(legacyStorage))); err != nil {
-		return nil, fmt.Errorf("Unable to initialize v1 API: %v", err)
-	}
-	glog.Infof("Started Origin API at %s/%s", legacy.RESTPrefix, legacy.GroupVersion.Version)
+		if err := s.GenericAPIServer.InstallLegacyAPIGroup(legacy.RESTPrefix, apiLegacyV1(LegacyStorage(legacyStorage))); err != nil {
+			return nil, fmt.Errorf("Unable to initialize v1 API: %v", err)
+		}
 
-	// fix API doc string
-	for _, service := range s.GenericAPIServer.Handler.GoRestfulContainer.RegisteredWebServices() {
-		if service.RootPath() == legacy.RESTPrefix+"/"+v1.SchemeGroupVersion.Version {
-			service.Doc("OpenShift REST API, version v1").ApiVersion("v1")
+		glog.Infof("Started Origin API at %s/%s", legacy.RESTPrefix, legacy.GroupVersion.Version)
+
+		// fix API doc string
+		for _, service := range s.GenericAPIServer.Handler.GoRestfulContainer.RegisteredWebServices() {
+			if service.RootPath() == legacy.RESTPrefix+"/"+v1.SchemeGroupVersion.Version {
+				service.Doc("OpenShift REST API, version v1").ApiVersion("v1")
+			}
 		}
 	}
 

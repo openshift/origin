@@ -171,6 +171,8 @@ func ConvertMasterConfigToOpenShiftAPIServerConfig(input *legacyconfigv1.MasterC
 			Subdomain: input.RoutingConfig.Subdomain,
 		},
 
+		EnableOAPI: true,
+
 		// TODO this needs to be removed.
 		APIServerArguments: map[string][]string{},
 	}
