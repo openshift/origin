@@ -36,10 +36,6 @@ func (c *FakeConfigV1) DNSs() v1.DNSInterface {
 	return &FakeDNSs{c}
 }
 
-func (c *FakeConfigV1) IdentityProviders() v1.IdentityProviderInterface {
-	return &FakeIdentityProviders{c}
-}
-
 func (c *FakeConfigV1) Images() v1.ImageInterface {
 	return &FakeImages{c}
 }
@@ -62,6 +58,10 @@ func (c *FakeConfigV1) OAuths() v1.OAuthInterface {
 
 func (c *FakeConfigV1) Projects() v1.ProjectInterface {
 	return &FakeProjects{c}
+}
+
+func (c *FakeConfigV1) Proxies() v1.ProxyInterface {
+	return &FakeProxies{c}
 }
 
 func (c *FakeConfigV1) Schedulings() v1.SchedulingInterface {

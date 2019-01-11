@@ -15,8 +15,9 @@ import (
 type UpdateStatusFunc func(status *operatorv1.StaticPodOperatorStatus) error
 
 // UpdateStatus applies the update funcs to the oldStatus abd tries to update via the client.
-func UpdateStatus(client OperatorClient, updateFuncs ...UpdateStatusFunc) (bool, error) {
+func UpdateStatus(client OperatorClient, updateFuncs ...UpdateStatusFunc) (*operatorv1.StaticPodOperatorStatus, bool, error) {
 	updated := false
+	var updatedOperatorStatus *operatorv1.StaticPodOperatorStatus
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		_, oldStatus, resourceVersion, err := client.Get()
 		if err != nil {
@@ -34,12 +35,12 @@ func UpdateStatus(client OperatorClient, updateFuncs ...UpdateStatusFunc) (bool,
 			return nil
 		}
 
-		_, err = client.UpdateStatus(resourceVersion, newStatus)
+		updatedOperatorStatus, err = client.UpdateStatus(resourceVersion, newStatus)
 		updated = err == nil
 		return err
 	})
 
-	return updated, err
+	return updatedOperatorStatus, updated, err
 }
 
 // UpdateConditionFunc returns a func to update a condition.

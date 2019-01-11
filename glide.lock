@@ -1,5 +1,5 @@
 hash: c8ac0c0bb0e2eada6660066d264865b8581a69cd19ccecac917e67b84559fa12
-updated: 2019-01-04T12:42:03.92078615-05:00
+updated: 2019-01-10T20:39:33.252854746-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -814,7 +814,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: bf3bcbe7672e22185952847d5ae5a01ea278f8f0
+  version: 1ef604446c39f0e4a15366ffe3a44a57b2724858
   subpackages:
   - apps
   - apps/v1
@@ -860,7 +860,7 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 960f72aa32a8e9b4dd769b90ff1cb5bd4c898eec
+  version: f3714b1f9df49ae0d998d882f510ed1d8d10f4aa
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/fake
@@ -977,7 +977,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 69f96fc4874bfcb5ba1084b0be072f7b02f3d35c
+  version: 4f8f123c1e157e7099eb4b8ee3f0811c11b63407
   subpackages:
   - pkg/config/configdefaults
   - pkg/config/helpers
