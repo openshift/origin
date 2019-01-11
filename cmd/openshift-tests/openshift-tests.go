@@ -20,6 +20,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/monitor"
 	testginkgo "github.com/openshift/origin/pkg/test/ginkgo"
@@ -29,6 +30,7 @@ import (
 func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
+	defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
 
 	rand.Seed(time.Now().UTC().UnixNano())
 
@@ -53,7 +55,7 @@ func main() {
 		Short: "Run a test suite",
 		Long: templates.LongDesc(`
 		Run a test suite against an OpenShift server
-		
+
 		This command will run one of the following suites against a cluster identified by the current
 		KUBECONFIG file. See the suite description for more on what actions the suite will take.
 
