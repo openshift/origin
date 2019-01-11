@@ -9,8 +9,8 @@ import (
 
 	v1 "github.com/openshift/api/route/v1"
 	route "github.com/openshift/origin/pkg/route/apis/route"
-	core_v1 "k8s.io/api/core/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	core "k8s.io/kubernetes/pkg/apis/core"
@@ -22,29 +22,108 @@ func init() {
 
 // RegisterConversions adds conversion functions to the given scheme.
 // Public to allow building arbitrary schemes.
-func RegisterConversions(scheme *runtime.Scheme) error {
-	return scheme.AddGeneratedConversionFuncs(
-		Convert_v1_Route_To_route_Route,
-		Convert_route_Route_To_v1_Route,
-		Convert_v1_RouteIngress_To_route_RouteIngress,
-		Convert_route_RouteIngress_To_v1_RouteIngress,
-		Convert_v1_RouteIngressCondition_To_route_RouteIngressCondition,
-		Convert_route_RouteIngressCondition_To_v1_RouteIngressCondition,
-		Convert_v1_RouteList_To_route_RouteList,
-		Convert_route_RouteList_To_v1_RouteList,
-		Convert_v1_RoutePort_To_route_RoutePort,
-		Convert_route_RoutePort_To_v1_RoutePort,
-		Convert_v1_RouteSpec_To_route_RouteSpec,
-		Convert_route_RouteSpec_To_v1_RouteSpec,
-		Convert_v1_RouteStatus_To_route_RouteStatus,
-		Convert_route_RouteStatus_To_v1_RouteStatus,
-		Convert_v1_RouteTargetReference_To_route_RouteTargetReference,
-		Convert_route_RouteTargetReference_To_v1_RouteTargetReference,
-		Convert_v1_RouterShard_To_route_RouterShard,
-		Convert_route_RouterShard_To_v1_RouterShard,
-		Convert_v1_TLSConfig_To_route_TLSConfig,
-		Convert_route_TLSConfig_To_v1_TLSConfig,
-	)
+func RegisterConversions(s *runtime.Scheme) error {
+	if err := s.AddGeneratedConversionFunc((*v1.Route)(nil), (*route.Route)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_Route_To_route_Route(a.(*v1.Route), b.(*route.Route), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*route.Route)(nil), (*v1.Route)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_route_Route_To_v1_Route(a.(*route.Route), b.(*v1.Route), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.RouteIngress)(nil), (*route.RouteIngress)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_RouteIngress_To_route_RouteIngress(a.(*v1.RouteIngress), b.(*route.RouteIngress), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*route.RouteIngress)(nil), (*v1.RouteIngress)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_route_RouteIngress_To_v1_RouteIngress(a.(*route.RouteIngress), b.(*v1.RouteIngress), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.RouteIngressCondition)(nil), (*route.RouteIngressCondition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_RouteIngressCondition_To_route_RouteIngressCondition(a.(*v1.RouteIngressCondition), b.(*route.RouteIngressCondition), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*route.RouteIngressCondition)(nil), (*v1.RouteIngressCondition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_route_RouteIngressCondition_To_v1_RouteIngressCondition(a.(*route.RouteIngressCondition), b.(*v1.RouteIngressCondition), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.RouteList)(nil), (*route.RouteList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_RouteList_To_route_RouteList(a.(*v1.RouteList), b.(*route.RouteList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*route.RouteList)(nil), (*v1.RouteList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_route_RouteList_To_v1_RouteList(a.(*route.RouteList), b.(*v1.RouteList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.RoutePort)(nil), (*route.RoutePort)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_RoutePort_To_route_RoutePort(a.(*v1.RoutePort), b.(*route.RoutePort), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*route.RoutePort)(nil), (*v1.RoutePort)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_route_RoutePort_To_v1_RoutePort(a.(*route.RoutePort), b.(*v1.RoutePort), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.RouteSpec)(nil), (*route.RouteSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_RouteSpec_To_route_RouteSpec(a.(*v1.RouteSpec), b.(*route.RouteSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*route.RouteSpec)(nil), (*v1.RouteSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_route_RouteSpec_To_v1_RouteSpec(a.(*route.RouteSpec), b.(*v1.RouteSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.RouteStatus)(nil), (*route.RouteStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_RouteStatus_To_route_RouteStatus(a.(*v1.RouteStatus), b.(*route.RouteStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*route.RouteStatus)(nil), (*v1.RouteStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_route_RouteStatus_To_v1_RouteStatus(a.(*route.RouteStatus), b.(*v1.RouteStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.RouteTargetReference)(nil), (*route.RouteTargetReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_RouteTargetReference_To_route_RouteTargetReference(a.(*v1.RouteTargetReference), b.(*route.RouteTargetReference), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*route.RouteTargetReference)(nil), (*v1.RouteTargetReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_route_RouteTargetReference_To_v1_RouteTargetReference(a.(*route.RouteTargetReference), b.(*v1.RouteTargetReference), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.RouterShard)(nil), (*route.RouterShard)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_RouterShard_To_route_RouterShard(a.(*v1.RouterShard), b.(*route.RouterShard), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*route.RouterShard)(nil), (*v1.RouterShard)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_route_RouterShard_To_v1_RouterShard(a.(*route.RouterShard), b.(*v1.RouterShard), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1.TLSConfig)(nil), (*route.TLSConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_TLSConfig_To_route_TLSConfig(a.(*v1.TLSConfig), b.(*route.TLSConfig), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*route.TLSConfig)(nil), (*v1.TLSConfig)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_route_TLSConfig_To_v1_TLSConfig(a.(*route.TLSConfig), b.(*v1.TLSConfig), scope)
+	}); err != nil {
+		return err
+	}
+	return nil
 }
 
 func autoConvert_v1_Route_To_route_Route(in *v1.Route, out *route.Route, s conversion.Scope) error {
@@ -112,7 +191,7 @@ func autoConvert_v1_RouteIngressCondition_To_route_RouteIngressCondition(in *v1.
 	out.Status = core.ConditionStatus(in.Status)
 	out.Reason = in.Reason
 	out.Message = in.Message
-	out.LastTransitionTime = (*meta_v1.Time)(unsafe.Pointer(in.LastTransitionTime))
+	out.LastTransitionTime = (*metav1.Time)(unsafe.Pointer(in.LastTransitionTime))
 	return nil
 }
 
@@ -123,10 +202,10 @@ func Convert_v1_RouteIngressCondition_To_route_RouteIngressCondition(in *v1.Rout
 
 func autoConvert_route_RouteIngressCondition_To_v1_RouteIngressCondition(in *route.RouteIngressCondition, out *v1.RouteIngressCondition, s conversion.Scope) error {
 	out.Type = v1.RouteIngressConditionType(in.Type)
-	out.Status = core_v1.ConditionStatus(in.Status)
+	out.Status = corev1.ConditionStatus(in.Status)
 	out.Reason = in.Reason
 	out.Message = in.Message
-	out.LastTransitionTime = (*meta_v1.Time)(unsafe.Pointer(in.LastTransitionTime))
+	out.LastTransitionTime = (*metav1.Time)(unsafe.Pointer(in.LastTransitionTime))
 	return nil
 }
 

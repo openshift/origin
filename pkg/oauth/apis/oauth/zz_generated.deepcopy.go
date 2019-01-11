@@ -186,21 +186,13 @@ func (in *OAuthClient) DeepCopyInto(out *OAuthClient) {
 	}
 	if in.AccessTokenMaxAgeSeconds != nil {
 		in, out := &in.AccessTokenMaxAgeSeconds, &out.AccessTokenMaxAgeSeconds
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int32)
-			**out = **in
-		}
+		*out = new(int32)
+		**out = **in
 	}
 	if in.AccessTokenInactivityTimeoutSeconds != nil {
 		in, out := &in.AccessTokenInactivityTimeoutSeconds, &out.AccessTokenInactivityTimeoutSeconds
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int32)
-			**out = **in
-		}
+		*out = new(int32)
+		**out = **in
 	}
 	return
 }
@@ -373,12 +365,8 @@ func (in *ScopeRestriction) DeepCopyInto(out *ScopeRestriction) {
 	}
 	if in.ClusterRole != nil {
 		in, out := &in.ClusterRole, &out.ClusterRole
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(ClusterRoleScopeRestriction)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(ClusterRoleScopeRestriction)
+		(*in).DeepCopyInto(*out)
 	}
 	return
 }

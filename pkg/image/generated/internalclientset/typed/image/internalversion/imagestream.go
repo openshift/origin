@@ -5,7 +5,7 @@ package internalversion
 import (
 	image "github.com/openshift/origin/pkg/image/apis/image"
 	scheme "github.com/openshift/origin/pkg/image/generated/internalclientset/scheme"
-	core_v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -29,7 +29,7 @@ type ImageStreamInterface interface {
 	List(opts v1.ListOptions) (*image.ImageStreamList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *image.ImageStream, err error)
-	Secrets(imageStreamName string, options v1.GetOptions) (*core_v1.SecretList, error)
+	Secrets(imageStreamName string, options v1.GetOptions) (*corev1.SecretList, error)
 
 	ImageStreamExpansion
 }
@@ -160,9 +160,9 @@ func (c *imageStreams) Patch(name string, pt types.PatchType, data []byte, subre
 	return
 }
 
-// Secrets takes name of the imageStream, and returns the corresponding core_v1.SecretList object, and an error if there is any.
-func (c *imageStreams) Secrets(imageStreamName string, options v1.GetOptions) (result *core_v1.SecretList, err error) {
-	result = &core_v1.SecretList{}
+// Secrets takes name of the imageStream, and returns the corresponding corev1.SecretList object, and an error if there is any.
+func (c *imageStreams) Secrets(imageStreamName string, options v1.GetOptions) (result *corev1.SecretList, err error) {
+	result = &corev1.SecretList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("imagestreams").

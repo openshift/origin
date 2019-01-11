@@ -136,12 +136,8 @@ func (in *ClusterResourceQuotaSelector) DeepCopyInto(out *ClusterResourceQuotaSe
 	*out = *in
 	if in.LabelSelector != nil {
 		in, out := &in.LabelSelector, &out.LabelSelector
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(v1.LabelSelector)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(v1.LabelSelector)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.AnnotationSelector != nil {
 		in, out := &in.AnnotationSelector, &out.AnnotationSelector
