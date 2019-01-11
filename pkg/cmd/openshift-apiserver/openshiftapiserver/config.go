@@ -245,6 +245,7 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 			ClusterQuotaMappingController:      clusterQuotaMappingController,
 			RESTMapper:                         restMapper,
 			ServiceAccountMethod:               string(config.ServiceAccountOAuthGrantMethod),
+			EnableDeprecatedOAPI:               config.EnableOAPI,
 		},
 	}
 

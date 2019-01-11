@@ -31,7 +31,7 @@ os::start::master
 
 os::log::info "Updating ${SWAGGER_SPEC_OUT_DIR}:"
 
-endpoint_types=("oapi" "api")
+endpoint_types=("api")
 for type in "${endpoint_types[@]}"; do
     endpoints=("v1")
     for endpoint in "${endpoints[@]}"; do

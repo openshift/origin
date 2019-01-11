@@ -25,4 +25,4 @@ storageConfig:
   keyFile: client-etcd-client.key
   urls:
   - https://127.0.0.1:2379
-
+enableDeprecatedOAPIThatWillBeRemovedVerySoon: true
