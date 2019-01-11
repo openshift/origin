@@ -95,7 +95,7 @@ func (o *InfoOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []st
 			}
 			return fmt.Errorf("info expects one argument, or a connection to a 4.0 OpenShift server: %v", err)
 		}
-		image := cv.Status.Current.Payload
+		image := cv.Status.Desired.Payload
 		if len(image) == 0 && cv.Spec.DesiredUpdate != nil {
 			image = cv.Spec.DesiredUpdate.Payload
 		}
