@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,6 +55,32 @@ func FindStatusCondition(conditions []configv1.ClusterOperatorStatusCondition, c
 	}
 
 	return nil
+}
+
+// GetStatusConditionDiff returns a string representing change in condition status in human readable form.
+func GetStatusConditionDiff(oldConditions []configv1.ClusterOperatorStatusCondition, newConditions []configv1.ClusterOperatorStatusCondition) string {
+	messages := []string{}
+	for _, newCondition := range newConditions {
+		existingStatusCondition := FindStatusCondition(oldConditions, newCondition.Type)
+		if existingStatusCondition == nil {
+			messages = append(messages, fmt.Sprintf("%s set to %s (%q)", newCondition.Type, newCondition.Status, newCondition.Message))
+			continue
+		}
+		if existingStatusCondition.Status != newCondition.Status {
+			messages = append(messages, fmt.Sprintf("%s changed from %s to %s (%q)", existingStatusCondition.Type, existingStatusCondition.Status, newCondition.Status, newCondition.Message))
+			continue
+		}
+		if existingStatusCondition.Message != newCondition.Message {
+			messages = append(messages, fmt.Sprintf("%s message changed from %q to %q", existingStatusCondition.Type, existingStatusCondition.Message, newCondition.Message))
+		}
+	}
+	for _, oldCondition := range oldConditions {
+		// This should not happen. It means we removed old condition entirely instead of just changing its status
+		if c := FindStatusCondition(newConditions, oldCondition.Type); c == nil {
+			messages = append(messages, fmt.Sprintf("%s was removed", oldCondition.Type))
+		}
+	}
+	return strings.Join(messages, ",")
 }
 
 // IsStatusConditionTrue returns true when the conditionType is present and set to `configv1.ConditionTrue`

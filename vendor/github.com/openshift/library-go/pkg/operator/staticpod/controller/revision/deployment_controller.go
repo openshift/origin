@@ -99,7 +99,7 @@ func (c RevisionController) createRevisionIfNeeded(operatorSpec *operatorv1.Oper
 			Reason:  "ContentCreationError",
 			Message: err.Error(),
 		}
-		if _, updateError := common.UpdateStatus(c.operatorConfigClient, common.UpdateConditionFn(cond)); updateError != nil {
+		if _, _, updateError := common.UpdateStatus(c.operatorConfigClient, common.UpdateConditionFn(cond)); updateError != nil {
 			c.eventRecorder.Warningf("RevisionCreateFailed", "Failed to create revision %d: %v", nextRevision, err.Error())
 			return true, updateError
 		}
@@ -110,7 +110,7 @@ func (c RevisionController) createRevisionIfNeeded(operatorSpec *operatorv1.Oper
 		Type:   "RevisionControllerFailing",
 		Status: operatorv1.ConditionFalse,
 	}
-	if updated, updateError := common.UpdateStatus(c.operatorConfigClient, common.UpdateConditionFn(cond), func(operatorStatus *operatorv1.StaticPodOperatorStatus) error {
+	if _, updated, updateError := common.UpdateStatus(c.operatorConfigClient, common.UpdateConditionFn(cond), func(operatorStatus *operatorv1.StaticPodOperatorStatus) error {
 		operatorStatus.LatestAvailableRevision = nextRevision
 		return nil
 	}); updateError != nil {
@@ -212,7 +212,7 @@ func (c RevisionController) sync() error {
 		cond.Reason = "Error"
 		cond.Message = err.Error()
 	}
-	if _, updateError := common.UpdateStatus(c.operatorConfigClient, common.UpdateConditionFn(cond)); updateError != nil {
+	if _, _, updateError := common.UpdateStatus(c.operatorConfigClient, common.UpdateConditionFn(cond)); updateError != nil {
 		if err == nil {
 			return updateError
 		}

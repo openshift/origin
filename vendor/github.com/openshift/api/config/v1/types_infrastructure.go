@@ -25,14 +25,30 @@ type InfrastructureSpec struct {
 }
 
 type InfrastructureStatus struct {
-	// cloudProvider is the IaaS provider that is running the cluster.
-	//
-	// Valid values are:
-	// - aws
-	// - openstack
-	// +optional
-	CloudProvider string `json:"cloudProvider,omitempty"`
+	// platform is the underlying infrastructure provider for the cluster. This
+	// value controls whether infrastructure automation such as service load
+	// balancers, dynamic volume provisioning, machine creation and deletion, and
+	// other integrations are enabled. If None, no infrastructure automation is
+	// enabled.
+	Platform PlatformType `json:"platform,omitempty"`
 }
+
+// platformType is a specific supported infrastructure provider.
+type PlatformType string
+
+const (
+	// awsPlatform represents Amazon AWS.
+	AWSPlatform PlatformType = "AWS"
+
+	// openStackPlatform represents OpenStack.
+	OpenStackPlatform PlatformType = "OpenStack"
+
+	// libvirtPlatform represents libvirt.
+	LibvirtPlatform PlatformType = "Libvirt"
+
+	// nonePlatform means there is no infrastructure provider.
+	NonePlatform PlatformType = "None"
+)
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
