@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -60,7 +61,8 @@ func (opt *Options) Run() error {
 					if !event.From.Equal(event.To) {
 						continue
 					}
-					fmt.Fprintln(opt.Out, event.String())
+					// make sure the message ends up on a single line.  Something about the way we collect logs wants this.
+					fmt.Fprintln(opt.Out, strings.Replace(event.String(), "\n", "\\n", -1))
 				}
 				last = events[len(events)-1].From
 			}

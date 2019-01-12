@@ -47,7 +47,7 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 							condition := Condition{
 								Level:   Info,
 								Locator: locateEvent(obj),
-								Message: obj.Message,
+								Message: obj.Message + fmt.Sprintf(" count(%d)", +obj.Count),
 							}
 							if obj.Type == corev1.EventTypeWarning {
 								condition.Level = Warning
