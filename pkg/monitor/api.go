@@ -58,6 +58,56 @@ func startAPIMonitoring(ctx context.Context, m *Monitor, clusterConfig *rest.Con
 		return err
 	}
 
+	// watch individual kube-apiservers and specifically report their healthz
+	kubeClient, err := clientcorev1.NewForConfig(clusterConfig)
+	if err != nil {
+		return err
+	}
+	allKubeAPIServerPods, err := kubeClient.Pods("openshift-kube-apiserver").List(metav1.ListOptions{})
+	if err == nil {
+		for _, pod := range allKubeAPIServerPods.Items {
+			// this a reasonable signal that we're an install pod for this ns
+			if !pod.Spec.HostNetwork {
+				continue
+			}
+			perKubeAPIServerPollingClientConfig := rest.CopyConfig(clusterConfig)
+			perKubeAPIServerPollingClientConfig.Timeout = 3 * time.Second
+			perKubeAPIServerPollingClientConfig.ServerName = "kubernetes.default.svc"
+			perKubeAPIServerPollingClientConfig.Host = pod.Status.HostIP + ":6443"
+			perKubeAPIServerPollingClient, err := clientcorev1.NewForConfig(perKubeAPIServerPollingClientConfig)
+			if err != nil {
+				return err
+			}
+			m.AddSampler(
+				StartSampling(ctx, m, time.Second, func(previous bool) (condition *Condition, next bool) {
+					body, err := perKubeAPIServerPollingClient.RESTClient().Get().AbsPath("/healthz").DoRaw()
+					switch {
+					case err == nil && !previous:
+						condition = &Condition{
+							Level:   Info,
+							Locator: "kube-apiserver-" + perKubeAPIServerPollingClientConfig.Host,
+							Message: "Kube API is healthy",
+						}
+					case err != nil && previous:
+						condition = &Condition{
+							Level:   Error,
+							Locator: "kube-apiserver-" + perKubeAPIServerPollingClientConfig.Host,
+							// make sure our health ends up on one line for gathering (ick)
+							Message: fmt.Sprintf("Kube API started failing: %v: healthz=%s", err, strings.Replace(string(body), "\n", "\\n", -1)),
+						}
+					}
+					return condition, err == nil
+				}).ConditionWhenFailing(&Condition{
+					Level:   Error,
+					Locator: "kube-apiserver-" + perKubeAPIServerPollingClientConfig.Host,
+					Message: fmt.Sprintf("Kube API is failing healthz"),
+				}),
+			)
+
+		}
+	}
+
+	// watch the access to the kube-apiserver via the internal service
 	m.AddSampler(
 		StartSampling(ctx, m, time.Second, func(previous bool) (condition *Condition, next bool) {
 			_, err := pollingClient.Namespaces().Get("kube-system", metav1.GetOptions{})
