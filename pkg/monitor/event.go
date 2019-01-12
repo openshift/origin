@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -47,7 +48,8 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 							condition := Condition{
 								Level:   Info,
 								Locator: locateEvent(obj),
-								Message: obj.Message,
+								// make sure the message ends up on a single line.  Something about the way we collect logs wants this.
+								Message: strings.Replace(obj.Message, "\n", "\\n", -1) + fmt.Sprintf(" count(%d)", +obj.Count),
 							}
 							if obj.Type == corev1.EventTypeWarning {
 								condition.Level = Warning
