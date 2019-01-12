@@ -78,9 +78,16 @@ var _ = g.Describe("[Feature:ImageExtract] Image extract", func() {
 			[ -d /tmp/test/etc ] && [ -d /tmp/test/bin ]
 			[ -f /tmp/test/bin/ls ] && /tmp/test/bin/ls /tmp/test
 
+			# extract multiple individual files
 			mkdir -p /tmp/test2
 			oc image extract --insecure %[2]s/%[1]s/1:busybox --path=/etc/shadow:/tmp/test2 --path=/etc/localtime:/tmp/test2
 			[ -f /tmp/test2/shadow ] && [ -f /tmp/test2/localtime ]
+
+			# extract a single file to the current directory
+			mkdir -p /tmp/test3
+			cd /tmp/test3
+			oc image extract --insecure %[2]s/%[1]s/1:busybox --file=/etc/shadow
+			[ -f /tmp/test3/shadow ]
 		`, ns, registry)))
 		cli.WaitForSuccess(pod.Name, podStartupTimeout)
 	})

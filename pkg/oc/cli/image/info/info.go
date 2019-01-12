@@ -49,6 +49,7 @@ func NewInfo(parentName string, streams genericclioptions.IOStreams) *cobra.Comm
 		`),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(cmd, args))
+			kcmdutil.CheckErr(o.Validate())
 			kcmdutil.CheckErr(o.Run())
 		},
 	}
@@ -74,11 +75,12 @@ func (o *InfoOptions) Complete(cmd *cobra.Command, args []string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("info expects at least one argument, an image pull spec")
 	}
-	if err := o.FilterOptions.Validate(); err != nil {
-		return err
-	}
 	o.Images = args
 	return nil
+}
+
+func (o *InfoOptions) Validate() error {
+	return o.FilterOptions.Validate()
 }
 
 func (o *InfoOptions) Run() error {

@@ -52,14 +52,16 @@ func NewInfo(f kcmdutil.Factory, parentName string, streams genericclioptions.IO
 		`),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
+			kcmdutil.CheckErr(o.Validate())
 			kcmdutil.CheckErr(o.Run())
 		},
 	}
 	flags := cmd.Flags()
 	flags.StringVar(&o.From, "changes-from", o.From, "Show changes from this image to the requested image.")
 	flags.BoolVar(&o.ShowCommit, "commits", o.ShowCommit, "Display information about the source an image was created with.")
-	flags.BoolVar(&o.ShowPullSpec, "pullspecs", o.ShowCommit, "Display the pull spec of the image instead of the digest.")
-	// flags.BoolVar(&o.Verify, "verify", o.Verify, "Verify the payload is consistent by checking the referenced images.")
+	flags.BoolVar(&o.ShowPullSpec, "pullspecs", o.ShowCommit, "Display the pull spec of each image instead of the digest.")
+	flags.StringVar(&o.ImageFor, "image-for", o.ImageFor, "Print the pull spec of the specified image or an error if it does not exist.")
+	flags.StringVarP(&o.Output, "output", "o", o.Output, "Display the release info in an alternative format: json")
 	return cmd
 }
 
@@ -69,6 +71,8 @@ type InfoOptions struct {
 	Images []string
 	From   string
 
+	Output       string
+	ImageFor     string
 	ShowCommit   bool
 	ShowPullSpec bool
 	Verify       bool
@@ -107,6 +111,18 @@ func (o *InfoOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []st
 	return nil
 }
 
+func (o *InfoOptions) Validate() error {
+	if len(o.ImageFor) > 0 && len(o.Output) > 0 {
+		return fmt.Errorf("--output and --image-for may not both be specified")
+	}
+	switch o.Output {
+	case "", "json":
+	default:
+		return fmt.Errorf("--output only supports 'json'")
+	}
+	return nil
+}
+
 func (o *InfoOptions) Run() error {
 	if len(o.Images) == 0 {
 		return fmt.Errorf("must specify a release image as an argument")
@@ -140,16 +156,50 @@ func (o *InfoOptions) Run() error {
 		return describeReleaseDiff(o.Out, diff, o.ShowCommit)
 	}
 
+	var exitErr error
 	for _, image := range o.Images {
-		release, err := o.LoadReleaseInfo(image)
+		if err := o.describeImage(image); err != nil {
+			exitErr = kcmdutil.ErrExit
+			fmt.Fprintf(o.ErrOut, "error: %v\n", err)
+			continue
+		}
+	}
+	return exitErr
+}
+
+func (o *InfoOptions) describeImage(image string) error {
+	release, err := o.LoadReleaseInfo(image)
+	if err != nil {
+		return err
+	}
+	if len(o.Output) > 0 {
+		data, err := json.MarshalIndent(release, "", "  ")
 		if err != nil {
 			return err
 		}
-		if err := describeReleaseInfo(o.Out, release, o.ShowCommit, o.ShowPullSpec); err != nil {
+		fmt.Fprintln(o.Out, string(data))
+		return nil
+	}
+	if len(o.ImageFor) > 0 {
+		spec, err := findImageSpec(release.References, o.ImageFor, image)
+		if err != nil {
 			return err
 		}
+		fmt.Fprintln(o.Out, spec)
+		return nil
 	}
-	return nil
+	return describeReleaseInfo(o.Out, release, o.ShowCommit, o.ShowPullSpec)
+}
+
+func findImageSpec(image *imageapi.ImageStream, tagName, imageName string) (string, error) {
+	for _, tag := range image.Spec.Tags {
+		if tag.Name == tagName {
+			if tag.From != nil && tag.From.Kind == "DockerImage" && len(tag.From.Name) > 0 {
+				return tag.From.Name, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("no image tag %q exists in the release image %s", tagName, imageName)
 }
 
 func calculateDiff(from, to *ReleaseInfo) (*ReleaseDiff, error) {
@@ -233,14 +283,15 @@ type ReleaseManifestDiff struct {
 }
 
 type ReleaseInfo struct {
-	Image      imagereference.DockerImageReference
-	Digest     digest.Digest
-	Config     *docker10.DockerImageConfig
-	Metadata   *CincinnatiMetadata
-	References *imageapi.ImageStream
+	Image      string                              `json:"image"`
+	ImageRef   imagereference.DockerImageReference `json:"-"`
+	Digest     digest.Digest                       `json:"digest"`
+	Config     *docker10.DockerImageConfig         `json:"config"`
+	Metadata   *CincinnatiMetadata                 `json:"metadata"`
+	References *imageapi.ImageStream               `json:"references"`
 
-	ManifestFiles map[string][]byte
-	UnknownFiles  []string
+	ManifestFiles map[string][]byte `json:"-"`
+	UnknownFiles  []string          `json:"-"`
 }
 
 func (i *ReleaseInfo) PreferredName() string {
@@ -269,7 +320,9 @@ func (o *InfoOptions) LoadReleaseInfo(image string) (*ReleaseInfo, error) {
 	}
 	opts := extract.NewOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
 
-	release := &ReleaseInfo{}
+	release := &ReleaseInfo{
+		Image: image,
+	}
 
 	opts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {
 		release.Digest = dgst
