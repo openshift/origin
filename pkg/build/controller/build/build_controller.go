@@ -156,6 +156,7 @@ type BuildController struct {
 	additionalTrustedCAPath string
 	additionalTrustedCAData []byte
 	registryConfData        string
+	signaturePolicyData     string
 }
 
 // BuildControllerParams is the set of parameters needed to
@@ -1519,11 +1520,13 @@ func (bc *BuildController) createBuildSystemConfigMapSpec(build *buildv1.Build, 
 				makeBuildPodOwnerRef(buildPod),
 			},
 		},
+		Data: make(map[string]string),
 	}
 	if len(bc.registryConfData) > 0 {
-		cm.Data = map[string]string{
-			buildutil.RegistryConfKey: bc.registryConfData,
-		}
+		cm.Data[buildutil.RegistryConfKey] = bc.registryConfData
+	}
+	if len(bc.signaturePolicyData) > 0 {
+		cm.Data[buildutil.SignaturePolicyKey] = bc.signaturePolicyData
 	}
 	return cm
 }

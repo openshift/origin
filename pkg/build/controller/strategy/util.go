@@ -386,12 +386,14 @@ func updateConfigsForContainer(c corev1.Container, volumeName string, configDir 
 	)
 	// registries.conf is the primary registry config file mounted in by OpenShift
 	registriesConfPath := filepath.Join(configDir, "registries.conf")
+
+	// policy.json sets image policies for buildah (allowed repositories for image pull/push, etc.)
+	signaturePolicyPath := filepath.Join(configDir, "policy.json")
+
 	// registries.d is a directory used by buildah to support multiple registries.conf files
 	// currently not created/managed by OpenShift
 	registriesDirPath := filepath.Join(configDir, "registries.d")
-	// signature-policy.json sets image signing policies for buildah (allowed signatures, etc.)
-	// currently not created/managed by OpenShift
-	signaturePolicyPath := filepath.Join(configDir, "signature-policy.json")
+
 	// storage.conf configures storage policies for buildah
 	// currently not created/managed by OpenShift
 	storageConfPath := filepath.Join(configDir, "storage.conf")

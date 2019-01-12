@@ -120,4 +120,7 @@ const (
 
 	// RegistryConfKey is the ConfigMap key for the build pod's registry configuration file.
 	RegistryConfKey = "registry.conf"
+
+	// SignaturePolicyKey is the ConfigMap key for the build pod's image signature policy file.
+	SignaturePolicyKey = "policy.json"
 )
