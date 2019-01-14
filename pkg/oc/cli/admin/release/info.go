@@ -510,9 +510,17 @@ func describeReleaseDiff(out io.Writer, diff *ReleaseDiff, showCommit bool) erro
 }
 
 func repoAndCommit(ref *imageapi.TagReference) string {
-	repo := ref.Annotations["io.openshift.build.source-location"]
-	commit := ref.Annotations["io.openshift.build.commit.id"]
-	if len(repo) == 0 || len(commit) == 0 {
+	repo := ref.Annotations["org.opencontainers.image.source"]
+	if repo == "" {
+		repo = ref.Annotations["io.openshift.build.source-location"]
+	}
+
+	commit := ref.Annotations["org.opencontainers.image.revision"]
+	if commit == "" {
+		commit = ref.Annotations["io.openshift.build.commit.id"]
+	}
+
+	if repo == "" || commit == "" {
 		return "<unknown>"
 	}
 	return fmt.Sprintf("%s %s", repo, commit)
