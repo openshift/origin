@@ -471,15 +471,8 @@ func TestEtcd3StoragePath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	oapiServerResources := &metav1.APIResourceList{
-		GroupVersion: "v1",
-	}
-	if err := kubeClient.Discovery().RESTClient().Get().AbsPath("oapi", "v1").Do().Into(oapiServerResources); err != nil {
-		t.Fatal(err)
-	}
 	resourcesToPersist := append(
 		etcddata.GetResources(t, serverResources),
-		etcddata.GetResources(t, []*metav1.APIResourceList{oapiServerResources})...,
 	)
 
 	for _, resourceToPersist := range resourcesToPersist {

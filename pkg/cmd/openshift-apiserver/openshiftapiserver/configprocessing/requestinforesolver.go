@@ -13,8 +13,8 @@ var LegacyAPIGroupPrefixes = sets.NewString(genericapiserver.DefaultLegacyAPIPre
 func OpenshiftRequestInfoResolver() apirequest.RequestInfoResolver {
 	// Default API request info factory
 	requestInfoFactory := &apirequest.RequestInfoFactory{
-		APIPrefixes:          sets.NewString("api", "osapi", "oapi", "apis"),
-		GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi"),
+		APIPrefixes:          sets.NewString("api", "apis"),
+		GrouplessAPIPrefixes: sets.NewString("api"),
 	}
 	personalSARRequestInfoResolver := oauthorizer.NewPersonalSARRequestInfoResolver(requestInfoFactory)
 	projectRequestInfoResolver := oauthorizer.NewProjectRequestInfoResolver(personalSARRequestInfoResolver)
