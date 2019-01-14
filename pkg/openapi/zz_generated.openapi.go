@@ -131,7 +131,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.AuthenticationList":                                             schema_openshift_api_config_v1_AuthenticationList(ref),
 		"github.com/openshift/api/config/v1.AuthenticationSpec":                                             schema_openshift_api_config_v1_AuthenticationSpec(ref),
 		"github.com/openshift/api/config/v1.AuthenticationStatus":                                           schema_openshift_api_config_v1_AuthenticationStatus(ref),
-		"github.com/openshift/api/config/v1.BasicAuthPasswordIdentityProvider":                              schema_openshift_api_config_v1_BasicAuthPasswordIdentityProvider(ref),
+		"github.com/openshift/api/config/v1.BasicAuthIdentityProvider":                                      schema_openshift_api_config_v1_BasicAuthIdentityProvider(ref),
 		"github.com/openshift/api/config/v1.Build":                                                          schema_openshift_api_config_v1_Build(ref),
 		"github.com/openshift/api/config/v1.BuildDefaults":                                                  schema_openshift_api_config_v1_BuildDefaults(ref),
 		"github.com/openshift/api/config/v1.BuildList":                                                      schema_openshift_api_config_v1_BuildList(ref),
@@ -150,7 +150,8 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.ClusterVersionSpec":                                             schema_openshift_api_config_v1_ClusterVersionSpec(ref),
 		"github.com/openshift/api/config/v1.ClusterVersionStatus":                                           schema_openshift_api_config_v1_ClusterVersionStatus(ref),
 		"github.com/openshift/api/config/v1.ComponentOverride":                                              schema_openshift_api_config_v1_ComponentOverride(ref),
-		"github.com/openshift/api/config/v1.ConfigMapReference":                                             schema_openshift_api_config_v1_ConfigMapReference(ref),
+		"github.com/openshift/api/config/v1.ConfigMapFileReference":                                         schema_openshift_api_config_v1_ConfigMapFileReference(ref),
+		"github.com/openshift/api/config/v1.ConfigMapNameReference":                                         schema_openshift_api_config_v1_ConfigMapNameReference(ref),
 		"github.com/openshift/api/config/v1.Console":                                                        schema_openshift_api_config_v1_Console(ref),
 		"github.com/openshift/api/config/v1.ConsoleList":                                                    schema_openshift_api_config_v1_ConsoleList(ref),
 		"github.com/openshift/api/config/v1.ConsoleSpec":                                                    schema_openshift_api_config_v1_ConsoleSpec(ref),
@@ -168,13 +169,10 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.GitHubIdentityProvider":                                         schema_openshift_api_config_v1_GitHubIdentityProvider(ref),
 		"github.com/openshift/api/config/v1.GitLabIdentityProvider":                                         schema_openshift_api_config_v1_GitLabIdentityProvider(ref),
 		"github.com/openshift/api/config/v1.GoogleIdentityProvider":                                         schema_openshift_api_config_v1_GoogleIdentityProvider(ref),
-		"github.com/openshift/api/config/v1.HTPasswdPasswordIdentityProvider":                               schema_openshift_api_config_v1_HTPasswdPasswordIdentityProvider(ref),
+		"github.com/openshift/api/config/v1.HTPasswdIdentityProvider":                                       schema_openshift_api_config_v1_HTPasswdIdentityProvider(ref),
 		"github.com/openshift/api/config/v1.HTTPServingInfo":                                                schema_openshift_api_config_v1_HTTPServingInfo(ref),
 		"github.com/openshift/api/config/v1.IdentityProvider":                                               schema_openshift_api_config_v1_IdentityProvider(ref),
 		"github.com/openshift/api/config/v1.IdentityProviderConfig":                                         schema_openshift_api_config_v1_IdentityProviderConfig(ref),
-		"github.com/openshift/api/config/v1.IdentityProviderList":                                           schema_openshift_api_config_v1_IdentityProviderList(ref),
-		"github.com/openshift/api/config/v1.IdentityProviderSpec":                                           schema_openshift_api_config_v1_IdentityProviderSpec(ref),
-		"github.com/openshift/api/config/v1.IdentityProviderStatus":                                         schema_openshift_api_config_v1_IdentityProviderStatus(ref),
 		"github.com/openshift/api/config/v1.Image":                                                          schema_openshift_api_config_v1_Image(ref),
 		"github.com/openshift/api/config/v1.ImageLabel":                                                     schema_openshift_api_config_v1_ImageLabel(ref),
 		"github.com/openshift/api/config/v1.ImageList":                                                      schema_openshift_api_config_v1_ImageList(ref),
@@ -188,24 +186,23 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.IngressList":                                                    schema_openshift_api_config_v1_IngressList(ref),
 		"github.com/openshift/api/config/v1.IngressSpec":                                                    schema_openshift_api_config_v1_IngressSpec(ref),
 		"github.com/openshift/api/config/v1.IngressStatus":                                                  schema_openshift_api_config_v1_IngressStatus(ref),
-		"github.com/openshift/api/config/v1.KeystonePasswordIdentityProvider":                               schema_openshift_api_config_v1_KeystonePasswordIdentityProvider(ref),
+		"github.com/openshift/api/config/v1.KeystoneIdentityProvider":                                       schema_openshift_api_config_v1_KeystoneIdentityProvider(ref),
 		"github.com/openshift/api/config/v1.KubeClientConfig":                                               schema_openshift_api_config_v1_KubeClientConfig(ref),
 		"github.com/openshift/api/config/v1.LDAPAttributeMapping":                                           schema_openshift_api_config_v1_LDAPAttributeMapping(ref),
-		"github.com/openshift/api/config/v1.LDAPPasswordIdentityProvider":                                   schema_openshift_api_config_v1_LDAPPasswordIdentityProvider(ref),
+		"github.com/openshift/api/config/v1.LDAPIdentityProvider":                                           schema_openshift_api_config_v1_LDAPIdentityProvider(ref),
 		"github.com/openshift/api/config/v1.LeaderElection":                                                 schema_openshift_api_config_v1_LeaderElection(ref),
-		"github.com/openshift/api/config/v1.LocalSecretReference":                                           schema_openshift_api_config_v1_LocalSecretReference(ref),
 		"github.com/openshift/api/config/v1.NamedCertificate":                                               schema_openshift_api_config_v1_NamedCertificate(ref),
 		"github.com/openshift/api/config/v1.Network":                                                        schema_openshift_api_config_v1_Network(ref),
 		"github.com/openshift/api/config/v1.NetworkList":                                                    schema_openshift_api_config_v1_NetworkList(ref),
 		"github.com/openshift/api/config/v1.NetworkSpec":                                                    schema_openshift_api_config_v1_NetworkSpec(ref),
 		"github.com/openshift/api/config/v1.NetworkStatus":                                                  schema_openshift_api_config_v1_NetworkStatus(ref),
 		"github.com/openshift/api/config/v1.OAuth":                                                          schema_openshift_api_config_v1_OAuth(ref),
-		"github.com/openshift/api/config/v1.OAuthIdentityProvider":                                          schema_openshift_api_config_v1_OAuthIdentityProvider(ref),
 		"github.com/openshift/api/config/v1.OAuthList":                                                      schema_openshift_api_config_v1_OAuthList(ref),
 		"github.com/openshift/api/config/v1.OAuthRemoteConnectionInfo":                                      schema_openshift_api_config_v1_OAuthRemoteConnectionInfo(ref),
 		"github.com/openshift/api/config/v1.OAuthSpec":                                                      schema_openshift_api_config_v1_OAuthSpec(ref),
 		"github.com/openshift/api/config/v1.OAuthStatus":                                                    schema_openshift_api_config_v1_OAuthStatus(ref),
 		"github.com/openshift/api/config/v1.OAuthTemplates":                                                 schema_openshift_api_config_v1_OAuthTemplates(ref),
+		"github.com/openshift/api/config/v1.ObjectReference":                                                schema_openshift_api_config_v1_ObjectReference(ref),
 		"github.com/openshift/api/config/v1.OpenIDClaims":                                                   schema_openshift_api_config_v1_OpenIDClaims(ref),
 		"github.com/openshift/api/config/v1.OpenIDIdentityProvider":                                         schema_openshift_api_config_v1_OpenIDIdentityProvider(ref),
 		"github.com/openshift/api/config/v1.OpenIDURLs":                                                     schema_openshift_api_config_v1_OpenIDURLs(ref),
@@ -213,7 +210,9 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.ProjectList":                                                    schema_openshift_api_config_v1_ProjectList(ref),
 		"github.com/openshift/api/config/v1.ProjectSpec":                                                    schema_openshift_api_config_v1_ProjectSpec(ref),
 		"github.com/openshift/api/config/v1.ProjectStatus":                                                  schema_openshift_api_config_v1_ProjectStatus(ref),
-		"github.com/openshift/api/config/v1.ProxyConfig":                                                    schema_openshift_api_config_v1_ProxyConfig(ref),
+		"github.com/openshift/api/config/v1.Proxy":                                                          schema_openshift_api_config_v1_Proxy(ref),
+		"github.com/openshift/api/config/v1.ProxyList":                                                      schema_openshift_api_config_v1_ProxyList(ref),
+		"github.com/openshift/api/config/v1.ProxySpec":                                                      schema_openshift_api_config_v1_ProxySpec(ref),
 		"github.com/openshift/api/config/v1.RegistryLocation":                                               schema_openshift_api_config_v1_RegistryLocation(ref),
 		"github.com/openshift/api/config/v1.RemoteConnectionInfo":                                           schema_openshift_api_config_v1_RemoteConnectionInfo(ref),
 		"github.com/openshift/api/config/v1.RequestHeaderIdentityProvider":                                  schema_openshift_api_config_v1_RequestHeaderIdentityProvider(ref),
@@ -221,11 +220,13 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.SchedulingList":                                                 schema_openshift_api_config_v1_SchedulingList(ref),
 		"github.com/openshift/api/config/v1.SchedulingSpec":                                                 schema_openshift_api_config_v1_SchedulingSpec(ref),
 		"github.com/openshift/api/config/v1.SchedulingStatus":                                               schema_openshift_api_config_v1_SchedulingStatus(ref),
+		"github.com/openshift/api/config/v1.SecretNameReference":                                            schema_openshift_api_config_v1_SecretNameReference(ref),
 		"github.com/openshift/api/config/v1.ServingInfo":                                                    schema_openshift_api_config_v1_ServingInfo(ref),
 		"github.com/openshift/api/config/v1.StringSource":                                                   schema_openshift_api_config_v1_StringSource(ref),
 		"github.com/openshift/api/config/v1.StringSourceSpec":                                               schema_openshift_api_config_v1_StringSourceSpec(ref),
 		"github.com/openshift/api/config/v1.TokenConfig":                                                    schema_openshift_api_config_v1_TokenConfig(ref),
 		"github.com/openshift/api/config/v1.Update":                                                         schema_openshift_api_config_v1_Update(ref),
+		"github.com/openshift/api/config/v1.UpdateHistory":                                                  schema_openshift_api_config_v1_UpdateHistory(ref),
 		"github.com/openshift/api/config/v1.WebhookTokenAuthenticator":                                      schema_openshift_api_config_v1_WebhookTokenAuthenticator(ref),
 		"github.com/openshift/api/image/v1.DockerImageReference":                                            schema_openshift_api_image_v1_DockerImageReference(ref),
 		"github.com/openshift/api/image/v1.Image":                                                           schema_openshift_api_image_v1_Image(ref),
@@ -6903,15 +6904,22 @@ func schema_openshift_api_config_v1_AuthenticationSpec(ref common.ReferenceCallb
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "type identifies the cluster managed, user facing authentication mode in use. Specifically, it manages the component that responds to login attempts. The default is IntegratedOAuth.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"oauthMetadata": {
 						SchemaProps: spec.SchemaProps{
-							Description: "oauthMetadata contains the discovery endpoint data for OAuth 2.0 Authorization Server Metadata for an external OAuth server. This discovery document can be viewed from its served location: oc get --raw '/.well-known/oauth-authorization-server' For further details, see the IETF Draft: https://tools.ietf.org/html/draft-ietf-oauth-discovery-04#section-2 If oauthMetadata.name is non-empty, this value has precedence over the observed value stored in status.oauthMetadata",
-							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapReference"),
+							Description: "oauthMetadata contains the discovery endpoint data for OAuth 2.0 Authorization Server Metadata for an external OAuth server. This discovery document can be viewed from its served location: oc get --raw '/.well-known/oauth-authorization-server' For further details, see the IETF Draft: https://tools.ietf.org/html/draft-ietf-oauth-discovery-04#section-2 If oauthMetadata.name is non-empty, this value has precedence over any metadata reference stored in status. The key \"oauthMetadata\" is used to locate the data. If specified and the config map or expected key is not found, no metadata is served. If the specified metadata is not valid, no metadata is served. The namespace for this config map is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapNameReference"),
 						},
 					},
 					"webhookTokenAuthenticators": {
 						SchemaProps: spec.SchemaProps{
-							Description: "webhookTokenAuthenticators configures remote token reviewers. These remote authentication webhooks can be used to verify bearer tokens via the tokenreviews.authentication.k8s.io REST API.  This is required to honor bearer tokens that are provisioned by an external authentication service.",
+							Description: "webhookTokenAuthenticators configures remote token reviewers. These remote authentication webhooks can be used to verify bearer tokens via the tokenreviews.authentication.k8s.io REST API.  This is required to honor bearer tokens that are provisioned by an external authentication service. The namespace for these secrets is openshift-config.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -6923,11 +6931,11 @@ func schema_openshift_api_config_v1_AuthenticationSpec(ref common.ReferenceCallb
 						},
 					},
 				},
-				Required: []string{"webhookTokenAuthenticators"},
+				Required: []string{"type"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ConfigMapReference", "github.com/openshift/api/config/v1.WebhookTokenAuthenticator"},
+			"github.com/openshift/api/config/v1.ConfigMapNameReference", "github.com/openshift/api/config/v1.WebhookTokenAuthenticator"},
 	}
 }
 
@@ -6936,22 +6944,22 @@ func schema_openshift_api_config_v1_AuthenticationStatus(ref common.ReferenceCal
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Properties: map[string]spec.Schema{
-					"oauthMetadata": {
+					"integratedOAuthMetadata": {
 						SchemaProps: spec.SchemaProps{
-							Description: "oauthMetadata contains the discovery endpoint data for OAuth 2.0 Authorization Server Metadata for an external OAuth server. This discovery document can be viewed from its served location: oc get --raw '/.well-known/oauth-authorization-server' For further details, see the IETF Draft: https://tools.ietf.org/html/draft-ietf-oauth-discovery-04#section-2 This contains the observed value based on cluster state. An explicitly set value in spec.oauthMetadata has precedence over this field.",
-							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapReference"),
+							Description: "integratedOAuthMetadata contains the discovery endpoint data for OAuth 2.0 Authorization Server Metadata for the in-cluster integrated OAuth server. This discovery document can be viewed from its served location: oc get --raw '/.well-known/oauth-authorization-server' For further details, see the IETF Draft: https://tools.ietf.org/html/draft-ietf-oauth-discovery-04#section-2 This contains the observed value based on cluster state. An explicitly set value in spec.oauthMetadata has precedence over this field. This field has no meaning if authentication spec.type is not set to IntegratedOAuth. The key \"oauthMetadata\" is used to locate the data. If the config map or expected key is not found, no metadata is served. If the specified metadata is not valid, no metadata is served. The namespace for this config map is openshift-config-managed.",
+							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapNameReference"),
 						},
 					},
 				},
-				Required: []string{"oauthMetadata"},
+				Required: []string{"integratedOAuthMetadata"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ConfigMapReference"},
+			"github.com/openshift/api/config/v1.ConfigMapNameReference"},
 	}
 }
 
-func schema_openshift_api_config_v1_BasicAuthPasswordIdentityProvider(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_openshift_api_config_v1_BasicAuthIdentityProvider(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -6966,28 +6974,28 @@ func schema_openshift_api_config_v1_BasicAuthPasswordIdentityProvider(ref common
 					},
 					"ca": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ca is a reference to a ConfigMap containing the CA for verifying TLS connections",
-							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapReference"),
+							Description: "ca is an optional reference to a config map by name containing the PEM-encoded CA bundle. It is used as a trust anchor to validate the TLS certificate presented by the remote server. The key \"ca.crt\" is used to locate the data. If specified and the config map or expected key is not found, the identity provider is not honored. If the specified ca data is not valid, the identity provider is not honored. If empty, the default system roots are used. The namespace for this config map is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapNameReference"),
 						},
 					},
 					"tlsClientCert": {
 						SchemaProps: spec.SchemaProps{
-							Description: "tlsClientCert references a secret containing the TLS client certificate to present when connecting to the server. Looks under the key \"tls.cert\" for the data unless a lookup key is specified in the secret ref",
-							Ref:         ref("github.com/openshift/api/config/v1.LocalSecretReference"),
+							Description: "tlsClientCert is an optional reference to a secret by name that contains the PEM-encoded TLS client certificate to present when connecting to the server. The key \"tls.crt\" is used to locate the data. If specified and the secret or expected key is not found, the identity provider is not honored. If the specified certificate data is not valid, the identity provider is not honored. The namespace for this secret is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.SecretNameReference"),
 						},
 					},
 					"tlsClientKey": {
 						SchemaProps: spec.SchemaProps{
-							Description: "tlsClientKey references a secret containing the TLS private key for the client certificate Looks under the key \"tls.key\" for the data unless a lookup key is specified in the secret ref",
-							Ref:         ref("github.com/openshift/api/config/v1.LocalSecretReference"),
+							Description: "tlsClientKey is an optional reference to a secret by name that contains the PEM-encoded TLS private key for the client certificate referenced in tlsClientCert. The key \"tls.key\" is used to locate the data. If specified and the secret or expected key is not found, the identity provider is not honored. If the specified certificate data is not valid, the identity provider is not honored. The namespace for this secret is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.SecretNameReference"),
 						},
 					},
 				},
-				Required: []string{"url", "ca", "tlsClientCert", "tlsClientKey"},
+				Required: []string{"url"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ConfigMapReference", "github.com/openshift/api/config/v1.LocalSecretReference"},
+			"github.com/openshift/api/config/v1.ConfigMapNameReference", "github.com/openshift/api/config/v1.SecretNameReference"},
 	}
 }
 
@@ -7038,13 +7046,13 @@ func schema_openshift_api_config_v1_BuildDefaults(ref common.ReferenceCallback) 
 					"defaultProxy": {
 						SchemaProps: spec.SchemaProps{
 							Description: "DefaultProxy contains the default proxy settings for all build operations, including image pull/push and source download.\n\nValues can be overrode by setting the `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment variables in the build config's strategy.",
-							Ref:         ref("github.com/openshift/api/config/v1.ProxyConfig"),
+							Ref:         ref("github.com/openshift/api/config/v1.ProxySpec"),
 						},
 					},
 					"gitProxy": {
 						SchemaProps: spec.SchemaProps{
 							Description: "GitProxy contains the proxy settings for git operations only. If set, this will override any Proxy settings for all git commands, such as git clone.\n\nValues that are not set here will be inherited from DefaultProxy.",
-							Ref:         ref("github.com/openshift/api/config/v1.ProxyConfig"),
+							Ref:         ref("github.com/openshift/api/config/v1.ProxySpec"),
 						},
 					},
 					"env": {
@@ -7083,7 +7091,7 @@ func schema_openshift_api_config_v1_BuildDefaults(ref common.ReferenceCallback) 
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ImageLabel", "github.com/openshift/api/config/v1.ProxyConfig", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.ResourceRequirements"},
+			"github.com/openshift/api/config/v1.ImageLabel", "github.com/openshift/api/config/v1.ProxySpec", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.ResourceRequirements"},
 	}
 }
 
@@ -7185,8 +7193,8 @@ func schema_openshift_api_config_v1_BuildSpec(ref common.ReferenceCallback) comm
 				Properties: map[string]spec.Schema{
 					"additionalTrustedCA": {
 						SchemaProps: spec.SchemaProps{
-							Description: "AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that should be trusted for image pushes and pulls during builds.",
-							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapReference"),
+							Description: "AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that should be trusted for image pushes and pulls during builds. The namespace for this config map is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapFileReference"),
 						},
 					},
 					"buildDefaults": {
@@ -7205,7 +7213,7 @@ func schema_openshift_api_config_v1_BuildSpec(ref common.ReferenceCallback) comm
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.BuildDefaults", "github.com/openshift/api/config/v1.BuildOverrides", "github.com/openshift/api/config/v1.ConfigMapReference"},
+			"github.com/openshift/api/config/v1.BuildDefaults", "github.com/openshift/api/config/v1.BuildOverrides", "github.com/openshift/api/config/v1.ConfigMapFileReference"},
 	}
 }
 
@@ -7442,6 +7450,19 @@ func schema_openshift_api_config_v1_ClusterOperatorStatus(ref common.ReferenceCa
 							Format:      "",
 						},
 					},
+					"relatedObjects": {
+						SchemaProps: spec.SchemaProps{
+							Description: "relatedObjects is a list of objects that are \"interesting\" or related to this operator.  Common uses are: 1. the detailed resource driving the operator 2. operator namespaces 3. operand namespaces",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/config/v1.ObjectReference"),
+									},
+								},
+							},
+						},
+					},
 					"extension": {
 						SchemaProps: spec.SchemaProps{
 							Description: "extension contains any additional status information specific to the operator which owns this status object.",
@@ -7449,11 +7470,11 @@ func schema_openshift_api_config_v1_ClusterOperatorStatus(ref common.ReferenceCa
 						},
 					},
 				},
-				Required: []string{"conditions", "version"},
+				Required: []string{"conditions", "version", "relatedObjects"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ClusterOperatorStatusCondition", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"github.com/openshift/api/config/v1.ClusterOperatorStatusCondition", "github.com/openshift/api/config/v1.ObjectReference", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -7659,10 +7680,23 @@ func schema_openshift_api_config_v1_ClusterVersionStatus(ref common.ReferenceCal
 			SchemaProps: spec.SchemaProps{
 				Description: "ClusterVersionStatus reports the status of the cluster versioning, including any upgrades that are in progress. The current field will be set to whichever version the cluster is reconciling to, and the conditions array will report whether the update succeeded, is in progress, or is failing.",
 				Properties: map[string]spec.Schema{
-					"current": {
+					"desired": {
 						SchemaProps: spec.SchemaProps{
-							Description: "current is the version that the cluster will be reconciled to. This value may be empty during cluster startup, and then will be set whenever a new update is being applied. Use the conditions array to know whether the update is complete.",
+							Description: "desired is the version that the cluster is reconciling towards. If the cluster is not yet fully initialized desired will be set with the information available, which may be a payload or a tag.",
 							Ref:         ref("github.com/openshift/api/config/v1.Update"),
+						},
+					},
+					"history": {
+						SchemaProps: spec.SchemaProps{
+							Description: "history contains a list of the most recent versions applied to the cluster. This value may be empty during cluster startup, and then will be updated when a new update is being applied. The newest update is first in the list and it is ordered by recency. Updates in the history have state Completed if the rollout completed - if an update was failing or halfway applied the state will be Partial. Only a limited amount of update history is preserved.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/config/v1.UpdateHistory"),
+									},
+								},
+							},
 						},
 					},
 					"generation": {
@@ -7706,11 +7740,11 @@ func schema_openshift_api_config_v1_ClusterVersionStatus(ref common.ReferenceCal
 						},
 					},
 				},
-				Required: []string{"current", "generation", "versionHash", "conditions", "availableUpdates"},
+				Required: []string{"desired", "history", "generation", "versionHash", "conditions", "availableUpdates"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ClusterOperatorStatusCondition", "github.com/openshift/api/config/v1.Update"},
+			"github.com/openshift/api/config/v1.ClusterOperatorStatusCondition", "github.com/openshift/api/config/v1.Update", "github.com/openshift/api/config/v1.UpdateHistory"},
 	}
 }
 
@@ -7763,11 +7797,11 @@ func schema_openshift_api_config_v1_ComponentOverride(ref common.ReferenceCallba
 	}
 }
 
-func schema_openshift_api_config_v1_ConfigMapReference(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_openshift_api_config_v1_ConfigMapFileReference(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ConfigMapReference references a configmap in the openshift-config namespace.",
+				Description: "ConfigMapFileReference references a config map in a specific namespace. The namespace must be specified at the point of use.",
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
@@ -7775,9 +7809,30 @@ func schema_openshift_api_config_v1_ConfigMapReference(ref common.ReferenceCallb
 							Format: "",
 						},
 					},
-					"filename": {
+					"key": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Key allows pointing to a specific key/value inside of the configmap.  This is useful for logical file references.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"name"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_config_v1_ConfigMapNameReference(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ConfigMapNameReference references a config map in a specific namespace. The namespace must be specified at the point of use.",
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name is the metadata.name of the referenced config map",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -8290,8 +8345,8 @@ func schema_openshift_api_config_v1_GitHubIdentityProvider(ref common.ReferenceC
 					},
 					"clientSecret": {
 						SchemaProps: spec.SchemaProps{
-							Description: "clientSecret is is a reference to the secret containing the oauth client secret The secret referenced must contain a key named `clientSecret` containing the secret data.",
-							Ref:         ref("github.com/openshift/api/config/v1.LocalSecretReference"),
+							Description: "clientSecret is a required reference to the secret by name containing the oauth client secret. The key \"clientSecret\" is used to locate the data. If the secret or expected key is not found, the identity provider is not honored. The namespace for this secret is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.SecretNameReference"),
 						},
 					},
 					"organizations": {
@@ -8331,8 +8386,8 @@ func schema_openshift_api_config_v1_GitHubIdentityProvider(ref common.ReferenceC
 					},
 					"ca": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ca is a reference to a ConfigMap containing an optional trusted certificate authority bundle to use when making requests to the server. If empty, the default system roots are used. This can only be configured when hostname is set to a non-empty value.",
-							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapReference"),
+							Description: "ca is an optional reference to a config map by name containing the PEM-encoded CA bundle. It is used as a trust anchor to validate the TLS certificate presented by the remote server. The key \"ca.crt\" is used to locate the data. If specified and the config map or expected key is not found, the identity provider is not honored. If the specified ca data is not valid, the identity provider is not honored. If empty, the default system roots are used. This can only be configured when hostname is set to a non-empty value. The namespace for this config map is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapNameReference"),
 						},
 					},
 				},
@@ -8340,7 +8395,7 @@ func schema_openshift_api_config_v1_GitHubIdentityProvider(ref common.ReferenceC
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ConfigMapReference", "github.com/openshift/api/config/v1.LocalSecretReference"},
+			"github.com/openshift/api/config/v1.ConfigMapNameReference", "github.com/openshift/api/config/v1.SecretNameReference"},
 	}
 }
 
@@ -8350,19 +8405,6 @@ func schema_openshift_api_config_v1_GitLabIdentityProvider(ref common.ReferenceC
 			SchemaProps: spec.SchemaProps{
 				Description: "GitLabIdentityProvider provides identities for users authenticating using GitLab credentials",
 				Properties: map[string]spec.Schema{
-					"ca": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ca is a reference to a ConfigMap containing an optional trusted certificate authority bundle to use when making requests to the server. If empty, the default system roots are used.",
-							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapReference"),
-						},
-					},
-					"url": {
-						SchemaProps: spec.SchemaProps{
-							Description: "url is the oauth server base URL",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
 					"clientID": {
 						SchemaProps: spec.SchemaProps{
 							Description: "clientID is the oauth client ID",
@@ -8372,23 +8414,29 @@ func schema_openshift_api_config_v1_GitLabIdentityProvider(ref common.ReferenceC
 					},
 					"clientSecret": {
 						SchemaProps: spec.SchemaProps{
-							Description: "clientSecret is is a reference to the secret containing the oauth client secret The secret referenced must contain a key named `clientSecret` containing the secret data.",
-							Ref:         ref("github.com/openshift/api/config/v1.LocalSecretReference"),
+							Description: "clientSecret is a required reference to the secret by name containing the oauth client secret. The key \"clientSecret\" is used to locate the data. If the secret or expected key is not found, the identity provider is not honored. The namespace for this secret is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.SecretNameReference"),
 						},
 					},
-					"legacy": {
+					"url": {
 						SchemaProps: spec.SchemaProps{
-							Description: "legacy determines that OAuth2 should be used, not OIDC",
-							Type:        []string{"boolean"},
+							Description: "url is the oauth server base URL",
+							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
+					"ca": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ca is an optional reference to a config map by name containing the PEM-encoded CA bundle. It is used as a trust anchor to validate the TLS certificate presented by the remote server. The key \"ca.crt\" is used to locate the data. If specified and the config map or expected key is not found, the identity provider is not honored. If the specified ca data is not valid, the identity provider is not honored. If empty, the default system roots are used. The namespace for this config map is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapNameReference"),
+						},
+					},
 				},
-				Required: []string{"url", "clientID", "clientSecret"},
+				Required: []string{"clientID", "clientSecret", "url"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ConfigMapReference", "github.com/openshift/api/config/v1.LocalSecretReference"},
+			"github.com/openshift/api/config/v1.ConfigMapNameReference", "github.com/openshift/api/config/v1.SecretNameReference"},
 	}
 }
 
@@ -8407,8 +8455,8 @@ func schema_openshift_api_config_v1_GoogleIdentityProvider(ref common.ReferenceC
 					},
 					"clientSecret": {
 						SchemaProps: spec.SchemaProps{
-							Description: "clientSecret is is a reference to the secret containing the oauth client secret The secret referenced must contain a key named `clientSecret` containing the secret data.",
-							Ref:         ref("github.com/openshift/api/config/v1.LocalSecretReference"),
+							Description: "clientSecret is a required reference to the secret by name containing the oauth client secret. The key \"clientSecret\" is used to locate the data. If the secret or expected key is not found, the identity provider is not honored. The namespace for this secret is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.SecretNameReference"),
 						},
 					},
 					"hostedDomain": {
@@ -8423,11 +8471,11 @@ func schema_openshift_api_config_v1_GoogleIdentityProvider(ref common.ReferenceC
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.LocalSecretReference"},
+			"github.com/openshift/api/config/v1.SecretNameReference"},
 	}
 }
 
-func schema_openshift_api_config_v1_HTPasswdPasswordIdentityProvider(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_openshift_api_config_v1_HTPasswdIdentityProvider(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -8435,8 +8483,8 @@ func schema_openshift_api_config_v1_HTPasswdPasswordIdentityProvider(ref common.
 				Properties: map[string]spec.Schema{
 					"fileData": {
 						SchemaProps: spec.SchemaProps{
-							Description: "fileData is a reference to a secret containing the data to use as the htpasswd file Looks under the key `htpasswd` unless a lookup key is specified in the secret ref",
-							Ref:         ref("github.com/openshift/api/config/v1.LocalSecretReference"),
+							Description: "fileData is a required reference to a secret by name containing the data to use as the htpasswd file. The key \"htpasswd\" is used to locate the data. If the secret or expected key is not found, the identity provider is not honored. If the specified htpasswd data is not valid, the identity provider is not honored. The namespace for this secret is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.SecretNameReference"),
 						},
 					},
 				},
@@ -8444,7 +8492,7 @@ func schema_openshift_api_config_v1_HTPasswdPasswordIdentityProvider(ref common.
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.LocalSecretReference"},
+			"github.com/openshift/api/config/v1.SecretNameReference"},
 	}
 }
 
@@ -8550,46 +8598,103 @@ func schema_openshift_api_config_v1_IdentityProvider(ref common.ReferenceCallbac
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "IdentityProvider holds cluster-wide information about IdentityProvider.  The canonical name is `cluster`",
+				Description: "IdentityProvider provides identities for users authenticating using credentials",
 				Properties: map[string]spec.Schema{
-					"kind": {
+					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Description: "name is used to qualify the identities returned by this provider. - It MUST be unique and not shared by any other identity provider used - It MUST be a valid path segment: name cannot equal \".\" or \"..\" or contain \"/\" or \"%\" or \":\"\n  Ref: https://godoc.org/github.com/openshift/origin/pkg/user/apis/user/validation#ValidateIdentityProviderName",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
-					"apiVersion": {
+					"challenge": {
 						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Description: "challenge indicates whether to issue WWW-Authenticate challenges for this provider",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"login": {
+						SchemaProps: spec.SchemaProps{
+							Description: "login indicates whether to use this identity provider for unauthenticated browsers to login against",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"mappingMethod": {
+						SchemaProps: spec.SchemaProps{
+							Description: "mappingMethod determines how identities from this provider are mapped to users Defaults to \"claim\"",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
-					"metadata": {
+					"type": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Standard object's metadata.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							Description: "type identifies the identity provider type for this entry.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
-					"spec": {
+					"basicAuth": {
 						SchemaProps: spec.SchemaProps{
-							Description: "spec holds user settable values for configuration",
-							Ref:         ref("github.com/openshift/api/config/v1.IdentityProviderSpec"),
+							Description: "basicAuth contains configuration options for the BasicAuth IdP",
+							Ref:         ref("github.com/openshift/api/config/v1.BasicAuthIdentityProvider"),
 						},
 					},
-					"status": {
+					"github": {
 						SchemaProps: spec.SchemaProps{
-							Description: "status holds observed values from the cluster. They may not be overridden.",
-							Ref:         ref("github.com/openshift/api/config/v1.IdentityProviderStatus"),
+							Description: "github enables user authentication using GitHub credentials",
+							Ref:         ref("github.com/openshift/api/config/v1.GitHubIdentityProvider"),
+						},
+					},
+					"gitlab": {
+						SchemaProps: spec.SchemaProps{
+							Description: "gitlab enables user authentication using GitLab credentials",
+							Ref:         ref("github.com/openshift/api/config/v1.GitLabIdentityProvider"),
+						},
+					},
+					"google": {
+						SchemaProps: spec.SchemaProps{
+							Description: "google enables user authentication using Google credentials",
+							Ref:         ref("github.com/openshift/api/config/v1.GoogleIdentityProvider"),
+						},
+					},
+					"htpasswd": {
+						SchemaProps: spec.SchemaProps{
+							Description: "htpasswd enables user authentication using an HTPasswd file to validate credentials",
+							Ref:         ref("github.com/openshift/api/config/v1.HTPasswdIdentityProvider"),
+						},
+					},
+					"keystone": {
+						SchemaProps: spec.SchemaProps{
+							Description: "keystone enables user authentication using keystone password credentials",
+							Ref:         ref("github.com/openshift/api/config/v1.KeystoneIdentityProvider"),
+						},
+					},
+					"ldap": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ldap enables user authentication using LDAP credentials",
+							Ref:         ref("github.com/openshift/api/config/v1.LDAPIdentityProvider"),
+						},
+					},
+					"openID": {
+						SchemaProps: spec.SchemaProps{
+							Description: "openID enables user authentication using OpenID credentials",
+							Ref:         ref("github.com/openshift/api/config/v1.OpenIDIdentityProvider"),
+						},
+					},
+					"requestHeader": {
+						SchemaProps: spec.SchemaProps{
+							Description: "requestHeader enables user authentication using request header credentials",
+							Ref:         ref("github.com/openshift/api/config/v1.RequestHeaderIdentityProvider"),
 						},
 					},
 				},
-				Required: []string{"spec", "status"},
+				Required: []string{"name", "challenge", "login", "type"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.IdentityProviderSpec", "github.com/openshift/api/config/v1.IdentityProviderStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/openshift/api/config/v1.BasicAuthIdentityProvider", "github.com/openshift/api/config/v1.GitHubIdentityProvider", "github.com/openshift/api/config/v1.GitLabIdentityProvider", "github.com/openshift/api/config/v1.GoogleIdentityProvider", "github.com/openshift/api/config/v1.HTPasswdIdentityProvider", "github.com/openshift/api/config/v1.KeystoneIdentityProvider", "github.com/openshift/api/config/v1.LDAPIdentityProvider", "github.com/openshift/api/config/v1.OpenIDIdentityProvider", "github.com/openshift/api/config/v1.RequestHeaderIdentityProvider"},
 	}
 }
 
@@ -8609,50 +8714,12 @@ func schema_openshift_api_config_v1_IdentityProviderConfig(ref common.ReferenceC
 					"basicAuth": {
 						SchemaProps: spec.SchemaProps{
 							Description: "basicAuth contains configuration options for the BasicAuth IdP",
-							Ref:         ref("github.com/openshift/api/config/v1.BasicAuthPasswordIdentityProvider"),
-						},
-					},
-					"allowAll": {
-						SchemaProps: spec.SchemaProps{
-							Description: "allowAll enables the AllowAllIdentityProvider which provides identities for users authenticating using non-empty passwords. Defaults to `false`, i.e. allowAll set to off",
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
-					"denyAll": {
-						SchemaProps: spec.SchemaProps{
-							Description: "denyAll enables the DenyAllPasswordIdentityProvider which provides no identities for users Defaults to `false`, ie. denyAll set to off",
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
-					"htpasswd": {
-						SchemaProps: spec.SchemaProps{
-							Description: "htpasswd enables user authentication using an HTPasswd file to validate credentials",
-							Ref:         ref("github.com/openshift/api/config/v1.HTPasswdPasswordIdentityProvider"),
-						},
-					},
-					"ldap": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ldap enables user authentication using LDAP credentials",
-							Ref:         ref("github.com/openshift/api/config/v1.LDAPPasswordIdentityProvider"),
-						},
-					},
-					"keystone": {
-						SchemaProps: spec.SchemaProps{
-							Description: "keystone enables user authentication using keystone password credentials",
-							Ref:         ref("github.com/openshift/api/config/v1.KeystonePasswordIdentityProvider"),
-						},
-					},
-					"requestHeader": {
-						SchemaProps: spec.SchemaProps{
-							Description: "requestHeader enables user authentication using request header credentials",
-							Ref:         ref("github.com/openshift/api/config/v1.RequestHeaderIdentityProvider"),
+							Ref:         ref("github.com/openshift/api/config/v1.BasicAuthIdentityProvider"),
 						},
 					},
 					"github": {
 						SchemaProps: spec.SchemaProps{
-							Description: "github enables  user authentication using GitHub credentials",
+							Description: "github enables user authentication using GitHub credentials",
 							Ref:         ref("github.com/openshift/api/config/v1.GitHubIdentityProvider"),
 						},
 					},
@@ -8668,10 +8735,34 @@ func schema_openshift_api_config_v1_IdentityProviderConfig(ref common.ReferenceC
 							Ref:         ref("github.com/openshift/api/config/v1.GoogleIdentityProvider"),
 						},
 					},
+					"htpasswd": {
+						SchemaProps: spec.SchemaProps{
+							Description: "htpasswd enables user authentication using an HTPasswd file to validate credentials",
+							Ref:         ref("github.com/openshift/api/config/v1.HTPasswdIdentityProvider"),
+						},
+					},
+					"keystone": {
+						SchemaProps: spec.SchemaProps{
+							Description: "keystone enables user authentication using keystone password credentials",
+							Ref:         ref("github.com/openshift/api/config/v1.KeystoneIdentityProvider"),
+						},
+					},
+					"ldap": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ldap enables user authentication using LDAP credentials",
+							Ref:         ref("github.com/openshift/api/config/v1.LDAPIdentityProvider"),
+						},
+					},
 					"openID": {
 						SchemaProps: spec.SchemaProps{
 							Description: "openID enables user authentication using OpenID credentials",
 							Ref:         ref("github.com/openshift/api/config/v1.OpenIDIdentityProvider"),
+						},
+					},
+					"requestHeader": {
+						SchemaProps: spec.SchemaProps{
+							Description: "requestHeader enables user authentication using request header credentials",
+							Ref:         ref("github.com/openshift/api/config/v1.RequestHeaderIdentityProvider"),
 						},
 					},
 				},
@@ -8679,75 +8770,7 @@ func schema_openshift_api_config_v1_IdentityProviderConfig(ref common.ReferenceC
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.BasicAuthPasswordIdentityProvider", "github.com/openshift/api/config/v1.GitHubIdentityProvider", "github.com/openshift/api/config/v1.GitLabIdentityProvider", "github.com/openshift/api/config/v1.GoogleIdentityProvider", "github.com/openshift/api/config/v1.HTPasswdPasswordIdentityProvider", "github.com/openshift/api/config/v1.KeystonePasswordIdentityProvider", "github.com/openshift/api/config/v1.LDAPPasswordIdentityProvider", "github.com/openshift/api/config/v1.OpenIDIdentityProvider", "github.com/openshift/api/config/v1.RequestHeaderIdentityProvider"},
-	}
-}
-
-func schema_openshift_api_config_v1_IdentityProviderList(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Standard object's metadata.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
-						},
-					},
-					"items": {
-						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/config/v1.IdentityProvider"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"items"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/openshift/api/config/v1.IdentityProvider", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
-	}
-}
-
-func schema_openshift_api_config_v1_IdentityProviderSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Properties: map[string]spec.Schema{},
-			},
-		},
-		Dependencies: []string{},
-	}
-}
-
-func schema_openshift_api_config_v1_IdentityProviderStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Properties: map[string]spec.Schema{},
-			},
-		},
-		Dependencies: []string{},
+			"github.com/openshift/api/config/v1.BasicAuthIdentityProvider", "github.com/openshift/api/config/v1.GitHubIdentityProvider", "github.com/openshift/api/config/v1.GitLabIdentityProvider", "github.com/openshift/api/config/v1.GoogleIdentityProvider", "github.com/openshift/api/config/v1.HTPasswdIdentityProvider", "github.com/openshift/api/config/v1.KeystoneIdentityProvider", "github.com/openshift/api/config/v1.LDAPIdentityProvider", "github.com/openshift/api/config/v1.OpenIDIdentityProvider", "github.com/openshift/api/config/v1.RequestHeaderIdentityProvider"},
 	}
 }
 
@@ -8905,15 +8928,15 @@ func schema_openshift_api_config_v1_ImageSpec(ref common.ReferenceCallback) comm
 					},
 					"additionalTrustedCA": {
 						SchemaProps: spec.SchemaProps{
-							Description: "AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that should be trusted during imagestream import.",
-							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapReference"),
+							Description: "AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that should be trusted during imagestream import. The namespace for this config map is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapFileReference"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ConfigMapReference", "github.com/openshift/api/config/v1.RegistryLocation"},
+			"github.com/openshift/api/config/v1.ConfigMapFileReference", "github.com/openshift/api/config/v1.RegistryLocation"},
 	}
 }
 
@@ -9059,9 +9082,9 @@ func schema_openshift_api_config_v1_InfrastructureStatus(ref common.ReferenceCal
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Properties: map[string]spec.Schema{
-					"cloudProvider": {
+					"platform": {
 						SchemaProps: spec.SchemaProps{
-							Description: "cloudProvider is the IaaS provider that is running the cluster.\n\nValid values are: - aws - openstack",
+							Description: "platform is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -9197,7 +9220,7 @@ func schema_openshift_api_config_v1_IngressStatus(ref common.ReferenceCallback) 
 	}
 }
 
-func schema_openshift_api_config_v1_KeystonePasswordIdentityProvider(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_openshift_api_config_v1_KeystoneIdentityProvider(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -9212,20 +9235,20 @@ func schema_openshift_api_config_v1_KeystonePasswordIdentityProvider(ref common.
 					},
 					"ca": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ca is a reference to a ConfigMap containing the CA for verifying TLS connections",
-							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapReference"),
+							Description: "ca is an optional reference to a config map by name containing the PEM-encoded CA bundle. It is used as a trust anchor to validate the TLS certificate presented by the remote server. The key \"ca.crt\" is used to locate the data. If specified and the config map or expected key is not found, the identity provider is not honored. If the specified ca data is not valid, the identity provider is not honored. If empty, the default system roots are used. The namespace for this config map is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapNameReference"),
 						},
 					},
 					"tlsClientCert": {
 						SchemaProps: spec.SchemaProps{
-							Description: "tlsClientCert references a secret containing the TLS client certificate to present when connecting to the server. Looks under the key \"tls.cert\" for the data unless a lookup key is specified in the secret ref",
-							Ref:         ref("github.com/openshift/api/config/v1.LocalSecretReference"),
+							Description: "tlsClientCert is an optional reference to a secret by name that contains the PEM-encoded TLS client certificate to present when connecting to the server. The key \"tls.crt\" is used to locate the data. If specified and the secret or expected key is not found, the identity provider is not honored. If the specified certificate data is not valid, the identity provider is not honored. The namespace for this secret is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.SecretNameReference"),
 						},
 					},
 					"tlsClientKey": {
 						SchemaProps: spec.SchemaProps{
-							Description: "tlsClientKey references a secret containing the TLS private key for the client certificate Looks under the key \"tls.key\" for the data unless a lookup key is specified in the secret ref",
-							Ref:         ref("github.com/openshift/api/config/v1.LocalSecretReference"),
+							Description: "tlsClientKey is an optional reference to a secret by name that contains the PEM-encoded TLS private key for the client certificate referenced in tlsClientCert. The key \"tls.key\" is used to locate the data. If specified and the secret or expected key is not found, the identity provider is not honored. If the specified certificate data is not valid, the identity provider is not honored. The namespace for this secret is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.SecretNameReference"),
 						},
 					},
 					"domainName": {
@@ -9235,19 +9258,19 @@ func schema_openshift_api_config_v1_KeystonePasswordIdentityProvider(ref common.
 							Format:      "",
 						},
 					},
-					"useKeystoneIdentity": {
+					"useUsernameIdentity": {
 						SchemaProps: spec.SchemaProps{
-							Description: "useKeystoneIdentity flag indicates that user should be authenticated by username, not keystone ID DEPRECATED - only use this option for legacy systems to ensure backwards compatibiity",
+							Description: "useUsernameIdentity indicates that users should be authenticated by username, not keystone ID DEPRECATED - only use this option for legacy systems to ensure backwards compatibility",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
 				},
-				Required: []string{"url", "ca", "tlsClientCert", "tlsClientKey", "domainName"},
+				Required: []string{"url", "domainName"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ConfigMapReference", "github.com/openshift/api/config/v1.LocalSecretReference"},
+			"github.com/openshift/api/config/v1.ConfigMapNameReference", "github.com/openshift/api/config/v1.SecretNameReference"},
 	}
 }
 
@@ -9348,7 +9371,7 @@ func schema_openshift_api_config_v1_LDAPAttributeMapping(ref common.ReferenceCal
 	}
 }
 
-func schema_openshift_api_config_v1_LDAPPasswordIdentityProvider(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_openshift_api_config_v1_LDAPIdentityProvider(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -9356,7 +9379,7 @@ func schema_openshift_api_config_v1_LDAPPasswordIdentityProvider(ref common.Refe
 				Properties: map[string]spec.Schema{
 					"url": {
 						SchemaProps: spec.SchemaProps{
-							Description: "url is an RFC 2255 URL which specifies the LDAP search parameters to use. The syntax of the URL is:\n   ldap://host:port/basedn?attribute?scope?filter",
+							Description: "url is an RFC 2255 URL which specifies the LDAP search parameters to use. The syntax of the URL is: ldap://host:port/basedn?attribute?scope?filter",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -9370,8 +9393,8 @@ func schema_openshift_api_config_v1_LDAPPasswordIdentityProvider(ref common.Refe
 					},
 					"bindPassword": {
 						SchemaProps: spec.SchemaProps{
-							Description: "bindPassword is a reference to the secret containing an optional password to bind with during the search phase. Looks under the key `bindPassword` unless a lookup key is specified in the secret ref",
-							Ref:         ref("github.com/openshift/api/config/v1.LocalSecretReference"),
+							Description: "bindPassword is an optional reference to a secret by name containing a password to bind with during the search phase. The key \"bindPassword\" is used to locate the data. If specified and the secret or expected key is not found, the identity provider is not honored. The namespace for this secret is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.SecretNameReference"),
 						},
 					},
 					"insecure": {
@@ -9383,8 +9406,8 @@ func schema_openshift_api_config_v1_LDAPPasswordIdentityProvider(ref common.Refe
 					},
 					"ca": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ca is a reference to a ConfigMap containing an optional trusted certificate authority bundle to use when making requests to the server. If empty, the default system roots are used.",
-							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapReference"),
+							Description: "ca is an optional reference to a config map by name containing the PEM-encoded CA bundle. It is used as a trust anchor to validate the TLS certificate presented by the remote server. The key \"ca.crt\" is used to locate the data. If specified and the config map or expected key is not found, the identity provider is not honored. If the specified ca data is not valid, the identity provider is not honored. If empty, the default system roots are used. The namespace for this config map is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapNameReference"),
 						},
 					},
 					"attributes": {
@@ -9398,7 +9421,7 @@ func schema_openshift_api_config_v1_LDAPPasswordIdentityProvider(ref common.Refe
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ConfigMapReference", "github.com/openshift/api/config/v1.LDAPAttributeMapping", "github.com/openshift/api/config/v1.LocalSecretReference"},
+			"github.com/openshift/api/config/v1.ConfigMapNameReference", "github.com/openshift/api/config/v1.LDAPAttributeMapping", "github.com/openshift/api/config/v1.SecretNameReference"},
 	}
 }
 
@@ -9452,34 +9475,6 @@ func schema_openshift_api_config_v1_LeaderElection(ref common.ReferenceCallback)
 		},
 		Dependencies: []string{
 			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration"},
-	}
-}
-
-func schema_openshift_api_config_v1_LocalSecretReference(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "LocalSecretReference references a secret within the local namespace",
-				Properties: map[string]spec.Schema{
-					"name": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Name of the secret in the local namespace",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"key": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Key selects a specific key within the local secret. Must be a valid secret key.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"name"},
-			},
-		},
-		Dependencies: []string{},
 	}
 }
 
@@ -9727,7 +9722,7 @@ func schema_openshift_api_config_v1_OAuth(ref common.ReferenceCallback) common.O
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "OAuth holds cluster-wide information about OAuth.  The canonical name is `cluster`",
+				Description: "OAuth holds cluster-wide information about OAuth.  The canonical name is `cluster`. It is used to configure the integrated OAuth server. This configuration is only honored when the top level Authentication config has type set to IntegratedOAuth.",
 				Properties: map[string]spec.Schema{
 					"kind": {
 						SchemaProps: spec.SchemaProps{
@@ -9759,136 +9754,11 @@ func schema_openshift_api_config_v1_OAuth(ref common.ReferenceCallback) common.O
 						},
 					},
 				},
-				Required: []string{"metadata", "spec"},
+				Required: []string{"metadata", "spec", "status"},
 			},
 		},
 		Dependencies: []string{
 			"github.com/openshift/api/config/v1.OAuthSpec", "github.com/openshift/api/config/v1.OAuthStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
-	}
-}
-
-func schema_openshift_api_config_v1_OAuthIdentityProvider(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "OAuthIdentityProvider provides identities for users authenticating using credentials",
-				Properties: map[string]spec.Schema{
-					"name": {
-						SchemaProps: spec.SchemaProps{
-							Description: "name is used to qualify the identities returned by this provider. - It MUST be unique and not shared by any other identity provider used - It MUST be a vlid path segment: name cannot equal \".\" or \"..\" or contain \"/\" or \"%\"\n  Ref: https://godoc.org/k8s.io/apimachinery/pkg/api/validation/path#ValidatePathSegmentName",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"challenge": {
-						SchemaProps: spec.SchemaProps{
-							Description: "challenge indicates whether to issue WWW-Authenticate challenges for this provider",
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
-					"login": {
-						SchemaProps: spec.SchemaProps{
-							Description: "login indicates whether to use this identity provider for unauthenticated browsers to login against",
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
-					"mappingMethod": {
-						SchemaProps: spec.SchemaProps{
-							Description: "mappingMethod determines how identities from this provider are mapped to users Defaults to \"claim\"",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"grantMethod": {
-						SchemaProps: spec.SchemaProps{
-							Description: "grantMethod: allow, deny, prompt This method will be used only if the specific OAuth client doesn't provide a strategy of their own. Valid grant handling methods are:\n - auto:   always approves grant requests, useful for trusted clients\n - prompt: prompts the end user for approval of grant requests, useful for third-party clients\n - deny:   always denies grant requests, useful for black-listed clients\nDefaults to \"prompt\" if not set.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"type": {
-						SchemaProps: spec.SchemaProps{
-							Description: "type identifies the identity provider type for this entry.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"basicAuth": {
-						SchemaProps: spec.SchemaProps{
-							Description: "basicAuth contains configuration options for the BasicAuth IdP",
-							Ref:         ref("github.com/openshift/api/config/v1.BasicAuthPasswordIdentityProvider"),
-						},
-					},
-					"allowAll": {
-						SchemaProps: spec.SchemaProps{
-							Description: "allowAll enables the AllowAllIdentityProvider which provides identities for users authenticating using non-empty passwords. Defaults to `false`, i.e. allowAll set to off",
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
-					"denyAll": {
-						SchemaProps: spec.SchemaProps{
-							Description: "denyAll enables the DenyAllPasswordIdentityProvider which provides no identities for users Defaults to `false`, ie. denyAll set to off",
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
-					"htpasswd": {
-						SchemaProps: spec.SchemaProps{
-							Description: "htpasswd enables user authentication using an HTPasswd file to validate credentials",
-							Ref:         ref("github.com/openshift/api/config/v1.HTPasswdPasswordIdentityProvider"),
-						},
-					},
-					"ldap": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ldap enables user authentication using LDAP credentials",
-							Ref:         ref("github.com/openshift/api/config/v1.LDAPPasswordIdentityProvider"),
-						},
-					},
-					"keystone": {
-						SchemaProps: spec.SchemaProps{
-							Description: "keystone enables user authentication using keystone password credentials",
-							Ref:         ref("github.com/openshift/api/config/v1.KeystonePasswordIdentityProvider"),
-						},
-					},
-					"requestHeader": {
-						SchemaProps: spec.SchemaProps{
-							Description: "requestHeader enables user authentication using request header credentials",
-							Ref:         ref("github.com/openshift/api/config/v1.RequestHeaderIdentityProvider"),
-						},
-					},
-					"github": {
-						SchemaProps: spec.SchemaProps{
-							Description: "github enables  user authentication using GitHub credentials",
-							Ref:         ref("github.com/openshift/api/config/v1.GitHubIdentityProvider"),
-						},
-					},
-					"gitlab": {
-						SchemaProps: spec.SchemaProps{
-							Description: "gitlab enables user authentication using GitLab credentials",
-							Ref:         ref("github.com/openshift/api/config/v1.GitLabIdentityProvider"),
-						},
-					},
-					"google": {
-						SchemaProps: spec.SchemaProps{
-							Description: "google enables user authentication using Google credentials",
-							Ref:         ref("github.com/openshift/api/config/v1.GoogleIdentityProvider"),
-						},
-					},
-					"openID": {
-						SchemaProps: spec.SchemaProps{
-							Description: "openID enables user authentication using OpenID credentials",
-							Ref:         ref("github.com/openshift/api/config/v1.OpenIDIdentityProvider"),
-						},
-					},
-				},
-				Required: []string{"name", "challenge", "login", "type"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/openshift/api/config/v1.BasicAuthPasswordIdentityProvider", "github.com/openshift/api/config/v1.GitHubIdentityProvider", "github.com/openshift/api/config/v1.GitLabIdentityProvider", "github.com/openshift/api/config/v1.GoogleIdentityProvider", "github.com/openshift/api/config/v1.HTPasswdPasswordIdentityProvider", "github.com/openshift/api/config/v1.KeystonePasswordIdentityProvider", "github.com/openshift/api/config/v1.LDAPPasswordIdentityProvider", "github.com/openshift/api/config/v1.OpenIDIdentityProvider", "github.com/openshift/api/config/v1.RequestHeaderIdentityProvider"},
 	}
 }
 
@@ -9941,7 +9811,7 @@ func schema_openshift_api_config_v1_OAuthRemoteConnectionInfo(ref common.Referen
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "RemoteConnectionInfo holds information necessary for establishing a remote connection",
+				Description: "OAuthRemoteConnectionInfo holds information necessary for establishing a remote connection",
 				Properties: map[string]spec.Schema{
 					"url": {
 						SchemaProps: spec.SchemaProps{
@@ -9952,28 +9822,28 @@ func schema_openshift_api_config_v1_OAuthRemoteConnectionInfo(ref common.Referen
 					},
 					"ca": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ca is a reference to a ConfigMap containing the CA for verifying TLS connections",
-							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapReference"),
+							Description: "ca is an optional reference to a config map by name containing the PEM-encoded CA bundle. It is used as a trust anchor to validate the TLS certificate presented by the remote server. The key \"ca.crt\" is used to locate the data. If specified and the config map or expected key is not found, the identity provider is not honored. If the specified ca data is not valid, the identity provider is not honored. If empty, the default system roots are used. The namespace for this config map is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapNameReference"),
 						},
 					},
 					"tlsClientCert": {
 						SchemaProps: spec.SchemaProps{
-							Description: "tlsClientCert references a secret containing the TLS client certificate to present when connecting to the server. Looks under the key \"tls.cert\" for the data unless a lookup key is specified in the secret ref",
-							Ref:         ref("github.com/openshift/api/config/v1.LocalSecretReference"),
+							Description: "tlsClientCert is an optional reference to a secret by name that contains the PEM-encoded TLS client certificate to present when connecting to the server. The key \"tls.crt\" is used to locate the data. If specified and the secret or expected key is not found, the identity provider is not honored. If the specified certificate data is not valid, the identity provider is not honored. The namespace for this secret is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.SecretNameReference"),
 						},
 					},
 					"tlsClientKey": {
 						SchemaProps: spec.SchemaProps{
-							Description: "tlsClientKey references a secret containing the TLS private key for the client certificate Looks under the key \"tls.key\" for the data unless a lookup key is specified in the secret ref",
-							Ref:         ref("github.com/openshift/api/config/v1.LocalSecretReference"),
+							Description: "tlsClientKey is an optional reference to a secret by name that contains the PEM-encoded TLS private key for the client certificate referenced in tlsClientCert. The key \"tls.key\" is used to locate the data. If specified and the secret or expected key is not found, the identity provider is not honored. If the specified certificate data is not valid, the identity provider is not honored. The namespace for this secret is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.SecretNameReference"),
 						},
 					},
 				},
-				Required: []string{"url", "ca", "tlsClientCert", "tlsClientKey"},
+				Required: []string{"url"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ConfigMapReference", "github.com/openshift/api/config/v1.LocalSecretReference"},
+			"github.com/openshift/api/config/v1.ConfigMapNameReference", "github.com/openshift/api/config/v1.SecretNameReference"},
 	}
 }
 
@@ -9985,12 +9855,12 @@ func schema_openshift_api_config_v1_OAuthSpec(ref common.ReferenceCallback) comm
 				Properties: map[string]spec.Schema{
 					"identityProviders": {
 						SchemaProps: spec.SchemaProps{
-							Description: "identityProviders is an ordered list of ways for a user to identify themselves",
+							Description: "identityProviders is an ordered list of ways for a user to identify themselves. When this list is empty, no identities are provisioned for users.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/config/v1.OAuthIdentityProvider"),
+										Ref: ref("github.com/openshift/api/config/v1.IdentityProvider"),
 									},
 								},
 							},
@@ -10009,11 +9879,11 @@ func schema_openshift_api_config_v1_OAuthSpec(ref common.ReferenceCallback) comm
 						},
 					},
 				},
-				Required: []string{"identityProviders", "tokenConfig"},
+				Required: []string{"tokenConfig"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.OAuthIdentityProvider", "github.com/openshift/api/config/v1.OAuthTemplates", "github.com/openshift/api/config/v1.TokenConfig"},
+			"github.com/openshift/api/config/v1.IdentityProvider", "github.com/openshift/api/config/v1.OAuthTemplates", "github.com/openshift/api/config/v1.TokenConfig"},
 	}
 }
 
@@ -10037,27 +9907,69 @@ func schema_openshift_api_config_v1_OAuthTemplates(ref common.ReferenceCallback)
 				Properties: map[string]spec.Schema{
 					"login": {
 						SchemaProps: spec.SchemaProps{
-							Description: "login is a reference to a secret that specifies a go template to use to render the login page. If a key is not specified, the key `login.html` is used to locate the template data. If unspecified, the default login page is used.",
-							Ref:         ref("github.com/openshift/api/config/v1.LocalSecretReference"),
+							Description: "login is the name of a secret that specifies a go template to use to render the login page. The key \"login.html\" is used to locate the template data. If specified and the secret or expected key is not found, the default login page is used. If the specified template is not valid, the default login page is used. If unspecified, the default login page is used. The namespace for this secret is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.SecretNameReference"),
 						},
 					},
 					"providerSelection": {
 						SchemaProps: spec.SchemaProps{
-							Description: "providerSelection is a reference to a secret that specifies a go template to use to render the provider selection page. If a key is not specified, the key `providers.html` is used to locate the template data. If unspecified, the default provider selection page is used.",
-							Ref:         ref("github.com/openshift/api/config/v1.LocalSecretReference"),
+							Description: "providerSelection is the name of a secret that specifies a go template to use to render the provider selection page. The key \"providers.html\" is used to locate the template data. If specified and the secret or expected key is not found, the default provider selection page is used. If the specified template is not valid, the default provider selection page is used. If unspecified, the default provider selection page is used. The namespace for this secret is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.SecretNameReference"),
 						},
 					},
 					"error": {
 						SchemaProps: spec.SchemaProps{
-							Description: "error is a reference to a secret that specifies a go template to use to render error pages during the authentication or grant flow. If a key is not specified, the key `errrors.html` is used to locate the template data. If unspecified, the default error page is used.",
-							Ref:         ref("github.com/openshift/api/config/v1.LocalSecretReference"),
+							Description: "error is the name of a secret that specifies a go template to use to render error pages during the authentication or grant flow. The key \"errors.html\" is used to locate the template data. If specified and the secret or expected key is not found, the default error page is used. If the specified template is not valid, the default error page is used. If unspecified, the default error page is used. The namespace for this secret is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.SecretNameReference"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.LocalSecretReference"},
+			"github.com/openshift/api/config/v1.SecretNameReference"},
+	}
+}
+
+func schema_openshift_api_config_v1_ObjectReference(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ObjectReference contains enough information to let you inspect or modify the referred object.",
+				Properties: map[string]spec.Schema{
+					"group": {
+						SchemaProps: spec.SchemaProps{
+							Description: "group of the referent.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"resource": {
+						SchemaProps: spec.SchemaProps{
+							Description: "resource of the referent.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "namespace of the referent.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name of the referent.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"group", "resource", "name"},
+			},
+		},
+		Dependencies: []string{},
 	}
 }
 
@@ -10069,7 +9981,7 @@ func schema_openshift_api_config_v1_OpenIDClaims(ref common.ReferenceCallback) c
 				Properties: map[string]spec.Schema{
 					"preferredUsername": {
 						SchemaProps: spec.SchemaProps{
-							Description: "preferredUsername is the list of claims whose values should be used as the preferred username. If unspecified, the preferred username is determined from the value of the id claim",
+							Description: "preferredUsername is the list of claims whose values should be used as the preferred username. If unspecified, the preferred username is determined from the value of the sub claim",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -10122,12 +10034,6 @@ func schema_openshift_api_config_v1_OpenIDIdentityProvider(ref common.ReferenceC
 			SchemaProps: spec.SchemaProps{
 				Description: "OpenIDIdentityProvider provides identities for users authenticating using OpenID credentials",
 				Properties: map[string]spec.Schema{
-					"ca": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ca is a reference to a ConfigMap containing an optional trusted certificate authority bundle to use when making requests to the server. If empty, the default system roots are used.",
-							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapReference"),
-						},
-					},
 					"clientID": {
 						SchemaProps: spec.SchemaProps{
 							Description: "clientID is the oauth client ID",
@@ -10137,8 +10043,14 @@ func schema_openshift_api_config_v1_OpenIDIdentityProvider(ref common.ReferenceC
 					},
 					"clientSecret": {
 						SchemaProps: spec.SchemaProps{
-							Description: "clientSecret is is a reference to the secret containing the oauth client secret The secret referenced must contain a key named `clientSecret` containing the secret data.",
-							Ref:         ref("github.com/openshift/api/config/v1.LocalSecretReference"),
+							Description: "clientSecret is a required reference to the secret by name containing the oauth client secret. The key \"clientSecret\" is used to locate the data. If the secret or expected key is not found, the identity provider is not honored. The namespace for this secret is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.SecretNameReference"),
+						},
+					},
+					"ca": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ca is an optional reference to a config map by name containing the PEM-encoded CA bundle. It is used as a trust anchor to validate the TLS certificate presented by the remote server. The key \"ca.crt\" is used to locate the data. If specified and the config map or expected key is not found, the identity provider is not honored. If the specified ca data is not valid, the identity provider is not honored. If empty, the default system roots are used. The namespace for this config map is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapNameReference"),
 						},
 					},
 					"extraScopes": {
@@ -10186,7 +10098,7 @@ func schema_openshift_api_config_v1_OpenIDIdentityProvider(ref common.ReferenceC
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ConfigMapReference", "github.com/openshift/api/config/v1.LocalSecretReference", "github.com/openshift/api/config/v1.OpenIDClaims", "github.com/openshift/api/config/v1.OpenIDURLs"},
+			"github.com/openshift/api/config/v1.ConfigMapNameReference", "github.com/openshift/api/config/v1.OpenIDClaims", "github.com/openshift/api/config/v1.OpenIDURLs", "github.com/openshift/api/config/v1.SecretNameReference"},
 	}
 }
 
@@ -10340,29 +10252,114 @@ func schema_openshift_api_config_v1_ProjectStatus(ref common.ReferenceCallback) 
 	}
 }
 
-func schema_openshift_api_config_v1_ProxyConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_openshift_api_config_v1_Proxy(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ProxyConfig defines what proxies to use for an operation",
+				Description: "Proxy holds cluster-wide information on how to configure default proxies for the cluster. The canonical name is `cluster`",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Spec holds user-settable values for the proxy configuration",
+							Ref:         ref("github.com/openshift/api/config/v1.ProxySpec"),
+						},
+					},
+				},
+				Required: []string{"spec"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.ProxySpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_openshift_api_config_v1_ProxyList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/config/v1.Proxy"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.Proxy", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_openshift_api_config_v1_ProxySpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
 				Properties: map[string]spec.Schema{
 					"httpProxy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "HttpProxy is the URL of the proxy for HTTP requests",
+							Description: "httpProxy is the URL of the proxy for HTTP requests.  Empty means unset and will not result in an env var.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"httpsProxy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "HttpsProxy is the URL of the proxy for HTTPS requests",
+							Description: "httpsProxy is the URL of the proxy for HTTPS requests.  Empty means unset and will not result in an env var.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"noProxy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "NoProxy is the list of domains for which the proxy should not be used",
+							Description: "noProxy is the list of domains for which the proxy should not be used.  Empty means unset and will not result in an env var.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -10452,22 +10449,22 @@ func schema_openshift_api_config_v1_RequestHeaderIdentityProvider(ref common.Ref
 				Properties: map[string]spec.Schema{
 					"loginURL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "loginURL is a URL to redirect unauthenticated /authorize requests to Unauthenticated requests from OAuth clients which expect interactive logins will be redirected here ${url} is replaced with the current URL, escaped to be safe in a query parameter\n  https://www.example.com/sso-login?then=${url}\n${query} is replaced with the current query string\n  https://www.example.com/auth-proxy/oauth/authorize?${query}\nRequired when UseAsLogin is set to true.",
+							Description: "loginURL is a URL to redirect unauthenticated /authorize requests to Unauthenticated requests from OAuth clients which expect interactive logins will be redirected here ${url} is replaced with the current URL, escaped to be safe in a query parameter\n  https://www.example.com/sso-login?then=${url}\n${query} is replaced with the current query string\n  https://www.example.com/auth-proxy/oauth/authorize?${query}\nRequired when login is set to true.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"challengeURL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "challengeURL is a URL to redirect unauthenticated /authorize requests to Unauthenticated requests from OAuth clients which expect WWW-Authenticate challenges will be redirected here. ${url} is replaced with the current URL, escaped to be safe in a query parameter\n  https://www.example.com/sso-login?then=${url}\n${query} is replaced with the current query string\n  https://www.example.com/auth-proxy/oauth/authorize?${query}\nRequired when UseAsChallenger is set to true.",
+							Description: "challengeURL is a URL to redirect unauthenticated /authorize requests to Unauthenticated requests from OAuth clients which expect WWW-Authenticate challenges will be redirected here. ${url} is replaced with the current URL, escaped to be safe in a query parameter\n  https://www.example.com/sso-login?then=${url}\n${query} is replaced with the current query string\n  https://www.example.com/auth-proxy/oauth/authorize?${query}\nRequired when challenge is set to true.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"ca": {
 						SchemaProps: spec.SchemaProps{
-							Description: "clientCA is a reference to a configmap with the trusted signer certs. If empty, no request verification is done, and any direct request to the OAuth server can impersonate any identity from this provider, merely by setting a request header.",
-							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapReference"),
+							Description: "ca is a required reference to a config map by name containing the PEM-encoded CA bundle. It is used as a trust anchor to validate the TLS certificate presented by the remote server. Specifically, it allows verification of incoming requests to prevent header spoofing. The key \"ca.crt\" is used to locate the data. If the config map or expected key is not found, the identity provider is not honored. If the specified ca data is not valid, the identity provider is not honored. The namespace for this config map is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapNameReference"),
 						},
 					},
 					"clientCommonNames": {
@@ -10541,11 +10538,11 @@ func schema_openshift_api_config_v1_RequestHeaderIdentityProvider(ref common.Ref
 						},
 					},
 				},
-				Required: []string{"loginURL", "challengeURL", "headers", "preferredUsernameHeaders", "nameHeaders", "emailHeaders"},
+				Required: []string{"loginURL", "challengeURL", "ca", "headers", "preferredUsernameHeaders", "nameHeaders", "emailHeaders"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ConfigMapReference"},
+			"github.com/openshift/api/config/v1.ConfigMapNameReference"},
 	}
 }
 
@@ -10658,6 +10655,27 @@ func schema_openshift_api_config_v1_SchedulingStatus(ref common.ReferenceCallbac
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Properties: map[string]spec.Schema{},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_config_v1_SecretNameReference(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "SecretNameReference references a secret in a specific namespace. The namespace must be specified at the point of use.",
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name is the metadata.name of the referenced secret",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"name"},
 			},
 		},
 		Dependencies: []string{},
@@ -10838,13 +10856,6 @@ func schema_openshift_api_config_v1_TokenConfig(ref common.ReferenceCallback) co
 			SchemaProps: spec.SchemaProps{
 				Description: "TokenConfig holds the necessary configuration options for authorization and access tokens",
 				Properties: map[string]spec.Schema{
-					"authorizeTokenMaxAgeSeconds": {
-						SchemaProps: spec.SchemaProps{
-							Description: "authorizeTokenMaxAgeSeconds defines the maximum age of authorize tokens",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
 					"accessTokenMaxAgeSeconds": {
 						SchemaProps: spec.SchemaProps{
 							Description: "accessTokenMaxAgeSeconds defines the maximum age of access tokens",
@@ -10860,7 +10871,7 @@ func schema_openshift_api_config_v1_TokenConfig(ref common.ReferenceCallback) co
 						},
 					},
 				},
-				Required: []string{"authorizeTokenMaxAgeSeconds", "accessTokenMaxAgeSeconds"},
+				Required: []string{"accessTokenMaxAgeSeconds"},
 			},
 		},
 		Dependencies: []string{},
@@ -10894,6 +10905,54 @@ func schema_openshift_api_config_v1_Update(ref common.ReferenceCallback) common.
 	}
 }
 
+func schema_openshift_api_config_v1_UpdateHistory(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "UpdateHistory is a single attempted update to the cluster.",
+				Properties: map[string]spec.Schema{
+					"state": {
+						SchemaProps: spec.SchemaProps{
+							Description: "state reflects whether the update was fully applied. The Partial state indicates the update is not fully applied, while the Completed state indicates the update was successfully rolled out at least once (all parts of the update successfully applied).",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"startedTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "startedTime is the time at which the update was started.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"completionTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "completionTime, if set, is when the update was fully applied. The update that is currently being applied will have a null completion time. Completion time will always be set for entries that are not the current update (usually to the started time of the next update).",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is a semantic versioning identifying the update version. If the requested payload does not define a version, or if a failure occurs retrieving the payload, this value may be empty.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"payload": {
+						SchemaProps: spec.SchemaProps{
+							Description: "payload is a container image location that contains the update. This value is always populated.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"state", "startedTime", "completionTime", "payload"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+	}
+}
+
 func schema_openshift_api_config_v1_WebhookTokenAuthenticator(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -10902,8 +10961,8 @@ func schema_openshift_api_config_v1_WebhookTokenAuthenticator(ref common.Referen
 				Properties: map[string]spec.Schema{
 					"kubeConfig": {
 						SchemaProps: spec.SchemaProps{
-							Description: "kubeConfig contains kube config file data which describes how to access the remote webhook service. For further details, see: https://kubernetes.io/docs/reference/access-authn-authz/authentication/#webhook-token-authentication",
-							Ref:         ref("github.com/openshift/api/config/v1.LocalSecretReference"),
+							Description: "kubeConfig contains kube config file data which describes how to access the remote webhook service. For further details, see: https://kubernetes.io/docs/reference/access-authn-authz/authentication/#webhook-token-authentication The key \"kubeConfig\" is used to locate the data. If the secret or expected key is not found, the webhook is not honored. If the specified kube config data is not valid, the webhook is not honored. The namespace for this secret is determined by the point of use.",
+							Ref:         ref("github.com/openshift/api/config/v1.SecretNameReference"),
 						},
 					},
 				},
@@ -10911,7 +10970,7 @@ func schema_openshift_api_config_v1_WebhookTokenAuthenticator(ref common.Referen
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.LocalSecretReference"},
+			"github.com/openshift/api/config/v1.SecretNameReference"},
 	}
 }
 

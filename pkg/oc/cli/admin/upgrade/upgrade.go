@@ -134,7 +134,7 @@ func (o *Options) Run() error {
 	switch {
 	case o.ToLatestAvailable:
 		if len(cv.Status.AvailableUpdates) == 0 {
-			fmt.Fprintf(o.Out, "info: Cluster is already at the latest available version %s\n", cv.Status.Current.Version)
+			fmt.Fprintf(o.Out, "info: Cluster is already at the latest available version %s\n", cv.Status.Desired.Version)
 			return nil
 		}
 
@@ -164,7 +164,7 @@ func (o *Options) Run() error {
 	case len(o.To) > 0, len(o.ToImage) > 0:
 		var update *configv1.Update
 		if len(o.To) > 0 {
-			if o.To == cv.Status.Current.Version {
+			if o.To == cv.Status.Desired.Version {
 				fmt.Fprintf(o.Out, "info: Cluster is already at version %s\n", o.To)
 				return nil
 			}
@@ -185,7 +185,7 @@ func (o *Options) Run() error {
 			}
 		}
 		if len(o.ToImage) > 0 {
-			if o.ToImage == cv.Status.Current.Payload {
+			if o.ToImage == cv.Status.Desired.Payload {
 				fmt.Fprintf(o.Out, "info: Cluster is already using releaes image %s\n", o.ToImage)
 				return nil
 			}

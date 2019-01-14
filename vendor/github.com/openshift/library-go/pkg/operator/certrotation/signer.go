@@ -5,32 +5,49 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openshift/library-go/pkg/crypto"
+	"github.com/openshift/library-go/pkg/operator/events"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/openshift/library-go/pkg/crypto"
+	corev1informers "k8s.io/client-go/informers/core/v1"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 )
 
-func (c CertRotationController) ensureSigningCertKeyPair() (*crypto.CA, error) {
-	originalSigningCertKeyPairSecret, err := c.signingLister.Secrets(c.signingNamespace).Get(c.signingCertKeyPairSecretName)
+type SigningRotation struct {
+	Namespace         string
+	Name              string
+	Validity          time.Duration
+	RefreshPercentage float32
+
+	Informer      corev1informers.SecretInformer
+	Lister        corev1listers.SecretLister
+	Client        corev1client.SecretsGetter
+	EventRecorder events.Recorder
+}
+
+func (c SigningRotation) ensureSigningCertKeyPair() (*crypto.CA, error) {
+	originalSigningCertKeyPairSecret, err := c.Lister.Secrets(c.Namespace).Get(c.Name)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return nil, err
 	}
 	signingCertKeyPairSecret := originalSigningCertKeyPairSecret.DeepCopy()
 	if apierrors.IsNotFound(err) {
 		// create an empty one
-		signingCertKeyPairSecret = &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: c.signingNamespace, Name: c.signingCertKeyPairSecretName}}
+		signingCertKeyPairSecret = &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: c.Namespace, Name: c.Name}}
 	}
-	if needNewSigningCertKeyPair(signingCertKeyPairSecret.Annotations, c.signingCertKeyPairValidity, c.newSigningPercentage) {
-		c.eventRecorder.Eventf("SignerUpdateRequired", "%q in %q requires a new signing cert/key pair", c.signingCertKeyPairSecretName, c.signingNamespace)
-		if err := setSigningCertKeyPairSecret(signingCertKeyPairSecret, c.signingCertKeyPairValidity); err != nil {
+	signingCertKeyPairSecret.Type = corev1.SecretTypeTLS
+
+	if needNewSigningCertKeyPair(signingCertKeyPairSecret.Annotations, c.Validity, c.RefreshPercentage) {
+		c.EventRecorder.Eventf("SignerUpdateRequired", "%q in %q requires a new signing cert/key pair", c.Name, c.Namespace)
+		if err := setSigningCertKeyPairSecret(signingCertKeyPairSecret, c.Validity); err != nil {
 			return nil, err
 		}
 
-		actualSigningCertKeyPairSecret, err := c.secretsClient.Secrets(c.signingNamespace).Update(signingCertKeyPairSecret)
+		actualSigningCertKeyPairSecret, err := c.Client.Secrets(c.Namespace).Update(signingCertKeyPairSecret)
 		if apierrors.IsNotFound(err) {
-			actualSigningCertKeyPairSecret, err = c.secretsClient.Secrets(c.signingNamespace).Create(signingCertKeyPairSecret)
+			actualSigningCertKeyPairSecret, err = c.Client.Secrets(c.Namespace).Create(signingCertKeyPairSecret)
 			if err != nil {
 				return nil, err
 			}

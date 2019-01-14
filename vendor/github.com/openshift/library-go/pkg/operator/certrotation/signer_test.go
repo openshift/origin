@@ -99,14 +99,14 @@ func TestEnsureSigningCertKeyPair(t *testing.T) {
 				client = kubefake.NewSimpleClientset(test.initialSecret)
 			}
 
-			c := &CertRotationController{
-				signingNamespace:             "ns",
-				signingCertKeyPairSecretName: "signer",
-				signingCertKeyPairValidity:   24 * time.Hour,
-				newSigningPercentage:         .50,
-				secretsClient:                client.CoreV1(),
-				signingLister:                corev1listers.NewSecretLister(indexer),
-				eventRecorder:                events.NewInMemoryRecorder("test"),
+			c := &SigningRotation{
+				Namespace:         "ns",
+				Name:              "signer",
+				Validity:          24 * time.Hour,
+				RefreshPercentage: .50,
+				Client:            client.CoreV1(),
+				Lister:            corev1listers.NewSecretLister(indexer),
+				EventRecorder:     events.NewInMemoryRecorder("test"),
 			}
 
 			_, err := c.ensureSigningCertKeyPair()

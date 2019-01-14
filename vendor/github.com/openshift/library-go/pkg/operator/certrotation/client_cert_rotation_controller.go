@@ -8,15 +8,8 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apiserver/pkg/authentication/user"
-	corev1informers "k8s.io/client-go/informers/core/v1"
-	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-
-	"github.com/openshift/library-go/pkg/crypto"
-	"github.com/openshift/library-go/pkg/operator/events"
 )
 
 const (
@@ -31,202 +24,54 @@ const workQueueKey = "key"
 type CertRotationController struct {
 	name string
 
-	signingNamespace             string
-	signingCertKeyPairValidity   time.Duration
-	newSigningPercentage         float32
-	signingCertKeyPairSecretName string
-	signingLister                corev1listers.SecretLister
-
-	caBundleNamespace     string
-	caBundleConfigMapName string
-	caBundleLister        corev1listers.ConfigMapLister
-
-	targetNamespace                     string
-	targetCertKeyPairValidity           time.Duration
-	newTargetPercentage                 float32
-	targetCertKeyPairSecretName         string
-	targetServingHostnames              []string
-	targetServingCertificateExtensionFn []crypto.CertificateExtensionFunc
-	targetUserInfo                      user.Info
-	targetLister                        corev1listers.SecretLister
+	SigningRotation  SigningRotation
+	CABundleRotation CABundleRotation
+	TargetRotation   TargetRotation
 
 	cachesSynced []cache.InformerSynced
-
-	configmapsClient corev1client.ConfigMapsGetter
-	secretsClient    corev1client.SecretsGetter
-	eventRecorder    events.Recorder
 
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
 	queue workqueue.RateLimitingInterface
 }
 
-func newCertRotationController(
+func NewCertRotationController(
 	name string,
-	signingNamespace string,
-	signingCertKeyPairValidity time.Duration,
-	newSigningPercentage float32,
-	signingCertKeyPairSecretName string,
-	caBundleNamespace string,
-	caBundleConfigMapName string,
-	targetNamespace string,
-	targetCertKeyPairValidity time.Duration,
-	newTargetPercentage float32,
-	targetCertKeyPairSecretName string,
-
-	signingInformer corev1informers.SecretInformer,
-	cabundleInformer corev1informers.ConfigMapInformer,
-	targetInformer corev1informers.SecretInformer,
-
-	configmapsClient corev1client.ConfigMapsGetter,
-	secretsClient corev1client.SecretsGetter,
-	eventRecorder events.Recorder,
+	signingRotation SigningRotation,
+	caBundleRotation CABundleRotation,
+	targetRotation TargetRotation,
 ) *CertRotationController {
 	ret := &CertRotationController{
-		signingNamespace:             signingNamespace,
-		signingCertKeyPairValidity:   signingCertKeyPairValidity,
-		newSigningPercentage:         newSigningPercentage,
-		signingCertKeyPairSecretName: signingCertKeyPairSecretName,
-		signingLister:                signingInformer.Lister(),
-
-		caBundleNamespace:     caBundleNamespace,
-		caBundleConfigMapName: caBundleConfigMapName,
-		caBundleLister:        cabundleInformer.Lister(),
-
-		targetNamespace:             targetNamespace,
-		targetCertKeyPairValidity:   targetCertKeyPairValidity,
-		newTargetPercentage:         newTargetPercentage,
-		targetCertKeyPairSecretName: targetCertKeyPairSecretName,
-		targetLister:                targetInformer.Lister(),
+		SigningRotation:  signingRotation,
+		CABundleRotation: caBundleRotation,
+		TargetRotation:   targetRotation,
 
 		cachesSynced: []cache.InformerSynced{
-			signingInformer.Informer().HasSynced,
-			cabundleInformer.Informer().HasSynced,
-			targetInformer.Informer().HasSynced,
+			signingRotation.Informer.Informer().HasSynced,
+			caBundleRotation.Informer.Informer().HasSynced,
+			targetRotation.Informer.Informer().HasSynced,
 		},
-
-		configmapsClient: configmapsClient,
-		secretsClient:    secretsClient,
-		eventRecorder:    eventRecorder,
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), name),
 	}
 
-	signingInformer.Informer().AddEventHandler(ret.eventHandler())
-	cabundleInformer.Informer().AddEventHandler(ret.eventHandler())
-	targetInformer.Informer().AddEventHandler(ret.eventHandler())
-
-	return ret
-}
-
-func NewClientCertRotationController(
-	name string,
-	signingNamespace string,
-	signingCertKeyPairValidity time.Duration,
-	newSigningPercentage float32,
-	signingCertKeyPairSecretName string,
-	caBundleNamespace string,
-	caBundleConfigMapName string,
-	targetNamespace string,
-	targetCertKeyPairValidity time.Duration,
-	newTargetPercentage float32,
-	targetCertKeyPairSecretName string,
-	targetUserInfo user.Info,
-
-	signingInformer corev1informers.SecretInformer,
-	cabundleInformer corev1informers.ConfigMapInformer,
-	targetInformer corev1informers.SecretInformer,
-
-	configmapsClient corev1client.ConfigMapsGetter,
-	secretsClient corev1client.SecretsGetter,
-	eventRecorder events.Recorder,
-) *CertRotationController {
-	ret := newCertRotationController(
-		name,
-		signingNamespace,
-		signingCertKeyPairValidity,
-		newSigningPercentage,
-		signingCertKeyPairSecretName,
-		caBundleNamespace,
-		caBundleConfigMapName,
-		targetNamespace,
-		targetCertKeyPairValidity,
-		newTargetPercentage,
-		targetCertKeyPairSecretName,
-
-		signingInformer,
-		cabundleInformer,
-		targetInformer,
-
-		configmapsClient,
-		secretsClient,
-		eventRecorder,
-	)
-	ret.targetUserInfo = targetUserInfo
-
-	return ret
-}
-
-func NewServingCertRotationController(
-	name string,
-	signingNamespace string,
-	signingCertKeyPairValidity time.Duration,
-	newSigningPercentage float32,
-	signingCertKeyPairSecretName string,
-	caBundleNamespace string,
-	caBundleConfigMapName string,
-	targetNamespace string,
-	targetCertKeyPairValidity time.Duration,
-	newTargetPercentage float32,
-	targetCertKeyPairSecretName string,
-	targetServingHostnames []string,
-	targetServingCertificateExtensionFn []crypto.CertificateExtensionFunc,
-
-	signingInformer corev1informers.SecretInformer,
-	cabundleInformer corev1informers.ConfigMapInformer,
-	targetInformer corev1informers.SecretInformer,
-
-	configmapsClient corev1client.ConfigMapsGetter,
-	secretsClient corev1client.SecretsGetter,
-	eventRecorder events.Recorder,
-) *CertRotationController {
-	ret := newCertRotationController(
-		name,
-		signingNamespace,
-		signingCertKeyPairValidity,
-		newSigningPercentage,
-		signingCertKeyPairSecretName,
-		caBundleNamespace,
-		caBundleConfigMapName,
-		targetNamespace,
-		targetCertKeyPairValidity,
-		newTargetPercentage,
-		targetCertKeyPairSecretName,
-
-		signingInformer,
-		cabundleInformer,
-		targetInformer,
-
-		configmapsClient,
-		secretsClient,
-		eventRecorder,
-	)
-	ret.targetServingHostnames = targetServingHostnames
-	ret.targetServingCertificateExtensionFn = targetServingCertificateExtensionFn
+	signingRotation.Informer.Informer().AddEventHandler(ret.eventHandler())
+	caBundleRotation.Informer.Informer().AddEventHandler(ret.eventHandler())
+	targetRotation.Informer.Informer().AddEventHandler(ret.eventHandler())
 
 	return ret
 }
 
 func (c CertRotationController) sync() error {
-	signingCertKeyPair, err := c.ensureSigningCertKeyPair()
+	signingCertKeyPair, err := c.SigningRotation.ensureSigningCertKeyPair()
 	if err != nil {
 		return err
 	}
 
-	if err := c.ensureConfigMapCABundle(signingCertKeyPair); err != nil {
+	if err := c.CABundleRotation.ensureConfigMapCABundle(signingCertKeyPair); err != nil {
 		return err
 	}
 
-	if err := c.ensureTargetCertKeyPair(signingCertKeyPair); err != nil {
+	if err := c.TargetRotation.ensureTargetCertKeyPair(signingCertKeyPair); err != nil {
 		return err
 	}
 

@@ -81,7 +81,7 @@ func NewPruneController(
 }
 
 func (c *PruneController) pruneRevisionHistory(operatorStatus *operatorv1.StaticPodOperatorStatus) error {
-	var succeededRevisionIDs, failedRevisionIDs []int
+	var succeededRevisionIDs, failedRevisionIDs, inProgressRevisionIDs, unknownStatusRevisionIDs []int
 
 	configMaps, err := c.kubeClient.CoreV1().ConfigMaps(c.targetNamespace).List(metav1.ListOptions{})
 	if err != nil {
@@ -102,8 +102,15 @@ func (c *PruneController) pruneRevisionHistory(operatorStatus *operatorv1.Static
 				succeededRevisionIDs = append(succeededRevisionIDs, revisionID)
 			case string(corev1.PodFailed):
 				failedRevisionIDs = append(failedRevisionIDs, revisionID)
+
+			case "InProgress":
+				// we always protect inprogress
+				inProgressRevisionIDs = append(inProgressRevisionIDs, revisionID)
+
 			default:
-				return fmt.Errorf("unknown pod status phase for revision %d: %v", revisionID, configMap.Data["phase"])
+				// protect things you don't understand
+				unknownStatusRevisionIDs = append(unknownStatusRevisionIDs, revisionID)
+				c.eventRecorder.Event("UnknownRevisionStatus", fmt.Sprintf("unknown status for revision %d: %v", revisionID, configMap.Data["phase"]))
 			}
 		}
 	}
@@ -120,6 +127,8 @@ func (c *PruneController) pruneRevisionHistory(operatorStatus *operatorv1.Static
 	excludedIDs := make([]int, 0, len(protectedSucceededRevisionIDs)+len(protectedFailedRevisionIDs))
 	excludedIDs = append(excludedIDs, protectedSucceededRevisionIDs...)
 	excludedIDs = append(excludedIDs, protectedFailedRevisionIDs...)
+	excludedIDs = append(excludedIDs, inProgressRevisionIDs...)
+	excludedIDs = append(excludedIDs, unknownStatusRevisionIDs...)
 	sort.Ints(excludedIDs)
 
 	// Run pruning pod on each node and pin it to that node

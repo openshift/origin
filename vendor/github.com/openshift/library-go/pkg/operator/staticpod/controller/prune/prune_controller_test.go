@@ -2,6 +2,7 @@ package prune
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"k8s.io/api/core/v1"
@@ -104,7 +105,6 @@ func TestPruneRevisionHistory(t *testing.T) {
 			},
 			maxEligibleID: 2,
 			protectedIDs:  "1,2",
-			expectedErr:   "unknown pod status phase for revision 2: garbage",
 		},
 
 		{
@@ -131,23 +131,38 @@ func TestPruneRevisionHistory(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		kubeClient := fake.NewSimpleClientset()
+		t.Run(test.name, func(t *testing.T) {
+			kubeClient := fake.NewSimpleClientset()
 
-		var prunerPod *v1.Pod
-		kubeClient.PrependReactor("create", "pods", func(action ktesting.Action) (handled bool, ret runtime.Object, err error) {
-			prunerPod = action.(ktesting.CreateAction).GetObject().(*v1.Pod)
-			return false, nil, nil
-		})
-		kubeClient.PrependReactor("list", "configmaps", func(action ktesting.Action) (handled bool, ret runtime.Object, err error) {
-			return true, configMapList(test.configMaps), nil
-		})
+			var prunerPod *v1.Pod
+			kubeClient.PrependReactor("create", "pods", func(action ktesting.Action) (handled bool, ret runtime.Object, err error) {
+				prunerPod = action.(ktesting.CreateAction).GetObject().(*v1.Pod)
+				return false, nil, nil
+			})
+			kubeClient.PrependReactor("list", "configmaps", func(action ktesting.Action) (handled bool, ret runtime.Object, err error) {
+				return true, configMapList(test.configMaps), nil
+			})
 
-		fakeStaticPodOperatorClient := common.NewFakeStaticPodOperatorClient(
-			&operatorv1.OperatorSpec{
-				ManagementState: operatorv1.Managed,
-			},
-			&operatorv1.OperatorStatus{},
-			&operatorv1.StaticPodOperatorStatus{
+			fakeStaticPodOperatorClient := common.NewFakeStaticPodOperatorClient(
+				&operatorv1.OperatorSpec{
+					ManagementState: operatorv1.Managed,
+				},
+				&operatorv1.OperatorStatus{},
+				&operatorv1.StaticPodOperatorStatus{
+					LatestAvailableRevision: 1,
+					NodeStatuses: []operatorv1.NodeStatus{
+						{
+							NodeName:        "test-node-1",
+							CurrentRevision: 0,
+							TargetRevision:  0,
+						},
+					},
+				},
+				nil,
+			)
+			eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &v1.ObjectReference{})
+
+			operatorStatus := &operatorv1.StaticPodOperatorStatus{
 				LatestAvailableRevision: 1,
 				NodeStatuses: []operatorv1.NodeStatus{
 					{
@@ -156,76 +171,60 @@ func TestPruneRevisionHistory(t *testing.T) {
 						TargetRevision:  0,
 					},
 				},
-			},
-			nil,
-		)
-		eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &v1.ObjectReference{})
-
-		operatorStatus := &operatorv1.StaticPodOperatorStatus{
-			LatestAvailableRevision: 1,
-			NodeStatuses: []operatorv1.NodeStatus{
-				{
-					NodeName:        "test-node-1",
-					CurrentRevision: 0,
-					TargetRevision:  0,
-				},
-			},
-		}
-
-		c := &PruneController{
-			targetNamespace:        "test",
-			podResourcePrefix:      "test-pod",
-			command:                []string{"/bin/true"},
-			kubeClient:             kubeClient,
-			eventRecorder:          eventRecorder,
-			operatorConfigClient:   fakeStaticPodOperatorClient,
-			failedRevisionLimit:    test.failedLimit,
-			succeededRevisionLimit: test.succeededLimit,
-		}
-		c.prunerPodImageFn = func() string { return "docker.io/foo/bar" }
-
-		err := c.pruneRevisionHistory(operatorStatus)
-		if err != nil {
-			if err.Error() != test.expectedErr {
-				t.Errorf("expected error %v, got %v", test.expectedErr, err)
 			}
 
-			if prunerPod != nil {
-				t.Fatalf("expected not to create installer pod")
+			c := &PruneController{
+				targetNamespace:        "test",
+				podResourcePrefix:      "test-pod",
+				command:                []string{"/bin/true"},
+				kubeClient:             kubeClient,
+				eventRecorder:          eventRecorder,
+				operatorConfigClient:   fakeStaticPodOperatorClient,
+				failedRevisionLimit:    test.failedLimit,
+				succeededRevisionLimit: test.succeededLimit,
 			}
-			continue
-		}
+			c.prunerPodImageFn = func() string { return "docker.io/foo/bar" }
 
-		if prunerPod == nil {
-			t.Fatalf("expected to create installer pod")
-		}
-
-		if prunerPod.Spec.Containers[0].Image != "docker.io/foo/bar" {
-			t.Fatalf("expected docker.io/foo/bar image, got %q", prunerPod.Spec.Containers[0].Image)
-		}
-
-		if prunerPod.Spec.Containers[0].Command[0] != "/bin/true" {
-			t.Fatalf("expected /bin/true as a command, got %q", prunerPod.Spec.Containers[0].Command[0])
-		}
-
-		expectedArgs := []string{
-			"-v=4",
-			fmt.Sprintf("--max-eligible-id=%d", test.maxEligibleID),
-			fmt.Sprintf("--protected-ids=%s", test.protectedIDs),
-			fmt.Sprintf("--resource-dir=%s", "/etc/kubernetes/static-pod-resources"),
-			fmt.Sprintf("--static-pod-name=%s", "test-pod"),
-		}
-
-		if len(expectedArgs) != len(prunerPod.Spec.Containers[0].Args) {
-			t.Fatalf("expected arguments does not match container arguments: %#v != %#v", expectedArgs, prunerPod.Spec.Containers[0].Args)
-		}
-
-		for i, v := range prunerPod.Spec.Containers[0].Args {
-			if expectedArgs[i] != v {
-				t.Errorf("arg[%d] expected %q, got %q", i, expectedArgs[i], v)
+			err := c.pruneRevisionHistory(operatorStatus)
+			switch {
+			case err != nil && len(test.expectedErr) == 0:
+				t.Fatal(err)
+			case err != nil && !strings.Contains(err.Error(), test.expectedErr):
+				t.Fatal(err)
+			case err == nil && len(test.expectedErr) != 0:
+				t.Fatalf("missing %q", test.expectedErr)
 			}
-		}
 
+			if prunerPod == nil {
+				t.Fatalf("expected to create installer pod")
+			}
+
+			if prunerPod.Spec.Containers[0].Image != "docker.io/foo/bar" {
+				t.Fatalf("expected docker.io/foo/bar image, got %q", prunerPod.Spec.Containers[0].Image)
+			}
+
+			if prunerPod.Spec.Containers[0].Command[0] != "/bin/true" {
+				t.Fatalf("expected /bin/true as a command, got %q", prunerPod.Spec.Containers[0].Command[0])
+			}
+
+			expectedArgs := []string{
+				"-v=4",
+				fmt.Sprintf("--max-eligible-id=%d", test.maxEligibleID),
+				fmt.Sprintf("--protected-ids=%s", test.protectedIDs),
+				fmt.Sprintf("--resource-dir=%s", "/etc/kubernetes/static-pod-resources"),
+				fmt.Sprintf("--static-pod-name=%s", "test-pod"),
+			}
+
+			if len(expectedArgs) != len(prunerPod.Spec.Containers[0].Args) {
+				t.Fatalf("expected arguments does not match container arguments: %#v != %#v", expectedArgs, prunerPod.Spec.Containers[0].Args)
+			}
+
+			for i, v := range prunerPod.Spec.Containers[0].Args {
+				if expectedArgs[i] != v {
+					t.Errorf("arg[%d] expected %q, got %q", i, expectedArgs[i], v)
+				}
+			}
+		})
 	}
 }
 

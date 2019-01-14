@@ -68,6 +68,11 @@ spec:
       volumeMounts:
         - mountPath: /etc/kubernetes/
           name: kubelet-dir
+      resources:
+        requests:
+          memory: 100M
+        limits:
+          memory: 100M
   restartPolicy: Never
   securityContext:
     runAsUser: 0

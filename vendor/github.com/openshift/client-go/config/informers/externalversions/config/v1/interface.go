@@ -20,8 +20,6 @@ type Interface interface {
 	Consoles() ConsoleInformer
 	// DNSs returns a DNSInformer.
 	DNSs() DNSInformer
-	// IdentityProviders returns a IdentityProviderInformer.
-	IdentityProviders() IdentityProviderInformer
 	// Images returns a ImageInformer.
 	Images() ImageInformer
 	// Infrastructures returns a InfrastructureInformer.
@@ -34,6 +32,8 @@ type Interface interface {
 	OAuths() OAuthInformer
 	// Projects returns a ProjectInformer.
 	Projects() ProjectInformer
+	// Proxies returns a ProxyInformer.
+	Proxies() ProxyInformer
 	// Schedulings returns a SchedulingInformer.
 	Schedulings() SchedulingInformer
 }
@@ -79,11 +79,6 @@ func (v *version) DNSs() DNSInformer {
 	return &dNSInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// IdentityProviders returns a IdentityProviderInformer.
-func (v *version) IdentityProviders() IdentityProviderInformer {
-	return &identityProviderInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
-}
-
 // Images returns a ImageInformer.
 func (v *version) Images() ImageInformer {
 	return &imageInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
@@ -112,6 +107,11 @@ func (v *version) OAuths() OAuthInformer {
 // Projects returns a ProjectInformer.
 func (v *version) Projects() ProjectInformer {
 	return &projectInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// Proxies returns a ProxyInformer.
+func (v *version) Proxies() ProxyInformer {
+	return &proxyInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // Schedulings returns a SchedulingInformer.

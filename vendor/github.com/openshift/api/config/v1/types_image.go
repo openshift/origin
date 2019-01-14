@@ -35,7 +35,8 @@ type ImageSpec struct {
 
 	// AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that
 	// should be trusted during imagestream import.
-	AdditionalTrustedCA ConfigMapReference `json:"additionalTrustedCA,omitempty"`
+	// The namespace for this config map is openshift-config.
+	AdditionalTrustedCA ConfigMapFileReference `json:"additionalTrustedCA,omitempty"`
 }
 
 type ImageStatus struct {

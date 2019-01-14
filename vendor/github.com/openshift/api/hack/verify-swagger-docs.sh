@@ -21,7 +21,7 @@ done
 echo "Checking against freshly generated swagger..."
 for gv in ${API_GROUP_VERSIONS}; do
   ret=0
-  diff -Naupr "${SCRIPT_ROOT}/${gv}"/types_swagger_doc_generated.go "${TMP_ROOT}/${gv}"/types_swagger_doc_generated.go || ret=$?
+  diff -Naupr "${SCRIPT_ROOT}/${gv}"/zz_generated.swagger_doc_generated.go "${TMP_ROOT}/${gv}"/zz_generated.swagger_doc_generated.go || ret=$?
   if [[ $ret -ne 0 ]]; then
     cp -a "${TMP_ROOT}"/* "${SCRIPT_ROOT}/"
     echo "Swagger is out of date. Please run hack/update-swagger-docs.sh"

@@ -21,8 +21,9 @@ type Build struct {
 type BuildSpec struct {
 	// AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that
 	// should be trusted for image pushes and pulls during builds.
+	// The namespace for this config map is openshift-config.
 	// +optional
-	AdditionalTrustedCA ConfigMapReference `json:"additionalTrustedCA,omitempty"`
+	AdditionalTrustedCA ConfigMapFileReference `json:"additionalTrustedCA,omitempty"`
 	// BuildDefaults controls the default information for Builds
 	// +optional
 	BuildDefaults BuildDefaults `json:"buildDefaults,omitempty"`
@@ -38,14 +39,14 @@ type BuildDefaults struct {
 	// Values can be overrode by setting the `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment variables
 	// in the build config's strategy.
 	// +optional
-	DefaultProxy *ProxyConfig `json:"defaultProxy,omitempty"`
+	DefaultProxy *ProxySpec `json:"defaultProxy,omitempty"`
 
 	// GitProxy contains the proxy settings for git operations only. If set, this will override
 	// any Proxy settings for all git commands, such as git clone.
 	//
 	// Values that are not set here will be inherited from DefaultProxy.
 	// +optional
-	GitProxy *ProxyConfig `json:"gitProxy,omitempty"`
+	GitProxy *ProxySpec `json:"gitProxy,omitempty"`
 
 	// Env is a set of default environment variables that will be applied to the
 	// build if the specified variables do not exist on the build
@@ -70,21 +71,6 @@ type ImageLabel struct {
 	// Value defines the literal value of the label.
 	// +optional
 	Value string `json:"value,omitempty"`
-}
-
-// ProxyConfig defines what proxies to use for an operation
-type ProxyConfig struct {
-	// HttpProxy is the URL of the proxy for HTTP requests
-	// +optional
-	HTTPProxy *string `json:"httpProxy,omitempty"`
-
-	// HttpsProxy is the URL of the proxy for HTTPS requests
-	// +optional
-	HTTPSProxy *string `json:"httpsProxy,omitempty"`
-
-	// NoProxy is the list of domains for which the proxy should not be used
-	// +optional
-	NoProxy *string `json:"noProxy,omitempty"`
 }
 
 type BuildOverrides struct {
