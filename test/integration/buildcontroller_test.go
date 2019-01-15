@@ -30,7 +30,7 @@ func TestConcurrentBuildControllers(t *testing.T) {
 	// Start a master with multiple BuildControllers
 	buildClient, _, kClient, fn := setupBuildControllerTest(controllerCount{BuildControllers: 5}, t)
 	defer fn()
-	build.RunBuildControllerTest(t, buildClient, kClient)
+	build.RunBuildControllerTest(t, buildClient, kClient, testutil.Namespace())
 }
 
 // TestConcurrentBuildControllersPodSync tests the lifecycle of a build pod when running multiple controllers.
@@ -38,7 +38,7 @@ func TestConcurrentBuildControllersPodSync(t *testing.T) {
 	// Start a master with multiple BuildControllers
 	buildClient, _, kClient, fn := setupBuildControllerTest(controllerCount{BuildControllers: 5}, t)
 	defer fn()
-	build.RunBuildControllerPodSyncTest(t, buildClient, kClient)
+	build.RunBuildControllerPodSyncTest(t, buildClient, kClient, testutil.Namespace())
 }
 
 func TestConcurrentBuildImageChangeTriggerControllers(t *testing.T) {
@@ -46,32 +46,32 @@ func TestConcurrentBuildImageChangeTriggerControllers(t *testing.T) {
 	// Start a master with multiple ImageChangeTrigger controllers
 	buildClient, imageClient, _, fn := setupBuildControllerTest(controllerCount{ImageChangeControllers: 5}, t)
 	defer fn()
-	build.RunImageChangeTriggerTest(t, buildClient, imageClient)
+	build.RunImageChangeTriggerTest(t, buildClient, imageClient, testutil.Namespace())
 }
 
 func TestBuildDeleteController(t *testing.T) {
 	buildClient, _, kClient, fn := setupBuildControllerTest(controllerCount{}, t)
 	defer fn()
-	build.RunBuildDeleteTest(t, buildClient, kClient)
+	build.RunBuildDeleteTest(t, buildClient, kClient, testutil.Namespace())
 }
 
 func TestBuildRunningPodDeleteController(t *testing.T) {
 	t.Skip("skipping until devex team figures this out in the new split API setup, see https://bugzilla.redhat.com/show_bug.cgi?id=1641186")
 	buildClient, _, kClient, fn := setupBuildControllerTest(controllerCount{}, t)
 	defer fn()
-	build.RunBuildRunningPodDeleteTest(t, buildClient, kClient)
+	build.RunBuildRunningPodDeleteTest(t, buildClient, kClient, testutil.Namespace())
 }
 
 func TestBuildCompletePodDeleteController(t *testing.T) {
 	buildClient, _, kClient, fn := setupBuildControllerTest(controllerCount{}, t)
 	defer fn()
-	build.RunBuildCompletePodDeleteTest(t, buildClient, kClient)
+	build.RunBuildCompletePodDeleteTest(t, buildClient, kClient, testutil.Namespace())
 }
 
 func TestConcurrentBuildConfigControllers(t *testing.T) {
 	buildClient, _, _, fn := setupBuildControllerTest(controllerCount{ConfigChangeControllers: 5}, t)
 	defer fn()
-	build.RunBuildConfigChangeControllerTest(t, buildClient)
+	build.RunBuildConfigChangeControllerTest(t, buildClient, testutil.Namespace())
 }
 
 func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildv1clienttyped.BuildV1Interface, imagev1clienttyped.ImageV1Interface,

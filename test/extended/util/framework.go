@@ -45,7 +45,6 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagetypeclientset "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/test/extended/testdata"
-	"github.com/openshift/origin/test/util"
 )
 
 const pvPrefix = "pv-"
@@ -1365,23 +1364,6 @@ func (r *podExecutor) CopyFromHost(local, remote string) error {
 	return err
 }
 
-// CreateTempFile stores the specified data in a temp dir/temp file
-// for the test who calls it
-func CreateTempFile(data string) (string, error) {
-	testDir, err := ioutil.TempDir(util.GetBaseDir(), "test-files")
-	if err != nil {
-		return "", err
-	}
-	testFile, err := ioutil.TempFile(testDir, "test-file")
-	if err != nil {
-		return "", err
-	}
-	if err := ioutil.WriteFile(testFile.Name(), []byte(data), 0666); err != nil {
-		return "", err
-	}
-	return testFile.Name(), nil
-}
-
 type GitRepo struct {
 	baseTempDir  string
 	upstream     git.Repository
@@ -1417,7 +1399,7 @@ func (r GitRepo) Remove() {
 
 // NewGitRepo creates temporary test directories with local and "remote" git repo
 func NewGitRepo(repoName string) (GitRepo, error) {
-	testDir, err := ioutil.TempDir(util.GetBaseDir(), repoName)
+	testDir, err := ioutil.TempDir(os.TempDir(), repoName)
 	if err != nil {
 		return GitRepo{}, err
 	}

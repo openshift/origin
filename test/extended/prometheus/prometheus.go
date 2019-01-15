@@ -9,14 +9,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ghodss/yaml"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	clientset "k8s.io/client-go/kubernetes"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -31,13 +34,12 @@ const waitForPrometheusStartSeconds = 240
 var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLI("prometheus", exutil.KubeConfigPath())
+		oc = exutil.NewCLIWithoutNamespace("prometheus")
 
-		execPodName, ns, url, bearerToken string
+		url, bearerToken string
 	)
 
 	g.BeforeEach(func() {
-		ns = oc.KubeFramework().Namespace.Name
 		var ok bool
 		url, bearerToken, ok = locatePrometheus(oc)
 		if !ok {
@@ -46,20 +48,40 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 	})
 
 	g.Describe("when installed on the cluster", func() {
+		g.It("should report telemetry if a cloud.openshift.com token is present", func() {
+			if !hasPullSecret(oc.AdminKubeClient(), "cloud.openshift.com") {
+				e2e.Skipf("Telemetry is disabled")
+			}
+			oc.SetupProject()
+			ns := oc.Namespace()
+
+			execPodName := e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) { pod.Spec.Containers[0].Image = "centos:7" })
+			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+
+			tests := map[string][]metricTest{
+				// should have successfully sent at least once to remote
+				`metricsclient_request_send{client="federate_to",job="telemeter-client",status_code="200"}`: {metricTest{greaterThanEqual: true, value: 1}},
+				// should have scraped some metrics from prometheus
+				`federate_samples{job="telemeter-client"}`: {metricTest{greaterThanEqual: true, value: 10}},
+			}
+			runQueries(tests, oc, ns, execPodName, url, bearerToken)
+
+			e2e.Logf("Telemetry is enabled: %s", bearerToken)
+		})
+
 		g.It("should start and expose a secured proxy and unsecured metrics", func() {
-			execPodName = e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) {
-				pod.Spec.Containers[0].Image = "centos:7"
-			})
+			oc.SetupProject()
+			ns := oc.Namespace()
+			execPodName := e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) { pod.Spec.Containers[0].Image = "centos:7" })
 			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			g.By("checking the unsecured metrics path")
-			success := false
 			var metrics map[string]*dto.MetricFamily
-			for i := 0; i < waitForPrometheusStartSeconds; i++ {
+			o.Expect(wait.PollImmediate(10*time.Second, waitForPrometheusStartSeconds*time.Second, func() (bool, error) {
 				results, err := getInsecureURLViaPod(ns, execPodName, fmt.Sprintf("%s/metrics", url))
 				if err != nil {
 					e2e.Logf("unable to get unsecured metrics: %v", err)
-					continue
+					return false, nil
 				}
 
 				p := expfmt.TextParser{}
@@ -68,25 +90,20 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				// original field in 2.0.0-beta
 				counts := findCountersWithLabels(metrics["tsdb_samples_appended_total"], labels{})
 				if len(counts) != 0 && counts[0] > 0 {
-					success = true
-					break
+					return true, nil
 				}
 				// 2.0.0-rc.0
 				counts = findCountersWithLabels(metrics["tsdb_head_samples_appended_total"], labels{})
 				if len(counts) != 0 && counts[0] > 0 {
-					success = true
-					break
+					return true, nil
 				}
 				// 2.0.0-rc.2
 				counts = findCountersWithLabels(metrics["prometheus_tsdb_head_samples_appended_total"], labels{})
 				if len(counts) != 0 && counts[0] > 0 {
-					success = true
-					break
+					return true, nil
 				}
-				time.Sleep(time.Second)
-				continue
-			}
-			o.Expect(success).To(o.BeTrue(), fmt.Sprintf("Did not find tsdb_samples_appended_total, tsdb_head_samples_appended_total, or prometheus_tsdb_head_samples_appended_total in:\n%#v,", metrics))
+				return false, nil
+			})).NotTo(o.HaveOccurred(), fmt.Sprintf("Did not find tsdb_samples_appended_total, tsdb_head_samples_appended_total, or prometheus_tsdb_head_samples_appended_total"))
 
 			g.By("verifying the oauth-proxy reports a 403 on the root URL")
 			err := expectURLStatusCodeExec(ns, execPodName, url, 403)
@@ -99,7 +116,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			g.By("verifying a service account token is able to access the Prometheus API")
 			// expect all endpoints within 60 seconds
 			var lastErrs []error
-			for i := 0; i < 120; i++ {
+			o.Expect(wait.PollImmediate(10*time.Second, 2*time.Minute, func() (bool, error) {
 				contents, err := getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("%s/api/v1/targets", url), bearerToken)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -110,17 +127,25 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				g.By("verifying all expected jobs have a working target")
 				lastErrs = all(
 					targets.Expect(labels{"job": "apiserver"}, "up", "^https://.*/metrics$"),
+					// TODO: add openshift api
+					// TODO: this should be https
+					targets.Expect(labels{"job": "scheduler"}, "up", "^http://.*/metrics$"),
+					// TODO: this should be https
+					targets.Expect(labels{"job": "kube-controller-manager"}, "up", "^http://.*/metrics$"),
+					targets.Expect(labels{"job": "kube-state-metrics"}, "up", "^https://.*/metrics$"),
+					// TODO: should probably be https
+					targets.Expect(labels{"job": "cluster-version-operator"}, "up", "^http://.*/metrics$"),
 					targets.Expect(labels{"job": "prometheus-k8s", "namespace": "openshift-monitoring", "pod": "prometheus-k8s-0"}, "up", "^https://.*/metrics$"),
 					targets.Expect(labels{"job": "kubelet"}, "up", "^https://.*/metrics$"),
 					targets.Expect(labels{"job": "kubelet"}, "up", "^https://.*/metrics/cadvisor$"),
 					targets.Expect(labels{"job": "node-exporter"}, "up", "^https://.*/metrics$"),
 				)
-				if len(lastErrs) == 0 {
-					break
+				if len(lastErrs) > 0 {
+					e2e.Logf("missing some targets: %v", lastErrs)
+					return false, nil
 				}
-				time.Sleep(time.Second)
-			}
-			o.Expect(lastErrs).To(o.BeEmpty())
+				return true, nil
+			})).NotTo(o.HaveOccurred())
 		})
 	})
 })
@@ -330,4 +355,31 @@ func locatePrometheus(oc *exutil.CLI) (url, bearerToken string, ok bool) {
 	o.Expect(bearerToken).ToNot(o.BeEmpty())
 
 	return "https://prometheus-k8s.openshift-monitoring.svc:9091", bearerToken, true
+}
+
+func hasPullSecret(client clientset.Interface, name string) bool {
+	cm, err := client.CoreV1().ConfigMaps("kube-system").Get("cluster-config-v1", metav1.GetOptions{})
+	if err != nil {
+		if kapierrs.IsNotFound(err) {
+			return false
+		}
+		e2e.Failf("could not retrieve cluster-config-v1: %v", err)
+	}
+	ic := make(map[string]interface{})
+	if err := yaml.Unmarshal([]byte(cm.Data["install-config"]), &ic); err != nil {
+		e2e.Failf("could not parse cluster-config-v1 install-config: %v", err)
+	}
+
+	ps := struct {
+		Auths map[string]struct {
+			Auth string `json:"auth"`
+		} `json:"auths"`
+	}{}
+	if _, ok := ic["pullSecret"].(string); !ok {
+		e2e.Failf("could not get pullSecret from cluster-config-v1: %v", err)
+	}
+	if err := json.Unmarshal([]byte(ic["pullSecret"].(string)), &ps); err != nil {
+		e2e.Failf("could not unmashal pullSecret from cluster-config-v1: %v", err)
+	}
+	return len(ps.Auths[name].Auth) > 0
 }
