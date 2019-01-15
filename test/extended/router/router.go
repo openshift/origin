@@ -7,6 +7,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -130,6 +131,12 @@ func waitForNamedRouterServiceIP(oc *exutil.CLI, name string) (string, error) {
 		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 		host = svc.Spec.ClusterIP
+		if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
+			if len(svc.Status.LoadBalancer.Ingress) == 0 || len(svc.Status.LoadBalancer.Ingress[0].Hostname) == 0 {
+				return false, nil
+			}
+			host = svc.Status.LoadBalancer.Ingress[0].Hostname
+		}
 		return true, nil
 	})
 	return host, err
