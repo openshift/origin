@@ -530,3 +530,51 @@ func setupBuildCAs(build *buildv1.Build, pod *corev1.Pod, additionalCAs map[stri
 		pod.Spec.Containers = containers
 	}
 }
+
+// setupBlobCache configures a shared volume for caching image blobs across the build pod containers.
+func setupBlobCache(pod *corev1.Pod) {
+	const volume = "build-blob-cache"
+	const mountPath = buildutil.BuildBlobsContentCache
+	exists := false
+	for _, v := range pod.Spec.Volumes {
+		if v.Name == volume {
+			exists = true
+			break
+		}
+	}
+	if !exists {
+		pod.Spec.Volumes = append(pod.Spec.Volumes, corev1.Volume{
+			Name: volume,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		})
+		containers := make([]corev1.Container, len(pod.Spec.Containers))
+		for i, c := range pod.Spec.Containers {
+			c.VolumeMounts = append(c.VolumeMounts, corev1.VolumeMount{
+				Name:      volume,
+				MountPath: mountPath,
+			})
+			c.Env = append(c.Env, corev1.EnvVar{
+				Name:  "BUILD_BLOBCACHE_DIR",
+				Value: mountPath,
+			})
+			containers[i] = c
+		}
+		pod.Spec.Containers = containers
+
+		initContainers := make([]corev1.Container, len(pod.Spec.InitContainers))
+		for i, ic := range pod.Spec.InitContainers {
+			ic.VolumeMounts = append(ic.VolumeMounts, corev1.VolumeMount{
+				Name:      volume,
+				MountPath: mountPath,
+			})
+			ic.Env = append(ic.Env, corev1.EnvVar{
+				Name:  "BUILD_BLOBCACHE_DIR",
+				Value: mountPath,
+			})
+			initContainers[i] = ic
+		}
+		pod.Spec.InitContainers = initContainers
+	}
+}

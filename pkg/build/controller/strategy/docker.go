@@ -3,7 +3,7 @@ package strategy
 import (
 	"fmt"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -197,5 +197,6 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildv1.Build, additionalCA
 	setupBuildCAs(build, pod, additionalCAs, internalRegistryHost)
 	setupContainersStorage(pod, &pod.Spec.Containers[0]) // for unprivileged builds
 	// setupContainersNodeStorage(pod, &pod.Spec.Containers[0]) // for privileged builds
+	setupBlobCache(pod)
 	return pod, nil
 }
