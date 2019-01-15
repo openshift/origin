@@ -404,6 +404,9 @@ func updateConfigsForContainer(c corev1.Container, volumeName string, configDir 
 	c.Env = append(c.Env, corev1.EnvVar{Name: "BUILD_REGISTRIES_DIR_PATH", Value: registriesDirPath})
 	c.Env = append(c.Env, corev1.EnvVar{Name: "BUILD_SIGNATURE_POLICY_PATH", Value: signaturePolicyPath})
 	c.Env = append(c.Env, corev1.EnvVar{Name: "BUILD_STORAGE_CONF_PATH", Value: storageConfPath})
+	// Disable blob cache - worker nodes running out of disk
+	// Set BUILD_BLOBCACHE_DIR to empty value per https://github.com/openshift/builder/blob/master/pkg/build/builder/cmd/builder.go#L139
+	c.Env = append(c.Env, corev1.EnvVar{Name: "BUILD_BLOBCACHE_DIR", Value: ""})
 	return c
 }
 

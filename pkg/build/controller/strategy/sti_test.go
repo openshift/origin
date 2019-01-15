@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -89,7 +89,23 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 
 	// strategy ENV variables are whitelisted(filtered) into the container environment, and not all
 	// the values are allowed, so don't expect to see the filtered values in the result.
-	expectedKeys := map[string]string{"BUILD": "", "SOURCE_REPOSITORY": "", "SOURCE_URI": "", "SOURCE_CONTEXT_DIR": "", "SOURCE_REF": "", "BUILD_LOGLEVEL": "", "PUSH_DOCKERCFG_PATH": "", "PULL_DOCKERCFG_PATH": "", "BUILD_REGISTRIES_CONF_PATH": "", "BUILD_REGISTRIES_DIR_PATH": "", "BUILD_SIGNATURE_POLICY_PATH": "", "BUILD_STORAGE_CONF_PATH": "", "BUILD_STORAGE_DRIVER": "", "BUILD_ISOLATION": ""}
+	expectedKeys := map[string]string{
+		"BUILD":                       "",
+		"SOURCE_REPOSITORY":           "",
+		"SOURCE_URI":                  "",
+		"SOURCE_CONTEXT_DIR":          "",
+		"SOURCE_REF":                  "",
+		"BUILD_LOGLEVEL":              "",
+		"PUSH_DOCKERCFG_PATH":         "",
+		"PULL_DOCKERCFG_PATH":         "",
+		"BUILD_REGISTRIES_CONF_PATH":  "",
+		"BUILD_REGISTRIES_DIR_PATH":   "",
+		"BUILD_SIGNATURE_POLICY_PATH": "",
+		"BUILD_STORAGE_CONF_PATH":     "",
+		"BUILD_STORAGE_DRIVER":        "",
+		"BUILD_ISOLATION":             "",
+		"BUILD_BLOBCACHE_DIR":         "",
+	}
 	if !rootAllowed {
 		expectedKeys["ALLOWED_UIDS"] = ""
 		expectedKeys["DROP_CAPS"] = ""
