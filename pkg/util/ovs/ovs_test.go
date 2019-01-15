@@ -325,4 +325,14 @@ ofport              : 3
 		t.Fatalf("Unexpected response: %#v", valuesMap)
 	}
 	ensureTestResults(t, fexec)
+
+	// No addTestResult() since this should fail without calling exec
+	_, err = ovsif.Find("interface", []string{"external-ids"}, "external_ids:sandbox!=\"\"")
+	if err == nil {
+		t.Fatalf("failed to get error when referring to 'external-ids'")
+	}
+	_, err = ovsif.Find("interface", []string{"external_ids"}, "external-ids:sandbox!=\"\"")
+	if err == nil {
+		t.Fatalf("failed to get error when referring to 'external-ids'")
+	}
 }

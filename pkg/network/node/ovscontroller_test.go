@@ -798,7 +798,7 @@ func TestAlreadySetUp(t *testing.T) {
 
 	for i, tc := range testcases {
 		ovsif := ovs.NewFake(Br0)
-		if err := ovsif.AddBridge("fail-mode=secure", "protocols=OpenFlow13"); err != nil {
+		if err := ovsif.AddBridge("fail_mode=secure", "protocols=OpenFlow13"); err != nil {
 			t.Fatalf("(%d) unexpected error from AddBridge: %v", i, err)
 		}
 		oc := NewOVSController(ovsif, 0, true, "172.17.0.4")
