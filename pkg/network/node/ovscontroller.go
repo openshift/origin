@@ -405,11 +405,11 @@ func (oc *ovsController) getPodDetailsBySandboxID(sandboxID string) (int, net.IP
 		return 0, nil, fmt.Errorf("could not parse ofport %q: %v", rows[0]["ofport"], err)
 	}
 
-	ids, err := ovs.ParseExternalIDs(rows[0]["external-ids"])
+	ids, err := ovs.ParseExternalIDs(rows[0]["external_ids"])
 	if err != nil {
-		return 0, nil, fmt.Errorf("could not parse external-ids %q: %v", rows[0]["external-ids"], err)
+		return 0, nil, fmt.Errorf("could not parse external_ids %q: %v", rows[0]["external_ids"], err)
 	} else if ids["ip"] == "" {
-		return 0, nil, fmt.Errorf("external-ids %#v does not contain IP", ids)
+		return 0, nil, fmt.Errorf("external_ids %#v does not contain IP", ids)
 	}
 	podIP := net.ParseIP(ids["ip"])
 	if podIP == nil {
