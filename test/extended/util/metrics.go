@@ -4,8 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"net/url"
-	"os"
+	"net/http"
 	"strings"
 	"time"
 
@@ -13,25 +12,23 @@ import (
 	"github.com/prometheus/common/expfmt"
 
 	"k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
-	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
-	clientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/remotecommand"
-	"k8s.io/kubernetes/pkg/kubectl/util/term"
+	"k8s.io/client-go/tools/portforward"
+	"k8s.io/client-go/transport/spdy"
+	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/test/utils"
 )
 
 // pods whose metrics show a larger ratio of requests per
 // second than maxQPSAllowed are considered "unhealthy".
 const (
-	maxQPSAllowed              = 1.5
-	bearerTokenCreationTimeout = 10 * time.Second
+	maxQPSAllowed = 1.5
 )
 
 var (
@@ -43,7 +40,6 @@ var (
 		"openshift-cluster-kube-scheduler-operator":               1.8,
 		"openshift-cluster-openshift-controller-manager-operator": 1.7,
 	}
-	calculatedBearerToken = ""
 )
 
 type podInfo struct {
@@ -56,12 +52,15 @@ type podInfo struct {
 	skipped   bool
 }
 
-func CalculatePodMetrics(adminClient kubernetes.Interface, adminConfig *restclient.Config, testNamespace string) error {
-	namespaces, err := adminClient.CoreV1().Namespaces().List(metav1.ListOptions{})
-	if err != nil {
-		return err
+func CalculatePodMetrics(adminClient kubernetes.Interface, adminConfig *restclient.Config) error {
+	podUrlGetter := &PortForwardURLGetter{
+		Protocol:   "https",
+		Host:       "localhost",
+		RemotePort: "8443",
+		LocalPort:  "37587",
 	}
-	bearerToken, err := getBearerToken(adminClient, testNamespace)
+
+	namespaces, err := adminClient.CoreV1().Namespaces().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -73,7 +72,7 @@ func CalculatePodMetrics(adminClient kubernetes.Interface, adminConfig *restclie
 			continue
 		}
 
-		infos, err := getPodInfoForNamespace(adminClient, adminConfig, ns.Name, bearerToken)
+		infos, err := getPodInfoForNamespace(adminClient, adminConfig, podUrlGetter, ns.Name)
 		if err != nil {
 			return err
 		}
@@ -105,7 +104,7 @@ func CalculatePodMetrics(adminClient kubernetes.Interface, adminConfig *restclie
 	return nil
 }
 
-func getPodInfoForNamespace(adminClient kubernetes.Interface, adminConfig *restclient.Config, namespace, bearerToken string) ([]*podInfo, error) {
+func getPodInfoForNamespace(adminClient kubernetes.Interface, adminConfig *restclient.Config, podUrlGetter *PortForwardURLGetter, namespace string) ([]*podInfo, error) {
 	pods, err := adminClient.CoreV1().Pods(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -139,10 +138,10 @@ func getPodInfoForNamespace(adminClient kubernetes.Interface, adminConfig *restc
 			continue
 		}
 
-		metrics, err := getPodMetrics(adminConfig, &pod, bearerToken)
+		metrics, err := getPodMetrics(adminConfig, &pod, podUrlGetter)
 		if err != nil {
 			// ignore errors from pods with no /metrics endpoint available
-			if !strings.Contains(err.Error(), "Connection refused") {
+			if !strings.Contains(err.Error(), "Connection refused") && !strings.Contains(err.Error(), "EOF") {
 				info.result = fmt.Sprintf("error: %s", err)
 				info.failed = true
 			} else {
@@ -191,94 +190,8 @@ func getPodInfoForNamespace(adminClient kubernetes.Interface, adminConfig *restc
 	return podInfos, nil
 }
 
-func getBearerToken(adminClient kubernetes.Interface, namespace string) (string, error) {
-	if len(calculatedBearerToken) > 0 {
-		return calculatedBearerToken, nil
-	}
-
-	sa := &v1.ServiceAccount{
-		TypeMeta:   metav1.TypeMeta{APIVersion: v1.SchemeGroupVersion.String(), Kind: "ServiceAccount"},
-		ObjectMeta: metav1.ObjectMeta{Name: namespace + "-sa", Namespace: namespace},
-	}
-
-	// ensure our namespace exists
-	_, err := adminClient.CoreV1().Namespaces().Create(&v1.Namespace{
-		TypeMeta:   metav1.TypeMeta{APIVersion: v1.SchemeGroupVersion.String(), Kind: "Namespace"},
-		ObjectMeta: metav1.ObjectMeta{Name: namespace},
-	})
-	if err != nil && !kapierrs.IsAlreadyExists(err) {
-		return "", err
-	}
-
-	// ensure our service account can GET /metrics
-	_, err = adminClient.RbacV1().ClusterRoleBindings().Create(&rbacv1.ClusterRoleBinding{
-		TypeMeta: metav1.TypeMeta{APIVersion: rbacv1.SchemeGroupVersion.String(), Kind: "ClusterRoleBinding"},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: namespace + "-metrics-viewer",
-		},
-		RoleRef: rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "ClusterRole", Name: "cluster-admin"},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:      "ServiceAccount",
-				Name:      sa.Name,
-				Namespace: namespace,
-			},
-		},
-	})
-	if err != nil && !kapierrs.IsAlreadyExists(err) {
-		return "", err
-	}
-
-	_, err = adminClient.CoreV1().ServiceAccounts(namespace).Create(sa)
-	if err != nil && !kapierrs.IsAlreadyExists(err) {
-		return "", err
-	}
-
-	// create secret to store the generated token for our serviceaccount
-	saSecret, err := adminClient.CoreV1().Secrets(namespace).Create(&v1.Secret{
-		TypeMeta: metav1.TypeMeta{APIVersion: v1.SchemeGroupVersion.String(), Kind: "Secret"},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      namespace + "-sa-token",
-			Namespace: namespace,
-			Annotations: map[string]string{
-				v1.ServiceAccountNameKey: sa.Name,
-			},
-		},
-		Type: v1.SecretTypeServiceAccountToken,
-	})
-	if err != nil && !kapierrs.IsAlreadyExists(err) {
-		return "", err
-	}
-
-	// wait until a token secret is created for our service account secret, then extract token
-	wait.PollImmediate(100*time.Millisecond, bearerTokenCreationTimeout, func() (bool, error) {
-		secret, err := adminClient.CoreV1().Secrets(namespace).Get(saSecret.Name, metav1.GetOptions{})
-		if err != nil && !kapierrs.IsNotFound(err) {
-			return false, err
-		}
-
-		bearerTokenBytes, ok := secret.Data[v1.ServiceAccountTokenKey]
-		if !ok || len(bearerTokenBytes) == 0 {
-			return false, nil
-		}
-
-		calculatedBearerToken = string(bearerTokenBytes)
-		return true, nil
-	})
-
-	if len(calculatedBearerToken) == 0 {
-		return "", fmt.Errorf("no Bearer Token found for SA in namespace %q", namespace)
-	}
-	return calculatedBearerToken, nil
-}
-
-func getPodMetrics(adminConfig *restclient.Config, pod *v1.Pod, token string) (map[string]*dto.MetricFamily, error) {
-	if len(token) == 0 {
-		return nil, fmt.Errorf("no Bearer Token found in provided admin config")
-	}
-
-	command := []string{"/bin/curl", "-H", fmt.Sprintf("%s", "Authorization: Bearer "+token), "-k", "https://localhost:8443/metrics"}
-	result, err := execCommandInPod(adminConfig, pod, command)
+func getPodMetrics(adminConfig *restclient.Config, pod *v1.Pod, podUrlGetter *PortForwardURLGetter) (map[string]*dto.MetricFamily, error) {
+	result, err := podUrlGetter.Get("/metrics", pod, adminConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -291,62 +204,124 @@ func parseRawMetrics(rawMetrics string) (map[string]*dto.MetricFamily, error) {
 	return p.TextToMetricFamilies(bytes.NewBufferString(rawMetrics))
 }
 
-func execCommandInPod(adminConfig *restclient.Config, pod *v1.Pod, command []string) (string, error) {
-	cmdOutput := bytes.NewBuffer(nil)
-	cmdErr := bytes.NewBuffer(nil)
+type defaultPortForwarder struct {
+	restConfig *rest.Config
 
-	if len(pod.Spec.Containers) == 0 {
-		return "", fmt.Errorf("no containers found")
-	}
-
-	t := term.TTY{
-		Out: os.Stdout,
-	}
-	if err := t.Safe(func() error {
-		restClient, err := clientv1.NewForConfig(adminConfig)
-		if err != nil {
-			return err
-		}
-
-		containerName := pod.Spec.Containers[0].Name
-		req := restClient.RESTClient().Post().
-			Resource("pods").
-			Name(pod.GetName()).
-			Namespace(pod.GetNamespace()).
-			SubResource("exec").
-			Param("container", containerName)
-		req.VersionedParams(&v1.PodExecOptions{
-			Container: containerName,
-			Command:   command,
-			Stdin:     false,
-			Stdout:    true,
-			Stderr:    true,
-			TTY:       false,
-		}, scheme.ParameterCodec)
-
-		var sizeQueue remotecommand.TerminalSizeQueue
-		executor := &remoteExecutor{}
-		return executor.Execute("POST", req.URL(), adminConfig, nil, cmdOutput, cmdErr, false, sizeQueue)
-	}); err != nil {
-		return "", fmt.Errorf("%v: %v", cmdErr.String(), err)
-	}
-
-	return cmdOutput.String(), nil
+	StopChannel  chan struct{}
+	ReadyChannel chan struct{}
 }
 
-type remoteExecutor struct{}
+func NewDefaultPortForwarder(adminConfig *rest.Config) *defaultPortForwarder {
+	return &defaultPortForwarder{
+		restConfig:   adminConfig,
+		StopChannel:  make(chan struct{}, 1),
+		ReadyChannel: make(chan struct{}, 1),
+	}
+}
 
-func (*remoteExecutor) Execute(method string, url *url.URL, config *restclient.Config, stdin io.Reader, stdout, stderr io.Writer, tty bool, terminalSizeQueue remotecommand.TerminalSizeQueue) error {
-	exec, err := remotecommand.NewSPDYExecutor(config, method, url)
+func (f *defaultPortForwarder) ForwardPortsAndExecute(pod *v1.Pod, ports []string, toExecute func()) error {
+	if len(ports) < 1 {
+		return fmt.Errorf("at least 1 PORT is required for port-forward")
+	}
+
+	restClient, err := rest.RESTClientFor(setRESTConfigDefaults(*f.restConfig))
 	if err != nil {
 		return err
 	}
 
-	return exec.Stream(remotecommand.StreamOptions{
-		Stdin:             stdin,
-		Stdout:            stdout,
-		Stderr:            stderr,
-		Tty:               tty,
-		TerminalSizeQueue: terminalSizeQueue,
-	})
+	if pod.Status.Phase != v1.PodRunning {
+		return fmt.Errorf("unable to forward port because pod is not running. Current status=%v", pod.Status.Phase)
+	}
+
+	stdout := bytes.NewBuffer(nil)
+	req := restClient.Post().
+		Resource("pods").
+		Namespace(pod.Namespace).
+		Name(pod.Name).
+		SubResource("portforward")
+
+	transport, upgrader, err := spdy.RoundTripperFor(f.restConfig)
+	if err != nil {
+		return err
+	}
+	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, "POST", req.URL())
+	fw, err := portforward.New(dialer, ports, f.StopChannel, f.ReadyChannel, stdout, stdout)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		if f.StopChannel != nil {
+			defer close(f.StopChannel)
+		}
+
+		<-f.ReadyChannel
+		toExecute()
+	}()
+
+	return fw.ForwardPorts()
+}
+
+func setRESTConfigDefaults(config rest.Config) *rest.Config {
+	if config.GroupVersion == nil {
+		config.GroupVersion = &schema.GroupVersion{Group: "", Version: "v1"}
+	}
+	if config.NegotiatedSerializer == nil {
+		config.NegotiatedSerializer = scheme.Codecs
+	}
+	if len(config.UserAgent) == 0 {
+		config.UserAgent = rest.DefaultKubernetesUserAgent()
+	}
+	config.APIPath = "/api"
+	return &config
+}
+
+func newInsecureRESTClientForHost(host string) (rest.Interface, error) {
+	insecure := true
+
+	configFlags := &genericclioptions.ConfigFlags{}
+	configFlags.Insecure = &insecure
+	configFlags.APIServer = &host
+
+	newConfig, err := configFlags.ToRESTConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	return rest.RESTClientFor(setRESTConfigDefaults(*newConfig))
+}
+
+type PortForwardURLGetter struct {
+	Protocol   string
+	Host       string
+	RemotePort string
+	LocalPort  string
+}
+
+func (c *PortForwardURLGetter) Get(urlPath string, pod *v1.Pod, config *rest.Config) (string, error) {
+	var result string
+	var lastErr error
+	forwarder := NewDefaultPortForwarder(config)
+
+	if err := forwarder.ForwardPortsAndExecute(pod, []string{c.LocalPort + ":" + c.RemotePort}, func() {
+		restClient, err := newInsecureRESTClientForHost(fmt.Sprintf("https://localhost:%s/", c.LocalPort))
+		if err != nil {
+			lastErr = err
+			return
+		}
+
+		ioCloser, err := restClient.Get().RequestURI(urlPath).Stream()
+		if err != nil {
+			lastErr = err
+			return
+		}
+		defer ioCloser.Close()
+
+		data := bytes.NewBuffer(nil)
+		_, lastErr = io.Copy(data, ioCloser)
+		result = data.String()
+	}); err != nil {
+		return "", err
+	}
+	return result, lastErr
 }

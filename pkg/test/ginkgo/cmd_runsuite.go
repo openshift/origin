@@ -303,9 +303,8 @@ func (opt *Options) Run(args []string) error {
 		out:     []byte("No operator performance anomalies were observed"),
 	}
 
-	ns := "operators-metrics-test-e2e"
-	oc := util.NewCLI(ns, util.KubeConfigPath())
-	if err := util.CalculatePodMetrics(oc.AdminKubeClient(), oc.AdminConfig(), ns); err != nil {
+	oc := util.NewCLI("operators-metrics-test-e2e", util.KubeConfigPath())
+	if err := util.CalculatePodMetrics(oc.AdminKubeClient(), oc.AdminConfig()); err != nil {
 		fail++
 		operatorMetricsTc.failed = true
 		operatorMetricsTc.success = false
