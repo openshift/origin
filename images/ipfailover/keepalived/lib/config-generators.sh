@@ -217,6 +217,25 @@ vrrp_instance ${instance_name} {
 
 
 #
+#  Generate integer from IP address.
+#
+#  Examples:
+#      generate_ipkey 192.0.2.100
+#      generate_ipkey 2001::db8:77::123
+#
+function generate_ipkey() {
+  local ipaddr ; ipaddr="$1"
+
+  if [[ "$ipaddr" = *:* ]]; then
+    # IPv6 in hex
+    printf "%d" "0x0${ipaddr##*:}"
+  else
+    echo "${ipaddr##*.}"
+  fi
+}
+
+
+#
 #  Generate failover configuration.
 #
 #  Examples:
@@ -235,7 +254,7 @@ $(generate_global_config "${HA_CONFIG_NAME}")
 $(generate_script_config "${ipaddr}" "${port}")
 "
 
-  local ipkey ; ipkey=$(echo "${ipaddr}" | cut -f 4 -d '.')
+  local ipkey ; ipkey=$(generate_ipkey "${ipaddr}")
   local ipslot=$((ipkey % 128))
 
   local nodecount
