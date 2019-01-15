@@ -31,7 +31,7 @@ See the description on the test for more info about what prerequites may exist f
 To run a subset of tests using a regexp, run:
 
 ```console
-$ openshift-tests run openshift/all --dry-run | grep -E "<REGEX>" | openshift-tests run -f -
+$ openshift-tests run all --dry-run | grep -E "<REGEX>" | openshift-tests run -f -
 ```
 
 
