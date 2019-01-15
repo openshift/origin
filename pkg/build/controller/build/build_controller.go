@@ -49,6 +49,8 @@ import (
 	imageutil "github.com/openshift/origin/pkg/image/util"
 )
 
+// TEST BUILD CONTROLLER!
+
 const (
 	maxRetries = 15
 
