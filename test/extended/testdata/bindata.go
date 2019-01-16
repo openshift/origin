@@ -1457,7 +1457,7 @@ var _testExtendedTestdataBuildsBuildSecretsTestS2iBuildJson = []byte(`{
       "sourceStrategy": {
         "from": {
           "kind": "DockerImage",
-          "name": "docker.io/centos/ruby-22-centos7"
+          "name": "docker.io/centos/ruby-25-centos7"
         },
         "env": [
           {
@@ -1553,7 +1553,7 @@ func testExtendedTestdataBuildsBuildSecretsTestSecretJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsBuildTimingDockerfile = []byte(`FROM centos/ruby-22-centos7
+var _testExtendedTestdataBuildsBuildTimingDockerfile = []byte(`FROM centos/ruby-25-centos7
 
 USER root
 `)
@@ -1866,7 +1866,7 @@ var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
             ],
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7:latest"
+              "name": "centos/ruby-25-centos7:latest"
             }
           }
         },
@@ -2445,7 +2445,7 @@ func testExtendedTestdataBuildsTestBcWithPrRefYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsTestBuildAppDockerfile = []byte(`FROM centos/ruby-22-centos7
+var _testExtendedTestdataBuildsTestBuildAppDockerfile = []byte(`FROM centos/ruby-25-centos7
 USER default
 EXPOSE 8080
 ENV RACK_ENV production
@@ -2669,7 +2669,7 @@ items:
       dockerStrategy:
         from:
           kind: DockerImage
-          name: docker.io/centos/ruby-22-centos7
+          name: docker.io/centos/ruby-25-centos7
         env:
         - name: SOME_HTTP_PROXY
           value: https://envuser:password@proxy3.com
@@ -2795,7 +2795,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
     resources: {}
   status:
     lastVersion: 0
@@ -2824,7 +2824,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
     resources: {}
   status:
     lastVersion: 0
@@ -2852,7 +2852,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
     resources: {}
   status:
     lastVersion: 0
@@ -2881,7 +2881,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
     resources: {}
   status:
     lastVersion: 0
@@ -2909,7 +2909,7 @@ items:
           value: '5'
         from:
           kind: DockerImage
-          name: centos/ruby-22-centos7
+          name: centos/ruby-25-centos7
     resources: {}
     nodeSelector:
       nodelabelkey: nodelabelvalue
@@ -2927,7 +2927,7 @@ items:
     source:
       type: Dockerfile
       dockerfile: |-
-        FROM centos/ruby-22-centos7
+        FROM centos/ruby-25-centos7
         ARG foo
         RUN echo $foo
     strategy:
@@ -2953,7 +2953,7 @@ items:
     source:
       type: Dockerfile
       dockerfile: |-
-        FROM centos/ruby-22-centos7
+        FROM centos/ruby-25-centos7
         ARG foo
         RUN echo $foo
     strategy:
@@ -3603,7 +3603,7 @@ var _testExtendedTestdataBuildsTestEnvBuildJson = []byte(`{
       "sourceStrategy":{
         "from":{
           "kind":"DockerImage",
-          "name":"centos/ruby-22-centos7"
+          "name":"centos/ruby-25-centos7"
         }
       }
     },
@@ -4884,7 +4884,7 @@ run Proc.new { |env|
 EOF
 
 cat > Dockerfile <<- EOF
-FROM centos/ruby-22-centos7
+FROM centos/ruby-25-centos7
 ENV SECRET_FILE /opt/openshift/src/dockercfg
 COPY dockercfg ./
 COPY config.ru ./
@@ -8722,7 +8722,7 @@ var _testExtendedTestdataJenkinsPluginMultitagTemplateJson = []byte(`{
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "centos/ruby-25-centos7"
             }
           }
         ]
@@ -8740,7 +8740,7 @@ var _testExtendedTestdataJenkinsPluginMultitagTemplateJson = []byte(`{
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "centos/ruby-25-centos7"
             }
           }
         ]
@@ -8758,7 +8758,7 @@ var _testExtendedTestdataJenkinsPluginMultitagTemplateJson = []byte(`{
             "name": "orig",
             "from": {
               "kind": "DockerImage",
-              "name": "centos/ruby-22-centos7"
+              "name": "centos/ruby-25-centos7"
             }
           }
         ]
@@ -9464,7 +9464,7 @@ func testExtendedTestdataLdapLdapserverServiceJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataLong_namesDockerfile = []byte(`FROM centos/ruby-22-centos7
+var _testExtendedTestdataLong_namesDockerfile = []byte(`FROM centos/ruby-25-centos7
 
 CMD ["/bin/sh", "-c", "echo", "hello"]
 `)
@@ -9512,7 +9512,7 @@ var _testExtendedTestdataLong_namesFixtureJson = []byte(`{
                     "sourceStrategy": {
                         "from": {
                             "kind": "DockerImage",
-                            "name": "centos/ruby-22-centos7"
+                            "name": "centos/ruby-25-centos7"
                         }
                     }
                 }
@@ -9541,7 +9541,7 @@ var _testExtendedTestdataLong_namesFixtureJson = []byte(`{
                     "sourceStrategy": {
                         "from": {
                             "kind": "DockerImage",
-                            "name": "centos/ruby-22-centos7"
+                            "name": "centos/ruby-25-centos7"
                         }
                     }
                 }
@@ -11134,7 +11134,7 @@ var _testExtendedTestdataRun_policyParallelBcYaml = []byte(`---
           sourceStrategy: 
             from: 
               kind: "DockerImage"
-              name: "centos/ruby-22-centos7"
+              name: "centos/ruby-25-centos7"
         resources: {}
       status: 
         lastVersion: 0
@@ -11181,7 +11181,7 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
           sourceStrategy: 
             from: 
               kind: "DockerImage"
-              name: "centos/ruby-22-centos7"
+              name: "centos/ruby-25-centos7"
     - 
       kind: "BuildConfig"
       apiVersion: "v1"
@@ -11202,7 +11202,7 @@ var _testExtendedTestdataRun_policySerialBcYaml = []byte(`---
           sourceStrategy: 
             from: 
               kind: "DockerImage"
-              name: "centos/ruby-22-centos7"
+              name: "centos/ruby-25-centos7"
 `)
 
 func testExtendedTestdataRun_policySerialBcYamlBytes() ([]byte, error) {
@@ -11245,7 +11245,7 @@ var _testExtendedTestdataRun_policySerialLatestOnlyBcYaml = []byte(`---
           sourceStrategy: 
             from: 
               kind: "DockerImage"
-              name: "centos/ruby-22-centos7"
+              name: "centos/ruby-25-centos7"
         resources: {}
       status: 
         lastVersion: 0
@@ -11320,7 +11320,7 @@ func testExtendedTestdataS2iDropcapsRootAccessBuildYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataS2iDropcapsRootableRubyDockerfile = []byte(`FROM centos/ruby-22-centos7:latest
+var _testExtendedTestdataS2iDropcapsRootableRubyDockerfile = []byte(`FROM centos/ruby-25-centos7:latest
 USER root
 RUN yum -y install expect
 RUN echo "root:redhat" | chpasswd
