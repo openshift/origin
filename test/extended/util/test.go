@@ -397,6 +397,7 @@ var (
 			`Service endpoints latency`, // requires low latency
 			`Clean up pods on node`,     // schedules up to max pods per node
 			`should allow starting 95 pods per node`,
+			`DynamicProvisioner should test that deleting a claim before the volume is provisioned deletes the volume`, // test is very disruptive to other tests
 
 			`Should be able to support the 1.7 Sample API Server using the current Aggregator`, // down apiservices break other clients today https://bugzilla.redhat.com/show_bug.cgi?id=1623195
 		},
