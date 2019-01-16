@@ -190,7 +190,7 @@ func NopManifestMapper(data []byte) ([]byte, error) {
 // patternImageFormat attempts to match a docker pull spec by prefix (%s) and capture the
 // prefix and either a tag or digest. It requires leading and trailing whitespace, quotes, or
 // end of file.
-const patternImageFormat = `([\s\"\']|^)(%s)(:[\w][\w.-]{0,127}|@[A-Za-z][A-Za-z0-9]*(?:[-_+.][A-Za-z][A-Za-z0-9]*)*[:][[:xdigit:]]{2,})?([\s"']|$)`
+const patternImageFormat = `([\W]|^)(%s)(:[\w][\w.-]{0,127}|@[A-Za-z][A-Za-z0-9]*(?:[-_+.][A-Za-z][A-Za-z0-9]*)*[:][[:xdigit:]]{2,})?([\s"']|$)`
 
 func NewImageMapper(images map[string]ImageReference) (ManifestMapper, error) {
 	repositories := make([]string, 0, len(images))

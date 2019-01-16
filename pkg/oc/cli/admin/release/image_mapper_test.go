@@ -97,6 +97,42 @@ func TestNewImageMapper(t *testing.T) {
 			output: "image: quay.io/openshift/origin-etcd@sha256:1234",
 		},
 		{
+			name: "replace with digest on a multi-line file with quotes and newlines",
+			args: args{
+				images: map[string]ImageReference{
+					"etcd": {
+						SourceRepository: "quay.io/openshift/origin-prometheus:latest",
+						TargetPullSpec:   "quay.io/openshift/origin-prometheus@sha256:1234",
+					},
+				},
+			},
+			input: `
+	- "-images=prometheus=quay.io/openshift/origin-prometheus:latest"
+	- "-images=alertmanager=quay.io/openshift/origin-prometheus-alertmanager:latest"
+`,
+			output: `
+	- "-images=prometheus=quay.io/openshift/origin-prometheus@sha256:1234"
+	- "-images=alertmanager=quay.io/openshift/origin-prometheus-alertmanager:latest"
+`,
+		},
+		{
+			name: "replace with digest on a multi-line file with quotes and newlines",
+			args: args{
+				images: map[string]ImageReference{
+					"etcd": {
+						SourceRepository: "quay.io/openshift/origin-prometheus:latest",
+						TargetPullSpec:   "quay.io/openshift/origin-prometheus@sha256:1234",
+					},
+				},
+			},
+			input: `
+	- "quay.io/openshift/origin-prometheus:latest"
+`,
+			output: `
+	- "quay.io/openshift/origin-prometheus@sha256:1234"
+`,
+		},
+		{
 			name: "replace bare repository when told to do so",
 			args: args{
 				images: map[string]ImageReference{
