@@ -166,7 +166,7 @@ func Run(c schedulerserverconfig.CompletedConfig, stopCh <-chan struct{}) error 
 	}
 	if c.SecureServing != nil {
 		handler := buildHandlerChain(newHealthzHandler(&c.ComponentConfig, false), c.Authentication.Authenticator, c.Authorization.Authorizer)
-		if err := c.SecureServing.Serve(handler, 0, stopCh); err != nil {
+		if _, err := c.SecureServing.Serve(handler, 0, stopCh); err != nil {
 			// fail early for secure handlers, removing the old error loop from above
 			return fmt.Errorf("failed to start healthz server: %v", err)
 		}

@@ -142,7 +142,7 @@ func Run(c *config.CompletedConfig) error {
 	if c.SecureServing != nil {
 		handler := genericcontrollermanager.NewBaseHandler(&c.ComponentConfig.Debugging)
 		handler = genericcontrollermanager.BuildHandlerChain(handler, &c.Authorization, &c.Authentication)
-		if err := c.SecureServing.Serve(handler, 0, stopCh); err != nil {
+		if _, err := c.SecureServing.Serve(handler, 0, stopCh); err != nil {
 			return err
 		}
 	}

@@ -121,7 +121,7 @@ func serveInsecurely(insecureServingInfo *InsecureServingInfo, insecureHandler h
 	if err != nil {
 		return err
 	}
-	err = server.RunServer(insecureServer, ln, shutDownTimeout, stopCh)
+	_, err = server.RunServer(insecureServer, ln, shutDownTimeout, stopCh)
 	return err
 }
 

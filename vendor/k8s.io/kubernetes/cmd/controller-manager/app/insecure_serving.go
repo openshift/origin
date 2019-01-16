@@ -48,5 +48,6 @@ func (s *InsecureServingInfo) Serve(handler http.Handler, shutdownTimeout time.D
 	} else {
 		glog.Infof("Serving insecurely on %s", s.Listener.Addr())
 	}
-	return server.RunServer(insecureServer, s.Listener, shutdownTimeout, stopCh)
+	_, err := server.RunServer(insecureServer, s.Listener, shutdownTimeout, stopCh)
+	return err
 }
