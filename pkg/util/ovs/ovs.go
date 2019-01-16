@@ -185,9 +185,25 @@ func (ovsif *ovsExec) exec(cmd string, args ...string) (string, error) {
 	return ovsif.execWithStdin(cmd, nil, args...)
 }
 
+func validateColumns(columns ...string) error {
+	for _, col := range columns {
+		end := strings.IndexAny(col, ":=")
+		if end != -1 {
+			col = col[:end]
+		}
+		if strings.Contains(col, "-") {
+			return fmt.Errorf("bad ovsdb column name %q: should be %q", col, strings.Replace(col, "-", "_", -1))
+		}
+	}
+	return nil
+}
+
 func (ovsif *ovsExec) AddBridge(properties ...string) error {
 	args := []string{"add-br", ovsif.bridge}
 	if len(properties) > 0 {
+		if err := validateColumns(properties...); err != nil {
+			return err
+		}
 		args = append(args, "--", "set", "Bridge", ovsif.bridge)
 		args = append(args, properties...)
 	}
@@ -232,6 +248,9 @@ func (ovsif *ovsExec) AddPort(port string, ofportRequest int, properties ...stri
 			args = append(args, fmt.Sprintf("ofport_request=%d", ofportRequest))
 		}
 		if len(properties) > 0 {
+			if err := validateColumns(properties...); err != nil {
+				return -1, err
+			}
 			args = append(args, properties...)
 		}
 	}
@@ -260,6 +279,9 @@ func (ovsif *ovsExec) SetFrags(mode string) error {
 }
 
 func (ovsif *ovsExec) Create(table string, values ...string) (string, error) {
+	if err := validateColumns(values...); err != nil {
+		return "", err
+	}
 	args := append([]string{"create", table}, values...)
 	return ovsif.exec(OVS_VSCTL, args...)
 }
@@ -270,16 +292,28 @@ func (ovsif *ovsExec) Destroy(table, record string) error {
 }
 
 func (ovsif *ovsExec) Get(table, record, column string) (string, error) {
+	if err := validateColumns(column); err != nil {
+		return "", err
+	}
 	return ovsif.exec(OVS_VSCTL, "get", table, record, column)
 }
 
 func (ovsif *ovsExec) Set(table, record string, values ...string) error {
+	if err := validateColumns(values...); err != nil {
+		return err
+	}
 	args := append([]string{"set", table, record}, values...)
 	_, err := ovsif.exec(OVS_VSCTL, args...)
 	return err
 }
 
 func (ovsif *ovsExec) Find(table string, columns []string, condition string) ([]map[string]string, error) {
+	if err := validateColumns(columns...); err != nil {
+		return nil, err
+	}
+	if err := validateColumns(condition); err != nil {
+		return nil, err
+	}
 	output, err := ovsif.exec(OVS_VSCTL, "--columns="+strings.Join(columns, ","), "find", table, condition)
 	if err != nil {
 		return nil, err
@@ -328,6 +362,9 @@ func (ovsif *ovsExec) FindOne(table, column, condition string) ([]string, error)
 }
 
 func (ovsif *ovsExec) Clear(table, record string, columns ...string) error {
+	if err := validateColumns(columns...); err != nil {
+		return err
+	}
 	args := append([]string{"--if-exists", "clear", table, record}, columns...)
 	_, err := ovsif.exec(OVS_VSCTL, args...)
 	return err
