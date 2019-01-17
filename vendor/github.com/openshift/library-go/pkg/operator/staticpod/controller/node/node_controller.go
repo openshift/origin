@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
+
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -18,14 +20,13 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 )
 
 const nodeControllerWorkQueueKey = "key"
 
 // NodeController watches for new master nodes and adds them to the node status list in the operator config status.
 type NodeController struct {
-	operatorConfigClient common.OperatorClient
+	operatorConfigClient v1helpers.StaticPodOperatorClient
 	eventRecorder        events.Recorder
 
 	nodeListerSynced cache.InformerSynced
@@ -37,7 +38,7 @@ type NodeController struct {
 
 // NewNodeController creates a new node controller.
 func NewNodeController(
-	operatorConfigClient common.OperatorClient,
+	operatorConfigClient v1helpers.StaticPodOperatorClient,
 	kubeInformersClusterScoped informers.SharedInformerFactory,
 	eventRecorder events.Recorder,
 ) *NodeController {
@@ -57,7 +58,7 @@ func NewNodeController(
 }
 
 func (c NodeController) sync() error {
-	_, originalOperatorStatus, resourceVersion, err := c.operatorConfigClient.Get()
+	_, originalOperatorStatus, resourceVersion, err := c.operatorConfigClient.GetStaticPodOperatorState()
 	if err != nil {
 		return err
 	}
@@ -106,7 +107,7 @@ func (c NodeController) sync() error {
 
 	operatorStatus.NodeStatuses = newTargetNodeStates
 	if !equality.Semantic.DeepEqual(originalOperatorStatus, operatorStatus) {
-		if _, updateError := c.operatorConfigClient.UpdateStatus(resourceVersion, operatorStatus); updateError != nil {
+		if _, updateError := c.operatorConfigClient.UpdateStaticPodOperatorStatus(resourceVersion, operatorStatus); updateError != nil {
 			return updateError
 		}
 	}

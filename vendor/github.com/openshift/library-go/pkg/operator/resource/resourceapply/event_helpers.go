@@ -2,6 +2,7 @@ package resourceapply
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/golang/glog"
 
@@ -59,7 +60,7 @@ func reportCreateEvent(recorder events.Recorder, obj runtime.Object, originalErr
 	recorder.Warningf(fmt.Sprintf("%sCreateFailed", reportingKind), "Failed to create %s%s/%s%s: %v", reportingKind, reportingGroup, accessor.GetName(), namespace, originalErr)
 }
 
-func reportUpdateEvent(recorder events.Recorder, obj runtime.Object, originalErr error) {
+func reportUpdateEvent(recorder events.Recorder, obj runtime.Object, originalErr error, details ...string) {
 	reportingGroup, reportingKind := guessObjectGroupKind(obj)
 	if len(reportingGroup) != 0 {
 		reportingGroup += "."
@@ -73,9 +74,12 @@ func reportUpdateEvent(recorder events.Recorder, obj runtime.Object, originalErr
 	if len(accessor.GetNamespace()) > 0 {
 		namespace = " -n " + accessor.GetNamespace()
 	}
-	if originalErr == nil {
+	switch {
+	case originalErr != nil:
+		recorder.Warningf(fmt.Sprintf("%sUpdateFailed", reportingKind), "Failed to update %s%s/%s%s: %v", reportingKind, reportingGroup, accessor.GetName(), namespace, originalErr)
+	case len(details) == 0:
 		recorder.Eventf(fmt.Sprintf("%sUpdated", reportingKind), "Updated %s%s/%s%s because it changed", reportingKind, reportingGroup, accessor.GetName(), namespace)
-		return
+	default:
+		recorder.Eventf(fmt.Sprintf("%sUpdated", reportingKind), "Updated %s%s/%s%s: %s", reportingKind, reportingGroup, accessor.GetName(), namespace, strings.Join(details, "\n"))
 	}
-	recorder.Warningf(fmt.Sprintf("%sUpdateFailed", reportingKind), "Failed to update %s%s/%s%s: %v", reportingKind, reportingGroup, accessor.GetName(), namespace, originalErr)
 }

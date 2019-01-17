@@ -2,8 +2,9 @@ package prune
 
 import (
 	"fmt"
-	"strings"
 	"testing"
+
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,7 +14,6 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 )
 
 type configMapInfo struct {
@@ -23,7 +23,175 @@ type configMapInfo struct {
 	phase     string
 }
 
-func TestPruneRevisionHistory(t *testing.T) {
+func TestPruneAPIResources(t *testing.T) {
+	tests := []struct {
+		name            string
+		targetNamespace string
+		failedLimit     int
+		succeededLimit  int
+		currentRevision int
+		configMaps      []configMapInfo
+		testSecrets     []string
+		testConfigs     []string
+		startingObjects []runtime.Object
+		expectedObjects []runtime.Object
+	}{
+		{
+			name:            "prunes api resources based on limits set and status stored in configmap",
+			targetNamespace: "prune-api",
+			startingObjects: []runtime.Object{
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-1", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   string(v1.PodSucceeded),
+						"revision": "1",
+					},
+				},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-2", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   string(v1.PodSucceeded),
+						"revision": "2",
+					},
+				},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-3", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   string(v1.PodFailed),
+						"revision": "3",
+					},
+				},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-4", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   string(v1.PodFailed),
+						"revision": "4",
+					},
+				},
+			},
+			failedLimit:    1,
+			succeededLimit: 1,
+			expectedObjects: []runtime.Object{
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-2", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   string(v1.PodSucceeded),
+						"revision": "2",
+					},
+				},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-4", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   string(v1.PodFailed),
+						"revision": "4",
+					},
+				},
+			},
+		},
+		{
+			name:            "protects InProgress and unknown revision statuses",
+			targetNamespace: "prune-api",
+			startingObjects: []runtime.Object{
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-1", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   string(v1.PodSucceeded),
+						"revision": "1",
+					},
+				},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-2", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   "foo",
+						"revision": "2",
+					},
+				},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-3", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   "InProgress",
+						"revision": "3",
+					},
+				},
+			},
+			failedLimit:    1,
+			succeededLimit: 1,
+			expectedObjects: []runtime.Object{
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-1", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   string(v1.PodSucceeded),
+						"revision": "1",
+					},
+				},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-2", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   "foo",
+						"revision": "2",
+					},
+				},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-3", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   "InProgress",
+						"revision": "3",
+					},
+				},
+			},
+		},
+	}
+	for _, tc := range tests {
+		kubeClient := fake.NewSimpleClientset(tc.startingObjects...)
+		fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(
+			&operatorv1.OperatorSpec{
+				ManagementState: operatorv1.Managed,
+			},
+			&operatorv1.OperatorStatus{},
+			&operatorv1.StaticPodOperatorStatus{
+				LatestAvailableRevision: 1,
+				NodeStatuses: []operatorv1.NodeStatus{
+					{
+						NodeName:        "test-node-1",
+						CurrentRevision: 0,
+						TargetRevision:  0,
+					},
+				},
+			},
+			nil,
+		)
+		eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &v1.ObjectReference{})
+
+		operatorStatus := &operatorv1.StaticPodOperatorStatus{
+			LatestAvailableRevision: 1,
+			NodeStatuses: []operatorv1.NodeStatus{
+				{
+					NodeName:        "test-node-1",
+					CurrentRevision: 0,
+					TargetRevision:  0,
+				},
+			},
+		}
+
+		c := &PruneController{
+			targetNamespace:        tc.targetNamespace,
+			podResourcePrefix:      "test-pod",
+			command:                []string{"/bin/true"},
+			kubeClient:             kubeClient,
+			eventRecorder:          eventRecorder,
+			operatorConfigClient:   fakeStaticPodOperatorClient,
+			failedRevisionLimit:    tc.failedLimit,
+			succeededRevisionLimit: tc.succeededLimit,
+		}
+		c.prunerPodImageFn = func() string { return "docker.io/foo/bar" }
+
+		excludedIDs, err := c.excludedRevisionHistory(operatorStatus)
+		if err != nil {
+			t.Fatalf("unexpected error %q", err)
+		}
+		if apiErr := c.pruneAPIResources(excludedIDs, excludedIDs[len(excludedIDs)-1]); apiErr != nil {
+			t.Fatalf("unexpected error %q", apiErr)
+		}
+
+		statusConfigMaps, err := c.kubeClient.CoreV1().ConfigMaps(tc.targetNamespace).List(metav1.ListOptions{})
+		if err != nil {
+			t.Fatalf("unexpected error %q", err)
+		}
+		if len(statusConfigMaps.Items) != len(tc.expectedObjects) {
+			t.Errorf("expected objects %+v but got %+v", tc.expectedObjects, statusConfigMaps.Items)
+		}
+	}
+}
+
+func TestPruneDiskResources(t *testing.T) {
 	tests := []struct {
 		name           string
 		failedLimit    int
@@ -88,7 +256,7 @@ func TestPruneRevisionHistory(t *testing.T) {
 		},
 
 		{
-			name: "returns an error for unknown revision status",
+			name: "protects unknown revision status",
 			configMaps: []configMapInfo{
 				{
 					name:      "revision-status-1",
@@ -143,7 +311,7 @@ func TestPruneRevisionHistory(t *testing.T) {
 				return true, configMapList(test.configMaps), nil
 			})
 
-			fakeStaticPodOperatorClient := common.NewFakeStaticPodOperatorClient(
+			fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(
 				&operatorv1.OperatorSpec{
 					ManagementState: operatorv1.Managed,
 				},
@@ -185,14 +353,12 @@ func TestPruneRevisionHistory(t *testing.T) {
 			}
 			c.prunerPodImageFn = func() string { return "docker.io/foo/bar" }
 
-			err := c.pruneRevisionHistory(operatorStatus)
-			switch {
-			case err != nil && len(test.expectedErr) == 0:
-				t.Fatal(err)
-			case err != nil && !strings.Contains(err.Error(), test.expectedErr):
-				t.Fatal(err)
-			case err == nil && len(test.expectedErr) != 0:
-				t.Fatalf("missing %q", test.expectedErr)
+			excludedIDs, err := c.excludedRevisionHistory(operatorStatus)
+			if err != nil {
+				t.Fatalf("unexpected error %q", err)
+			}
+			if diskErr := c.pruneDiskResources(operatorStatus, excludedIDs, excludedIDs[len(excludedIDs)-1]); diskErr != nil {
+				t.Fatalf("unexpected error %q", diskErr)
 			}
 
 			if prunerPod == nil {
@@ -238,7 +404,7 @@ func configMapList(configMaps []configMapInfo) *v1.ConfigMapList {
 			},
 			Data: map[string]string{
 				"revision": cm.revision,
-				"phase":    cm.phase,
+				"status":   cm.phase,
 			},
 		}
 		items = append(items, configMap)

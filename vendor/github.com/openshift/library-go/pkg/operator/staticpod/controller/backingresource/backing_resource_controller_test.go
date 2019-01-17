@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
+
 	"k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,7 +18,6 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 )
 
 func filterCreateActions(actions []clienttesting.Action) []runtime.Object {
@@ -41,14 +42,14 @@ func TestBackingResourceController(t *testing.T) {
 		targetNamespace         string
 		prependReactors         []prependReactorSpec
 		startingObjects         []runtime.Object
-		staticPodOperatorClient common.OperatorClient
+		staticPodOperatorClient v1helpers.StaticPodOperatorClient
 		validateActions         func(t *testing.T, actions []clienttesting.Action)
 		validateStatus          func(t *testing.T, status *operatorv1.StaticPodOperatorStatus)
 		expectSyncError         string
 	}{
 		{
 			targetNamespace: "successful-create",
-			staticPodOperatorClient: common.NewFakeStaticPodOperatorClient(
+			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
 				&operatorv1.OperatorSpec{
 					ManagementState: operatorv1.Managed,
 				},
@@ -90,7 +91,7 @@ func TestBackingResourceController(t *testing.T) {
 		},
 		{
 			targetNamespace: "operator-unmanaged",
-			staticPodOperatorClient: common.NewFakeStaticPodOperatorClient(
+			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
 				&operatorv1.OperatorSpec{
 					ManagementState: operatorv1.Unmanaged,
 				},
@@ -110,7 +111,7 @@ func TestBackingResourceController(t *testing.T) {
 			startingObjects: []runtime.Object{
 				&v1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: "installer-sa", Namespace: "service-account-exists"}},
 			},
-			staticPodOperatorClient: common.NewFakeStaticPodOperatorClient(
+			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
 				&operatorv1.OperatorSpec{
 					ManagementState: operatorv1.Managed,
 				},
@@ -147,7 +148,7 @@ func TestBackingResourceController(t *testing.T) {
 					},
 				},
 			},
-			staticPodOperatorClient: common.NewFakeStaticPodOperatorClient(
+			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
 				&operatorv1.OperatorSpec{
 					ManagementState: operatorv1.Managed,
 				},
@@ -186,7 +187,7 @@ func TestBackingResourceController(t *testing.T) {
 			)
 			syncErr := c.sync()
 			if tc.validateStatus != nil {
-				_, status, _, _ := tc.staticPodOperatorClient.Get()
+				_, status, _, _ := tc.staticPodOperatorClient.GetStaticPodOperatorState()
 				tc.validateStatus(t, status)
 			}
 			if syncErr != nil {

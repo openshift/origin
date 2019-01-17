@@ -21,7 +21,6 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
@@ -40,7 +39,7 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 	})
 
 	kubeInformers := informers.NewSharedInformerFactoryWithOptions(kubeClient, 1*time.Minute, informers.WithNamespace("test"))
-	fakeStaticPodOperatorClient := common.NewFakeStaticPodOperatorClient(
+	fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(
 		&operatorv1.OperatorSpec{
 			ManagementState: operatorv1.Managed,
 		},
@@ -81,7 +80,7 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 		t.Fatalf("not expected to create installer pod yet")
 	}
 
-	_, currStatus, _, _ := fakeStaticPodOperatorClient.Get()
+	_, currStatus, _, _ := fakeStaticPodOperatorClient.GetStaticPodOperatorState()
 	if currStatus.NodeStatuses[0].TargetRevision != 1 {
 		t.Fatalf("expected target revision generation 1, got: %d", currStatus.NodeStatuses[0].TargetRevision)
 	}
@@ -137,7 +136,7 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, currStatus, _, _ = fakeStaticPodOperatorClient.Get()
+	_, currStatus, _, _ = fakeStaticPodOperatorClient.GetStaticPodOperatorState()
 	if generation := currStatus.NodeStatuses[0].CurrentRevision; generation != 0 {
 		t.Errorf("expected current revision generation for node to be 0, got %d", generation)
 	}
@@ -166,7 +165,7 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, currStatus, _, _ = fakeStaticPodOperatorClient.Get()
+	_, currStatus, _, _ = fakeStaticPodOperatorClient.GetStaticPodOperatorState()
 	if generation := currStatus.NodeStatuses[0].CurrentRevision; generation != 0 {
 		t.Errorf("expected current revision generation for node to be 0, got %d", generation)
 	}
@@ -178,16 +177,16 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, currStatus, _, _ = fakeStaticPodOperatorClient.Get()
+	_, currStatus, _, _ = fakeStaticPodOperatorClient.GetStaticPodOperatorState()
 	if generation := currStatus.NodeStatuses[0].CurrentRevision; generation != 1 {
 		t.Errorf("expected current revision generation for node to be 1, got %d", generation)
 	}
 
-	_, currStatus, _, _ = fakeStaticPodOperatorClient.Get()
+	_, currStatus, _, _ = fakeStaticPodOperatorClient.GetStaticPodOperatorState()
 	currStatus.LatestAvailableRevision = 2
 	currStatus.NodeStatuses[0].TargetRevision = 2
 	currStatus.NodeStatuses[0].CurrentRevision = 1
-	fakeStaticPodOperatorClient.UpdateStatus("1", currStatus)
+	fakeStaticPodOperatorClient.UpdateStaticPodOperatorStatus("1", currStatus)
 
 	installerPod.Name = "installer-2-test-node-1"
 	installerPod.Status.Phase = v1.PodFailed
@@ -203,7 +202,7 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, currStatus, _, _ = fakeStaticPodOperatorClient.Get()
+	_, currStatus, _, _ = fakeStaticPodOperatorClient.GetStaticPodOperatorState()
 	if generation := currStatus.NodeStatuses[0].LastFailedRevision; generation != 2 {
 		t.Errorf("expected last failed revision generation for node to be 2, got %d", generation)
 	}
@@ -246,7 +245,7 @@ func TestCreateInstallerPod(t *testing.T) {
 	})
 	kubeInformers := informers.NewSharedInformerFactoryWithOptions(kubeClient, 1*time.Minute, informers.WithNamespace("test"))
 
-	fakeStaticPodOperatorClient := common.NewFakeStaticPodOperatorClient(
+	fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(
 		&operatorv1.OperatorSpec{
 			ManagementState: operatorv1.Managed,
 		},
@@ -530,7 +529,7 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 				statusUpdateCount++
 				return err
 			}
-			fakeStaticPodOperatorClient := common.NewFakeStaticPodOperatorClient(
+			fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(
 				&operatorv1.OperatorSpec{
 					ManagementState: operatorv1.Managed,
 				},
@@ -595,7 +594,7 @@ func TestInstallerController_manageInstallationPods(t *testing.T) {
 		configMaps           []string
 		secrets              []string
 		command              []string
-		operatorConfigClient common.OperatorClient
+		operatorConfigClient v1helpers.StaticPodOperatorClient
 		kubeClient           kubernetes.Interface
 		eventRecorder        events.Recorder
 		queue                workqueue.RateLimitingInterface

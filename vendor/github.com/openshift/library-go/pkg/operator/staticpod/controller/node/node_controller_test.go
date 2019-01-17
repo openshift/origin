@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
+
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
@@ -12,7 +14,6 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 )
 
 func fakeMasterNode(name string) *v1.Node {
@@ -101,9 +102,9 @@ func TestNewNodeController(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			kubeClient := fake.NewSimpleClientset(test.startNodes...)
-			fakeLister := common.NewFakeNodeLister(kubeClient)
+			fakeLister := v1helpers.NewFakeNodeLister(kubeClient)
 			kubeInformers := informers.NewSharedInformerFactory(kubeClient, 1*time.Minute)
-			fakeStaticPodOperatorClient := common.NewFakeStaticPodOperatorClient(
+			fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(
 				&operatorv1.OperatorSpec{
 					ManagementState: operatorv1.Managed,
 				},
@@ -124,7 +125,7 @@ func TestNewNodeController(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			_, status, _, _ := fakeStaticPodOperatorClient.Get()
+			_, status, _, _ := fakeStaticPodOperatorClient.GetStaticPodOperatorState()
 
 			if err := test.evaluateNodeStatus(status.NodeStatuses); err != nil {
 				t.Errorf("%s: failed to evaluate node status: %v", test.name, err)

@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
+
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,7 +14,6 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 )
 
 func TestSyncConfigMap(t *testing.T) {
@@ -35,21 +36,11 @@ func TestSyncConfigMap(t *testing.T) {
 	configManagedInformers := informers.NewSharedInformerFactoryWithOptions(kubeClient, 1*time.Minute, informers.WithNamespace("config-managed"))
 	operatorInformers := informers.NewSharedInformerFactoryWithOptions(kubeClient, 1*time.Minute, informers.WithNamespace("operator"))
 
-	fakeStaticPodOperatorClient := common.NewFakeStaticPodOperatorClient(
+	fakeStaticPodOperatorClient := v1helpers.NewFakeOperatorClient(
 		&operatorv1.OperatorSpec{
 			ManagementState: operatorv1.Managed,
 		},
 		&operatorv1.OperatorStatus{},
-		&operatorv1.StaticPodOperatorStatus{
-			LatestAvailableRevision: 1,
-			NodeStatuses: []operatorv1.NodeStatus{
-				{
-					NodeName:        "test-node-1",
-					CurrentRevision: 0,
-					TargetRevision:  0,
-				},
-			},
-		},
 		nil,
 	)
 	eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &corev1.ObjectReference{})

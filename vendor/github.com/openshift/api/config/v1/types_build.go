@@ -23,7 +23,7 @@ type BuildSpec struct {
 	// should be trusted for image pushes and pulls during builds.
 	// The namespace for this config map is openshift-config.
 	// +optional
-	AdditionalTrustedCA ConfigMapFileReference `json:"additionalTrustedCA,omitempty"`
+	AdditionalTrustedCA ConfigMapNameReference `json:"additionalTrustedCA,omitempty"`
 	// BuildDefaults controls the default information for Builds
 	// +optional
 	BuildDefaults BuildDefaults `json:"buildDefaults,omitempty"`
@@ -62,6 +62,10 @@ type BuildDefaults struct {
 	// Resources defines resource requirements to execute the build.
 	// +optional
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+
+	// RegistriesConfig controls the registries allowed for image pull and push.
+	// +optional
+	RegistriesConfig RegistriesConfig `json:"registriesConfig,omitempty"`
 }
 
 type ImageLabel struct {
@@ -73,6 +77,28 @@ type ImageLabel struct {
 	Value string `json:"value,omitempty"`
 }
 
+type RegistriesConfig struct {
+	// SearchRegistries lists the registries to search for images if an image repository is not specified in an image pull spec.
+	//
+	// If this is not set, builds will search Docker Hub (docker.io) when a repository is not specified.
+	// Setting this to an empty list will require all builds to fully qualify their image pull specs.
+	// +optional
+	SearchRegistries *[]string `json:"searchRegistries,omitempty"`
+	// InsecureRegistries are registries which do not have a valid SSL certificate or only support HTTP connections.
+	// +optional
+	InsecureRegistries []string `json:"insecureRegistries,omitempty"`
+	// BlockedRegistries are blacklisted from image pull/push. All other registries are allowed.
+	//
+	// Only one of BlockedRegistries or AllowedRegistries may be set.
+	// +optional
+	BlockedRegistries []string `json:"blockedRegistries,omitempty"`
+	// AllowedRegistries are whitelisted for image pull/push. All other registries are blocked.
+	//
+	// Only one of BlockedRegistries or AllowedRegistries may be set.
+	// +optional
+	AllowedRegistries []string `json:"allowedRegistries,omitempty"`
+}
+
 type BuildOverrides struct {
 	// ImageLabels is a list of docker labels that are applied to the resulting image.
 	// If user provided a label in their Build/BuildConfig with the same name as one in this
@@ -82,7 +108,7 @@ type BuildOverrides struct {
 
 	// NodeSelector is a selector which must be true for the build pod to fit on a node
 	// +optional
-	NodeSelector metav1.LabelSelector `json:"nodeSelector,omitempty"`
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
 	// Tolerations is a list of Tolerations that will override any existing
 	// tolerations set on a build pod.

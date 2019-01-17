@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
+
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -14,7 +16,6 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 )
 
 func filterCreateActions(actions []clienttesting.Action) []runtime.Object {
@@ -22,6 +23,10 @@ func filterCreateActions(actions []clienttesting.Action) []runtime.Object {
 	for _, a := range actions {
 		createAction, isCreate := a.(clienttesting.CreateAction)
 		if !isCreate {
+			continue
+		}
+		_, isEvent := createAction.GetObject().(*v1.Event)
+		if isEvent {
 			continue
 		}
 		createdObjects = append(createdObjects, createAction.GetObject())
@@ -35,14 +40,14 @@ func TestRevisionController(t *testing.T) {
 		testSecrets             []string
 		testConfigs             []string
 		startingObjects         []runtime.Object
-		staticPodOperatorClient common.OperatorClient
+		staticPodOperatorClient v1helpers.StaticPodOperatorClient
 		validateActions         func(t *testing.T, actions []clienttesting.Action)
 		validateStatus          func(t *testing.T, status *operatorv1.StaticPodOperatorStatus)
 		expectSyncError         string
 	}{
 		{
 			targetNamespace: "operator-unmanaged",
-			staticPodOperatorClient: common.NewFakeStaticPodOperatorClient(
+			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
 				&operatorv1.OperatorSpec{
 					ManagementState: operatorv1.Unmanaged,
 				},
@@ -59,7 +64,7 @@ func TestRevisionController(t *testing.T) {
 		},
 		{
 			targetNamespace: "missing-source-resources",
-			staticPodOperatorClient: common.NewFakeStaticPodOperatorClient(
+			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
 				&operatorv1.OperatorSpec{
 					ManagementState: operatorv1.Managed,
 				},
@@ -93,13 +98,13 @@ func TestRevisionController(t *testing.T) {
 		},
 		{
 			targetNamespace: "copy-resources",
-			staticPodOperatorClient: common.NewFakeStaticPodOperatorClient(
+			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
 				&operatorv1.OperatorSpec{
 					ManagementState: operatorv1.Managed,
 				},
 				&operatorv1.OperatorStatus{},
 				&operatorv1.StaticPodOperatorStatus{
-					LatestAvailableRevision: 1,
+					LatestAvailableRevision: 0,
 					NodeStatuses: []operatorv1.NodeStatus{
 						{
 							NodeName:        "test-node-1",
@@ -113,16 +118,25 @@ func TestRevisionController(t *testing.T) {
 			startingObjects: []runtime.Object{
 				&v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "test-secret", Namespace: "copy-resources"}},
 				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "test-config", Namespace: "copy-resources"}},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status", Namespace: "copy-resources"}},
 			},
 			testConfigs: []string{"test-config"},
 			testSecrets: []string{"test-secret"},
 			validateActions: func(t *testing.T, actions []clienttesting.Action) {
 				createdObjects := filterCreateActions(actions)
-				if createdObjectCount := len(createdObjects); createdObjectCount != 2 {
-					t.Errorf("expected 2 objects to be created, got %d", createdObjectCount)
+				if createdObjectCount := len(createdObjects); createdObjectCount != 3 {
+					t.Errorf("expected 6 objects to be created, got %d: %+v", createdObjectCount, createdObjects)
 					return
 				}
-				config, hasConfig := createdObjects[0].(*v1.ConfigMap)
+				revisionStatus, hasStatus := createdObjects[0].(*v1.ConfigMap)
+				if !hasStatus {
+					t.Errorf("expected config to be created")
+					return
+				}
+				if revisionStatus.Name != "revision-status-1" {
+					t.Errorf("expected config to have name 'revision-status-1', got %q", revisionStatus.Name)
+				}
+				config, hasConfig := createdObjects[1].(*v1.ConfigMap)
 				if !hasConfig {
 					t.Errorf("expected config to be created")
 					return
@@ -130,13 +144,19 @@ func TestRevisionController(t *testing.T) {
 				if config.Name != "test-config-1" {
 					t.Errorf("expected config to have name 'test-config-1', got %q", config.Name)
 				}
-				secret, hasSecret := createdObjects[1].(*v1.Secret)
+				if len(config.OwnerReferences) != 1 {
+					t.Errorf("expected config to have ownerreferences set, got %q", config.OwnerReferences)
+				}
+				secret, hasSecret := createdObjects[2].(*v1.Secret)
 				if !hasSecret {
 					t.Errorf("expected secret to be created")
 					return
 				}
 				if secret.Name != "test-secret-1" {
 					t.Errorf("expected secret to have name 'test-secret-1', got %q", secret.Name)
+				}
+				if len(secret.OwnerReferences) != 1 {
+					t.Errorf("expected secret to have ownerreferences set, got %q", secret.OwnerReferences)
 				}
 			},
 		},
@@ -158,8 +178,11 @@ func TestRevisionController(t *testing.T) {
 			)
 			syncErr := c.sync()
 			if tc.validateStatus != nil {
-				_, status, _, _ := tc.staticPodOperatorClient.Get()
+				_, status, _, _ := tc.staticPodOperatorClient.GetStaticPodOperatorState()
 				tc.validateStatus(t, status)
+			}
+			if tc.validateActions != nil {
+				tc.validateActions(t, kubeClient.Actions())
 			}
 			if syncErr != nil {
 				if !strings.Contains(syncErr.Error(), tc.expectSyncError) {

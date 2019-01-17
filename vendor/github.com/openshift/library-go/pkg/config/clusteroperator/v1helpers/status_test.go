@@ -76,7 +76,7 @@ func TestGetStatusConditionDiff(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			result := GetStatusConditionDiff(test.oldConditions, test.newConditions)
+			result := GetStatusDiff(configv1.ClusterOperatorStatus{Conditions: test.oldConditions}, configv1.ClusterOperatorStatus{Conditions: test.newConditions})
 			if !reflect.DeepEqual(test.expectedMessages, strings.Split(result, ",")) {
 				t.Errorf("expected %#v, got %#v", test.expectedMessages, result)
 			}

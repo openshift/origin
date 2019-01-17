@@ -15,6 +15,8 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 )
 
+// SigningRotation rotates a self-signed signing CA stored in a secret. It creates a new one when <RefreshPercentage>
+// of the lifetime of the old CA has passed.
 type SigningRotation struct {
 	Namespace         string
 	Name              string

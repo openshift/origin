@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
+
 	"github.com/golang/glog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -21,7 +23,6 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/backingresource/bindata"
-	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 )
 
 const (
@@ -35,7 +36,7 @@ const (
 // (templated with the config) if they differ.
 type BackingResourceController struct {
 	targetNamespace      string
-	operatorConfigClient common.OperatorClient
+	operatorConfigClient v1helpers.StaticPodOperatorClient
 
 	saListerSynced cache.InformerSynced
 	saLister       corelisterv1.ServiceAccountLister
@@ -53,7 +54,7 @@ type BackingResourceController struct {
 // NewBackingResourceController creates a new backing resource controller.
 func NewBackingResourceController(
 	targetNamespace string,
-	operatorConfigClient common.OperatorClient,
+	operatorConfigClient v1helpers.StaticPodOperatorClient,
 	kubeInformersForTargetNamespace informers.SharedInformerFactory,
 	kubeClient kubernetes.Interface,
 	eventRecorder events.Recorder,
@@ -91,7 +92,7 @@ func (c BackingResourceController) mustTemplateAsset(name string) ([]byte, error
 }
 
 func (c BackingResourceController) sync() error {
-	operatorSpec, _, _, err := c.operatorConfigClient.Get()
+	operatorSpec, _, _, err := c.operatorConfigClient.GetStaticPodOperatorState()
 	if err != nil {
 		return err
 	}
@@ -115,7 +116,7 @@ func (c BackingResourceController) sync() error {
 			errs = append(errs, fmt.Errorf("%q (%T): %v", currResult.File, currResult.Type, currResult.Error))
 		}
 	}
-	err = common.NewMultiLineAggregate(errs)
+	err = v1helpers.NewMultiLineAggregate(errs)
 
 	// update failing condition
 	cond := operatorv1.OperatorCondition{
@@ -127,7 +128,7 @@ func (c BackingResourceController) sync() error {
 		cond.Reason = "Error"
 		cond.Message = err.Error()
 	}
-	if _, _, updateError := common.UpdateStatus(c.operatorConfigClient, common.UpdateConditionFn(cond)); updateError != nil {
+	if _, _, updateError := v1helpers.UpdateStaticPodStatus(c.operatorConfigClient, v1helpers.UpdateStaticPodConditionFn(cond)); updateError != nil {
 		if err == nil {
 			return updateError
 		}
