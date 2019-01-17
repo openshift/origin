@@ -35,8 +35,8 @@ const (
 var (
 	// TODO: these exceptions should not exist. Update operators to have a better request-rate per second
 	perComponentNamespaceMaxQPSAllowed = map[string]float64{
-		"openshift-apiserver-operator":                            3.0,
-		"openshift-kube-apiserver-operator":                       6.8,
+		"openshift-apiserver-operator":                            7.2,
+		"openshift-kube-apiserver-operator":                       7.2,
 		"openshift-kube-controller-manager-operator":              2.0,
 		"openshift-cluster-kube-scheduler-operator":               1.8,
 		"openshift-cluster-openshift-controller-manager-operator": 1.7,
@@ -97,7 +97,7 @@ func CalculatePodMetrics(adminClient kubernetes.Interface, adminConfig *restclie
 			}
 
 			if info.qps > qpsLimit {
-				failures = append(failures, fmt.Errorf("operator pod %q in namespace %q is making %v requests per second. Maximum allowed is %v requests per second", info.name, info.namespace, info.qps, maxQPSAllowed))
+				failures = append(failures, fmt.Errorf("operator pod %q in namespace %q is making %v requests per second. Maximum allowed is %v requests per second", info.name, info.namespace, info.qps, qpsLimit))
 				continue
 			}
 		}
