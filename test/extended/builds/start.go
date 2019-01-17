@@ -163,7 +163,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 
 				g.It("should accept --from-file as input", func() {
 					g.By("starting the build with a Dockerfile")
-					br, err := exutil.StartBuildAndWait(oc, "sample-build", fmt.Sprintf("--from-file=%s", exampleGemfile))
+					br, err := exutil.StartBuildAndWait(oc, "simple-build", fmt.Sprintf("--from-file=%s", exampleGemfile))
 					br.AssertSuccess()
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
@@ -171,7 +171,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("Uploading file"))
 					o.Expect(br.StartBuildStdErr).To(o.ContainSubstring("as binary input for the build ..."))
-					o.Expect(buildLog).To(o.ContainSubstring("Your bundle is complete"))
+					o.Expect(buildLog).To(o.ContainSubstring("assembled!"))
 				})
 
 				g.It("should accept --from-dir as input", func() {

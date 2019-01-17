@@ -2970,7 +2970,40 @@ items:
     nodeSelector: 
   status:
     lastVersion: 0
-`)
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: simple-build
+    creationTimestamp: 
+  spec:
+    triggers:
+    - type: ImageChange
+      imageChange: {}
+    - type: Generic
+      generic:
+        secret: "mysecret"
+        secretReference: 
+          name: "webhooksecret"
+    source:
+      type: Git
+      git:
+        uri: git://github.com/openshift/ruby-hello-world.git
+    strategy:
+      type: Source
+      sourceStrategy:
+        env:
+        - name: FOO
+          value: test
+        - name: BAR
+          value: test
+        - name: BUILD_LOGLEVEL
+          value: '5'
+        from:
+          kind: DockerImage
+          name: docker.io/openshift/test-build-simples2i:latest
+    resources: {}
+  status:
+    lastVersion: 0`)
 
 func testExtendedTestdataBuildsTestBuildYamlBytes() ([]byte, error) {
 	return _testExtendedTestdataBuildsTestBuildYaml, nil
