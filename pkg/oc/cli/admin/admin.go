@@ -126,21 +126,28 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 
 	// Deprecated commands that are bundled with the binary but not displayed to end users directly
 	deprecatedCommands := []*cobra.Command{
-		admin.NewCommandCreateMasterCerts(admin.CreateMasterCertsCommandName, fullName+" "+admin.CreateMasterCertsCommandName, streams),
-		admin.NewCommandCreateKeyPair(admin.CreateKeyPairCommandName, fullName+" "+admin.CreateKeyPairCommandName, streams),
-		admin.NewCommandCreateServerCert(admin.CreateServerCertCommandName, fullName+" "+admin.CreateServerCertCommandName, streams),
-		admin.NewCommandCreateSignerCert(admin.CreateSignerCertCommandName, fullName+" "+admin.CreateSignerCertCommandName, streams),
-
 		// these will be removed soon
 		admin.NewCommandNodeConfig(admin.NodeConfigCommandName, fullName+" "+admin.NodeConfigCommandName, streams),
 		node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, streams),
 		router.NewCmdRouter(f, fullName, "router", streams),
 		ipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", streams),
 	}
-	for _, cmd := range deprecatedCommands {
+	deprecatedCACommands := []*cobra.Command{
+		admin.NewCommandCreateMasterCerts(admin.CreateMasterCertsCommandName, fullName+" "+admin.CreateMasterCertsCommandName, streams),
+		admin.NewCommandCreateKeyPair(admin.CreateKeyPairCommandName, fullName+" "+admin.CreateKeyPairCommandName, streams),
+		admin.NewCommandCreateServerCert(admin.CreateServerCertCommandName, fullName+" "+admin.CreateServerCertCommandName, streams),
+		admin.NewCommandCreateSignerCert(admin.CreateSignerCertCommandName, fullName+" "+admin.CreateSignerCertCommandName, streams),
+	}
+	for _, cmd := range deprecatedCACommands {
 		// Unsetting Short description will not show this command in help
 		cmd.Short = ""
 		cmd.Deprecated = fmt.Sprintf("Use '%s ca' instead.", fullName)
+		cmds.AddCommand(cmd)
+	}
+	for _, cmd := range deprecatedCommands {
+		// Unsetting Short description will not show this command in help
+		cmd.Short = ""
+		cmd.Deprecated = fmt.Sprintf("'%s %s' is DEPRECATED and will be removed in a future version.", fullName, cmd.Name())
 		cmds.AddCommand(cmd)
 	}
 
