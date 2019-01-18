@@ -17,8 +17,8 @@ spec:
           - /bin/bash
           - -c
           - |
-            sleep 15  # give tests time to setup
             echo 'test pre hook executed'
+            sleep 15  # give tests time to record logs
   template:
     metadata:
       labels:
