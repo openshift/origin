@@ -8,6 +8,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 )
 
+func TestMonitor_Newlines(t *testing.T) {
+	evt := &Event{Condition: Condition{Message: "a\nb\n"}}
+	expected := "Jan 01 00:00:00.000 I  a\\nb\\n"
+	if evt.String() != expected {
+		t.Fatalf("unexpected:\n%s\n%s", expected, evt.String())
+	}
+}
+
 func TestMonitor_Events(t *testing.T) {
 	tests := []struct {
 		name    string

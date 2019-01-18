@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -40,7 +41,7 @@ type Event struct {
 }
 
 func (e *Event) String() string {
-	return fmt.Sprintf("%s.%03d %s %s %s", e.At.Format("Jan 02 15:04:05"), e.At.Nanosecond()/1000000, eventString[e.Level], e.Locator, e.Message)
+	return fmt.Sprintf("%s.%03d %s %s %s", e.At.Format("Jan 02 15:04:05"), e.At.Nanosecond()/1000000, eventString[e.Level], e.Locator, strings.Replace(e.Message, "\n", "\\n", -1))
 }
 
 type sample struct {
@@ -64,9 +65,9 @@ type EventInterval struct {
 
 func (i *EventInterval) String() string {
 	if i.From.Equal(i.To) {
-		return fmt.Sprintf("%s.%03d %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), eventString[i.Level], i.Locator, i.Message)
+		return fmt.Sprintf("%s.%03d %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), eventString[i.Level], i.Locator, strings.Replace(i.Message, "\n", "\\n", -1))
 	}
-	return fmt.Sprintf("%s.%03d - %-5s %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), strconv.Itoa(int(i.To.Sub(i.From)/time.Second))+"s", eventString[i.Level], i.Locator, i.Message)
+	return fmt.Sprintf("%s.%03d - %-5s %s %s %s", i.From.Format("Jan 02 15:04:05"), i.From.Nanosecond()/int(time.Millisecond), strconv.Itoa(int(i.To.Sub(i.From)/time.Second))+"s", eventString[i.Level], i.Locator, strings.Replace(i.Message, "\n", "\\n", -1))
 }
 
 type EventIntervals []*EventInterval
