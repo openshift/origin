@@ -213,6 +213,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.Proxy":                                                          schema_openshift_api_config_v1_Proxy(ref),
 		"github.com/openshift/api/config/v1.ProxyList":                                                      schema_openshift_api_config_v1_ProxyList(ref),
 		"github.com/openshift/api/config/v1.ProxySpec":                                                      schema_openshift_api_config_v1_ProxySpec(ref),
+		"github.com/openshift/api/config/v1.RegistriesConfig":                                               schema_openshift_api_config_v1_RegistriesConfig(ref),
 		"github.com/openshift/api/config/v1.RegistryLocation":                                               schema_openshift_api_config_v1_RegistryLocation(ref),
 		"github.com/openshift/api/config/v1.RemoteConnectionInfo":                                           schema_openshift_api_config_v1_RemoteConnectionInfo(ref),
 		"github.com/openshift/api/config/v1.RequestHeaderIdentityProvider":                                  schema_openshift_api_config_v1_RequestHeaderIdentityProvider(ref),
@@ -224,6 +225,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.ServingInfo":                                                    schema_openshift_api_config_v1_ServingInfo(ref),
 		"github.com/openshift/api/config/v1.StringSource":                                                   schema_openshift_api_config_v1_StringSource(ref),
 		"github.com/openshift/api/config/v1.StringSourceSpec":                                               schema_openshift_api_config_v1_StringSourceSpec(ref),
+		"github.com/openshift/api/config/v1.TemplateReference":                                              schema_openshift_api_config_v1_TemplateReference(ref),
 		"github.com/openshift/api/config/v1.TokenConfig":                                                    schema_openshift_api_config_v1_TokenConfig(ref),
 		"github.com/openshift/api/config/v1.Update":                                                         schema_openshift_api_config_v1_Update(ref),
 		"github.com/openshift/api/config/v1.UpdateHistory":                                                  schema_openshift_api_config_v1_UpdateHistory(ref),
@@ -402,11 +404,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/openshiftcontrolplane/v1.ServiceAccountControllerConfig":                  schema_openshift_api_openshiftcontrolplane_v1_ServiceAccountControllerConfig(ref),
 		"github.com/openshift/api/openshiftcontrolplane/v1.ServiceServingCert":                              schema_openshift_api_openshiftcontrolplane_v1_ServiceServingCert(ref),
 		"github.com/openshift/api/openshiftcontrolplane/v1.SourceStrategyDefaultsConfig":                    schema_openshift_api_openshiftcontrolplane_v1_SourceStrategyDefaultsConfig(ref),
-		"github.com/openshift/api/operator/v1.CapnsLogConfig":                                               schema_openshift_api_operator_v1_CapnsLogConfig(ref),
 		"github.com/openshift/api/operator/v1.GenerationStatus":                                             schema_openshift_api_operator_v1_GenerationStatus(ref),
-		"github.com/openshift/api/operator/v1.GlogConfig":                                                   schema_openshift_api_operator_v1_GlogConfig(ref),
-		"github.com/openshift/api/operator/v1.JavaLog":                                                      schema_openshift_api_operator_v1_JavaLog(ref),
-		"github.com/openshift/api/operator/v1.LoggingConfig":                                                schema_openshift_api_operator_v1_LoggingConfig(ref),
 		"github.com/openshift/api/operator/v1.MyOperatorResource":                                           schema_openshift_api_operator_v1_MyOperatorResource(ref),
 		"github.com/openshift/api/operator/v1.MyOperatorResourceSpec":                                       schema_openshift_api_operator_v1_MyOperatorResourceSpec(ref),
 		"github.com/openshift/api/operator/v1.MyOperatorResourceStatus":                                     schema_openshift_api_operator_v1_MyOperatorResourceStatus(ref),
@@ -7087,11 +7085,17 @@ func schema_openshift_api_config_v1_BuildDefaults(ref common.ReferenceCallback) 
 							Ref:         ref("k8s.io/api/core/v1.ResourceRequirements"),
 						},
 					},
+					"registriesConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RegistriesConfig controls the registries allowed for image pull and push.",
+							Ref:         ref("github.com/openshift/api/config/v1.RegistriesConfig"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ImageLabel", "github.com/openshift/api/config/v1.ProxySpec", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.ResourceRequirements"},
+			"github.com/openshift/api/config/v1.ImageLabel", "github.com/openshift/api/config/v1.ProxySpec", "github.com/openshift/api/config/v1.RegistriesConfig", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.ResourceRequirements"},
 	}
 }
 
@@ -7162,7 +7166,15 @@ func schema_openshift_api_config_v1_BuildOverrides(ref common.ReferenceCallback)
 					"nodeSelector": {
 						SchemaProps: spec.SchemaProps{
 							Description: "NodeSelector is a selector which must be true for the build pod to fit on a node",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
 						},
 					},
 					"tolerations": {
@@ -7182,7 +7194,7 @@ func schema_openshift_api_config_v1_BuildOverrides(ref common.ReferenceCallback)
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ImageLabel", "k8s.io/api/core/v1.Toleration", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
+			"github.com/openshift/api/config/v1.ImageLabel", "k8s.io/api/core/v1.Toleration"},
 	}
 }
 
@@ -7194,7 +7206,7 @@ func schema_openshift_api_config_v1_BuildSpec(ref common.ReferenceCallback) comm
 					"additionalTrustedCA": {
 						SchemaProps: spec.SchemaProps{
 							Description: "AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that should be trusted for image pushes and pulls during builds. The namespace for this config map is openshift-config.",
-							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapFileReference"),
+							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapNameReference"),
 						},
 					},
 					"buildDefaults": {
@@ -7213,7 +7225,7 @@ func schema_openshift_api_config_v1_BuildSpec(ref common.ReferenceCallback) comm
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.BuildDefaults", "github.com/openshift/api/config/v1.BuildOverrides", "github.com/openshift/api/config/v1.ConfigMapFileReference"},
+			"github.com/openshift/api/config/v1.BuildDefaults", "github.com/openshift/api/config/v1.BuildOverrides", "github.com/openshift/api/config/v1.ConfigMapNameReference"},
 	}
 }
 
@@ -8929,14 +8941,14 @@ func schema_openshift_api_config_v1_ImageSpec(ref common.ReferenceCallback) comm
 					"additionalTrustedCA": {
 						SchemaProps: spec.SchemaProps{
 							Description: "AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that should be trusted during imagestream import. The namespace for this config map is openshift-config.",
-							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapFileReference"),
+							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapNameReference"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ConfigMapFileReference", "github.com/openshift/api/config/v1.RegistryLocation"},
+			"github.com/openshift/api/config/v1.ConfigMapNameReference", "github.com/openshift/api/config/v1.RegistryLocation"},
 	}
 }
 
@@ -10234,10 +10246,27 @@ func schema_openshift_api_config_v1_ProjectSpec(ref common.ReferenceCallback) co
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Properties: map[string]spec.Schema{},
+				Description: "ProjectSpec holds the project creation configuration.",
+				Properties: map[string]spec.Schema{
+					"projectRequestMessage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "projectRequestMessage is the string presented to a user if they are unable to request a project via the projectrequest api endpoint",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"projectRequestTemplate": {
+						SchemaProps: spec.SchemaProps{
+							Description: "projectRequestTemplate is the template to use for creating projects in response to projectrequest. This must point to a template in 'openshift-config' namespace. It is optional. If it is not specified, a default template is used.",
+							Ref:         ref("github.com/openshift/api/config/v1.TemplateReference"),
+						},
+					},
+				},
+				Required: []string{"projectRequestMessage"},
 			},
 		},
-		Dependencies: []string{},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.TemplateReference"},
 	}
 }
 
@@ -10362,6 +10391,74 @@ func schema_openshift_api_config_v1_ProxySpec(ref common.ReferenceCallback) comm
 							Description: "noProxy is the list of domains for which the proxy should not be used.  Empty means unset and will not result in an env var.",
 							Type:        []string{"string"},
 							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_config_v1_RegistriesConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"searchRegistries": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SearchRegistries lists the registries to search for images if an image repository is not specified in an image pull spec.\n\nIf this is not set, builds will search Docker Hub (docker.io) when a repository is not specified. Setting this to an empty list will require all builds to fully qualify their image pull specs.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"insecureRegistries": {
+						SchemaProps: spec.SchemaProps{
+							Description: "InsecureRegistries are registries which do not have a valid SSL certificate or only support HTTP connections.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"blockedRegistries": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BlockedRegistries are blacklisted from image pull/push. All other registries are allowed.\n\nOnly one of BlockedRegistries or AllowedRegistries may be set.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"allowedRegistries": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AllowedRegistries are whitelisted for image pull/push. All other registries are blocked.\n\nOnly one of BlockedRegistries or AllowedRegistries may be set.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
 						},
 					},
 				},
@@ -10844,6 +10941,27 @@ func schema_openshift_api_config_v1_StringSourceSpec(ref common.ReferenceCallbac
 					},
 				},
 				Required: []string{"value", "env", "file", "keyFile"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_config_v1_TemplateReference(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "TemplateReference references a template in a specific namespace. The namespace must be specified at the point of use.",
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name is the metadata.name of the referenced project request template",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"name"},
 			},
 		},
 		Dependencies: []string{},
@@ -19580,6 +19698,13 @@ func schema_openshift_api_openshiftcontrolplane_v1_OpenShiftAPIServerConfig(ref 
 							Format:      "",
 						},
 					},
+					"enableDeprecatedOAPIThatWillBeRemovedVerySoon": {
+						SchemaProps: spec.SchemaProps{
+							Description: "enableDeprecatedOAPIThatWillBeRemovedVerySoon allows the openshift-apiserver to serve oapi endpoints.  This option is going away along with the entire API. Consider yourself warned again. Deprecated",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 					"apiServerArguments": {
 						SchemaProps: spec.SchemaProps{
 							Type: []string{"object"},
@@ -19934,26 +20059,6 @@ func schema_openshift_api_openshiftcontrolplane_v1_SourceStrategyDefaultsConfig(
 	}
 }
 
-func schema_openshift_api_operator_v1_CapnsLogConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Properties: map[string]spec.Schema{
-					"level": {
-						SchemaProps: spec.SchemaProps{
-							Description: "level is passed to capnslog: critical, error, warning, notice, info, debug, trace",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"level"},
-			},
-		},
-		Dependencies: []string{},
-	}
-}
-
 func schema_openshift_api_operator_v1_GenerationStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -20007,90 +20112,6 @@ func schema_openshift_api_operator_v1_GenerationStatus(ref common.ReferenceCallb
 			},
 		},
 		Dependencies: []string{},
-	}
-}
-
-func schema_openshift_api_operator_v1_GlogConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "GlogConfig holds information about configuring logging",
-				Properties: map[string]spec.Schema{
-					"level": {
-						SchemaProps: spec.SchemaProps{
-							Description: "level is passed to glog.",
-							Type:        []string{"integer"},
-							Format:      "int64",
-						},
-					},
-					"vmodule": {
-						SchemaProps: spec.SchemaProps{
-							Description: "vmodule is passed to glog.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"level", "vmodule"},
-			},
-		},
-		Dependencies: []string{},
-	}
-}
-
-func schema_openshift_api_operator_v1_JavaLog(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Properties: map[string]spec.Schema{
-					"level": {
-						SchemaProps: spec.SchemaProps{
-							Description: "level is passed to jsr47: fatal, error, warning, info, fine, finer, finest",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"level"},
-			},
-		},
-		Dependencies: []string{},
-	}
-}
-
-func schema_openshift_api_operator_v1_LoggingConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "LoggingConfig holds information about configuring logging",
-				Properties: map[string]spec.Schema{
-					"type": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"glog": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/openshift/api/operator/v1.GlogConfig"),
-						},
-					},
-					"capnsLog": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/openshift/api/operator/v1.CapnsLogConfig"),
-						},
-					},
-					"java": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/openshift/api/operator/v1.JavaLog"),
-						},
-					},
-				},
-				Required: []string{"type"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.CapnsLogConfig", "github.com/openshift/api/operator/v1.GlogConfig", "github.com/openshift/api/operator/v1.JavaLog"},
 	}
 }
 
@@ -20150,6 +20171,13 @@ func schema_openshift_api_operator_v1_MyOperatorResourceSpec(ref common.Referenc
 							Format:      "",
 						},
 					},
+					"logLevel": {
+						SchemaProps: spec.SchemaProps{
+							Description: "logLevel is an intent based logging for an overall component.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for their operands.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"operandSpecs": {
 						SchemaProps: spec.SchemaProps{
 							Description: "operandSpecs provide customization for functional units within the component",
@@ -20176,7 +20204,7 @@ func schema_openshift_api_operator_v1_MyOperatorResourceSpec(ref common.Referenc
 						},
 					},
 				},
-				Required: []string{"managementState", "operandSpecs", "unsupportedConfigOverrides", "observedConfig"},
+				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig"},
 			},
 		},
 		Dependencies: []string{
@@ -20319,18 +20347,12 @@ func schema_openshift_api_operator_v1_OperandContainerSpec(ref common.ReferenceC
 							Ref:         ref("k8s.io/api/core/v1.ResourceRequirements"),
 						},
 					},
-					"logging": {
-						SchemaProps: spec.SchemaProps{
-							Description: "logging contains parameters for setting log values on the operand. Nil means to accept the defaults.",
-							Ref:         ref("github.com/openshift/api/operator/v1.LoggingConfig"),
-						},
-					},
 				},
 				Required: []string{"name"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.LoggingConfig", "k8s.io/api/core/v1.ResourceRequirements"},
+			"k8s.io/api/core/v1.ResourceRequirements"},
 	}
 }
 
@@ -20439,6 +20461,13 @@ func schema_openshift_api_operator_v1_OperatorSpec(ref common.ReferenceCallback)
 							Format:      "",
 						},
 					},
+					"logLevel": {
+						SchemaProps: spec.SchemaProps{
+							Description: "logLevel is an intent based logging for an overall component.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for their operands.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"operandSpecs": {
 						SchemaProps: spec.SchemaProps{
 							Description: "operandSpecs provide customization for functional units within the component",
@@ -20465,7 +20494,7 @@ func schema_openshift_api_operator_v1_OperatorSpec(ref common.ReferenceCallback)
 						},
 					},
 				},
-				Required: []string{"managementState", "operandSpecs", "unsupportedConfigOverrides", "observedConfig"},
+				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig"},
 			},
 		},
 		Dependencies: []string{
@@ -24379,6 +24408,13 @@ func schema_openshift_api_servicecertsigner_v1alpha1_ServiceCertSignerOperatorCo
 							Format:      "",
 						},
 					},
+					"logLevel": {
+						SchemaProps: spec.SchemaProps{
+							Description: "logLevel is an intent based logging for an overall component.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for their operands.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"operandSpecs": {
 						SchemaProps: spec.SchemaProps{
 							Description: "operandSpecs provide customization for functional units within the component",
@@ -24423,7 +24459,7 @@ func schema_openshift_api_servicecertsigner_v1alpha1_ServiceCertSignerOperatorCo
 						},
 					},
 				},
-				Required: []string{"managementState", "operandSpecs", "unsupportedConfigOverrides", "observedConfig", "serviceServingCertSignerConfig", "apiServiceCABundleInjectorConfig", "configMapCABundleInjectorConfig"},
+				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig", "serviceServingCertSignerConfig", "apiServiceCABundleInjectorConfig", "configMapCABundleInjectorConfig"},
 			},
 		},
 		Dependencies: []string{
