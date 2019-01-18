@@ -33,7 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
 	storage "k8s.io/api/storage/v1"
 	storagebeta "k8s.io/api/storage/v1beta1"
@@ -556,7 +556,15 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 
 			framework.SkipUnlessProviderIs("openstack", "gce", "aws", "gke", "vsphere", "azure")
 
-			const raceAttempts int = 100
+			// AWS is more strict with quota limit
+			var raceAttempts int
+			switch framework.TestContext.Provider {
+			case "aws":
+				raceAttempts = 100
+			default:
+				raceAttempts = 100
+			}
+
 			var residualPVs []*v1.PersistentVolume
 			By(fmt.Sprintf("Creating and deleting PersistentVolumeClaims %d times", raceAttempts))
 			test := storageClassTest{
