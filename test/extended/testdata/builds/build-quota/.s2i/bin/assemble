@@ -1,6 +1,9 @@
 #!/bin/sh
 
-
+# Seeing issues w/ buildah log output being intermingled with the container
+# output, so adding a sleep in an attempt to let the buildah log output
+# stop before the container output starts
+sleep 10
 echo -n MEMORY= && cat /sys/fs/cgroup/memory/memory.limit_in_bytes
 echo -n MEMORYSWAP= && cat /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes
 
