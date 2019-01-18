@@ -64,13 +64,13 @@ type LogsOptions struct {
 	Path string
 
 	// --path=journal specific arguments
-	Pattern                string
-	PatternCaseInsensitive bool
-	Units                  []string
-	SinceTime              string
-	UntilTime              string
-	Tail                   int
-	Output                 string
+	Grep              string
+	GrepCaseSensitive bool
+	Units             []string
+	SinceTime         string
+	UntilTime         string
+	Tail              int
+	Output            string
 
 	// output format arguments
 	Raw   bool
@@ -84,8 +84,9 @@ type LogsOptions struct {
 
 func NewLogsOptions(streams genericclioptions.IOStreams) *LogsOptions {
 	return &LogsOptions{
-		Path:      "journal",
-		IOStreams: streams,
+		Path:              "journal",
+		IOStreams:         streams,
+		GrepCaseSensitive: true,
 	}
 }
 
@@ -108,8 +109,8 @@ func NewCmdLogs(baseName string, f kcmdutil.Factory, streams genericclioptions.I
 	cmd.Flags().StringVar(&o.Path, "path", o.Path, "Retrieve the specified path within the node's /var/logs/ folder. The 'journal' value will allow querying the journal on supported operating systems.")
 
 	cmd.Flags().StringSliceVarP(&o.Units, "unit", "u", o.Units, "Return log entries from the specified unit(s). Only applies to node journal logs.")
-	cmd.Flags().StringVarP(&o.Pattern, "search", "S", o.Pattern, "Filter log entries by the provided regex pattern. Only applies to node journal logs.")
-	cmd.Flags().BoolVar(&o.PatternCaseInsensitive, "ignore-case", o.PatternCaseInsensitive, "Make the search filter case-insensitive. Only applies to node journal logs.")
+	cmd.Flags().StringVarP(&o.Grep, "grep", "g", o.Grep, "Filter log entries by the provided regex pattern. Only applies to node journal logs.")
+	cmd.Flags().BoolVar(&o.GrepCaseSensitive, "case-sensitive", o.GrepCaseSensitive, "Filters are case sensitive by default. Pass --case-sensitive=false to do a case insensitive filter.")
 	cmd.Flags().StringVar(&o.SinceTime, "since", o.SinceTime, "Return logs after a specific ISO timestamp or relative date. Only applies to node journal logs.")
 	cmd.Flags().StringVar(&o.UntilTime, "until", o.UntilTime, "Return logs before a specific ISO timestamp or relative date. Only applies to node journal logs.")
 	cmd.Flags().StringVarP(&o.Output, "output", "o", o.Output, "Display journal logs in an alternate format (short, cat, json, short-unix). Only applies to node journal logs.")
@@ -262,9 +263,9 @@ func (o LogsOptions) RunLogs() error {
 					req.Param("unit", unit)
 				}
 			}
-			if len(o.Pattern) > 0 {
-				req.Param("grep", o.Pattern)
-				req.Param("case-sensitive", fmt.Sprintf("%t", !o.PatternCaseInsensitive))
+			if len(o.Grep) > 0 {
+				req.Param("grep", o.Grep)
+				req.Param("case-sensitive", fmt.Sprintf("%t", o.GrepCaseSensitive))
 			}
 			if o.Tail > 0 {
 				req.Param("tail", strconv.Itoa(o.Tail))
@@ -289,13 +290,12 @@ func (o LogsOptions) RunLogs() error {
 	found := len(errs) + len(requests)
 	// only hide prefix if the user specified a single item
 	skipPrefix := found == 1 && result.TargetsSingleItems()
-	unify := o.Path == "journal" || o.Unify
 
 	// buffer output for slightly better streaming performance
 	out := bufio.NewWriterSize(o.Out, 1024*16)
 	defer out.Flush()
 
-	if unify {
+	if o.Unify {
 		// unified output is each source, interleaved in lexographic order (assumes
 		// the source input is sorted by time)
 		var readers []Reader
