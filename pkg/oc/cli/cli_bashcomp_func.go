@@ -95,13 +95,13 @@ __custom_func() {
     case ${last_command} in
  
         # first arg is the kind according to ValidArgs, second is resource name
-        oc_get | oc_describe | oc_delete | oc_label | oc_expose | oc_export | oc_patch | oc_annotate | oc_env | oc_edit | oc_volume | oc_scale | oc_observe )
+        oc_get | oc_describe | oc_delete | oc_label | oc_expose | oc_export | oc_patch | oc_annotate | oc_edit | oc_scale | oc_autoscale | oc_observe )
             __oc_get_resource
             return
             ;;
 
         # first arg is a pod name
-        oc_rsh | oc_exec)
+        oc_rsh | oc_exec | oc_port-forward | oc_attach)
             if [[ ${#nouns[@]} -eq 0 ]]; then
                 __oc_parse_get pods
             fi;
@@ -109,17 +109,8 @@ __custom_func() {
             ;;
  
         # first arg is a pod name, second is a container name
-        oc_logs | oc_attach)
+        oc_logs)
             __oc_require_pod_and_container
-            return
-            ;;
- 
-        # args other than the first are filenames
-        oc_secrets_new)
-            # Complete args other than the first as filenames
-            if [[ ${#nouns[@]} -gt 0 ]]; then
-                _filedir
-            fi;
             return
             ;;
  
@@ -127,14 +118,6 @@ __custom_func() {
         oc_start-build | oc_cancel-build)
             if [[ ${#nouns[@]} -eq 0 ]]; then
                 __oc_parse_get buildconfigs
-            fi;
-            return
-            ;;
- 
-        # first arg is a deployment config
-        oc_deploy)
-            if [[ ${#nouns[@]} -eq 0 ]]; then
-                __oc_parse_get deploymentconfigs
             fi;
             return
             ;;
