@@ -5438,6 +5438,8 @@ _oc_adm_upgrade()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--clear")
+    local_nonpersistent_flags+=("--clear")
     flags+=("--force")
     local_nonpersistent_flags+=("--force")
     flags+=("--to=")

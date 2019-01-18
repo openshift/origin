@@ -9,11 +9,11 @@ import (
 	"text/tabwriter"
 
 	"github.com/blang/semver"
-
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
@@ -70,6 +70,7 @@ func New(f kcmdutil.Factory, parentName string, streams genericclioptions.IOStre
 	flags.StringVar(&o.To, "to", o.To, "Specify the version to upgrade to. The version must be on the list of previous or available updates.")
 	flags.StringVar(&o.ToImage, "to-image", o.ToImage, "Provide a release image to upgrade to. WARNING: This option does not check for upgrade compatibility and may break your cluster.")
 	flags.BoolVar(&o.ToLatestAvailable, "to-latest", o.ToLatestAvailable, "Use the next available version")
+	flags.BoolVar(&o.Clear, "clear", o.Clear, "If an upgrade has been requested but not yet downloaded, cancel the update. This has no effect once the update has started.")
 	flags.BoolVar(&o.Force, "force", o.Force, "Upgrade even if an upgrade is in process or other error is blocking update.")
 	return cmd
 }
@@ -82,11 +83,15 @@ type Options struct {
 	ToLatestAvailable bool
 
 	Force bool
+	Clear bool
 
 	Client configv1client.Interface
 }
 
 func (o *Options) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
+	if o.Clear && (len(o.ToImage) > 0 || len(o.To) > 0 || o.ToLatestAvailable) {
+		return fmt.Errorf("--clear may not be specified with any other flags")
+	}
 	if len(o.To) > 0 && len(o.ToImage) > 0 {
 		return fmt.Errorf("only one of --to or --to-image may be provided")
 	}
@@ -132,6 +137,24 @@ func (o *Options) Run() error {
 	}
 
 	switch {
+	case o.Clear:
+		if cv.Spec.DesiredUpdate == nil {
+			fmt.Fprintf(o.Out, "info: No update in progress\n")
+			return nil
+		}
+		original := cv.Spec.DesiredUpdate
+		cv.Spec.DesiredUpdate = nil
+		updated, err := o.Client.Config().ClusterVersions().Patch(cv.Name, types.MergePatchType, []byte(`{"spec":{"desiredUpdate":null}}`))
+		if err != nil {
+			return fmt.Errorf("Unable to cancel current rollout: %v", err)
+		}
+		if updateIsEquivalent(*original, updated.Status.Desired) {
+			fmt.Fprintf(o.Out, "Cleared the update field, still at %s\n", updateVersionString(updated.Status.Desired))
+		} else {
+			fmt.Fprintf(o.Out, "Cancelled requested upgrade to %s\n", updateVersionString(*original))
+		}
+		return nil
+
 	case o.ToLatestAvailable:
 		if len(cv.Status.AvailableUpdates) == 0 {
 			fmt.Fprintf(o.Out, "info: Cluster is already at the latest available version %s\n", cv.Status.Desired.Version)
@@ -277,6 +300,16 @@ func errorList(errs []error) string {
 	return buf.String()
 }
 
+func updateVersionString(update configv1.Update) string {
+	if len(update.Version) > 0 {
+		return update.Version
+	}
+	if len(update.Payload) > 0 {
+		return update.Payload
+	}
+	return "<unknown>"
+}
+
 func stringArrContains(arr []string, s string) bool {
 	for _, item := range arr {
 		if item == s {
@@ -290,6 +323,17 @@ func writeTabSection(out io.Writer, fn func(w io.Writer)) {
 	w := tabwriter.NewWriter(out, 0, 4, 1, ' ', 0)
 	fn(w)
 	w.Flush()
+}
+
+func updateIsEquivalent(a, b configv1.Update) bool {
+	switch {
+	case len(a.Payload) > 0 && len(b.Payload) > 0:
+		return a.Payload == b.Payload
+	case len(a.Version) > 0 && len(b.Version) > 0:
+		return a.Version == b.Version
+	default:
+		return false
+	}
 }
 
 func sortSemanticVersions(versions []configv1.Update) {
