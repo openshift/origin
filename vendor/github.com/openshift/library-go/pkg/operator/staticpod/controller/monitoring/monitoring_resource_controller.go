@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
+
 	"github.com/golang/glog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -12,7 +14,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	corelisterv1 "k8s.io/client-go/listers/core/v1"
 	rbaclisterv1 "k8s.io/client-go/listers/rbac/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
@@ -21,7 +22,6 @@ import (
 	"github.com/openshift/library-go/pkg/assets"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
-	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/monitoring/bindata"
 )
 
@@ -35,18 +35,17 @@ type MonitoringResourceController struct {
 	targetNamespace    string
 	serviceMonitorName string
 
-	saListerSynced cache.InformerSynced
-	saLister       corelisterv1.ServiceAccountLister
-
-	clusterRoleBindingLister       rbaclisterv1.ClusterRoleBindingLister
-	clusterRoleBindingListerSynced cache.InformerSynced
+	clusterRoleBindingLister rbaclisterv1.ClusterRoleBindingLister
+	// preRunCachesSynced are the set of caches that must be synced before the controller will start doing work. This is normally
+	// the full set of listers and informers you use.
+	preRunCachesSynced []cache.InformerSynced
 
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
 	queue workqueue.RateLimitingInterface
 
 	kubeClient           kubernetes.Interface
 	dynamicClient        dynamic.Interface
-	operatorConfigClient common.OperatorClient
+	operatorConfigClient v1helpers.StaticPodOperatorClient
 	eventRecorder        events.Recorder
 }
 
@@ -54,7 +53,7 @@ type MonitoringResourceController struct {
 func NewMonitoringResourceController(
 	targetNamespace string,
 	serviceMonitorName string,
-	operatorConfigClient common.OperatorClient,
+	operatorConfigClient v1helpers.StaticPodOperatorClient,
 	kubeInformersForTargetNamespace informers.SharedInformerFactory,
 	kubeClient kubernetes.Interface,
 	dynamicClient dynamic.Interface,
@@ -66,14 +65,16 @@ func NewMonitoringResourceController(
 		eventRecorder:        eventRecorder,
 		serviceMonitorName:   serviceMonitorName,
 
-		clusterRoleBindingListerSynced: kubeInformersForTargetNamespace.Core().V1().ServiceAccounts().Informer().HasSynced,
-		clusterRoleBindingLister:       kubeInformersForTargetNamespace.Rbac().V1().ClusterRoleBindings().Lister(),
+		clusterRoleBindingLister: kubeInformersForTargetNamespace.Rbac().V1().ClusterRoleBindings().Lister(),
+		preRunCachesSynced: []cache.InformerSynced{
+			kubeInformersForTargetNamespace.Core().V1().ServiceAccounts().Informer().HasSynced,
+			operatorConfigClient.Informer().HasSynced,
+		},
 
 		queue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "MonitoringResourceController"),
 		kubeClient:    kubeClient,
 		dynamicClient: dynamicClient,
 	}
-
 	operatorConfigClient.Informer().AddEventHandler(c.eventHandler())
 
 	// TODO: We need a dynamic informer here to observe changes to ServiceMonitor resource.
@@ -92,7 +93,7 @@ func (c MonitoringResourceController) mustTemplateAsset(name string) ([]byte, er
 }
 
 func (c MonitoringResourceController) sync() error {
-	operatorSpec, _, _, err := c.operatorConfigClient.Get()
+	operatorSpec, _, _, err := c.operatorConfigClient.GetStaticPodOperatorState()
 	if err != nil {
 		return err
 	}
@@ -125,7 +126,7 @@ func (c MonitoringResourceController) sync() error {
 		errs = append(errs, serviceMonitorErr)
 	}
 
-	err = common.NewMultiLineAggregate(errs)
+	err = v1helpers.NewMultiLineAggregate(errs)
 
 	// NOTE: Failing to create the monitoring resources should not lead to operator failed state.
 	cond := operatorv1.OperatorCondition{
@@ -133,11 +134,13 @@ func (c MonitoringResourceController) sync() error {
 		Status: operatorv1.ConditionFalse,
 	}
 	if err != nil {
-		cond.Status = operatorv1.ConditionTrue
+		// this is not a typo.  We will not have failing status on our operator for missing servicemonitor since servicemonitoring
+		// is not a prereq.
+		cond.Status = operatorv1.ConditionFalse
 		cond.Reason = "Error"
 		cond.Message = err.Error()
 	}
-	if _, _, updateError := common.UpdateStatus(c.operatorConfigClient, common.UpdateConditionFn(cond)); updateError != nil {
+	if _, _, updateError := v1helpers.UpdateStaticPodStatus(c.operatorConfigClient, v1helpers.UpdateStaticPodConditionFn(cond)); updateError != nil {
 		if err == nil {
 			return updateError
 		}
@@ -152,10 +155,7 @@ func (c *MonitoringResourceController) Run(workers int, stopCh <-chan struct{}) 
 
 	glog.Infof("Starting MonitoringResourceController")
 	defer glog.Infof("Shutting down MonitoringResourceController")
-	if !cache.WaitForCacheSync(stopCh, c.saListerSynced) {
-		return
-	}
-	if !cache.WaitForCacheSync(stopCh, c.clusterRoleBindingListerSynced) {
+	if !cache.WaitForCacheSync(stopCh, c.preRunCachesSynced...) {
 		return
 	}
 

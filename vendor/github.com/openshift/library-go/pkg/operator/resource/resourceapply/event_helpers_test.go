@@ -75,6 +75,7 @@ func TestReportUpdateEvent(t *testing.T) {
 		name                 string
 		object               runtime.Object
 		err                  error
+		details              string
 		expectedEventMessage string
 		expectedEventReason  string
 	}{
@@ -104,12 +105,30 @@ func TestReportUpdateEvent(t *testing.T) {
 			expectedEventReason:  "PodUpdated",
 			expectedEventMessage: "Updated Pod/podName -n nsName because it changed",
 		},
+		{
+			name:                 "pod-with-details-without-error",
+			object:               &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "podName"}},
+			details:              "because reasons",
+			expectedEventReason:  "PodUpdated",
+			expectedEventMessage: "Updated Pod/podName: because reasons",
+		},
+		{
+			name:                 "pod-with-namespace-and-details--without-error",
+			object:               &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "podName", Namespace: "nsName"}},
+			details:              "because reasons",
+			expectedEventReason:  "PodUpdated",
+			expectedEventMessage: "Updated Pod/podName -n nsName: because reasons",
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			recorder := events.NewInMemoryRecorder("test")
-			reportUpdateEvent(recorder, test.object, test.err)
+			if len(test.details) == 0 {
+				reportUpdateEvent(recorder, test.object, test.err)
+			} else {
+				reportUpdateEvent(recorder, test.object, test.err, test.details)
+			}
 			recordedEvents := recorder.Events()
 
 			if eventCount := len(recordedEvents); eventCount != 1 {

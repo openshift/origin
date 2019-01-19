@@ -88,10 +88,10 @@ func TestSync(t *testing.T) {
 				},
 			}
 			controller := &StatusSyncer{
-				clusterOperatorName:    "OPERATOR_NAME",
-				clusterOperatorClient:  clusterOperatorClient.ConfigV1(),
-				operatorStatusProvider: statusClient,
-				eventRecorder:          events.NewInMemoryRecorder("status"),
+				clusterOperatorName:   "OPERATOR_NAME",
+				clusterOperatorClient: clusterOperatorClient.ConfigV1(),
+				operatorClient:        statusClient,
+				eventRecorder:         events.NewInMemoryRecorder("status"),
 			}
 			if err := controller.sync(); err != nil {
 				t.Errorf("unexpected sync error: %v", err)
@@ -137,6 +137,14 @@ func (c *statusClient) Informer() cache.SharedIndexInformer {
 	return nil
 }
 
-func (c *statusClient) CurrentStatus() (operatorv1.OperatorStatus, error) {
-	return c.status, nil
+func (c *statusClient) GetOperatorState() (*operatorv1.OperatorSpec, *operatorv1.OperatorStatus, string, error) {
+	return nil, &c.status, "", nil
+}
+
+func (c *statusClient) UpdateOperatorSpec(string, *operatorv1.OperatorSpec) (spec *operatorv1.OperatorSpec, resourceVersion string, err error) {
+	panic("missing")
+}
+
+func (c *statusClient) UpdateOperatorStatus(string, *operatorv1.OperatorStatus) (status *operatorv1.OperatorStatus, err error) {
+	panic("missing")
 }

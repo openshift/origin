@@ -3,6 +3,7 @@ package configobserver
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -22,7 +23,6 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
@@ -105,6 +105,17 @@ func (c ConfigObserver) sync() error {
 		}
 	}
 
+	reverseMergedObservedConfig := map[string]interface{}{}
+	for i := len(observedConfigs) - 1; i >= 0; i-- {
+		if err := mergo.Merge(&reverseMergedObservedConfig, observedConfigs[i]); err != nil {
+			glog.Warningf("merging observed config failed: %v", err)
+		}
+	}
+
+	if !equality.Semantic.DeepEqual(mergedObservedConfig, reverseMergedObservedConfig) {
+		errs = append(errs, errors.New("non-deterministic config observation detected"))
+	}
+
 	if !equality.Semantic.DeepEqual(existingConfig, mergedObservedConfig) {
 		glog.Infof("writing updated observedConfig: %v", diff.ObjectDiff(existingConfig, mergedObservedConfig))
 		spec.ObservedConfig = runtime.RawExtension{Object: &unstructured.Unstructured{Object: mergedObservedConfig}}
@@ -116,7 +127,7 @@ func (c ConfigObserver) sync() error {
 			c.eventRecorder.Eventf("ObservedConfigChanged", "Writing updated observed config")
 		}
 	}
-	err = common.NewMultiLineAggregate(errs)
+	err = v1helpers.NewMultiLineAggregate(errs)
 
 	// update failing condition
 	cond := operatorv1.OperatorCondition{
@@ -128,7 +139,7 @@ func (c ConfigObserver) sync() error {
 		cond.Reason = "Error"
 		cond.Message = err.Error()
 	}
-	if _, updateError := v1helpers.UpdateStatus(c.operatorConfigClient, v1helpers.UpdateConditionFn(cond)); updateError != nil {
+	if _, _, updateError := v1helpers.UpdateStatus(c.operatorConfigClient, v1helpers.UpdateConditionFn(cond)); updateError != nil {
 		return updateError
 	}
 

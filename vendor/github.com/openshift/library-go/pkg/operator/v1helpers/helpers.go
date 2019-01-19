@@ -2,6 +2,7 @@ package v1helpers
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ghodss/yaml"
@@ -12,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/util/retry"
 
@@ -110,8 +112,9 @@ func EnsureOperatorConfigExists(client dynamic.Interface, operatorConfigBytes []
 type UpdateStatusFunc func(status *operatorv1.OperatorStatus) error
 
 // UpdateStatus applies the update funcs to the oldStatus and tries to update via the client.
-func UpdateStatus(client OperatorClient, updateFuncs ...UpdateStatusFunc) (bool, error) {
+func UpdateStatus(client OperatorClient, updateFuncs ...UpdateStatusFunc) (*operatorv1.OperatorStatus, bool, error) {
 	updated := false
+	var updatedOperatorStatus *operatorv1.OperatorStatus
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		_, oldStatus, resourceVersion, err := client.GetOperatorState()
 		if err != nil {
@@ -129,12 +132,12 @@ func UpdateStatus(client OperatorClient, updateFuncs ...UpdateStatusFunc) (bool,
 			return nil
 		}
 
-		_, _, err = client.UpdateOperatorStatus(resourceVersion, newStatus)
+		updatedOperatorStatus, err = client.UpdateOperatorStatus(resourceVersion, newStatus)
 		updated = err == nil
 		return err
 	})
 
-	return updated, err
+	return updatedOperatorStatus, updated, err
 }
 
 // UpdateConditionFunc returns a func to update a condition.
@@ -143,4 +146,76 @@ func UpdateConditionFn(cond operatorv1.OperatorCondition) UpdateStatusFunc {
 		SetOperatorCondition(&oldStatus.Conditions, cond)
 		return nil
 	}
+}
+
+// UpdateStatusFunc is a func that mutates an operator status.
+type UpdateStaticPodStatusFunc func(status *operatorv1.StaticPodOperatorStatus) error
+
+// UpdateStaticPodStatus applies the update funcs to the oldStatus abd tries to update via the client.
+func UpdateStaticPodStatus(client StaticPodOperatorClient, updateFuncs ...UpdateStaticPodStatusFunc) (*operatorv1.StaticPodOperatorStatus, bool, error) {
+	updated := false
+	var updatedOperatorStatus *operatorv1.StaticPodOperatorStatus
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		_, oldStatus, resourceVersion, err := client.GetStaticPodOperatorState()
+		if err != nil {
+			return err
+		}
+
+		newStatus := oldStatus.DeepCopy()
+		for _, update := range updateFuncs {
+			if err := update(newStatus); err != nil {
+				return err
+			}
+		}
+
+		if equality.Semantic.DeepEqual(oldStatus, newStatus) {
+			return nil
+		}
+
+		updatedOperatorStatus, err = client.UpdateStaticPodOperatorStatus(resourceVersion, newStatus)
+		updated = err == nil
+		return err
+	})
+
+	return updatedOperatorStatus, updated, err
+}
+
+// UpdateStaticPodConditionFn returns a func to update a condition.
+func UpdateStaticPodConditionFn(cond operatorv1.OperatorCondition) UpdateStaticPodStatusFunc {
+	return func(oldStatus *operatorv1.StaticPodOperatorStatus) error {
+		SetOperatorCondition(&oldStatus.Conditions, cond)
+		return nil
+	}
+}
+
+type aggregate []error
+
+var _ utilerrors.Aggregate = aggregate{}
+
+// NewMultiLineAggregate returns an aggregate error with multi-line output
+func NewMultiLineAggregate(errList []error) error {
+	var errs []error
+	for _, e := range errList {
+		if e != nil {
+			errs = append(errs, e)
+		}
+	}
+	if len(errs) == 0 {
+		return nil
+	}
+	return aggregate(errs)
+}
+
+// Error is part of the error interface.
+func (agg aggregate) Error() string {
+	msgs := make([]string, len(agg))
+	for i := range agg {
+		msgs[i] = agg[i].Error()
+	}
+	return strings.Join(msgs, "\n")
+}
+
+// Errors is part of the Aggregate interface.
+func (agg aggregate) Errors() []error {
+	return []error(agg)
 }

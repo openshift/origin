@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
+
 	"github.com/ghodss/yaml"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -17,7 +19,6 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/assets"
-	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/monitoring/bindata"
 )
 
@@ -48,7 +49,7 @@ func TestNewMonitoringResourcesController(t *testing.T) {
 		name                    string
 		startingObjects         []runtime.Object
 		startingDynamicObjects  []runtime.Object
-		staticPodOperatorClient common.OperatorClient
+		staticPodOperatorClient v1helpers.StaticPodOperatorClient
 		validateActions         func(t *testing.T, actions []clienttesting.Action)
 		validateDynamicActions  func(t *testing.T, actions []clienttesting.Action)
 		validateStatus          func(t *testing.T, status *operatorv1.StaticPodOperatorStatus)
@@ -56,7 +57,7 @@ func TestNewMonitoringResourcesController(t *testing.T) {
 	}{
 		{
 			name: "create when not exists",
-			staticPodOperatorClient: common.NewFakeStaticPodOperatorClient(
+			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
 				&operatorv1.OperatorSpec{
 					ManagementState: operatorv1.Managed,
 				},
@@ -87,7 +88,7 @@ func TestNewMonitoringResourcesController(t *testing.T) {
 		},
 		{
 			name: "skip when exists",
-			staticPodOperatorClient: common.NewFakeStaticPodOperatorClient(
+			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
 				&operatorv1.OperatorSpec{
 					ManagementState: operatorv1.Managed,
 				},

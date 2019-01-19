@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
+
 	"github.com/golang/glog"
 
 	corev1 "k8s.io/api/core/v1"
@@ -21,7 +23,6 @@ import (
 
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
-	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 )
 
 const operatorStatusRevisionControllerFailing = "RevisionControllerFailing"
@@ -38,7 +39,7 @@ type RevisionController struct {
 	// secrets is a list of secrets that are directly copied for the current values.  A different actor/controller modifies these.
 	secrets []string
 
-	operatorConfigClient common.OperatorClient
+	operatorConfigClient v1helpers.StaticPodOperatorClient
 
 	kubeClient kubernetes.Interface
 
@@ -54,7 +55,7 @@ func NewRevisionController(
 	configMaps []string,
 	secrets []string,
 	kubeInformersForTargetNamespace informers.SharedInformerFactory,
-	operatorConfigClient common.OperatorClient,
+	operatorConfigClient v1helpers.StaticPodOperatorClient,
 	kubeClient kubernetes.Interface,
 	eventRecorder events.Recorder,
 ) *RevisionController {
@@ -99,7 +100,7 @@ func (c RevisionController) createRevisionIfNeeded(operatorSpec *operatorv1.Oper
 			Reason:  "ContentCreationError",
 			Message: err.Error(),
 		}
-		if _, _, updateError := common.UpdateStatus(c.operatorConfigClient, common.UpdateConditionFn(cond)); updateError != nil {
+		if _, _, updateError := v1helpers.UpdateStaticPodStatus(c.operatorConfigClient, v1helpers.UpdateStaticPodConditionFn(cond)); updateError != nil {
 			c.eventRecorder.Warningf("RevisionCreateFailed", "Failed to create revision %d: %v", nextRevision, err.Error())
 			return true, updateError
 		}
@@ -110,7 +111,7 @@ func (c RevisionController) createRevisionIfNeeded(operatorSpec *operatorv1.Oper
 		Type:   "RevisionControllerFailing",
 		Status: operatorv1.ConditionFalse,
 	}
-	if _, updated, updateError := common.UpdateStatus(c.operatorConfigClient, common.UpdateConditionFn(cond), func(operatorStatus *operatorv1.StaticPodOperatorStatus) error {
+	if _, updated, updateError := v1helpers.UpdateStaticPodStatus(c.operatorConfigClient, v1helpers.UpdateStaticPodConditionFn(cond), func(operatorStatus *operatorv1.StaticPodOperatorStatus) error {
 		operatorStatus.LatestAvailableRevision = nextRevision
 		return nil
 	}); updateError != nil {
@@ -159,8 +160,29 @@ func (c RevisionController) isLatestRevisionCurrent(revision int32) (bool, strin
 }
 
 func (c RevisionController) createNewRevision(revision int32) error {
+	statusConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: c.targetNamespace,
+			Name:      nameFor("revision-status", revision),
+		},
+		Data: map[string]string{
+			"status":   "InProgress",
+			"revision": fmt.Sprintf("%d", revision),
+		},
+	}
+	statusConfigMap, _, err := resourceapply.ApplyConfigMap(c.kubeClient.CoreV1(), c.eventRecorder, statusConfigMap)
+	if err != nil {
+		return err
+	}
+	ownerRefs := []metav1.OwnerReference{{
+		APIVersion: "v1",
+		Kind:       "ConfigMap",
+		Name:       statusConfigMap.Name,
+		UID:        statusConfigMap.UID,
+	}}
+
 	for _, name := range c.configMaps {
-		obj, _, err := resourceapply.SyncConfigMap(c.kubeClient.CoreV1(), c.eventRecorder, c.targetNamespace, name, c.targetNamespace, nameFor(name, revision))
+		obj, _, err := resourceapply.SyncConfigMap(c.kubeClient.CoreV1(), c.eventRecorder, c.targetNamespace, name, c.targetNamespace, nameFor(name, revision), ownerRefs)
 		if err != nil {
 			return err
 		}
@@ -169,7 +191,7 @@ func (c RevisionController) createNewRevision(revision int32) error {
 		}
 	}
 	for _, name := range c.secrets {
-		obj, _, err := resourceapply.SyncSecret(c.kubeClient.CoreV1(), c.eventRecorder, c.targetNamespace, name, c.targetNamespace, nameFor(name, revision))
+		obj, _, err := resourceapply.SyncSecret(c.kubeClient.CoreV1(), c.eventRecorder, c.targetNamespace, name, c.targetNamespace, nameFor(name, revision), ownerRefs)
 		if err != nil {
 			return err
 		}
@@ -182,7 +204,7 @@ func (c RevisionController) createNewRevision(revision int32) error {
 }
 
 func (c RevisionController) sync() error {
-	operatorSpec, originalOperatorStatus, resourceVersion, err := c.operatorConfigClient.Get()
+	operatorSpec, originalOperatorStatus, resourceVersion, err := c.operatorConfigClient.GetStaticPodOperatorState()
 	if err != nil {
 		return err
 	}
@@ -212,7 +234,7 @@ func (c RevisionController) sync() error {
 		cond.Reason = "Error"
 		cond.Message = err.Error()
 	}
-	if _, _, updateError := common.UpdateStatus(c.operatorConfigClient, common.UpdateConditionFn(cond)); updateError != nil {
+	if _, _, updateError := v1helpers.UpdateStaticPodStatus(c.operatorConfigClient, v1helpers.UpdateStaticPodConditionFn(cond)); updateError != nil {
 		if err == nil {
 			return updateError
 		}

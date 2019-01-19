@@ -25,7 +25,6 @@ import (
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
-	"github.com/openshift/library-go/pkg/operator/staticpod/controller/common"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/installer/bindata"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
@@ -55,7 +54,7 @@ type InstallerController struct {
 	// command is the string to use for the installer pod command
 	command []string
 
-	operatorConfigClient common.OperatorClient
+	operatorConfigClient v1helpers.StaticPodOperatorClient
 
 	kubeClient kubernetes.Interface
 
@@ -87,7 +86,7 @@ func NewInstallerController(
 	secrets []string,
 	command []string,
 	kubeInformersForTargetNamespace informers.SharedInformerFactory,
-	operatorConfigClient common.OperatorClient,
+	operatorConfigClient v1helpers.StaticPodOperatorClient,
 	kubeClient kubernetes.Interface,
 	eventRecorder events.Recorder,
 ) *InstallerController {
@@ -225,7 +224,7 @@ func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.Op
 			// it's an extra write/read, but it makes the state debuggable from outside this process
 			if !equality.Semantic.DeepEqual(newCurrNodeState, currNodeState) {
 				glog.Infof("%q moving to %v", currNodeState.NodeName, spew.Sdump(*newCurrNodeState))
-				newOperatorStatus, updated, updateError := common.UpdateStatus(c.operatorConfigClient, setNodeStatusFn(newCurrNodeState), setAvailableProgressingConditions)
+				newOperatorStatus, updated, updateError := v1helpers.UpdateStaticPodStatus(c.operatorConfigClient, setNodeStatusFn(newCurrNodeState), setAvailableProgressingConditions)
 				if updateError != nil {
 					return false, updateError
 				} else if updated && currNodeState.CurrentRevision != newCurrNodeState.CurrentRevision {
@@ -258,7 +257,7 @@ func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.Op
 		// it's an extra write/read, but it makes the state debuggable from outside this process
 		if !equality.Semantic.DeepEqual(newCurrNodeState, currNodeState) {
 			glog.Infof("%q moving to %v", currNodeState.NodeName, spew.Sdump(*newCurrNodeState))
-			if _, updated, updateError := common.UpdateStatus(c.operatorConfigClient, setNodeStatusFn(newCurrNodeState), setAvailableProgressingConditions); updateError != nil {
+			if _, updated, updateError := v1helpers.UpdateStaticPodStatus(c.operatorConfigClient, setNodeStatusFn(newCurrNodeState), setAvailableProgressingConditions); updateError != nil {
 				return false, updateError
 			} else if updated && currNodeState.TargetRevision != newCurrNodeState.TargetRevision && newCurrNodeState.TargetRevision != 0 {
 				c.eventRecorder.Eventf("NodeTargetRevisionChanged", "Updating node %q from revision %d to %d", currNodeState.NodeName,
@@ -310,7 +309,7 @@ func (c *InstallerController) updateConfigMapForRevision(currentRevisions map[in
 	return nil
 }
 
-func setNodeStatusFn(status *operatorv1.NodeStatus) common.UpdateStatusFunc {
+func setNodeStatusFn(status *operatorv1.NodeStatus) v1helpers.UpdateStaticPodStatusFunc {
 	return func(operatorStatus *operatorv1.StaticPodOperatorStatus) error {
 		for i := range operatorStatus.NodeStatuses {
 			if operatorStatus.NodeStatuses[i].NodeName == status.NodeName {
@@ -504,7 +503,7 @@ func getInstallerPodImageFromEnv() string {
 }
 
 func (c InstallerController) sync() error {
-	operatorSpec, originalOperatorStatus, resourceVersion, err := c.operatorConfigClient.Get()
+	operatorSpec, originalOperatorStatus, resourceVersion, err := c.operatorConfigClient.GetStaticPodOperatorState()
 	if err != nil {
 		return err
 	}
@@ -533,7 +532,7 @@ func (c InstallerController) sync() error {
 		cond.Reason = "Error"
 		cond.Message = err.Error()
 	}
-	if _, _, updateError := common.UpdateStatus(c.operatorConfigClient, common.UpdateConditionFn(cond), setAvailableProgressingConditions); updateError != nil {
+	if _, _, updateError := v1helpers.UpdateStaticPodStatus(c.operatorConfigClient, v1helpers.UpdateStaticPodConditionFn(cond), setAvailableProgressingConditions); updateError != nil {
 		if err == nil {
 			return updateError
 		}

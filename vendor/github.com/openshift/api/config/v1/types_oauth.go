@@ -131,7 +131,7 @@ type IdentityProvider struct {
 	// +optional
 	MappingMethod MappingMethodType `json:"mappingMethod"`
 
-	ProviderConfig IdentityProviderConfig `json:",inline"`
+	IdentityProviderConfig `json:",inline"`
 }
 
 // MappingMethodType specifies how new identities should be mapped to users when they log in
