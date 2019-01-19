@@ -262,7 +262,7 @@ func (j *JenkinsRef) ProcessJenkinsJobUsingVars(filename, namespace string, vars
 	data, err := ioutil.ReadFile(post)
 	o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 
-	newfile, err := exutil.CreateTempFile(string(data))
+	newfile, err := CreateTempFile(string(data))
 	e2e.Logf("new temp file %s err %v", newfile, err)
 	if err != nil {
 		files, dbgerr := ioutil.ReadDir("/tmp")
@@ -455,4 +455,21 @@ func DumpLogs(oc *exutil.CLI, t *exutil.BuildResult) (string, error) {
 		return "", fmt.Errorf("cannot get jenkins log: %v", err)
 	}
 	return log, nil
+}
+
+// CreateTempFile stores the specified data in a temp dir/temp file
+// for the test who calls it
+func CreateTempFile(data string) (string, error) {
+	testDir, err := ioutil.TempDir(os.TempDir(), "test-files")
+	if err != nil {
+		return "", err
+	}
+	testFile, err := ioutil.TempFile(testDir, "test-file")
+	if err != nil {
+		return "", err
+	}
+	if err := ioutil.WriteFile(testFile.Name(), []byte(data), 0666); err != nil {
+		return "", err
+	}
+	return testFile.Name(), nil
 }

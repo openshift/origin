@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -59,6 +60,7 @@ func InitStandardFlags() {
 }
 
 func InitTest() {
+	InitDefaultEnvironmentVariables()
 	// interpret synthetic input in `--ginkgo.focus` and/or `--ginkgo.skip`
 	ginkgo.BeforeEach(checkSyntheticInput)
 
@@ -188,6 +190,15 @@ func AnnotateTestSuite() {
 		}
 		node.SetText(node.Text() + labels)
 	})
+}
+
+// ProwGCPSetup makes sure certain required env vars are available in the case
+// that extended tests are invoked directly via calls to ginkgo/extended.test
+func InitDefaultEnvironmentVariables() {
+	if ad := os.Getenv("ARTIFACT_DIR"); len(strings.TrimSpace(ad)) == 0 {
+		os.Setenv("ARTIFACT_DIR", filepath.Join(os.TempDir(), "artifacts"))
+		e2e.Logf("ARTIFACT_DIR env setting now %s", os.Getenv("ARTIFACT_DIR"))
+	}
 }
 
 // TODO: Use either explicit tags (k8s.io) or https://github.com/onsi/ginkgo/pull/228 to implement this.

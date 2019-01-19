@@ -92,12 +92,11 @@ func mockBuild() *buildv1.Build {
 	}
 }
 
-func RunBuildControllerTest(t testingT, buildClient buildv1clienttyped.BuildsGetter, kClientset kubernetes.Interface) {
+func RunBuildControllerTest(t testingT, buildClient buildv1clienttyped.BuildsGetter, kClientset kubernetes.Interface, ns string) {
 	// Setup an error channel
 	errChan := make(chan error) // go routines will send a message on this channel if an error occurs. Once this happens the test is over
 
 	// Create a build
-	ns := testutil.Namespace()
 	b, err := buildClient.Builds(ns).Create(mockBuild())
 	if err != nil {
 		t.Fatal(err)
@@ -169,9 +168,7 @@ type buildControllerPodTest struct {
 	States []buildControllerPodState
 }
 
-func RunBuildControllerPodSyncTest(t testingT, buildClient buildv1clienttyped.BuildsGetter, kClient kubernetes.Interface) {
-	ns := testutil.Namespace()
-
+func RunBuildControllerPodSyncTest(t testingT, buildClient buildv1clienttyped.BuildsGetter, kClient kubernetes.Interface, ns string) {
 	tests := []buildControllerPodTest{
 		{
 			Name: "running state test",
@@ -361,7 +358,7 @@ func waitForWatch(t testingT, name string, w watchapi.Interface) *watchapi.Event
 	}
 }
 
-func RunImageChangeTriggerTest(t testingT, clusterAdminBuildClient buildv1clienttyped.BuildV1Interface, clusterAdminImageClient imagev1clienttyped.ImageV1Interface) {
+func RunImageChangeTriggerTest(t testingT, clusterAdminBuildClient buildv1clienttyped.BuildV1Interface, clusterAdminImageClient imagev1clienttyped.ImageV1Interface, ns string) {
 	const (
 		tag              = "latest"
 		streamName       = "test-image-trigger-repo"
@@ -373,25 +370,25 @@ func RunImageChangeTriggerTest(t testingT, clusterAdminBuildClient buildv1client
 	imageStream := mockImageStream2(registryHostname, tag)
 	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, registryHostname+"/openshift/test-image-trigger:"+tag)
 
-	config := imageChangeBuildConfig("sti-imagestreamtag", stiStrategy("ImageStreamTag", streamName+":"+tag))
-	_, err := clusterAdminBuildClient.BuildConfigs(testutil.Namespace()).Create(config)
+	config := imageChangeBuildConfig(ns, "sti-imagestreamtag", stiStrategy("ImageStreamTag", streamName+":"+tag))
+	_, err := clusterAdminBuildClient.BuildConfigs(ns).Create(config)
 	if err != nil {
 		t.Fatalf("Couldn't create BuildConfig: %v", err)
 	}
 
-	watch, err := clusterAdminBuildClient.Builds(testutil.Namespace()).Watch(metav1.ListOptions{})
+	watch, err := clusterAdminBuildClient.Builds(ns).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
 	}
 	defer watch.Stop()
 
-	watch2, err := clusterAdminBuildClient.BuildConfigs(testutil.Namespace()).Watch(metav1.ListOptions{})
+	watch2, err := clusterAdminBuildClient.BuildConfigs(ns).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to BuildConfigs %v", err)
 	}
 	defer watch2.Stop()
 
-	imageStream, err = clusterAdminImageClient.ImageStreams(testutil.Namespace()).Create(imageStream)
+	imageStream, err = clusterAdminImageClient.ImageStreams(ns).Create(imageStream)
 	if err != nil {
 		t.Fatalf("Couldn't create ImageStream: %v", err)
 	}
@@ -399,7 +396,7 @@ func RunImageChangeTriggerTest(t testingT, clusterAdminBuildClient buildv1client
 	// give the imagechangecontroller's buildconfig cache time to be updated with the buildconfig object
 	// so it doesn't get a miss when looking up the BC while processing the imagestream update event.
 	time.Sleep(10 * time.Second)
-	_, err = clusterAdminImageClient.ImageStreamMappings(testutil.Namespace()).Create(imageStreamMapping)
+	_, err = clusterAdminImageClient.ImageStreamMappings(ns).Create(imageStreamMapping)
 	if err != nil {
 		t.Fatalf("Couldn't create Image: %v", err)
 	}
@@ -412,12 +409,12 @@ func RunImageChangeTriggerTest(t testingT, clusterAdminBuildClient buildv1client
 	newBuild := event.Object.(*buildv1.Build)
 	strategy := newBuild.Spec.Strategy
 	if strategy.SourceStrategy.From.Name != registryHostname+"/openshift/test-image-trigger:"+tag {
-		i, _ := clusterAdminImageClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name, metav1.GetOptions{})
-		bc, _ := clusterAdminBuildClient.BuildConfigs(testutil.Namespace()).Get(config.Name, metav1.GetOptions{})
+		i, _ := clusterAdminImageClient.ImageStreams(ns).Get(imageStream.Name, metav1.GetOptions{})
+		bc, _ := clusterAdminBuildClient.BuildConfigs(ns).Get(config.Name, metav1.GetOptions{})
 		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\ntrigger is %s\n", registryHostname+"/openshift/test-image-trigger:"+tag, strategy.SourceStrategy.From.Name, i, bc.Spec.Triggers[0].ImageChange)
 	}
 	// Wait for an update on the specific build that was added
-	watch3, err := clusterAdminBuildClient.Builds(testutil.Namespace()).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", newBuild.Name).String(), ResourceVersion: newBuild.ResourceVersion})
+	watch3, err := clusterAdminBuildClient.Builds(ns).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", newBuild.Name).String(), ResourceVersion: newBuild.ResourceVersion})
 	defer watch3.Stop()
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
@@ -480,9 +477,9 @@ WaitLoop2:
 	}
 
 	// trigger a build by posting a new image
-	if _, err := clusterAdminImageClient.ImageStreamMappings(testutil.Namespace()).Create(&imagev1.ImageStreamMapping{
+	if _, err := clusterAdminImageClient.ImageStreamMappings(ns).Create(&imagev1.ImageStreamMapping{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: testutil.Namespace(),
+			Namespace: ns,
 			Name:      imageStream.Name,
 		},
 		Tag: tag,
@@ -502,13 +499,13 @@ WaitLoop2:
 	newBuild = event.Object.(*buildv1.Build)
 	strategy = newBuild.Spec.Strategy
 	if strategy.SourceStrategy.From.Name != registryHostname+"/openshift/test-image-trigger:ref-2-random" {
-		i, _ := clusterAdminImageClient.ImageStreams(testutil.Namespace()).Get(imageStream.Name, metav1.GetOptions{})
-		bc, _ := clusterAdminBuildClient.BuildConfigs(testutil.Namespace()).Get(config.Name, metav1.GetOptions{})
+		i, _ := clusterAdminImageClient.ImageStreams(ns).Get(imageStream.Name, metav1.GetOptions{})
+		bc, _ := clusterAdminBuildClient.BuildConfigs(ns).Get(config.Name, metav1.GetOptions{})
 		t.Fatalf("Expected build with base image %s, got %s\n, imagerepo is %v\trigger is %s\n", registryHostname+"/openshift/test-image-trigger:ref-2-random", strategy.SourceStrategy.From.Name, i, bc.Spec.Triggers[3].ImageChange)
 	}
 
 	// Listen to events on specific  build
-	watch4, err := clusterAdminBuildClient.Builds(testutil.Namespace()).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", newBuild.Name).String(), ResourceVersion: newBuild.ResourceVersion})
+	watch4, err := clusterAdminBuildClient.Builds(ns).Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", newBuild.Name).String(), ResourceVersion: newBuild.ResourceVersion})
 	defer watch4.Stop()
 
 	event = waitForWatch(t, "update on second build", watch4)
@@ -544,19 +541,19 @@ WaitLoop3:
 	}
 }
 
-func RunBuildDeleteTest(t testingT, clusterAdminClient buildv1clienttyped.BuildsGetter, clusterAdminKubeClientset kubernetes.Interface) {
-	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(metav1.ListOptions{})
+func RunBuildDeleteTest(t testingT, clusterAdminClient buildv1clienttyped.BuildsGetter, clusterAdminKubeClientset kubernetes.Interface, ns string) {
+	buildWatch, err := clusterAdminClient.Builds(ns).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
 	}
 	defer buildWatch.Stop()
 
-	_, err = clusterAdminClient.Builds(testutil.Namespace()).Create(mockBuild())
+	_, err = clusterAdminClient.Builds(ns).Create(mockBuild())
 	if err != nil {
 		t.Fatalf("Couldn't create Build: %v", err)
 	}
 
-	podWatch, err := clusterAdminKubeClientset.CoreV1().Pods(testutil.Namespace()).Watch(metav1.ListOptions{})
+	podWatch, err := clusterAdminKubeClientset.CoreV1().Pods(ns).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Pods %v", err)
 	}
@@ -575,7 +572,7 @@ func RunBuildDeleteTest(t testingT, clusterAdminClient buildv1clienttyped.Builds
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 
-	clusterAdminClient.Builds(testutil.Namespace()).Delete(newBuild.Name, nil)
+	clusterAdminClient.Builds(ns).Delete(newBuild.Name, nil)
 
 	event = waitForWatchType(t, "pod deleted due to build deleted", podWatch, watchapi.Deleted)
 	if e, a := watchapi.Deleted, event.Type; e != a {
@@ -608,20 +605,20 @@ func waitForWatchType(t testingT, name string, w watchapi.Interface, expect watc
 	return nil
 }
 
-func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient buildv1clienttyped.BuildsGetter, clusterAdminKubeClientset kubernetes.Interface) {
+func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient buildv1clienttyped.BuildsGetter, clusterAdminKubeClientset kubernetes.Interface, ns string) {
 
-	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(metav1.ListOptions{})
+	buildWatch, err := clusterAdminClient.Builds(ns).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
 	}
 	defer buildWatch.Stop()
 
-	_, err = clusterAdminClient.Builds(testutil.Namespace()).Create(mockBuild())
+	_, err = clusterAdminClient.Builds(ns).Create(mockBuild())
 	if err != nil {
 		t.Fatalf("Couldn't create Build: %v", err)
 	}
 
-	podWatch, err := clusterAdminKubeClientset.CoreV1().Pods(testutil.Namespace()).Watch(metav1.ListOptions{})
+	podWatch, err := clusterAdminKubeClientset.CoreV1().Pods(ns).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Pods %v", err)
 	}
@@ -664,7 +661,7 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient buildv1clientty
 		t.Fatalf("expected build status to be marked pending, but was marked %s", newBuild.Status.Phase)
 	}
 
-	clusterAdminKubeClientset.CoreV1().Pods(testutil.Namespace()).Delete(buildutil.GetBuildPodName(newBuild), metav1.NewDeleteOptions(0))
+	clusterAdminKubeClientset.CoreV1().Pods(ns).Delete(buildutil.GetBuildPodName(newBuild), metav1.NewDeleteOptions(0))
 	event = waitForWatch(t, "build updated to error", buildWatch)
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
@@ -677,7 +674,7 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient buildv1clientty
 	foundFailed := false
 
 	err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
-		events, err := clusterAdminKubeClientset.CoreV1().Events(testutil.Namespace()).Search(legacyscheme.Scheme, newBuild)
+		events, err := clusterAdminKubeClientset.CoreV1().Events(ns).Search(legacyscheme.Scheme, newBuild)
 		if err != nil {
 			t.Fatalf("error getting build events: %v", err)
 			return false, fmt.Errorf("error getting build events: %v", err)
@@ -705,20 +702,20 @@ func RunBuildRunningPodDeleteTest(t testingT, clusterAdminClient buildv1clientty
 	}
 }
 
-func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient buildv1clienttyped.BuildsGetter, clusterAdminKubeClientset kubernetes.Interface) {
+func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient buildv1clienttyped.BuildsGetter, clusterAdminKubeClientset kubernetes.Interface, ns string) {
 
-	buildWatch, err := clusterAdminClient.Builds(testutil.Namespace()).Watch(metav1.ListOptions{})
+	buildWatch, err := clusterAdminClient.Builds(ns).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
 	}
 	defer buildWatch.Stop()
 
-	_, err = clusterAdminClient.Builds(testutil.Namespace()).Create(mockBuild())
+	_, err = clusterAdminClient.Builds(ns).Create(mockBuild())
 	if err != nil {
 		t.Fatalf("Couldn't create Build: %v", err)
 	}
 
-	podWatch, err := clusterAdminKubeClientset.CoreV1().Pods(testutil.Namespace()).Watch(metav1.ListOptions{})
+	podWatch, err := clusterAdminKubeClientset.CoreV1().Pods(ns).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Pods %v", err)
 	}
@@ -748,7 +745,7 @@ func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient buildv1clientt
 	}
 
 	newBuild.Status.Phase = buildv1.BuildPhaseComplete
-	clusterAdminClient.Builds(testutil.Namespace()).Update(newBuild)
+	clusterAdminClient.Builds(ns).Update(newBuild)
 	event = waitForWatch(t, "build updated to complete", buildWatch)
 	if e, a := watchapi.Modified, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
@@ -758,9 +755,9 @@ func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient buildv1clientt
 		t.Fatalf("expected build status to be marked complete, but was marked %s", newBuild.Status.Phase)
 	}
 
-	clusterAdminKubeClientset.CoreV1().Pods(testutil.Namespace()).Delete(buildutil.GetBuildPodName(newBuild), metav1.NewDeleteOptions(0))
+	clusterAdminKubeClientset.CoreV1().Pods(ns).Delete(buildutil.GetBuildPodName(newBuild), metav1.NewDeleteOptions(0))
 	time.Sleep(10 * time.Second)
-	newBuild, err = clusterAdminClient.Builds(testutil.Namespace()).Get(newBuild.Name, metav1.GetOptions{})
+	newBuild, err = clusterAdminClient.Builds(ns).Get(newBuild.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error %v", err)
 	}
@@ -769,20 +766,20 @@ func RunBuildCompletePodDeleteTest(t testingT, clusterAdminClient buildv1clientt
 	}
 }
 
-func RunBuildConfigChangeControllerTest(t testingT, clusterAdminBuildClient buildv1clienttyped.BuildV1Interface) {
-	config := configChangeBuildConfig()
-	created, err := clusterAdminBuildClient.BuildConfigs(testutil.Namespace()).Create(config)
+func RunBuildConfigChangeControllerTest(t testingT, clusterAdminBuildClient buildv1clienttyped.BuildV1Interface, ns string) {
+	config := configChangeBuildConfig(ns)
+	created, err := clusterAdminBuildClient.BuildConfigs(ns).Create(config)
 	if err != nil {
 		t.Fatalf("Couldn't create BuildConfig: %v", err)
 	}
 
-	watch, err := clusterAdminBuildClient.Builds(testutil.Namespace()).Watch(metav1.ListOptions{})
+	watch, err := clusterAdminBuildClient.Builds(ns).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Builds %v", err)
 	}
 	defer watch.Stop()
 
-	watch2, err := clusterAdminBuildClient.BuildConfigs(testutil.Namespace()).Watch(metav1.ListOptions{ResourceVersion: created.ResourceVersion})
+	watch2, err := clusterAdminBuildClient.BuildConfigs(ns).Watch(metav1.ListOptions{ResourceVersion: created.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to BuildConfigs %v", err)
 	}
@@ -803,10 +800,10 @@ func RunBuildConfigChangeControllerTest(t testingT, clusterAdminBuildClient buil
 	}
 }
 
-func configChangeBuildConfig() *buildv1.BuildConfig {
+func configChangeBuildConfig(ns string) *buildv1.BuildConfig {
 	bc := &buildv1.BuildConfig{}
 	bc.Name = "testcfgbc"
-	bc.Namespace = testutil.Namespace()
+	bc.Namespace = ns
 	bc.Spec.Source.Git = &buildv1.GitBuildSource{}
 	bc.Spec.Source.Git.URI = "git://github.com/openshift/ruby-hello-world.git"
 	bc.Spec.Strategy.DockerStrategy = &buildv1.DockerBuildStrategy{}
@@ -848,11 +845,11 @@ func mockImageStreamMapping(stream, image, tag, reference string) *imagev1.Image
 	}
 }
 
-func imageChangeBuildConfig(name string, strategy buildv1.BuildStrategy) *buildv1.BuildConfig {
+func imageChangeBuildConfig(ns, name string, strategy buildv1.BuildStrategy) *buildv1.BuildConfig {
 	return &buildv1.BuildConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: testutil.Namespace(),
+			Namespace: ns,
 			Labels:    map[string]string{"testlabel": "testvalue"},
 		},
 		Spec: buildv1.BuildConfigSpec{

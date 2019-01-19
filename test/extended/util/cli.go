@@ -91,26 +91,21 @@ func NewCLI(project, adminConfigPath string) *CLI {
 	return client
 }
 
-// ProwGCPSetup makes sure certain required env vars are available in the case
-// that extended tests are invoked directly via calls to ginkgo/extended.test
-func ProwGCPSetup(oc *CLI) {
-	tn := os.Getenv("OS_TEST_NAMESPACE")
-	ad := os.Getenv("ARTIFACT_DIR")
-	btd := os.Getenv("BASETMPDIR")
-	e2e.Logf("OS_TEST_NAMESPACE env setting %s, ARTIFACT_DIR env setting %s BASETMPDIR %s", tn, ad, btd)
-	if len(strings.TrimSpace(tn)) == 0 {
-		os.Setenv("OS_TEST_NAMESPACE", oc.Namespace())
-		e2e.Logf("OS_TEST_NAMESPACE env setting now %s", os.Getenv("OS_TEST_NAMESPACE"))
-	}
-	if len(strings.TrimSpace(ad)) == 0 {
-		os.Setenv("ARTIFACT_DIR", "/tmp/artifacts")
-		e2e.Logf("ARTIFACT_DIR env setting now %s", os.Getenv("ARTIFACT_DIR"))
-	}
-	if len(strings.TrimSpace(btd)) == 0 {
-		os.Setenv("BASETMPDIR", "/tmp/shared")
-		e2e.Logf("BASETMPDIR setting is now %s", os.Getenv("BASETMPDIR"))
-	}
+// NewCLIWithoutNamespace initialize the upstream E2E framework without adding a
+// namespace. You may call SetupProject() to create one.
+func NewCLIWithoutNamespace(project string) *CLI {
+	client := &CLI{}
 
+	// must be registered before the e2e framework aftereach
+	g.AfterEach(client.TeardownProject)
+
+	client.kubeFramework = e2e.NewDefaultFramework(project)
+	client.kubeFramework.SkipNamespaceCreation = true
+	client.username = "admin"
+	client.execPath = "oc"
+	client.adminConfigPath = KubeConfigPath()
+
+	return client
 }
 
 // KubeFramework returns Kubernetes framework which contains helper functions
@@ -185,7 +180,6 @@ func (c *CLI) SetupProject() {
 	newNamespace := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("e2e-test-%s-", c.kubeFramework.BaseName))
 	c.SetNamespace(newNamespace).ChangeUser(fmt.Sprintf("%s-user", newNamespace))
 	e2e.Logf("The user is now %q", c.Username())
-	ProwGCPSetup(c)
 
 	e2e.Logf("Creating project %q", newNamespace)
 	_, err := c.ProjectClient().Project().ProjectRequests().Create(&projectapi.ProjectRequest{
@@ -239,7 +233,7 @@ func (c *CLI) CreateProject() string {
 
 // TeardownProject removes projects created by this test.
 func (c *CLI) TeardownProject() {
-	if g.CurrentGinkgoTestDescription().Failed && e2e.TestContext.DumpLogsOnFailure {
+	if len(c.Namespace()) > 0 && g.CurrentGinkgoTestDescription().Failed && e2e.TestContext.DumpLogsOnFailure {
 		e2e.DumpAllNamespaceInfo(c.kubeFramework.ClientSet, c.Namespace())
 	}
 
