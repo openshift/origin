@@ -32,6 +32,7 @@ const (
 	secretName                           = "secret-to-credential"
 	secretCredentialSyncLabel            = "credential.sync.jenkins.openshift.io"
 	envVarsPipelineGitRepoBuildConfig    = "test-build-app-pipeline"
+	centosImageStreamForTest             = "origin-jenkins-test"
 )
 
 var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
@@ -141,6 +142,11 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				newAppArgs = syncPluginNewAppArgs
 			default:
 				fmt.Fprintf(g.GinkgoWriter, "\nNO PR TEST ENV VARS SET SO TESTING CURRENT PLUGIN VERSIONS IN LATEST OPENSHIFT JENKINS IMAGE ON DOCKER HUB.\n")
+				newAppArgs = jenkins.SetupDockerhubImage(
+					"docker.io/openshift/jenkins-2-centos7:v4.0",
+					centosImageStreamForTest,
+					newAppArgs,
+					oc)
 			}
 
 			g.By(fmt.Sprintf("calling oc new-app useSnapshotImage %v with license text %s and newAppArgs %#v", useSnapshotImage, licensePrefix, newAppArgs))
