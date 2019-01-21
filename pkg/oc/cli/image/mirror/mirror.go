@@ -399,6 +399,7 @@ func (o *MirrorImageOptions) plan() (*plan, error) {
 							plan.AddError(retrieverError{src: src.ref, err: fmt.Errorf("unable to retrieve source image %s manifest %s: %v", src.ref, srcDigest, err)})
 							return
 						}
+						glog.V(5).Infof("Found manifest %s with type %T", srcDigest, srcManifest)
 
 						// filter or load manifest list as appropriate
 						originalSrcDigest := srcDigest
@@ -627,7 +628,7 @@ func copyManifestToTags(
 	for _, tag := range tags {
 		toDigest, err := imagemanifest.PutManifestInCompatibleSchema(ctx, srcManifest, tag, plan.to, ref, plan.toBlobs, nil)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("unable to push manifest to %s: %v", plan.toRef, err))
+			errs = append(errs, fmt.Errorf("unable to push manifest to %s:%s: %v", plan.toRef, tag, err))
 			continue
 		}
 		for _, desc := range srcManifest.References() {

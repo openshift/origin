@@ -100,6 +100,7 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 	flags.StringVar(&o.FromImageStream, "from-image-stream", o.FromImageStream, "Look at all tags in the provided image stream and build a release payload from them.")
 	flags.StringVar(&o.FromDirectory, "from-dir", o.FromDirectory, "Use this directory as the source for the release payload.")
 	flags.StringVar(&o.FromReleaseImage, "from-release", o.FromReleaseImage, "Use an existing release image as input.")
+	flags.StringVar(&o.ReferenceMode, "reference-mode", o.ReferenceMode, "By default, the image reference from an image stream points to the public registry for the stream and the image digest. Pass 'source' to build references to the originating image.")
 
 	// properties of the release
 	flags.StringVar(&o.Name, "name", o.Name, "The name of the release. Will default to the current time.")
@@ -144,6 +145,7 @@ type NewOptions struct {
 
 	FromImageStream string
 	Namespace       string
+	ReferenceMode   string
 
 	Exclude       []string
 	AlwaysInclude []string
@@ -400,8 +402,14 @@ func (o *NewOptions) Run() error {
 			return err
 		}
 
-		switch {
-		case len(inputIS.Status.PublicDockerImageRepository) > 0:
+		switch o.ReferenceMode {
+		case "public", "", "source":
+			forceExternal := o.ReferenceMode == "public" || o.ReferenceMode == ""
+			internal := inputIS.Status.DockerImageRepository
+			external := inputIS.Status.PublicDockerImageRepository
+			if forceExternal && len(external) == 0 {
+				return fmt.Errorf("only image streams with public image repositories can be the source for releases when using the default --reference-mode")
+			}
 			for _, tag := range inputIS.Status.Tags {
 				if exclude.Has(tag.Tag) {
 					glog.V(2).Infof("Excluded status tag %s", tag.Tag)
@@ -410,24 +418,63 @@ func (o *NewOptions) Run() error {
 				if len(tag.Items) == 0 {
 					continue
 				}
+
+				// attempt to identify the source image
+				source := tag.Items[0].DockerImageReference
 				if len(tag.Items[0].Image) == 0 {
-					glog.V(2).Infof("Ignored tag %q because it had no image id", tag.Tag)
+					glog.V(2).Infof("Ignored tag %q because it had no image id or reference", tag.Tag)
 					continue
+				}
+				// eliminate status tag references that point to the outside
+				if len(source) > 0 {
+					if len(internal) > 0 && strings.HasPrefix(tag.Items[0].DockerImageReference, internal) {
+						glog.V(2).Infof("Can't use tag %q source %s because it points to the internal registry", tag.Tag, source)
+						source = ""
+					}
 				}
 				ref := findSpecTag(inputIS.Spec.Tags, tag.Tag)
 				if ref == nil {
 					ref = &imageapi.TagReference{Name: tag.Tag}
 				} else {
+					// prevent unimported images from being skipped
+					if ref.Generation != nil && *ref.Generation != tag.Items[0].Generation {
+						return fmt.Errorf("the tag %q in the source input stream has not been imported yet", tag.Tag)
+					}
+					// use the tag ref as the source
+					if ref.From != nil && ref.From.Kind == "DockerImage" && !strings.HasPrefix(ref.From.Name, internal) {
+						if from, err := imagereference.Parse(ref.From.Name); err == nil {
+							from.Tag = ""
+							from.ID = tag.Items[0].Image
+							source = from.Exact()
+						} else {
+							glog.V(2).Infof("Can't use tag %q from %s because it isn't a valid image reference", tag.Tag, ref.From.Name)
+						}
+					}
 					ref = ref.DeepCopy()
 				}
-				ref.From = &corev1.ObjectReference{Kind: "DockerImage", Name: inputIS.Status.PublicDockerImageRepository + "@" + tag.Items[0].Image}
+				// default to the external registry name
+				if (forceExternal || len(source) == 0) && len(external) > 0 {
+					source = external + "@" + tag.Items[0].Image
+				}
+				if len(source) == 0 {
+					glog.V(2).Infof("Can't use tag %q because we cannot locate or calculate a source location", tag.Tag)
+					continue
+				}
+				sourceRef, err := imagereference.Parse(source)
+				if err != nil {
+					return fmt.Errorf("the tag %q points to source %q which is not valid", tag.Tag, source)
+				}
+				sourceRef.Tag = ""
+				sourceRef.ID = tag.Items[0].Image
+				source = sourceRef.Exact()
+
+				ref.From = &corev1.ObjectReference{Kind: "DockerImage", Name: source}
 				is.Spec.Tags = append(is.Spec.Tags, *ref)
 				ordered = append(ordered, tag.Tag)
 			}
 			fmt.Fprintf(o.ErrOut, "info: Found %d images in image stream\n", len(inputIS.Status.Tags))
 		default:
-			// TODO: add support for internal and referential
-			return fmt.Errorf("only image streams with public image repositories can be the source for a release payload")
+			return fmt.Errorf("supported reference modes are: \"public\" (default) and \"source\"")
 		}
 
 	case len(o.FromDirectory) > 0:
