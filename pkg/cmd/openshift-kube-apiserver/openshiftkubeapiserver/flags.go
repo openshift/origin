@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"sort"
 	"strings"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -18,7 +17,7 @@ import (
 )
 
 func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) ([]string, error) {
-	args := configflags.ArgsWithPrefix(kubeAPIServerConfig.APIServerArguments, "")
+	args := unmaskArgs(kubeAPIServerConfig.APIServerArguments)
 
 	host, portString, err := net.SplitHostPort(kubeAPIServerConfig.ServingInfo.BindAddress)
 	if err != nil {
@@ -107,7 +106,7 @@ func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) 
 	configflags.SetIfUnset(args, "allow-privileged", "true")
 	configflags.SetIfUnset(args, "anonymous-auth", "false")
 	configflags.SetIfUnset(args, "authorization-mode", "RBAC", "Node") // overridden later, but this runs the poststarthook for bootstrapping RBAC
-	for flag, value := range configflags.AuditFlags(&kubeAPIServerConfig.AuditConfig, configflags.ArgsWithPrefix(kubeAPIServerConfig.APIServerArguments, "--audit")) {
+	for flag, value := range configflags.AuditFlags(&kubeAPIServerConfig.AuditConfig, configflags.ArgsWithPrefix(args, "audit-")) {
 		configflags.SetIfUnset(args, flag, value...)
 	}
 	configflags.SetIfUnset(args, "bind-address", host)
@@ -151,19 +150,7 @@ func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) 
 	configflags.SetIfUnset(args, "tls-sni-cert-key", sniCertKeys(kubeAPIServerConfig.ServingInfo.NamedCertificates)...)
 	configflags.SetIfUnset(args, "secure-port", portString)
 
-	var keys []string
-	for key := range args {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-
-	var arguments []string
-	for _, key := range keys {
-		for _, token := range args[key] {
-			arguments = append(arguments, fmt.Sprintf("--%s=%v", key, token))
-		}
-	}
-	return arguments, nil
+	return configflags.ToFlagSlice(args), nil
 }
 
 func admissionFlags(admissionPluginConfig map[string]configv1.AdmissionPluginConfig) (map[string][]string, error) {
@@ -265,4 +252,14 @@ func sniCertKeys(namedCertificates []configv1.NamedCertificate) []string {
 		args = append(args, fmt.Sprintf("%s,%s%s", nc.CertFile, nc.KeyFile, names))
 	}
 	return args
+}
+
+func unmaskArgs(args map[string]kubecontrolplanev1.Arguments) map[string][]string {
+	ret := map[string][]string{}
+	for key, slice := range args {
+		for _, val := range slice {
+			ret[key] = append(ret[key], val)
+		}
+	}
+	return ret
 }

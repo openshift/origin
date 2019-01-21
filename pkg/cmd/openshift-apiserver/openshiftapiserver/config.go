@@ -8,7 +8,9 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/spf13/pflag"
 
+	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/admission"
 	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -23,6 +25,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
+	"github.com/openshift/origin/pkg/cmd/configflags"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftadmission"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
@@ -44,10 +47,6 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 
 	openshiftVersion := version.Get()
 
-	backend, policyChecker, err := configprocessing.GetAuditConfig(config.AuditConfig)
-	if err != nil {
-		return nil, err
-	}
 	restOptsGetter, err := NewRESTOptionsGetter(config.APIServerArguments, config.StorageConfig)
 	if err != nil {
 		return nil, err
@@ -93,9 +92,6 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 
 	genericConfig.CorsAllowedOriginList = config.CORSAllowedOrigins
 	genericConfig.Version = &openshiftVersion
-	// we don't use legacy audit anymore
-	genericConfig.AuditBackend = backend
-	genericConfig.AuditPolicyChecker = policyChecker
 	genericConfig.ExternalAddress = "apiserver.openshift-apiserver.svc"
 	genericConfig.BuildHandlerChainFunc = OpenshiftHandlerChain
 	genericConfig.RequestInfoResolver = configprocessing.OpenshiftRequestInfoResolver()
@@ -135,6 +131,20 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 	authorizationOptions := genericapiserveroptions.NewDelegatingAuthorizationOptions().WithAlwaysAllowPaths("/healthz", "/healthz/").WithAlwaysAllowGroups("system:masters")
 	authorizationOptions.RemoteKubeConfigFile = config.KubeClientConfig.KubeConfig
 	if err := authorizationOptions.ApplyTo(&genericConfig.Authorization); err != nil {
+		return nil, err
+	}
+
+	auditFlags := configflags.AuditFlags(&config.AuditConfig, configflags.ArgsWithPrefix(config.APIServerArguments, "audit-"))
+	auditOpt := genericapiserveroptions.NewAuditOptions()
+	fs := pflag.NewFlagSet("audit", pflag.ContinueOnError)
+	auditOpt.AddFlags(fs)
+	if err := fs.Parse(configflags.ToFlagSlice(auditFlags)); err != nil {
+		return nil, err
+	}
+	if errs := auditOpt.Validate(); len(errs) > 0 {
+		return nil, errors.NewAggregate(errs)
+	}
+	if err := auditOpt.ApplyTo(&genericConfig.Config); err != nil {
 		return nil, err
 	}
 
