@@ -64,6 +64,11 @@ const (
 	// DefaultMaxEBSM5VolumeLimit is default EBS volume limit on m5 and c5 instances
 	DefaultMaxEBSM5VolumeLimit = 25
 
+	// DefaultMaxCinderVolumes defines the maximum number of PD Volumes for Cinder
+	// For Openstack we are keeping this to a high enough value so as depending on backend
+	// cluster admins can configure it.
+	DefaultMaxCinderVolumes = 256
+
 	// KubeMaxPDVols defines the maximum number of PD Volumes per kubelet
 	KubeMaxPDVols = "KUBE_MAX_PD_VOLS"
 
@@ -73,6 +78,12 @@ const (
 	GCEPDVolumeFilterType = "GCE"
 	// for AzureDiskVolumeFilter
 	AzureDiskVolumeFilterType = "AzureDisk"
+
+	// MaxCinderVolumeCountPred defines the name of predicate MaxCinderDiskVolumeCount.
+	MaxCinderVolumeCountPred = "MaxCinderVolumeCount"
+
+	// CinderVolumeFilterType defines the filter name for CinderVolumeFilter.
+	CinderVolumeFilterType = "Cinder"
 )
 
 // IMPORTANT NOTE for predicate developers:
@@ -251,6 +262,8 @@ func NewMaxPDVolumeCountPredicate(filterName string, pvInfo PersistentVolumeInfo
 		filter = GCEPDVolumeFilter
 	case AzureDiskVolumeFilterType:
 		filter = AzureDiskVolumeFilter
+	case CinderVolumeFilterType:
+		filter = CinderVolumeFilter
 	default:
 		glog.Fatalf("Wrong filterName, Only Support %v %v %v ", EBSVolumeFilterType,
 			GCEPDVolumeFilterType, AzureDiskVolumeFilterType)
@@ -288,6 +301,8 @@ func getMaxVolumeFunc(filterName string) func(node *v1.Node) int {
 			return DefaultMaxGCEPDVolumes
 		case AzureDiskVolumeFilterType:
 			return DefaultMaxAzureDiskVolumes
+		case CinderVolumeFilterType:
+			return DefaultMaxCinderVolumes
 		default:
 			return -1
 		}
@@ -412,6 +427,24 @@ func (c *MaxPDVolumeCountChecker) predicate(pod *v1.Pod, meta algorithm.Predicat
 	}
 
 	return true, nil, nil
+}
+
+// CinderVolumeFilter is a VolumeFilter for filtering Cinder Volumes
+// It will be deprecated once Openstack cloudprovider has been removed from in-tree.
+var CinderVolumeFilter = VolumeFilter{
+	FilterVolume: func(vol *v1.Volume) (string, bool) {
+		if vol.Cinder != nil {
+			return vol.Cinder.VolumeID, true
+		}
+		return "", false
+	},
+
+	FilterPersistentVolume: func(pv *v1.PersistentVolume) (string, bool) {
+		if pv.Spec.Cinder != nil {
+			return pv.Spec.Cinder.VolumeID, true
+		}
+		return "", false
+	},
 }
 
 // EBSVolumeFilter is a VolumeFilter for filtering AWS ElasticBlockStore Volumes
@@ -547,7 +580,7 @@ func (c *VolumeZoneChecker) predicate(pod *v1.Pod, meta algorithm.PredicateMetad
 						class, _ := c.classInfo.GetStorageClassInfo(*scName)
 						if class != nil {
 							if class.VolumeBindingMode == nil {
-								return false, nil, fmt.Errorf("VolumeBindingMode not set for StorageClass %q", scName)
+								return false, nil, fmt.Errorf("VolumeBindingMode not set for StorageClass %s", *scName)
 							}
 							if *class.VolumeBindingMode == storagev1.VolumeBindingWaitForFirstConsumer {
 								// Skip unbound volumes
