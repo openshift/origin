@@ -80,6 +80,14 @@ func init() {
 	// Fit is determined by node selector query.
 	factory.RegisterFitPredicate("MatchNodeSelector", predicates.PodMatchNodeSelector)
 
+	// Fit is determined by whether or not there would be too many Cinder Disk volumes attached to the node
+	factory.RegisterFitPredicateFactory(
+		predicates.MaxCinderVolumeCountPred,
+		func(args factory.PluginFactoryArgs) algorithm.FitPredicate {
+			return predicates.NewMaxPDVolumeCountPredicate(predicates.CinderVolumeFilterType, args.PVInfo, args.PVCInfo)
+		},
+	)
+
 	// Use equivalence class to speed up heavy predicates phase.
 	factory.RegisterGetEquivalencePodFunction(
 		func(args factory.PluginFactoryArgs) algorithm.GetEquivalencePodFunc {
