@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	hashutil "k8s.io/kubernetes/pkg/util/hash"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm"
+	"k8s.io/kubernetes/plugin/pkg/scheduler/algorithm/predicates"
 
 	"github.com/golang/glog"
 	"github.com/golang/groupcache/lru"
@@ -192,7 +193,7 @@ func (ec *EquivalenceCache) InvalidateCachedPredicateItemForPodAdd(pod *v1.Pod, 
 	// MaxPDVolumeCountPredicate: we check the volumes of pod to make decision.
 	for _, vol := range pod.Spec.Volumes {
 		if vol.PersistentVolumeClaim != nil {
-			invalidPredicates.Insert("MaxEBSVolumeCount", "MaxGCEPDVolumeCount", "MaxAzureDiskVolumeCount")
+			invalidPredicates.Insert("MaxEBSVolumeCount", "MaxGCEPDVolumeCount", "MaxAzureDiskVolumeCount", predicates.MaxCinderVolumeCountPred)
 		} else {
 			if vol.AWSElasticBlockStore != nil {
 				invalidPredicates.Insert("MaxEBSVolumeCount")
@@ -202,6 +203,9 @@ func (ec *EquivalenceCache) InvalidateCachedPredicateItemForPodAdd(pod *v1.Pod, 
 			}
 			if vol.AzureDisk != nil {
 				invalidPredicates.Insert("MaxAzureDiskVolumeCount")
+			}
+			if vol.Cinder != nil {
+				invalidPredicates.Insert(predicates.MaxCinderVolumeCountPred)
 			}
 		}
 	}
