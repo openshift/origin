@@ -118,7 +118,7 @@ func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) 
 	setIfUnset(args, "allow-privileged", "true")
 	setIfUnset(args, "anonymous-auth", "false")
 	setIfUnset(args, "authorization-mode", "RBAC", "Node") // overridden later, but this runs the poststarthook for bootstrapping RBAC
-	for flag, value := range auditFlags(kubeAPIServerConfig) {
+	for flag, value := range auditFlags(&kubeAPIServerConfig.AuditConfig, argsWithPrefix(kubeAPIServerConfig, "--audit")) {
 		setIfUnset(args, flag, value...)
 	}
 	setIfUnset(args, "bind-address", host)
@@ -177,9 +177,8 @@ func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) 
 	return arguments, nil
 }
 
-func auditFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) map[string][]string {
+func argsWithPrefix(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig, prefix string) map[string][]string {
 	args := map[string][]string{}
-
 	for key, slice := range kubeAPIServerConfig.APIServerArguments {
 		if !strings.HasPrefix("audit-", key) {
 			continue
@@ -188,28 +187,31 @@ func auditFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) map
 			args[key] = append(args[key], val)
 		}
 	}
+	return args
+}
 
-	if !kubeAPIServerConfig.AuditConfig.Enabled {
+func auditFlags(c *configv1.AuditConfig, args map[string][]string) map[string][]string {
+	if !c.Enabled {
 		return args
 	}
 
-	auditPolicyFilePath := kubeAPIServerConfig.AuditConfig.PolicyFile
-	if len(kubeAPIServerConfig.AuditConfig.PolicyConfiguration.Raw) > 0 && string(kubeAPIServerConfig.AuditConfig.PolicyConfiguration.Raw) != "null" {
+	auditPolicyFilePath := c.PolicyFile
+	if len(c.PolicyConfiguration.Raw) > 0 && string(c.PolicyConfiguration.Raw) != "null" {
 		if len(auditPolicyFilePath) == 0 {
 			auditPolicyFilePath = defaultAuditPolicyFilePath
 		}
 		if err := os.MkdirAll(filepath.Dir(auditPolicyFilePath), 0755); err != nil {
 			utilruntime.HandleError(err)
 		}
-		if err := ioutil.WriteFile(auditPolicyFilePath, kubeAPIServerConfig.AuditConfig.PolicyConfiguration.Raw, 0644); err != nil {
+		if err := ioutil.WriteFile(auditPolicyFilePath, c.PolicyConfiguration.Raw, 0644); err != nil {
 			utilruntime.HandleError(err)
 		}
 	}
 
-	setIfUnset(args, "audit-log-maxbackup", strconv.Itoa(int(kubeAPIServerConfig.AuditConfig.MaximumRetainedFiles)))
-	setIfUnset(args, "audit-log-maxsize", strconv.Itoa(int(kubeAPIServerConfig.AuditConfig.MaximumFileSizeMegabytes)))
-	setIfUnset(args, "audit-log-maxage", strconv.Itoa(int(kubeAPIServerConfig.AuditConfig.MaximumFileRetentionDays)))
-	auditFilePath := kubeAPIServerConfig.AuditConfig.AuditFilePath
+	setIfUnset(args, "audit-log-maxbackup", strconv.Itoa(int(c.MaximumRetainedFiles)))
+	setIfUnset(args, "audit-log-maxsize", strconv.Itoa(int(c.MaximumFileSizeMegabytes)))
+	setIfUnset(args, "audit-log-maxage", strconv.Itoa(int(c.MaximumFileRetentionDays)))
+	auditFilePath := c.AuditFilePath
 	if len(auditFilePath) == 0 {
 		auditFilePath = "-"
 	}
@@ -217,13 +219,13 @@ func auditFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) map
 	if len(auditPolicyFilePath) > 0 {
 		setIfUnset(args, "audit-policy-file", auditPolicyFilePath)
 	}
-	if len(kubeAPIServerConfig.AuditConfig.LogFormat) > 0 {
-		setIfUnset(args, "audit-log-format", string(kubeAPIServerConfig.AuditConfig.LogFormat))
+	if len(c.LogFormat) > 0 {
+		setIfUnset(args, "audit-log-format", string(c.LogFormat))
 	}
-	if len(kubeAPIServerConfig.AuditConfig.WebHookMode) > 0 {
-		setIfUnset(args, "audit-webhook-mode", string(kubeAPIServerConfig.AuditConfig.WebHookMode))
+	if len(c.WebHookMode) > 0 {
+		setIfUnset(args, "audit-webhook-mode", string(c.WebHookMode))
 	}
-	setIfUnset(args, "audit-webhook-config-file", string(kubeAPIServerConfig.AuditConfig.WebHookKubeConfig))
+	setIfUnset(args, "audit-webhook-config-file", string(c.WebHookKubeConfig))
 
 	return args
 }
