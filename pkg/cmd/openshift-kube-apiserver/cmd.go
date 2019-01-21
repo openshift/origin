@@ -99,7 +99,13 @@ func (o *OpenShiftKubeAPIServerServer) RunAPIServer(stopCh <-chan struct{}) erro
 	utilruntime.Must(kubecontrolplanev1.Install(scheme))
 	codecs := serializer.NewCodecFactory(scheme)
 	obj, err := runtime.Decode(codecs.UniversalDecoder(kubecontrolplanev1.GroupVersion, configv1.GroupVersion, osinv1.GroupVersion), configContent)
-	if err == nil {
+	switch {
+	case runtime.IsMissingVersion(err): // fall through to legacy master config
+	case runtime.IsMissingKind(err): // fall through to legacy master config
+	case runtime.IsNotRegisteredError(err): // fall through to legacy master config
+	case err != nil:
+		return err
+	case err == nil:
 		// Resolve relative to CWD
 		absoluteConfigFile, err := api.MakeAbs(o.ConfigFile, "")
 		if err != nil {
