@@ -14,9 +14,11 @@ import (
 	"github.com/openshift/origin/pkg/admission/customresourcevalidation"
 )
 
+const PluginName = "config.openshift.io/ValidateImage"
+
 // Register registers a plugin
 func Register(plugins *admission.Plugins) {
-	plugins.Register("config.openshift.io/ValidateImage", func(config io.Reader) (admission.Interface, error) {
+	plugins.Register(PluginName, func(config io.Reader) (admission.Interface, error) {
 		return customresourcevalidation.NewValidator(
 			map[schema.GroupResource]bool{
 				configv1.Resource("images"): true,

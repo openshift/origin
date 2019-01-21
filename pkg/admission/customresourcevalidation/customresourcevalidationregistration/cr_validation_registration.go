@@ -8,8 +8,8 @@ import (
 
 // AllCustomResourceValidators are the names of all custom resource validators that should be registered
 var AllCustomResourceValidators = []string{
-	"config.openshift.io/ValidateImage",
-	"config.openshift.io/ValidateProject",
+	image.PluginName,
+	project.PluginName,
 }
 
 func RegisterCustomResourceValidation(plugins *admission.Plugins) {
