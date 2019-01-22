@@ -9,20 +9,21 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	testutil "github.com/openshift/origin/pkg/build/controller/common/testutil"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
-func TestProxyDefaults(t *testing.T) {
+func TestGitProxyDefaults(t *testing.T) {
 	defaultsConfig := &openshiftcontrolplanev1.BuildDefaultsConfig{
 		GitHTTPProxy:  "http",
 		GitHTTPSProxy: "https",
 		GitNoProxy:    "no",
 	}
 
-	admitter := BuildDefaults{defaultsConfig}
+	admitter := BuildDefaults{defaultsConfig, nil}
 	pod := testutil.Pod().WithBuild(t, testutil.Build().WithDockerStrategy().AsBuild())
 	err := admitter.ApplyDefaults((*corev1.Pod)(pod))
 	if err != nil {
@@ -62,7 +63,7 @@ func TestEnvDefaults(t *testing.T) {
 		},
 	}
 
-	admitter := BuildDefaults{defaultsConfig}
+	admitter := BuildDefaults{defaultsConfig, nil}
 	pod := testutil.Pod().WithBuild(t, testutil.Build().WithSourceStrategy().AsBuild())
 	err := admitter.ApplyDefaults((*corev1.Pod)(pod))
 	if err != nil {
@@ -146,6 +147,76 @@ func TestEnvDefaults(t *testing.T) {
 	}
 }
 
+func TestGlobalProxyDefaults(t *testing.T) {
+	defaultsProxy := &configv1.ProxySpec{
+		HTTPProxy:  "http",
+		HTTPSProxy: "https",
+		NoProxy:    "no",
+	}
+
+	admitter := BuildDefaults{nil, defaultsProxy}
+	pod := testutil.Pod().WithBuild(t, testutil.Build().WithSourceStrategy().AsBuild())
+	err := admitter.ApplyDefaults((*corev1.Pod)(pod))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	build, err := common.GetBuildFromPod((*corev1.Pod)(pod))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	env := buildutil.GetBuildEnv(build)
+	for _, ev := range env {
+		if ev.Name == "HTTP_PROXY" {
+			t.Errorf("HTTP_PROXY was found, but should not have been")
+		}
+		if ev.Name == "HTTPS_PROXY" {
+			t.Errorf("HTTPS_PROXY was found, but should not have been")
+		}
+		if ev.Name == "NO_PROXY" {
+			t.Errorf("NO_PROXY was found, but should not have been")
+		}
+	}
+
+	// custom builds should have the defaulted env vars applied to the build pod
+	pod = testutil.Pod().WithBuild(t, testutil.Build().WithCustomStrategy().AsBuild())
+	err = admitter.ApplyDefaults((*corev1.Pod)(pod))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	httpProxyFound, httpsProxyFound, noProxyFound := false, false, false
+	for _, ev := range pod.Spec.Containers[0].Env {
+		if ev.Name == "HTTP_PROXY" {
+			if ev.Value != "http" {
+				t.Errorf("unexpected value %s", ev.Value)
+			}
+			httpProxyFound = true
+		}
+		if ev.Name == "HTTPS_PROXY" {
+			if ev.Value != "https" {
+				t.Errorf("unexpected value %s", ev.Value)
+			}
+			httpsProxyFound = true
+		}
+		if ev.Name == "NO_PROXY" {
+			if ev.Value != "no" {
+				t.Errorf("unexpected value %s", ev.Value)
+			}
+			noProxyFound = true
+		}
+	}
+	if !httpProxyFound {
+		t.Errorf("HTTP_PROXY not found")
+	}
+	if !httpsProxyFound {
+		t.Errorf("HTTPS_PROXY not found")
+	}
+	if !noProxyFound {
+		t.Errorf("NO_PROXY not found")
+	}
+}
+
 func TestIncrementalDefaults(t *testing.T) {
 	bool_t := true
 	defaultsConfig := &openshiftcontrolplanev1.BuildDefaultsConfig{
@@ -154,7 +225,7 @@ func TestIncrementalDefaults(t *testing.T) {
 		},
 	}
 
-	admitter := BuildDefaults{defaultsConfig}
+	admitter := BuildDefaults{defaultsConfig, nil}
 
 	pod := testutil.Pod().WithBuild(t, testutil.Build().WithSourceStrategy().AsBuild())
 	err := admitter.ApplyDefaults((*corev1.Pod)(pod))
@@ -303,7 +374,7 @@ func TestLabelDefaults(t *testing.T) {
 			ImageLabels: test.defaultLabels,
 		}
 
-		admitter := BuildDefaults{defaultsConfig}
+		admitter := BuildDefaults{defaultsConfig, nil}
 		pod := testutil.Pod().WithBuild(t, testutil.Build().WithImageLabels(test.buildLabels).AsBuild())
 		err := admitter.ApplyDefaults((*corev1.Pod)(pod))
 		if err != nil {

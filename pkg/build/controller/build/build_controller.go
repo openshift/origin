@@ -1587,8 +1587,10 @@ func (bc *BuildController) handleControllerConfig() error {
 	}
 	if config == nil {
 		bc.additionalTrustedCAData = nil
+		bc.buildDefaults.DefaultProxy = nil
 		return nil
 	}
+	bc.buildDefaults.DefaultProxy = config.Spec.BuildDefaults.DefaultProxy
 	if len(config.Spec.AdditionalTrustedCA.Name) == 0 {
 		bc.additionalTrustedCAData = nil
 		return nil
