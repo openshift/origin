@@ -315,6 +315,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 		})
 
 		g.It("[Conformance] buildconfigs should not have a default history limit set when created via the legacy api", func() {
+			g.Skip("Skipping legacy API tests")
 
 			g.By("creating a build config with the legacy api")
 			err := oc.Run("create").Args("-f", legacyBuildConfig, "--raw=/oapi/v1/namespaces/"+oc.Namespace()+"/buildconfigs").Execute()
