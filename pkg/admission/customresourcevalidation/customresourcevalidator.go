@@ -27,7 +27,7 @@ type validateCustomResource struct {
 
 func NewValidator(resources map[schema.GroupResource]bool, validators map[schema.GroupVersionKind]ObjectValidator) (admission.Interface, error) {
 	return &validateCustomResource{
-		Handler:    admission.NewHandler(admission.Create, admission.Update),
+		Handler:    admission.NewHandler(admission.Create, admission.Update, admission.Delete),
 		resources:  resources,
 		validators: validators,
 	}, nil
@@ -78,6 +78,9 @@ func (a *validateCustomResource) Validate(uncastAttributes admission.Attributes)
 		default:
 			return admission.NewForbidden(attributes, fmt.Errorf("unhandled subresource: %v", attributes.GetSubresource()))
 		}
+
+	case admission.Delete:
+		return apierrors.NewMethodNotSupported(attributes.GetResource().GroupResource(), "delete")
 
 	default:
 		return admission.NewForbidden(attributes, fmt.Errorf("unhandled operation: %v", attributes.GetOperation()))
