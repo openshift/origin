@@ -125,6 +125,15 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 		return nil, err
 	}
 	authenticationOptions := genericapiserveroptions.NewDelegatingAuthenticationOptions()
+	// keep working for integration tests
+	if len(config.AggregatorConfig.ClientCA) > 0 {
+		authenticationOptions.ClientCert.ClientCA = config.ServingInfo.ClientCA
+		authenticationOptions.RequestHeader.ClientCAFile = config.AggregatorConfig.ClientCA
+		authenticationOptions.RequestHeader.AllowedNames = config.AggregatorConfig.AllowedNames
+		authenticationOptions.RequestHeader.UsernameHeaders = config.AggregatorConfig.UsernameHeaders
+		authenticationOptions.RequestHeader.GroupHeaders = config.AggregatorConfig.GroupHeaders
+		authenticationOptions.RequestHeader.ExtraHeaderPrefixes = config.AggregatorConfig.ExtraHeaderPrefixes
+	}
 	authenticationOptions.RemoteKubeConfigFile = config.KubeClientConfig.KubeConfig
 	if err := authenticationOptions.ApplyTo(&genericConfig.Authentication, genericConfig.SecureServing, genericConfig.OpenAPIConfig); err != nil {
 		return nil, err
