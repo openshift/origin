@@ -12,8 +12,8 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
@@ -46,9 +46,11 @@ type ResourceSyncController struct {
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
 	queue workqueue.RateLimitingInterface
 
-	kubeClient           kubernetes.Interface
-	operatorConfigClient v1helpers.OperatorClient
-	eventRecorder        events.Recorder
+	configMapGetter            corev1client.ConfigMapsGetter
+	secretGetter               corev1client.SecretsGetter
+	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces
+	operatorConfigClient       v1helpers.OperatorClient
+	eventRecorder              events.Recorder
 }
 
 var _ ResourceSyncer = &ResourceSyncController{}
@@ -56,7 +58,7 @@ var _ ResourceSyncer = &ResourceSyncController{}
 // NewResourceSyncController creates ResourceSyncController.
 func NewResourceSyncController(
 	operatorConfigClient v1helpers.OperatorClient,
-	kubeInformersForNamespaces map[string]informers.SharedInformerFactory,
+	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces,
 	kubeClient kubernetes.Interface,
 	eventRecorder events.Recorder,
 ) *ResourceSyncController {
@@ -64,15 +66,21 @@ func NewResourceSyncController(
 		operatorConfigClient: operatorConfigClient,
 		eventRecorder:        eventRecorder,
 
-		configMapSyncRules: map[ResourceLocation]ResourceLocation{},
-		secretSyncRules:    map[ResourceLocation]ResourceLocation{},
-		knownNamespaces:    sets.StringKeySet(kubeInformersForNamespaces),
+		configMapSyncRules:         map[ResourceLocation]ResourceLocation{},
+		secretSyncRules:            map[ResourceLocation]ResourceLocation{},
+		kubeInformersForNamespaces: kubeInformersForNamespaces,
+		knownNamespaces:            kubeInformersForNamespaces.Namespaces(),
 
-		queue:      workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ResourceSyncController"),
-		kubeClient: kubeClient,
+		queue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ResourceSyncController"),
+		configMapGetter: v1helpers.CachedConfigMapGetter(kubeClient, kubeInformersForNamespaces),
+		secretGetter:    v1helpers.CachedSecretGetter(kubeClient, kubeInformersForNamespaces),
 	}
 
-	for _, informers := range kubeInformersForNamespaces {
+	for namespace := range kubeInformersForNamespaces.Namespaces() {
+		if len(namespace) == 0 {
+			continue
+		}
+		informers := kubeInformersForNamespaces.InformersFor(namespace)
 		informers.Core().V1().ConfigMaps().Informer().AddEventHandler(c.eventHandler())
 		informers.Core().V1().Secrets().Informer().AddEventHandler(c.eventHandler())
 		c.preRunCachesSynced = append(c.preRunCachesSynced, informers.Core().V1().ConfigMaps().Informer().HasSynced)
@@ -140,26 +148,26 @@ func (c *ResourceSyncController) sync() error {
 
 	for destination, source := range c.configMapSyncRules {
 		if source == emptyResourceLocation {
-			if err := c.kubeClient.CoreV1().ConfigMaps(destination.Namespace).Delete(destination.Name, nil); err != nil && !apierrors.IsNotFound(err) {
+			if err := c.configMapGetter.ConfigMaps(destination.Namespace).Delete(destination.Name, nil); err != nil && !apierrors.IsNotFound(err) {
 				errors = append(errors, err)
 			}
 			continue
 		}
 
-		_, _, err := resourceapply.SyncConfigMap(c.kubeClient.CoreV1(), c.eventRecorder, source.Namespace, source.Name, destination.Namespace, destination.Name, []metav1.OwnerReference{})
+		_, _, err := resourceapply.SyncConfigMap(c.configMapGetter, c.eventRecorder, source.Namespace, source.Name, destination.Namespace, destination.Name, []metav1.OwnerReference{})
 		if err != nil {
 			errors = append(errors, err)
 		}
 	}
 	for destination, source := range c.secretSyncRules {
 		if source == emptyResourceLocation {
-			if err := c.kubeClient.CoreV1().Secrets(destination.Namespace).Delete(destination.Name, nil); err != nil && !apierrors.IsNotFound(err) {
+			if err := c.secretGetter.Secrets(destination.Namespace).Delete(destination.Name, nil); err != nil && !apierrors.IsNotFound(err) {
 				errors = append(errors, err)
 			}
 			continue
 		}
 
-		_, _, err := resourceapply.SyncSecret(c.kubeClient.CoreV1(), c.eventRecorder, source.Namespace, source.Name, destination.Namespace, destination.Name, []metav1.OwnerReference{})
+		_, _, err := resourceapply.SyncSecret(c.secretGetter, c.eventRecorder, source.Namespace, source.Name, destination.Namespace, destination.Name, []metav1.OwnerReference{})
 		if err != nil {
 			errors = append(errors, err)
 		}

@@ -6,6 +6,7 @@ import (
 
 	"github.com/blang/semver"
 
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -114,6 +115,8 @@ func (c serviceCertSignerOperator) Sync(obj metav1.Object) error {
 		return nil
 	}
 
+	operatorConfigOriginal := operatorConfig.DeepCopy()
+
 	var currentActualVerion *semver.Version
 
 	if operatorConfig.Status.CurrentAvailability != nil {
@@ -183,8 +186,10 @@ func (c serviceCertSignerOperator) Sync(obj metav1.Object) error {
 		operatorConfig.Status.ObservedGeneration = operatorConfig.ObjectMeta.Generation
 	}
 
-	if _, err := c.operatorConfigClient.ServiceCertSignerOperatorConfigs().UpdateStatus(operatorConfig); err != nil {
-		errors = append(errors, err)
+	if !apiequality.Semantic.DeepEqual(operatorConfigOriginal, operatorConfig) {
+		if _, err := c.operatorConfigClient.ServiceCertSignerOperatorConfigs().UpdateStatus(operatorConfig); err != nil {
+			errors = append(errors, err)
+		}
 	}
 
 	return utilerrors.NewAggregate(errors)

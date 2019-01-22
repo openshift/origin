@@ -173,7 +173,8 @@ func TestRevisionController(t *testing.T) {
 				tc.testSecrets,
 				informers.NewSharedInformerFactoryWithOptions(kubeClient, 1*time.Minute, informers.WithNamespace(tc.targetNamespace)),
 				tc.staticPodOperatorClient,
-				kubeClient,
+				kubeClient.CoreV1(),
+				kubeClient.CoreV1(),
 				eventRecorder,
 			)
 			syncErr := c.sync()

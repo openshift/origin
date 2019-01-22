@@ -165,7 +165,9 @@ func TestPruneAPIResources(t *testing.T) {
 			targetNamespace:        tc.targetNamespace,
 			podResourcePrefix:      "test-pod",
 			command:                []string{"/bin/true"},
-			kubeClient:             kubeClient,
+			configMapGetter:        kubeClient.CoreV1(),
+			secretGetter:           kubeClient.CoreV1(),
+			podGetter:              kubeClient.CoreV1(),
 			eventRecorder:          eventRecorder,
 			operatorConfigClient:   fakeStaticPodOperatorClient,
 			failedRevisionLimit:    tc.failedLimit,
@@ -181,7 +183,7 @@ func TestPruneAPIResources(t *testing.T) {
 			t.Fatalf("unexpected error %q", apiErr)
 		}
 
-		statusConfigMaps, err := c.kubeClient.CoreV1().ConfigMaps(tc.targetNamespace).List(metav1.ListOptions{})
+		statusConfigMaps, err := c.configMapGetter.ConfigMaps(tc.targetNamespace).List(metav1.ListOptions{})
 		if err != nil {
 			t.Fatalf("unexpected error %q", err)
 		}
@@ -345,7 +347,9 @@ func TestPruneDiskResources(t *testing.T) {
 				targetNamespace:        "test",
 				podResourcePrefix:      "test-pod",
 				command:                []string{"/bin/true"},
-				kubeClient:             kubeClient,
+				configMapGetter:        kubeClient.CoreV1(),
+				secretGetter:           kubeClient.CoreV1(),
+				podGetter:              kubeClient.CoreV1(),
 				eventRecorder:          eventRecorder,
 				operatorConfigClient:   fakeStaticPodOperatorClient,
 				failedRevisionLimit:    test.failedLimit,

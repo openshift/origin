@@ -45,7 +45,7 @@ func (c CABundleRotation) ensureConfigMapCABundle(signingCertKeyPair *crypto.CA)
 		return nil, err
 	}
 	if originalCABundleConfigMap == nil || originalCABundleConfigMap.Data == nil || !equality.Semantic.DeepEqual(originalCABundleConfigMap.Data, caBundleConfigMap.Data) {
-		c.EventRecorder.Eventf("CABundleUpdateRequired", "%q in %q requires a new cert", c.Namespace, c.Name)
+		c.EventRecorder.Eventf("CABundleUpdateRequired", "%q in %q requires a new cert", c.Name, c.Namespace)
 		actualCABundleConfigMap, err := c.Client.ConfigMaps(c.Namespace).Update(caBundleConfigMap)
 		if apierrors.IsNotFound(err) {
 			actualCABundleConfigMap, err = c.Client.ConfigMaps(c.Namespace).Create(caBundleConfigMap)

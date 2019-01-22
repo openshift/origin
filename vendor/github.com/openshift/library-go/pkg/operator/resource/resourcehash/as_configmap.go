@@ -7,10 +7,12 @@ import (
 	"hash/fnv"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/listers/core/v1"
 )
 
 // GetConfigMapHash returns a hash of the configmap data
@@ -73,13 +75,17 @@ type ObjectReference struct {
 }
 
 // MultipleObjectHashStringMapForObjectReferences returns a map of key/hash pairs suitable for merging into a configmap
-func MultipleObjectHashStringMapForObjectReferences(client kubernetes.Interface, objRefs ...ObjectReference) (map[string]string, error) {
+func MultipleObjectHashStringMapForObjectReferences(client kubernetes.Interface, objRefs ...*ObjectReference) (map[string]string, error) {
 	objs := []runtime.Object{}
 
 	for _, objRef := range objRefs {
 		switch objRef.Resource {
 		case schema.GroupResource{Resource: "configmap"}, schema.GroupResource{Resource: "configmaps"}:
 			obj, err := client.CoreV1().ConfigMaps(objRef.Namespace).Get(objRef.Name, metav1.GetOptions{})
+			if apierrors.IsNotFound(err) {
+				// don't error, just don't list the key. this is different than empty
+				continue
+			}
 			if err != nil {
 				return nil, err
 			}
@@ -87,6 +93,10 @@ func MultipleObjectHashStringMapForObjectReferences(client kubernetes.Interface,
 
 		case schema.GroupResource{Resource: "secret"}, schema.GroupResource{Resource: "secrets"}:
 			obj, err := client.CoreV1().Secrets(objRef.Namespace).Get(objRef.Name, metav1.GetOptions{})
+			if apierrors.IsNotFound(err) {
+				// don't error, just don't list the key. this is different than empty
+				continue
+			}
 			if err != nil {
 				return nil, err
 			}
@@ -98,4 +108,64 @@ func MultipleObjectHashStringMapForObjectReferences(client kubernetes.Interface,
 	}
 
 	return MultipleObjectHashStringMap(objs...)
+}
+
+// MultipleObjectHashStringMapForObjectReferenceFromLister is MultipleObjectHashStringMapForObjectReferences using a lister for performance
+func MultipleObjectHashStringMapForObjectReferenceFromLister(configmapLister v1.ConfigMapLister, secretLister v1.SecretLister, objRefs ...*ObjectReference) (map[string]string, error) {
+	objs := []runtime.Object{}
+
+	for _, objRef := range objRefs {
+		switch objRef.Resource {
+		case schema.GroupResource{Resource: "configmap"}, schema.GroupResource{Resource: "configmaps"}:
+			obj, err := configmapLister.ConfigMaps(objRef.Namespace).Get(objRef.Name)
+			if apierrors.IsNotFound(err) {
+				// don't error, just don't list the key. this is different than empty
+				continue
+			}
+			if err != nil {
+				return nil, err
+			}
+			objs = append(objs, obj)
+
+		case schema.GroupResource{Resource: "secret"}, schema.GroupResource{Resource: "secrets"}:
+			obj, err := secretLister.Secrets(objRef.Namespace).Get(objRef.Name)
+			if apierrors.IsNotFound(err) {
+				// don't error, just don't list the key. this is different than empty
+				continue
+			}
+			if err != nil {
+				return nil, err
+			}
+			objs = append(objs, obj)
+
+		default:
+			return nil, fmt.Errorf("%v is not handled", objRef.Resource)
+		}
+	}
+
+	return MultipleObjectHashStringMap(objs...)
+}
+
+func NewObjectRef() *ObjectReference {
+	return &ObjectReference{}
+}
+
+func (r *ObjectReference) ForConfigMap() *ObjectReference {
+	r.Resource = schema.GroupResource{Resource: "configmaps"}
+	return r
+}
+
+func (r *ObjectReference) ForSecret() *ObjectReference {
+	r.Resource = schema.GroupResource{Resource: "secrets"}
+	return r
+}
+
+func (r *ObjectReference) Named(name string) *ObjectReference {
+	r.Name = name
+	return r
+}
+
+func (r *ObjectReference) InNamespace(namespace string) *ObjectReference {
+	r.Namespace = namespace
+	return r
 }

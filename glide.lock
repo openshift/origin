@@ -1,5 +1,5 @@
 hash: c8ac0c0bb0e2eada6660066d264865b8581a69cd19ccecac917e67b84559fa12
-updated: 2019-01-17T16:34:51.862013849+01:00
+updated: 2019-01-22T09:27:16.704220235-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -814,7 +814,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 11fc66491c332b285d3ea676e24894745368d980
+  version: 4ec3bbc496faedf30f5fa640dde0eb9457f445b9
   subpackages:
   - apps
   - apps/v1
@@ -860,7 +860,7 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: f3714b1f9df49ae0d998d882f510ed1d8d10f4aa
+  version: 8fb54357b899c50a2c5b96408cb909818c3e25c8
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/fake
@@ -893,8 +893,15 @@ imports:
   - build/informers/externalversions/internalinterfaces
   - build/listers/build/v1
   - config/clientset/versioned
+  - config/clientset/versioned/fake
   - config/clientset/versioned/scheme
   - config/clientset/versioned/typed/config/v1
+  - config/clientset/versioned/typed/config/v1/fake
+  - config/informers/externalversions
+  - config/informers/externalversions/config
+  - config/informers/externalversions/config/v1
+  - config/informers/externalversions/internalinterfaces
+  - config/listers/config/v1
   - image/clientset/versioned
   - image/clientset/versioned/fake
   - image/clientset/versioned/scheme
@@ -977,7 +984,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: aa07d6579b000e74e2847da5e3c5b0070db9545b
+  version: 411a14e9875a5424483375480c6735bc07fe464d
   subpackages:
   - pkg/config/configdefaults
   - pkg/config/helpers
@@ -989,9 +996,12 @@ imports:
   - pkg/image/internal/reference
   - pkg/image/reference
   - pkg/network/networkapihelpers
+  - pkg/operator/events
+  - pkg/operator/resource/resourceapply
+  - pkg/operator/resource/resourcemerge
   - pkg/serviceability
 - name: github.com/openshift/service-serving-cert-signer
-  version: 726b188efdb8c52c72e543ffee182753751a9623
+  version: 84f0c332a50bb20d7185aa6306f0e080b3c743d0
   subpackages:
   - pkg/boilerplate/controller
   - pkg/controller/api
@@ -1855,7 +1865,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: ed8faad3bcb40c5a449bf60d804ea68aacaa63bc
+  version: 4bef144643a4d788b1504aaa31f24d2499260019
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
@@ -2685,7 +2695,7 @@ imports:
   - pkg/client/custom_metrics
   - pkg/client/external_metrics
 - name: k8s.io/sample-apiserver
-  version: 6681eaaa78bd3cc61233a1e25cd9347eb55be024
+  version: 564eb9fc24786fb1059dc32a82db1deec481bb41
   subpackages:
   - pkg/apis/wardle
   - pkg/apis/wardle/v1alpha1

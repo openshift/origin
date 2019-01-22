@@ -28,10 +28,20 @@ import (
 
 var workQueueKey = "instance"
 
+type VersionGetter interface {
+	// SetVersion is a way to set the version for an operand.  It must be thread-safe
+	SetVersion(operandName, version string)
+	// GetVersion is way to get the versions for all operands.  It must be thread-safe and return an object that doesn't mutate
+	GetVersions() map[string]string
+	// VersionChangedChannel is a channel that will get an item whenever SetVersion has been called
+	VersionChangedChannel() <-chan struct{}
+}
+
 type StatusSyncer struct {
 	clusterOperatorName string
 	relatedObjects      []configv1.ObjectReference
 
+	versionGetter         VersionGetter
 	operatorClient        operatorv1helpers.OperatorClient
 	clusterOperatorClient configv1client.ClusterOperatorsGetter
 	eventRecorder         events.Recorder
@@ -45,11 +55,13 @@ func NewClusterOperatorStatusController(
 	relatedObjects []configv1.ObjectReference,
 	clusterOperatorClient configv1client.ClusterOperatorsGetter,
 	operatorStatusProvider operatorv1helpers.OperatorClient,
+	versionGetter VersionGetter,
 	recorder events.Recorder,
 ) *StatusSyncer {
 	c := &StatusSyncer{
 		clusterOperatorName:   name,
 		relatedObjects:        relatedObjects,
+		versionGetter:         versionGetter,
 		clusterOperatorClient: clusterOperatorClient,
 		operatorClient:        operatorStatusProvider,
 		eventRecorder:         recorder,
@@ -183,6 +195,12 @@ func (c StatusSyncer) sync() error {
 		configv1helpers.RemoveStatusCondition(&freshOperatorConfig.Status.Conditions, configv1.OperatorFailing)
 	}
 
+	// TODO work out removal.  We don't always know the existing value, so removing early seems like a bad idea.  Perhaps a remove flag.
+	versions := c.versionGetter.GetVersions()
+	for operand, version := range versions {
+		operatorv1helpers.SetOperandVersion(&clusterOperatorObj.Status.Versions, configv1.OperandVersion{Name: operand, Version: version})
+	}
+
 	if _, updateErr := c.clusterOperatorClient.ClusterOperators().UpdateStatus(freshOperatorConfig); updateErr != nil {
 		return updateErr
 	}
@@ -208,10 +226,30 @@ func (c *StatusSyncer) Run(workers int, stopCh <-chan struct{}) {
 	glog.Infof("Starting StatusSyncer-" + c.clusterOperatorName)
 	defer glog.Infof("Shutting down StatusSyncer-" + c.clusterOperatorName)
 
+	// start watching for version changes
+	go c.watchVersionGetter(stopCh)
+
 	// doesn't matter what workers say, only start one.
 	go wait.Until(c.runWorker, time.Second, stopCh)
 
 	<-stopCh
+}
+
+func (c *StatusSyncer) watchVersionGetter(stopCh <-chan struct{}) {
+	defer utilruntime.HandleCrash()
+
+	versionCh := c.versionGetter.VersionChangedChannel()
+	// always kick at least once
+	c.queue.Add(workQueueKey)
+
+	for {
+		select {
+		case <-stopCh:
+			return
+		case <-versionCh:
+			c.queue.Add(workQueueKey)
+		}
+	}
 }
 
 func (c *StatusSyncer) runWorker() {

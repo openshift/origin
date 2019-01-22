@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/golang/glog"
+
 	"github.com/openshift/library-go/pkg/operator/events"
 	corev1informers "k8s.io/client-go/informers/core/v1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -61,7 +63,7 @@ func (c TargetRotation) ensureTargetCertKeyPair(signingCertKeyPair *crypto.CA, c
 	}
 	targetCertKeyPairSecret.Type = corev1.SecretTypeTLS
 
-	if needNewTargetCertKeyPair(targetCertKeyPairSecret.Annotations, caBundleCerts, c.Validity, c.RefreshPercentage) {
+	if needNewTargetCertKeyPair(targetCertKeyPairSecret.Annotations, signingCertKeyPair, caBundleCerts, c.Validity, c.RefreshPercentage) {
 		c.EventRecorder.Eventf("TargetUpdateRequired", "%q in %q requires a new target cert/key pair", c.Name, c.Namespace)
 		if err := setTargetCertKeyPairSecret(targetCertKeyPairSecret, c.Validity, signingCertKeyPair, c.ClientRotation, c.ServingRotation); err != nil {
 			return err
@@ -83,8 +85,8 @@ func (c TargetRotation) ensureTargetCertKeyPair(signingCertKeyPair *crypto.CA, c
 	return nil
 }
 
-func needNewTargetCertKeyPair(annotations map[string]string, caBundleCerts []*x509.Certificate, validity time.Duration, renewalPercentage float32) bool {
-	if needNewCertKeyPairForTime(annotations, validity, renewalPercentage) {
+func needNewTargetCertKeyPair(annotations map[string]string, signer *crypto.CA, caBundleCerts []*x509.Certificate, validity time.Duration, renewalPercentage float32) bool {
+	if needNewTargetCertKeyPairForTime(annotations, signer, validity, renewalPercentage) {
 		return true
 	}
 
@@ -100,6 +102,55 @@ func needNewTargetCertKeyPair(annotations map[string]string, caBundleCerts []*x5
 	}
 
 	return true
+}
+
+// needNewTargetCertKeyPairForTime returns true when
+// 1. there is no targetcrtexpiry indicated in the annotation
+// 2. when the targetcertexpiry is malformed
+// 3. when now is after the targetcertexpiry
+// 4. when now is after timeToRotate(targetcertexpiry - targetValidity*(1-renewalPercentage) AND the signer has been valid
+//    for more than 10% of the "extra" time we renew the target
+//
+//in other words, we rotate if
+//
+//our old CA is gone from the bundle (then we are pretty late to the renewal party)
+//or the cert expired (then we are also pretty late)
+//or we are over the renewal percentage of the validity, but only if the new CA at least 10% into its age.
+//Maybe worth a go doc.
+//
+//So in general we need to see a signing CA at least aged 10% within 1-percentage of the cert validity.
+//
+//Hence, if the CAs are rotated too fast (like CA percentage around 10% or smaller), we will not hit the time to make use of the CA. Or if the cert renewal percentage is at 90%, there is not much time either.
+//
+//So with a cert percentage of 75% and equally long CA and cert validities at the worst case we start at 85% of the cert to renew, trying again every minute.
+func needNewTargetCertKeyPairForTime(annotations map[string]string, signer *crypto.CA, validity time.Duration, renewalPercentage float32) bool {
+	targetExpiry := annotations[CertificateExpiryAnnotation]
+	if len(targetExpiry) == 0 {
+		return true
+	}
+	certExpiry, err := time.Parse(time.RFC3339, targetExpiry)
+	if err != nil {
+		glog.Infof("bad expiry: %q", targetExpiry)
+		// just create a new one
+		return true
+	}
+
+	// If Certificate is past its validity, we may must generate new.
+	if time.Now().After(certExpiry) {
+		return true
+	}
+
+	// If Certificate is past its validity*renewpercent, we may have action to take. if the signer is old enough
+	renewalDuration := -1 * float32(validity) * (1 - renewalPercentage)
+	if time.Now().After(certExpiry.Add(time.Duration(renewalDuration))) {
+		// make sure the signer has been valid for more than 10% of the extra renewal time
+		timeToWaitForTrustRotation := -1 * renewalDuration / 10
+		if time.Now().After(signer.Config.Certs[0].NotBefore.Add(time.Duration(timeToWaitForTrustRotation))) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // setTargetCertKeyPairSecret creates a new cert/key pair and sets them in the secret

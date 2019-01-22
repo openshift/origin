@@ -206,6 +206,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.OpenIDClaims":                                                   schema_openshift_api_config_v1_OpenIDClaims(ref),
 		"github.com/openshift/api/config/v1.OpenIDIdentityProvider":                                         schema_openshift_api_config_v1_OpenIDIdentityProvider(ref),
 		"github.com/openshift/api/config/v1.OpenIDURLs":                                                     schema_openshift_api_config_v1_OpenIDURLs(ref),
+		"github.com/openshift/api/config/v1.OperandVersion":                                                 schema_openshift_api_config_v1_OperandVersion(ref),
 		"github.com/openshift/api/config/v1.Project":                                                        schema_openshift_api_config_v1_Project(ref),
 		"github.com/openshift/api/config/v1.ProjectList":                                                    schema_openshift_api_config_v1_ProjectList(ref),
 		"github.com/openshift/api/config/v1.ProjectSpec":                                                    schema_openshift_api_config_v1_ProjectSpec(ref),
@@ -388,6 +389,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/openshiftcontrolplane/v1.ClusterNetworkEntry":                             schema_openshift_api_openshiftcontrolplane_v1_ClusterNetworkEntry(ref),
 		"github.com/openshift/api/openshiftcontrolplane/v1.DeployerControllerConfig":                        schema_openshift_api_openshiftcontrolplane_v1_DeployerControllerConfig(ref),
 		"github.com/openshift/api/openshiftcontrolplane/v1.DockerPullSecretControllerConfig":                schema_openshift_api_openshiftcontrolplane_v1_DockerPullSecretControllerConfig(ref),
+		"github.com/openshift/api/openshiftcontrolplane/v1.FrontProxyConfig":                                schema_openshift_api_openshiftcontrolplane_v1_FrontProxyConfig(ref),
 		"github.com/openshift/api/openshiftcontrolplane/v1.ImageConfig":                                     schema_openshift_api_openshiftcontrolplane_v1_ImageConfig(ref),
 		"github.com/openshift/api/openshiftcontrolplane/v1.ImageImportControllerConfig":                     schema_openshift_api_openshiftcontrolplane_v1_ImageImportControllerConfig(ref),
 		"github.com/openshift/api/openshiftcontrolplane/v1.ImagePolicyConfig":                               schema_openshift_api_openshiftcontrolplane_v1_ImagePolicyConfig(ref),
@@ -405,16 +407,29 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/openshiftcontrolplane/v1.ServiceServingCert":                              schema_openshift_api_openshiftcontrolplane_v1_ServiceServingCert(ref),
 		"github.com/openshift/api/openshiftcontrolplane/v1.SourceStrategyDefaultsConfig":                    schema_openshift_api_openshiftcontrolplane_v1_SourceStrategyDefaultsConfig(ref),
 		"github.com/openshift/api/operator/v1.GenerationStatus":                                             schema_openshift_api_operator_v1_GenerationStatus(ref),
+		"github.com/openshift/api/operator/v1.KubeAPIServer":                                                schema_openshift_api_operator_v1_KubeAPIServer(ref),
+		"github.com/openshift/api/operator/v1.KubeAPIServerList":                                            schema_openshift_api_operator_v1_KubeAPIServerList(ref),
+		"github.com/openshift/api/operator/v1.KubeAPIServerSpec":                                            schema_openshift_api_operator_v1_KubeAPIServerSpec(ref),
+		"github.com/openshift/api/operator/v1.KubeAPIServerStatus":                                          schema_openshift_api_operator_v1_KubeAPIServerStatus(ref),
+		"github.com/openshift/api/operator/v1.KubeControllerManager":                                        schema_openshift_api_operator_v1_KubeControllerManager(ref),
+		"github.com/openshift/api/operator/v1.KubeControllerManagerList":                                    schema_openshift_api_operator_v1_KubeControllerManagerList(ref),
+		"github.com/openshift/api/operator/v1.KubeControllerManagerSpec":                                    schema_openshift_api_operator_v1_KubeControllerManagerSpec(ref),
+		"github.com/openshift/api/operator/v1.KubeControllerManagerStatus":                                  schema_openshift_api_operator_v1_KubeControllerManagerStatus(ref),
 		"github.com/openshift/api/operator/v1.MyOperatorResource":                                           schema_openshift_api_operator_v1_MyOperatorResource(ref),
 		"github.com/openshift/api/operator/v1.MyOperatorResourceSpec":                                       schema_openshift_api_operator_v1_MyOperatorResourceSpec(ref),
 		"github.com/openshift/api/operator/v1.MyOperatorResourceStatus":                                     schema_openshift_api_operator_v1_MyOperatorResourceStatus(ref),
 		"github.com/openshift/api/operator/v1.NodeStatus":                                                   schema_openshift_api_operator_v1_NodeStatus(ref),
+		"github.com/openshift/api/operator/v1.OpenShiftAPIServer":                                           schema_openshift_api_operator_v1_OpenShiftAPIServer(ref),
+		"github.com/openshift/api/operator/v1.OpenShiftAPIServerList":                                       schema_openshift_api_operator_v1_OpenShiftAPIServerList(ref),
+		"github.com/openshift/api/operator/v1.OpenShiftAPIServerSpec":                                       schema_openshift_api_operator_v1_OpenShiftAPIServerSpec(ref),
+		"github.com/openshift/api/operator/v1.OpenShiftAPIServerStatus":                                     schema_openshift_api_operator_v1_OpenShiftAPIServerStatus(ref),
 		"github.com/openshift/api/operator/v1.OperandContainerSpec":                                         schema_openshift_api_operator_v1_OperandContainerSpec(ref),
 		"github.com/openshift/api/operator/v1.OperandSpec":                                                  schema_openshift_api_operator_v1_OperandSpec(ref),
 		"github.com/openshift/api/operator/v1.OperatorCondition":                                            schema_openshift_api_operator_v1_OperatorCondition(ref),
 		"github.com/openshift/api/operator/v1.OperatorSpec":                                                 schema_openshift_api_operator_v1_OperatorSpec(ref),
 		"github.com/openshift/api/operator/v1.OperatorStatus":                                               schema_openshift_api_operator_v1_OperatorStatus(ref),
 		"github.com/openshift/api/operator/v1.ResourcePatch":                                                schema_openshift_api_operator_v1_ResourcePatch(ref),
+		"github.com/openshift/api/operator/v1.StaticPodOperatorSpec":                                        schema_openshift_api_operator_v1_StaticPodOperatorSpec(ref),
 		"github.com/openshift/api/operator/v1.StaticPodOperatorStatus":                                      schema_openshift_api_operator_v1_StaticPodOperatorStatus(ref),
 		"github.com/openshift/api/operator/v1alpha1.DelegatedAuthentication":                                schema_openshift_api_operator_v1alpha1_DelegatedAuthentication(ref),
 		"github.com/openshift/api/operator/v1alpha1.DelegatedAuthorization":                                 schema_openshift_api_operator_v1alpha1_DelegatedAuthorization(ref),
@@ -7455,11 +7470,17 @@ func schema_openshift_api_config_v1_ClusterOperatorStatus(ref common.ReferenceCa
 							},
 						},
 					},
-					"version": {
+					"versions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "version indicates which version of the operator updated the current status object.",
-							Type:        []string{"string"},
-							Format:      "",
+							Description: "versions is a slice of operand version tuples.  Operators which manage multiple operands will have multiple entries in the array.  If an operator is Available, it must have at least one entry.  Report the version of the operator itself in addition to the version of its operands is recommended.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/config/v1.OperandVersion"),
+									},
+								},
+							},
 						},
 					},
 					"relatedObjects": {
@@ -7482,11 +7503,11 @@ func schema_openshift_api_config_v1_ClusterOperatorStatus(ref common.ReferenceCa
 						},
 					},
 				},
-				Required: []string{"conditions", "version", "relatedObjects"},
+				Required: []string{"conditions", "versions", "relatedObjects"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ClusterOperatorStatusCondition", "github.com/openshift/api/config/v1.ObjectReference", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"github.com/openshift/api/config/v1.ClusterOperatorStatusCondition", "github.com/openshift/api/config/v1.ObjectReference", "github.com/openshift/api/config/v1.OperandVersion", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -10143,6 +10164,33 @@ func schema_openshift_api_config_v1_OpenIDURLs(ref common.ReferenceCallback) com
 					},
 				},
 				Required: []string{"authorize", "token"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_config_v1_OperandVersion(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name is the name of the particular operand this version is for.  It usually matches container images, not operators.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version indicates which version of a particular operand is currently being manage.  It must always match the Available condition.  If 1.0.0 is Available, then this must indicate 1.0.0 even if the operator is trying to rollout 1.1.0",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"name", "version"},
 			},
 		},
 		Dependencies: []string{},
@@ -19346,6 +19394,82 @@ func schema_openshift_api_openshiftcontrolplane_v1_DockerPullSecretControllerCon
 	}
 }
 
+func schema_openshift_api_openshiftcontrolplane_v1_FrontProxyConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"clientCA": {
+						SchemaProps: spec.SchemaProps{
+							Description: "clientCA is a path to the CA bundle to use to verify the common name of the front proxy's client cert",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"allowedNames": {
+						SchemaProps: spec.SchemaProps{
+							Description: "allowedNames is an optional list of common names to require a match from.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"usernameHeaders": {
+						SchemaProps: spec.SchemaProps{
+							Description: "usernameHeaders is the set of headers to check for the username",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"groupHeaders": {
+						SchemaProps: spec.SchemaProps{
+							Description: "groupHeaders is the set of headers to check for groups",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"extraHeaderPrefixes": {
+						SchemaProps: spec.SchemaProps{
+							Description: "extraHeaderPrefixes is the set of header prefixes to check for user extra",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"clientCA", "allowedNames", "usernameHeaders", "groupHeaders", "extraHeaderPrefixes"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
 func schema_openshift_api_openshiftcontrolplane_v1_ImageConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -19660,6 +19784,12 @@ func schema_openshift_api_openshiftcontrolplane_v1_OpenShiftAPIServerConfig(ref 
 							Ref: ref("github.com/openshift/api/config/v1.KubeClientConfig"),
 						},
 					},
+					"aggregatorConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "aggregatorConfig contains information about how to verify the aggregator front proxy",
+							Ref:         ref("github.com/openshift/api/openshiftcontrolplane/v1.FrontProxyConfig"),
+						},
+					},
 					"imagePolicyConfig": {
 						SchemaProps: spec.SchemaProps{
 							Description: "imagePolicyConfig feeds the image policy admission plugin",
@@ -19726,11 +19856,11 @@ func schema_openshift_api_openshiftcontrolplane_v1_OpenShiftAPIServerConfig(ref 
 						},
 					},
 				},
-				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admissionPluginConfig", "kubeClientConfig", "imagePolicyConfig", "projectConfig", "routingConfig", "serviceAccountOAuthGrantMethod", "jenkinsPipelineConfig", "cloudProviderFile", "apiServerArguments"},
+				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admissionPluginConfig", "kubeClientConfig", "aggregatorConfig", "imagePolicyConfig", "projectConfig", "routingConfig", "serviceAccountOAuthGrantMethod", "jenkinsPipelineConfig", "cloudProviderFile", "apiServerArguments"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.AdmissionPluginConfig", "github.com/openshift/api/config/v1.AuditConfig", "github.com/openshift/api/config/v1.EtcdStorageConfig", "github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/config/v1.KubeClientConfig", "github.com/openshift/api/openshiftcontrolplane/v1.ImagePolicyConfig", "github.com/openshift/api/openshiftcontrolplane/v1.JenkinsPipelineConfig", "github.com/openshift/api/openshiftcontrolplane/v1.ProjectConfig", "github.com/openshift/api/openshiftcontrolplane/v1.RoutingConfig"},
+			"github.com/openshift/api/config/v1.AdmissionPluginConfig", "github.com/openshift/api/config/v1.AuditConfig", "github.com/openshift/api/config/v1.EtcdStorageConfig", "github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/config/v1.KubeClientConfig", "github.com/openshift/api/openshiftcontrolplane/v1.FrontProxyConfig", "github.com/openshift/api/openshiftcontrolplane/v1.ImagePolicyConfig", "github.com/openshift/api/openshiftcontrolplane/v1.JenkinsPipelineConfig", "github.com/openshift/api/openshiftcontrolplane/v1.ProjectConfig", "github.com/openshift/api/openshiftcontrolplane/v1.RoutingConfig"},
 	}
 }
 
@@ -20115,6 +20245,472 @@ func schema_openshift_api_operator_v1_GenerationStatus(ref common.ReferenceCallb
 	}
 }
 
+func schema_openshift_api_operator_v1_KubeAPIServer(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "KubeAPISOperatorConfig provides information to configure an operator to manage kube-apiserver.",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/operator/v1.KubeAPIServerSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/operator/v1.KubeAPIServerStatus"),
+						},
+					},
+				},
+				Required: []string{"metadata", "spec", "status"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.KubeAPIServerSpec", "github.com/openshift/api/operator/v1.KubeAPIServerStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_openshift_api_operator_v1_KubeAPIServerList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "KubeAPISOperatorConfigList is a collection of items",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Items contains the items",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.KubeAPIServer"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.KubeAPIServer", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_openshift_api_operator_v1_KubeAPIServerSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"managementState": {
+						SchemaProps: spec.SchemaProps{
+							Description: "managementState indicates whether and how the operator should manage the component",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"logLevel": {
+						SchemaProps: spec.SchemaProps{
+							Description: "logLevel is an intent based logging for an overall component.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for their operands.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"operandSpecs": {
+						SchemaProps: spec.SchemaProps{
+							Description: "operandSpecs provide customization for functional units within the component",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
+									},
+								},
+							},
+						},
+					},
+					"unsupportedConfigOverrides": {
+						SchemaProps: spec.SchemaProps{
+							Description: "unsupportedConfigOverrides holds a sparse config that will override any previously set options.  It only needs to be the fields to override it will end up overlaying in the following order: 1. hardcoded defaults 2. observedConfig 3. unsupportedConfigOverrides",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+					"observedConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "observedConfig holds a sparse config that controller has observed from the cluster state.  It exists in spec because it is an input to the level for the operator",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+					"forceRedeploymentReason": {
+						SchemaProps: spec.SchemaProps{
+							Description: "forceRedeploymentReason can be used to force the redeployment of the kube-apiserver by providing a unique string. This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work this time instead of failing again on the same config.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig", "forceRedeploymentReason"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+	}
+}
+
+func schema_openshift_api_operator_v1_KubeAPIServerStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"observedGeneration": {
+						SchemaProps: spec.SchemaProps{
+							Description: "observedGeneration is the last generation change you've dealt with",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions is a list of conditions and their status",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.OperatorCondition"),
+									},
+								},
+							},
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the level this availability applies to",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"readyReplicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "readyReplicas indicates how many replicas are ready and at the desired state",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"generations": {
+						SchemaProps: spec.SchemaProps{
+							Description: "generations are used to determine when an item needs to be reconciled or has changed in a way that needs a reaction.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.GenerationStatus"),
+									},
+								},
+							},
+						},
+					},
+					"latestAvailableRevision": {
+						SchemaProps: spec.SchemaProps{
+							Description: "latestAvailableRevision is the deploymentID of the most recent deployment",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"nodeStatuses": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeStatuses track the deployment values and errors across individual nodes",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.NodeStatus"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"version", "readyReplicas", "generations", "latestAvailableRevision", "nodeStatuses"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.GenerationStatus", "github.com/openshift/api/operator/v1.NodeStatus", "github.com/openshift/api/operator/v1.OperatorCondition"},
+	}
+}
+
+func schema_openshift_api_operator_v1_KubeControllerManager(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "KubeControllerManager provides information to configure an operator to manage kube-controller-manager.",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/operator/v1.KubeControllerManagerSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/operator/v1.KubeControllerManagerStatus"),
+						},
+					},
+				},
+				Required: []string{"metadata", "spec", "status"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.KubeControllerManagerSpec", "github.com/openshift/api/operator/v1.KubeControllerManagerStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_openshift_api_operator_v1_KubeControllerManagerList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "KubeControllerManagerList is a collection of items",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Items contains the items",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.KubeControllerManager"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.KubeControllerManager", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_openshift_api_operator_v1_KubeControllerManagerSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"managementState": {
+						SchemaProps: spec.SchemaProps{
+							Description: "managementState indicates whether and how the operator should manage the component",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"logLevel": {
+						SchemaProps: spec.SchemaProps{
+							Description: "logLevel is an intent based logging for an overall component.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for their operands.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"operandSpecs": {
+						SchemaProps: spec.SchemaProps{
+							Description: "operandSpecs provide customization for functional units within the component",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
+									},
+								},
+							},
+						},
+					},
+					"unsupportedConfigOverrides": {
+						SchemaProps: spec.SchemaProps{
+							Description: "unsupportedConfigOverrides holds a sparse config that will override any previously set options.  It only needs to be the fields to override it will end up overlaying in the following order: 1. hardcoded defaults 2. observedConfig 3. unsupportedConfigOverrides",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+					"observedConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "observedConfig holds a sparse config that controller has observed from the cluster state.  It exists in spec because it is an input to the level for the operator",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+					"forceRedeploymentReason": {
+						SchemaProps: spec.SchemaProps{
+							Description: "forceRedeploymentReason can be used to force the redeployment of the kube-controller-manager by providing a unique string. This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work this time instead of failing again on the same config.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig", "forceRedeploymentReason"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+	}
+}
+
+func schema_openshift_api_operator_v1_KubeControllerManagerStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"observedGeneration": {
+						SchemaProps: spec.SchemaProps{
+							Description: "observedGeneration is the last generation change you've dealt with",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions is a list of conditions and their status",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.OperatorCondition"),
+									},
+								},
+							},
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the level this availability applies to",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"readyReplicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "readyReplicas indicates how many replicas are ready and at the desired state",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"generations": {
+						SchemaProps: spec.SchemaProps{
+							Description: "generations are used to determine when an item needs to be reconciled or has changed in a way that needs a reaction.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.GenerationStatus"),
+									},
+								},
+							},
+						},
+					},
+					"latestAvailableRevision": {
+						SchemaProps: spec.SchemaProps{
+							Description: "latestAvailableRevision is the deploymentID of the most recent deployment",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"nodeStatuses": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeStatuses track the deployment values and errors across individual nodes",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.NodeStatus"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"version", "readyReplicas", "generations", "latestAvailableRevision", "nodeStatuses"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.GenerationStatus", "github.com/openshift/api/operator/v1.NodeStatus", "github.com/openshift/api/operator/v1.OperatorCondition"},
+	}
+}
+
 func schema_openshift_api_operator_v1_MyOperatorResource(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -20326,6 +20922,212 @@ func schema_openshift_api_operator_v1_NodeStatus(ref common.ReferenceCallback) c
 			},
 		},
 		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_operator_v1_OpenShiftAPIServer(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "OpenShiftAPIServer provides information to configure an operator to manage openshift-apiserver.",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/operator/v1.OpenShiftAPIServerSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/openshift/api/operator/v1.OpenShiftAPIServerStatus"),
+						},
+					},
+				},
+				Required: []string{"metadata", "spec", "status"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.OpenShiftAPIServerSpec", "github.com/openshift/api/operator/v1.OpenShiftAPIServerStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_openshift_api_operator_v1_OpenShiftAPIServerList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "OpenShiftAPIServerList is a collection of items",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Items contains the items",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.OpenShiftAPIServer"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.OpenShiftAPIServer", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_openshift_api_operator_v1_OpenShiftAPIServerSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"managementState": {
+						SchemaProps: spec.SchemaProps{
+							Description: "managementState indicates whether and how the operator should manage the component",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"logLevel": {
+						SchemaProps: spec.SchemaProps{
+							Description: "logLevel is an intent based logging for an overall component.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for their operands.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"operandSpecs": {
+						SchemaProps: spec.SchemaProps{
+							Description: "operandSpecs provide customization for functional units within the component",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
+									},
+								},
+							},
+						},
+					},
+					"unsupportedConfigOverrides": {
+						SchemaProps: spec.SchemaProps{
+							Description: "unsupportedConfigOverrides holds a sparse config that will override any previously set options.  It only needs to be the fields to override it will end up overlaying in the following order: 1. hardcoded defaults 2. observedConfig 3. unsupportedConfigOverrides",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+					"observedConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "observedConfig holds a sparse config that controller has observed from the cluster state.  It exists in spec because it is an input to the level for the operator",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+				},
+				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+	}
+}
+
+func schema_openshift_api_operator_v1_OpenShiftAPIServerStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"observedGeneration": {
+						SchemaProps: spec.SchemaProps{
+							Description: "observedGeneration is the last generation change you've dealt with",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions is a list of conditions and their status",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.OperatorCondition"),
+									},
+								},
+							},
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "version is the level this availability applies to",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"readyReplicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "readyReplicas indicates how many replicas are ready and at the desired state",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"generations": {
+						SchemaProps: spec.SchemaProps{
+							Description: "generations are used to determine when an item needs to be reconciled or has changed in a way that needs a reaction.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.GenerationStatus"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"version", "readyReplicas", "generations"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.GenerationStatus", "github.com/openshift/api/operator/v1.OperatorCondition"},
 	}
 }
 
@@ -20588,6 +21390,74 @@ func schema_openshift_api_operator_v1_ResourcePatch(ref common.ReferenceCallback
 			},
 		},
 		Dependencies: []string{},
+	}
+}
+
+func schema_openshift_api_operator_v1_StaticPodOperatorSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "StaticPodOperatorSpec is spec for controllers that manage static pods.",
+				Properties: map[string]spec.Schema{
+					"managementState": {
+						SchemaProps: spec.SchemaProps{
+							Description: "managementState indicates whether and how the operator should manage the component",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"logLevel": {
+						SchemaProps: spec.SchemaProps{
+							Description: "logLevel is an intent based logging for an overall component.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for their operands.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"operandSpecs": {
+						SchemaProps: spec.SchemaProps{
+							Description: "operandSpecs provide customization for functional units within the component",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
+									},
+								},
+							},
+						},
+					},
+					"unsupportedConfigOverrides": {
+						SchemaProps: spec.SchemaProps{
+							Description: "unsupportedConfigOverrides holds a sparse config that will override any previously set options.  It only needs to be the fields to override it will end up overlaying in the following order: 1. hardcoded defaults 2. observedConfig 3. unsupportedConfigOverrides",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+					"observedConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "observedConfig holds a sparse config that controller has observed from the cluster state.  It exists in spec because it is an input to the level for the operator",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+					"failedRevisionLimit": {
+						SchemaProps: spec.SchemaProps{
+							Description: "failedRevisionLimit is the number of failed static pod installer revisions to keep on disk and in the api -1 = unlimited, 0 or unset = 5 (default)",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"succeededRevisionLimit": {
+						SchemaProps: spec.SchemaProps{
+							Description: "succeededRevisionLimit is the number of successful static pod installer revisions to keep on disk and in the api -1 = unlimited, 0 or unset = 5 (default)",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 

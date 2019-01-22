@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
+
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ghodss/yaml"
 	"github.com/imdario/mergo"
@@ -49,6 +51,10 @@ type fakeOperatorClient struct {
 }
 
 type fakeLister struct{}
+
+func (l *fakeLister) ResourceSyncer() resourcesynccontroller.ResourceSyncer {
+	return nil
+}
 
 func (l *fakeLister) PreRunHasSynced() []cache.InformerSynced {
 	return []cache.InformerSynced{

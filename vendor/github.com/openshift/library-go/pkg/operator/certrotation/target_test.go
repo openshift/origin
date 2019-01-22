@@ -19,6 +19,86 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+func TestNeedNewTargetCertKeyPairForTime(t *testing.T) {
+	now := time.Now()
+	nowFn := func() time.Time { return now }
+	elevenMinutesBeforeNow := time.Now().Add(-11 * time.Minute)
+	elevenMinutesBeforeNowFn := func() time.Time { return elevenMinutesBeforeNow }
+	nowCert, err := newTestCACertificate(pkix.Name{CommonName: "signer-tests"}, int64(1), metav1.Duration{Duration: 200 * time.Minute}, nowFn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	elevenMinutesBeforeNowCert, err := newTestCACertificate(pkix.Name{CommonName: "signer-tests"}, int64(1), metav1.Duration{Duration: 200 * time.Minute}, elevenMinutesBeforeNowFn)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name string
+
+		annotations       map[string]string
+		signerFn          func() (*crypto.CA, error)
+		validity          time.Duration
+		renewalPercentage float32
+
+		expected bool
+	}{
+		{
+			name: "from nothing",
+			signerFn: func() (*crypto.CA, error) {
+				return nowCert, nil
+			},
+			validity:          100 * time.Minute,
+			renewalPercentage: 0.5,
+			expected:          true,
+		},
+		{
+			name:        "malformed",
+			annotations: map[string]string{CertificateExpiryAnnotation: "malformed"},
+			signerFn: func() (*crypto.CA, error) {
+				return nowCert, nil
+			},
+			validity:          100 * time.Minute,
+			renewalPercentage: 0.5,
+			expected:          true,
+		},
+		{
+			name:        "past midpoint and cert is ready",
+			annotations: map[string]string{CertificateExpiryAnnotation: now.Add(45 * time.Minute).Format(time.RFC3339)},
+			signerFn: func() (*crypto.CA, error) {
+				return elevenMinutesBeforeNowCert, nil
+			},
+			validity:          100 * time.Minute,
+			renewalPercentage: 0.5,
+			expected:          true,
+		},
+		{
+			name:        "past midpoint and cert is new",
+			annotations: map[string]string{CertificateExpiryAnnotation: now.Add(45 * time.Minute).Format(time.RFC3339)},
+			signerFn: func() (*crypto.CA, error) {
+				return nowCert, nil
+			},
+			validity:          100 * time.Minute,
+			renewalPercentage: 0.5,
+			expected:          false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			signer, err := test.signerFn()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			actual := needNewTargetCertKeyPairForTime(test.annotations, signer, test.validity, test.renewalPercentage)
+			if test.expected != actual {
+				t.Errorf("expected %v, got %v", test.expected, actual)
+			}
+		})
+	}
+}
+
 func TestEnsureTargetCertKeyPair(t *testing.T) {
 	tests := []struct {
 		name string

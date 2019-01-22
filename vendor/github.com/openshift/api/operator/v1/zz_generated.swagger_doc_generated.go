@@ -109,6 +109,16 @@ func (ResourcePatch) SwaggerDoc() map[string]string {
 	return map_ResourcePatch
 }
 
+var map_StaticPodOperatorSpec = map[string]string{
+	"": "StaticPodOperatorSpec is spec for controllers that manage static pods.",
+	"failedRevisionLimit":    "failedRevisionLimit is the number of failed static pod installer revisions to keep on disk and in the api -1 = unlimited, 0 or unset = 5 (default)",
+	"succeededRevisionLimit": "succeededRevisionLimit is the number of successful static pod installer revisions to keep on disk and in the api -1 = unlimited, 0 or unset = 5 (default)",
+}
+
+func (StaticPodOperatorSpec) SwaggerDoc() map[string]string {
+	return map_StaticPodOperatorSpec
+}
+
 var map_StaticPodOperatorStatus = map[string]string{
 	"": "StaticPodOperatorStatus is status for controllers that manage static pods.  There are different needs because individual node status must be tracked.",
 	"latestAvailableRevision": "latestAvailableRevision is the deploymentID of the most recent deployment",
@@ -117,6 +127,76 @@ var map_StaticPodOperatorStatus = map[string]string{
 
 func (StaticPodOperatorStatus) SwaggerDoc() map[string]string {
 	return map_StaticPodOperatorStatus
+}
+
+var map_KubeAPIServer = map[string]string{
+	"": "KubeAPISOperatorConfig provides information to configure an operator to manage kube-apiserver.",
+}
+
+func (KubeAPIServer) SwaggerDoc() map[string]string {
+	return map_KubeAPIServer
+}
+
+var map_KubeAPIServerList = map[string]string{
+	"":         "KubeAPISOperatorConfigList is a collection of items",
+	"metadata": "Standard object's metadata.",
+	"items":    "Items contains the items",
+}
+
+func (KubeAPIServerList) SwaggerDoc() map[string]string {
+	return map_KubeAPIServerList
+}
+
+var map_KubeAPIServerSpec = map[string]string{
+	"forceRedeploymentReason": "forceRedeploymentReason can be used to force the redeployment of the kube-apiserver by providing a unique string. This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work this time instead of failing again on the same config.",
+}
+
+func (KubeAPIServerSpec) SwaggerDoc() map[string]string {
+	return map_KubeAPIServerSpec
+}
+
+var map_KubeControllerManager = map[string]string{
+	"": "KubeControllerManager provides information to configure an operator to manage kube-controller-manager.",
+}
+
+func (KubeControllerManager) SwaggerDoc() map[string]string {
+	return map_KubeControllerManager
+}
+
+var map_KubeControllerManagerList = map[string]string{
+	"":         "KubeControllerManagerList is a collection of items",
+	"metadata": "Standard object's metadata.",
+	"items":    "Items contains the items",
+}
+
+func (KubeControllerManagerList) SwaggerDoc() map[string]string {
+	return map_KubeControllerManagerList
+}
+
+var map_KubeControllerManagerSpec = map[string]string{
+	"forceRedeploymentReason": "forceRedeploymentReason can be used to force the redeployment of the kube-controller-manager by providing a unique string. This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work this time instead of failing again on the same config.",
+}
+
+func (KubeControllerManagerSpec) SwaggerDoc() map[string]string {
+	return map_KubeControllerManagerSpec
+}
+
+var map_OpenShiftAPIServer = map[string]string{
+	"": "OpenShiftAPIServer provides information to configure an operator to manage openshift-apiserver.",
+}
+
+func (OpenShiftAPIServer) SwaggerDoc() map[string]string {
+	return map_OpenShiftAPIServer
+}
+
+var map_OpenShiftAPIServerList = map[string]string{
+	"":         "OpenShiftAPIServerList is a collection of items",
+	"metadata": "Standard object's metadata.",
+	"items":    "Items contains the items",
+}
+
+func (OpenShiftAPIServerList) SwaggerDoc() map[string]string {
+	return map_OpenShiftAPIServerList
 }
 
 // AUTO-GENERATED FUNCTIONS END HERE
