@@ -111,6 +111,7 @@ func init() {
 			rbacv1helpers.NewRule("get").Groups(kapiGroup).Resources("namespaces").RuleOrDie(),
 			rbacv1helpers.NewRule("get", "list").Groups(kapiGroup).Resources("serviceaccounts").RuleOrDie(),
 			rbacv1helpers.NewRule("create").Groups(securityGroup, legacySecurityGroup).Resources("podsecuritypolicysubjectreviews").RuleOrDie(),
+			rbacv1helpers.NewRule("get", "list").Groups(configGroup).Resources("builds").RuleOrDie(),
 			eventsRule(),
 		},
 	})

@@ -25,15 +25,19 @@ func RunBuildController(ctx *ControllerContext) (bool, error) {
 	imageStreamInformer := ctx.ImageInformers.Image().V1().ImageStreams()
 	podInformer := ctx.KubernetesInformers.Core().V1().Pods()
 	secretInformer := ctx.KubernetesInformers.Core().V1().Secrets()
+	controllerConfigInformer := ctx.ConfigInformers.Config().V1().Builds()
+	configMapInformer := ctx.OpenshiftConfigKubernetesInformers.Core().V1().ConfigMaps()
 
 	buildControllerParams := &buildcontroller.BuildControllerParams{
-		BuildInformer:       buildInformer,
-		BuildConfigInformer: buildConfigInformer,
-		ImageStreamInformer: imageStreamInformer,
-		PodInformer:         podInformer,
-		SecretInformer:      secretInformer,
-		KubeClient:          externalKubeClient,
-		BuildClient:         buildClient,
+		BuildInformer:                    buildInformer,
+		BuildConfigInformer:              buildConfigInformer,
+		ControllerConfigInformer:         controllerConfigInformer,
+		ImageStreamInformer:              imageStreamInformer,
+		PodInformer:                      podInformer,
+		SecretInformer:                   secretInformer,
+		OpenshiftConfigConfigMapInformer: configMapInformer,
+		KubeClient:                       externalKubeClient,
+		BuildClient:                      buildClient,
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
 			Image: imageTemplate.ExpandOrDie("docker-builder"),
 		},
@@ -41,10 +45,10 @@ func RunBuildController(ctx *ControllerContext) (bool, error) {
 			Image:          imageTemplate.ExpandOrDie("docker-builder"),
 			SecurityClient: securityClient.SecurityV1(),
 		},
-		CustomBuildStrategy:     &buildstrategy.CustomBuildStrategy{},
-		BuildDefaults:           builddefaults.BuildDefaults{Config: ctx.OpenshiftControllerConfig.Build.BuildDefaults},
-		BuildOverrides:          buildoverrides.BuildOverrides{Config: ctx.OpenshiftControllerConfig.Build.BuildOverrides},
-		AdditionalTrustedCAPath: ctx.OpenshiftControllerConfig.Build.AdditionalTrustedCA,
+		CustomBuildStrategy:      &buildstrategy.CustomBuildStrategy{},
+		BuildDefaults:            builddefaults.BuildDefaults{Config: ctx.OpenshiftControllerConfig.Build.BuildDefaults},
+		BuildOverrides:           buildoverrides.BuildOverrides{Config: ctx.OpenshiftControllerConfig.Build.BuildOverrides},
+		InternalRegistryHostname: ctx.OpenshiftControllerConfig.DockerPullSecret.InternalRegistryHostname,
 	}
 
 	go buildcontroller.NewBuildController(buildControllerParams).Run(5, ctx.Stop)

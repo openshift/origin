@@ -58,7 +58,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	}
 
 	build := mockSTIBuild()
-	actual, err := strategy.CreateBuildPod(build, true)
+	actual, err := strategy.CreateBuildPod(build, nil, testInternalRegistryHost)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -196,7 +196,7 @@ func TestS2IBuildLongName(t *testing.T) {
 	}
 	build := mockSTIBuild()
 	build.Name = strings.Repeat("a", validation.DNS1123LabelMaxLength*2)
-	pod, err := strategy.CreateBuildPod(build, true)
+	pod, err := strategy.CreateBuildPod(build, nil, testInternalRegistryHost)
 	if err != nil {
 		t.Fatalf("unexpected: %v", err)
 	}
