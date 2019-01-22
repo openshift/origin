@@ -267,7 +267,7 @@ func TestMergoVersion(t *testing.T) {
 	type test struct{ A string }
 	src := test{"src"}
 	dest := test{"dest"}
-	mergo.Merge(&dest, &src)
+	mergo.Merge(&dest, &src, mergo.WithOverride)
 	if dest.A != "src" {
 		t.Errorf("incompatible version of github.com/imdario/mergo found")
 	}

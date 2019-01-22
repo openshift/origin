@@ -3,6 +3,7 @@ package main
 import (
 	"archive/tar"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -19,18 +21,21 @@ import (
 	containertypes "github.com/docker/docker/api/types/container"
 	mounttypes "github.com/docker/docker/api/types/mount"
 	networktypes "github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/api/types/versions"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/integration-cli/checker"
 	"github.com/docker/docker/integration-cli/cli"
 	"github.com/docker/docker/integration-cli/cli/build"
-	"github.com/docker/docker/integration-cli/request"
+	"github.com/docker/docker/internal/test/request"
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/docker/volume"
 	"github.com/docker/go-connections/nat"
 	"github.com/go-check/check"
-	"golang.org/x/net/context"
+	"github.com/gotestyourself/gotestyourself/assert"
+	is "github.com/gotestyourself/gotestyourself/assert/cmp"
+	"github.com/gotestyourself/gotestyourself/poll"
 )
 
 func (s *DockerSuite) TestContainerAPIGetAll(c *check.C) {
@@ -68,7 +73,6 @@ func (s *DockerSuite) TestContainerAPIGetJSONNoFieldsOmitted(c *check.C) {
 	c.Assert(err, checker.IsNil)
 	c.Assert(containers, checker.HasLen, startCount+1)
 	actual := fmt.Sprintf("%+v", containers[0])
-	fmt.Println(actual)
 
 	// empty Labels field triggered this bug, make sense to check for everything
 	// cause even Ports for instance can trigger this bug
@@ -438,7 +442,8 @@ func (s *DockerSuite) TestContainerAPITop(c *check.C) {
 	c.Assert(err, checker.IsNil)
 	defer cli.Close()
 
-	top, err := cli.ContainerTop(context.Background(), id, []string{"aux"})
+	// sort by comm[andline] to make sure order stays the same in case of PID rollover
+	top, err := cli.ContainerTop(context.Background(), id, []string{"aux", "--sort=comm"})
 	c.Assert(err, checker.IsNil)
 	c.Assert(top.Titles, checker.HasLen, 11, check.Commentf("expected 11 titles, found %d: %v", len(top.Titles), top.Titles))
 
@@ -721,13 +726,23 @@ func (s *DockerSuite) TestContainerAPIVerifyHeader(c *check.C) {
 	// Try with no content-type
 	res, body, err := create("")
 	c.Assert(err, checker.IsNil)
-	c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+	// todo: we need to figure out a better way to compare between dockerd versions
+	// comparing between daemon API version is not precise.
+	if versions.GreaterThanOrEqualTo(testEnv.DaemonAPIVersion(), "1.32") {
+		c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+	} else {
+		c.Assert(res.StatusCode, checker.Not(checker.Equals), http.StatusOK)
+	}
 	body.Close()
 
 	// Try with wrong content-type
 	res, body, err = create("application/xml")
 	c.Assert(err, checker.IsNil)
-	c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+	if versions.GreaterThanOrEqualTo(testEnv.DaemonAPIVersion(), "1.32") {
+		c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+	} else {
+		c.Assert(res.StatusCode, checker.Not(checker.Equals), http.StatusOK)
+	}
 	body.Close()
 
 	// now application/json
@@ -753,7 +768,11 @@ func (s *DockerSuite) TestContainerAPIInvalidPortSyntax(c *check.C) {
 
 	res, body, err := request.Post("/containers/create", request.RawString(config), request.JSON)
 	c.Assert(err, checker.IsNil)
-	c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+	if versions.GreaterThanOrEqualTo(testEnv.DaemonAPIVersion(), "1.32") {
+		c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+	} else {
+		c.Assert(res.StatusCode, checker.Not(checker.Equals), http.StatusOK)
+	}
 
 	b, err := request.ReadBody(body)
 	c.Assert(err, checker.IsNil)
@@ -773,7 +792,11 @@ func (s *DockerSuite) TestContainerAPIRestartPolicyInvalidPolicyName(c *check.C)
 
 	res, body, err := request.Post("/containers/create", request.RawString(config), request.JSON)
 	c.Assert(err, checker.IsNil)
-	c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+	if versions.GreaterThanOrEqualTo(testEnv.DaemonAPIVersion(), "1.32") {
+		c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+	} else {
+		c.Assert(res.StatusCode, checker.Not(checker.Equals), http.StatusOK)
+	}
 
 	b, err := request.ReadBody(body)
 	c.Assert(err, checker.IsNil)
@@ -793,7 +816,11 @@ func (s *DockerSuite) TestContainerAPIRestartPolicyRetryMismatch(c *check.C) {
 
 	res, body, err := request.Post("/containers/create", request.RawString(config), request.JSON)
 	c.Assert(err, checker.IsNil)
-	c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+	if versions.GreaterThanOrEqualTo(testEnv.DaemonAPIVersion(), "1.32") {
+		c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+	} else {
+		c.Assert(res.StatusCode, checker.Not(checker.Equals), http.StatusOK)
+	}
 
 	b, err := request.ReadBody(body)
 	c.Assert(err, checker.IsNil)
@@ -813,7 +840,11 @@ func (s *DockerSuite) TestContainerAPIRestartPolicyNegativeRetryCount(c *check.C
 
 	res, body, err := request.Post("/containers/create", request.RawString(config), request.JSON)
 	c.Assert(err, checker.IsNil)
-	c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+	if versions.GreaterThanOrEqualTo(testEnv.DaemonAPIVersion(), "1.32") {
+		c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+	} else {
+		c.Assert(res.StatusCode, checker.Not(checker.Equals), http.StatusOK)
+	}
 
 	b, err := request.ReadBody(body)
 	c.Assert(err, checker.IsNil)
@@ -898,7 +929,11 @@ func (s *DockerSuite) TestCreateWithTooLowMemoryLimit(c *check.C) {
 	b, err2 := request.ReadBody(body)
 	c.Assert(err2, checker.IsNil)
 
-	c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+	if versions.GreaterThanOrEqualTo(testEnv.DaemonAPIVersion(), "1.32") {
+		c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+	} else {
+		c.Assert(res.StatusCode, checker.Not(checker.Equals), http.StatusOK)
+	}
 	c.Assert(string(b), checker.Contains, "Minimum memory limit allowed is 4MB")
 }
 
@@ -1013,7 +1048,7 @@ func (s *DockerSuite) TestContainerAPIWait(c *check.C) {
 	name := "test-api-wait"
 
 	sleepCmd := "/bin/sleep"
-	if testEnv.DaemonPlatform() == "windows" {
+	if testEnv.OSType == "windows" {
 		sleepCmd = "sleep"
 	}
 	dockerCmd(c, "run", "--name", name, "busybox", sleepCmd, "2")
@@ -1086,7 +1121,11 @@ func (s *DockerSuite) TestContainerAPICopyResourcePathEmptyPre124(c *check.C) {
 
 	res, body, err := request.Post("/v1.23/containers/"+name+"/copy", request.JSONBody(postData))
 	c.Assert(err, checker.IsNil)
-	c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+	if versions.GreaterThanOrEqualTo(testEnv.DaemonAPIVersion(), "1.32") {
+		c.Assert(res.StatusCode, checker.Equals, http.StatusBadRequest)
+	} else {
+		c.Assert(res.StatusCode, checker.Not(checker.Equals), http.StatusOK)
+	}
 	b, err := request.ReadBody(body)
 	c.Assert(err, checker.IsNil)
 	c.Assert(string(b), checker.Matches, "Path cannot be empty\n")
@@ -1103,8 +1142,11 @@ func (s *DockerSuite) TestContainerAPICopyResourcePathNotFoundPre124(c *check.C)
 
 	res, body, err := request.Post("/v1.23/containers/"+name+"/copy", request.JSONBody(postData))
 	c.Assert(err, checker.IsNil)
-	c.Assert(res.StatusCode, checker.Equals, http.StatusNotFound)
-
+	if versions.LessThan(testEnv.DaemonAPIVersion(), "1.32") {
+		c.Assert(res.StatusCode, checker.Equals, http.StatusInternalServerError)
+	} else {
+		c.Assert(res.StatusCode, checker.Equals, http.StatusNotFound)
+	}
 	b, err := request.ReadBody(body)
 	c.Assert(err, checker.IsNil)
 	c.Assert(string(b), checker.Matches, "Could not find the file /notexist in container "+name+"\n")
@@ -1213,7 +1255,7 @@ func (s *DockerSuite) TestContainerAPIDeleteRemoveVolume(c *check.C) {
 	testRequires(c, SameHostDaemon)
 
 	vol := "/testvolume"
-	if testEnv.DaemonPlatform() == "windows" {
+	if testEnv.OSType == "windows" {
 		vol = `c:\testvolume`
 	}
 
@@ -1251,13 +1293,13 @@ func (s *DockerSuite) TestContainerAPIChunkedEncoding(c *check.C) {
 		"OpenStdin": true,
 	}
 
-	resp, _, err := request.Post("/containers/create", request.JSONBody(config), func(req *http.Request) error {
+	resp, _, err := request.Post("/containers/create", request.JSONBody(config), request.With(func(req *http.Request) error {
 		// This is a cheat to make the http request do chunked encoding
 		// Otherwise (just setting the Content-Encoding to chunked) net/http will overwrite
 		// https://golang.org/src/pkg/net/http/request.go?s=11980:12172
 		req.ContentLength = -1
 		return nil
-	})
+	}))
 	c.Assert(err, checker.IsNil, check.Commentf("error creating container with chunked encoding"))
 	defer resp.Body.Close()
 	c.Assert(resp.StatusCode, checker.Equals, http.StatusCreated)
@@ -1369,8 +1411,8 @@ func (s *DockerSuite) TestContainerAPICreateNoHostConfig118(c *check.C) {
 		Image: "busybox",
 	}
 
-	var httpClient *http.Client
-	cli, err := client.NewClient(daemonHost(), "v1.18", httpClient, map[string]string{})
+	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithVersion("v1.18"))
+	c.Assert(err, checker.IsNil)
 
 	_, err = cli.ContainerCreate(context.Background(), &config, &containertypes.HostConfig{}, &networktypes.NetworkingConfig{}, "")
 	c.Assert(err, checker.IsNil)
@@ -1404,16 +1446,6 @@ func (s *DockerSuite) TestPutContainerArchiveErrSymlinkInVolumeToReadOnlyRootfs(
 
 	err = cli.CopyToContainer(context.Background(), cID, "/vol2/symlinkToAbsDir", nil, types.CopyToContainerOptions{})
 	c.Assert(err.Error(), checker.Contains, "container rootfs is marked read-only")
-}
-
-func (s *DockerSuite) TestContainerAPIGetContainersJSONEmpty(c *check.C) {
-	cli, err := client.NewEnvClient()
-	c.Assert(err, checker.IsNil)
-	defer cli.Close()
-
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{All: true})
-	c.Assert(err, checker.IsNil)
-	c.Assert(containers, checker.HasLen, 0)
 }
 
 func (s *DockerSuite) TestPostContainersCreateWithWrongCpusetValues(c *check.C) {
@@ -1570,7 +1602,11 @@ func (s *DockerSuite) TestPostContainersCreateMemorySwappinessHostConfigOmitted(
 	containerJSON, err := cli.ContainerInspect(context.Background(), container.ID)
 	c.Assert(err, check.IsNil)
 
-	c.Assert(containerJSON.HostConfig.MemorySwappiness, check.IsNil)
+	if versions.LessThan(testEnv.DaemonAPIVersion(), "1.31") {
+		c.Assert(*containerJSON.HostConfig.MemorySwappiness, check.Equals, int64(-1))
+	} else {
+		c.Assert(containerJSON.HostConfig.MemorySwappiness, check.IsNil)
+	}
 }
 
 // check validation is done daemon side and not only in cli
@@ -1614,7 +1650,7 @@ func (s *DockerSuite) TestContainerAPIDeleteWithEmptyName(c *check.C) {
 	defer cli.Close()
 
 	err = cli.ContainerRemove(context.Background(), "", types.ContainerRemoveOptions{})
-	c.Assert(err.Error(), checker.Contains, "Error response from daemon: page not found")
+	c.Assert(err.Error(), checker.Contains, "No such container")
 }
 
 func (s *DockerSuite) TestContainerAPIStatsWithNetworkDisabled(c *check.C) {
@@ -1720,7 +1756,9 @@ func (s *DockerSuite) TestContainersAPICreateMountsValidation(c *check.C) {
 					Type:   "bind",
 					Source: notExistPath,
 					Target: destPath}}},
-			msg: "bind source path does not exist",
+			msg: "source path does not exist",
+			// FIXME(vdemeester) fails into e2e, migrate to integration/container anyway
+			// msg: "bind mount source path does not exist: " + notExistPath,
 		},
 		{
 			config: containertypes.Config{
@@ -1898,7 +1936,7 @@ func (s *DockerSuite) TestContainersAPICreateMountsCreate(c *check.C) {
 	var (
 		testImg string
 	)
-	if testEnv.DaemonPlatform() != "windows" {
+	if testEnv.OSType != "windows" {
 		testImg = "test-mount-config"
 		buildImageSuccessfully(c, testImg, build.WithDockerfile(`
 	FROM busybox
@@ -1910,18 +1948,43 @@ func (s *DockerSuite) TestContainersAPICreateMountsCreate(c *check.C) {
 	}
 
 	type testCase struct {
-		cfg      mounttypes.Mount
+		spec     mounttypes.Mount
 		expected types.MountPoint
+	}
+
+	var selinuxSharedLabel string
+	// this test label was added after a bug fix in 1.32, thus add requirements min API >= 1.32
+	// for the sake of making test pass in earlier versions
+	// bug fixed in https://github.com/moby/moby/pull/34684
+	if !versions.LessThan(testEnv.DaemonAPIVersion(), "1.32") {
+		if runtime.GOOS == "linux" {
+			selinuxSharedLabel = "z"
+		}
 	}
 
 	cases := []testCase{
 		// use literal strings here for `Type` instead of the defined constants in the volume package to keep this honest
 		// Validation of the actual `Mount` struct is done in another test is not needed here
-		{mounttypes.Mount{Type: "volume", Target: destPath}, types.MountPoint{Driver: volume.DefaultDriverName, Type: "volume", RW: true, Destination: destPath}},
-		{mounttypes.Mount{Type: "volume", Target: destPath + slash}, types.MountPoint{Driver: volume.DefaultDriverName, Type: "volume", RW: true, Destination: destPath}},
-		{mounttypes.Mount{Type: "volume", Target: destPath, Source: "test1"}, types.MountPoint{Type: "volume", Name: "test1", RW: true, Destination: destPath}},
-		{mounttypes.Mount{Type: "volume", Target: destPath, ReadOnly: true, Source: "test2"}, types.MountPoint{Type: "volume", Name: "test2", RW: false, Destination: destPath}},
-		{mounttypes.Mount{Type: "volume", Target: destPath, Source: "test3", VolumeOptions: &mounttypes.VolumeOptions{DriverConfig: &mounttypes.Driver{Name: volume.DefaultDriverName}}}, types.MountPoint{Driver: volume.DefaultDriverName, Type: "volume", Name: "test3", RW: true, Destination: destPath}},
+		{
+			spec:     mounttypes.Mount{Type: "volume", Target: destPath},
+			expected: types.MountPoint{Driver: volume.DefaultDriverName, Type: "volume", RW: true, Destination: destPath, Mode: selinuxSharedLabel},
+		},
+		{
+			spec:     mounttypes.Mount{Type: "volume", Target: destPath + slash},
+			expected: types.MountPoint{Driver: volume.DefaultDriverName, Type: "volume", RW: true, Destination: destPath, Mode: selinuxSharedLabel},
+		},
+		{
+			spec:     mounttypes.Mount{Type: "volume", Target: destPath, Source: "test1"},
+			expected: types.MountPoint{Type: "volume", Name: "test1", RW: true, Destination: destPath, Mode: selinuxSharedLabel},
+		},
+		{
+			spec:     mounttypes.Mount{Type: "volume", Target: destPath, ReadOnly: true, Source: "test2"},
+			expected: types.MountPoint{Type: "volume", Name: "test2", RW: false, Destination: destPath, Mode: selinuxSharedLabel},
+		},
+		{
+			spec:     mounttypes.Mount{Type: "volume", Target: destPath, Source: "test3", VolumeOptions: &mounttypes.VolumeOptions{DriverConfig: &mounttypes.Driver{Name: volume.DefaultDriverName}}},
+			expected: types.MountPoint{Driver: volume.DefaultDriverName, Type: "volume", Name: "test3", RW: true, Destination: destPath, Mode: selinuxSharedLabel},
+		},
 	}
 
 	if SameHostDaemon() {
@@ -1930,8 +1993,23 @@ func (s *DockerSuite) TestContainersAPICreateMountsCreate(c *check.C) {
 		c.Assert(err, checker.IsNil)
 		defer os.RemoveAll(tmpDir1)
 		cases = append(cases, []testCase{
-			{mounttypes.Mount{Type: "bind", Source: tmpDir1, Target: destPath}, types.MountPoint{Type: "bind", RW: true, Destination: destPath, Source: tmpDir1}},
-			{mounttypes.Mount{Type: "bind", Source: tmpDir1, Target: destPath, ReadOnly: true}, types.MountPoint{Type: "bind", RW: false, Destination: destPath, Source: tmpDir1}},
+			{
+				spec: mounttypes.Mount{
+					Type:   "bind",
+					Source: tmpDir1,
+					Target: destPath,
+				},
+				expected: types.MountPoint{
+					Type:        "bind",
+					RW:          true,
+					Destination: destPath,
+					Source:      tmpDir1,
+				},
+			},
+			{
+				spec:     mounttypes.Mount{Type: "bind", Source: tmpDir1, Target: destPath, ReadOnly: true},
+				expected: types.MountPoint{Type: "bind", RW: false, Destination: destPath, Source: tmpDir1},
+			},
 		}...)
 
 		// for modes only supported on Linux
@@ -1944,19 +2022,40 @@ func (s *DockerSuite) TestContainersAPICreateMountsCreate(c *check.C) {
 			c.Assert(mount.ForceMount("", tmpDir3, "none", "shared"), checker.IsNil)
 
 			cases = append(cases, []testCase{
-				{mounttypes.Mount{Type: "bind", Source: tmpDir3, Target: destPath}, types.MountPoint{Type: "bind", RW: true, Destination: destPath, Source: tmpDir3}},
-				{mounttypes.Mount{Type: "bind", Source: tmpDir3, Target: destPath, ReadOnly: true}, types.MountPoint{Type: "bind", RW: false, Destination: destPath, Source: tmpDir3}},
-				{mounttypes.Mount{Type: "bind", Source: tmpDir3, Target: destPath, ReadOnly: true, BindOptions: &mounttypes.BindOptions{Propagation: "shared"}}, types.MountPoint{Type: "bind", RW: false, Destination: destPath, Source: tmpDir3, Propagation: "shared"}},
+				{
+					spec:     mounttypes.Mount{Type: "bind", Source: tmpDir3, Target: destPath},
+					expected: types.MountPoint{Type: "bind", RW: true, Destination: destPath, Source: tmpDir3},
+				},
+				{
+					spec:     mounttypes.Mount{Type: "bind", Source: tmpDir3, Target: destPath, ReadOnly: true},
+					expected: types.MountPoint{Type: "bind", RW: false, Destination: destPath, Source: tmpDir3},
+				},
+				{
+					spec:     mounttypes.Mount{Type: "bind", Source: tmpDir3, Target: destPath, ReadOnly: true, BindOptions: &mounttypes.BindOptions{Propagation: "shared"}},
+					expected: types.MountPoint{Type: "bind", RW: false, Destination: destPath, Source: tmpDir3, Propagation: "shared"},
+				},
 			}...)
 		}
 	}
 
-	if testEnv.DaemonPlatform() != "windows" { // Windows does not support volume populate
+	if testEnv.OSType != "windows" { // Windows does not support volume populate
 		cases = append(cases, []testCase{
-			{mounttypes.Mount{Type: "volume", Target: destPath, VolumeOptions: &mounttypes.VolumeOptions{NoCopy: true}}, types.MountPoint{Driver: volume.DefaultDriverName, Type: "volume", RW: true, Destination: destPath}},
-			{mounttypes.Mount{Type: "volume", Target: destPath + slash, VolumeOptions: &mounttypes.VolumeOptions{NoCopy: true}}, types.MountPoint{Driver: volume.DefaultDriverName, Type: "volume", RW: true, Destination: destPath}},
-			{mounttypes.Mount{Type: "volume", Target: destPath, Source: "test4", VolumeOptions: &mounttypes.VolumeOptions{NoCopy: true}}, types.MountPoint{Type: "volume", Name: "test4", RW: true, Destination: destPath}},
-			{mounttypes.Mount{Type: "volume", Target: destPath, Source: "test5", ReadOnly: true, VolumeOptions: &mounttypes.VolumeOptions{NoCopy: true}}, types.MountPoint{Type: "volume", Name: "test5", RW: false, Destination: destPath}},
+			{
+				spec:     mounttypes.Mount{Type: "volume", Target: destPath, VolumeOptions: &mounttypes.VolumeOptions{NoCopy: true}},
+				expected: types.MountPoint{Driver: volume.DefaultDriverName, Type: "volume", RW: true, Destination: destPath, Mode: selinuxSharedLabel},
+			},
+			{
+				spec:     mounttypes.Mount{Type: "volume", Target: destPath + slash, VolumeOptions: &mounttypes.VolumeOptions{NoCopy: true}},
+				expected: types.MountPoint{Driver: volume.DefaultDriverName, Type: "volume", RW: true, Destination: destPath, Mode: selinuxSharedLabel},
+			},
+			{
+				spec:     mounttypes.Mount{Type: "volume", Target: destPath, Source: "test4", VolumeOptions: &mounttypes.VolumeOptions{NoCopy: true}},
+				expected: types.MountPoint{Type: "volume", Name: "test4", RW: true, Destination: destPath, Mode: selinuxSharedLabel},
+			},
+			{
+				spec:     mounttypes.Mount{Type: "volume", Target: destPath, Source: "test5", ReadOnly: true, VolumeOptions: &mounttypes.VolumeOptions{NoCopy: true}},
+				expected: types.MountPoint{Type: "volume", Name: "test5", RW: false, Destination: destPath, Mode: selinuxSharedLabel},
+			},
 		}...)
 	}
 
@@ -1968,55 +2067,80 @@ func (s *DockerSuite) TestContainersAPICreateMountsCreate(c *check.C) {
 		ID string `json:"Id"`
 	}
 
-	cli, err := client.NewEnvClient()
-	c.Assert(err, checker.IsNil)
-	defer cli.Close()
-
+	ctx := context.Background()
+	apiclient := testEnv.APIClient()
 	for i, x := range cases {
-		c.Logf("case %d - config: %v", i, x.cfg)
-		container, err := cli.ContainerCreate(context.Background(), &containertypes.Config{Image: testImg}, &containertypes.HostConfig{Mounts: []mounttypes.Mount{x.cfg}}, &networktypes.NetworkingConfig{}, "")
-		c.Assert(err, checker.IsNil)
+		c.Logf("case %d - config: %v", i, x.spec)
+		container, err := apiclient.ContainerCreate(
+			ctx,
+			&containertypes.Config{Image: testImg},
+			&containertypes.HostConfig{Mounts: []mounttypes.Mount{x.spec}},
+			&networktypes.NetworkingConfig{},
+			"")
+		assert.NilError(c, err)
 
-		id := container.ID
+		containerInspect, err := apiclient.ContainerInspect(ctx, container.ID)
+		assert.NilError(c, err)
+		mps := containerInspect.Mounts
+		assert.Assert(c, is.Len(mps, 1))
+		mountPoint := mps[0]
 
-		var mps []types.MountPoint
-		err = json.NewDecoder(strings.NewReader(inspectFieldJSON(c, id, "Mounts"))).Decode(&mps)
-		c.Assert(err, checker.IsNil)
-		c.Assert(mps, checker.HasLen, 1)
-		c.Assert(mps[0].Destination, checker.Equals, x.expected.Destination)
+		if x.expected.Source != "" {
+			assert.Check(c, is.Equal(x.expected.Source, mountPoint.Source))
+		}
+		if x.expected.Name != "" {
+			assert.Check(c, is.Equal(x.expected.Name, mountPoint.Name))
+		}
+		if x.expected.Driver != "" {
+			assert.Check(c, is.Equal(x.expected.Driver, mountPoint.Driver))
+		}
+		if x.expected.Propagation != "" {
+			assert.Check(c, is.Equal(x.expected.Propagation, mountPoint.Propagation))
+		}
+		assert.Check(c, is.Equal(x.expected.RW, mountPoint.RW))
+		assert.Check(c, is.Equal(x.expected.Type, mountPoint.Type))
+		assert.Check(c, is.Equal(x.expected.Mode, mountPoint.Mode))
+		assert.Check(c, is.Equal(x.expected.Destination, mountPoint.Destination))
 
-		if len(x.expected.Source) > 0 {
-			c.Assert(mps[0].Source, checker.Equals, x.expected.Source)
-		}
-		if len(x.expected.Name) > 0 {
-			c.Assert(mps[0].Name, checker.Equals, x.expected.Name)
-		}
-		if len(x.expected.Driver) > 0 {
-			c.Assert(mps[0].Driver, checker.Equals, x.expected.Driver)
-		}
-		c.Assert(mps[0].RW, checker.Equals, x.expected.RW)
-		c.Assert(mps[0].Type, checker.Equals, x.expected.Type)
-		c.Assert(mps[0].Mode, checker.Equals, x.expected.Mode)
-		if len(x.expected.Propagation) > 0 {
-			c.Assert(mps[0].Propagation, checker.Equals, x.expected.Propagation)
-		}
+		err = apiclient.ContainerStart(ctx, container.ID, types.ContainerStartOptions{})
+		assert.NilError(c, err)
+		poll.WaitOn(c, containerExit(apiclient, container.ID), poll.WithDelay(time.Second))
 
-		out, _, err := dockerCmdWithError("start", "-a", id)
-		if (x.cfg.Type != "volume" || (x.cfg.VolumeOptions != nil && x.cfg.VolumeOptions.NoCopy)) && testEnv.DaemonPlatform() != "windows" {
-			c.Assert(err, checker.NotNil, check.Commentf("%s\n%v", out, mps[0]))
-		} else {
-			c.Assert(err, checker.IsNil, check.Commentf("%s\n%v", out, mps[0]))
-		}
+		err = apiclient.ContainerRemove(ctx, container.ID, types.ContainerRemoveOptions{
+			RemoveVolumes: true,
+			Force:         true,
+		})
+		assert.NilError(c, err)
 
-		dockerCmd(c, "rm", "-fv", id)
-		if x.cfg.Type == "volume" && len(x.cfg.Source) > 0 {
-			// This should still exist even though we removed the container
-			dockerCmd(c, "volume", "inspect", mps[0].Name)
-		} else {
-			// This should be removed automatically when we removed the container
-			out, _, err := dockerCmdWithError("volume", "inspect", mps[0].Name)
-			c.Assert(err, checker.NotNil, check.Commentf(out))
+		switch {
+
+		// Named volumes still exist after the container is removed
+		case x.spec.Type == "volume" && len(x.spec.Source) > 0:
+			_, err := apiclient.VolumeInspect(ctx, mountPoint.Name)
+			assert.NilError(c, err)
+
+		// Bind mounts are never removed with the container
+		case x.spec.Type == "bind":
+
+		// anonymous volumes are removed
+		default:
+			_, err := apiclient.VolumeInspect(ctx, mountPoint.Name)
+			assert.Check(c, client.IsErrNotFound(err))
 		}
+	}
+}
+
+func containerExit(apiclient client.APIClient, name string) func(poll.LogT) poll.Result {
+	return func(logT poll.LogT) poll.Result {
+		container, err := apiclient.ContainerInspect(context.Background(), name)
+		if err != nil {
+			return poll.Error(err)
+		}
+		switch container.State.Status {
+		case "created", "running":
+			return poll.Continue("container %s is %s, waiting for exit", name, container.State.Status)
+		}
+		return poll.Success()
 	}
 }
 

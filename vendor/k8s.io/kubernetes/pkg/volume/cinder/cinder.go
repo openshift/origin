@@ -87,7 +87,7 @@ func getPath(uid types.UID, volName string, host volume.VolumeHost) string {
 
 func (plugin *cinderPlugin) Init(host volume.VolumeHost) error {
 	plugin.host = host
-	plugin.volumeLocks = keymutex.NewKeyMutex()
+	plugin.volumeLocks = keymutex.NewHashed(0)
 	return nil
 }
 
@@ -439,7 +439,7 @@ func (c *cinderVolumeUnmounter) TearDownAt(dir string) error {
 	// Find Cinder volumeID to lock the right volume
 	// TODO: refactor VolumePlugin.NewUnmounter to get full volume.Spec just like
 	// NewMounter. We could then find volumeID there without probing MountRefs.
-	refs, err := mount.GetMountRefs(c.mounter, dir)
+	refs, err := c.mounter.GetMountRefs(dir)
 	if err != nil {
 		glog.V(4).Infof("GetMountRefs failed: %v", err)
 		return err
@@ -456,7 +456,7 @@ func (c *cinderVolumeUnmounter) TearDownAt(dir string) error {
 	defer c.plugin.volumeLocks.UnlockKey(c.pdName)
 
 	// Reload list of references, there might be SetUpAt finished in the meantime
-	refs, err = mount.GetMountRefs(c.mounter, dir)
+	refs, err = c.mounter.GetMountRefs(dir)
 	if err != nil {
 		glog.V(4).Infof("GetMountRefs failed: %v", err)
 		return err

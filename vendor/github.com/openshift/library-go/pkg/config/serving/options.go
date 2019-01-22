@@ -46,6 +46,6 @@ func ToServingOptions(servingInfo configv1.HTTPServingInfo) (*genericapiserverop
 	// TODO sort out what we should do here
 	//servingOptions.HTTP2MaxStreamsPerConnection = ??
 
-	servingOptionsWithLoopback := genericapiserveroptions.WithLoopback(servingOptions)
+	servingOptionsWithLoopback := servingOptions.WithLoopback()
 	return servingOptionsWithLoopback, nil
 }

@@ -19,30 +19,23 @@ package config
 import (
 	"bytes"
 	"io/ioutil"
+	"reflect"
 	"testing"
 
 	"github.com/pmezard/go-difflib/difflib"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha1"
-	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
-	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
+	kubeadmapiv1alpha3 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha3"
 )
 
 const (
-	master_v1alpha1YAML                = "testdata/conversion/master/v1alpha1.yaml"
-	master_v1alpha1WithoutTypeMetaYAML = "testdata/conversion/master/v1alpha1_without_TypeMeta.yaml"
-	master_v1alpha2YAML                = "testdata/conversion/master/v1alpha2.yaml"
-	master_internalYAML                = "testdata/conversion/master/internal.yaml"
-	master_incompleteYAML              = "testdata/defaulting/master/incomplete.yaml"
-	master_defaultedYAML               = "testdata/defaulting/master/defaulted.yaml"
-	master_invalidYAML                 = "testdata/validation/invalid_mastercfg.yaml"
-	master_beforeUpgradeYAML           = "testdata/v1alpha1_upgrade/before.yaml"
-	master_afterUpgradeYAML            = "testdata/v1alpha1_upgrade/after.yaml"
+	master_v1alpha2YAML   = "testdata/conversion/master/v1alpha2.yaml"
+	master_v1alpha3YAML   = "testdata/conversion/master/v1alpha3.yaml"
+	master_internalYAML   = "testdata/conversion/master/internal.yaml"
+	master_incompleteYAML = "testdata/defaulting/master/incomplete.yaml"
+	master_defaultedYAML  = "testdata/defaulting/master/defaulted.yaml"
+	master_invalidYAML    = "testdata/validation/invalid_mastercfg.yaml"
 )
 
 func diff(expected, actual []byte) string {
@@ -66,45 +59,39 @@ func TestConfigFileAndDefaultsToInternalConfig(t *testing.T) {
 	}{
 		// These tests are reading one file, loading it using ConfigFileAndDefaultsToInternalConfig that all of kubeadm is using for unmarshal of our API types,
 		// and then marshals the internal object to the expected groupVersion
-		{ // v1alpha1 (faulty) -> internal
-			name:         "v1alpha1WithoutTypeMetaToInternal",
-			in:           master_v1alpha1WithoutTypeMetaYAML,
-			out:          master_internalYAML,
-			groupVersion: kubeadm.SchemeGroupVersion,
-		},
-		{ // v1alpha1 -> internal
-			name:         "v1alpha1ToInternal",
-			in:           master_v1alpha1YAML,
-			out:          master_internalYAML,
-			groupVersion: kubeadm.SchemeGroupVersion,
-		},
 		{ // v1alpha2 -> internal
 			name:         "v1alpha2ToInternal",
 			in:           master_v1alpha2YAML,
 			out:          master_internalYAML,
 			groupVersion: kubeadm.SchemeGroupVersion,
 		},
-		{ // v1alpha1 (faulty) -> internal -> v1alpha2
-			name:         "v1alpha1WithoutTypeMetaTov1alpha2",
-			in:           master_v1alpha1WithoutTypeMetaYAML,
-			out:          master_v1alpha2YAML,
-			groupVersion: v1alpha2.SchemeGroupVersion,
+		{ // v1alpha3 -> internal
+			name:         "v1alpha3ToInternal",
+			in:           master_v1alpha3YAML,
+			out:          master_internalYAML,
+			groupVersion: kubeadm.SchemeGroupVersion,
 		},
-		{ // v1alpha1 -> internal -> v1alpha2
-			name:         "v1alpha1Tov1alpha2",
-			in:           master_v1alpha1YAML,
-			out:          master_v1alpha2YAML,
-			groupVersion: v1alpha2.SchemeGroupVersion,
+		{ // v1alpha2 -> internal -> v1alpha3
+			name:         "v1alpha2Tov1alpha3",
+			in:           master_v1alpha2YAML,
+			out:          master_v1alpha3YAML,
+			groupVersion: kubeadmapiv1alpha3.SchemeGroupVersion,
+		},
+		{ // v1alpha3 -> internal -> v1alpha3
+			name:         "v1alpha3Tov1alpha3",
+			in:           master_v1alpha3YAML,
+			out:          master_v1alpha3YAML,
+			groupVersion: kubeadmapiv1alpha3.SchemeGroupVersion,
 		},
 		// These tests are reading one file that has only a subset of the fields populated, loading it using ConfigFileAndDefaultsToInternalConfig,
 		// and then marshals the internal object to the expected groupVersion
-		{ // v1alpha1 (faulty) -> default -> validate -> internal -> v1alpha2
-			name:         "incompleteYAMLToDefaultedv1alpha2",
+		{ // v1alpha2 -> default -> validate -> internal -> v1alpha3
+			name:         "incompleteYAMLToDefaultedv1alpha3",
 			in:           master_incompleteYAML,
 			out:          master_defaultedYAML,
-			groupVersion: v1alpha2.SchemeGroupVersion,
+			groupVersion: kubeadmapiv1alpha3.SchemeGroupVersion,
 		},
-		{ // v1alpha1 (faulty) -> validation should fail
+		{ // v1alpha2 -> validation should fail
 			name:        "invalidYAMLShouldFail",
 			in:          master_invalidYAML,
 			expectedErr: true,
@@ -114,7 +101,7 @@ func TestConfigFileAndDefaultsToInternalConfig(t *testing.T) {
 	for _, rt := range tests {
 		t.Run(rt.name, func(t2 *testing.T) {
 
-			internalcfg, err := ConfigFileAndDefaultsToInternalConfig(rt.in, &v1alpha2.MasterConfiguration{})
+			internalcfg, err := ConfigFileAndDefaultsToInternalConfig(rt.in, &kubeadmapiv1alpha3.InitConfiguration{})
 			if err != nil {
 				if rt.expectedErr {
 					return
@@ -122,7 +109,7 @@ func TestConfigFileAndDefaultsToInternalConfig(t *testing.T) {
 				t2.Fatalf("couldn't unmarshal test data: %v", err)
 			}
 
-			actual, err := kubeadmutil.MarshalToYamlForCodecs(internalcfg, rt.groupVersion, scheme.Codecs)
+			actual, err := MarshalInitConfigurationToBytes(internalcfg, rt.groupVersion)
 			if err != nil {
 				t2.Fatalf("couldn't marshal internal object: %v", err)
 			}
@@ -140,85 +127,90 @@ func TestConfigFileAndDefaultsToInternalConfig(t *testing.T) {
 	}
 }
 
-// TestUpgrade tests reading a faulty YAML representation of the MasterConfiguration object (as found in kubeadm clusters <= v1.9.x),
-// fixes the problems internally and verifies the marshalled output is the expected output
-func TestUpgrade(t *testing.T) {
-	before, err := ioutil.ReadFile(master_beforeUpgradeYAML)
-	if err != nil {
-		t.Fatalf("couldn't read test data: %v", err)
-	}
-
-	afterExpected, err := ioutil.ReadFile(master_afterUpgradeYAML)
-	if err != nil {
-		t.Fatalf("couldn't read test data: %v", err)
-	}
-
-	decoded, err := kubeadmutil.LoadYAML(before)
-	if err != nil {
-		t.Fatalf("couldn't unmarshal test yaml: %v", err)
-	}
-
-	scheme := runtime.NewScheme()
-	v1alpha1.AddToScheme(scheme)
-	codecs := serializer.NewCodecFactory(scheme)
-
-	obj := &v1alpha1.MasterConfiguration{}
-	if err := v1alpha1.Migrate(decoded, obj, codecs); err != nil {
-		t.Fatalf("couldn't decode migrated object: %v", err)
-	}
-
-	afterActual, err := kubeadmutil.MarshalToYamlForCodecs(obj, v1alpha1.SchemeGroupVersion, codecs)
-	if err != nil {
-		t.Fatalf("couldn't marshal object: %v", err)
-	}
-
-	if !bytes.Equal(afterExpected, afterActual) {
-		t.Errorf("v1alpha1 object after unmarshal, conversion and marshal didn't match expected value.\n\tdiff: \n%s\n", diff(afterExpected, afterActual))
-	}
-}
-
-func TestLowercaseSANs(t *testing.T) {
-	tests := []struct {
-		name string
-		in   []string
-		out  []string
+func TestConsistentOrderByteSlice(t *testing.T) {
+	var (
+		aKind = "Akind"
+		aFile = []byte(`
+kind: Akind
+apiVersion: foo.k8s.io/v1
+`)
+		aaKind = "Aakind"
+		aaFile = []byte(`
+kind: Aakind
+apiVersion: foo.k8s.io/v1
+`)
+		abKind = "Abkind"
+		abFile = []byte(`
+kind: Abkind
+apiVersion: foo.k8s.io/v1
+`)
+	)
+	var tests = []struct {
+		name     string
+		in       map[string][]byte
+		expected [][]byte
 	}{
 		{
-			name: "empty struct",
+			name: "a_aa_ab",
+			in: map[string][]byte{
+				aKind:  aFile,
+				aaKind: aaFile,
+				abKind: abFile,
+			},
+			expected: [][]byte{aaFile, abFile, aFile},
 		},
 		{
-			name: "already lowercase",
-			in:   []string{"example.k8s.io"},
-			out:  []string{"example.k8s.io"},
+			name: "a_ab_aa",
+			in: map[string][]byte{
+				aKind:  aFile,
+				abKind: abFile,
+				aaKind: aaFile,
+			},
+			expected: [][]byte{aaFile, abFile, aFile},
 		},
 		{
-			name: "ip addresses and uppercase",
-			in:   []string{"EXAMPLE.k8s.io", "10.100.0.1"},
-			out:  []string{"example.k8s.io", "10.100.0.1"},
+			name: "aa_a_ab",
+			in: map[string][]byte{
+				aaKind: aaFile,
+				aKind:  aFile,
+				abKind: abFile,
+			},
+			expected: [][]byte{aaFile, abFile, aFile},
 		},
 		{
-			name: "punycode and uppercase",
-			in:   []string{"xn--7gq663byk9a.xn--fiqz9s", "ANOTHEREXAMPLE.k8s.io"},
-			out:  []string{"xn--7gq663byk9a.xn--fiqz9s", "anotherexample.k8s.io"},
+			name: "aa_ab_a",
+			in: map[string][]byte{
+				aaKind: aaFile,
+				abKind: abFile,
+				aKind:  aFile,
+			},
+			expected: [][]byte{aaFile, abFile, aFile},
+		},
+		{
+			name: "ab_a_aa",
+			in: map[string][]byte{
+				abKind: abFile,
+				aKind:  aFile,
+				aaKind: aaFile,
+			},
+			expected: [][]byte{aaFile, abFile, aFile},
+		},
+		{
+			name: "ab_aa_a",
+			in: map[string][]byte{
+				abKind: abFile,
+				aaKind: aaFile,
+				aKind:  aFile,
+			},
+			expected: [][]byte{aaFile, abFile, aFile},
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			cfg := &v1alpha2.MasterConfiguration{
-				APIServerCertSANs: test.in,
-			}
-
-			LowercaseSANs(cfg.APIServerCertSANs)
-
-			if len(cfg.APIServerCertSANs) != len(test.out) {
-				t.Fatalf("expected %d elements, got %d", len(test.out), len(cfg.APIServerCertSANs))
-			}
-
-			for i, expected := range test.out {
-				if cfg.APIServerCertSANs[i] != expected {
-					t.Errorf("expected element %d to be %q, got %q", i, expected, cfg.APIServerCertSANs[i])
-				}
+	for _, rt := range tests {
+		t.Run(rt.name, func(t2 *testing.T) {
+			actual := consistentOrderByteSlice(rt.in)
+			if !reflect.DeepEqual(rt.expected, actual) {
+				t2.Errorf("the expected and actual output differs.\n\texpected: %s\n\tout: %s\n", rt.expected, actual)
 			}
 		})
 	}

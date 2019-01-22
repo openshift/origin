@@ -1,6 +1,6 @@
 // +build !windows
 
-package daemon
+package daemon // import "github.com/docker/docker/daemon"
 
 import (
 	"context"
@@ -28,16 +28,8 @@ func (daemon *Daemon) FillPlatformInfo(v *types.Info, sysInfo *sysinfo.SysInfo) 
 	v.DefaultRuntime = daemon.configStore.GetDefaultRuntimeName()
 	v.InitBinary = daemon.configStore.GetInitPath()
 
-	v.ContainerdCommit.Expected = dockerversion.ContainerdCommitID
-	if sv, err := daemon.containerd.GetServerVersion(context.Background()); err == nil {
-		v.ContainerdCommit.ID = sv.Revision
-	} else {
-		logrus.Warnf("failed to retrieve containerd version: %v", err)
-		v.ContainerdCommit.ID = "N/A"
-	}
-
 	v.RuncCommit.Expected = dockerversion.RuncCommitID
-	defaultRuntimeBinary := daemon.configStore.GetRuntime(daemon.configStore.GetDefaultRuntimeName()).Path
+	defaultRuntimeBinary := daemon.configStore.GetRuntime(v.DefaultRuntime).Path
 	if rv, err := exec.Command(defaultRuntimeBinary, "--version").Output(); err == nil {
 		parts := strings.Split(strings.TrimSpace(string(rv)), "\n")
 		if len(parts) == 3 {
@@ -54,6 +46,14 @@ func (daemon *Daemon) FillPlatformInfo(v *types.Info, sysInfo *sysinfo.SysInfo) 
 	} else {
 		logrus.Warnf("failed to retrieve %s version: %v", defaultRuntimeBinary, err)
 		v.RuncCommit.ID = "N/A"
+	}
+
+	v.ContainerdCommit.Expected = dockerversion.ContainerdCommitID
+	if rv, err := daemon.containerd.Version(context.Background()); err == nil {
+		v.ContainerdCommit.ID = rv.Revision
+	} else {
+		logrus.Warnf("failed to retrieve containerd version: %v", err)
+		v.ContainerdCommit.ID = "N/A"
 	}
 
 	defaultInitBinary := daemon.configStore.GetInitPath()

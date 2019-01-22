@@ -1,6 +1,7 @@
 package controllercmd
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -13,7 +14,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/apiserver/pkg/util/logs"
 
@@ -64,7 +64,7 @@ func (c *ControllerCommandConfig) NewCommand() *cobra.Command {
 				glog.Fatal(err)
 			}
 
-			if err := c.StartController(wait.NeverStop); err != nil {
+			if err := c.StartController(context.Background()); err != nil {
 				glog.Fatal(err)
 			}
 		},
@@ -86,7 +86,7 @@ func hasServiceServingCerts(certDir string) bool {
 }
 
 // StartController runs the controller
-func (c *ControllerCommandConfig) StartController(stopCh <-chan struct{}) error {
+func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
 	unstructuredConfig, err := c.basicFlags.ToConfigObj()
 	if err != nil {
 		return err
@@ -154,13 +154,14 @@ func (c *ControllerCommandConfig) StartController(stopCh <-chan struct{}) error 
 	}
 
 	exitOnChangeReactorCh := make(chan struct{})
-	stopChannelCombined := make(chan struct{})
+	ctx2 := context.Background()
+	ctx2, cancel := context.WithCancel(ctx)
 	go func() {
 		select {
 		case <-exitOnChangeReactorCh:
-			close(stopChannelCombined)
-		case <-stopCh:
-			close(stopChannelCombined)
+			cancel()
+		case <-ctx.Done():
+			cancel()
 		}
 	}()
 
@@ -169,5 +170,5 @@ func (c *ControllerCommandConfig) StartController(stopCh <-chan struct{}) error 
 		WithLeaderElection(config.LeaderElection, "", c.componentName+"-lock").
 		WithServer(config.ServingInfo, config.Authentication, config.Authorization).
 		WithRestartOnChange(exitOnChangeReactorCh, observedFiles...).
-		Run(unstructuredConfig, stopChannelCombined)
+		Run(unstructuredConfig, ctx2)
 }

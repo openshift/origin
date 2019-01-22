@@ -37,6 +37,7 @@ type change struct {
 	key      int
 	label    string
 	filePath string
+	sharing  string
 
 	bytes units.ByteSize
 	mode  string
@@ -71,6 +72,7 @@ func (cmd *change) Register(ctx context.Context, f *flag.FlagSet) {
 	f.StringVar(&cmd.filePath, "disk.filePath", "", "Disk file name")
 	f.IntVar(&cmd.key, "disk.key", 0, "Disk unique key")
 	f.StringVar(&cmd.mode, "mode", "", fmt.Sprintf("Disk mode (%s)", strings.Join(vdmTypes, "|")))
+	f.StringVar(&cmd.sharing, "sharing", "", fmt.Sprintf("Sharing (%s)", strings.Join(sharing, "|")))
 }
 
 func (cmd *change) Process(ctx context.Context) error {
@@ -145,6 +147,7 @@ func (cmd *change) Run(ctx context.Context, f *flag.FlagSet) error {
 	}
 
 	backing := editdisk.Backing.(*types.VirtualDiskFlatVer2BackingInfo)
+	backing.Sharing = cmd.sharing
 
 	if len(cmd.mode) != 0 {
 		backing.DiskMode = cmd.mode

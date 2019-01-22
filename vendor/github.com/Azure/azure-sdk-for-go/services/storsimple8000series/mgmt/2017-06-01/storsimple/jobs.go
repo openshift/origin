@@ -41,9 +41,11 @@ func NewJobsClientWithBaseURI(baseURI string, subscriptionID string) JobsClient 
 }
 
 // Cancel cancels a job on the device.
-//
-// deviceName is the device name jobName is the jobName. resourceGroupName is the resource group name managerName
-// is the manager name
+// Parameters:
+// deviceName - the device name
+// jobName - the jobName.
+// resourceGroupName - the resource group name
+// managerName - the manager name
 func (client JobsClient) Cancel(ctx context.Context, deviceName string, jobName string, resourceGroupName string, managerName string) (result JobsCancelFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
@@ -93,15 +95,17 @@ func (client JobsClient) CancelPreparer(ctx context.Context, deviceName string, 
 // CancelSender sends the Cancel request. The method will close the
 // http.Response Body if it receives an error.
 func (client JobsClient) CancelSender(req *http.Request) (future JobsCancelFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -118,9 +122,11 @@ func (client JobsClient) CancelResponder(resp *http.Response) (result autorest.R
 }
 
 // Get gets the details of the specified job name.
-//
-// deviceName is the device name jobName is the job Name. resourceGroupName is the resource group name managerName
-// is the manager name
+// Parameters:
+// deviceName - the device name
+// jobName - the job Name.
+// resourceGroupName - the resource group name
+// managerName - the manager name
 func (client JobsClient) Get(ctx context.Context, deviceName string, jobName string, resourceGroupName string, managerName string) (result Job, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
@@ -195,9 +201,11 @@ func (client JobsClient) GetResponder(resp *http.Response) (result Job, err erro
 
 // ListByDevice gets all the jobs for specified device. With optional OData query parameters, a filtered set of jobs is
 // returned.
-//
-// deviceName is the device name resourceGroupName is the resource group name managerName is the manager name
-// filter is oData Filter options
+// Parameters:
+// deviceName - the device name
+// resourceGroupName - the resource group name
+// managerName - the manager name
+// filter - oData Filter options
 func (client JobsClient) ListByDevice(ctx context.Context, deviceName string, resourceGroupName string, managerName string, filter string) (result JobListPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
@@ -302,8 +310,10 @@ func (client JobsClient) ListByDeviceComplete(ctx context.Context, deviceName st
 
 // ListByManager gets all the jobs for the specified manager. With optional OData query parameters, a filtered set of
 // jobs is returned.
-//
-// resourceGroupName is the resource group name managerName is the manager name filter is oData Filter options
+// Parameters:
+// resourceGroupName - the resource group name
+// managerName - the manager name
+// filter - oData Filter options
 func (client JobsClient) ListByManager(ctx context.Context, resourceGroupName string, managerName string, filter string) (result JobListPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,

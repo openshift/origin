@@ -53,6 +53,11 @@ const (
 	Westus2 AzureRegions = "westus2"
 )
 
+// PossibleAzureRegionsValues returns an array of possible values for the AzureRegions const type.
+func PossibleAzureRegionsValues() []AzureRegions {
+	return []AzureRegions{Australiaeast, Brazilsouth, Eastasia, Eastus, Eastus2, Northeurope, Southcentralus, Southeastasia, Westcentralus, Westeurope, Westus, Westus2}
+}
+
 // Details enumerates the values for details.
 type Details string
 
@@ -63,15 +68,10 @@ const (
 	Landmarks Details = "Landmarks"
 )
 
-// DomainModels enumerates the values for domain models.
-type DomainModels string
-
-const (
-	// DomainModelsCelebrities ...
-	DomainModelsCelebrities DomainModels = "Celebrities"
-	// DomainModelsLandmarks ...
-	DomainModelsLandmarks DomainModels = "Landmarks"
-)
+// PossibleDetailsValues returns an array of possible values for the Details const type.
+func PossibleDetailsValues() []Details {
+	return []Details{Celebrities, Landmarks}
+}
 
 // ErrorCodes enumerates the values for error codes.
 type ErrorCodes string
@@ -105,6 +105,11 @@ const (
 	Unspecified ErrorCodes = "Unspecified"
 )
 
+// PossibleErrorCodesValues returns an array of possible values for the ErrorCodes const type.
+func PossibleErrorCodesValues() []ErrorCodes {
+	return []ErrorCodes{BadArgument, FailedToProcess, InternalServerError, InvalidDetails, InvalidImageFormat, InvalidImageSize, InvalidImageURL, NotSupportedImage, NotSupportedLanguage, NotSupportedVisualFeature, StorageException, Timeout, Unspecified}
+}
+
 // Gender enumerates the values for gender.
 type Gender string
 
@@ -115,75 +120,75 @@ const (
 	Male Gender = "Male"
 )
 
-// Language1 enumerates the values for language 1.
-type Language1 string
-
-const (
-	// En ...
-	En Language1 = "en"
-	// Zh ...
-	Zh Language1 = "zh"
-)
+// PossibleGenderValues returns an array of possible values for the Gender const type.
+func PossibleGenderValues() []Gender {
+	return []Gender{Female, Male}
+}
 
 // OcrLanguages enumerates the values for ocr languages.
 type OcrLanguages string
 
 const (
-	// OcrLanguagesAr ...
-	OcrLanguagesAr OcrLanguages = "ar"
-	// OcrLanguagesCs ...
-	OcrLanguagesCs OcrLanguages = "cs"
-	// OcrLanguagesDa ...
-	OcrLanguagesDa OcrLanguages = "da"
-	// OcrLanguagesDe ...
-	OcrLanguagesDe OcrLanguages = "de"
-	// OcrLanguagesEl ...
-	OcrLanguagesEl OcrLanguages = "el"
-	// OcrLanguagesEn ...
-	OcrLanguagesEn OcrLanguages = "en"
-	// OcrLanguagesEs ...
-	OcrLanguagesEs OcrLanguages = "es"
-	// OcrLanguagesFi ...
-	OcrLanguagesFi OcrLanguages = "fi"
-	// OcrLanguagesFr ...
-	OcrLanguagesFr OcrLanguages = "fr"
-	// OcrLanguagesHu ...
-	OcrLanguagesHu OcrLanguages = "hu"
-	// OcrLanguagesIt ...
-	OcrLanguagesIt OcrLanguages = "it"
-	// OcrLanguagesJa ...
-	OcrLanguagesJa OcrLanguages = "ja"
-	// OcrLanguagesKo ...
-	OcrLanguagesKo OcrLanguages = "ko"
-	// OcrLanguagesNb ...
-	OcrLanguagesNb OcrLanguages = "nb"
-	// OcrLanguagesNl ...
-	OcrLanguagesNl OcrLanguages = "nl"
-	// OcrLanguagesPl ...
-	OcrLanguagesPl OcrLanguages = "pl"
-	// OcrLanguagesPt ...
-	OcrLanguagesPt OcrLanguages = "pt"
-	// OcrLanguagesRo ...
-	OcrLanguagesRo OcrLanguages = "ro"
-	// OcrLanguagesRu ...
-	OcrLanguagesRu OcrLanguages = "ru"
-	// OcrLanguagesSk ...
-	OcrLanguagesSk OcrLanguages = "sk"
-	// OcrLanguagesSrCyrl ...
-	OcrLanguagesSrCyrl OcrLanguages = "sr-Cyrl"
-	// OcrLanguagesSrLatn ...
-	OcrLanguagesSrLatn OcrLanguages = "sr-Latn"
-	// OcrLanguagesSv ...
-	OcrLanguagesSv OcrLanguages = "sv"
-	// OcrLanguagesTr ...
-	OcrLanguagesTr OcrLanguages = "tr"
-	// OcrLanguagesUnk ...
-	OcrLanguagesUnk OcrLanguages = "unk"
-	// OcrLanguagesZhHans ...
-	OcrLanguagesZhHans OcrLanguages = "zh-Hans"
-	// OcrLanguagesZhHant ...
-	OcrLanguagesZhHant OcrLanguages = "zh-Hant"
+	// Ar ...
+	Ar OcrLanguages = "ar"
+	// Cs ...
+	Cs OcrLanguages = "cs"
+	// Da ...
+	Da OcrLanguages = "da"
+	// De ...
+	De OcrLanguages = "de"
+	// El ...
+	El OcrLanguages = "el"
+	// En ...
+	En OcrLanguages = "en"
+	// Es ...
+	Es OcrLanguages = "es"
+	// Fi ...
+	Fi OcrLanguages = "fi"
+	// Fr ...
+	Fr OcrLanguages = "fr"
+	// Hu ...
+	Hu OcrLanguages = "hu"
+	// It ...
+	It OcrLanguages = "it"
+	// Ja ...
+	Ja OcrLanguages = "ja"
+	// Ko ...
+	Ko OcrLanguages = "ko"
+	// Nb ...
+	Nb OcrLanguages = "nb"
+	// Nl ...
+	Nl OcrLanguages = "nl"
+	// Pl ...
+	Pl OcrLanguages = "pl"
+	// Pt ...
+	Pt OcrLanguages = "pt"
+	// Ro ...
+	Ro OcrLanguages = "ro"
+	// Ru ...
+	Ru OcrLanguages = "ru"
+	// Sk ...
+	Sk OcrLanguages = "sk"
+	// SrCyrl ...
+	SrCyrl OcrLanguages = "sr-Cyrl"
+	// SrLatn ...
+	SrLatn OcrLanguages = "sr-Latn"
+	// Sv ...
+	Sv OcrLanguages = "sv"
+	// Tr ...
+	Tr OcrLanguages = "tr"
+	// Unk ...
+	Unk OcrLanguages = "unk"
+	// ZhHans ...
+	ZhHans OcrLanguages = "zh-Hans"
+	// ZhHant ...
+	ZhHant OcrLanguages = "zh-Hant"
 )
+
+// PossibleOcrLanguagesValues returns an array of possible values for the OcrLanguages const type.
+func PossibleOcrLanguagesValues() []OcrLanguages {
+	return []OcrLanguages{Ar, Cs, Da, De, El, En, Es, Fi, Fr, Hu, It, Ja, Ko, Nb, Nl, Pl, Pt, Ro, Ru, Sk, SrCyrl, SrLatn, Sv, Tr, Unk, ZhHans, ZhHant}
+}
 
 // TextOperationStatusCodes enumerates the values for text operation status codes.
 type TextOperationStatusCodes string
@@ -198,6 +203,11 @@ const (
 	// Succeeded ...
 	Succeeded TextOperationStatusCodes = "Succeeded"
 )
+
+// PossibleTextOperationStatusCodesValues returns an array of possible values for the TextOperationStatusCodes const type.
+func PossibleTextOperationStatusCodesValues() []TextOperationStatusCodes {
+	return []TextOperationStatusCodes{Failed, NotStarted, Running, Succeeded}
+}
 
 // VisualFeatureTypes enumerates the values for visual feature types.
 type VisualFeatureTypes string
@@ -219,6 +229,11 @@ const (
 	VisualFeatureTypesTags VisualFeatureTypes = "Tags"
 )
 
+// PossibleVisualFeatureTypesValues returns an array of possible values for the VisualFeatureTypes const type.
+func PossibleVisualFeatureTypesValues() []VisualFeatureTypes {
+	return []VisualFeatureTypes{VisualFeatureTypesAdult, VisualFeatureTypesCategories, VisualFeatureTypesColor, VisualFeatureTypesDescription, VisualFeatureTypesFaces, VisualFeatureTypesImageType, VisualFeatureTypesTags}
+}
+
 // AdultInfo an object describing whether the image contains adult-oriented content and/or is racy.
 type AdultInfo struct {
 	// IsAdultContent - A value indicating if the image contains adult-oriented content.
@@ -236,8 +251,7 @@ type Category struct {
 	// Name - Name of the category.
 	Name *string `json:"name,omitempty"`
 	// Score - Scoring of the category.
-	Score *float64 `json:"score,omitempty"`
-	// Detail - Additional category detail if available.
+	Score  *float64        `json:"score,omitempty"`
 	Detail *CategoryDetail `json:"detail,omitempty"`
 }
 
@@ -256,6 +270,14 @@ type CelebritiesModel struct {
 	FaceRectangle *FaceRectangle `json:"faceRectangle,omitempty"`
 }
 
+// CelebrityResults list of celebrities recognized in the image.
+type CelebrityResults struct {
+	Celebrities *[]CelebritiesModel `json:"celebrities,omitempty"`
+	// RequestID - Id of the REST API request.
+	RequestID *string        `json:"requestId,omitempty"`
+	Metadata  *ImageMetadata `json:"metadata,omitempty"`
+}
+
 // ColorInfo an object providing additional metadata describing color attributes.
 type ColorInfo struct {
 	// DominantColorForeground - Possible dominant foreground color.
@@ -270,63 +292,14 @@ type ColorInfo struct {
 	IsBWImg *bool `json:"isBWImg,omitempty"`
 }
 
-// DomainModelResult ...
-type DomainModelResult struct {
-	// Celebrities - An array of possible celebritied identified in the image.
-	Celebrities *[]CelebritiesModel `json:"celebrities,omitempty"`
-}
-
 // DomainModelResults result of image analysis using a specific domain model including additional metadata.
 type DomainModelResults struct {
 	autorest.Response `json:"-"`
-	// DomainModelResult - Result of the image analysis.
-	*DomainModelResult `json:"result,omitempty"`
+	// Result - Model-specific response
+	Result interface{} `json:"result,omitempty"`
 	// RequestID - Id of the REST API request.
-	RequestID *string `json:"requestId,omitempty"`
-	// Metadata - Additional image metadata
-	Metadata *ImageMetadata `json:"metadata,omitempty"`
-}
-
-// UnmarshalJSON is the custom unmarshaler for DomainModelResults struct.
-func (dmr *DomainModelResults) UnmarshalJSON(body []byte) error {
-	var m map[string]*json.RawMessage
-	err := json.Unmarshal(body, &m)
-	if err != nil {
-		return err
-	}
-	for k, v := range m {
-		switch k {
-		case "result":
-			if v != nil {
-				var domainModelResult DomainModelResult
-				err = json.Unmarshal(*v, &domainModelResult)
-				if err != nil {
-					return err
-				}
-				dmr.DomainModelResult = &domainModelResult
-			}
-		case "requestId":
-			if v != nil {
-				var requestID string
-				err = json.Unmarshal(*v, &requestID)
-				if err != nil {
-					return err
-				}
-				dmr.RequestID = &requestID
-			}
-		case "metadata":
-			if v != nil {
-				var metadata ImageMetadata
-				err = json.Unmarshal(*v, &metadata)
-				if err != nil {
-					return err
-				}
-				dmr.Metadata = &metadata
-			}
-		}
-	}
-
-	return nil
+	RequestID *string        `json:"requestId,omitempty"`
+	Metadata  *ImageMetadata `json:"metadata,omitempty"`
 }
 
 // Error ...
@@ -365,22 +338,17 @@ type ImageAnalysis struct {
 	autorest.Response `json:"-"`
 	// Categories - An array indicating identified categories.
 	Categories *[]Category `json:"categories,omitempty"`
-	// Adult - A property scoring on whether the image is adult-oriented and/or racy.
-	Adult *AdultInfo `json:"adult,omitempty"`
-	// Color - A property scoring on color spectrums.
-	Color *ColorInfo `json:"color,omitempty"`
-	// ImageType - A property indicating type of image (whether it's clipart or line drawing)
-	ImageType *ImageType `json:"imageType,omitempty"`
+	Adult      *AdultInfo  `json:"adult,omitempty"`
+	Color      *ColorInfo  `json:"color,omitempty"`
+	ImageType  *ImageType  `json:"imageType,omitempty"`
 	// Tags - A list of tags with confidence level.
-	Tags *[]ImageTag `json:"tags,omitempty"`
-	// Description - Description of the image.
+	Tags        *[]ImageTag              `json:"tags,omitempty"`
 	Description *ImageDescriptionDetails `json:"description,omitempty"`
 	// Faces - An array of possible faces within the image.
 	Faces *[]FaceDescription `json:"faces,omitempty"`
 	// RequestID - Id of the request for tracking purposes.
-	RequestID *string `json:"requestId,omitempty"`
-	// Metadata - Image metadata
-	Metadata *ImageMetadata `json:"metadata,omitempty"`
+	RequestID *string        `json:"requestId,omitempty"`
+	Metadata  *ImageMetadata `json:"metadata,omitempty"`
 }
 
 // ImageCaption an image caption, i.e. a brief description of what the image depicts.
@@ -396,6 +364,15 @@ type ImageCaption struct {
 type ImageDescription struct {
 	autorest.Response        `json:"-"`
 	*ImageDescriptionDetails `json:"description,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for ImageDescription.
+func (ID ImageDescription) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if ID.ImageDescriptionDetails != nil {
+		objectMap["description"] = ID.ImageDescriptionDetails
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for ImageDescription struct.
@@ -430,9 +407,8 @@ type ImageDescriptionDetails struct {
 	// Captions - A list of captions, sorted by confidence level.
 	Captions *[]ImageCaption `json:"captions,omitempty"`
 	// RequestID - Id of the REST API request.
-	RequestID *string `json:"requestId,omitempty"`
-	// Metadata - Image metadata
-	Metadata *ImageMetadata `json:"metadata,omitempty"`
+	RequestID *string        `json:"requestId,omitempty"`
+	Metadata  *ImageMetadata `json:"metadata,omitempty"`
 }
 
 // ImageMetadata image metadata
@@ -463,7 +439,24 @@ type ImageType struct {
 
 // ImageURL ...
 type ImageURL struct {
+	// URL - Publicly reachable URL of an image
 	URL *string `json:"url,omitempty"`
+}
+
+// LandmarkResults list of landmarks recognized in the image.
+type LandmarkResults struct {
+	Landmarks *[]LandmarkResultsLandmarksItem `json:"landmarks,omitempty"`
+	// RequestID - Id of the REST API request.
+	RequestID *string        `json:"requestId,omitempty"`
+	Metadata  *ImageMetadata `json:"metadata,omitempty"`
+}
+
+// LandmarkResultsLandmarksItem a landmark recognized in the image
+type LandmarkResultsLandmarksItem struct {
+	// Name - Name of the landmark.
+	Name *string `json:"name,omitempty"`
+	// Confidence - Confidence level for the landmark recognition.
+	Confidence *float64 `json:"confidence,omitempty"`
 }
 
 // Line ...
@@ -504,7 +497,8 @@ type OcrRegion struct {
 // OcrResult ...
 type OcrResult struct {
 	autorest.Response `json:"-"`
-	Language          *OcrResult `json:"language,omitempty"`
+	// Language - The BCP-47 language code of the text in the image.
+	Language *string `json:"language,omitempty"`
 	// TextAngle - The angle, in degrees, of the detected text with respect to the closest horizontal or vertical direction. After rotating the input image clockwise by this angle, the recognized text lines become horizontal or vertical. In combination with the orientation property it can be used to overlay recognition results correctly on the original image, by rotating either the original image or recognition results by a suitable angle around the center of the original image. If the angle cannot be confidently detected, this property is not present. If the image contains text at different angles, only part of the text will be recognized correctly.
 	TextAngle *float64 `json:"textAngle,omitempty"`
 	// Orientation - Orientation of the text recognized in the image. The value (up,down,left, or right) refers to the direction that the top of the recognized text is facing, after the image has been rotated around its center according to the detected text angle (see textAngle property).
@@ -538,9 +532,8 @@ type TagResult struct {
 	// Tags - A list of tags with confidence level.
 	Tags *[]ImageTag `json:"tags,omitempty"`
 	// RequestID - Id of the REST API request.
-	RequestID *string `json:"requestId,omitempty"`
-	// Metadata - Image metadata
-	Metadata *ImageMetadata `json:"metadata,omitempty"`
+	RequestID *string        `json:"requestId,omitempty"`
+	Metadata  *ImageMetadata `json:"metadata,omitempty"`
 }
 
 // TextOperationResult ...

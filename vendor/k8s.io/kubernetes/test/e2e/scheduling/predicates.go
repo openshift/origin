@@ -61,12 +61,10 @@ type pausePodConfig struct {
 var _ = SIGDescribe("SchedulerPredicates [Serial]", func() {
 	var cs clientset.Interface
 	var nodeList *v1.NodeList
-	var systemPodsNo int
 	var totalPodCapacity int64
 	var RCName string
 	var ns string
 	f := framework.NewDefaultFramework("sched-pred")
-	ignoreLabels := framework.ImagePullerLabels
 
 	AfterEach(func() {
 		rc, err := cs.CoreV1().ReplicationControllers(ns).Get(RCName, metav1.GetOptions{})
@@ -87,24 +85,6 @@ var _ = SIGDescribe("SchedulerPredicates [Serial]", func() {
 
 		err := framework.CheckTestingNSDeletedExcept(cs, ns)
 		framework.ExpectNoError(err)
-
-		// Every test case in this suite assumes that cluster add-on pods stay stable and
-		// cannot be run in parallel with any other test that touches Nodes or Pods.
-		// It is so because we need to have precise control on what's running in the cluster.
-		systemPods, err := framework.GetPodsInNamespace(cs, ns, ignoreLabels)
-		Expect(err).NotTo(HaveOccurred())
-		systemPodsNo = 0
-		for _, pod := range systemPods {
-			if !masterNodes.Has(pod.Spec.NodeName) && pod.DeletionTimestamp == nil {
-				systemPodsNo++
-			}
-		}
-
-		// err = framework.WaitForPodsRunningReady(cs, metav1.NamespaceSystem, int32(systemPodsNo), 0, framework.PodReadyBeforeTimeout, ignoreLabels)
-		// Expect(err).NotTo(HaveOccurred())
-
-		// err = framework.WaitForPodsSuccess(cs, metav1.NamespaceSystem, framework.ImagePullerLabels, imagePrePullingTimeout)
-		// Expect(err).NotTo(HaveOccurred())
 
 		for _, node := range nodeList.Items {
 			framework.Logf("\nLogging pods the kubelet thinks is on node %v before test", node.Name)
@@ -239,9 +219,9 @@ var _ = SIGDescribe("SchedulerPredicates [Serial]", func() {
 	// 4. Create another pod with no affinity to any node that need 50% of the largest node CPU.
 	// 5. Make sure this additional pod is not scheduled.
 	/*
-		    Testname: scheduler-resource-limits
-		    Description: Ensure that scheduler accounts node resources correctly
-			and respects pods' resource requirements during scheduling.
+		Release : v1.9
+		Testname: Scheduler, resource limits
+		Description: Scheduling Pods MUST fail if the resource limits exceed Machine capacity.
 	*/
 	framework.ConformanceIt("validates resource limits of pods that are allowed to run ", func() {
 		framework.WaitForStableCluster(cs, masterNodes)
@@ -345,9 +325,9 @@ var _ = SIGDescribe("SchedulerPredicates [Serial]", func() {
 	// Test Nodes does not have any label, hence it should be impossible to schedule Pod with
 	// nonempty Selector set.
 	/*
-		    Testname: scheduler-node-selector-not-matching
-		    Description: Ensure that scheduler respects the NodeSelector field of
-			PodSpec during scheduling (when it does not match any node).
+		Release : v1.9
+		Testname: Scheduler, node selector not matching
+		Description: Create a Pod with a NodeSelector set to a value that does not match a node in the cluster. Since there are no nodes matching the criteria the Pod MUST not be scheduled.
 	*/
 	framework.ConformanceIt("validates that NodeSelector is respected if not matching ", func() {
 		By("Trying to schedule Pod with nonempty NodeSelector.")
@@ -368,9 +348,9 @@ var _ = SIGDescribe("SchedulerPredicates [Serial]", func() {
 	})
 
 	/*
-		    Testname: scheduler-node-selector-matching
-		    Description: Ensure that scheduler respects the NodeSelector field
-			of PodSpec during scheduling (when it matches).
+		Release : v1.9
+		Testname: Scheduler, node selector matching
+		Description: Create a label on the node {k: v}. Then create a Pod with a NodeSelector set to {k: v}. Check to see if the Pod is scheduled. When the NodeSelector matches then Pod MUST be scheduled on that node.
 	*/
 	framework.ConformanceIt("validates that NodeSelector is respected if matching ", func() {
 		nodeName := GetNodeThatCanRunPod(f)

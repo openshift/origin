@@ -90,9 +90,9 @@ Cluster configuration includes:
 
 * vSAN autoclaim of host system disks (results in shared Datastore "vsanDatastore")
 
-## Example
+## vSAN Datastore Example
 
-This example will install VCSA, 3 ESXi VMs and create a cluster.
+This example will install VCSA, 3 ESXi VMs and create a cluster with vSAN enabled.
 
 ```
 export GOVC_URL="root:password@some-esx-host"
@@ -102,6 +102,19 @@ export GOVC_URL="root:password@some-esx-host"
 printf "${USER}-esxi-%03d\n" {1..3} | xargs -P3 -n1 ./create-esxi-vm.sh $GOVC_URL
 
 govc vm.ip -k "${USER}-vcsa" "${USER}-esxi-*" | xargs ./create-cluster.sh
+```
+
+## Standalone host Example
+
+This example will install VCSA, create a datacenter and connect the underlying ESXi host to the vCenter VM.
+
+```
+export GOVC_URL="root:password@some-esx-host"
+
+./create-vcsa-vm.sh -n "${USER}-vcsa" $GOVC_URL
+
+./create-standalone.sh $(govc vm.ip -k "${USER}-vcsa")
+
 ```
 
 ## Licenses

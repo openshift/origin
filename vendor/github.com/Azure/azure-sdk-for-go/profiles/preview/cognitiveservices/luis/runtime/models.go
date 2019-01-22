@@ -21,32 +21,11 @@ package runtime
 
 import original "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v2.0/luis/runtime"
 
-type BaseClient = original.BaseClient
-
-func New(azureRegion AzureRegions) BaseClient {
-	return original.New(azureRegion)
-}
-func NewWithoutDefaults(azureRegion AzureRegions) BaseClient {
-	return original.NewWithoutDefaults(azureRegion)
-}
-
-type AzureRegions = original.AzureRegions
-
 const (
-	Australiaeast  AzureRegions = original.Australiaeast
-	Brazilsouth    AzureRegions = original.Brazilsouth
-	Eastasia       AzureRegions = original.Eastasia
-	Eastus         AzureRegions = original.Eastus
-	Eastus2        AzureRegions = original.Eastus2
-	Northeurope    AzureRegions = original.Northeurope
-	Southcentralus AzureRegions = original.Southcentralus
-	Southeastasia  AzureRegions = original.Southeastasia
-	Westcentralus  AzureRegions = original.Westcentralus
-	Westeurope     AzureRegions = original.Westeurope
-	Westus         AzureRegions = original.Westus
-	Westus2        AzureRegions = original.Westus2
+	DefaultBaseURI = original.DefaultBaseURI
 )
 
+type BaseClient = original.BaseClient
 type APIError = original.APIError
 type CompositeChildModel = original.CompositeChildModel
 type CompositeEntityModel = original.CompositeEntityModel
@@ -55,10 +34,20 @@ type EntityWithResolution = original.EntityWithResolution
 type EntityWithScore = original.EntityWithScore
 type IntentModel = original.IntentModel
 type LuisResult = original.LuisResult
+type Sentiment = original.Sentiment
 type PredictionClient = original.PredictionClient
 
-func NewPredictionClient(azureRegion AzureRegions) PredictionClient {
-	return original.NewPredictionClient(azureRegion)
+func New() BaseClient {
+	return original.New()
+}
+func NewWithBaseURI(baseURI string) BaseClient {
+	return original.NewWithBaseURI(baseURI)
+}
+func NewPredictionClient() PredictionClient {
+	return original.NewPredictionClient()
+}
+func NewPredictionClientWithBaseURI(baseURI string) PredictionClient {
+	return original.NewPredictionClientWithBaseURI(baseURI)
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"

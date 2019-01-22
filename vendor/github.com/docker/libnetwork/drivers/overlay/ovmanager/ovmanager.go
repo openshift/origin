@@ -125,8 +125,12 @@ func (d *driver) NetworkAllocate(id string, option map[string]string, ipV4Data, 
 	opts[netlabel.OverlayVxlanIDList] = val
 
 	d.Lock()
+	defer d.Unlock()
+	if _, ok := d.networks[id]; ok {
+		n.releaseVxlanID()
+		return nil, fmt.Errorf("network %s already exists", id)
+	}
 	d.networks[id] = n
-	d.Unlock()
 
 	return opts, nil
 }
@@ -137,8 +141,8 @@ func (d *driver) NetworkFree(id string) error {
 	}
 
 	d.Lock()
+	defer d.Unlock()
 	n, ok := d.networks[id]
-	d.Unlock()
 
 	if !ok {
 		return fmt.Errorf("overlay network with id %s not found", id)
@@ -147,9 +151,7 @@ func (d *driver) NetworkFree(id string) error {
 	// Release all vxlan IDs in one shot.
 	n.releaseVxlanID()
 
-	d.Lock()
 	delete(d.networks, id)
-	d.Unlock()
 
 	return nil
 }
@@ -165,7 +167,7 @@ func (n *network) obtainVxlanID(s *subnet) error {
 	n.Unlock()
 
 	if vni == 0 {
-		vni, err = n.driver.vxlanIdm.GetIDInRange(vxlanIDStart, vxlanIDEnd)
+		vni, err = n.driver.vxlanIdm.GetIDInRange(vxlanIDStart, vxlanIDEnd, true)
 		if err != nil {
 			return err
 		}

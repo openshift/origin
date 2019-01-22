@@ -19,6 +19,7 @@ package get
 import (
 	"bytes"
 	encjson "encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -27,39 +28,35 @@ import (
 	"strings"
 	"testing"
 
+	apiapps "k8s.io/api/apps/v1"
+	apiautoscaling "k8s.io/api/autoscaling/v1"
+	apibatchv1 "k8s.io/api/batch/v1"
+	apibatchv1beta1 "k8s.io/api/batch/v1beta1"
 	api "k8s.io/api/core/v1"
+	apiextensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1beta1 "k8s.io/apimachinery/pkg/apis/meta/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/apimachinery/pkg/runtime/serializer/streaming"
+	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/rest/fake"
 	restclientwatch "k8s.io/client-go/rest/watch"
 	"k8s.io/kube-openapi/pkg/util/proto"
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
-	"k8s.io/kubernetes/pkg/apis/core/v1"
-
-	"k8s.io/apimachinery/pkg/util/diff"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/util/openapi"
 	openapitesting "k8s.io/kubernetes/pkg/kubectl/cmd/util/openapi/testing"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
 
 var openapiSchemaPath = filepath.Join("..", "..", "..", "..", "api", "openapi-spec", "swagger.json")
-
-// This init should be removed after switching this command and its tests to user external types.
-func init() {
-	api.AddToScheme(scheme.Scheme)
-	scheme.Scheme.AddConversionFuncs(v1.Convert_core_PodSpec_To_v1_PodSpec)
-	scheme.Scheme.AddConversionFuncs(v1.Convert_v1_PodSecurityContext_To_core_PodSecurityContext)
-}
 
 var unstructuredSerializer = resource.UnstructuredPlusDefaultContentConfig().NegotiatedSerializer
 
@@ -226,7 +223,7 @@ func TestGetUnknownSchemaObject(t *testing.T) {
 func TestGetSchemaObject(t *testing.T) {
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"})
+	codec := scheme.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"})
 	t.Logf("%v", string(runtime.EncodeOrDie(codec, &api.ReplicationController{ObjectMeta: metav1.ObjectMeta{Name: "foo"}})))
 
 	tf.UnstructuredClient = &fake.RESTClient{
@@ -249,7 +246,7 @@ func TestGetObjectsWithOpenAPIOutputFormatPresent(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	// overide the openAPISchema function to return custom output
 	// for Pod type.
@@ -265,11 +262,11 @@ func TestGetObjectsWithOpenAPIOutputFormatPresent(t *testing.T) {
 	cmd.Flags().Set(useOpenAPIPrintColumnFlagLabel, "true")
 	cmd.Run(cmd, []string{"pods", "foo"})
 
-	expected := `NAME      RSRC
-foo       10
+	expected := `NAME   RSRC
+foo    10
 `
 	if e, a := expected, buf.String(); e != a {
-		t.Errorf("expected %v, got %v", e, a)
+		t.Errorf("expected\n%v\ngot\n%v", e, a)
 	}
 }
 
@@ -305,7 +302,7 @@ func TestGetObjects(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: unstructuredSerializer,
@@ -317,11 +314,11 @@ func TestGetObjects(t *testing.T) {
 	cmd.SetOutput(buf)
 	cmd.Run(cmd, []string{"pods", "foo"})
 
-	expected := `NAME      READY     STATUS    RESTARTS   AGE
-foo       0/0                 0          <unknown>
+	expected := `NAME   READY   STATUS   RESTARTS   AGE
+foo    0/0              0          <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
-		t.Errorf("expected %v, got %v", e, a)
+		t.Errorf("expected\n%v\ngot\n%v", e, a)
 	}
 }
 
@@ -330,7 +327,7 @@ func TestGetObjectsShowKind(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: unstructuredSerializer,
@@ -343,11 +340,70 @@ func TestGetObjectsShowKind(t *testing.T) {
 	cmd.Flags().Set("show-kind", "true")
 	cmd.Run(cmd, []string{"pods", "foo"})
 
-	expected := `NAME      READY     STATUS    RESTARTS   AGE
-pod/foo   0/0                 0          <unknown>
+	expected := `NAME      READY   STATUS   RESTARTS   AGE
+pod/foo   0/0              0          <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
-		t.Errorf("expected %v, got %v", e, a)
+		t.Errorf("expected\n%v\ngot\n%v", e, a)
+	}
+}
+
+func TestGetMultipleResourceTypesShowKinds(t *testing.T) {
+	pods, svcs, _ := testData()
+
+	tf := cmdtesting.NewTestFactory().WithNamespace("test")
+	defer tf.Cleanup()
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+
+	tf.UnstructuredClient = &fake.RESTClient{
+		NegotiatedSerializer: unstructuredSerializer,
+		Resp:                 &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(codec, &pods.Items[0])},
+	}
+	tf.UnstructuredClient = &fake.RESTClient{
+		NegotiatedSerializer: unstructuredSerializer,
+		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
+			switch p, m := req.URL.Path, req.Method; {
+			case p == "/namespaces/test/pods" && m == "GET":
+				return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(codec, pods)}, nil
+			case p == "/namespaces/test/replicationcontrollers" && m == "GET":
+				return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(codec, &api.ReplicationControllerList{})}, nil
+			case p == "/namespaces/test/services" && m == "GET":
+				return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(codec, svcs)}, nil
+			case p == "/namespaces/test/statefulsets" && m == "GET":
+				return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(codec, &apiapps.StatefulSetList{})}, nil
+			case p == "/namespaces/test/horizontalpodautoscalers" && m == "GET":
+				return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(codec, &apiautoscaling.HorizontalPodAutoscalerList{})}, nil
+			case p == "/namespaces/test/jobs" && m == "GET":
+				return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(codec, &apibatchv1.JobList{})}, nil
+			case p == "/namespaces/test/cronjobs" && m == "GET":
+				return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(codec, &apibatchv1beta1.CronJobList{})}, nil
+			case p == "/namespaces/test/daemonsets" && m == "GET":
+				return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(codec, &apiapps.DaemonSetList{})}, nil
+			case p == "/namespaces/test/deployments" && m == "GET":
+				return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(codec, &apiextensionsv1beta1.DeploymentList{})}, nil
+			case p == "/namespaces/test/replicasets" && m == "GET":
+				return &http.Response{StatusCode: 200, Header: defaultHeader(), Body: objBody(codec, &apiextensionsv1beta1.ReplicaSetList{})}, nil
+
+			default:
+				t.Fatalf("request url: %#v,and request: %#v", req.URL, req)
+				return nil, nil
+			}
+		}),
+	}
+
+	streams, _, buf, _ := genericclioptions.NewTestIOStreams()
+	cmd := NewCmdGet("kubectl", tf, streams)
+	cmd.SetOutput(buf)
+	cmd.Run(cmd, []string{"all"})
+
+	expected := `NAME      READY   STATUS   RESTARTS   AGE
+pod/foo   0/0              0          <unknown>
+pod/bar   0/0              0          <unknown>
+NAME          TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+service/baz   ClusterIP   <none>       <none>        <none>    <unknown>
+`
+	if e, a := expected, buf.String(); e != a {
+		t.Errorf("expected\n%v\ngot\n%v", e, a)
 	}
 }
 
@@ -356,7 +412,7 @@ func TestGetObjectsShowLabels(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: unstructuredSerializer,
@@ -369,11 +425,11 @@ func TestGetObjectsShowLabels(t *testing.T) {
 	cmd.Flags().Set("show-labels", "true")
 	cmd.Run(cmd, []string{"pods", "foo"})
 
-	expected := `NAME      READY     STATUS    RESTARTS   AGE         LABELS
-foo       0/0                 0          <unknown>   <none>
+	expected := `NAME   READY   STATUS   RESTARTS   AGE         LABELS
+foo    0/0              0          <unknown>   <none>
 `
 	if e, a := expected, buf.String(); e != a {
-		t.Errorf("expected %v, got %v", e, a)
+		t.Errorf("expected\n%v\ngot\n%v", e, a)
 	}
 }
 
@@ -394,7 +450,7 @@ func TestGetObjectIgnoreNotFound(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: unstructuredSerializer,
@@ -446,7 +502,7 @@ func TestGetSortedObjects(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: unstructuredSerializer,
@@ -462,14 +518,158 @@ func TestGetSortedObjects(t *testing.T) {
 	cmd.Flags().Set("sort-by", ".metadata.name")
 	cmd.Run(cmd, []string{"pods"})
 
-	expected := `NAME      READY     STATUS    RESTARTS   AGE
-a         0/0                 0          <unknown>
-b         0/0                 0          <unknown>
-c         0/0                 0          <unknown>
+	expected := `NAME   READY   STATUS   RESTARTS   AGE
+a      0/0              0          <unknown>
+b      0/0              0          <unknown>
+c      0/0              0          <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
-		t.Errorf("expected %v, got %v", e, a)
+		t.Errorf("expected\n%v\ngot\n%v", e, a)
 	}
+}
+
+func sortTestData() []runtime.Object {
+	return []runtime.Object{
+		&api.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: "test", ResourceVersion: "10"},
+			Spec:       apitesting.V1DeepEqualSafePodSpec(),
+		},
+		&api.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "b", Namespace: "test", ResourceVersion: "11"},
+			Spec:       apitesting.V1DeepEqualSafePodSpec(),
+		},
+		&api.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "a", Namespace: "test", ResourceVersion: "9"},
+			Spec:       apitesting.V1DeepEqualSafePodSpec(),
+		},
+	}
+}
+
+func sortTestTableData() []runtime.Object {
+	return []runtime.Object{
+		&metav1beta1.Table{
+			TypeMeta: metav1.TypeMeta{Kind: "Table"},
+			Rows: []metav1beta1.TableRow{
+				{
+					Object: runtime.RawExtension{
+						Object: &api.Pod{
+							ObjectMeta: metav1.ObjectMeta{Name: "c", Namespace: "test", ResourceVersion: "10"},
+							Spec:       apitesting.V1DeepEqualSafePodSpec(),
+						},
+					},
+				},
+				{
+					Object: runtime.RawExtension{
+						Object: &api.Pod{
+							ObjectMeta: metav1.ObjectMeta{Name: "b", Namespace: "test", ResourceVersion: "11"},
+							Spec:       apitesting.V1DeepEqualSafePodSpec(),
+						},
+					},
+				},
+				{
+					Object: runtime.RawExtension{
+						Object: &api.Pod{
+							ObjectMeta: metav1.ObjectMeta{Name: "a", Namespace: "test", ResourceVersion: "9"},
+							Spec:       apitesting.V1DeepEqualSafePodSpec(),
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func TestRuntimeSorter(t *testing.T) {
+	tests := []struct {
+		name        string
+		field       string
+		objs        []runtime.Object
+		op          func(sorter *RuntimeSorter, objs []runtime.Object, out io.Writer) error
+		expect      string
+		expectError string
+	}{
+		{
+			name:  "ensure sorter returns original position",
+			field: "metadata.name",
+			objs:  sortTestData(),
+			op: func(sorter *RuntimeSorter, objs []runtime.Object, out io.Writer) error {
+				for idx := range objs {
+					p := sorter.OriginalPosition(idx)
+					fmt.Fprintf(out, "%v,", p)
+				}
+				return nil
+			},
+			expect: "2,1,0,",
+		},
+		{
+			name:  "ensure sorter handles table object position",
+			field: "metadata.name",
+			objs:  sortTestTableData(),
+			op: func(sorter *RuntimeSorter, objs []runtime.Object, out io.Writer) error {
+				for idx := range objs {
+					p := sorter.OriginalPosition(idx)
+					fmt.Fprintf(out, "%v,", p)
+				}
+				return nil
+			},
+			expect: "0,",
+		},
+		{
+			name:  "ensure sorter sorts table objects",
+			field: "metadata.name",
+			objs:  sortTestData(),
+			op: func(sorter *RuntimeSorter, objs []runtime.Object, out io.Writer) error {
+				for _, o := range objs {
+					fmt.Fprintf(out, "%s,", o.(*api.Pod).Name)
+				}
+				return nil
+			},
+			expect: "a,b,c,",
+		},
+		{
+			name:        "ensure sorter rejects mixed Table + non-Table object lists",
+			field:       "metadata.name",
+			objs:        append(sortTestData(), sortTestTableData()...),
+			op:          func(sorter *RuntimeSorter, objs []runtime.Object, out io.Writer) error { return nil },
+			expectError: "sorting is not supported on mixed Table",
+		},
+		{
+			name:        "ensure sorter errors out on invalid jsonpath",
+			field:       "metadata.unknown",
+			objs:        sortTestData(),
+			op:          func(sorter *RuntimeSorter, objs []runtime.Object, out io.Writer) error { return nil },
+			expectError: "couldn't find any field with path",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			sorter := NewRuntimeSorter(tc.objs, tc.field)
+			if err := sorter.Sort(); err != nil {
+				if len(tc.expectError) > 0 && strings.Contains(err.Error(), tc.expectError) {
+					return
+				}
+
+				if len(tc.expectError) > 0 {
+					t.Fatalf("unexpected error: expecting %s, but got %s", tc.expectError, err)
+				}
+
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			out := bytes.NewBuffer([]byte{})
+			err := tc.op(sorter, tc.objs, out)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if tc.expect != out.String() {
+				t.Fatalf("unexpected output: expecting %s, but got %s", tc.expect, out.String())
+			}
+
+		})
+	}
+
 }
 
 func TestGetObjectsIdentifiedByFile(t *testing.T) {
@@ -477,7 +677,7 @@ func TestGetObjectsIdentifiedByFile(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: unstructuredSerializer,
@@ -490,11 +690,11 @@ func TestGetObjectsIdentifiedByFile(t *testing.T) {
 	cmd.Flags().Set("filename", "../../../../test/e2e/testing-manifests/statefulset/cassandra/controller.yaml")
 	cmd.Run(cmd, []string{})
 
-	expected := `NAME      READY     STATUS    RESTARTS   AGE
-foo       0/0                 0          <unknown>
+	expected := `NAME   READY   STATUS   RESTARTS   AGE
+foo    0/0              0          <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
-		t.Errorf("expected %v, got %v", e, a)
+		t.Errorf("expected\n%v\ngot\n%v", e, a)
 	}
 }
 
@@ -503,7 +703,7 @@ func TestGetListObjects(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: unstructuredSerializer,
@@ -515,12 +715,12 @@ func TestGetListObjects(t *testing.T) {
 	cmd.SetOutput(buf)
 	cmd.Run(cmd, []string{"pods"})
 
-	expected := `NAME      READY     STATUS    RESTARTS   AGE
-foo       0/0                 0          <unknown>
-bar       0/0                 0          <unknown>
+	expected := `NAME   READY   STATUS   RESTARTS   AGE
+foo    0/0              0          <unknown>
+bar    0/0              0          <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
-		t.Errorf("expected %v, got %v", e, a)
+		t.Errorf("expected\n%v\ngot\n%v", e, a)
 	}
 }
 
@@ -529,7 +729,7 @@ func TestGetListComponentStatus(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: unstructuredSerializer,
@@ -547,7 +747,7 @@ serverbad       Unhealthy             bad status: 500
 serverunknown   Unhealthy             fizzbuzz error
 `
 	if e, a := expected, buf.String(); e != a {
-		t.Errorf("expected %v, got %v", e, a)
+		t.Errorf("expected\n%v\ngot\n%v", e, a)
 	}
 }
 
@@ -569,7 +769,7 @@ func TestGetMixedGenericObjects(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: unstructuredSerializer,
@@ -609,7 +809,7 @@ func TestGetMixedGenericObjects(t *testing.T) {
 }
 `
 	if e, a := expected, buf.String(); e != a {
-		t.Errorf("expected %v, got %v", e, a)
+		t.Errorf("expected\n%v\ngot\n%v", e, a)
 	}
 }
 
@@ -618,7 +818,7 @@ func TestGetMultipleTypeObjects(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: unstructuredSerializer,
@@ -640,14 +840,14 @@ func TestGetMultipleTypeObjects(t *testing.T) {
 	cmd.SetOutput(buf)
 	cmd.Run(cmd, []string{"pods,services"})
 
-	expected := `NAME      READY     STATUS    RESTARTS   AGE
-pod/foo   0/0                 0          <unknown>
-pod/bar   0/0                 0          <unknown>
+	expected := `NAME      READY   STATUS   RESTARTS   AGE
+pod/foo   0/0              0          <unknown>
+pod/bar   0/0              0          <unknown>
 NAME          TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
 service/baz   ClusterIP   <none>       <none>        <none>    <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
-		t.Errorf("expected %v, got %v", e, a)
+		t.Errorf("expected\n%v\ngot\n%v", e, a)
 	}
 }
 
@@ -656,7 +856,7 @@ func TestGetMultipleTypeObjectsAsList(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: unstructuredSerializer,
@@ -755,7 +955,7 @@ func TestGetMultipleTypeObjectsWithLabelSelector(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: unstructuredSerializer,
@@ -782,14 +982,14 @@ func TestGetMultipleTypeObjectsWithLabelSelector(t *testing.T) {
 	cmd.Flags().Set("selector", "a=b")
 	cmd.Run(cmd, []string{"pods,services"})
 
-	expected := `NAME      READY     STATUS    RESTARTS   AGE
-pod/foo   0/0                 0          <unknown>
-pod/bar   0/0                 0          <unknown>
+	expected := `NAME      READY   STATUS   RESTARTS   AGE
+pod/foo   0/0              0          <unknown>
+pod/bar   0/0              0          <unknown>
 NAME          TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
 service/baz   ClusterIP   <none>       <none>        <none>    <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
-		t.Errorf("expected %v, got %v", e, a)
+		t.Errorf("expected\n%v\ngot\n%v", e, a)
 	}
 }
 
@@ -798,7 +998,7 @@ func TestGetMultipleTypeObjectsWithFieldSelector(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: unstructuredSerializer,
@@ -825,14 +1025,14 @@ func TestGetMultipleTypeObjectsWithFieldSelector(t *testing.T) {
 	cmd.Flags().Set("field-selector", "a=b")
 	cmd.Run(cmd, []string{"pods,services"})
 
-	expected := `NAME      READY     STATUS    RESTARTS   AGE
-pod/foo   0/0                 0          <unknown>
-pod/bar   0/0                 0          <unknown>
+	expected := `NAME      READY   STATUS   RESTARTS   AGE
+pod/foo   0/0              0          <unknown>
+pod/bar   0/0              0          <unknown>
 NAME          TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
 service/baz   ClusterIP   <none>       <none>        <none>    <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
-		t.Errorf("expected %v, got %v", e, a)
+		t.Errorf("expected\n%v\ngot\n%v", e, a)
 	}
 }
 
@@ -846,7 +1046,7 @@ func TestGetMultipleTypeObjectsWithDirectReference(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: unstructuredSerializer,
@@ -871,11 +1071,11 @@ func TestGetMultipleTypeObjectsWithDirectReference(t *testing.T) {
 
 	expected := `NAME          TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
 service/baz   ClusterIP   <none>       <none>        <none>    <unknown>
-NAME       STATUS    ROLES     AGE         VERSION
-node/foo   Unknown   <none>    <unknown>   
+NAME       STATUS    ROLES    AGE         VERSION
+node/foo   Unknown   <none>   <unknown>   
 `
 	if e, a := expected, buf.String(); e != a {
-		t.Errorf("expected %v, got %v", e, a)
+		t.Errorf("expected\n%v\ngot\n%v", e, a)
 	}
 }
 
@@ -954,7 +1154,7 @@ func TestWatchLabelSelector(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	podList := &api.PodList{
 		Items: pods,
@@ -989,14 +1189,14 @@ func TestWatchLabelSelector(t *testing.T) {
 	cmd.Flags().Set("selector", "a=b")
 	cmd.Run(cmd, []string{"pods"})
 
-	expected := `NAME      READY     STATUS    RESTARTS   AGE
-bar       0/0                 0          <unknown>
-foo       0/0                 0          <unknown>
-foo       0/0                 0         <unknown>
-foo       0/0                 0         <unknown>
+	expected := `NAME   READY   STATUS   RESTARTS   AGE
+bar    0/0              0          <unknown>
+foo    0/0              0          <unknown>
+foo   0/0         0     <unknown>
+foo   0/0         0     <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
-		t.Errorf("expected %v, got %v", e, a)
+		t.Errorf("expected\n%v\ngot\n%v", e, a)
 	}
 }
 
@@ -1005,7 +1205,7 @@ func TestWatchFieldSelector(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	podList := &api.PodList{
 		Items: pods,
@@ -1040,14 +1240,14 @@ func TestWatchFieldSelector(t *testing.T) {
 	cmd.Flags().Set("field-selector", "a=b")
 	cmd.Run(cmd, []string{"pods"})
 
-	expected := `NAME      READY     STATUS    RESTARTS   AGE
-bar       0/0                 0          <unknown>
-foo       0/0                 0          <unknown>
-foo       0/0                 0         <unknown>
-foo       0/0                 0         <unknown>
+	expected := `NAME   READY   STATUS   RESTARTS   AGE
+bar    0/0              0          <unknown>
+foo    0/0              0          <unknown>
+foo   0/0         0     <unknown>
+foo   0/0         0     <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
-		t.Errorf("expected %v, got %v", e, a)
+		t.Errorf("expected\n%v\ngot\n%v", e, a)
 	}
 }
 
@@ -1056,7 +1256,7 @@ func TestWatchResource(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: unstructuredSerializer,
@@ -1084,13 +1284,13 @@ func TestWatchResource(t *testing.T) {
 	cmd.Flags().Set("watch", "true")
 	cmd.Run(cmd, []string{"pods", "foo"})
 
-	expected := `NAME      READY     STATUS    RESTARTS   AGE
-foo       0/0                 0          <unknown>
-foo       0/0                 0         <unknown>
-foo       0/0                 0         <unknown>
+	expected := `NAME   READY   STATUS   RESTARTS   AGE
+foo    0/0              0          <unknown>
+foo   0/0         0     <unknown>
+foo   0/0         0     <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
-		t.Errorf("expected %v, got %v", e, a)
+		t.Errorf("expected\n%v\ngot\n%v", e, a)
 	}
 }
 
@@ -1099,7 +1299,7 @@ func TestWatchResourceIdentifiedByFile(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: unstructuredSerializer,
@@ -1128,13 +1328,13 @@ func TestWatchResourceIdentifiedByFile(t *testing.T) {
 	cmd.Flags().Set("filename", "../../../../test/e2e/testing-manifests/statefulset/cassandra/controller.yaml")
 	cmd.Run(cmd, []string{})
 
-	expected := `NAME      READY     STATUS    RESTARTS   AGE
-foo       0/0                 0          <unknown>
-foo       0/0                 0         <unknown>
-foo       0/0                 0         <unknown>
+	expected := `NAME   READY   STATUS   RESTARTS   AGE
+foo    0/0              0          <unknown>
+foo   0/0         0     <unknown>
+foo   0/0         0     <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
-		t.Errorf("expected %v, got %v", e, a)
+		t.Errorf("expected\n%v\ngot\n%v", e, a)
 	}
 }
 
@@ -1143,7 +1343,7 @@ func TestWatchOnlyResource(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	tf.UnstructuredClient = &fake.RESTClient{
 		NegotiatedSerializer: unstructuredSerializer,
@@ -1171,12 +1371,12 @@ func TestWatchOnlyResource(t *testing.T) {
 	cmd.Flags().Set("watch-only", "true")
 	cmd.Run(cmd, []string{"pods", "foo"})
 
-	expected := `NAME      READY     STATUS    RESTARTS   AGE
-foo       0/0                 0          <unknown>
-foo       0/0                 0         <unknown>
+	expected := `NAME   READY   STATUS   RESTARTS   AGE
+foo    0/0              0          <unknown>
+foo   0/0         0     <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
-		t.Errorf("expected %v, got %v", e, a)
+		t.Errorf("expected\n%v\ngot\n%v", e, a)
 	}
 }
 
@@ -1185,7 +1385,7 @@ func TestWatchOnlyList(t *testing.T) {
 
 	tf := cmdtesting.NewTestFactory().WithNamespace("test")
 	defer tf.Cleanup()
-	codec := legacyscheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
 
 	podList := &api.PodList{
 		Items: pods,
@@ -1216,12 +1416,12 @@ func TestWatchOnlyList(t *testing.T) {
 	cmd.Flags().Set("watch-only", "true")
 	cmd.Run(cmd, []string{"pods"})
 
-	expected := `NAME      READY     STATUS    RESTARTS   AGE
-foo       0/0                 0          <unknown>
-foo       0/0                 0         <unknown>
+	expected := `NAME   READY   STATUS   RESTARTS   AGE
+foo    0/0              0          <unknown>
+foo   0/0         0     <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
-		t.Errorf("expected %v, got %v", e, a)
+		t.Errorf("expected\n%v\ngot\n%v", e, a)
 	}
 }
 

@@ -38,6 +38,11 @@ const (
 	ReadWrite CachingTypes = "ReadWrite"
 )
 
+// PossibleCachingTypesValues returns an array of possible values for the CachingTypes const type.
+func PossibleCachingTypesValues() []CachingTypes {
+	return []CachingTypes{None, ReadOnly, ReadWrite}
+}
+
 // ComponentNames enumerates the values for component names.
 type ComponentNames string
 
@@ -45,6 +50,11 @@ const (
 	// MicrosoftWindowsShellSetup ...
 	MicrosoftWindowsShellSetup ComponentNames = "Microsoft-Windows-Shell-Setup"
 )
+
+// PossibleComponentNamesValues returns an array of possible values for the ComponentNames const type.
+func PossibleComponentNamesValues() []ComponentNames {
+	return []ComponentNames{MicrosoftWindowsShellSetup}
+}
 
 // DiskCreateOptionTypes enumerates the values for disk create option types.
 type DiskCreateOptionTypes string
@@ -58,6 +68,11 @@ const (
 	FromImage DiskCreateOptionTypes = "FromImage"
 )
 
+// PossibleDiskCreateOptionTypesValues returns an array of possible values for the DiskCreateOptionTypes const type.
+func PossibleDiskCreateOptionTypesValues() []DiskCreateOptionTypes {
+	return []DiskCreateOptionTypes{Attach, Empty, FromImage}
+}
+
 // InstanceViewTypes enumerates the values for instance view types.
 type InstanceViewTypes string
 
@@ -65,6 +80,11 @@ const (
 	// InstanceView ...
 	InstanceView InstanceViewTypes = "instanceView"
 )
+
+// PossibleInstanceViewTypesValues returns an array of possible values for the InstanceViewTypes const type.
+func PossibleInstanceViewTypesValues() []InstanceViewTypes {
+	return []InstanceViewTypes{InstanceView}
+}
 
 // OperatingSystemTypes enumerates the values for operating system types.
 type OperatingSystemTypes string
@@ -76,6 +96,11 @@ const (
 	Windows OperatingSystemTypes = "Windows"
 )
 
+// PossibleOperatingSystemTypesValues returns an array of possible values for the OperatingSystemTypes const type.
+func PossibleOperatingSystemTypesValues() []OperatingSystemTypes {
+	return []OperatingSystemTypes{Linux, Windows}
+}
+
 // PassNames enumerates the values for pass names.
 type PassNames string
 
@@ -83,6 +108,11 @@ const (
 	// OobeSystem ...
 	OobeSystem PassNames = "OobeSystem"
 )
+
+// PossiblePassNamesValues returns an array of possible values for the PassNames const type.
+func PossiblePassNamesValues() []PassNames {
+	return []PassNames{OobeSystem}
+}
 
 // ProtocolTypes enumerates the values for protocol types.
 type ProtocolTypes string
@@ -94,6 +124,11 @@ const (
 	HTTPS ProtocolTypes = "Https"
 )
 
+// PossibleProtocolTypesValues returns an array of possible values for the ProtocolTypes const type.
+func PossibleProtocolTypesValues() []ProtocolTypes {
+	return []ProtocolTypes{HTTP, HTTPS}
+}
+
 // SettingNames enumerates the values for setting names.
 type SettingNames string
 
@@ -103,6 +138,11 @@ const (
 	// FirstLogonCommands ...
 	FirstLogonCommands SettingNames = "FirstLogonCommands"
 )
+
+// PossibleSettingNamesValues returns an array of possible values for the SettingNames const type.
+func PossibleSettingNamesValues() []SettingNames {
+	return []SettingNames{AutoLogon, FirstLogonCommands}
+}
 
 // StatusLevelTypes enumerates the values for status level types.
 type StatusLevelTypes string
@@ -116,6 +156,11 @@ const (
 	Warning StatusLevelTypes = "Warning"
 )
 
+// PossibleStatusLevelTypesValues returns an array of possible values for the StatusLevelTypes const type.
+func PossibleStatusLevelTypesValues() []StatusLevelTypes {
+	return []StatusLevelTypes{Error, Info, Warning}
+}
+
 // UpgradeMode enumerates the values for upgrade mode.
 type UpgradeMode string
 
@@ -126,6 +171,11 @@ const (
 	Manual UpgradeMode = "Manual"
 )
 
+// PossibleUpgradeModeValues returns an array of possible values for the UpgradeMode const type.
+func PossibleUpgradeModeValues() []UpgradeMode {
+	return []UpgradeMode{Automatic, Manual}
+}
+
 // VirtualMachineScaleSetSkuScaleType enumerates the values for virtual machine scale set sku scale type.
 type VirtualMachineScaleSetSkuScaleType string
 
@@ -135,6 +185,11 @@ const (
 	// VirtualMachineScaleSetSkuScaleTypeNone ...
 	VirtualMachineScaleSetSkuScaleTypeNone VirtualMachineScaleSetSkuScaleType = "None"
 )
+
+// PossibleVirtualMachineScaleSetSkuScaleTypeValues returns an array of possible values for the VirtualMachineScaleSetSkuScaleType const type.
+func PossibleVirtualMachineScaleSetSkuScaleTypeValues() []VirtualMachineScaleSetSkuScaleType {
+	return []VirtualMachineScaleSetSkuScaleType{VirtualMachineScaleSetSkuScaleTypeAutomatic, VirtualMachineScaleSetSkuScaleTypeNone}
+}
 
 // VirtualMachineSizeTypes enumerates the values for virtual machine size types.
 type VirtualMachineSizeTypes string
@@ -245,6 +300,11 @@ const (
 	// StandardGS5 ...
 	StandardGS5 VirtualMachineSizeTypes = "Standard_GS5"
 )
+
+// PossibleVirtualMachineSizeTypesValues returns an array of possible values for the VirtualMachineSizeTypes const type.
+func PossibleVirtualMachineSizeTypesValues() []VirtualMachineSizeTypes {
+	return []VirtualMachineSizeTypes{BasicA0, BasicA1, BasicA2, BasicA3, BasicA4, StandardA0, StandardA1, StandardA10, StandardA11, StandardA2, StandardA3, StandardA4, StandardA5, StandardA6, StandardA7, StandardA8, StandardA9, StandardD1, StandardD11, StandardD11V2, StandardD12, StandardD12V2, StandardD13, StandardD13V2, StandardD14, StandardD14V2, StandardD1V2, StandardD2, StandardD2V2, StandardD3, StandardD3V2, StandardD4, StandardD4V2, StandardD5V2, StandardDS1, StandardDS11, StandardDS12, StandardDS13, StandardDS14, StandardDS2, StandardDS3, StandardDS4, StandardG1, StandardG2, StandardG3, StandardG4, StandardG5, StandardGS1, StandardGS2, StandardGS3, StandardGS4, StandardGS5}
+}
 
 // AdditionalUnattendContent specifies additional XML formatted information that can be included in the
 // Unattend.xml file, which is used by Windows Setup. Contents are defined by setting name, component name, and the
@@ -411,6 +471,101 @@ type AvailabilitySetListResult struct {
 	autorest.Response `json:"-"`
 	// Value - The list of availability sets
 	Value *[]AvailabilitySet `json:"value,omitempty"`
+	// NextLink - The URI to fetch the next page of AvailabilitySets. Call ListNext() with this URI to fetch the next page of AvailabilitySets.
+	NextLink *string `json:"nextLink,omitempty"`
+}
+
+// AvailabilitySetListResultIterator provides access to a complete listing of AvailabilitySet values.
+type AvailabilitySetListResultIterator struct {
+	i    int
+	page AvailabilitySetListResultPage
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *AvailabilitySetListResultIterator) Next() error {
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err := iter.page.Next()
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter AvailabilitySetListResultIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter AvailabilitySetListResultIterator) Response() AvailabilitySetListResult {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter AvailabilitySetListResultIterator) Value() AvailabilitySet {
+	if !iter.page.NotDone() {
+		return AvailabilitySet{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (aslr AvailabilitySetListResult) IsEmpty() bool {
+	return aslr.Value == nil || len(*aslr.Value) == 0
+}
+
+// availabilitySetListResultPreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (aslr AvailabilitySetListResult) availabilitySetListResultPreparer() (*http.Request, error) {
+	if aslr.NextLink == nil || len(to.String(aslr.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare(&http.Request{},
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(aslr.NextLink)))
+}
+
+// AvailabilitySetListResultPage contains a page of AvailabilitySet values.
+type AvailabilitySetListResultPage struct {
+	fn   func(AvailabilitySetListResult) (AvailabilitySetListResult, error)
+	aslr AvailabilitySetListResult
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *AvailabilitySetListResultPage) Next() error {
+	next, err := page.fn(page.aslr)
+	if err != nil {
+		return err
+	}
+	page.aslr = next
+	return nil
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page AvailabilitySetListResultPage) NotDone() bool {
+	return !page.aslr.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page AvailabilitySetListResultPage) Response() AvailabilitySetListResult {
+	return page.aslr
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page AvailabilitySetListResultPage) Values() []AvailabilitySet {
+	if page.aslr.IsEmpty() {
+		return nil
+	}
+	return *page.aslr.Value
 }
 
 // AvailabilitySetProperties the instance view of a resource.
@@ -689,6 +844,18 @@ type NetworkInterfaceReference struct {
 	ID *string `json:"id,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for NetworkInterfaceReference.
+func (nir NetworkInterfaceReference) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if nir.NetworkInterfaceReferenceProperties != nil {
+		objectMap["properties"] = nir.NetworkInterfaceReferenceProperties
+	}
+	if nir.ID != nil {
+		objectMap["id"] = nir.ID
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for NetworkInterfaceReference struct.
 func (nir *NetworkInterfaceReference) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -894,6 +1061,21 @@ type StorageProfile struct {
 type SubResource struct {
 	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
+}
+
+// UpdateResource the Update Resource model definition.
+type UpdateResource struct {
+	// Tags - Resource tags
+	Tags map[string]*string `json:"tags"`
+}
+
+// MarshalJSON is the custom marshaler for UpdateResource.
+func (ur UpdateResource) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if ur.Tags != nil {
+		objectMap["tags"] = ur.Tags
+	}
+	return json.Marshal(objectMap)
 }
 
 // UpgradePolicy describes an upgrade policy - automatic or manual.
@@ -1108,6 +1290,18 @@ type VirtualMachineCaptureResult struct {
 	*VirtualMachineCaptureResultProperties `json:"properties,omitempty"`
 	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for VirtualMachineCaptureResult.
+func (vmcr VirtualMachineCaptureResult) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if vmcr.VirtualMachineCaptureResultProperties != nil {
+		objectMap["properties"] = vmcr.VirtualMachineCaptureResultProperties
+	}
+	if vmcr.ID != nil {
+		objectMap["id"] = vmcr.ID
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for VirtualMachineCaptureResult struct.
@@ -1431,12 +1625,11 @@ type VirtualMachineExtensionProperties struct {
 // long-running operation.
 type VirtualMachineExtensionsCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachineExtensionsCreateOrUpdateFuture) Result(client VirtualMachineExtensionsClient) (vme VirtualMachineExtension, err error) {
+func (future *VirtualMachineExtensionsCreateOrUpdateFuture) Result(client VirtualMachineExtensionsClient) (vme VirtualMachineExtension, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1444,34 +1637,15 @@ func (future VirtualMachineExtensionsCreateOrUpdateFuture) Result(client Virtual
 		return
 	}
 	if !done {
-		return vme, azure.NewAsyncOpIncompleteError("compute.VirtualMachineExtensionsCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		vme, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachineExtensionsCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if vme.Response.Response, err = future.GetResult(sender); err == nil && vme.Response.Response.StatusCode != http.StatusNoContent {
+		vme, err = client.CreateOrUpdateResponder(vme.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsCreateOrUpdateFuture", "Result", vme.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	vme, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -1480,12 +1654,11 @@ func (future VirtualMachineExtensionsCreateOrUpdateFuture) Result(client Virtual
 // operation.
 type VirtualMachineExtensionsDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachineExtensionsDeleteFuture) Result(client VirtualMachineExtensionsClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachineExtensionsDeleteFuture) Result(client VirtualMachineExtensionsClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1493,36 +1666,116 @@ func (future VirtualMachineExtensionsDeleteFuture) Result(client VirtualMachineE
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachineExtensionsDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachineExtensionsDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.DeleteResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsDeleteFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsDeleteFuture", "Result", resp, "Failure responding to request")
 	}
 	return
+}
+
+// VirtualMachineExtensionsUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
+type VirtualMachineExtensionsUpdateFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *VirtualMachineExtensionsUpdateFuture) Result(client VirtualMachineExtensionsClient) (vme VirtualMachineExtension, err error) {
+	var done bool
+	done, err = future.Done(client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsUpdateFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachineExtensionsUpdateFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if vme.Response.Response, err = future.GetResult(sender); err == nil && vme.Response.Response.StatusCode != http.StatusNoContent {
+		vme, err = client.UpdateResponder(vme.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineExtensionsUpdateFuture", "Result", vme.Response.Response, "Failure responding to request")
+		}
+	}
+	return
+}
+
+// VirtualMachineExtensionUpdate describes a Virtual Machine Extension.
+type VirtualMachineExtensionUpdate struct {
+	*VirtualMachineExtensionUpdateProperties `json:"properties,omitempty"`
+	// Tags - Resource tags
+	Tags map[string]*string `json:"tags"`
+}
+
+// MarshalJSON is the custom marshaler for VirtualMachineExtensionUpdate.
+func (vmeu VirtualMachineExtensionUpdate) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if vmeu.VirtualMachineExtensionUpdateProperties != nil {
+		objectMap["properties"] = vmeu.VirtualMachineExtensionUpdateProperties
+	}
+	if vmeu.Tags != nil {
+		objectMap["tags"] = vmeu.Tags
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for VirtualMachineExtensionUpdate struct.
+func (vmeu *VirtualMachineExtensionUpdate) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var virtualMachineExtensionUpdateProperties VirtualMachineExtensionUpdateProperties
+				err = json.Unmarshal(*v, &virtualMachineExtensionUpdateProperties)
+				if err != nil {
+					return err
+				}
+				vmeu.VirtualMachineExtensionUpdateProperties = &virtualMachineExtensionUpdateProperties
+			}
+		case "tags":
+			if v != nil {
+				var tags map[string]*string
+				err = json.Unmarshal(*v, &tags)
+				if err != nil {
+					return err
+				}
+				vmeu.Tags = tags
+			}
+		}
+	}
+
+	return nil
+}
+
+// VirtualMachineExtensionUpdateProperties describes the properties of a Virtual Machine Extension.
+type VirtualMachineExtensionUpdateProperties struct {
+	// ForceUpdateTag - How the extension handler should be forced to update even if the extension configuration has not changed.
+	ForceUpdateTag *string `json:"forceUpdateTag,omitempty"`
+	// Publisher - The name of the extension handler publisher.
+	Publisher *string `json:"publisher,omitempty"`
+	// Type - Specifies the type of the extension; an example is "CustomScriptExtension".
+	Type *string `json:"type,omitempty"`
+	// TypeHandlerVersion - Specifies the version of the script handler.
+	TypeHandlerVersion *string `json:"typeHandlerVersion,omitempty"`
+	// AutoUpgradeMinorVersion - Indicates whether the extension should use a newer minor version if one is available at deployment time. Once deployed, however, the extension will not upgrade minor versions unless redeployed, even with this property set to true.
+	AutoUpgradeMinorVersion *bool `json:"autoUpgradeMinorVersion,omitempty"`
+	// Settings - Json formatted public settings for the extension.
+	Settings interface{} `json:"settings,omitempty"`
+	// ProtectedSettings - The extension can contain either protectedSettings or protectedSettingsFromKeyVault or no protected settings at all.
+	ProtectedSettings interface{} `json:"protectedSettings,omitempty"`
 }
 
 // VirtualMachineImage describes a Virtual Machine Image.
@@ -1933,6 +2186,21 @@ type VirtualMachineScaleSetExtension struct {
 	ID *string `json:"id,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for VirtualMachineScaleSetExtension.
+func (vmsse VirtualMachineScaleSetExtension) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if vmsse.Name != nil {
+		objectMap["name"] = vmsse.Name
+	}
+	if vmsse.VirtualMachineScaleSetExtensionProperties != nil {
+		objectMap["properties"] = vmsse.VirtualMachineScaleSetExtensionProperties
+	}
+	if vmsse.ID != nil {
+		objectMap["id"] = vmsse.ID
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for VirtualMachineScaleSetExtension struct.
 func (vmsse *VirtualMachineScaleSetExtension) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -2024,6 +2292,21 @@ type VirtualMachineScaleSetIPConfiguration struct {
 	*VirtualMachineScaleSetIPConfigurationProperties `json:"properties,omitempty"`
 	// ID - Resource Id
 	ID *string `json:"id,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for VirtualMachineScaleSetIPConfiguration.
+func (vmssic VirtualMachineScaleSetIPConfiguration) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if vmssic.Name != nil {
+		objectMap["name"] = vmssic.Name
+	}
+	if vmssic.VirtualMachineScaleSetIPConfigurationProperties != nil {
+		objectMap["properties"] = vmssic.VirtualMachineScaleSetIPConfigurationProperties
+	}
+	if vmssic.ID != nil {
+		objectMap["id"] = vmssic.ID
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for VirtualMachineScaleSetIPConfiguration struct.
@@ -2397,6 +2680,21 @@ type VirtualMachineScaleSetNetworkConfiguration struct {
 	ID *string `json:"id,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for VirtualMachineScaleSetNetworkConfiguration.
+func (vmssnc VirtualMachineScaleSetNetworkConfiguration) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if vmssnc.Name != nil {
+		objectMap["name"] = vmssnc.Name
+	}
+	if vmssnc.VirtualMachineScaleSetNetworkConfigurationProperties != nil {
+		objectMap["properties"] = vmssnc.VirtualMachineScaleSetNetworkConfigurationProperties
+	}
+	if vmssnc.ID != nil {
+		objectMap["id"] = vmssnc.ID
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for VirtualMachineScaleSetNetworkConfiguration struct.
 func (vmssnc *VirtualMachineScaleSetNetworkConfiguration) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -2504,12 +2802,11 @@ type VirtualMachineScaleSetProperties struct {
 // long-running operation.
 type VirtualMachineScaleSetsCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachineScaleSetsCreateOrUpdateFuture) Result(client VirtualMachineScaleSetsClient) (vmss VirtualMachineScaleSet, err error) {
+func (future *VirtualMachineScaleSetsCreateOrUpdateFuture) Result(client VirtualMachineScaleSetsClient) (vmss VirtualMachineScaleSet, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2517,34 +2814,15 @@ func (future VirtualMachineScaleSetsCreateOrUpdateFuture) Result(client VirtualM
 		return
 	}
 	if !done {
-		return vmss, azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetsCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		vmss, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetsCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if vmss.Response.Response, err = future.GetResult(sender); err == nil && vmss.Response.Response.StatusCode != http.StatusNoContent {
+		vmss, err = client.CreateOrUpdateResponder(vmss.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsCreateOrUpdateFuture", "Result", vmss.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	vmss, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -2553,12 +2831,11 @@ func (future VirtualMachineScaleSetsCreateOrUpdateFuture) Result(client VirtualM
 // long-running operation.
 type VirtualMachineScaleSetsDeallocateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachineScaleSetsDeallocateFuture) Result(client VirtualMachineScaleSetsClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachineScaleSetsDeallocateFuture) Result(client VirtualMachineScaleSetsClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2566,34 +2843,15 @@ func (future VirtualMachineScaleSetsDeallocateFuture) Result(client VirtualMachi
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetsDeallocateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.DeallocateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsDeallocateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetsDeallocateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.DeallocateResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsDeallocateFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsDeallocateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.DeallocateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsDeallocateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -2602,12 +2860,11 @@ func (future VirtualMachineScaleSetsDeallocateFuture) Result(client VirtualMachi
 // operation.
 type VirtualMachineScaleSetsDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachineScaleSetsDeleteFuture) Result(client VirtualMachineScaleSetsClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachineScaleSetsDeleteFuture) Result(client VirtualMachineScaleSetsClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2615,34 +2872,15 @@ func (future VirtualMachineScaleSetsDeleteFuture) Result(client VirtualMachineSc
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetsDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetsDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.DeleteResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsDeleteFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsDeleteFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -2651,12 +2889,11 @@ func (future VirtualMachineScaleSetsDeleteFuture) Result(client VirtualMachineSc
 // long-running operation.
 type VirtualMachineScaleSetsDeleteInstancesFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachineScaleSetsDeleteInstancesFuture) Result(client VirtualMachineScaleSetsClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachineScaleSetsDeleteInstancesFuture) Result(client VirtualMachineScaleSetsClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2664,34 +2901,15 @@ func (future VirtualMachineScaleSetsDeleteInstancesFuture) Result(client Virtual
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetsDeleteInstancesFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.DeleteInstancesResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsDeleteInstancesFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetsDeleteInstancesFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.DeleteInstancesResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsDeleteInstancesFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsDeleteInstancesFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.DeleteInstancesResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsDeleteInstancesFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -2722,12 +2940,11 @@ type VirtualMachineScaleSetSkuCapacity struct {
 // operation.
 type VirtualMachineScaleSetsPowerOffFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachineScaleSetsPowerOffFuture) Result(client VirtualMachineScaleSetsClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachineScaleSetsPowerOffFuture) Result(client VirtualMachineScaleSetsClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2735,34 +2952,15 @@ func (future VirtualMachineScaleSetsPowerOffFuture) Result(client VirtualMachine
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetsPowerOffFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.PowerOffResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsPowerOffFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetsPowerOffFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.PowerOffResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsPowerOffFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsPowerOffFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.PowerOffResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsPowerOffFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -2771,12 +2969,11 @@ func (future VirtualMachineScaleSetsPowerOffFuture) Result(client VirtualMachine
 // operation.
 type VirtualMachineScaleSetsReimageFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachineScaleSetsReimageFuture) Result(client VirtualMachineScaleSetsClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachineScaleSetsReimageFuture) Result(client VirtualMachineScaleSetsClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2784,34 +2981,15 @@ func (future VirtualMachineScaleSetsReimageFuture) Result(client VirtualMachineS
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetsReimageFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.ReimageResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsReimageFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetsReimageFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.ReimageResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsReimageFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsReimageFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.ReimageResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsReimageFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -2820,12 +2998,11 @@ func (future VirtualMachineScaleSetsReimageFuture) Result(client VirtualMachineS
 // operation.
 type VirtualMachineScaleSetsRestartFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachineScaleSetsRestartFuture) Result(client VirtualMachineScaleSetsClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachineScaleSetsRestartFuture) Result(client VirtualMachineScaleSetsClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2833,34 +3010,15 @@ func (future VirtualMachineScaleSetsRestartFuture) Result(client VirtualMachineS
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetsRestartFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.RestartResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsRestartFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetsRestartFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.RestartResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsRestartFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsRestartFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.RestartResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsRestartFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -2869,12 +3027,11 @@ func (future VirtualMachineScaleSetsRestartFuture) Result(client VirtualMachineS
 // operation.
 type VirtualMachineScaleSetsStartFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachineScaleSetsStartFuture) Result(client VirtualMachineScaleSetsClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachineScaleSetsStartFuture) Result(client VirtualMachineScaleSetsClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2882,34 +3039,15 @@ func (future VirtualMachineScaleSetsStartFuture) Result(client VirtualMachineSca
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetsStartFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.StartResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsStartFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetsStartFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.StartResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsStartFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsStartFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.StartResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsStartFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -2926,12 +3064,11 @@ type VirtualMachineScaleSetStorageProfile struct {
 // long-running operation.
 type VirtualMachineScaleSetsUpdateInstancesFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachineScaleSetsUpdateInstancesFuture) Result(client VirtualMachineScaleSetsClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachineScaleSetsUpdateInstancesFuture) Result(client VirtualMachineScaleSetsClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2939,34 +3076,15 @@ func (future VirtualMachineScaleSetsUpdateInstancesFuture) Result(client Virtual
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetsUpdateInstancesFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.UpdateInstancesResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsUpdateInstancesFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetsUpdateInstancesFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.UpdateInstancesResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsUpdateInstancesFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsUpdateInstancesFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.UpdateInstancesResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetsUpdateInstancesFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3299,7 +3417,7 @@ type VirtualMachineScaleSetVMProperties struct {
 	// LatestModelApplied - Specifies whether the latest model has been applied to the virtual machine.
 	LatestModelApplied *bool `json:"latestModelApplied,omitempty"`
 	// InstanceView - The virtual machine instance view.
-	InstanceView *VirtualMachineInstanceView `json:"instanceView,omitempty"`
+	InstanceView *VirtualMachineScaleSetVMInstanceView `json:"instanceView,omitempty"`
 	// HardwareProfile - Specifies the hardware settings for the virtual machine.
 	HardwareProfile *HardwareProfile `json:"hardwareProfile,omitempty"`
 	// StorageProfile - Specifies the storage settings for the virtual machine disks.
@@ -3322,12 +3440,11 @@ type VirtualMachineScaleSetVMProperties struct {
 // long-running operation.
 type VirtualMachineScaleSetVMsDeallocateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachineScaleSetVMsDeallocateFuture) Result(client VirtualMachineScaleSetVMsClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachineScaleSetVMsDeallocateFuture) Result(client VirtualMachineScaleSetVMsClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3335,34 +3452,15 @@ func (future VirtualMachineScaleSetVMsDeallocateFuture) Result(client VirtualMac
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetVMsDeallocateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.DeallocateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsDeallocateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetVMsDeallocateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.DeallocateResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsDeallocateFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsDeallocateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.DeallocateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsDeallocateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3371,12 +3469,11 @@ func (future VirtualMachineScaleSetVMsDeallocateFuture) Result(client VirtualMac
 // operation.
 type VirtualMachineScaleSetVMsDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachineScaleSetVMsDeleteFuture) Result(client VirtualMachineScaleSetVMsClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachineScaleSetVMsDeleteFuture) Result(client VirtualMachineScaleSetVMsClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3384,34 +3481,15 @@ func (future VirtualMachineScaleSetVMsDeleteFuture) Result(client VirtualMachine
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetVMsDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetVMsDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.DeleteResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsDeleteFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsDeleteFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3420,12 +3498,11 @@ func (future VirtualMachineScaleSetVMsDeleteFuture) Result(client VirtualMachine
 // long-running operation.
 type VirtualMachineScaleSetVMsPowerOffFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachineScaleSetVMsPowerOffFuture) Result(client VirtualMachineScaleSetVMsClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachineScaleSetVMsPowerOffFuture) Result(client VirtualMachineScaleSetVMsClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3433,34 +3510,15 @@ func (future VirtualMachineScaleSetVMsPowerOffFuture) Result(client VirtualMachi
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetVMsPowerOffFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.PowerOffResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsPowerOffFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetVMsPowerOffFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.PowerOffResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsPowerOffFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsPowerOffFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.PowerOffResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsPowerOffFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3469,12 +3527,11 @@ func (future VirtualMachineScaleSetVMsPowerOffFuture) Result(client VirtualMachi
 // long-running operation.
 type VirtualMachineScaleSetVMsReimageFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachineScaleSetVMsReimageFuture) Result(client VirtualMachineScaleSetVMsClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachineScaleSetVMsReimageFuture) Result(client VirtualMachineScaleSetVMsClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3482,34 +3539,15 @@ func (future VirtualMachineScaleSetVMsReimageFuture) Result(client VirtualMachin
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetVMsReimageFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.ReimageResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsReimageFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetVMsReimageFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.ReimageResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsReimageFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsReimageFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.ReimageResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsReimageFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3518,12 +3556,11 @@ func (future VirtualMachineScaleSetVMsReimageFuture) Result(client VirtualMachin
 // long-running operation.
 type VirtualMachineScaleSetVMsRestartFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachineScaleSetVMsRestartFuture) Result(client VirtualMachineScaleSetVMsClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachineScaleSetVMsRestartFuture) Result(client VirtualMachineScaleSetVMsClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3531,34 +3568,15 @@ func (future VirtualMachineScaleSetVMsRestartFuture) Result(client VirtualMachin
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetVMsRestartFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.RestartResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsRestartFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetVMsRestartFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.RestartResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsRestartFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsRestartFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.RestartResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsRestartFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3567,12 +3585,11 @@ func (future VirtualMachineScaleSetVMsRestartFuture) Result(client VirtualMachin
 // operation.
 type VirtualMachineScaleSetVMsStartFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachineScaleSetVMsStartFuture) Result(client VirtualMachineScaleSetVMsClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachineScaleSetVMsStartFuture) Result(client VirtualMachineScaleSetVMsClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3580,34 +3597,15 @@ func (future VirtualMachineScaleSetVMsStartFuture) Result(client VirtualMachineS
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetVMsStartFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.StartResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsStartFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachineScaleSetVMsStartFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.StartResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsStartFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsStartFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.StartResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachineScaleSetVMsStartFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3616,12 +3614,11 @@ func (future VirtualMachineScaleSetVMsStartFuture) Result(client VirtualMachineS
 // operation.
 type VirtualMachinesCaptureFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachinesCaptureFuture) Result(client VirtualMachinesClient) (vmcr VirtualMachineCaptureResult, err error) {
+func (future *VirtualMachinesCaptureFuture) Result(client VirtualMachinesClient) (vmcr VirtualMachineCaptureResult, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3629,34 +3626,15 @@ func (future VirtualMachinesCaptureFuture) Result(client VirtualMachinesClient) 
 		return
 	}
 	if !done {
-		return vmcr, azure.NewAsyncOpIncompleteError("compute.VirtualMachinesCaptureFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		vmcr, err = client.CaptureResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachinesCaptureFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachinesCaptureFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if vmcr.Response.Response, err = future.GetResult(sender); err == nil && vmcr.Response.Response.StatusCode != http.StatusNoContent {
+		vmcr, err = client.CaptureResponder(vmcr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachinesCaptureFuture", "Result", vmcr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachinesCaptureFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	vmcr, err = client.CaptureResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachinesCaptureFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3665,12 +3643,11 @@ func (future VirtualMachinesCaptureFuture) Result(client VirtualMachinesClient) 
 // operation.
 type VirtualMachinesCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachinesCreateOrUpdateFuture) Result(client VirtualMachinesClient) (VM VirtualMachine, err error) {
+func (future *VirtualMachinesCreateOrUpdateFuture) Result(client VirtualMachinesClient) (VM VirtualMachine, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3678,34 +3655,15 @@ func (future VirtualMachinesCreateOrUpdateFuture) Result(client VirtualMachinesC
 		return
 	}
 	if !done {
-		return VM, azure.NewAsyncOpIncompleteError("compute.VirtualMachinesCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		VM, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachinesCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachinesCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if VM.Response.Response, err = future.GetResult(sender); err == nil && VM.Response.Response.StatusCode != http.StatusNoContent {
+		VM, err = client.CreateOrUpdateResponder(VM.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachinesCreateOrUpdateFuture", "Result", VM.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachinesCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	VM, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachinesCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3714,12 +3672,11 @@ func (future VirtualMachinesCreateOrUpdateFuture) Result(client VirtualMachinesC
 // operation.
 type VirtualMachinesDeallocateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachinesDeallocateFuture) Result(client VirtualMachinesClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachinesDeallocateFuture) Result(client VirtualMachinesClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3727,34 +3684,15 @@ func (future VirtualMachinesDeallocateFuture) Result(client VirtualMachinesClien
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachinesDeallocateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.DeallocateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachinesDeallocateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachinesDeallocateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.DeallocateResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachinesDeallocateFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachinesDeallocateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.DeallocateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachinesDeallocateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3763,12 +3701,11 @@ func (future VirtualMachinesDeallocateFuture) Result(client VirtualMachinesClien
 // operation.
 type VirtualMachinesDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachinesDeleteFuture) Result(client VirtualMachinesClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachinesDeleteFuture) Result(client VirtualMachinesClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3776,34 +3713,15 @@ func (future VirtualMachinesDeleteFuture) Result(client VirtualMachinesClient) (
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachinesDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachinesDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachinesDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.DeleteResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachinesDeleteFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachinesDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachinesDeleteFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3835,12 +3753,11 @@ type VirtualMachineSizeListResult struct {
 // operation.
 type VirtualMachinesPowerOffFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachinesPowerOffFuture) Result(client VirtualMachinesClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachinesPowerOffFuture) Result(client VirtualMachinesClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3848,34 +3765,15 @@ func (future VirtualMachinesPowerOffFuture) Result(client VirtualMachinesClient)
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachinesPowerOffFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.PowerOffResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachinesPowerOffFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachinesPowerOffFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.PowerOffResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachinesPowerOffFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachinesPowerOffFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.PowerOffResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachinesPowerOffFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3884,12 +3782,11 @@ func (future VirtualMachinesPowerOffFuture) Result(client VirtualMachinesClient)
 // operation.
 type VirtualMachinesRedeployFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachinesRedeployFuture) Result(client VirtualMachinesClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachinesRedeployFuture) Result(client VirtualMachinesClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3897,34 +3794,15 @@ func (future VirtualMachinesRedeployFuture) Result(client VirtualMachinesClient)
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachinesRedeployFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.RedeployResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachinesRedeployFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachinesRedeployFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.RedeployResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachinesRedeployFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachinesRedeployFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.RedeployResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachinesRedeployFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3933,12 +3811,11 @@ func (future VirtualMachinesRedeployFuture) Result(client VirtualMachinesClient)
 // operation.
 type VirtualMachinesRestartFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachinesRestartFuture) Result(client VirtualMachinesClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachinesRestartFuture) Result(client VirtualMachinesClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3946,34 +3823,15 @@ func (future VirtualMachinesRestartFuture) Result(client VirtualMachinesClient) 
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachinesRestartFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.RestartResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachinesRestartFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachinesRestartFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.RestartResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachinesRestartFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachinesRestartFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.RestartResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachinesRestartFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3981,12 +3839,11 @@ func (future VirtualMachinesRestartFuture) Result(client VirtualMachinesClient) 
 // VirtualMachinesStartFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type VirtualMachinesStartFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VirtualMachinesStartFuture) Result(client VirtualMachinesClient) (osr OperationStatusResponse, err error) {
+func (future *VirtualMachinesStartFuture) Result(client VirtualMachinesClient) (osr OperationStatusResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3994,34 +3851,15 @@ func (future VirtualMachinesStartFuture) Result(client VirtualMachinesClient) (o
 		return
 	}
 	if !done {
-		return osr, azure.NewAsyncOpIncompleteError("compute.VirtualMachinesStartFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		osr, err = client.StartResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "compute.VirtualMachinesStartFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("compute.VirtualMachinesStartFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if osr.Response.Response, err = future.GetResult(sender); err == nil && osr.Response.Response.StatusCode != http.StatusNoContent {
+		osr, err = client.StartResponder(osr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "compute.VirtualMachinesStartFuture", "Result", osr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachinesStartFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	osr, err = client.StartResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "compute.VirtualMachinesStartFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }

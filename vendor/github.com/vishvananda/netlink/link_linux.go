@@ -901,16 +901,17 @@ func (h *Handle) linkModify(link Link, flags int) error {
 	linkInfo := nl.NewRtAttr(syscall.IFLA_LINKINFO, nil)
 	nl.NewRtAttrChild(linkInfo, nl.IFLA_INFO_KIND, nl.NonZeroTerminated(link.Type()))
 
-	if vlan, ok := link.(*Vlan); ok {
+	switch link := link.(type) {
+	case *Vlan:
 		b := make([]byte, 2)
-		native.PutUint16(b, uint16(vlan.VlanId))
+		native.PutUint16(b, uint16(link.VlanId))
 		data := nl.NewRtAttrChild(linkInfo, nl.IFLA_INFO_DATA, nil)
 		nl.NewRtAttrChild(data, nl.IFLA_VLAN_ID, b)
-	} else if veth, ok := link.(*Veth); ok {
+	case *Veth:
 		data := nl.NewRtAttrChild(linkInfo, nl.IFLA_INFO_DATA, nil)
 		peer := nl.NewRtAttrChild(data, nl.VETH_INFO_PEER, nil)
 		nl.NewIfInfomsgChild(peer, syscall.AF_UNSPEC)
-		nl.NewRtAttrChild(peer, syscall.IFLA_IFNAME, nl.ZeroTerminated(veth.PeerName))
+		nl.NewRtAttrChild(peer, syscall.IFLA_IFNAME, nl.ZeroTerminated(link.PeerName))
 		if base.TxQLen >= 0 {
 			nl.NewRtAttrChild(peer, syscall.IFLA_TXQLEN, nl.Uint32Attr(uint32(base.TxQLen)))
 		}
@@ -918,37 +919,37 @@ func (h *Handle) linkModify(link Link, flags int) error {
 			nl.NewRtAttrChild(peer, syscall.IFLA_MTU, nl.Uint32Attr(uint32(base.MTU)))
 		}
 
-	} else if vxlan, ok := link.(*Vxlan); ok {
-		addVxlanAttrs(vxlan, linkInfo)
-	} else if bond, ok := link.(*Bond); ok {
-		addBondAttrs(bond, linkInfo)
-	} else if ipv, ok := link.(*IPVlan); ok {
+	case *Vxlan:
+		addVxlanAttrs(link, linkInfo)
+	case *Bond:
+		addBondAttrs(link, linkInfo)
+	case *IPVlan:
 		data := nl.NewRtAttrChild(linkInfo, nl.IFLA_INFO_DATA, nil)
-		nl.NewRtAttrChild(data, nl.IFLA_IPVLAN_MODE, nl.Uint16Attr(uint16(ipv.Mode)))
-	} else if macv, ok := link.(*Macvlan); ok {
-		if macv.Mode != MACVLAN_MODE_DEFAULT {
+		nl.NewRtAttrChild(data, nl.IFLA_IPVLAN_MODE, nl.Uint16Attr(uint16(link.Mode)))
+	case *Macvlan:
+		if link.Mode != MACVLAN_MODE_DEFAULT {
 			data := nl.NewRtAttrChild(linkInfo, nl.IFLA_INFO_DATA, nil)
-			nl.NewRtAttrChild(data, nl.IFLA_MACVLAN_MODE, nl.Uint32Attr(macvlanModes[macv.Mode]))
+			nl.NewRtAttrChild(data, nl.IFLA_MACVLAN_MODE, nl.Uint32Attr(macvlanModes[link.Mode]))
 		}
-	} else if macv, ok := link.(*Macvtap); ok {
-		if macv.Mode != MACVLAN_MODE_DEFAULT {
+	case *Macvtap:
+		if link.Mode != MACVLAN_MODE_DEFAULT {
 			data := nl.NewRtAttrChild(linkInfo, nl.IFLA_INFO_DATA, nil)
-			nl.NewRtAttrChild(data, nl.IFLA_MACVLAN_MODE, nl.Uint32Attr(macvlanModes[macv.Mode]))
+			nl.NewRtAttrChild(data, nl.IFLA_MACVLAN_MODE, nl.Uint32Attr(macvlanModes[link.Mode]))
 		}
-	} else if gretap, ok := link.(*Gretap); ok {
-		addGretapAttrs(gretap, linkInfo)
-	} else if iptun, ok := link.(*Iptun); ok {
-		addIptunAttrs(iptun, linkInfo)
-	} else if gretun, ok := link.(*Gretun); ok {
-		addGretunAttrs(gretun, linkInfo)
-	} else if vti, ok := link.(*Vti); ok {
-		addVtiAttrs(vti, linkInfo)
-	} else if vrf, ok := link.(*Vrf); ok {
-		addVrfAttrs(vrf, linkInfo)
-	} else if bridge, ok := link.(*Bridge); ok {
-		addBridgeAttrs(bridge, linkInfo)
-	} else if gtp, ok := link.(*GTP); ok {
-		addGTPAttrs(gtp, linkInfo)
+	case *Gretap:
+		addGretapAttrs(link, linkInfo)
+	case *Iptun:
+		addIptunAttrs(link, linkInfo)
+	case *Gretun:
+		addGretunAttrs(link, linkInfo)
+	case *Vti:
+		addVtiAttrs(link, linkInfo)
+	case *Vrf:
+		addVrfAttrs(link, linkInfo)
+	case *Bridge:
+		addBridgeAttrs(link, linkInfo)
+	case *GTP:
+		addGTPAttrs(link, linkInfo)
 	}
 
 	req.AddData(linkInfo)
@@ -1267,6 +1268,8 @@ func LinkDeserialize(hdr *syscall.NlMsghdr, m []byte) (Link, error) {
 			}
 		case syscall.IFLA_OPERSTATE:
 			base.OperState = LinkOperState(uint8(attr.Value[0]))
+		case nl.IFLA_LINK_NETNSID:
+			base.NetNsID = int(native.Uint32(attr.Value[0:4]))
 		}
 	}
 
@@ -1328,16 +1331,34 @@ type LinkUpdate struct {
 // LinkSubscribe takes a chan down which notifications will be sent
 // when links change.  Close the 'done' chan to stop subscription.
 func LinkSubscribe(ch chan<- LinkUpdate, done <-chan struct{}) error {
-	return linkSubscribe(netns.None(), netns.None(), ch, done)
+	return linkSubscribeAt(netns.None(), netns.None(), ch, done, nil)
 }
 
 // LinkSubscribeAt works like LinkSubscribe plus it allows the caller
 // to choose the network namespace in which to subscribe (ns).
 func LinkSubscribeAt(ns netns.NsHandle, ch chan<- LinkUpdate, done <-chan struct{}) error {
-	return linkSubscribe(ns, netns.None(), ch, done)
+	return linkSubscribeAt(ns, netns.None(), ch, done, nil)
 }
 
-func linkSubscribe(newNs, curNs netns.NsHandle, ch chan<- LinkUpdate, done <-chan struct{}) error {
+// LinkSubscribeOptions contains a set of options to use with
+// LinkSubscribeWithOptions.
+type LinkSubscribeOptions struct {
+	Namespace     *netns.NsHandle
+	ErrorCallback func(error)
+}
+
+// LinkSubscribeWithOptions work like LinkSubscribe but enable to
+// provide additional options to modify the behavior. Currently, the
+// namespace can be provided as well as an error callback.
+func LinkSubscribeWithOptions(ch chan<- LinkUpdate, done <-chan struct{}, options LinkSubscribeOptions) error {
+	if options.Namespace == nil {
+		none := netns.None()
+		options.Namespace = &none
+	}
+	return linkSubscribeAt(*options.Namespace, netns.None(), ch, done, options.ErrorCallback)
+}
+
+func linkSubscribeAt(newNs, curNs netns.NsHandle, ch chan<- LinkUpdate, done <-chan struct{}, cberr func(error)) error {
 	s, err := nl.SubscribeAt(newNs, curNs, syscall.NETLINK_ROUTE, syscall.RTNLGRP_LINK)
 	if err != nil {
 		return err
@@ -1353,12 +1374,18 @@ func linkSubscribe(newNs, curNs netns.NsHandle, ch chan<- LinkUpdate, done <-cha
 		for {
 			msgs, err := s.Receive()
 			if err != nil {
+				if cberr != nil {
+					cberr(err)
+				}
 				return
 			}
 			for _, m := range msgs {
 				ifmsg := nl.DeserializeIfInfomsg(m.Data)
 				link, err := LinkDeserialize(&m.Header, m.Data)
 				if err != nil {
+					if cberr != nil {
+						cberr(err)
+					}
 					return
 				}
 				ch <- LinkUpdate{IfInfomsg: *ifmsg, Header: m.Header, Link: link}

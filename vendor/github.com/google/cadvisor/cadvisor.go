@@ -35,6 +35,7 @@ import (
 	"crypto/tls"
 
 	"github.com/golang/glog"
+	"github.com/google/cadvisor/metrics"
 )
 
 var argIp = flag.String("listen_ip", "", "IP to listen on, defaults to all IPs")
@@ -58,22 +59,24 @@ var enableProfiling = flag.Bool("profiling", false, "Enable profiling via web in
 var collectorCert = flag.String("collector_cert", "", "Collector's certificate, exposed to endpoints for certificate based authentication.")
 var collectorKey = flag.String("collector_key", "", "Key for the collector's certificate")
 
+var storeContainerLabels = flag.Bool("store_container_labels", true, "convert container labels and environment variables into labels on prometheus metrics for each container. If flag set to false, then only metrics exported are container name, first alias, and image name")
+
 var (
 	// Metrics to be ignored.
 	// Tcp metrics are ignored by default.
 	ignoreMetrics metricSetValue = metricSetValue{container.MetricSet{
-		container.NetworkTcpUsageMetrics: struct{}{},
-		container.NetworkUdpUsageMetrics: struct{}{},
+		container.NetworkTcpUsageMetrics:  struct{}{},
+		container.NetworkUdpUsageMetrics:  struct{}{},
 		container.ProcessSchedulerMetrics: struct{}{},
 	}}
 
 	// List of metrics that can be ignored.
 	ignoreWhitelist = container.MetricSet{
-		container.DiskUsageMetrics:       struct{}{},
-		container.NetworkUsageMetrics:    struct{}{},
-		container.NetworkTcpUsageMetrics: struct{}{},
-		container.NetworkUdpUsageMetrics: struct{}{},
-		container.PerCpuUsageMetrics:     struct{}{},
+		container.DiskUsageMetrics:        struct{}{},
+		container.NetworkUsageMetrics:     struct{}{},
+		container.NetworkTcpUsageMetrics:  struct{}{},
+		container.NetworkUdpUsageMetrics:  struct{}{},
+		container.PerCpuUsageMetrics:      struct{}{},
 		container.ProcessSchedulerMetrics: struct{}{},
 	}
 )
@@ -121,6 +124,8 @@ func main() {
 		os.Exit(0)
 	}
 
+	includedMetrics := toIncludedMetrics(ignoreMetrics.MetricSet)
+
 	setMaxProcs()
 
 	memoryStorage, err := NewMemoryStorage()
@@ -132,7 +137,7 @@ func main() {
 
 	collectorHttpClient := createCollectorHttpClient(*collectorCert, *collectorKey)
 
-	containerManager, err := manager.New(memoryStorage, sysFs, *maxHousekeepingInterval, *allowDynamicHousekeeping, ignoreMetrics.MetricSet, &collectorHttpClient)
+	containerManager, err := manager.New(memoryStorage, sysFs, *maxHousekeepingInterval, *allowDynamicHousekeeping, includedMetrics, &collectorHttpClient, []string{"/"})
 	if err != nil {
 		glog.Fatalf("Failed to create a Container Manager: %s", err)
 	}
@@ -152,7 +157,11 @@ func main() {
 		glog.Fatalf("Failed to register HTTP handlers: %v", err)
 	}
 
-	cadvisorhttp.RegisterPrometheusHandler(mux, containerManager, *prometheusEndpoint, nil)
+	containerLabelFunc := metrics.DefaultContainerLabels
+	if !*storeContainerLabels {
+		containerLabelFunc = metrics.BaseContainerLabels
+	}
+	cadvisorhttp.RegisterPrometheusHandler(mux, containerManager, *prometheusEndpoint, containerLabelFunc, includedMetrics)
 
 	// Start the manager.
 	if err := containerManager.Start(); err != nil {
@@ -225,4 +234,28 @@ func createCollectorHttpClient(collectorCert, collectorKey string) http.Client {
 	}
 
 	return http.Client{Transport: transport}
+}
+
+func toIncludedMetrics(ignoreMetrics container.MetricSet) container.MetricSet {
+	set := container.MetricSet{}
+	allMetrics := []container.MetricKind{
+		container.CpuUsageMetrics,
+		container.ProcessSchedulerMetrics,
+		container.PerCpuUsageMetrics,
+		container.MemoryUsageMetrics,
+		container.CpuLoadMetrics,
+		container.DiskIOMetrics,
+		container.DiskUsageMetrics,
+		container.NetworkUsageMetrics,
+		container.NetworkTcpUsageMetrics,
+		container.NetworkUdpUsageMetrics,
+		container.AcceleratorUsageMetrics,
+		container.AppMetrics,
+	}
+	for _, metric := range allMetrics {
+		if !ignoreMetrics.Has(metric) {
+			set[metric] = struct{}{}
+		}
+	}
+	return set
 }

@@ -4,9 +4,6 @@
       "scopes": {
         "https://www.googleapis.com/auth/cloud-platform": {
           "description": "View and manage your data across Google Cloud Platform services"
-        },
-        "https://www.googleapis.com/auth/service.management": {
-          "description": "Manage your Google API service configuration"
         }
       }
     }
@@ -63,11 +60,6 @@
       "location": "query",
       "type": "string"
     },
-    "bearer_token": {
-      "description": "OAuth bearer token.",
-      "location": "query",
-      "type": "string"
-    },
     "callback": {
       "description": "JSONP",
       "location": "query",
@@ -87,12 +79,6 @@
       "description": "OAuth 2.0 token for the current user.",
       "location": "query",
       "type": "string"
-    },
-    "pp": {
-      "default": "true",
-      "description": "Pretty-print response.",
-      "location": "query",
-      "type": "boolean"
     },
     "prettyPrint": {
       "default": "true",
@@ -145,8 +131,7 @@
             "$ref": "Empty"
           },
           "scopes": [
-            "https://www.googleapis.com/auth/cloud-platform",
-            "https://www.googleapis.com/auth/service.management"
+            "https://www.googleapis.com/auth/cloud-platform"
           ]
         },
         "delete": {
@@ -171,8 +156,7 @@
             "$ref": "Empty"
           },
           "scopes": [
-            "https://www.googleapis.com/auth/cloud-platform",
-            "https://www.googleapis.com/auth/service.management"
+            "https://www.googleapis.com/auth/cloud-platform"
           ]
         },
         "get": {
@@ -197,8 +181,7 @@
             "$ref": "Operation"
           },
           "scopes": [
-            "https://www.googleapis.com/auth/cloud-platform",
-            "https://www.googleapis.com/auth/service.management"
+            "https://www.googleapis.com/auth/cloud-platform"
           ]
         },
         "list": {
@@ -239,8 +222,7 @@
             "$ref": "ListOperationsResponse"
           },
           "scopes": [
-            "https://www.googleapis.com/auth/cloud-platform",
-            "https://www.googleapis.com/auth/service.management"
+            "https://www.googleapis.com/auth/cloud-platform"
           ]
         }
       }
@@ -447,7 +429,7 @@
       }
     }
   },
-  "revision": "20180524",
+  "revision": "20180619",
   "rootUrl": "https://serviceconsumermanagement.googleapis.com/",
   "schemas": {
     "AddTenantProjectRequest": {

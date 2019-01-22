@@ -1,9 +1,11 @@
-package daemon
+package daemon // import "github.com/docker/docker/daemon"
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/errdefs"
 	"github.com/pkg/errors"
 )
 
@@ -16,9 +18,9 @@ func (daemon *Daemon) ContainerUpdate(name string, hostConfig *container.HostCon
 		return container.ContainerUpdateOKBody{Warnings: warnings}, err
 	}
 
-	warnings, err = daemon.verifyContainerSettings(c.Platform, hostConfig, nil, true)
+	warnings, err = daemon.verifyContainerSettings(c.OS, hostConfig, nil, true)
 	if err != nil {
-		return container.ContainerUpdateOKBody{Warnings: warnings}, validationError{err}
+		return container.ContainerUpdateOKBody{Warnings: warnings}, errdefs.InvalidParameter(err)
 	}
 
 	if err := daemon.update(name, hostConfig); err != nil {
@@ -76,10 +78,10 @@ func (daemon *Daemon) update(name string, hostConfig *container.HostConfig) erro
 	// If container is running (including paused), we need to update configs
 	// to the real world.
 	if container.IsRunning() && !container.IsRestarting() {
-		if err := daemon.containerd.UpdateResources(container.ID, toContainerdResources(hostConfig.Resources)); err != nil {
+		if err := daemon.containerd.UpdateResources(context.Background(), container.ID, toContainerdResources(hostConfig.Resources)); err != nil {
 			restoreConfig = true
 			// TODO: it would be nice if containerd responded with better errors here so we can classify this better.
-			return errCannotUpdate(container.ID, systemError{err})
+			return errCannotUpdate(container.ID, errdefs.System(err))
 		}
 	}
 

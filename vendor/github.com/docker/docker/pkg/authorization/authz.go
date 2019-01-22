@@ -1,10 +1,11 @@
-package authorization
+package authorization // import "github.com/docker/docker/pkg/authorization"
 
 import (
 	"bufio"
 	"bytes"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"strings"
 
@@ -153,12 +154,17 @@ func sendBody(url string, header http.Header) bool {
 	}
 
 	// body is sent only for text or json messages
-	return header.Get("Content-Type") == "application/json"
+	contentType, _, err := mime.ParseMediaType(header.Get("Content-Type"))
+	if err != nil {
+		return false
+	}
+
+	return contentType == "application/json"
 }
 
 // headers returns flatten version of the http headers excluding authorization
 func headers(header http.Header) map[string]string {
-	v := make(map[string]string, 0)
+	v := make(map[string]string)
 	for k, values := range header {
 		// Skip authorization headers
 		if strings.EqualFold(k, "Authorization") || strings.EqualFold(k, "X-Registry-Config") || strings.EqualFold(k, "X-Registry-Auth") {

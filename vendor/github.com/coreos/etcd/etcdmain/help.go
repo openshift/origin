@@ -54,6 +54,8 @@ member flags:
 		time (in milliseconds) of a heartbeat interval.
 	--election-timeout '1000'
 		time (in milliseconds) for an election to timeout. See tuning documentation for details.
+	--initial-election-tick-advance 'true'
+		whether to fast-forward initial election ticks on boot for faster election.
 	--listen-peer-urls 'http://localhost:2380'
 		list of URLs to listen on for peer traffic.
 	--listen-client-urls 'http://localhost:2379'
@@ -148,6 +150,8 @@ security flags:
 		path to the peer server TLS trusted CA file.
 	--peer-auto-tls 'false'
 		peer TLS using self-generated certificates if --peer-key-file and --peer-cert-file are not provided.
+	--cipher-suites ''
+		comma-separated list of supported TLS cipher suites between client/server and peers (empty will be auto-populated by Go).
 
 logging flags
 

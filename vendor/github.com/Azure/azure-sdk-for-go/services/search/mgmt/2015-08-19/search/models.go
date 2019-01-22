@@ -34,6 +34,11 @@ const (
 	Secondary AdminKeyKind = "secondary"
 )
 
+// PossibleAdminKeyKindValues returns an array of possible values for the AdminKeyKind const type.
+func PossibleAdminKeyKindValues() []AdminKeyKind {
+	return []AdminKeyKind{Primary, Secondary}
+}
+
 // HostingMode enumerates the values for hosting mode.
 type HostingMode string
 
@@ -43,6 +48,11 @@ const (
 	// HighDensity ...
 	HighDensity HostingMode = "highDensity"
 )
+
+// PossibleHostingModeValues returns an array of possible values for the HostingMode const type.
+func PossibleHostingModeValues() []HostingMode {
+	return []HostingMode{Default, HighDensity}
+}
 
 // ProvisioningState enumerates the values for provisioning state.
 type ProvisioningState string
@@ -55,6 +65,11 @@ const (
 	// Succeeded ...
 	Succeeded ProvisioningState = "succeeded"
 )
+
+// PossibleProvisioningStateValues returns an array of possible values for the ProvisioningState const type.
+func PossibleProvisioningStateValues() []ProvisioningState {
+	return []ProvisioningState{Failed, Provisioning, Succeeded}
+}
 
 // ServiceStatus enumerates the values for service status.
 type ServiceStatus string
@@ -74,6 +89,11 @@ const (
 	ServiceStatusRunning ServiceStatus = "running"
 )
 
+// PossibleServiceStatusValues returns an array of possible values for the ServiceStatus const type.
+func PossibleServiceStatusValues() []ServiceStatus {
+	return []ServiceStatus{ServiceStatusDegraded, ServiceStatusDeleting, ServiceStatusDisabled, ServiceStatusError, ServiceStatusProvisioning, ServiceStatusRunning}
+}
+
 // SkuName enumerates the values for sku name.
 type SkuName string
 
@@ -90,6 +110,11 @@ const (
 	Standard3 SkuName = "standard3"
 )
 
+// PossibleSkuNameValues returns an array of possible values for the SkuName const type.
+func PossibleSkuNameValues() []SkuName {
+	return []SkuName{Basic, Free, Standard, Standard2, Standard3}
+}
+
 // UnavailableNameReason enumerates the values for unavailable name reason.
 type UnavailableNameReason string
 
@@ -99,6 +124,11 @@ const (
 	// Invalid ...
 	Invalid UnavailableNameReason = "Invalid"
 )
+
+// PossibleUnavailableNameReasonValues returns an array of possible values for the UnavailableNameReason const type.
+func PossibleUnavailableNameReasonValues() []UnavailableNameReason {
+	return []UnavailableNameReason{AlreadyExists, Invalid}
+}
 
 // AdminKeyResult response containing the primary and secondary admin API keys for a given Azure Search service.
 type AdminKeyResult struct {
@@ -144,6 +174,16 @@ type CloudErrorBody struct {
 	Target *string `json:"target,omitempty"`
 	// Details - Contains nested errors that are related to this error.
 	Details *[]CloudErrorBody `json:"details,omitempty"`
+}
+
+// Identity identity for the resource.
+type Identity struct {
+	// PrincipalID - The principal ID of resource identity.
+	PrincipalID *string `json:"principalId,omitempty"`
+	// TenantID - The tenant ID of resource.
+	TenantID *string `json:"tenantId,omitempty"`
+	// Type - The identity type.
+	Type *string `json:"type,omitempty"`
 }
 
 // ListQueryKeysResult response containing the query API keys for a given Azure Search service.
@@ -204,6 +244,8 @@ type Resource struct {
 	Location *string `json:"location,omitempty"`
 	// Tags - Tags to help categorize the resource in the Azure portal.
 	Tags map[string]*string `json:"tags"`
+	// Identity - The identity of the resource.
+	Identity *Identity `json:"identity,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for Resource.
@@ -223,6 +265,9 @@ func (r Resource) MarshalJSON() ([]byte, error) {
 	}
 	if r.Tags != nil {
 		objectMap["tags"] = r.Tags
+	}
+	if r.Identity != nil {
+		objectMap["identity"] = r.Identity
 	}
 	return json.Marshal(objectMap)
 }
@@ -244,6 +289,8 @@ type Service struct {
 	Location *string `json:"location,omitempty"`
 	// Tags - Tags to help categorize the resource in the Azure portal.
 	Tags map[string]*string `json:"tags"`
+	// Identity - The identity of the resource.
+	Identity *Identity `json:"identity,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for Service.
@@ -269,6 +316,9 @@ func (s Service) MarshalJSON() ([]byte, error) {
 	}
 	if s.Tags != nil {
 		objectMap["tags"] = s.Tags
+	}
+	if s.Identity != nil {
+		objectMap["identity"] = s.Identity
 	}
 	return json.Marshal(objectMap)
 }
@@ -345,6 +395,15 @@ func (s *Service) UnmarshalJSON(body []byte) error {
 				}
 				s.Tags = tags
 			}
+		case "identity":
+			if v != nil {
+				var identity Identity
+				err = json.Unmarshal(*v, &identity)
+				if err != nil {
+					return err
+				}
+				s.Identity = &identity
+			}
 		}
 	}
 
@@ -378,12 +437,11 @@ type ServiceProperties struct {
 // operation.
 type ServicesCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ServicesCreateOrUpdateFuture) Result(client ServicesClient) (s Service, err error) {
+func (future *ServicesCreateOrUpdateFuture) Result(client ServicesClient) (s Service, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -391,34 +449,15 @@ func (future ServicesCreateOrUpdateFuture) Result(client ServicesClient) (s Serv
 		return
 	}
 	if !done {
-		return s, azure.NewAsyncOpIncompleteError("search.ServicesCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		s, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "search.ServicesCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("search.ServicesCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if s.Response.Response, err = future.GetResult(sender); err == nil && s.Response.Response.StatusCode != http.StatusNoContent {
+		s, err = client.CreateOrUpdateResponder(s.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "search.ServicesCreateOrUpdateFuture", "Result", s.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "search.ServicesCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	s, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "search.ServicesCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }

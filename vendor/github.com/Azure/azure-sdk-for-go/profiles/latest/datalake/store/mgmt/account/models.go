@@ -23,44 +23,13 @@ import original "github.com/Azure/azure-sdk-for-go/services/datalake/store/mgmt/
 
 type AccountsClient = original.AccountsClient
 
-func NewAccountsClient(subscriptionID string) AccountsClient {
-	return original.NewAccountsClient(subscriptionID)
-}
-func NewAccountsClientWithBaseURI(baseURI string, subscriptionID string) AccountsClient {
-	return original.NewAccountsClientWithBaseURI(baseURI, subscriptionID)
-}
-
 const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
 type BaseClient = original.BaseClient
-
-func New(subscriptionID string) BaseClient {
-	return original.New(subscriptionID)
-}
-func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
-	return original.NewWithBaseURI(baseURI, subscriptionID)
-}
-
 type FirewallRulesClient = original.FirewallRulesClient
-
-func NewFirewallRulesClient(subscriptionID string) FirewallRulesClient {
-	return original.NewFirewallRulesClient(subscriptionID)
-}
-func NewFirewallRulesClientWithBaseURI(baseURI string, subscriptionID string) FirewallRulesClient {
-	return original.NewFirewallRulesClientWithBaseURI(baseURI, subscriptionID)
-}
-
 type LocationsClient = original.LocationsClient
-
-func NewLocationsClient(subscriptionID string) LocationsClient {
-	return original.NewLocationsClient(subscriptionID)
-}
-func NewLocationsClientWithBaseURI(baseURI string, subscriptionID string) LocationsClient {
-	return original.NewLocationsClientWithBaseURI(baseURI, subscriptionID)
-}
-
 type DataLakeStoreAccountState = original.DataLakeStoreAccountState
 
 const (
@@ -168,7 +137,10 @@ type CreateOrUpdateFirewallRuleParameters = original.CreateOrUpdateFirewallRuleP
 type CreateOrUpdateFirewallRuleProperties = original.CreateOrUpdateFirewallRuleProperties
 type CreateOrUpdateTrustedIDProviderParameters = original.CreateOrUpdateTrustedIDProviderParameters
 type CreateOrUpdateTrustedIDProviderProperties = original.CreateOrUpdateTrustedIDProviderProperties
+type CreateOrUpdateVirtualNetworkRuleParameters = original.CreateOrUpdateVirtualNetworkRuleParameters
+type CreateOrUpdateVirtualNetworkRuleProperties = original.CreateOrUpdateVirtualNetworkRuleProperties
 type CreateTrustedIDProviderWithAccountParameters = original.CreateTrustedIDProviderWithAccountParameters
+type CreateVirtualNetworkRuleWithAccountParameters = original.CreateVirtualNetworkRuleWithAccountParameters
 type DataLakeStoreAccount = original.DataLakeStoreAccount
 type DataLakeStoreAccountBasic = original.DataLakeStoreAccountBasic
 type DataLakeStoreAccountListResult = original.DataLakeStoreAccountListResult
@@ -205,17 +177,81 @@ type UpdateKeyVaultMetaInfo = original.UpdateKeyVaultMetaInfo
 type UpdateTrustedIDProviderParameters = original.UpdateTrustedIDProviderParameters
 type UpdateTrustedIDProviderProperties = original.UpdateTrustedIDProviderProperties
 type UpdateTrustedIDProviderWithAccountParameters = original.UpdateTrustedIDProviderWithAccountParameters
+type UpdateVirtualNetworkRuleParameters = original.UpdateVirtualNetworkRuleParameters
+type UpdateVirtualNetworkRuleProperties = original.UpdateVirtualNetworkRuleProperties
+type UpdateVirtualNetworkRuleWithAccountParameters = original.UpdateVirtualNetworkRuleWithAccountParameters
+type VirtualNetworkRule = original.VirtualNetworkRule
+type VirtualNetworkRuleListResult = original.VirtualNetworkRuleListResult
+type VirtualNetworkRuleListResultIterator = original.VirtualNetworkRuleListResultIterator
+type VirtualNetworkRuleListResultPage = original.VirtualNetworkRuleListResultPage
+type VirtualNetworkRuleProperties = original.VirtualNetworkRuleProperties
 type OperationsClient = original.OperationsClient
+type TrustedIDProvidersClient = original.TrustedIDProvidersClient
+type VirtualNetworkRulesClient = original.VirtualNetworkRulesClient
 
+func NewAccountsClient(subscriptionID string) AccountsClient {
+	return original.NewAccountsClient(subscriptionID)
+}
+func NewAccountsClientWithBaseURI(baseURI string, subscriptionID string) AccountsClient {
+	return original.NewAccountsClientWithBaseURI(baseURI, subscriptionID)
+}
+func New(subscriptionID string) BaseClient {
+	return original.New(subscriptionID)
+}
+func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
+	return original.NewWithBaseURI(baseURI, subscriptionID)
+}
+func NewFirewallRulesClient(subscriptionID string) FirewallRulesClient {
+	return original.NewFirewallRulesClient(subscriptionID)
+}
+func NewFirewallRulesClientWithBaseURI(baseURI string, subscriptionID string) FirewallRulesClient {
+	return original.NewFirewallRulesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewLocationsClient(subscriptionID string) LocationsClient {
+	return original.NewLocationsClient(subscriptionID)
+}
+func NewLocationsClientWithBaseURI(baseURI string, subscriptionID string) LocationsClient {
+	return original.NewLocationsClientWithBaseURI(baseURI, subscriptionID)
+}
+func PossibleDataLakeStoreAccountStateValues() []DataLakeStoreAccountState {
+	return original.PossibleDataLakeStoreAccountStateValues()
+}
+func PossibleDataLakeStoreAccountStatusValues() []DataLakeStoreAccountStatus {
+	return original.PossibleDataLakeStoreAccountStatusValues()
+}
+func PossibleEncryptionConfigTypeValues() []EncryptionConfigType {
+	return original.PossibleEncryptionConfigTypeValues()
+}
+func PossibleEncryptionProvisioningStateValues() []EncryptionProvisioningState {
+	return original.PossibleEncryptionProvisioningStateValues()
+}
+func PossibleEncryptionStateValues() []EncryptionState {
+	return original.PossibleEncryptionStateValues()
+}
+func PossibleFirewallAllowAzureIpsStateValues() []FirewallAllowAzureIpsState {
+	return original.PossibleFirewallAllowAzureIpsStateValues()
+}
+func PossibleFirewallStateValues() []FirewallState {
+	return original.PossibleFirewallStateValues()
+}
+func PossibleOperationOriginValues() []OperationOrigin {
+	return original.PossibleOperationOriginValues()
+}
+func PossibleSubscriptionStateValues() []SubscriptionState {
+	return original.PossibleSubscriptionStateValues()
+}
+func PossibleTierTypeValues() []TierType {
+	return original.PossibleTierTypeValues()
+}
+func PossibleTrustedIDProviderStateValues() []TrustedIDProviderState {
+	return original.PossibleTrustedIDProviderStateValues()
+}
 func NewOperationsClient(subscriptionID string) OperationsClient {
 	return original.NewOperationsClient(subscriptionID)
 }
 func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string) OperationsClient {
 	return original.NewOperationsClientWithBaseURI(baseURI, subscriptionID)
 }
-
-type TrustedIDProvidersClient = original.TrustedIDProvidersClient
-
 func NewTrustedIDProvidersClient(subscriptionID string) TrustedIDProvidersClient {
 	return original.NewTrustedIDProvidersClient(subscriptionID)
 }
@@ -227,4 +263,10 @@ func UserAgent() string {
 }
 func Version() string {
 	return original.Version()
+}
+func NewVirtualNetworkRulesClient(subscriptionID string) VirtualNetworkRulesClient {
+	return original.NewVirtualNetworkRulesClient(subscriptionID)
+}
+func NewVirtualNetworkRulesClientWithBaseURI(baseURI string, subscriptionID string) VirtualNetworkRulesClient {
+	return original.NewVirtualNetworkRulesClientWithBaseURI(baseURI, subscriptionID)
 }

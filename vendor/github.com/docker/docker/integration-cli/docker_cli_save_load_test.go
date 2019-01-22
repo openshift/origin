@@ -19,7 +19,7 @@ import (
 	"github.com/docker/docker/integration-cli/cli/build"
 	"github.com/go-check/check"
 	"github.com/gotestyourself/gotestyourself/icmd"
-	digest "github.com/opencontainers/go-digest"
+	"github.com/opencontainers/go-digest"
 )
 
 // save a repo using gz compression and try to load it using stdout
@@ -100,10 +100,10 @@ func (s *DockerSuite) TestSaveCheckTimes(c *check.C) {
 	testRequires(c, DaemonIsLinux)
 	repoName := "busybox:latest"
 	out, _ := dockerCmd(c, "inspect", repoName)
-	data := []struct {
+	var data []struct {
 		ID      string
 		Created time.Time
-	}{}
+	}
 	err := json.Unmarshal([]byte(out), &data)
 	c.Assert(err, checker.IsNil, check.Commentf("failed to marshal from %q: err %v", repoName, err))
 	c.Assert(len(data), checker.Not(checker.Equals), 0, check.Commentf("failed to marshal the data from %q", repoName))
@@ -330,9 +330,11 @@ func listTar(f io.Reader) ([]string, error) {
 // The layer.tar file is actually zero bytes, no padding or anything else.
 // See issue: 18170
 func (s *DockerSuite) TestLoadZeroSizeLayer(c *check.C) {
-	testRequires(c, DaemonIsLinux)
+	// this will definitely not work if using remote daemon
+	// very weird test
+	testRequires(c, DaemonIsLinux, SameHostDaemon)
 
-	dockerCmd(c, "load", "-i", "fixtures/load/emptyLayer.tar")
+	dockerCmd(c, "load", "-i", "testdata/emptyLayer.tar")
 }
 
 func (s *DockerSuite) TestSaveLoadParents(c *check.C) {

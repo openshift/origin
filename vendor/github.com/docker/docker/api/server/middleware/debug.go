@@ -1,7 +1,8 @@
-package middleware
+package middleware // import "github.com/docker/docker/api/server/middleware"
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -10,7 +11,6 @@ import (
 	"github.com/docker/docker/api/server/httputils"
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 )
 
 // DebugRequestMiddleware dumps the request to logger

@@ -1169,7 +1169,7 @@ type TransferRun struct {
 	// scheduled manually, this is empty.
 	// NOTE: the system might choose to delay the schedule depending on
 	// the
-	// current load, so `schedule_time` doesn't always matches this.
+	// current load, so `schedule_time` doesn't always match this.
 	Schedule string `json:"schedule,omitempty"`
 
 	// ScheduleTime: Minimum time after which a transfer run can be started.

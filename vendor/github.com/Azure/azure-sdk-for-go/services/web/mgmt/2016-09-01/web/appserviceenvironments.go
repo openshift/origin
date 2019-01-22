@@ -41,9 +41,10 @@ func NewAppServiceEnvironmentsClientWithBaseURI(baseURI string, subscriptionID s
 }
 
 // CreateOrUpdate create or update an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. hostingEnvironmentEnvelope is configuration details of the App Service Environment.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// hostingEnvironmentEnvelope - configuration details of the App Service Environment.
 func (client AppServiceEnvironmentsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, name string, hostingEnvironmentEnvelope AppServiceEnvironmentResource) (result AppServiceEnvironmentsCreateOrUpdateFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -89,7 +90,7 @@ func (client AppServiceEnvironmentsClient) CreateOrUpdatePreparer(ctx context.Co
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/hostingEnvironments/{name}", pathParameters),
@@ -101,15 +102,17 @@ func (client AppServiceEnvironmentsClient) CreateOrUpdatePreparer(ctx context.Co
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) CreateOrUpdateSender(req *http.Request) (future AppServiceEnvironmentsCreateOrUpdateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusBadRequest, http.StatusNotFound, http.StatusConflict))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusBadRequest, http.StatusNotFound, http.StatusConflict))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -127,9 +130,10 @@ func (client AppServiceEnvironmentsClient) CreateOrUpdateResponder(resp *http.Re
 }
 
 // CreateOrUpdateMultiRolePool create or update a multi-role pool.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. multiRolePoolEnvelope is properties of the multi-role pool.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// multiRolePoolEnvelope - properties of the multi-role pool.
 func (client AppServiceEnvironmentsClient) CreateOrUpdateMultiRolePool(ctx context.Context, resourceGroupName string, name string, multiRolePoolEnvelope WorkerPoolResource) (result AppServiceEnvironmentsCreateOrUpdateMultiRolePoolFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -168,7 +172,7 @@ func (client AppServiceEnvironmentsClient) CreateOrUpdateMultiRolePoolPreparer(c
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/hostingEnvironments/{name}/multiRolePools/default", pathParameters),
@@ -180,15 +184,17 @@ func (client AppServiceEnvironmentsClient) CreateOrUpdateMultiRolePoolPreparer(c
 // CreateOrUpdateMultiRolePoolSender sends the CreateOrUpdateMultiRolePool request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) CreateOrUpdateMultiRolePoolSender(req *http.Request) (future AppServiceEnvironmentsCreateOrUpdateMultiRolePoolFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusBadRequest, http.StatusNotFound, http.StatusConflict))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusBadRequest, http.StatusNotFound, http.StatusConflict))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -206,9 +212,11 @@ func (client AppServiceEnvironmentsClient) CreateOrUpdateMultiRolePoolResponder(
 }
 
 // CreateOrUpdateWorkerPool create or update a worker pool.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. workerPoolName is name of the worker pool. workerPoolEnvelope is properties of the worker pool.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// workerPoolName - name of the worker pool.
+// workerPoolEnvelope - properties of the worker pool.
 func (client AppServiceEnvironmentsClient) CreateOrUpdateWorkerPool(ctx context.Context, resourceGroupName string, name string, workerPoolName string, workerPoolEnvelope WorkerPoolResource) (result AppServiceEnvironmentsCreateOrUpdateWorkerPoolFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -248,7 +256,7 @@ func (client AppServiceEnvironmentsClient) CreateOrUpdateWorkerPoolPreparer(ctx 
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/hostingEnvironments/{name}/workerPools/{workerPoolName}", pathParameters),
@@ -260,15 +268,17 @@ func (client AppServiceEnvironmentsClient) CreateOrUpdateWorkerPoolPreparer(ctx 
 // CreateOrUpdateWorkerPoolSender sends the CreateOrUpdateWorkerPool request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) CreateOrUpdateWorkerPoolSender(req *http.Request) (future AppServiceEnvironmentsCreateOrUpdateWorkerPoolFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusBadRequest, http.StatusNotFound, http.StatusConflict))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusBadRequest, http.StatusNotFound, http.StatusConflict))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -286,10 +296,11 @@ func (client AppServiceEnvironmentsClient) CreateOrUpdateWorkerPoolResponder(res
 }
 
 // Delete delete an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. forceDelete is specify <code>true</code> to force the deletion even if the App Service Environment
-// contains resources. The default is <code>false</code>.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// forceDelete - specify <code>true</code> to force the deletion even if the App Service Environment contains
+// resources. The default is <code>false</code>.
 func (client AppServiceEnvironmentsClient) Delete(ctx context.Context, resourceGroupName string, name string, forceDelete *bool) (result AppServiceEnvironmentsDeleteFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -341,15 +352,17 @@ func (client AppServiceEnvironmentsClient) DeletePreparer(ctx context.Context, r
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) DeleteSender(req *http.Request) (future AppServiceEnvironmentsDeleteFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent, http.StatusBadRequest, http.StatusNotFound, http.StatusConflict))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent, http.StatusBadRequest, http.StatusNotFound, http.StatusConflict))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -366,9 +379,9 @@ func (client AppServiceEnvironmentsClient) DeleteResponder(resp *http.Response) 
 }
 
 // Get get the properties of an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) Get(ctx context.Context, resourceGroupName string, name string) (result AppServiceEnvironmentResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -441,9 +454,10 @@ func (client AppServiceEnvironmentsClient) GetResponder(resp *http.Response) (re
 }
 
 // GetDiagnosticsItem get a diagnostics item for an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. diagnosticsName is name of the diagnostics item.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// diagnosticsName - name of the diagnostics item.
 func (client AppServiceEnvironmentsClient) GetDiagnosticsItem(ctx context.Context, resourceGroupName string, name string, diagnosticsName string) (result HostingEnvironmentDiagnostics, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -517,9 +531,9 @@ func (client AppServiceEnvironmentsClient) GetDiagnosticsItemResponder(resp *htt
 }
 
 // GetMultiRolePool get properties of a multi-role pool.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) GetMultiRolePool(ctx context.Context, resourceGroupName string, name string) (result WorkerPoolResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -592,9 +606,10 @@ func (client AppServiceEnvironmentsClient) GetMultiRolePoolResponder(resp *http.
 }
 
 // GetWorkerPool get properties of a worker pool.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. workerPoolName is name of the worker pool.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// workerPoolName - name of the worker pool.
 func (client AppServiceEnvironmentsClient) GetWorkerPool(ctx context.Context, resourceGroupName string, name string, workerPoolName string) (result WorkerPoolResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -758,9 +773,9 @@ func (client AppServiceEnvironmentsClient) ListComplete(ctx context.Context) (re
 }
 
 // ListAppServicePlans get all App Service plans in an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListAppServicePlans(ctx context.Context, resourceGroupName string, name string) (result AppServicePlanCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -861,8 +876,8 @@ func (client AppServiceEnvironmentsClient) ListAppServicePlansComplete(ctx conte
 }
 
 // ListByResourceGroup get all App Service Environments in a resource group.
-//
-// resourceGroupName is name of the resource group to which the resource belongs.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
 func (client AppServiceEnvironmentsClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result AppServiceEnvironmentCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -962,9 +977,9 @@ func (client AppServiceEnvironmentsClient) ListByResourceGroupComplete(ctx conte
 }
 
 // ListCapacities get the used, available, and total worker capacity an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListCapacities(ctx context.Context, resourceGroupName string, name string) (result StampCapacityCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -1065,9 +1080,9 @@ func (client AppServiceEnvironmentsClient) ListCapacitiesComplete(ctx context.Co
 }
 
 // ListDiagnostics get diagnostic information for an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListDiagnostics(ctx context.Context, resourceGroupName string, name string) (result ListHostingEnvironmentDiagnostics, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -1140,9 +1155,9 @@ func (client AppServiceEnvironmentsClient) ListDiagnosticsResponder(resp *http.R
 }
 
 // ListMetricDefinitions get global metric definitions of an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListMetricDefinitions(ctx context.Context, resourceGroupName string, name string) (result MetricDefinition, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -1215,12 +1230,13 @@ func (client AppServiceEnvironmentsClient) ListMetricDefinitionsResponder(resp *
 }
 
 // ListMetrics get global metrics of an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. details is specify <code>true</code> to include instance details. The default is
-// <code>false</code>. filter is return only usages/metrics specified in the filter. Filter conforms to odata
-// syntax. Example: $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq
-// '2014-01-01T00:00:00Z' and endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// details - specify <code>true</code> to include instance details. The default is <code>false</code>.
+// filter - return only usages/metrics specified in the filter. Filter conforms to odata syntax. Example:
+// $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z' and
+// endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
 func (client AppServiceEnvironmentsClient) ListMetrics(ctx context.Context, resourceGroupName string, name string, details *bool, filter string) (result ResourceMetricCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -1327,9 +1343,9 @@ func (client AppServiceEnvironmentsClient) ListMetricsComplete(ctx context.Conte
 }
 
 // ListMultiRoleMetricDefinitions get metric definitions for a multi-role pool of an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListMultiRoleMetricDefinitions(ctx context.Context, resourceGroupName string, name string) (result ResourceMetricDefinitionCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -1430,13 +1446,16 @@ func (client AppServiceEnvironmentsClient) ListMultiRoleMetricDefinitionsComplet
 }
 
 // ListMultiRoleMetrics get metrics for a multi-role pool of an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. startTime is beginning time of the metrics query. endTime is end time of the metrics query.
-// timeGrain is time granularity of the metrics query. details is specify <code>true</code> to include instance
-// details. The default is <code>false</code>. filter is return only usages/metrics specified in the filter. Filter
-// conforms to odata syntax. Example: $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq
-// '2014-01-01T00:00:00Z' and endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// startTime - beginning time of the metrics query.
+// endTime - end time of the metrics query.
+// timeGrain - time granularity of the metrics query.
+// details - specify <code>true</code> to include instance details. The default is <code>false</code>.
+// filter - return only usages/metrics specified in the filter. Filter conforms to odata syntax. Example:
+// $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z' and
+// endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
 func (client AppServiceEnvironmentsClient) ListMultiRoleMetrics(ctx context.Context, resourceGroupName string, name string, startTime string, endTime string, timeGrain string, details *bool, filter string) (result ResourceMetricCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -1553,9 +1572,10 @@ func (client AppServiceEnvironmentsClient) ListMultiRoleMetricsComplete(ctx cont
 
 // ListMultiRolePoolInstanceMetricDefinitions get metric definitions for a specific instance of a multi-role pool of an
 // App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. instance is name of the instance in the multi-role pool.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// instance - name of the instance in the multi-role pool.
 func (client AppServiceEnvironmentsClient) ListMultiRolePoolInstanceMetricDefinitions(ctx context.Context, resourceGroupName string, name string, instance string) (result ResourceMetricDefinitionCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -1658,10 +1678,11 @@ func (client AppServiceEnvironmentsClient) ListMultiRolePoolInstanceMetricDefini
 
 // ListMultiRolePoolInstanceMetrics get metrics for a specific instance of a multi-role pool of an App Service
 // Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. instance is name of the instance in the multi-role pool. details is specify <code>true</code> to
-// include instance details. The default is <code>false</code>.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// instance - name of the instance in the multi-role pool.
+// details - specify <code>true</code> to include instance details. The default is <code>false</code>.
 func (client AppServiceEnvironmentsClient) ListMultiRolePoolInstanceMetrics(ctx context.Context, resourceGroupName string, name string, instance string, details *bool) (result ResourceMetricCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -1713,7 +1734,7 @@ func (client AppServiceEnvironmentsClient) ListMultiRolePoolInstanceMetricsPrepa
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
 		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/hostingEnvironments/{name}/multiRolePools/default/instances/{instance}metrics", pathParameters),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/hostingEnvironments/{name}/multiRolePools/default/instances/{instance}/metrics", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -1766,9 +1787,9 @@ func (client AppServiceEnvironmentsClient) ListMultiRolePoolInstanceMetricsCompl
 }
 
 // ListMultiRolePools get all multi-role pools.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListMultiRolePools(ctx context.Context, resourceGroupName string, name string) (result WorkerPoolCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -1869,9 +1890,9 @@ func (client AppServiceEnvironmentsClient) ListMultiRolePoolsComplete(ctx contex
 }
 
 // ListMultiRolePoolSkus get available SKUs for scaling a multi-role pool.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListMultiRolePoolSkus(ctx context.Context, resourceGroupName string, name string) (result SkuInfoCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -1972,9 +1993,9 @@ func (client AppServiceEnvironmentsClient) ListMultiRolePoolSkusComplete(ctx con
 }
 
 // ListMultiRoleUsages get usage metrics for a multi-role pool of an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListMultiRoleUsages(ctx context.Context, resourceGroupName string, name string) (result UsageCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -2075,9 +2096,9 @@ func (client AppServiceEnvironmentsClient) ListMultiRoleUsagesComplete(ctx conte
 }
 
 // ListOperations list all currently running operations on the App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListOperations(ctx context.Context, resourceGroupName string, name string) (result ListOperation, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -2150,11 +2171,12 @@ func (client AppServiceEnvironmentsClient) ListOperationsResponder(resp *http.Re
 }
 
 // ListUsages get global usage metrics of an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. filter is return only usages/metrics specified in the filter. Filter conforms to odata syntax.
-// Example: $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z'
-// and endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// filter - return only usages/metrics specified in the filter. Filter conforms to odata syntax. Example:
+// $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z' and
+// endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
 func (client AppServiceEnvironmentsClient) ListUsages(ctx context.Context, resourceGroupName string, name string, filter string) (result CsmUsageQuotaCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -2258,9 +2280,9 @@ func (client AppServiceEnvironmentsClient) ListUsagesComplete(ctx context.Contex
 }
 
 // ListVips get IP addresses assigned to an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListVips(ctx context.Context, resourceGroupName string, name string) (result AddressResponse, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -2333,9 +2355,10 @@ func (client AppServiceEnvironmentsClient) ListVipsResponder(resp *http.Response
 }
 
 // ListWebApps get all apps in an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. propertiesToInclude is comma separated list of app properties to include.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// propertiesToInclude - comma separated list of app properties to include.
 func (client AppServiceEnvironmentsClient) ListWebApps(ctx context.Context, resourceGroupName string, name string, propertiesToInclude string) (result AppCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -2439,9 +2462,10 @@ func (client AppServiceEnvironmentsClient) ListWebAppsComplete(ctx context.Conte
 }
 
 // ListWebWorkerMetricDefinitions get metric definitions for a worker pool of an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. workerPoolName is name of the worker pool.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// workerPoolName - name of the worker pool.
 func (client AppServiceEnvironmentsClient) ListWebWorkerMetricDefinitions(ctx context.Context, resourceGroupName string, name string, workerPoolName string) (result ResourceMetricDefinitionCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -2543,12 +2567,14 @@ func (client AppServiceEnvironmentsClient) ListWebWorkerMetricDefinitionsComplet
 }
 
 // ListWebWorkerMetrics get metrics for a worker pool of a AppServiceEnvironment (App Service Environment).
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. workerPoolName is name of worker pool details is specify <code>true</code> to include instance
-// details. The default is <code>false</code>. filter is return only usages/metrics specified in the filter. Filter
-// conforms to odata syntax. Example: $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq
-// '2014-01-01T00:00:00Z' and endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// workerPoolName - name of worker pool
+// details - specify <code>true</code> to include instance details. The default is <code>false</code>.
+// filter - return only usages/metrics specified in the filter. Filter conforms to odata syntax. Example:
+// $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z' and
+// endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
 func (client AppServiceEnvironmentsClient) ListWebWorkerMetrics(ctx context.Context, resourceGroupName string, name string, workerPoolName string, details *bool, filter string) (result ResourceMetricCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -2656,9 +2682,10 @@ func (client AppServiceEnvironmentsClient) ListWebWorkerMetricsComplete(ctx cont
 }
 
 // ListWebWorkerUsages get usage metrics for a worker pool of an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. workerPoolName is name of the worker pool.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// workerPoolName - name of the worker pool.
 func (client AppServiceEnvironmentsClient) ListWebWorkerUsages(ctx context.Context, resourceGroupName string, name string, workerPoolName string) (result UsageCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -2761,9 +2788,11 @@ func (client AppServiceEnvironmentsClient) ListWebWorkerUsagesComplete(ctx conte
 
 // ListWorkerPoolInstanceMetricDefinitions get metric definitions for a specific instance of a worker pool of an App
 // Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. workerPoolName is name of the worker pool. instance is name of the instance in the worker pool.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// workerPoolName - name of the worker pool.
+// instance - name of the instance in the worker pool.
 func (client AppServiceEnvironmentsClient) ListWorkerPoolInstanceMetricDefinitions(ctx context.Context, resourceGroupName string, name string, workerPoolName string, instance string) (result ResourceMetricDefinitionCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -2866,13 +2895,15 @@ func (client AppServiceEnvironmentsClient) ListWorkerPoolInstanceMetricDefinitio
 }
 
 // ListWorkerPoolInstanceMetrics get metrics for a specific instance of a worker pool of an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. workerPoolName is name of the worker pool. instance is name of the instance in the worker pool.
-// details is specify <code>true</code> to include instance details. The default is <code>false</code>. filter is
-// return only usages/metrics specified in the filter. Filter conforms to odata syntax. Example:
-// $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z' and endTime
-// eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// workerPoolName - name of the worker pool.
+// instance - name of the instance in the worker pool.
+// details - specify <code>true</code> to include instance details. The default is <code>false</code>.
+// filter - return only usages/metrics specified in the filter. Filter conforms to odata syntax. Example:
+// $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z' and
+// endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
 func (client AppServiceEnvironmentsClient) ListWorkerPoolInstanceMetrics(ctx context.Context, resourceGroupName string, name string, workerPoolName string, instance string, details *bool, filter string) (result ResourceMetricCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -2928,7 +2959,7 @@ func (client AppServiceEnvironmentsClient) ListWorkerPoolInstanceMetricsPreparer
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
 		autorest.WithBaseURL(client.BaseURI),
-		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/hostingEnvironments/{name}/workerPools/{workerPoolName}/instances/{instance}metrics", pathParameters),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/hostingEnvironments/{name}/workerPools/{workerPoolName}/instances/{instance}/metrics", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -2981,9 +3012,9 @@ func (client AppServiceEnvironmentsClient) ListWorkerPoolInstanceMetricsComplete
 }
 
 // ListWorkerPools get all worker pools of an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) ListWorkerPools(ctx context.Context, resourceGroupName string, name string) (result WorkerPoolCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -3084,9 +3115,10 @@ func (client AppServiceEnvironmentsClient) ListWorkerPoolsComplete(ctx context.C
 }
 
 // ListWorkerPoolSkus get available SKUs for scaling a worker pool.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. workerPoolName is name of the worker pool.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// workerPoolName - name of the worker pool.
 func (client AppServiceEnvironmentsClient) ListWorkerPoolSkus(ctx context.Context, resourceGroupName string, name string, workerPoolName string) (result SkuInfoCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -3188,9 +3220,9 @@ func (client AppServiceEnvironmentsClient) ListWorkerPoolSkusComplete(ctx contex
 }
 
 // Reboot reboot all machines in an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) Reboot(ctx context.Context, resourceGroupName string, name string) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -3262,9 +3294,9 @@ func (client AppServiceEnvironmentsClient) RebootResponder(resp *http.Response) 
 }
 
 // Resume resume an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) Resume(ctx context.Context, resourceGroupName string, name string) (result AppServiceEnvironmentsResumeFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -3313,15 +3345,17 @@ func (client AppServiceEnvironmentsClient) ResumePreparer(ctx context.Context, r
 // ResumeSender sends the Resume request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) ResumeSender(req *http.Request) (future AppServiceEnvironmentsResumeFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -3367,14 +3401,13 @@ func (client AppServiceEnvironmentsClient) ResumeComplete(ctx context.Context, r
 	var future AppServiceEnvironmentsResumeFuture
 	future, err = client.Resume(ctx, resourceGroupName, name)
 	result.Future = future.Future
-	result.req = future.req
 	return
 }
 
 // Suspend suspend an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
 func (client AppServiceEnvironmentsClient) Suspend(ctx context.Context, resourceGroupName string, name string) (result AppServiceEnvironmentsSuspendFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -3423,15 +3456,17 @@ func (client AppServiceEnvironmentsClient) SuspendPreparer(ctx context.Context, 
 // SuspendSender sends the Suspend request. The method will close the
 // http.Response Body if it receives an error.
 func (client AppServiceEnvironmentsClient) SuspendSender(req *http.Request) (future AppServiceEnvironmentsSuspendFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -3477,14 +3512,14 @@ func (client AppServiceEnvironmentsClient) SuspendComplete(ctx context.Context, 
 	var future AppServiceEnvironmentsSuspendFuture
 	future, err = client.Suspend(ctx, resourceGroupName, name)
 	result.Future = future.Future
-	result.req = future.req
 	return
 }
 
 // Update create or update an App Service Environment.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. hostingEnvironmentEnvelope is configuration details of the App Service Environment.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// hostingEnvironmentEnvelope - configuration details of the App Service Environment.
 func (client AppServiceEnvironmentsClient) Update(ctx context.Context, resourceGroupName string, name string, hostingEnvironmentEnvelope AppServiceEnvironmentPatchResource) (result AppServiceEnvironmentResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -3529,7 +3564,7 @@ func (client AppServiceEnvironmentsClient) UpdatePreparer(ctx context.Context, r
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/hostingEnvironments/{name}", pathParameters),
@@ -3559,9 +3594,10 @@ func (client AppServiceEnvironmentsClient) UpdateResponder(resp *http.Response) 
 }
 
 // UpdateMultiRolePool create or update a multi-role pool.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. multiRolePoolEnvelope is properties of the multi-role pool.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// multiRolePoolEnvelope - properties of the multi-role pool.
 func (client AppServiceEnvironmentsClient) UpdateMultiRolePool(ctx context.Context, resourceGroupName string, name string, multiRolePoolEnvelope WorkerPoolResource) (result WorkerPoolResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -3606,7 +3642,7 @@ func (client AppServiceEnvironmentsClient) UpdateMultiRolePoolPreparer(ctx conte
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/hostingEnvironments/{name}/multiRolePools/default", pathParameters),
@@ -3636,9 +3672,11 @@ func (client AppServiceEnvironmentsClient) UpdateMultiRolePoolResponder(resp *ht
 }
 
 // UpdateWorkerPool create or update a worker pool.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. name is name of the App Service
-// Environment. workerPoolName is name of the worker pool. workerPoolEnvelope is properties of the worker pool.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// name - name of the App Service Environment.
+// workerPoolName - name of the worker pool.
+// workerPoolEnvelope - properties of the worker pool.
 func (client AppServiceEnvironmentsClient) UpdateWorkerPool(ctx context.Context, resourceGroupName string, name string, workerPoolName string, workerPoolEnvelope WorkerPoolResource) (result WorkerPoolResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -3684,7 +3722,7 @@ func (client AppServiceEnvironmentsClient) UpdateWorkerPoolPreparer(ctx context.
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/hostingEnvironments/{name}/workerPools/{workerPoolName}", pathParameters),

@@ -8,7 +8,7 @@
 
 CFSSL is CloudFlare's PKI/TLS swiss army knife. It is both a command line
 tool and an HTTP API server for signing, verifying, and bundling TLS
-certificates. It requires Go 1.6+ to build.
+certificates. It requires Go 1.8+ to build.
 
 Note that certain linux distributions have certain algorithms removed
 (RHEL-based distributions in particular), so the golang from the
@@ -34,7 +34,7 @@ See [BUILDING](BUILDING.md)
 ### Installation
 
 Installation requires a
-[working Go 1.6+ installation](http://golang.org/doc/install) and a
+[working Go 1.8+ installation](http://golang.org/doc/install) and a
 properly set `GOPATH`.
 
 ```
@@ -45,7 +45,7 @@ will download and build the CFSSL tool, installing it in
 `$GOPATH/bin/cfssl`.
 
 To install any of the other utility programs that are
-in this repo (for instance `cffsljson` in this case):
+in this repo (for instance `cfssljson` in this case):
 
 ```
 $ go get -u github.com/cloudflare/cfssl/cmd/cfssljson
@@ -63,29 +63,6 @@ $ go get -u github.com/cloudflare/cfssl/cmd/...
 This will download, build, and install all of the utility programs
 (including `cfssl`, `cfssljson`, and `mkbundle` among others) into the
 `$GOPATH/bin/` directory.
-
-#### Installing pre-Go 1.6
-
-With a Go 1.5 installation, CFSSL will still probably build. However,
-the test system uses [`golint`](https://github.com/golang/lint), which
-no longer works on Go 1.5. As our test suite can't cover Go 1.5 anymore,
-we no longer support it.
-
-Note that CFSSL makes use of vendored packages; in Go 1.5, the
-`GO15VENDOREXPERIMENT` environment variable will need to be set, e.g.
-
-```
-export GO15VENDOREXPERIMENT=1
-```
-
-With a Go 1.4 or earlier installation, you won't be able to install the
-latest version of CFSSL. However, you can checkout the `1.1.0` release
-and build that.
-
-```
-git clone -b 1.1.0 https://github.com/cloudflare/cfssl.git $GOPATH/src/github.com/cloudflare/cfssl
-go get github.com/cloudflare/cfssl/cmd/cfssl
-```
 
 ### Using the Command Line Tool
 
@@ -403,52 +380,6 @@ pushd cli/serve && rice embed-go && popd
 ```
 
 Then building with `go build` will use the embedded resources.
-
-### Using a PKCS#11 hardware token / HSM
-
-For better security, you may wish to store your private key in an HSM or
-smartcard. The interface to both of these categories of device is described by
-the PKCS#11 spec. If you need to do approximately one signing operation per
-second or fewer, the Yubikey NEO and NEO-n are inexpensive smartcard options:
-
-        https://www.yubico.com/products/yubikey-hardware/yubikey-neo/
-
-In general you should look for a product that supports PIV (personal identity verification). If
-your signing needs are in the hundreds of signatures per second, you will need
-to purchase an expensive HSM (in the thousands to many thousands of USD).
-
-If you wish to try out the PKCS#11 signing modes without a hardware token, you
-can use the [SoftHSM](https://github.com/opendnssec/SoftHSMv1#softhsm)
-implementation. Please note that using SoftHSM simply stores your private key in
-a file on disk and does not increase security.
-
-To get started with your PKCS#11 token you will need to initialize it with a
-private key, PIN, and token label. The instructions to do this will be specific
-to each hardware device, and you should follow the instructions provided by your
-vendor. You will also need to find the path to your `module`, a shared object
-file (.so). Having initialized your device, you can query it to check your token
-label with:
-
-    pkcs11-tool --module <module path> --list-token-slots
-
-You'll also want to check the label of the private key you imported (or
-generated). Run the following command and look for a `Private Key Object`:
-
-    pkcs11-tool --module <module path> --pin <pin> \
-      --list-token-slots --login --list-objects
-
-You now have all the information you need to use your PKCS#11 token with CFSSL.
-CFSSL supports PKCS#11 for certificate signing and OCSP signing. To create a
-Signer (for certificate signing), import `signer/universal` and call NewSigner
-with a Root object containing the module, pin, token label and private label
-from above, plus a path to your certificate. The structure of the Root object is
-documented in `universal.go`.
-
-Alternately, you can construct a pkcs11key.Key or pkcs11key.Pool yourself, and
-pass it to ocsp.NewSigner (for OCSP) or local.NewSigner (for certificate
-signing). This will be necessary, for example, if you are using a single-session
-token like the Yubikey and need both OCSP signing and certificate signing at the
-same time.
 
 ### Additional Documentation
 

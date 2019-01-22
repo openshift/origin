@@ -17,6 +17,7 @@ limitations under the License.
 package auth
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -38,6 +39,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	externalclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
+	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/client-go/transport"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/api/testapi"
@@ -220,6 +222,15 @@ var (
   }
 }
 `
+	aLimitRange = `
+{
+  "apiVersion": "v1",
+  "kind": "LimitRange",
+  "metadata": {
+    "name": "a"%s
+  }
+}
+`
 	podNamespace = `
 {
   "apiVersion": "` + testapi.Groups[api.GroupName].GroupVersion().String() + `",
@@ -244,6 +255,15 @@ var (
   "kind": "Namespace",
   "metadata": {
 	"name": "forbidden-namespace"%s
+  }
+}
+`
+	limitRangeNamespace = `
+{
+  "apiVersion": "` + testapi.Groups[api.GroupName].GroupVersion().String() + `",
+  "kind": "Namespace",
+  "metadata": {
+	"name": "limitrange-namespace"%s
   }
 }
 `
@@ -409,6 +429,40 @@ func TestRBAC(t *testing.T) {
 				{superUser, "DELETE", "rbac.authorization.k8s.io", "rolebindings", "job-namespace", "pi", "", http.StatusOK},
 			},
 		},
+		{
+			bootstrapRoles: bootstrapRoles{
+				clusterRoles: []rbacapi.ClusterRole{
+					{
+						ObjectMeta: metav1.ObjectMeta{Name: "allow-all"},
+						Rules:      []rbacapi.PolicyRule{ruleAllowAll},
+					},
+					{
+						ObjectMeta: metav1.ObjectMeta{Name: "update-limitranges"},
+						Rules: []rbacapi.PolicyRule{
+							rbacapi.NewRule("update").Groups("").Resources("limitranges").RuleOrDie(),
+						},
+					},
+				},
+				clusterRoleBindings: []rbacapi.ClusterRoleBinding{
+					{
+						ObjectMeta: metav1.ObjectMeta{Name: "update-limitranges"},
+						Subjects: []rbacapi.Subject{
+							{Kind: "User", Name: "limitrange-updater"},
+						},
+						RoleRef: rbacapi.RoleRef{Kind: "ClusterRole", Name: "update-limitranges"},
+					},
+				},
+			},
+			requests: []request{
+				// Create the namespace used later in the test
+				{superUser, "POST", "", "namespaces", "", "", limitRangeNamespace, http.StatusCreated},
+
+				{"limitrange-updater", "PUT", "", "limitranges", "limitrange-namespace", "a", aLimitRange, http.StatusForbidden},
+				{superUser, "PUT", "", "limitranges", "limitrange-namespace", "a", aLimitRange, http.StatusCreated},
+				{superUser, "PUT", "", "limitranges", "limitrange-namespace", "a", aLimitRange, http.StatusOK},
+				{"limitrange-updater", "PUT", "", "limitranges", "limitrange-namespace", "a", aLimitRange, http.StatusOK},
+			},
+		},
 	}
 
 	for i, tc := range tests {
@@ -424,6 +478,7 @@ func TestRBAC(t *testing.T) {
 			"job-writer-namespace":             {Name: "job-writer-namespace"},
 			"nonescalating-rolebinding-writer": {Name: "nonescalating-rolebinding-writer"},
 			"pod-reader":                       {Name: "pod-reader"},
+			"limitrange-updater":               {Name: "limitrange-updater"},
 			"user-with-no-permissions":         {Name: "user-with-no-permissions"},
 		}))
 		_, s, closeFn := framework.RunAMaster(masterConfig)
@@ -530,7 +585,9 @@ func TestBootstrapping(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	_, err = watch.Until(30*time.Second, watcher, func(event watch.Event) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	_, err = watchtools.UntilWithoutRetry(ctx, watcher, func(event watch.Event) (bool, error) {
 		if event.Type != watch.Added {
 			return false, nil
 		}

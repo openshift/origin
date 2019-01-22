@@ -436,17 +436,57 @@ load test_helper
 
   local name=$(new_id)
 
-  run govc vm.disk.create -vm $vm -name $name -size 1G
+  run govc vm.disk.create -vm "$vm" -name "$name" -size 1G
   assert_success
-  result=$(govc device.ls -vm $vm | grep disk- | wc -l)
-  [ $result -eq 1 ]
+  result=$(govc device.ls -vm "$vm" | grep -c disk-)
+  [ "$result" -eq 1 ]
+  govc device.info -json -vm "$vm" disk-* | jq .Devices[].Backing.Sharing | grep -v sharingMultiWriter
 
   name=$(new_id)
 
-  run govc vm.disk.create -vm $vm -name $name -controller lsilogic-1000 -size 2G
+  run govc vm.disk.create -vm "$vm" -name "$vm/$name" -controller lsilogic-1000 -size 2G
   assert_success
-  result=$(govc device.ls -vm $vm | grep disk- | wc -l)
-  [ $result -eq 2 ]
+
+  result=$(govc device.ls -vm "$vm" | grep -c disk-)
+  [ "$result" -eq 2 ]
+}
+
+@test "vm.disk.share" {
+  esx_env
+
+  vm=$(new_empty_vm)
+
+  run govc vm.disk.create -vm "$vm" -name "$vm/shared.vmdk" -size 1G -eager -thick -sharing sharingMultiWriter
+  assert_success
+  govc device.info -json -vm "$vm" disk-* | jq .Devices[].Backing.Sharing | grep sharingMultiWriter
+
+  run govc vm.power -on "$vm"
+  assert_success
+
+  vm2=$(new_empty_vm)
+
+  run govc vm.disk.attach -vm "$vm2" -link=false -disk "$vm/shared.vmdk"
+  assert_success
+
+  run govc vm.power -on "$vm2"
+  assert_failure # requires sharingMultiWriter
+
+  run govc device.remove -vm "$vm2" -keep disk-1000-0
+  assert_success
+
+  run govc vm.disk.attach -vm "$vm2" -link=false -sharing sharingMultiWriter -disk "$vm/shared.vmdk"
+  assert_success
+
+  run govc vm.power -on "$vm2"
+  assert_success
+
+  run govc vm.power -off "$vm"
+  assert_success
+
+  run govc vm.disk.change -vm "$vm" -disk.filePath "[$GOVC_DATASTORE] $vm/shared.vmdk" -sharing sharingNone
+  assert_success
+
+  ! govc device.info -json -vm "$vm" disk-* | jq .Devices[].Backing.Sharing | grep sharingMultiWriter
 }
 
 @test "vm.disk.create" {
@@ -641,10 +681,31 @@ load test_helper
 @test "vm.migrate" {
   vcsim_env -cluster 2
 
-  vm=$(new_empty_vm)
+  host0=/DC0/host/DC0_C0/DC0_C0_H0
+  host1=/DC0/host/DC0_C0/DC0_C0_H1
+  moid0=$(govc find -maxdepth 0 -i $host0)
+  moid1=$(govc find -maxdepth 0 -i $host1)
+
+  vm=$(new_id)
+  run govc vm.create -on=false -host $host0 "$vm"
+  assert_success
+
+  # assert VM is on H0
+  run govc object.collect "vm/$vm" -runtime.host "$moid0"
+  assert_success
+
+  # WaitForUpdates until the VM runtime.host changes to H1
+  govc object.collect "vm/$vm" -runtime.host "$moid1" &
+  pid=$!
 
   # migrate from H0 to H1
-  run govc vm.migrate -host DC0_C0/DC0_C0_H1 "$vm"
+  run govc vm.migrate -host $host1 "$vm"
+  assert_success
+
+  wait $pid
+
+  # (re-)assert VM is now on H1
+  run govc object.collect "vm/$vm" -runtime.host "$moid1"
   assert_success
 
   # migrate from C0 to C1

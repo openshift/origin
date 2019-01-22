@@ -61,6 +61,23 @@ func TestEtcdStoragePath(t *testing.T) {
 
 	etcdStorageData := GetEtcdStorageData()
 
+	client := &allClient{dynamicClient: dynamic.NewForConfigOrDie(clientConfig)}
+	kubeClient := clientset.NewForConfigOrDie(clientConfig)
+	if _, err := kubeClient.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}); err != nil {
+		t.Fatal(err)
+	}
+
+	discoveryClient := cacheddiscovery.NewMemCacheClient(kubeClient.Discovery())
+	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
+	restMapper.Reset()
+
+	resourcesToPersist := []resourceToPersist{}
+	serverResources, err := kubeClient.Discovery().ServerResources()
+	if err != nil {
+		t.Fatal(err)
+	}
+	resourcesToPersist = append(resourcesToPersist, getResourcesToPersist(serverResources, false, t)...)
+
 	kindSeen := sets.NewString()
 	pathSeen := map[string][]schema.GroupVersionResource{}
 	etcdSeen := map[schema.GroupVersionResource]empty{}
@@ -99,6 +116,10 @@ func TestEtcdStoragePath(t *testing.T) {
 				if input, err = jsonToMetaObject([]byte(testData.Stub)); err != nil || input.isEmpty() {
 					t.Fatalf("invalid test data for %s: %v", gvResource, err)
 				}
+				// unset type meta fields - we only set these in the CRD test data and it makes
+				// any CRD test with an expectedGVK override fail the DeepDerivative test
+				input.Kind = ""
+				input.APIVersion = ""
 			}
 
 			all := &[]cleanupData{}

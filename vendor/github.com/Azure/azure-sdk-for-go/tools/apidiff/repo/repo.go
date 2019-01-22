@@ -60,6 +60,22 @@ func Get(dir string) (wt WorkingTree, err error) {
 	return
 }
 
+// Branch calls "git branch" to determine the current branch.
+func (tw WorkingTree) Branch() (string, error) {
+	cmd := exec.Command("git", "branch")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", errors.New(string(output))
+	}
+	branches := strings.Split(string(output), "\n")
+	for _, branch := range branches {
+		if branch[0] == '*' {
+			return branch[2:], nil
+		}
+	}
+	return "", fmt.Errorf("failed to determine active branch: %s", strings.Join(branches, ","))
+}
+
 // Clone calls "git clone", cloning the working tree into the specified directory.
 // The returned WorkingTree points to the clone of the repository.
 func (wt WorkingTree) Clone(dest string) (result WorkingTree, err error) {
@@ -73,9 +89,9 @@ func (wt WorkingTree) Clone(dest string) (result WorkingTree, err error) {
 	return
 }
 
-// Checkout calls "git checkout" with the specified hash.
-func (wt WorkingTree) Checkout(hash string) error {
-	cmd := exec.Command("git", "checkout", hash)
+// Checkout calls "git checkout" with the specified tree.
+func (wt WorkingTree) Checkout(tree string) error {
+	cmd := exec.Command("git", "checkout", tree)
 	cmd.Dir = wt.dir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -87,4 +103,44 @@ func (wt WorkingTree) Checkout(hash string) error {
 // Root returns the root directory of the working tree.
 func (wt WorkingTree) Root() string {
 	return wt.dir
+}
+
+// CherryCommit contains an entry returned by the "git cherry" command.
+type CherryCommit struct {
+	// Hash is the SHA1 of the commit.
+	Hash string
+
+	// Found indicates if the commit was found in the upstream branch.
+	Found bool
+}
+
+// Cherry calls "git cherry" with the specified value for upstream.
+// Returns a slice of commits yet to be applied to the specified upstream branch.
+func (wt WorkingTree) Cherry(upstream string) ([]CherryCommit, error) {
+	cmd := exec.Command("git", "cherry", upstream)
+	cmd.Dir = wt.dir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, errors.New(string(output))
+	}
+
+	items := strings.Split(string(output), "\n")
+	// skip the last entry as it's just an empty string
+	commits := make([]CherryCommit, len(items)-1, len(items)-1)
+	for i := 0; i < len(items)-1; i++ {
+		commits[i].Found = items[i][0] == '-'
+		commits[i].Hash = items[i][2:]
+	}
+	return commits, nil
+}
+
+// CherryPick calls "git cherry-pick" with the specified commit.
+func (wt WorkingTree) CherryPick(commit string) error {
+	cmd := exec.Command("git", "cherry-pick", commit)
+	cmd.Dir = wt.dir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return errors.New(string(output))
+	}
+	return nil
 }

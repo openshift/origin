@@ -1,6 +1,4 @@
-// +build linux
-
-package gcplogs
+package gcplogs // import "github.com/docker/docker/daemon/logger/gcplogs"
 
 import (
 	"os"

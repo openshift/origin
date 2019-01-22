@@ -1,4 +1,4 @@
-// Package prediction implements the Azure ARM Prediction service API version 1.1.
+// Package prediction implements the Azure ARM Prediction service API version 2.0.
 //
 //
 package prediction
@@ -31,7 +31,7 @@ import (
 
 const (
 	// DefaultBaseURI is the default URI used for the service Prediction
-	DefaultBaseURI = "https://southcentralus.api.cognitive.microsoft.com/customvision/v1.1/Prediction"
+	DefaultBaseURI = "https://southcentralus.api.cognitive.microsoft.com/customvision/v2.0/Prediction"
 )
 
 // BaseClient is the base client for Prediction.
@@ -56,12 +56,12 @@ func NewWithBaseURI(baseURI string, aPIKey string) BaseClient {
 }
 
 // PredictImage sends the predict image request.
-//
-// projectID is the project id imageData will be closed upon successful return. Callers should ensure closure when
-// receiving an error.iterationID is optional. Specifies the id of a particular iteration to evaluate against.
-// The default iteration for the project will be used when not specified application is optional. Specifies the
-// name of application using the endpoint
-func (client BaseClient) PredictImage(ctx context.Context, projectID uuid.UUID, imageData io.ReadCloser, iterationID *uuid.UUID, application string) (result ImagePredictionResultModel, err error) {
+// Parameters:
+// projectID - the project id
+// iterationID - optional. Specifies the id of a particular iteration to evaluate against.
+// The default iteration for the project will be used when not specified
+// application - optional. Specifies the name of application using the endpoint
+func (client BaseClient) PredictImage(ctx context.Context, projectID uuid.UUID, imageData io.ReadCloser, iterationID *uuid.UUID, application string) (result ImagePrediction, err error) {
 	req, err := client.PredictImagePreparer(ctx, projectID, imageData, iterationID, application)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "prediction.BaseClient", "PredictImage", nil, "Failure preparing request")
@@ -120,7 +120,7 @@ func (client BaseClient) PredictImageSender(req *http.Request) (*http.Response, 
 
 // PredictImageResponder handles the response to the PredictImage request. The method always
 // closes the http.Response Body.
-func (client BaseClient) PredictImageResponder(resp *http.Response) (result ImagePredictionResultModel, err error) {
+func (client BaseClient) PredictImageResponder(resp *http.Response) (result ImagePrediction, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -132,12 +132,13 @@ func (client BaseClient) PredictImageResponder(resp *http.Response) (result Imag
 }
 
 // PredictImageURL sends the predict image url request.
-//
-// projectID is the project id imageURL is an {Iris.Web.Api.Models.ImageUrl} that contains the url of the image to
-// be evaluated iterationID is optional. Specifies the id of a particular iteration to evaluate against.
-// The default iteration for the project will be used when not specified application is optional. Specifies the
-// name of application using the endpoint
-func (client BaseClient) PredictImageURL(ctx context.Context, projectID uuid.UUID, imageURL ImageURL, iterationID *uuid.UUID, application string) (result ImagePredictionResultModel, err error) {
+// Parameters:
+// projectID - the project id
+// imageURL - an {Iris.Web.Api.Models.ImageUrl} that contains the url of the image to be evaluated
+// iterationID - optional. Specifies the id of a particular iteration to evaluate against.
+// The default iteration for the project will be used when not specified
+// application - optional. Specifies the name of application using the endpoint
+func (client BaseClient) PredictImageURL(ctx context.Context, projectID uuid.UUID, imageURL ImageURL, iterationID *uuid.UUID, application string) (result ImagePrediction, err error) {
 	req, err := client.PredictImageURLPreparer(ctx, projectID, imageURL, iterationID, application)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "prediction.BaseClient", "PredictImageURL", nil, "Failure preparing request")
@@ -193,7 +194,7 @@ func (client BaseClient) PredictImageURLSender(req *http.Request) (*http.Respons
 
 // PredictImageURLResponder handles the response to the PredictImageURL request. The method always
 // closes the http.Response Body.
-func (client BaseClient) PredictImageURLResponder(resp *http.Response) (result ImagePredictionResultModel, err error) {
+func (client BaseClient) PredictImageURLResponder(resp *http.Response) (result ImagePrediction, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -205,12 +206,13 @@ func (client BaseClient) PredictImageURLResponder(resp *http.Response) (result I
 }
 
 // PredictImageURLWithNoStore sends the predict image url with no store request.
-//
-// projectID is the project id imageURL is an {Iris.Web.Api.Models.ImageUrl} that contains the url of the image to
-// be evaluated iterationID is optional. Specifies the id of a particular iteration to evaluate against.
-// The default iteration for the project will be used when not specified application is optional. Specifies the
-// name of application using the endpoint
-func (client BaseClient) PredictImageURLWithNoStore(ctx context.Context, projectID uuid.UUID, imageURL ImageURL, iterationID *uuid.UUID, application string) (result ImagePredictionResultModel, err error) {
+// Parameters:
+// projectID - the project id
+// imageURL - an {Iris.Web.Api.Models.ImageUrl} that contains the url of the image to be evaluated
+// iterationID - optional. Specifies the id of a particular iteration to evaluate against.
+// The default iteration for the project will be used when not specified
+// application - optional. Specifies the name of application using the endpoint
+func (client BaseClient) PredictImageURLWithNoStore(ctx context.Context, projectID uuid.UUID, imageURL ImageURL, iterationID *uuid.UUID, application string) (result ImagePrediction, err error) {
 	req, err := client.PredictImageURLWithNoStorePreparer(ctx, projectID, imageURL, iterationID, application)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "prediction.BaseClient", "PredictImageURLWithNoStore", nil, "Failure preparing request")
@@ -266,7 +268,7 @@ func (client BaseClient) PredictImageURLWithNoStoreSender(req *http.Request) (*h
 
 // PredictImageURLWithNoStoreResponder handles the response to the PredictImageURLWithNoStore request. The method always
 // closes the http.Response Body.
-func (client BaseClient) PredictImageURLWithNoStoreResponder(resp *http.Response) (result ImagePredictionResultModel, err error) {
+func (client BaseClient) PredictImageURLWithNoStoreResponder(resp *http.Response) (result ImagePrediction, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
@@ -278,12 +280,12 @@ func (client BaseClient) PredictImageURLWithNoStoreResponder(resp *http.Response
 }
 
 // PredictImageWithNoStore sends the predict image with no store request.
-//
-// projectID is the project id imageData will be closed upon successful return. Callers should ensure closure when
-// receiving an error.iterationID is optional. Specifies the id of a particular iteration to evaluate against.
-// The default iteration for the project will be used when not specified application is optional. Specifies the
-// name of application using the endpoint
-func (client BaseClient) PredictImageWithNoStore(ctx context.Context, projectID uuid.UUID, imageData io.ReadCloser, iterationID *uuid.UUID, application string) (result ImagePredictionResultModel, err error) {
+// Parameters:
+// projectID - the project id
+// iterationID - optional. Specifies the id of a particular iteration to evaluate against.
+// The default iteration for the project will be used when not specified
+// application - optional. Specifies the name of application using the endpoint
+func (client BaseClient) PredictImageWithNoStore(ctx context.Context, projectID uuid.UUID, imageData io.ReadCloser, iterationID *uuid.UUID, application string) (result ImagePrediction, err error) {
 	req, err := client.PredictImageWithNoStorePreparer(ctx, projectID, imageData, iterationID, application)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "prediction.BaseClient", "PredictImageWithNoStore", nil, "Failure preparing request")
@@ -342,7 +344,7 @@ func (client BaseClient) PredictImageWithNoStoreSender(req *http.Request) (*http
 
 // PredictImageWithNoStoreResponder handles the response to the PredictImageWithNoStore request. The method always
 // closes the http.Response Body.
-func (client BaseClient) PredictImageWithNoStoreResponder(resp *http.Response) (result ImagePredictionResultModel, err error) {
+func (client BaseClient) PredictImageWithNoStoreResponder(resp *http.Response) (result ImagePrediction, err error) {
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),

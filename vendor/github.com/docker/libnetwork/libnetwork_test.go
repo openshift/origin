@@ -10,6 +10,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/docker/docker/errdefs"
 	"github.com/docker/docker/pkg/plugins"
 	"github.com/docker/docker/pkg/reexec"
 	"github.com/docker/libnetwork"
@@ -209,7 +210,7 @@ func TestUnknownDriver(t *testing.T) {
 		t.Fatal("Expected to fail. But instead succeeded")
 	}
 
-	if _, ok := err.(types.NotFoundError); !ok {
+	if !errdefs.IsNotFound(err) {
 		t.Fatalf("Did not fail with expected error. Actual error: %v", err)
 	}
 }
@@ -221,7 +222,7 @@ func TestNilRemoteDriver(t *testing.T) {
 		t.Fatal("Expected to fail. But instead succeeded")
 	}
 
-	if _, ok := err.(types.NotFoundError); !ok {
+	if !errdefs.IsNotFound(err) {
 		t.Fatalf("Did not fail with expected error. Actual error: %v", err)
 	}
 }
@@ -417,7 +418,7 @@ func TestNetworkConfig(t *testing.T) {
 		libnetwork.NetworkOptionIpam("", "", ipamV4ConfList, nil, nil),
 		libnetwork.NetworkOptionIpam("", "", nil, ipamV6ConfList, nil),
 		libnetwork.NetworkOptionLabels(map[string]string{"number": "two"}),
-		libnetwork.NetworkOptionDriverOpts(map[string]string{"com.docker.network.mtu": "1600"}),
+		libnetwork.NetworkOptionDriverOpts(map[string]string{"com.docker.network.driver.mtu": "1600"}),
 	} {
 		_, err = controller.NewNetwork(bridgeNetType, "testBR", "",
 			libnetwork.NetworkOptionConfigFrom("config_network0"), opt)
@@ -1396,7 +1397,7 @@ func TestValidRemoteDriver(t *testing.T) {
 		libnetwork.NetworkOptionGeneric(getEmptyGenericOption()))
 	if err != nil {
 		// Only fail if we could not find the plugin driver
-		if _, ok := err.(types.NotFoundError); ok {
+		if errdefs.IsNotFound(err) {
 			t.Fatal(err)
 		}
 		return
@@ -1409,12 +1410,12 @@ func TestValidRemoteDriver(t *testing.T) {
 }
 
 var (
-	once   sync.Once
-	start  = make(chan struct{})
-	done   = make(chan chan struct{}, numThreads-1)
-	origns = netns.None()
-	testns = netns.None()
-	sboxes = make([]libnetwork.Sandbox, numThreads)
+	once    sync.Once
+	start   = make(chan struct{})
+	done    = make(chan chan struct{}, numThreads-1)
+	origins = netns.None()
+	testns  = netns.None()
+	sboxes  = make([]libnetwork.Sandbox, numThreads)
 )
 
 const (
@@ -1429,13 +1430,13 @@ func createGlobalInstance(t *testing.T) {
 	var err error
 	defer close(start)
 
-	origns, err = netns.Get()
+	origins, err = netns.Get()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	if testutils.IsRunningInContainer() {
-		testns = origns
+		testns = origins
 	} else {
 		testns, err = netns.New()
 		if err != nil {

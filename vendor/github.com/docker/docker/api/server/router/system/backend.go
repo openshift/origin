@@ -1,12 +1,13 @@
-package system
+package system // import "github.com/docker/docker/api/server/router/system"
 
 import (
+	"context"
 	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/api/types/filters"
-	"golang.org/x/net/context"
+	"github.com/docker/docker/api/types/swarm"
 )
 
 // Backend is the methods that need to be implemented to provide
@@ -18,4 +19,10 @@ type Backend interface {
 	SubscribeToEvents(since, until time.Time, ef filters.Args) ([]events.Message, chan interface{})
 	UnsubscribeFromEvents(chan interface{})
 	AuthenticateToRegistry(ctx context.Context, authConfig *types.AuthConfig) (string, string, error)
+}
+
+// ClusterBackend is all the methods that need to be implemented
+// to provide cluster system specific functionality.
+type ClusterBackend interface {
+	Info() swarm.Info
 }

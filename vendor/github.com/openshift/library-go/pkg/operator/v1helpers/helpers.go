@@ -123,7 +123,7 @@ func EnsureOperatorConfigExists(client dynamic.Interface, operatorConfigBytes []
 
 	_, err = client.Resource(gvr).Get(requiredOperatorConfig.GetName(), metav1.GetOptions{})
 	if errors.IsNotFound(err) {
-		if _, err := client.Resource(gvr).Create(requiredOperatorConfig); err != nil {
+		if _, err := client.Resource(gvr).Create(requiredOperatorConfig, metav1.CreateOptions{}); err != nil {
 			panic(err)
 		}
 		return

@@ -934,9 +934,13 @@ type LeaseTasksRequest struct {
 	// `lease_duration` will be truncated to the nearest second.
 	LeaseDuration string `json:"leaseDuration,omitempty"`
 
-	// MaxTasks: The maximum number of tasks to lease. The maximum that can
-	// be
-	// requested is 1000.
+	// MaxTasks: The maximum number of tasks to lease.
+	//
+	// The system will make a best effort to return as close to
+	// as
+	// `max_tasks` as possible.
+	//
+	// The largest that `max_tasks` can be is 1000.
 	MaxTasks int64 `json:"maxTasks,omitempty"`
 
 	// ResponseView: The response_view specifies which subset of the Task
@@ -1394,7 +1398,10 @@ type Queue struct {
 	// An App Engine queue is a queue that has an AppEngineHttpTarget.
 	AppEngineHttpTarget *AppEngineHttpTarget `json:"appEngineHttpTarget,omitempty"`
 
-	// Name: The queue name.
+	// Name: Caller-specified and required in CreateQueue,
+	// after which it becomes output only.
+	//
+	// The queue name.
 	//
 	// The queue name must have the following
 	// format:
@@ -1413,11 +1420,7 @@ type Queue struct {
 	//    For more information, see
 	// https://cloud.google.com/about/locations/.
 	// * `QUEUE_ID` can contain letters ([A-Za-z]), numbers ([0-9]), or
-	//   hyphens (-). The maximum length is 100
-	// characters.
-	//
-	// Caller-specified and required in CreateQueue,
-	// after which it becomes output only.
+	//   hyphens (-). The maximum length is 100 characters.
 	Name string `json:"name,omitempty"`
 
 	// PullTarget: Pull target.
@@ -2158,7 +2161,9 @@ type Task struct {
 	// `create_time` will be truncated to the nearest second.
 	CreateTime string `json:"createTime,omitempty"`
 
-	// Name: The task name.
+	// Name: Optionally caller-specified in CreateTask.
+	//
+	// The task name.
 	//
 	// The task name must have the following
 	// format:
@@ -2181,8 +2186,6 @@ type Task struct {
 	// * `TASK_ID` can contain only letters ([A-Za-z]), numbers ([0-9]),
 	//   hyphens (-), or underscores (_). The maximum length is 500
 	// characters.
-	//
-	// Optionally caller-specified in CreateTask.
 	Name string `json:"name,omitempty"`
 
 	// PullMessage: LeaseTasks to process the task. Can be
@@ -3668,7 +3671,7 @@ func (c *ProjectsLocationsQueuesPatchCall) Do(opts ...googleapi.CallOption) (*Qu
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "The queue name.\n\nThe queue name must have the following format:\n`projects/PROJECT_ID/locations/LOCATION_ID/queues/QUEUE_ID`\n\n* `PROJECT_ID` can contain letters ([A-Za-z]), numbers ([0-9]),\n   hyphens (-), colons (:), or periods (.).\n   For more information, see\n   [Identifying projects](/resource-manager/docs/creating-managing-projects#identifying_projects)\n* `LOCATION_ID` is the canonical ID for the queue's location.\n   The list of available locations can be obtained by calling\n   ListLocations.\n   For more information, see https://cloud.google.com/about/locations/.\n* `QUEUE_ID` can contain letters ([A-Za-z]), numbers ([0-9]), or\n  hyphens (-). The maximum length is 100 characters.\n\nCaller-specified and required in CreateQueue,\nafter which it becomes output only.",
+	//       "description": "Caller-specified and required in CreateQueue,\nafter which it becomes output only.\n\nThe queue name.\n\nThe queue name must have the following format:\n`projects/PROJECT_ID/locations/LOCATION_ID/queues/QUEUE_ID`\n\n* `PROJECT_ID` can contain letters ([A-Za-z]), numbers ([0-9]),\n   hyphens (-), colons (:), or periods (.).\n   For more information, see\n   [Identifying projects](/resource-manager/docs/creating-managing-projects#identifying_projects)\n* `LOCATION_ID` is the canonical ID for the queue's location.\n   The list of available locations can be obtained by calling\n   ListLocations.\n   For more information, see https://cloud.google.com/about/locations/.\n* `QUEUE_ID` can contain letters ([A-Za-z]), numbers ([0-9]), or\n  hyphens (-). The maximum length is 100 characters.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/locations/[^/]+/queues/[^/]+$",
 	//       "required": true,

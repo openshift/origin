@@ -5,7 +5,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/docker/libnetwork/common"
+	"github.com/docker/libnetwork/internal/setmatrix"
 )
 
 var (
@@ -54,7 +54,7 @@ type service struct {
 	// associated with it. At stable state the endpoint ID expected is 1
 	// but during transition and service change it is possible to have
 	// temporary more than 1
-	ipToEndpoint common.SetMatrix
+	ipToEndpoint setmatrix.SetMatrix
 
 	deleted bool
 
@@ -79,14 +79,20 @@ func (s *service) printIPToEndpoint(ip string) (string, bool) {
 	return s.ipToEndpoint.String(ip)
 }
 
+type lbBackend struct {
+	ip       net.IP
+	disabled bool
+}
+
 type loadBalancer struct {
 	vip    net.IP
 	fwMark uint32
 
 	// Map of backend IPs backing this loadbalancer on this
 	// network. It is keyed with endpoint ID.
-	backEnds map[string]net.IP
+	backEnds map[string]*lbBackend
 
 	// Back pointer to service to which the loadbalancer belongs.
 	service *service
+	sync.Mutex
 }

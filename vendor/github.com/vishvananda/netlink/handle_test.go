@@ -132,6 +132,31 @@ func TestHandleTimeout(t *testing.T) {
 	}
 }
 
+func TestHandleReceiveBuffer(t *testing.T) {
+	h, err := NewHandle()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer h.Delete()
+	if err := h.SetSocketReceiveBufferSize(65536, false); err != nil {
+		t.Fatal(err)
+	}
+	sizes, err := h.GetSocketReceiveBufferSize()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sizes) != len(h.sockets) {
+		t.Fatalf("Unexpected number of socket buffer sizes: %d (expected %d)",
+			len(sizes), len(h.sockets))
+	}
+	for _, s := range sizes {
+		if s < 65536 || s > 2*65536 {
+			t.Fatalf("Unexpected socket receive buffer size: %d (expected around %d)",
+				s, 65536)
+		}
+	}
+}
+
 func verifySockTimeVal(t *testing.T, fd int, tv syscall.Timeval) {
 	var (
 		tr syscall.Timeval

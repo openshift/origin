@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/date"
 	"github.com/Azure/go-autorest/autorest/to"
 	"net/http"
 )
@@ -49,6 +50,11 @@ const (
 	Weekend DayOfWeek = "Weekend"
 )
 
+// PossibleDayOfWeekValues returns an array of possible values for the DayOfWeek const type.
+func PossibleDayOfWeekValues() []DayOfWeek {
+	return []DayOfWeek{Everyday, Friday, Monday, Saturday, Sunday, Thursday, Tuesday, Wednesday, Weekend}
+}
+
 // KeyType enumerates the values for key type.
 type KeyType string
 
@@ -58,6 +64,11 @@ const (
 	// Secondary ...
 	Secondary KeyType = "Secondary"
 )
+
+// PossibleKeyTypeValues returns an array of possible values for the KeyType const type.
+func PossibleKeyTypeValues() []KeyType {
+	return []KeyType{Primary, Secondary}
+}
 
 // RebootType enumerates the values for reboot type.
 type RebootType string
@@ -71,6 +82,11 @@ const (
 	SecondaryNode RebootType = "SecondaryNode"
 )
 
+// PossibleRebootTypeValues returns an array of possible values for the RebootType const type.
+func PossibleRebootTypeValues() []RebootType {
+	return []RebootType{AllNodes, PrimaryNode, SecondaryNode}
+}
+
 // ReplicationRole enumerates the values for replication role.
 type ReplicationRole string
 
@@ -81,6 +97,11 @@ const (
 	ReplicationRoleSecondary ReplicationRole = "Secondary"
 )
 
+// PossibleReplicationRoleValues returns an array of possible values for the ReplicationRole const type.
+func PossibleReplicationRoleValues() []ReplicationRole {
+	return []ReplicationRole{ReplicationRolePrimary, ReplicationRoleSecondary}
+}
+
 // SkuFamily enumerates the values for sku family.
 type SkuFamily string
 
@@ -90,6 +111,11 @@ const (
 	// P ...
 	P SkuFamily = "P"
 )
+
+// PossibleSkuFamilyValues returns an array of possible values for the SkuFamily const type.
+func PossibleSkuFamilyValues() []SkuFamily {
+	return []SkuFamily{C, P}
+}
 
 // SkuName enumerates the values for sku name.
 type SkuName string
@@ -103,6 +129,11 @@ const (
 	Standard SkuName = "Standard"
 )
 
+// PossibleSkuNameValues returns an array of possible values for the SkuName const type.
+func PossibleSkuNameValues() []SkuName {
+	return []SkuName{Basic, Premium, Standard}
+}
+
 // AccessKeys redis cache access keys.
 type AccessKeys struct {
 	autorest.Response `json:"-"`
@@ -110,6 +141,14 @@ type AccessKeys struct {
 	PrimaryKey *string `json:"primaryKey,omitempty"`
 	// SecondaryKey - The current secondary key that clients can use to authenticate with Redis cache.
 	SecondaryKey *string `json:"secondaryKey,omitempty"`
+}
+
+// CheckNameAvailabilityParameters parameters body to pass for name availability check.
+type CheckNameAvailabilityParameters struct {
+	// Name - Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - Resource type. The only legal value of this property for checking redis cache name availability is 'Microsoft.Cache/redis'.
+	Type *string `json:"type,omitempty"`
 }
 
 // CommonProperties create/Update/Get common properties of the redis cache.
@@ -145,12 +184,11 @@ func (cp CommonProperties) MarshalJSON() ([]byte, error) {
 // CreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type CreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future CreateFuture) Result(client Client) (rt ResourceType, err error) {
+func (future *CreateFuture) Result(client Client) (rt ResourceType, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -158,34 +196,15 @@ func (future CreateFuture) Result(client Client) (rt ResourceType, err error) {
 		return
 	}
 	if !done {
-		return rt, azure.NewAsyncOpIncompleteError("redis.CreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rt, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "redis.CreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("redis.CreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rt.Response.Response, err = future.GetResult(sender); err == nil && rt.Response.Response.StatusCode != http.StatusNoContent {
+		rt, err = client.CreateResponder(rt.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "redis.CreateFuture", "Result", rt.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.CreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rt, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.CreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -319,12 +338,11 @@ func (cp CreateProperties) MarshalJSON() ([]byte, error) {
 // DeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type DeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future DeleteFuture) Result(client Client) (ar autorest.Response, err error) {
+func (future *DeleteFuture) Result(client Client) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -332,47 +350,21 @@ func (future DeleteFuture) Result(client Client) (ar autorest.Response, err erro
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("redis.DeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "redis.DeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("redis.DeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.DeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.DeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
 // ExportDataFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ExportDataFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ExportDataFuture) Result(client Client) (ar autorest.Response, err error) {
+func (future *ExportDataFuture) Result(client Client) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -380,35 +372,10 @@ func (future ExportDataFuture) Result(client Client) (ar autorest.Response, err 
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("redis.ExportDataFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.ExportDataResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "redis.ExportDataFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("redis.ExportDataFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.ExportDataFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.ExportDataResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.ExportDataFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -434,6 +401,24 @@ type FirewallRule struct {
 	Name *string `json:"name,omitempty"`
 	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for FirewallRule.
+func (fr FirewallRule) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if fr.FirewallRuleProperties != nil {
+		objectMap["properties"] = fr.FirewallRuleProperties
+	}
+	if fr.ID != nil {
+		objectMap["id"] = fr.ID
+	}
+	if fr.Name != nil {
+		objectMap["name"] = fr.Name
+	}
+	if fr.Type != nil {
+		objectMap["type"] = fr.Type
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for FirewallRule struct.
@@ -491,6 +476,15 @@ func (fr *FirewallRule) UnmarshalJSON(body []byte) error {
 type FirewallRuleCreateParameters struct {
 	// FirewallRuleProperties - Properties required to create a firewall rule .
 	*FirewallRuleProperties `json:"properties,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for FirewallRuleCreateParameters.
+func (frcp FirewallRuleCreateParameters) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if frcp.FirewallRuleProperties != nil {
+		objectMap["properties"] = frcp.FirewallRuleProperties
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for FirewallRuleCreateParameters struct.
@@ -637,12 +631,11 @@ type ForceRebootResponse struct {
 // ImportDataFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ImportDataFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ImportDataFuture) Result(client Client) (ar autorest.Response, err error) {
+func (future *ImportDataFuture) Result(client Client) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -650,35 +643,10 @@ func (future ImportDataFuture) Result(client Client) (ar autorest.Response, err 
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("redis.ImportDataFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.ImportDataResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "redis.ImportDataFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("redis.ImportDataFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.ImportDataFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.ImportDataResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.ImportDataFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -699,12 +667,11 @@ type LinkedServer struct {
 // LinkedServerCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type LinkedServerCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future LinkedServerCreateFuture) Result(client LinkedServerClient) (lswp LinkedServerWithProperties, err error) {
+func (future *LinkedServerCreateFuture) Result(client LinkedServerClient) (lswp LinkedServerWithProperties, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -712,34 +679,15 @@ func (future LinkedServerCreateFuture) Result(client LinkedServerClient) (lswp L
 		return
 	}
 	if !done {
-		return lswp, azure.NewAsyncOpIncompleteError("redis.LinkedServerCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		lswp, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "redis.LinkedServerCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("redis.LinkedServerCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if lswp.Response.Response, err = future.GetResult(sender); err == nil && lswp.Response.Response.StatusCode != http.StatusNoContent {
+		lswp, err = client.CreateResponder(lswp.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "redis.LinkedServerCreateFuture", "Result", lswp.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.LinkedServerCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	lswp, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.LinkedServerCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -748,6 +696,15 @@ func (future LinkedServerCreateFuture) Result(client LinkedServerClient) (lswp L
 type LinkedServerCreateParameters struct {
 	// LinkedServerCreateProperties - Properties required to create a linked server.
 	*LinkedServerCreateProperties `json:"properties,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for LinkedServerCreateParameters.
+func (lscp LinkedServerCreateParameters) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if lscp.LinkedServerCreateProperties != nil {
+		objectMap["properties"] = lscp.LinkedServerCreateProperties
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for LinkedServerCreateParameters struct.
@@ -807,6 +764,24 @@ type LinkedServerWithProperties struct {
 	Name *string `json:"name,omitempty"`
 	// Type - Resource type.
 	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for LinkedServerWithProperties.
+func (lswp LinkedServerWithProperties) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if lswp.LinkedServerProperties != nil {
+		objectMap["properties"] = lswp.LinkedServerProperties
+	}
+	if lswp.ID != nil {
+		objectMap["id"] = lswp.ID
+	}
+	if lswp.Name != nil {
+		objectMap["name"] = lswp.Name
+	}
+	if lswp.Type != nil {
+		objectMap["type"] = lswp.Type
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for LinkedServerWithProperties struct.
@@ -1065,6 +1040,15 @@ func (page ListResultPage) Values() []ResourceType {
 	return *page.lr.Value
 }
 
+// NotificationListResponse the response of listUpgradeNotifications.
+type NotificationListResponse struct {
+	autorest.Response `json:"-"`
+	// Value - List of all notifications.
+	Value *[]UpgradeNotification `json:"value,omitempty"`
+	// NextLink - Link for next set of notifications.
+	NextLink *string `json:"nextLink,omitempty"`
+}
+
 // Operation REST API operation
 type Operation struct {
 	// Name - Operation name: {provider}/{resource}/{operation}
@@ -1201,6 +1185,24 @@ type PatchSchedule struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for PatchSchedule.
+func (ps PatchSchedule) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if ps.ScheduleEntries != nil {
+		objectMap["properties"] = ps.ScheduleEntries
+	}
+	if ps.ID != nil {
+		objectMap["id"] = ps.ID
+	}
+	if ps.Name != nil {
+		objectMap["name"] = ps.Name
+	}
+	if ps.Type != nil {
+		objectMap["type"] = ps.Type
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for PatchSchedule struct.
 func (ps *PatchSchedule) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -1250,6 +1252,108 @@ func (ps *PatchSchedule) UnmarshalJSON(body []byte) error {
 	}
 
 	return nil
+}
+
+// PatchScheduleListResult the response of list patch schedules Redis operation.
+type PatchScheduleListResult struct {
+	autorest.Response `json:"-"`
+	// Value - Results of the list patch schedules operation.
+	Value *[]PatchSchedule `json:"value,omitempty"`
+	// NextLink - Link for next page of results.
+	NextLink *string `json:"nextLink,omitempty"`
+}
+
+// PatchScheduleListResultIterator provides access to a complete listing of PatchSchedule values.
+type PatchScheduleListResultIterator struct {
+	i    int
+	page PatchScheduleListResultPage
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *PatchScheduleListResultIterator) Next() error {
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err := iter.page.Next()
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter PatchScheduleListResultIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter PatchScheduleListResultIterator) Response() PatchScheduleListResult {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter PatchScheduleListResultIterator) Value() PatchSchedule {
+	if !iter.page.NotDone() {
+		return PatchSchedule{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (pslr PatchScheduleListResult) IsEmpty() bool {
+	return pslr.Value == nil || len(*pslr.Value) == 0
+}
+
+// patchScheduleListResultPreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (pslr PatchScheduleListResult) patchScheduleListResultPreparer() (*http.Request, error) {
+	if pslr.NextLink == nil || len(to.String(pslr.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare(&http.Request{},
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(pslr.NextLink)))
+}
+
+// PatchScheduleListResultPage contains a page of PatchSchedule values.
+type PatchScheduleListResultPage struct {
+	fn   func(PatchScheduleListResult) (PatchScheduleListResult, error)
+	pslr PatchScheduleListResult
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *PatchScheduleListResultPage) Next() error {
+	next, err := page.fn(page.pslr)
+	if err != nil {
+		return err
+	}
+	page.pslr = next
+	return nil
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page PatchScheduleListResultPage) NotDone() bool {
+	return !page.pslr.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page PatchScheduleListResultPage) Response() PatchScheduleListResult {
+	return page.pslr
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page PatchScheduleListResultPage) Values() []PatchSchedule {
+	if page.pslr.IsEmpty() {
+		return nil
+	}
+	return *page.pslr.Value
 }
 
 // Properties properties of the redis cache.
@@ -1636,6 +1740,31 @@ func (up UpdateProperties) MarshalJSON() ([]byte, error) {
 	}
 	if up.ShardCount != nil {
 		objectMap["shardCount"] = up.ShardCount
+	}
+	return json.Marshal(objectMap)
+}
+
+// UpgradeNotification properties of upgrade notification.
+type UpgradeNotification struct {
+	// Name - Name of upgrade notification.
+	Name *string `json:"name,omitempty"`
+	// Timestamp - Timestamp when upgrade notification occured.
+	Timestamp *date.Time `json:"timestamp,omitempty"`
+	// UpsellNotification - Details about this upgrade notification
+	UpsellNotification map[string]*string `json:"upsellNotification"`
+}
+
+// MarshalJSON is the custom marshaler for UpgradeNotification.
+func (un UpgradeNotification) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if un.Name != nil {
+		objectMap["name"] = un.Name
+	}
+	if un.Timestamp != nil {
+		objectMap["timestamp"] = un.Timestamp
+	}
+	if un.UpsellNotification != nil {
+		objectMap["upsellNotification"] = un.UpsellNotification
 	}
 	return json.Marshal(objectMap)
 }

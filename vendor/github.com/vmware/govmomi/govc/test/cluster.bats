@@ -72,8 +72,28 @@ load test_helper
   run govc cluster.rule.create -cluster DC0_C0 -name pod1 -affinity DC0_C0_RP0_VM{0,1,2,3}
   assert_success
 
+  run govc cluster.rule.ls -cluster DC0_C0
+  assert_success "pod1"
+
+  run govc cluster.rule.ls -cluster DC0_C0 -l=true
+  assert_success "pod1 (ClusterAffinityRuleSpec)"
+
   run govc cluster.rule.ls -cluster DC0_C0 -name pod1
   assert_success "$(printf "%s\n" DC0_C0_RP0_VM{0,1,2,3})"
+
+  run govc cluster.rule.ls -cluster DC0_C0 -name pod1 -l=true
+  assert_success "$(printf "%s (VM)\n" DC0_C0_RP0_VM{0,1,2,3})"
+
+  run govc cluster.rule.info -cluster DC0_C0
+  assert_success "$(cat <<_EOF_
+Rule: pod1
+  Type: ClusterAffinityRuleSpec
+  VM: DC0_C0_RP0_VM0
+  VM: DC0_C0_RP0_VM1
+  VM: DC0_C0_RP0_VM2
+  VM: DC0_C0_RP0_VM3
+_EOF_
+)"
 
   run govc cluster.rule.change -cluster DC0_C0 -name pod1 DC0_C0_RP0_VM{2,3,4}
   assert_success
@@ -99,6 +119,15 @@ load test_helper
   run govc cluster.rule.remove -cluster DC0_C0 -name pod1
   assert_success
 
+  run govc cluster.rule.ls -cluster DC0_C0 -l
+  assert_success "pod2 (ClusterVmHostRuleInfo)"
+
+  run govc cluster.rule.ls -cluster DC0_C0 -name pod2
+  assert_success "$(printf "%s\n" {my_vms,even_hosts,odd_hosts})"
+
+  run govc cluster.rule.ls -cluster DC0_C0 -name pod2 -l
+  assert_success "$(printf "%s\n" {'my_vms (vmGroupName)','even_hosts (affineHostGroupName)','odd_hosts (antiAffineHostGroupName)'})"
+
   run govc cluster.rule.remove -cluster DC0_C0 -name pod1 -depends
   assert_failure # rule does not exist
 
@@ -113,6 +142,30 @@ load test_helper
 
   run govc cluster.rule.create -cluster DC0_C0 -name my_deps -depends my_app my_db
   assert_success
+
+  run govc cluster.rule.ls -cluster DC0_C0 -l
+  assert_success "$(printf "%s\n" {'pod2 (ClusterVmHostRuleInfo)','my_deps (ClusterDependencyRuleInfo)'})"
+
+  run govc cluster.rule.ls -cluster DC0_C0 -name my_deps
+  assert_success "$(printf "%s\n" {'my_app','my_db'})"
+
+  run govc cluster.rule.ls -cluster DC0_C0 -name my_deps -l
+  assert_success "$(printf "%s\n" {'my_app (VmGroup)','my_db (DependsOnVmGroup)'})"
+
+  run govc cluster.rule.info -cluster DC0_C0
+  assert_success "$(cat <<_EOF_
+Rule: pod2
+  Type: ClusterVmHostRuleInfo
+  vmGroupName: my_vms
+  affineHostGroupName even_hosts
+  antiAffineHostGroupName odd_hosts
+Rule: my_deps
+  Type: ClusterDependencyRuleInfo
+  VmGroup my_app
+  DependsOnVmGroup my_db
+_EOF_
+)"
+
 }
 
 @test "cluster.vm" {

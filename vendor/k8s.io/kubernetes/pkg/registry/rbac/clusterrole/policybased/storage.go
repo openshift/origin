@@ -22,7 +22,9 @@ import (
 	"errors"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/apis/rbac"
@@ -35,11 +37,13 @@ var groupResource = rbac.Resource("clusterroles")
 type Storage struct {
 	rest.StandardStorage
 
+	authorizer authorizer.Authorizer
+
 	ruleResolver rbacregistryvalidation.AuthorizationRuleResolver
 }
 
-func NewStorage(s rest.StandardStorage, ruleResolver rbacregistryvalidation.AuthorizationRuleResolver) *Storage {
-	return &Storage{s, ruleResolver}
+func NewStorage(s rest.StandardStorage, authorizer authorizer.Authorizer, ruleResolver rbacregistryvalidation.AuthorizationRuleResolver) *Storage {
+	return &Storage{s, authorizer, ruleResolver}
 }
 
 func (r *Storage) NamespaceScoped() bool {
@@ -51,9 +55,9 @@ var fullAuthority = []rbac.PolicyRule{
 	rbac.NewRule("*").URLs("*").RuleOrDie(),
 }
 
-func (s *Storage) Create(ctx context.Context, obj runtime.Object, createValidatingAdmission rest.ValidateObjectFunc, includeUninitialized bool) (runtime.Object, error) {
-	if rbacregistry.EscalationAllowed(ctx) {
-		return s.StandardStorage.Create(ctx, obj, createValidatingAdmission, includeUninitialized)
+func (s *Storage) Create(ctx context.Context, obj runtime.Object, createValidatingAdmission rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
+	if rbacregistry.EscalationAllowed(ctx) || rbacregistry.RoleEscalationAuthorized(ctx, s.authorizer) {
+		return s.StandardStorage.Create(ctx, obj, createValidatingAdmission, options)
 	}
 
 	clusterRole := obj.(*rbac.ClusterRole)
@@ -68,12 +72,12 @@ func (s *Storage) Create(ctx context.Context, obj runtime.Object, createValidati
 		}
 	}
 
-	return s.StandardStorage.Create(ctx, obj, createValidatingAdmission, includeUninitialized)
+	return s.StandardStorage.Create(ctx, obj, createValidatingAdmission, options)
 }
 
-func (s *Storage) Update(ctx context.Context, name string, obj rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
-	if rbacregistry.EscalationAllowed(ctx) {
-		return s.StandardStorage.Update(ctx, name, obj, createValidation, updateValidation)
+func (s *Storage) Update(ctx context.Context, name string, obj rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc, forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
+	if rbacregistry.EscalationAllowed(ctx) || rbacregistry.RoleEscalationAuthorized(ctx, s.authorizer) {
+		return s.StandardStorage.Update(ctx, name, obj, createValidation, updateValidation, forceAllowCreate, options)
 	}
 
 	nonEscalatingInfo := rest.WrapUpdatedObjectInfo(obj, func(ctx context.Context, obj runtime.Object, oldObj runtime.Object) (runtime.Object, error) {
@@ -99,7 +103,7 @@ func (s *Storage) Update(ctx context.Context, name string, obj rest.UpdatedObjec
 		return obj, nil
 	})
 
-	return s.StandardStorage.Update(ctx, name, nonEscalatingInfo, createValidation, updateValidation)
+	return s.StandardStorage.Update(ctx, name, nonEscalatingInfo, createValidation, updateValidation, forceAllowCreate, options)
 }
 
 func hasAggregationRule(clusterRole *rbac.ClusterRole) bool {

@@ -3,6 +3,7 @@
 package shield
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -10,11 +11,254 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 )
 
+const opAssociateDRTLogBucket = "AssociateDRTLogBucket"
+
+// AssociateDRTLogBucketRequest generates a "aws/request.Request" representing the
+// client's request for the AssociateDRTLogBucket operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See AssociateDRTLogBucket for more information on using the AssociateDRTLogBucket
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the AssociateDRTLogBucketRequest method.
+//    req, resp := client.AssociateDRTLogBucketRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/AssociateDRTLogBucket
+func (c *Shield) AssociateDRTLogBucketRequest(input *AssociateDRTLogBucketInput) (req *request.Request, output *AssociateDRTLogBucketOutput) {
+	op := &request.Operation{
+		Name:       opAssociateDRTLogBucket,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AssociateDRTLogBucketInput{}
+	}
+
+	output = &AssociateDRTLogBucketOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// AssociateDRTLogBucket API operation for AWS Shield.
+//
+// Authorizes the DDoS Response team (DRT) to access the specified Amazon S3
+// bucket containing your flow logs. You can associate up to 10 Amazon S3 buckets
+// with your subscription.
+//
+// To use the services of the DRT and make an AssociateDRTLogBucket request,
+// you must be subscribed to the Business Support plan (https://aws.amazon.com/premiumsupport/business-support/)
+// or the Enterprise Support plan (https://aws.amazon.com/premiumsupport/enterprise-support/).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Shield's
+// API operation AssociateDRTLogBucket for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalErrorException "InternalErrorException"
+//   Exception that indicates that a problem occurred with the service infrastructure.
+//   You can retry the request.
+//
+//   * ErrCodeInvalidOperationException "InvalidOperationException"
+//   Exception that indicates that the operation would not cause any change to
+//   occur.
+//
+//   * ErrCodeNoAssociatedRoleException "NoAssociatedRoleException"
+//   The ARN of the role that you specifed does not exist.
+//
+//   * ErrCodeLimitsExceededException "LimitsExceededException"
+//   Exception that indicates that the operation would exceed a limit.
+//
+//   Type is the type of limit that would be exceeded.
+//
+//   Limit is the threshold that would be exceeded.
+//
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   Exception that indicates that the parameters passed to the API are invalid.
+//
+//   * ErrCodeAccessDeniedForDependencyException "AccessDeniedForDependencyException"
+//   In order to grant the necessary access to the DDoS Response Team, the user
+//   submitting AssociateDRTRole must have the iam:PassRole permission. This error
+//   indicates the user did not have the appropriate permissions. For more information,
+//   see Granting a User Permissions to Pass a Role to an AWS Service (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html).
+//
+//   * ErrCodeOptimisticLockException "OptimisticLockException"
+//   Exception that indicates that the protection state has been modified by another
+//   client. You can retry the request.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   Exception indicating the specified resource does not exist.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/AssociateDRTLogBucket
+func (c *Shield) AssociateDRTLogBucket(input *AssociateDRTLogBucketInput) (*AssociateDRTLogBucketOutput, error) {
+	req, out := c.AssociateDRTLogBucketRequest(input)
+	return out, req.Send()
+}
+
+// AssociateDRTLogBucketWithContext is the same as AssociateDRTLogBucket with the addition of
+// the ability to pass a context and additional request options.
+//
+// See AssociateDRTLogBucket for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Shield) AssociateDRTLogBucketWithContext(ctx aws.Context, input *AssociateDRTLogBucketInput, opts ...request.Option) (*AssociateDRTLogBucketOutput, error) {
+	req, out := c.AssociateDRTLogBucketRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opAssociateDRTRole = "AssociateDRTRole"
+
+// AssociateDRTRoleRequest generates a "aws/request.Request" representing the
+// client's request for the AssociateDRTRole operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See AssociateDRTRole for more information on using the AssociateDRTRole
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the AssociateDRTRoleRequest method.
+//    req, resp := client.AssociateDRTRoleRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/AssociateDRTRole
+func (c *Shield) AssociateDRTRoleRequest(input *AssociateDRTRoleInput) (req *request.Request, output *AssociateDRTRoleOutput) {
+	op := &request.Operation{
+		Name:       opAssociateDRTRole,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &AssociateDRTRoleInput{}
+	}
+
+	output = &AssociateDRTRoleOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// AssociateDRTRole API operation for AWS Shield.
+//
+// Authorizes the DDoS Response team (DRT), using the specified role, to access
+// your AWS account to assist with DDoS attack mitigation during potential attacks.
+// This enables the DRT to inspect your AWS WAF configuration and create or
+// update AWS WAF rules and web ACLs.
+//
+// You can associate only one RoleArn with your subscription. If you submit
+// an AssociateDRTRole request for an account that already has an associated
+// role, the new RoleArn will replace the existing RoleArn.
+//
+// Prior to making the AssociateDRTRole request, you must attach the AWSShieldDRTAccessPolicy
+// (https://console.aws.amazon.com/iam/home?#/policies/arn:aws:iam::aws:policy/service-role/AWSShieldDRTAccessPolicy)
+// managed policy to the role you will specify in the request. For more information
+// see Attaching and Detaching IAM Policies ( https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_manage-attach-detach.html).
+// The role must also trust the service principal  drt.shield.amazonaws.com.
+// For more information, see IAM JSON Policy Elements: Principal (https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html).
+//
+// The DRT will have access only to your AWS WAF and Shield resources. By submitting
+// this request, you authorize the DRT to inspect your AWS WAF and Shield configuration
+// and create and update AWS WAF rules and web ACLs on your behalf. The DRT
+// takes these actions only if explicitly authorized by you.
+//
+// You must have the iam:PassRole permission to make an AssociateDRTRole request.
+// For more information, see Granting a User Permissions to Pass a Role to an
+// AWS Service (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html).
+//
+// To use the services of the DRT and make an AssociateDRTRole request, you
+// must be subscribed to the Business Support plan (https://aws.amazon.com/premiumsupport/business-support/)
+// or the Enterprise Support plan (https://aws.amazon.com/premiumsupport/enterprise-support/).
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Shield's
+// API operation AssociateDRTRole for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalErrorException "InternalErrorException"
+//   Exception that indicates that a problem occurred with the service infrastructure.
+//   You can retry the request.
+//
+//   * ErrCodeInvalidOperationException "InvalidOperationException"
+//   Exception that indicates that the operation would not cause any change to
+//   occur.
+//
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   Exception that indicates that the parameters passed to the API are invalid.
+//
+//   * ErrCodeAccessDeniedForDependencyException "AccessDeniedForDependencyException"
+//   In order to grant the necessary access to the DDoS Response Team, the user
+//   submitting AssociateDRTRole must have the iam:PassRole permission. This error
+//   indicates the user did not have the appropriate permissions. For more information,
+//   see Granting a User Permissions to Pass a Role to an AWS Service (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html).
+//
+//   * ErrCodeOptimisticLockException "OptimisticLockException"
+//   Exception that indicates that the protection state has been modified by another
+//   client. You can retry the request.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   Exception indicating the specified resource does not exist.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/AssociateDRTRole
+func (c *Shield) AssociateDRTRole(input *AssociateDRTRoleInput) (*AssociateDRTRoleOutput, error) {
+	req, out := c.AssociateDRTRoleRequest(input)
+	return out, req.Send()
+}
+
+// AssociateDRTRoleWithContext is the same as AssociateDRTRole with the addition of
+// the ability to pass a context and additional request options.
+//
+// See AssociateDRTRole for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Shield) AssociateDRTRoleWithContext(ctx aws.Context, input *AssociateDRTRoleInput, opts ...request.Option) (*AssociateDRTRoleOutput, error) {
+	req, out := c.AssociateDRTRoleRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opCreateProtection = "CreateProtection"
 
 // CreateProtectionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateProtection operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -35,7 +279,7 @@ const opCreateProtection = "CreateProtection"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/CreateProtection
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/CreateProtection
 func (c *Shield) CreateProtectionRequest(input *CreateProtectionInput) (req *request.Request, output *CreateProtectionOutput) {
 	op := &request.Operation{
 		Name:       opCreateProtection,
@@ -56,7 +300,13 @@ func (c *Shield) CreateProtectionRequest(input *CreateProtectionInput) (req *req
 //
 // Enables AWS Shield Advanced for a specific AWS resource. The resource can
 // be an Amazon CloudFront distribution, Elastic Load Balancing load balancer,
-// or an Amazon Route 53 hosted zone.
+// Elastic IP Address, or an Amazon Route 53 hosted zone.
+//
+// You can add protection to only a single resource with each CreateProtection
+// request. If you want to add protection to multiple resources at once, use
+// the AWS WAF console (https://console.aws.amazon.com/waf/). For more information
+// see Getting Started with AWS Shield Advanced (https://docs.aws.amazon.com/waf/latest/developerguide/getting-started-ddos.html)
+// and Add AWS Shield Advanced Protection to more AWS Resources (https://docs.aws.amazon.com/waf/latest/developerguide/configure-new-protection.html).
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -81,6 +331,10 @@ func (c *Shield) CreateProtectionRequest(input *CreateProtectionInput) (req *req
 //   * ErrCodeLimitsExceededException "LimitsExceededException"
 //   Exception that indicates that the operation would exceed a limit.
 //
+//   Type is the type of limit that would be exceeded.
+//
+//   Limit is the threshold that would be exceeded.
+//
 //   * ErrCodeResourceAlreadyExistsException "ResourceAlreadyExistsException"
 //   Exception indicating the specified resource already exists.
 //
@@ -91,7 +345,7 @@ func (c *Shield) CreateProtectionRequest(input *CreateProtectionInput) (req *req
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Exception indicating the specified resource does not exist.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/CreateProtection
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/CreateProtection
 func (c *Shield) CreateProtection(input *CreateProtectionInput) (*CreateProtectionOutput, error) {
 	req, out := c.CreateProtectionRequest(input)
 	return out, req.Send()
@@ -117,7 +371,7 @@ const opCreateSubscription = "CreateSubscription"
 
 // CreateSubscriptionRequest generates a "aws/request.Request" representing the
 // client's request for the CreateSubscription operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -138,7 +392,7 @@ const opCreateSubscription = "CreateSubscription"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/CreateSubscription
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/CreateSubscription
 func (c *Shield) CreateSubscriptionRequest(input *CreateSubscriptionInput) (req *request.Request, output *CreateSubscriptionOutput) {
 	op := &request.Operation{
 		Name:       opCreateSubscription,
@@ -159,6 +413,15 @@ func (c *Shield) CreateSubscriptionRequest(input *CreateSubscriptionInput) (req 
 //
 // Activates AWS Shield Advanced for an account.
 //
+// As part of this request you can specify EmergencySettings that automaticaly
+// grant the DDoS response team (DRT) needed permissions to assist you during
+// a suspected DDoS attack. For more information see Authorize the DDoS Response
+// Team to Create Rules and Web ACLs on Your Behalf (https://docs.aws.amazon.com/waf/latest/developerguide/authorize-DRT.html).
+//
+// When you initally create a subscription, your subscription is set to be automatically
+// renewed at the end of the existing subscription period. You can change this
+// by submitting an UpdateSubscription request.
+//
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
 // the error.
@@ -174,7 +437,7 @@ func (c *Shield) CreateSubscriptionRequest(input *CreateSubscriptionInput) (req 
 //   * ErrCodeResourceAlreadyExistsException "ResourceAlreadyExistsException"
 //   Exception indicating the specified resource already exists.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/CreateSubscription
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/CreateSubscription
 func (c *Shield) CreateSubscription(input *CreateSubscriptionInput) (*CreateSubscriptionOutput, error) {
 	req, out := c.CreateSubscriptionRequest(input)
 	return out, req.Send()
@@ -200,7 +463,7 @@ const opDeleteProtection = "DeleteProtection"
 
 // DeleteProtectionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteProtection operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -221,7 +484,7 @@ const opDeleteProtection = "DeleteProtection"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DeleteProtection
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DeleteProtection
 func (c *Shield) DeleteProtectionRequest(input *DeleteProtectionInput) (req *request.Request, output *DeleteProtectionOutput) {
 	op := &request.Operation{
 		Name:       opDeleteProtection,
@@ -261,7 +524,7 @@ func (c *Shield) DeleteProtectionRequest(input *DeleteProtectionInput) (req *req
 //   Exception that indicates that the protection state has been modified by another
 //   client. You can retry the request.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DeleteProtection
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DeleteProtection
 func (c *Shield) DeleteProtection(input *DeleteProtectionInput) (*DeleteProtectionOutput, error) {
 	req, out := c.DeleteProtectionRequest(input)
 	return out, req.Send()
@@ -287,7 +550,7 @@ const opDeleteSubscription = "DeleteSubscription"
 
 // DeleteSubscriptionRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteSubscription operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -308,8 +571,11 @@ const opDeleteSubscription = "DeleteSubscription"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DeleteSubscription
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DeleteSubscription
 func (c *Shield) DeleteSubscriptionRequest(input *DeleteSubscriptionInput) (req *request.Request, output *DeleteSubscriptionOutput) {
+	if c.Client.Config.Logger != nil {
+		c.Client.Config.Logger.Log("This operation, DeleteSubscription, has been deprecated")
+	}
 	op := &request.Operation{
 		Name:       opDeleteSubscription,
 		HTTPMethod: "POST",
@@ -327,7 +593,9 @@ func (c *Shield) DeleteSubscriptionRequest(input *DeleteSubscriptionInput) (req 
 
 // DeleteSubscription API operation for AWS Shield.
 //
-// Removes AWS Shield Advanced from an account.
+// Removes AWS Shield Advanced from an account. AWS Shield Advanced requires
+// a 1-year subscription commitment. You cannot delete a subscription prior
+// to the completion of that commitment.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -342,13 +610,15 @@ func (c *Shield) DeleteSubscriptionRequest(input *DeleteSubscriptionInput) (req 
 //   You can retry the request.
 //
 //   * ErrCodeLockedSubscriptionException "LockedSubscriptionException"
-//   Exception that indicates that the subscription has been modified by another
-//   client. You can retry the request.
+//   You are trying to update a subscription that has not yet completed the 1-year
+//   commitment. You can change the AutoRenew parameter during the last 30 days
+//   of your subscription. This exception indicates that you are attempting to
+//   change AutoRenew prior to that period.
 //
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Exception indicating the specified resource does not exist.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DeleteSubscription
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DeleteSubscription
 func (c *Shield) DeleteSubscription(input *DeleteSubscriptionInput) (*DeleteSubscriptionOutput, error) {
 	req, out := c.DeleteSubscriptionRequest(input)
 	return out, req.Send()
@@ -374,7 +644,7 @@ const opDescribeAttack = "DescribeAttack"
 
 // DescribeAttackRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAttack operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -395,7 +665,7 @@ const opDescribeAttack = "DescribeAttack"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeAttack
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeAttack
 func (c *Shield) DescribeAttackRequest(input *DescribeAttackInput) (req *request.Request, output *DescribeAttackOutput) {
 	op := &request.Operation{
 		Name:       opDescribeAttack,
@@ -431,7 +701,7 @@ func (c *Shield) DescribeAttackRequest(input *DescribeAttackInput) (req *request
 //   * ErrCodeInvalidParameterException "InvalidParameterException"
 //   Exception that indicates that the parameters passed to the API are invalid.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeAttack
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeAttack
 func (c *Shield) DescribeAttack(input *DescribeAttackInput) (*DescribeAttackOutput, error) {
 	req, out := c.DescribeAttackRequest(input)
 	return out, req.Send()
@@ -453,11 +723,180 @@ func (c *Shield) DescribeAttackWithContext(ctx aws.Context, input *DescribeAttac
 	return out, req.Send()
 }
 
+const opDescribeDRTAccess = "DescribeDRTAccess"
+
+// DescribeDRTAccessRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeDRTAccess operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeDRTAccess for more information on using the DescribeDRTAccess
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeDRTAccessRequest method.
+//    req, resp := client.DescribeDRTAccessRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeDRTAccess
+func (c *Shield) DescribeDRTAccessRequest(input *DescribeDRTAccessInput) (req *request.Request, output *DescribeDRTAccessOutput) {
+	op := &request.Operation{
+		Name:       opDescribeDRTAccess,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeDRTAccessInput{}
+	}
+
+	output = &DescribeDRTAccessOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeDRTAccess API operation for AWS Shield.
+//
+// Returns the current role and list of Amazon S3 log buckets used by the DDoS
+// Response team (DRT) to access your AWS account while assisting with attack
+// mitigation.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Shield's
+// API operation DescribeDRTAccess for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalErrorException "InternalErrorException"
+//   Exception that indicates that a problem occurred with the service infrastructure.
+//   You can retry the request.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   Exception indicating the specified resource does not exist.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeDRTAccess
+func (c *Shield) DescribeDRTAccess(input *DescribeDRTAccessInput) (*DescribeDRTAccessOutput, error) {
+	req, out := c.DescribeDRTAccessRequest(input)
+	return out, req.Send()
+}
+
+// DescribeDRTAccessWithContext is the same as DescribeDRTAccess with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeDRTAccess for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Shield) DescribeDRTAccessWithContext(ctx aws.Context, input *DescribeDRTAccessInput, opts ...request.Option) (*DescribeDRTAccessOutput, error) {
+	req, out := c.DescribeDRTAccessRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDescribeEmergencyContactSettings = "DescribeEmergencyContactSettings"
+
+// DescribeEmergencyContactSettingsRequest generates a "aws/request.Request" representing the
+// client's request for the DescribeEmergencyContactSettings operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DescribeEmergencyContactSettings for more information on using the DescribeEmergencyContactSettings
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DescribeEmergencyContactSettingsRequest method.
+//    req, resp := client.DescribeEmergencyContactSettingsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeEmergencyContactSettings
+func (c *Shield) DescribeEmergencyContactSettingsRequest(input *DescribeEmergencyContactSettingsInput) (req *request.Request, output *DescribeEmergencyContactSettingsOutput) {
+	op := &request.Operation{
+		Name:       opDescribeEmergencyContactSettings,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DescribeEmergencyContactSettingsInput{}
+	}
+
+	output = &DescribeEmergencyContactSettingsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DescribeEmergencyContactSettings API operation for AWS Shield.
+//
+// Lists the email addresses that the DRT can use to contact you during a suspected
+// attack.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Shield's
+// API operation DescribeEmergencyContactSettings for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalErrorException "InternalErrorException"
+//   Exception that indicates that a problem occurred with the service infrastructure.
+//   You can retry the request.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   Exception indicating the specified resource does not exist.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeEmergencyContactSettings
+func (c *Shield) DescribeEmergencyContactSettings(input *DescribeEmergencyContactSettingsInput) (*DescribeEmergencyContactSettingsOutput, error) {
+	req, out := c.DescribeEmergencyContactSettingsRequest(input)
+	return out, req.Send()
+}
+
+// DescribeEmergencyContactSettingsWithContext is the same as DescribeEmergencyContactSettings with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DescribeEmergencyContactSettings for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Shield) DescribeEmergencyContactSettingsWithContext(ctx aws.Context, input *DescribeEmergencyContactSettingsInput, opts ...request.Option) (*DescribeEmergencyContactSettingsOutput, error) {
+	req, out := c.DescribeEmergencyContactSettingsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opDescribeProtection = "DescribeProtection"
 
 // DescribeProtectionRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeProtection operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -478,7 +917,7 @@ const opDescribeProtection = "DescribeProtection"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeProtection
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeProtection
 func (c *Shield) DescribeProtectionRequest(input *DescribeProtectionInput) (req *request.Request, output *DescribeProtectionOutput) {
 	op := &request.Operation{
 		Name:       opDescribeProtection,
@@ -514,7 +953,7 @@ func (c *Shield) DescribeProtectionRequest(input *DescribeProtectionInput) (req 
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Exception indicating the specified resource does not exist.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeProtection
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeProtection
 func (c *Shield) DescribeProtection(input *DescribeProtectionInput) (*DescribeProtectionOutput, error) {
 	req, out := c.DescribeProtectionRequest(input)
 	return out, req.Send()
@@ -540,7 +979,7 @@ const opDescribeSubscription = "DescribeSubscription"
 
 // DescribeSubscriptionRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeSubscription operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -561,7 +1000,7 @@ const opDescribeSubscription = "DescribeSubscription"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeSubscription
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeSubscription
 func (c *Shield) DescribeSubscriptionRequest(input *DescribeSubscriptionInput) (req *request.Request, output *DescribeSubscriptionOutput) {
 	op := &request.Operation{
 		Name:       opDescribeSubscription,
@@ -597,7 +1036,7 @@ func (c *Shield) DescribeSubscriptionRequest(input *DescribeSubscriptionInput) (
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Exception indicating the specified resource does not exist.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeSubscription
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeSubscription
 func (c *Shield) DescribeSubscription(input *DescribeSubscriptionInput) (*DescribeSubscriptionOutput, error) {
 	req, out := c.DescribeSubscriptionRequest(input)
 	return out, req.Send()
@@ -619,11 +1058,297 @@ func (c *Shield) DescribeSubscriptionWithContext(ctx aws.Context, input *Describ
 	return out, req.Send()
 }
 
+const opDisassociateDRTLogBucket = "DisassociateDRTLogBucket"
+
+// DisassociateDRTLogBucketRequest generates a "aws/request.Request" representing the
+// client's request for the DisassociateDRTLogBucket operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DisassociateDRTLogBucket for more information on using the DisassociateDRTLogBucket
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DisassociateDRTLogBucketRequest method.
+//    req, resp := client.DisassociateDRTLogBucketRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DisassociateDRTLogBucket
+func (c *Shield) DisassociateDRTLogBucketRequest(input *DisassociateDRTLogBucketInput) (req *request.Request, output *DisassociateDRTLogBucketOutput) {
+	op := &request.Operation{
+		Name:       opDisassociateDRTLogBucket,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DisassociateDRTLogBucketInput{}
+	}
+
+	output = &DisassociateDRTLogBucketOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DisassociateDRTLogBucket API operation for AWS Shield.
+//
+// Removes the DDoS Response team's (DRT) access to the specified Amazon S3
+// bucket containing your flow logs.
+//
+// To make a DisassociateDRTLogBucket request, you must be subscribed to the
+// Business Support plan (https://aws.amazon.com/premiumsupport/business-support/)
+// or the Enterprise Support plan (https://aws.amazon.com/premiumsupport/enterprise-support/).
+// However, if you are not subscribed to one of these support plans, but had
+// been previously and had granted the DRT access to your account, you can submit
+// a DisassociateDRTLogBucket request to remove this access.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Shield's
+// API operation DisassociateDRTLogBucket for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalErrorException "InternalErrorException"
+//   Exception that indicates that a problem occurred with the service infrastructure.
+//   You can retry the request.
+//
+//   * ErrCodeInvalidOperationException "InvalidOperationException"
+//   Exception that indicates that the operation would not cause any change to
+//   occur.
+//
+//   * ErrCodeNoAssociatedRoleException "NoAssociatedRoleException"
+//   The ARN of the role that you specifed does not exist.
+//
+//   * ErrCodeAccessDeniedForDependencyException "AccessDeniedForDependencyException"
+//   In order to grant the necessary access to the DDoS Response Team, the user
+//   submitting AssociateDRTRole must have the iam:PassRole permission. This error
+//   indicates the user did not have the appropriate permissions. For more information,
+//   see Granting a User Permissions to Pass a Role to an AWS Service (https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_passrole.html).
+//
+//   * ErrCodeOptimisticLockException "OptimisticLockException"
+//   Exception that indicates that the protection state has been modified by another
+//   client. You can retry the request.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   Exception indicating the specified resource does not exist.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DisassociateDRTLogBucket
+func (c *Shield) DisassociateDRTLogBucket(input *DisassociateDRTLogBucketInput) (*DisassociateDRTLogBucketOutput, error) {
+	req, out := c.DisassociateDRTLogBucketRequest(input)
+	return out, req.Send()
+}
+
+// DisassociateDRTLogBucketWithContext is the same as DisassociateDRTLogBucket with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DisassociateDRTLogBucket for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Shield) DisassociateDRTLogBucketWithContext(ctx aws.Context, input *DisassociateDRTLogBucketInput, opts ...request.Option) (*DisassociateDRTLogBucketOutput, error) {
+	req, out := c.DisassociateDRTLogBucketRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opDisassociateDRTRole = "DisassociateDRTRole"
+
+// DisassociateDRTRoleRequest generates a "aws/request.Request" representing the
+// client's request for the DisassociateDRTRole operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See DisassociateDRTRole for more information on using the DisassociateDRTRole
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the DisassociateDRTRoleRequest method.
+//    req, resp := client.DisassociateDRTRoleRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DisassociateDRTRole
+func (c *Shield) DisassociateDRTRoleRequest(input *DisassociateDRTRoleInput) (req *request.Request, output *DisassociateDRTRoleOutput) {
+	op := &request.Operation{
+		Name:       opDisassociateDRTRole,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &DisassociateDRTRoleInput{}
+	}
+
+	output = &DisassociateDRTRoleOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// DisassociateDRTRole API operation for AWS Shield.
+//
+// Removes the DDoS Response team's (DRT) access to your AWS account.
+//
+// To make a DisassociateDRTRole request, you must be subscribed to the Business
+// Support plan (https://aws.amazon.com/premiumsupport/business-support/) or
+// the Enterprise Support plan (https://aws.amazon.com/premiumsupport/enterprise-support/).
+// However, if you are not subscribed to one of these support plans, but had
+// been previously and had granted the DRT access to your account, you can submit
+// a DisassociateDRTRole request to remove this access.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Shield's
+// API operation DisassociateDRTRole for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalErrorException "InternalErrorException"
+//   Exception that indicates that a problem occurred with the service infrastructure.
+//   You can retry the request.
+//
+//   * ErrCodeInvalidOperationException "InvalidOperationException"
+//   Exception that indicates that the operation would not cause any change to
+//   occur.
+//
+//   * ErrCodeOptimisticLockException "OptimisticLockException"
+//   Exception that indicates that the protection state has been modified by another
+//   client. You can retry the request.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   Exception indicating the specified resource does not exist.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DisassociateDRTRole
+func (c *Shield) DisassociateDRTRole(input *DisassociateDRTRoleInput) (*DisassociateDRTRoleOutput, error) {
+	req, out := c.DisassociateDRTRoleRequest(input)
+	return out, req.Send()
+}
+
+// DisassociateDRTRoleWithContext is the same as DisassociateDRTRole with the addition of
+// the ability to pass a context and additional request options.
+//
+// See DisassociateDRTRole for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Shield) DisassociateDRTRoleWithContext(ctx aws.Context, input *DisassociateDRTRoleInput, opts ...request.Option) (*DisassociateDRTRoleOutput, error) {
+	req, out := c.DisassociateDRTRoleRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opGetSubscriptionState = "GetSubscriptionState"
+
+// GetSubscriptionStateRequest generates a "aws/request.Request" representing the
+// client's request for the GetSubscriptionState operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See GetSubscriptionState for more information on using the GetSubscriptionState
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the GetSubscriptionStateRequest method.
+//    req, resp := client.GetSubscriptionStateRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/GetSubscriptionState
+func (c *Shield) GetSubscriptionStateRequest(input *GetSubscriptionStateInput) (req *request.Request, output *GetSubscriptionStateOutput) {
+	op := &request.Operation{
+		Name:       opGetSubscriptionState,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &GetSubscriptionStateInput{}
+	}
+
+	output = &GetSubscriptionStateOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// GetSubscriptionState API operation for AWS Shield.
+//
+// Returns the SubscriptionState, either Active or Inactive.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Shield's
+// API operation GetSubscriptionState for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalErrorException "InternalErrorException"
+//   Exception that indicates that a problem occurred with the service infrastructure.
+//   You can retry the request.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/GetSubscriptionState
+func (c *Shield) GetSubscriptionState(input *GetSubscriptionStateInput) (*GetSubscriptionStateOutput, error) {
+	req, out := c.GetSubscriptionStateRequest(input)
+	return out, req.Send()
+}
+
+// GetSubscriptionStateWithContext is the same as GetSubscriptionState with the addition of
+// the ability to pass a context and additional request options.
+//
+// See GetSubscriptionState for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Shield) GetSubscriptionStateWithContext(ctx aws.Context, input *GetSubscriptionStateInput, opts ...request.Option) (*GetSubscriptionStateOutput, error) {
+	req, out := c.GetSubscriptionStateRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListAttacks = "ListAttacks"
 
 // ListAttacksRequest generates a "aws/request.Request" representing the
 // client's request for the ListAttacks operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -644,7 +1369,7 @@ const opListAttacks = "ListAttacks"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/ListAttacks
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/ListAttacks
 func (c *Shield) ListAttacksRequest(input *ListAttacksInput) (req *request.Request, output *ListAttacksOutput) {
 	op := &request.Operation{
 		Name:       opListAttacks,
@@ -685,7 +1410,7 @@ func (c *Shield) ListAttacksRequest(input *ListAttacksInput) (req *request.Reque
 //   Exception that indicates that the operation would not cause any change to
 //   occur.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/ListAttacks
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/ListAttacks
 func (c *Shield) ListAttacks(input *ListAttacksInput) (*ListAttacksOutput, error) {
 	req, out := c.ListAttacksRequest(input)
 	return out, req.Send()
@@ -711,7 +1436,7 @@ const opListProtections = "ListProtections"
 
 // ListProtectionsRequest generates a "aws/request.Request" representing the
 // client's request for the ListProtections operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -732,7 +1457,7 @@ const opListProtections = "ListProtections"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/ListProtections
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/ListProtections
 func (c *Shield) ListProtectionsRequest(input *ListProtectionsInput) (req *request.Request, output *ListProtectionsOutput) {
 	op := &request.Operation{
 		Name:       opListProtections,
@@ -768,7 +1493,11 @@ func (c *Shield) ListProtectionsRequest(input *ListProtectionsInput) (req *reque
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Exception indicating the specified resource does not exist.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/ListProtections
+//   * ErrCodeInvalidPaginationTokenException "InvalidPaginationTokenException"
+//   Exception that indicates that the NextToken specified in the request is invalid.
+//   Submit the request using the NextToken value that was returned in the response.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/ListProtections
 func (c *Shield) ListProtections(input *ListProtectionsInput) (*ListProtectionsOutput, error) {
 	req, out := c.ListProtectionsRequest(input)
 	return out, req.Send()
@@ -790,8 +1519,308 @@ func (c *Shield) ListProtectionsWithContext(ctx aws.Context, input *ListProtecti
 	return out, req.Send()
 }
 
+const opUpdateEmergencyContactSettings = "UpdateEmergencyContactSettings"
+
+// UpdateEmergencyContactSettingsRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateEmergencyContactSettings operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateEmergencyContactSettings for more information on using the UpdateEmergencyContactSettings
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UpdateEmergencyContactSettingsRequest method.
+//    req, resp := client.UpdateEmergencyContactSettingsRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/UpdateEmergencyContactSettings
+func (c *Shield) UpdateEmergencyContactSettingsRequest(input *UpdateEmergencyContactSettingsInput) (req *request.Request, output *UpdateEmergencyContactSettingsOutput) {
+	op := &request.Operation{
+		Name:       opUpdateEmergencyContactSettings,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateEmergencyContactSettingsInput{}
+	}
+
+	output = &UpdateEmergencyContactSettingsOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateEmergencyContactSettings API operation for AWS Shield.
+//
+// Updates the details of the list of email addresses that the DRT can use to
+// contact you during a suspected attack.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Shield's
+// API operation UpdateEmergencyContactSettings for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalErrorException "InternalErrorException"
+//   Exception that indicates that a problem occurred with the service infrastructure.
+//   You can retry the request.
+//
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   Exception that indicates that the parameters passed to the API are invalid.
+//
+//   * ErrCodeOptimisticLockException "OptimisticLockException"
+//   Exception that indicates that the protection state has been modified by another
+//   client. You can retry the request.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   Exception indicating the specified resource does not exist.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/UpdateEmergencyContactSettings
+func (c *Shield) UpdateEmergencyContactSettings(input *UpdateEmergencyContactSettingsInput) (*UpdateEmergencyContactSettingsOutput, error) {
+	req, out := c.UpdateEmergencyContactSettingsRequest(input)
+	return out, req.Send()
+}
+
+// UpdateEmergencyContactSettingsWithContext is the same as UpdateEmergencyContactSettings with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateEmergencyContactSettings for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Shield) UpdateEmergencyContactSettingsWithContext(ctx aws.Context, input *UpdateEmergencyContactSettingsInput, opts ...request.Option) (*UpdateEmergencyContactSettingsOutput, error) {
+	req, out := c.UpdateEmergencyContactSettingsRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+const opUpdateSubscription = "UpdateSubscription"
+
+// UpdateSubscriptionRequest generates a "aws/request.Request" representing the
+// client's request for the UpdateSubscription operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfuly.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See UpdateSubscription for more information on using the UpdateSubscription
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the UpdateSubscriptionRequest method.
+//    req, resp := client.UpdateSubscriptionRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/UpdateSubscription
+func (c *Shield) UpdateSubscriptionRequest(input *UpdateSubscriptionInput) (req *request.Request, output *UpdateSubscriptionOutput) {
+	op := &request.Operation{
+		Name:       opUpdateSubscription,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &UpdateSubscriptionInput{}
+	}
+
+	output = &UpdateSubscriptionOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// UpdateSubscription API operation for AWS Shield.
+//
+// Updates the details of an existing subscription. Only enter values for parameters
+// you want to change. Empty parameters are not updated.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for AWS Shield's
+// API operation UpdateSubscription for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInternalErrorException "InternalErrorException"
+//   Exception that indicates that a problem occurred with the service infrastructure.
+//   You can retry the request.
+//
+//   * ErrCodeLockedSubscriptionException "LockedSubscriptionException"
+//   You are trying to update a subscription that has not yet completed the 1-year
+//   commitment. You can change the AutoRenew parameter during the last 30 days
+//   of your subscription. This exception indicates that you are attempting to
+//   change AutoRenew prior to that period.
+//
+//   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
+//   Exception indicating the specified resource does not exist.
+//
+//   * ErrCodeInvalidParameterException "InvalidParameterException"
+//   Exception that indicates that the parameters passed to the API are invalid.
+//
+//   * ErrCodeOptimisticLockException "OptimisticLockException"
+//   Exception that indicates that the protection state has been modified by another
+//   client. You can retry the request.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/UpdateSubscription
+func (c *Shield) UpdateSubscription(input *UpdateSubscriptionInput) (*UpdateSubscriptionOutput, error) {
+	req, out := c.UpdateSubscriptionRequest(input)
+	return out, req.Send()
+}
+
+// UpdateSubscriptionWithContext is the same as UpdateSubscription with the addition of
+// the ability to pass a context and additional request options.
+//
+// See UpdateSubscription for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Shield) UpdateSubscriptionWithContext(ctx aws.Context, input *UpdateSubscriptionInput, opts ...request.Option) (*UpdateSubscriptionOutput, error) {
+	req, out := c.UpdateSubscriptionRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
+type AssociateDRTLogBucketInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon S3 bucket that contains your flow logs.
+	//
+	// LogBucket is a required field
+	LogBucket *string `min:"3" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s AssociateDRTLogBucketInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociateDRTLogBucketInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AssociateDRTLogBucketInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AssociateDRTLogBucketInput"}
+	if s.LogBucket == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogBucket"))
+	}
+	if s.LogBucket != nil && len(*s.LogBucket) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("LogBucket", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetLogBucket sets the LogBucket field's value.
+func (s *AssociateDRTLogBucketInput) SetLogBucket(v string) *AssociateDRTLogBucketInput {
+	s.LogBucket = &v
+	return s
+}
+
+type AssociateDRTLogBucketOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s AssociateDRTLogBucketOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociateDRTLogBucketOutput) GoString() string {
+	return s.String()
+}
+
+type AssociateDRTRoleInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon Resource Name (ARN) of the role the DRT will use to access your
+	// AWS account.
+	//
+	// Prior to making the AssociateDRTRole request, you must attach the AWSShieldDRTAccessPolicy
+	// (https://console.aws.amazon.com/iam/home?#/policies/arn:aws:iam::aws:policy/service-role/AWSShieldDRTAccessPolicy)
+	// managed policy to this role. For more information see Attaching and Detaching
+	// IAM Policies ( https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_manage-attach-detach.html).
+	//
+	// RoleArn is a required field
+	RoleArn *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s AssociateDRTRoleInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociateDRTRoleInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *AssociateDRTRoleInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "AssociateDRTRoleInput"}
+	if s.RoleArn == nil {
+		invalidParams.Add(request.NewErrParamRequired("RoleArn"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetRoleArn sets the RoleArn field's value.
+func (s *AssociateDRTRoleInput) SetRoleArn(v string) *AssociateDRTRoleInput {
+	s.RoleArn = &v
+	return s
+}
+
+type AssociateDRTRoleOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s AssociateDRTRoleOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AssociateDRTRoleOutput) GoString() string {
+	return s.String()
+}
+
 // The details of a DDoS attack.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/AttackDetail
 type AttackDetail struct {
 	_ struct{} `type:"structure"`
 
@@ -801,7 +1830,11 @@ type AttackDetail struct {
 	// The unique identifier (ID) of the attack.
 	AttackId *string `min:"1" type:"string"`
 
-	// The time the attack ended, in the format 2016-12-16T13:50Z.
+	// The array of AttackProperty objects.
+	AttackProperties []*AttackProperty `type:"list"`
+
+	// The time the attack ended, in Unix time in seconds. For more information
+	// see timestamp (http://docs.aws.amazon.com/cli/latest/userguide/cli-using-param.html#parameter-types).
 	EndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
 
 	// List of mitigation actions taken for the attack.
@@ -810,7 +1843,8 @@ type AttackDetail struct {
 	// The ARN (Amazon Resource Name) of the resource that was attacked.
 	ResourceArn *string `min:"1" type:"string"`
 
-	// The time the attack started, in the format 2016-12-16T13:50Z.
+	// The time the attack started, in Unix time in seconds. For more information
+	// see timestamp (http://docs.aws.amazon.com/cli/latest/userguide/cli-using-param.html#parameter-types).
 	StartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
 
 	// If applicable, additional detail about the resource being attacked, for example,
@@ -837,6 +1871,12 @@ func (s *AttackDetail) SetAttackCounters(v []*SummarizedCounter) *AttackDetail {
 // SetAttackId sets the AttackId field's value.
 func (s *AttackDetail) SetAttackId(v string) *AttackDetail {
 	s.AttackId = &v
+	return s
+}
+
+// SetAttackProperties sets the AttackProperties field's value.
+func (s *AttackDetail) SetAttackProperties(v []*AttackProperty) *AttackDetail {
+	s.AttackProperties = v
 	return s
 }
 
@@ -870,8 +1910,70 @@ func (s *AttackDetail) SetSubResources(v []*SubResourceSummary) *AttackDetail {
 	return s
 }
 
+// Details of the described attack.
+type AttackProperty struct {
+	_ struct{} `type:"structure"`
+
+	// The type of DDoS event that was observed. NETWORK indicates layer 3 and layer
+	// 4 events and APPLICATION indicates layer 7 events.
+	AttackLayer *string `type:"string" enum:"AttackLayer"`
+
+	// Defines the DDoS attack property information that is provided.
+	AttackPropertyIdentifier *string `type:"string" enum:"AttackPropertyIdentifier"`
+
+	// The array of Contributor objects that includes the top five contributors
+	// to an attack.
+	TopContributors []*Contributor `type:"list"`
+
+	// The total contributions made to this attack by all contributors, not just
+	// the five listed in the TopContributors list.
+	Total *int64 `type:"long"`
+
+	// The unit of the Value of the contributions.
+	Unit *string `type:"string" enum:"Unit"`
+}
+
+// String returns the string representation
+func (s AttackProperty) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s AttackProperty) GoString() string {
+	return s.String()
+}
+
+// SetAttackLayer sets the AttackLayer field's value.
+func (s *AttackProperty) SetAttackLayer(v string) *AttackProperty {
+	s.AttackLayer = &v
+	return s
+}
+
+// SetAttackPropertyIdentifier sets the AttackPropertyIdentifier field's value.
+func (s *AttackProperty) SetAttackPropertyIdentifier(v string) *AttackProperty {
+	s.AttackPropertyIdentifier = &v
+	return s
+}
+
+// SetTopContributors sets the TopContributors field's value.
+func (s *AttackProperty) SetTopContributors(v []*Contributor) *AttackProperty {
+	s.TopContributors = v
+	return s
+}
+
+// SetTotal sets the Total field's value.
+func (s *AttackProperty) SetTotal(v int64) *AttackProperty {
+	s.Total = &v
+	return s
+}
+
+// SetUnit sets the Unit field's value.
+func (s *AttackProperty) SetUnit(v string) *AttackProperty {
+	s.Unit = &v
+	return s
+}
+
 // Summarizes all DDoS attacks for a specified time period.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/AttackSummary
 type AttackSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -881,13 +1983,15 @@ type AttackSummary struct {
 	// The list of attacks for a specified time period.
 	AttackVectors []*AttackVectorDescription `type:"list"`
 
-	// The end time of the attack, in the format 2016-12-16T13:50Z.
+	// The end time of the attack, in Unix time in seconds. For more information
+	// see timestamp (http://docs.aws.amazon.com/cli/latest/userguide/cli-using-param.html#parameter-types).
 	EndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
 
 	// The ARN (Amazon Resource Name) of the resource that was attacked.
 	ResourceArn *string `type:"string"`
 
-	// The start time of the attack, in the format 2016-12-16T13:50Z.
+	// The start time of the attack, in Unix time in seconds. For more information
+	// see timestamp (http://docs.aws.amazon.com/cli/latest/userguide/cli-using-param.html#parameter-types).
 	StartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
 }
 
@@ -932,11 +2036,40 @@ func (s *AttackSummary) SetStartTime(v time.Time) *AttackSummary {
 }
 
 // Describes the attack.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/AttackVectorDescription
 type AttackVectorDescription struct {
 	_ struct{} `type:"structure"`
 
-	// The attack type, for example, SNMP reflection or SYN flood.
+	// The attack type. Valid values:
+	//
+	//    * UDP_TRAFFIC
+	//
+	//    * UDP_FRAGMENT
+	//
+	//    * GENERIC_UDP_REFLECTION
+	//
+	//    * DNS_REFLECTION
+	//
+	//    * NTP_REFLECTION
+	//
+	//    * CHARGEN_REFLECTION
+	//
+	//    * SSDP_REFLECTION
+	//
+	//    * PORT_MAPPER
+	//
+	//    * RIP_REFLECTION
+	//
+	//    * SNMP_REFLECTION
+	//
+	//    * MSSQL_REFLECTION
+	//
+	//    * NET_BIOS_REFLECTION
+	//
+	//    * SYN_FLOOD
+	//
+	//    * ACK_FLOOD
+	//
+	//    * REQUEST_FLOOD
 	//
 	// VectorType is a required field
 	VectorType *string `type:"string" required:"true"`
@@ -958,7 +2091,42 @@ func (s *AttackVectorDescription) SetVectorType(v string) *AttackVectorDescripti
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/CreateProtectionRequest
+// A contributor to the attack and their contribution.
+type Contributor struct {
+	_ struct{} `type:"structure"`
+
+	// The name of the contributor. This is dependent on the AttackPropertyIdentifier.
+	// For example, if the AttackPropertyIdentifier is SOURCE_COUNTRY, the Name
+	// could be United States.
+	Name *string `type:"string"`
+
+	// The contribution of this contributor expressed in Protection units. For example
+	// 10,000.
+	Value *int64 `type:"long"`
+}
+
+// String returns the string representation
+func (s Contributor) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Contributor) GoString() string {
+	return s.String()
+}
+
+// SetName sets the Name field's value.
+func (s *Contributor) SetName(v string) *Contributor {
+	s.Name = &v
+	return s
+}
+
+// SetValue sets the Value field's value.
+func (s *Contributor) SetValue(v int64) *Contributor {
+	s.Value = &v
+	return s
+}
+
 type CreateProtectionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -968,6 +2136,18 @@ type CreateProtectionInput struct {
 	Name *string `min:"1" type:"string" required:"true"`
 
 	// The ARN (Amazon Resource Name) of the resource to be protected.
+	//
+	// The ARN should be in one of the following formats:
+	//
+	//    * For an Application Load Balancer: arn:aws:elasticloadbalancing:region:account-id:loadbalancer/app/load-balancer-name/load-balancer-id
+	//
+	//    * For an Elastic Load Balancer (Classic Load Balancer): arn:aws:elasticloadbalancing:region:account-id:loadbalancer/load-balancer-name
+	//
+	//    * For AWS CloudFront distribution: arn:aws:cloudfront::account-id:distribution/distribution-id
+	//
+	//    * For Amazon Route 53: arn:aws:route53::account-id:hostedzone/hosted-zone-id
+	//
+	//    * For an Elastic IP address: arn:aws:ec2:region:account-id:eip-allocation/allocation-id
 	//
 	// ResourceArn is a required field
 	ResourceArn *string `min:"1" type:"string" required:"true"`
@@ -1017,7 +2197,6 @@ func (s *CreateProtectionInput) SetResourceArn(v string) *CreateProtectionInput 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/CreateProtectionResponse
 type CreateProtectionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1041,7 +2220,6 @@ func (s *CreateProtectionOutput) SetProtectionId(v string) *CreateProtectionOutp
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/CreateSubscriptionRequest
 type CreateSubscriptionInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1056,7 +2234,6 @@ func (s CreateSubscriptionInput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/CreateSubscriptionResponse
 type CreateSubscriptionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1071,7 +2248,6 @@ func (s CreateSubscriptionOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DeleteProtectionRequest
 type DeleteProtectionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1113,7 +2289,6 @@ func (s *DeleteProtectionInput) SetProtectionId(v string) *DeleteProtectionInput
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DeleteProtectionResponse
 type DeleteProtectionOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1128,9 +2303,8 @@ func (s DeleteProtectionOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DeleteSubscriptionRequest
 type DeleteSubscriptionInput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `deprecated:"true" type:"structure"`
 }
 
 // String returns the string representation
@@ -1143,9 +2317,8 @@ func (s DeleteSubscriptionInput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DeleteSubscriptionResponse
 type DeleteSubscriptionOutput struct {
-	_ struct{} `type:"structure"`
+	_ struct{} `deprecated:"true" type:"structure"`
 }
 
 // String returns the string representation
@@ -1158,7 +2331,6 @@ func (s DeleteSubscriptionOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeAttackRequest
 type DescribeAttackInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1200,7 +2372,6 @@ func (s *DescribeAttackInput) SetAttackId(v string) *DescribeAttackInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeAttackResponse
 type DescribeAttackOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1224,7 +2395,91 @@ func (s *DescribeAttackOutput) SetAttack(v *AttackDetail) *DescribeAttackOutput 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeProtectionRequest
+type DescribeDRTAccessInput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DescribeDRTAccessInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeDRTAccessInput) GoString() string {
+	return s.String()
+}
+
+type DescribeDRTAccessOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The list of Amazon S3 buckets accessed by the DRT.
+	LogBucketList []*string `type:"list"`
+
+	// The Amazon Resource Name (ARN) of the role the DRT used to access your AWS
+	// account.
+	RoleArn *string `type:"string"`
+}
+
+// String returns the string representation
+func (s DescribeDRTAccessOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeDRTAccessOutput) GoString() string {
+	return s.String()
+}
+
+// SetLogBucketList sets the LogBucketList field's value.
+func (s *DescribeDRTAccessOutput) SetLogBucketList(v []*string) *DescribeDRTAccessOutput {
+	s.LogBucketList = v
+	return s
+}
+
+// SetRoleArn sets the RoleArn field's value.
+func (s *DescribeDRTAccessOutput) SetRoleArn(v string) *DescribeDRTAccessOutput {
+	s.RoleArn = &v
+	return s
+}
+
+type DescribeEmergencyContactSettingsInput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DescribeEmergencyContactSettingsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeEmergencyContactSettingsInput) GoString() string {
+	return s.String()
+}
+
+type DescribeEmergencyContactSettingsOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of email addresses that the DRT can use to contact you during a suspected
+	// attack.
+	EmergencyContactList []*EmergencyContact `type:"list"`
+}
+
+// String returns the string representation
+func (s DescribeEmergencyContactSettingsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DescribeEmergencyContactSettingsOutput) GoString() string {
+	return s.String()
+}
+
+// SetEmergencyContactList sets the EmergencyContactList field's value.
+func (s *DescribeEmergencyContactSettingsOutput) SetEmergencyContactList(v []*EmergencyContact) *DescribeEmergencyContactSettingsOutput {
+	s.EmergencyContactList = v
+	return s
+}
+
 type DescribeProtectionInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1266,7 +2521,6 @@ func (s *DescribeProtectionInput) SetProtectionId(v string) *DescribeProtectionI
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeProtectionResponse
 type DescribeProtectionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1290,7 +2544,6 @@ func (s *DescribeProtectionOutput) SetProtection(v *Protection) *DescribeProtect
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeSubscriptionRequest
 type DescribeSubscriptionInput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1305,7 +2558,6 @@ func (s DescribeSubscriptionInput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/DescribeSubscriptionResponse
 type DescribeSubscriptionOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1329,11 +2581,208 @@ func (s *DescribeSubscriptionOutput) SetSubscription(v *Subscription) *DescribeS
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/ListAttacksRequest
+type DisassociateDRTLogBucketInput struct {
+	_ struct{} `type:"structure"`
+
+	// The Amazon S3 bucket that contains your flow logs.
+	//
+	// LogBucket is a required field
+	LogBucket *string `min:"3" type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s DisassociateDRTLogBucketInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisassociateDRTLogBucketInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *DisassociateDRTLogBucketInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "DisassociateDRTLogBucketInput"}
+	if s.LogBucket == nil {
+		invalidParams.Add(request.NewErrParamRequired("LogBucket"))
+	}
+	if s.LogBucket != nil && len(*s.LogBucket) < 3 {
+		invalidParams.Add(request.NewErrParamMinLen("LogBucket", 3))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetLogBucket sets the LogBucket field's value.
+func (s *DisassociateDRTLogBucketInput) SetLogBucket(v string) *DisassociateDRTLogBucketInput {
+	s.LogBucket = &v
+	return s
+}
+
+type DisassociateDRTLogBucketOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DisassociateDRTLogBucketOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisassociateDRTLogBucketOutput) GoString() string {
+	return s.String()
+}
+
+type DisassociateDRTRoleInput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DisassociateDRTRoleInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisassociateDRTRoleInput) GoString() string {
+	return s.String()
+}
+
+type DisassociateDRTRoleOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s DisassociateDRTRoleOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s DisassociateDRTRoleOutput) GoString() string {
+	return s.String()
+}
+
+// Contact information that the DRT can use to contact you during a suspected
+// attack.
+type EmergencyContact struct {
+	_ struct{} `type:"structure"`
+
+	// An email address that the DRT can use to contact you during a suspected attack.
+	//
+	// EmailAddress is a required field
+	EmailAddress *string `type:"string" required:"true"`
+}
+
+// String returns the string representation
+func (s EmergencyContact) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s EmergencyContact) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *EmergencyContact) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "EmergencyContact"}
+	if s.EmailAddress == nil {
+		invalidParams.Add(request.NewErrParamRequired("EmailAddress"))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetEmailAddress sets the EmailAddress field's value.
+func (s *EmergencyContact) SetEmailAddress(v string) *EmergencyContact {
+	s.EmailAddress = &v
+	return s
+}
+
+type GetSubscriptionStateInput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s GetSubscriptionStateInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetSubscriptionStateInput) GoString() string {
+	return s.String()
+}
+
+type GetSubscriptionStateOutput struct {
+	_ struct{} `type:"structure"`
+
+	// The status of the subscription.
+	//
+	// SubscriptionState is a required field
+	SubscriptionState *string `type:"string" required:"true" enum:"SubscriptionState"`
+}
+
+// String returns the string representation
+func (s GetSubscriptionStateOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s GetSubscriptionStateOutput) GoString() string {
+	return s.String()
+}
+
+// SetSubscriptionState sets the SubscriptionState field's value.
+func (s *GetSubscriptionStateOutput) SetSubscriptionState(v string) *GetSubscriptionStateOutput {
+	s.SubscriptionState = &v
+	return s
+}
+
+// Specifies how many protections of a given type you can create.
+type Limit struct {
+	_ struct{} `type:"structure"`
+
+	// The maximum number of protections that can be created for the specified Type.
+	Max *int64 `type:"long"`
+
+	// The type of protection.
+	Type *string `type:"string"`
+}
+
+// String returns the string representation
+func (s Limit) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Limit) GoString() string {
+	return s.String()
+}
+
+// SetMax sets the Max field's value.
+func (s *Limit) SetMax(v int64) *Limit {
+	s.Max = &v
+	return s
+}
+
+// SetType sets the Type field's value.
+func (s *Limit) SetType(v string) *Limit {
+	s.Type = &v
+	return s
+}
+
 type ListAttacksInput struct {
 	_ struct{} `type:"structure"`
 
-	// The end of the time period for the attacks.
+	// The end of the time period for the attacks. This is a timestamp type. The
+	// sample request above indicates a number type because the default used by
+	// WAF is Unix time in seconds. However any valid timestamp format (http://docs.aws.amazon.com/cli/latest/userguide/cli-using-param.html#parameter-types)
+	// is allowed.
 	EndTime *TimeRange `type:"structure"`
 
 	// The maximum number of AttackSummary objects to be returned. If this is left
@@ -1348,7 +2797,10 @@ type ListAttacksInput struct {
 	// is left blank, all applicable resources for this account will be included.
 	ResourceArns []*string `type:"list"`
 
-	// The time period for the attacks.
+	// The start of the time period for the attacks. This is a timestamp type. The
+	// sample request above indicates a number type because the default used by
+	// WAF is Unix time in seconds. However any valid timestamp format (http://docs.aws.amazon.com/cli/latest/userguide/cli-using-param.html#parameter-types)
+	// is allowed.
 	StartTime *TimeRange `type:"structure"`
 }
 
@@ -1405,7 +2857,6 @@ func (s *ListAttacksInput) SetStartTime(v *TimeRange) *ListAttacksInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/ListAttacksResponse
 type ListAttacksOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1441,7 +2892,6 @@ func (s *ListAttacksOutput) SetNextToken(v string) *ListAttacksOutput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/ListProtectionsRequest
 type ListProtectionsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1489,7 +2939,6 @@ func (s *ListProtectionsInput) SetNextToken(v string) *ListProtectionsInput {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/ListProtectionsResponse
 type ListProtectionsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -1527,7 +2976,6 @@ func (s *ListProtectionsOutput) SetProtections(v []*Protection) *ListProtections
 }
 
 // The mitigation applied to a DDoS attack.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/Mitigation
 type Mitigation struct {
 	_ struct{} `type:"structure"`
 
@@ -1552,7 +3000,6 @@ func (s *Mitigation) SetMitigationName(v string) *Mitigation {
 }
 
 // An object that represents a resource that is under DDoS protection.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/Protection
 type Protection struct {
 	_ struct{} `type:"structure"`
 
@@ -1595,7 +3042,6 @@ func (s *Protection) SetResourceArn(v string) *Protection {
 }
 
 // The attack information for the specified SubResource.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/SubResourceSummary
 type SubResourceSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -1647,11 +3093,26 @@ func (s *SubResourceSummary) SetType(v string) *SubResourceSummary {
 }
 
 // Information about the AWS Shield Advanced subscription for an account.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/Subscription
 type Subscription struct {
 	_ struct{} `type:"structure"`
 
-	// The start time of the subscription, in the format "2016-12-16T13:50Z".
+	// If ENABLED, the subscription will be automatically renewed at the end of
+	// the existing subscription period.
+	//
+	// When you initally create a subscription, AutoRenew is set to ENABLED. You
+	// can change this by submitting an UpdateSubscription request. If the UpdateSubscription
+	// request does not included a value for AutoRenew, the existing value for AutoRenew
+	// remains unchanged.
+	AutoRenew *string `type:"string" enum:"AutoRenew"`
+
+	// The date and time your subscription will end.
+	EndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+
+	// Specifies how many protections of a given type you can create.
+	Limits []*Limit `type:"list"`
+
+	// The start time of the subscription, in Unix time in seconds. For more information
+	// see timestamp (http://docs.aws.amazon.com/cli/latest/userguide/cli-using-param.html#parameter-types).
 	StartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
 
 	// The length, in seconds, of the AWS Shield Advanced subscription for the account.
@@ -1668,6 +3129,24 @@ func (s Subscription) GoString() string {
 	return s.String()
 }
 
+// SetAutoRenew sets the AutoRenew field's value.
+func (s *Subscription) SetAutoRenew(v string) *Subscription {
+	s.AutoRenew = &v
+	return s
+}
+
+// SetEndTime sets the EndTime field's value.
+func (s *Subscription) SetEndTime(v time.Time) *Subscription {
+	s.EndTime = &v
+	return s
+}
+
+// SetLimits sets the Limits field's value.
+func (s *Subscription) SetLimits(v []*Limit) *Subscription {
+	s.Limits = v
+	return s
+}
+
 // SetStartTime sets the StartTime field's value.
 func (s *Subscription) SetStartTime(v time.Time) *Subscription {
 	s.StartTime = &v
@@ -1681,7 +3160,6 @@ func (s *Subscription) SetTimeCommitmentInSeconds(v int64) *Subscription {
 }
 
 // A summary of information about the attack.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/SummarizedAttackVector
 type SummarizedAttackVector struct {
 	_ struct{} `type:"structure"`
 
@@ -1717,7 +3195,6 @@ func (s *SummarizedAttackVector) SetVectorType(v string) *SummarizedAttackVector
 }
 
 // The counter that describes a DDoS attack.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/SummarizedCounter
 type SummarizedCounter struct {
 	_ struct{} `type:"structure"`
 
@@ -1787,14 +3264,15 @@ func (s *SummarizedCounter) SetUnit(v string) *SummarizedCounter {
 }
 
 // The time range.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/shield-2016-06-02/TimeRange
 type TimeRange struct {
 	_ struct{} `type:"structure"`
 
-	// The start time, in the format 2016-12-16T13:50Z.
+	// The start time, in Unix time in seconds. For more information see timestamp
+	// (http://docs.aws.amazon.com/cli/latest/userguide/cli-using-param.html#parameter-types).
 	FromInclusive *time.Time `type:"timestamp" timestampFormat:"unix"`
 
-	// The end time, in the format 2016-12-16T15:50Z.
+	// The end time, in Unix time in seconds. For more information see timestamp
+	// (http://docs.aws.amazon.com/cli/latest/userguide/cli-using-param.html#parameter-types).
 	ToExclusive *time.Time `type:"timestamp" timestampFormat:"unix"`
 }
 
@@ -1820,10 +3298,167 @@ func (s *TimeRange) SetToExclusive(v time.Time) *TimeRange {
 	return s
 }
 
+type UpdateEmergencyContactSettingsInput struct {
+	_ struct{} `type:"structure"`
+
+	// A list of email addresses that the DRT can use to contact you during a suspected
+	// attack.
+	EmergencyContactList []*EmergencyContact `type:"list"`
+}
+
+// String returns the string representation
+func (s UpdateEmergencyContactSettingsInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateEmergencyContactSettingsInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *UpdateEmergencyContactSettingsInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "UpdateEmergencyContactSettingsInput"}
+	if s.EmergencyContactList != nil {
+		for i, v := range s.EmergencyContactList {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "EmergencyContactList", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetEmergencyContactList sets the EmergencyContactList field's value.
+func (s *UpdateEmergencyContactSettingsInput) SetEmergencyContactList(v []*EmergencyContact) *UpdateEmergencyContactSettingsInput {
+	s.EmergencyContactList = v
+	return s
+}
+
+type UpdateEmergencyContactSettingsOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UpdateEmergencyContactSettingsOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateEmergencyContactSettingsOutput) GoString() string {
+	return s.String()
+}
+
+type UpdateSubscriptionInput struct {
+	_ struct{} `type:"structure"`
+
+	// When you initally create a subscription, AutoRenew is set to ENABLED. If
+	// ENABLED, the subscription will be automatically renewed at the end of the
+	// existing subscription period. You can change this by submitting an UpdateSubscription
+	// request. If the UpdateSubscription request does not included a value for
+	// AutoRenew, the existing value for AutoRenew remains unchanged.
+	AutoRenew *string `type:"string" enum:"AutoRenew"`
+}
+
+// String returns the string representation
+func (s UpdateSubscriptionInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateSubscriptionInput) GoString() string {
+	return s.String()
+}
+
+// SetAutoRenew sets the AutoRenew field's value.
+func (s *UpdateSubscriptionInput) SetAutoRenew(v string) *UpdateSubscriptionInput {
+	s.AutoRenew = &v
+	return s
+}
+
+type UpdateSubscriptionOutput struct {
+	_ struct{} `type:"structure"`
+}
+
+// String returns the string representation
+func (s UpdateSubscriptionOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s UpdateSubscriptionOutput) GoString() string {
+	return s.String()
+}
+
+const (
+	// AttackLayerNetwork is a AttackLayer enum value
+	AttackLayerNetwork = "NETWORK"
+
+	// AttackLayerApplication is a AttackLayer enum value
+	AttackLayerApplication = "APPLICATION"
+)
+
+const (
+	// AttackPropertyIdentifierDestinationUrl is a AttackPropertyIdentifier enum value
+	AttackPropertyIdentifierDestinationUrl = "DESTINATION_URL"
+
+	// AttackPropertyIdentifierReferrer is a AttackPropertyIdentifier enum value
+	AttackPropertyIdentifierReferrer = "REFERRER"
+
+	// AttackPropertyIdentifierSourceAsn is a AttackPropertyIdentifier enum value
+	AttackPropertyIdentifierSourceAsn = "SOURCE_ASN"
+
+	// AttackPropertyIdentifierSourceCountry is a AttackPropertyIdentifier enum value
+	AttackPropertyIdentifierSourceCountry = "SOURCE_COUNTRY"
+
+	// AttackPropertyIdentifierSourceIpAddress is a AttackPropertyIdentifier enum value
+	AttackPropertyIdentifierSourceIpAddress = "SOURCE_IP_ADDRESS"
+
+	// AttackPropertyIdentifierSourceUserAgent is a AttackPropertyIdentifier enum value
+	AttackPropertyIdentifierSourceUserAgent = "SOURCE_USER_AGENT"
+)
+
+const (
+	// AutoRenewEnabled is a AutoRenew enum value
+	AutoRenewEnabled = "ENABLED"
+
+	// AutoRenewDisabled is a AutoRenew enum value
+	AutoRenewDisabled = "DISABLED"
+)
+
 const (
 	// SubResourceTypeIp is a SubResourceType enum value
 	SubResourceTypeIp = "IP"
 
 	// SubResourceTypeUrl is a SubResourceType enum value
 	SubResourceTypeUrl = "URL"
+)
+
+const (
+	// SubscriptionStateActive is a SubscriptionState enum value
+	SubscriptionStateActive = "ACTIVE"
+
+	// SubscriptionStateInactive is a SubscriptionState enum value
+	SubscriptionStateInactive = "INACTIVE"
+)
+
+const (
+	// UnitBits is a Unit enum value
+	UnitBits = "BITS"
+
+	// UnitBytes is a Unit enum value
+	UnitBytes = "BYTES"
+
+	// UnitPackets is a Unit enum value
+	UnitPackets = "PACKETS"
+
+	// UnitRequests is a Unit enum value
+	UnitRequests = "REQUESTS"
 )

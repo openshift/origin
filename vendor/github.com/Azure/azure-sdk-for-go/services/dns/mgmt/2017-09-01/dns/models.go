@@ -51,6 +51,11 @@ const (
 	TXT RecordType = "TXT"
 )
 
+// PossibleRecordTypeValues returns an array of possible values for the RecordType const type.
+func PossibleRecordTypeValues() []RecordType {
+	return []RecordType{A, AAAA, CAA, CNAME, MX, NS, PTR, SOA, SRV, TXT}
+}
+
 // AaaaRecord an AAAA record.
 type AaaaRecord struct {
 	// Ipv6Address - The IPv6 address of this AAAA record.
@@ -130,6 +135,27 @@ type RecordSet struct {
 	Etag *string `json:"etag,omitempty"`
 	// RecordSetProperties - The properties of the record set.
 	*RecordSetProperties `json:"properties,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for RecordSet.
+func (rs RecordSet) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if rs.ID != nil {
+		objectMap["id"] = rs.ID
+	}
+	if rs.Name != nil {
+		objectMap["name"] = rs.Name
+	}
+	if rs.Type != nil {
+		objectMap["type"] = rs.Type
+	}
+	if rs.Etag != nil {
+		objectMap["etag"] = rs.Etag
+	}
+	if rs.RecordSetProperties != nil {
+		objectMap["properties"] = rs.RecordSetProperties
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for RecordSet struct.
@@ -691,12 +717,11 @@ type ZoneProperties struct {
 // ZonesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ZonesDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ZonesDeleteFuture) Result(client ZonesClient) (ar autorest.Response, err error) {
+func (future *ZonesDeleteFuture) Result(client ZonesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -704,34 +729,9 @@ func (future ZonesDeleteFuture) Result(client ZonesClient) (ar autorest.Response
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("dns.ZonesDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "dns.ZonesDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("dns.ZonesDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "dns.ZonesDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "dns.ZonesDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }

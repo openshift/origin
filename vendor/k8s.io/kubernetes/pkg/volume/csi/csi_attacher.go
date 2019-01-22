@@ -56,6 +56,8 @@ type csiAttacher struct {
 // volume.Attacher methods
 var _ volume.Attacher = &csiAttacher{}
 
+var _ volume.DeviceMounter = &csiAttacher{}
+
 func (c *csiAttacher) Attach(spec *volume.Spec, nodeName types.NodeName) (string, error) {
 	if spec == nil {
 		glog.Error(log("attacher.Attach missing volume.Spec"))
@@ -66,6 +68,16 @@ func (c *csiAttacher) Attach(spec *volume.Spec, nodeName types.NodeName) (string
 	if err != nil {
 		glog.Error(log("attacher.Attach failed to get CSI persistent source: %v", err))
 		return "", err
+	}
+
+	skip, err := c.plugin.skipAttach(csiSource.Driver)
+	if err != nil {
+		glog.Error(log("attacher.Attach failed to find if driver is attachable: %v", err))
+		return "", err
+	}
+	if skip {
+		glog.V(4).Infof(log("skipping attach for driver %s", csiSource.Driver))
+		return "", nil
 	}
 
 	node := string(nodeName)
@@ -108,14 +120,27 @@ func (c *csiAttacher) Attach(spec *volume.Spec, nodeName types.NodeName) (string
 
 	glog.V(4).Info(log("attacher.Attach finished OK with VolumeAttachment object [%s]", attachID))
 
+	// TODO(71164): In 1.15, return empty devicePath
 	return attachID, nil
 }
 
-func (c *csiAttacher) WaitForAttach(spec *volume.Spec, attachID string, pod *v1.Pod, timeout time.Duration) (string, error) {
+func (c *csiAttacher) WaitForAttach(spec *volume.Spec, _ string, pod *v1.Pod, timeout time.Duration) (string, error) {
 	source, err := getCSISourceFromSpec(spec)
 	if err != nil {
 		glog.Error(log("attacher.WaitForAttach failed to extract CSI volume source: %v", err))
 		return "", err
+	}
+
+	attachID := getAttachmentName(source.VolumeHandle, source.Driver, string(c.plugin.host.GetNodeName()))
+
+	skip, err := c.plugin.skipAttach(source.Driver)
+	if err != nil {
+		glog.Error(log("attacher.Attach failed to find if driver is attachable: %v", err))
+		return "", err
+	}
+	if skip {
+		glog.V(4).Infof(log("Driver is not attachable, skip waiting for attach"))
+		return "", nil
 	}
 
 	return c.waitForVolumeAttachment(source.VolumeHandle, attachID, timeout)
@@ -135,7 +160,7 @@ func (c *csiAttacher) waitForVolumeAttachmentInternal(volumeHandle, attachID str
 	attach, err := c.k8s.StorageV1beta1().VolumeAttachments().Get(attachID, meta.GetOptions{})
 	if err != nil {
 		glog.Error(log("attacher.WaitForAttach failed for volume [%s] (will continue to try): %v", volumeHandle, err))
-		return "", err
+		return "", fmt.Errorf("volume %v has GET error for volume attachment %v: %v", volumeHandle, attachID, err)
 	}
 	// if being deleted, fail fast
 	if attach.GetDeletionTimestamp() != nil {
@@ -219,11 +244,22 @@ func (c *csiAttacher) VolumesAreAttached(specs []*volume.Spec, nodeName types.No
 			glog.Error(log("attacher.VolumesAreAttached failed: %v", err))
 			continue
 		}
+		skip, err := c.plugin.skipAttach(source.Driver)
+		if err != nil {
+			glog.Error(log("Failed to check CSIDriver for %s: %s", source.Driver, err))
+		} else {
+			if skip {
+				// This volume is not attachable, pretend it's attached
+				attached[spec] = true
+				continue
+			}
+		}
 
 		attachID := getAttachmentName(source.VolumeHandle, source.Driver, string(nodeName))
 		glog.V(4).Info(log("probing attachment status for VolumeAttachment %v", attachID))
 		attach, err := c.k8s.StorageV1beta1().VolumeAttachments().Get(attachID, meta.GetOptions{})
 		if err != nil {
+			attached[spec] = false
 			glog.Error(log("attacher.VolumesAreAttached failed for attach.ID=%v: %v", attachID, err))
 			continue
 		}
@@ -247,6 +283,11 @@ func (c *csiAttacher) GetDeviceMountPath(spec *volume.Spec) (string, error) {
 
 func (c *csiAttacher) MountDevice(spec *volume.Spec, devicePath string, deviceMountPath string) (err error) {
 	glog.V(4).Infof(log("attacher.MountDevice(%s, %s)", devicePath, deviceMountPath))
+
+	if deviceMountPath == "" {
+		err = fmt.Errorf("attacher.MountDevice failed, deviceMountPath is empty")
+		return err
+	}
 
 	mounted, err := isDirMounted(c.plugin, deviceMountPath)
 	if err != nil {
@@ -317,25 +358,8 @@ func (c *csiAttacher) MountDevice(spec *volume.Spec, devicePath string, deviceMo
 	}
 
 	// Start MountDevice
-	if deviceMountPath == "" {
-		err = fmt.Errorf("attacher.MountDevice failed, deviceMountPath is empty")
-		return err
-	}
-
 	nodeName := string(c.plugin.host.GetNodeName())
-	attachID := getAttachmentName(csiSource.VolumeHandle, csiSource.Driver, nodeName)
-
-	// search for attachment by VolumeAttachment.Spec.Source.PersistentVolumeName
-	attachment, err := c.k8s.StorageV1beta1().VolumeAttachments().Get(attachID, meta.GetOptions{})
-	if err != nil {
-		return err // This err already has enough context ("VolumeAttachment xyz not found")
-	}
-
-	if attachment == nil {
-		err = errors.New("no existing VolumeAttachment found")
-		return err
-	}
-	publishVolumeInfo := attachment.Status.AttachmentMetadata
+	publishVolumeInfo, err := c.plugin.getPublishVolumeInfo(c.k8s, csiSource.VolumeHandle, csiSource.Driver, nodeName)
 
 	nodeStageSecrets := map[string]string{}
 	if csiSource.NodeStageSecretRef != nil {
@@ -372,6 +396,8 @@ func (c *csiAttacher) MountDevice(spec *volume.Spec, devicePath string, deviceMo
 }
 
 var _ volume.Detacher = &csiAttacher{}
+
+var _ volume.DeviceUnmounter = &csiAttacher{}
 
 func (c *csiAttacher) Detach(volumeName string, nodeName types.NodeName) error {
 	// volumeName in format driverName<SEP>volumeHandle generated by plugin.GetVolumeName()

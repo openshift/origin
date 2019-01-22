@@ -1157,7 +1157,7 @@ type OrderShipment struct {
 	CreationDate string `json:"creationDate,omitempty"`
 
 	// DeliveryDate: Date on which the shipment has been delivered, in ISO
-	// 8601 format. Present only if status is delievered
+	// 8601 format. Present only if status is delivered
 	DeliveryDate string `json:"deliveryDate,omitempty"`
 
 	// Id: The id of the shipment.
@@ -1315,12 +1315,12 @@ type OrderinvoicesCreateRefundInvoiceRequest struct {
 	OperationId string `json:"operationId,omitempty"`
 
 	// RefundOnlyOption: Option to create a refund-only invoice. Exactly one
-	// of refund_option and return_option must be provided.
+	// of refundOnlyOption or returnOption must be provided.
 	RefundOnlyOption *OrderinvoicesCustomBatchRequestEntryCreateRefundInvoiceRefundOption `json:"refundOnlyOption,omitempty"`
 
 	// ReturnOption: Option to create an invoice for a refund and mark all
-	// items within the invoice as returned. Exactly one of refund_option
-	// and return_option must be provided.
+	// items within the invoice as returned. Exactly one of refundOnlyOption
+	// or returnOption must be provided.
 	ReturnOption *OrderinvoicesCustomBatchRequestEntryCreateRefundInvoiceReturnOption `json:"returnOption,omitempty"`
 
 	// ShipmentInvoices: Invoice details for different shipment groups.
@@ -2617,6 +2617,10 @@ type OrdersCustomBatchRequestEntryUpdateShipment struct {
 	// list of acceptable values.
 	Carrier string `json:"carrier,omitempty"`
 
+	// DeliveryDate: Date on which the shipment has been delivered, in ISO
+	// 8601 format. Optional and can be provided only if
+	DeliveryDate string `json:"deliveryDate,omitempty"`
+
 	// ShipmentId: The ID of the shipment.
 	ShipmentId string `json:"shipmentId,omitempty"`
 
@@ -3575,6 +3579,10 @@ type OrdersUpdateShipmentRequest struct {
 	// list of acceptable values.
 	Carrier string `json:"carrier,omitempty"`
 
+	// DeliveryDate: Date on which the shipment has been delivered, in ISO
+	// 8601 format. Optional and can be provided only if
+	DeliveryDate string `json:"deliveryDate,omitempty"`
+
 	// OperationId: The ID of the operation. Unique across all operations
 	// for a given order.
 	OperationId string `json:"operationId,omitempty"`
@@ -3786,6 +3794,10 @@ func (s *ShipmentInvoiceLineItemInvoice) MarshalJSON() ([]byte, error) {
 type TestOrder struct {
 	// Customer: The details of the customer who placed the order.
 	Customer *TestOrderCustomer `json:"customer,omitempty"`
+
+	// EnableOrderinvoices: Whether the orderinvoices service should support
+	// this order.
+	EnableOrderinvoices bool `json:"enableOrderinvoices,omitempty"`
 
 	// Kind: Identifies what kind of resource this is. Value: the fixed
 	// string "content#testOrder".

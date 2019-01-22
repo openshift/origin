@@ -40,7 +40,7 @@ load test_helper
 }
 
 @test "session.login" {
-    esx_env
+    vcsim_env
 
     # Remove username/password
     host=$(govc env GOVC_URL)

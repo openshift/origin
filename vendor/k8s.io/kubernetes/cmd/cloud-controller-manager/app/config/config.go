@@ -18,20 +18,24 @@ package app
 
 import (
 	apiserver "k8s.io/apiserver/pkg/server"
+	"k8s.io/client-go/informers"
 	clientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
-	genericcontrollermanager "k8s.io/kubernetes/cmd/controller-manager/app"
-	"k8s.io/kubernetes/pkg/apis/componentconfig"
+	ccmconfig "k8s.io/kubernetes/cmd/cloud-controller-manager/app/apis/config"
+	"k8s.io/kubernetes/pkg/controller"
 )
 
 // Config is the main context object for the cloud controller manager.
 type Config struct {
-	ComponentConfig componentconfig.CloudControllerManagerConfiguration
+	ComponentConfig ccmconfig.CloudControllerManagerConfiguration
 
 	SecureServing *apiserver.SecureServingInfo
+	// LoopbackClientConfig is a config for a privileged loopback connection
+	LoopbackClientConfig *restclient.Config
+
 	// TODO: remove deprecated insecure serving
-	InsecureServing *genericcontrollermanager.InsecureServingInfo
+	InsecureServing *apiserver.DeprecatedInsecureServingInfo
 	Authentication  apiserver.AuthenticationInfo
 	Authorization   apiserver.AuthorizationInfo
 
@@ -46,6 +50,15 @@ type Config struct {
 
 	// the event sink
 	EventRecorder record.EventRecorder
+
+	// ClientBuilder will provide a client for this controller to use
+	ClientBuilder controller.ControllerClientBuilder
+
+	// VersionedClient will provide a client for informers
+	VersionedClient clientset.Interface
+
+	// SharedInformers gives access to informers for the controller.
+	SharedInformers informers.SharedInformerFactory
 }
 
 type completedConfig struct {
@@ -61,5 +74,8 @@ type CompletedConfig struct {
 // Complete fills in any fields not set that are required to have valid data. It's mutating the receiver.
 func (c *Config) Complete() *CompletedConfig {
 	cc := completedConfig{c}
+
+	apiserver.AuthorizeClientBearerToken(c.LoopbackClientConfig, &c.Authentication, &c.Authorization)
+
 	return &CompletedConfig{&cc}
 }

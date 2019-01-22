@@ -41,9 +41,10 @@ func NewSecurityGroupsClientWithBaseURI(baseURI string, subscriptionID string) S
 
 // CreateOrUpdate the Put NetworkSecurityGroup operation creates/updates a network security group in the specified
 // resource group.
-//
-// resourceGroupName is the name of the resource group. networkSecurityGroupName is the name of the network
-// security group. parameters is parameters supplied to the create/update Network Security Group operation
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// networkSecurityGroupName - the name of the network security group.
+// parameters - parameters supplied to the create/update Network Security Group operation
 func (client SecurityGroupsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, networkSecurityGroupName string, parameters SecurityGroup) (result SecurityGroupsCreateOrUpdateFuture, err error) {
 	req, err := client.CreateOrUpdatePreparer(ctx, resourceGroupName, networkSecurityGroupName, parameters)
 	if err != nil {
@@ -74,7 +75,7 @@ func (client SecurityGroupsClient) CreateOrUpdatePreparer(ctx context.Context, r
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/networkSecurityGroups/{networkSecurityGroupName}", pathParameters),
@@ -86,15 +87,17 @@ func (client SecurityGroupsClient) CreateOrUpdatePreparer(ctx context.Context, r
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client SecurityGroupsClient) CreateOrUpdateSender(req *http.Request) (future SecurityGroupsCreateOrUpdateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -112,9 +115,9 @@ func (client SecurityGroupsClient) CreateOrUpdateResponder(resp *http.Response) 
 }
 
 // Delete the Delete NetworkSecurityGroup operation deletes the specified network security group
-//
-// resourceGroupName is the name of the resource group. networkSecurityGroupName is the name of the network
-// security group.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// networkSecurityGroupName - the name of the network security group.
 func (client SecurityGroupsClient) Delete(ctx context.Context, resourceGroupName string, networkSecurityGroupName string) (result SecurityGroupsDeleteFuture, err error) {
 	req, err := client.DeletePreparer(ctx, resourceGroupName, networkSecurityGroupName)
 	if err != nil {
@@ -155,15 +158,17 @@ func (client SecurityGroupsClient) DeletePreparer(ctx context.Context, resourceG
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client SecurityGroupsClient) DeleteSender(req *http.Request) (future SecurityGroupsDeleteFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -180,9 +185,10 @@ func (client SecurityGroupsClient) DeleteResponder(resp *http.Response) (result 
 }
 
 // Get the Get NetworkSecurityGroups operation retrieves information about the specified network security group.
-//
-// resourceGroupName is the name of the resource group. networkSecurityGroupName is the name of the network
-// security group. expand is expand references resources.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// networkSecurityGroupName - the name of the network security group.
+// expand - expand references resources.
 func (client SecurityGroupsClient) Get(ctx context.Context, resourceGroupName string, networkSecurityGroupName string, expand string) (result SecurityGroup, err error) {
 	req, err := client.GetPreparer(ctx, resourceGroupName, networkSecurityGroupName, expand)
 	if err != nil {
@@ -250,8 +256,8 @@ func (client SecurityGroupsClient) GetResponder(resp *http.Response) (result Sec
 }
 
 // List the list NetworkSecurityGroups returns all network security groups in a resource group
-//
-// resourceGroupName is the name of the resource group.
+// Parameters:
+// resourceGroupName - the name of the resource group.
 func (client SecurityGroupsClient) List(ctx context.Context, resourceGroupName string) (result SecurityGroupListResultPage, err error) {
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName)

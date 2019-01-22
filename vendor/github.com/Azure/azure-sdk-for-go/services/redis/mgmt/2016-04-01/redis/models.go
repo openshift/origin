@@ -49,6 +49,11 @@ const (
 	Weekend DayOfWeek = "Weekend"
 )
 
+// PossibleDayOfWeekValues returns an array of possible values for the DayOfWeek const type.
+func PossibleDayOfWeekValues() []DayOfWeek {
+	return []DayOfWeek{Everyday, Friday, Monday, Saturday, Sunday, Thursday, Tuesday, Wednesday, Weekend}
+}
+
 // KeyType enumerates the values for key type.
 type KeyType string
 
@@ -58,6 +63,11 @@ const (
 	// Secondary ...
 	Secondary KeyType = "Secondary"
 )
+
+// PossibleKeyTypeValues returns an array of possible values for the KeyType const type.
+func PossibleKeyTypeValues() []KeyType {
+	return []KeyType{Primary, Secondary}
+}
 
 // RebootType enumerates the values for reboot type.
 type RebootType string
@@ -71,6 +81,11 @@ const (
 	SecondaryNode RebootType = "SecondaryNode"
 )
 
+// PossibleRebootTypeValues returns an array of possible values for the RebootType const type.
+func PossibleRebootTypeValues() []RebootType {
+	return []RebootType{AllNodes, PrimaryNode, SecondaryNode}
+}
+
 // SkuFamily enumerates the values for sku family.
 type SkuFamily string
 
@@ -80,6 +95,11 @@ const (
 	// P ...
 	P SkuFamily = "P"
 )
+
+// PossibleSkuFamilyValues returns an array of possible values for the SkuFamily const type.
+func PossibleSkuFamilyValues() []SkuFamily {
+	return []SkuFamily{C, P}
+}
 
 // SkuName enumerates the values for sku name.
 type SkuName string
@@ -93,6 +113,11 @@ const (
 	Standard SkuName = "Standard"
 )
 
+// PossibleSkuNameValues returns an array of possible values for the SkuName const type.
+func PossibleSkuNameValues() []SkuName {
+	return []SkuName{Basic, Premium, Standard}
+}
+
 // AccessKeys redis cache access keys.
 type AccessKeys struct {
 	autorest.Response `json:"-"`
@@ -105,12 +130,11 @@ type AccessKeys struct {
 // CreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type CreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future CreateFuture) Result(client Client) (rt ResourceType, err error) {
+func (future *CreateFuture) Result(client Client) (rt ResourceType, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -118,34 +142,15 @@ func (future CreateFuture) Result(client Client) (rt ResourceType, err error) {
 		return
 	}
 	if !done {
-		return rt, azure.NewAsyncOpIncompleteError("redis.CreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rt, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "redis.CreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("redis.CreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rt.Response.Response, err = future.GetResult(sender); err == nil && rt.Response.Response.StatusCode != http.StatusNoContent {
+		rt, err = client.CreateResponder(rt.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "redis.CreateFuture", "Result", rt.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.CreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rt, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.CreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -307,12 +312,11 @@ func (cp CreateProperties) MarshalJSON() ([]byte, error) {
 // DeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type DeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future DeleteFuture) Result(client Client) (ar autorest.Response, err error) {
+func (future *DeleteFuture) Result(client Client) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -320,47 +324,21 @@ func (future DeleteFuture) Result(client Client) (ar autorest.Response, err erro
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("redis.DeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "redis.DeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("redis.DeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.DeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.DeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
 // ExportDataFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ExportDataFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ExportDataFuture) Result(client Client) (ar autorest.Response, err error) {
+func (future *ExportDataFuture) Result(client Client) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -368,35 +346,10 @@ func (future ExportDataFuture) Result(client Client) (ar autorest.Response, err 
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("redis.ExportDataFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.ExportDataResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "redis.ExportDataFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("redis.ExportDataFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.ExportDataFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.ExportDataResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.ExportDataFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -422,6 +375,24 @@ type FirewallRule struct {
 	Type *string `json:"type,omitempty"`
 	// FirewallRuleProperties - redis cache firewall rule properties
 	*FirewallRuleProperties `json:"properties,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for FirewallRule.
+func (fr FirewallRule) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if fr.ID != nil {
+		objectMap["id"] = fr.ID
+	}
+	if fr.Name != nil {
+		objectMap["name"] = fr.Name
+	}
+	if fr.Type != nil {
+		objectMap["type"] = fr.Type
+	}
+	if fr.FirewallRuleProperties != nil {
+		objectMap["properties"] = fr.FirewallRuleProperties
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for FirewallRule struct.
@@ -595,12 +566,11 @@ type ForceRebootResponse struct {
 // ImportDataFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ImportDataFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ImportDataFuture) Result(client Client) (ar autorest.Response, err error) {
+func (future *ImportDataFuture) Result(client Client) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -608,35 +578,10 @@ func (future ImportDataFuture) Result(client Client) (ar autorest.Response, err 
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("redis.ImportDataFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.ImportDataResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "redis.ImportDataFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("redis.ImportDataFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.ImportDataFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.ImportDataResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.ImportDataFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -886,6 +831,27 @@ type PatchSchedule struct {
 	Location *string `json:"location,omitempty"`
 	// ScheduleEntries - List of patch schedules for a Redis cache.
 	*ScheduleEntries `json:"properties,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for PatchSchedule.
+func (ps PatchSchedule) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if ps.ID != nil {
+		objectMap["id"] = ps.ID
+	}
+	if ps.Name != nil {
+		objectMap["name"] = ps.Name
+	}
+	if ps.Type != nil {
+		objectMap["type"] = ps.Type
+	}
+	if ps.Location != nil {
+		objectMap["location"] = ps.Location
+	}
+	if ps.ScheduleEntries != nil {
+		objectMap["properties"] = ps.ScheduleEntries
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for PatchSchedule struct.

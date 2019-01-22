@@ -8,3 +8,7 @@ reviewers:
 - luxas
 - wlan0
 - andrewsykim
+- stewart-yu
+labels:
+- sig/api-machinery
+- sig/cloud-provider

@@ -1,17 +1,17 @@
 package: github.com/openshift/library-go
 import:
 - package: k8s.io/apimachinery
-  version: kubernetes-1.11.1
+  version: kubernetes-1.12.4
 - package: k8s.io/api
-  version: kubernetes-1.11.1
+  version: kubernetes-1.12.4
 - package: k8s.io/apiserver
-  version: kubernetes-1.11.1
+  version: kubernetes-1.12.4
 - package: k8s.io/apiextensions-apiserver
-  version: kubernetes-1.11.1
+  version: kubernetes-1.12.4
 - package: k8s.io/kube-aggregator
-  version: kubernetes-1.11.1
+  version: kubernetes-1.12.4
 - package: k8s.io/client-go
-  version: kubernetes-1.11.1
+  version: kubernetes-1.12.4
 - package: github.com/openshift/api
   version: master
 - package: github.com/openshift/client-go
@@ -43,4 +43,4 @@ import:
 - package: github.com/blang/semver
   version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
 - package: github.com/imdario/mergo
-  version: 6633656539c1639d9d78127b7d47c622b5d7b6dc
+  version: 9316a62528ac99aaecb4e47eadd6dc8aa6533d58

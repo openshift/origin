@@ -21,6 +21,14 @@ const (
 	// in the IAM User Guide.
 	ErrCodeAccessDeniedException = "AccessDeniedException"
 
+	// ErrCodeAccessDeniedForDependencyException for service response error code
+	// "AccessDeniedForDependencyException".
+	//
+	// The operation you attempted requires you to have the iam:CreateServiceLinkedRole
+	// so that Organizations can create the required service-linked role. You do
+	// not have that permission.
+	ErrCodeAccessDeniedForDependencyException = "AccessDeniedForDependencyException"
+
 	// ErrCodeAccountNotFoundException for service response error code
 	// "AccountNotFoundException".
 	//
@@ -59,6 +67,9 @@ const (
 	// policies to an account, OU, or root. This exception includes a reason that
 	// contains additional information about the violated limit:
 	//
+	// Some of the reasons in the following list might not be applicable to this
+	// specific API or operation:
+	//
 	// ACCOUNT_NUMBER_LIMIT_EXCEEDED: You attempted to exceed the limit on the number
 	// of accounts in an organization. If you need more accounts, contact AWS Support
 	// to request an increase in your limit.
@@ -69,9 +80,9 @@ const (
 	//
 	// Note: deleted and closed accounts still count toward your limit.
 	//
-	// If you get an exception that indicates that you exceeded your account limits
-	// for the organization or that you can"t add an account because your organization
-	// is still initializing, please contact  AWS Customer Support (https://console.aws.amazon.com/support/home#/).
+	// If you get receive this exception when running a command immediately after
+	// creating the organization, wait one hour and try again. If after an hour
+	// it continues to fail with this error, contact AWS Customer Support (https://console.aws.amazon.com/support/home#/).
 	//
 	//    * HANDSHAKE_RATE_LIMIT_EXCEEDED: You attempted to exceed the number of
 	//    handshakes you can send in one day.
@@ -81,6 +92,11 @@ const (
 	//
 	//    * OU_DEPTH_LIMIT_EXCEEDED: You attempted to create an organizational unit
 	//    tree that is too many levels deep.
+	//
+	//    * ORGANIZATION_NOT_IN_ALL_FEATURES_MODE: You attempted to perform an operation
+	//    that requires the organization to be configured to support all features.
+	//    An organization that supports consolidated billing features only cannot
+	//    perform this operation.
 	//
 	//    * POLICY_NUMBER_LIMIT_EXCEEDED. You attempted to exceed the number of
 	//    policies that you can have in an organization.
@@ -186,8 +202,10 @@ const (
 	// ErrCodeFinalizingOrganizationException for service response error code
 	// "FinalizingOrganizationException".
 	//
-	// AWS Organizations could not finalize the creation of your organization. Try
-	// again later. If this persists, contact AWS customer support.
+	// AWS Organizations could not perform the operation because your organization
+	// has not finished initializing. This can take up to an hour. Try again later.
+	// If after one hour you continue to receive this error, contact  AWS Customer
+	// Support (https://console.aws.amazon.com/support/home#/).
 	ErrCodeFinalizingOrganizationException = "FinalizingOrganizationException"
 
 	// ErrCodeHandshakeAlreadyInStateException for service response error code
@@ -203,13 +221,16 @@ const (
 	// The requested operation would violate the constraint identified in the reason
 	// code.
 	//
+	// Some of the reasons in the following list might not be applicable to this
+	// specific API or operation:
+	//
 	//    * ACCOUNT_NUMBER_LIMIT_EXCEEDED: You attempted to exceed the limit on
 	//    the number of accounts in an organization. Note: deleted and closed accounts
 	//    still count toward your limit.
 	//
-	// If you get an exception that indicates that you exceeded your account limits
-	//    for the organization or that you can"t add an account because your organization
-	//    is still initializing, please contact  AWS Customer Support (https://console.aws.amazon.com/support/home#/).
+	// If you get this exception immediately after creating the organization, wait
+	//    one hour and try again. If after an hour it continues to fail with this
+	//    error, contact AWS Customer Support (https://console.aws.amazon.com/support/home#/).
 	//
 	//    * HANDSHAKE_RATE_LIMIT_EXCEEDED: You attempted to exceed the number of
 	//    handshakes you can send in one day.
@@ -260,13 +281,13 @@ const (
 	// or more of the request parameters. This exception includes a reason that
 	// contains additional information about the violated limit:
 	//
-	//    * INVALID_PARTY_TYPE_TARGET: You specified the wrong type of entity (account,
-	//    organization, or email) as a party.
+	// Some of the reasons in the following list might not be applicable to this
+	// specific API or operation:
 	//
-	//    * INVALID_SYNTAX_ORGANIZATION_ARN: You specified an invalid ARN for the
-	//    organization.
+	//    * IMMUTABLE_POLICY: You specified a policy that is managed by AWS and
+	//    cannot be modified.
 	//
-	//    * INVALID_SYNTAX_POLICY_ID: You specified an invalid policy ID.
+	//    * INPUT_REQUIRED: You must include a value for all required parameters.
 	//
 	//    * INVALID_ENUM: You specified a value that is not valid for that parameter.
 	//
@@ -275,6 +296,29 @@ const (
 	//
 	//    * INVALID_LIST_MEMBER: You provided a list to a parameter that contains
 	//    at least one invalid value.
+	//
+	//    * INVALID_PARTY_TYPE_TARGET: You specified the wrong type of entity (account,
+	//    organization, or email) as a party.
+	//
+	//    * INVALID_PAGINATION_TOKEN: Get the value for the NextToken parameter
+	//    from the response to a previous call of the operation.
+	//
+	//    * INVALID_PATTERN: You provided a value that doesn't match the required
+	//    pattern.
+	//
+	//    * INVALID_PATTERN_TARGET_ID: You specified a policy target ID that doesn't
+	//    match the required pattern.
+	//
+	//    * INVALID_ROLE_NAME: You provided a role name that is not valid. A role
+	//    name can’t begin with the reserved prefix 'AWSServiceRoleFor'.
+	//
+	//    * INVALID_SYNTAX_ORGANIZATION_ARN: You specified an invalid ARN for the
+	//    organization.
+	//
+	//    * INVALID_SYNTAX_POLICY_ID: You specified an invalid policy ID.
+	//
+	//    * MAX_FILTER_LIMIT_EXCEEDED: You can specify only one filter parameter
+	//    for the operation.
 	//
 	//    * MAX_LENGTH_EXCEEDED: You provided a string parameter that is longer
 	//    than allowed.
@@ -287,23 +331,6 @@ const (
 	//
 	//    * MIN_VALUE_EXCEEDED: You provided a numeric parameter that has a smaller
 	//    value than allowed.
-	//
-	//    * IMMUTABLE_POLICY: You specified a policy that is managed by AWS and
-	//    cannot be modified.
-	//
-	//    * INVALID_PATTERN: You provided a value that doesn't match the required
-	//    pattern.
-	//
-	//    * INVALID_PATTERN_TARGET_ID: You specified a policy target ID that doesn't
-	//    match the required pattern.
-	//
-	//    * INPUT_REQUIRED: You must include a value for all required parameters.
-	//
-	//    * INVALID_PAGINATION_TOKEN: Get the value for the NextToken parameter
-	//    from the response to a previous call of the operation.
-	//
-	//    * MAX_FILTER_LIMIT_EXCEEDED: You can specify only one filter parameter
-	//    for the operation.
 	//
 	//    * MOVING_ACCOUNT_BETWEEN_DIFFERENT_ROOTS: You can move an account only
 	//    between entities in the same root.

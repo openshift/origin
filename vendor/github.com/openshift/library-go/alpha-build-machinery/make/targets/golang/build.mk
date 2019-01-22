@@ -1,8 +1,17 @@
 self_dir :=$(dir $(lastword $(MAKEFILE_LIST)))
 
+define build-package
+	$(GO) build $(GO_BUILD_FLAGS) $(1)
+
+endef
+
+# We need to build each package separately so go build creates appropriate binaries
 build:
-	$(GO) build $(GO_BUILD_FLAGS) $(GO_BUILD_PACKAGES)
+	$(foreach package,$(GO_BUILD_PACKAGES_EXPANDED),$(call build-package,$(package)))
 .PHONY: build
+
+clean-binaries:
+	$(RM) $(go_build_binaries)
 
 # We need to be careful to expand all the paths before any include is done
 # or self_dir could be modified for the next include by the included file.

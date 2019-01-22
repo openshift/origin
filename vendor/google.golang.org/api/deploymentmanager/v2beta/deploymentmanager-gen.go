@@ -7572,7 +7572,7 @@ func (c *TypeProvidersGetTypeCall) Do(opts ...googleapi.CallOption) (*TypeInfo, 
 	//       "type": "string"
 	//     },
 	//     "type": {
-	//       "description": "The name of the type provider for this request.",
+	//       "description": "The name of the type provider type for this request.",
 	//       "location": "path",
 	//       "required": true,
 	//       "type": "string"

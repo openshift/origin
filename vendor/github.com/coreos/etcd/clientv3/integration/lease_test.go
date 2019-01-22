@@ -55,6 +55,11 @@ func TestLeaseGrant(t *testing.T) {
 
 	kv := clus.RandClient()
 
+	_, merr := lapi.Grant(context.Background(), clientv3.MaxLeaseTTL+1)
+	if merr != rpctypes.ErrLeaseTTLTooLarge {
+		t.Fatalf("err = %v, want %v", merr, rpctypes.ErrLeaseTTLTooLarge)
+	}
+
 	resp, err := lapi.Grant(context.Background(), 10)
 	if err != nil {
 		t.Errorf("failed to create lease %v", err)
@@ -302,6 +307,49 @@ func TestLeaseGrantErrConnClosed(t *testing.T) {
 	case <-time.After(3 * time.Second):
 		t.Fatal("le.Grant took too long")
 	case <-donec:
+	}
+}
+
+// TestLeaseKeepAliveFullResponseQueue ensures when response
+// queue is full thus dropping keepalive response sends,
+// keepalive request is sent with the same rate of TTL / 3.
+func TestLeaseKeepAliveFullResponseQueue(t *testing.T) {
+	defer testutil.AfterTest(t)
+
+	clus := integration.NewClusterV3(t, &integration.ClusterConfig{Size: 1})
+	defer clus.Terminate(t)
+
+	lapi := clus.Client(0)
+
+	// expect lease keepalive every 10-second
+	lresp, err := lapi.Grant(context.Background(), 30)
+	if err != nil {
+		t.Fatalf("failed to create lease %v", err)
+	}
+	id := lresp.ID
+
+	old := clientv3.LeaseResponseChSize
+	defer func() {
+		clientv3.LeaseResponseChSize = old
+	}()
+	clientv3.LeaseResponseChSize = 0
+
+	// never fetch from response queue, and let it become full
+	_, err = lapi.KeepAlive(context.Background(), id)
+	if err != nil {
+		t.Fatalf("failed to keepalive lease %v", err)
+	}
+
+	// TTL should not be refreshed after 3 seconds
+	// expect keepalive to be triggered after TTL/3
+	time.Sleep(3 * time.Second)
+
+	tr, terr := lapi.TimeToLive(context.Background(), id)
+	if terr != nil {
+		t.Fatalf("failed to get lease information %v", terr)
+	}
+	if tr.TTL >= 29 {
+		t.Errorf("unexpected kept-alive lease TTL %d", tr.TTL)
 	}
 }
 

@@ -56,7 +56,7 @@ type Client struct {
 func init() {
 	// Fault types are not in the ssoadmin.wsdl
 	vim.Add("SsoFaultNotAuthenticated", reflect.TypeOf((*vim.NotAuthenticated)(nil)).Elem())
-	vim.Add("SsoNoPermission", reflect.TypeOf((*vim.NoPermission)(nil)).Elem())
+	vim.Add("SsoFaultNoPermission", reflect.TypeOf((*vim.NoPermission)(nil)).Elem())
 	vim.Add("SsoFaultInvalidCredentials", reflect.TypeOf((*vim.InvalidLogin)(nil)).Elem())
 	vim.Add("SsoAdminFaultDuplicateSolutionCertificateFaultFault", reflect.TypeOf((*vim.InvalidArgument)(nil)).Elem())
 }

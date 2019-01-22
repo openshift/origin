@@ -9,8 +9,9 @@ import (
 	"strings"
 
 	"github.com/docker/docker/api"
+	"github.com/docker/docker/api/types/versions"
 	"github.com/docker/docker/integration-cli/checker"
-	"github.com/docker/docker/integration-cli/request"
+	"github.com/docker/docker/internal/test/request"
 	"github.com/go-check/check"
 )
 
@@ -33,7 +34,7 @@ func (s *DockerSuite) TestAPIGetEnabledCORS(c *check.C) {
 }
 
 func (s *DockerSuite) TestAPIClientVersionOldNotSupported(c *check.C) {
-	if testEnv.DaemonPlatform() != runtime.GOOS {
+	if testEnv.OSType != runtime.GOOS {
 		c.Skip("Daemon platform doesn't match test platform")
 	}
 	if api.MinVersion == api.DefaultVersion {
@@ -59,7 +60,11 @@ func (s *DockerSuite) TestAPIClientVersionOldNotSupported(c *check.C) {
 func (s *DockerSuite) TestAPIErrorJSON(c *check.C) {
 	httpResp, body, err := request.Post("/containers/create", request.JSONBody(struct{}{}))
 	c.Assert(err, checker.IsNil)
-	c.Assert(httpResp.StatusCode, checker.Equals, http.StatusBadRequest)
+	if versions.LessThan(testEnv.DaemonAPIVersion(), "1.32") {
+		c.Assert(httpResp.StatusCode, checker.Equals, http.StatusInternalServerError)
+	} else {
+		c.Assert(httpResp.StatusCode, checker.Equals, http.StatusBadRequest)
+	}
 	c.Assert(httpResp.Header.Get("Content-Type"), checker.Equals, "application/json")
 	b, err := request.ReadBody(body)
 	c.Assert(err, checker.IsNil)
@@ -72,7 +77,11 @@ func (s *DockerSuite) TestAPIErrorPlainText(c *check.C) {
 	testRequires(c, DaemonIsLinux)
 	httpResp, body, err := request.Post("/v1.23/containers/create", request.JSONBody(struct{}{}))
 	c.Assert(err, checker.IsNil)
-	c.Assert(httpResp.StatusCode, checker.Equals, http.StatusBadRequest)
+	if versions.LessThan(testEnv.DaemonAPIVersion(), "1.32") {
+		c.Assert(httpResp.StatusCode, checker.Equals, http.StatusInternalServerError)
+	} else {
+		c.Assert(httpResp.StatusCode, checker.Equals, http.StatusBadRequest)
+	}
 	c.Assert(httpResp.Header.Get("Content-Type"), checker.Contains, "text/plain")
 	b, err := request.ReadBody(body)
 	c.Assert(err, checker.IsNil)

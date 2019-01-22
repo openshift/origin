@@ -664,6 +664,7 @@ type CRDRESTOptionsGetter struct {
 	DefaultWatchCacheSize   int
 	EnableGarbageCollection bool
 	DeleteCollectionWorkers int
+	CountMetricPollPeriod   time.Duration
 }
 
 func (t CRDRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource) (generic.RESTOptions, error) {
@@ -673,6 +674,7 @@ func (t CRDRESTOptionsGetter) GetRESTOptions(resource schema.GroupResource) (gen
 		EnableGarbageCollection: t.EnableGarbageCollection,
 		DeleteCollectionWorkers: t.DeleteCollectionWorkers,
 		ResourcePrefix:          resource.Group + "/" + resource.Resource,
+		CountMetricPollPeriod:   t.CountMetricPollPeriod,
 	}
 	if t.EnableWatchCache {
 		ret.Decorator = genericregistry.StorageWithCacher(t.DefaultWatchCacheSize)
@@ -786,8 +788,8 @@ func (v schemaCoercingConverter) ConvertToVersion(in runtime.Object, gv runtime.
 	return out, nil
 }
 
-func (v schemaCoercingConverter) ConvertFieldLabel(version, kind, label, value string) (string, string, error) {
-	return v.ConvertFieldLabel(version, kind, label, value)
+func (v schemaCoercingConverter) ConvertFieldLabel(gvk schema.GroupVersionKind, label, value string) (string, string, error) {
+	return v.delegate.ConvertFieldLabel(gvk, label, value)
 }
 
 // unstructuredSchemaCoercer does the validation for Unstructured that json.Unmarshal

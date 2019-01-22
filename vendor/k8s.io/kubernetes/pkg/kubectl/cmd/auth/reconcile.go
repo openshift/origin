@@ -18,23 +18,23 @@ package auth
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
 	rbacv1 "k8s.io/api/rbac/v1"
-	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
 	rbacv1alpha1 "k8s.io/api/rbac/v1alpha1"
+	rbacv1beta1 "k8s.io/api/rbac/v1beta1"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
+	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/registry/rbac/reconciliation"
-	"fmt"
 )
 
 // ReconcileOptions is the start of the data required to perform the operation.  As new fields are added, add them here instead of

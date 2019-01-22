@@ -41,9 +41,11 @@ func NewVirtualMachinesClientWithBaseURI(baseURI string, subscriptionID string) 
 }
 
 // AddDataDisk attach a new or existing data disk to virtual machine. This operation can take a while to complete.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// virtual machine. dataDiskProperties is request body for adding a new or existing data disk to a virtual machine.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the virtual machine.
+// dataDiskProperties - request body for adding a new or existing data disk to a virtual machine.
 func (client VirtualMachinesClient) AddDataDisk(ctx context.Context, resourceGroupName string, labName string, name string, dataDiskProperties DataDiskProperties) (result VirtualMachinesAddDataDiskFuture, err error) {
 	req, err := client.AddDataDiskPreparer(ctx, resourceGroupName, labName, name, dataDiskProperties)
 	if err != nil {
@@ -75,7 +77,7 @@ func (client VirtualMachinesClient) AddDataDiskPreparer(ctx context.Context, res
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DevTestLab/labs/{labName}/virtualmachines/{name}/addDataDisk", pathParameters),
@@ -87,15 +89,17 @@ func (client VirtualMachinesClient) AddDataDiskPreparer(ctx context.Context, res
 // AddDataDiskSender sends the AddDataDisk request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) AddDataDiskSender(req *http.Request) (future VirtualMachinesAddDataDiskFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -112,9 +116,11 @@ func (client VirtualMachinesClient) AddDataDiskResponder(resp *http.Response) (r
 }
 
 // ApplyArtifacts apply artifacts to virtual machine. This operation can take a while to complete.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// virtual machine. applyArtifactsRequest is request body for applying artifacts to a virtual machine.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the virtual machine.
+// applyArtifactsRequest - request body for applying artifacts to a virtual machine.
 func (client VirtualMachinesClient) ApplyArtifacts(ctx context.Context, resourceGroupName string, labName string, name string, applyArtifactsRequest ApplyArtifactsRequest) (result VirtualMachinesApplyArtifactsFuture, err error) {
 	req, err := client.ApplyArtifactsPreparer(ctx, resourceGroupName, labName, name, applyArtifactsRequest)
 	if err != nil {
@@ -146,7 +152,7 @@ func (client VirtualMachinesClient) ApplyArtifactsPreparer(ctx context.Context, 
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DevTestLab/labs/{labName}/virtualmachines/{name}/applyArtifacts", pathParameters),
@@ -158,15 +164,17 @@ func (client VirtualMachinesClient) ApplyArtifactsPreparer(ctx context.Context, 
 // ApplyArtifactsSender sends the ApplyArtifacts request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) ApplyArtifactsSender(req *http.Request) (future VirtualMachinesApplyArtifactsFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -183,9 +191,10 @@ func (client VirtualMachinesClient) ApplyArtifactsResponder(resp *http.Response)
 }
 
 // Claim take ownership of an existing virtual machine This operation can take a while to complete.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// virtual machine.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the virtual machine.
 func (client VirtualMachinesClient) Claim(ctx context.Context, resourceGroupName string, labName string, name string) (result VirtualMachinesClaimFuture, err error) {
 	req, err := client.ClaimPreparer(ctx, resourceGroupName, labName, name)
 	if err != nil {
@@ -227,15 +236,17 @@ func (client VirtualMachinesClient) ClaimPreparer(ctx context.Context, resourceG
 // ClaimSender sends the Claim request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) ClaimSender(req *http.Request) (future VirtualMachinesClaimFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -252,9 +263,11 @@ func (client VirtualMachinesClient) ClaimResponder(resp *http.Response) (result 
 }
 
 // CreateOrUpdate create or replace an existing Virtual machine. This operation can take a while to complete.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// virtual machine. labVirtualMachine is a virtual machine.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the virtual machine.
+// labVirtualMachine - a virtual machine.
 func (client VirtualMachinesClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, labName string, name string, labVirtualMachine LabVirtualMachine) (result VirtualMachinesCreateOrUpdateFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: labVirtualMachine,
@@ -301,7 +314,7 @@ func (client VirtualMachinesClient) CreateOrUpdatePreparer(ctx context.Context, 
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DevTestLab/labs/{labName}/virtualmachines/{name}", pathParameters),
@@ -313,15 +326,17 @@ func (client VirtualMachinesClient) CreateOrUpdatePreparer(ctx context.Context, 
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) CreateOrUpdateSender(req *http.Request) (future VirtualMachinesCreateOrUpdateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -339,9 +354,10 @@ func (client VirtualMachinesClient) CreateOrUpdateResponder(resp *http.Response)
 }
 
 // Delete delete virtual machine. This operation can take a while to complete.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// virtual machine.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the virtual machine.
 func (client VirtualMachinesClient) Delete(ctx context.Context, resourceGroupName string, labName string, name string) (result VirtualMachinesDeleteFuture, err error) {
 	req, err := client.DeletePreparer(ctx, resourceGroupName, labName, name)
 	if err != nil {
@@ -383,15 +399,17 @@ func (client VirtualMachinesClient) DeletePreparer(ctx context.Context, resource
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) DeleteSender(req *http.Request) (future VirtualMachinesDeleteFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -408,9 +426,11 @@ func (client VirtualMachinesClient) DeleteResponder(resp *http.Response) (result
 }
 
 // DetachDataDisk detach the specified disk from the virtual machine. This operation can take a while to complete.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// virtual machine. detachDataDiskProperties is request body for detaching data disk from a virtual machine.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the virtual machine.
+// detachDataDiskProperties - request body for detaching data disk from a virtual machine.
 func (client VirtualMachinesClient) DetachDataDisk(ctx context.Context, resourceGroupName string, labName string, name string, detachDataDiskProperties DetachDataDiskProperties) (result VirtualMachinesDetachDataDiskFuture, err error) {
 	req, err := client.DetachDataDiskPreparer(ctx, resourceGroupName, labName, name, detachDataDiskProperties)
 	if err != nil {
@@ -442,7 +462,7 @@ func (client VirtualMachinesClient) DetachDataDiskPreparer(ctx context.Context, 
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DevTestLab/labs/{labName}/virtualmachines/{name}/detachDataDisk", pathParameters),
@@ -454,15 +474,17 @@ func (client VirtualMachinesClient) DetachDataDiskPreparer(ctx context.Context, 
 // DetachDataDiskSender sends the DetachDataDisk request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) DetachDataDiskSender(req *http.Request) (future VirtualMachinesDetachDataDiskFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -479,9 +501,11 @@ func (client VirtualMachinesClient) DetachDataDiskResponder(resp *http.Response)
 }
 
 // Get get virtual machine.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// virtual machine. expand is specify the $expand query. Example:
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the virtual machine.
+// expand - specify the $expand query. Example:
 // 'properties($expand=artifacts,computeVm,networkInterface,applicableSchedule)'
 func (client VirtualMachinesClient) Get(ctx context.Context, resourceGroupName string, labName string, name string, expand string) (result LabVirtualMachine, err error) {
 	req, err := client.GetPreparer(ctx, resourceGroupName, labName, name, expand)
@@ -551,11 +575,14 @@ func (client VirtualMachinesClient) GetResponder(resp *http.Response) (result La
 }
 
 // List list virtual machines in a given lab.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. expand is specify the
-// $expand query. Example: 'properties($expand=artifacts,computeVm,networkInterface,applicableSchedule)' filter is
-// the filter to apply to the operation. top is the maximum number of resources to return from the operation.
-// orderby is the ordering expression for the results, using OData notation.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// expand - specify the $expand query. Example:
+// 'properties($expand=artifacts,computeVm,networkInterface,applicableSchedule)'
+// filter - the filter to apply to the operation.
+// top - the maximum number of resources to return from the operation.
+// orderby - the ordering expression for the results, using OData notation.
 func (client VirtualMachinesClient) List(ctx context.Context, resourceGroupName string, labName string, expand string, filter string, top *int32, orderby string) (result ResponseWithContinuationLabVirtualMachinePage, err error) {
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName, labName, expand, filter, top, orderby)
@@ -660,9 +687,10 @@ func (client VirtualMachinesClient) ListComplete(ctx context.Context, resourceGr
 }
 
 // ListApplicableSchedules lists all applicable schedules
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// virtual machine.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the virtual machine.
 func (client VirtualMachinesClient) ListApplicableSchedules(ctx context.Context, resourceGroupName string, labName string, name string) (result ApplicableSchedule, err error) {
 	req, err := client.ListApplicableSchedulesPreparer(ctx, resourceGroupName, labName, name)
 	if err != nil {
@@ -728,9 +756,10 @@ func (client VirtualMachinesClient) ListApplicableSchedulesResponder(resp *http.
 }
 
 // Start start a virtual machine. This operation can take a while to complete.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// virtual machine.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the virtual machine.
 func (client VirtualMachinesClient) Start(ctx context.Context, resourceGroupName string, labName string, name string) (result VirtualMachinesStartFuture, err error) {
 	req, err := client.StartPreparer(ctx, resourceGroupName, labName, name)
 	if err != nil {
@@ -772,15 +801,17 @@ func (client VirtualMachinesClient) StartPreparer(ctx context.Context, resourceG
 // StartSender sends the Start request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) StartSender(req *http.Request) (future VirtualMachinesStartFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -797,9 +828,10 @@ func (client VirtualMachinesClient) StartResponder(resp *http.Response) (result 
 }
 
 // Stop stop a virtual machine This operation can take a while to complete.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// virtual machine.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the virtual machine.
 func (client VirtualMachinesClient) Stop(ctx context.Context, resourceGroupName string, labName string, name string) (result VirtualMachinesStopFuture, err error) {
 	req, err := client.StopPreparer(ctx, resourceGroupName, labName, name)
 	if err != nil {
@@ -841,15 +873,17 @@ func (client VirtualMachinesClient) StopPreparer(ctx context.Context, resourceGr
 // StopSender sends the Stop request. The method will close the
 // http.Response Body if it receives an error.
 func (client VirtualMachinesClient) StopSender(req *http.Request) (future VirtualMachinesStopFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -866,9 +900,11 @@ func (client VirtualMachinesClient) StopResponder(resp *http.Response) (result a
 }
 
 // Update modify properties of virtual machines.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// virtual machine. labVirtualMachine is a virtual machine.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the virtual machine.
+// labVirtualMachine - a virtual machine.
 func (client VirtualMachinesClient) Update(ctx context.Context, resourceGroupName string, labName string, name string, labVirtualMachine LabVirtualMachineFragment) (result LabVirtualMachine, err error) {
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, labName, name, labVirtualMachine)
 	if err != nil {
@@ -906,7 +942,7 @@ func (client VirtualMachinesClient) UpdatePreparer(ctx context.Context, resource
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DevTestLab/labs/{labName}/virtualmachines/{name}", pathParameters),

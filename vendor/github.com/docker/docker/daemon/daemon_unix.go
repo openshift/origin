@@ -1,10 +1,10 @@
 // +build linux freebsd
 
-package daemon
+package daemon // import "github.com/docker/docker/daemon"
 
 import (
 	"bufio"
-	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -16,20 +16,24 @@ import (
 	"strings"
 	"time"
 
+	containerd_cgroups "github.com/containerd/cgroups"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/blkiodev"
 	pblkiodev "github.com/docker/docker/api/types/blkiodev"
 	containertypes "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/container"
 	"github.com/docker/docker/daemon/config"
-	"github.com/docker/docker/image"
+	"github.com/docker/docker/daemon/initlayer"
 	"github.com/docker/docker/opts"
+	"github.com/docker/docker/pkg/containerfs"
 	"github.com/docker/docker/pkg/idtools"
+	"github.com/docker/docker/pkg/ioutils"
+	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/parsers"
 	"github.com/docker/docker/pkg/parsers/kernel"
 	"github.com/docker/docker/pkg/sysinfo"
 	"github.com/docker/docker/runconfig"
-	"github.com/docker/docker/volume"
+	volumemounts "github.com/docker/docker/volume/mounts"
 	"github.com/docker/libnetwork"
 	nwconfig "github.com/docker/libnetwork/config"
 	"github.com/docker/libnetwork/drivers/bridge"
@@ -37,10 +41,9 @@ import (
 	"github.com/docker/libnetwork/netutils"
 	"github.com/docker/libnetwork/options"
 	lntypes "github.com/docker/libnetwork/types"
-	"github.com/golang/protobuf/ptypes"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	rsystem "github.com/opencontainers/runc/libcontainer/system"
-	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -49,6 +52,14 @@ import (
 )
 
 const (
+	// DefaultShimBinary is the default shim to be used by containerd if none
+	// is specified
+	DefaultShimBinary = "docker-containerd-shim"
+
+	// DefaultRuntimeBinary is the default runtime to be used by
+	// containerd if none is specified
+	DefaultRuntimeBinary = "docker-runc"
+
 	// See https://git.kernel.org/cgit/linux/kernel/git/tip/tip.git/tree/kernel/sched/sched.h?id=8cd9234c64c584432f6992fe944ca9e46ca8ea76#n269
 	linuxMinCPUShares = 2
 	linuxMaxCPUShares = 262144
@@ -56,12 +67,16 @@ const (
 	// It's not kernel limit, we want this 4M limit to supply a reasonable functional container
 	linuxMinMemory = 4194304
 	// constants for remapped root settings
-	defaultIDSpecifier string = "default"
-	defaultRemappedID  string = "dockremap"
+	defaultIDSpecifier = "default"
+	defaultRemappedID  = "dockremap"
 
 	// constant for cgroup drivers
 	cgroupFsDriver      = "cgroupfs"
 	cgroupSystemdDriver = "systemd"
+
+	// DefaultRuntimeName is the default runtime to be used by
+	// containerd if none is specified
+	DefaultRuntimeName = "docker-runc"
 )
 
 type containerGetter interface {
@@ -86,6 +101,10 @@ func getMemoryResources(config containertypes.Resources) *specs.LinuxMemory {
 	if config.MemorySwappiness != nil {
 		swappiness := uint64(*config.MemorySwappiness)
 		memory.Swappiness = &swappiness
+	}
+
+	if config.OomKillDisable != nil {
+		memory.DisableOOMKiller = config.OomKillDisable
 	}
 
 	if config.KernelMemory != 0 {
@@ -559,11 +578,6 @@ func verifyPlatformContainerSettings(daemon *Daemon, hostConfig *containertypes.
 	var warnings []string
 	sysInfo := sysinfo.New(true)
 
-	warnings, err := daemon.verifyExperimentalContainerSettings(hostConfig, config)
-	if err != nil {
-		return warnings, err
-	}
-
 	w, err := verifyContainerResources(&hostConfig.Resources, sysInfo, update)
 
 	// no matter err is nil or not, w could have data in itself.
@@ -612,8 +626,9 @@ func verifyPlatformContainerSettings(daemon *Daemon, hostConfig *containertypes.
 		return warnings, fmt.Errorf("Unknown runtime specified %s", hostConfig.Runtime)
 	}
 
+	parser := volumemounts.NewParser(runtime.GOOS)
 	for dest := range hostConfig.Tmpfs {
-		if err := volume.ValidateTmpfsMountDestination(dest); err != nil {
+		if err := parser.ValidateTmpfsMountDestination(dest); err != nil {
 			return warnings, err
 		}
 	}
@@ -621,45 +636,51 @@ func verifyPlatformContainerSettings(daemon *Daemon, hostConfig *containertypes.
 	return warnings, nil
 }
 
-// reloadPlatform updates configuration with platform specific options
-// and updates the passed attributes
-func (daemon *Daemon) reloadPlatform(conf *config.Config, attributes map[string]string) error {
-	if err := conf.ValidatePlatformConfig(); err != nil {
-		return err
-	}
+func (daemon *Daemon) loadRuntimes() error {
+	return daemon.initRuntimes(daemon.configStore.Runtimes)
+}
 
-	if conf.IsValueSet("runtimes") {
-		daemon.configStore.Runtimes = conf.Runtimes
-		// Always set the default one
-		daemon.configStore.Runtimes[config.StockRuntimeName] = types.Runtime{Path: DefaultRuntimeBinary}
+func (daemon *Daemon) initRuntimes(runtimes map[string]types.Runtime) (err error) {
+	runtimeDir := filepath.Join(daemon.configStore.Root, "runtimes")
+	// Remove old temp directory if any
+	os.RemoveAll(runtimeDir + "-old")
+	tmpDir, err := ioutils.TempDir(daemon.configStore.Root, "gen-runtimes")
+	if err != nil {
+		return errors.Wrapf(err, "failed to get temp dir to generate runtime scripts")
 	}
-
-	if conf.DefaultRuntime != "" {
-		daemon.configStore.DefaultRuntime = conf.DefaultRuntime
-	}
-
-	if conf.IsValueSet("default-shm-size") {
-		daemon.configStore.ShmSize = conf.ShmSize
-	}
-
-	if conf.IpcMode != "" {
-		daemon.configStore.IpcMode = conf.IpcMode
-	}
-
-	// Update attributes
-	var runtimeList bytes.Buffer
-	for name, rt := range daemon.configStore.Runtimes {
-		if runtimeList.Len() > 0 {
-			runtimeList.WriteRune(' ')
+	defer func() {
+		if err != nil {
+			if err1 := os.RemoveAll(tmpDir); err1 != nil {
+				logrus.WithError(err1).WithField("dir", tmpDir).
+					Warnf("failed to remove tmp dir")
+			}
+			return
 		}
-		runtimeList.WriteString(fmt.Sprintf("%s:%s", name, rt))
+
+		if err = os.Rename(runtimeDir, runtimeDir+"-old"); err != nil {
+			return
+		}
+		if err = os.Rename(tmpDir, runtimeDir); err != nil {
+			err = errors.Wrapf(err, "failed to setup runtimes dir, new containers may not start")
+			return
+		}
+		if err = os.RemoveAll(runtimeDir + "-old"); err != nil {
+			logrus.WithError(err).WithField("dir", tmpDir).
+				Warnf("failed to remove old runtimes dir")
+		}
+	}()
+
+	for name, rt := range runtimes {
+		if len(rt.Args) == 0 {
+			continue
+		}
+
+		script := filepath.Join(tmpDir, name)
+		content := fmt.Sprintf("#!/bin/sh\n%s %s $@\n", rt.Path, strings.Join(rt.Args, " "))
+		if err := ioutil.WriteFile(script, []byte(content), 0700); err != nil {
+			return err
+		}
 	}
-
-	attributes["runtimes"] = runtimeList.String()
-	attributes["default-runtime"] = daemon.configStore.DefaultRuntime
-	attributes["default-shm-size"] = fmt.Sprintf("%d", daemon.configStore.ShmSize)
-	attributes["default-ipc-mode"] = daemon.configStore.IpcMode
-
 	return nil
 }
 
@@ -690,7 +711,7 @@ func verifyDaemonSettings(conf *config.Config) error {
 	if conf.Runtimes == nil {
 		conf.Runtimes = make(map[string]types.Runtime)
 	}
-	conf.Runtimes[config.StockRuntimeName] = types.Runtime{Path: DefaultRuntimeBinary}
+	conf.Runtimes[config.StockRuntimeName] = types.Runtime{Path: DefaultRuntimeName}
 
 	return nil
 }
@@ -752,22 +773,14 @@ func overlaySupportsSelinux() (bool, error) {
 }
 
 // configureKernelSecuritySupport configures and validates security support for the kernel
-func configureKernelSecuritySupport(config *config.Config, driverNames []string) error {
+func configureKernelSecuritySupport(config *config.Config, driverName string) error {
 	if config.EnableSelinuxSupport {
 		if !selinuxEnabled() {
 			logrus.Warn("Docker could not enable SELinux on the host system")
 			return nil
 		}
 
-		overlayFound := false
-		for _, d := range driverNames {
-			if d == "overlay" || d == "overlay2" {
-				overlayFound = true
-				break
-			}
-		}
-
-		if overlayFound {
+		if driverName == "overlay" || driverName == "overlay2" {
 			// If driver is overlay or overlay2, make sure kernel
 			// supports selinux with overlay.
 			supported, err := overlaySupportsSelinux()
@@ -776,7 +789,7 @@ func configureKernelSecuritySupport(config *config.Config, driverNames []string)
 			}
 
 			if !supported {
-				logrus.Warnf("SELinux is not supported with the %v graph driver on this kernel", driverNames)
+				logrus.Warnf("SELinux is not supported with the %v graph driver on this kernel", driverName)
 			}
 		}
 	} else {
@@ -819,6 +832,9 @@ func (daemon *Daemon) initNetworkController(config *config.Config, activeSandbox
 	if n, err := controller.NetworkByName("bridge"); err == nil {
 		if err = n.Delete(); err != nil {
 			return nil, fmt.Errorf("could not delete the default bridge network: %v", err)
+		}
+		if len(config.NetworkConfig.DefaultAddressPools.Value()) > 0 && !daemon.configStore.LiveRestoreEnabled {
+			removeDefaultBridgeInterface()
 		}
 	}
 
@@ -987,8 +1003,10 @@ func removeDefaultBridgeInterface() {
 	}
 }
 
-func (daemon *Daemon) getLayerInit() func(string) error {
-	return daemon.setupInitLayer
+func setupInitLayer(idMappings *idtools.IDMappings) func(containerfs.ContainerFS) error {
+	return func(initPath containerfs.ContainerFS) error {
+		return initlayer.Setup(initPath, idMappings.RootPair())
+	}
 }
 
 // Parse the remapped root (user namespace) option, which can be one of:
@@ -1161,7 +1179,56 @@ func setupDaemonRoot(config *config.Config, rootDir string, rootIDs idtools.IDPa
 			}
 		}
 	}
+
+	if err := setupDaemonRootPropagation(config); err != nil {
+		logrus.WithError(err).WithField("dir", config.Root).Warn("Error while setting daemon root propagation, this is not generally critical but may cause some functionality to not work or fallback to less desirable behavior")
+	}
 	return nil
+}
+
+func setupDaemonRootPropagation(cfg *config.Config) error {
+	rootParentMount, options, err := getSourceMount(cfg.Root)
+	if err != nil {
+		return errors.Wrap(err, "error getting daemon root's parent mount")
+	}
+
+	var cleanupOldFile bool
+	cleanupFile := getUnmountOnShutdownPath(cfg)
+	defer func() {
+		if !cleanupOldFile {
+			return
+		}
+		if err := os.Remove(cleanupFile); err != nil && !os.IsNotExist(err) {
+			logrus.WithError(err).WithField("file", cleanupFile).Warn("could not clean up old root propagation unmount file")
+		}
+	}()
+
+	if hasMountinfoOption(options, sharedPropagationOption, slavePropagationOption) {
+		cleanupOldFile = true
+		return nil
+	}
+
+	if err := mount.MakeShared(cfg.Root); err != nil {
+		return errors.Wrap(err, "could not setup daemon root propagation to shared")
+	}
+
+	// check the case where this may have already been a mount to itself.
+	// If so then the daemon only performed a remount and should not try to unmount this later.
+	if rootParentMount == cfg.Root {
+		cleanupOldFile = true
+		return nil
+	}
+
+	if err := ioutil.WriteFile(cleanupFile, nil, 0600); err != nil {
+		return errors.Wrap(err, "error writing file to signal mount cleanup on shutdown")
+	}
+	return nil
+}
+
+// getUnmountOnShutdownPath generates the path to used when writing the file that signals to the daemon that on shutdown
+// the daemon root should be unmounted.
+func getUnmountOnShutdownPath(config *config.Config) string {
+	return filepath.Join(config.ExecRoot, "unmount-on-shutdown")
 }
 
 // registerLinks writes the links to a file.
@@ -1212,11 +1279,24 @@ func (daemon *Daemon) conditionalUnmountOnCleanup(container *container.Container
 	return daemon.Unmount(container)
 }
 
+func copyBlkioEntry(entries []*containerd_cgroups.BlkIOEntry) []types.BlkioStatEntry {
+	out := make([]types.BlkioStatEntry, len(entries))
+	for i, re := range entries {
+		out[i] = types.BlkioStatEntry{
+			Major: re.Major,
+			Minor: re.Minor,
+			Op:    re.Op,
+			Value: re.Value,
+		}
+	}
+	return out
+}
+
 func (daemon *Daemon) stats(c *container.Container) (*types.StatsJSON, error) {
 	if !c.IsRunning() {
 		return nil, errNotRunning(c.ID)
 	}
-	stats, err := daemon.containerd.Stats(c.ID)
+	cs, err := daemon.containerd.Stats(context.Background(), c.ID)
 	if err != nil {
 		if strings.Contains(err.Error(), "container not found") {
 			return nil, containerNotFound(c.ID)
@@ -1224,54 +1304,98 @@ func (daemon *Daemon) stats(c *container.Container) (*types.StatsJSON, error) {
 		return nil, err
 	}
 	s := &types.StatsJSON{}
-	cgs := stats.CgroupStats
-	if cgs != nil {
+	s.Read = cs.Read
+	stats := cs.Metrics
+	if stats.Blkio != nil {
 		s.BlkioStats = types.BlkioStats{
-			IoServiceBytesRecursive: copyBlkioEntry(cgs.BlkioStats.IoServiceBytesRecursive),
-			IoServicedRecursive:     copyBlkioEntry(cgs.BlkioStats.IoServicedRecursive),
-			IoQueuedRecursive:       copyBlkioEntry(cgs.BlkioStats.IoQueuedRecursive),
-			IoServiceTimeRecursive:  copyBlkioEntry(cgs.BlkioStats.IoServiceTimeRecursive),
-			IoWaitTimeRecursive:     copyBlkioEntry(cgs.BlkioStats.IoWaitTimeRecursive),
-			IoMergedRecursive:       copyBlkioEntry(cgs.BlkioStats.IoMergedRecursive),
-			IoTimeRecursive:         copyBlkioEntry(cgs.BlkioStats.IoTimeRecursive),
-			SectorsRecursive:        copyBlkioEntry(cgs.BlkioStats.SectorsRecursive),
+			IoServiceBytesRecursive: copyBlkioEntry(stats.Blkio.IoServiceBytesRecursive),
+			IoServicedRecursive:     copyBlkioEntry(stats.Blkio.IoServicedRecursive),
+			IoQueuedRecursive:       copyBlkioEntry(stats.Blkio.IoQueuedRecursive),
+			IoServiceTimeRecursive:  copyBlkioEntry(stats.Blkio.IoServiceTimeRecursive),
+			IoWaitTimeRecursive:     copyBlkioEntry(stats.Blkio.IoWaitTimeRecursive),
+			IoMergedRecursive:       copyBlkioEntry(stats.Blkio.IoMergedRecursive),
+			IoTimeRecursive:         copyBlkioEntry(stats.Blkio.IoTimeRecursive),
+			SectorsRecursive:        copyBlkioEntry(stats.Blkio.SectorsRecursive),
 		}
-		cpu := cgs.CpuStats
+	}
+	if stats.CPU != nil {
 		s.CPUStats = types.CPUStats{
 			CPUUsage: types.CPUUsage{
-				TotalUsage:        cpu.CpuUsage.TotalUsage,
-				PercpuUsage:       cpu.CpuUsage.PercpuUsage,
-				UsageInKernelmode: cpu.CpuUsage.UsageInKernelmode,
-				UsageInUsermode:   cpu.CpuUsage.UsageInUsermode,
+				TotalUsage:        stats.CPU.Usage.Total,
+				PercpuUsage:       stats.CPU.Usage.PerCPU,
+				UsageInKernelmode: stats.CPU.Usage.Kernel,
+				UsageInUsermode:   stats.CPU.Usage.User,
 			},
 			ThrottlingData: types.ThrottlingData{
-				Periods:          cpu.ThrottlingData.Periods,
-				ThrottledPeriods: cpu.ThrottlingData.ThrottledPeriods,
-				ThrottledTime:    cpu.ThrottlingData.ThrottledTime,
+				Periods:          stats.CPU.Throttling.Periods,
+				ThrottledPeriods: stats.CPU.Throttling.ThrottledPeriods,
+				ThrottledTime:    stats.CPU.Throttling.ThrottledTime,
 			},
 		}
-		mem := cgs.MemoryStats.Usage
-		s.MemoryStats = types.MemoryStats{
-			Usage:    mem.Usage,
-			MaxUsage: mem.MaxUsage,
-			Stats:    cgs.MemoryStats.Stats,
-			Failcnt:  mem.Failcnt,
-			Limit:    mem.Limit,
-		}
-		// if the container does not set memory limit, use the machineMemory
-		if mem.Limit > daemon.machineMemory && daemon.machineMemory > 0 {
-			s.MemoryStats.Limit = daemon.machineMemory
-		}
-		if cgs.PidsStats != nil {
-			s.PidsStats = types.PidsStats{
-				Current: cgs.PidsStats.Current,
+	}
+
+	if stats.Memory != nil {
+		raw := make(map[string]uint64)
+		raw["cache"] = stats.Memory.Cache
+		raw["rss"] = stats.Memory.RSS
+		raw["rss_huge"] = stats.Memory.RSSHuge
+		raw["mapped_file"] = stats.Memory.MappedFile
+		raw["dirty"] = stats.Memory.Dirty
+		raw["writeback"] = stats.Memory.Writeback
+		raw["pgpgin"] = stats.Memory.PgPgIn
+		raw["pgpgout"] = stats.Memory.PgPgOut
+		raw["pgfault"] = stats.Memory.PgFault
+		raw["pgmajfault"] = stats.Memory.PgMajFault
+		raw["inactive_anon"] = stats.Memory.InactiveAnon
+		raw["active_anon"] = stats.Memory.ActiveAnon
+		raw["inactive_file"] = stats.Memory.InactiveFile
+		raw["active_file"] = stats.Memory.ActiveFile
+		raw["unevictable"] = stats.Memory.Unevictable
+		raw["hierarchical_memory_limit"] = stats.Memory.HierarchicalMemoryLimit
+		raw["hierarchical_memsw_limit"] = stats.Memory.HierarchicalSwapLimit
+		raw["total_cache"] = stats.Memory.TotalCache
+		raw["total_rss"] = stats.Memory.TotalRSS
+		raw["total_rss_huge"] = stats.Memory.TotalRSSHuge
+		raw["total_mapped_file"] = stats.Memory.TotalMappedFile
+		raw["total_dirty"] = stats.Memory.TotalDirty
+		raw["total_writeback"] = stats.Memory.TotalWriteback
+		raw["total_pgpgin"] = stats.Memory.TotalPgPgIn
+		raw["total_pgpgout"] = stats.Memory.TotalPgPgOut
+		raw["total_pgfault"] = stats.Memory.TotalPgFault
+		raw["total_pgmajfault"] = stats.Memory.TotalPgMajFault
+		raw["total_inactive_anon"] = stats.Memory.TotalInactiveAnon
+		raw["total_active_anon"] = stats.Memory.TotalActiveAnon
+		raw["total_inactive_file"] = stats.Memory.TotalInactiveFile
+		raw["total_active_file"] = stats.Memory.TotalActiveFile
+		raw["total_unevictable"] = stats.Memory.TotalUnevictable
+
+		if stats.Memory.Usage != nil {
+			s.MemoryStats = types.MemoryStats{
+				Stats:    raw,
+				Usage:    stats.Memory.Usage.Usage,
+				MaxUsage: stats.Memory.Usage.Max,
+				Limit:    stats.Memory.Usage.Limit,
+				Failcnt:  stats.Memory.Usage.Failcnt,
+			}
+		} else {
+			s.MemoryStats = types.MemoryStats{
+				Stats: raw,
 			}
 		}
+
+		// if the container does not set memory limit, use the machineMemory
+		if s.MemoryStats.Limit > daemon.machineMemory && daemon.machineMemory > 0 {
+			s.MemoryStats.Limit = daemon.machineMemory
+		}
 	}
-	s.Read, err = ptypes.Timestamp(stats.Timestamp)
-	if err != nil {
-		return nil, err
+
+	if stats.Pids != nil {
+		s.PidsStats = types.PidsStats{
+			Current: stats.Pids.Current,
+			Limit:   stats.Pids.Limit,
+		}
 	}
+
 	return s, nil
 }
 
@@ -1281,21 +1405,45 @@ func (daemon *Daemon) setDefaultIsolation() error {
 	return nil
 }
 
-func rootFSToAPIType(rootfs *image.RootFS) types.RootFS {
-	var layers []string
-	for _, l := range rootfs.DiffIDs {
-		layers = append(layers, l.String())
-	}
-	return types.RootFS{
-		Type:   rootfs.Type,
-		Layers: layers,
-	}
-}
-
 // setupDaemonProcess sets various settings for the daemon's process
 func setupDaemonProcess(config *config.Config) error {
 	// setup the daemons oom_score_adj
-	return setupOOMScoreAdj(config.OOMScoreAdjust)
+	if err := setupOOMScoreAdj(config.OOMScoreAdjust); err != nil {
+		return err
+	}
+	if err := setMayDetachMounts(); err != nil {
+		logrus.WithError(err).Warn("Could not set may_detach_mounts kernel parameter")
+	}
+	return nil
+}
+
+// This is used to allow removal of mountpoints that may be mounted in other
+// namespaces on RHEL based kernels starting from RHEL 7.4.
+// Without this setting, removals on these RHEL based kernels may fail with
+// "device or resource busy".
+// This setting is not available in upstream kernels as it is not configurable,
+// but has been in the upstream kernels since 3.15.
+func setMayDetachMounts() error {
+	f, err := os.OpenFile("/proc/sys/fs/may_detach_mounts", os.O_WRONLY, 0)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return errors.Wrap(err, "error opening may_detach_mounts kernel config file")
+	}
+	defer f.Close()
+
+	_, err = f.WriteString("1")
+	if os.IsPermission(err) {
+		// Setting may_detach_mounts does not work in an
+		// unprivileged container. Ignore the error, but log
+		// it if we appear not to be in that situation.
+		if !rsystem.RunningInUserNS() {
+			logrus.Debugf("Permission denied writing %q to /proc/sys/fs/may_detach_mounts", "1")
+		}
+		return nil
+	}
+	return err
 }
 
 func setupOOMScoreAdj(score int) error {
@@ -1347,15 +1495,12 @@ func (daemon *Daemon) initCgroupsPath(path string) error {
 	if err := maybeCreateCPURealTimeFile(sysinfo.CPURealtimePeriod, daemon.configStore.CPURealtimePeriod, "cpu.rt_period_us", path); err != nil {
 		return err
 	}
-	if err := maybeCreateCPURealTimeFile(sysinfo.CPURealtimeRuntime, daemon.configStore.CPURealtimeRuntime, "cpu.rt_runtime_us", path); err != nil {
-		return err
-	}
-	return nil
+	return maybeCreateCPURealTimeFile(sysinfo.CPURealtimeRuntime, daemon.configStore.CPURealtimeRuntime, "cpu.rt_runtime_us", path)
 }
 
 func maybeCreateCPURealTimeFile(sysinfoPresent bool, configValue int64, file string, path string) error {
 	if sysinfoPresent && configValue != 0 {
-		if err := os.MkdirAll(path, 0755); err != nil && !os.IsExist(err) {
+		if err := os.MkdirAll(path, 0755); err != nil {
 			return err
 		}
 		if err := ioutil.WriteFile(filepath.Join(path, file), []byte(strconv.FormatInt(configValue, 10)), 0700); err != nil {

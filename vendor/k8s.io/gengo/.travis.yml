@@ -1,6 +1,6 @@
 language: go
 go:
-  - 1.8
+  - "1.10"
   - tip
 
 go_import_path: k8s.io/gengo
@@ -12,5 +12,5 @@ jobs:
         - find . -name vendor -prune -o -name Makefile -execdir make test \;
         - go test -v ./...
     - stage: Verify examples
-      script: 
+      script:
         - go run ./examples/import-boss/main.go -i k8s.io/gengo/... --verify-only

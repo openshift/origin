@@ -1,6 +1,4 @@
-// +build linux
-
-package daemon
+package daemon // import "github.com/docker/docker/daemon"
 
 import "github.com/opencontainers/selinux/go-selinux"
 

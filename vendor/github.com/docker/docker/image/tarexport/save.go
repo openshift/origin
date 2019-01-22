@@ -1,4 +1,4 @@
-package tarexport
+package tarexport // import "github.com/docker/docker/image/tarexport"
 
 import (
 	"encoding/json"
@@ -6,7 +6,9 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/docker/distribution"
@@ -153,7 +155,14 @@ func (l *tarexporter) takeLayerReference(id image.ID, imgDescr *imageDescriptor)
 	if topLayerID == "" {
 		return nil
 	}
-	layer, err := l.ls.Get(topLayerID)
+	os := img.OS
+	if os == "" {
+		os = runtime.GOOS
+	}
+	if !system.IsOSSupported(os) {
+		return fmt.Errorf("os %q is not supported", os)
+	}
+	layer, err := l.lss[os].Get(topLayerID)
 	if err != nil {
 		return err
 	}
@@ -165,7 +174,11 @@ func (l *tarexporter) takeLayerReference(id image.ID, imgDescr *imageDescriptor)
 func (l *tarexporter) releaseLayerReferences(imgDescr map[image.ID]*imageDescriptor) error {
 	for _, descr := range imgDescr {
 		if descr.layerRef != nil {
-			l.ls.Release(descr.layerRef)
+			os := descr.image.OS
+			if os == "" {
+				os = runtime.GOOS
+			}
+			l.lss[os].Release(descr.layerRef)
 		}
 	}
 	return nil
@@ -207,7 +220,11 @@ func (s *saveSession) save(outStream io.Writer) error {
 		}
 
 		for _, l := range imageDescr.layers {
-			layers = append(layers, filepath.Join(l, legacyLayerFileName))
+			// IMPORTANT: We use path, not filepath here to ensure the layers
+			// in the manifest use Unix-style forward-slashes. Otherwise, a
+			// Linux image saved from LCOW won't be able to be imported on
+			// LCOL.
+			layers = append(layers, path.Join(l, legacyLayerFileName))
 		}
 
 		manifest = append(manifest, manifestItem{
@@ -304,6 +321,7 @@ func (s *saveSession) saveImage(id image.ID) (map[layer.DiffID]distribution.Desc
 			v1Img.Parent = parent.Hex()
 		}
 
+		v1Img.OS = img.OS
 		src, err := s.saveLayer(rootFS.ChainID(), v1Img, img.Created)
 		if err != nil {
 			return nil, err
@@ -356,11 +374,15 @@ func (s *saveSession) saveLayer(id layer.ChainID, legacyImg image.V1Image, creat
 
 	// serialize filesystem
 	layerPath := filepath.Join(outDir, legacyLayerFileName)
-	l, err := s.ls.Get(id)
+	operatingSystem := legacyImg.OS
+	if operatingSystem == "" {
+		operatingSystem = runtime.GOOS
+	}
+	l, err := s.lss[operatingSystem].Get(id)
 	if err != nil {
 		return distribution.Descriptor{}, err
 	}
-	defer layer.ReleaseAndLog(s.ls, l)
+	defer layer.ReleaseAndLog(s.lss[operatingSystem], l)
 
 	if oldPath, exists := s.diffIDPaths[l.DiffID()]; exists {
 		relPath, err := filepath.Rel(outDir, oldPath)

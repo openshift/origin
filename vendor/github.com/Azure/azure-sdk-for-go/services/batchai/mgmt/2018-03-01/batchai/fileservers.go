@@ -41,11 +41,12 @@ func NewFileServersClientWithBaseURI(baseURI string, subscriptionID string) File
 }
 
 // Create creates a file server.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. fileServerName is the name of the
-// file server within the specified resource group. File server names can only contain a combination of
-// alphanumeric characters along with dash (-) and underscore (_). The name must be from 1 through 64 characters
-// long. parameters is the parameters to provide for file server creation.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// fileServerName - the name of the file server within the specified resource group. File server names can only
+// contain a combination of alphanumeric characters along with dash (-) and underscore (_). The name must be
+// from 1 through 64 characters long.
+// parameters - the parameters to provide for file server creation.
 func (client FileServersClient) Create(ctx context.Context, resourceGroupName string, fileServerName string, parameters FileServerCreateParameters) (result FileServersCreateFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -113,15 +114,17 @@ func (client FileServersClient) CreatePreparer(ctx context.Context, resourceGrou
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileServersClient) CreateSender(req *http.Request) (future FileServersCreateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -139,11 +142,11 @@ func (client FileServersClient) CreateResponder(resp *http.Response) (result Fil
 }
 
 // Delete delete a file Server.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. fileServerName is the name of the
-// file server within the specified resource group. File server names can only contain a combination of
-// alphanumeric characters along with dash (-) and underscore (_). The name must be from 1 through 64 characters
-// long.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// fileServerName - the name of the file server within the specified resource group. File server names can only
+// contain a combination of alphanumeric characters along with dash (-) and underscore (_). The name must be
+// from 1 through 64 characters long.
 func (client FileServersClient) Delete(ctx context.Context, resourceGroupName string, fileServerName string) (result FileServersDeleteFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -194,15 +197,17 @@ func (client FileServersClient) DeletePreparer(ctx context.Context, resourceGrou
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client FileServersClient) DeleteSender(req *http.Request) (future FileServersDeleteFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -219,11 +224,11 @@ func (client FileServersClient) DeleteResponder(resp *http.Response) (result aut
 }
 
 // Get gets information about the specified Cluster.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. fileServerName is the name of the
-// file server within the specified resource group. File server names can only contain a combination of
-// alphanumeric characters along with dash (-) and underscore (_). The name must be from 1 through 64 characters
-// long.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// fileServerName - the name of the file server within the specified resource group. File server names can only
+// contain a combination of alphanumeric characters along with dash (-) and underscore (_). The name must be
+// from 1 through 64 characters long.
 func (client FileServersClient) Get(ctx context.Context, resourceGroupName string, fileServerName string) (result FileServer, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -299,15 +304,15 @@ func (client FileServersClient) GetResponder(resp *http.Response) (result FileSe
 
 // List to list all the file servers available under the given subscription (and across all resource groups within that
 // subscription)
-//
-// filter is an OData $filter clause.. Used to filter results that are returned in the GET respnose.
-// selectParameter is an OData $select clause. Used to select the properties to be returned in the GET respnose.
-// maxResults is the maximum number of items to return in the response. A maximum of 1000 files can be returned.
+// Parameters:
+// filter - an OData $filter clause.. Used to filter results that are returned in the GET respnose.
+// selectParameter - an OData $select clause. Used to select the properties to be returned in the GET respnose.
+// maxResults - the maximum number of items to return in the response. A maximum of 1000 files can be returned.
 func (client FileServersClient) List(ctx context.Context, filter string, selectParameter string, maxResults *int32) (result FileServerListResultPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "maxResults", Name: validation.InclusiveMaximum, Rule: 1000, Chain: nil},
+				Chain: []validation.Constraint{{Target: "maxResults", Name: validation.InclusiveMaximum, Rule: int64(1000), Chain: nil},
 					{Target: "maxResults", Name: validation.InclusiveMinimum, Rule: 1, Chain: nil},
 				}}}}}); err != nil {
 		return result, validation.NewError("batchai.FileServersClient", "List", err.Error())
@@ -414,18 +419,18 @@ func (client FileServersClient) ListComplete(ctx context.Context, filter string,
 
 // ListByResourceGroup gets a formatted list of file servers and their properties associated within the specified
 // resource group.
-//
-// resourceGroupName is name of the resource group to which the resource belongs. filter is an OData $filter
-// clause.. Used to filter results that are returned in the GET respnose. selectParameter is an OData $select
-// clause. Used to select the properties to be returned in the GET respnose. maxResults is the maximum number of
-// items to return in the response. A maximum of 1000 files can be returned.
+// Parameters:
+// resourceGroupName - name of the resource group to which the resource belongs.
+// filter - an OData $filter clause.. Used to filter results that are returned in the GET respnose.
+// selectParameter - an OData $select clause. Used to select the properties to be returned in the GET respnose.
+// maxResults - the maximum number of items to return in the response. A maximum of 1000 files can be returned.
 func (client FileServersClient) ListByResourceGroup(ctx context.Context, resourceGroupName string, filter string, selectParameter string, maxResults *int32) (result FileServerListResultPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._]+$`, Chain: nil}}},
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "maxResults", Name: validation.InclusiveMaximum, Rule: 1000, Chain: nil},
+				Chain: []validation.Constraint{{Target: "maxResults", Name: validation.InclusiveMaximum, Rule: int64(1000), Chain: nil},
 					{Target: "maxResults", Name: validation.InclusiveMinimum, Rule: 1, Chain: nil},
 				}}}}}); err != nil {
 		return result, validation.NewError("batchai.FileServersClient", "ListByResourceGroup", err.Error())

@@ -40,6 +40,8 @@ type SecureServingOptions struct {
 	// BindNetwork is the type of network to bind to - defaults to "tcp", accepts "tcp",
 	// "tcp4", and "tcp6".
 	BindNetwork string
+	// Required set to true means that BindPort cannot be zero.
+	Required bool
 	// ExternalAddress is the address advertised, even if BindAddress is a loopback. By default this
 	// is set to BindAddress if the later no loopback, or to the first host interface address.
 	ExternalAddress net.IP
@@ -113,7 +115,9 @@ func (s *SecureServingOptions) Validate() []error {
 
 	errors := []error{}
 
-	if s.BindPort < 0 || s.BindPort > 65535 {
+	if s.Required && s.BindPort < 1 || s.BindPort > 65535 {
+		errors = append(errors, fmt.Errorf("--secure-port %v must be between 1 and 65535, inclusive. It cannot be turned off with 0", s.BindPort))
+	} else if s.BindPort < 0 || s.BindPort > 65535 {
 		errors = append(errors, fmt.Errorf("--secure-port %v must be between 0 and 65535, inclusive. 0 for turning off secure port", s.BindPort))
 	}
 
@@ -129,9 +133,14 @@ func (s *SecureServingOptions) AddFlags(fs *pflag.FlagSet) {
 		"The IP address on which to listen for the --secure-port port. The "+
 		"associated interface(s) must be reachable by the rest of the cluster, and by CLI/web "+
 		"clients. If blank, all interfaces will be used (0.0.0.0 for all IPv4 interfaces and :: for all IPv6 interfaces).")
-	fs.IntVar(&s.BindPort, "secure-port", s.BindPort, ""+
-		"The port on which to serve HTTPS with authentication and authorization. If 0, "+
-		"don't serve HTTPS at all.")
+
+	desc := "The port on which to serve HTTPS with authentication and authorization."
+	if s.Required {
+		desc += "It cannot be switched off with 0."
+	} else {
+		desc += "If 0, don't serve HTTPS at all."
+	}
+	fs.IntVar(&s.BindPort, "secure-port", s.BindPort, desc)
 
 	fs.StringVar(&s.ServerCert.CertDirectory, "cert-dir", s.ServerCert.CertDirectory, ""+
 		"The directory where the TLS certs are located. "+
@@ -247,7 +256,7 @@ func (s *SecureServingOptions) ApplyTo(config **server.SecureServingInfo) error 
 }
 
 func (s *SecureServingOptions) MaybeDefaultWithSelfSignedCerts(publicAddress string, alternateDNS []string, alternateIPs []net.IP) error {
-	if s == nil {
+	if s == nil || (s.BindPort == 0 && s.Listener == nil) {
 		return nil
 	}
 	keyCert := &s.ServerCert.CertKey

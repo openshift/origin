@@ -20,15 +20,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 )
 
 // AsDefaultVersionedOrOriginal returns the object as a Go object in the external form if possible (matching the
 // group version kind of the mapping if provided, a best guess based on serialization if not provided, or obj if it cannot be converted.
 // TODO update call sites to specify the scheme they want on their builder.
 func AsDefaultVersionedOrOriginal(obj runtime.Object, mapping *meta.RESTMapping) runtime.Object {
-	converter := runtime.ObjectConvertor(legacyscheme.Scheme)
-	groupVersioner := runtime.GroupVersioner(schema.GroupVersions(legacyscheme.Scheme.PrioritizedVersionsAllGroups()))
+	converter := runtime.ObjectConvertor(DefaultPrintingScheme)
+	groupVersioner := runtime.GroupVersioner(schema.GroupVersions(DefaultPrintingScheme.PrioritizedVersionsAllGroups()))
 	if mapping != nil {
 		groupVersioner = mapping.GroupVersionKind.GroupVersion()
 	}

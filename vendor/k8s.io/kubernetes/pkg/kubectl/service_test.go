@@ -27,11 +27,13 @@ import (
 
 func TestGenerateService(t *testing.T) {
 	tests := []struct {
+		name      string
 		generator Generator
 		params    map[string]interface{}
 		expected  v1.Service
 	}{
 		{
+			name:      "test1",
 			generator: ServiceGeneratorV2{},
 			params: map[string]interface{}{
 				"selector":       "foo=bar,baz=blah",
@@ -60,7 +62,7 @@ func TestGenerateService(t *testing.T) {
 			},
 		},
 		{
-
+			name:      "test2",
 			generator: ServiceGeneratorV2{},
 			params: map[string]interface{}{
 				"selector":       "foo=bar,baz=blah",
@@ -89,6 +91,7 @@ func TestGenerateService(t *testing.T) {
 			},
 		},
 		{
+			name:      "test3",
 			generator: ServiceGeneratorV2{},
 			params: map[string]interface{}{
 				"selector":       "foo=bar,baz=blah",
@@ -122,6 +125,7 @@ func TestGenerateService(t *testing.T) {
 			},
 		},
 		{
+			name:      "test4",
 			generator: ServiceGeneratorV2{},
 			params: map[string]interface{}{
 				"selector":       "foo=bar,baz=blah",
@@ -152,6 +156,7 @@ func TestGenerateService(t *testing.T) {
 			},
 		},
 		{
+			name:      "test5",
 			generator: ServiceGeneratorV2{},
 			params: map[string]interface{}{
 				"selector":       "foo=bar,baz=blah",
@@ -184,6 +189,7 @@ func TestGenerateService(t *testing.T) {
 			},
 		},
 		{
+			name:      "test6",
 			generator: ServiceGeneratorV2{},
 			params: map[string]interface{}{
 				"selector":       "foo=bar,baz=blah",
@@ -214,6 +220,7 @@ func TestGenerateService(t *testing.T) {
 			},
 		},
 		{
+			name:      "test7",
 			generator: ServiceGeneratorV2{},
 			params: map[string]interface{}{
 				"selector":                      "foo=bar,baz=blah",
@@ -245,6 +252,7 @@ func TestGenerateService(t *testing.T) {
 			},
 		},
 		{
+			name:      "test8",
 			generator: ServiceGeneratorV1{},
 			params: map[string]interface{}{
 				"selector":       "foo=bar,baz=blah",
@@ -274,6 +282,7 @@ func TestGenerateService(t *testing.T) {
 			},
 		},
 		{
+			name:      "test9",
 			generator: ServiceGeneratorV1{},
 			params: map[string]interface{}{
 				"selector":         "foo=bar,baz=blah",
@@ -305,6 +314,7 @@ func TestGenerateService(t *testing.T) {
 			},
 		},
 		{
+			name:      "test10",
 			generator: ServiceGeneratorV2{},
 			params: map[string]interface{}{
 				"selector":       "foo=bar,baz=blah",
@@ -335,6 +345,7 @@ func TestGenerateService(t *testing.T) {
 			},
 		},
 		{
+			name:      "test11",
 			generator: ServiceGeneratorV2{},
 			params: map[string]interface{}{
 				"selector":       "foo=bar,baz=blah",
@@ -365,6 +376,7 @@ func TestGenerateService(t *testing.T) {
 			},
 		},
 		{
+			name:      "test12",
 			generator: ServiceGeneratorV1{},
 			params: map[string]interface{}{
 				"selector":       "foo=bar",
@@ -399,6 +411,7 @@ func TestGenerateService(t *testing.T) {
 			},
 		},
 		{
+			name:      "test13",
 			generator: ServiceGeneratorV2{},
 			params: map[string]interface{}{
 				"selector":    "foo=bar",
@@ -433,6 +446,7 @@ func TestGenerateService(t *testing.T) {
 			},
 		},
 		{
+			name:      "test14",
 			generator: ServiceGeneratorV2{},
 			params: map[string]interface{}{
 				"selector": "foo=bar",
@@ -466,6 +480,7 @@ func TestGenerateService(t *testing.T) {
 			},
 		},
 		{
+			name:      "test15",
 			generator: ServiceGeneratorV2{},
 			params: map[string]interface{}{
 				"selector":  "foo=bar",
@@ -499,6 +514,7 @@ func TestGenerateService(t *testing.T) {
 			},
 		},
 		{
+			name:      "test16",
 			generator: ServiceGeneratorV2{},
 			params: map[string]interface{}{
 				"selector":  "foo=bar",
@@ -538,6 +554,7 @@ func TestGenerateService(t *testing.T) {
 			},
 		},
 		{
+			name:      "test17",
 			generator: ServiceGeneratorV2{},
 			params: map[string]interface{}{
 				"selector":       "foo=bar,baz=blah",
@@ -561,6 +578,7 @@ func TestGenerateService(t *testing.T) {
 			},
 		},
 		{
+			name:      "test18",
 			generator: ServiceGeneratorV2{},
 			params: map[string]interface{}{
 				"selector":   "foo=bar",
@@ -580,14 +598,365 @@ func TestGenerateService(t *testing.T) {
 				},
 			},
 		},
+		{
+			generator: ServiceGeneratorV2{},
+			params: map[string]interface{}{
+				"selector":       "foo=bar,baz=blah",
+				"name":           "test",
+				"port":           "80",
+				"protocol":       "SCTP",
+				"container-port": "1234",
+			},
+			expected: v1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+				},
+				Spec: v1.ServiceSpec{
+					Selector: map[string]string{
+						"foo": "bar",
+						"baz": "blah",
+					},
+					Ports: []v1.ServicePort{
+						{
+							Port:       80,
+							Protocol:   "SCTP",
+							TargetPort: intstr.FromInt(1234),
+						},
+					},
+				},
+			},
+		},
+		{
+			generator: ServiceGeneratorV2{},
+			params: map[string]interface{}{
+				"selector":       "foo=bar,baz=blah",
+				"labels":         "key1=value1,key2=value2",
+				"name":           "test",
+				"port":           "80",
+				"protocol":       "SCTP",
+				"container-port": "1234",
+			},
+			expected: v1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+					Labels: map[string]string{
+						"key1": "value1",
+						"key2": "value2",
+					},
+				},
+				Spec: v1.ServiceSpec{
+					Selector: map[string]string{
+						"foo": "bar",
+						"baz": "blah",
+					},
+					Ports: []v1.ServicePort{
+						{
+							Port:       80,
+							Protocol:   "SCTP",
+							TargetPort: intstr.FromInt(1234),
+						},
+					},
+				},
+			},
+		},
+		{
+			generator: ServiceGeneratorV1{},
+			params: map[string]interface{}{
+				"selector":       "foo=bar,baz=blah",
+				"name":           "test",
+				"port":           "80",
+				"protocol":       "SCTP",
+				"container-port": "1234",
+			},
+			expected: v1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+				},
+				Spec: v1.ServiceSpec{
+					Selector: map[string]string{
+						"foo": "bar",
+						"baz": "blah",
+					},
+					Ports: []v1.ServicePort{
+						{
+							Name:       "default",
+							Port:       80,
+							Protocol:   "SCTP",
+							TargetPort: intstr.FromInt(1234),
+						},
+					},
+				},
+			},
+		},
+		{
+			generator: ServiceGeneratorV1{},
+			params: map[string]interface{}{
+				"selector":         "foo=bar,baz=blah",
+				"name":             "test",
+				"port":             "80",
+				"protocol":         "SCTP",
+				"container-port":   "1234",
+				"session-affinity": "ClientIP",
+			},
+			expected: v1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+				},
+				Spec: v1.ServiceSpec{
+					Selector: map[string]string{
+						"foo": "bar",
+						"baz": "blah",
+					},
+					Ports: []v1.ServicePort{
+						{
+							Name:       "default",
+							Port:       80,
+							Protocol:   "SCTP",
+							TargetPort: intstr.FromInt(1234),
+						},
+					},
+					SessionAffinity: v1.ServiceAffinityClientIP,
+				},
+			},
+		},
+		{
+			generator: ServiceGeneratorV2{},
+			params: map[string]interface{}{
+				"selector":       "foo=bar,baz=blah",
+				"name":           "test",
+				"port":           "80",
+				"protocol":       "SCTP",
+				"container-port": "1234",
+				"cluster-ip":     "10.10.10.10",
+			},
+			expected: v1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+				},
+				Spec: v1.ServiceSpec{
+					Selector: map[string]string{
+						"foo": "bar",
+						"baz": "blah",
+					},
+					Ports: []v1.ServicePort{
+						{
+							Port:       80,
+							Protocol:   "SCTP",
+							TargetPort: intstr.FromInt(1234),
+						},
+					},
+					ClusterIP: "10.10.10.10",
+				},
+			},
+		},
+		{
+			generator: ServiceGeneratorV2{},
+			params: map[string]interface{}{
+				"selector":       "foo=bar,baz=blah",
+				"name":           "test",
+				"port":           "80",
+				"protocol":       "SCTP",
+				"container-port": "1234",
+				"cluster-ip":     "None",
+			},
+			expected: v1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+				},
+				Spec: v1.ServiceSpec{
+					Selector: map[string]string{
+						"foo": "bar",
+						"baz": "blah",
+					},
+					Ports: []v1.ServicePort{
+						{
+							Port:       80,
+							Protocol:   "SCTP",
+							TargetPort: intstr.FromInt(1234),
+						},
+					},
+					ClusterIP: v1.ClusterIPNone,
+				},
+			},
+		},
+		{
+			generator: ServiceGeneratorV1{},
+			params: map[string]interface{}{
+				"selector":       "foo=bar",
+				"name":           "test",
+				"ports":          "80,443",
+				"protocol":       "SCTP",
+				"container-port": "foobar",
+			},
+			expected: v1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+				},
+				Spec: v1.ServiceSpec{
+					Selector: map[string]string{
+						"foo": "bar",
+					},
+					Ports: []v1.ServicePort{
+						{
+							Name:       "port-1",
+							Port:       80,
+							Protocol:   v1.ProtocolSCTP,
+							TargetPort: intstr.FromString("foobar"),
+						},
+						{
+							Name:       "port-2",
+							Port:       443,
+							Protocol:   v1.ProtocolSCTP,
+							TargetPort: intstr.FromString("foobar"),
+						},
+					},
+				},
+			},
+		},
+		{
+			generator: ServiceGeneratorV2{},
+			params: map[string]interface{}{
+				"selector": "foo=bar",
+				"name":     "test",
+				"ports":    "80,443",
+				"protocol": "SCTP",
+			},
+			expected: v1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+				},
+				Spec: v1.ServiceSpec{
+					Selector: map[string]string{
+						"foo": "bar",
+					},
+					Ports: []v1.ServicePort{
+						{
+							Name:       "port-1",
+							Port:       80,
+							Protocol:   v1.ProtocolSCTP,
+							TargetPort: intstr.FromInt(80),
+						},
+						{
+							Name:       "port-2",
+							Port:       443,
+							Protocol:   v1.ProtocolSCTP,
+							TargetPort: intstr.FromInt(443),
+						},
+					},
+				},
+			},
+		},
+		{
+			generator: ServiceGeneratorV2{},
+			params: map[string]interface{}{
+				"selector":  "foo=bar",
+				"name":      "test",
+				"ports":     "80,8080",
+				"protocols": "8080/SCTP",
+			},
+			expected: v1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+				},
+				Spec: v1.ServiceSpec{
+					Selector: map[string]string{
+						"foo": "bar",
+					},
+					Ports: []v1.ServicePort{
+						{
+							Name:       "port-1",
+							Port:       80,
+							Protocol:   v1.ProtocolTCP,
+							TargetPort: intstr.FromInt(80),
+						},
+						{
+							Name:       "port-2",
+							Port:       8080,
+							Protocol:   v1.ProtocolSCTP,
+							TargetPort: intstr.FromInt(8080),
+						},
+					},
+				},
+			},
+		},
+		{
+			generator: ServiceGeneratorV2{},
+			params: map[string]interface{}{
+				"selector":  "foo=bar",
+				"name":      "test",
+				"ports":     "80,8080,8081,8082",
+				"protocols": "8080/UDP,8081/TCP,8082/SCTP",
+			},
+			expected: v1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+				},
+				Spec: v1.ServiceSpec{
+					Selector: map[string]string{
+						"foo": "bar",
+					},
+					Ports: []v1.ServicePort{
+						{
+							Name:       "port-1",
+							Port:       80,
+							Protocol:   v1.ProtocolTCP,
+							TargetPort: intstr.FromInt(80),
+						},
+						{
+							Name:       "port-2",
+							Port:       8080,
+							Protocol:   v1.ProtocolUDP,
+							TargetPort: intstr.FromInt(8080),
+						},
+						{
+							Name:       "port-3",
+							Port:       8081,
+							Protocol:   v1.ProtocolTCP,
+							TargetPort: intstr.FromInt(8081),
+						},
+						{
+							Name:       "port-4",
+							Port:       8082,
+							Protocol:   v1.ProtocolSCTP,
+							TargetPort: intstr.FromInt(8082),
+						},
+					},
+				},
+			},
+		},
+		{
+			generator: ServiceGeneratorV2{},
+			params: map[string]interface{}{
+				"selector":       "foo=bar,baz=blah",
+				"name":           "test",
+				"protocol":       "SCTP",
+				"container-port": "1234",
+				"cluster-ip":     "None",
+			},
+			expected: v1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test",
+				},
+				Spec: v1.ServiceSpec{
+					Selector: map[string]string{
+						"foo": "bar",
+						"baz": "blah",
+					},
+					Ports:     []v1.ServicePort{},
+					ClusterIP: v1.ClusterIPNone,
+				},
+			},
+		},
 	}
-	for _, test := range tests {
-		obj, err := test.generator.Generate(test.params)
-		if !reflect.DeepEqual(obj, &test.expected) {
-			t.Errorf("expected:\n%#v\ngot\n%#v\n", &test.expected, obj)
-		}
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			obj, err := tt.generator.Generate(tt.params)
+			if !reflect.DeepEqual(obj, &tt.expected) {
+				t.Errorf("expected:\n%#v\ngot\n%#v\n", &tt.expected, obj)
+			}
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+		})
 	}
 }

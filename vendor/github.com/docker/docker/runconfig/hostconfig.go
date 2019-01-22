@@ -1,4 +1,4 @@
-package runconfig
+package runconfig // import "github.com/docker/docker/runconfig"
 
 import (
 	"encoding/json"
@@ -68,7 +68,7 @@ func validateNetContainerMode(c *container.Config, hc *container.HostConfig) err
 		return ErrConflictContainerNetworkAndMac
 	}
 
-	if hc.NetworkMode.IsContainer() && (len(hc.PortBindings) > 0 || hc.PublishAllPorts == true) {
+	if hc.NetworkMode.IsContainer() && (len(hc.PortBindings) > 0 || hc.PublishAllPorts) {
 		return ErrConflictNetworkPublishPorts
 	}
 

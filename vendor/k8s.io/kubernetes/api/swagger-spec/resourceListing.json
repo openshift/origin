@@ -54,6 +54,10 @@
     "description": "API at /apis/autoscaling/v2beta1"
    },
    {
+    "path": "/apis/autoscaling/v2beta2",
+    "description": "API at /apis/autoscaling/v2beta2"
+   },
+   {
     "path": "/apis/autoscaling",
     "description": "get information of a group"
    },
@@ -79,6 +83,14 @@
    },
    {
     "path": "/apis/certificates.k8s.io",
+    "description": "get information of a group"
+   },
+   {
+    "path": "/apis/coordination.k8s.io/v1beta1",
+    "description": "API at /apis/coordination.k8s.io/v1beta1"
+   },
+   {
+    "path": "/apis/coordination.k8s.io",
     "description": "get information of a group"
    },
    {

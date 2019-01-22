@@ -32,12 +32,14 @@ import (
 func TestGetEtcdPodSpec(t *testing.T) {
 
 	// Creates a Master Configuration
-	cfg := &kubeadmapi.MasterConfiguration{
-		KubernetesVersion: "v1.7.0",
-		Etcd: kubeadmapi.Etcd{
-			Local: &kubeadmapi.LocalEtcd{
-				DataDir: "/var/lib/etcd",
-				Image:   "",
+	cfg := &kubeadmapi.InitConfiguration{
+		ClusterConfiguration: kubeadmapi.ClusterConfiguration{
+			KubernetesVersion: "v1.7.0",
+			Etcd: kubeadmapi.Etcd{
+				Local: &kubeadmapi.LocalEtcd{
+					DataDir: "/var/lib/etcd",
+					Image:   "",
+				},
 			},
 		},
 	}
@@ -58,12 +60,14 @@ func TestCreateLocalEtcdStaticPodManifestFile(t *testing.T) {
 	defer os.RemoveAll(tmpdir)
 
 	// Creates a Master Configuration
-	cfg := &kubeadmapi.MasterConfiguration{
-		KubernetesVersion: "v1.7.0",
-		Etcd: kubeadmapi.Etcd{
-			Local: &kubeadmapi.LocalEtcd{
-				DataDir: "/var/lib/etcd",
-				Image:   "k8s.gcr.io/etcd",
+	cfg := &kubeadmapi.InitConfiguration{
+		ClusterConfiguration: kubeadmapi.ClusterConfiguration{
+			KubernetesVersion: "v1.7.0",
+			Etcd: kubeadmapi.Etcd{
+				Local: &kubeadmapi.LocalEtcd{
+					DataDir: "/var/lib/etcd",
+					Image:   "k8s.gcr.io/etcd",
+				},
 			},
 		},
 	}
@@ -82,17 +86,19 @@ func TestCreateLocalEtcdStaticPodManifestFile(t *testing.T) {
 
 func TestGetEtcdCommand(t *testing.T) {
 	var tests = []struct {
-		cfg      *kubeadmapi.MasterConfiguration
+		cfg      *kubeadmapi.InitConfiguration
 		expected []string
 	}{
 		{
-			cfg: &kubeadmapi.MasterConfiguration{
+			cfg: &kubeadmapi.InitConfiguration{
 				NodeRegistration: kubeadmapi.NodeRegistrationOptions{
 					Name: "foo",
 				},
-				Etcd: kubeadmapi.Etcd{
-					Local: &kubeadmapi.LocalEtcd{
-						DataDir: "/var/lib/etcd",
+				ClusterConfiguration: kubeadmapi.ClusterConfiguration{
+					Etcd: kubeadmapi.Etcd{
+						Local: &kubeadmapi.LocalEtcd{
+							DataDir: "/var/lib/etcd",
+						},
 					},
 				},
 			},
@@ -117,16 +123,18 @@ func TestGetEtcdCommand(t *testing.T) {
 			},
 		},
 		{
-			cfg: &kubeadmapi.MasterConfiguration{
+			cfg: &kubeadmapi.InitConfiguration{
 				NodeRegistration: kubeadmapi.NodeRegistrationOptions{
 					Name: "bar",
 				},
-				Etcd: kubeadmapi.Etcd{
-					Local: &kubeadmapi.LocalEtcd{
-						DataDir: "/var/lib/etcd",
-						ExtraArgs: map[string]string{
-							"listen-client-urls":    "https://10.0.1.10:2379",
-							"advertise-client-urls": "https://10.0.1.10:2379",
+				ClusterConfiguration: kubeadmapi.ClusterConfiguration{
+					Etcd: kubeadmapi.Etcd{
+						Local: &kubeadmapi.LocalEtcd{
+							DataDir: "/var/lib/etcd",
+							ExtraArgs: map[string]string{
+								"listen-client-urls":    "https://10.0.1.10:2379",
+								"advertise-client-urls": "https://10.0.1.10:2379",
+							},
 						},
 					},
 				},
@@ -152,13 +160,15 @@ func TestGetEtcdCommand(t *testing.T) {
 			},
 		},
 		{
-			cfg: &kubeadmapi.MasterConfiguration{
+			cfg: &kubeadmapi.InitConfiguration{
 				NodeRegistration: kubeadmapi.NodeRegistrationOptions{
 					Name: "wombat",
 				},
-				Etcd: kubeadmapi.Etcd{
-					Local: &kubeadmapi.LocalEtcd{
-						DataDir: "/etc/foo",
+				ClusterConfiguration: kubeadmapi.ClusterConfiguration{
+					Etcd: kubeadmapi.Etcd{
+						Local: &kubeadmapi.LocalEtcd{
+							DataDir: "/etc/foo",
+						},
 					},
 				},
 			},

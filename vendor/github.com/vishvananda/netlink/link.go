@@ -37,6 +37,7 @@ type LinkAttrs struct {
 	EncapType    string
 	Protinfo     *Protinfo
 	OperState    LinkOperState
+	NetNsID      int
 }
 
 // LinkOperState represents the values of the IFLA_OPERSTATE link

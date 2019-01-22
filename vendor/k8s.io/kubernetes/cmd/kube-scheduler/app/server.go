@@ -18,6 +18,7 @@ limitations under the License.
 package app
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -44,13 +45,13 @@ import (
 	schedulerserverconfig "k8s.io/kubernetes/cmd/kube-scheduler/app/config"
 	"k8s.io/kubernetes/cmd/kube-scheduler/app/options"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/scheduler"
 	"k8s.io/kubernetes/pkg/scheduler/algorithmprovider"
 	schedulerapi "k8s.io/kubernetes/pkg/scheduler/api"
 	latestschedulerapi "k8s.io/kubernetes/pkg/scheduler/api/latest"
+	kubeschedulerconfig "k8s.io/kubernetes/pkg/scheduler/apis/config"
 	"k8s.io/kubernetes/pkg/scheduler/factory"
 	"k8s.io/kubernetes/pkg/scheduler/metrics"
 	"k8s.io/kubernetes/pkg/util/configz"
@@ -121,6 +122,7 @@ through the API as necessary.`,
 	return cmd
 }
 
+// Run runs the Scheduler.
 func Run(c schedulerserverconfig.CompletedConfig, stopCh <-chan struct{}) error {
 	// To help debugging, immediately log version
 	glog.Infof("Version: %+v", version.Get())
@@ -181,10 +183,21 @@ func Run(c schedulerserverconfig.CompletedConfig, stopCh <-chan struct{}) error 
 	controller.WaitForCacheSync("scheduler", stopCh, c.PodInformer.Informer().HasSynced)
 
 	// Prepare a reusable run function.
-	run := func(stopCh <-chan struct{}) {
+	run := func(ctx context.Context) {
 		sched.Run()
-		<-stopCh
+		<-ctx.Done()
 	}
+
+	ctx, cancel := context.WithCancel(context.TODO()) // TODO once Run() accepts a context, it should be used here
+	defer cancel()
+
+	go func() {
+		select {
+		case <-stopCh:
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
 
 	// If leader election is enabled, run via LeaderElector until done and exit.
 	if c.LeaderElection != nil {
@@ -199,13 +212,13 @@ func Run(c schedulerserverconfig.CompletedConfig, stopCh <-chan struct{}) error 
 			return fmt.Errorf("couldn't create leader elector: %v", err)
 		}
 
-		leaderElector.Run()
+		leaderElector.Run(ctx)
 
 		return fmt.Errorf("lost lease")
 	}
 
 	// Leader election is disabled, so run inline until done.
-	run(stopCh)
+	run(ctx)
 	return fmt.Errorf("finished without leader elect")
 }
 
@@ -237,7 +250,7 @@ func installMetricHandler(pathRecorderMux *mux.PathRecorderMux) {
 }
 
 // newMetricsHandler builds a metrics server from the config.
-func newMetricsHandler(config *componentconfig.KubeSchedulerConfiguration) http.Handler {
+func newMetricsHandler(config *kubeschedulerconfig.KubeSchedulerConfiguration) http.Handler {
 	pathRecorderMux := mux.NewPathRecorderMux("kube-scheduler")
 	installMetricHandler(pathRecorderMux)
 	if config.EnableProfiling {
@@ -252,7 +265,7 @@ func newMetricsHandler(config *componentconfig.KubeSchedulerConfiguration) http.
 // newHealthzServer creates a healthz server from the config, and will also
 // embed the metrics handler if the healthz and metrics address configurations
 // are the same.
-func newHealthzHandler(config *componentconfig.KubeSchedulerConfiguration, separateMetrics bool) http.Handler {
+func newHealthzHandler(config *kubeschedulerconfig.KubeSchedulerConfiguration, separateMetrics bool) http.Handler {
 	pathRecorderMux := mux.NewPathRecorderMux("kube-scheduler")
 	healthz.InstallHandler(pathRecorderMux)
 	if !separateMetrics {
@@ -275,23 +288,25 @@ func NewSchedulerConfig(s schedulerserverconfig.CompletedConfig) (*scheduler.Con
 	}
 
 	// Set up the configurator which can create schedulers from configs.
-	configurator := factory.NewConfigFactory(
-		s.ComponentConfig.SchedulerName,
-		s.Client,
-		s.InformerFactory.Core().V1().Nodes(),
-		s.PodInformer,
-		s.InformerFactory.Core().V1().PersistentVolumes(),
-		s.InformerFactory.Core().V1().PersistentVolumeClaims(),
-		s.InformerFactory.Core().V1().ReplicationControllers(),
-		s.InformerFactory.Extensions().V1beta1().ReplicaSets(),
-		s.InformerFactory.Apps().V1beta1().StatefulSets(),
-		s.InformerFactory.Core().V1().Services(),
-		s.InformerFactory.Policy().V1beta1().PodDisruptionBudgets(),
-		storageClassInformer,
-		s.ComponentConfig.HardPodAffinitySymmetricWeight,
-		utilfeature.DefaultFeatureGate.Enabled(features.EnableEquivalenceClassCache),
-		s.ComponentConfig.DisablePreemption,
-	)
+	configurator := factory.NewConfigFactory(&factory.ConfigFactoryArgs{
+		SchedulerName:                  s.ComponentConfig.SchedulerName,
+		Client:                         s.Client,
+		NodeInformer:                   s.InformerFactory.Core().V1().Nodes(),
+		PodInformer:                    s.PodInformer,
+		PvInformer:                     s.InformerFactory.Core().V1().PersistentVolumes(),
+		PvcInformer:                    s.InformerFactory.Core().V1().PersistentVolumeClaims(),
+		ReplicationControllerInformer:  s.InformerFactory.Core().V1().ReplicationControllers(),
+		ReplicaSetInformer:             s.InformerFactory.Apps().V1().ReplicaSets(),
+		StatefulSetInformer:            s.InformerFactory.Apps().V1().StatefulSets(),
+		ServiceInformer:                s.InformerFactory.Core().V1().Services(),
+		PdbInformer:                    s.InformerFactory.Policy().V1beta1().PodDisruptionBudgets(),
+		StorageClassInformer:           storageClassInformer,
+		HardPodAffinitySymmetricWeight: s.ComponentConfig.HardPodAffinitySymmetricWeight,
+		EnableEquivalenceClassCache:    utilfeature.DefaultFeatureGate.Enabled(features.EnableEquivalenceClassCache),
+		DisablePreemption:              s.ComponentConfig.DisablePreemption,
+		PercentageOfNodesToScore:       s.ComponentConfig.PercentageOfNodesToScore,
+		BindTimeoutSeconds:             *s.ComponentConfig.BindTimeoutSeconds,
+	})
 
 	source := s.ComponentConfig.AlgorithmSource
 	var config *scheduler.Config
@@ -329,9 +344,9 @@ func NewSchedulerConfig(s schedulerserverconfig.CompletedConfig) (*scheduler.Con
 			if err != nil {
 				return nil, fmt.Errorf("couldn't get policy config map %s/%s: %v", policyRef.Namespace, policyRef.Name, err)
 			}
-			data, found := policyConfigMap.Data[componentconfig.SchedulerPolicyConfigMapKey]
+			data, found := policyConfigMap.Data[kubeschedulerconfig.SchedulerPolicyConfigMapKey]
 			if !found {
-				return nil, fmt.Errorf("missing policy config map value at key %q", componentconfig.SchedulerPolicyConfigMapKey)
+				return nil, fmt.Errorf("missing policy config map value at key %q", kubeschedulerconfig.SchedulerPolicyConfigMapKey)
 			}
 			err = runtime.DecodeInto(latestschedulerapi.Codec, []byte(data), policy)
 			if err != nil {

@@ -109,6 +109,20 @@ function split_csv() {
 # Verify prereqs
 function verify-prereqs() {
   local cmd
+
+  # we use openssl to generate certs
+  kube::util::test_openssl_installed
+
+  # ensure a version supported by easyrsa is installed
+  if [ "$(openssl version | cut -d\  -f1)" == "LibreSSL" ]; then
+    echo "LibreSSL is not supported. Please ensure openssl points to an OpenSSL binary"
+    if [ "$(uname -s)" == "Darwin" ]; then
+      echo 'On macOS we recommend using homebrew and adding "$(brew --prefix openssl)/bin" to your PATH'
+    fi
+    exit 1
+  fi
+
+  # we use gcloud to create the cluster, gsutil to stage binaries and data
   for cmd in gcloud gsutil; do
     if ! which "${cmd}" >/dev/null; then
       local resp="n"
@@ -830,7 +844,6 @@ ENABLE_NODE_PROBLEM_DETECTOR: $(yaml-quote ${ENABLE_NODE_PROBLEM_DETECTOR:-none}
 NODE_PROBLEM_DETECTOR_VERSION: $(yaml-quote ${NODE_PROBLEM_DETECTOR_VERSION:-})
 NODE_PROBLEM_DETECTOR_TAR_HASH: $(yaml-quote ${NODE_PROBLEM_DETECTOR_TAR_HASH:-})
 ENABLE_NODE_LOGGING: $(yaml-quote ${ENABLE_NODE_LOGGING:-false})
-ENABLE_RESCHEDULER: $(yaml-quote ${ENABLE_RESCHEDULER:-false})
 LOGGING_DESTINATION: $(yaml-quote ${LOGGING_DESTINATION:-})
 ELASTICSEARCH_LOGGING_REPLICAS: $(yaml-quote ${ELASTICSEARCH_LOGGING_REPLICAS:-})
 ENABLE_CLUSTER_DNS: $(yaml-quote ${ENABLE_CLUSTER_DNS:-false})
@@ -851,7 +864,6 @@ KUBELET_CERT: $(yaml-quote ${KUBELET_CERT_BASE64:-})
 KUBELET_KEY: $(yaml-quote ${KUBELET_KEY_BASE64:-})
 NETWORK_PROVIDER: $(yaml-quote ${NETWORK_PROVIDER:-})
 NETWORK_POLICY_PROVIDER: $(yaml-quote ${NETWORK_POLICY_PROVIDER:-})
-PREPULL_E2E_IMAGES: $(yaml-quote ${PREPULL_E2E_IMAGES:-})
 HAIRPIN_MODE: $(yaml-quote ${HAIRPIN_MODE:-})
 E2E_STORAGE_TEST_ENVIRONMENT: $(yaml-quote ${E2E_STORAGE_TEST_ENVIRONMENT:-})
 KUBE_DOCKER_REGISTRY: $(yaml-quote ${KUBE_DOCKER_REGISTRY:-})
@@ -859,13 +871,12 @@ KUBE_ADDON_REGISTRY: $(yaml-quote ${KUBE_ADDON_REGISTRY:-})
 MULTIZONE: $(yaml-quote ${MULTIZONE:-})
 NON_MASQUERADE_CIDR: $(yaml-quote ${NON_MASQUERADE_CIDR:-})
 ENABLE_DEFAULT_STORAGE_CLASS: $(yaml-quote ${ENABLE_DEFAULT_STORAGE_CLASS:-})
-ENABLE_APISERVER_BASIC_AUDIT: $(yaml-quote ${ENABLE_APISERVER_BASIC_AUDIT:-})
 ENABLE_APISERVER_ADVANCED_AUDIT: $(yaml-quote ${ENABLE_APISERVER_ADVANCED_AUDIT:-})
 ENABLE_CACHE_MUTATION_DETECTOR: $(yaml-quote ${ENABLE_CACHE_MUTATION_DETECTOR:-false})
 ENABLE_PATCH_CONVERSION_DETECTOR: $(yaml-quote ${ENABLE_PATCH_CONVERSION_DETECTOR:-false})
 ADVANCED_AUDIT_POLICY: $(yaml-quote ${ADVANCED_AUDIT_POLICY:-})
 ADVANCED_AUDIT_BACKEND: $(yaml-quote ${ADVANCED_AUDIT_BACKEND:-log})
-ADVANCED_AUDIT_TRUNCATING_BACKEND: $(yaml-quote ${ADVANCED_AUDIT_TRUNCATING_BACKEND:-})
+ADVANCED_AUDIT_TRUNCATING_BACKEND: $(yaml-quote ${ADVANCED_AUDIT_TRUNCATING_BACKEND:-true})
 ADVANCED_AUDIT_LOG_MODE: $(yaml-quote ${ADVANCED_AUDIT_LOG_MODE:-})
 ADVANCED_AUDIT_LOG_BUFFER_SIZE: $(yaml-quote ${ADVANCED_AUDIT_LOG_BUFFER_SIZE:-})
 ADVANCED_AUDIT_LOG_MAX_BATCH_SIZE: $(yaml-quote ${ADVANCED_AUDIT_LOG_MAX_BATCH_SIZE:-})
@@ -886,6 +897,7 @@ ENABLE_NODE_JOURNAL: $(yaml-quote ${ENABLE_NODE_JOURNAL:-false})
 PROMETHEUS_TO_SD_ENDPOINT: $(yaml-quote ${PROMETHEUS_TO_SD_ENDPOINT:-})
 PROMETHEUS_TO_SD_PREFIX: $(yaml-quote ${PROMETHEUS_TO_SD_PREFIX:-})
 ENABLE_PROMETHEUS_TO_SD: $(yaml-quote ${ENABLE_PROMETHEUS_TO_SD:-false})
+DISABLE_PROMETHEUS_TO_SD_IN_DS: $(yaml-quote ${DISABLE_PROMETHEUS_TO_SD_IN_DS:-false})
 ENABLE_POD_PRIORITY: $(yaml-quote ${ENABLE_POD_PRIORITY:-})
 CONTAINER_RUNTIME: $(yaml-quote ${CONTAINER_RUNTIME:-})
 CONTAINER_RUNTIME_ENDPOINT: $(yaml-quote ${CONTAINER_RUNTIME_ENDPOINT:-})
@@ -898,8 +910,13 @@ VOLUME_PLUGIN_DIR: $(yaml-quote ${VOLUME_PLUGIN_DIR})
 KUBELET_ARGS: $(yaml-quote ${KUBELET_ARGS})
 REQUIRE_METADATA_KUBELET_CONFIG_FILE: $(yaml-quote true)
 ENABLE_NETD: $(yaml-quote ${ENABLE_NETD:-false})
+ENABLE_NODE_TERMINATION_HANDLER: $(yaml-quote ${ENABLE_NODE_TERMINATION_HANDLER:-false})
 CUSTOM_NETD_YAML: |
 $(echo "${CUSTOM_NETD_YAML:-}" | sed -e "s/'/''/g")
+CUSTOM_CALICO_NODE_DAEMONSET_YAML: |
+$(echo "${CUSTOM_CALICO_NODE_DAEMONSET_YAML:-}" | sed -e "s/'/''/g")
+CUSTOM_TYPHA_DEPLOYMENT_YAML: |
+$(echo "${CUSTOM_TYPHA_DEPLOYMENT_YAML:-}" | sed -e "s/'/''/g")
 EOF
   if [[ "${master}" == "true" && "${MASTER_OS_DISTRIBUTION}" == "gci" ]] || \
      [[ "${master}" == "false" && "${NODE_OS_DISTRIBUTION}" == "gci" ]]  || \
@@ -1055,6 +1072,16 @@ EOF
 ETCD_EXTRA_ARGS: $(yaml-quote ${ETCD_EXTRA_ARGS})
 EOF
     fi
+    if [ -n "${ETCD_SERVERS:-}" ]; then
+    cat >>$file <<EOF
+ETCD_SERVERS: $(yaml-quote ${ETCD_SERVERS})
+EOF
+    fi
+    if [ -n "${ETCD_SERVERS_OVERRIDES:-}" ]; then
+    cat >>$file <<EOF
+ETCD_SERVERS_OVERRIDES: $(yaml-quote ${ETCD_SERVERS_OVERRIDES})
+EOF
+    fi
     if [ -n "${APISERVER_TEST_ARGS:-}" ]; then
       cat >>$file <<EOF
 APISERVER_TEST_ARGS: $(yaml-quote ${APISERVER_TEST_ARGS})
@@ -1088,11 +1115,6 @@ EOF
     if [ -n "${INITIAL_ETCD_CLUSTER_STATE:-}" ]; then
       cat >>$file <<EOF
 INITIAL_ETCD_CLUSTER_STATE: $(yaml-quote ${INITIAL_ETCD_CLUSTER_STATE})
-EOF
-    fi
-    if [ -n "${ETCD_QUORUM_READ:-}" ]; then
-      cat >>$file <<EOF
-ETCD_QUORUM_READ: $(yaml-quote ${ETCD_QUORUM_READ})
 EOF
     fi
     if [ -n "${CLUSTER_SIGNING_DURATION:-}" ]; then
@@ -1594,7 +1616,7 @@ function validate-node-local-ssds-ext(){
   ssdopts="${1}"
 
   if [[ -z "${ssdopts[0]}" || -z "${ssdopts[1]}" || -z "${ssdopts[2]}" ]]; then
-	  echo -e "${color_red}Local SSD: NODE_LOCAL_SSDS_EXT is malformed, found ${ssdopts[0]-_},${ssdopts[1]-_},${ssdopts[2]-_} ${color_norm}" >&2
+    echo -e "${color_red}Local SSD: NODE_LOCAL_SSDS_EXT is malformed, found ${ssdopts[0]-_},${ssdopts[1]-_},${ssdopts[2]-_} ${color_norm}" >&2
     exit 2
   fi
   if [[ "${ssdopts[1]}" != "scsi" && "${ssdopts[1]}" != "nvme" ]]; then
@@ -2317,6 +2339,8 @@ function create-nodes() {
   if [[ -z "${HEAPSTER_MACHINE_TYPE:-}" ]]; then
     local -r nodes="${NUM_NODES}"
   else
+    echo "Creating a special node for heapster with machine-type ${HEAPSTER_MACHINE_TYPE}"
+    create-heapster-node
     local -r nodes=$(( NUM_NODES - 1 ))
   fi
 
@@ -2344,13 +2368,9 @@ function create-nodes() {
     gcloud compute instance-groups managed wait-until-stable \
         "${group_name}" \
         --zone "${ZONE}" \
-        --project "${PROJECT}" || true;
+        --project "${PROJECT}" \
+        --timeout "${MIG_WAIT_UNTIL_STABLE_TIMEOUT}" || true;
   done
-
-  if [[ -n "${HEAPSTER_MACHINE_TYPE:-}" ]]; then
-    echo "Creating a special node for heapster with machine-type ${HEAPSTER_MACHINE_TYPE}"
-    create-heapster-node
-  fi
 }
 
 # Assumes:
@@ -2943,75 +2963,6 @@ function check-resources() {
   return 0
 }
 
-# Prepare to push new binaries to kubernetes cluster
-#  $1 - whether prepare push to node
-function prepare-push() {
-  local node="${1-}"
-  #TODO(dawnchen): figure out how to upgrade a Container Linux node
-  if [[ "${node}" == "true" && "${NODE_OS_DISTRIBUTION}" != "debian" ]]; then
-    echo "Updating nodes in a kubernetes cluster with ${NODE_OS_DISTRIBUTION} is not supported yet." >&2
-    exit 1
-  fi
-  if [[ "${node}" != "true" && "${MASTER_OS_DISTRIBUTION}" != "debian" ]]; then
-    echo "Updating the master in a kubernetes cluster with ${MASTER_OS_DISTRIBUTION} is not supported yet." >&2
-    exit 1
-  fi
-
-  OUTPUT=${KUBE_ROOT}/_output/logs
-  mkdir -p ${OUTPUT}
-
-  kube::util::ensure-temp-dir
-  detect-project
-  detect-master
-  detect-node-names
-  get-kubeconfig-basicauth
-  get-kubeconfig-bearertoken
-
-  # Make sure we have the tar files staged on Google Storage
-  tars_from_version
-
-  # Prepare node env vars and update MIG template
-  if [[ "${node}" == "true" ]]; then
-    write-node-env
-
-    local scope_flags=$(get-scope-flags)
-
-    # Ugly hack: Since it is not possible to delete instance-template that is currently
-    # being used, create a temp one, then delete the old one and recreate it once again.
-    local tmp_template_name="${NODE_INSTANCE_PREFIX}-template-tmp"
-    create-node-instance-template $tmp_template_name
-
-    local template_name="${NODE_INSTANCE_PREFIX}-template"
-    for group in ${INSTANCE_GROUPS[@]:-}; do
-      gcloud compute instance-groups managed \
-        set-instance-template "${group}" \
-        --template "$tmp_template_name" \
-        --zone "${ZONE}" \
-        --project "${PROJECT}" || true;
-    done
-
-    gcloud compute instance-templates delete \
-      --project "${PROJECT}" \
-      --quiet \
-      "$template_name" || true
-
-    create-node-instance-template "$template_name"
-
-    for group in ${INSTANCE_GROUPS[@]:-}; do
-      gcloud compute instance-groups managed \
-        set-instance-template "${group}" \
-        --template "$template_name" \
-        --zone "${ZONE}" \
-        --project "${PROJECT}" || true;
-    done
-
-    gcloud compute instance-templates delete \
-      --project "${PROJECT}" \
-      --quiet \
-      "$tmp_template_name" || true
-  fi
-}
-
 # -----------------------------------------------------------------------------
 # Cluster specific test helpers used from hack/e2e.go
 
@@ -3119,4 +3070,9 @@ function ssh-to-node() {
 # Perform preparations required to run e2e tests
 function prepare-e2e() {
   detect-project
+}
+
+# Delete the image given by $1.
+function delete-image() {
+  gcloud container images delete --quiet "$1"
 }

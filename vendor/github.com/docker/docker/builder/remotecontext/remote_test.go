@@ -1,4 +1,4 @@
-package remotecontext
+package remotecontext // import "github.com/docker/docker/builder/remotecontext"
 
 import (
 	"bytes"
@@ -10,10 +10,9 @@ import (
 	"testing"
 
 	"github.com/docker/docker/builder"
-	"github.com/docker/docker/internal/testutil"
-	"github.com/docker/docker/pkg/archive"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/gotestyourself/gotestyourself/assert"
+	is "github.com/gotestyourself/gotestyourself/assert/cmp"
+	"github.com/gotestyourself/gotestyourself/fs"
 )
 
 var binaryContext = []byte{0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00} //xz magic
@@ -174,11 +173,10 @@ func TestUnknownContentLength(t *testing.T) {
 	}
 }
 
-func TestMakeRemoteContext(t *testing.T) {
-	contextDir, cleanup := createTestTempDir(t, "", "builder-tarsum-test")
-	defer cleanup()
-
-	createTestTempFile(t, contextDir, builder.DefaultDockerfileName, dockerfileContents, 0777)
+func TestDownloadRemote(t *testing.T) {
+	contextDir := fs.NewDir(t, "test-builder-download-remote",
+		fs.WithFile(builder.DefaultDockerfileName, dockerfileContents))
+	defer contextDir.Remove()
 
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
@@ -187,39 +185,15 @@ func TestMakeRemoteContext(t *testing.T) {
 	serverURL.Path = "/" + builder.DefaultDockerfileName
 	remoteURL := serverURL.String()
 
-	mux.Handle("/", http.FileServer(http.Dir(contextDir)))
+	mux.Handle("/", http.FileServer(http.Dir(contextDir.Path())))
 
-	remoteContext, err := MakeRemoteContext(remoteURL, map[string]func(io.ReadCloser) (io.ReadCloser, error){
-		mimeTypes.TextPlain: func(rc io.ReadCloser) (io.ReadCloser, error) {
-			dockerfile, err := ioutil.ReadAll(rc)
-			if err != nil {
-				return nil, err
-			}
+	contentType, content, err := downloadRemote(remoteURL)
+	assert.NilError(t, err)
 
-			r, err := archive.Generate(builder.DefaultDockerfileName, string(dockerfile))
-			if err != nil {
-				return nil, err
-			}
-			return ioutil.NopCloser(r), nil
-		},
-	})
-
-	if err != nil {
-		t.Fatalf("Error when executing DetectContextFromRemoteURL: %s", err)
-	}
-
-	if remoteContext == nil {
-		t.Fatal("Remote context should not be nil")
-	}
-
-	h, err := remoteContext.Hash(builder.DefaultDockerfileName)
-	if err != nil {
-		t.Fatalf("failed to compute hash %s", err)
-	}
-
-	if expected, actual := "7b6b6b66bee9e2102fbdc2228be6c980a2a23adf371962a37286a49f7de0f7cc", h; expected != actual {
-		t.Fatalf("There should be file named %s %s in fileInfoSums", expected, actual)
-	}
+	assert.Check(t, is.Equal(mimeTypes.TextPlain, contentType))
+	raw, err := ioutil.ReadAll(content)
+	assert.NilError(t, err)
+	assert.Check(t, is.Equal(dockerfileContents, string(raw)))
 }
 
 func TestGetWithStatusError(t *testing.T) {
@@ -251,13 +225,13 @@ func TestGetWithStatusError(t *testing.T) {
 		response, err := GetWithStatusError(ts.URL)
 
 		if testcase.expectedErr == "" {
-			require.NoError(t, err)
+			assert.NilError(t, err)
 
 			body, err := readBody(response.Body)
-			require.NoError(t, err)
-			assert.Contains(t, string(body), testcase.expectedBody)
+			assert.NilError(t, err)
+			assert.Check(t, is.Contains(string(body), testcase.expectedBody))
 		} else {
-			testutil.ErrorContains(t, err, testcase.expectedErr)
+			assert.Check(t, is.ErrorContains(err, testcase.expectedErr))
 		}
 	}
 }

@@ -40,9 +40,10 @@ func NewApplicationGatewaysClientWithBaseURI(baseURI string, subscriptionID stri
 }
 
 // CreateOrUpdate creates or updates the specified application gateway.
-//
-// resourceGroupName is the name of the resource group. applicationGatewayName is the name of the application
-// gateway. parameters is parameters supplied to the create or update application gateway operation.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// applicationGatewayName - the name of the application gateway.
+// parameters - parameters supplied to the create or update application gateway operation.
 func (client ApplicationGatewaysClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, applicationGatewayName string, parameters ApplicationGateway) (result ApplicationGatewaysCreateOrUpdateFuture, err error) {
 	req, err := client.CreateOrUpdatePreparer(ctx, resourceGroupName, applicationGatewayName, parameters)
 	if err != nil {
@@ -73,7 +74,7 @@ func (client ApplicationGatewaysClient) CreateOrUpdatePreparer(ctx context.Conte
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/applicationGateways/{applicationGatewayName}", pathParameters),
@@ -85,15 +86,17 @@ func (client ApplicationGatewaysClient) CreateOrUpdatePreparer(ctx context.Conte
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client ApplicationGatewaysClient) CreateOrUpdateSender(req *http.Request) (future ApplicationGatewaysCreateOrUpdateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -111,9 +114,9 @@ func (client ApplicationGatewaysClient) CreateOrUpdateResponder(resp *http.Respo
 }
 
 // Delete deletes the specified application gateway.
-//
-// resourceGroupName is the name of the resource group. applicationGatewayName is the name of the application
-// gateway.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// applicationGatewayName - the name of the application gateway.
 func (client ApplicationGatewaysClient) Delete(ctx context.Context, resourceGroupName string, applicationGatewayName string) (result ApplicationGatewaysDeleteFuture, err error) {
 	req, err := client.DeletePreparer(ctx, resourceGroupName, applicationGatewayName)
 	if err != nil {
@@ -154,15 +157,17 @@ func (client ApplicationGatewaysClient) DeletePreparer(ctx context.Context, reso
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ApplicationGatewaysClient) DeleteSender(req *http.Request) (future ApplicationGatewaysDeleteFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -179,9 +184,9 @@ func (client ApplicationGatewaysClient) DeleteResponder(resp *http.Response) (re
 }
 
 // Get gets the specified application gateway.
-//
-// resourceGroupName is the name of the resource group. applicationGatewayName is the name of the application
-// gateway.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// applicationGatewayName - the name of the application gateway.
 func (client ApplicationGatewaysClient) Get(ctx context.Context, resourceGroupName string, applicationGatewayName string) (result ApplicationGateway, err error) {
 	req, err := client.GetPreparer(ctx, resourceGroupName, applicationGatewayName)
 	if err != nil {
@@ -246,8 +251,8 @@ func (client ApplicationGatewaysClient) GetResponder(resp *http.Response) (resul
 }
 
 // List lists all application gateways in a resource group.
-//
-// resourceGroupName is the name of the resource group.
+// Parameters:
+// resourceGroupName - the name of the resource group.
 func (client ApplicationGatewaysClient) List(ctx context.Context, resourceGroupName string) (result ApplicationGatewayListResultPage, err error) {
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName)
@@ -429,9 +434,9 @@ func (client ApplicationGatewaysClient) ListAllComplete(ctx context.Context) (re
 }
 
 // Start starts the specified application gateway.
-//
-// resourceGroupName is the name of the resource group. applicationGatewayName is the name of the application
-// gateway.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// applicationGatewayName - the name of the application gateway.
 func (client ApplicationGatewaysClient) Start(ctx context.Context, resourceGroupName string, applicationGatewayName string) (result ApplicationGatewaysStartFuture, err error) {
 	req, err := client.StartPreparer(ctx, resourceGroupName, applicationGatewayName)
 	if err != nil {
@@ -472,15 +477,17 @@ func (client ApplicationGatewaysClient) StartPreparer(ctx context.Context, resou
 // StartSender sends the Start request. The method will close the
 // http.Response Body if it receives an error.
 func (client ApplicationGatewaysClient) StartSender(req *http.Request) (future ApplicationGatewaysStartFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -497,9 +504,9 @@ func (client ApplicationGatewaysClient) StartResponder(resp *http.Response) (res
 }
 
 // Stop stops the specified application gateway in a resource group.
-//
-// resourceGroupName is the name of the resource group. applicationGatewayName is the name of the application
-// gateway.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// applicationGatewayName - the name of the application gateway.
 func (client ApplicationGatewaysClient) Stop(ctx context.Context, resourceGroupName string, applicationGatewayName string) (result ApplicationGatewaysStopFuture, err error) {
 	req, err := client.StopPreparer(ctx, resourceGroupName, applicationGatewayName)
 	if err != nil {
@@ -540,15 +547,17 @@ func (client ApplicationGatewaysClient) StopPreparer(ctx context.Context, resour
 // StopSender sends the Stop request. The method will close the
 // http.Response Body if it receives an error.
 func (client ApplicationGatewaysClient) StopSender(req *http.Request) (future ApplicationGatewaysStopFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 

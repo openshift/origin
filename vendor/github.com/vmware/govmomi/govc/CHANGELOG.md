@@ -1,5 +1,23 @@
 # changelog
 
+### 0.18.0 (2018-05-24)
+
+* The import.ovf pool flag is now optional if host is specified
+
+* Add -sharing option to vm.disk commands
+
+* Fix govc vm.clone -annotation flag
+
+* Add session.login support for extensions and SSO tokens
+
+* Add sso.user ls, id, create, update and rm commands
+
+* Add sso.service.ls command
+
+* Add json support to find command
+
+* Add -firmware parameter to 'govc vm.create' with values bios|efi
+
 ### 0.17.1 (2018-03-19)
 
 * Avoid possible panic in QueryVirtualDiskInfo

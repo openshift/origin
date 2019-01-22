@@ -139,7 +139,7 @@ func (r *infoResult) Write(w io.Writer) error {
 		s := host.Summary
 		h := s.Hardware
 		z := s.QuickStats
-		ncpu := int32(h.NumCpuPkgs * h.NumCpuThreads)
+		ncpu := int32(h.NumCpuThreads)
 		cpuUsage := 100 * float64(z.OverallCpuUsage) / float64(ncpu*h.CpuMhz)
 		memUsage := 100 * float64(z.OverallMemoryUsage) / float64(h.MemorySize>>20)
 

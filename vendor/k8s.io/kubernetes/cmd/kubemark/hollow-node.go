@@ -36,7 +36,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus" // for client metric registration
 	cadvisortest "k8s.io/kubernetes/pkg/kubelet/cadvisor/testing"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
@@ -51,14 +50,16 @@ import (
 )
 
 type HollowNodeConfig struct {
-	KubeconfigPath      string
-	KubeletPort         int
-	KubeletReadOnlyPort int
-	Morph               string
-	NodeName            string
-	ServerPort          int
-	ContentType         string
-	UseRealProxier      bool
+	KubeconfigPath       string
+	KubeletPort          int
+	KubeletReadOnlyPort  int
+	Morph                string
+	NodeName             string
+	ServerPort           int
+	ContentType          string
+	UseRealProxier       bool
+	ProxierSyncPeriod    time.Duration
+	ProxierMinSyncPeriod time.Duration
 }
 
 const (
@@ -66,6 +67,8 @@ const (
 	podsPerCore = 0
 )
 
+// TODO(#45650): Refactor hollow-node into hollow-kubelet and hollow-proxy
+// and make the config driven.
 var knownMorphs = sets.NewString("kubelet", "proxy")
 
 func (c *HollowNodeConfig) addFlags(fs *pflag.FlagSet) {
@@ -77,6 +80,8 @@ func (c *HollowNodeConfig) addFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.Morph, "morph", "", fmt.Sprintf("Specifies into which Hollow component this binary should morph. Allowed values: %v", knownMorphs.List()))
 	fs.StringVar(&c.ContentType, "kube-api-content-type", "application/vnd.kubernetes.protobuf", "ContentType of requests sent to apiserver.")
 	fs.BoolVar(&c.UseRealProxier, "use-real-proxier", true, "Set to true if you want to use real proxier inside hollow-proxy.")
+	fs.DurationVar(&c.ProxierSyncPeriod, "proxier-sync-period", 30*time.Second, "Period that proxy rules are refreshed in hollow-proxy.")
+	fs.DurationVar(&c.ProxierMinSyncPeriod, "proxier-min-sync-period", 0, "Minimum period that proxy rules are refreshed in hollow-proxy.")
 }
 
 func (c *HollowNodeConfig) createClientConfigFromFile() (*restclient.Config, error) {
@@ -146,10 +151,6 @@ func run(config *HollowNodeConfig) {
 	if err != nil {
 		glog.Fatalf("Failed to create a ClientSet: %v. Exiting.", err)
 	}
-	internalClientset, err := internalclientset.NewForConfig(clientConfig)
-	if err != nil {
-		glog.Fatalf("Failed to create an internal ClientSet: %v. Exiting.", err)
-	}
 
 	if config.Morph == "kubelet" {
 		cadvisorInterface := &cadvisortest.Fake{
@@ -190,7 +191,7 @@ func run(config *HollowNodeConfig) {
 
 		hollowProxy, err := kubemark.NewHollowProxyOrDie(
 			config.NodeName,
-			internalClientset,
+			client,
 			client.CoreV1(),
 			iptInterface,
 			sysctl,
@@ -198,6 +199,8 @@ func run(config *HollowNodeConfig) {
 			eventBroadcaster,
 			recorder,
 			config.UseRealProxier,
+			config.ProxierSyncPeriod,
+			config.ProxierMinSyncPeriod,
 		)
 		if err != nil {
 			glog.Fatalf("Failed to create hollowProxy instance: %v", err)

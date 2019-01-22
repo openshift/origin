@@ -1,11 +1,13 @@
-package cluster
+package cluster // import "github.com/docker/docker/daemon/cluster"
 
 import (
+	"context"
+
 	apitypes "github.com/docker/docker/api/types"
 	types "github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/daemon/cluster/convert"
+	"github.com/docker/docker/errdefs"
 	swarmapi "github.com/docker/swarmkit/api"
-	"golang.org/x/net/context"
 )
 
 // GetNodes returns a list of all nodes known to a cluster.
@@ -64,7 +66,7 @@ func (c *Cluster) UpdateNode(input string, version uint64, spec types.NodeSpec) 
 	return c.lockedManagerAction(func(ctx context.Context, state nodeState) error {
 		nodeSpec, err := convert.NodeSpecToGRPC(spec)
 		if err != nil {
-			return convertError{err}
+			return errdefs.InvalidParameter(err)
 		}
 
 		ctx, cancel := c.getRequestContext()

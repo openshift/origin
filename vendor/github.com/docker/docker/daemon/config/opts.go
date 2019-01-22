@@ -1,4 +1,4 @@
-package config
+package config // import "github.com/docker/docker/daemon/config"
 
 import (
 	"github.com/docker/docker/api/types/swarm"
@@ -7,8 +7,8 @@ import (
 )
 
 // ParseGenericResources parses and validates the specified string as a list of GenericResource
-func ParseGenericResources(value string) ([]swarm.GenericResource, error) {
-	if value == "" {
+func ParseGenericResources(value []string) ([]swarm.GenericResource, error) {
+	if len(value) == 0 {
 		return nil, nil
 	}
 

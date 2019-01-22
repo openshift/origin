@@ -1176,6 +1176,17 @@ type EndpointsApiService struct {
 	// "myapi.endpoints.myproject.cloud.goog"
 	Name string `json:"name,omitempty"`
 
+	// RolloutStrategy: Endpoints rollout strategy. If FIXED, config_id must
+	// be specified. If MANAGED, config_id must be omitted.
+	//
+	// Possible values:
+	//   "UNSPECIFIED_ROLLOUT_STRATEGY" - Not specified. Defaults to FIXED.
+	//   "FIXED" - Endpoints service configuration ID will be fixed to the
+	// configuration ID specified by config_id.
+	//   "MANAGED" - Endpoints service configuration ID will be updated with
+	// each rollout.
+	RolloutStrategy string `json:"rolloutStrategy,omitempty"`
+
 	// ForceSendFields is a list of field names (e.g. "ConfigId") to
 	// unconditionally include in API requests. By default, fields with
 	// empty values are omitted from API requests. However, any non-pointer,
@@ -3238,7 +3249,8 @@ type UrlMap struct {
 	// status code and an error message.
 	AuthFailAction string `json:"authFailAction,omitempty"`
 
-	// Login: Level of login required to access this resource.
+	// Login: Level of login required to access this resource. Not supported
+	// for Node.js in the App Engine standard environment.
 	//
 	// Possible values:
 	//   "LOGIN_UNSPECIFIED" - Not specified. LOGIN_OPTIONAL is assumed.
@@ -3264,8 +3276,9 @@ type UrlMap struct {
 	//   "REDIRECT_HTTP_RESPONSE_CODE_307" - 307 Temporary Redirect code.
 	RedirectHttpResponseCode string `json:"redirectHttpResponseCode,omitempty"`
 
-	// Script: Executes a script to handle the request that matches this URL
-	// pattern.
+	// Script: Executes a script to handle the requests that match this URL
+	// pattern. Only the auto value is supported for Node.js in the App
+	// Engine standard environment, for example "script": "auto".
 	Script *ScriptHandler `json:"script,omitempty"`
 
 	// SecurityLevel: Security (HTTPS) enforcement for this URL.

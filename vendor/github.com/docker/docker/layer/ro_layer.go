@@ -1,4 +1,4 @@
-package layer
+package layer // import "github.com/docker/docker/layer"
 
 import (
 	"fmt"
@@ -16,7 +16,6 @@ type roLayer struct {
 	size       int64
 	layerStore *layerStore
 	descriptor distribution.Descriptor
-	platform   Platform
 
 	referenceCount int
 	references     map[Layer]struct{}
@@ -122,7 +121,7 @@ func (rl *roLayer) depth() int {
 	return rl.parent.depth() + 1
 }
 
-func storeLayer(tx MetadataTransaction, layer *roLayer) error {
+func storeLayer(tx *fileMetadataTransaction, layer *roLayer) error {
 	if err := tx.SetDiffID(layer.diffID); err != nil {
 		return err
 	}
@@ -143,11 +142,7 @@ func storeLayer(tx MetadataTransaction, layer *roLayer) error {
 			return err
 		}
 	}
-	if err := tx.SetPlatform(layer.platform); err != nil {
-		return err
-	}
-
-	return nil
+	return tx.setOS(layer.layerStore.os)
 }
 
 func newVerifiedReadCloser(rc io.ReadCloser, dgst digest.Digest) (io.ReadCloser, error) {

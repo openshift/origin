@@ -436,6 +436,22 @@ type Dataset struct {
 	// DatasetReference: [Required] A reference that identifies the dataset.
 	DatasetReference *DatasetReference `json:"datasetReference,omitempty"`
 
+	// DefaultPartitionExpirationMs: [Optional] The default partition
+	// expiration for all partitioned tables in the dataset, in
+	// milliseconds. Once this property is set, all newly-created
+	// partitioned tables in the dataset will have an expirationMs property
+	// in the timePartitioning settings set to this value, and changing the
+	// value will only affect new tables, not existing ones. The storage in
+	// a partition will have an expiration time of its partition time plus
+	// this value. Setting this property overrides the use of
+	// defaultTableExpirationMs for partitioned tables: only one of
+	// defaultTableExpirationMs and defaultPartitionExpirationMs will be
+	// used for any new partitioned table. If you provide an explicit
+	// timePartitioning.expirationMs when creating or updating a partitioned
+	// table, that value takes precedence over the default partition
+	// expiration time indicated by this property.
+	DefaultPartitionExpirationMs int64 `json:"defaultPartitionExpirationMs,omitempty,string"`
+
 	// DefaultTableExpirationMs: [Optional] The default lifetime of all
 	// tables in the dataset, in milliseconds. The minimum value is 3600000
 	// milliseconds (one hour). Once this property is set, all newly-created
@@ -2107,7 +2123,7 @@ type JobStatistics2 struct {
 	// StatementType: [Output-only, Experimental] The type of query
 	// statement, if valid. Possible values (new values might be added in
 	// the future): "SELECT": SELECT query. "INSERT": INSERT query; see
-	// https://cloud.google.com/bigquery/docs/reference/standard-sql/data-manipulation-language "UPDATE": UPDATE query; see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-manipulation-language "DELETE": DELETE query; see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-manipulation-language "CREATE_TABLE": CREATE [OR REPLACE] TABLE without AS SELECT. "CREATE_TABLE_AS_SELECT": CREATE [OR REPLACE] TABLE ... AS SELECT ... "DROP_TABLE": DROP TABLE query. "CREATE_VIEW": CREATE [OR REPLACE] VIEW ... AS SELECT ... "DROP_VIEW": DROP VIEW
+	// https://cloud.google.com/bigquery/docs/reference/standard-sql/data-manipulation-language "UPDATE": UPDATE query; see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-manipulation-language "DELETE": DELETE query; see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-manipulation-language "MERGE": MERGE query; see https://cloud.google.com/bigquery/docs/reference/standard-sql/data-manipulation-language "CREATE_TABLE": CREATE [OR REPLACE] TABLE without AS SELECT. "CREATE_TABLE_AS_SELECT": CREATE [OR REPLACE] TABLE ... AS SELECT ... "DROP_TABLE": DROP TABLE query. "CREATE_VIEW": CREATE [OR REPLACE] VIEW ... AS SELECT ... "DROP_VIEW": DROP VIEW
 	// query.
 	StatementType string `json:"statementType,omitempty"`
 

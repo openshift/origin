@@ -36,6 +36,11 @@ const (
 	Enabled AlertEmailNotificationStatus = "Enabled"
 )
 
+// PossibleAlertEmailNotificationStatusValues returns an array of possible values for the AlertEmailNotificationStatus const type.
+func PossibleAlertEmailNotificationStatusValues() []AlertEmailNotificationStatus {
+	return []AlertEmailNotificationStatus{Disabled, Enabled}
+}
+
 // AlertScope enumerates the values for alert scope.
 type AlertScope string
 
@@ -45,6 +50,11 @@ const (
 	// AlertScopeResource ...
 	AlertScopeResource AlertScope = "Resource"
 )
+
+// PossibleAlertScopeValues returns an array of possible values for the AlertScope const type.
+func PossibleAlertScopeValues() []AlertScope {
+	return []AlertScope{AlertScopeDevice, AlertScopeResource}
+}
 
 // AlertSeverity enumerates the values for alert severity.
 type AlertSeverity string
@@ -58,6 +68,11 @@ const (
 	Warning AlertSeverity = "Warning"
 )
 
+// PossibleAlertSeverityValues returns an array of possible values for the AlertSeverity const type.
+func PossibleAlertSeverityValues() []AlertSeverity {
+	return []AlertSeverity{Critical, Informational, Warning}
+}
+
 // AlertSourceType enumerates the values for alert source type.
 type AlertSourceType string
 
@@ -68,6 +83,11 @@ const (
 	AlertSourceTypeResource AlertSourceType = "Resource"
 )
 
+// PossibleAlertSourceTypeValues returns an array of possible values for the AlertSourceType const type.
+func PossibleAlertSourceTypeValues() []AlertSourceType {
+	return []AlertSourceType{AlertSourceTypeDevice, AlertSourceTypeResource}
+}
+
 // AlertStatus enumerates the values for alert status.
 type AlertStatus string
 
@@ -77,6 +97,11 @@ const (
 	// Cleared ...
 	Cleared AlertStatus = "Cleared"
 )
+
+// PossibleAlertStatusValues returns an array of possible values for the AlertStatus const type.
+func PossibleAlertStatusValues() []AlertStatus {
+	return []AlertStatus{Active, Cleared}
+}
 
 // AuthenticationType enumerates the values for authentication type.
 type AuthenticationType string
@@ -92,6 +117,11 @@ const (
 	NTLM AuthenticationType = "NTLM"
 )
 
+// PossibleAuthenticationTypeValues returns an array of possible values for the AuthenticationType const type.
+func PossibleAuthenticationTypeValues() []AuthenticationType {
+	return []AuthenticationType{Basic, Invalid, None, NTLM}
+}
+
 // AuthorizationEligibility enumerates the values for authorization eligibility.
 type AuthorizationEligibility string
 
@@ -102,6 +132,11 @@ const (
 	InEligible AuthorizationEligibility = "InEligible"
 )
 
+// PossibleAuthorizationEligibilityValues returns an array of possible values for the AuthorizationEligibility const type.
+func PossibleAuthorizationEligibilityValues() []AuthorizationEligibility {
+	return []AuthorizationEligibility{Eligible, InEligible}
+}
+
 // AuthorizationStatus enumerates the values for authorization status.
 type AuthorizationStatus string
 
@@ -111,6 +146,11 @@ const (
 	// AuthorizationStatusEnabled ...
 	AuthorizationStatusEnabled AuthorizationStatus = "Enabled"
 )
+
+// PossibleAuthorizationStatusValues returns an array of possible values for the AuthorizationStatus const type.
+func PossibleAuthorizationStatusValues() []AuthorizationStatus {
+	return []AuthorizationStatus{AuthorizationStatusDisabled, AuthorizationStatusEnabled}
+}
 
 // BackupJobCreationType enumerates the values for backup job creation type.
 type BackupJobCreationType string
@@ -124,6 +164,11 @@ const (
 	BySSM BackupJobCreationType = "BySSM"
 )
 
+// PossibleBackupJobCreationTypeValues returns an array of possible values for the BackupJobCreationType const type.
+func PossibleBackupJobCreationTypeValues() []BackupJobCreationType {
+	return []BackupJobCreationType{Adhoc, BySchedule, BySSM}
+}
+
 // BackupPolicyCreationType enumerates the values for backup policy creation type.
 type BackupPolicyCreationType string
 
@@ -133,6 +178,11 @@ const (
 	// BackupPolicyCreationTypeBySSM ...
 	BackupPolicyCreationTypeBySSM BackupPolicyCreationType = "BySSM"
 )
+
+// PossibleBackupPolicyCreationTypeValues returns an array of possible values for the BackupPolicyCreationType const type.
+func PossibleBackupPolicyCreationTypeValues() []BackupPolicyCreationType {
+	return []BackupPolicyCreationType{BackupPolicyCreationTypeBySaaS, BackupPolicyCreationTypeBySSM}
+}
 
 // BackupStatus enumerates the values for backup status.
 type BackupStatus string
@@ -144,6 +194,11 @@ const (
 	BackupStatusEnabled BackupStatus = "Enabled"
 )
 
+// PossibleBackupStatusValues returns an array of possible values for the BackupStatus const type.
+func PossibleBackupStatusValues() []BackupStatus {
+	return []BackupStatus{BackupStatusDisabled, BackupStatusEnabled}
+}
+
 // BackupType enumerates the values for backup type.
 type BackupType string
 
@@ -153,6 +208,11 @@ const (
 	// LocalSnapshot ...
 	LocalSnapshot BackupType = "LocalSnapshot"
 )
+
+// PossibleBackupTypeValues returns an array of possible values for the BackupType const type.
+func PossibleBackupTypeValues() []BackupType {
+	return []BackupType{CloudSnapshot, LocalSnapshot}
+}
 
 // ControllerID enumerates the values for controller id.
 type ControllerID string
@@ -168,6 +228,11 @@ const (
 	ControllerIDUnknown ControllerID = "Unknown"
 )
 
+// PossibleControllerIDValues returns an array of possible values for the ControllerID const type.
+func PossibleControllerIDValues() []ControllerID {
+	return []ControllerID{ControllerIDController0, ControllerIDController1, ControllerIDNone, ControllerIDUnknown}
+}
+
 // ControllerPowerStateAction enumerates the values for controller power state action.
 type ControllerPowerStateAction string
 
@@ -179,6 +244,11 @@ const (
 	// Start ...
 	Start ControllerPowerStateAction = "Start"
 )
+
+// PossibleControllerPowerStateActionValues returns an array of possible values for the ControllerPowerStateAction const type.
+func PossibleControllerPowerStateActionValues() []ControllerPowerStateAction {
+	return []ControllerPowerStateAction{Restart, Shutdown, Start}
+}
 
 // ControllerStatus enumerates the values for controller status.
 type ControllerStatus string
@@ -197,6 +267,11 @@ const (
 	// ControllerStatusWarning ...
 	ControllerStatusWarning ControllerStatus = "Warning"
 )
+
+// PossibleControllerStatusValues returns an array of possible values for the ControllerStatus const type.
+func PossibleControllerStatusValues() []ControllerStatus {
+	return []ControllerStatus{ControllerStatusFailure, ControllerStatusNotPresent, ControllerStatusOk, ControllerStatusPoweredOff, ControllerStatusRecovering, ControllerStatusWarning}
+}
 
 // DayOfWeek enumerates the values for day of week.
 type DayOfWeek string
@@ -218,6 +293,11 @@ const (
 	Wednesday DayOfWeek = "Wednesday"
 )
 
+// PossibleDayOfWeekValues returns an array of possible values for the DayOfWeek const type.
+func PossibleDayOfWeekValues() []DayOfWeek {
+	return []DayOfWeek{Friday, Monday, Saturday, Sunday, Thursday, Tuesday, Wednesday}
+}
+
 // DeviceConfigurationStatus enumerates the values for device configuration status.
 type DeviceConfigurationStatus string
 
@@ -227,6 +307,11 @@ const (
 	// Pending ...
 	Pending DeviceConfigurationStatus = "Pending"
 )
+
+// PossibleDeviceConfigurationStatusValues returns an array of possible values for the DeviceConfigurationStatus const type.
+func PossibleDeviceConfigurationStatusValues() []DeviceConfigurationStatus {
+	return []DeviceConfigurationStatus{Complete, Pending}
+}
 
 // DeviceStatus enumerates the values for device status.
 type DeviceStatus string
@@ -256,6 +341,11 @@ const (
 	Unknown DeviceStatus = "Unknown"
 )
 
+// PossibleDeviceStatusValues returns an array of possible values for the DeviceStatus const type.
+func PossibleDeviceStatusValues() []DeviceStatus {
+	return []DeviceStatus{Creating, Deactivated, Deactivating, Deleted, MaintenanceMode, Offline, Online, Provisioning, ReadyToSetup, RequiresAttention, Unknown}
+}
+
 // DeviceType enumerates the values for device type.
 type DeviceType string
 
@@ -267,6 +357,11 @@ const (
 	// DeviceTypeSeries8000VirtualAppliance ...
 	DeviceTypeSeries8000VirtualAppliance DeviceType = "Series8000VirtualAppliance"
 )
+
+// PossibleDeviceTypeValues returns an array of possible values for the DeviceType const type.
+func PossibleDeviceTypeValues() []DeviceType {
+	return []DeviceType{DeviceTypeInvalid, DeviceTypeSeries8000PhysicalAppliance, DeviceTypeSeries8000VirtualAppliance}
+}
 
 // EncryptionAlgorithm enumerates the values for encryption algorithm.
 type EncryptionAlgorithm string
@@ -280,6 +375,11 @@ const (
 	EncryptionAlgorithmRSAESPKCS1V15 EncryptionAlgorithm = "RSAES_PKCS1_v_1_5"
 )
 
+// PossibleEncryptionAlgorithmValues returns an array of possible values for the EncryptionAlgorithm const type.
+func PossibleEncryptionAlgorithmValues() []EncryptionAlgorithm {
+	return []EncryptionAlgorithm{EncryptionAlgorithmAES256, EncryptionAlgorithmNone, EncryptionAlgorithmRSAESPKCS1V15}
+}
+
 // EncryptionStatus enumerates the values for encryption status.
 type EncryptionStatus string
 
@@ -289,6 +389,11 @@ const (
 	// EncryptionStatusEnabled ...
 	EncryptionStatusEnabled EncryptionStatus = "Enabled"
 )
+
+// PossibleEncryptionStatusValues returns an array of possible values for the EncryptionStatus const type.
+func PossibleEncryptionStatusValues() []EncryptionStatus {
+	return []EncryptionStatus{EncryptionStatusDisabled, EncryptionStatusEnabled}
+}
 
 // FeatureSupportStatus enumerates the values for feature support status.
 type FeatureSupportStatus string
@@ -301,6 +406,11 @@ const (
 	// UnsupportedDeviceVersion ...
 	UnsupportedDeviceVersion FeatureSupportStatus = "UnsupportedDeviceVersion"
 )
+
+// PossibleFeatureSupportStatusValues returns an array of possible values for the FeatureSupportStatus const type.
+func PossibleFeatureSupportStatusValues() []FeatureSupportStatus {
+	return []FeatureSupportStatus{NotAvailable, Supported, UnsupportedDeviceVersion}
+}
 
 // HardwareComponentStatus enumerates the values for hardware component status.
 type HardwareComponentStatus string
@@ -322,6 +432,11 @@ const (
 	HardwareComponentStatusWarning HardwareComponentStatus = "Warning"
 )
 
+// PossibleHardwareComponentStatusValues returns an array of possible values for the HardwareComponentStatus const type.
+func PossibleHardwareComponentStatusValues() []HardwareComponentStatus {
+	return []HardwareComponentStatus{HardwareComponentStatusFailure, HardwareComponentStatusNotPresent, HardwareComponentStatusOk, HardwareComponentStatusPoweredOff, HardwareComponentStatusRecovering, HardwareComponentStatusUnknown, HardwareComponentStatusWarning}
+}
+
 // InEligibilityCategory enumerates the values for in eligibility category.
 type InEligibilityCategory string
 
@@ -333,6 +448,11 @@ const (
 	// RolloverPending ...
 	RolloverPending InEligibilityCategory = "RolloverPending"
 )
+
+// PossibleInEligibilityCategoryValues returns an array of possible values for the InEligibilityCategory const type.
+func PossibleInEligibilityCategoryValues() []InEligibilityCategory {
+	return []InEligibilityCategory{DeviceNotOnline, NotSupportedAppliance, RolloverPending}
+}
 
 // ISCSIAndCloudStatus enumerates the values for iscsi and cloud status.
 type ISCSIAndCloudStatus string
@@ -348,6 +468,11 @@ const (
 	ISCSIAndCloudStatusIscsiEnabled ISCSIAndCloudStatus = "IscsiEnabled"
 )
 
+// PossibleISCSIAndCloudStatusValues returns an array of possible values for the ISCSIAndCloudStatus const type.
+func PossibleISCSIAndCloudStatusValues() []ISCSIAndCloudStatus {
+	return []ISCSIAndCloudStatus{ISCSIAndCloudStatusCloudEnabled, ISCSIAndCloudStatusDisabled, ISCSIAndCloudStatusIscsiAndCloudEnabled, ISCSIAndCloudStatusIscsiEnabled}
+}
+
 // JobStatus enumerates the values for job status.
 type JobStatus string
 
@@ -361,6 +486,11 @@ const (
 	// Succeeded ...
 	Succeeded JobStatus = "Succeeded"
 )
+
+// PossibleJobStatusValues returns an array of possible values for the JobStatus const type.
+func PossibleJobStatusValues() []JobStatus {
+	return []JobStatus{Canceled, Failed, Running, Succeeded}
+}
 
 // JobType enumerates the values for job type.
 type JobType string
@@ -388,6 +518,11 @@ const (
 	SupportPackageLogs JobType = "SupportPackageLogs"
 )
 
+// PossibleJobTypeValues returns an array of possible values for the JobType const type.
+func PossibleJobTypeValues() []JobType {
+	return []JobType{CloneVolume, CreateCloudAppliance, CreateLocallyPinnedVolume, FailoverVolumeContainers, InstallUpdates, ManualBackup, ModifyVolume, RestoreBackup, ScheduledBackup, SupportPackageLogs}
+}
+
 // KeyRolloverStatus enumerates the values for key rollover status.
 type KeyRolloverStatus string
 
@@ -398,6 +533,11 @@ const (
 	Required KeyRolloverStatus = "Required"
 )
 
+// PossibleKeyRolloverStatusValues returns an array of possible values for the KeyRolloverStatus const type.
+func PossibleKeyRolloverStatusValues() []KeyRolloverStatus {
+	return []KeyRolloverStatus{NotRequired, Required}
+}
+
 // Kind enumerates the values for kind.
 type Kind string
 
@@ -405,6 +545,11 @@ const (
 	// Series8000 ...
 	Series8000 Kind = "Series8000"
 )
+
+// PossibleKindValues returns an array of possible values for the Kind const type.
+func PossibleKindValues() []Kind {
+	return []Kind{Series8000}
+}
 
 // ManagerType enumerates the values for manager type.
 type ManagerType string
@@ -415,6 +560,11 @@ const (
 	// HelsinkiV1 ...
 	HelsinkiV1 ManagerType = "HelsinkiV1"
 )
+
+// PossibleManagerTypeValues returns an array of possible values for the ManagerType const type.
+func PossibleManagerTypeValues() []ManagerType {
+	return []ManagerType{GardaV1, HelsinkiV1}
+}
 
 // MetricAggregationType enumerates the values for metric aggregation type.
 type MetricAggregationType string
@@ -434,6 +584,11 @@ const (
 	MetricAggregationTypeTotal MetricAggregationType = "Total"
 )
 
+// PossibleMetricAggregationTypeValues returns an array of possible values for the MetricAggregationType const type.
+func PossibleMetricAggregationTypeValues() []MetricAggregationType {
+	return []MetricAggregationType{MetricAggregationTypeAverage, MetricAggregationTypeLast, MetricAggregationTypeMaximum, MetricAggregationTypeMinimum, MetricAggregationTypeNone, MetricAggregationTypeTotal}
+}
+
 // MetricUnit enumerates the values for metric unit.
 type MetricUnit string
 
@@ -452,6 +607,11 @@ const (
 	Seconds MetricUnit = "Seconds"
 )
 
+// PossibleMetricUnitValues returns an array of possible values for the MetricUnit const type.
+func PossibleMetricUnitValues() []MetricUnit {
+	return []MetricUnit{Bytes, BytesPerSecond, Count, CountPerSecond, Percent, Seconds}
+}
+
 // MonitoringStatus enumerates the values for monitoring status.
 type MonitoringStatus string
 
@@ -461,6 +621,11 @@ const (
 	// MonitoringStatusEnabled ...
 	MonitoringStatusEnabled MonitoringStatus = "Enabled"
 )
+
+// PossibleMonitoringStatusValues returns an array of possible values for the MonitoringStatus const type.
+func PossibleMonitoringStatusValues() []MonitoringStatus {
+	return []MonitoringStatus{MonitoringStatusDisabled, MonitoringStatusEnabled}
+}
 
 // NetInterfaceID enumerates the values for net interface id.
 type NetInterfaceID string
@@ -482,6 +647,11 @@ const (
 	NetInterfaceIDInvalid NetInterfaceID = "Invalid"
 )
 
+// PossibleNetInterfaceIDValues returns an array of possible values for the NetInterfaceID const type.
+func PossibleNetInterfaceIDValues() []NetInterfaceID {
+	return []NetInterfaceID{NetInterfaceIDData0, NetInterfaceIDData1, NetInterfaceIDData2, NetInterfaceIDData3, NetInterfaceIDData4, NetInterfaceIDData5, NetInterfaceIDInvalid}
+}
+
 // NetInterfaceStatus enumerates the values for net interface status.
 type NetInterfaceStatus string
 
@@ -491,6 +661,11 @@ const (
 	// NetInterfaceStatusEnabled ...
 	NetInterfaceStatusEnabled NetInterfaceStatus = "Enabled"
 )
+
+// PossibleNetInterfaceStatusValues returns an array of possible values for the NetInterfaceStatus const type.
+func PossibleNetInterfaceStatusValues() []NetInterfaceStatus {
+	return []NetInterfaceStatus{NetInterfaceStatusDisabled, NetInterfaceStatusEnabled}
+}
 
 // NetworkMode enumerates the values for network mode.
 type NetworkMode string
@@ -506,6 +681,11 @@ const (
 	NetworkModeIPV6 NetworkMode = "IPV6"
 )
 
+// PossibleNetworkModeValues returns an array of possible values for the NetworkMode const type.
+func PossibleNetworkModeValues() []NetworkMode {
+	return []NetworkMode{NetworkModeBOTH, NetworkModeInvalid, NetworkModeIPV4, NetworkModeIPV6}
+}
+
 // OperationStatus enumerates the values for operation status.
 type OperationStatus string
 
@@ -520,6 +700,11 @@ const (
 	OperationStatusUpdating OperationStatus = "Updating"
 )
 
+// PossibleOperationStatusValues returns an array of possible values for the OperationStatus const type.
+func PossibleOperationStatusValues() []OperationStatus {
+	return []OperationStatus{OperationStatusDeleting, OperationStatusNone, OperationStatusRestoring, OperationStatusUpdating}
+}
+
 // OwnerShipStatus enumerates the values for owner ship status.
 type OwnerShipStatus string
 
@@ -529,6 +714,11 @@ const (
 	// Owned ...
 	Owned OwnerShipStatus = "Owned"
 )
+
+// PossibleOwnerShipStatusValues returns an array of possible values for the OwnerShipStatus const type.
+func PossibleOwnerShipStatusValues() []OwnerShipStatus {
+	return []OwnerShipStatus{NotOwned, Owned}
+}
 
 // RecurrenceType enumerates the values for recurrence type.
 type RecurrenceType string
@@ -544,6 +734,11 @@ const (
 	Weekly RecurrenceType = "Weekly"
 )
 
+// PossibleRecurrenceTypeValues returns an array of possible values for the RecurrenceType const type.
+func PossibleRecurrenceTypeValues() []RecurrenceType {
+	return []RecurrenceType{Daily, Hourly, Minutes, Weekly}
+}
+
 // RemoteManagementModeConfiguration enumerates the values for remote management mode configuration.
 type RemoteManagementModeConfiguration string
 
@@ -558,6 +753,11 @@ const (
 	RemoteManagementModeConfigurationUnknown RemoteManagementModeConfiguration = "Unknown"
 )
 
+// PossibleRemoteManagementModeConfigurationValues returns an array of possible values for the RemoteManagementModeConfiguration const type.
+func PossibleRemoteManagementModeConfigurationValues() []RemoteManagementModeConfiguration {
+	return []RemoteManagementModeConfiguration{RemoteManagementModeConfigurationDisabled, RemoteManagementModeConfigurationHTTPSAndHTTPEnabled, RemoteManagementModeConfigurationHTTPSEnabled, RemoteManagementModeConfigurationUnknown}
+}
+
 // ScheduledBackupStatus enumerates the values for scheduled backup status.
 type ScheduledBackupStatus string
 
@@ -567,6 +767,11 @@ const (
 	// ScheduledBackupStatusEnabled ...
 	ScheduledBackupStatusEnabled ScheduledBackupStatus = "Enabled"
 )
+
+// PossibleScheduledBackupStatusValues returns an array of possible values for the ScheduledBackupStatus const type.
+func PossibleScheduledBackupStatusValues() []ScheduledBackupStatus {
+	return []ScheduledBackupStatus{ScheduledBackupStatusDisabled, ScheduledBackupStatusEnabled}
+}
 
 // ScheduleStatus enumerates the values for schedule status.
 type ScheduleStatus string
@@ -578,6 +783,11 @@ const (
 	ScheduleStatusEnabled ScheduleStatus = "Enabled"
 )
 
+// PossibleScheduleStatusValues returns an array of possible values for the ScheduleStatus const type.
+func PossibleScheduleStatusValues() []ScheduleStatus {
+	return []ScheduleStatus{ScheduleStatusDisabled, ScheduleStatusEnabled}
+}
+
 // SslStatus enumerates the values for ssl status.
 type SslStatus string
 
@@ -587,6 +797,11 @@ const (
 	// SslStatusEnabled ...
 	SslStatusEnabled SslStatus = "Enabled"
 )
+
+// PossibleSslStatusValues returns an array of possible values for the SslStatus const type.
+func PossibleSslStatusValues() []SslStatus {
+	return []SslStatus{SslStatusDisabled, SslStatusEnabled}
+}
 
 // TargetEligibilityResultCode enumerates the values for target eligibility result code.
 type TargetEligibilityResultCode string
@@ -608,6 +823,11 @@ const (
 	TargetSourceIncompatibleVersionError TargetEligibilityResultCode = "TargetSourceIncompatibleVersionError"
 )
 
+// PossibleTargetEligibilityResultCodeValues returns an array of possible values for the TargetEligibilityResultCode const type.
+func PossibleTargetEligibilityResultCodeValues() []TargetEligibilityResultCode {
+	return []TargetEligibilityResultCode{LocalToTieredVolumesConversionWarning, TargetAndSourceCannotBeSameError, TargetInsufficientCapacityError, TargetInsufficientLocalVolumeMemoryError, TargetInsufficientTieredVolumeMemoryError, TargetIsNotOnlineError, TargetSourceIncompatibleVersionError}
+}
+
 // TargetEligibilityStatus enumerates the values for target eligibility status.
 type TargetEligibilityStatus string
 
@@ -617,6 +837,11 @@ const (
 	// TargetEligibilityStatusNotEligible ...
 	TargetEligibilityStatusNotEligible TargetEligibilityStatus = "NotEligible"
 )
+
+// PossibleTargetEligibilityStatusValues returns an array of possible values for the TargetEligibilityStatus const type.
+func PossibleTargetEligibilityStatusValues() []TargetEligibilityStatus {
+	return []TargetEligibilityStatus{TargetEligibilityStatusEligible, TargetEligibilityStatusNotEligible}
+}
 
 // VirtualMachineAPIType enumerates the values for virtual machine api type.
 type VirtualMachineAPIType string
@@ -628,6 +853,11 @@ const (
 	Classic VirtualMachineAPIType = "Classic"
 )
 
+// PossibleVirtualMachineAPITypeValues returns an array of possible values for the VirtualMachineAPIType const type.
+func PossibleVirtualMachineAPITypeValues() []VirtualMachineAPIType {
+	return []VirtualMachineAPIType{Arm, Classic}
+}
+
 // VolumeStatus enumerates the values for volume status.
 type VolumeStatus string
 
@@ -637,6 +867,11 @@ const (
 	// VolumeStatusOnline ...
 	VolumeStatusOnline VolumeStatus = "Online"
 )
+
+// PossibleVolumeStatusValues returns an array of possible values for the VolumeStatus const type.
+func PossibleVolumeStatusValues() []VolumeStatus {
+	return []VolumeStatus{VolumeStatusOffline, VolumeStatusOnline}
+}
 
 // VolumeType enumerates the values for volume type.
 type VolumeType string
@@ -649,6 +884,11 @@ const (
 	// Tiered ...
 	Tiered VolumeType = "Tiered"
 )
+
+// PossibleVolumeTypeValues returns an array of possible values for the VolumeType const type.
+func PossibleVolumeTypeValues() []VolumeType {
+	return []VolumeType{Archival, LocallyPinned, Tiered}
+}
 
 // AccessControlRecord the access control record.
 type AccessControlRecord struct {
@@ -663,6 +903,27 @@ type AccessControlRecord struct {
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for AccessControlRecord.
+func (acr AccessControlRecord) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if acr.AccessControlRecordProperties != nil {
+		objectMap["properties"] = acr.AccessControlRecordProperties
+	}
+	if acr.ID != nil {
+		objectMap["id"] = acr.ID
+	}
+	if acr.Name != nil {
+		objectMap["name"] = acr.Name
+	}
+	if acr.Type != nil {
+		objectMap["type"] = acr.Type
+	}
+	if acr.Kind != "" {
+		objectMap["kind"] = acr.Kind
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for AccessControlRecord struct.
@@ -744,12 +1005,11 @@ type AccessControlRecordProperties struct {
 // long-running operation.
 type AccessControlRecordsCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future AccessControlRecordsCreateOrUpdateFuture) Result(client AccessControlRecordsClient) (acr AccessControlRecord, err error) {
+func (future *AccessControlRecordsCreateOrUpdateFuture) Result(client AccessControlRecordsClient) (acr AccessControlRecord, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -757,34 +1017,15 @@ func (future AccessControlRecordsCreateOrUpdateFuture) Result(client AccessContr
 		return
 	}
 	if !done {
-		return acr, azure.NewAsyncOpIncompleteError("storsimple.AccessControlRecordsCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		acr, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.AccessControlRecordsCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.AccessControlRecordsCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if acr.Response.Response, err = future.GetResult(sender); err == nil && acr.Response.Response.StatusCode != http.StatusNoContent {
+		acr, err = client.CreateOrUpdateResponder(acr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "storsimple.AccessControlRecordsCreateOrUpdateFuture", "Result", acr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.AccessControlRecordsCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	acr, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.AccessControlRecordsCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -793,12 +1034,11 @@ func (future AccessControlRecordsCreateOrUpdateFuture) Result(client AccessContr
 // operation.
 type AccessControlRecordsDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future AccessControlRecordsDeleteFuture) Result(client AccessControlRecordsClient) (ar autorest.Response, err error) {
+func (future *AccessControlRecordsDeleteFuture) Result(client AccessControlRecordsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -806,35 +1046,10 @@ func (future AccessControlRecordsDeleteFuture) Result(client AccessControlRecord
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.AccessControlRecordsDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.AccessControlRecordsDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.AccessControlRecordsDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.AccessControlRecordsDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.AccessControlRecordsDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -860,6 +1075,27 @@ type Alert struct {
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for Alert.
+func (a Alert) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if a.AlertProperties != nil {
+		objectMap["properties"] = a.AlertProperties
+	}
+	if a.ID != nil {
+		objectMap["id"] = a.ID
+	}
+	if a.Name != nil {
+		objectMap["name"] = a.Name
+	}
+	if a.Type != nil {
+		objectMap["type"] = a.Type
+	}
+	if a.Kind != "" {
+		objectMap["kind"] = a.Kind
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for Alert struct.
@@ -1098,7 +1334,9 @@ func (ap AlertProperties) MarshalJSON() ([]byte, error) {
 	if ap.Title != nil {
 		objectMap["title"] = ap.Title
 	}
-	objectMap["scope"] = ap.Scope
+	if ap.Scope != "" {
+		objectMap["scope"] = ap.Scope
+	}
 	if ap.AlertType != nil {
 		objectMap["alertType"] = ap.AlertType
 	}
@@ -1123,8 +1361,12 @@ func (ap AlertProperties) MarshalJSON() ([]byte, error) {
 	if ap.ResolutionReason != nil {
 		objectMap["resolutionReason"] = ap.ResolutionReason
 	}
-	objectMap["severity"] = ap.Severity
-	objectMap["status"] = ap.Status
+	if ap.Severity != "" {
+		objectMap["severity"] = ap.Severity
+	}
+	if ap.Status != "" {
+		objectMap["status"] = ap.Status
+	}
 	if ap.ErrorDetails != nil {
 		objectMap["errorDetails"] = ap.ErrorDetails
 	}
@@ -1147,6 +1389,27 @@ type AlertSettings struct {
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for AlertSettings.
+func (as AlertSettings) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if as.AlertNotificationProperties != nil {
+		objectMap["properties"] = as.AlertNotificationProperties
+	}
+	if as.ID != nil {
+		objectMap["id"] = as.ID
+	}
+	if as.Name != nil {
+		objectMap["name"] = as.Name
+	}
+	if as.Type != nil {
+		objectMap["type"] = as.Type
+	}
+	if as.Kind != "" {
+		objectMap["kind"] = as.Kind
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for AlertSettings struct.
@@ -1372,6 +1635,27 @@ type Backup struct {
 	Kind Kind `json:"kind,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for Backup.
+func (b Backup) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if b.BackupProperties != nil {
+		objectMap["properties"] = b.BackupProperties
+	}
+	if b.ID != nil {
+		objectMap["id"] = b.ID
+	}
+	if b.Name != nil {
+		objectMap["name"] = b.Name
+	}
+	if b.Type != nil {
+		objectMap["type"] = b.Type
+	}
+	if b.Kind != "" {
+		objectMap["kind"] = b.Kind
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for Backup struct.
 func (b *Backup) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -1566,12 +1850,11 @@ func (page BackupListPage) Values() []Backup {
 // operation.
 type BackupPoliciesBackupNowFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future BackupPoliciesBackupNowFuture) Result(client BackupPoliciesClient) (ar autorest.Response, err error) {
+func (future *BackupPoliciesBackupNowFuture) Result(client BackupPoliciesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1579,35 +1862,10 @@ func (future BackupPoliciesBackupNowFuture) Result(client BackupPoliciesClient) 
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.BackupPoliciesBackupNowFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.BackupNowResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.BackupPoliciesBackupNowFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.BackupPoliciesBackupNowFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.BackupPoliciesBackupNowFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.BackupNowResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.BackupPoliciesBackupNowFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -1615,12 +1873,11 @@ func (future BackupPoliciesBackupNowFuture) Result(client BackupPoliciesClient) 
 // operation.
 type BackupPoliciesCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future BackupPoliciesCreateOrUpdateFuture) Result(client BackupPoliciesClient) (bp BackupPolicy, err error) {
+func (future *BackupPoliciesCreateOrUpdateFuture) Result(client BackupPoliciesClient) (bp BackupPolicy, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1628,34 +1885,15 @@ func (future BackupPoliciesCreateOrUpdateFuture) Result(client BackupPoliciesCli
 		return
 	}
 	if !done {
-		return bp, azure.NewAsyncOpIncompleteError("storsimple.BackupPoliciesCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		bp, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.BackupPoliciesCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.BackupPoliciesCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if bp.Response.Response, err = future.GetResult(sender); err == nil && bp.Response.Response.StatusCode != http.StatusNoContent {
+		bp, err = client.CreateOrUpdateResponder(bp.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "storsimple.BackupPoliciesCreateOrUpdateFuture", "Result", bp.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.BackupPoliciesCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	bp, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.BackupPoliciesCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -1663,12 +1901,11 @@ func (future BackupPoliciesCreateOrUpdateFuture) Result(client BackupPoliciesCli
 // BackupPoliciesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type BackupPoliciesDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future BackupPoliciesDeleteFuture) Result(client BackupPoliciesClient) (ar autorest.Response, err error) {
+func (future *BackupPoliciesDeleteFuture) Result(client BackupPoliciesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1676,35 +1913,10 @@ func (future BackupPoliciesDeleteFuture) Result(client BackupPoliciesClient) (ar
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.BackupPoliciesDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.BackupPoliciesDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.BackupPoliciesDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.BackupPoliciesDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.BackupPoliciesDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -1721,6 +1933,27 @@ type BackupPolicy struct {
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for BackupPolicy.
+func (bp BackupPolicy) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if bp.BackupPolicyProperties != nil {
+		objectMap["properties"] = bp.BackupPolicyProperties
+	}
+	if bp.ID != nil {
+		objectMap["id"] = bp.ID
+	}
+	if bp.Name != nil {
+		objectMap["name"] = bp.Name
+	}
+	if bp.Type != nil {
+		objectMap["type"] = bp.Type
+	}
+	if bp.Kind != "" {
+		objectMap["kind"] = bp.Kind
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for BackupPolicy struct.
@@ -1841,6 +2074,27 @@ type BackupSchedule struct {
 	Kind Kind `json:"kind,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for BackupSchedule.
+func (bs BackupSchedule) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if bs.BackupScheduleProperties != nil {
+		objectMap["properties"] = bs.BackupScheduleProperties
+	}
+	if bs.ID != nil {
+		objectMap["id"] = bs.ID
+	}
+	if bs.Name != nil {
+		objectMap["name"] = bs.Name
+	}
+	if bs.Type != nil {
+		objectMap["type"] = bs.Type
+	}
+	if bs.Kind != "" {
+		objectMap["kind"] = bs.Kind
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for BackupSchedule struct.
 func (bs *BackupSchedule) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -1928,12 +2182,11 @@ type BackupScheduleProperties struct {
 // operation.
 type BackupSchedulesCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future BackupSchedulesCreateOrUpdateFuture) Result(client BackupSchedulesClient) (bs BackupSchedule, err error) {
+func (future *BackupSchedulesCreateOrUpdateFuture) Result(client BackupSchedulesClient) (bs BackupSchedule, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1941,34 +2194,15 @@ func (future BackupSchedulesCreateOrUpdateFuture) Result(client BackupSchedulesC
 		return
 	}
 	if !done {
-		return bs, azure.NewAsyncOpIncompleteError("storsimple.BackupSchedulesCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		bs, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.BackupSchedulesCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.BackupSchedulesCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if bs.Response.Response, err = future.GetResult(sender); err == nil && bs.Response.Response.StatusCode != http.StatusNoContent {
+		bs, err = client.CreateOrUpdateResponder(bs.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "storsimple.BackupSchedulesCreateOrUpdateFuture", "Result", bs.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.BackupSchedulesCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	bs, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.BackupSchedulesCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -1977,12 +2211,11 @@ func (future BackupSchedulesCreateOrUpdateFuture) Result(client BackupSchedulesC
 // operation.
 type BackupSchedulesDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future BackupSchedulesDeleteFuture) Result(client BackupSchedulesClient) (ar autorest.Response, err error) {
+func (future *BackupSchedulesDeleteFuture) Result(client BackupSchedulesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1990,47 +2223,21 @@ func (future BackupSchedulesDeleteFuture) Result(client BackupSchedulesClient) (
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.BackupSchedulesDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.BackupSchedulesDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.BackupSchedulesDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.BackupSchedulesDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.BackupSchedulesDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
 // BackupsCloneFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type BackupsCloneFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future BackupsCloneFuture) Result(client BackupsClient) (ar autorest.Response, err error) {
+func (future *BackupsCloneFuture) Result(client BackupsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2038,47 +2245,21 @@ func (future BackupsCloneFuture) Result(client BackupsClient) (ar autorest.Respo
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.BackupsCloneFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.CloneResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.BackupsCloneFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.BackupsCloneFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.BackupsCloneFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.CloneResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.BackupsCloneFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
 // BackupsDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type BackupsDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future BackupsDeleteFuture) Result(client BackupsClient) (ar autorest.Response, err error) {
+func (future *BackupsDeleteFuture) Result(client BackupsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2086,47 +2267,21 @@ func (future BackupsDeleteFuture) Result(client BackupsClient) (ar autorest.Resp
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.BackupsDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.BackupsDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.BackupsDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.BackupsDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.BackupsDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
 // BackupsRestoreFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type BackupsRestoreFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future BackupsRestoreFuture) Result(client BackupsClient) (ar autorest.Response, err error) {
+func (future *BackupsRestoreFuture) Result(client BackupsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2134,35 +2289,10 @@ func (future BackupsRestoreFuture) Result(client BackupsClient) (ar autorest.Res
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.BackupsRestoreFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.RestoreResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.BackupsRestoreFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.BackupsRestoreFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.BackupsRestoreFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.RestoreResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.BackupsRestoreFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -2199,6 +2329,27 @@ type BandwidthSetting struct {
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for BandwidthSetting.
+func (bs BandwidthSetting) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if bs.BandwidthRateSettingProperties != nil {
+		objectMap["properties"] = bs.BandwidthRateSettingProperties
+	}
+	if bs.ID != nil {
+		objectMap["id"] = bs.ID
+	}
+	if bs.Name != nil {
+		objectMap["name"] = bs.Name
+	}
+	if bs.Type != nil {
+		objectMap["type"] = bs.Type
+	}
+	if bs.Kind != "" {
+		objectMap["kind"] = bs.Kind
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for BandwidthSetting struct.
@@ -2272,12 +2423,11 @@ type BandwidthSettingList struct {
 // operation.
 type BandwidthSettingsCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future BandwidthSettingsCreateOrUpdateFuture) Result(client BandwidthSettingsClient) (bs BandwidthSetting, err error) {
+func (future *BandwidthSettingsCreateOrUpdateFuture) Result(client BandwidthSettingsClient) (bs BandwidthSetting, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2285,34 +2435,15 @@ func (future BandwidthSettingsCreateOrUpdateFuture) Result(client BandwidthSetti
 		return
 	}
 	if !done {
-		return bs, azure.NewAsyncOpIncompleteError("storsimple.BandwidthSettingsCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		bs, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.BandwidthSettingsCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.BandwidthSettingsCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if bs.Response.Response, err = future.GetResult(sender); err == nil && bs.Response.Response.StatusCode != http.StatusNoContent {
+		bs, err = client.CreateOrUpdateResponder(bs.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "storsimple.BandwidthSettingsCreateOrUpdateFuture", "Result", bs.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.BandwidthSettingsCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	bs, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.BandwidthSettingsCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -2321,12 +2452,11 @@ func (future BandwidthSettingsCreateOrUpdateFuture) Result(client BandwidthSetti
 // operation.
 type BandwidthSettingsDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future BandwidthSettingsDeleteFuture) Result(client BandwidthSettingsClient) (ar autorest.Response, err error) {
+func (future *BandwidthSettingsDeleteFuture) Result(client BandwidthSettingsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2334,35 +2464,10 @@ func (future BandwidthSettingsDeleteFuture) Result(client BandwidthSettingsClien
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.BandwidthSettingsDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.BandwidthSettingsDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.BandwidthSettingsDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.BandwidthSettingsDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.BandwidthSettingsDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -2448,6 +2553,27 @@ type CloudApplianceConfiguration struct {
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for CloudApplianceConfiguration.
+func (cac CloudApplianceConfiguration) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if cac.CloudApplianceConfigurationProperties != nil {
+		objectMap["properties"] = cac.CloudApplianceConfigurationProperties
+	}
+	if cac.ID != nil {
+		objectMap["id"] = cac.ID
+	}
+	if cac.Name != nil {
+		objectMap["name"] = cac.Name
+	}
+	if cac.Type != nil {
+		objectMap["type"] = cac.Type
+	}
+	if cac.Kind != "" {
+		objectMap["kind"] = cac.Kind
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for CloudApplianceConfiguration struct.
@@ -2547,12 +2673,11 @@ type CloudApplianceSettings struct {
 // operation.
 type CloudAppliancesProvisionFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future CloudAppliancesProvisionFuture) Result(client CloudAppliancesClient) (ar autorest.Response, err error) {
+func (future *CloudAppliancesProvisionFuture) Result(client CloudAppliancesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2560,35 +2685,10 @@ func (future CloudAppliancesProvisionFuture) Result(client CloudAppliancesClient
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.CloudAppliancesProvisionFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.ProvisionResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.CloudAppliancesProvisionFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.CloudAppliancesProvisionFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.CloudAppliancesProvisionFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.ProvisionResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.CloudAppliancesProvisionFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -2604,6 +2704,27 @@ type ConfigureDeviceRequest struct {
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for ConfigureDeviceRequest.
+func (cdr ConfigureDeviceRequest) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if cdr.ConfigureDeviceRequestProperties != nil {
+		objectMap["properties"] = cdr.ConfigureDeviceRequestProperties
+	}
+	if cdr.ID != nil {
+		objectMap["id"] = cdr.ID
+	}
+	if cdr.Name != nil {
+		objectMap["name"] = cdr.Name
+	}
+	if cdr.Type != nil {
+		objectMap["type"] = cdr.Type
+	}
+	if cdr.Kind != "" {
+		objectMap["kind"] = cdr.Kind
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for ConfigureDeviceRequest struct.
@@ -2692,6 +2813,27 @@ type ControllerPowerStateChangeRequest struct {
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for ControllerPowerStateChangeRequest.
+func (cpscr ControllerPowerStateChangeRequest) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if cpscr.ControllerPowerStateChangeRequestProperties != nil {
+		objectMap["properties"] = cpscr.ControllerPowerStateChangeRequestProperties
+	}
+	if cpscr.ID != nil {
+		objectMap["id"] = cpscr.ID
+	}
+	if cpscr.Name != nil {
+		objectMap["name"] = cpscr.Name
+	}
+	if cpscr.Type != nil {
+		objectMap["type"] = cpscr.Type
+	}
+	if cpscr.Kind != "" {
+		objectMap["kind"] = cpscr.Kind
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for ControllerPowerStateChangeRequest struct.
@@ -2794,6 +2936,27 @@ type Device struct {
 	Kind Kind `json:"kind,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for Device.
+func (d Device) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if d.DeviceProperties != nil {
+		objectMap["properties"] = d.DeviceProperties
+	}
+	if d.ID != nil {
+		objectMap["id"] = d.ID
+	}
+	if d.Name != nil {
+		objectMap["name"] = d.Name
+	}
+	if d.Type != nil {
+		objectMap["type"] = d.Type
+	}
+	if d.Kind != "" {
+		objectMap["kind"] = d.Kind
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for Device struct.
 func (d *Device) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -2873,6 +3036,15 @@ type DeviceList struct {
 type DevicePatch struct {
 	// DevicePatchProperties - The properties of the device patch.
 	*DevicePatchProperties `json:"properties,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for DevicePatch.
+func (dp DevicePatch) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if dp.DevicePatchProperties != nil {
+		objectMap["properties"] = dp.DevicePatchProperties
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for DevicePatch struct.
@@ -2976,12 +3148,11 @@ type DeviceRolloverDetails struct {
 // DevicesConfigureFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type DevicesConfigureFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future DevicesConfigureFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
+func (future *DevicesConfigureFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -2989,47 +3160,21 @@ func (future DevicesConfigureFuture) Result(client DevicesClient) (ar autorest.R
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.DevicesConfigureFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.ConfigureResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.DevicesConfigureFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.DevicesConfigureFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DevicesConfigureFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.ConfigureResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DevicesConfigureFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
 // DevicesDeactivateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type DevicesDeactivateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future DevicesDeactivateFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
+func (future *DevicesDeactivateFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3037,47 +3182,21 @@ func (future DevicesDeactivateFuture) Result(client DevicesClient) (ar autorest.
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.DevicesDeactivateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeactivateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.DevicesDeactivateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.DevicesDeactivateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DevicesDeactivateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeactivateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DevicesDeactivateFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
 // DevicesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type DevicesDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future DevicesDeleteFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
+func (future *DevicesDeleteFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3085,35 +3204,10 @@ func (future DevicesDeleteFuture) Result(client DevicesClient) (ar autorest.Resp
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.DevicesDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.DevicesDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.DevicesDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DevicesDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DevicesDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -3121,12 +3215,11 @@ func (future DevicesDeleteFuture) Result(client DevicesClient) (ar autorest.Resp
 // long-running operation.
 type DeviceSettingsCreateOrUpdateAlertSettingsFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future DeviceSettingsCreateOrUpdateAlertSettingsFuture) Result(client DeviceSettingsClient) (as AlertSettings, err error) {
+func (future *DeviceSettingsCreateOrUpdateAlertSettingsFuture) Result(client DeviceSettingsClient) (as AlertSettings, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3134,34 +3227,15 @@ func (future DeviceSettingsCreateOrUpdateAlertSettingsFuture) Result(client Devi
 		return
 	}
 	if !done {
-		return as, azure.NewAsyncOpIncompleteError("storsimple.DeviceSettingsCreateOrUpdateAlertSettingsFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		as, err = client.CreateOrUpdateAlertSettingsResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsCreateOrUpdateAlertSettingsFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.DeviceSettingsCreateOrUpdateAlertSettingsFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if as.Response.Response, err = future.GetResult(sender); err == nil && as.Response.Response.StatusCode != http.StatusNoContent {
+		as, err = client.CreateOrUpdateAlertSettingsResponder(as.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsCreateOrUpdateAlertSettingsFuture", "Result", as.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsCreateOrUpdateAlertSettingsFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	as, err = client.CreateOrUpdateAlertSettingsResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsCreateOrUpdateAlertSettingsFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3170,12 +3244,11 @@ func (future DeviceSettingsCreateOrUpdateAlertSettingsFuture) Result(client Devi
 // long-running operation.
 type DeviceSettingsCreateOrUpdateTimeSettingsFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future DeviceSettingsCreateOrUpdateTimeSettingsFuture) Result(client DeviceSettingsClient) (ts TimeSettings, err error) {
+func (future *DeviceSettingsCreateOrUpdateTimeSettingsFuture) Result(client DeviceSettingsClient) (ts TimeSettings, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3183,34 +3256,15 @@ func (future DeviceSettingsCreateOrUpdateTimeSettingsFuture) Result(client Devic
 		return
 	}
 	if !done {
-		return ts, azure.NewAsyncOpIncompleteError("storsimple.DeviceSettingsCreateOrUpdateTimeSettingsFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ts, err = client.CreateOrUpdateTimeSettingsResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsCreateOrUpdateTimeSettingsFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.DeviceSettingsCreateOrUpdateTimeSettingsFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if ts.Response.Response, err = future.GetResult(sender); err == nil && ts.Response.Response.StatusCode != http.StatusNoContent {
+		ts, err = client.CreateOrUpdateTimeSettingsResponder(ts.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsCreateOrUpdateTimeSettingsFuture", "Result", ts.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsCreateOrUpdateTimeSettingsFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ts, err = client.CreateOrUpdateTimeSettingsResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsCreateOrUpdateTimeSettingsFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3219,12 +3273,11 @@ func (future DeviceSettingsCreateOrUpdateTimeSettingsFuture) Result(client Devic
 // a long-running operation.
 type DeviceSettingsSyncRemotemanagementCertificateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future DeviceSettingsSyncRemotemanagementCertificateFuture) Result(client DeviceSettingsClient) (ar autorest.Response, err error) {
+func (future *DeviceSettingsSyncRemotemanagementCertificateFuture) Result(client DeviceSettingsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3232,35 +3285,10 @@ func (future DeviceSettingsSyncRemotemanagementCertificateFuture) Result(client 
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.DeviceSettingsSyncRemotemanagementCertificateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.SyncRemotemanagementCertificateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsSyncRemotemanagementCertificateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.DeviceSettingsSyncRemotemanagementCertificateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsSyncRemotemanagementCertificateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.SyncRemotemanagementCertificateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsSyncRemotemanagementCertificateFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -3268,12 +3296,11 @@ func (future DeviceSettingsSyncRemotemanagementCertificateFuture) Result(client 
 // long-running operation.
 type DeviceSettingsUpdateNetworkSettingsFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future DeviceSettingsUpdateNetworkSettingsFuture) Result(client DeviceSettingsClient) (ns NetworkSettings, err error) {
+func (future *DeviceSettingsUpdateNetworkSettingsFuture) Result(client DeviceSettingsClient) (ns NetworkSettings, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3281,34 +3308,15 @@ func (future DeviceSettingsUpdateNetworkSettingsFuture) Result(client DeviceSett
 		return
 	}
 	if !done {
-		return ns, azure.NewAsyncOpIncompleteError("storsimple.DeviceSettingsUpdateNetworkSettingsFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ns, err = client.UpdateNetworkSettingsResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsUpdateNetworkSettingsFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.DeviceSettingsUpdateNetworkSettingsFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if ns.Response.Response, err = future.GetResult(sender); err == nil && ns.Response.Response.StatusCode != http.StatusNoContent {
+		ns, err = client.UpdateNetworkSettingsResponder(ns.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsUpdateNetworkSettingsFuture", "Result", ns.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsUpdateNetworkSettingsFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ns, err = client.UpdateNetworkSettingsResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsUpdateNetworkSettingsFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3317,12 +3325,11 @@ func (future DeviceSettingsUpdateNetworkSettingsFuture) Result(client DeviceSett
 // long-running operation.
 type DeviceSettingsUpdateSecuritySettingsFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future DeviceSettingsUpdateSecuritySettingsFuture) Result(client DeviceSettingsClient) (ss SecuritySettings, err error) {
+func (future *DeviceSettingsUpdateSecuritySettingsFuture) Result(client DeviceSettingsClient) (ss SecuritySettings, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3330,34 +3337,15 @@ func (future DeviceSettingsUpdateSecuritySettingsFuture) Result(client DeviceSet
 		return
 	}
 	if !done {
-		return ss, azure.NewAsyncOpIncompleteError("storsimple.DeviceSettingsUpdateSecuritySettingsFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ss, err = client.UpdateSecuritySettingsResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsUpdateSecuritySettingsFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.DeviceSettingsUpdateSecuritySettingsFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if ss.Response.Response, err = future.GetResult(sender); err == nil && ss.Response.Response.StatusCode != http.StatusNoContent {
+		ss, err = client.UpdateSecuritySettingsResponder(ss.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsUpdateSecuritySettingsFuture", "Result", ss.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsUpdateSecuritySettingsFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ss, err = client.UpdateSecuritySettingsResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DeviceSettingsUpdateSecuritySettingsFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -3365,12 +3353,11 @@ func (future DeviceSettingsUpdateSecuritySettingsFuture) Result(client DeviceSet
 // DevicesFailoverFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type DevicesFailoverFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future DevicesFailoverFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
+func (future *DevicesFailoverFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3378,35 +3365,10 @@ func (future DevicesFailoverFuture) Result(client DevicesClient) (ar autorest.Re
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.DevicesFailoverFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.FailoverResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.DevicesFailoverFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.DevicesFailoverFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DevicesFailoverFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.FailoverResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DevicesFailoverFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -3414,12 +3376,11 @@ func (future DevicesFailoverFuture) Result(client DevicesClient) (ar autorest.Re
 // operation.
 type DevicesInstallUpdatesFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future DevicesInstallUpdatesFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
+func (future *DevicesInstallUpdatesFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3427,35 +3388,10 @@ func (future DevicesInstallUpdatesFuture) Result(client DevicesClient) (ar autor
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.DevicesInstallUpdatesFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.InstallUpdatesResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.DevicesInstallUpdatesFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.DevicesInstallUpdatesFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DevicesInstallUpdatesFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.InstallUpdatesResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DevicesInstallUpdatesFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -3463,12 +3399,11 @@ func (future DevicesInstallUpdatesFuture) Result(client DevicesClient) (ar autor
 // operation.
 type DevicesScanForUpdatesFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future DevicesScanForUpdatesFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
+func (future *DevicesScanForUpdatesFuture) Result(client DevicesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3476,35 +3411,10 @@ func (future DevicesScanForUpdatesFuture) Result(client DevicesClient) (ar autor
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.DevicesScanForUpdatesFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.ScanForUpdatesResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.DevicesScanForUpdatesFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.DevicesScanForUpdatesFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DevicesScanForUpdatesFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.ScanForUpdatesResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.DevicesScanForUpdatesFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -3541,6 +3451,27 @@ type EncryptionSettings struct {
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for EncryptionSettings.
+func (es EncryptionSettings) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if es.EncryptionSettingsProperties != nil {
+		objectMap["properties"] = es.EncryptionSettingsProperties
+	}
+	if es.ID != nil {
+		objectMap["id"] = es.ID
+	}
+	if es.Name != nil {
+		objectMap["name"] = es.Name
+	}
+	if es.Type != nil {
+		objectMap["type"] = es.Type
+	}
+	if es.Kind != "" {
+		objectMap["kind"] = es.Kind
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for EncryptionSettings struct.
@@ -3724,6 +3655,27 @@ type HardwareComponentGroup struct {
 	Kind Kind `json:"kind,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for HardwareComponentGroup.
+func (hcg HardwareComponentGroup) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if hcg.HardwareComponentGroupProperties != nil {
+		objectMap["properties"] = hcg.HardwareComponentGroupProperties
+	}
+	if hcg.ID != nil {
+		objectMap["id"] = hcg.ID
+	}
+	if hcg.Name != nil {
+		objectMap["name"] = hcg.Name
+	}
+	if hcg.Type != nil {
+		objectMap["type"] = hcg.Type
+	}
+	if hcg.Kind != "" {
+		objectMap["kind"] = hcg.Kind
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for HardwareComponentGroup struct.
 func (hcg *HardwareComponentGroup) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -3805,12 +3757,11 @@ type HardwareComponentGroupProperties struct {
 // of a long-running operation.
 type HardwareComponentGroupsChangeControllerPowerStateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future HardwareComponentGroupsChangeControllerPowerStateFuture) Result(client HardwareComponentGroupsClient) (ar autorest.Response, err error) {
+func (future *HardwareComponentGroupsChangeControllerPowerStateFuture) Result(client HardwareComponentGroupsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -3818,35 +3769,10 @@ func (future HardwareComponentGroupsChangeControllerPowerStateFuture) Result(cli
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.HardwareComponentGroupsChangeControllerPowerStateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.ChangeControllerPowerStateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.HardwareComponentGroupsChangeControllerPowerStateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.HardwareComponentGroupsChangeControllerPowerStateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.HardwareComponentGroupsChangeControllerPowerStateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.ChangeControllerPowerStateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.HardwareComponentGroupsChangeControllerPowerStateFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -3873,6 +3799,42 @@ type Job struct {
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for Job.
+func (j Job) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if j.Status != "" {
+		objectMap["status"] = j.Status
+	}
+	if j.StartTime != nil {
+		objectMap["startTime"] = j.StartTime
+	}
+	if j.EndTime != nil {
+		objectMap["endTime"] = j.EndTime
+	}
+	if j.PercentComplete != nil {
+		objectMap["percentComplete"] = j.PercentComplete
+	}
+	if j.Error != nil {
+		objectMap["error"] = j.Error
+	}
+	if j.JobProperties != nil {
+		objectMap["properties"] = j.JobProperties
+	}
+	if j.ID != nil {
+		objectMap["id"] = j.ID
+	}
+	if j.Name != nil {
+		objectMap["name"] = j.Name
+	}
+	if j.Type != nil {
+		objectMap["type"] = j.Type
+	}
+	if j.Kind != "" {
+		objectMap["kind"] = j.Kind
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for Job struct.
@@ -4139,12 +4101,11 @@ type JobProperties struct {
 // JobsCancelFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type JobsCancelFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future JobsCancelFuture) Result(client JobsClient) (ar autorest.Response, err error) {
+func (future *JobsCancelFuture) Result(client JobsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -4152,35 +4113,10 @@ func (future JobsCancelFuture) Result(client JobsClient) (ar autorest.Response, 
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.JobsCancelFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.CancelResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.JobsCancelFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.JobsCancelFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.JobsCancelFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.CancelResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.JobsCancelFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -4349,6 +4285,30 @@ type ManagerExtendedInfo struct {
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for ManagerExtendedInfo.
+func (mei ManagerExtendedInfo) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if mei.ManagerExtendedInfoProperties != nil {
+		objectMap["properties"] = mei.ManagerExtendedInfoProperties
+	}
+	if mei.Etag != nil {
+		objectMap["etag"] = mei.Etag
+	}
+	if mei.ID != nil {
+		objectMap["id"] = mei.ID
+	}
+	if mei.Name != nil {
+		objectMap["name"] = mei.Name
+	}
+	if mei.Type != nil {
+		objectMap["type"] = mei.Type
+	}
+	if mei.Kind != "" {
+		objectMap["kind"] = mei.Kind
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for ManagerExtendedInfo struct.
@@ -4649,6 +4609,27 @@ type NetworkSettings struct {
 	Kind Kind `json:"kind,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for NetworkSettings.
+func (ns NetworkSettings) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if ns.NetworkSettingsProperties != nil {
+		objectMap["properties"] = ns.NetworkSettingsProperties
+	}
+	if ns.ID != nil {
+		objectMap["id"] = ns.ID
+	}
+	if ns.Name != nil {
+		objectMap["name"] = ns.Name
+	}
+	if ns.Type != nil {
+		objectMap["type"] = ns.Type
+	}
+	if ns.Kind != "" {
+		objectMap["kind"] = ns.Kind
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for NetworkSettings struct.
 func (ns *NetworkSettings) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -4713,6 +4694,15 @@ func (ns *NetworkSettings) UnmarshalJSON(body []byte) error {
 type NetworkSettingsPatch struct {
 	// NetworkSettingsPatchProperties - The properties of the network settings patch.
 	*NetworkSettingsPatchProperties `json:"properties,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for NetworkSettingsPatch.
+func (nsp NetworkSettingsPatch) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if nsp.NetworkSettingsPatchProperties != nil {
+		objectMap["properties"] = nsp.NetworkSettingsPatchProperties
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for NetworkSettingsPatch struct.
@@ -4872,6 +4862,27 @@ type SecuritySettings struct {
 	Kind Kind `json:"kind,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for SecuritySettings.
+func (ss SecuritySettings) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if ss.SecuritySettingsProperties != nil {
+		objectMap["properties"] = ss.SecuritySettingsProperties
+	}
+	if ss.ID != nil {
+		objectMap["id"] = ss.ID
+	}
+	if ss.Name != nil {
+		objectMap["name"] = ss.Name
+	}
+	if ss.Type != nil {
+		objectMap["type"] = ss.Type
+	}
+	if ss.Kind != "" {
+		objectMap["kind"] = ss.Kind
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for SecuritySettings struct.
 func (ss *SecuritySettings) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -4936,6 +4947,15 @@ func (ss *SecuritySettings) UnmarshalJSON(body []byte) error {
 type SecuritySettingsPatch struct {
 	// SecuritySettingsPatchProperties - The properties of the security settings patch.
 	*SecuritySettingsPatchProperties `json:"properties,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for SecuritySettingsPatch.
+func (ssp SecuritySettingsPatch) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if ssp.SecuritySettingsPatchProperties != nil {
+		objectMap["properties"] = ssp.SecuritySettingsPatchProperties
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for SecuritySettingsPatch struct.
@@ -5003,6 +5023,27 @@ type StorageAccountCredential struct {
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for StorageAccountCredential.
+func (sac StorageAccountCredential) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if sac.StorageAccountCredentialProperties != nil {
+		objectMap["properties"] = sac.StorageAccountCredentialProperties
+	}
+	if sac.ID != nil {
+		objectMap["id"] = sac.ID
+	}
+	if sac.Name != nil {
+		objectMap["name"] = sac.Name
+	}
+	if sac.Type != nil {
+		objectMap["type"] = sac.Type
+	}
+	if sac.Kind != "" {
+		objectMap["kind"] = sac.Kind
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for StorageAccountCredential struct.
@@ -5088,12 +5129,11 @@ type StorageAccountCredentialProperties struct {
 // long-running operation.
 type StorageAccountCredentialsCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future StorageAccountCredentialsCreateOrUpdateFuture) Result(client StorageAccountCredentialsClient) (sac StorageAccountCredential, err error) {
+func (future *StorageAccountCredentialsCreateOrUpdateFuture) Result(client StorageAccountCredentialsClient) (sac StorageAccountCredential, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -5101,34 +5141,15 @@ func (future StorageAccountCredentialsCreateOrUpdateFuture) Result(client Storag
 		return
 	}
 	if !done {
-		return sac, azure.NewAsyncOpIncompleteError("storsimple.StorageAccountCredentialsCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		sac, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.StorageAccountCredentialsCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.StorageAccountCredentialsCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if sac.Response.Response, err = future.GetResult(sender); err == nil && sac.Response.Response.StatusCode != http.StatusNoContent {
+		sac, err = client.CreateOrUpdateResponder(sac.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "storsimple.StorageAccountCredentialsCreateOrUpdateFuture", "Result", sac.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.StorageAccountCredentialsCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	sac, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.StorageAccountCredentialsCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -5137,12 +5158,11 @@ func (future StorageAccountCredentialsCreateOrUpdateFuture) Result(client Storag
 // operation.
 type StorageAccountCredentialsDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future StorageAccountCredentialsDeleteFuture) Result(client StorageAccountCredentialsClient) (ar autorest.Response, err error) {
+func (future *StorageAccountCredentialsDeleteFuture) Result(client StorageAccountCredentialsClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -5150,35 +5170,10 @@ func (future StorageAccountCredentialsDeleteFuture) Result(client StorageAccount
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.StorageAccountCredentialsDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.StorageAccountCredentialsDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.StorageAccountCredentialsDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.StorageAccountCredentialsDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.StorageAccountCredentialsDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -5235,6 +5230,27 @@ type TimeSettings struct {
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for TimeSettings.
+func (ts TimeSettings) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if ts.TimeSettingsProperties != nil {
+		objectMap["properties"] = ts.TimeSettingsProperties
+	}
+	if ts.ID != nil {
+		objectMap["id"] = ts.ID
+	}
+	if ts.Name != nil {
+		objectMap["name"] = ts.Name
+	}
+	if ts.Type != nil {
+		objectMap["type"] = ts.Type
+	}
+	if ts.Kind != "" {
+		objectMap["kind"] = ts.Kind
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for TimeSettings struct.
@@ -5320,6 +5336,27 @@ type Updates struct {
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for Updates.
+func (u Updates) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if u.UpdatesProperties != nil {
+		objectMap["properties"] = u.UpdatesProperties
+	}
+	if u.ID != nil {
+		objectMap["id"] = u.ID
+	}
+	if u.Name != nil {
+		objectMap["name"] = u.Name
+	}
+	if u.Type != nil {
+		objectMap["type"] = u.Type
+	}
+	if u.Kind != "" {
+		objectMap["kind"] = u.Kind
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for Updates struct.
@@ -5423,6 +5460,27 @@ type Volume struct {
 	Kind Kind `json:"kind,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for Volume.
+func (vVar Volume) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if vVar.VolumeProperties != nil {
+		objectMap["properties"] = vVar.VolumeProperties
+	}
+	if vVar.ID != nil {
+		objectMap["id"] = vVar.ID
+	}
+	if vVar.Name != nil {
+		objectMap["name"] = vVar.Name
+	}
+	if vVar.Type != nil {
+		objectMap["type"] = vVar.Type
+	}
+	if vVar.Kind != "" {
+		objectMap["kind"] = vVar.Kind
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for Volume struct.
 func (vVar *Volume) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -5496,6 +5554,27 @@ type VolumeContainer struct {
 	Type *string `json:"type,omitempty"`
 	// Kind - The Kind of the object. Currently only Series8000 is supported. Possible values include: 'Series8000'
 	Kind Kind `json:"kind,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for VolumeContainer.
+func (vc VolumeContainer) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if vc.VolumeContainerProperties != nil {
+		objectMap["properties"] = vc.VolumeContainerProperties
+	}
+	if vc.ID != nil {
+		objectMap["id"] = vc.ID
+	}
+	if vc.Name != nil {
+		objectMap["name"] = vc.Name
+	}
+	if vc.Type != nil {
+		objectMap["type"] = vc.Type
+	}
+	if vc.Kind != "" {
+		objectMap["kind"] = vc.Kind
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for VolumeContainer struct.
@@ -5598,12 +5677,11 @@ type VolumeContainerProperties struct {
 // operation.
 type VolumeContainersCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VolumeContainersCreateOrUpdateFuture) Result(client VolumeContainersClient) (vc VolumeContainer, err error) {
+func (future *VolumeContainersCreateOrUpdateFuture) Result(client VolumeContainersClient) (vc VolumeContainer, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -5611,34 +5689,15 @@ func (future VolumeContainersCreateOrUpdateFuture) Result(client VolumeContainer
 		return
 	}
 	if !done {
-		return vc, azure.NewAsyncOpIncompleteError("storsimple.VolumeContainersCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		vc, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.VolumeContainersCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.VolumeContainersCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if vc.Response.Response, err = future.GetResult(sender); err == nil && vc.Response.Response.StatusCode != http.StatusNoContent {
+		vc, err = client.CreateOrUpdateResponder(vc.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "storsimple.VolumeContainersCreateOrUpdateFuture", "Result", vc.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.VolumeContainersCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	vc, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.VolumeContainersCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -5647,12 +5706,11 @@ func (future VolumeContainersCreateOrUpdateFuture) Result(client VolumeContainer
 // operation.
 type VolumeContainersDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VolumeContainersDeleteFuture) Result(client VolumeContainersClient) (ar autorest.Response, err error) {
+func (future *VolumeContainersDeleteFuture) Result(client VolumeContainersClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -5660,35 +5718,10 @@ func (future VolumeContainersDeleteFuture) Result(client VolumeContainersClient)
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.VolumeContainersDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.VolumeContainersDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.VolumeContainersDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.VolumeContainersDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.VolumeContainersDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -5743,12 +5776,11 @@ type VolumeProperties struct {
 // operation.
 type VolumesCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VolumesCreateOrUpdateFuture) Result(client VolumesClient) (vVar Volume, err error) {
+func (future *VolumesCreateOrUpdateFuture) Result(client VolumesClient) (vVar Volume, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -5756,34 +5788,15 @@ func (future VolumesCreateOrUpdateFuture) Result(client VolumesClient) (vVar Vol
 		return
 	}
 	if !done {
-		return vVar, azure.NewAsyncOpIncompleteError("storsimple.VolumesCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		vVar, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.VolumesCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.VolumesCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if vVar.Response.Response, err = future.GetResult(sender); err == nil && vVar.Response.Response.StatusCode != http.StatusNoContent {
+		vVar, err = client.CreateOrUpdateResponder(vVar.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "storsimple.VolumesCreateOrUpdateFuture", "Result", vVar.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.VolumesCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	vVar, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.VolumesCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -5791,12 +5804,11 @@ func (future VolumesCreateOrUpdateFuture) Result(client VolumesClient) (vVar Vol
 // VolumesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type VolumesDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future VolumesDeleteFuture) Result(client VolumesClient) (ar autorest.Response, err error) {
+func (future *VolumesDeleteFuture) Result(client VolumesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -5804,35 +5816,10 @@ func (future VolumesDeleteFuture) Result(client VolumesClient) (ar autorest.Resp
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("storsimple.VolumesDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "storsimple.VolumesDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("storsimple.VolumesDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.VolumesDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "storsimple.VolumesDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 

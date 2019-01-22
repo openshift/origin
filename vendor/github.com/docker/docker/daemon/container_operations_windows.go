@@ -1,4 +1,4 @@
-package daemon
+package daemon // import "github.com/docker/docker/daemon"
 
 import (
 	"fmt"
@@ -49,7 +49,6 @@ func (daemon *Daemon) setupConfigDir(c *container.Container) (setupErr error) {
 		}
 
 		fPath := c.ConfigFilePath(*configRef)
-
 		log := logrus.WithFields(logrus.Fields{"name": configRef.File.Name, "path": fPath})
 
 		log.Debug("injecting config")
@@ -63,12 +62,6 @@ func (daemon *Daemon) setupConfigDir(c *container.Container) (setupErr error) {
 	}
 
 	return nil
-}
-
-// getSize returns real size & virtual size
-func (daemon *Daemon) getSize(containerID string) (int64, int64) {
-	// TODO Windows
-	return 0, 0
 }
 
 func (daemon *Daemon) setupIpcDirs(container *container.Container) error {
@@ -94,7 +87,10 @@ func (daemon *Daemon) setupSecretDir(c *container.Container) (setupErr error) {
 		return nil
 	}
 
-	localMountPath := c.SecretMountPath()
+	localMountPath, err := c.SecretMountPath()
+	if err != nil {
+		return err
+	}
 	logrus.Debugf("secrets: setting up secret dir: %s", localMountPath)
 
 	// create local secret root
@@ -123,7 +119,10 @@ func (daemon *Daemon) setupSecretDir(c *container.Container) (setupErr error) {
 
 		// secrets are created in the SecretMountPath on the host, at a
 		// single level
-		fPath := c.SecretFilePath(*s)
+		fPath, err := c.SecretFilePath(*s)
+		if err != nil {
+			return err
+		}
 		logrus.WithFields(logrus.Fields{
 			"name": s.File.Name,
 			"path": fPath,
@@ -153,7 +152,7 @@ func enableIPOnPredefinedNetwork() bool {
 }
 
 func (daemon *Daemon) isNetworkHotPluggable() bool {
-	return false
+	return true
 }
 
 func setupPathsAndSandboxOptions(container *container.Container, sboxOptions *[]libnetwork.SandboxOption) error {
@@ -175,7 +174,7 @@ func (daemon *Daemon) initializeNetworkingPaths(container *container.Container, 
 				continue
 			}
 
-			ep, err := nc.GetEndpointInNetwork(sn)
+			ep, err := getEndpointInNetwork(nc.Name, sn)
 			if err != nil {
 				continue
 			}

@@ -36,6 +36,11 @@ const (
 	Single AppliedScopeType = "Single"
 )
 
+// PossibleAppliedScopeTypeValues returns an array of possible values for the AppliedScopeType const type.
+func PossibleAppliedScopeTypeValues() []AppliedScopeType {
+	return []AppliedScopeType{Shared, Single}
+}
+
 // AppliedScopeType1 enumerates the values for applied scope type 1.
 type AppliedScopeType1 string
 
@@ -45,6 +50,11 @@ const (
 	// AppliedScopeType1Single ...
 	AppliedScopeType1Single AppliedScopeType1 = "Single"
 )
+
+// PossibleAppliedScopeType1Values returns an array of possible values for the AppliedScopeType1 const type.
+func PossibleAppliedScopeType1Values() []AppliedScopeType1 {
+	return []AppliedScopeType1{AppliedScopeType1Shared, AppliedScopeType1Single}
+}
 
 // Code enumerates the values for code.
 type Code string
@@ -162,6 +172,11 @@ const (
 	UnsupportedReservationTerm Code = "UnsupportedReservationTerm"
 )
 
+// PossibleCodeValues returns an array of possible values for the Code const type.
+func PossibleCodeValues() []Code {
+	return []Code{ActivateQuoteFailed, AppliedScopesNotAssociatedWithCommerceAccount, AppliedScopesSameAsExisting, AuthorizationFailed, BadRequest, BillingCustomerInputError, BillingError, BillingPaymentInstrumentHardError, BillingPaymentInstrumentSoftError, BillingScopeIDCannotBeChanged, BillingTransientError, CalculatePriceFailed, CapacityUpdateScopesFailed, ClientCertificateThumbprintNotSet, CreateQuoteFailed, Forbidden, FulfillmentConfigurationError, FulfillmentError, FulfillmentOutOfStockError, FulfillmentTransientError, HTTPMethodNotSupported, InternalServerError, InvalidAccessToken, InvalidFulfillmentRequestParameters, InvalidHealthCheckType, InvalidLocationID, InvalidRefundQuantity, InvalidRequestContent, InvalidRequestURI, InvalidReservationID, InvalidReservationOrderID, InvalidSingleAppliedScopesCount, InvalidSubscriptionID, InvalidTenantID, MissingAppliedScopesForSingle, MissingTenantID, NonsupportedAccountID, NotSpecified, NotSupportedCountry, NoValidReservationsToReRate, OperationCannotBePerformedInCurrentState, OperationFailed, PaymentInstrumentNotFound, PurchaseError, ReRateOnlyAllowedForEA, ReservationIDNotInReservationOrder, ReservationOrderCreationFailed, ReservationOrderIDAlreadyExists, ReservationOrderNotEnabled, ReservationOrderNotFound, RiskCheckFailed, RoleAssignmentCreationFailed, ServerTimeout, UnauthenticatedRequestsThrottled, UnsupportedReservationTerm}
+}
+
 // Kind enumerates the values for kind.
 type Kind string
 
@@ -169,6 +184,11 @@ const (
 	// MicrosoftCompute ...
 	MicrosoftCompute Kind = "Microsoft.Compute"
 )
+
+// PossibleKindValues returns an array of possible values for the Kind const type.
+func PossibleKindValues() []Kind {
+	return []Kind{MicrosoftCompute}
+}
 
 // Location enumerates the values for location.
 type Location string
@@ -224,6 +244,11 @@ const (
 	Westus2 Location = "westus2"
 )
 
+// PossibleLocationValues returns an array of possible values for the Location const type.
+func PossibleLocationValues() []Location {
+	return []Location{Australiaeast, Australiasoutheast, Brazilsouth, Canadacentral, Canadaeast, Centralindia, Centralus, Eastasia, Eastus, Eastus2, Japaneast, Japanwest, Northcentralus, Northeurope, Southcentralus, Southeastasia, Southindia, Uksouth, Ukwest, Westcentralus, Westeurope, Westindia, Westus, Westus2}
+}
+
 // ProvisioningState enumerates the values for provisioning state.
 type ProvisioningState string
 
@@ -255,6 +280,11 @@ const (
 	// Succeeded ...
 	Succeeded ProvisioningState = "Succeeded"
 )
+
+// PossibleProvisioningStateValues returns an array of possible values for the ProvisioningState const type.
+func PossibleProvisioningStateValues() []ProvisioningState {
+	return []ProvisioningState{BillingFailed, Cancelled, ConfirmedBilling, ConfirmedResourceHold, Created, Creating, Expired, Failed, Merged, PendingBilling, PendingResourceHold, Split, Succeeded}
+}
 
 // ProvisioningState1 enumerates the values for provisioning state 1.
 type ProvisioningState1 string
@@ -288,6 +318,11 @@ const (
 	ProvisioningState1Succeeded ProvisioningState1 = "Succeeded"
 )
 
+// PossibleProvisioningState1Values returns an array of possible values for the ProvisioningState1 const type.
+func PossibleProvisioningState1Values() []ProvisioningState1 {
+	return []ProvisioningState1{ProvisioningState1BillingFailed, ProvisioningState1Cancelled, ProvisioningState1ConfirmedBilling, ProvisioningState1ConfirmedResourceHold, ProvisioningState1Created, ProvisioningState1Creating, ProvisioningState1Expired, ProvisioningState1Failed, ProvisioningState1Merged, ProvisioningState1PendingBilling, ProvisioningState1PendingResourceHold, ProvisioningState1Split, ProvisioningState1Succeeded}
+}
+
 // StatusCode enumerates the values for status code.
 type StatusCode string
 
@@ -312,6 +347,11 @@ const (
 	StatusCodeSucceeded StatusCode = "Succeeded"
 )
 
+// PossibleStatusCodeValues returns an array of possible values for the StatusCode const type.
+func PossibleStatusCodeValues() []StatusCode {
+	return []StatusCode{StatusCodeActive, StatusCodeExpired, StatusCodeMerged, StatusCodeNone, StatusCodePaymentInstrumentError, StatusCodePending, StatusCodePurchaseError, StatusCodeSplit, StatusCodeSucceeded}
+}
+
 // Term enumerates the values for term.
 type Term string
 
@@ -321,6 +361,11 @@ const (
 	// P3Y ...
 	P3Y Term = "P3Y"
 )
+
+// PossibleTermValues returns an array of possible values for the Term const type.
+func PossibleTermValues() []Term {
+	return []Term{P1Y, P3Y}
+}
 
 // AppliedReservationList ...
 type AppliedReservationList struct {
@@ -339,6 +384,24 @@ type AppliedReservations struct {
 	// Type - Type of resource. "Microsoft.Capacity/AppliedReservations"
 	Type                           *string `json:"type,omitempty"`
 	*AppliedReservationsProperties `json:"properties,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for AppliedReservations.
+func (ar AppliedReservations) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if ar.ID != nil {
+		objectMap["id"] = ar.ID
+	}
+	if ar.Name != nil {
+		objectMap["name"] = ar.Name
+	}
+	if ar.Type != nil {
+		objectMap["type"] = ar.Type
+	}
+	if ar.AppliedReservationsProperties != nil {
+		objectMap["properties"] = ar.AppliedReservationsProperties
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for AppliedReservations struct.
@@ -564,6 +627,15 @@ type MergePropertiesType struct {
 // MergeRequest ...
 type MergeRequest struct {
 	*MergeProperties `json:"properties,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for MergeRequest.
+func (mr MergeRequest) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if mr.MergeProperties != nil {
+		objectMap["properties"] = mr.MergeProperties
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for MergeRequest struct.
@@ -839,6 +911,27 @@ type OrderResponse struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for OrderResponse.
+func (or OrderResponse) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if or.Etag != nil {
+		objectMap["etag"] = or.Etag
+	}
+	if or.ID != nil {
+		objectMap["id"] = or.ID
+	}
+	if or.Name != nil {
+		objectMap["name"] = or.Name
+	}
+	if or.OrderProperties != nil {
+		objectMap["properties"] = or.OrderProperties
+	}
+	if or.Type != nil {
+		objectMap["type"] = or.Type
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for OrderResponse struct.
 func (or *OrderResponse) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -904,6 +997,15 @@ type Patch struct {
 	*PatchProperties `json:"properties,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for Patch.
+func (p Patch) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if p.PatchProperties != nil {
+		objectMap["properties"] = p.PatchProperties
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for Patch struct.
 func (p *Patch) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -960,12 +1062,11 @@ type Properties struct {
 // ReservationMergeFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ReservationMergeFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReservationMergeFuture) Result(client Client) (lr ListResponse, err error) {
+func (future *ReservationMergeFuture) Result(client Client) (lr ListResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -973,34 +1074,15 @@ func (future ReservationMergeFuture) Result(client Client) (lr ListResponse, err
 		return
 	}
 	if !done {
-		return lr, azure.NewAsyncOpIncompleteError("reservations.ReservationMergeFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		lr, err = client.MergeResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "reservations.ReservationMergeFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("reservations.ReservationMergeFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if lr.Response.Response, err = future.GetResult(sender); err == nil && lr.Response.Response.StatusCode != http.StatusNoContent {
+		lr, err = client.MergeResponder(lr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "reservations.ReservationMergeFuture", "Result", lr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "reservations.ReservationMergeFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	lr, err = client.MergeResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "reservations.ReservationMergeFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -1008,12 +1090,11 @@ func (future ReservationMergeFuture) Result(client Client) (lr ListResponse, err
 // ReservationUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ReservationUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ReservationUpdateFuture) Result(client Client) (r Response, err error) {
+func (future *ReservationUpdateFuture) Result(client Client) (r Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1021,34 +1102,15 @@ func (future ReservationUpdateFuture) Result(client Client) (r Response, err err
 		return
 	}
 	if !done {
-		return r, azure.NewAsyncOpIncompleteError("reservations.ReservationUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		r, err = client.UpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "reservations.ReservationUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("reservations.ReservationUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if r.Response.Response, err = future.GetResult(sender); err == nil && r.Response.Response.StatusCode != http.StatusNoContent {
+		r, err = client.UpdateResponder(r.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "reservations.ReservationUpdateFuture", "Result", r.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "reservations.ReservationUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	r, err = client.UpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "reservations.ReservationUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -1097,12 +1159,11 @@ type SkuRestriction struct {
 // SplitFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type SplitFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future SplitFuture) Result(client Client) (lr ListResponse, err error) {
+func (future *SplitFuture) Result(client Client) (lr ListResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1110,34 +1171,15 @@ func (future SplitFuture) Result(client Client) (lr ListResponse, err error) {
 		return
 	}
 	if !done {
-		return lr, azure.NewAsyncOpIncompleteError("reservations.SplitFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		lr, err = client.SplitResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "reservations.SplitFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("reservations.SplitFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if lr.Response.Response, err = future.GetResult(sender); err == nil && lr.Response.Response.StatusCode != http.StatusNoContent {
+		lr, err = client.SplitResponder(lr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "reservations.SplitFuture", "Result", lr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "reservations.SplitFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	lr, err = client.SplitResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "reservations.SplitFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -1161,6 +1203,15 @@ type SplitPropertiesType struct {
 // SplitRequest ...
 type SplitRequest struct {
 	*SplitProperties `json:"properties,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for SplitRequest.
+func (sr SplitRequest) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if sr.SplitProperties != nil {
+		objectMap["properties"] = sr.SplitProperties
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for SplitRequest struct.

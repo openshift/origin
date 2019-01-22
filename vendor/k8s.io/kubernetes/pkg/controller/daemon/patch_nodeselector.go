@@ -9,10 +9,11 @@ import (
 	appsinformers "k8s.io/client-go/informers/apps/v1"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/util/flowcontrol"
 )
 
-func NewNodeSelectorAwareDaemonSetsController(openshiftDefaultNodeSelectorString, kubeDefaultNodeSelectorString string, namepaceInformer coreinformers.NamespaceInformer, daemonSetInformer appsinformers.DaemonSetInformer, historyInformer appsinformers.ControllerRevisionInformer, podInformer coreinformers.PodInformer, nodeInformer coreinformers.NodeInformer, kubeClient clientset.Interface) (*DaemonSetsController, error) {
-	controller, err := NewDaemonSetsController(daemonSetInformer, historyInformer, podInformer, nodeInformer, kubeClient)
+func NewNodeSelectorAwareDaemonSetsController(openshiftDefaultNodeSelectorString, kubeDefaultNodeSelectorString string, namepaceInformer coreinformers.NamespaceInformer, daemonSetInformer appsinformers.DaemonSetInformer, historyInformer appsinformers.ControllerRevisionInformer, podInformer coreinformers.PodInformer, nodeInformer coreinformers.NodeInformer, kubeClient clientset.Interface, failedPodsBackoff *flowcontrol.Backoff) (*DaemonSetsController, error) {
+	controller, err := NewDaemonSetsController(daemonSetInformer, historyInformer, podInformer, nodeInformer, kubeClient, failedPodsBackoff)
 	if err != nil {
 		return controller, err
 	}

@@ -42,15 +42,15 @@ import (
 	netutil "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
-	kubeadmdefaults "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha1"
 	kubeadmconstants "k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/cmd/kubeadm/app/images"
+	utilruntime "k8s.io/kubernetes/cmd/kubeadm/app/util/runtime"
+	"k8s.io/kubernetes/cmd/kubeadm/app/util/system"
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
 	"k8s.io/kubernetes/pkg/util/initsystem"
 	ipvsutil "k8s.io/kubernetes/pkg/util/ipvs"
 	versionutil "k8s.io/kubernetes/pkg/util/version"
 	kubeadmversion "k8s.io/kubernetes/pkg/version"
-	"k8s.io/kubernetes/test/e2e_node/system"
 	utilsexec "k8s.io/utils/exec"
 )
 
@@ -90,28 +90,21 @@ type Checker interface {
 	Name() string
 }
 
-// CRICheck verifies the container runtime through the CRI.
-type CRICheck struct {
-	socket string
-	exec   utilsexec.Interface
+// ContainerRuntimeCheck verifies the container runtime.
+type ContainerRuntimeCheck struct {
+	runtime utilruntime.ContainerRuntime
 }
 
-// Name returns label for CRICheck.
-func (CRICheck) Name() string {
+// Name returns label for RuntimeCheck.
+func (ContainerRuntimeCheck) Name() string {
 	return "CRI"
 }
 
-// Check validates the container runtime through the CRI.
-func (criCheck CRICheck) Check() (warnings, errors []error) {
-	glog.V(1).Infoln("validating the container runtime through the CRI")
-	crictlPath, err := criCheck.exec.LookPath("crictl")
-	if err != nil {
-		errors = append(errors, fmt.Errorf("unable to find command crictl: %s", err))
-		return warnings, errors
-	}
-	if err := criCheck.exec.Command(crictlPath, "-r", criCheck.socket, "info").Run(); err != nil {
-		errors = append(errors, fmt.Errorf("unable to check if the container runtime at %q is running: %s", criCheck.socket, err))
-		return warnings, errors
+// Check validates the container runtime
+func (crc ContainerRuntimeCheck) Check() (warnings, errors []error) {
+	glog.V(1).Infoln("validating the container runtime")
+	if err := crc.runtime.IsRunning(); err != nil {
+		errors = append(errors, err)
 	}
 	return warnings, errors
 }
@@ -510,7 +503,7 @@ func (subnet HTTPProxyCIDRCheck) Check() (warnings, errors []error) {
 
 // SystemVerificationCheck defines struct used for for running the system verification node check in test/e2e_node/system
 type SystemVerificationCheck struct {
-	CRISocket string
+	IsDocker bool
 }
 
 // Name will return SystemVerification as name for SystemVerificationCheck
@@ -532,9 +525,8 @@ func (sysver SystemVerificationCheck) Check() (warnings, errors []error) {
 	var validators = []system.Validator{
 		&system.KernelValidator{Reporter: reporter}}
 
-	// run the docker validator only with dockershim
-	if sysver.CRISocket == kubeadmdefaults.DefaultCRISocket {
-		// https://github.com/kubernetes/kubeadm/issues/533
+	// run the docker validator only with docker runtime
+	if sysver.IsDocker {
 		validators = append(validators, &system.DockerValidator{Reporter: reporter})
 	}
 
@@ -825,8 +817,8 @@ func getEtcdVersionResponse(client *http.Client, url string, target interface{})
 
 // ImagePullCheck will pull container images used by kubeadm
 type ImagePullCheck struct {
-	Images    images.Images
-	ImageList []string
+	runtime   utilruntime.ContainerRuntime
+	imageList []string
 }
 
 // Name returns the label for ImagePullCheck
@@ -835,21 +827,26 @@ func (ImagePullCheck) Name() string {
 }
 
 // Check pulls images required by kubeadm. This is a mutating check
-func (i ImagePullCheck) Check() (warnings, errors []error) {
-	for _, image := range i.ImageList {
-		glog.V(1).Infoln("pulling ", image)
-		if err := i.Images.Exists(image); err == nil {
+func (ipc ImagePullCheck) Check() (warnings, errors []error) {
+	for _, image := range ipc.imageList {
+		ret, err := ipc.runtime.ImageExists(image)
+		if ret && err == nil {
+			glog.V(1).Infof("image exists: %s", image)
 			continue
 		}
-		if err := i.Images.Pull(image); err != nil {
-			errors = append(errors, fmt.Errorf("failed to pull image [%s]: %v", image, err))
+		if err != nil {
+			errors = append(errors, fmt.Errorf("failed to check if image %s exists: %v", image, err))
+		}
+		glog.V(1).Infof("pulling %s", image)
+		if err := ipc.runtime.PullImage(image); err != nil {
+			errors = append(errors, fmt.Errorf("failed to pull image %s: %v", image, err))
 		}
 	}
 	return warnings, errors
 }
 
 // RunInitMasterChecks executes all individual, applicable to Master node checks.
-func RunInitMasterChecks(execer utilsexec.Interface, cfg *kubeadmapi.MasterConfiguration, ignorePreflightErrors sets.String) error {
+func RunInitMasterChecks(execer utilsexec.Interface, cfg *kubeadmapi.InitConfiguration, ignorePreflightErrors sets.String) error {
 	// First, check if we're root separately from the other preflight checks and fail fast
 	if err := RunRootCheckOnly(ignorePreflightErrors); err != nil {
 		return err
@@ -858,22 +855,22 @@ func RunInitMasterChecks(execer utilsexec.Interface, cfg *kubeadmapi.MasterConfi
 	manifestsDir := filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.ManifestsSubDirName)
 	checks := []Checker{
 		KubernetesVersionCheck{KubernetesVersion: cfg.KubernetesVersion, KubeadmVersion: kubeadmversion.Get().GitVersion},
-		FirewalldCheck{ports: []int{int(cfg.API.BindPort), 10250}},
-		PortOpenCheck{port: int(cfg.API.BindPort)},
+		FirewalldCheck{ports: []int{int(cfg.APIEndpoint.BindPort), 10250}},
+		PortOpenCheck{port: int(cfg.APIEndpoint.BindPort)},
 		PortOpenCheck{port: 10251},
 		PortOpenCheck{port: 10252},
 		FileAvailableCheck{Path: kubeadmconstants.GetStaticPodFilepath(kubeadmconstants.KubeAPIServer, manifestsDir)},
 		FileAvailableCheck{Path: kubeadmconstants.GetStaticPodFilepath(kubeadmconstants.KubeControllerManager, manifestsDir)},
 		FileAvailableCheck{Path: kubeadmconstants.GetStaticPodFilepath(kubeadmconstants.KubeScheduler, manifestsDir)},
 		FileAvailableCheck{Path: kubeadmconstants.GetStaticPodFilepath(kubeadmconstants.Etcd, manifestsDir)},
-		HTTPProxyCheck{Proto: "https", Host: cfg.API.AdvertiseAddress},
+		HTTPProxyCheck{Proto: "https", Host: cfg.APIEndpoint.AdvertiseAddress},
 		HTTPProxyCIDRCheck{Proto: "https", CIDR: cfg.Networking.ServiceSubnet},
 		HTTPProxyCIDRCheck{Proto: "https", CIDR: cfg.Networking.PodSubnet},
 	}
 	checks = addCommonChecks(execer, cfg, checks)
 
 	// Check ipvs required kernel module once we use ipvs kube-proxy mode
-	if cfg.KubeProxy.Config != nil && cfg.KubeProxy.Config.Mode == ipvsutil.IPVSProxyMode {
+	if cfg.ComponentConfigs.KubeProxy != nil && cfg.ComponentConfigs.KubeProxy.Mode == ipvsutil.IPVSProxyMode {
 		checks = append(checks,
 			ipvsutil.RequiredIPVSKernelModulesAvailableCheck{Executor: execer},
 		)
@@ -901,7 +898,7 @@ func RunInitMasterChecks(execer utilsexec.Interface, cfg *kubeadmapi.MasterConfi
 		checks = append(checks, ExternalEtcdVersionCheck{Etcd: cfg.Etcd})
 	}
 
-	if ip := net.ParseIP(cfg.API.AdvertiseAddress); ip != nil {
+	if ip := net.ParseIP(cfg.APIEndpoint.AdvertiseAddress); ip != nil {
 		if ip.To4() == nil && ip.To16() != nil {
 			checks = append(checks,
 				FileContentCheck{Path: bridgenf6, Content: []byte{'1'}},
@@ -913,7 +910,7 @@ func RunInitMasterChecks(execer utilsexec.Interface, cfg *kubeadmapi.MasterConfi
 }
 
 // RunJoinNodeChecks executes all individual, applicable to node checks.
-func RunJoinNodeChecks(execer utilsexec.Interface, cfg *kubeadmapi.NodeConfiguration, ignorePreflightErrors sets.String) error {
+func RunJoinNodeChecks(execer utilsexec.Interface, cfg *kubeadmapi.JoinConfiguration, ignorePreflightErrors sets.String) error {
 	// First, check if we're root separately from the other preflight checks and fail fast
 	if err := RunRootCheckOnly(ignorePreflightErrors); err != nil {
 		return err
@@ -921,12 +918,14 @@ func RunJoinNodeChecks(execer utilsexec.Interface, cfg *kubeadmapi.NodeConfigura
 
 	checks := []Checker{
 		DirAvailableCheck{Path: filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.ManifestsSubDirName)},
-		FileAvailableCheck{Path: cfg.CACertPath},
 		FileAvailableCheck{Path: filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.KubeletKubeConfigFileName)},
 		FileAvailableCheck{Path: filepath.Join(kubeadmconstants.KubernetesDir, kubeadmconstants.KubeletBootstrapKubeConfigFileName)},
 		ipvsutil.RequiredIPVSKernelModulesAvailableCheck{Executor: execer},
 	}
 	checks = addCommonChecks(execer, cfg, checks)
+	if !cfg.ControlPlane {
+		checks = append(checks, FileAvailableCheck{Path: cfg.CACertPath})
+	}
 
 	addIPv6Checks := false
 	for _, server := range cfg.DiscoveryTokenAPIServers {
@@ -957,20 +956,27 @@ func RunJoinNodeChecks(execer utilsexec.Interface, cfg *kubeadmapi.NodeConfigura
 // addCommonChecks is a helper function to deplicate checks that are common between both the
 // kubeadm init and join commands
 func addCommonChecks(execer utilsexec.Interface, cfg kubeadmapi.CommonConfiguration, checks []Checker) []Checker {
-	// Check whether or not the CRI socket defined is the default
-	if cfg.GetCRISocket() != kubeadmdefaults.DefaultCRISocket {
-		checks = append(checks, CRICheck{socket: cfg.GetCRISocket(), exec: execer})
+	containerRuntime, err := utilruntime.NewContainerRuntime(execer, cfg.GetCRISocket())
+	isDocker := false
+	if err != nil {
+		fmt.Printf("[preflight] WARNING: Couldn't create the interface used for talking to the container runtime: %v\n", err)
 	} else {
-		checks = append(checks, ServiceCheck{Service: "docker", CheckIfActive: true})
+		checks = append(checks, ContainerRuntimeCheck{runtime: containerRuntime})
+		if containerRuntime.IsDocker() {
+			isDocker = true
+			checks = append(checks, ServiceCheck{Service: "docker", CheckIfActive: true})
+		}
 	}
 
 	// non-windows checks
 	if runtime.GOOS == "linux" {
+		if !isDocker {
+			checks = append(checks, InPathCheck{executable: "crictl", mandatory: true, exec: execer})
+		}
 		checks = append(checks,
 			FileContentCheck{Path: bridgenf, Content: []byte{'1'}},
 			FileContentCheck{Path: ipv4Forward, Content: []byte{'1'}},
 			SwapCheck{},
-			InPathCheck{executable: "crictl", mandatory: true, exec: execer},
 			InPathCheck{executable: "ip", mandatory: true, exec: execer},
 			InPathCheck{executable: "iptables", mandatory: true, exec: execer},
 			InPathCheck{executable: "mount", mandatory: true, exec: execer},
@@ -982,7 +988,7 @@ func addCommonChecks(execer utilsexec.Interface, cfg kubeadmapi.CommonConfigurat
 			InPathCheck{executable: "touch", mandatory: false, exec: execer})
 	}
 	checks = append(checks,
-		SystemVerificationCheck{CRISocket: cfg.GetCRISocket()},
+		SystemVerificationCheck{IsDocker: isDocker},
 		IsPrivilegedUserCheck{},
 		HostnameCheck{nodeName: cfg.GetNodeName()},
 		KubeletVersionCheck{KubernetesVersion: cfg.GetKubernetesVersion(), exec: execer},
@@ -1001,14 +1007,14 @@ func RunRootCheckOnly(ignorePreflightErrors sets.String) error {
 }
 
 // RunPullImagesCheck will pull images kubeadm needs if the are not found on the system
-func RunPullImagesCheck(execer utilsexec.Interface, cfg *kubeadmapi.MasterConfiguration, ignorePreflightErrors sets.String) error {
-	criInterfacer, err := images.NewCRInterfacer(execer, cfg.GetCRISocket())
+func RunPullImagesCheck(execer utilsexec.Interface, cfg *kubeadmapi.InitConfiguration, ignorePreflightErrors sets.String) error {
+	containerRuntime, err := utilruntime.NewContainerRuntime(utilsexec.New(), cfg.GetCRISocket())
 	if err != nil {
 		return err
 	}
 
 	checks := []Checker{
-		ImagePullCheck{Images: criInterfacer, ImageList: images.GetAllImages(cfg)},
+		ImagePullCheck{runtime: containerRuntime, imageList: images.GetAllImages(&cfg.ClusterConfiguration)},
 	}
 	return RunChecks(checks, os.Stderr, ignorePreflightErrors)
 }
@@ -1049,47 +1055,6 @@ func RunChecks(checks []Checker, ww io.Writer, ignorePreflightErrors sets.String
 		return &Error{Msg: errs.String()}
 	}
 	return nil
-}
-
-// TryStartKubelet attempts to bring up kubelet service
-// TODO: Move these kubelet start/stop functions to some other place, e.g. phases/kubelet
-func TryStartKubelet() {
-	// If we notice that the kubelet service is inactive, try to start it
-	initSystem, err := initsystem.GetInitSystem()
-	if err != nil {
-		fmt.Println("[preflight] no supported init system detected, won't make sure the kubelet is running properly.")
-		return
-	}
-
-	if !initSystem.ServiceExists("kubelet") {
-		fmt.Println("[preflight] couldn't detect a kubelet service, can't make sure the kubelet is running properly.")
-	}
-
-	fmt.Println("[preflight] Activating the kubelet service")
-	// This runs "systemctl daemon-reload && systemctl restart kubelet"
-	if err := initSystem.ServiceRestart("kubelet"); err != nil {
-		fmt.Printf("[preflight] WARNING: unable to start the kubelet service: [%v]\n", err)
-		fmt.Printf("[preflight] please ensure kubelet is reloaded and running manually.\n")
-	}
-}
-
-// TryStopKubelet attempts to bring down the kubelet service momentarily
-func TryStopKubelet() {
-	// If we notice that the kubelet service is inactive, try to start it
-	initSystem, err := initsystem.GetInitSystem()
-	if err != nil {
-		fmt.Println("[preflight] no supported init system detected, won't make sure the kubelet not running for a short period of time while setting up configuration for it.")
-		return
-	}
-
-	if !initSystem.ServiceExists("kubelet") {
-		fmt.Println("[preflight] couldn't detect a kubelet service, can't make sure the kubelet not running for a short period of time while setting up configuration for it.")
-	}
-
-	// This runs "systemctl daemon-reload && systemctl stop kubelet"
-	if err := initSystem.ServiceStop("kubelet"); err != nil {
-		fmt.Printf("[preflight] WARNING: unable to stop the kubelet service momentarily: [%v]\n", err)
-	}
 }
 
 // setHasItemOrAll is helper function that return true if item is present in the set (case insensitive) or special key 'all' is present

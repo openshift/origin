@@ -29,18 +29,26 @@ const (
 	Australiaeast AzureRegions = "australiaeast"
 	// Brazilsouth ...
 	Brazilsouth AzureRegions = "brazilsouth"
+	// Canadacentral ...
+	Canadacentral AzureRegions = "canadacentral"
+	// Centralindia ...
+	Centralindia AzureRegions = "centralindia"
 	// Eastasia ...
 	Eastasia AzureRegions = "eastasia"
 	// Eastus ...
 	Eastus AzureRegions = "eastus"
 	// Eastus2 ...
 	Eastus2 AzureRegions = "eastus2"
+	// Japaneast ...
+	Japaneast AzureRegions = "japaneast"
 	// Northeurope ...
 	Northeurope AzureRegions = "northeurope"
 	// Southcentralus ...
 	Southcentralus AzureRegions = "southcentralus"
 	// Southeastasia ...
 	Southeastasia AzureRegions = "southeastasia"
+	// Uksouth ...
+	Uksouth AzureRegions = "uksouth"
 	// Westcentralus ...
 	Westcentralus AzureRegions = "westcentralus"
 	// Westeurope ...
@@ -50,6 +58,11 @@ const (
 	// Westus2 ...
 	Westus2 AzureRegions = "westus2"
 )
+
+// PossibleAzureRegionsValues returns an array of possible values for the AzureRegions const type.
+func PossibleAzureRegionsValues() []AzureRegions {
+	return []AzureRegions{Australiaeast, Brazilsouth, Canadacentral, Centralindia, Eastasia, Eastus, Eastus2, Japaneast, Northeurope, Southcentralus, Southeastasia, Uksouth, Westcentralus, Westeurope, Westus, Westus2}
+}
 
 // BatchInput ...
 type BatchInput struct {
@@ -64,6 +77,37 @@ type DetectedLanguage struct {
 	Iso6391Name *string `json:"iso6391Name,omitempty"`
 	// Score - A confidence score between 0 and 1. Scores close to 1 indicate 100% certainty that the identified language is true.
 	Score *float64 `json:"score,omitempty"`
+}
+
+// EntitiesBatchResult ...
+type EntitiesBatchResult struct {
+	autorest.Response `json:"-"`
+	Documents         *[]EntitiesBatchResultItem `json:"documents,omitempty"`
+	Errors            *[]ErrorRecord             `json:"errors,omitempty"`
+}
+
+// EntitiesBatchResultItem ...
+type EntitiesBatchResultItem struct {
+	// ID - Unique document identifier.
+	ID *string `json:"id,omitempty"`
+	// Entities - Recognized entities in the document.
+	Entities *[]EntityRecord `json:"entities,omitempty"`
+}
+
+// EntityRecord ...
+type EntityRecord struct {
+	// Name - Entity formal name.
+	Name *string `json:"name,omitempty"`
+	// Matches - List of instances this entity appears in the text.
+	Matches *[]MatchRecord `json:"matches,omitempty"`
+	// WikipediaLanguage - Wikipedia language for which the WikipediaId and WikipediaUrl refers to.
+	WikipediaLanguage *string `json:"wikipediaLanguage,omitempty"`
+	// WikipediaID - Wikipedia unique identifier of the recognized entity.
+	WikipediaID *string `json:"wikipediaId,omitempty"`
+	// WikipediaURL - URL for the entity's English Wikipedia page.
+	WikipediaURL *string `json:"wikipediaUrl,omitempty"`
+	// BingID - Bing unique identifier of the recognized entity. Use in conjunction with the Bing Entity Search API to fetch additional relevant information.
+	BingID *string `json:"bingId,omitempty"`
 }
 
 // ErrorRecord ...
@@ -124,6 +168,16 @@ type LanguageBatchResultItem struct {
 	ID *string `json:"id,omitempty"`
 	// DetectedLanguages - A list of extracted languages.
 	DetectedLanguages *[]DetectedLanguage `json:"detectedLanguages,omitempty"`
+}
+
+// MatchRecord ...
+type MatchRecord struct {
+	// Text - Entity text as appears in the request.
+	Text *string `json:"text,omitempty"`
+	// Offset - Start position (in Unicode characters) for the entity match text.
+	Offset *int32 `json:"offset,omitempty"`
+	// Length - Length (in Unicode characters) for the entity match text.
+	Length *int32 `json:"length,omitempty"`
 }
 
 // MultiLanguageBatchInput ...

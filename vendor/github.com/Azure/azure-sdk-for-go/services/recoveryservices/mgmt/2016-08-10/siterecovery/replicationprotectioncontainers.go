@@ -42,9 +42,10 @@ func NewReplicationProtectionContainersClientWithBaseURI(baseURI string, subscri
 }
 
 // Create operation to create a protection container.
-//
-// fabricName is unique fabric ARM name. protectionContainerName is unique protection container ARM name.
-// creationInput is creation input.
+// Parameters:
+// fabricName - unique fabric ARM name.
+// protectionContainerName - unique protection container ARM name.
+// creationInput - creation input.
 func (client ReplicationProtectionContainersClient) Create(ctx context.Context, fabricName string, protectionContainerName string, creationInput CreateProtectionContainerInput) (result ReplicationProtectionContainersCreateFuture, err error) {
 	req, err := client.CreatePreparer(ctx, fabricName, protectionContainerName, creationInput)
 	if err != nil {
@@ -77,7 +78,7 @@ func (client ReplicationProtectionContainersClient) CreatePreparer(ctx context.C
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/Subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.RecoveryServices/vaults/{resourceName}/replicationFabrics/{fabricName}/replicationProtectionContainers/{protectionContainerName}", pathParameters),
@@ -89,15 +90,17 @@ func (client ReplicationProtectionContainersClient) CreatePreparer(ctx context.C
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationProtectionContainersClient) CreateSender(req *http.Request) (future ReplicationProtectionContainersCreateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -115,8 +118,9 @@ func (client ReplicationProtectionContainersClient) CreateResponder(resp *http.R
 }
 
 // Delete operation to remove a protection container.
-//
-// fabricName is unique fabric ARM name. protectionContainerName is unique protection container ARM name.
+// Parameters:
+// fabricName - unique fabric ARM name.
+// protectionContainerName - unique protection container ARM name.
 func (client ReplicationProtectionContainersClient) Delete(ctx context.Context, fabricName string, protectionContainerName string) (result ReplicationProtectionContainersDeleteFuture, err error) {
 	req, err := client.DeletePreparer(ctx, fabricName, protectionContainerName)
 	if err != nil {
@@ -159,15 +163,17 @@ func (client ReplicationProtectionContainersClient) DeletePreparer(ctx context.C
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationProtectionContainersClient) DeleteSender(req *http.Request) (future ReplicationProtectionContainersDeleteFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -184,9 +190,10 @@ func (client ReplicationProtectionContainersClient) DeleteResponder(resp *http.R
 }
 
 // DiscoverProtectableItem the operation to a add a protectable item to a protection container(Add physical server.)
-//
-// fabricName is the name of the fabric. protectionContainerName is the name of the protection container.
-// discoverProtectableItemRequest is the request object to add a protectable item.
+// Parameters:
+// fabricName - the name of the fabric.
+// protectionContainerName - the name of the protection container.
+// discoverProtectableItemRequest - the request object to add a protectable item.
 func (client ReplicationProtectionContainersClient) DiscoverProtectableItem(ctx context.Context, fabricName string, protectionContainerName string, discoverProtectableItemRequest DiscoverProtectableItemRequest) (result ReplicationProtectionContainersDiscoverProtectableItemFuture, err error) {
 	req, err := client.DiscoverProtectableItemPreparer(ctx, fabricName, protectionContainerName, discoverProtectableItemRequest)
 	if err != nil {
@@ -219,7 +226,7 @@ func (client ReplicationProtectionContainersClient) DiscoverProtectableItemPrepa
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/Subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.RecoveryServices/vaults/{resourceName}/replicationFabrics/{fabricName}/replicationProtectionContainers/{protectionContainerName}/discoverProtectableItem", pathParameters),
@@ -231,15 +238,17 @@ func (client ReplicationProtectionContainersClient) DiscoverProtectableItemPrepa
 // DiscoverProtectableItemSender sends the DiscoverProtectableItem request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationProtectionContainersClient) DiscoverProtectableItemSender(req *http.Request) (future ReplicationProtectionContainersDiscoverProtectableItemFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -257,8 +266,9 @@ func (client ReplicationProtectionContainersClient) DiscoverProtectableItemRespo
 }
 
 // Get gets the details of a protection container.
-//
-// fabricName is fabric name. protectionContainerName is protection container name.
+// Parameters:
+// fabricName - fabric name.
+// protectionContainerName - protection container name.
 func (client ReplicationProtectionContainersClient) Get(ctx context.Context, fabricName string, protectionContainerName string) (result ProtectionContainer, err error) {
 	req, err := client.GetPreparer(ctx, fabricName, protectionContainerName)
 	if err != nil {
@@ -417,8 +427,8 @@ func (client ReplicationProtectionContainersClient) ListComplete(ctx context.Con
 }
 
 // ListByReplicationFabrics lists the protection containers in the specified fabric.
-//
-// fabricName is fabric name.
+// Parameters:
+// fabricName - fabric name.
 func (client ReplicationProtectionContainersClient) ListByReplicationFabrics(ctx context.Context, fabricName string) (result ProtectionContainerCollectionPage, err error) {
 	result.fn = client.listByReplicationFabricsNextResults
 	req, err := client.ListByReplicationFabricsPreparer(ctx, fabricName)
@@ -513,9 +523,10 @@ func (client ReplicationProtectionContainersClient) ListByReplicationFabricsComp
 
 // SwitchProtection operation to switch protection from one container to another or one replication provider to
 // another.
-//
-// fabricName is unique fabric name. protectionContainerName is protection container name. switchInput is switch
-// protection input.
+// Parameters:
+// fabricName - unique fabric name.
+// protectionContainerName - protection container name.
+// switchInput - switch protection input.
 func (client ReplicationProtectionContainersClient) SwitchProtection(ctx context.Context, fabricName string, protectionContainerName string, switchInput SwitchProtectionInput) (result ReplicationProtectionContainersSwitchProtectionFuture, err error) {
 	req, err := client.SwitchProtectionPreparer(ctx, fabricName, protectionContainerName, switchInput)
 	if err != nil {
@@ -548,7 +559,7 @@ func (client ReplicationProtectionContainersClient) SwitchProtectionPreparer(ctx
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/Subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.RecoveryServices/vaults/{resourceName}/replicationFabrics/{fabricName}/replicationProtectionContainers/{protectionContainerName}/switchprotection", pathParameters),
@@ -560,15 +571,17 @@ func (client ReplicationProtectionContainersClient) SwitchProtectionPreparer(ctx
 // SwitchProtectionSender sends the SwitchProtection request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationProtectionContainersClient) SwitchProtectionSender(req *http.Request) (future ReplicationProtectionContainersSwitchProtectionFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 

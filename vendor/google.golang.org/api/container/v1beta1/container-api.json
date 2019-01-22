@@ -60,11 +60,6 @@
       "location": "query",
       "type": "string"
     },
-    "bearer_token": {
-      "description": "OAuth bearer token.",
-      "location": "query",
-      "type": "string"
-    },
     "callback": {
       "description": "JSONP",
       "location": "query",
@@ -84,12 +79,6 @@
       "description": "OAuth 2.0 token for the current user.",
       "location": "query",
       "type": "string"
-    },
-    "pp": {
-      "default": "true",
-      "description": "Pretty-print response.",
-      "location": "query",
-      "type": "boolean"
     },
     "prettyPrint": {
       "default": "true",
@@ -2446,7 +2435,7 @@
       }
     }
   },
-  "revision": "20180518",
+  "revision": "20180607",
   "rootUrl": "https://container.googleapis.com/",
   "schemas": {
     "AcceleratorConfig": {
@@ -3206,6 +3195,31 @@
       },
       "type": "object"
     },
+    "Metric": {
+      "description": "Progress metric is (string, int|float|string) pair.",
+      "id": "Metric",
+      "properties": {
+        "doubleValue": {
+          "description": "For metrics with floating point value.",
+          "format": "double",
+          "type": "number"
+        },
+        "intValue": {
+          "description": "For metrics with integer value.",
+          "format": "int64",
+          "type": "string"
+        },
+        "name": {
+          "description": "Metric name, required.\ne.g., \"nodes total\", \"percent done\"",
+          "type": "string"
+        },
+        "stringValue": {
+          "description": "For metrics with custom values (ratios, visual progress, etc.).",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "NetworkConfig": {
       "description": "NetworkConfig reports the relative names of network \u0026 subnetwork.",
       "id": "NetworkConfig",
@@ -3544,6 +3558,10 @@
           ],
           "type": "string"
         },
+        "progress": {
+          "$ref": "OperationProgress",
+          "description": "[Output only] Progress information for an operation."
+        },
         "selfLink": {
           "description": "Server-defined URL for the resource.",
           "type": "string"
@@ -3580,6 +3598,49 @@
         },
         "zone": {
           "description": "The name of the Google Compute Engine\n[zone](/compute/docs/zones#available) in which the operation\nis taking place.\nThis field is deprecated, use location instead.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "OperationProgress": {
+      "description": "Information about operation (or operation stage) progress.",
+      "id": "OperationProgress",
+      "properties": {
+        "metrics": {
+          "description": "Progress metric bundle, for example:\n  metrics: [{name: \"nodes done\",     int_value: 15},\n            {name: \"nodes total\",    int_value: 32}]\nor\n  metrics: [{name: \"progress\",       double_value: 0.56},\n            {name: \"progress scale\", double_value: 1.0}]",
+          "items": {
+            "$ref": "Metric"
+          },
+          "type": "array"
+        },
+        "name": {
+          "description": "A non-parameterized string describing an operation stage.\nUnset for single-stage operations.",
+          "type": "string"
+        },
+        "stages": {
+          "description": "Substages of an operation or a stage.",
+          "items": {
+            "$ref": "OperationProgress"
+          },
+          "type": "array"
+        },
+        "status": {
+          "description": "Status of an operation stage.\nUnset for single-stage operations.",
+          "enum": [
+            "STATUS_UNSPECIFIED",
+            "PENDING",
+            "RUNNING",
+            "DONE",
+            "ABORTING"
+          ],
+          "enumDescriptions": [
+            "Not set.",
+            "The operation has been created.",
+            "The operation is currently running.",
+            "The operation is done, either cancelled or completed.",
+            "The operation is aborting."
+          ],
           "type": "string"
         }
       },

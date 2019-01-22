@@ -68,10 +68,12 @@ authorization.k8s.io/v1 \
 authorization.k8s.io/v1beta1 \
 autoscaling/v1 \
 autoscaling/v2beta1 \
+autoscaling/v2beta2 \
 batch/v1 \
 batch/v1beta1 \
 batch/v2alpha1 \
 certificates.k8s.io/v1beta1 \
+coordination.k8s.io/v1beta1 \
 extensions/v1beta1 \
 events.k8s.io/v1beta1 \
 imagepolicy.k8s.io/v1alpha1 \
@@ -178,4 +180,3 @@ kube::realpath() {
   fi
   kube::readlinkdashf "$1"
 }
-

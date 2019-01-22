@@ -1,7 +1,8 @@
-package build
+package build // import "github.com/docker/docker/api/server/router/build"
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -17,13 +18,14 @@ import (
 	"github.com/docker/docker/api/types/backend"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/versions"
+	"github.com/docker/docker/errdefs"
 	"github.com/docker/docker/pkg/ioutils"
 	"github.com/docker/docker/pkg/progress"
 	"github.com/docker/docker/pkg/streamformatter"
-	units "github.com/docker/go-units"
+	"github.com/docker/docker/pkg/system"
+	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 )
 
 type invalidIsolationError string
@@ -67,6 +69,14 @@ func newImageBuildOptions(ctx context.Context, r *http.Request) (*types.ImageBui
 	options.Squash = httputils.BoolValue(r, "squash")
 	options.Target = r.FormValue("target")
 	options.RemoteContext = r.FormValue("remote")
+	if versions.GreaterThanOrEqualTo(version, "1.32") {
+		apiPlatform := r.FormValue("platform")
+		p := system.ParsePlatform(apiPlatform)
+		if err := system.ValidatePlatform(p); err != nil {
+			return nil, errdefs.InvalidParameter(errors.Errorf("invalid platform: %s", err))
+		}
+		options.Platform = p.OS
+	}
 
 	if r.Form.Get("shmsize") != "" {
 		shmSize, err := strconv.ParseInt(r.Form.Get("shmsize"), 10, 64)
@@ -84,14 +94,14 @@ func newImageBuildOptions(ctx context.Context, r *http.Request) (*types.ImageBui
 	}
 
 	if runtime.GOOS != "windows" && options.SecurityOpt != nil {
-		return nil, validationError{fmt.Errorf("The daemon on this platform does not support setting security options on build")}
+		return nil, errdefs.InvalidParameter(errors.New("The daemon on this platform does not support setting security options on build"))
 	}
 
 	var buildUlimits = []*units.Ulimit{}
 	ulimitsJSON := r.FormValue("ulimits")
 	if ulimitsJSON != "" {
 		if err := json.Unmarshal([]byte(ulimitsJSON), &buildUlimits); err != nil {
-			return nil, errors.Wrap(validationError{err}, "error reading ulimit settings")
+			return nil, errors.Wrap(errdefs.InvalidParameter(err), "error reading ulimit settings")
 		}
 		options.Ulimits = buildUlimits
 	}
@@ -112,7 +122,7 @@ func newImageBuildOptions(ctx context.Context, r *http.Request) (*types.ImageBui
 	if buildArgsJSON != "" {
 		var buildArgs = map[string]*string{}
 		if err := json.Unmarshal([]byte(buildArgsJSON), &buildArgs); err != nil {
-			return nil, errors.Wrap(validationError{err}, "error reading build args")
+			return nil, errors.Wrap(errdefs.InvalidParameter(err), "error reading build args")
 		}
 		options.BuildArgs = buildArgs
 	}
@@ -121,7 +131,7 @@ func newImageBuildOptions(ctx context.Context, r *http.Request) (*types.ImageBui
 	if labelsJSON != "" {
 		var labels = map[string]string{}
 		if err := json.Unmarshal([]byte(labelsJSON), &labels); err != nil {
-			return nil, errors.Wrap(validationError{err}, "error reading labels")
+			return nil, errors.Wrap(errdefs.InvalidParameter(err), "error reading labels")
 		}
 		options.Labels = labels
 	}
@@ -146,16 +156,6 @@ func (br *buildRouter) postPrune(ctx context.Context, w http.ResponseWriter, r *
 	}
 	return httputils.WriteJSON(w, http.StatusOK, report)
 }
-
-type validationError struct {
-	cause error
-}
-
-func (e validationError) Error() string {
-	return e.cause.Error()
-}
-
-func (e validationError) InvalidParameter() {}
 
 func (br *buildRouter) postBuild(ctx context.Context, w http.ResponseWriter, r *http.Request, vars map[string]string) error {
 	var (
@@ -190,7 +190,7 @@ func (br *buildRouter) postBuild(ctx context.Context, w http.ResponseWriter, r *
 	buildOptions.AuthConfigs = getAuthConfigs(r.Header)
 
 	if buildOptions.Squash && !br.daemon.HasExperimental() {
-		return validationError{errors.New("squash is only supported with experimental mode")}
+		return errdefs.InvalidParameter(errors.New("squash is only supported with experimental mode"))
 	}
 
 	out := io.Writer(output)

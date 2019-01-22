@@ -27,16 +27,15 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	restclient "k8s.io/client-go/rest"
-	api "k8s.io/kubernetes/pkg/apis/core"
 	cmdtesting "k8s.io/kubernetes/pkg/kubectl/cmd/testing"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
 func TestLog(t *testing.T) {
 	tests := []struct {
 		name, version, podPath, logPath string
-		pod                             *api.Pod
+		pod                             *corev1.Pod
 	}{
 		{
 			name: "v1 - pod log",
@@ -70,13 +69,13 @@ func TestLog(t *testing.T) {
 	}
 }
 
-func testPod() *api.Pod {
-	return &api.Pod{
+func testPod() *corev1.Pod {
+	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "test", ResourceVersion: "10"},
-		Spec: api.PodSpec{
-			RestartPolicy: api.RestartPolicyAlways,
-			DNSPolicy:     api.DNSClusterFirst,
-			Containers: []api.Container{
+		Spec: corev1.PodSpec{
+			RestartPolicy: corev1.RestartPolicyAlways,
+			DNSPolicy:     corev1.DNSClusterFirst,
+			Containers: []corev1.Container{
 				{
 					Name: "bar",
 				},
@@ -246,13 +245,6 @@ func TestLogComplete(t *testing.T) {
 		expected string
 	}{
 		{
-			name: "No args case",
-			opts: func(streams genericclioptions.IOStreams) *LogsOptions {
-				return NewLogsOptions(streams, false)
-			},
-			expected: "'logs (POD | TYPE/NAME) [CONTAINER_NAME]'.\nPOD or TYPE/NAME is a required argument for the logs command",
-		},
-		{
 			name: "One args case",
 			args: []string{"foo"},
 			opts: func(streams genericclioptions.IOStreams) *LogsOptions {
@@ -261,16 +253,6 @@ func TestLogComplete(t *testing.T) {
 				return o
 			},
 			expected: "only a selector (-l) or a POD name is allowed",
-		},
-		{
-			name: "More than two args case",
-			args: []string{"foo", "foo1", "foo2"},
-			opts: func(streams genericclioptions.IOStreams) *LogsOptions {
-				o := NewLogsOptions(streams, false)
-				o.Tail = 1
-				return o
-			},
-			expected: "'logs (POD | TYPE/NAME) [CONTAINER_NAME]'.\nPOD or TYPE/NAME is a required argument for the logs command",
 		},
 	}
 	for _, test := range tests {
@@ -303,7 +285,7 @@ func (l *logTestMock) mockConsumeRequest(req *restclient.Request, out io.Writer)
 
 func (l *logTestMock) mockLogsForObject(restClientGetter genericclioptions.RESTClientGetter, object, options runtime.Object, timeout time.Duration, allContainers bool) ([]*restclient.Request, error) {
 	switch object.(type) {
-	case *api.Pod:
+	case *corev1.Pod:
 		_, ok := options.(*corev1.PodLogOptions)
 		if !ok {
 			return nil, errors.New("provided options object is not a PodLogOptions")

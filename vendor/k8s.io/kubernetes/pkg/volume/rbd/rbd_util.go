@@ -318,7 +318,11 @@ func (util *RBDUtil) rbdUnlock(b rbdMounter) error {
 	}
 
 	// Construct lock id using host name and a magic prefix.
-	lock_id := kubeLockMagic + node.GetHostname("")
+	hostName, err := node.GetHostname("")
+	if err != nil {
+		return err
+	}
+	lock_id := kubeLockMagic + hostName
 
 	mon := util.kernelRBDMonitorsOpt(b.Mon)
 
@@ -399,6 +403,10 @@ func (util *RBDUtil) AttachDisk(b rbdMounter) (string, error) {
 					break
 				}
 			}
+		} else {
+			// ReadOnly rbd volume should not check rbd status of being used to
+			// support mounted as read-only by multiple consumers simultaneously.
+			needValidUsed = !b.rbd.ReadOnly
 		}
 		err := wait.ExponentialBackoff(backoff, func() (bool, error) {
 			used, rbdOutput, err := util.rbdStatus(&b)

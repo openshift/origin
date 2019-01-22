@@ -66,7 +66,7 @@ func ApplyServiceMonitor(client dynamic.Interface, recorder events.Recorder, ser
 
 	existing, err := client.Resource(serviceMonitorGVR).Namespace(namespace).Get(required.GetName(), metav1.GetOptions{})
 	if errors.IsNotFound(err) {
-		_, createErr := client.Resource(serviceMonitorGVR).Namespace(namespace).Create(required)
+		_, createErr := client.Resource(serviceMonitorGVR).Namespace(namespace).Create(required, metav1.CreateOptions{})
 		if createErr != nil {
 			recorder.Warningf("ServiceMonitorCreateFailed", "Failed to create ServiceMonitor.monitoring.coreos.com/v1: %v", createErr)
 			return true, createErr
@@ -84,7 +84,7 @@ func ApplyServiceMonitor(client dynamic.Interface, recorder events.Recorder, ser
 		return false, nil
 	}
 
-	if _, err = client.Resource(serviceMonitorGVR).Namespace(namespace).Update(updated); err != nil {
+	if _, err = client.Resource(serviceMonitorGVR).Namespace(namespace).Update(updated, metav1.UpdateOptions{}); err != nil {
 		recorder.Warningf("ServiceMonitorUpdateFailed", "Failed to update ServiceMonitor.monitoring.coreos.com/v1: %v", err)
 		return true, err
 	}

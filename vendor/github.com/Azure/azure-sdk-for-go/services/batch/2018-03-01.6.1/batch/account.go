@@ -43,20 +43,23 @@ func NewAccountClientWithBaseURI(baseURI string) AccountClient {
 }
 
 // ListNodeAgentSkus sends the list node agent skus request.
-//
-// filter is an OData $filter clause. For more information on constructing this filter, see
-// https://docs.microsoft.com/en-us/rest/api/batchservice/odata-filters-in-batch#list-node-agent-skus. maxResults
-// is the maximum number of items to return in the response. A maximum of 1000 results will be returned. timeout is
-// the maximum time that the server can spend processing the request, in seconds. The default is 30 seconds.
-// clientRequestID is the caller-generated request identity, in the form of a GUID with no decoration such as curly
-// braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0. returnClientRequestID is whether the server should return the
-// client-request-id in the response. ocpDate is the time the request was issued. Client libraries typically set
-// this to the current system clock time; set it explicitly if you are calling the REST API directly.
+// Parameters:
+// filter - an OData $filter clause. For more information on constructing this filter, see
+// https://docs.microsoft.com/en-us/rest/api/batchservice/odata-filters-in-batch#list-node-agent-skus.
+// maxResults - the maximum number of items to return in the response. A maximum of 1000 results will be
+// returned.
+// timeout - the maximum time that the server can spend processing the request, in seconds. The default is 30
+// seconds.
+// clientRequestID - the caller-generated request identity, in the form of a GUID with no decoration such as
+// curly braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0.
+// returnClientRequestID - whether the server should return the client-request-id in the response.
+// ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
+// time; set it explicitly if you are calling the REST API directly.
 func (client AccountClient) ListNodeAgentSkus(ctx context.Context, filter string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result AccountListNodeAgentSkusResultPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "maxResults", Name: validation.InclusiveMaximum, Rule: 1000, Chain: nil},
+				Chain: []validation.Constraint{{Target: "maxResults", Name: validation.InclusiveMaximum, Rule: int64(1000), Chain: nil},
 					{Target: "maxResults", Name: validation.InclusiveMinimum, Rule: 1, Chain: nil},
 				}}}}}); err != nil {
 		return result, validation.NewError("batch.AccountClient", "ListNodeAgentSkus", err.Error())
@@ -175,18 +178,21 @@ func (client AccountClient) ListNodeAgentSkusComplete(ctx context.Context, filte
 }
 
 // ListPoolNodeCounts gets the number of nodes in each state, grouped by pool.
-//
-// filter is an OData $filter clause. maxResults is the maximum number of items to return in the response. timeout
-// is the maximum time that the server can spend processing the request, in seconds. The default is 30 seconds.
-// clientRequestID is the caller-generated request identity, in the form of a GUID with no decoration such as curly
-// braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0. returnClientRequestID is whether the server should return the
-// client-request-id in the response. ocpDate is the time the request was issued. Client libraries typically set
-// this to the current system clock time; set it explicitly if you are calling the REST API directly.
+// Parameters:
+// filter - an OData $filter clause.
+// maxResults - the maximum number of items to return in the response.
+// timeout - the maximum time that the server can spend processing the request, in seconds. The default is 30
+// seconds.
+// clientRequestID - the caller-generated request identity, in the form of a GUID with no decoration such as
+// curly braces, e.g. 9C4D50EE-2D56-4CD3-8152-34347DC9F2B0.
+// returnClientRequestID - whether the server should return the client-request-id in the response.
+// ocpDate - the time the request was issued. Client libraries typically set this to the current system clock
+// time; set it explicitly if you are calling the REST API directly.
 func (client AccountClient) ListPoolNodeCounts(ctx context.Context, filter string, maxResults *int32, timeout *int32, clientRequestID *uuid.UUID, returnClientRequestID *bool, ocpDate *date.TimeRFC1123) (result PoolNodeCountsListResultPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: maxResults,
 			Constraints: []validation.Constraint{{Target: "maxResults", Name: validation.Null, Rule: false,
-				Chain: []validation.Constraint{{Target: "maxResults", Name: validation.InclusiveMaximum, Rule: 10, Chain: nil},
+				Chain: []validation.Constraint{{Target: "maxResults", Name: validation.InclusiveMaximum, Rule: int64(10), Chain: nil},
 					{Target: "maxResults", Name: validation.InclusiveMinimum, Rule: 1, Chain: nil},
 				}}}}}); err != nil {
 		return result, validation.NewError("batch.AccountClient", "ListPoolNodeCounts", err.Error())

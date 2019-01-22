@@ -1,4 +1,4 @@
-package container
+package container // import "github.com/docker/docker/daemon/cluster/executor/container"
 
 import (
 	"errors"
@@ -48,12 +48,12 @@ type containerConfig struct {
 
 // newContainerConfig returns a validated container config. No methods should
 // return an error if this function returns without error.
-func newContainerConfig(t *api.Task) (*containerConfig, error) {
+func newContainerConfig(t *api.Task, node *api.NodeDescription) (*containerConfig, error) {
 	var c containerConfig
-	return &c, c.setTask(t)
+	return &c, c.setTask(t, node)
 }
 
-func (c *containerConfig) setTask(t *api.Task) error {
+func (c *containerConfig) setTask(t *api.Task, node *api.NodeDescription) error {
 	if t.Spec.GetContainer() == nil && t.Spec.GetAttachment() == nil {
 		return exec.ErrRuntimeUnsupported
 	}
@@ -78,7 +78,7 @@ func (c *containerConfig) setTask(t *api.Task) error {
 	c.task = t
 
 	if t.Spec.GetContainer() != nil {
-		preparedSpec, err := template.ExpandContainerSpec(nil, t)
+		preparedSpec, err := template.ExpandContainerSpec(node, t)
 		if err != nil {
 			return err
 		}
@@ -166,6 +166,18 @@ func (c *containerConfig) portBindings() nat.PortMap {
 	}
 
 	return portBindings
+}
+
+func (c *containerConfig) isolation() enginecontainer.Isolation {
+	return convert.IsolationFromGRPC(c.spec().Isolation)
+}
+
+func (c *containerConfig) init() *bool {
+	if c.spec().Init == nil {
+		return nil
+	}
+	init := c.spec().Init.GetValue()
+	return &init
 }
 
 func (c *containerConfig) exposedPorts() map[nat.Port]struct{} {
@@ -350,6 +362,8 @@ func (c *containerConfig) hostConfig() *enginecontainer.HostConfig {
 		PortBindings:   c.portBindings(),
 		Mounts:         c.mounts(),
 		ReadonlyRootfs: c.spec().ReadOnly,
+		Isolation:      c.isolation(),
+		Init:           c.init(),
 	}
 
 	if c.spec().DNSConfig != nil {
@@ -393,7 +407,7 @@ func (c *containerConfig) hostConfig() *enginecontainer.HostConfig {
 }
 
 // This handles the case of volumes that are defined inside a service Mount
-func (c *containerConfig) volumeCreateRequest(mount *api.Mount) *volumetypes.VolumesCreateBody {
+func (c *containerConfig) volumeCreateRequest(mount *api.Mount) *volumetypes.VolumeCreateBody {
 	var (
 		driverName string
 		driverOpts map[string]string
@@ -407,7 +421,7 @@ func (c *containerConfig) volumeCreateRequest(mount *api.Mount) *volumetypes.Vol
 	}
 
 	if mount.VolumeOptions != nil {
-		return &volumetypes.VolumesCreateBody{
+		return &volumetypes.VolumeCreateBody{
 			Name:       mount.Source,
 			Driver:     driverName,
 			DriverOpts: driverOpts,
@@ -568,19 +582,6 @@ func (c *containerConfig) serviceConfig() *clustertypes.ServiceConfig {
 	}
 
 	return svcCfg
-}
-
-// networks returns a list of network names attached to the container. The
-// returned name can be used to lookup the corresponding network create
-// options.
-func (c *containerConfig) networks() []string {
-	var networks []string
-
-	for name := range c.networksAttachments {
-		networks = append(networks, name)
-	}
-
-	return networks
 }
 
 func (c *containerConfig) networkCreateRequest(name string) (clustertypes.NetworkCreateRequest, error) {

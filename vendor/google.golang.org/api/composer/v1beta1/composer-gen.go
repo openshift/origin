@@ -355,7 +355,7 @@ func (s *ListOperationsResponse) MarshalJSON() ([]byte, error) {
 // the Apache Airflow software.
 type NodeConfig struct {
 	// DiskSizeGb: Optional. The disk size in GB used for node VMs. Minimum
-	// size is 10GB.
+	// size is 20GB.
 	// If unspecified, defaults to 100GB. Cannot be updated.
 	DiskSizeGb int64 `json:"diskSizeGb,omitempty"`
 

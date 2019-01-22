@@ -60,11 +60,6 @@
       "location": "query",
       "type": "string"
     },
-    "bearer_token": {
-      "description": "OAuth bearer token.",
-      "location": "query",
-      "type": "string"
-    },
     "callback": {
       "description": "JSONP",
       "location": "query",
@@ -84,12 +79,6 @@
       "description": "OAuth 2.0 token for the current user.",
       "location": "query",
       "type": "string"
-    },
-    "pp": {
-      "default": "true",
-      "description": "Pretty-print response.",
-      "location": "query",
-      "type": "boolean"
     },
     "prettyPrint": {
       "default": "true",
@@ -804,7 +793,7 @@
                   ]
                 },
                 "patch": {
-                  "description": "Updates the specified Version resource.\n\nCurrently the only supported field to update is `description`.",
+                  "description": "Updates the specified Version resource.\n\nCurrently the only update-able fields are `description` and\n`autoScaling.minNodes`.",
                   "flatPath": "v1/projects/{projectsId}/models/{modelsId}/versions/{versionsId}",
                   "httpMethod": "PATCH",
                   "id": "ml.projects.models.versions.patch",
@@ -820,7 +809,7 @@
                       "type": "string"
                     },
                     "updateMask": {
-                      "description": "Required. Specifies the path, relative to `Version`, of the field to\nupdate. Must be present and non-empty.\n\nFor example, to change the description of a version to \"foo\", the\n`update_mask` parameter would be specified as `description`, and the\n`PATCH` request body would specify the new value, as follows:\n    {\n      \"description\": \"foo\"\n    }\n\nCurrently the only supported update mask is`description`.",
+                      "description": "Required. Specifies the path, relative to `Version`, of the field to\nupdate. Must be present and non-empty.\n\nFor example, to change the description of a version to \"foo\", the\n`update_mask` parameter would be specified as `description`, and the\n`PATCH` request body would specify the new value, as follows:\n    {\n      \"description\": \"foo\"\n    }\n\nCurrently the only supported update mask fields are `description` and\n`autoScaling.minNodes`.",
                       "format": "google-fieldmask",
                       "location": "query",
                       "type": "string"
@@ -992,7 +981,7 @@
       }
     }
   },
-  "revision": "20180521",
+  "revision": "20180619",
   "rootUrl": "https://ml.googleapis.com/",
   "schemas": {
     "GoogleApi__HttpBody": {
@@ -1815,10 +1804,10 @@
             "XGBOOST"
           ],
           "enumDescriptions": [
-            "",
-            "",
-            "",
-            ""
+            "Unspecified framework. Defaults to TensorFlow.",
+            "Tensorflow framework.",
+            "Scikit-learn framework.",
+            "XGBoost framework."
           ],
           "type": "string"
         },
@@ -1829,6 +1818,10 @@
         "lastUseTime": {
           "description": "Output only. The time the version was last used for prediction.",
           "format": "google-datetime",
+          "type": "string"
+        },
+        "machineType": {
+          "description": "Optional. The type of machine on which to serve the model. Currently only\napplies to online prediction service.\nNaming design doc for CMLE online prediction Machine Types:\nhttps://docs.google.com/document/d/1V3tko3VJ64PcpsmNxCXiPoPGccL9_K8gX1YjC8UofzQ/edit#heading=h.7lvy6owfx4eh.\nThe following are currently supported and will be deprecated in\nBeta release.\n  mls1-highmem-1    1 core    2 Gb RAM\n  mls1-highcpu-4    4 core    2 Gb RAM\nThe following are available in Beta:\n  mls1-c1-m2        1 core    2 Gb RAM   Default\n  mls1-c4-m2        4 core    2 Gb RAM",
           "type": "string"
         },
         "manualScaling": {
