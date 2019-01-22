@@ -47,14 +47,16 @@ func TestSyncConfigMap(t *testing.T) {
 
 	c := NewResourceSyncController(
 		fakeStaticPodOperatorClient,
-		map[string]informers.SharedInformerFactory{
+		v1helpers.NewFakeKubeInformersForNamespaces(map[string]informers.SharedInformerFactory{
 			"config":         configInformers,
 			"config-managed": configManagedInformers,
 			"operator":       operatorInformers,
-		},
+		}),
 		kubeClient,
 		eventRecorder,
 	)
+	c.configMapGetter = kubeClient.CoreV1()
+	c.secretGetter = kubeClient.CoreV1()
 
 	// sync ones for namespaces we don't have
 	if err := c.SyncSecret(ResourceLocation{Namespace: "other", Name: "foo"}, ResourceLocation{Namespace: "operator", Name: "foo"}); err == nil || err.Error() != `not watching namespace "other"` {

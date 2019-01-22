@@ -175,6 +175,18 @@ const (
 	ConditionUnknown ConditionStatus = "Unknown"
 )
 
+// StaticPodOperatorSpec is spec for controllers that manage static pods.
+type StaticPodOperatorSpec struct {
+	OperatorSpec           `json:",inline"`
+
+	// failedRevisionLimit is the number of failed static pod installer revisions to keep on disk and in the api
+	// -1 = unlimited, 0 or unset = 5 (default)
+	FailedRevisionLimit    int32 `json:"failedRevisionLimit,omitempty"`
+	// succeededRevisionLimit is the number of successful static pod installer revisions to keep on disk and in the api
+	// -1 = unlimited, 0 or unset = 5 (default)
+	SucceededRevisionLimit int32 `json:"succeededRevisionLimit,omitempty"`
+}
+
 // StaticPodOperatorStatus is status for controllers that manage static pods.  There are different needs because individual
 // node status must be tracked.
 type StaticPodOperatorStatus struct {

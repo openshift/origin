@@ -6,6 +6,8 @@ import (
 
 	"github.com/golang/glog"
 
+	operatorv1 "github.com/openshift/api/operator/v1"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
@@ -35,6 +37,7 @@ type CertRotationController struct {
 	SigningRotation  SigningRotation
 	CABundleRotation CABundleRotation
 	TargetRotation   TargetRotation
+	OperatorClient   v1helpers.StaticPodOperatorClient
 
 	cachesSynced []cache.InformerSynced
 
@@ -47,11 +50,17 @@ func NewCertRotationController(
 	signingRotation SigningRotation,
 	caBundleRotation CABundleRotation,
 	targetRotation TargetRotation,
-) *CertRotationController {
+	operatorClient v1helpers.StaticPodOperatorClient,
+) (*CertRotationController, error) {
+	if !isOverlapSufficient(signingRotation, targetRotation) {
+		return nil, fmt.Errorf("insufficient overlap between signer and target")
+	}
+
 	ret := &CertRotationController{
 		SigningRotation:  signingRotation,
 		CABundleRotation: caBundleRotation,
 		TargetRotation:   targetRotation,
+		OperatorClient:   operatorClient,
 
 		cachesSynced: []cache.InformerSynced{
 			signingRotation.Informer.Informer().HasSynced,
@@ -66,10 +75,39 @@ func NewCertRotationController(
 	caBundleRotation.Informer.Informer().AddEventHandler(ret.eventHandler())
 	targetRotation.Informer.Informer().AddEventHandler(ret.eventHandler())
 
-	return ret
+	return ret, nil
+}
+
+func isOverlapSufficient(signingRotation SigningRotation, targetRotation TargetRotation) bool {
+	targetRefreshOverlap := float32(targetRotation.Validity) * (1 - targetRotation.RefreshPercentage)
+	requiredSignerAge := targetRefreshOverlap / 10
+	signerRefreshOverlap := float32(signingRotation.Validity) * (signingRotation.RefreshPercentage)
+	if signerRefreshOverlap < requiredSignerAge*2 {
+		return false
+	}
+	return true
 }
 
 func (c CertRotationController) sync() error {
+	syncErr := c.syncWorker()
+
+	condition := operatorv1.OperatorCondition{
+		Type:   "CertRotation_" + c.name + "_Failing",
+		Status: operatorv1.ConditionFalse,
+	}
+	if syncErr != nil {
+		condition.Status = operatorv1.ConditionTrue
+		condition.Reason = "RotationError"
+		condition.Message = syncErr.Error()
+	}
+	if _, _, updateErr := v1helpers.UpdateStaticPodStatus(c.OperatorClient, v1helpers.UpdateStaticPodConditionFn(condition)); updateErr != nil {
+		return updateErr
+	}
+
+	return syncErr
+}
+
+func (c CertRotationController) syncWorker() error {
 	signingCertKeyPair, err := c.SigningRotation.ensureSigningCertKeyPair()
 	if err != nil {
 		return err
@@ -122,6 +160,22 @@ func (c *CertRotationController) Run(workers int, stopCh <-chan struct{}) {
 
 	// doesn't matter what workers say, only start one.
 	go wait.Until(c.runWorker, time.Second, stopCh)
+
+	// start a time based thread to ensure we stay up to date
+	go wait.Until(func() {
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+
+		for {
+			c.queue.Add(workQueueKey)
+			select {
+			case <-ticker.C:
+			case <-stopCh:
+				return
+			}
+		}
+
+	}, time.Minute, stopCh)
 
 	<-stopCh
 }

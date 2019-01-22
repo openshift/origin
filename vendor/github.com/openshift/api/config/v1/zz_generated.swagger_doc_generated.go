@@ -378,7 +378,7 @@ func (ClusterOperatorSpec) SwaggerDoc() map[string]string {
 var map_ClusterOperatorStatus = map[string]string{
 	"":               "ClusterOperatorStatus provides information about the status of the operator.",
 	"conditions":     "conditions describes the state of the operator's reconciliation functionality.",
-	"version":        "version indicates which version of the operator updated the current status object.",
+	"versions":       "versions is a slice of operand version tuples.  Operators which manage multiple operands will have multiple entries in the array.  If an operator is Available, it must have at least one entry.  Report the version of the operator itself in addition to the version of its operands is recommended.",
 	"relatedObjects": "relatedObjects is a list of objects that are \"interesting\" or related to this operator.  Common uses are: 1. the detailed resource driving the operator 2. operator namespaces 3. operand namespaces",
 	"extension":      "extension contains any additional status information specific to the operator which owns this status object.",
 }
@@ -410,6 +410,15 @@ var map_ObjectReference = map[string]string{
 
 func (ObjectReference) SwaggerDoc() map[string]string {
 	return map_ObjectReference
+}
+
+var map_OperandVersion = map[string]string{
+	"name":    "name is the name of the particular operand this version is for.  It usually matches container images, not operators.",
+	"version": "version indicates which version of a particular operand is currently being manage.  It must always match the Available condition.  If 1.0.0 is Available, then this must indicate 1.0.0 even if the operator is trying to rollout 1.1.0",
+}
+
+func (OperandVersion) SwaggerDoc() map[string]string {
+	return map_OperandVersion
 }
 
 var map_ClusterVersion = map[string]string{

@@ -9,8 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/library-go/pkg/operator/v1helpers"
-
 	"github.com/golang/glog"
 
 	corev1 "k8s.io/api/core/v1"
@@ -18,7 +16,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
@@ -27,6 +25,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/prune/bindata"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 // PruneController is a controller that watches static installer pod revision statuses and spawns
@@ -45,8 +44,10 @@ type PruneController struct {
 
 	operatorConfigClient v1helpers.StaticPodOperatorClient
 
-	kubeClient    kubernetes.Interface
-	eventRecorder events.Recorder
+	configMapGetter corev1client.ConfigMapsGetter
+	secretGetter    corev1client.SecretsGetter
+	podGetter       corev1client.PodsGetter
+	eventRecorder   events.Recorder
 }
 
 const (
@@ -59,7 +60,9 @@ func NewPruneController(
 	targetNamespace string,
 	podResourcePrefix string,
 	command []string,
-	kubeClient kubernetes.Interface,
+	configMapGetter corev1client.ConfigMapsGetter,
+	secretGetter corev1client.SecretsGetter,
+	podGetter corev1client.PodsGetter,
 	operatorConfigClient v1helpers.StaticPodOperatorClient,
 	eventRecorder events.Recorder,
 ) *PruneController {
@@ -71,7 +74,9 @@ func NewPruneController(
 		succeededRevisionLimit: 5,
 
 		operatorConfigClient: operatorConfigClient,
-		kubeClient:           kubeClient,
+		configMapGetter:      configMapGetter,
+		secretGetter:         secretGetter,
+		podGetter:            podGetter,
 		eventRecorder:        eventRecorder,
 
 		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "PruneController"),
@@ -86,7 +91,7 @@ func NewPruneController(
 func (c *PruneController) excludedRevisionHistory(operatorStatus *operatorv1.StaticPodOperatorStatus) ([]int, error) {
 	var succeededRevisionIDs, failedRevisionIDs, inProgressRevisionIDs, unknownStatusRevisionIDs []int
 
-	configMaps, err := c.kubeClient.CoreV1().ConfigMaps(c.targetNamespace).List(metav1.ListOptions{})
+	configMaps, err := c.configMapGetter.ConfigMaps(c.targetNamespace).List(metav1.ListOptions{})
 	if err != nil {
 		return []int{}, err
 	}
@@ -153,7 +158,7 @@ func (c *PruneController) pruneDiskResources(operatorStatus *operatorv1.StaticPo
 
 func (c *PruneController) pruneAPIResources(excludedIDs []int, maxEligibleRevisionID int) error {
 	protectedIDs := sets.NewInt(excludedIDs...)
-	statusConfigMaps, err := c.kubeClient.CoreV1().ConfigMaps(c.targetNamespace).List(metav1.ListOptions{})
+	statusConfigMaps, err := c.configMapGetter.ConfigMaps(c.targetNamespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -169,7 +174,7 @@ func (c *PruneController) pruneAPIResources(excludedIDs []int, maxEligibleRevisi
 		if revision > maxEligibleRevisionID {
 			continue
 		}
-		if err := c.kubeClient.CoreV1().ConfigMaps(c.targetNamespace).Delete(cm.Name, &metav1.DeleteOptions{}); err != nil {
+		if err := c.configMapGetter.ConfigMaps(c.targetNamespace).Delete(cm.Name, &metav1.DeleteOptions{}); err != nil {
 			return err
 		}
 	}
@@ -204,7 +209,7 @@ func (c *PruneController) ensurePrunePod(nodeName string, maxEligibleRevision in
 		fmt.Sprintf("--static-pod-name=%s", c.podResourcePrefix),
 	)
 
-	_, _, err := resourceapply.ApplyPod(c.kubeClient.CoreV1(), c.eventRecorder, pod)
+	_, _, err := resourceapply.ApplyPod(c.podGetter, c.eventRecorder, pod)
 	return err
 }
 

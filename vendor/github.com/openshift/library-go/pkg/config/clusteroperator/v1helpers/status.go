@@ -91,9 +91,6 @@ func GetStatusDiff(oldStatus configv1.ClusterOperatorStatus, newStatus configv1.
 	if !equality.Semantic.DeepEqual(oldStatus.Extension, newStatus.Extension) {
 		messages = append(messages, fmt.Sprintf("status.extension changed from %q to %q", oldStatus.Extension, newStatus.Extension))
 	}
-	if oldStatus.Version != newStatus.Version {
-		messages = append(messages, fmt.Sprintf("status.version changed from %q to %q", oldStatus.Version, newStatus.Version))
-	}
 
 	if len(messages) == 0 {
 		// ignore errors

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openshift/library-go/pkg/operator/v1helpers"
-
 	"github.com/golang/glog"
 
 	corev1 "k8s.io/api/core/v1"
@@ -15,14 +13,14 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
-
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 const operatorStatusRevisionControllerFailing = "RevisionControllerFailing"
@@ -40,8 +38,8 @@ type RevisionController struct {
 	secrets []string
 
 	operatorConfigClient v1helpers.StaticPodOperatorClient
-
-	kubeClient kubernetes.Interface
+	configMapGetter      corev1client.ConfigMapsGetter
+	secretGetter         corev1client.SecretsGetter
 
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
 	queue workqueue.RateLimitingInterface
@@ -56,7 +54,8 @@ func NewRevisionController(
 	secrets []string,
 	kubeInformersForTargetNamespace informers.SharedInformerFactory,
 	operatorConfigClient v1helpers.StaticPodOperatorClient,
-	kubeClient kubernetes.Interface,
+	configMapGetter corev1client.ConfigMapsGetter,
+	secretGetter corev1client.SecretsGetter,
 	eventRecorder events.Recorder,
 ) *RevisionController {
 	c := &RevisionController{
@@ -65,7 +64,8 @@ func NewRevisionController(
 		secrets:         secrets,
 
 		operatorConfigClient: operatorConfigClient,
-		kubeClient:           kubeClient,
+		configMapGetter:      configMapGetter,
+		secretGetter:         secretGetter,
 		eventRecorder:        eventRecorder,
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "RevisionController"),
@@ -130,11 +130,11 @@ func nameFor(name string, revision int32) string {
 // isLatestRevisionCurrent returns whether the latest revision is up to date and an optional reason
 func (c RevisionController) isLatestRevisionCurrent(revision int32) (bool, string) {
 	for _, name := range c.configMaps {
-		required, err := c.kubeClient.CoreV1().ConfigMaps(c.targetNamespace).Get(name, metav1.GetOptions{})
+		required, err := c.configMapGetter.ConfigMaps(c.targetNamespace).Get(name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			return false, err.Error()
 		}
-		existing, err := c.kubeClient.CoreV1().ConfigMaps(c.targetNamespace).Get(nameFor(name, revision), metav1.GetOptions{})
+		existing, err := c.configMapGetter.ConfigMaps(c.targetNamespace).Get(nameFor(name, revision), metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			return false, err.Error()
 		}
@@ -143,11 +143,11 @@ func (c RevisionController) isLatestRevisionCurrent(revision int32) (bool, strin
 		}
 	}
 	for _, name := range c.secrets {
-		required, err := c.kubeClient.CoreV1().Secrets(c.targetNamespace).Get(name, metav1.GetOptions{})
+		required, err := c.secretGetter.Secrets(c.targetNamespace).Get(name, metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			return false, err.Error()
 		}
-		existing, err := c.kubeClient.CoreV1().Secrets(c.targetNamespace).Get(nameFor(name, revision), metav1.GetOptions{})
+		existing, err := c.secretGetter.Secrets(c.targetNamespace).Get(nameFor(name, revision), metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			return false, err.Error()
 		}
@@ -170,7 +170,7 @@ func (c RevisionController) createNewRevision(revision int32) error {
 			"revision": fmt.Sprintf("%d", revision),
 		},
 	}
-	statusConfigMap, _, err := resourceapply.ApplyConfigMap(c.kubeClient.CoreV1(), c.eventRecorder, statusConfigMap)
+	statusConfigMap, _, err := resourceapply.ApplyConfigMap(c.configMapGetter, c.eventRecorder, statusConfigMap)
 	if err != nil {
 		return err
 	}
@@ -182,7 +182,7 @@ func (c RevisionController) createNewRevision(revision int32) error {
 	}}
 
 	for _, name := range c.configMaps {
-		obj, _, err := resourceapply.SyncConfigMap(c.kubeClient.CoreV1(), c.eventRecorder, c.targetNamespace, name, c.targetNamespace, nameFor(name, revision), ownerRefs)
+		obj, _, err := resourceapply.SyncConfigMap(c.configMapGetter, c.eventRecorder, c.targetNamespace, name, c.targetNamespace, nameFor(name, revision), ownerRefs)
 		if err != nil {
 			return err
 		}
@@ -191,7 +191,7 @@ func (c RevisionController) createNewRevision(revision int32) error {
 		}
 	}
 	for _, name := range c.secrets {
-		obj, _, err := resourceapply.SyncSecret(c.kubeClient.CoreV1(), c.eventRecorder, c.targetNamespace, name, c.targetNamespace, nameFor(name, revision), ownerRefs)
+		obj, _, err := resourceapply.SyncSecret(c.secretGetter, c.eventRecorder, c.targetNamespace, name, c.targetNamespace, nameFor(name, revision), ownerRefs)
 		if err != nil {
 			return err
 		}

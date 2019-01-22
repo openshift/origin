@@ -23,6 +23,7 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
@@ -31,6 +32,8 @@ const configObserverWorkKey = "key"
 
 // Listers is an interface which will be passed to the config observer funcs.  It is expected to be hard-cast to the "correct" type
 type Listers interface {
+	// ResourceSyncer can be used to copy content from one namespace to another
+	ResourceSyncer() resourcesynccontroller.ResourceSyncer
 	PreRunHasSynced() []cache.InformerSynced
 }
 

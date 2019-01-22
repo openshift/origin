@@ -17,8 +17,33 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/util/retry"
 
+	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 )
+
+func SetOperandVersion(versions *[]configv1.OperandVersion, operandVersion configv1.OperandVersion) {
+	if versions == nil {
+		versions = &[]configv1.OperandVersion{}
+	}
+	existingVersion := FindOperandVersion(*versions, operandVersion.Name)
+	if existingVersion == nil {
+		*versions = append(*versions, operandVersion)
+		return
+	}
+	existingVersion.Version = operandVersion.Version
+}
+
+func FindOperandVersion(versions []configv1.OperandVersion, name string) *configv1.OperandVersion {
+	if versions == nil {
+		return nil
+	}
+	for i := range versions {
+		if versions[i].Name == name {
+			return &versions[i]
+		}
+	}
+	return nil
+}
 
 func SetOperatorCondition(conditions *[]operatorv1.OperatorCondition, newCondition operatorv1.OperatorCondition) {
 	if conditions == nil {

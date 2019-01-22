@@ -16,6 +16,9 @@ type OpenShiftAPIServerConfig struct {
 	// provides the standard apiserver configuration
 	configv1.GenericAPIServerConfig `json:",inline"`
 
+	// aggregatorConfig contains information about how to verify the aggregator front proxy
+	AggregatorConfig FrontProxyConfig `json:"aggregatorConfig"`
+
 	// imagePolicyConfig feeds the image policy admission plugin
 	ImagePolicyConfig ImagePolicyConfig `json:"imagePolicyConfig"`
 
@@ -46,6 +49,20 @@ type OpenShiftAPIServerConfig struct {
 
 	// TODO this needs to be removed.
 	APIServerArguments map[string][]string `json:"apiServerArguments"`
+}
+
+type FrontProxyConfig struct {
+	// clientCA is a path to the CA bundle to use to verify the common name of the front proxy's client cert
+	ClientCA string `json:"clientCA"`
+	// allowedNames is an optional list of common names to require a match from.
+	AllowedNames []string `json:"allowedNames"`
+
+	// usernameHeaders is the set of headers to check for the username
+	UsernameHeaders []string `json:"usernameHeaders"`
+	// groupHeaders is the set of headers to check for groups
+	GroupHeaders []string `json:"groupHeaders"`
+	// extraHeaderPrefixes is the set of header prefixes to check for user extra
+	ExtraHeaderPrefixes []string `json:"extraHeaderPrefixes"`
 }
 
 type GrantHandlerType string
