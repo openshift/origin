@@ -304,6 +304,9 @@ var (
 			`\[Feature:RunAsGroup\]`,                         // flag gate is off
 			`\[NodeAlphaFeature:VolumeSubpathEnvExpansion\]`, // flag gate is off
 			`AdmissionWebhook`,                               // needs to be enabled
+			`\[NodeAlphaFeature:NodeLease\]`,                 // flag gate is off
+			`\[Feature:TTLAfterFinished\]`,                   // flag gate is off
+			`\[Feature:GPUDevicePlugin\]`,                    // GPU node needs to be available
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
@@ -377,6 +380,8 @@ var (
 			`should support inline execution and attach`, // https://bugzilla.redhat.com/show_bug.cgi?id=1624041
 
 			`should idle the service and DeploymentConfig properly`, // idling with a single service and DeploymentConfig [Conformance]
+
+			`\[Feature:Volumes\]`, // storage team to investigate it post-rebase
 		},
 		// tests too slow to be part of conformance
 		"[Slow]": {
