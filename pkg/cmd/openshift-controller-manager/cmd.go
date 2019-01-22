@@ -108,7 +108,13 @@ func (o *OpenShiftControllerManager) RunControllerManager() error {
 	utilruntime.Must(openshiftcontrolplanev1.Install(scheme))
 	codecs := serializer.NewCodecFactory(scheme)
 	obj, err := runtime.Decode(codecs.UniversalDecoder(openshiftcontrolplanev1.GroupVersion, configv1.GroupVersion), configContent)
-	if err == nil {
+	switch {
+	case runtime.IsMissingVersion(err): // fall through to legacy master config
+	case runtime.IsMissingKind(err): // fall through to legacy master config
+	case runtime.IsNotRegisteredError(err): // fall through to legacy master config
+	case err != nil:
+		return err
+	case err == nil:
 		// Resolve relative to CWD
 		absoluteConfigFile, err := api.MakeAbs(o.ConfigFilePath, "")
 		if err != nil {
