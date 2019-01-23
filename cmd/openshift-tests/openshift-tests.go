@@ -30,7 +30,6 @@ import (
 func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
-	defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
 
 	rand.Seed(time.Now().UTC().UnixNano())
 
@@ -66,7 +65,8 @@ func main() {
 
 		`) + testginkgo.SuitesString(suites, "\n\nAvailable test suites:\n\n"),
 
-		SilenceUsage: true,
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var exitErr error
 			var out, errOut io.Writer = os.Stdout, os.Stderr
@@ -119,7 +119,8 @@ func main() {
 		be used to test in isolation while developing new tests.
 		`),
 
-		SilenceUsage: true,
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := initProvider(os.Getenv("TEST_PROVIDER")); err != nil {
 				return err
@@ -153,7 +154,14 @@ func main() {
 	flag.CommandLine = flag.NewFlagSet("empty", flag.ExitOnError)
 	exutil.InitStandardFlags()
 
-	if err := root.Execute(); err != nil {
+	if err := func() error {
+		defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
+		return root.Execute()
+	}(); err != nil {
+		if ex, ok := err.(testginkgo.ExitError); ok {
+			os.Exit(ex.Code)
+		}
+		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
 }

@@ -3,7 +3,6 @@ package ginkgo
 import (
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"strings"
 
@@ -12,6 +11,14 @@ import (
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/ginkgo/types"
 )
+
+type ExitError struct {
+	Code int
+}
+
+func (e ExitError) Error() string {
+	return fmt.Sprintf("exit with code %d", e.Code)
+}
 
 // TestOptions handles running a single test.
 type TestOptions struct {
@@ -70,17 +77,17 @@ func (opt *TestOptions) Run(args []string) error {
 		if len(summary.Failure.ForwardedPanic) > 0 {
 			fmt.Fprintf(opt.ErrOut, "skip [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.ForwardedPanic)
 		}
-		os.Exit(3)
+		return ExitError{Code: 3}
 	case summary.Failed(), summary.Panicked():
 		if len(summary.Failure.ForwardedPanic) > 0 {
 			if len(summary.Failure.Location.FullStackTrace) > 0 {
 				fmt.Fprintf(opt.ErrOut, "\n%s\n", summary.Failure.Location.FullStackTrace)
 			}
 			fmt.Fprintf(opt.ErrOut, "fail [%s:%d]: Test Panicked: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.ForwardedPanic)
-			os.Exit(1)
+			return ExitError{Code: 1}
 		}
 		fmt.Fprintf(opt.ErrOut, "fail [%s:%d]: %s\n", lastFilenameSegment(summary.Failure.Location.FileName), summary.Failure.Location.LineNumber, summary.Failure.Message)
-		os.Exit(1)
+		return ExitError{Code: 1}
 	default:
 		return fmt.Errorf("unrecognized test case outcome: %#v", summary)
 	}
