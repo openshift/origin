@@ -23,7 +23,7 @@ verify-govet:
 .PHONY: verify-govet
 
 verify-golint:
-	$(GOLINT) $(GO_PACKAGES_EXPANDED)
+	$(GOLINT) $(GO_PACKAGES)
 .PHONY: verify-govet
 
 # We need to be careful to expand all the paths before any include is done

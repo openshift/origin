@@ -1,6 +1,11 @@
 all: build
 .PHONY: all
 
+# All the go packages (e.g. for verfy)
+GO_PACKAGES :=./pkg/...
+# Packages to be compiled
+GO_BUILD_PACKAGES :=$(GO_PACKAGES)
+
 include alpha-build-machinery/make/golang.mk
 include alpha-build-machinery/make/targets/openshift/deps.mk
 include alpha-build-machinery/make/targets/openshift/bindata.mk
@@ -10,4 +15,3 @@ $(call add-bindata,monitoring,./pkg/operator/staticpod/controller/monitoring/man
 $(call add-bindata,installer,./pkg/operator/staticpod/controller/installer/manifests/...,bindata,bindata,./pkg/operator/staticpod/controller/installer/bindata/bindata.go)
 $(call add-bindata,staticpod,./pkg/operator/staticpod/controller/prune/manifests/...,bindata,bindata,./pkg/operator/staticpod/controller/prune/bindata/bindata.go)
 
-GO_BUILD_PACKAGES :=./pkg/...

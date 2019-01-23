@@ -34,10 +34,10 @@ type staticPodOperatorControllers struct {
 // 4. BackingResourceController - this creates the backing resources needed for the operand, such as cluster rolebindings and installer service
 //    account.
 // 5. MonitoringResourceController - this creates the service monitor used by prometheus to scrape metrics.
-func NewControllers(targetNamespaceName, staticPodName string, command, revisionConfigMaps, revisionSecrets []string,
-	staticPodOperatorClient v1helpers.StaticPodOperatorClient, configMapGetter corev1client.ConfigMapsGetter, secretGetter corev1client.SecretsGetter, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface,
-	kubeInformersNamespaceScoped,
-	kubeInformersClusterScoped informers.SharedInformerFactory, eventRecorder events.Recorder) *staticPodOperatorControllers {
+func NewControllers(targetNamespaceName, staticPodName string, command []string, revisionConfigMaps, revisionSecrets []revision.RevisionResource,
+	staticPodOperatorClient v1helpers.StaticPodOperatorClient, configMapGetter corev1client.ConfigMapsGetter, secretGetter corev1client.SecretsGetter,
+	kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, kubeInformersNamespaceScoped, kubeInformersClusterScoped informers.SharedInformerFactory,
+	eventRecorder events.Recorder) *staticPodOperatorControllers {
 	controller := &staticPodOperatorControllers{}
 
 	controller.revisionController = revision.NewRevisionController(

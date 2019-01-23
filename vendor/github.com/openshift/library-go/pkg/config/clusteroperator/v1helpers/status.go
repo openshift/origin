@@ -28,7 +28,7 @@ func SetStatusCondition(conditions *[]configv1.ClusterOperatorStatusCondition, n
 
 	if existingCondition.Status != newCondition.Status {
 		existingCondition.Status = newCondition.Status
-		existingCondition.LastTransitionTime = newCondition.LastTransitionTime
+		existingCondition.LastTransitionTime = metav1.NewTime(time.Now())
 	}
 
 	existingCondition.Reason = newCondition.Reason
