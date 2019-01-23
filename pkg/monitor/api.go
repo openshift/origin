@@ -41,6 +41,7 @@ func Start(ctx context.Context) (*Monitor, error) {
 	startPodMonitoring(ctx, m, client)
 	startNodeMonitoring(ctx, m, client)
 	startEventMonitoring(ctx, m, client)
+	startOperatorMonitoring(ctx, clusterConfig, m, client)
 
 	m.StartSampling(ctx)
 	return m, nil
