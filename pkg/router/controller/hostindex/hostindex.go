@@ -101,7 +101,10 @@ func (hi *hostIndex) add(route *routev1.Route, changes *routeChanges) bool {
 			hi.remove(existing, false, changes)
 			// uid changed, which means this is
 		case existing.Spec.Path != route.Spec.Path:
-			// path changed, must check to see if we displace / are displaced by another route
+			// path changed, must check to see if we displace / are displaced by
+			// another route. Remove the existing state to avoid maintaining a
+			// duplicate claim in the index.
+			hi.remove(existing, false, changes)
 		default:
 			// if no changes have been made, we don't need to note a change
 			if existing.ResourceVersion == route.ResourceVersion {
