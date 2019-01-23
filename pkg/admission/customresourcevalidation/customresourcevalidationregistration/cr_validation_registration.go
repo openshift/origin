@@ -1,18 +1,25 @@
 package customresourcevalidationregistration
 
 import (
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation/image"
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation/project"
 	"k8s.io/apiserver/pkg/admission"
+
+	"github.com/openshift/origin/pkg/admission/customresourcevalidation/authentication"
+	"github.com/openshift/origin/pkg/admission/customresourcevalidation/image"
+	"github.com/openshift/origin/pkg/admission/customresourcevalidation/oauth"
+	"github.com/openshift/origin/pkg/admission/customresourcevalidation/project"
 )
 
 // AllCustomResourceValidators are the names of all custom resource validators that should be registered
 var AllCustomResourceValidators = []string{
-	"config.openshift.io/ValidateImage",
-	"config.openshift.io/ValidateProject",
+	authentication.PluginName,
+	image.PluginName,
+	oauth.PluginName,
+	project.PluginName,
 }
 
 func RegisterCustomResourceValidation(plugins *admission.Plugins) {
+	authentication.Register(plugins)
 	image.Register(plugins)
+	oauth.Register(plugins)
 	project.Register(plugins)
 }
