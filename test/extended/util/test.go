@@ -382,6 +382,16 @@ var (
 			`should idle the service and DeploymentConfig properly`, // idling with a single service and DeploymentConfig [Conformance]
 
 			`\[Feature:Volumes\]`, // storage team to investigate it post-rebase
+
+			// TODO: the following list of tests is disabled temporarily due to the fact
+			// that we're running kubelet 1.11 and these require 1.12. We will remove them
+			// post-rebase
+			`\[Feature:NodeAuthenticator\]`,
+			`PreemptionExecutionPath`,
+			`\[Volume type: blockfswithoutformat\]`,
+			`CSI Volumes CSI attach test using HostPath driver`,
+			`CSI Volumes CSI plugin test using CSI driver: hostPath`,
+			`Volume metrics should create volume metrics in Volume Manager`,
 		},
 		// tests too slow to be part of conformance
 		"[Slow]": {
