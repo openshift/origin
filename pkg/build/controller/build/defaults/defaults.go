@@ -7,6 +7,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	"github.com/openshift/origin/pkg/build/util"
@@ -14,7 +15,8 @@ import (
 )
 
 type BuildDefaults struct {
-	Config *openshiftcontrolplanev1.BuildDefaultsConfig
+	Config       *openshiftcontrolplanev1.BuildDefaultsConfig
+	DefaultProxy *configv1.ProxySpec
 }
 
 // ApplyDefaults applies configured build defaults to a build pod
@@ -24,16 +26,17 @@ func (b BuildDefaults) ApplyDefaults(pod *corev1.Pod) error {
 		return nil
 	}
 
-	if b.Config == nil {
-		// even if there's no config for the defaulter, we need to set up the loglevel.
-		return setPodLogLevelFromBuild(pod, build)
+	if b.DefaultProxy != nil {
+		b.applyPodProxyDefaults(pod, build.Spec.Strategy.CustomStrategy != nil)
 	}
 
-	glog.V(4).Infof("Applying defaults to build %s/%s", build.Namespace, build.Name)
-	b.applyBuildDefaults(build)
+	if b.Config != nil {
+		glog.V(4).Infof("Applying defaults to build %s/%s", build.Namespace, build.Name)
+		b.applyBuildDefaults(build)
 
-	glog.V(4).Infof("Applying defaults to pod %s/%s", pod.Namespace, pod.Name)
-	b.applyPodDefaults(pod, build.Spec.Strategy.CustomStrategy != nil)
+		glog.V(4).Infof("Applying defaults to pod %s/%s", pod.Namespace, pod.Name)
+		b.applyPodDefaults(pod, build.Spec.Strategy.CustomStrategy != nil)
+	}
 
 	err = setPodLogLevelFromBuild(pod, build)
 	if err != nil {
@@ -76,6 +79,32 @@ func setPodLogLevelFromBuild(pod *corev1.Pod, build *buildv1.Build) error {
 		pod.Spec.InitContainers[i].Args = append(pod.Spec.InitContainers[i].Args, "--loglevel="+buildLogLevel)
 	}
 	return nil
+}
+
+func (b BuildDefaults) applyPodProxyDefaults(pod *corev1.Pod, isCustomBuild bool) {
+	allContainers := []*corev1.Container{}
+	for i := range pod.Spec.Containers {
+		allContainers = append(allContainers, &pod.Spec.Containers[i])
+	}
+	for i := range pod.Spec.InitContainers {
+		allContainers = append(allContainers, &pod.Spec.InitContainers[i])
+	}
+
+	for _, c := range allContainers {
+		// All env vars are allowed to be set in a custom build pod, the user already has
+		// total control over the env+logic in a custom build pod anyway.
+		externalEnv := make([]corev1.EnvVar, 3)
+		externalEnv = append(externalEnv, corev1.EnvVar{Name: "HTTP_PROXY", Value: b.DefaultProxy.HTTPProxy})
+		externalEnv = append(externalEnv, corev1.EnvVar{Name: "HTTPS_PROXY", Value: b.DefaultProxy.HTTPSProxy})
+		externalEnv = append(externalEnv, corev1.EnvVar{Name: "NO_PROXY", Value: b.DefaultProxy.NoProxy})
+
+		if isCustomBuild {
+			util.MergeEnvWithoutDuplicates(externalEnv, &c.Env, false, []string{})
+		} else {
+			util.MergeTrustedEnvWithoutDuplicates(externalEnv, &c.Env, false)
+		}
+	}
+
 }
 
 func (b BuildDefaults) applyPodDefaults(pod *corev1.Pod, isCustomBuild bool) {
