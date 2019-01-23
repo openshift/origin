@@ -329,9 +329,9 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(dc.Name).To(o.Equal(dcName))
 			e2e.Logf("created DC, creationTimestamp: %v", dc.CreationTimestamp)
 
-			o.Expect(waitForLatestCondition(oc, "deployment-test", deploymentRunTimeout, deploymentRunning)).NotTo(o.HaveOccurred())
+			o.Expect(waitForLatestCondition(oc, "deployment-test", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
-			out, err := oc.Run("logs").Args("-f", "dc/deployment-test").Output()
+			out, err := oc.Run("logs").Args("pod/deployment-test-1-deploy").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			e2e.Logf("oc logs finished")
 
@@ -370,7 +370,10 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 					defer g.GinkgoRecover()
 					defer close(rolloutCompleteWithLogs)
 					var err error
-					out, err = waitForDeployerToComplete(oc, fmt.Sprintf("deployment-test-%d", rolloutNumber), deploymentRunTimeout)
+					dcName := fmt.Sprintf("deployment-test-%d", rolloutNumber)
+					_, err = waitForDeployerToComplete(oc, dcName, deploymentRunTimeout)
+					o.Expect(err).NotTo(o.HaveOccurred())
+					out, err = oc.Run("logs").Args(fmt.Sprintf("pod/%s-deploy", dcName)).Output()
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}(i + 2) // we already did 2 rollouts previously.
 
@@ -594,9 +597,9 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(dc.Name).To(o.Equal(dcName))
 			e2e.Logf("created DC, creationTimestamp: %v", dc.CreationTimestamp)
 
-			o.Expect(waitForLatestCondition(oc, dcName, deploymentRunTimeout, deploymentRunning)).NotTo(o.HaveOccurred())
+			o.Expect(waitForLatestCondition(oc, dcName, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
-			out, err := oc.Run("logs").Args("--follow", "dc/custom-deployment").Output()
+			out, err := oc.Run("logs").Args("pod/custom-deployment-1-deploy").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 			e2e.Logf("oc logs finished")
 
