@@ -232,6 +232,64 @@ func Test_hostIndex(t *testing.T) {
 			},
 			active: map[string][]string{"test.com": {"001"}},
 		},
+		{
+			name:       "multiple changes to same path-based route",
+			activateFn: SameNamespace,
+			steps: []step{
+				{route: newRoute("test", "1", 1, 1, routeapi.RouteSpec{Host: "test.com", Path: "/foo"})},
+				{route: newRoute("test", "1", 1, 2, routeapi.RouteSpec{Host: "test.com", Path: "/bar"})},
+				{route: newRoute("test", "1", 1, 3, routeapi.RouteSpec{Host: "test.com", Path: "/foo"})},
+				{route: newRoute("test", "1", 1, 4, routeapi.RouteSpec{Host: "test.com", Path: "/bar"})},
+				{route: newRoute("test", "1", 1, 5, routeapi.RouteSpec{Host: "test.com", Path: "/foo"})},
+			},
+			active:    map[string][]string{"test.com": {"001"}},
+			activates: map[string]struct{}{"001": {}},
+		},
+		{
+			name:       "remove unchanged path-based route",
+			activateFn: SameNamespace,
+			steps: []step{
+				{route: newRoute("test", "1", 1, 1, routeapi.RouteSpec{Host: "test.com", Path: "/foo"})},
+				{remove: true, route: newRoute("test", "1", 0, 1, routeapi.RouteSpec{Host: "test.com", Path: "/foo"})},
+			},
+		},
+		{
+			name:       "remove updated path-based route",
+			activateFn: SameNamespace,
+			steps: []step{
+				{route: newRoute("test", "1", 1, 1, routeapi.RouteSpec{Host: "test.com", Path: "/foo"})},
+				{route: newRoute("test", "1", 1, 2, routeapi.RouteSpec{Host: "test.com", Path: "/bar"})},
+				{route: newRoute("test", "1", 1, 3, routeapi.RouteSpec{Host: "test.com", Path: "/foo"})},
+				{route: newRoute("test", "1", 1, 4, routeapi.RouteSpec{Host: "test.com", Path: "/bar"})},
+				{remove: true, route: newRoute("test", "1", 1, 4, routeapi.RouteSpec{Host: "test.com", Path: "/bar"})},
+			},
+		},
+		{
+			name:       "missed delete of path-based route",
+			activateFn: SameNamespace,
+			steps: []step{
+				{route: newRoute("test", "1", 2, 1, routeapi.RouteSpec{Host: "test.com", Path: "/foo"})},
+				{route: newRoute("test", "2", 1, 1, routeapi.RouteSpec{Host: "test.com", Path: "/foo"})},
+			},
+			newRoute:  true,
+			active:    map[string][]string{"test.com": {"001"}},
+			activates: map[string]struct{}{"001": {}},
+			displaces: map[string]struct{}{"002": {}},
+			inactive:  map[string][]string{"test.com": {"002"}},
+		},
+		{
+			name:       "path-based route rejection",
+			activateFn: SameNamespace,
+			steps: []step{
+				{route: newRoute("test", "1", 1, 1, routeapi.RouteSpec{Host: "test.com", Path: "/x/y/z"})},
+				{route: newRoute("test", "2", 2, 1, routeapi.RouteSpec{Host: "test.com", Path: "/foo"})},
+				{route: newRoute("test", "2", 2, 2, routeapi.RouteSpec{Host: "test.com", Path: "/bar"})},
+				{route: newRoute("test", "2", 2, 3, routeapi.RouteSpec{Host: "test.com", Path: "/x/y/z"})},
+			},
+			active:    map[string][]string{"test.com": {"001"}},
+			displaces: map[string]struct{}{"002": {}},
+			inactive:  map[string][]string{"test.com": {"002"}},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
