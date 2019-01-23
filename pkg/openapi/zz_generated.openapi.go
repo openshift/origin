@@ -7472,7 +7472,7 @@ func schema_openshift_api_config_v1_ClusterOperatorStatus(ref common.ReferenceCa
 					},
 					"versions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "versions is a slice of operand version tuples.  Operators which manage multiple operands will have multiple entries in the array.  If an operator is Available, it must have at least one entry.  Report the version of the operator itself in addition to the version of its operands is recommended.",
+							Description: "versions is a slice of operand version tuples.  Operators which manage multiple operands will have multiple entries in the array.  If an operator is Available, it must have at least one entry.  You must report the version of the operator itself with the name \"operator\".",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -7667,7 +7667,7 @@ func schema_openshift_api_config_v1_ClusterVersionSpec(ref common.ReferenceCallb
 					},
 					"desiredUpdate": {
 						SchemaProps: spec.SchemaProps{
-							Description: "desiredUpdate is an optional field that indicates the desired value of the cluster version. Setting this value will trigger an upgrade (if the current version does not match the desired version). The set of recommended update values is listed as part of available updates in status, and setting values outside that range may cause the upgrade to fail.\n\nIf an upgrade fails the operator will halt and report status about the failing component. Setting the desired update value back to the previous version will cause a rollback to be attempted. Not all rollbacks will succeed.",
+							Description: "desiredUpdate is an optional field that indicates the desired value of the cluster version. Setting this value will trigger an upgrade (if the current version does not match the desired version). The set of recommended update values is listed as part of available updates in status, and setting values outside that range may cause the upgrade to fail. You may specify the version field without setting image if an update exists with that version in the availableUpdates or history.\n\nIf an upgrade fails the operator will halt and report status about the failing component. Setting the desired update value back to the previous version will cause a rollback to be attempted. Not all rollbacks will succeed.",
 							Ref:         ref("github.com/openshift/api/config/v1.Update"),
 						},
 					},
@@ -7715,7 +7715,7 @@ func schema_openshift_api_config_v1_ClusterVersionStatus(ref common.ReferenceCal
 				Properties: map[string]spec.Schema{
 					"desired": {
 						SchemaProps: spec.SchemaProps{
-							Description: "desired is the version that the cluster is reconciling towards. If the cluster is not yet fully initialized desired will be set with the information available, which may be a payload or a tag.",
+							Description: "desired is the version that the cluster is reconciling towards. If the cluster is not yet fully initialized desired will be set with the information available, which may be an image or a tag.",
 							Ref:         ref("github.com/openshift/api/config/v1.Update"),
 						},
 					},
@@ -9288,13 +9288,6 @@ func schema_openshift_api_config_v1_KeystoneIdentityProvider(ref common.Referenc
 						SchemaProps: spec.SchemaProps{
 							Description: "domainName is required for keystone v3",
 							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"useUsernameIdentity": {
-						SchemaProps: spec.SchemaProps{
-							Description: "useUsernameIdentity indicates that users should be authenticated by username, not keystone ID DEPRECATED - only use this option for legacy systems to ensure backwards compatibility",
-							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
@@ -11048,18 +11041,18 @@ func schema_openshift_api_config_v1_Update(ref common.ReferenceCallback) common.
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "Update represents a release of the ClusterVersionOperator, referenced by the Payload member.",
+				Description: "Update represents a release of the ClusterVersionOperator, referenced by the Image member.",
 				Properties: map[string]spec.Schema{
 					"version": {
 						SchemaProps: spec.SchemaProps{
-							Description: "version is a semantic versioning identifying the update version. When this field is part of spec, version is optional if payload is specified.",
+							Description: "version is a semantic versioning identifying the update version. When this field is part of spec, version is optional if image is specified.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
-					"payload": {
+					"image": {
 						SchemaProps: spec.SchemaProps{
-							Description: "payload is a container image location that contains the update. When this field is part of spec, payload is optional if version is specified and the availableUpdates field contains a matching version.",
+							Description: "image is a container image location that contains the update. When this field is part of spec, image is optional if version is specified and the availableUpdates field contains a matching version.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -11098,20 +11091,20 @@ func schema_openshift_api_config_v1_UpdateHistory(ref common.ReferenceCallback) 
 					},
 					"version": {
 						SchemaProps: spec.SchemaProps{
-							Description: "version is a semantic versioning identifying the update version. If the requested payload does not define a version, or if a failure occurs retrieving the payload, this value may be empty.",
+							Description: "version is a semantic versioning identifying the update version. If the requested image does not define a version, or if a failure occurs retrieving the image, this value may be empty.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
-					"payload": {
+					"image": {
 						SchemaProps: spec.SchemaProps{
-							Description: "payload is a container image location that contains the update. This value is always populated.",
+							Description: "image is a container image location that contains the update. This value is always populated.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
-				Required: []string{"state", "startedTime", "completionTime", "payload"},
+				Required: []string{"state", "startedTime", "completionTime", "image"},
 			},
 		},
 		Dependencies: []string{
