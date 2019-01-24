@@ -10,6 +10,7 @@ import (
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/console"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/features"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/image"
+	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/network"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/oauth"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/project"
 	"k8s.io/kubernetes/openshift-kube-apiserver/admission/customresourcevalidation/rolebindingrestriction"
@@ -24,6 +25,7 @@ var AllCustomResourceValidators = []string{
 	features.PluginName,
 	console.PluginName,
 	image.PluginName,
+	network.PluginName,
 	oauth.PluginName,
 	project.PluginName,
 	config.PluginName,
@@ -42,6 +44,7 @@ func RegisterCustomResourceValidation(plugins *admission.Plugins) {
 	features.Register(plugins)
 	console.Register(plugins)
 	image.Register(plugins)
+	network.Register(plugins)
 	oauth.Register(plugins)
 	project.Register(plugins)
 	config.Register(plugins)
