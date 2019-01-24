@@ -82,7 +82,8 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 					},
 				},
 			}
-			runQueries(terminalTests, oc, ns, execPodName, url, bearerToken)
+			errs := runQueries(terminalTests, oc, ns, execPodName, url, bearerToken)
+			o.Expect(errs).To(o.BeEmpty())
 
 			// NOTE:  in manual testing on a laptop, starting several serial builds in succession was sufficient for catching
 			// at least a few builds in new/pending state with the default prometheus query interval;  but that has not
@@ -113,7 +114,7 @@ type metricTest struct {
 	success          bool
 }
 
-func runQueries(metricTests map[string][]metricTest, oc *exutil.CLI, ns, execPodName, baseURL, bearerToken string) {
+func runQueries(metricTests map[string][]metricTest, oc *exutil.CLI, ns, execPodName, baseURL, bearerToken string) map[string]error {
 	// expect all correct metrics within a reasonable time period
 	errsMap := map[string]error{}
 	for i := 0; i < waitForPrometheusStartSeconds; i++ {
@@ -160,7 +161,7 @@ func runQueries(metricTests map[string][]metricTest, oc *exutil.CLI, ns, execPod
 	if len(errsMap) != 0 {
 		exutil.DumpPodLogsStartingWith("prometheus-0", oc)
 	}
-	o.Expect(errsMap).To(o.BeEmpty())
+	return errsMap
 }
 
 func startOpenShiftBuild(oc *exutil.CLI, appTemplate string) *exutil.BuildResult {
