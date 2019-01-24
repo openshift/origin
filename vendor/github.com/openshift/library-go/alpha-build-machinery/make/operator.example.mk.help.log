@@ -1,6 +1,8 @@
 The following make targets are available:
 all
 build
+clean
+clean-binaries
 help
 image-origin-cluster-openshift-apiserver-operator
 images

@@ -132,6 +132,7 @@ func (o *InstallOptions) copyContent() error {
 	// gather all secrets
 	secrets := []*corev1.Secret{}
 	for _, currPrefix := range o.SecretNamePrefixes {
+		glog.Infof("getting secrets/%s -n %s", o.nameFor(currPrefix), o.Namespace)
 		val, err := o.KubeClient.CoreV1().Secrets(o.Namespace).Get(o.nameFor(currPrefix), metav1.GetOptions{})
 		if err != nil {
 			return err
@@ -139,8 +140,10 @@ func (o *InstallOptions) copyContent() error {
 		secrets = append(secrets, val)
 	}
 	for _, currPrefix := range o.OptionalSecretNamePrefixes {
+		glog.Infof("getting optional secrets/%s -n %s", o.nameFor(currPrefix), o.Namespace)
 		val, err := o.KubeClient.CoreV1().Secrets(o.Namespace).Get(o.nameFor(currPrefix), metav1.GetOptions{})
 		if errors.IsNotFound(err) {
+			glog.Infof("missing optional secrets/%s -n %s", o.nameFor(currPrefix), o.Namespace)
 			continue
 		}
 		if err != nil {
@@ -152,6 +155,7 @@ func (o *InstallOptions) copyContent() error {
 	// gather all configmaps
 	configmaps := []*corev1.ConfigMap{}
 	for _, currPrefix := range o.ConfigMapNamePrefixes {
+		glog.Infof("getting configmaps/%s -n %s", o.nameFor(currPrefix), o.Namespace)
 		val, err := o.KubeClient.CoreV1().ConfigMaps(o.Namespace).Get(o.nameFor(currPrefix), metav1.GetOptions{})
 		if err != nil {
 			return err
@@ -159,8 +163,10 @@ func (o *InstallOptions) copyContent() error {
 		configmaps = append(configmaps, val)
 	}
 	for _, currPrefix := range o.OptionalConfigMapNamePrefixes {
+		glog.Infof("getting optional configmaps/%s -n %s", o.nameFor(currPrefix), o.Namespace)
 		val, err := o.KubeClient.CoreV1().ConfigMaps(o.Namespace).Get(o.nameFor(currPrefix), metav1.GetOptions{})
 		if errors.IsNotFound(err) {
+			glog.Infof("missing optional configmaps/%s -n %s", o.nameFor(currPrefix), o.Namespace)
 			continue
 		}
 		if err != nil {
@@ -170,6 +176,7 @@ func (o *InstallOptions) copyContent() error {
 	}
 
 	// gather pod
+	glog.Infof("getting pod configmaps/%s -n %s", o.nameFor(o.PodConfigMapNamePrefix), o.Namespace)
 	podConfigMap, err := o.KubeClient.CoreV1().ConfigMaps(o.Namespace).Get(o.nameFor(o.PodConfigMapNamePrefix), metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -179,16 +186,19 @@ func (o *InstallOptions) copyContent() error {
 
 	// write secrets, configmaps, static pods
 	resourceDir := path.Join(o.ResourceDir, o.nameFor(o.PodConfigMapNamePrefix))
+	glog.Infof("creating dir %q", resourceDir)
 	if err := os.MkdirAll(resourceDir, 0755); err != nil {
 		return err
 	}
 	for _, secret := range secrets {
 		contentDir := path.Join(resourceDir, "secrets", o.prefixFor(secret.Name))
+		glog.Infof("creating dir %q", contentDir)
 		if err := os.MkdirAll(contentDir, 0755); err != nil {
 			return err
 		}
 		for filename, content := range secret.Data {
 			// TODO fix permissions
+			glog.Infof("writing secret file %q", path.Join(contentDir, filename))
 			if err := ioutil.WriteFile(path.Join(contentDir, filename), content, 0644); err != nil {
 				return err
 			}
@@ -196,10 +206,12 @@ func (o *InstallOptions) copyContent() error {
 	}
 	for _, configmap := range configmaps {
 		contentDir := path.Join(resourceDir, "configmaps", o.prefixFor(configmap.Name))
+		glog.Infof("creating dir %q", contentDir)
 		if err := os.MkdirAll(contentDir, 0755); err != nil {
 			return err
 		}
 		for filename, content := range configmap.Data {
+			glog.Infof("writing configmap file %q", path.Join(contentDir, filename))
 			if err := ioutil.WriteFile(path.Join(contentDir, filename), []byte(content), 0644); err != nil {
 				return err
 			}
@@ -211,9 +223,11 @@ func (o *InstallOptions) copyContent() error {
 	}
 
 	// copy static pod
+	glog.Infof("creating dir %q", o.PodManifestDir)
 	if err := os.MkdirAll(o.PodManifestDir, 0755); err != nil {
 		return err
 	}
+	glog.Infof("writing static pod %q", path.Join(o.PodManifestDir, podFileName))
 	if err := ioutil.WriteFile(path.Join(o.PodManifestDir, podFileName), []byte(podContent), 0644); err != nil {
 		return err
 	}

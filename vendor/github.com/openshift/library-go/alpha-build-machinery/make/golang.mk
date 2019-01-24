@@ -15,6 +15,9 @@ update: update-gofmt
 test: test-unit
 .PHONY: test
 
+clean: clean-binaries
+.PHONY: clean
+
 
 # We need to be careful to expand all the paths before any include is done
 # or self_dir could be modified for the next include by the included file.
