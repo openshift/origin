@@ -11,6 +11,7 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/stretchr/objx"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -18,15 +19,40 @@ import (
 	"k8s.io/client-go/dynamic"
 	coreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 const (
 	operatorWait = 1 * time.Minute
 	cvoWait      = 5 * time.Minute
+
+	// pods whose metrics show a larger ratio of requests per
+	// second than maxQPSAllowed are considered "unhealthy".
+	maxQPSAllowed = 1.5
+)
+
+var (
+	// TODO: these exceptions should not exist. Update operators to have a better request-rate per second
+	perComponentNamespaceMaxQPSAllowed = map[string]float64{
+		"openshift-apiserver-operator":                            3.0,
+		"openshift-kube-apiserver-operator":                       6.8,
+		"openshift-kube-controller-manager-operator":              2.0,
+		"openshift-cluster-kube-scheduler-operator":               1.8,
+		"openshift-cluster-openshift-controller-manager-operator": 1.7,
+		"openshift-kube-scheduler-operator":                       1.7,
+	}
 )
 
 var _ = g.Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 	defer g.GinkgoRecover()
+	var oc = exutil.NewCLIWithoutNamespace("operators")
+
+	g.BeforeEach(func() {
+		if !locatePrometheus(oc) {
+			e2e.Skipf("Prometheus could not be located on this cluster, skipping operator test")
+		}
+	})
 
 	g.It("start all core operators", func() {
 		cfg, err := e2e.LoadConfig()
@@ -154,6 +180,56 @@ var _ = g.Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 		// Check at least one core operator is available
 		if len(available) == 0 {
 			e2e.Failf("None of the required core operators are available")
+		}
+	})
+
+	g.It("should iterate through operator pods and detect higher-than-normal queries per second", func() {
+		podURLGetter := &portForwardURLGetter{
+			Protocol:   "https",
+			Host:       "localhost",
+			RemotePort: "8443",
+			LocalPort:  "37587",
+		}
+
+		namespaces, err := oc.AdminKubeClient().CoreV1().Namespaces().List(metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		failures := []error{}
+		failedPods := []v1.Pod{}
+		for _, ns := range namespaces.Items {
+			// skip namespaces which do not meet "operator namespace" criteria
+			if !strings.HasPrefix(ns.Name, "openshift-") || !strings.HasSuffix(ns.Name, "-operator") {
+				continue
+			}
+
+			infos, err := getPodInfoForNamespace(oc.AdminKubeClient(), oc.AdminConfig(), podURLGetter, ns.Name)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			for _, info := range infos {
+				if info.failed {
+					failures = append(failures, fmt.Errorf("failed to fetch operator pod metrics for pod %q: %s", info.name, info.result))
+					continue
+				}
+				if info.skipped {
+					continue
+				}
+
+				qpsLimit := maxQPSAllowed
+				if customLimit, ok := perComponentNamespaceMaxQPSAllowed[info.namespace]; ok {
+					qpsLimit = customLimit
+				}
+
+				if info.qps > qpsLimit {
+					failedPods = append(failedPods, *info.pod)
+					failures = append(failures, fmt.Errorf("operator pod %q in namespace %q is making %v requests per second. Maximum allowed is %v requests per second", info.name, info.namespace, info.qps, maxQPSAllowed))
+					continue
+				}
+			}
+
+			if len(failures) > 0 {
+				exutil.DumpPodLogs(failedPods, oc)
+			}
+			o.Expect(failures).To(o.BeEmpty())
 		}
 	})
 })
