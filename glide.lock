@@ -1,5 +1,5 @@
 hash: c8ac0c0bb0e2eada6660066d264865b8581a69cd19ccecac917e67b84559fa12
-updated: 2019-01-23T11:32:36.371833347-05:00
+updated: 2019-01-24T20:17:08.408502726-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -741,7 +741,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/onsi/ginkgo
-  version: 2adc71ecca6a3b0d54214b3c1ea1c2cfc11e970a
+  version: 91d1f79b433e8009b30e43a89f3adb2094954dc1
   repo: https://github.com/openshift/onsi-ginkgo.git
   subpackages:
   - config
@@ -814,7 +814,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 74cf02537628c9ca144e7f09c8db26ee7e7f56e4
+  version: a67af6b6a390122948f33c4d014d864ca4d2b661
   subpackages:
   - apps
   - apps/v1
@@ -860,7 +860,7 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 8fb54357b899c50a2c5b96408cb909818c3e25c8
+  version: f9132806c9914790e15f10d8c5d1e7a03408d7b2
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/fake
@@ -984,7 +984,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: af2e072d9dc8d25226fa0da33514d4c33e662660
+  version: 22c06b1b6dd66dc827b452b77b4cc48cd7820e91
   subpackages:
   - pkg/config/configdefaults
   - pkg/config/helpers
@@ -1008,7 +1008,7 @@ imports:
   - pkg/controller/servingcert/controller
   - pkg/controller/servingcert/cryptoextensions
 - name: github.com/openshift/source-to-image
-  version: b54d75d3de92d123e68a79c6ee09c2c5fe44e720
+  version: bb50d6fa68f20128269ecec4d792be1e18ef4254
   subpackages:
   - pkg/api
   - pkg/api/constants
@@ -1031,7 +1031,7 @@ imports:
 - name: github.com/pkg/errors
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pkg/profile
-  version: 22592cc4bae3572d59be8852c6980023e4c9dec5
+  version: 057bc52a47ec3c79498dda63f4a6f8298725e976
 - name: github.com/pkg/sftp
   version: 4d0e916071f68db74f8a73926335f809396d6b42
 - name: github.com/pmezard/go-difflib

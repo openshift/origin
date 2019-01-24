@@ -18,7 +18,7 @@ type KubeControllerManager struct {
 }
 
 type KubeControllerManagerSpec struct {
-	OperatorSpec `json:",inline"`
+	StaticPodOperatorSpec `json:",inline"`
 
 	// forceRedeploymentReason can be used to force the redeployment of the kube-controller-manager by providing a unique string.
 	// This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work

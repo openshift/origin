@@ -45,6 +45,11 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 			ManagementState: operatorv1.Managed,
 		},
 		&operatorv1.OperatorStatus{},
+		&operatorv1.StaticPodOperatorSpec{
+			OperatorSpec: operatorv1.OperatorSpec{
+				ManagementState: operatorv1.Managed,
+			},
+		},
 		&operatorv1.StaticPodOperatorStatus{
 			LatestAvailableRevision: 1,
 			NodeStatuses: []operatorv1.NodeStatus{
@@ -251,6 +256,11 @@ func TestCreateInstallerPod(t *testing.T) {
 			ManagementState: operatorv1.Managed,
 		},
 		&operatorv1.OperatorStatus{},
+		&operatorv1.StaticPodOperatorSpec{
+			OperatorSpec: operatorv1.OperatorSpec{
+				ManagementState: operatorv1.Managed,
+			},
+		},
 		&operatorv1.StaticPodOperatorStatus{
 			LatestAvailableRevision: 1,
 			NodeStatuses: []operatorv1.NodeStatus{
@@ -411,6 +421,11 @@ func TestEnsureInstallerPod(t *testing.T) {
 					ManagementState: operatorv1.Managed,
 				},
 				&operatorv1.OperatorStatus{},
+				&operatorv1.StaticPodOperatorSpec{
+					OperatorSpec: operatorv1.OperatorSpec{
+						ManagementState: operatorv1.Managed,
+					},
+				},
 				&operatorv1.StaticPodOperatorStatus{
 					LatestAvailableRevision: 1,
 					NodeStatuses: []operatorv1.NodeStatus{
@@ -670,6 +685,11 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 					ManagementState: operatorv1.Managed,
 				},
 				&operatorv1.OperatorStatus{},
+				&operatorv1.StaticPodOperatorSpec{
+					OperatorSpec: operatorv1.OperatorSpec{
+						ManagementState: operatorv1.Managed,
+					},
+				},
 				&operatorv1.StaticPodOperatorStatus{
 					LatestAvailableRevision: test.latestAvailableRevision,
 					NodeStatuses:            test.nodeStatuses,
@@ -737,7 +757,7 @@ func TestInstallerController_manageInstallationPods(t *testing.T) {
 		installerPodImageFn  func() string
 	}
 	type args struct {
-		operatorSpec           *operatorv1.OperatorSpec
+		operatorSpec           *operatorv1.StaticPodOperatorSpec
 		originalOperatorStatus *operatorv1.StaticPodOperatorStatus
 		resourceVersion        string
 	}
@@ -946,30 +966,31 @@ func TestNodeToStartRevisionWith(t *testing.T) {
 func TestSetConditions(t *testing.T) {
 
 	type TestCase struct {
-		name                    string
-		latestAvailableRevision int32
-		currentRevisions        []int32
-		expectedAvailableStatus operatorv1.ConditionStatus
-		expectedPendingStatus   operatorv1.ConditionStatus
+		name                      string
+		latestAvailableRevision   int32
+		currentRevisions          []int32
+		expectedAvailableStatus   operatorv1.ConditionStatus
+		expectedProgressingStatus operatorv1.ConditionStatus
 	}
 
-	testCase := func(name string, available, pending bool, latest int32, current ...int32) TestCase {
+	testCase := func(name string, available, progressing bool, latest int32, current ...int32) TestCase {
 		availableStatus := operatorv1.ConditionFalse
 		pendingStatus := operatorv1.ConditionFalse
 		if available {
 			availableStatus = operatorv1.ConditionTrue
 		}
-		if pending {
+		if progressing {
 			pendingStatus = operatorv1.ConditionTrue
 		}
 		return TestCase{name, latest, current, availableStatus, pendingStatus}
 	}
 
 	testCases := []TestCase{
-		testCase("AvailablePending", true, true, 2, 2, 1, 2, 1),
-		testCase("AvailableNotPending", true, false, 2, 2, 2, 2),
-		testCase("NotAvailablePending", false, true, 2, 1, 1),
-		testCase("NotAvailableNotPending", false, false, 2),
+		testCase("AvailableProgressing", true, true, 2, 2, 1, 2, 1),
+		testCase("AvailableNotProgressing", true, false, 2, 2, 2, 2),
+		testCase("NotAvailableProgressing", false, true, 2, 0, 0),
+		testCase("NotAvailableAtOldLevelProgressing", true, true, 2, 1, 1),
+		testCase("NotAvailableNotProgressing", false, false, 2),
 	}
 
 	for _, tc := range testCases {
@@ -989,9 +1010,9 @@ func TestSetConditions(t *testing.T) {
 			}
 			pendingCondition := v1helpers.FindOperatorCondition(status.Conditions, operatorv1.OperatorStatusTypeProgressing)
 			if pendingCondition == nil {
-				t.Error("Pending condition: not found")
-			} else if pendingCondition.Status != tc.expectedPendingStatus {
-				t.Errorf("Pending condition: expected status %v, actual status %v", tc.expectedPendingStatus, pendingCondition.Status)
+				t.Error("Progressing condition: not found")
+			} else if pendingCondition.Status != tc.expectedProgressingStatus {
+				t.Errorf("Progressing condition: expected status %v, actual status %v", tc.expectedProgressingStatus, pendingCondition.Status)
 			}
 		})
 	}

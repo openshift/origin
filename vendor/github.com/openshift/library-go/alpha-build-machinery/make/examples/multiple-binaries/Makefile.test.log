@@ -1,0 +1,9 @@
+make -C . build
+go build  github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/oc
+go build  github.com/openshift/library-go/alpha-build-machinery/make/examples/multiple-binaries/cmd/openshift
+[[ -f ./openshift ]]
+[[ -f ./oc ]]
+make -C . clean
+rm -f oc openshift
+[[ ! -f ./openshift ]]
+[[ ! -f ./oc ]]

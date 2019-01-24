@@ -27,8 +27,8 @@ func TestPruneAPIResources(t *testing.T) {
 	tests := []struct {
 		name            string
 		targetNamespace string
-		failedLimit     int
-		succeededLimit  int
+		failedLimit     int32
+		succeededLimit  int32
 		currentRevision int
 		configMaps      []configMapInfo
 		testSecrets     []string
@@ -128,6 +128,52 @@ func TestPruneAPIResources(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:            "protects all with unlimited revisions",
+			targetNamespace: "prune-api",
+			startingObjects: []runtime.Object{
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-1", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   string(v1.PodSucceeded),
+						"revision": "1",
+					},
+				},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-2", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   string(v1.PodSucceeded),
+						"revision": "2",
+					},
+				},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-3", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   string(v1.PodSucceeded),
+						"revision": "3",
+					},
+				},
+			},
+			failedLimit:    -1,
+			succeededLimit: -1,
+			expectedObjects: []runtime.Object{
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-1", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   string(v1.PodSucceeded),
+						"revision": "1",
+					},
+				},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-2", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   string(v1.PodSucceeded),
+						"revision": "2",
+					},
+				},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-3", Namespace: "prune-api"},
+					Data: map[string]string{
+						"status":   string(v1.PodSucceeded),
+						"revision": "3",
+					},
+				},
+			},
+		},
 	}
 	for _, tc := range tests {
 		kubeClient := fake.NewSimpleClientset(tc.startingObjects...)
@@ -136,6 +182,13 @@ func TestPruneAPIResources(t *testing.T) {
 				ManagementState: operatorv1.Managed,
 			},
 			&operatorv1.OperatorStatus{},
+			&operatorv1.StaticPodOperatorSpec{
+				FailedRevisionLimit:    tc.failedLimit,
+				SucceededRevisionLimit: tc.succeededLimit,
+				OperatorSpec: operatorv1.OperatorSpec{
+					ManagementState: operatorv1.Managed,
+				},
+			},
 			&operatorv1.StaticPodOperatorStatus{
 				LatestAvailableRevision: 1,
 				NodeStatuses: []operatorv1.NodeStatus{
@@ -162,20 +215,24 @@ func TestPruneAPIResources(t *testing.T) {
 		}
 
 		c := &PruneController{
-			targetNamespace:        tc.targetNamespace,
-			podResourcePrefix:      "test-pod",
-			command:                []string{"/bin/true"},
-			configMapGetter:        kubeClient.CoreV1(),
-			secretGetter:           kubeClient.CoreV1(),
-			podGetter:              kubeClient.CoreV1(),
-			eventRecorder:          eventRecorder,
-			operatorConfigClient:   fakeStaticPodOperatorClient,
-			failedRevisionLimit:    tc.failedLimit,
-			succeededRevisionLimit: tc.succeededLimit,
+			targetNamespace:      tc.targetNamespace,
+			podResourcePrefix:    "test-pod",
+			command:              []string{"/bin/true"},
+			configMapGetter:      kubeClient.CoreV1(),
+			secretGetter:         kubeClient.CoreV1(),
+			podGetter:            kubeClient.CoreV1(),
+			eventRecorder:        eventRecorder,
+			operatorConfigClient: fakeStaticPodOperatorClient,
 		}
 		c.prunerPodImageFn = func() string { return "docker.io/foo/bar" }
 
-		excludedIDs, err := c.excludedRevisionHistory(operatorStatus)
+		operatorSpec, _, _, err := c.operatorConfigClient.GetStaticPodOperatorState()
+		if err != nil {
+			t.Fatalf("unexpected error %q", err)
+		}
+		failedLimit, succeededLimit := getRevisionLimits(operatorSpec)
+
+		excludedIDs, err := c.excludedRevisionHistory(operatorStatus, failedLimit, succeededLimit)
 		if err != nil {
 			t.Fatalf("unexpected error %q", err)
 		}
@@ -196,8 +253,8 @@ func TestPruneAPIResources(t *testing.T) {
 func TestPruneDiskResources(t *testing.T) {
 	tests := []struct {
 		name           string
-		failedLimit    int
-		succeededLimit int
+		failedLimit    int32
+		succeededLimit int32
 		maxEligibleID  int
 		protectedIDs   string
 		configMaps     []configMapInfo
@@ -276,9 +333,29 @@ func TestPruneDiskResources(t *testing.T) {
 			maxEligibleID: 2,
 			protectedIDs:  "1,2",
 		},
-
 		{
 			name: "handles revisions of only one type of phase",
+			configMaps: []configMapInfo{
+				{
+					name:      "revision-status-1",
+					namespace: "test",
+					revision:  "1",
+					phase:     string(v1.PodSucceeded),
+				},
+				{
+					name:      "revision-status-2",
+					namespace: "test",
+					revision:  "2",
+					phase:     string(v1.PodSucceeded),
+				},
+			},
+			maxEligibleID:  2,
+			protectedIDs:   "2",
+			failedLimit:    1,
+			succeededLimit: 1,
+		},
+		{
+			name: "protects all with unlimited revisions",
 			configMaps: []configMapInfo{
 				{
 					name:      "revision-status-1",
@@ -318,6 +395,13 @@ func TestPruneDiskResources(t *testing.T) {
 					ManagementState: operatorv1.Managed,
 				},
 				&operatorv1.OperatorStatus{},
+				&operatorv1.StaticPodOperatorSpec{
+					FailedRevisionLimit:    test.failedLimit,
+					SucceededRevisionLimit: test.succeededLimit,
+					OperatorSpec: operatorv1.OperatorSpec{
+						ManagementState: operatorv1.Managed,
+					},
+				},
 				&operatorv1.StaticPodOperatorStatus{
 					LatestAvailableRevision: 1,
 					NodeStatuses: []operatorv1.NodeStatus{
@@ -344,20 +428,24 @@ func TestPruneDiskResources(t *testing.T) {
 			}
 
 			c := &PruneController{
-				targetNamespace:        "test",
-				podResourcePrefix:      "test-pod",
-				command:                []string{"/bin/true"},
-				configMapGetter:        kubeClient.CoreV1(),
-				secretGetter:           kubeClient.CoreV1(),
-				podGetter:              kubeClient.CoreV1(),
-				eventRecorder:          eventRecorder,
-				operatorConfigClient:   fakeStaticPodOperatorClient,
-				failedRevisionLimit:    test.failedLimit,
-				succeededRevisionLimit: test.succeededLimit,
+				targetNamespace:      "test",
+				podResourcePrefix:    "test-pod",
+				command:              []string{"/bin/true"},
+				configMapGetter:      kubeClient.CoreV1(),
+				secretGetter:         kubeClient.CoreV1(),
+				podGetter:            kubeClient.CoreV1(),
+				eventRecorder:        eventRecorder,
+				operatorConfigClient: fakeStaticPodOperatorClient,
 			}
 			c.prunerPodImageFn = func() string { return "docker.io/foo/bar" }
 
-			excludedIDs, err := c.excludedRevisionHistory(operatorStatus)
+			operatorSpec, _, _, err := c.operatorConfigClient.GetStaticPodOperatorState()
+			if err != nil {
+				t.Fatalf("unexpected error %q", err)
+			}
+			failedLimit, succeededLimit := getRevisionLimits(operatorSpec)
+
+			excludedIDs, err := c.excludedRevisionHistory(operatorStatus, failedLimit, succeededLimit)
 			if err != nil {
 				t.Fatalf("unexpected error %q", err)
 			}

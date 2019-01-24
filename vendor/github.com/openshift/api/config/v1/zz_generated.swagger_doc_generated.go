@@ -233,6 +233,42 @@ func (StringSourceSpec) SwaggerDoc() map[string]string {
 	return map_StringSourceSpec
 }
 
+var map_APIServer = map[string]string{
+	"": "APIServer holds cluster-wide information about api-servers.  The canonical name is `cluster`",
+}
+
+func (APIServer) SwaggerDoc() map[string]string {
+	return map_APIServer
+}
+
+var map_APIServerNamedServingCert = map[string]string{
+	"":                   "APIServerNamedServingCert maps a server DNS name, as understood by a client, to a certificate.",
+	"names":              "names is a optional list of explicit DNS names (leading wildcards allowed) that should use this certificate to serve secure traffic. If no names are provided, the implicit names will be extracted from the certificates. Exact names trump over wildcard names. Explicit names defined here trump over extracted implicit names.",
+	"servingCertificate": "servingCertificate references a kubernetes.io/tls type secret containing the TLS cert info for serving secure traffic. The secret must exist in the openshift-config namespace and contain the following required fields: - Secret.Data[\"tls.key\"] - TLS private key. - Secret.Data[\"tls.crt\"] - TLS certificate.",
+}
+
+func (APIServerNamedServingCert) SwaggerDoc() map[string]string {
+	return map_APIServerNamedServingCert
+}
+
+var map_APIServerServingCerts = map[string]string{
+	"defaultServingCertificate": "defaultServingCertificate references a kubernetes.io/tls type secret containing the default TLS cert info for serving secure traffic. If no named certificates match the server name as understood by a client, this default certificate will be used. If defaultServingCertificate is not specified, then a operator managed certificate will be used. The secret must exist in the openshift-config namespace and contain the following required fields: - Secret.Data[\"tls.key\"] - TLS private key. - Secret.Data[\"tls.crt\"] - TLS certificate.",
+	"namedCertificates":         "namedCertificates references secrets containing the TLS cert info for serving secure traffic to specific hostnames. If no named certificates are provided, or no named certificates match the server name as understood by a client, the defaultServingCertificate will be used.",
+}
+
+func (APIServerServingCerts) SwaggerDoc() map[string]string {
+	return map_APIServerServingCerts
+}
+
+var map_APIServerSpec = map[string]string{
+	"servingCerts": "servingCert is the TLS cert info for serving secure traffic. If not specified, operator managed certificates will be used for serving secure traffic.",
+	"clientCA":     "clientCA references a ConfigMap containing a certificate bundle for the signers that will be recognized for incoming client certificates in addition to the operator managed signers. If this is empty, then only operator managed signers are valid. You usually only have to set this if you have your own PKI you wish to honor client certificates from. The ConfigMap must exist in the openshift-config namespace and contain the following required fields: - ConfigMap.Data[\"ca-bundle.crt\"] - CA bundle.",
+}
+
+func (APIServerSpec) SwaggerDoc() map[string]string {
+	return map_APIServerSpec
+}
+
 var map_Authentication = map[string]string{
 	"":         "Authentication holds cluster-wide information about Authentication.  The canonical name is `cluster`",
 	"metadata": "Standard object's metadata.",
@@ -1016,6 +1052,14 @@ var map_SchedulingList = map[string]string{
 
 func (SchedulingList) SwaggerDoc() map[string]string {
 	return map_SchedulingList
+}
+
+var map_SchedulingSpec = map[string]string{
+	"policy": "policy is a reference to a ConfigMap containing scheduler policy which has user specified predicates and priorities. If this ConfigMap is not available scheduler will default to use DefaultAlgorithmProvider. The namespace for this configmap is openshift-config.",
+}
+
+func (SchedulingSpec) SwaggerDoc() map[string]string {
+	return map_SchedulingSpec
 }
 
 // AUTO-GENERATED FUNCTIONS END HERE

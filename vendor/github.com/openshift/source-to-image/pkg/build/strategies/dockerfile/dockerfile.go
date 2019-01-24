@@ -338,7 +338,23 @@ func (builder *Dockerfile) Prepare(config *api.Config) error {
 
 	// Install scripts provided by user, overriding all others.
 	// This _could_ be an image:// URL, which would override any scripts above.
-	builder.installScripts(config.ScriptsURL, config)
+	urlScripts := builder.installScripts(config.ScriptsURL, config)
+	// If a ScriptsURL was specified, but no scripts were downloaded from it, throw an error
+	if len(config.ScriptsURL) > 0 {
+		failedCount := 0
+		for _, result := range urlScripts {
+			if util.Includes(result.FailedSources, scripts.ScriptURLHandler) {
+				failedCount++
+			}
+		}
+		if failedCount == len(urlScripts) {
+			builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
+				utilstatus.ReasonScriptsFetchFailed,
+				utilstatus.ReasonMessageScriptsFetchFailed,
+			)
+			return fmt.Errorf("could not download any scripts from URL %v", config.ScriptsURL)
+		}
+	}
 
 	// Stage any injection(secrets) content into the working dir so the dockerfile can reference it.
 	for i, injection := range config.Injections {

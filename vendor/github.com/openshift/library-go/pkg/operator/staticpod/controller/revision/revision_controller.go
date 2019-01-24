@@ -85,7 +85,7 @@ func NewRevisionController(
 
 // createRevisionIfNeeded takes care of creating content for the static pods to use.
 // returns whether or not requeue and if an error happened when updating status.  Normally it updates status itself.
-func (c RevisionController) createRevisionIfNeeded(operatorSpec *operatorv1.OperatorSpec, operatorStatusOriginal *operatorv1.StaticPodOperatorStatus, resourceVersion string) (bool, error) {
+func (c RevisionController) createRevisionIfNeeded(operatorSpec *operatorv1.StaticPodOperatorSpec, operatorStatusOriginal *operatorv1.StaticPodOperatorStatus, resourceVersion string) (bool, error) {
 	operatorStatus := operatorStatusOriginal.DeepCopy()
 
 	latestRevision := operatorStatus.LatestAvailableRevision

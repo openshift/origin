@@ -1,0 +1,3 @@
+include $(addprefix ../../, \
+	golang.mk \
+)

@@ -7,7 +7,6 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Scheduling holds cluster-wide information about Scheduling.  The canonical name is `cluster`
-// TODO this object is an example of a possible grouping and is subject to change or removal
 type Scheduling struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
@@ -20,7 +19,12 @@ type Scheduling struct {
 }
 
 type SchedulingSpec struct {
-	// default node selector (I would be happy to see this die....)
+	// policy is a reference to a ConfigMap containing scheduler policy which has
+	// user specified predicates and priorities. If this ConfigMap is not available
+	// scheduler will default to use DefaultAlgorithmProvider.
+	// The namespace for this configmap is openshift-config. 
+	// +optional
+	Policy ConfigMapNameReference `json:"policy,omitempty"`
 }
 
 type SchedulingStatus struct {
