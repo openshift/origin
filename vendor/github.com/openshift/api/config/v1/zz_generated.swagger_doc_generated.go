@@ -378,7 +378,7 @@ func (ClusterOperatorSpec) SwaggerDoc() map[string]string {
 var map_ClusterOperatorStatus = map[string]string{
 	"":               "ClusterOperatorStatus provides information about the status of the operator.",
 	"conditions":     "conditions describes the state of the operator's reconciliation functionality.",
-	"versions":       "versions is a slice of operand version tuples.  Operators which manage multiple operands will have multiple entries in the array.  If an operator is Available, it must have at least one entry.  Report the version of the operator itself in addition to the version of its operands is recommended.",
+	"versions":       "versions is a slice of operand version tuples.  Operators which manage multiple operands will have multiple entries in the array.  If an operator is Available, it must have at least one entry.  You must report the version of the operator itself with the name \"operator\".",
 	"relatedObjects": "relatedObjects is a list of objects that are \"interesting\" or related to this operator.  Common uses are: 1. the detailed resource driving the operator 2. operator namespaces 3. operand namespaces",
 	"extension":      "extension contains any additional status information specific to the operator which owns this status object.",
 }
@@ -442,7 +442,7 @@ func (ClusterVersionList) SwaggerDoc() map[string]string {
 var map_ClusterVersionSpec = map[string]string{
 	"":              "ClusterVersionSpec is the desired version state of the cluster. It includes the version the cluster should be at, how the cluster is identified, and where the cluster should look for version updates.",
 	"clusterID":     "clusterID uniquely identifies this cluster. This is expected to be an RFC4122 UUID value (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx in hexadecimal values). This is a required field.",
-	"desiredUpdate": "desiredUpdate is an optional field that indicates the desired value of the cluster version. Setting this value will trigger an upgrade (if the current version does not match the desired version). The set of recommended update values is listed as part of available updates in status, and setting values outside that range may cause the upgrade to fail.\n\nIf an upgrade fails the operator will halt and report status about the failing component. Setting the desired update value back to the previous version will cause a rollback to be attempted. Not all rollbacks will succeed.",
+	"desiredUpdate": "desiredUpdate is an optional field that indicates the desired value of the cluster version. Setting this value will trigger an upgrade (if the current version does not match the desired version). The set of recommended update values is listed as part of available updates in status, and setting values outside that range may cause the upgrade to fail. You may specify the version field without setting image if an update exists with that version in the availableUpdates or history.\n\nIf an upgrade fails the operator will halt and report status about the failing component. Setting the desired update value back to the previous version will cause a rollback to be attempted. Not all rollbacks will succeed.",
 	"upstream":      "upstream may be used to specify the preferred update server. By default it will use the appropriate update server for the cluster and region.",
 	"channel":       "channel is an identifier for explicitly requesting that a non-default set of updates be applied to this cluster. The default channel will be contain stable updates that are appropriate for production clusters.",
 	"overrides":     "overrides is list of overides for components that are managed by cluster version operator. Marking a component unmanaged will prevent the operator from creating or updating the object.",
@@ -454,7 +454,7 @@ func (ClusterVersionSpec) SwaggerDoc() map[string]string {
 
 var map_ClusterVersionStatus = map[string]string{
 	"":                 "ClusterVersionStatus reports the status of the cluster versioning, including any upgrades that are in progress. The current field will be set to whichever version the cluster is reconciling to, and the conditions array will report whether the update succeeded, is in progress, or is failing.",
-	"desired":          "desired is the version that the cluster is reconciling towards. If the cluster is not yet fully initialized desired will be set with the information available, which may be a payload or a tag.",
+	"desired":          "desired is the version that the cluster is reconciling towards. If the cluster is not yet fully initialized desired will be set with the information available, which may be an image or a tag.",
 	"history":          "history contains a list of the most recent versions applied to the cluster. This value may be empty during cluster startup, and then will be updated when a new update is being applied. The newest update is first in the list and it is ordered by recency. Updates in the history have state Completed if the rollout completed - if an update was failing or halfway applied the state will be Partial. Only a limited amount of update history is preserved.",
 	"generation":       "generation reports which version of the spec is being processed. If this value is not equal to metadata.generation, then the current and conditions fields have not yet been updated to reflect the latest request.",
 	"versionHash":      "versionHash is a fingerprint of the content that the cluster will be updated with. It is used by the operator to avoid unnecessary work and is for internal use only.",
@@ -480,9 +480,9 @@ func (ComponentOverride) SwaggerDoc() map[string]string {
 }
 
 var map_Update = map[string]string{
-	"":        "Update represents a release of the ClusterVersionOperator, referenced by the Payload member.",
-	"version": "version is a semantic versioning identifying the update version. When this field is part of spec, version is optional if payload is specified.",
-	"payload": "payload is a container image location that contains the update. When this field is part of spec, payload is optional if version is specified and the availableUpdates field contains a matching version.",
+	"":        "Update represents a release of the ClusterVersionOperator, referenced by the Image member.",
+	"version": "version is a semantic versioning identifying the update version. When this field is part of spec, version is optional if image is specified.",
+	"image":   "image is a container image location that contains the update. When this field is part of spec, image is optional if version is specified and the availableUpdates field contains a matching version.",
 }
 
 func (Update) SwaggerDoc() map[string]string {
@@ -494,8 +494,8 @@ var map_UpdateHistory = map[string]string{
 	"state":          "state reflects whether the update was fully applied. The Partial state indicates the update is not fully applied, while the Completed state indicates the update was successfully rolled out at least once (all parts of the update successfully applied).",
 	"startedTime":    "startedTime is the time at which the update was started.",
 	"completionTime": "completionTime, if set, is when the update was fully applied. The update that is currently being applied will have a null completion time. Completion time will always be set for entries that are not the current update (usually to the started time of the next update).",
-	"version":        "version is a semantic versioning identifying the update version. If the requested payload does not define a version, or if a failure occurs retrieving the payload, this value may be empty.",
-	"payload":        "payload is a container image location that contains the update. This value is always populated.",
+	"version":        "version is a semantic versioning identifying the update version. If the requested image does not define a version, or if a failure occurs retrieving the image, this value may be empty.",
+	"image":          "image is a container image location that contains the update. This value is always populated.",
 }
 
 func (UpdateHistory) SwaggerDoc() map[string]string {
@@ -787,9 +787,8 @@ func (IdentityProviderConfig) SwaggerDoc() map[string]string {
 }
 
 var map_KeystoneIdentityProvider = map[string]string{
-	"":                    "KeystonePasswordIdentityProvider provides identities for users authenticating using keystone password credentials",
-	"domainName":          "domainName is required for keystone v3",
-	"useUsernameIdentity": "useUsernameIdentity indicates that users should be authenticated by username, not keystone ID DEPRECATED - only use this option for legacy systems to ensure backwards compatibility",
+	"":           "KeystonePasswordIdentityProvider provides identities for users authenticating using keystone password credentials",
+	"domainName": "domainName is required for keystone v3",
 }
 
 func (KeystoneIdentityProvider) SwaggerDoc() map[string]string {

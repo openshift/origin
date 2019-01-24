@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/installer/bindata"
+	"github.com/openshift/library-go/pkg/operator/staticpod/controller/revision"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
@@ -48,9 +49,9 @@ type InstallerController struct {
 	targetNamespace, staticPodName string
 	// configMaps is the list of configmaps that are directly copied.A different actor/controller modifies these.
 	// the first element should be the configmap that contains the static pod manifest
-	configMaps []string
+	configMaps []revision.RevisionResource
 	// secrets is a list of secrets that are directly copied for the current values.  A different actor/controller modifies these.
-	secrets []string
+	secrets []revision.RevisionResource
 	// command is the string to use for the installer pod command
 	command []string
 
@@ -82,8 +83,8 @@ const (
 // NewInstallerController creates a new installer controller.
 func NewInstallerController(
 	targetNamespace, staticPodName string,
-	configMaps []string,
-	secrets []string,
+	configMaps []revision.RevisionResource,
+	secrets []revision.RevisionResource,
 	command []string,
 	kubeInformersForTargetNamespace informers.SharedInformerFactory,
 	operatorConfigClient v1helpers.StaticPodOperatorClient,
@@ -478,19 +479,30 @@ func (c *InstallerController) ensureInstallerPod(nodeName string, operatorSpec *
 	pod.Spec.Containers[0].Image = c.installerPodImageFn()
 	pod.Spec.Containers[0].Command = c.command
 
+	if c.configMaps[0].Optional {
+		return fmt.Errorf("pod configmap %s is required, cannot be optional", c.configMaps[0].Name)
+	}
 	args := []string{
 		"-v=4", // TODO: Make this configurable?
 		fmt.Sprintf("--revision=%d", revision),
 		fmt.Sprintf("--namespace=%s", pod.Namespace),
-		fmt.Sprintf("--pod=%s", c.configMaps[0]),
+		fmt.Sprintf("--pod=%s", c.configMaps[0].Name),
 		fmt.Sprintf("--resource-dir=%s", hostResourceDirDir),
 		fmt.Sprintf("--pod-manifest-dir=%s", hostPodManifestDir),
 	}
-	for _, name := range c.configMaps {
-		args = append(args, fmt.Sprintf("--configmaps=%s", name))
+	for _, cm := range c.configMaps {
+		if cm.Optional {
+			args = append(args, fmt.Sprintf("--optional-configmaps=%s", cm.Name))
+		} else {
+			args = append(args, fmt.Sprintf("--configmaps=%s", cm.Name))
+		}
 	}
-	for _, name := range c.secrets {
-		args = append(args, fmt.Sprintf("--secrets=%s", name))
+	for _, s := range c.secrets {
+		if s.Optional {
+			args = append(args, fmt.Sprintf("--optional-secrets=%s", s.Name))
+		} else {
+			args = append(args, fmt.Sprintf("--secrets=%s", s.Name))
+		}
 	}
 	pod.Spec.Containers[0].Args = args
 

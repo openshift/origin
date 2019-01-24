@@ -33,9 +33,9 @@ type RevisionController struct {
 	targetNamespace string
 	// configMaps is the list of configmaps that are directly copied.A different actor/controller modifies these.
 	// the first element should be the configmap that contains the static pod manifest
-	configMaps []string
+	configMaps []RevisionResource
 	// secrets is a list of secrets that are directly copied for the current values.  A different actor/controller modifies these.
-	secrets []string
+	secrets []RevisionResource
 
 	operatorConfigClient v1helpers.StaticPodOperatorClient
 	configMapGetter      corev1client.ConfigMapsGetter
@@ -47,11 +47,16 @@ type RevisionController struct {
 	eventRecorder events.Recorder
 }
 
+type RevisionResource struct {
+	Name     string
+	Optional bool
+}
+
 // NewRevisionController create a new revision controller.
 func NewRevisionController(
 	targetNamespace string,
-	configMaps []string,
-	secrets []string,
+	configMaps []RevisionResource,
+	secrets []RevisionResource,
 	kubeInformersForTargetNamespace informers.SharedInformerFactory,
 	operatorConfigClient v1helpers.StaticPodOperatorClient,
 	configMapGetter corev1client.ConfigMapsGetter,
@@ -129,29 +134,47 @@ func nameFor(name string, revision int32) string {
 
 // isLatestRevisionCurrent returns whether the latest revision is up to date and an optional reason
 func (c RevisionController) isLatestRevisionCurrent(revision int32) (bool, string) {
-	for _, name := range c.configMaps {
-		required, err := c.configMapGetter.ConfigMaps(c.targetNamespace).Get(name, metav1.GetOptions{})
-		if apierrors.IsNotFound(err) {
+	for _, cm := range c.configMaps {
+		requiredData := map[string]string{}
+		existingData := map[string]string{}
+
+		required, err := c.configMapGetter.ConfigMaps(c.targetNamespace).Get(cm.Name, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) && !cm.Optional {
 			return false, err.Error()
 		}
-		existing, err := c.configMapGetter.ConfigMaps(c.targetNamespace).Get(nameFor(name, revision), metav1.GetOptions{})
-		if apierrors.IsNotFound(err) {
+		existing, err := c.configMapGetter.ConfigMaps(c.targetNamespace).Get(nameFor(cm.Name, revision), metav1.GetOptions{})
+		if apierrors.IsNotFound(err) && !cm.Optional {
 			return false, err.Error()
 		}
-		if !equality.Semantic.DeepEqual(existing.Data, required.Data) {
+		if required != nil {
+			requiredData = required.Data
+		}
+		if existing != nil {
+			existingData = existing.Data
+		}
+		if !equality.Semantic.DeepEqual(existingData, requiredData) {
 			return false, fmt.Sprintf("configmap/%s has changed", required.Name)
 		}
 	}
-	for _, name := range c.secrets {
-		required, err := c.secretGetter.Secrets(c.targetNamespace).Get(name, metav1.GetOptions{})
-		if apierrors.IsNotFound(err) {
+	for _, s := range c.secrets {
+		requiredData := map[string][]byte{}
+		existingData := map[string][]byte{}
+
+		required, err := c.secretGetter.Secrets(c.targetNamespace).Get(s.Name, metav1.GetOptions{})
+		if apierrors.IsNotFound(err) && !s.Optional {
 			return false, err.Error()
 		}
-		existing, err := c.secretGetter.Secrets(c.targetNamespace).Get(nameFor(name, revision), metav1.GetOptions{})
-		if apierrors.IsNotFound(err) {
+		existing, err := c.secretGetter.Secrets(c.targetNamespace).Get(nameFor(s.Name, revision), metav1.GetOptions{})
+		if apierrors.IsNotFound(err) && !s.Optional {
 			return false, err.Error()
 		}
-		if !equality.Semantic.DeepEqual(existing.Data, required.Data) {
+		if required != nil {
+			requiredData = required.Data
+		}
+		if existing != nil {
+			existingData = existing.Data
+		}
+		if !equality.Semantic.DeepEqual(existingData, requiredData) {
 			return false, fmt.Sprintf("secret/%s has changed", required.Name)
 		}
 	}
@@ -181,22 +204,22 @@ func (c RevisionController) createNewRevision(revision int32) error {
 		UID:        statusConfigMap.UID,
 	}}
 
-	for _, name := range c.configMaps {
-		obj, _, err := resourceapply.SyncConfigMap(c.configMapGetter, c.eventRecorder, c.targetNamespace, name, c.targetNamespace, nameFor(name, revision), ownerRefs)
+	for _, cm := range c.configMaps {
+		obj, _, err := resourceapply.SyncConfigMap(c.configMapGetter, c.eventRecorder, c.targetNamespace, cm.Name, c.targetNamespace, nameFor(cm.Name, revision), ownerRefs)
 		if err != nil {
 			return err
 		}
-		if obj == nil {
-			return apierrors.NewNotFound(corev1.Resource("configmaps"), name)
+		if obj == nil && !cm.Optional {
+			return apierrors.NewNotFound(corev1.Resource("configmaps"), cm.Name)
 		}
 	}
-	for _, name := range c.secrets {
-		obj, _, err := resourceapply.SyncSecret(c.secretGetter, c.eventRecorder, c.targetNamespace, name, c.targetNamespace, nameFor(name, revision), ownerRefs)
+	for _, s := range c.secrets {
+		obj, _, err := resourceapply.SyncSecret(c.secretGetter, c.eventRecorder, c.targetNamespace, s.Name, c.targetNamespace, nameFor(s.Name, revision), ownerRefs)
 		if err != nil {
 			return err
 		}
-		if obj == nil {
-			return apierrors.NewNotFound(corev1.Resource("secrets"), name)
+		if obj == nil && !s.Optional {
+			return apierrors.NewNotFound(corev1.Resource("secrets"), s.Name)
 		}
 	}
 

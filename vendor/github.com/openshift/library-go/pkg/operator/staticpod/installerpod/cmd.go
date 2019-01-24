@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/pflag"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -29,9 +30,11 @@ type InstallOptions struct {
 	Revision  string
 	Namespace string
 
-	PodConfigMapNamePrefix string
-	SecretNamePrefixes     []string
-	ConfigMapNamePrefixes  []string
+	PodConfigMapNamePrefix        string
+	SecretNamePrefixes            []string
+	OptionalSecretNamePrefixes    []string
+	ConfigMapNamePrefixes         []string
+	OptionalConfigMapNamePrefixes []string
 
 	ResourceDir    string
 	PodManifestDir string
@@ -75,6 +78,8 @@ func (o *InstallOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.PodConfigMapNamePrefix, "pod", o.PodConfigMapNamePrefix, "name of configmap that contains the pod to be created")
 	fs.StringSliceVar(&o.SecretNamePrefixes, "secrets", o.SecretNamePrefixes, "list of secret names to be included")
 	fs.StringSliceVar(&o.ConfigMapNamePrefixes, "configmaps", o.ConfigMapNamePrefixes, "list of configmaps to be included")
+	fs.StringSliceVar(&o.OptionalSecretNamePrefixes, "optional-secrets", o.OptionalSecretNamePrefixes, "list of optional secret names to be included")
+	fs.StringSliceVar(&o.OptionalConfigMapNamePrefixes, "optional-configmaps", o.OptionalConfigMapNamePrefixes, "list of optional configmaps to be included")
 	fs.StringVar(&o.ResourceDir, "resource-dir", o.ResourceDir, "directory for all files supporting the static pod manifest")
 	fs.StringVar(&o.PodManifestDir, "pod-manifest-dir", o.PodManifestDir, "directory for the static pod manifest")
 }
@@ -133,11 +138,31 @@ func (o *InstallOptions) copyContent() error {
 		}
 		secrets = append(secrets, val)
 	}
+	for _, currPrefix := range o.OptionalSecretNamePrefixes {
+		val, err := o.KubeClient.CoreV1().Secrets(o.Namespace).Get(o.nameFor(currPrefix), metav1.GetOptions{})
+		if errors.IsNotFound(err) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		secrets = append(secrets, val)
+	}
 
 	// gather all configmaps
 	configmaps := []*corev1.ConfigMap{}
 	for _, currPrefix := range o.ConfigMapNamePrefixes {
 		val, err := o.KubeClient.CoreV1().ConfigMaps(o.Namespace).Get(o.nameFor(currPrefix), metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		configmaps = append(configmaps, val)
+	}
+	for _, currPrefix := range o.OptionalConfigMapNamePrefixes {
+		val, err := o.KubeClient.CoreV1().ConfigMaps(o.Namespace).Get(o.nameFor(currPrefix), metav1.GetOptions{})
+		if errors.IsNotFound(err) {
+			continue
+		}
 		if err != nil {
 			return err
 		}

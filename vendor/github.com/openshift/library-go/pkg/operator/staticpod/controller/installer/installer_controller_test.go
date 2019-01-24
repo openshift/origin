@@ -21,6 +21,7 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/staticpod/controller/revision"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
@@ -61,8 +62,8 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 	podCommand := []string{"/bin/true", "--foo=test", "--bar"}
 	c := NewInstallerController(
 		"test", "test-pod",
-		[]string{"test-config"},
-		[]string{"test-secret"},
+		[]revision.RevisionResource{{Name: "test-config"}},
+		[]revision.RevisionResource{{Name: "test-secret"}},
 		podCommand,
 		kubeInformers,
 		fakeStaticPodOperatorClient,
@@ -266,8 +267,8 @@ func TestCreateInstallerPod(t *testing.T) {
 
 	c := NewInstallerController(
 		"test", "test-pod",
-		[]string{"test-config"},
-		[]string{"test-secret"},
+		[]revision.RevisionResource{{Name: "test-config"}},
+		[]revision.RevisionResource{{Name: "test-secret"}},
 		[]string{"/bin/true"},
 		kubeInformers,
 		fakeStaticPodOperatorClient,
@@ -326,6 +327,141 @@ func TestCreateInstallerPod(t *testing.T) {
 		if expectedArgs[i] != v {
 			t.Errorf("arg[%d] expected %q, got %q", i, expectedArgs[i], v)
 		}
+	}
+}
+
+func TestEnsureInstallerPod(t *testing.T) {
+	tests := []struct {
+		name         string
+		expectedArgs []string
+		configs      []revision.RevisionResource
+		secrets      []revision.RevisionResource
+		expectedErr  string
+	}{
+		{
+			name: "normal",
+			expectedArgs: []string{
+				"-v=4",
+				"--revision=1",
+				"--namespace=test",
+				"--pod=test-config",
+				"--resource-dir=/etc/kubernetes/static-pod-resources",
+				"--pod-manifest-dir=/etc/kubernetes/manifests",
+				"--configmaps=test-config",
+				"--secrets=test-secret",
+			},
+			configs: []revision.RevisionResource{{Name: "test-config"}},
+			secrets: []revision.RevisionResource{{Name: "test-secret"}},
+		},
+		{
+			name: "optional",
+			expectedArgs: []string{
+				"-v=4",
+				"--revision=1",
+				"--namespace=test",
+				"--pod=test-config",
+				"--resource-dir=/etc/kubernetes/static-pod-resources",
+				"--pod-manifest-dir=/etc/kubernetes/manifests",
+				"--configmaps=test-config",
+				"--configmaps=test-config-2",
+				"--optional-configmaps=test-config-opt",
+				"--secrets=test-secret",
+				"--secrets=test-secret-2",
+				"--optional-secrets=test-secret-opt",
+			},
+			configs: []revision.RevisionResource{
+				{Name: "test-config"},
+				{Name: "test-config-2"},
+				{Name: "test-config-opt", Optional: true}},
+			secrets: []revision.RevisionResource{
+				{Name: "test-secret"},
+				{Name: "test-secret-2"},
+				{Name: "test-secret-opt", Optional: true}},
+		},
+		{
+			name: "first-cm-not-optional",
+			expectedArgs: []string{
+				"-v=4",
+				"--revision=1",
+				"--namespace=test",
+				"--pod=test-config",
+				"--resource-dir=/etc/kubernetes/static-pod-resources",
+				"--pod-manifest-dir=/etc/kubernetes/manifests",
+				"--configmaps=test-config",
+				"--secrets=test-secret",
+			},
+			configs:     []revision.RevisionResource{{Name: "test-config", Optional: true}},
+			secrets:     []revision.RevisionResource{{Name: "test-secret"}},
+			expectedErr: "pod configmap test-config is required, cannot be optional",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			kubeClient := fake.NewSimpleClientset()
+
+			var installerPod *v1.Pod
+			kubeClient.PrependReactor("create", "pods", func(action ktesting.Action) (handled bool, ret runtime.Object, err error) {
+				installerPod = action.(ktesting.CreateAction).GetObject().(*v1.Pod)
+				return false, nil, nil
+			})
+			kubeInformers := informers.NewSharedInformerFactoryWithOptions(kubeClient, 1*time.Minute, informers.WithNamespace("test"))
+
+			fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(
+				&operatorv1.OperatorSpec{
+					ManagementState: operatorv1.Managed,
+				},
+				&operatorv1.OperatorStatus{},
+				&operatorv1.StaticPodOperatorStatus{
+					LatestAvailableRevision: 1,
+					NodeStatuses: []operatorv1.NodeStatus{
+						{
+							NodeName:        "test-node-1",
+							CurrentRevision: 0,
+							TargetRevision:  0,
+						},
+					},
+				},
+				nil,
+			)
+			eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &v1.ObjectReference{})
+
+			c := NewInstallerController(
+				"test", "test-pod",
+				tt.configs,
+				tt.secrets,
+				[]string{"/bin/true"},
+				kubeInformers,
+				fakeStaticPodOperatorClient,
+				kubeClient,
+				eventRecorder,
+			)
+
+			err := c.ensureInstallerPod("test-node-1", nil, 1)
+			if err != nil {
+				if tt.expectedErr == "" {
+					t.Errorf("InstallerController.ensureInstallerPod() expected no error, got = %v", err)
+					return
+				}
+				if tt.expectedErr != err.Error() {
+					t.Errorf("InstallerController.ensureInstallerPod() got error = %v, wanted %s", err, tt.expectedErr)
+					return
+				}
+				return
+			}
+			if tt.expectedErr != "" {
+				t.Errorf("InstallerController.ensureInstallerPod() passed but expected error %s", tt.expectedErr)
+			}
+
+			if len(tt.expectedArgs) != len(installerPod.Spec.Containers[0].Args) {
+				t.Fatalf("expected arguments does not match container arguments: %#v != %#v", tt.expectedArgs, installerPod.Spec.Containers[0].Args)
+			}
+
+			for i, v := range installerPod.Spec.Containers[0].Args {
+				if tt.expectedArgs[i] != v {
+					t.Errorf("arg[%d] expected %q, got %q", i, tt.expectedArgs[i], v)
+				}
+			}
+		})
 	}
 }
 
@@ -545,8 +681,8 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 
 			c := NewInstallerController(
 				fmt.Sprintf("test-%d", i), "test-pod",
-				[]string{"test-config"},
-				[]string{"test-secret"},
+				[]revision.RevisionResource{{Name: "test-config"}},
+				[]revision.RevisionResource{{Name: "test-secret"}},
 				[]string{"/bin/true"},
 				kubeInformers,
 				fakeStaticPodOperatorClient,
@@ -591,8 +727,8 @@ func TestInstallerController_manageInstallationPods(t *testing.T) {
 	type fields struct {
 		targetNamespace      string
 		staticPodName        string
-		configMaps           []string
-		secrets              []string
+		configMaps           []revision.RevisionResource
+		secrets              []revision.RevisionResource
 		command              []string
 		operatorConfigClient v1helpers.StaticPodOperatorClient
 		kubeClient           kubernetes.Interface

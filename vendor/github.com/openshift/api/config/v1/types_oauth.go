@@ -354,10 +354,11 @@ type KeystoneIdentityProvider struct {
 	// domainName is required for keystone v3
 	DomainName string `json:"domainName"`
 
+	// TODO if we ever add support for 3.11 to 4.0 upgrades, add this configuration
 	// useUsernameIdentity indicates that users should be authenticated by username, not keystone ID
 	// DEPRECATED - only use this option for legacy systems to ensure backwards compatibility
 	// +optional
-	UseUsernameIdentity bool `json:"useUsernameIdentity"`
+	// UseUsernameIdentity bool `json:"useUsernameIdentity"`
 }
 
 // RequestHeaderIdentityProvider provides identities for users authenticating using request header credentials

@@ -3,13 +3,15 @@ package status
 import "sync"
 
 type versionGetter struct {
-	lock                 sync.Locker
+	lock                 sync.Mutex
 	versions             map[string]string
 	notificationChannels []chan struct{}
 }
 
 func NewVersionGetter() VersionGetter {
-	return &versionGetter{}
+	return &versionGetter{
+		versions: map[string]string{},
+	}
 }
 
 func (v *versionGetter) SetVersion(operandName, version string) {

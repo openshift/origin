@@ -179,7 +179,7 @@ func (o *Options) Run() error {
 		if len(update.Version) > 0 {
 			fmt.Fprintf(o.Out, "Updating to latest version %s\n", update.Version)
 		} else {
-			fmt.Fprintf(o.Out, "Updating to latest release image %s\n", update.Payload)
+			fmt.Fprintf(o.Out, "Updating to latest release image %s\n", update.Image)
 		}
 
 		return nil
@@ -208,13 +208,13 @@ func (o *Options) Run() error {
 			}
 		}
 		if len(o.ToImage) > 0 {
-			if o.ToImage == cv.Status.Desired.Payload {
+			if o.ToImage == cv.Status.Desired.Image {
 				fmt.Fprintf(o.Out, "info: Cluster is already using releaes image %s\n", o.ToImage)
 				return nil
 			}
 			update = &configv1.Update{
 				Version: "",
-				Payload: o.ToImage,
+				Image:   o.ToImage,
 			}
 		}
 
@@ -234,7 +234,7 @@ func (o *Options) Run() error {
 		if len(update.Version) > 0 {
 			fmt.Fprintf(o.Out, "Updating to %s\n", update.Version)
 		} else {
-			fmt.Fprintf(o.Out, "Updating to release image %s\n", update.Payload)
+			fmt.Fprintf(o.Out, "Updating to release image %s\n", update.Image)
 		}
 
 		return nil
@@ -268,7 +268,7 @@ func (o *Options) Run() error {
 			fmt.Fprintf(w, "VERSION\tIMAGE\n")
 			// TODO: add metadata about version
 			for _, update := range cv.Status.AvailableUpdates {
-				fmt.Fprintf(w, "%s\t%s\n", update.Version, update.Payload)
+				fmt.Fprintf(w, "%s\t%s\n", update.Version, update.Image)
 			}
 			w.Flush()
 			if c := findCondition(cv.Status.Conditions, configv1.RetrievedUpdates); c != nil && c.Status == configv1.ConditionFalse {
@@ -304,8 +304,8 @@ func updateVersionString(update configv1.Update) string {
 	if len(update.Version) > 0 {
 		return update.Version
 	}
-	if len(update.Payload) > 0 {
-		return update.Payload
+	if len(update.Image) > 0 {
+		return update.Image
 	}
 	return "<unknown>"
 }
@@ -327,8 +327,8 @@ func writeTabSection(out io.Writer, fn func(w io.Writer)) {
 
 func updateIsEquivalent(a, b configv1.Update) bool {
 	switch {
-	case len(a.Payload) > 0 && len(b.Payload) > 0:
-		return a.Payload == b.Payload
+	case len(a.Image) > 0 && len(b.Image) > 0:
+		return a.Image == b.Image
 	case len(a.Version) > 0 && len(b.Version) > 0:
 		return a.Version == b.Version
 	default:

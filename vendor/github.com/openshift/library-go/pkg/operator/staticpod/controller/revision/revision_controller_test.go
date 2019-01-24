@@ -34,11 +34,14 @@ func filterCreateActions(actions []clienttesting.Action) []runtime.Object {
 	return createdObjects
 }
 
+const targetNamespace = "copy-resources"
+
 func TestRevisionController(t *testing.T) {
 	tests := []struct {
+		testName                string
 		targetNamespace         string
-		testSecrets             []string
-		testConfigs             []string
+		testSecrets             []RevisionResource
+		testConfigs             []RevisionResource
 		startingObjects         []runtime.Object
 		staticPodOperatorClient v1helpers.StaticPodOperatorClient
 		validateActions         func(t *testing.T, actions []clienttesting.Action)
@@ -46,7 +49,8 @@ func TestRevisionController(t *testing.T) {
 		expectSyncError         string
 	}{
 		{
-			targetNamespace: "operator-unmanaged",
+			testName:        "operator-unmanaged",
+			targetNamespace: targetNamespace,
 			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
 				&operatorv1.OperatorSpec{
 					ManagementState: operatorv1.Unmanaged,
@@ -63,7 +67,8 @@ func TestRevisionController(t *testing.T) {
 			},
 		},
 		{
-			targetNamespace: "missing-source-resources",
+			testName:        "missing-source-resources",
+			targetNamespace: targetNamespace,
 			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
 				&operatorv1.OperatorSpec{
 					ManagementState: operatorv1.Managed,
@@ -81,8 +86,8 @@ func TestRevisionController(t *testing.T) {
 				},
 				nil,
 			),
-			testConfigs:     []string{"test-config"},
-			testSecrets:     []string{"test-secret"},
+			testConfigs:     []RevisionResource{{Name: "test-config"}},
+			testSecrets:     []RevisionResource{{Name: "test-secret"}},
 			expectSyncError: "synthetic requeue request",
 			validateStatus: func(t *testing.T, status *operatorv1.StaticPodOperatorStatus) {
 				if status.Conditions[0].Type != "RevisionControllerFailing" {
@@ -97,7 +102,8 @@ func TestRevisionController(t *testing.T) {
 			},
 		},
 		{
-			targetNamespace: "copy-resources",
+			testName:        "copy-resources",
+			targetNamespace: targetNamespace,
 			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
 				&operatorv1.OperatorSpec{
 					ManagementState: operatorv1.Managed,
@@ -116,16 +122,16 @@ func TestRevisionController(t *testing.T) {
 				nil,
 			),
 			startingObjects: []runtime.Object{
-				&v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "test-secret", Namespace: "copy-resources"}},
-				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "test-config", Namespace: "copy-resources"}},
-				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status", Namespace: "copy-resources"}},
+				&v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "test-secret", Namespace: targetNamespace}},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "test-config", Namespace: targetNamespace}},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status", Namespace: targetNamespace}},
 			},
-			testConfigs: []string{"test-config"},
-			testSecrets: []string{"test-secret"},
+			testConfigs: []RevisionResource{{Name: "test-config"}},
+			testSecrets: []RevisionResource{{Name: "test-secret"}},
 			validateActions: func(t *testing.T, actions []clienttesting.Action) {
 				createdObjects := filterCreateActions(actions)
 				if createdObjectCount := len(createdObjects); createdObjectCount != 3 {
-					t.Errorf("expected 6 objects to be created, got %d: %+v", createdObjectCount, createdObjects)
+					t.Errorf("expected 3 objects to be created, got %d: %+v", createdObjectCount, createdObjects)
 					return
 				}
 				revisionStatus, hasStatus := createdObjects[0].(*v1.ConfigMap)
@@ -160,10 +166,218 @@ func TestRevisionController(t *testing.T) {
 				}
 			},
 		},
+		{
+			testName:        "copy-resources-opt",
+			targetNamespace: targetNamespace,
+			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
+				&operatorv1.OperatorSpec{
+					ManagementState: operatorv1.Managed,
+				},
+				&operatorv1.OperatorStatus{},
+				&operatorv1.StaticPodOperatorStatus{
+					LatestAvailableRevision: 0,
+					NodeStatuses: []operatorv1.NodeStatus{
+						{
+							NodeName:        "test-node-1",
+							CurrentRevision: 0,
+							TargetRevision:  0,
+						},
+					},
+				},
+				nil,
+			),
+			startingObjects: []runtime.Object{
+				&v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "test-secret", Namespace: targetNamespace}},
+				&v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "test-secret-opt", Namespace: targetNamespace}},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "test-config", Namespace: targetNamespace}},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "test-config-opt", Namespace: targetNamespace}},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status", Namespace: targetNamespace}},
+			},
+			testConfigs: []RevisionResource{{Name: "test-config"}, {Name: "test-config-opt", Optional: true}},
+			testSecrets: []RevisionResource{{Name: "test-secret"}, {Name: "test-secret-opt", Optional: true}},
+			validateActions: func(t *testing.T, actions []clienttesting.Action) {
+				createdObjects := filterCreateActions(actions)
+				if createdObjectCount := len(createdObjects); createdObjectCount != 5 {
+					t.Errorf("expected 5 objects to be created, got %d: %+v", createdObjectCount, createdObjects)
+					return
+				}
+				revisionStatus, hasStatus := createdObjects[0].(*v1.ConfigMap)
+				if !hasStatus {
+					t.Errorf("expected config to be created")
+					return
+				}
+				if revisionStatus.Name != "revision-status-1" {
+					t.Errorf("expected config to have name 'revision-status-1', got %q", revisionStatus.Name)
+				}
+				config, hasConfig := createdObjects[1].(*v1.ConfigMap)
+				if !hasConfig {
+					t.Errorf("expected config to be created")
+					return
+				}
+				if config.Name != "test-config-1" {
+					t.Errorf("expected config to have name 'test-config-1', got %q", config.Name)
+				}
+				config, hasConfig = createdObjects[2].(*v1.ConfigMap)
+				if !hasConfig {
+					t.Errorf("expected config to be created")
+					return
+				}
+				if config.Name != "test-config-opt-1" {
+					t.Errorf("expected config to have name 'test-config-opt-1', got %q", config.Name)
+				}
+				secret, hasSecret := createdObjects[3].(*v1.Secret)
+				if !hasSecret {
+					t.Errorf("expected secret to be created")
+					return
+				}
+				if secret.Name != "test-secret-1" {
+					t.Errorf("expected secret to have name 'test-secret-1', got %q", secret.Name)
+				}
+				secret, hasSecret = createdObjects[4].(*v1.Secret)
+				if !hasSecret {
+					t.Errorf("expected secret to be created")
+					return
+				}
+				if secret.Name != "test-secret-opt-1" {
+					t.Errorf("expected secret to have name 'test-secret-opt-1', got %q", secret.Name)
+				}
+			},
+		},
+		{
+			testName:        "copy-resources-opt-missing",
+			targetNamespace: targetNamespace,
+			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
+				&operatorv1.OperatorSpec{
+					ManagementState: operatorv1.Managed,
+				},
+				&operatorv1.OperatorStatus{},
+				&operatorv1.StaticPodOperatorStatus{
+					LatestAvailableRevision: 0,
+					NodeStatuses: []operatorv1.NodeStatus{
+						{
+							NodeName:        "test-node-1",
+							CurrentRevision: 0,
+							TargetRevision:  0,
+						},
+					},
+				},
+				nil,
+			),
+			startingObjects: []runtime.Object{
+				&v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "test-secret", Namespace: targetNamespace}},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "test-config", Namespace: targetNamespace}},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status", Namespace: targetNamespace}},
+			},
+			testConfigs: []RevisionResource{{Name: "test-config"}, {Name: "test-config-opt", Optional: true}},
+			testSecrets: []RevisionResource{{Name: "test-secret"}, {Name: "test-secret-opt", Optional: true}},
+			validateActions: func(t *testing.T, actions []clienttesting.Action) {
+				createdObjects := filterCreateActions(actions)
+				if createdObjectCount := len(createdObjects); createdObjectCount != 3 {
+					t.Errorf("expected 3 objects to be created, got %d: %+v", createdObjectCount, createdObjects)
+					return
+				}
+				revisionStatus, hasStatus := createdObjects[0].(*v1.ConfigMap)
+				if !hasStatus {
+					t.Errorf("expected config to be created")
+					return
+				}
+				if revisionStatus.Name != "revision-status-1" {
+					t.Errorf("expected config to have name 'revision-status-1', got %q", revisionStatus.Name)
+				}
+				config, hasConfig := createdObjects[1].(*v1.ConfigMap)
+				if !hasConfig {
+					t.Errorf("expected config to be created")
+					return
+				}
+				if config.Name != "test-config-1" {
+					t.Errorf("expected config to have name 'test-config-1', got %q", config.Name)
+				}
+				secret, hasSecret := createdObjects[2].(*v1.Secret)
+				if !hasSecret {
+					t.Errorf("expected secret to be created")
+					return
+				}
+				if secret.Name != "test-secret-1" {
+					t.Errorf("expected secret to have name 'test-secret-1', got %q", secret.Name)
+				}
+			},
+		},
+		{
+			testName:        "latest-revision-current",
+			targetNamespace: targetNamespace,
+			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
+				&operatorv1.OperatorSpec{
+					ManagementState: operatorv1.Managed,
+				},
+				&operatorv1.OperatorStatus{},
+				&operatorv1.StaticPodOperatorStatus{
+					LatestAvailableRevision: 1,
+					NodeStatuses: []operatorv1.NodeStatus{
+						{
+							NodeName:        "test-node-1",
+							CurrentRevision: 0,
+							TargetRevision:  0,
+						},
+					},
+				},
+				nil,
+			),
+			startingObjects: []runtime.Object{
+				&v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "test-secret", Namespace: targetNamespace}},
+				&v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "test-secret-1", Namespace: targetNamespace}},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "test-config", Namespace: targetNamespace}},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "test-config-1", Namespace: targetNamespace}},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-1", Namespace: targetNamespace}},
+			},
+			testConfigs: []RevisionResource{{Name: "test-config"}},
+			testSecrets: []RevisionResource{{Name: "test-secret"}},
+			validateActions: func(t *testing.T, actions []clienttesting.Action) {
+				createdObjects := filterCreateActions(actions)
+				if createdObjectCount := len(createdObjects); createdObjectCount != 0 {
+					t.Errorf("expected no objects to be created, got %d", createdObjectCount)
+				}
+			},
+		},
+		{
+			testName:        "latest-revision-current-optionals-missing",
+			targetNamespace: targetNamespace,
+			staticPodOperatorClient: v1helpers.NewFakeStaticPodOperatorClient(
+				&operatorv1.OperatorSpec{
+					ManagementState: operatorv1.Managed,
+				},
+				&operatorv1.OperatorStatus{},
+				&operatorv1.StaticPodOperatorStatus{
+					LatestAvailableRevision: 1,
+					NodeStatuses: []operatorv1.NodeStatus{
+						{
+							NodeName:        "test-node-1",
+							CurrentRevision: 0,
+							TargetRevision:  0,
+						},
+					},
+				},
+				nil,
+			),
+			startingObjects: []runtime.Object{
+				&v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "test-secret", Namespace: targetNamespace}},
+				&v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "test-secret-1", Namespace: targetNamespace}},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "test-config", Namespace: targetNamespace}},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "test-config-1", Namespace: targetNamespace}},
+				&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "revision-status-1", Namespace: targetNamespace}},
+			},
+			testConfigs: []RevisionResource{{Name: "test-config"}, {Name: "test-config-opt", Optional: true}},
+			testSecrets: []RevisionResource{{Name: "test-secret"}, {Name: "test-secret-opt", Optional: true}},
+			validateActions: func(t *testing.T, actions []clienttesting.Action) {
+				createdObjects := filterCreateActions(actions)
+				if createdObjectCount := len(createdObjects); createdObjectCount != 0 {
+					t.Errorf("expected no objects to be created, got %d", createdObjectCount)
+				}
+			},
+		},
 	}
 
 	for _, tc := range tests {
-		t.Run(tc.targetNamespace, func(t *testing.T) {
+		t.Run(tc.testName, func(t *testing.T) {
 			kubeClient := fake.NewSimpleClientset(tc.startingObjects...)
 			eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &v1.ObjectReference{})
 
