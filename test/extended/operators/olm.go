@@ -22,7 +22,6 @@ var _ = g.Describe("[Feature:Platform] OLM should", func() {
 		"installplans", "operatorgroups", "subscriptions",
 	}
 
-	g.By("list OLM resources which are necessary for OLM to run properly")
 	for i := range olmResources {
 		g.It("list "+olmResources[i], func() {
 			var resourceList map[string]interface{}

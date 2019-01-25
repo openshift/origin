@@ -133,11 +133,23 @@ func ExecuteTest(t ginkgo.GinkgoTestingT, suite string) {
 func AnnotateTestSuite() {
 	var allLabels []string
 	matches := make(map[string]*regexp.Regexp)
+	stringMatches := make(map[string][]string)
 	excludes := make(map[string]*regexp.Regexp)
 	for label, items := range testMaps {
 		sort.Strings(items)
 		allLabels = append(allLabels, label)
-		matches[label] = regexp.MustCompile(strings.Join(items, `|`))
+		var remain []string
+		for _, item := range items {
+			re := regexp.MustCompile(item)
+			if p, ok := re.LiteralPrefix(); ok {
+				stringMatches[label] = append(stringMatches[label], p)
+			} else {
+				remain = append(remain, item)
+			}
+		}
+		if len(remain) > 0 {
+			matches[label] = regexp.MustCompile(strings.Join(remain, `|`))
+		}
 	}
 	for label, items := range labelExcludes {
 		sort.Strings(items)
@@ -154,7 +166,20 @@ func AnnotateTestSuite() {
 					continue
 				}
 
-				if matches[label].MatchString(name) {
+				var hasLabel bool
+				for _, segment := range stringMatches[label] {
+					hasLabel = strings.Contains(name, segment)
+					if hasLabel {
+						break
+					}
+				}
+				if !hasLabel {
+					if re := matches[label]; re != nil {
+						hasLabel = matches[label].MatchString(name)
+					}
+				}
+
+				if hasLabel {
 					// TODO: remove when we no longer need it
 					if re, ok := excludes[label]; ok && re.MatchString(name) {
 						continue
@@ -311,7 +336,7 @@ var (
 			`Kibana`,                      // Not installed
 			`Ubernetes`,                   // Can't set zone labels today
 			`kube-ui`,                     // Not installed by default
-			`^Kubernetes Dashboard`,       // Not installed by default (also probably slow image pull)
+			`Kubernetes Dashboard`,        // Not installed by default (also probably slow image pull)
 			`Ingress`,                     // Not enabled yet
 
 			`NetworkPolicy between server and client should allow egress access on one named port`, // not yet implemented
@@ -390,7 +415,7 @@ var (
 			"Pod should be prefer scheduled to node that satisify the NodeAffinity",
 			"Pod should be schedule to node that don't match the PodAntiAffinity terms", // 2m
 
-			"validates that there exists conflict between pods with same hostPort and protocol but one using 0.0.0.0 hostIP", // 5m, really?
+			`validates that there exists conflict between pods with same hostPort and protocol but one using 0\.0\.0\.0 hostIP`, // 5m, really?
 		},
 		// tests that are known flaky
 		"[Flaky]": {
@@ -410,20 +435,16 @@ var (
 			`should allow starting 95 pods per node`,
 			`DynamicProvisioner should test that deleting a claim before the volume is provisioned deletes the volume`, // test is very disruptive to other tests
 
-			`Should be able to support the 1.7 Sample API Server using the current Aggregator`, // down apiservices break other clients today https://bugzilla.redhat.com/show_bug.cgi?id=1623195
+			`Should be able to support the 1\.7 Sample API Server using the current Aggregator`, // down apiservices break other clients today https://bugzilla.redhat.com/show_bug.cgi?id=1623195
 		},
-		"[Suite:openshift/scalability]": {
-			`Density .* should allow starting 30 pods per node .*Deployment.* with 0 secrets, 2 configmaps and 0 daemons`,
-			`Density .* should allow starting 100 pods per node .*ReplicationController.* with 0 secrets, 0 configmaps and 0 daemons`,
-			`Load capacity .* should be able to handle 30 pods per node .*Job.* with 0 secrets, 0 configmaps and 0 daemons`,
-		},
+		"[Suite:openshift/scalability]": {},
 	}
 
 	// labelExcludes temporarily block tests out of a specific suite
 	labelExcludes = map[string][]string{}
 
 	excludedTests = []string{
-		`\[Disabled:.+\]`,
+		`\[Disabled:`,
 		`\[Disruptive\]`,
 		`\[Skipped\]`,
 		`\[Slow\]`,
