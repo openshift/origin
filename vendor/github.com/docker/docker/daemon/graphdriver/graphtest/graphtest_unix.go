@@ -1,6 +1,6 @@
-// +build linux freebsd solaris
+// +build linux freebsd
 
-package graphtest
+package graphtest // import "github.com/docker/docker/daemon/graphdriver/graphtest"
 
 import (
 	"bytes"
@@ -13,10 +13,11 @@ import (
 	"unsafe"
 
 	"github.com/docker/docker/daemon/graphdriver"
+	"github.com/docker/docker/daemon/graphdriver/quota"
 	"github.com/docker/docker/pkg/stringid"
 	"github.com/docker/go-units"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/gotestyourself/gotestyourself/assert"
+	is "github.com/gotestyourself/gotestyourself/assert/cmp"
 	"golang.org/x/sys/unix"
 )
 
@@ -35,13 +36,13 @@ type Driver struct {
 
 func newDriver(t testing.TB, name string, options []string) *Driver {
 	root, err := ioutil.TempDir("", "docker-graphtest-")
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	require.NoError(t, os.MkdirAll(root, 0755))
+	assert.NilError(t, os.MkdirAll(root, 0755))
 	d, err := graphdriver.GetDriver(name, nil, graphdriver.Options{DriverOptions: options, Root: root})
 	if err != nil {
 		t.Logf("graphdriver: %v\n", err)
-		if err == graphdriver.ErrNotSupported || err == graphdriver.ErrPrerequisites || err == graphdriver.ErrIncompatibleFS {
+		if graphdriver.IsDriverNotSupported(err) {
 			t.Skipf("Driver %s not supported", name)
 		}
 		t.Fatal(err)
@@ -84,10 +85,10 @@ func DriverTestCreateEmpty(t testing.TB, drivername string, driverOptions ...str
 	defer PutDriver(t)
 
 	err := driver.Create("empty", "", nil)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	defer func() {
-		require.NoError(t, driver.Remove("empty"))
+		assert.NilError(t, driver.Remove("empty"))
 	}()
 
 	if !driver.Exists("empty") {
@@ -95,14 +96,14 @@ func DriverTestCreateEmpty(t testing.TB, drivername string, driverOptions ...str
 	}
 
 	dir, err := driver.Get("empty", "")
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
-	verifyFile(t, dir, 0755|os.ModeDir, 0, 0)
+	verifyFile(t, dir.Path(), 0755|os.ModeDir, 0, 0)
 
 	// Verify that the directory is empty
-	fis, err := readDir(dir)
-	require.NoError(t, err)
-	assert.Len(t, fis, 0)
+	fis, err := readDir(dir, dir.Path())
+	assert.NilError(t, err)
+	assert.Check(t, is.Len(fis, 0))
 
 	driver.Put("empty")
 }
@@ -114,7 +115,7 @@ func DriverTestCreateBase(t testing.TB, drivername string, driverOptions ...stri
 
 	createBase(t, driver, "Base")
 	defer func() {
-		require.NoError(t, driver.Remove("Base"))
+		assert.NilError(t, driver.Remove("Base"))
 	}()
 	verifyBase(t, driver, "Base")
 }
@@ -126,13 +127,13 @@ func DriverTestCreateSnap(t testing.TB, drivername string, driverOptions ...stri
 
 	createBase(t, driver, "Base")
 	defer func() {
-		require.NoError(t, driver.Remove("Base"))
+		assert.NilError(t, driver.Remove("Base"))
 	}()
 
 	err := driver.Create("Snap", "Base", nil)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 	defer func() {
-		require.NoError(t, driver.Remove("Snap"))
+		assert.NilError(t, driver.Remove("Snap"))
 	}()
 
 	verifyBase(t, driver, "Snap")
@@ -310,7 +311,7 @@ func writeRandomFile(path string, size uint64) error {
 }
 
 // DriverTestSetQuota Create a driver and test setting quota.
-func DriverTestSetQuota(t *testing.T, drivername string) {
+func DriverTestSetQuota(t *testing.T, drivername string, required bool) {
 	driver := GetDriver(t, drivername)
 	defer PutDriver(t)
 
@@ -318,19 +319,34 @@ func DriverTestSetQuota(t *testing.T, drivername string) {
 	createOpts := &graphdriver.CreateOpts{}
 	createOpts.StorageOpt = make(map[string]string, 1)
 	createOpts.StorageOpt["size"] = "50M"
-	if err := driver.Create("zfsTest", "Base", createOpts); err != nil {
+	layerName := drivername + "Test"
+	if err := driver.CreateReadWrite(layerName, "Base", createOpts); err == quota.ErrQuotaNotSupported && !required {
+		t.Skipf("Quota not supported on underlying filesystem: %v", err)
+	} else if err != nil {
 		t.Fatal(err)
 	}
 
-	mountPath, err := driver.Get("zfsTest", "")
+	mountPath, err := driver.Get(layerName, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	quota := uint64(50 * units.MiB)
-	err = writeRandomFile(path.Join(mountPath, "file"), quota*2)
-	if pathError, ok := err.(*os.PathError); ok && pathError.Err != unix.EDQUOT {
-		t.Fatalf("expect write() to fail with %v, got %v", unix.EDQUOT, err)
-	}
 
+	// Try to write a file smaller than quota, and ensure it works
+	err = writeRandomFile(path.Join(mountPath.Path(), "smallfile"), quota/2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(path.Join(mountPath.Path(), "smallfile"))
+
+	// Try to write a file bigger than quota. We've already filled up half the quota, so hitting the limit should be easy
+	err = writeRandomFile(path.Join(mountPath.Path(), "bigfile"), quota)
+	if err == nil {
+		t.Fatalf("expected write to fail(), instead had success")
+	}
+	if pathError, ok := err.(*os.PathError); ok && pathError.Err != unix.EDQUOT && pathError.Err != unix.ENOSPC {
+		os.Remove(path.Join(mountPath.Path(), "bigfile"))
+		t.Fatalf("expect write() to fail with %v or %v, got %v", unix.EDQUOT, unix.ENOSPC, pathError.Err)
+	}
 }

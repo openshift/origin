@@ -1,6 +1,6 @@
 // +build linux
 
-package mount
+package mount // import "github.com/docker/docker/pkg/mount"
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 
 func TestMount(t *testing.T) {
 	if os.Getuid() != 0 {
-		t.Skip("not root tests would fail")
+		t.Skip("root required")
 	}
 
 	source, err := ioutil.TempDir("", "mount-test-source-")
@@ -115,7 +115,7 @@ func ensureUnmount(t *testing.T, mnt string) {
 
 // validateMount checks that mnt has the given options
 func validateMount(t *testing.T, mnt string, opts, optional, vfs string) {
-	info, err := GetMounts()
+	info, err := GetMounts(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,13 +171,13 @@ func validateMount(t *testing.T, mnt string, opts, optional, vfs string) {
 			for _, opt := range strings.Split(mi.Opts, ",") {
 				opt = clean(opt)
 				if !has(wantedOpts, opt) && !has(pOpts, opt) {
-					t.Errorf("unexpected mount option %q expected %q", opt, opts)
+					t.Errorf("unexpected mount option %q, expected %q", opt, opts)
 				}
 				delete(wantedOpts, opt)
 			}
 		}
 		for opt := range wantedOpts {
-			t.Errorf("missing mount option %q found %q", opt, mi.Opts)
+			t.Errorf("missing mount option %q, found %q", opt, mi.Opts)
 		}
 
 		// Validate Optional
@@ -185,13 +185,13 @@ func validateMount(t *testing.T, mnt string, opts, optional, vfs string) {
 			for _, field := range strings.Split(mi.Optional, ",") {
 				field = clean(field)
 				if !has(wantedOptional, field) && !has(pOptional, field) {
-					t.Errorf("unexpected optional failed %q expected %q", field, optional)
+					t.Errorf("unexpected optional field %q, expected %q", field, optional)
 				}
 				delete(wantedOptional, field)
 			}
 		}
 		for field := range wantedOptional {
-			t.Errorf("missing optional field %q found %q", field, mi.Optional)
+			t.Errorf("missing optional field %q, found %q", field, mi.Optional)
 		}
 
 		// Validate VFS if set
@@ -199,14 +199,14 @@ func validateMount(t *testing.T, mnt string, opts, optional, vfs string) {
 			if mi.VfsOpts != "" {
 				for _, opt := range strings.Split(mi.VfsOpts, ",") {
 					opt = clean(opt)
-					if !has(wantedVFS, opt) {
-						t.Errorf("unexpected mount option %q expected %q", opt, vfs)
+					if !has(wantedVFS, opt) && opt != "seclabel" { // can be added by selinux
+						t.Errorf("unexpected vfs option %q, expected %q", opt, vfs)
 					}
 					delete(wantedVFS, opt)
 				}
 			}
 			for opt := range wantedVFS {
-				t.Errorf("missing mount option %q found %q", opt, mi.VfsOpts)
+				t.Errorf("missing vfs option %q, found %q", opt, mi.VfsOpts)
 			}
 		}
 

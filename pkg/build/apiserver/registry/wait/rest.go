@@ -1,6 +1,7 @@
 package wait
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	watchtools "k8s.io/client-go/tools/watch"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildtypedclient "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
@@ -64,7 +66,9 @@ func WaitForRunningBuild(buildClient buildtypedclient.BuildsGetter, buildNamespa
 				return
 			}
 
-			_, err = watch.Until(timeout, w, func(event watch.Event) (bool, error) {
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
+			defer cancel()
+			_, err = watchtools.UntilWithoutRetry(ctx, w, func(event watch.Event) (bool, error) {
 				if event.Type == watch.Error {
 					return false, ErrWatchError{fmt.Errorf("watch event type error: %v", event)}
 				}

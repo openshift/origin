@@ -30,7 +30,6 @@ import (
 	testclient "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/batch"
-	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 )
 
@@ -50,7 +49,7 @@ func TestLogsForObject(t *testing.T) {
 	}{
 		{
 			name: "pod logs",
-			obj: &api.Pod{
+			obj: &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{Name: "hello", Namespace: "test"},
 			},
 			pods: []runtime.Object{testPod()},
@@ -138,9 +137,9 @@ func TestLogsForObject(t *testing.T) {
 		},
 		{
 			name: "replication controller logs",
-			obj: &api.ReplicationController{
+			obj: &corev1.ReplicationController{
 				ObjectMeta: metav1.ObjectMeta{Name: "hello", Namespace: "test"},
-				Spec: api.ReplicationControllerSpec{
+				Spec: corev1.ReplicationControllerSpec{
 					Selector: map[string]string{"foo": "bar"},
 				},
 			},

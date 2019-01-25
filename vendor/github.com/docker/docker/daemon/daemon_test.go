@@ -1,23 +1,24 @@
-// +build !solaris
-
-package daemon
+package daemon // import "github.com/docker/docker/daemon"
 
 import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	containertypes "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/container"
+	"github.com/docker/docker/errdefs"
 	_ "github.com/docker/docker/pkg/discovery/memory"
 	"github.com/docker/docker/pkg/idtools"
 	"github.com/docker/docker/pkg/truncindex"
-	"github.com/docker/docker/volume"
-	volumedrivers "github.com/docker/docker/volume/drivers"
-	"github.com/docker/docker/volume/local"
-	"github.com/docker/docker/volume/store"
+	volumesservice "github.com/docker/docker/volume/service"
 	"github.com/docker/go-connections/nat"
+	"github.com/docker/libnetwork"
+	"github.com/gotestyourself/gotestyourself/assert"
+	is "github.com/gotestyourself/gotestyourself/assert/cmp"
+	"github.com/pkg/errors"
 )
 
 //
@@ -117,17 +118,10 @@ func initDaemonWithVolumeStore(tmp string) (*Daemon, error) {
 		repository: tmp,
 		root:       tmp,
 	}
-	daemon.volumes, err = store.New(tmp)
+	daemon.volumes, err = volumesservice.NewVolumeService(tmp, nil, idtools.IDPair{UID: 0, GID: 0}, daemon)
 	if err != nil {
 		return nil, err
 	}
-
-	volumesDriver, err := local.New(tmp, idtools.IDPair{UID: 0, GID: 0})
-	if err != nil {
-		return nil, err
-	}
-	volumedrivers.Register(volumesDriver, volumesDriver.Name())
-
 	return daemon, nil
 }
 
@@ -149,6 +143,10 @@ func TestValidContainerNames(t *testing.T) {
 }
 
 func TestContainerInitDNS(t *testing.T) {
+	if os.Getuid() != 0 {
+		t.Skip("root required") // for chown
+	}
+
 	tmp, err := ioutil.TempDir("", "docker-container-test-")
 	if err != nil {
 		t.Fatal(err)
@@ -204,7 +202,6 @@ func TestContainerInitDNS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer volumedrivers.Unregister(volume.DefaultDriverName)
 
 	c, err := daemon.load(containerID)
 	if err != nil {
@@ -302,5 +299,21 @@ func TestMerge(t *testing.T) {
 		if portSpecs.Port() != "0" && portSpecs.Port() != "1111" && portSpecs.Port() != "2222" && portSpecs.Port() != "3333" {
 			t.Fatalf("Expected %q or %q or %q or %q, found %s", 0, 1111, 2222, 3333, portSpecs)
 		}
+	}
+}
+
+func TestValidateContainerIsolation(t *testing.T) {
+	d := Daemon{}
+
+	_, err := d.verifyContainerSettings(runtime.GOOS, &containertypes.HostConfig{Isolation: containertypes.Isolation("invalid")}, nil, false)
+	assert.Check(t, is.Error(err, "invalid isolation 'invalid' on "+runtime.GOOS))
+}
+
+func TestFindNetworkErrorType(t *testing.T) {
+	d := Daemon{}
+	_, err := d.FindNetwork("fakeNet")
+	_, ok := errors.Cause(err).(libnetwork.ErrNoSuchNetwork)
+	if !errdefs.IsNotFound(err) || !ok {
+		t.Error("The FindNetwork method MUST always return an error that implements the NotFound interface and is ErrNoSuchNetwork")
 	}
 }

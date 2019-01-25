@@ -26,7 +26,7 @@ func (f FieldKeyCheck) Check(t *testing.T) {
 	}
 
 	for _, externalFieldKey := range f.AllowedExternalFieldKeys {
-		internalFieldKey, _, err := scheme.ConvertFieldLabel(f.Kind.GroupVersion().String(), f.Kind.Kind, externalFieldKey, "")
+		internalFieldKey, _, err := scheme.ConvertFieldLabel(f.Kind, externalFieldKey, "")
 		if err != nil {
 			t.Errorf("illegal field conversion %q for %v", externalFieldKey, f.Kind)
 			continue

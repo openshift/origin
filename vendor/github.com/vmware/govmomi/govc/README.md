@@ -71,7 +71,7 @@ to set defaults:
     This means that specifying `user:pass@host` is equivalent to
     `https://user:pass@host/sdk`.
 
-    If password include special characters like `#` or `:` you can use
+    If username or password includes special characters like `\`, `#` or `:` you can use
     `GOVC_USERNAME` and `GOVC_PASSWORD` to have a simple `GOVC_URL`
 
     When using govc against VMware Workstation, GOVC_URL can be set to "localhost"

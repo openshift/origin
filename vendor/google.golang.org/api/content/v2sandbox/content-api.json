@@ -15,7 +15,7 @@
   "description": "Manages product items, inventory, and Merchant Center accounts for Google Shopping.",
   "discoveryVersion": "v1",
   "documentationLink": "https://developers.google.com/shopping-content",
-  "etag": "\"Zkyw9ACJZUvcYmlFaKGChzhmtnE/PbOl5zh9XyiHW1B4ZXQHhUQtpkA\"",
+  "etag": "\"Zkyw9ACJZUvcYmlFaKGChzhmtnE/4NHVPjgKPo266pkH5qP5nxcodtg\"",
   "icons": {
     "x16": "https://www.gstatic.com/images/branding/product/1x/googleg_16dp.png",
     "x32": "https://www.gstatic.com/images/branding/product/1x/googleg_32dp.png"
@@ -1004,7 +1004,6 @@
       }
     }
   },
-  "revision": "20180529",
   "rootUrl": "https://www.googleapis.com/",
   "schemas": {
     "Amount": {
@@ -1783,7 +1782,7 @@
           "type": "string"
         },
         "deliveryDate": {
-          "description": "Date on which the shipment has been delivered, in ISO 8601 format. Present only if status is delievered",
+          "description": "Date on which the shipment has been delivered, in ISO 8601 format. Present only if status is delivered",
           "type": "string"
         },
         "id": {
@@ -1884,11 +1883,11 @@
         },
         "refundOnlyOption": {
           "$ref": "OrderinvoicesCustomBatchRequestEntryCreateRefundInvoiceRefundOption",
-          "description": "Option to create a refund-only invoice. Exactly one of refund_option and return_option must be provided."
+          "description": "Option to create a refund-only invoice. Exactly one of refundOnlyOption or returnOption must be provided."
         },
         "returnOption": {
           "$ref": "OrderinvoicesCustomBatchRequestEntryCreateRefundInvoiceReturnOption",
-          "description": "Option to create an invoice for a refund and mark all items within the invoice as returned. Exactly one of refund_option and return_option must be provided."
+          "description": "Option to create an invoice for a refund and mark all items within the invoice as returned. Exactly one of refundOnlyOption or returnOption must be provided."
         },
         "shipmentInvoices": {
           "description": "Invoice details for different shipment groups.",
@@ -2609,6 +2608,10 @@
           "description": "The carrier handling the shipment. Not updated if missing. See shipments[].carrier in the  Orders resource representation for a list of acceptable values.",
           "type": "string"
         },
+        "deliveryDate": {
+          "description": "Date on which the shipment has been delivered, in ISO 8601 format. Optional and can be provided only if",
+          "type": "string"
+        },
         "shipmentId": {
           "description": "The ID of the shipment.",
           "type": "string"
@@ -3137,6 +3140,10 @@
           "description": "The carrier handling the shipment. Not updated if missing. See shipments[].carrier in the  Orders resource representation for a list of acceptable values.",
           "type": "string"
         },
+        "deliveryDate": {
+          "description": "Date on which the shipment has been delivered, in ISO 8601 format. Optional and can be provided only if",
+          "type": "string"
+        },
         "operationId": {
           "description": "The ID of the operation. Unique across all operations for a given order.",
           "type": "string"
@@ -3256,6 +3263,10 @@
             ]
           },
           "description": "The details of the customer who placed the order."
+        },
+        "enableOrderinvoices": {
+          "description": "Whether the orderinvoices service should support this order.",
+          "type": "boolean"
         },
         "kind": {
           "default": "content#testOrder",

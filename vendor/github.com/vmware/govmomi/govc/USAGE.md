@@ -207,6 +207,12 @@ but appear via `govc $cmd -h`:
  - [snapshot.remove](#snapshotremove)
  - [snapshot.revert](#snapshotrevert)
  - [snapshot.tree](#snapshottree)
+ - [sso.service.ls](#ssoservicels)
+ - [sso.user.create](#ssousercreate)
+ - [sso.user.id](#ssouserid)
+ - [sso.user.ls](#ssouserls)
+ - [sso.user.rm](#ssouserrm)
+ - [sso.user.update](#ssouserupdate)
  - [task.cancel](#taskcancel)
  - [tasks](#tasks)
  - [vapp.destroy](#vappdestroy)
@@ -253,7 +259,7 @@ Examples:
   govc about -json | jq -r .About.ProductLineId
 
 Options:
-  -l=false                  Include service content
+  -l=false               Include service content
 ```
 
 ## about.cert
@@ -273,8 +279,8 @@ Examples:
   govc about.cert -k -thumbprint | tee -a ~/.govmomi/known_hosts
 
 Options:
-  -show=false               Show PEM encoded server certificate only
-  -thumbprint=false         Output host hash and thumbprint only
+  -show=false            Show PEM encoded server certificate only
+  -thumbprint=false      Output host hash and thumbprint only
 ```
 
 ## cluster.add
@@ -292,15 +298,15 @@ Examples:
   govc cluster.add -cluster ClusterB -hostname 10.0.6.1 -username root -password pass -noverify
 
 Options:
-  -cluster=                 Cluster [GOVC_CLUSTER]
-  -connect=true             Immediately connect to host
-  -force=false              Force when host is managed by another VC
-  -hostname=                Hostname or IP address of the host
-  -license=                 Assign license key
-  -noverify=false           Accept host thumbprint without verification
-  -password=                Password of administration account on the host
-  -thumbprint=              SHA-1 thumbprint of the host's SSL certificate
-  -username=                Username of administration account on the host
+  -cluster=              Cluster [GOVC_CLUSTER]
+  -connect=true          Immediately connect to host
+  -force=false           Force when host is managed by another VC
+  -hostname=             Hostname or IP address of the host
+  -license=              Assign license key
+  -noverify=false        Accept host thumbprint without verification
+  -password=             Password of administration account on the host
+  -thumbprint=           SHA-1 thumbprint of the host's SSL certificate
+  -username=             Username of administration account on the host
 ```
 
 ## cluster.change
@@ -315,11 +321,11 @@ Examples:
   govc cluster.change -drs-enabled=false ClusterB
 
 Options:
-  -drs-enabled=<nil>        Enable DRS
-  -drs-mode=                DRS behavior for virtual machines: manual, partiallyAutomated, fullyAutomated
-  -ha-enabled=<nil>         Enable HA
-  -vsan-autoclaim=<nil>     Autoclaim storage on cluster hosts
-  -vsan-enabled=<nil>       Enable vSAN
+  -drs-enabled=<nil>     Enable DRS
+  -drs-mode=             DRS behavior for virtual machines: manual, partiallyAutomated, fullyAutomated
+  -ha-enabled=<nil>      Enable HA
+  -vsan-autoclaim=<nil>  Autoclaim storage on cluster hosts
+  -vsan-enabled=<nil>    Enable vSAN
 ```
 
 ## cluster.create
@@ -337,7 +343,7 @@ Examples:
   govc cluster.create -folder /dc2/test-folder ClusterB
 
 Options:
-  -folder=                  Inventory folder [GOVC_FOLDER]
+  -folder=               Inventory folder [GOVC_FOLDER]
 ```
 
 ## cluster.group.change
@@ -353,8 +359,8 @@ Examples:
   govc cluster.group.ls -name my_group | grep -v vm_b | xargs govc cluster.group.change -name my_group vm_a vm_b vm_c # remove
 
 Options:
-  -cluster=                 Cluster [GOVC_CLUSTER]
-  -name=                    Cluster group name
+  -cluster=              Cluster [GOVC_CLUSTER]
+  -name=                 Cluster group name
 ```
 
 ## cluster.group.create
@@ -371,10 +377,10 @@ Examples:
   govc cluster.group.create -name my_host_group -host host_a host_b host_c
 
 Options:
-  -cluster=                 Cluster [GOVC_CLUSTER]
-  -host=false               Create cluster Host group
-  -name=                    Cluster group name
-  -vm=false                 Create cluster VM group
+  -cluster=              Cluster [GOVC_CLUSTER]
+  -host=false            Create cluster Host group
+  -name=                 Cluster group name
+  -vm=false              Create cluster VM group
 ```
 
 ## cluster.group.ls
@@ -389,8 +395,8 @@ Examples:
   govc cluster.group.ls -cluster my_cluster -name my_group
 
 Options:
-  -cluster=                 Cluster [GOVC_CLUSTER]
-  -name=                    Cluster group name
+  -cluster=              Cluster [GOVC_CLUSTER]
+  -name=                 Cluster group name
 ```
 
 ## cluster.group.remove
@@ -404,8 +410,8 @@ Examples:
   govc cluster.group.remove -cluster my_cluster -name my_group
 
 Options:
-  -cluster=                 Cluster [GOVC_CLUSTER]
-  -name=                    Cluster group name
+  -cluster=              Cluster [GOVC_CLUSTER]
+  -name=                 Cluster group name
 ```
 
 ## cluster.override.change
@@ -421,11 +427,11 @@ Examples:
   govc cluster.override.change -cluster cluster_1 -vm vm_3 -drs-enabled -drs-mode fullyAutomated
 
 Options:
-  -cluster=                 Cluster [GOVC_CLUSTER]
-  -drs-enabled=<nil>        Enable DRS
-  -drs-mode=                DRS behavior for virtual machines: manual, partiallyAutomated, fullyAutomated
-  -ha-restart-priority=     HA restart priority: disabled, low, medium, high
-  -vm=                      Virtual machine [GOVC_VM]
+  -cluster=              Cluster [GOVC_CLUSTER]
+  -drs-enabled=<nil>     Enable DRS
+  -drs-mode=             DRS behavior for virtual machines: manual, partiallyAutomated, fullyAutomated
+  -ha-restart-priority=  HA restart priority: disabled, low, medium, high
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## cluster.override.info
@@ -440,7 +446,7 @@ Examples:
   govc cluster.override.info -json
 
 Options:
-  -cluster=                 Cluster [GOVC_CLUSTER]
+  -cluster=              Cluster [GOVC_CLUSTER]
 ```
 
 ## cluster.override.remove
@@ -454,8 +460,8 @@ Examples:
   govc cluster.override.remove -cluster cluster_1 -vm vm_1
 
 Options:
-  -cluster=                 Cluster [GOVC_CLUSTER]
-  -vm=                      Virtual machine [GOVC_VM]
+  -cluster=              Cluster [GOVC_CLUSTER]
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## cluster.rule.change
@@ -527,8 +533,8 @@ Examples:
   govc cluster.rule.ls -cluster my_cluster -name my_rule
 
 Options:
-  -cluster=                 Cluster [GOVC_CLUSTER]
-  -name=                    Cluster rule name
+  -cluster=              Cluster [GOVC_CLUSTER]
+  -name=                 Cluster rule name
 ```
 
 ## cluster.rule.remove
@@ -542,8 +548,8 @@ Examples:
   govc cluster.group.remove -cluster my_cluster -name my_rule
 
 Options:
-  -cluster=                 Cluster [GOVC_CLUSTER]
-  -name=                    Cluster rule name
+  -cluster=              Cluster [GOVC_CLUSTER]
+  -name=                 Cluster rule name
 ```
 
 ## datacenter.create
@@ -552,7 +558,7 @@ Options:
 Usage: govc datacenter.create [OPTIONS] NAME...
 
 Options:
-  -folder=                  Inventory folder [GOVC_FOLDER]
+  -folder=               Inventory folder [GOVC_FOLDER]
 ```
 
 ## datacenter.info
@@ -578,11 +584,11 @@ Examples:
   govc datastore.cp disks/disk1.vmdk -ds-target NFS-2 disks/disk2.vmdk
 
 Options:
-  -dc-target=               Datacenter destination (defaults to -dc)
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -ds-target=               Datastore destination (defaults to -ds)
-  -f=false                  If true, overwrite any identically named file at the destination
-  -t=true                   Use file type to choose disk or file manager
+  -dc-target=            Datacenter destination (defaults to -dc)
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -ds-target=            Datastore destination (defaults to -ds)
+  -f=false               If true, overwrite any identically named file at the destination
+  -t=true                Use file type to choose disk or file manager
 ```
 
 ## datastore.create
@@ -598,17 +604,17 @@ Examples:
   govc datastore.create -type local -name localDatastore -path /var/datastore host1
 
 Options:
-  -disk=                    Canonical name of disk (VMFS only)
-  -force=false              Ignore DuplicateName error if datastore is already mounted on a host
-  -host=                    Host system [GOVC_HOST]
-  -mode=readOnly            Access mode for the mount point (readOnly|readWrite)
-  -name=                    Datastore name
-  -password=                Password to use when connecting (CIFS only)
-  -path=                    Local directory path for the datastore (local only)
-  -remote-host=             Remote hostname of the NAS datastore
-  -remote-path=             Remote path of the NFS mount point
-  -type=                    Datastore type (NFS|NFS41|CIFS|VMFS|local)
-  -username=                Username to use when connecting (CIFS only)
+  -disk=                 Canonical name of disk (VMFS only)
+  -force=false           Ignore DuplicateName error if datastore is already mounted on a host
+  -host=                 Host system [GOVC_HOST]
+  -mode=readOnly         Access mode for the mount point (readOnly|readWrite)
+  -name=                 Datastore name
+  -password=             Password to use when connecting (CIFS only)
+  -path=                 Local directory path for the datastore (local only)
+  -remote-host=          Remote hostname of the NAS datastore
+  -remote-path=          Remote path of the NFS mount point
+  -type=                 Datastore type (NFS|NFS41|CIFS|VMFS|local)
+  -username=             Username to use when connecting (CIFS only)
 ```
 
 ## datastore.disk.create
@@ -624,11 +630,12 @@ Examples:
   govc datastore.disk.create disks/parent.vmdk disk/child.vmdk
 
 Options:
-  -a=lsiLogic               Disk adapter
-  -d=thin                   Disk format
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -f=false                  Force
-  -size=10.0GB              Size of new disk
+  -a=lsiLogic            Disk adapter
+  -d=thin                Disk format
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -f=false               Force
+  -size=10.0GB           Size of new disk
+  -uuid=                 Disk UUID
 ```
 
 ## datastore.disk.inflate
@@ -642,7 +649,7 @@ Examples:
   govc datastore.disk.inflate disks/disk1.vmdk
 
 Options:
-  -ds=                      Datastore [GOVC_DATASTORE]
+  -ds=                   Datastore [GOVC_DATASTORE]
 ```
 
 ## datastore.disk.info
@@ -656,10 +663,11 @@ Examples:
   govc datastore.disk.info disks/disk1.vmdk
 
 Options:
-  -c=false                  Chain format
-  -d=false                  Include datastore in output
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -p=true                   Include parents
+  -c=false               Chain format
+  -d=false               Include datastore in output
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -p=true                Include parents
+  -uuid=false            Include disk UUID
 ```
 
 ## datastore.disk.shrink
@@ -673,8 +681,8 @@ Examples:
   govc datastore.disk.shrink disks/disk1.vmdk
 
 Options:
-  -copy=<nil>               Perform shrink in-place mode if false, copy-shrink mode otherwise
-  -ds=                      Datastore [GOVC_DATASTORE]
+  -copy=<nil>            Perform shrink in-place mode if false, copy-shrink mode otherwise
+  -ds=                   Datastore [GOVC_DATASTORE]
 ```
 
 ## datastore.download
@@ -691,8 +699,8 @@ Examples:
   govc datastore.download vm-name/vmware.log - | grep -i error
 
 Options:
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -host=                    Host system [GOVC_HOST]
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## datastore.info
@@ -709,11 +717,11 @@ Options:
 Usage: govc datastore.ls [OPTIONS] [FILE]...
 
 Options:
-  -R=false                  List subdirectories recursively
-  -a=false                  Do not ignore entries starting with .
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -l=false                  Long listing format
-  -p=false                  Append / indicator to directories
+  -R=false               List subdirectories recursively
+  -a=false               Do not ignore entries starting with .
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -l=false               Long listing format
+  -p=false               Append / indicator to directories
 ```
 
 ## datastore.mkdir
@@ -722,9 +730,9 @@ Options:
 Usage: govc datastore.mkdir [OPTIONS] DIRECTORY
 
 Options:
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -namespace=false          Return uuid of namespace created on vsan datastore
-  -p=false                  Create intermediate directories as needed
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -namespace=false       Return uuid of namespace created on vsan datastore
+  -p=false               Create intermediate directories as needed
 ```
 
 ## datastore.mv
@@ -739,11 +747,11 @@ Examples:
   govc datastore.mv -f my.vmx foo/foo.vmx
 
 Options:
-  -dc-target=               Datacenter destination (defaults to -dc)
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -ds-target=               Datastore destination (defaults to -ds)
-  -f=false                  If true, overwrite any identically named file at the destination
-  -t=true                   Use file type to choose disk or file manager
+  -dc-target=            Datacenter destination (defaults to -dc)
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -ds-target=            Datastore destination (defaults to -ds)
+  -f=false               If true, overwrite any identically named file at the destination
+  -t=true                Use file type to choose disk or file manager
 ```
 
 ## datastore.remove
@@ -758,8 +766,8 @@ Examples:
   govc datastore.remove -ds nasDatastore host1 host2 host3
 
 Options:
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -host=                    Host system [GOVC_HOST]
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## datastore.rm
@@ -775,10 +783,10 @@ Examples:
   govc datastore.rm -f images/base.vmdk
 
 Options:
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -f=false                  Force; ignore nonexistent files and arguments
-  -namespace=false          Path is uuid of namespace on vsan datastore
-  -t=true                   Use file type to choose disk or file manager
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -f=false               Force; ignore nonexistent files and arguments
+  -namespace=false       Path is uuid of namespace on vsan datastore
+  -t=true                Use file type to choose disk or file manager
 ```
 
 ## datastore.tail
@@ -793,11 +801,11 @@ Examples:
   govc datastore.tail -n 0 -f vm-name/vmware.log
 
 Options:
-  -c=-1                     Output the last NUM bytes
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -f=false                  Output appended data as the file grows
-  -host=                    Host system [GOVC_HOST]
-  -n=10                     Output the last NUM lines
+  -c=-1                  Output the last NUM bytes
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -f=false               Output appended data as the file grows
+  -host=                 Host system [GOVC_HOST]
+  -n=10                  Output the last NUM lines
 ```
 
 ## datastore.upload
@@ -814,7 +822,7 @@ Examples:
   genisoimage ... | govc datastore.upload -ds datastore1 - vm-name/config.iso
 
 Options:
-  -ds=                      Datastore [GOVC_DATASTORE]
+  -ds=                   Datastore [GOVC_DATASTORE]
 ```
 
 ## datastore.vsan.dom.ls
@@ -830,9 +838,9 @@ Examples:
   govc datastore.vsan.dom.ls -l d85aa758-63f5-500a-3150-0200308e589c
 
 Options:
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -l=false                  Long listing
-  -o=false                  List orphan objects
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -l=false               Long listing
+  -o=false               List orphan objects
 ```
 
 ## datastore.vsan.dom.rm
@@ -848,9 +856,9 @@ Examples:
   govc datastore.vsan.dom.ls -o | xargs govc datastore.vsan.dom.rm
 
 Options:
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -f=false                  Force delete
-  -v=false                  Print deleted UUIDs to stdout, failed to stderr
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -f=false               Force delete
+  -v=false               Print deleted UUIDs to stdout, failed to stderr
 ```
 
 ## device.boot
@@ -865,12 +873,12 @@ Examples:
   govc device.boot -vm $vm -order - # reset boot order
 
 Options:
-  -delay=0                  Delay in ms before starting the boot sequence
-  -order=                   Boot device order [-,floppy,cdrom,ethernet,disk]
-  -retry=false              If true, retry boot after retry-delay
-  -retry-delay=0            Delay in ms before a boot retry
-  -setup=false              If true, enter BIOS setup on next boot
-  -vm=                      Virtual machine [GOVC_VM]
+  -delay=0               Delay in ms before starting the boot sequence
+  -order=                Boot device order [-,floppy,cdrom,ethernet,disk]
+  -retry=false           If true, retry boot after retry-delay
+  -retry-delay=0         Delay in ms before a boot retry
+  -setup=false           If true, enter BIOS setup on next boot
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## device.cdrom.add
@@ -887,8 +895,8 @@ Examples:
   govc device.info cdrom-*
 
 Options:
-  -controller=              IDE controller name
-  -vm=                      Virtual machine [GOVC_VM]
+  -controller=           IDE controller name
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## device.cdrom.eject
@@ -905,8 +913,8 @@ Examples:
   govc device.cdrom.eject -vm vm-1 -device floppy-1
 
 Options:
-  -device=                  CD-ROM device name
-  -vm=                      Virtual machine [GOVC_VM]
+  -device=               CD-ROM device name
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## device.cdrom.insert
@@ -922,9 +930,9 @@ Examples:
   govc device.cdrom.insert -vm vm-1 -device cdrom-3000 images/boot.iso
 
 Options:
-  -device=                  CD-ROM device name
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -vm=                      Virtual machine [GOVC_VM]
+  -device=               CD-ROM device name
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## device.connect
@@ -938,7 +946,7 @@ Examples:
   govc device.connect -vm $name cdrom-3000
 
 Options:
-  -vm=                      Virtual machine [GOVC_VM]
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## device.disconnect
@@ -952,7 +960,7 @@ Examples:
   govc device.disconnect -vm $name cdrom-3000
 
 Options:
-  -vm=                      Virtual machine [GOVC_VM]
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## device.floppy.add
@@ -967,7 +975,7 @@ Examples:
   govc device.info floppy-*
 
 Options:
-  -vm=                      Virtual machine [GOVC_VM]
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## device.floppy.eject
@@ -983,8 +991,8 @@ Examples:
   govc device.floppy.eject -vm vm-1
 
 Options:
-  -device=                  Floppy device name
-  -vm=                      Virtual machine [GOVC_VM]
+  -device=               Floppy device name
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## device.floppy.insert
@@ -1000,9 +1008,9 @@ Examples:
   govc device.floppy.insert -vm vm-1 vm-1/config.img
 
 Options:
-  -device=                  Floppy device name
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -vm=                      Virtual machine [GOVC_VM]
+  -device=               Floppy device name
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## device.info
@@ -1018,10 +1026,10 @@ Examples:
   govc device.info -vm $name -json ethernet-0 | jq -r .Devices[].MacAddress
 
 Options:
-  -net=                     Network [GOVC_NETWORK]
-  -net.adapter=e1000        Network adapter type
-  -net.address=             Network hardware address
-  -vm=                      Virtual machine [GOVC_VM]
+  -net=                  Network [GOVC_NETWORK]
+  -net.adapter=e1000     Network adapter type
+  -net.address=          Network hardware address
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## device.ls
@@ -1035,8 +1043,8 @@ Examples:
   govc device.ls -vm $name
 
 Options:
-  -boot=false               List devices configured in the VM's boot options
-  -vm=                      Virtual machine [GOVC_VM]
+  -boot=false            List devices configured in the VM's boot options
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## device.remove
@@ -1051,8 +1059,8 @@ Examples:
   govc device.remove -vm $name -keep disk-1000
 
 Options:
-  -keep=false               Keep files in datastore
-  -vm=                      Virtual machine [GOVC_VM]
+  -keep=false            Keep files in datastore
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## device.scsi.add
@@ -1068,10 +1076,10 @@ Examples:
   govc device.info -vm $vm {lsi,pv}*
 
 Options:
-  -hot=false                Enable hot-add/remove
-  -sharing=noSharing        SCSI sharing
-  -type=lsilogic            SCSI controller type (lsilogic|buslogic|pvscsi|lsilogic-sas)
-  -vm=                      Virtual machine [GOVC_VM]
+  -hot=false             Enable hot-add/remove
+  -sharing=noSharing     SCSI sharing
+  -type=lsilogic         SCSI controller type (lsilogic|buslogic|pvscsi|lsilogic-sas)
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## device.serial.add
@@ -1086,7 +1094,7 @@ Examples:
   govc device.info -vm $vm serialport-*
 
 Options:
-  -vm=                      Virtual machine [GOVC_VM]
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## device.serial.connect
@@ -1110,10 +1118,10 @@ Examples:
   govc datastore.tail -f $vm/serialport-8000.log
 
 Options:
-  -client=false             Use client direction
-  -device=                  serial port device name
-  -vm=                      Virtual machine [GOVC_VM]
-  -vspc-proxy=              vSPC proxy URI
+  -client=false          Use client direction
+  -device=               serial port device name
+  -vm=                   Virtual machine [GOVC_VM]
+  -vspc-proxy=           vSPC proxy URI
 ```
 
 ## device.serial.disconnect
@@ -1129,8 +1137,8 @@ Examples:
   govc device.info -vm $vm serialport-*
 
 Options:
-  -device=                  serial port device name
-  -vm=                      Virtual machine [GOVC_VM]
+  -device=               serial port device name
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## device.usb.add
@@ -1146,10 +1154,10 @@ Examples:
   govc device.info usb*
 
 Options:
-  -auto=true                Enable ability to hot plug devices
-  -ehci=true                Enable enhanced host controller interface (USB 2.0)
-  -type=usb                 USB controller type (usb|xhci)
-  -vm=                      Virtual machine [GOVC_VM]
+  -auto=true             Enable ability to hot plug devices
+  -ehci=true             Enable enhanced host controller interface (USB 2.0)
+  -type=usb              USB controller type (usb|xhci)
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## dvs.add
@@ -1163,9 +1171,9 @@ Examples:
   govc dvs.add -dvs dvsName -pnic vmnic1 hostA hostB hostC
 
 Options:
-  -dvs=                     DVS path
-  -host=                    Host system [GOVC_HOST]
-  -pnic=vmnic0              Name of the host physical NIC
+  -dvs=                  DVS path
+  -host=                 Host system [GOVC_HOST]
+  -pnic=vmnic0           Name of the host physical NIC
 ```
 
 ## dvs.create
@@ -1183,8 +1191,8 @@ Examples:
   govc dvs.create -product-version 5.5.0 DSwitch
 
 Options:
-  -folder=                  Inventory folder [GOVC_FOLDER]
-  -product-version=         DVS product version
+  -folder=               Inventory folder [GOVC_FOLDER]
+  -product-version=      DVS product version
 ```
 
 ## dvs.portgroup.add
@@ -1200,10 +1208,10 @@ Examples:
   govc dvs.portgroup.add -dvs DSwitch -type ephemeral InternalNetwork
 
 Options:
-  -dvs=                     DVS path
-  -nports=128               Number of ports
-  -type=earlyBinding        Portgroup type (earlyBinding|lateBinding|ephemeral)
-  -vlan=0                   VLAN ID
+  -dvs=                  DVS path
+  -nports=128            Number of ports
+  -type=earlyBinding     Portgroup type (earlyBinding|lateBinding|ephemeral)
+  -vlan=0                VLAN ID
 ```
 
 ## dvs.portgroup.change
@@ -1218,9 +1226,9 @@ Examples:
   govc dvs.portgroup.change -vlan 3214 ExternalNetwork
 
 Options:
-  -nports=0                 Number of ports
-  -type=earlyBinding        Portgroup type (earlyBinding|lateBinding|ephemeral)
-  -vlan=0                   VLAN ID
+  -nports=0              Number of ports
+  -type=earlyBinding     Portgroup type (earlyBinding|lateBinding|ephemeral)
+  -vlan=0                VLAN ID
 ```
 
 ## dvs.portgroup.info
@@ -1236,13 +1244,13 @@ Examples:
   govc find / -type DistributedVirtualSwitch | xargs -n1 govc dvs.portgroup.info
 
 Options:
-  -active=false             Filter by port active or inactive status
-  -connected=false          Filter by port connected or disconnected status
-  -count=0                  Number of matches to return (0 = unlimited)
-  -inside=true              Filter by port inside or outside status
-  -pg=                      Distributed Virtual Portgroup
-  -uplinkPort=false         Filter for uplink ports
-  -vlan=0                   Filter by VLAN ID (0 = unfiltered)
+  -active=false          Filter by port active or inactive status
+  -connected=false       Filter by port connected or disconnected status
+  -count=0               Number of matches to return (0 = unlimited)
+  -inside=true           Filter by port inside or outside status
+  -pg=                   Distributed Virtual Portgroup
+  -uplinkPort=false      Filter for uplink ports
+  -vlan=0                Filter by VLAN ID (0 = unfiltered)
 ```
 
 ## env
@@ -1256,7 +1264,7 @@ If credentials are included in the url, they are split into separate variables.
 Useful as bash scripting helper to parse GOVC_URL.
 
 Options:
-  -x=false                  Output variables for each GOVC_URL component
+  -x=false               Output variables for each GOVC_URL component
 ```
 
 ## events
@@ -1273,11 +1281,11 @@ Examples:
   govc ls -t HostSystem host/* | xargs govc events | grep -i vsan
 
 Options:
-  -f=false                  Follow event stream
-  -force=false              Disable number objects to monitor limit
-  -l=false                  Long listing format
-  -n=25                     Output the last N events
-  -type=[]                  Include only the specified event types
+  -f=false               Follow event stream
+  -force=false           Disable number objects to monitor limit
+  -l=false               Long listing format
+  -n=25                  Output the last N events
+  -type=[]               Include only the specified event types
 ```
 
 ## export.ovf
@@ -1291,11 +1299,11 @@ Examples:
   govc export.ovf -vm $vm DIR
 
 Options:
-  -f=false                  Overwrite existing
-  -i=false                  Include image files (*.{iso,img})
-  -name=                    Specifies target name (defaults to source name)
-  -sha=0                    Generate manifest using SHA 1, 256, 512 or 0 to skip
-  -vm=                      Virtual machine [GOVC_VM]
+  -f=false               Overwrite existing
+  -i=false               Include image files (*.{iso,img})
+  -name=                 Specifies target name (defaults to source name)
+  -sha=0                 Generate manifest using SHA 1, 256, 512 or 0 to skip
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## extension.info
@@ -1312,7 +1320,7 @@ Options:
 Usage: govc extension.register [OPTIONS]
 
 Options:
-  -update=false             Update extension
+  -update=false          Update extension
 ```
 
 ## extension.setcert
@@ -1327,9 +1335,12 @@ The '-cert-pem' option can be one of the following:
 '+' : Generate a new key pair and save locally to ID.crt and ID.key
 ... : Any other value is passed as-is to ExtensionManager.SetCertificate
 
+Examples:
+  govc extension.setcert -cert-pem + -org Example com.example.extname
+
 Options:
-  -cert-pem=-               PEM encoded certificate
-  -org=VMware               Organization for generated certificate
+  -cert-pem=-            PEM encoded certificate
+  -org=VMware            Organization for generated certificate
 ```
 
 ## extension.unregister
@@ -1420,10 +1431,10 @@ Examples:
   govc find . -type h -hardware.cpuInfo.numCpuCores 16
 
 Options:
-  -i=false                  Print the managed object reference
-  -maxdepth=-1              Max depth
-  -name=*                   Resource name
-  -type=[]                  Resource type
+  -i=false               Print the managed object reference
+  -maxdepth=-1           Max depth
+  -name=*                Resource name
+  -type=[]               Resource type
 ```
 
 ## firewall.ruleset.find
@@ -1441,13 +1452,13 @@ Examples:
   govc firewall.ruleset.find -direction outbound -port 2377
 
 Options:
-  -c=true                   Check if esx firewall is enabled
-  -direction=outbound       Direction
-  -enabled=true             Find enabled rule sets if true, disabled if false
-  -host=                    Host system [GOVC_HOST]
-  -port=0                   Port
-  -proto=tcp                Protocol
-  -type=dst                 Port type
+  -c=true                Check if esx firewall is enabled
+  -direction=outbound    Direction
+  -enabled=true          Find enabled rule sets if true, disabled if false
+  -host=                 Host system [GOVC_HOST]
+  -port=0                Port
+  -proto=tcp             Protocol
+  -type=dst              Port type
 ```
 
 ## folder.create
@@ -1464,7 +1475,7 @@ Examples:
   govc object.mv /dc1/datastore/iscsi-* /dc1/datastore/sdrs
 
 Options:
-  -pod=false                Create folder(s) of type StoragePod (DatastoreCluster)
+  -pod=false             Create folder(s) of type StoragePod (DatastoreCluster)
 ```
 
 ## folder.info
@@ -1486,8 +1497,8 @@ Examples:
   govc guest.chmod -vm $name 0644 /var/log/foo.log
 
 Options:
-  -l=:                      Guest VM credentials [GOVC_GUEST_LOGIN]
-  -vm=                      Virtual machine [GOVC_VM]
+  -l=:                   Guest VM credentials [GOVC_GUEST_LOGIN]
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## guest.chown
@@ -1501,8 +1512,8 @@ Examples:
   govc guest.chown -vm $name UID[:GID] /var/log/foo.log
 
 Options:
-  -l=:                      Guest VM credentials [GOVC_GUEST_LOGIN]
-  -vm=                      Virtual machine [GOVC_VM]
+  -l=:                   Guest VM credentials [GOVC_GUEST_LOGIN]
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## guest.download
@@ -1519,9 +1530,9 @@ Examples:
   govc guest.download -l user:pass -vm=my-vm /etc/motd -
 
 Options:
-  -f=false                  If set, the local destination file is clobbered
-  -l=:                      Guest VM credentials [GOVC_GUEST_LOGIN]
-  -vm=                      Virtual machine [GOVC_VM]
+  -f=false               If set, the local destination file is clobbered
+  -l=:                   Guest VM credentials [GOVC_GUEST_LOGIN]
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## guest.getenv
@@ -1536,8 +1547,8 @@ Examples:
   govc guest.getenv -vm $name HOME
 
 Options:
-  -l=:                      Guest VM credentials [GOVC_GUEST_LOGIN]
-  -vm=                      Virtual machine [GOVC_VM]
+  -l=:                   Guest VM credentials [GOVC_GUEST_LOGIN]
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## guest.kill
@@ -1551,9 +1562,9 @@ Examples:
   govc guest.kill -vm $name -p 12345
 
 Options:
-  -l=:                      Guest VM credentials [GOVC_GUEST_LOGIN]
-  -p=[]                     Process ID
-  -vm=                      Virtual machine [GOVC_VM]
+  -l=:                   Guest VM credentials [GOVC_GUEST_LOGIN]
+  -p=[]                  Process ID
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## guest.ls
@@ -1567,9 +1578,9 @@ Examples:
   govc guest.ls -vm $name /tmp
 
 Options:
-  -l=:                      Guest VM credentials [GOVC_GUEST_LOGIN]
-  -s=false                  Simple path only listing
-  -vm=                      Virtual machine [GOVC_VM]
+  -l=:                   Guest VM credentials [GOVC_GUEST_LOGIN]
+  -s=false               Simple path only listing
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## guest.mkdir
@@ -1584,9 +1595,9 @@ Examples:
   govc guest.mkdir -vm $name -p /tmp/logs/foo/bar
 
 Options:
-  -l=:                      Guest VM credentials [GOVC_GUEST_LOGIN]
-  -p=false                  Create intermediate directories as needed
-  -vm=                      Virtual machine [GOVC_VM]
+  -l=:                   Guest VM credentials [GOVC_GUEST_LOGIN]
+  -p=false               Create intermediate directories as needed
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## guest.mktemp
@@ -1603,12 +1614,12 @@ Examples:
   govc guest.mktemp -vm $name -p /var/tmp/$USER
 
 Options:
-  -d=false                  Make a directory instead of a file
-  -l=:                      Guest VM credentials [GOVC_GUEST_LOGIN]
-  -p=                       If specified, create relative to this directory
-  -s=                       Suffix
-  -t=                       Prefix
-  -vm=                      Virtual machine [GOVC_VM]
+  -d=false               Make a directory instead of a file
+  -l=:                   Guest VM credentials [GOVC_GUEST_LOGIN]
+  -p=                    If specified, create relative to this directory
+  -s=                    Suffix
+  -t=                    Prefix
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## guest.mv
@@ -1623,9 +1634,9 @@ Examples:
   govc guest.mv -vm $name -n /tmp/baz.sh /tmp/bar.sh
 
 Options:
-  -l=:                      Guest VM credentials [GOVC_GUEST_LOGIN]
-  -n=false                  Do not overwrite an existing file
-  -vm=                      Virtual machine [GOVC_VM]
+  -l=:                   Guest VM credentials [GOVC_GUEST_LOGIN]
+  -n=false               Do not overwrite an existing file
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## guest.ps
@@ -1648,13 +1659,13 @@ Examples:
   govc guest.ps -vm $name -U root
 
 Options:
-  -U=                       Select by process UID
-  -X=false                  Wait for process to exit
-  -e=false                  Select all processes
-  -l=:                      Guest VM credentials [GOVC_GUEST_LOGIN]
-  -p=[]                     Select by process ID
-  -vm=                      Virtual machine [GOVC_VM]
-  -x=false                  Output exit time and code
+  -U=                    Select by process UID
+  -X=false               Wait for process to exit
+  -e=false               Select all processes
+  -l=:                   Guest VM credentials [GOVC_GUEST_LOGIN]
+  -p=[]                  Select by process ID
+  -vm=                   Virtual machine [GOVC_VM]
+  -x=false               Output exit time and code
 ```
 
 ## guest.rm
@@ -1668,8 +1679,8 @@ Examples:
   govc guest.rm -vm $name /tmp/foo.log
 
 Options:
-  -l=:                      Guest VM credentials [GOVC_GUEST_LOGIN]
-  -vm=                      Virtual machine [GOVC_VM]
+  -l=:                   Guest VM credentials [GOVC_GUEST_LOGIN]
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## guest.rmdir
@@ -1684,9 +1695,9 @@ Examples:
   govc guest.rmdir -vm $name -r /tmp/non-empty-dir
 
 Options:
-  -l=:                      Guest VM credentials [GOVC_GUEST_LOGIN]
-  -r=false                  Recursive removal
-  -vm=                      Virtual machine [GOVC_VM]
+  -l=:                   Guest VM credentials [GOVC_GUEST_LOGIN]
+  -r=false               Recursive removal
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## guest.run
@@ -1709,12 +1720,12 @@ Examples:
   govc guest.run -vm $name DELETE http://localhost:8080/api/v1/namespaces/default/services/my-service
 
 Options:
-  -C=                       The absolute path of the working directory for the program to start
-  -d=                       Input data
-  -e=[]                     Set environment variable or HTTP header
-  -l=:                      Guest VM credentials [GOVC_GUEST_LOGIN]
-  -v=false                  Verbose
-  -vm=                      Virtual machine [GOVC_VM]
+  -C=                    The absolute path of the working directory for the program to start
+  -d=                    Input data
+  -e=[]                  Set environment variable or HTTP header
+  -l=:                   Guest VM credentials [GOVC_GUEST_LOGIN]
+  -v=false               Verbose
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## guest.start
@@ -1733,10 +1744,10 @@ Examples:
   govc guest.ps -vm $name -p $pid -X
 
 Options:
-  -C=                       The absolute path of the working directory for the program to start
-  -e=[]                     Set environment variable (key=val)
-  -l=:                      Guest VM credentials [GOVC_GUEST_LOGIN]
-  -vm=                      Virtual machine [GOVC_VM]
+  -C=                    The absolute path of the working directory for the program to start
+  -e=[]                  Set environment variable (key=val)
+  -l=:                   Guest VM credentials [GOVC_GUEST_LOGIN]
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## guest.touch
@@ -1751,11 +1762,11 @@ Examples:
   govc guest.touch -vm $name -d "$(date -d '1 day ago')" /var/log/foo.log
 
 Options:
-  -a=false                  Change only the access time
-  -c=false                  Do not create any files
-  -d=                       Use DATE instead of current time
-  -l=:                      Guest VM credentials [GOVC_GUEST_LOGIN]
-  -vm=                      Virtual machine [GOVC_VM]
+  -a=false               Change only the access time
+  -c=false               Do not create any files
+  -d=                    Use DATE instead of current time
+  -l=:                   Guest VM credentials [GOVC_GUEST_LOGIN]
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## guest.upload
@@ -1772,12 +1783,12 @@ Examples:
   cowsay "have a great day" | govc guest.upload -l user:pass -vm=my-vm - /etc/motd
 
 Options:
-  -f=false                  If set, the guest destination file is clobbered
-  -gid=<nil>                Group ID
-  -l=:                      Guest VM credentials [GOVC_GUEST_LOGIN]
-  -perm=0                   File permissions
-  -uid=<nil>                User ID
-  -vm=                      Virtual machine [GOVC_VM]
+  -f=false               If set, the guest destination file is clobbered
+  -gid=<nil>             Group ID
+  -l=:                   Guest VM credentials [GOVC_GUEST_LOGIN]
+  -perm=0                File permissions
+  -uid=<nil>             User ID
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## host.account.create
@@ -1791,10 +1802,10 @@ Examples:
   govc host.account.create -id $USER -password password-for-esx60
 
 Options:
-  -description=             The description of the specified account
-  -host=                    Host system [GOVC_HOST]
-  -id=                      The ID of the specified account
-  -password=                The password for the specified account id
+  -description=          The description of the specified account
+  -host=                 Host system [GOVC_HOST]
+  -id=                   The ID of the specified account
+  -password=             The password for the specified account id
 ```
 
 ## host.account.remove
@@ -1808,10 +1819,10 @@ Examples:
   govc host.account.remove -id $USER
 
 Options:
-  -description=             The description of the specified account
-  -host=                    Host system [GOVC_HOST]
-  -id=                      The ID of the specified account
-  -password=                The password for the specified account id
+  -description=          The description of the specified account
+  -host=                 Host system [GOVC_HOST]
+  -id=                   The ID of the specified account
+  -password=             The password for the specified account id
 ```
 
 ## host.account.update
@@ -1825,10 +1836,10 @@ Examples:
   govc host.account.update -id root -password password-for-esx60
 
 Options:
-  -description=             The description of the specified account
-  -host=                    Host system [GOVC_HOST]
-  -id=                      The ID of the specified account
-  -password=                The password for the specified account id
+  -description=          The description of the specified account
+  -host=                 Host system [GOVC_HOST]
+  -id=                   The ID of the specified account
+  -password=             The password for the specified account id
 ```
 
 ## host.add
@@ -1847,14 +1858,14 @@ Examples:
   govc host.add -hostname 10.0.6.1 -username root -password pass -noverify
 
 Options:
-  -connect=true             Immediately connect to host
-  -folder=                  Inventory folder [GOVC_FOLDER]
-  -force=false              Force when host is managed by another VC
-  -hostname=                Hostname or IP address of the host
-  -noverify=false           Accept host thumbprint without verification
-  -password=                Password of administration account on the host
-  -thumbprint=              SHA-1 thumbprint of the host's SSL certificate
-  -username=                Username of administration account on the host
+  -connect=true          Immediately connect to host
+  -folder=               Inventory folder [GOVC_FOLDER]
+  -force=false           Force when host is managed by another VC
+  -hostname=             Hostname or IP address of the host
+  -noverify=false        Accept host thumbprint without verification
+  -password=             Password of administration account on the host
+  -thumbprint=           SHA-1 thumbprint of the host's SSL certificate
+  -username=             Username of administration account on the host
 ```
 
 ## host.autostart.add
@@ -1892,7 +1903,7 @@ Options:
 Usage: govc host.autostart.info [OPTIONS]
 
 Options:
-  -host=                    Host system [GOVC_HOST]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## host.autostart.remove
@@ -1901,7 +1912,7 @@ Options:
 Usage: govc host.autostart.remove [OPTIONS] VM...
 
 Options:
-  -host=                    Host system [GOVC_HOST]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## host.cert.csr
@@ -1912,8 +1923,8 @@ Usage: govc host.cert.csr [OPTIONS]
 Generate a certificate-signing request (CSR) for HOST.
 
 Options:
-  -host=                    Host system [GOVC_HOST]
-  -ip=false                 Use IP address as CN
+  -host=                 Host system [GOVC_HOST]
+  -ip=false              Use IP address as CN
 ```
 
 ## host.cert.import
@@ -1926,7 +1937,7 @@ Install SSL certificate FILE on HOST.
 If FILE name is "-", read certificate from stdin.
 
 Options:
-  -host=                    Host system [GOVC_HOST]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## host.cert.info
@@ -1937,7 +1948,7 @@ Usage: govc host.cert.info [OPTIONS]
 Display SSL certificate info for HOST.
 
 Options:
-  -host=                    Host system [GOVC_HOST]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## host.date.change
@@ -1954,10 +1965,10 @@ Examples:
   govc host.service start ntpd
 
 Options:
-  -date=                    Update the date/time on the host
-  -host=                    Host system [GOVC_HOST]
-  -server=                  IP or FQDN for NTP server(s)
-  -tz=                      Change timezone of the host
+  -date=                 Update the date/time on the host
+  -host=                 Host system [GOVC_HOST]
+  -server=               IP or FQDN for NTP server(s)
+  -tz=                   Change timezone of the host
 ```
 
 ## host.date.info
@@ -1968,7 +1979,7 @@ Usage: govc host.date.info [OPTIONS]
 Display date and time info for HOST.
 
 Options:
-  -host=                    Host system [GOVC_HOST]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## host.disconnect
@@ -1979,7 +1990,7 @@ Usage: govc host.disconnect [OPTIONS]
 Disconnect HOST from vCenter.
 
 Options:
-  -host=                    Host system [GOVC_HOST]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## host.esxcli
@@ -1998,8 +2009,8 @@ Examples:
   govc host.esxcli network firewall set -e false
 
 Options:
-  -hints=true               Use command info hints when formatting output
-  -host=                    Host system [GOVC_HOST]
+  -hints=true            Use command info hints when formatting output
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## host.info
@@ -2008,7 +2019,7 @@ Options:
 Usage: govc host.info [OPTIONS]
 
 Options:
-  -host=                    Host system [GOVC_HOST]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## host.maintenance.enter
@@ -2022,9 +2033,9 @@ While this task is running and when the host is in maintenance mode,
 no VMs can be powered on and no provisioning operations can be performed on the host.
 
 Options:
-  -evacuate=false           Evacuate powered off VMs
-  -host=                    Host system [GOVC_HOST]
-  -timeout=0                Timeout
+  -evacuate=false        Evacuate powered off VMs
+  -host=                 Host system [GOVC_HOST]
+  -timeout=0             Timeout
 ```
 
 ## host.maintenance.exit
@@ -2041,8 +2052,8 @@ The 'timeout' flag is the number of seconds to wait for the exit maintenance mod
 If the timeout is less than or equal to zero, there is no timeout.
 
 Options:
-  -host=                    Host system [GOVC_HOST]
-  -timeout=0                Timeout
+  -host=                 Host system [GOVC_HOST]
+  -timeout=0             Timeout
 ```
 
 ## host.option.ls
@@ -2060,7 +2071,7 @@ Examples:
   govc host.option.ls Config.HostAgent.plugins.solo.enableMob
 
 Options:
-  -host=                    Host system [GOVC_HOST]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## host.option.set
@@ -2075,7 +2086,7 @@ Examples:
   govc host.option.set Config.HostAgent.log.level verbose
 
 Options:
-  -host=                    Host system [GOVC_HOST]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## host.portgroup.add
@@ -2089,9 +2100,9 @@ Examples:
   govc host.portgroup.add -vswitch vSwitch0 -vlan 3201 bridge
 
 Options:
-  -host=                    Host system [GOVC_HOST]
-  -vlan=0                   VLAN ID
-  -vswitch=                 vSwitch Name
+  -host=                 Host system [GOVC_HOST]
+  -vlan=0                VLAN ID
+  -vswitch=              vSwitch Name
 ```
 
 ## host.portgroup.change
@@ -2121,7 +2132,7 @@ Options:
 Usage: govc host.portgroup.info [OPTIONS]
 
 Options:
-  -host=                    Host system [GOVC_HOST]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## host.portgroup.remove
@@ -2135,7 +2146,7 @@ Examples:
   govc host.portgroup.remove bridge
 
 Options:
-  -host=                    Host system [GOVC_HOST]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## host.reconnect
@@ -2149,14 +2160,14 @@ This command can also be used to change connection properties (hostname, fingerp
 without disconnecting the host.
 
 Options:
-  -force=false              Force when host is managed by another VC
-  -host=                    Host system [GOVC_HOST]
-  -hostname=                Hostname or IP address of the host
-  -noverify=false           Accept host thumbprint without verification
-  -password=                Password of administration account on the host
-  -sync-state=false         Sync state
-  -thumbprint=              SHA-1 thumbprint of the host's SSL certificate
-  -username=                Username of administration account on the host
+  -force=false           Force when host is managed by another VC
+  -host=                 Host system [GOVC_HOST]
+  -hostname=             Hostname or IP address of the host
+  -noverify=false        Accept host thumbprint without verification
+  -password=             Password of administration account on the host
+  -sync-state=false      Sync state
+  -thumbprint=           SHA-1 thumbprint of the host's SSL certificate
+  -username=             Username of administration account on the host
 ```
 
 ## host.remove
@@ -2167,7 +2178,7 @@ Usage: govc host.remove [OPTIONS] HOST...
 Remove HOST from vCenter.
 
 Options:
-  -host=                    Host system [GOVC_HOST]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## host.service
@@ -2184,7 +2195,7 @@ Examples:
   govc host.service start TSM-SSH
 
 Options:
-  -host=                    Host system [GOVC_HOST]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## host.service.ls
@@ -2195,7 +2206,7 @@ Usage: govc host.service.ls [OPTIONS]
 List HOST services.
 
 Options:
-  -host=                    Host system [GOVC_HOST]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## host.shutdown
@@ -2206,9 +2217,9 @@ Usage: govc host.shutdown [OPTIONS] HOST...
 Shutdown HOST.
 
 Options:
-  -f=false                  Force shutdown when host is not in maintenance mode
-  -host=                    Host system [GOVC_HOST]
-  -r=false                  Reboot host
+  -f=false               Force shutdown when host is not in maintenance mode
+  -host=                 Host system [GOVC_HOST]
+  -r=false               Reboot host
 ```
 
 ## host.storage.info
@@ -2222,12 +2233,12 @@ Examples:
   govc find / -type h | xargs -n1 govc host.storage.info -unclaimed -host
 
 Options:
-  -host=                    Host system [GOVC_HOST]
-  -refresh=false            Refresh the storage system provider
-  -rescan=false             Rescan all host bus adapters
-  -rescan-vmfs=false        Rescan for new VMFSs
-  -t=lun                    Type (hba,lun)
-  -unclaimed=false          Only show disks that can be used as new VMFS datastores
+  -host=                 Host system [GOVC_HOST]
+  -refresh=false         Refresh the storage system provider
+  -rescan=false          Rescan all host bus adapters
+  -rescan-vmfs=false     Rescan for new VMFSs
+  -t=lun                 Type (hba,lun)
+  -unclaimed=false       Only show disks that can be used as new VMFS datastores
 ```
 
 ## host.storage.mark
@@ -2238,9 +2249,9 @@ Usage: govc host.storage.mark [OPTIONS] DEVICE_PATH
 Mark device at DEVICE_PATH.
 
 Options:
-  -host=                    Host system [GOVC_HOST]
-  -local=<nil>              Mark as local
-  -ssd=<nil>                Mark as SSD
+  -host=                 Host system [GOVC_HOST]
+  -local=<nil>           Mark as local
+  -ssd=<nil>             Mark as SSD
 ```
 
 ## host.storage.partition
@@ -2251,7 +2262,7 @@ Usage: govc host.storage.partition [OPTIONS] DEVICE_PATH
 Show partition table for device at DEVICE_PATH.
 
 Options:
-  -host=                    Host system [GOVC_HOST]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## host.vnic.info
@@ -2260,7 +2271,7 @@ Options:
 Usage: govc host.vnic.info [OPTIONS]
 
 Options:
-  -host=                    Host system [GOVC_HOST]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## host.vnic.service
@@ -2279,8 +2290,8 @@ Examples:
   govc host.vnic.service -host hostname -enable=false vmotion vmk1
 
 Options:
-  -enable=true              Enable service
-  -host=                    Host system [GOVC_HOST]
+  -enable=true           Enable service
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## host.vswitch.add
@@ -2289,10 +2300,10 @@ Options:
 Usage: govc host.vswitch.add [OPTIONS] NAME
 
 Options:
-  -host=                    Host system [GOVC_HOST]
-  -mtu=0                    MTU
-  -nic=                     Bridge nic device
-  -ports=128                Number of ports
+  -host=                 Host system [GOVC_HOST]
+  -mtu=0                 MTU
+  -nic=                  Bridge nic device
+  -ports=128             Number of ports
 ```
 
 ## host.vswitch.info
@@ -2301,7 +2312,7 @@ Options:
 Usage: govc host.vswitch.info [OPTIONS]
 
 Options:
-  -host=                    Host system [GOVC_HOST]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## host.vswitch.remove
@@ -2310,7 +2321,7 @@ Options:
 Usage: govc host.vswitch.remove [OPTIONS] NAME
 
 Options:
-  -host=                    Host system [GOVC_HOST]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## import.ova
@@ -2319,12 +2330,12 @@ Options:
 Usage: govc import.ova [OPTIONS] PATH_TO_OVA
 
 Options:
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -folder=                  Inventory folder [GOVC_FOLDER]
-  -host=                    Host system [GOVC_HOST]
-  -name=                    Name to use for new entity
-  -options=                 Options spec file path for VM deployment
-  -pool=                    Resource pool [GOVC_RESOURCE_POOL]
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -folder=               Inventory folder [GOVC_FOLDER]
+  -host=                 Host system [GOVC_HOST]
+  -name=                 Name to use for new entity
+  -options=              Options spec file path for VM deployment
+  -pool=                 Resource pool [GOVC_RESOURCE_POOL]
 ```
 
 ## import.ovf
@@ -2333,12 +2344,12 @@ Options:
 Usage: govc import.ovf [OPTIONS] PATH_TO_OVF
 
 Options:
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -folder=                  Inventory folder [GOVC_FOLDER]
-  -host=                    Host system [GOVC_HOST]
-  -name=                    Name to use for new entity
-  -options=                 Options spec file path for VM deployment
-  -pool=                    Resource pool [GOVC_RESOURCE_POOL]
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -folder=               Inventory folder [GOVC_FOLDER]
+  -host=                 Host system [GOVC_HOST]
+  -name=                 Name to use for new entity
+  -options=              Options spec file path for VM deployment
+  -pool=                 Resource pool [GOVC_RESOURCE_POOL]
 ```
 
 ## import.spec
@@ -2356,10 +2367,10 @@ Options:
 Usage: govc import.vmdk [OPTIONS] PATH_TO_VMDK [REMOTE_DIRECTORY]
 
 Options:
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -folder=                  Inventory folder [GOVC_FOLDER]
-  -force=false              Overwrite existing disk
-  -pool=                    Resource pool [GOVC_RESOURCE_POOL]
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -folder=               Inventory folder [GOVC_FOLDER]
+  -force=false           Overwrite existing disk
+  -pool=                 Resource pool [GOVC_RESOURCE_POOL]
 ```
 
 ## license.add
@@ -2383,10 +2394,10 @@ Examples:
   govc license.assign -cluster a_cluster $VSAN_LICENSE_KEY
 
 Options:
-  -cluster=                 Cluster [GOVC_CLUSTER]
-  -host=                    Host system [GOVC_HOST]
-  -name=                    Display name
-  -remove=false             Remove assignment
+  -cluster=              Cluster [GOVC_CLUSTER]
+  -host=                 Host system [GOVC_HOST]
+  -name=                 Display name
+  -remove=false          Remove assignment
 ```
 
 ## license.assigned.ls
@@ -2395,7 +2406,7 @@ Options:
 Usage: govc license.assigned.ls [OPTIONS]
 
 Options:
-  -id=                      Entity ID
+  -id=                   Entity ID
 ```
 
 ## license.decode
@@ -2404,7 +2415,7 @@ Options:
 Usage: govc license.decode [OPTIONS] KEY...
 
 Options:
-  -feature=                 List licenses with given feature
+  -feature=              List licenses with given feature
 ```
 
 ## license.ls
@@ -2413,7 +2424,7 @@ Options:
 Usage: govc license.ls [OPTIONS]
 
 Options:
-  -feature=                 List licenses with given feature
+  -feature=              List licenses with given feature
 ```
 
 ## license.remove
@@ -2442,10 +2453,10 @@ Examples:
   govc logs -host esx1 -log vmkernel
 
 Options:
-  -f=false                  Follow log file changes
-  -host=                    Host system [GOVC_HOST]
-  -log=                     Log file key
-  -n=25                     Output the last N log lines
+  -f=false               Follow log file changes
+  -host=                 Host system [GOVC_HOST]
+  -log=                  Log file key
+  -n=25                  Output the last N log lines
 ```
 
 ## logs.download
@@ -2464,7 +2475,7 @@ Examples:
   govc logs.download host-a host-b
 
 Options:
-  -default=true             Specifies if the bundle should include the default server
+  -default=true          Specifies if the bundle should include the default server
 ```
 
 ## logs.ls
@@ -2479,7 +2490,7 @@ Examples:
   govc logs.ls -host host-a
 
 Options:
-  -host=                    Host system [GOVC_HOST]
+  -host=                 Host system [GOVC_HOST]
 ```
 
 ## ls
@@ -2495,10 +2506,10 @@ Examples:
   govc ls -t Datastore host/ClusterA/* | grep -v local | xargs -n1 basename | sort | uniq
 
 Options:
-  -L=false                  Follow managed object references
-  -i=false                  Print the managed object reference
-  -l=false                  Long listing format
-  -t=                       Object type
+  -L=false               Follow managed object references
+  -i=false               Print the managed object reference
+  -l=false               Long listing format
+  -t=                    Object type
 ```
 
 ## metric.change
@@ -2512,9 +2523,9 @@ Examples:
   govc metric.change -level 1 net.bytesRx.average net.bytesTx.average
 
 Options:
-  -device-level=0           Level for the per device counter
-  -i=0                      Interval ID
-  -level=0                  Level for the aggregate counter
+  -device-level=0        Level for the per device counter
+  -i=0                   Interval ID
+  -level=0               Level for the aggregate counter
 ```
 
 ## metric.info
@@ -2537,7 +2548,7 @@ Examples:
   govc metric.info /dc1/host/cluster cpu.usage.average
 
 Options:
-  -i=0                      Interval ID
+  -i=0                   Interval ID
 ```
 
 ## metric.interval.change
@@ -2552,9 +2563,9 @@ Examples:
   govc metric.interval.change -i 86400 -enabled=false
 
 Options:
-  -enabled=<nil>            Enable or disable
-  -i=0                      Interval ID
-  -level=0                  Level
+  -enabled=<nil>         Enable or disable
+  -i=0                   Interval ID
+  -level=0               Level
 ```
 
 ## metric.interval.info
@@ -2569,7 +2580,7 @@ Examples:
   govc metric.interval.info -i 300
 
 Options:
-  -i=0                      Interval ID
+  -i=0                   Interval ID
 ```
 
 ## metric.ls
@@ -2585,8 +2596,8 @@ Examples:
   govc metric.ls vm/* | grep mem. | xargs govc metric.sample vm/*
 
 Options:
-  -i=0                      Interval ID
-  -l=false                  Long listing format
+  -i=0                   Interval ID
+  -l=false               Long listing format
 ```
 
 ## metric.reset
@@ -2600,7 +2611,7 @@ Examples:
   govc metric.reset net.bytesRx.average net.bytesTx.average
 
 Options:
-  -i=0                      Interval ID
+  -i=0                   Interval ID
 ```
 
 ## metric.sample
@@ -2629,12 +2640,12 @@ Examples:
   govc metric.sample -instance - vm/* net.bytesTx.average
 
 Options:
-  -d=30                     Limit object display name to D chars
-  -i=0                      Interval ID
-  -instance=*               Instance
-  -n=6                      Max number of samples
-  -plot=                    Plot data using gnuplot
-  -t=false                  Include sample times
+  -d=30                  Limit object display name to D chars
+  -i=0                   Interval ID
+  -instance=*            Instance
+  -n=6                   Max number of samples
+  -plot=                 Plot data using gnuplot
+  -t=false               Include sample times
 ```
 
 ## object.collect
@@ -2668,11 +2679,11 @@ Examples:
   govc object.collect -R create-filter-request.xml -O # convert filter to Go code
 
 Options:
-  -O=false                  Output the CreateFilter request itself
-  -R=                       Raw XML encoded CreateFilter request
-  -n=0                      Wait for N property updates
-  -s=false                  Output property value only
-  -type=[]                  Resource type.  If specified, MOID is used for a container view root
+  -O=false               Output the CreateFilter request itself
+  -R=                    Raw XML encoded CreateFilter request
+  -n=0                   Wait for N property updates
+  -s=false               Output property value only
+  -type=[]               Resource type.  If specified, MOID is used for a container view root
 ```
 
 ## object.destroy
@@ -2701,10 +2712,10 @@ Examples:
   govc object.method -name Destroy_Task -enable /dc1/vm/foo
 
 Options:
-  -enable=true              Enable method
-  -name=                    Method name
-  -reason=                  Reason for disabling method
-  -source=govc              Source ID
+  -enable=true           Enable method
+  -name=                 Method name
+  -reason=               Reason for disabling method
+  -source=govc           Source ID
 ```
 
 ## object.mv
@@ -2791,8 +2802,8 @@ Examples:
   govc permissions.ls /dc1/host/cluster1
 
 Options:
-  -a=true                   Include inherited permissions defined by parent entities
-  -i=false                  Use moref instead of inventory path
+  -a=true                Include inherited permissions defined by parent entities
+  -i=false               Use moref instead of inventory path
 ```
 
 ## permissions.remove
@@ -2807,9 +2818,9 @@ Examples:
   govc permissions.remove -principal $USER@vsphere.local /dc1/host/cluster1
 
 Options:
-  -group=false              True, if principal refers to a group name; false, for a user name
-  -i=false                  Use moref instead of inventory path
-  -principal=               User or group for which the permission is defined
+  -group=false           True, if principal refers to a group name; false, for a user name
+  -i=false               Use moref instead of inventory path
+  -principal=            User or group for which the permission is defined
 ```
 
 ## permissions.set
@@ -2824,11 +2835,11 @@ Examples:
   govc permissions.set -principal $USER@vsphere.local -role Admin /dc1/host/cluster1
 
 Options:
-  -group=false              True, if principal refers to a group name; false, for a user name
-  -i=false                  Use moref instead of inventory path
-  -principal=               User or group for which the permission is defined
-  -propagate=true           Whether or not this permission propagates down the hierarchy to sub-entities
-  -role=Admin               Permission role name
+  -group=false           True, if principal refers to a group name; false, for a user name
+  -i=false               Use moref instead of inventory path
+  -principal=            User or group for which the permission is defined
+  -propagate=true        Whether or not this permission propagates down the hierarchy to sub-entities
+  -role=Admin            Permission role name
 ```
 
 ## pool.change
@@ -2852,15 +2863,15 @@ are nested one level under the root resource pool, on all (clustered) compute
 hosts in the current datacenter.
 
 Options:
-  -cpu.expandable=<nil>     CPU expandable reservation
-  -cpu.limit=<nil>          CPU limit in MHz
-  -cpu.reservation=<nil>    CPU reservation in MHz
-  -cpu.shares=              CPU shares level or number
-  -mem.expandable=<nil>     Memory expandable reservation
-  -mem.limit=<nil>          Memory limit in MB
-  -mem.reservation=<nil>    Memory reservation in MB
-  -mem.shares=              Memory shares level or number
-  -name=                    Resource pool name
+  -cpu.expandable=<nil>   CPU expandable reservation
+  -cpu.limit=<nil>        CPU limit in MHz
+  -cpu.reservation=<nil>  CPU reservation in MHz
+  -cpu.shares=            CPU shares level or number
+  -mem.expandable=<nil>   Memory expandable reservation
+  -mem.limit=<nil>        Memory limit in MB
+  -mem.reservation=<nil>  Memory reservation in MB
+  -mem.shares=            Memory shares level or number
+  -name=                  Resource pool name
 ```
 
 ## pool.create
@@ -2889,14 +2900,14 @@ For example:
                                the root resource pool on "somehost".
 
 Options:
-  -cpu.expandable=true      CPU expandable reservation
-  -cpu.limit=-1             CPU limit in MHz
-  -cpu.reservation=0        CPU reservation in MHz
-  -cpu.shares=normal        CPU shares level or number
-  -mem.expandable=true      Memory expandable reservation
-  -mem.limit=-1             Memory limit in MB
-  -mem.reservation=0        Memory reservation in MB
-  -mem.shares=normal        Memory shares level or number
+  -cpu.expandable=true   CPU expandable reservation
+  -cpu.limit=-1          CPU limit in MHz
+  -cpu.reservation=0     CPU reservation in MHz
+  -cpu.shares=normal     CPU shares level or number
+  -mem.expandable=true   Memory expandable reservation
+  -mem.limit=-1          Memory limit in MB
+  -mem.reservation=0     Memory reservation in MB
+  -mem.shares=normal     Memory shares level or number
 ```
 
 ## pool.destroy
@@ -2920,7 +2931,7 @@ are nested one level under the root resource pool, on all (clustered) compute
 hosts in the current datacenter.
 
 Options:
-  -children=false           Remove all children pools
+  -children=false        Remove all children pools
 ```
 
 ## pool.info
@@ -2944,8 +2955,8 @@ are nested one level under the root resource pool, on all (clustered) compute
 hosts in the current datacenter.
 
 Options:
-  -a=false                  List virtual app resource pools
-  -p=true                   List resource pools
+  -a=false               List virtual app resource pools
+  -p=true                List resource pools
 ```
 
 ## role.create
@@ -2962,7 +2973,7 @@ Examples:
   govc role.create NoDC $(govc role.ls Admin | grep -v Datacenter.)
 
 Options:
-  -i=false                  Use moref instead of inventory path
+  -i=false               Use moref instead of inventory path
 ```
 
 ## role.ls
@@ -2979,7 +2990,7 @@ Examples:
   govc role.ls Admin
 
 Options:
-  -i=false                  Use moref instead of inventory path
+  -i=false               Use moref instead of inventory path
 ```
 
 ## role.remove
@@ -2994,8 +3005,8 @@ Examples:
   govc role.remove MyRole -force
 
 Options:
-  -force=false              Force removal if role is in use
-  -i=false                  Use moref instead of inventory path
+  -force=false           Force removal if role is in use
+  -i=false               Use moref instead of inventory path
 ```
 
 ## role.update
@@ -3014,10 +3025,10 @@ Examples:
   govc role.update -name RockNRole MyRole
 
 Options:
-  -a=false                  Add given PRIVILEGE(s)
-  -i=false                  Use moref instead of inventory path
-  -name=                    Change role name
-  -r=false                  Remove given PRIVILEGE(s)
+  -a=false               Add given PRIVILEGE(s)
+  -i=false               Use moref instead of inventory path
+  -name=                 Change role name
+  -r=false               Remove given PRIVILEGE(s)
 ```
 
 ## role.usage
@@ -3032,7 +3043,7 @@ Examples:
   govc role.usage Admin
 
 Options:
-  -i=false                  Use moref instead of inventory path
+  -i=false               Use moref instead of inventory path
 ```
 
 ## session.login
@@ -3047,18 +3058,33 @@ The session.login command can be used to:
 - Persist a session without writing to disk via the '-cookie' flag
 - Acquire a clone ticket
 - Login using a clone ticket
+- Login using a vCenter Extension certificate
+- Issue a SAML token
+- Renew a SAML token
+- Login using a SAML token
 - Avoid passing credentials to other govc commands
 
 Examples:
   govc session.login -u root:password@host
   ticket=$(govc session.login -u root@host -clone)
   govc session.login -u root@host -ticket $ticket
+  govc session.login -u host -extension com.vmware.vsan.health -cert rui.crt -key rui.key
+  token=$(govc session.login -u host -cert user.crt -key user.key -issue) # HoK token
+  bearer=$(govc session.login -u user:pass@host -issue) # Bearer token
+  token=$(govc session.login -u host -cert user.crt -key user.key -issue -token "$bearer")
+  govc session.login -u host -cert user.crt -key user.key -token "$token"
+  token=$(govc session.login -u host -cert user.crt -key user.key -renew -lifetime 24h -token "$token")
 
 Options:
-  -clone=false              Acquire clone ticket
-  -cookie=                  Set HTTP cookie for an existing session
-  -l=false                  Output session cookie
-  -ticket=                  Clone ticket
+  -clone=false           Acquire clone ticket
+  -cookie=               Set HTTP cookie for an existing session
+  -extension=            Extension name
+  -issue=false           Issue SAML token
+  -l=false               Output session cookie
+  -lifetime=10m0s        SAML token lifetime
+  -renew=false           Renew SAML token
+  -ticket=               Use clone ticket for login
+  -token=                Use SAML token for login or as issue identity
 ```
 
 ## session.logout
@@ -3116,10 +3142,10 @@ Examples:
   govc snapshot.create -vm my-vm happy-vm-state
 
 Options:
-  -d=                       Snapshot description
-  -m=true                   Include memory state
-  -q=false                  Quiesce guest file system
-  -vm=                      Virtual machine [GOVC_VM]
+  -d=                    Snapshot description
+  -m=true                Include memory state
+  -q=false               Quiesce guest file system
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## snapshot.remove
@@ -3135,9 +3161,9 @@ Examples:
   govc snapshot.remove -vm my-vm happy-vm-state
 
 Options:
-  -c=true                   Consolidate disks
-  -r=false                  Remove snapshot children
-  -vm=                      Virtual machine [GOVC_VM]
+  -c=true                Consolidate disks
+  -r=false               Remove snapshot children
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## snapshot.revert
@@ -3154,8 +3180,8 @@ Examples:
   govc snapshot.revert -vm my-vm happy-vm-state
 
 Options:
-  -s=false                  Suppress power on
-  -vm=                      Virtual machine [GOVC_VM]
+  -s=false               Suppress power on
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## snapshot.tree
@@ -3172,12 +3198,123 @@ Examples:
   govc snapshot.tree -vm my-vm -D -i
 
 Options:
-  -C=false                  Print the current snapshot name only
-  -D=false                  Print the snapshot creation date
-  -c=true                   Print the current snapshot
-  -f=false                  Print the full path prefix for snapshot
-  -i=false                  Print the snapshot id
-  -vm=                      Virtual machine [GOVC_VM]
+  -C=false               Print the current snapshot name only
+  -D=false               Print the snapshot creation date
+  -c=true                Print the current snapshot
+  -f=false               Print the full path prefix for snapshot
+  -i=false               Print the snapshot id
+  -vm=                   Virtual machine [GOVC_VM]
+```
+
+## sso.service.ls
+
+```
+Usage: govc sso.service.ls [OPTIONS]
+
+List platform services.
+
+Examples:
+  govc sso.service.ls
+  govc sso.service.ls -t vcenterserver -P vmomi
+  govc sso.service.ls -t sso:sts
+  govc sso.service.ls -t sso:sts -U
+  govc sso.service.ls -t sso:sts -json | jq -r .[].ServiceEndpoints[].Url
+
+Options:
+  -P=                    Endpoint protocol
+  -T=                    Endpoint type
+  -U=false               List endpoint URL(s) only
+  -l=false               Long listing format
+  -n=                    Node ID
+  -p=                    Service product
+  -s=                    Site ID
+  -t=                    Service type
+```
+
+## sso.user.create
+
+```
+Usage: govc sso.user.create [OPTIONS] NAME
+
+Create SSO users.
+
+Examples:
+  govc sso.user.create -C "$(cat cert.pem)" -A -R Administrator NAME # solution user
+  govc sso.user.create -p password NAME # person user
+
+Options:
+  -A=<nil>               ActAsUser role for solution user WSTrust
+  -C=                    Certificate for solution user
+  -R=                    Role for solution user (RegularUser|Administrator)
+  -d=                    User description
+  -f=                    First name
+  -l=                    Last name
+  -m=                    Email address
+  -p=                    Password
+```
+
+## sso.user.id
+
+```
+Usage: govc sso.user.id [OPTIONS] NAME
+
+Print SSO user and group IDs.
+
+Examples:
+  govc sso.user.id
+  govc sso.user.id Administrator
+  govc sso.user.id -json Administrator
+
+Options:
+```
+
+## sso.user.ls
+
+```
+Usage: govc sso.user.ls [OPTIONS]
+
+List SSO users.
+
+Examples:
+  govc sso.user.ls -s
+
+Options:
+  -s=false               List solution users
+```
+
+## sso.user.rm
+
+```
+Usage: govc sso.user.rm [OPTIONS] NAME
+
+Remove SSO users.
+
+Examples:
+  govc sso.user.rm NAME
+
+Options:
+```
+
+## sso.user.update
+
+```
+Usage: govc sso.user.update [OPTIONS] NAME
+
+Update SSO users.
+
+Examples:
+  govc sso.user.update -C "$(cat cert.pem)" NAME
+  govc sso.user.update -p password NAME
+
+Options:
+  -A=<nil>               ActAsUser role for solution user WSTrust
+  -C=                    Certificate for solution user
+  -R=                    Role for solution user (RegularUser|Administrator)
+  -d=                    User description
+  -f=                    First name
+  -l=                    Last name
+  -m=                    Email address
+  -p=                    Password
 ```
 
 ## task.cancel
@@ -3214,9 +3351,9 @@ Examples:
   govc tasks -f /dc1/host/cluster1
 
 Options:
-  -f=false                  Follow recent task updates
-  -l=false                  Use long task description
-  -n=25                     Output the last N tasks
+  -f=false               Follow recent task updates
+  -l=false               Use long task description
+  -n=25                  Output the last N tasks
 ```
 
 ## vapp.destroy
@@ -3233,11 +3370,11 @@ Options:
 Usage: govc vapp.power [OPTIONS]
 
 Options:
-  -force=false              Force (If force is false, the shutdown order in the vApp is executed. If force is true, all virtual machines are powered-off (regardless of shutdown order))
-  -off=false                Power off
-  -on=false                 Power on
-  -suspend=false            Power suspend
-  -vapp.ipath=              Find vapp by inventory path
+  -force=false           Force (If force is false, the shutdown order in the vApp is executed. If force is true, all virtual machines are powered-off (regardless of shutdown order))
+  -off=false             Power off
+  -on=false              Power on
+  -suspend=false         Power suspend
+  -vapp.ipath=           Find vapp by inventory path
 ```
 
 ## version
@@ -3266,6 +3403,7 @@ Examples:
   vmware-rpctool "info-get guestinfo.vmname"
 
 Options:
+  -annotation=                VM description
   -c=0                        Number of CPUs
   -cpu.limit=<nil>            CPU limit in MHz
   -cpu.reservation=<nil>      CPU reservation in MHz
@@ -3297,25 +3435,25 @@ Examples:
   govc vm.clone -vm template-vm -snapshot $(govc snapshot.tree -vm template-vm -C) new-vm
 
 Options:
-  -annotation=              VM description
-  -c=0                      Number of CPUs
-  -customization=           Customization Specification Name
-  -datastore-cluster=       Datastore cluster [GOVC_DATASTORE_CLUSTER]
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -folder=                  Inventory folder [GOVC_FOLDER]
-  -force=false              Create VM if vmx already exists
-  -host=                    Host system [GOVC_HOST]
-  -link=false               Creates a linked clone from snapshot or source VM
-  -m=0                      Size in MB of memory
-  -net=                     Network [GOVC_NETWORK]
-  -net.adapter=e1000        Network adapter type
-  -net.address=             Network hardware address
-  -on=true                  Power on VM
-  -pool=                    Resource pool [GOVC_RESOURCE_POOL]
-  -snapshot=                Snapshot name to clone from
-  -template=false           Create a Template
-  -vm=                      Virtual machine [GOVC_VM]
-  -waitip=false             Wait for VM to acquire IP address
+  -annotation=           VM description
+  -c=0                   Number of CPUs
+  -customization=        Customization Specification Name
+  -datastore-cluster=    Datastore cluster [GOVC_DATASTORE_CLUSTER]
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -folder=               Inventory folder [GOVC_FOLDER]
+  -force=false           Create VM if vmx already exists
+  -host=                 Host system [GOVC_HOST]
+  -link=false            Creates a linked clone from snapshot or source VM
+  -m=0                   Size in MB of memory
+  -net=                  Network [GOVC_NETWORK]
+  -net.adapter=e1000     Network adapter type
+  -net.address=          Network hardware address
+  -on=true               Power on VM
+  -pool=                 Resource pool [GOVC_RESOURCE_POOL]
+  -snapshot=             Snapshot name to clone from
+  -template=false        Create a Template
+  -vm=                   Virtual machine [GOVC_VM]
+  -waitip=false          Wait for VM to acquire IP address
 ```
 
 ## vm.console
@@ -3338,9 +3476,9 @@ Examples:
   xdg-open $(govc vm.console -h5 my-vm)      # Linux H5
 
 Options:
-  -capture=                 Capture console screen shot to file
-  -h5=false                 Generate HTML5 UI console link
-  -vm=                      Virtual machine [GOVC_VM]
+  -capture=              Capture console screen shot to file
+  -h5=false              Generate HTML5 UI console link
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## vm.create
@@ -3358,26 +3496,27 @@ Examples:
   govc vm.create -m 2048 -c 2 -g freebsd64Guest -net.adapter vmxnet3 -disk.controller pvscsi vm-name
 
 Options:
-  -annotation=              VM description
-  -c=1                      Number of CPUs
-  -datastore-cluster=       Datastore cluster [GOVC_DATASTORE_CLUSTER]
-  -disk=                    Disk path (to use existing) OR size (to create new, e.g. 20GB)
-  -disk-datastore=          Datastore for disk file
-  -disk.controller=scsi     Disk controller type
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -folder=                  Inventory folder [GOVC_FOLDER]
-  -force=false              Create VM if vmx already exists
-  -g=otherGuest             Guest OS ID
-  -host=                    Host system [GOVC_HOST]
-  -iso=                     ISO path
-  -iso-datastore=           Datastore for ISO file
-  -link=true                Link specified disk
-  -m=1024                   Size in MB of memory
-  -net=                     Network [GOVC_NETWORK]
-  -net.adapter=e1000        Network adapter type
-  -net.address=             Network hardware address
-  -on=true                  Power on VM. Default is true if -disk argument is given.
-  -pool=                    Resource pool [GOVC_RESOURCE_POOL]
+  -annotation=           VM description
+  -c=1                   Number of CPUs
+  -datastore-cluster=    Datastore cluster [GOVC_DATASTORE_CLUSTER]
+  -disk=                 Disk path (to use existing) OR size (to create new, e.g. 20GB)
+  -disk-datastore=       Datastore for disk file
+  -disk.controller=scsi  Disk controller type
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -firmware=bios         Firmware type [bios|efi]
+  -folder=               Inventory folder [GOVC_FOLDER]
+  -force=false           Create VM if vmx already exists
+  -g=otherGuest          Guest OS ID
+  -host=                 Host system [GOVC_HOST]
+  -iso=                  ISO path
+  -iso-datastore=        Datastore for ISO file
+  -link=true             Link specified disk
+  -m=1024                Size in MB of memory
+  -net=                  Network [GOVC_NETWORK]
+  -net.adapter=e1000     Network adapter type
+  -net.address=          Network hardware address
+  -on=true               Power on VM. Default is true if -disk argument is given.
+  -pool=                 Resource pool [GOVC_RESOURCE_POOL]
 ```
 
 ## vm.destroy
@@ -3393,13 +3532,20 @@ Options:
 ```
 Usage: govc vm.disk.attach [OPTIONS]
 
+Attach existing disk to VM.
+
+Examples:
+  govc vm.disk.attach -vm $name -disk $name/disk1.vmdk
+  govc vm.disk.attach -vm $name -disk $name/shared.vmdk -link=false -sharing sharingMultiWriter
+
 Options:
-  -controller=              Disk controller
-  -disk=                    Disk path name
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -link=true                Link specified disk
-  -persist=true             Persist attached disk
-  -vm=                      Virtual machine [GOVC_VM]
+  -controller=           Disk controller
+  -disk=                 Disk path name
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -link=true             Link specified disk
+  -persist=true          Persist attached disk
+  -sharing=              Sharing (sharingNone|sharingMultiWriter)
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## vm.disk.change
@@ -3418,13 +3564,14 @@ Examples:
   govc vm.disk.change -vm VM -disk.filePath "[DS] VM/VM-1.vmdk" -mode nonpersistent
 
 Options:
-  -disk.filePath=           Disk file name
-  -disk.key=0               Disk unique key
-  -disk.label=              Disk label
-  -disk.name=               Disk name
-  -mode=                    Disk mode (persistent|nonpersistent|undoable|independent_persistent|independent_nonpersistent|append)
-  -size=0B                  New disk size
-  -vm=                      Virtual machine [GOVC_VM]
+  -disk.filePath=        Disk file name
+  -disk.key=0            Disk unique key
+  -disk.label=           Disk label
+  -disk.name=            Disk name
+  -mode=                 Disk mode (persistent|nonpersistent|undoable|independent_persistent|independent_nonpersistent|append)
+  -sharing=              Sharing (sharingNone|sharingMultiWriter)
+  -size=0B               New disk size
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## vm.disk.create
@@ -3436,16 +3583,18 @@ Create disk and attach to VM.
 
 Examples:
   govc vm.disk.create -vm $name -name $name/disk1 -size 10G
+  govc vm.disk.create -vm $name -name $name/disk2 -size 10G -eager -thick -sharing sharingMultiWriter
 
 Options:
-  -controller=              Disk controller
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -eager=false              Eagerly scrub new disk
-  -mode=persistent          Disk mode (persistent|nonpersistent|undoable|independent_persistent|independent_nonpersistent|append)
-  -name=                    Name for new disk
-  -size=10.0GB              Size of new disk
-  -thick=false              Thick provision new disk
-  -vm=                      Virtual machine [GOVC_VM]
+  -controller=           Disk controller
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -eager=false           Eagerly scrub new disk
+  -mode=persistent       Disk mode (persistent|nonpersistent|undoable|independent_persistent|independent_nonpersistent|append)
+  -name=                 Name for new disk
+  -sharing=              Sharing (sharingNone|sharingMultiWriter)
+  -size=10.0GB           Size of new disk
+  -thick=false           Thick provision new disk
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## vm.guest.tools
@@ -3461,10 +3610,10 @@ Examples:
   govc vm.guest.tools -upgrade -options "opt1 opt2" VM
 
 Options:
-  -mount=false              Mount tools CD installer in the guest
-  -options=                 Installer options
-  -unmount=false            Unmount tools CD installer in the guest
-  -upgrade=false            Upgrade tools in the guest
+  -mount=false           Mount tools CD installer in the guest
+  -options=              Installer options
+  -unmount=false         Unmount tools CD installer in the guest
+  -upgrade=false         Upgrade tools in the guest
 ```
 
 ## vm.info
@@ -3480,11 +3629,11 @@ Examples:
   govc find . -type m -runtime.powerState poweredOn | xargs govc vm.info
 
 Options:
-  -e=false                  Show ExtraConfig
-  -g=true                   Show general summary
-  -r=false                  Show resource summary
-  -t=false                  Show ToolsConfigInfo
-  -waitip=false             Wait for VM to acquire IP address
+  -e=false               Show ExtraConfig
+  -g=true                Show general summary
+  -r=false               Show resource summary
+  -t=false               Show ToolsConfigInfo
+  -waitip=false          Wait for VM to acquire IP address
 ```
 
 ## vm.ip
@@ -3527,11 +3676,11 @@ Examples:
   govc vm.ip -esxcli $vm
 
 Options:
-  -a=false                  Wait for an IP address on all NICs
-  -esxcli=false             Use esxcli instead of guest tools
-  -n=                       Wait for IP address on NIC, specified by device name or MAC
-  -v4=false                 Only report IPv4 addresses
-  -wait=1h0m0s              Wait time for the VM obtain an IP address
+  -a=false               Wait for an IP address on all NICs
+  -esxcli=false          Use esxcli instead of guest tools
+  -n=                    Wait for IP address on NIC, specified by device name or MAC
+  -v4=false              Only report IPv4 addresses
+  -wait=1h0m0s           Wait time for the VM obtain an IP address
 ```
 
 ## vm.markastemplate
@@ -3559,8 +3708,8 @@ Examples:
   govc vm.markasvm $name -pool cluster1/Resources
 
 Options:
-  -host=                    Host system [GOVC_HOST]
-  -pool=                    Resource pool [GOVC_RESOURCE_POOL]
+  -host=                 Host system [GOVC_HOST]
+  -pool=                 Resource pool [GOVC_RESOURCE_POOL]
 ```
 
 ## vm.migrate
@@ -3594,10 +3743,10 @@ Examples:
   govc device.info -vm $vm ethernet-*
 
 Options:
-  -net=                     Network [GOVC_NETWORK]
-  -net.adapter=e1000        Network adapter type
-  -net.address=             Network hardware address
-  -vm=                      Virtual machine [GOVC_VM]
+  -net=                  Network [GOVC_NETWORK]
+  -net.adapter=e1000     Network adapter type
+  -net.address=          Network hardware address
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## vm.network.change
@@ -3613,10 +3762,10 @@ Examples:
   govc device.info -vm $vm ethernet-*
 
 Options:
-  -net=                     Network [GOVC_NETWORK]
-  -net.adapter=e1000        Network adapter type
-  -net.address=             Network hardware address
-  -vm=                      Virtual machine [GOVC_VM]
+  -net=                  Network [GOVC_NETWORK]
+  -net.adapter=e1000     Network adapter type
+  -net.address=          Network hardware address
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## vm.power
@@ -3625,14 +3774,14 @@ Options:
 Usage: govc vm.power [OPTIONS]
 
 Options:
-  -M=false                  Use Datacenter.PowerOnMultiVM method instead of VirtualMachine.PowerOnVM
-  -force=false              Force (ignore state error and hard shutdown/reboot if tools unavailable)
-  -off=false                Power off
-  -on=false                 Power on
-  -r=false                  Reboot guest
-  -reset=false              Power reset
-  -s=false                  Shutdown guest
-  -suspend=false            Power suspend
+  -M=false               Use Datacenter.PowerOnMultiVM method instead of VirtualMachine.PowerOnVM
+  -force=false           Force (ignore state error and hard shutdown/reboot if tools unavailable)
+  -off=false             Power off
+  -on=false              Power on
+  -r=false               Reboot guest
+  -reset=false           Power reset
+  -s=false               Shutdown guest
+  -suspend=false         Power suspend
 ```
 
 ## vm.question
@@ -3641,8 +3790,8 @@ Options:
 Usage: govc vm.question [OPTIONS]
 
 Options:
-  -answer=                  Answer to question
-  -vm=                      Virtual machine [GOVC_VM]
+  -answer=               Answer to question
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## vm.rdm.attach
@@ -3656,8 +3805,8 @@ Examples:
   govc vm.rdm.attach -vm VM -device /vmfs/devices/disks/naa.000000000000000000000000000000000
 
 Options:
-  -device=                  Device Name
-  -vm=                      Virtual machine [GOVC_VM]
+  -device=               Device Name
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## vm.rdm.ls
@@ -3671,7 +3820,7 @@ Examples:
   govc vm.rdm.ls -vm VM
 
 Options:
-  -vm=                      Virtual machine [GOVC_VM]
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## vm.register
@@ -3688,12 +3837,12 @@ Examples:
   govc vm.register -template -host $host path/name.vmx
 
 Options:
-  -ds=                      Datastore [GOVC_DATASTORE]
-  -folder=                  Inventory folder [GOVC_FOLDER]
-  -host=                    Host system [GOVC_HOST]
-  -name=                    Name of the VM
-  -pool=                    Resource pool [GOVC_RESOURCE_POOL]
-  -template=false           Mark VM as template
+  -ds=                   Datastore [GOVC_DATASTORE]
+  -folder=               Inventory folder [GOVC_FOLDER]
+  -host=                 Host system [GOVC_HOST]
+  -name=                 Name of the VM
+  -pool=                 Resource pool [GOVC_RESOURCE_POOL]
+  -template=false        Mark VM as template
 ```
 
 ## vm.unregister
@@ -3719,8 +3868,8 @@ Examples:
   govc vm.upgrade -version=$version -vm.uuid $vm_uuid
 
 Options:
-  -version=0                Target vm hardware version, by default -- latest available
-  -vm=                      Virtual machine [GOVC_VM]
+  -version=0             Target vm hardware version, by default -- latest available
+  -vm=                   Virtual machine [GOVC_VM]
 ```
 
 ## vm.vnc
@@ -3738,10 +3887,10 @@ Examples:
   govc vm.vnc -enable -password 1234 $vm | awk '{print $2}' | xargs open
 
 Options:
-  -disable=false            Disable VNC
-  -enable=false             Enable VNC
-  -password=                VNC password
-  -port=-1                  VNC port (-1 for auto-select)
-  -port-range=5900-5999     VNC port auto-select range
+  -disable=false         Disable VNC
+  -enable=false          Enable VNC
+  -password=             VNC password
+  -port=-1               VNC port (-1 for auto-select)
+  -port-range=5900-5999  VNC port auto-select range
 ```
 

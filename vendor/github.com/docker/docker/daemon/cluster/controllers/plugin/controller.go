@@ -1,32 +1,32 @@
-package plugin
+package plugin // import "github.com/docker/docker/daemon/cluster/controllers/plugin"
 
 import (
+	"context"
 	"io"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/docker/distribution/reference"
-	"github.com/docker/docker/api/errdefs"
 	enginetypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm/runtime"
+	"github.com/docker/docker/errdefs"
 	"github.com/docker/docker/plugin"
 	"github.com/docker/docker/plugin/v2"
 	"github.com/docker/swarmkit/api"
 	"github.com/gogo/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 )
 
 // Controller is the controller for the plugin backend.
 // Plugins are managed as a singleton object with a desired state (different from containers).
-// With the the plugin controller instead of having a strict create->start->stop->remove
+// With the plugin controller instead of having a strict create->start->stop->remove
 // task lifecycle like containers, we manage the desired state of the plugin and let
 // the plugin manager do what it already does and monitor the plugin.
 // We'll also end up with many tasks all pointing to the same plugin ID.
 //
 // TODO(@cpuguy83): registry auth is intentionally not supported until we work out
-// the right way to pass registry crednetials via secrets.
+// the right way to pass registry credentials via secrets.
 type Controller struct {
 	backend Backend
 	spec    runtime.PluginSpec

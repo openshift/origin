@@ -7,34 +7,37 @@ excludeDirs:
 import:
 # kube first
 - package: k8s.io/kube-openapi
-  version: 8a9b82f00b3a86eac24681da3f9fe6c34c01cea2
+  version: 0cf8f7e6ed1d2e3d47d02e3b6e559369af24d803
 - package: k8s.io/code-generator
   repo:    https://github.com/openshift/kubernetes-code-generator.git
-  version: origin-4.0-kubernetes-1.11.1
+  version: origin-4.0-kubernetes-1.12.4
 - package: k8s.io/apimachinery
   repo:    https://github.com/openshift/kubernetes-apimachinery.git
-  version: origin-4.0-kubernetes-1.11.1
+  version: origin-4.0-kubernetes-1.12.4
 - package: k8s.io/api
   repo:    https://github.com/openshift/kubernetes-api.git
-  version: origin-4.0-kubernetes-1.11.1
+  version: origin-4.0-kubernetes-1.12.4
 - package: k8s.io/client-go
   repo:    https://github.com/openshift/kubernetes-client-go.git
-  version: origin-4.0-kubernetes-1.11.1
+  version: origin-4.0-kubernetes-1.12.4
+- package: k8s.io/cli-runtime
+  repo:    https://github.com/openshift/kubernetes-cli-runtime.git
+  version: origin-4.0-kubernetes-1.12.4
 - package: k8s.io/metrics
   repo:    https://github.com/openshift/kubernetes-metrics.git
-  version: origin-4.0-kubernetes-1.11.1
+  version: origin-4.0-kubernetes-1.12.4
 - package: k8s.io/apiserver
   repo:    https://github.com/openshift/kubernetes-apiserver.git
-  version: origin-4.0-kubernetes-1.11.1
+  version: origin-4.0-kubernetes-1.12.4
 - package: k8s.io/kube-aggregator
   repo:    https://github.com/openshift/kubernetes-kube-aggregator.git
-  version: origin-4.0-kubernetes-1.11.1
+  version: origin-4.0-kubernetes-1.12.4
 - package: k8s.io/apiextensions-apiserver
   repo:    https://github.com/openshift/kubernetes-apiextensions-apiserver.git
-  version: origin-4.0-kubernetes-1.11.1
+  version: origin-4.0-kubernetes-1.12.4
 - package: k8s.io/kubernetes
   repo:    https://github.com/openshift/kubernetes.git
-  version: origin-4.0-kubernetes-1.11.1
+  version: origin-4.0-kubernetes-1.12.4
 
 # openshift second
 - package: github.com/openshift/api
@@ -70,27 +73,22 @@ import:
   repo:    https://github.com/openshift/opencontainers-runc.git
   version: 7c7775178c25e952571573f44a8df281824cf8e1
 # pod - sjenning
-# origin-3.11-cadvisor-v0.30.1
 - package: github.com/google/cadvisor
-  repo:    https://github.com/openshift/google-cadvisor.git
-  version: c38aa7d9fa62f6b32862471d35a8944f3718cbda
+  version: fc17731afdcf184832482e324913c8f1a91b54ee
 # cli
 - package: github.com/docker/distribution
   repo:    https://github.com/openshift/docker-distribution.git
   version: image-registry-3.11
-# close-write carry
 - package: github.com/docker/docker
-  repo:    https://github.com/openshift/moby-moby.git
-  version: openshift-3.10-docker-b68221c
+  version: a9fbbdc8dd8794b20af358382ab780559bca589d
 
 # ours: shared with kube, but forced by openshift
 # master
 - package: k8s.io/gengo
-  version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b
+  version: fdcf9f9480fdd5bf2b3c3df9bf4ecd22b25b87e2
 # master: etcd
 - package: github.com/coreos/etcd
-  repo:    https://github.com/openshift/coreos-etcd.git
-  version: origin-3.10-etcd-v3.2.16
+  version: 420a452267a7ce45b3fcbed04d54030d69964fc1
 - package: google.golang.org/grpc
   version: v1.7.5
 - package: github.com/grpc-ecosystem/grpc-gateway
@@ -120,7 +118,7 @@ import:
   version: dd6034299e4242c9f0ea36735e6d4264dfcb3f9f
 # networking
 - package: github.com/vishvananda/netlink
-  version: 933b978eae8c18daa1077a0eb7186b689cd9f82d
+  version: b2de5d10e38ecce8607e6b438b6d174f389a004e
 # because of genapidocs.  This is the current kube level
 - package: github.com/go-openapi/loads
   version: a80dea3052f00e5f032e860dd7355cd0cc67e24d
@@ -132,7 +130,7 @@ import:
   version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 # pinned to a level that includes two fixes we need to avoid crashes
 - package: github.com/evanphx/json-patch
-  version: f195058310bd062ea7c754a834f0ff43b4b63afb
+  version: 36442dbdb585210f8d5a1b45e67aa323c197d5c4
 
 # mine: specific to openshift
 # networking
@@ -167,6 +165,9 @@ import:
 # new-app
 - package: github.com/joho/godotenv
   version: 6d367c18edf6ca7fd004efd6863e4c5728fa858e
+# new-app
+- package: github.com/moby/buildkit
+  version: c3a857e3fca0a5cadd44ffd886a977559841aeaa
 # dev-ex (template service broker)
 - package: github.com/lestrrat/go-jspointer
   version: f4881e611bdbe9fb413a7780721ef8400a1f2341
@@ -212,3 +213,9 @@ import:
 # yours: containers/image.  No idea why this isn't self-pinning.
 - package: github.com/containers/storage
   version: 47536c89fcc545a87745e1a1573addc439409165
+
+# due to https://github.com/Masterminds/glide/issues/881 manually show where
+# to get gonum.org/v1/gonum from
+- package: gonum.org/v1/gonum
+  repo: https://github.com/gonum/gonum.git
+  version: cebdade430ccb61c1feba4878085f6cf8cb3320e

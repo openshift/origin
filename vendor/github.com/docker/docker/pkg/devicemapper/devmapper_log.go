@@ -1,6 +1,6 @@
 // +build linux,cgo
 
-package devicemapper
+package devicemapper // import "github.com/docker/docker/pkg/devicemapper"
 
 import "C"
 
@@ -12,7 +12,7 @@ import (
 )
 
 // DevmapperLogger defines methods required to register as a callback for
-// logging events recieved from devicemapper. Note that devicemapper will send
+// logging events received from devicemapper. Note that devicemapper will send
 // *all* logs regardless to callbacks (including debug logs) so it's
 // recommended to not spam the console with the outputs.
 type DevmapperLogger interface {
@@ -55,6 +55,9 @@ func DevmapperLogCallback(level C.int, file *C.char, line, dmErrnoOrClass C.int,
 		if strings.Contains(msg, "No such device or address") {
 			dmSawEnxio = true
 		}
+		if strings.Contains(msg, "No data available") {
+			dmSawEnoData = true
+		}
 	}
 
 	if dmLogger != nil {
@@ -74,7 +77,7 @@ type DefaultLogger struct {
 // DMLog is the logging callback containing all of the information from
 // devicemapper. The interface is identical to the C libdm counterpart.
 func (l DefaultLogger) DMLog(level int, file string, line, dmError int, message string) {
-	if int(level) <= l.Level {
+	if level <= l.Level {
 		// Forward the log to the correct logrus level, if allowed by dmLogLevel.
 		logMsg := fmt.Sprintf("libdevmapper(%d): %s:%d (%d) %s", level, file, line, dmError, message)
 		switch level {

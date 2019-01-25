@@ -4,6 +4,7 @@ import (
 	crdinstall "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install"
 	"k8s.io/apimachinery/pkg/runtime"
 	apiregistrationinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
+	kcomponentconfiginstall "k8s.io/kubernetes/cmd/cloud-controller-manager/app/apis/config/scheme"
 	kadmissioninstall "k8s.io/kubernetes/pkg/apis/admission/install"
 	kadmissionregistrationinstall "k8s.io/kubernetes/pkg/apis/admissionregistration/install"
 	kappsinstall "k8s.io/kubernetes/pkg/apis/apps/install"
@@ -12,7 +13,6 @@ import (
 	kautoscalinginstall "k8s.io/kubernetes/pkg/apis/autoscaling/install"
 	kbatchinstall "k8s.io/kubernetes/pkg/apis/batch/install"
 	kcertificatesinstall "k8s.io/kubernetes/pkg/apis/certificates/install"
-	kcomponentconfiginstall "k8s.io/kubernetes/pkg/apis/componentconfig/install"
 	kcoreinstall "k8s.io/kubernetes/pkg/apis/core/install"
 	keventsinstall "k8s.io/kubernetes/pkg/apis/events/install"
 	kextensionsinstall "k8s.io/kubernetes/pkg/apis/extensions/install"
@@ -68,7 +68,7 @@ func InstallInternalKube(scheme *runtime.Scheme) {
 	kautoscalinginstall.Install(scheme)
 	kbatchinstall.Install(scheme)
 	kcertificatesinstall.Install(scheme)
-	kcomponentconfiginstall.Install(scheme)
+	kcomponentconfiginstall.AddToScheme(scheme)
 	kcoreinstall.Install(scheme)
 	keventsinstall.Install(scheme)
 	kextensionsinstall.Install(scheme)

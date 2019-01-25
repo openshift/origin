@@ -63,13 +63,13 @@ func addUngroupifiedInternalOAuthTypes(scheme *runtime.Scheme) error {
 }
 
 func addLegacyOAuthFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
-	if err := scheme.AddFieldLabelConversionFunc(GroupVersion.String(), "OAuthAccessToken", legacyOAuthAccessTokenFieldSelectorKeyConversionFunc); err != nil {
+	if err := scheme.AddFieldLabelConversionFunc(GroupVersion.WithKind("OAuthAccessToken"), legacyOAuthAccessTokenFieldSelectorKeyConversionFunc); err != nil {
 		return err
 	}
-	if err := scheme.AddFieldLabelConversionFunc(GroupVersion.String(), "OAuthAuthorizeToken", legacyOAuthAuthorizeTokenFieldSelectorKeyConversionFunc); err != nil {
+	if err := scheme.AddFieldLabelConversionFunc(GroupVersion.WithKind("OAuthAuthorizeToken"), legacyOAuthAuthorizeTokenFieldSelectorKeyConversionFunc); err != nil {
 		return err
 	}
-	if err := scheme.AddFieldLabelConversionFunc(GroupVersion.String(), "OAuthClientAuthorization", legacyOAuthClientAuthorizationFieldSelectorKeyConversionFunc); err != nil {
+	if err := scheme.AddFieldLabelConversionFunc(GroupVersion.WithKind("OAuthClientAuthorization"), legacyOAuthClientAuthorizationFieldSelectorKeyConversionFunc); err != nil {
 		return err
 	}
 	return nil

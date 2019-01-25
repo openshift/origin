@@ -37,13 +37,12 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/apiserver/pkg/util/dryrun"
 
 	apiservice "k8s.io/kubernetes/pkg/api/service"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
-	"k8s.io/kubernetes/pkg/features"
 	registry "k8s.io/kubernetes/pkg/registry/core/service"
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
 	"k8s.io/kubernetes/pkg/registry/core/service/portallocator"
@@ -152,7 +151,7 @@ func (rs *REST) Export(ctx context.Context, name string, opts metav1.ExportOptio
 	return rs.services.Export(ctx, name, opts)
 }
 
-func (rs *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, includeUninitialized bool) (runtime.Object, error) {
+func (rs *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
 	service := obj.(*api.Service)
 
 	if err := rest.BeforeCreate(registry.Strategy, ctx, obj); err != nil {
@@ -170,13 +169,15 @@ func (rs *REST) Create(ctx context.Context, obj runtime.Object, createValidation
 	}()
 
 	var err error
-	if service.Spec.Type != api.ServiceTypeExternalName {
-		if releaseServiceIP, err = initClusterIP(service, rs.serviceIPs); err != nil {
-			return nil, err
+	if !dryrun.IsDryRun(options.DryRun) {
+		if service.Spec.Type != api.ServiceTypeExternalName {
+			if releaseServiceIP, err = initClusterIP(service, rs.serviceIPs); err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	nodePortOp := portallocator.StartOperation(rs.serviceNodePorts)
+	nodePortOp := portallocator.StartOperation(rs.serviceNodePorts, dryrun.IsDryRun(options.DryRun))
 	defer nodePortOp.Finish()
 
 	if service.Spec.Type == api.ServiceTypeNodePort || service.Spec.Type == api.ServiceTypeLoadBalancer {
@@ -195,7 +196,7 @@ func (rs *REST) Create(ctx context.Context, obj runtime.Object, createValidation
 		return nil, errors.NewInvalid(api.Kind("Service"), service.Name, errs)
 	}
 
-	out, err := rs.services.Create(ctx, service, createValidation, includeUninitialized)
+	out, err := rs.services.Create(ctx, service, createValidation, options)
 	if err != nil {
 		err = rest.CheckGeneratedNameError(registry.Strategy, err, service)
 	}
@@ -222,13 +223,32 @@ func (rs *REST) Delete(ctx context.Context, id string, options *metav1.DeleteOpt
 
 	svc := obj.(*api.Service)
 
-	// TODO: can leave dangling endpoints, and potentially return incorrect
-	// endpoints if a new service is created with the same name
-	_, _, err = rs.endpoints.Delete(ctx, id, &metav1.DeleteOptions{})
-	if err != nil && !errors.IsNotFound(err) {
-		return nil, false, err
+	// Only perform the cleanup if this is a non-dryrun deletion
+	if !dryrun.IsDryRun(options.DryRun) {
+		// TODO: can leave dangling endpoints, and potentially return incorrect
+		// endpoints if a new service is created with the same name
+		_, _, err = rs.endpoints.Delete(ctx, id, &metav1.DeleteOptions{})
+		if err != nil && !errors.IsNotFound(err) {
+			return nil, false, err
+		}
+
+		rs.releaseAllocatedResources(svc)
 	}
 
+	// TODO: this is duplicated from the generic storage, when this wrapper is fully removed we can drop this
+	details := &metav1.StatusDetails{
+		Name: svc.Name,
+		UID:  svc.UID,
+	}
+	if info, ok := genericapirequest.RequestInfoFrom(ctx); ok {
+		details.Group = info.APIGroup
+		details.Kind = info.Resource // legacy behavior
+	}
+	status := &metav1.Status{Status: metav1.StatusSuccess, Details: details}
+	return status, true, nil
+}
+
+func (rs *REST) releaseAllocatedResources(svc *api.Service) {
 	if helper.IsServiceIPSet(svc) {
 		rs.serviceIPs.Release(net.ParseIP(svc.Spec.ClusterIP))
 	}
@@ -251,18 +271,6 @@ func (rs *REST) Delete(ctx context.Context, id string, options *metav1.DeleteOpt
 			}
 		}
 	}
-
-	// TODO: this is duplicated from the generic storage, when this wrapper is fully removed we can drop this
-	details := &metav1.StatusDetails{
-		Name: svc.Name,
-		UID:  svc.UID,
-	}
-	if info, ok := genericapirequest.RequestInfoFrom(ctx); ok {
-		details.Group = info.APIGroup
-		details.Kind = info.Resource // legacy behavior
-	}
-	status := &metav1.Status{Status: metav1.StatusSuccess, Details: details}
-	return status, true, nil
 }
 
 // externalTrafficPolicyUpdate adjusts ExternalTrafficPolicy during service update if needed.
@@ -326,7 +334,7 @@ func (rs *REST) healthCheckNodePortUpdate(oldService, service *api.Service, node
 	return true, nil
 }
 
-func (rs *REST) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (runtime.Object, bool, error) {
+func (rs *REST) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc, forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
 	oldObj, err := rs.services.Get(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, false, err
@@ -358,19 +366,21 @@ func (rs *REST) Update(ctx context.Context, name string, objInfo rest.UpdatedObj
 		}
 	}()
 
-	nodePortOp := portallocator.StartOperation(rs.serviceNodePorts)
+	nodePortOp := portallocator.StartOperation(rs.serviceNodePorts, dryrun.IsDryRun(options.DryRun))
 	defer nodePortOp.Finish()
 
-	// Update service from ExternalName to non-ExternalName, should initialize ClusterIP.
-	if oldService.Spec.Type == api.ServiceTypeExternalName && service.Spec.Type != api.ServiceTypeExternalName {
-		if releaseServiceIP, err = initClusterIP(service, rs.serviceIPs); err != nil {
-			return nil, false, err
+	if !dryrun.IsDryRun(options.DryRun) {
+		// Update service from ExternalName to non-ExternalName, should initialize ClusterIP.
+		if oldService.Spec.Type == api.ServiceTypeExternalName && service.Spec.Type != api.ServiceTypeExternalName {
+			if releaseServiceIP, err = initClusterIP(service, rs.serviceIPs); err != nil {
+				return nil, false, err
+			}
 		}
-	}
-	// Update service from non-ExternalName to ExternalName, should release ClusterIP if exists.
-	if oldService.Spec.Type != api.ServiceTypeExternalName && service.Spec.Type == api.ServiceTypeExternalName {
-		if helper.IsServiceIPSet(oldService) {
-			rs.serviceIPs.Release(net.ParseIP(oldService.Spec.ClusterIP))
+		// Update service from non-ExternalName to ExternalName, should release ClusterIP if exists.
+		if oldService.Spec.Type != api.ServiceTypeExternalName && service.Spec.Type == api.ServiceTypeExternalName {
+			if helper.IsServiceIPSet(oldService) {
+				rs.serviceIPs.Release(net.ParseIP(oldService.Spec.ClusterIP))
+			}
 		}
 	}
 	// Update service from NodePort or LoadBalancer to ExternalName or ClusterIP, should release NodePort if exists.
@@ -400,7 +410,7 @@ func (rs *REST) Update(ctx context.Context, name string, objInfo rest.UpdatedObj
 		return nil, false, errors.NewInvalid(api.Kind("Service"), service.Name, errs)
 	}
 
-	out, created, err := rs.services.Update(ctx, service.Name, rest.DefaultUpdatedObjectInfo(service), createValidation, updateValidation)
+	out, created, err := rs.services.Update(ctx, service.Name, rest.DefaultUpdatedObjectInfo(service), createValidation, updateValidation, forceAllowCreate, options)
 	if err == nil {
 		el := nodePortOp.Commit()
 		if el != nil {
@@ -471,11 +481,9 @@ func (rs *REST) ResourceLocation(ctx context.Context, id string) (*url.URL, http
 				// but in the expected case we'll only make one.
 				for try := 0; try < len(ss.Addresses); try++ {
 					addr := ss.Addresses[(addrSeed+try)%len(ss.Addresses)]
-					if !utilfeature.DefaultFeatureGate.Enabled(features.ServiceProxyAllowExternalIPs) {
-						if err := isValidAddress(ctx, &addr, rs.pods); err != nil {
-							utilruntime.HandleError(fmt.Errorf("Address %v isn't valid (%v)", addr, err))
-							continue
-						}
+					if err := isValidAddress(ctx, &addr, rs.pods); err != nil {
+						utilruntime.HandleError(fmt.Errorf("Address %v isn't valid (%v)", addr, err))
+						continue
 					}
 					ip := addr.IP
 					port := int(ss.Ports[i].Port)

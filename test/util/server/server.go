@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
@@ -34,7 +35,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
@@ -191,17 +191,18 @@ func DefaultMasterOptions() (*configapi.MasterConfig, error) {
 }
 
 func DefaultMasterOptionsWithTweaks(useDefaultPort bool) (*configapi.MasterConfig, error) {
-	startOptions := start.MasterOptions{}
-	startOptions.MasterArgs = setupStartOptions(useDefaultPort)
-	startOptions.Complete()
-	// reset, since Complete alters the default
-	startOptions.MasterArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", "master"))
+	masterArgs := setupStartOptions(useDefaultPort)
+	if !masterArgs.ConfigDir.Provided() {
+		masterArgs.ConfigDir.Default("openshift.local.config/master")
+	}
 
-	if err := CreateMasterCerts(startOptions.MasterArgs); err != nil {
+	// reset, since Complete alters the default
+	masterArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", "master"))
+	if err := CreateMasterCerts(masterArgs); err != nil {
 		return nil, err
 	}
 
-	masterConfig, err := startOptions.MasterArgs.BuildSerializeableMasterConfig()
+	masterConfig, err := masterArgs.BuildSerializeableMasterConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +254,7 @@ func DefaultMasterOptionsWithTweaks(useDefaultPort bool) (*configapi.MasterConfi
 	}
 	masterConfig.ImagePolicyConfig.AllowedRegistriesForImport = &allowedRegistries
 
-	glog.Infof("Starting integration server from master %s", startOptions.MasterArgs.ConfigDir.Value())
+	glog.Infof("Starting integration server from master %s", masterArgs.ConfigDir.Value())
 
 	return masterConfig, nil
 }
@@ -611,18 +612,25 @@ func startKubernetesControllers(masterConfig *configapi.MasterConfig, adminKubeC
 	cmdLineArgs["use-service-account-credentials"] = []string{"true"}
 	cmdLineArgs["cluster-signing-cert-file"] = []string{""}
 	cmdLineArgs["cluster-signing-key-file"] = []string{""}
+	cmdLineArgs["cert-dir"] = []string{""}
+	cmdLineArgs["tls-cert-file"] = []string{masterConfig.ServingInfo.ServerCert.CertFile}
+	cmdLineArgs["tls-private-key-file"] = []string{masterConfig.ServingInfo.ServerCert.KeyFile}
 	cmdLineArgs["leader-elect"] = []string{"false"}
 
 	kubeAddrStr, err := FindAvailableBindAddress(10000, 29999)
 	if err != nil {
 		return fmt.Errorf("couldn't find free address for Kubernetes controller-mananger: %v", err)
 	}
-	kubeAddr, err := url.Parse(fmt.Sprintf("http://%s", kubeAddrStr))
+	kubeAddr, err := url.Parse(fmt.Sprintf("https://%s", kubeAddrStr))
 	if err != nil {
 		return err
 	}
 	cmdLineArgs["bind-address"] = []string{kubeAddr.Hostname()}
-	cmdLineArgs["port"] = []string{kubeAddr.Port()}
+	cmdLineArgs["secure-port"] = []string{kubeAddr.Port()}
+
+	// we need to explicitly disable insecure port to prevent bind failures due
+	// to default port being taken already by other instances of CM running in parallel
+	cmdLineArgs["port"] = []string{"0"}
 
 	args := []string{}
 	for key, value := range cmdLineArgs {

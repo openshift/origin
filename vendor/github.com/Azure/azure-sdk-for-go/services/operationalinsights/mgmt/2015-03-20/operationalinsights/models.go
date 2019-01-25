@@ -26,6 +26,21 @@ import (
 	"net/http"
 )
 
+// PurgeState enumerates the values for purge state.
+type PurgeState string
+
+const (
+	// Completed ...
+	Completed PurgeState = "completed"
+	// Pending ...
+	Pending PurgeState = "pending"
+)
+
+// PossiblePurgeStateValues returns an array of possible values for the PurgeState const type.
+func PossiblePurgeStateValues() []PurgeState {
+	return []PurgeState{Completed, Pending}
+}
+
 // SearchSortEnum enumerates the values for search sort enum.
 type SearchSortEnum string
 
@@ -36,6 +51,11 @@ const (
 	Desc SearchSortEnum = "desc"
 )
 
+// PossibleSearchSortEnumValues returns an array of possible values for the SearchSortEnum const type.
+func PossibleSearchSortEnumValues() []SearchSortEnum {
+	return []SearchSortEnum{Asc, Desc}
+}
+
 // StorageInsightState enumerates the values for storage insight state.
 type StorageInsightState string
 
@@ -45,6 +65,11 @@ const (
 	// OK ...
 	OK StorageInsightState = "OK"
 )
+
+// PossibleStorageInsightStateValues returns an array of possible values for the StorageInsightState const type.
+func PossibleStorageInsightStateValues() []StorageInsightState {
+	return []StorageInsightState{ERROR, OK}
+}
 
 // CoreSummary the core summary of a search.
 type CoreSummary struct {
@@ -175,6 +200,27 @@ type SavedSearch struct {
 	ETag *string `json:"eTag,omitempty"`
 	// SavedSearchProperties - Gets or sets properties of the saved search.
 	*SavedSearchProperties `json:"properties,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for SavedSearch.
+func (ss SavedSearch) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if ss.ID != nil {
+		objectMap["id"] = ss.ID
+	}
+	if ss.Name != nil {
+		objectMap["name"] = ss.Name
+	}
+	if ss.Type != nil {
+		objectMap["type"] = ss.Type
+	}
+	if ss.ETag != nil {
+		objectMap["eTag"] = ss.ETag
+	}
+	if ss.SavedSearchProperties != nil {
+		objectMap["properties"] = ss.SavedSearchProperties
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for SavedSearch struct.
@@ -632,16 +678,47 @@ type Tag struct {
 	Value *string `json:"value,omitempty"`
 }
 
+// WorkspacePurgeBody describes the body of a purge request for an App Insights Workspace
+type WorkspacePurgeBody struct {
+	// Table - Table from which to purge data.
+	Table *string `json:"table,omitempty"`
+	// Filters - The set of columns and filters (queries) to run over them to purge the resulting data.
+	Filters *[]WorkspacePurgeBodyFilters `json:"filters,omitempty"`
+}
+
+// WorkspacePurgeBodyFilters user-defined filters to return data which will be purged from the table.
+type WorkspacePurgeBodyFilters struct {
+	// Column - The column of the table over which the given query should run
+	Column *string `json:"column,omitempty"`
+	// Operator - A query operator to evaluate over the provided column and value(s).
+	Operator *string `json:"operator,omitempty"`
+	// Value - the value for the operator to function over. This can be a number (e.g., > 100), a string (timestamp >= '2017-09-01') or array of values.
+	Value interface{} `json:"value,omitempty"`
+}
+
+// WorkspacePurgeResponse response containing operationId for a specific purge action.
+type WorkspacePurgeResponse struct {
+	autorest.Response `json:"-"`
+	// OperationID - Id to use when querying for status for a particular purge operation.
+	OperationID *string `json:"operationId,omitempty"`
+}
+
+// WorkspacePurgeStatusResponse response containing status for a specific purge operation.
+type WorkspacePurgeStatusResponse struct {
+	autorest.Response `json:"-"`
+	// Status - Status of the operation represented by the requested Id. Possible values include: 'Pending', 'Completed'
+	Status PurgeState `json:"status,omitempty"`
+}
+
 // WorkspacesGetSearchResultsFuture an abstraction for monitoring and retrieving the results of a long-running
 // operation.
 type WorkspacesGetSearchResultsFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future WorkspacesGetSearchResultsFuture) Result(client WorkspacesClient) (srr SearchResultsResponse, err error) {
+func (future *WorkspacesGetSearchResultsFuture) Result(client WorkspacesClient) (srr SearchResultsResponse, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -649,34 +726,15 @@ func (future WorkspacesGetSearchResultsFuture) Result(client WorkspacesClient) (
 		return
 	}
 	if !done {
-		return srr, azure.NewAsyncOpIncompleteError("operationalinsights.WorkspacesGetSearchResultsFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		srr, err = client.GetSearchResultsResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "operationalinsights.WorkspacesGetSearchResultsFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("operationalinsights.WorkspacesGetSearchResultsFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if srr.Response.Response, err = future.GetResult(sender); err == nil && srr.Response.Response.StatusCode != http.StatusNoContent {
+		srr, err = client.GetSearchResultsResponder(srr.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "operationalinsights.WorkspacesGetSearchResultsFuture", "Result", srr.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "operationalinsights.WorkspacesGetSearchResultsFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	srr, err = client.GetSearchResultsResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "operationalinsights.WorkspacesGetSearchResultsFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }

@@ -41,8 +41,9 @@ func NewReplicationRecoveryPlansClientWithBaseURI(baseURI string, subscriptionID
 }
 
 // Create the operation to create a recovery plan.
-//
-// recoveryPlanName is recovery plan name. input is recovery Plan creation input.
+// Parameters:
+// recoveryPlanName - recovery plan name.
+// input - recovery Plan creation input.
 func (client ReplicationRecoveryPlansClient) Create(ctx context.Context, recoveryPlanName string, input CreateRecoveryPlanInput) (result ReplicationRecoveryPlansCreateFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: input,
@@ -84,7 +85,7 @@ func (client ReplicationRecoveryPlansClient) CreatePreparer(ctx context.Context,
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/Subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.RecoveryServices/vaults/{resourceName}/replicationRecoveryPlans/{recoveryPlanName}", pathParameters),
@@ -96,15 +97,17 @@ func (client ReplicationRecoveryPlansClient) CreatePreparer(ctx context.Context,
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationRecoveryPlansClient) CreateSender(req *http.Request) (future ReplicationRecoveryPlansCreateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -122,8 +125,8 @@ func (client ReplicationRecoveryPlansClient) CreateResponder(resp *http.Response
 }
 
 // Delete delete a recovery plan.
-//
-// recoveryPlanName is recovery plan name.
+// Parameters:
+// recoveryPlanName - recovery plan name.
 func (client ReplicationRecoveryPlansClient) Delete(ctx context.Context, recoveryPlanName string) (result ReplicationRecoveryPlansDeleteFuture, err error) {
 	req, err := client.DeletePreparer(ctx, recoveryPlanName)
 	if err != nil {
@@ -165,15 +168,17 @@ func (client ReplicationRecoveryPlansClient) DeletePreparer(ctx context.Context,
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationRecoveryPlansClient) DeleteSender(req *http.Request) (future ReplicationRecoveryPlansDeleteFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -190,8 +195,8 @@ func (client ReplicationRecoveryPlansClient) DeleteResponder(resp *http.Response
 }
 
 // FailoverCommit the operation to commit the fail over of a recovery plan.
-//
-// recoveryPlanName is recovery plan name.
+// Parameters:
+// recoveryPlanName - recovery plan name.
 func (client ReplicationRecoveryPlansClient) FailoverCommit(ctx context.Context, recoveryPlanName string) (result ReplicationRecoveryPlansFailoverCommitFuture, err error) {
 	req, err := client.FailoverCommitPreparer(ctx, recoveryPlanName)
 	if err != nil {
@@ -233,15 +238,17 @@ func (client ReplicationRecoveryPlansClient) FailoverCommitPreparer(ctx context.
 // FailoverCommitSender sends the FailoverCommit request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationRecoveryPlansClient) FailoverCommitSender(req *http.Request) (future ReplicationRecoveryPlansFailoverCommitFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -259,8 +266,8 @@ func (client ReplicationRecoveryPlansClient) FailoverCommitResponder(resp *http.
 }
 
 // Get gets the details of the recovery plan.
-//
-// recoveryPlanName is name of the recovery plan.
+// Parameters:
+// recoveryPlanName - name of the recovery plan.
 func (client ReplicationRecoveryPlansClient) Get(ctx context.Context, recoveryPlanName string) (result RecoveryPlan, err error) {
 	req, err := client.GetPreparer(ctx, recoveryPlanName)
 	if err != nil {
@@ -418,8 +425,9 @@ func (client ReplicationRecoveryPlansClient) ListComplete(ctx context.Context) (
 }
 
 // PlannedFailover the operation to start the planned failover of a recovery plan.
-//
-// recoveryPlanName is recovery plan name. input is failover input.
+// Parameters:
+// recoveryPlanName - recovery plan name.
+// input - failover input.
 func (client ReplicationRecoveryPlansClient) PlannedFailover(ctx context.Context, recoveryPlanName string, input RecoveryPlanPlannedFailoverInput) (result ReplicationRecoveryPlansPlannedFailoverFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: input,
@@ -457,7 +465,7 @@ func (client ReplicationRecoveryPlansClient) PlannedFailoverPreparer(ctx context
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/Subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.RecoveryServices/vaults/{resourceName}/replicationRecoveryPlans/{recoveryPlanName}/plannedFailover", pathParameters),
@@ -469,15 +477,17 @@ func (client ReplicationRecoveryPlansClient) PlannedFailoverPreparer(ctx context
 // PlannedFailoverSender sends the PlannedFailover request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationRecoveryPlansClient) PlannedFailoverSender(req *http.Request) (future ReplicationRecoveryPlansPlannedFailoverFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -495,8 +505,8 @@ func (client ReplicationRecoveryPlansClient) PlannedFailoverResponder(resp *http
 }
 
 // Reprotect the operation to reprotect(reverse replicate) a recovery plan.
-//
-// recoveryPlanName is recovery plan name.
+// Parameters:
+// recoveryPlanName - recovery plan name.
 func (client ReplicationRecoveryPlansClient) Reprotect(ctx context.Context, recoveryPlanName string) (result ReplicationRecoveryPlansReprotectFuture, err error) {
 	req, err := client.ReprotectPreparer(ctx, recoveryPlanName)
 	if err != nil {
@@ -538,15 +548,17 @@ func (client ReplicationRecoveryPlansClient) ReprotectPreparer(ctx context.Conte
 // ReprotectSender sends the Reprotect request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationRecoveryPlansClient) ReprotectSender(req *http.Request) (future ReplicationRecoveryPlansReprotectFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -564,8 +576,9 @@ func (client ReplicationRecoveryPlansClient) ReprotectResponder(resp *http.Respo
 }
 
 // TestFailover the operation to start the test failover of a recovery plan.
-//
-// recoveryPlanName is recovery plan name. input is failover input.
+// Parameters:
+// recoveryPlanName - recovery plan name.
+// input - failover input.
 func (client ReplicationRecoveryPlansClient) TestFailover(ctx context.Context, recoveryPlanName string, input RecoveryPlanTestFailoverInput) (result ReplicationRecoveryPlansTestFailoverFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: input,
@@ -604,7 +617,7 @@ func (client ReplicationRecoveryPlansClient) TestFailoverPreparer(ctx context.Co
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/Subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.RecoveryServices/vaults/{resourceName}/replicationRecoveryPlans/{recoveryPlanName}/testFailover", pathParameters),
@@ -616,15 +629,17 @@ func (client ReplicationRecoveryPlansClient) TestFailoverPreparer(ctx context.Co
 // TestFailoverSender sends the TestFailover request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationRecoveryPlansClient) TestFailoverSender(req *http.Request) (future ReplicationRecoveryPlansTestFailoverFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -642,8 +657,9 @@ func (client ReplicationRecoveryPlansClient) TestFailoverResponder(resp *http.Re
 }
 
 // TestFailoverCleanup the operation to cleanup test failover of a recovery plan.
-//
-// recoveryPlanName is recovery plan name. input is test failover cleanup input.
+// Parameters:
+// recoveryPlanName - recovery plan name.
+// input - test failover cleanup input.
 func (client ReplicationRecoveryPlansClient) TestFailoverCleanup(ctx context.Context, recoveryPlanName string, input RecoveryPlanTestFailoverCleanupInput) (result ReplicationRecoveryPlansTestFailoverCleanupFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: input,
@@ -681,7 +697,7 @@ func (client ReplicationRecoveryPlansClient) TestFailoverCleanupPreparer(ctx con
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/Subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.RecoveryServices/vaults/{resourceName}/replicationRecoveryPlans/{recoveryPlanName}/testFailoverCleanup", pathParameters),
@@ -693,15 +709,17 @@ func (client ReplicationRecoveryPlansClient) TestFailoverCleanupPreparer(ctx con
 // TestFailoverCleanupSender sends the TestFailoverCleanup request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationRecoveryPlansClient) TestFailoverCleanupSender(req *http.Request) (future ReplicationRecoveryPlansTestFailoverCleanupFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -719,8 +737,9 @@ func (client ReplicationRecoveryPlansClient) TestFailoverCleanupResponder(resp *
 }
 
 // UnplannedFailover the operation to start the failover of a recovery plan.
-//
-// recoveryPlanName is recovery plan name. input is failover input.
+// Parameters:
+// recoveryPlanName - recovery plan name.
+// input - failover input.
 func (client ReplicationRecoveryPlansClient) UnplannedFailover(ctx context.Context, recoveryPlanName string, input RecoveryPlanUnplannedFailoverInput) (result ReplicationRecoveryPlansUnplannedFailoverFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: input,
@@ -758,7 +777,7 @@ func (client ReplicationRecoveryPlansClient) UnplannedFailoverPreparer(ctx conte
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/Subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.RecoveryServices/vaults/{resourceName}/replicationRecoveryPlans/{recoveryPlanName}/unplannedFailover", pathParameters),
@@ -770,15 +789,17 @@ func (client ReplicationRecoveryPlansClient) UnplannedFailoverPreparer(ctx conte
 // UnplannedFailoverSender sends the UnplannedFailover request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationRecoveryPlansClient) UnplannedFailoverSender(req *http.Request) (future ReplicationRecoveryPlansUnplannedFailoverFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -796,8 +817,9 @@ func (client ReplicationRecoveryPlansClient) UnplannedFailoverResponder(resp *ht
 }
 
 // Update the operation to update a recovery plan.
-//
-// recoveryPlanName is recovery plan name. input is update recovery plan input
+// Parameters:
+// recoveryPlanName - recovery plan name.
+// input - update recovery plan input
 func (client ReplicationRecoveryPlansClient) Update(ctx context.Context, recoveryPlanName string, input UpdateRecoveryPlanInput) (result ReplicationRecoveryPlansUpdateFuture, err error) {
 	req, err := client.UpdatePreparer(ctx, recoveryPlanName, input)
 	if err != nil {
@@ -829,7 +851,7 @@ func (client ReplicationRecoveryPlansClient) UpdatePreparer(ctx context.Context,
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/Subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.RecoveryServices/vaults/{resourceName}/replicationRecoveryPlans/{recoveryPlanName}", pathParameters),
@@ -841,15 +863,17 @@ func (client ReplicationRecoveryPlansClient) UpdatePreparer(ctx context.Context,
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client ReplicationRecoveryPlansClient) UpdateSender(req *http.Request) (future ReplicationRecoveryPlansUpdateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 

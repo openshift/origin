@@ -19,38 +19,69 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
+	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
 
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	kubeadmscheme "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/scheme"
-	kubeadmapiv1alpha1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha1"
-	kubeadmapiv1alpha2 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha2"
+	kubeadmapiv1alpha3 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1alpha3"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/validation"
-	"k8s.io/kubernetes/pkg/util/node"
+	kubeadmutil "k8s.io/kubernetes/cmd/kubeadm/app/util"
 )
 
-// SetJoinDynamicDefaults checks and sets configuration values for the NodeConfiguration object
-func SetJoinDynamicDefaults(cfg *kubeadmapi.NodeConfiguration) error {
-	cfg.NodeRegistration.Name = node.GetHostname(cfg.NodeRegistration.Name)
+// SetJoinDynamicDefaults checks and sets configuration values for the JoinConfiguration object
+func SetJoinDynamicDefaults(cfg *kubeadmapi.JoinConfiguration) error {
+
+	if err := SetNodeRegistrationDynamicDefaults(&cfg.NodeRegistration, cfg.ControlPlane); err != nil {
+		return err
+	}
+
+	if err := SetAPIEndpointDynamicDefaults(&cfg.APIEndpoint); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // NodeConfigFileAndDefaultsToInternalConfig
-func NodeConfigFileAndDefaultsToInternalConfig(cfgPath string, defaultversionedcfg *kubeadmapiv1alpha2.NodeConfiguration) (*kubeadmapi.NodeConfiguration, error) {
-	internalcfg := &kubeadmapi.NodeConfiguration{}
+func NodeConfigFileAndDefaultsToInternalConfig(cfgPath string, defaultversionedcfg *kubeadmapiv1alpha3.JoinConfiguration) (*kubeadmapi.JoinConfiguration, error) {
+	internalcfg := &kubeadmapi.JoinConfiguration{}
 
 	if cfgPath != "" {
 		// Loads configuration from config file, if provided
-		// Nb. --config overrides command line flags
+		// Nb. --config overrides command line flags, TODO: fix this
 		glog.V(1).Infoln("loading configuration from the given file")
 
 		b, err := ioutil.ReadFile(cfgPath)
 		if err != nil {
 			return nil, fmt.Errorf("unable to read config from %q [%v]", cfgPath, err)
 		}
-		runtime.DecodeInto(kubeadmscheme.Codecs.UniversalDecoder(kubeadmapiv1alpha1.SchemeGroupVersion, kubeadmapiv1alpha2.SchemeGroupVersion), b, internalcfg)
+
+		if err := DetectUnsupportedVersion(b); err != nil {
+			return nil, err
+		}
+
+		gvkmap, err := kubeadmutil.SplitYAMLDocuments(b)
+		if err != nil {
+			return nil, err
+		}
+
+		joinBytes := []byte{}
+		for gvk, bytes := range gvkmap {
+			if gvk.Kind == constants.JoinConfigurationKind || gvk.Kind == constants.NodeConfigurationKind {
+				joinBytes = bytes
+			}
+		}
+
+		if len(joinBytes) == 0 {
+			return nil, fmt.Errorf("no %s found in config file %q", constants.JoinConfigurationKind, cfgPath)
+		}
+
+		if err := runtime.DecodeInto(kubeadmscheme.Codecs.UniversalDecoder(), joinBytes, internalcfg); err != nil {
+			return nil, err
+		}
 	} else {
 		// Takes passed flags into account; the defaulting is executed once again enforcing assignement of
 		// static default values to cfg only for values not provided with flags
@@ -63,7 +94,7 @@ func NodeConfigFileAndDefaultsToInternalConfig(cfgPath string, defaultversionedc
 		return nil, err
 	}
 	// Validates cfg (flags/configs + defaults)
-	if err := validation.ValidateNodeConfiguration(internalcfg).ToAggregate(); err != nil {
+	if err := validation.ValidateJoinConfiguration(internalcfg).ToAggregate(); err != nil {
 		return nil, err
 	}
 

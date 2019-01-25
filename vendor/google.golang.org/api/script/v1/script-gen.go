@@ -62,6 +62,9 @@ const (
 	// View and manage the provisioning of users on your domain
 	AdminDirectoryUserScope = "https://www.googleapis.com/auth/admin.directory.user"
 
+	// View and manage your Google Docs documents
+	DocumentsScope = "https://www.googleapis.com/auth/documents"
+
 	// View and manage the files in your Google Drive
 	DriveScope = "https://www.googleapis.com/auth/drive"
 
@@ -4350,6 +4353,7 @@ func (c *ScriptsRunCall) Do(opts ...googleapi.CallOption) (*Operation, error) {
 	//     "https://www.google.com/m8/feeds",
 	//     "https://www.googleapis.com/auth/admin.directory.group",
 	//     "https://www.googleapis.com/auth/admin.directory.user",
+	//     "https://www.googleapis.com/auth/documents",
 	//     "https://www.googleapis.com/auth/drive",
 	//     "https://www.googleapis.com/auth/forms",
 	//     "https://www.googleapis.com/auth/forms.currentonly",

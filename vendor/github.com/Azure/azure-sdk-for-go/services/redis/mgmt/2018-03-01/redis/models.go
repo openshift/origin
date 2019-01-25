@@ -195,11 +195,11 @@ type AccessKeys struct {
 	SecondaryKey *string `json:"secondaryKey,omitempty"`
 }
 
-// CheckNameAvailabilityParameters parameters body to pass for  name availability check.
+// CheckNameAvailabilityParameters parameters body to pass for resource name availability check.
 type CheckNameAvailabilityParameters struct {
 	// Name - Resource name.
 	Name *string `json:"name,omitempty"`
-	// Type - Resource type.
+	// Type - Resource type. The only legal value of this property for checking redis cache name availability is 'Microsoft.Cache/redis'.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -241,12 +241,11 @@ func (cp CommonProperties) MarshalJSON() ([]byte, error) {
 // CreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type CreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future CreateFuture) Result(client Client) (rt ResourceType, err error) {
+func (future *CreateFuture) Result(client Client) (rt ResourceType, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -254,34 +253,15 @@ func (future CreateFuture) Result(client Client) (rt ResourceType, err error) {
 		return
 	}
 	if !done {
-		return rt, azure.NewAsyncOpIncompleteError("redis.CreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		rt, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "redis.CreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("redis.CreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if rt.Response.Response, err = future.GetResult(sender); err == nil && rt.Response.Response.StatusCode != http.StatusNoContent {
+		rt, err = client.CreateResponder(rt.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "redis.CreateFuture", "Result", rt.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.CreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	rt, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.CreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -420,12 +400,11 @@ func (cp CreateProperties) MarshalJSON() ([]byte, error) {
 // DeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type DeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future DeleteFuture) Result(client Client) (ar autorest.Response, err error) {
+func (future *DeleteFuture) Result(client Client) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -433,47 +412,21 @@ func (future DeleteFuture) Result(client Client) (ar autorest.Response, err erro
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("redis.DeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "redis.DeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("redis.DeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.DeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.DeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
 // ExportDataFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ExportDataFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ExportDataFuture) Result(client Client) (ar autorest.Response, err error) {
+func (future *ExportDataFuture) Result(client Client) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -481,35 +434,10 @@ func (future ExportDataFuture) Result(client Client) (ar autorest.Response, err 
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("redis.ExportDataFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.ExportDataResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "redis.ExportDataFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("redis.ExportDataFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.ExportDataFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.ExportDataResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.ExportDataFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -650,7 +578,7 @@ type FirewallRuleListResult struct {
 	autorest.Response `json:"-"`
 	// Value - Results of the list firewall rules operation.
 	Value *[]FirewallRule `json:"value,omitempty"`
-	// NextLink - Link for next set of locations.
+	// NextLink - Link for next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -765,12 +693,11 @@ type ForceRebootResponse struct {
 // ImportDataFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ImportDataFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ImportDataFuture) Result(client Client) (ar autorest.Response, err error) {
+func (future *ImportDataFuture) Result(client Client) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -778,35 +705,10 @@ func (future ImportDataFuture) Result(client Client) (ar autorest.Response, err 
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("redis.ImportDataFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.ImportDataResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "redis.ImportDataFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("redis.ImportDataFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.ImportDataFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.ImportDataResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.ImportDataFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -827,12 +729,11 @@ type LinkedServer struct {
 // LinkedServerCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type LinkedServerCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future LinkedServerCreateFuture) Result(client LinkedServerClient) (lswp LinkedServerWithProperties, err error) {
+func (future *LinkedServerCreateFuture) Result(client LinkedServerClient) (lswp LinkedServerWithProperties, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -840,34 +741,15 @@ func (future LinkedServerCreateFuture) Result(client LinkedServerClient) (lswp L
 		return
 	}
 	if !done {
-		return lswp, azure.NewAsyncOpIncompleteError("redis.LinkedServerCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		lswp, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "redis.LinkedServerCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("redis.LinkedServerCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if lswp.Response.Response, err = future.GetResult(sender); err == nil && lswp.Response.Response.StatusCode != http.StatusNoContent {
+		lswp, err = client.CreateResponder(lswp.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "redis.LinkedServerCreateFuture", "Result", lswp.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.LinkedServerCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	lswp, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "redis.LinkedServerCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -1123,7 +1005,7 @@ type ListResult struct {
 	autorest.Response `json:"-"`
 	// Value - List of Redis cache instances.
 	Value *[]ResourceType `json:"value,omitempty"`
-	// NextLink - Link for next set of locations.
+	// NextLink - Link for next page of results.
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
@@ -1432,6 +1314,108 @@ func (ps *PatchSchedule) UnmarshalJSON(body []byte) error {
 	}
 
 	return nil
+}
+
+// PatchScheduleListResult the response of list patch schedules Redis operation.
+type PatchScheduleListResult struct {
+	autorest.Response `json:"-"`
+	// Value - Results of the list patch schedules operation.
+	Value *[]PatchSchedule `json:"value,omitempty"`
+	// NextLink - Link for next page of results.
+	NextLink *string `json:"nextLink,omitempty"`
+}
+
+// PatchScheduleListResultIterator provides access to a complete listing of PatchSchedule values.
+type PatchScheduleListResultIterator struct {
+	i    int
+	page PatchScheduleListResultPage
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *PatchScheduleListResultIterator) Next() error {
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err := iter.page.Next()
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter PatchScheduleListResultIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter PatchScheduleListResultIterator) Response() PatchScheduleListResult {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter PatchScheduleListResultIterator) Value() PatchSchedule {
+	if !iter.page.NotDone() {
+		return PatchSchedule{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (pslr PatchScheduleListResult) IsEmpty() bool {
+	return pslr.Value == nil || len(*pslr.Value) == 0
+}
+
+// patchScheduleListResultPreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (pslr PatchScheduleListResult) patchScheduleListResultPreparer() (*http.Request, error) {
+	if pslr.NextLink == nil || len(to.String(pslr.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare(&http.Request{},
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(pslr.NextLink)))
+}
+
+// PatchScheduleListResultPage contains a page of PatchSchedule values.
+type PatchScheduleListResultPage struct {
+	fn   func(PatchScheduleListResult) (PatchScheduleListResult, error)
+	pslr PatchScheduleListResult
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *PatchScheduleListResultPage) Next() error {
+	next, err := page.fn(page.pslr)
+	if err != nil {
+		return err
+	}
+	page.pslr = next
+	return nil
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page PatchScheduleListResultPage) NotDone() bool {
+	return !page.pslr.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page PatchScheduleListResultPage) Response() PatchScheduleListResult {
+	return page.pslr
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page PatchScheduleListResultPage) Values() []PatchSchedule {
+	if page.pslr.IsEmpty() {
+		return nil
+	}
+	return *page.pslr.Value
 }
 
 // Properties properties of the redis cache.

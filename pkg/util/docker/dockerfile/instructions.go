@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/docker/docker/builder/dockerfile/command"
+	"github.com/moby/buildkit/frontend/dockerfile/command"
 )
 
 // A KeyValue can be used to build ordered lists of key-value pairs.

@@ -184,6 +184,16 @@ func TestCreateVm(t *testing.T) {
 			{vm.Destroy, types.VirtualMachinePowerStatePoweredOn, true},
 			// On  -> Off == ok
 			{vm.PowerOff, types.VirtualMachinePowerStatePoweredOff, false},
+			// Off -> Reset == fail
+			{vm.Reset, types.VirtualMachinePowerStatePoweredOff, true},
+			// Off -> On  == ok
+			{vm.PowerOn, types.VirtualMachinePowerStatePoweredOn, false},
+			// On -> Reset == ok
+			{vm.Reset, types.VirtualMachinePowerStatePoweredOn, false},
+			// On -> Suspend == ok
+			{vm.Suspend, types.VirtualMachinePowerStateSuspended, false},
+			// On  -> Off == ok
+			{vm.PowerOff, types.VirtualMachinePowerStatePoweredOff, false},
 			// Destroy == ok (power is Off)
 			{vm.Destroy, "", false},
 		}
@@ -229,8 +239,11 @@ func TestCreateVm(t *testing.T) {
 						}
 
 					}
-					return false
+					return true
 				})
+				if err != nil {
+					t.Error(err)
+				}
 			}
 		}
 

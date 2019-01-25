@@ -21,12 +21,12 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"path"
 	"strings"
 	"sync"
 	"time"
 
 	"k8s.io/api/core/v1"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -42,6 +42,7 @@ import (
 	"k8s.io/client-go/restmapper"
 	scaleclient "k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/clientcmd"
+	csi "k8s.io/csi-api/pkg/client/clientset/versioned"
 	aggregatorclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -67,6 +68,8 @@ type Framework struct {
 
 	ClientSet                        clientset.Interface
 	KubemarkExternalClusterClientSet clientset.Interface
+	APIExtensionsClientSet           apiextensionsclient.Interface
+	CSIClientSet                     csi.Interface
 
 	InternalClientset *internalclientset.Clientset
 	AggregatorClient  *aggregatorclient.Clientset
@@ -89,6 +92,9 @@ type Framework struct {
 	logsSizeWaitGroup    sync.WaitGroup
 	logsSizeCloseChannel chan bool
 	logsSizeVerifier     *LogsSizeVerifier
+
+	// Flaky operation failures in an e2e test can be captured through this.
+	flakeReport *FlakeReport
 
 	// To make sure that this framework cleans up after itself, no matter what,
 	// we install a Cleanup action before each test and clear it after.  If we
@@ -152,6 +158,15 @@ func (f *Framework) BeforeEach() {
 	if f.ClientSet == nil {
 		By("Creating a kubernetes client")
 		config, err := LoadConfig()
+		testDesc := CurrentGinkgoTestDescription()
+		if len(testDesc.ComponentTexts) > 0 {
+			componentTexts := strings.Join(testDesc.ComponentTexts, " ")
+			config.UserAgent = fmt.Sprintf(
+				"%v -- %v",
+				rest.DefaultKubernetesUserAgent(),
+				componentTexts)
+		}
+
 		Expect(err).NotTo(HaveOccurred())
 		config.QPS = f.Options.ClientQPS
 		config.Burst = f.Options.ClientBurst
@@ -163,11 +178,18 @@ func (f *Framework) BeforeEach() {
 		}
 		f.ClientSet, err = clientset.NewForConfig(config)
 		Expect(err).NotTo(HaveOccurred())
+		f.APIExtensionsClientSet, err = apiextensionsclient.NewForConfig(config)
+		Expect(err).NotTo(HaveOccurred())
 		f.InternalClientset, err = internalclientset.NewForConfig(config)
 		Expect(err).NotTo(HaveOccurred())
 		f.AggregatorClient, err = aggregatorclient.NewForConfig(config)
 		Expect(err).NotTo(HaveOccurred())
 		f.DynamicClient, err = dynamic.NewForConfig(config)
+		Expect(err).NotTo(HaveOccurred())
+		// csi.storage.k8s.io is based on CRD, which is served only as JSON
+		jsonConfig := config
+		jsonConfig.ContentType = "application/json"
+		f.CSIClientSet, err = csi.NewForConfig(jsonConfig)
 		Expect(err).NotTo(HaveOccurred())
 
 		// create scales getter, set GroupVersion and NegotiatedSerializer to default values
@@ -210,7 +232,7 @@ func (f *Framework) BeforeEach() {
 	}
 
 	if !f.SkipNamespaceCreation {
-		By("Building a namespace api object")
+		By(fmt.Sprintf("Building a namespace api object, basename %s", f.BaseName))
 		namespace, err := f.CreateNamespace(f.BaseName, map[string]string{
 			"e2e-framework": f.BaseName,
 		})
@@ -269,6 +291,8 @@ func (f *Framework) BeforeEach() {
 		}
 
 	}
+
+	f.flakeReport = NewFlakeReport()
 }
 
 // AfterEach deletes the namespace, after reading its events.
@@ -326,25 +350,6 @@ func (f *Framework) AfterEach() {
 		if !f.SkipNamespaceCreation {
 			DumpAllNamespaceInfo(f.ClientSet, f.Namespace.Name)
 		}
-
-		logFunc := Logf
-		if TestContext.ReportDir != "" {
-			filePath := path.Join(TestContext.ReportDir, "image-puller.txt")
-			file, err := os.Create(filePath)
-			if err != nil {
-				By(fmt.Sprintf("Failed to create a file with image-puller data %v: %v\nPrinting to stdout", filePath, err))
-			} else {
-				By(fmt.Sprintf("Dumping a list of prepulled images on each node to file %v", filePath))
-				defer file.Close()
-				if err = file.Chmod(0644); err != nil {
-					Logf("Failed to chmod to 644 of %v: %v", filePath, err)
-				}
-				logFunc = GetLogToFileFunc(file)
-			}
-		} else {
-			By("Dumping a list of prepulled images on each node...")
-		}
-		LogContainersInPodsWithLabels(f.ClientSet, metav1.NamespaceSystem, ImagePullerLabels, "image-puller", logFunc)
 	}
 
 	if TestContext.GatherKubeSystemResourceUsageData != "false" && TestContext.GatherKubeSystemResourceUsageData != "none" && f.gatherer != nil {
@@ -382,6 +387,12 @@ func (f *Framework) AfterEach() {
 		close(f.kubemarkControllerCloseChannel)
 	}
 
+	// Report any flakes that were observed in the e2e test and reset.
+	if f.flakeReport != nil && f.flakeReport.GetFlakeCount() > 0 {
+		f.TestSummaries = append(f.TestSummaries, f.flakeReport)
+		f.flakeReport = nil
+	}
+
 	PrintSummaries(f.TestSummaries, f.BaseName)
 
 	// Check whether all nodes are ready after the test.
@@ -407,6 +418,10 @@ func (f *Framework) CreateNamespace(baseName string, labels map[string]string) (
 	}
 
 	return ns, err
+}
+
+func (f *Framework) RecordFlakeIfError(err error, optionalDescription ...interface{}) {
+	f.flakeReport.RecordFlakeIfError(err, optionalDescription)
 }
 
 // AddNamespacesToDelete adds one or more namespaces to be deleted when the test
@@ -533,7 +548,7 @@ func (f *Framework) CreateServiceForSimpleApp(contPort, svcPort int, appName str
 			return nil
 		} else {
 			return []v1.ServicePort{{
-				Protocol:   "TCP",
+				Protocol:   v1.ProtocolTCP,
 				Port:       int32(svcPort),
 				TargetPort: intstr.FromInt(contPort),
 			}}

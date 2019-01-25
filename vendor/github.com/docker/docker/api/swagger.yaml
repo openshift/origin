@@ -19,10 +19,10 @@ produces:
 consumes:
   - "application/json"
   - "text/plain"
-basePath: "/v1.32"
+basePath: "/v1.38"
 info:
   title: "Docker Engine API"
-  version: "1.32"
+  version: "1.38"
   x-logo:
     url: "https://docs.docker.com/images/logo-docker-main.png"
   description: |
@@ -42,34 +42,26 @@ info:
 
     # Versioning
 
-    The API is usually changed in each release of Docker, so API calls are versioned to ensure that clients don't break.
+    The API is usually changed in each release, so API calls are versioned to
+    ensure that clients don't break. To lock to a specific version of the API,
+    you prefix the URL with its version, for example, call `/v1.30/info` to use
+    the v1.30 version of the `/info` endpoint. If the API version specified in
+    the URL is not supported by the daemon, a HTTP `400 Bad Request` error message
+    is returned.
 
-    For Docker Engine 17.07, the API version is 1.31. To lock to this version, you prefix the URL with `/v1.31`. For example, calling `/info` is the same as calling `/v1.31/info`.
+    If you omit the version-prefix, the current version of the API (v1.38) is used.
+    For example, calling `/info` is the same as calling `/v1.38/info`. Using the
+    API without a version-prefix is deprecated and will be removed in a future release.
 
-    Engine releases in the near future should support this version of the API, so your client will continue to work even if it is talking to a newer Engine.
+    Engine releases in the near future should support this version of the API,
+    so your client will continue to work even if it is talking to a newer Engine.
 
-    In previous versions of Docker, it was possible to access the API without providing a version. This behaviour is now deprecated will be removed in a future version of Docker.
+    The API uses an open schema model, which means server may add extra properties
+    to responses. Likewise, the server will ignore any extra query parameters and
+    request body properties. When you write clients, you need to ignore additional
+    properties in responses to ensure they do not break when talking to newer
+    daemons.
 
-    The API uses an open schema model, which means server may add extra properties to responses. Likewise, the server will ignore any extra query parameters and request body properties. When you write clients, you need to ignore additional properties in responses to ensure they do not break when talking to newer Docker daemons.
-
-    This documentation is for version 1.32 of the API. Use this table to find documentation for previous versions of the API:
-
-    Docker version  | API version | Changes
-    ----------------|-------------|---------
-    17.07.x | [1.31](https://docs.docker.com/engine/api/v1.31/) | [API changes](https://docs.docker.com/engine/api/version-history/#v1-31-api-changes)
-    17.06.x | [1.30](https://docs.docker.com/engine/api/v1.30/) | [API changes](https://docs.docker.com/engine/api/version-history/#v1-30-api-changes)
-    17.05.x | [1.29](https://docs.docker.com/engine/api/v1.29/) | [API changes](https://docs.docker.com/engine/api/version-history/#v1-29-api-changes)
-    17.04.x | [1.28](https://docs.docker.com/engine/api/v1.28/) | [API changes](https://docs.docker.com/engine/api/version-history/#v1-28-api-changes)
-    17.03.1 | [1.27](https://docs.docker.com/engine/api/v1.27/) | [API changes](https://docs.docker.com/engine/api/version-history/#v1-27-api-changes)
-    1.13.1 & 17.03.0 | [1.26](https://docs.docker.com/engine/api/v1.26/) | [API changes](https://docs.docker.com/engine/api/version-history/#v1-26-api-changes)
-    1.13.0 | [1.25](https://docs.docker.com/engine/api/v1.25/) | [API changes](https://docs.docker.com/engine/api/version-history/#v1-25-api-changes)
-    1.12.x | [1.24](https://docs.docker.com/engine/api/v1.24/) | [API changes](https://docs.docker.com/engine/api/version-history/#v1-24-api-changes)
-    1.11.x | [1.23](https://docs.docker.com/engine/api/v1.23/) | [API changes](https://docs.docker.com/engine/api/version-history/#v1-23-api-changes)
-    1.10.x | [1.22](https://docs.docker.com/engine/api/v1.22/) | [API changes](https://docs.docker.com/engine/api/version-history/#v1-22-api-changes)
-    1.9.x | [1.21](https://docs.docker.com/engine/api/v1.21/) | [API changes](https://docs.docker.com/engine/api/version-history/#v1-21-api-changes)
-    1.8.x | [1.20](https://docs.docker.com/engine/api/v1.20/) | [API changes](https://docs.docker.com/engine/api/version-history/#v1-20-api-changes)
-    1.7.x | [1.19](https://docs.docker.com/engine/api/v1.19/) | [API changes](https://docs.docker.com/engine/api/version-history/#v1-19-api-changes)
-    1.6.x | [1.18](https://docs.docker.com/engine/api/v1.18/) | [API changes](https://docs.docker.com/engine/api/version-history/#v1-18-api-changes)
 
     # Authentication
 
@@ -144,6 +136,10 @@ tags:
     x-displayName: "Secrets"
     description: |
       Secrets are sensitive data that can be used by services. Swarm mode must be enabled for these endpoints to work.
+  - name: "Config"
+    x-displayName: "Configs"
+    description: |
+      Configs are application configurations that can be used by services. Swarm mode must be enabled for these endpoints to work.
   # System things
   - name: "Plugin"
     x-displayName: "Plugins"
@@ -159,6 +155,7 @@ definitions:
       IP:
         type: "string"
         format: "ip-address"
+        description: "Host IP address that the container's port is mapped to"
       PrivatePort:
         type: "integer"
         format: "uint16"
@@ -171,7 +168,7 @@ definitions:
       Type:
         type: "string"
         x-nullable: false
-        enum: ["tcp", "udp"]
+        enum: ["tcp", "udp", "sctp"]
     example:
       PrivatePort: 8080
       PublicPort: 80
@@ -258,6 +255,7 @@ definitions:
         properties:
           Propagation:
             description: "A propagation mode with the value `[r]private`, `[r]shared`, or `[r]slave`."
+            type: "string"
             enum:
               - "private"
               - "rprivate"
@@ -336,6 +334,7 @@ definitions:
       Memory:
         description: "Memory limit in bytes."
         type: "integer"
+        format: "int64"
         default: 0
       # Applicable to UNIX platforms
       CgroupParent:
@@ -445,6 +444,10 @@ definitions:
       OomKillDisable:
         description: "Disable OOM Killer for the container."
         type: "boolean"
+      Init:
+        description: "Run an init inside the container that forwards signals and reaps processes. This field is omitted if empty, and the default (as configured on the daemon) is used."
+        type: "boolean"
+        x-nullable: true
       PidsLimit:
         description: "Tune a container's pids limit. Set -1 for unlimited."
         type: "integer"
@@ -610,17 +613,7 @@ definitions:
             description: "Network mode to use for this container. Supported standard values are: `bridge`, `host`, `none`, and `container:<name|id>`. Any other value is taken
               as a custom network's name to which this container should connect to."
           PortBindings:
-            type: "object"
-            description: "A map of exposed container ports and the host port they should map to."
-            additionalProperties:
-              type: "object"
-              properties:
-                HostIp:
-                  type: "string"
-                  description: "The host IP address"
-                HostPort:
-                  type: "string"
-                  description: "The host port number, as a string"
+            $ref: "#/definitions/PortMap"
           RestartPolicy:
             $ref: "#/definitions/RestartPolicy"
           AutoRemove:
@@ -714,7 +707,15 @@ definitions:
             description: "Gives the container full access to the host."
           PublishAllPorts:
             type: "boolean"
-            description: "Allocates a random host port for all of a container's exposed ports."
+            description: |
+              Allocates an ephemeral host port for all of a container's
+              exposed ports.
+
+              Ports are de-allocated when the container stops and allocated when the container starts.
+              The allocated port might be changed when restarting the container.
+
+              The port is selected from the ephemeral port range that depends on the kernel.
+              For example, on Linux the range is defined by `/proc/sys/net/ipv4/ip_local_port_range`.
           ReadonlyRootfs:
             type: "boolean"
             description: "Mount the container's root filesystem as read only."
@@ -771,6 +772,16 @@ definitions:
               - "default"
               - "process"
               - "hyperv"
+          MaskedPaths:
+            type: "array"
+            description: "The list of paths to be masked inside the container (this overrides the default set of paths)"
+            items:
+              type: "string"
+          ReadonlyPaths:
+            type: "array"
+            description: "The list of paths to be set as read-only inside the container (this overrides the default set of paths)"
+            items:
+              type: "string"
 
   ContainerConfig:
     description: "Configuration for a container that is portable between hosts"
@@ -801,7 +812,7 @@ definitions:
         description: |
           An object mapping ports to an empty object in the form:
 
-          `{"<port>/<tcp|udp>": {}}`
+          `{"<port>/<tcp|udp|sctp>": {}}`
         type: "object"
         additionalProperties:
           type: "object"
@@ -828,9 +839,7 @@ definitions:
           type: "string"
       Cmd:
         description: "Command to run specified as a string or an array of strings."
-        type:
-          - "array"
-          - "string"
+        type: "array"
         items:
           type: "string"
       Healthcheck:
@@ -844,12 +853,11 @@ definitions:
       Volumes:
         description: "An object mapping mount point paths inside the container to empty objects."
         type: "object"
-        properties:
-          additionalProperties:
-            type: "object"
-            enum:
-              - {}
-            default: {}
+        additionalProperties:
+          type: "object"
+          enum:
+            - {}
+          default: {}
       WorkingDir:
         description: "The working directory for commands to run in."
         type: "string"
@@ -858,9 +866,7 @@ definitions:
           The entry point for the container as a string or an array of strings.
 
           If the array consists of exactly one empty string (`[""]`) then the entry point is reset to system default (i.e., the entry point used by docker when there is no `ENTRYPOINT` instruction in the `Dockerfile`).
-        type:
-          - "array"
-          - "string"
+        type: "array"
         items:
           type: "string"
       NetworkDisabled:
@@ -1071,8 +1077,8 @@ definitions:
       container's port-number and protocol as key in the format `<port>/<protocol>`,
       for example, `80/udp`.
 
-      If a container's port is mapped for both `tcp` and `udp`, two separate
-      entries are added to the mapping table.
+      If a container's port is mapped for multiple protocols, separate entries
+      are added to the mapping table.
     type: "object"
     additionalProperties:
       type: "array"
@@ -1504,10 +1510,23 @@ definitions:
         type: "string"
       progressDetail:
         $ref: "#/definitions/ProgressDetail"
+      aux:
+        $ref: "#/definitions/ImageID"
+
+  ImageID:
+    type: "object"
+    description: "Image ID or Digest"
+    properties:
+      ID:
+        type: "string"
+    example:
+      ID: "sha256:85f05633ddc1c50679be2b16a0479ab6f7637f8884e0cfe0f4d20e1ebb3d6e7c"
 
   CreateImageInfo:
     type: "object"
     properties:
+      id:
+        type: "string"
       error:
         type: "string"
       status:
@@ -1540,9 +1559,9 @@ definitions:
   ProgressDetail:
     type: "object"
     properties:
-      code:
+      current:
         type: "integer"
-      message:
+      total:
         type: "integer"
 
   ErrorResponse:
@@ -1850,6 +1869,13 @@ definitions:
                 type: "string"
                 x-nullable: false
                 example: "plugins.sock"
+              ProtocolScheme:
+                type: "string"
+                example: "some.protocol/v1.0"
+                description: "Protocol to use for clients connecting to the plugin."
+                enum:
+                  - ""
+                  - "moby.plugins.http/v1"
           Entrypoint:
             type: "array"
             items:
@@ -2440,7 +2466,15 @@ definitions:
     properties:
       PluginSpec:
         type: "object"
-        description: "Invalid when specified with `ContainerSpec`. *(Experimental release only.)*"
+        description: |
+          Plugin spec for the service.  *(Experimental release only.)*
+
+          <p><br /></p>
+
+          > **Note**: ContainerSpec, NetworkAttachmentSpec, and PluginSpec are
+          > mutually exclusive. PluginSpec is only used when the Runtime field
+          > is set to `plugin`. NetworkAttachmentSpec is used when the Runtime
+          > field is set to `attachment`.
         properties:
           Name:
             description: "The name or 'alias' to use for the plugin."
@@ -2467,7 +2501,15 @@ definitions:
                     type: "string"
       ContainerSpec:
         type: "object"
-        description: "Invalid when specified with `PluginSpec`."
+        description: |
+          Container spec for the service.
+
+          <p><br /></p>
+
+          > **Note**: ContainerSpec, NetworkAttachmentSpec, and PluginSpec are
+          > mutually exclusive. PluginSpec is only used when the Runtime field
+          > is set to `plugin`. NetworkAttachmentSpec is used when the Runtime
+          > field is set to `attachment`.
         properties:
           Image:
             description: "The image name to use for the container"
@@ -2672,7 +2714,33 @@ definitions:
                     ConfigName is the name of the config that this references, but this is just provided for
                     lookup/display purposes. The config in the reference will be identified by its ID.
                   type: "string"
+          Isolation:
+            type: "string"
+            description: "Isolation technology of the containers running the service. (Windows only)"
+            enum:
+              - "default"
+              - "process"
+              - "hyperv"
+          Init:
+            description: "Run an init inside the container that forwards signals and reaps processes. This field is omitted if empty, and the default (as configured on the daemon) is used."
+            type: "boolean"
+            x-nullable: true
+      NetworkAttachmentSpec:
+        description: |
+          Read-only spec type for non-swarm containers attached to swarm overlay
+          networks.
 
+          <p><br /></p>
+
+          > **Note**: ContainerSpec, NetworkAttachmentSpec, and PluginSpec are
+          > mutually exclusive. PluginSpec is only used when the Runtime field
+          > is set to `plugin`. NetworkAttachmentSpec is used when the Runtime
+          > field is set to `attachment`.
+        type: "object"
+        properties:
+          ContainerID:
+            description: "ID of the container represented by this task"
+            type: "string"
       Resources:
         description: "Resource requirements which apply to each individual container created as part of the service."
         type: "object"
@@ -2790,6 +2858,8 @@ definitions:
       - "shutdown"
       - "failed"
       - "rejected"
+      - "remove"
+      - "orphaned"
 
   Task:
     type: "object"
@@ -3030,12 +3100,31 @@ definitions:
         enum:
           - "tcp"
           - "udp"
+          - "sctp"
       TargetPort:
         description: "The port inside the container."
         type: "integer"
       PublishedPort:
         description: "The port on the swarm hosts."
         type: "integer"
+      PublishMode:
+        description: |
+          The mode in which port is published.
+
+          <p><br /></p>
+
+          - "ingress" makes the target port accessible on on every node,
+            regardless of whether there is a task for the service running on
+            that node or not.
+          - "host" bypasses the routing mesh and publish the port directly on
+            the swarm node where that service is running.
+
+        type: "string"
+        enum:
+          - "ingress"
+          - "host"
+        default: "ingress"
+        example: "ingress"
 
   EndpointSpec:
     description: "Properties that can be configured to access and load balance a service."
@@ -3304,6 +3393,13 @@ definitions:
       Driver:
         description: "Name of the secrets driver used to fetch the secret's value from an external secret store"
         $ref: "#/definitions/Driver"
+      Templating:
+        description: |
+          Templating driver, if applicable
+
+          Templating controls whether and how to evaluate the config payload as
+          a template. If no driver is set, no templating is used.
+        $ref: "#/definitions/Driver"
 
   Secret:
     type: "object"
@@ -3340,6 +3436,13 @@ definitions:
           Base64-url-safe-encoded ([RFC 4648](https://tools.ietf.org/html/rfc4648#section-3.2))
           config data.
         type: "string"
+      Templating:
+        description: |
+          Templating driver, if applicable
+
+          Templating controls whether and how to evaluate the config payload as
+          a template. If no driver is set, no templating is used.
+        $ref: "#/definitions/Driver"
 
   Config:
     type: "object"
@@ -3765,7 +3868,7 @@ definitions:
           - "process"
       InitBinary:
         description: |
-          Name and, optional, path of the the `docker-init` binary.
+          Name and, optional, path of the `docker-init` binary.
 
           If the path is omitted, the daemon searches the host's `$PATH` for the
           binary and uses the first result.
@@ -3983,7 +4086,7 @@ definitions:
           - "https://registry-3.docker.io/"
       Secure:
         description: |
-          Indicates if the the registry is part of the list of insecure
+          Indicates if the registry is part of the list of insecure
           registries.
 
           If `false`, the registry is insecure. Insecure registries accept
@@ -4473,6 +4576,8 @@ paths:
           description: "Container created successfully"
           schema:
             type: "object"
+            title: "ContainerCreateResponse"
+            description: "OK response to ContainerCreate operation"
             required: [Id, Warnings]
             properties:
               Id:
@@ -4521,6 +4626,7 @@ paths:
           description: "no error"
           schema:
             type: "object"
+            title: "ContainerInspectResponse"
             properties:
               Id:
                 description: "The ID of the container"
@@ -4610,7 +4716,11 @@ paths:
               AppArmorProfile:
                 type: "string"
               ExecIDs:
-                type: "string"
+                description: "IDs of exec instances that are running in the container."
+                type: "array"
+                items:
+                  type: "string"
+                x-nullable: true
               HostConfig:
                 $ref: "#/definitions/HostConfig"
               GraphDriver:
@@ -4667,6 +4777,9 @@ paths:
                 StopTimeout: 10
               Created: "2015-01-06T15:47:31.485331387Z"
               Driver: "devicemapper"
+              ExecIDs:
+                - "b35395de42bc8abd327f9dd65d913b9ba28c74d2f0734eeeae84fa1c616a0fca"
+                - "3fc1232e5cd20c8de182ed81178503dc6437f4e7ef12b52cc5e8de020652f1c4"
               HostConfig:
                 MaximumIOps: 0
                 MaximumIOBps: 0
@@ -4805,6 +4918,8 @@ paths:
           description: "no error"
           schema:
             type: "object"
+            title: "ContainerTopResponse"
+            description: "OK response to ContainerTop operation"
             properties:
               Titles:
                 description: "The ps column titles"
@@ -4929,6 +5044,11 @@ paths:
           description: "Only return logs since this time, as a UNIX timestamp"
           type: "integer"
           default: 0
+        - name: "until"
+          in: "query"
+          description: "Only return logs before this time, as a UNIX timestamp"
+          type: "integer"
+          default: 0
         - name: "timestamps"
           in: "query"
           description: "Add timestamps to every log line"
@@ -4960,6 +5080,8 @@ paths:
             items:
               type: "object"
               x-go-name: "ContainerChangeResponseItem"
+              title: "ContainerChangeResponseItem"
+              description: "change item in response to ContainerChanges operation"
               required: [Path, Kind]
               properties:
                 Path:
@@ -5033,9 +5155,9 @@ paths:
         This endpoint returns a live stream of a container’s resource usage
         statistics.
 
-        The `precpu_stats` is the CPU statistic of last read, which is used
-        for calculating the CPU usage percentage. It is not the same as the
-        `cpu_stats` field.
+        The `precpu_stats` is the CPU statistic of the *previous* read, and is
+        used to calculate the CPU usage percentage. It is not an exact copy
+        of the `cpu_stats` field.
 
         If either `precpu_stats.online_cpus` or `cpu_stats.online_cpus` is
         nil then for compatibility with older daemons the length of the
@@ -5310,6 +5432,13 @@ paths:
           examples:
             application/json:
               message: "No such container: c2ada9df5af8"
+        409:
+          description: "container is not running"
+          schema:
+            $ref: "#/definitions/ErrorResponse"
+          examples:
+            application/json:
+              message: "Container d37cde0fe4ad63c3a7252023b2f9800282894247d145cb5933ddf6e52cc03a28 is not running"
         500:
           description: "server error"
           schema:
@@ -5338,6 +5467,8 @@ paths:
           description: "The container has been updated."
           schema:
             type: "object"
+            title: "ContainerUpdateResponse"
+            description: "OK response to ContainerUpdate operation"
             properties:
               Warnings:
                 type: "array"
@@ -5691,12 +5822,21 @@ paths:
           description: "The container has exit."
           schema:
             type: "object"
+            title: "ContainerWaitResponse"
+            description: "OK response to ContainerWait operation"
             required: [StatusCode]
             properties:
               StatusCode:
                 description: "Exit code of the container"
                 type: "integer"
                 x-nullable: false
+              Error:
+                description: "container waiting error, if any"
+                type: "object"
+                properties:
+                  Message:
+                    description: "Details of an error"
+                    type: "string"
         404:
           description: "no such container"
           schema:
@@ -5929,6 +6069,7 @@ paths:
           description: "No error"
           schema:
             type: "object"
+            title: "ContainerPruneResponse"
             properties:
               ContainersDeleted:
                 description: "Container IDs that were deleted"
@@ -6108,8 +6249,19 @@ paths:
           type: "integer"
         - name: "buildargs"
           in: "query"
-          description: "JSON map of string pairs for build-time variables. Users pass these values at build-time. Docker uses the buildargs as the environment context for commands run via the `Dockerfile` RUN instruction, or for variable expansion in other `Dockerfile` instructions. This is not meant for passing secret values. [Read more about the buildargs instruction.](https://docs.docker.com/engine/reference/builder/#arg)"
-          type: "integer"
+          description: >
+            JSON map of string pairs for build-time variables. Users pass these values at build-time. Docker
+            uses the buildargs as the environment context for commands run via the `Dockerfile` RUN
+            instruction, or for variable expansion in other `Dockerfile` instructions. This is not meant for
+            passing secret values.
+
+
+            For example, the build arg `FOO=bar` would become `{"FOO":"bar"}` in JSON. This would result in the
+            the query parameter `buildargs={"FOO":"bar"}`. Note that `{"FOO":"bar"}` should be URI component encoded.
+
+
+            [Read more about the buildargs instruction.](https://docs.docker.com/engine/reference/builder/#arg)
+          type: "string"
         - name: "shmsize"
           in: "query"
           description: "Size of `/dev/shm` in bytes. The size must be greater than 0. If omitted the system uses 64MB."
@@ -6157,6 +6309,16 @@ paths:
 
             Only the registry domain name (and port if not the default 443) are required. However, for legacy reasons, the Docker Hub registry must be specified with both a `https://` prefix and a `/v1/` suffix even though Docker will prefer to use the v2 registry API.
           type: "string"
+        - name: "platform"
+          in: "query"
+          description: "Platform in the format os[/arch[/variant]]"
+          type: "string"
+          default: ""
+        - name: "target"
+          in: "query"
+          description: "Target build stage"
+          type: "string"
+          default: ""
       responses:
         200:
           description: "no error"
@@ -6180,6 +6342,7 @@ paths:
           description: "No error"
           schema:
             type: "object"
+            title: "BuildPruneResponse"
             properties:
               SpaceReclaimed:
                 description: "Disk space reclaimed in bytes"
@@ -6238,6 +6401,11 @@ paths:
           in: "header"
           description: "A base64-encoded auth configuration. [See the authentication section for details.](#section/Authentication)"
           type: "string"
+        - name: "platform"
+          in: "query"
+          description: "Platform in the format os[/arch[/variant]]"
+          type: "string"
+          default: ""
       tags: ["Image"]
   /images/{name}/json:
     get:
@@ -6360,6 +6528,8 @@ paths:
             items:
               type: "object"
               x-go-name: HistoryResponseItem
+              title: "HistoryResponseItem"
+              description: "individual image layer information in response to ImageHistory operation"
               required: [Id, Created, CreatedBy, Tags, Size, Comment]
               properties:
                 Id:
@@ -6566,6 +6736,7 @@ paths:
             type: "array"
             items:
               type: "object"
+              title: "ImageSearchResponseItem"
               properties:
                 description:
                   type: "string"
@@ -6641,6 +6812,7 @@ paths:
           description: "No error"
           schema:
             type: "object"
+            title: "ImagePruneResponse"
             properties:
               ImagesDeleted:
                 description: "Images that were deleted"
@@ -6668,6 +6840,7 @@ paths:
           description: "An identity token was generated successfully."
           schema:
             type: "object"
+            title: "SystemAuthResponse"
             required: [Status]
             properties:
               Status:
@@ -6722,7 +6895,30 @@ paths:
           description: "no error"
           schema:
             type: "object"
+            title: "SystemVersionResponse"
             properties:
+              Platform:
+                type: "object"
+                required: [Name]
+                properties:
+                  Name:
+                    type: "string"
+              Components:
+                type: "array"
+                items:
+                  type: "object"
+                  x-go-name: ComponentVersion
+                  required: [Name, Version]
+                  properties:
+                    Name:
+                      type: "string"
+                    Version:
+                      type: "string"
+                      x-nullable: false
+                    Details:
+                      type: "object"
+                      x-nullable: true
+
               Version:
                 type: "string"
               ApiVersion:
@@ -6852,7 +7048,7 @@ paths:
 
         Various objects within Docker report events when something happens to them.
 
-        Containers report these events: `attach`, `commit`, `copy`, `create`, `destroy`, `detach`, `die`, `exec_create`, `exec_detach`, `exec_start`, `export`, `health_status`, `kill`, `oom`, `pause`, `rename`, `resize`, `restart`, `start`, `stop`, `top`, `unpause`, and `update`
+        Containers report these events: `attach`, `commit`, `copy`, `create`, `destroy`, `detach`, `die`, `exec_create`, `exec_detach`, `exec_start`, `exec_die`, `export`, `health_status`, `kill`, `oom`, `pause`, `rename`, `resize`, `restart`, `start`, `stop`, `top`, `unpause`, and `update`
 
         Images report these events: `delete`, `import`, `load`, `pull`, `push`, `save`, `tag`, and `untag`
 
@@ -6878,6 +7074,7 @@ paths:
           description: "no error"
           schema:
             type: "object"
+            title: "SystemEventsResponse"
             properties:
               Type:
                 description: "The type of object emitting the event"
@@ -6936,16 +7133,20 @@ paths:
           description: |
             A JSON encoded value of filters (a `map[string][]string`) to process on the event list. Available filters:
 
+            - `config=<string>` config name or ID
             - `container=<string>` container name or ID
             - `daemon=<string>` daemon name or ID
             - `event=<string>` event type
             - `image=<string>` image name or ID
             - `label=<string>` image or container label
             - `network=<string>` network name or ID
+            - `node=<string>` node ID
             - `plugin`=<string> plugin name or ID
-            - `scope`＝<string> local or swarm
-            - `type=<string>` object to filter by, one of `container`, `image`, `volume`, `network`, `daemon`, `plugin`, `node`, `service` or `secret`
-            - `volume=<string>` volume name or ID
+            - `scope`=<string> local or swarm
+            - `secret=<string>` secret name or ID
+            - `service=<string>` service name or ID
+            - `type=<string>` object to filter by, one of `container`, `image`, `volume`, `network`, `daemon`, `plugin`, `node`, `service`, `secret` or `config`
+            - `volume=<string>` volume name
           type: "string"
       tags: ["System"]
   /system/df:
@@ -6957,6 +7158,7 @@ paths:
           description: "no error"
           schema:
             type: "object"
+            title: "SystemDataUsageResponse"
             properties:
               LayersSize:
                 type: "integer"
@@ -7214,6 +7416,9 @@ paths:
               User:
                 type: "string"
                 description: "The user, and optionally, group to run the exec process inside the container. Format is one of: `user`, `user:group`, `uid`, or `uid:gid`."
+              WorkingDir:
+                type: "string"
+                description: "The working directory for the exec process inside the container."
             example:
               AttachStdin: false
               AttachStdout: true
@@ -7312,7 +7517,12 @@ paths:
           description: "No error"
           schema:
             type: "object"
+            title: "ExecInspectResponse"
             properties:
+              CanRemove:
+                type: "boolean"
+              DetachKeys:
+                type: "string"
               ID:
                 type: "string"
               Running:
@@ -7378,6 +7588,7 @@ paths:
           description: "Summary volume data that matches the query"
           schema:
             type: "object"
+            title: "VolumeListResponse"
             required: [Volumes, Warnings]
             properties:
               Volumes:
@@ -7559,6 +7770,7 @@ paths:
           description: "No error"
           schema:
             type: "object"
+            title: "VolumePruneResponse"
             properties:
               VolumesDeleted:
                 description: "Volumes that were deleted"
@@ -7737,6 +7949,7 @@ paths:
           description: "No error"
           schema:
             type: "object"
+            title: "NetworkCreateResponse"
             properties:
               Id:
                 description: "The ID of the created network."
@@ -7837,7 +8050,7 @@ paths:
       summary: "Connect a container to a network"
       operationId: "NetworkConnect"
       consumes:
-        - "application/octet-stream"
+        - "application/json"
       responses:
         200:
           description: "No error"
@@ -7939,6 +8152,7 @@ paths:
           description: "No error"
           schema:
             type: "object"
+            title: "NetworkPruneResponse"
             properties:
               NetworksDeleted:
                 description: "Networks that were deleted"
@@ -7990,6 +8204,7 @@ paths:
             items:
               description: "Describes a permission the user has to accept upon installing the plugin."
               type: "object"
+              title: "PluginPrivilegeItem"
               properties:
                 Name:
                   type: "string"
@@ -8692,6 +8907,7 @@ paths:
           description: "no error"
           schema:
             type: "object"
+            title: "UnlockKeyResponse"
             properties:
               UnlockKey:
                 description: "The swarm's unlock key."
@@ -8783,6 +8999,7 @@ paths:
           description: "no error"
           schema:
             type: "object"
+            title: "ServiceCreateResponse"
             properties:
               ID:
                 description: "The ID of the created service."
@@ -9454,13 +9671,7 @@ paths:
         201:
           description: "no error"
           schema:
-            type: "object"
-            properties:
-              ID:
-                description: "The ID of the created secret."
-                type: "string"
-            example:
-              ID: "ktnbjxoalbkvbvedmg1urrz8h"
+            $ref: "#/definitions/IdResponse"
         409:
           description: "name conflicts with an existing object"
           schema:
@@ -9659,13 +9870,7 @@ paths:
         201:
           description: "no error"
           schema:
-            type: "object"
-            properties:
-              ID:
-                description: "The ID of the created config."
-                type: "string"
-            example:
-              ID: "ktnbjxoalbkvbvedmg1urrz8h"
+            $ref: "#/definitions/IdResponse"
         409:
           description: "name conflicts with an existing object"
           schema:
@@ -9811,6 +10016,7 @@ paths:
           schema:
             type: "object"
             x-go-name: DistributionInspect
+            title: "DistributionInspectResponse"
             required: [Descriptor, Platforms]
             properties:
               Descriptor:

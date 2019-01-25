@@ -10,16 +10,17 @@ import (
 	"golang.org/x/time/rate"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 
 	"github.com/openshift/origin/pkg/oc/cli/admin/migrate"
 )
@@ -302,7 +303,7 @@ func (o *MigrateAPIStorageOptions) save(info *resource.Info, reporter migrate.Re
 		newObject, err := o.client.
 			Resource(info.Mapping.Resource).
 			Namespace(info.Namespace).
-			Update(oldObject)
+			Update(oldObject, metav1.UpdateOptions{})
 		// storage migration is special in that all it needs to do is a no-op update to cause
 		// the api server to migrate the object to the preferred version.  thus if we encounter
 		// a conflict, we know that something updated the object and we no longer need to do

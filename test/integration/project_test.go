@@ -16,6 +16,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
@@ -258,6 +260,8 @@ func TestProjectWatch(t *testing.T) {
 		RoleKind:             "ClusterRole",
 		RbacClient:           rbacv1client.NewForConfigOrDie(joeConfig),
 		Users:                []string{"bob"},
+		PrintFlags:           genericclioptions.NewPrintFlags(""),
+		ToPrinter:            func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
 	}
 	if err := addBob.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -619,6 +623,8 @@ func TestInvalidRoleRefs(t *testing.T) {
 		RoleKind:   "ClusterRole",
 		RbacClient: clusterAdminRbacClient,
 		Users:      []string{"someuser"},
+		PrintFlags: genericclioptions.NewPrintFlags(""),
+		ToPrinter:  func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
 	}
 	// mess up rolebindings in "foo"
 	modifyRole.RoleBindingNamespace = "foo"

@@ -31,12 +31,14 @@ import (
 type spec struct {
 	types.FileBackedVirtualDiskSpec
 	force bool
+	uuid  string
 }
 
 func (s *spec) Register(ctx context.Context, f *flag.FlagSet) {
 	f.StringVar(&s.AdapterType, "a", string(types.VirtualDiskAdapterTypeLsiLogic), "Disk adapter")
 	f.StringVar(&s.DiskType, "d", string(types.VirtualDiskTypeThin), "Disk format")
 	f.BoolVar(&s.force, "f", false, "Force")
+	f.StringVar(&s.uuid, "uuid", "", "Disk UUID")
 }
 
 type create struct {
@@ -109,6 +111,13 @@ func (cmd *create) Run(ctx context.Context, f *flag.FlagSet) error {
 	logger := cmd.ProgressLogger(fmt.Sprintf("Creating %s...", dst))
 	defer logger.Wait()
 
-	_, err = task.WaitForResult(ctx, logger)
-	return err
+	if _, err = task.WaitForResult(ctx, logger); err != nil {
+		return err
+	}
+
+	if cmd.uuid != "" {
+		return m.SetVirtualDiskUuid(ctx, dst, dc, cmd.uuid)
+	}
+
+	return nil
 }

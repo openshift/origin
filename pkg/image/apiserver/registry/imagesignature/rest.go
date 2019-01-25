@@ -37,7 +37,7 @@ func (s *REST) NamespaceScoped() bool {
 	return false
 }
 
-func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
 	signature := obj.(*imageapi.ImageSignature)
 
 	if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {

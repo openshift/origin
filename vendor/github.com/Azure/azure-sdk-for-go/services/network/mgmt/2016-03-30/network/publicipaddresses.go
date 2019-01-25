@@ -41,9 +41,10 @@ func NewPublicIPAddressesClientWithBaseURI(baseURI string, subscriptionID string
 }
 
 // CreateOrUpdate the Put PublicIPAddress operation creates/updates a stable/dynamic PublicIP address
-//
-// resourceGroupName is the name of the resource group. publicIPAddressName is the name of the publicIpAddress.
-// parameters is parameters supplied to the create/update PublicIPAddress operation
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// publicIPAddressName - the name of the publicIpAddress.
+// parameters - parameters supplied to the create/update PublicIPAddress operation
 func (client PublicIPAddressesClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, publicIPAddressName string, parameters PublicIPAddress) (result PublicIPAddressesCreateOrUpdateFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
@@ -85,7 +86,7 @@ func (client PublicIPAddressesClient) CreateOrUpdatePreparer(ctx context.Context
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Network/publicIPAddresses/{publicIpAddressName}", pathParameters),
@@ -97,15 +98,17 @@ func (client PublicIPAddressesClient) CreateOrUpdatePreparer(ctx context.Context
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client PublicIPAddressesClient) CreateOrUpdateSender(req *http.Request) (future PublicIPAddressesCreateOrUpdateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -123,8 +126,9 @@ func (client PublicIPAddressesClient) CreateOrUpdateResponder(resp *http.Respons
 }
 
 // Delete the delete publicIpAddress operation deletes the specified publicIpAddress.
-//
-// resourceGroupName is the name of the resource group. publicIPAddressName is the name of the subnet.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// publicIPAddressName - the name of the subnet.
 func (client PublicIPAddressesClient) Delete(ctx context.Context, resourceGroupName string, publicIPAddressName string) (result PublicIPAddressesDeleteFuture, err error) {
 	req, err := client.DeletePreparer(ctx, resourceGroupName, publicIPAddressName)
 	if err != nil {
@@ -165,15 +169,17 @@ func (client PublicIPAddressesClient) DeletePreparer(ctx context.Context, resour
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client PublicIPAddressesClient) DeleteSender(req *http.Request) (future PublicIPAddressesDeleteFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -190,9 +196,10 @@ func (client PublicIPAddressesClient) DeleteResponder(resp *http.Response) (resu
 }
 
 // Get the Get publicIpAddress operation retreives information about the specified pubicIpAddress
-//
-// resourceGroupName is the name of the resource group. publicIPAddressName is the name of the subnet. expand is
-// expand references resources.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// publicIPAddressName - the name of the subnet.
+// expand - expand references resources.
 func (client PublicIPAddressesClient) Get(ctx context.Context, resourceGroupName string, publicIPAddressName string, expand string) (result PublicIPAddress, err error) {
 	req, err := client.GetPreparer(ctx, resourceGroupName, publicIPAddressName, expand)
 	if err != nil {
@@ -260,8 +267,8 @@ func (client PublicIPAddressesClient) GetResponder(resp *http.Response) (result 
 }
 
 // List the List publicIpAddress opertion retrieves all the publicIpAddresses in a resource group.
-//
-// resourceGroupName is the name of the resource group.
+// Parameters:
+// resourceGroupName - the name of the resource group.
 func (client PublicIPAddressesClient) List(ctx context.Context, resourceGroupName string) (result PublicIPAddressListResultPage, err error) {
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName)

@@ -459,6 +459,37 @@ EOF
   assert_output ""
 }
 
+@test "object.find multi root" {
+  vcsim_env -dc 2
+
+  run govc find vm
+  assert_success # ok as there is 1 "vm" folder relative to $GOVC_DATACENTER
+
+  run govc folder.create vm/{one,two}
+  assert_success
+
+  run govc find vm/one
+  assert_success
+
+  run govc find vm/on*
+  assert_success
+
+  run govc find vm/*o*
+  assert_failure # matches 2 objects
+
+  run govc folder.create vm/{one,two}/vm
+  assert_success
+
+  # prior to forcing Finder list mode, this would have failed since ManagedObjectList("vm") would have returned
+  # all 3 folders named "vm": "vm", "vm/one/vm", "vm/two/vm"
+  run govc find vm
+  assert_success
+
+  unset GOVC_DATACENTER
+  run govc find vm
+  assert_failure # without Datacenter specified, there are 0 "vm" folders relative to the root folder
+}
+
 @test "object.method" {
   vcsim_env_todo
 

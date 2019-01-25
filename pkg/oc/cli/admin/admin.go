@@ -5,10 +5,10 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -55,7 +55,7 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 		Use:   name,
 		Short: "Tools for managing a cluster",
 		Long:  fmt.Sprintf(adminLong),
-		Run:   kcmdutil.DefaultSubCommandRun(streams.Out),
+		Run:   kcmdutil.DefaultSubCommandRun(streams.ErrOut),
 	}
 
 	groups := ktemplates.CommandGroups{

@@ -36,6 +36,11 @@ const (
 	Secondary AccountKeyType = "Secondary"
 )
 
+// PossibleAccountKeyTypeValues returns an array of possible values for the AccountKeyType const type.
+func PossibleAccountKeyTypeValues() []AccountKeyType {
+	return []AccountKeyType{Primary, Secondary}
+}
+
 // PackageState enumerates the values for package state.
 type PackageState string
 
@@ -48,6 +53,11 @@ const (
 	Unmapped PackageState = "unmapped"
 )
 
+// PossiblePackageStateValues returns an array of possible values for the PackageState const type.
+func PossiblePackageStateValues() []PackageState {
+	return []PackageState{Active, Pending, Unmapped}
+}
+
 // PoolAllocationMode enumerates the values for pool allocation mode.
 type PoolAllocationMode string
 
@@ -57,6 +67,11 @@ const (
 	// UserSubscription ...
 	UserSubscription PoolAllocationMode = "UserSubscription"
 )
+
+// PossiblePoolAllocationModeValues returns an array of possible values for the PoolAllocationMode const type.
+func PossiblePoolAllocationModeValues() []PoolAllocationMode {
+	return []PoolAllocationMode{BatchService, UserSubscription}
+}
 
 // ProvisioningState enumerates the values for provisioning state.
 type ProvisioningState string
@@ -75,6 +90,11 @@ const (
 	// Succeeded ...
 	Succeeded ProvisioningState = "Succeeded"
 )
+
+// PossibleProvisioningStateValues returns an array of possible values for the ProvisioningState const type.
+func PossibleProvisioningStateValues() []ProvisioningState {
+	return []ProvisioningState{Cancelled, Creating, Deleting, Failed, Invalid, Succeeded}
+}
 
 // Account contains information about an Azure Batch account.
 type Account struct {
@@ -199,12 +219,11 @@ type AccountBaseProperties struct {
 // AccountCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type AccountCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future AccountCreateFuture) Result(client AccountClient) (a Account, err error) {
+func (future *AccountCreateFuture) Result(client AccountClient) (a Account, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -212,34 +231,15 @@ func (future AccountCreateFuture) Result(client AccountClient) (a Account, err e
 		return
 	}
 	if !done {
-		return a, azure.NewAsyncOpIncompleteError("batch.AccountCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		a, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "batch.AccountCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("batch.AccountCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if a.Response.Response, err = future.GetResult(sender); err == nil && a.Response.Response.StatusCode != http.StatusNoContent {
+		a, err = client.CreateResponder(a.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "batch.AccountCreateFuture", "Result", a.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "batch.AccountCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	a, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "batch.AccountCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -314,12 +314,11 @@ func (acp *AccountCreateParameters) UnmarshalJSON(body []byte) error {
 // AccountDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type AccountDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future AccountDeleteFuture) Result(client AccountClient) (ar autorest.Response, err error) {
+func (future *AccountDeleteFuture) Result(client AccountClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -327,35 +326,10 @@ func (future AccountDeleteFuture) Result(client AccountClient) (ar autorest.Resp
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("batch.AccountDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "batch.AccountDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("batch.AccountDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "batch.AccountDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "batch.AccountDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 

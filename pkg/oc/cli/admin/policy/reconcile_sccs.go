@@ -9,17 +9,17 @@ import (
 	"github.com/spf13/cobra"
 
 	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
-	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	corev1typedclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	securityv1 "github.com/openshift/api/security/v1"
@@ -45,8 +45,6 @@ type ReconcileSCCOptions struct {
 	// is the name of the openshift infrastructure namespace.  It is provided here so that
 	// the command doesn't need to try and parse the policy config.
 	InfraNamespace string
-
-	Output string
 
 	SCCClient securityv1typedclient.SecurityContextConstraintsInterface
 	NSClient  corev1typedclient.NamespaceInterface
@@ -108,9 +106,8 @@ func NewCmdReconcileSCC(name, fullName string, f kcmdutil.Factory, streams gener
 	cmd.Flags().BoolVar(&o.Confirmed, "confirm", o.Confirmed, "If true, specify that cluster SCCs should be modified. Defaults to false, displaying what would be replaced but not actually replacing anything.")
 	cmd.Flags().BoolVar(&o.Union, "additive-only", o.Union, "If true, preserves extra users, groups, labels and annotations in the SCC as well as existing priorities.")
 	cmd.Flags().StringVar(&o.InfraNamespace, "infrastructure-namespace", o.InfraNamespace, "Name of the infrastructure namespace.")
-	kcmdutil.AddPrinterFlags(cmd)
-	cmd.Flags().Lookup("output").DefValue = "yaml"
-	cmd.Flags().Lookup("output").Value.Set("yaml")
+
+	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
@@ -133,7 +130,6 @@ func (o *ReconcileSCCOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, a
 	}
 	o.SCCClient = securityClient.SecurityContextConstraints()
 	o.NSClient = kClient.Namespaces()
-	o.Output = kcmdutil.GetFlagString(cmd, "output")
 
 	o.Printer, err = o.PrintFlags.ToPrinter()
 	if err != nil {
@@ -175,7 +171,7 @@ func (o *ReconcileSCCOptions) RunReconcileSCCs(cmd *cobra.Command, f kcmdutil.Fa
 			objs = append(objs, obj)
 		}
 
-		if err := printObjectList(objs, o.Printer, o.Output, o.Out); err != nil {
+		if err := printObjectList(objs, o.Printer, o.Out); err != nil {
 			return err
 		}
 	}
@@ -187,23 +183,23 @@ func (o *ReconcileSCCOptions) RunReconcileSCCs(cmd *cobra.Command, f kcmdutil.Fa
 }
 
 // TODO(juanvallejo): make this a wrapper at the PrintFlags level (.WithFilter(func))
-func printObjectList(objs []runtime.Object, printer printers.ResourcePrinter, outputFormat string, out io.Writer) error {
-	if len(outputFormat) == 0 || outputFormat != "name" {
-		list := &corev1.List{}
-		for _, obj := range objs {
-			item := runtime.RawExtension{Object: obj}
-			list.Items = append(list.Items, item)
-		}
-		return printer.PrintObj(list, out)
+func printObjectList(objs []runtime.Object, printer printers.ResourcePrinter, out io.Writer) error {
+	list := &unstructured.UnstructuredList{
+		Object: map[string]interface{}{
+			"kind":       "List",
+			"apiVersion": "v1",
+			"metadata":   map[string]interface{}{},
+		},
 	}
 
 	for _, obj := range objs {
-		if err := printer.PrintObj(obj, out); err != nil {
+		unstrObj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+		if err != nil {
 			return err
 		}
+		list.Items = append(list.Items, unstructured.Unstructured{Object: unstrObj})
 	}
-
-	return nil
+	return printer.PrintObj(list, out)
 }
 
 // ChangedSCCs returns the SCCs that must be created and updated to match the

@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -49,6 +50,7 @@ import (
 const (
 	enableEquivalenceCache = true
 	disablePodPreemption   = false
+	bindTimeoutSeconds     = 600
 )
 
 func TestCreate(t *testing.T) {
@@ -331,51 +333,63 @@ func TestNodeEnumerator(t *testing.T) {
 		t.Fatalf("expected %v, got %v", e, a)
 	}
 	for i := range testList.Items {
-		gotObj := me.Get(i)
-		if e, a := testList.Items[i].Name, gotObj.(*v1.Node).Name; e != a {
-			t.Errorf("Expected %v, got %v", e, a)
-		}
-		if e, a := &testList.Items[i], gotObj; !reflect.DeepEqual(e, a) {
-			t.Errorf("Expected %#v, got %v#", e, a)
-		}
+		t.Run(fmt.Sprintf("node enumerator/%v", i), func(t *testing.T) {
+			gotObj := me.Get(i)
+			if e, a := testList.Items[i].Name, gotObj.(*v1.Node).Name; e != a {
+				t.Errorf("Expected %v, got %v", e, a)
+			}
+			if e, a := &testList.Items[i], gotObj; !reflect.DeepEqual(e, a) {
+				t.Errorf("Expected %#v, got %v#", e, a)
+			}
+		})
 	}
 }
 
 func TestBind(t *testing.T) {
 	table := []struct {
+		name    string
 		binding *v1.Binding
 	}{
-		{binding: &v1.Binding{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: metav1.NamespaceDefault,
-				Name:      "foo",
+		{
+			name: "binding can bind and validate request",
+			binding: &v1.Binding{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceDefault,
+					Name:      "foo",
+				},
+				Target: v1.ObjectReference{
+					Name: "foohost.kubernetes.mydomain.com",
+				},
 			},
-			Target: v1.ObjectReference{
-				Name: "foohost.kubernetes.mydomain.com",
-			},
-		}},
+		},
 	}
 
-	for _, item := range table {
-		handler := utiltesting.FakeHandler{
-			StatusCode:   200,
-			ResponseBody: "",
-			T:            t,
-		}
-		server := httptest.NewServer(&handler)
-		defer server.Close()
-		client := clientset.NewForConfigOrDie(&restclient.Config{Host: server.URL, ContentConfig: restclient.ContentConfig{GroupVersion: &schema.GroupVersion{Group: "", Version: "v1"}}})
-		b := binder{client}
-
-		if err := b.Bind(item.binding); err != nil {
-			t.Errorf("Unexpected error: %v", err)
-			continue
-		}
-		expectedBody := runtime.EncodeOrDie(schedulertesting.Test.Codec(), item.binding)
-		handler.ValidateRequest(t,
-			schedulertesting.Test.SubResourcePath(string(v1.ResourcePods), metav1.NamespaceDefault, "foo", "binding"),
-			"POST", &expectedBody)
+	for _, test := range table {
+		t.Run(test.name, func(t *testing.T) {
+			testBind(test.binding, t)
+		})
 	}
+}
+
+func testBind(binding *v1.Binding, t *testing.T) {
+	handler := utiltesting.FakeHandler{
+		StatusCode:   200,
+		ResponseBody: "",
+		T:            t,
+	}
+	server := httptest.NewServer(&handler)
+	defer server.Close()
+	client := clientset.NewForConfigOrDie(&restclient.Config{Host: server.URL, ContentConfig: restclient.ContentConfig{GroupVersion: &schema.GroupVersion{Group: "", Version: "v1"}}})
+	b := binder{client}
+
+	if err := b.Bind(binding); err != nil {
+		t.Errorf("Unexpected error: %v", err)
+		return
+	}
+	expectedBody := runtime.EncodeOrDie(schedulertesting.Test.Codec(), binding)
+	handler.ValidateRequest(t,
+		schedulertesting.Test.SubResourcePath(string(v1.ResourcePods), metav1.NamespaceDefault, "foo", "binding"),
+		"POST", &expectedBody)
 }
 
 func TestInvalidHardPodAffinitySymmetricWeight(t *testing.T) {
@@ -406,38 +420,44 @@ func TestInvalidFactoryArgs(t *testing.T) {
 	client := clientset.NewForConfigOrDie(&restclient.Config{Host: server.URL, ContentConfig: restclient.ContentConfig{GroupVersion: &schema.GroupVersion{Group: "", Version: "v1"}}})
 
 	testCases := []struct {
+		name                           string
 		hardPodAffinitySymmetricWeight int32
 		expectErr                      string
 	}{
 		{
+			name: "symmetric weight below range",
 			hardPodAffinitySymmetricWeight: -1,
 			expectErr:                      "invalid hardPodAffinitySymmetricWeight: -1, must be in the range 0-100",
 		},
 		{
+			name: "symmetric weight above range",
 			hardPodAffinitySymmetricWeight: 101,
 			expectErr:                      "invalid hardPodAffinitySymmetricWeight: 101, must be in the range 0-100",
 		},
 	}
 
 	for _, test := range testCases {
-		factory := newConfigFactory(client, test.hardPodAffinitySymmetricWeight)
-		_, err := factory.Create()
-		if err == nil {
-			t.Errorf("expected err: %s, got nothing", test.expectErr)
-		}
+		t.Run(test.name, func(t *testing.T) {
+			factory := newConfigFactory(client, test.hardPodAffinitySymmetricWeight)
+			_, err := factory.Create()
+			if err == nil {
+				t.Errorf("expected err: %s, got nothing", test.expectErr)
+			}
+		})
 	}
 
 }
 
 func TestSkipPodUpdate(t *testing.T) {
-	for _, test := range []struct {
+	table := []struct {
 		pod              *v1.Pod
 		isAssumedPodFunc func(*v1.Pod) bool
 		getPodFunc       func(*v1.Pod) *v1.Pod
 		expected         bool
+		name             string
 	}{
-		// Non-assumed pod should not be skipped.
 		{
+			name: "Non-assumed pod",
 			pod: &v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "pod-0",
@@ -453,9 +473,8 @@ func TestSkipPodUpdate(t *testing.T) {
 			},
 			expected: false,
 		},
-		// Pod update (with changes on ResourceVersion, Spec.NodeName and/or
-		// Annotations) for an already assumed pod should be skipped.
 		{
+			name: "with changes on ResourceVersion, Spec.NodeName and/or Annotations",
 			pod: &v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "pod-0",
@@ -483,9 +502,8 @@ func TestSkipPodUpdate(t *testing.T) {
 			},
 			expected: true,
 		},
-		// Pod update (with changes on Labels) for an already assumed pod
-		// should not be skipped.
 		{
+			name: "with changes on Labels",
 			pod: &v1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:   "pod-0",
@@ -505,23 +523,26 @@ func TestSkipPodUpdate(t *testing.T) {
 			},
 			expected: false,
 		},
-	} {
-		c := &configFactory{
-			schedulerCache: &schedulertesting.FakeCache{
-				IsAssumedPodFunc: test.isAssumedPodFunc,
-				GetPodFunc:       test.getPodFunc,
-			},
-		}
-		got := c.skipPodUpdate(test.pod)
-		if got != test.expected {
-			t.Errorf("skipPodUpdate() = %t, expected = %t", got, test.expected)
-		}
+	}
+	for _, test := range table {
+		t.Run(test.name, func(t *testing.T) {
+			c := &configFactory{
+				schedulerCache: &schedulertesting.FakeCache{
+					IsAssumedPodFunc: test.isAssumedPodFunc,
+					GetPodFunc:       test.getPodFunc,
+				},
+			}
+			got := c.skipPodUpdate(test.pod)
+			if got != test.expected {
+				t.Errorf("skipPodUpdate() = %t, expected = %t", got, test.expected)
+			}
+		})
 	}
 }
 
 func newConfigFactory(client *clientset.Clientset, hardPodAffinitySymmetricWeight int32) scheduler.Configurator {
 	informerFactory := informers.NewSharedInformerFactory(client, 0)
-	return NewConfigFactory(
+	return NewConfigFactory(&ConfigFactoryArgs{
 		v1.DefaultSchedulerName,
 		client,
 		informerFactory.Core().V1().Nodes(),
@@ -529,15 +550,17 @@ func newConfigFactory(client *clientset.Clientset, hardPodAffinitySymmetricWeigh
 		informerFactory.Core().V1().PersistentVolumes(),
 		informerFactory.Core().V1().PersistentVolumeClaims(),
 		informerFactory.Core().V1().ReplicationControllers(),
-		informerFactory.Extensions().V1beta1().ReplicaSets(),
-		informerFactory.Apps().V1beta1().StatefulSets(),
+		informerFactory.Apps().V1().ReplicaSets(),
+		informerFactory.Apps().V1().StatefulSets(),
 		informerFactory.Core().V1().Services(),
 		informerFactory.Policy().V1beta1().PodDisruptionBudgets(),
 		informerFactory.Storage().V1().StorageClasses(),
 		hardPodAffinitySymmetricWeight,
 		enableEquivalenceCache,
 		disablePodPreemption,
-	)
+		schedulerapi.DefaultPercentageOfNodesToScore,
+		bindTimeoutSeconds,
+	})
 }
 
 type fakeExtender struct {
@@ -593,24 +616,22 @@ func (f *fakeExtender) IsInterested(pod *v1.Pod) bool {
 }
 
 func TestGetBinderFunc(t *testing.T) {
-	for _, test := range []struct {
-		podName   string
-		extenders []algorithm.SchedulerExtender
-
+	table := []struct {
+		podName            string
+		extenders          []algorithm.SchedulerExtender
 		expectedBinderType string
+		name               string
 	}{
-		// Expect to return the default binder because the extender is not a
-		// binder, even though it's interested in the pod.
 		{
+			name:    "the extender is not a binder",
 			podName: "pod0",
 			extenders: []algorithm.SchedulerExtender{
 				&fakeExtender{isBinder: false, interestedPodName: "pod0"},
 			},
 			expectedBinderType: "*factory.binder",
 		},
-		// Expect to return the fake binder because one of the extenders is a
-		// binder and it's interested in the pod.
 		{
+			name:    "one of the extenders is a binder and interested in pod",
 			podName: "pod0",
 			extenders: []algorithm.SchedulerExtender{
 				&fakeExtender{isBinder: false, interestedPodName: "pod0"},
@@ -618,9 +639,8 @@ func TestGetBinderFunc(t *testing.T) {
 			},
 			expectedBinderType: "*factory.fakeExtender",
 		},
-		// Expect to return the default binder because one of the extenders is
-		// a binder but the binder is not interested in the pod.
 		{
+			name:    "one of the extenders is a binder, but not interested in pod",
 			podName: "pod1",
 			extenders: []algorithm.SchedulerExtender{
 				&fakeExtender{isBinder: false, interestedPodName: "pod1"},
@@ -628,20 +648,171 @@ func TestGetBinderFunc(t *testing.T) {
 			},
 			expectedBinderType: "*factory.binder",
 		},
+	}
+
+	for _, test := range table {
+		t.Run(test.name, func(t *testing.T) {
+			testGetBinderFunc(test.expectedBinderType, test.podName, test.extenders, t)
+		})
+	}
+}
+
+func testGetBinderFunc(expectedBinderType, podName string, extenders []algorithm.SchedulerExtender, t *testing.T) {
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: podName,
+		},
+	}
+
+	f := &configFactory{}
+	binderFunc := f.getBinderFunc(extenders)
+	binder := binderFunc(pod)
+
+	binderType := fmt.Sprintf("%s", reflect.TypeOf(binder))
+	if binderType != expectedBinderType {
+		t.Errorf("Expected binder %q but got %q", expectedBinderType, binderType)
+	}
+}
+
+func TestNodeAllocatableChanged(t *testing.T) {
+	newQuantity := func(value int64) resource.Quantity {
+		return *resource.NewQuantity(value, resource.BinarySI)
+	}
+	for _, c := range []struct {
+		Name           string
+		Changed        bool
+		OldAllocatable v1.ResourceList
+		NewAllocatable v1.ResourceList
+	}{
+		{
+			Name:           "no allocatable resources changed",
+			Changed:        false,
+			OldAllocatable: v1.ResourceList{v1.ResourceMemory: newQuantity(1024)},
+			NewAllocatable: v1.ResourceList{v1.ResourceMemory: newQuantity(1024)},
+		},
+		{
+			Name:           "new node has more allocatable resources",
+			Changed:        true,
+			OldAllocatable: v1.ResourceList{v1.ResourceMemory: newQuantity(1024)},
+			NewAllocatable: v1.ResourceList{v1.ResourceMemory: newQuantity(1024), v1.ResourceStorage: newQuantity(1024)},
+		},
 	} {
-		pod := &v1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: test.podName,
-			},
+		oldNode := &v1.Node{Status: v1.NodeStatus{Allocatable: c.OldAllocatable}}
+		newNode := &v1.Node{Status: v1.NodeStatus{Allocatable: c.NewAllocatable}}
+		changed := nodeAllocatableChanged(newNode, oldNode)
+		if changed != c.Changed {
+			t.Errorf("nodeAllocatableChanged should be %t, got %t", c.Changed, changed)
 		}
+	}
+}
 
-		f := &configFactory{}
-		binderFunc := f.getBinderFunc(test.extenders)
-		binder := binderFunc(pod)
+func TestNodeLabelsChanged(t *testing.T) {
+	for _, c := range []struct {
+		Name      string
+		Changed   bool
+		OldLabels map[string]string
+		NewLabels map[string]string
+	}{
+		{
+			Name:      "no labels changed",
+			Changed:   false,
+			OldLabels: map[string]string{"foo": "bar"},
+			NewLabels: map[string]string{"foo": "bar"},
+		},
+		// Labels changed.
+		{
+			Name:      "new node has more labels",
+			Changed:   true,
+			OldLabels: map[string]string{"foo": "bar"},
+			NewLabels: map[string]string{"foo": "bar", "test": "value"},
+		},
+	} {
+		oldNode := &v1.Node{ObjectMeta: metav1.ObjectMeta{Labels: c.OldLabels}}
+		newNode := &v1.Node{ObjectMeta: metav1.ObjectMeta{Labels: c.NewLabels}}
+		changed := nodeLabelsChanged(newNode, oldNode)
+		if changed != c.Changed {
+			t.Errorf("Test case %q failed: should be %t, got %t", c.Name, c.Changed, changed)
+		}
+	}
+}
 
-		binderType := fmt.Sprintf("%s", reflect.TypeOf(binder))
-		if binderType != test.expectedBinderType {
-			t.Errorf("Expected binder %q but got %q", test.expectedBinderType, binderType)
+func TestNodeTaintsChanged(t *testing.T) {
+	for _, c := range []struct {
+		Name      string
+		Changed   bool
+		OldTaints []v1.Taint
+		NewTaints []v1.Taint
+	}{
+		{
+			Name:      "no taint changed",
+			Changed:   false,
+			OldTaints: []v1.Taint{{Key: "key", Value: "value"}},
+			NewTaints: []v1.Taint{{Key: "key", Value: "value"}},
+		},
+		{
+			Name:      "taint value changed",
+			Changed:   true,
+			OldTaints: []v1.Taint{{Key: "key", Value: "value1"}},
+			NewTaints: []v1.Taint{{Key: "key", Value: "value2"}},
+		},
+	} {
+		oldNode := &v1.Node{Spec: v1.NodeSpec{Taints: c.OldTaints}}
+		newNode := &v1.Node{Spec: v1.NodeSpec{Taints: c.NewTaints}}
+		changed := nodeTaintsChanged(newNode, oldNode)
+		if changed != c.Changed {
+			t.Errorf("Test case %q failed: should be %t, not %t", c.Name, c.Changed, changed)
+		}
+	}
+}
+
+func TestNodeConditionsChanged(t *testing.T) {
+	nodeConditionType := reflect.TypeOf(v1.NodeCondition{})
+	if nodeConditionType.NumField() != 6 {
+		t.Errorf("NodeCondition type has changed. The nodeConditionsChanged() function must be reevaluated.")
+	}
+
+	for _, c := range []struct {
+		Name          string
+		Changed       bool
+		OldConditions []v1.NodeCondition
+		NewConditions []v1.NodeCondition
+	}{
+		{
+			Name:          "no condition changed",
+			Changed:       false,
+			OldConditions: []v1.NodeCondition{{Type: v1.NodeOutOfDisk, Status: v1.ConditionTrue}},
+			NewConditions: []v1.NodeCondition{{Type: v1.NodeOutOfDisk, Status: v1.ConditionTrue}},
+		},
+		{
+			Name:          "only LastHeartbeatTime changed",
+			Changed:       false,
+			OldConditions: []v1.NodeCondition{{Type: v1.NodeOutOfDisk, Status: v1.ConditionTrue, LastHeartbeatTime: metav1.Unix(1, 0)}},
+			NewConditions: []v1.NodeCondition{{Type: v1.NodeOutOfDisk, Status: v1.ConditionTrue, LastHeartbeatTime: metav1.Unix(2, 0)}},
+		},
+		{
+			Name:          "new node has more healthy conditions",
+			Changed:       true,
+			OldConditions: []v1.NodeCondition{},
+			NewConditions: []v1.NodeCondition{{Type: v1.NodeReady, Status: v1.ConditionTrue}},
+		},
+		{
+			Name:          "new node has less unhealthy conditions",
+			Changed:       true,
+			OldConditions: []v1.NodeCondition{{Type: v1.NodeOutOfDisk, Status: v1.ConditionTrue}},
+			NewConditions: []v1.NodeCondition{},
+		},
+		{
+			Name:          "condition status changed",
+			Changed:       true,
+			OldConditions: []v1.NodeCondition{{Type: v1.NodeReady, Status: v1.ConditionFalse}},
+			NewConditions: []v1.NodeCondition{{Type: v1.NodeReady, Status: v1.ConditionTrue}},
+		},
+	} {
+		oldNode := &v1.Node{Status: v1.NodeStatus{Conditions: c.OldConditions}}
+		newNode := &v1.Node{Status: v1.NodeStatus{Conditions: c.NewConditions}}
+		changed := nodeConditionsChanged(newNode, oldNode)
+		if changed != c.Changed {
+			t.Errorf("Test case %q failed: should be %t, got %t", c.Name, c.Changed, changed)
 		}
 	}
 }

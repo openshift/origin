@@ -222,6 +222,9 @@ upload_file() {
   run govc datastore.disk.info "$vmdk"
   assert_success
 
+  run govc datastore.disk.info -uuid "$vmdk"
+  assert_success
+
   run govc datastore.rm "$vmdk"
   assert_success
 

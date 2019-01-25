@@ -3,6 +3,7 @@ package main
 import (
 	"archive/tar"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,23 +14,20 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/integration-cli/checker"
-	"github.com/docker/docker/integration-cli/cli/build/fakecontext"
-	"github.com/docker/docker/integration-cli/cli/build/fakegit"
-	"github.com/docker/docker/integration-cli/cli/build/fakestorage"
-	"github.com/docker/docker/integration-cli/request"
+	"github.com/docker/docker/internal/test/fakecontext"
+	"github.com/docker/docker/internal/test/fakegit"
+	"github.com/docker/docker/internal/test/fakestorage"
+	"github.com/docker/docker/internal/test/request"
 	"github.com/go-check/check"
-	"github.com/moby/buildkit/session"
-	"github.com/moby/buildkit/session/filesync"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"golang.org/x/net/context"
-	"golang.org/x/sync/errgroup"
+	"github.com/gotestyourself/gotestyourself/assert"
+	is "github.com/gotestyourself/gotestyourself/assert/cmp"
 )
 
 func (s *DockerSuite) TestBuildAPIDockerFileRemote(c *check.C) {
 	testRequires(c, NotUserNamespace)
+
 	var testD string
-	if testEnv.DaemonPlatform() == "windows" {
+	if testEnv.OSType == "windows" {
 		testD = `FROM busybox
 RUN find / -name ba*
 RUN find /tmp/`
@@ -295,12 +293,12 @@ func (s *DockerSuite) TestBuildOnBuildCache(c *check.C) {
 			"/build",
 			request.RawContent(ctx.AsTarReader(c)),
 			request.ContentType("application/x-tar"))
-		require.NoError(c, err)
-		assert.Equal(c, http.StatusOK, res.StatusCode)
+		assert.NilError(c, err)
+		assert.Check(c, is.DeepEqual(http.StatusOK, res.StatusCode))
 
 		out, err := request.ReadBody(body)
-		require.NoError(c, err)
-		assert.Contains(c, string(out), "Successfully built")
+		assert.NilError(c, err)
+		assert.Check(c, is.Contains(string(out), "Successfully built"))
 		return out
 	}
 
@@ -315,31 +313,29 @@ func (s *DockerSuite) TestBuildOnBuildCache(c *check.C) {
 	out := build(dockerfile)
 
 	imageIDs := getImageIDsFromBuild(c, out)
-	assert.Len(c, imageIDs, 2)
+	assert.Check(c, is.Len(imageIDs, 2))
 	parentID, childID := imageIDs[0], imageIDs[1]
 
-	client, err := request.NewClient()
-	require.NoError(c, err)
+	client := testEnv.APIClient()
 
 	// check parentID is correct
 	image, _, err := client.ImageInspectWithRaw(context.Background(), childID)
-	require.NoError(c, err)
-	assert.Equal(c, parentID, image.Parent)
+	assert.NilError(c, err)
+	assert.Check(c, is.Equal(parentID, image.Parent))
 }
 
 func (s *DockerRegistrySuite) TestBuildCopyFromForcePull(c *check.C) {
-	client, err := request.NewClient()
-	require.NoError(c, err)
+	client := testEnv.APIClient()
 
 	repoName := fmt.Sprintf("%v/dockercli/busybox", privateRegistryURL)
 	// tag the image to upload it to the private registry
-	err = client.ImageTag(context.TODO(), "busybox", repoName)
-	assert.Nil(c, err)
+	err := client.ImageTag(context.TODO(), "busybox", repoName)
+	assert.Check(c, err)
 	// push the image to the registry
 	rc, err := client.ImagePush(context.TODO(), repoName, types.ImagePushOptions{RegistryAuth: "{}"})
-	assert.Nil(c, err)
+	assert.Check(c, err)
 	_, err = io.Copy(ioutil.Discard, rc)
-	assert.Nil(c, err)
+	assert.Check(c, err)
 
 	dockerfile := fmt.Sprintf(`
 		FROM %s AS foo
@@ -357,12 +353,12 @@ func (s *DockerRegistrySuite) TestBuildCopyFromForcePull(c *check.C) {
 		"/build?pull=1",
 		request.RawContent(ctx.AsTarReader(c)),
 		request.ContentType("application/x-tar"))
-	require.NoError(c, err)
-	assert.Equal(c, http.StatusOK, res.StatusCode)
+	assert.NilError(c, err)
+	assert.Check(c, is.DeepEqual(http.StatusOK, res.StatusCode))
 
 	out, err := request.ReadBody(body)
-	require.NoError(c, err)
-	assert.Contains(c, string(out), "Successfully built")
+	assert.NilError(c, err)
+	assert.Check(c, is.Contains(string(out), "Successfully built"))
 }
 
 func (s *DockerSuite) TestBuildAddRemoteNoDecompress(c *check.C) {
@@ -375,11 +371,11 @@ func (s *DockerSuite) TestBuildAddRemoteNoDecompress(c *check.C) {
 		Mode:     0600,
 		Typeflag: tar.TypeReg,
 	})
-	require.NoError(c, err)
+	assert.NilError(c, err)
 	_, err = tw.Write(dt)
-	require.NoError(c, err)
+	assert.NilError(c, err)
 	err = tw.Close()
-	require.NoError(c, err)
+	assert.NilError(c, err)
 
 	server := fakestorage.New(c, "", fakecontext.WithBinaryFiles(map[string]*bytes.Buffer{
 		"test.tar": buffer,
@@ -401,16 +397,17 @@ func (s *DockerSuite) TestBuildAddRemoteNoDecompress(c *check.C) {
 		"/build",
 		request.RawContent(ctx.AsTarReader(c)),
 		request.ContentType("application/x-tar"))
-	require.NoError(c, err)
-	assert.Equal(c, http.StatusOK, res.StatusCode)
+	assert.NilError(c, err)
+	assert.Check(c, is.DeepEqual(http.StatusOK, res.StatusCode))
 
 	out, err := request.ReadBody(body)
-	require.NoError(c, err)
-	assert.Contains(c, string(out), "Successfully built")
+	assert.NilError(c, err)
+	assert.Check(c, is.Contains(string(out), "Successfully built"))
 }
 
 func (s *DockerSuite) TestBuildChownOnCopy(c *check.C) {
-	testRequires(c, DaemonIsLinux)
+	// new feature added in 1.31 - https://github.com/moby/moby/pull/34263
+	testRequires(c, DaemonIsLinux, MinimumAPIVersion("1.31"))
 	dockerfile := `FROM busybox
 		RUN echo 'test1:x:1001:1001::/bin:/bin/false' >> /etc/passwd
 		RUN echo 'test1:x:1001:' >> /etc/group
@@ -434,110 +431,108 @@ func (s *DockerSuite) TestBuildChownOnCopy(c *check.C) {
 	c.Assert(res.StatusCode, checker.Equals, http.StatusOK)
 
 	out, err := request.ReadBody(body)
-	require.NoError(c, err)
-	assert.Contains(c, string(out), "Successfully built")
+	assert.NilError(c, err)
+	assert.Check(c, is.Contains(string(out), "Successfully built"))
 }
 
-func (s *DockerSuite) TestBuildWithSession(c *check.C) {
-	testRequires(c, ExperimentalDaemon)
+func (s *DockerSuite) TestBuildCopyCacheOnFileChange(c *check.C) {
 
-	dockerfile := `
-		FROM busybox
-		COPY file /
-		RUN cat /file
-	`
+	dockerfile := `FROM busybox
+COPY file /file`
 
-	fctx := fakecontext.New(c, "",
-		fakecontext.WithFile("file", "some content"),
+	ctx1 := fakecontext.New(c, "",
+		fakecontext.WithDockerfile(dockerfile),
+		fakecontext.WithFile("file", "foo"))
+	ctx2 := fakecontext.New(c, "",
+		fakecontext.WithDockerfile(dockerfile),
+		fakecontext.WithFile("file", "bar"))
+
+	var build = func(ctx *fakecontext.Fake) string {
+		res, body, err := request.Post("/build",
+			request.RawContent(ctx.AsTarReader(c)),
+			request.ContentType("application/x-tar"))
+
+		assert.NilError(c, err)
+		assert.Check(c, is.DeepEqual(http.StatusOK, res.StatusCode))
+
+		out, err := request.ReadBody(body)
+		assert.NilError(c, err)
+
+		ids := getImageIDsFromBuild(c, out)
+		return ids[len(ids)-1]
+	}
+
+	id1 := build(ctx1)
+	id2 := build(ctx1)
+	id3 := build(ctx2)
+
+	if id1 != id2 {
+		c.Fatal("didn't use the cache")
+	}
+	if id1 == id3 {
+		c.Fatal("COPY With different source file should not share same cache")
+	}
+}
+
+func (s *DockerSuite) TestBuildAddCacheOnFileChange(c *check.C) {
+
+	dockerfile := `FROM busybox
+ADD file /file`
+
+	ctx1 := fakecontext.New(c, "",
+		fakecontext.WithDockerfile(dockerfile),
+		fakecontext.WithFile("file", "foo"))
+	ctx2 := fakecontext.New(c, "",
+		fakecontext.WithDockerfile(dockerfile),
+		fakecontext.WithFile("file", "bar"))
+
+	var build = func(ctx *fakecontext.Fake) string {
+		res, body, err := request.Post("/build",
+			request.RawContent(ctx.AsTarReader(c)),
+			request.ContentType("application/x-tar"))
+
+		assert.NilError(c, err)
+		assert.Check(c, is.DeepEqual(http.StatusOK, res.StatusCode))
+
+		out, err := request.ReadBody(body)
+		assert.NilError(c, err)
+
+		ids := getImageIDsFromBuild(c, out)
+		return ids[len(ids)-1]
+	}
+
+	id1 := build(ctx1)
+	id2 := build(ctx1)
+	id3 := build(ctx2)
+
+	if id1 != id2 {
+		c.Fatal("didn't use the cache")
+	}
+	if id1 == id3 {
+		c.Fatal("COPY With different source file should not share same cache")
+	}
+}
+
+func (s *DockerSuite) TestBuildScratchCopy(c *check.C) {
+	testRequires(c, DaemonIsLinux)
+	dockerfile := `FROM scratch
+ADD Dockerfile /
+ENV foo bar`
+	ctx := fakecontext.New(c, "",
+		fakecontext.WithDockerfile(dockerfile),
 	)
-	defer fctx.Close()
+	defer ctx.Close()
 
-	out := testBuildWithSession(c, fctx.Dir, dockerfile)
-	assert.Contains(c, out, "some content")
-
-	fctx.Add("second", "contentcontent")
-
-	dockerfile += `
-	COPY second /
-	RUN cat /second
-	`
-
-	out = testBuildWithSession(c, fctx.Dir, dockerfile)
-	assert.Equal(c, strings.Count(out, "Using cache"), 2)
-	assert.Contains(c, out, "contentcontent")
-
-	client, err := request.NewClient()
-	require.NoError(c, err)
-
-	du, err := client.DiskUsage(context.TODO())
-	assert.Nil(c, err)
-	assert.True(c, du.BuilderSize > 10)
-
-	out = testBuildWithSession(c, fctx.Dir, dockerfile)
-	assert.Equal(c, strings.Count(out, "Using cache"), 4)
-
-	du2, err := client.DiskUsage(context.TODO())
-	assert.Nil(c, err)
-	assert.Equal(c, du.BuilderSize, du2.BuilderSize)
-
-	// rebuild with regular tar, confirm cache still applies
-	fctx.Add("Dockerfile", dockerfile)
 	res, body, err := request.Post(
 		"/build",
-		request.RawContent(fctx.AsTarReader(c)),
+		request.RawContent(ctx.AsTarReader(c)),
 		request.ContentType("application/x-tar"))
-	require.NoError(c, err)
-	assert.Equal(c, http.StatusOK, res.StatusCode)
+	c.Assert(err, checker.IsNil)
+	c.Assert(res.StatusCode, checker.Equals, http.StatusOK)
 
-	outBytes, err := request.ReadBody(body)
-	require.NoError(c, err)
-	assert.Contains(c, string(outBytes), "Successfully built")
-	assert.Equal(c, strings.Count(string(outBytes), "Using cache"), 4)
-
-	_, err = client.BuildCachePrune(context.TODO())
-	assert.Nil(c, err)
-
-	du, err = client.DiskUsage(context.TODO())
-	assert.Nil(c, err)
-	assert.Equal(c, du.BuilderSize, int64(0))
-}
-
-func testBuildWithSession(c *check.C, dir, dockerfile string) (outStr string) {
-	client, err := request.NewClient()
-	require.NoError(c, err)
-
-	sess, err := session.NewSession("foo1", "foo")
-	assert.Nil(c, err)
-
-	fsProvider := filesync.NewFSSyncProvider(dir, nil)
-	sess.Allow(fsProvider)
-
-	g, ctx := errgroup.WithContext(context.Background())
-
-	g.Go(func() error {
-		return sess.Run(ctx, client.DialSession)
-	})
-
-	g.Go(func() error {
-		res, body, err := request.Post("/build?remote=client-session&session="+sess.UUID(), func(req *http.Request) error {
-			req.Body = ioutil.NopCloser(strings.NewReader(dockerfile))
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-		assert.Equal(c, res.StatusCode, http.StatusOK)
-		out, err := request.ReadBody(body)
-		require.NoError(c, err)
-		assert.Contains(c, string(out), "Successfully built")
-		sess.Close()
-		outStr = string(out)
-		return nil
-	})
-
-	err = g.Wait()
-	assert.Nil(c, err)
-	return
+	out, err := request.ReadBody(body)
+	assert.NilError(c, err)
+	assert.Check(c, is.Contains(string(out), "Successfully built"))
 }
 
 type buildLine struct {
@@ -548,13 +543,13 @@ type buildLine struct {
 }
 
 func getImageIDsFromBuild(c *check.C, output []byte) []string {
-	ids := []string{}
+	var ids []string
 	for _, line := range bytes.Split(output, []byte("\n")) {
 		if len(line) == 0 {
 			continue
 		}
 		entry := buildLine{}
-		require.NoError(c, json.Unmarshal(line, &entry))
+		assert.NilError(c, json.Unmarshal(line, &entry))
 		if entry.Aux.ID != "" {
 			ids = append(ids, entry.Aux.ID)
 		}

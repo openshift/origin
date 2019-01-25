@@ -41,13 +41,15 @@ func NewPoolClientWithBaseURI(baseURI string, subscriptionID string) PoolClient 
 }
 
 // Create creates a new pool inside the specified account.
-//
-// resourceGroupName is the name of the resource group that contains the Batch account. accountName is the name of
-// the Batch account. poolName is the pool name. This must be unique within the account. parameters is additional
-// parameters for pool creation. ifMatch is the entity state (ETag) version of the pool to update. A value of "*"
-// can be used to apply the operation only if the pool already exists. If omitted, this operation will always be
-// applied. ifNoneMatch is set to '*' to allow a new pool to be created, but to prevent updating an existing pool.
-// Other values will be ignored.
+// Parameters:
+// resourceGroupName - the name of the resource group that contains the Batch account.
+// accountName - the name of the Batch account.
+// poolName - the pool name. This must be unique within the account.
+// parameters - additional parameters for pool creation.
+// ifMatch - the entity state (ETag) version of the pool to update. A value of "*" can be used to apply the
+// operation only if the pool already exists. If omitted, this operation will always be applied.
+// ifNoneMatch - set to '*' to allow a new pool to be created, but to prevent updating an existing pool. Other
+// values will be ignored.
 func (client PoolClient) Create(ctx context.Context, resourceGroupName string, accountName string, poolName string, parameters Pool, ifMatch string, ifNoneMatch string) (result PoolCreateFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: accountName,
@@ -117,7 +119,7 @@ func (client PoolClient) CreatePreparer(ctx context.Context, resourceGroupName s
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Batch/batchAccounts/{accountName}/pools/{poolName}", pathParameters),
@@ -137,15 +139,17 @@ func (client PoolClient) CreatePreparer(ctx context.Context, resourceGroupName s
 // CreateSender sends the Create request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoolClient) CreateSender(req *http.Request) (future PoolCreateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -163,9 +167,10 @@ func (client PoolClient) CreateResponder(resp *http.Response) (result Pool, err 
 }
 
 // Delete deletes the specified pool.
-//
-// resourceGroupName is the name of the resource group that contains the Batch account. accountName is the name of
-// the Batch account. poolName is the pool name. This must be unique within the account.
+// Parameters:
+// resourceGroupName - the name of the resource group that contains the Batch account.
+// accountName - the name of the Batch account.
+// poolName - the pool name. This must be unique within the account.
 func (client PoolClient) Delete(ctx context.Context, resourceGroupName string, accountName string, poolName string) (result PoolDeleteFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: accountName,
@@ -219,15 +224,17 @@ func (client PoolClient) DeletePreparer(ctx context.Context, resourceGroupName s
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client PoolClient) DeleteSender(req *http.Request) (future PoolDeleteFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -244,9 +251,10 @@ func (client PoolClient) DeleteResponder(resp *http.Response) (result autorest.R
 }
 
 // DisableAutoScale disables automatic scaling for a pool.
-//
-// resourceGroupName is the name of the resource group that contains the Batch account. accountName is the name of
-// the Batch account. poolName is the pool name. This must be unique within the account.
+// Parameters:
+// resourceGroupName - the name of the resource group that contains the Batch account.
+// accountName - the name of the Batch account.
+// poolName - the pool name. This must be unique within the account.
 func (client PoolClient) DisableAutoScale(ctx context.Context, resourceGroupName string, accountName string, poolName string) (result Pool, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: accountName,
@@ -324,9 +332,10 @@ func (client PoolClient) DisableAutoScaleResponder(resp *http.Response) (result 
 }
 
 // Get gets information about the specified pool.
-//
-// resourceGroupName is the name of the resource group that contains the Batch account. accountName is the name of
-// the Batch account. poolName is the pool name. This must be unique within the account.
+// Parameters:
+// resourceGroupName - the name of the resource group that contains the Batch account.
+// accountName - the name of the Batch account.
+// poolName - the pool name. This must be unique within the account.
 func (client PoolClient) Get(ctx context.Context, resourceGroupName string, accountName string, poolName string) (result Pool, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: accountName,
@@ -404,12 +413,13 @@ func (client PoolClient) GetResponder(resp *http.Response) (result Pool, err err
 }
 
 // ListByBatchAccount lists all of the pools in the specified account.
-//
-// resourceGroupName is the name of the resource group that contains the Batch account. accountName is the name of
-// the Batch account. maxresults is the maximum number of items to return in the response. selectParameter is comma
-// separated list of properties that should be returned. e.g. "properties/provisioningState". Only top level
-// properties under properties/ are valid for selection. filter is oData filter expression. Valid properties for
-// filtering are:
+// Parameters:
+// resourceGroupName - the name of the resource group that contains the Batch account.
+// accountName - the name of the Batch account.
+// maxresults - the maximum number of items to return in the response.
+// selectParameter - comma separated list of properties that should be returned. e.g.
+// "properties/provisioningState". Only top level properties under properties/ are valid for selection.
+// filter - oData filter expression. Valid properties for filtering are:
 //
 // name
 // properties/allocationState
@@ -535,9 +545,10 @@ func (client PoolClient) ListByBatchAccountComplete(ctx context.Context, resourc
 // number of nodes it was at when the stop operation was done. During the stop operation, the pool allocation state
 // changes first to stopping and then to steady. A resize operation need not be an explicit resize pool request; this
 // API can also be used to halt the initial sizing of the pool when it is created.
-//
-// resourceGroupName is the name of the resource group that contains the Batch account. accountName is the name of
-// the Batch account. poolName is the pool name. This must be unique within the account.
+// Parameters:
+// resourceGroupName - the name of the resource group that contains the Batch account.
+// accountName - the name of the Batch account.
+// poolName - the pool name. This must be unique within the account.
 func (client PoolClient) StopResize(ctx context.Context, resourceGroupName string, accountName string, poolName string) (result Pool, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: accountName,
@@ -615,12 +626,14 @@ func (client PoolClient) StopResizeResponder(resp *http.Response) (result Pool, 
 }
 
 // Update updates the properties of an existing pool.
-//
-// resourceGroupName is the name of the resource group that contains the Batch account. accountName is the name of
-// the Batch account. poolName is the pool name. This must be unique within the account. parameters is pool
-// properties that should be updated. Properties that are supplied will be updated, any property not supplied will
-// be unchanged. ifMatch is the entity state (ETag) version of the pool to update. This value can be omitted or set
-// to "*" to apply the operation unconditionally.
+// Parameters:
+// resourceGroupName - the name of the resource group that contains the Batch account.
+// accountName - the name of the Batch account.
+// poolName - the pool name. This must be unique within the account.
+// parameters - pool properties that should be updated. Properties that are supplied will be updated, any
+// property not supplied will be unchanged.
+// ifMatch - the entity state (ETag) version of the pool to update. This value can be omitted or set to "*" to
+// apply the operation unconditionally.
 func (client PoolClient) Update(ctx context.Context, resourceGroupName string, accountName string, poolName string, parameters Pool, ifMatch string) (result Pool, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: accountName,
@@ -670,7 +683,7 @@ func (client PoolClient) UpdatePreparer(ctx context.Context, resourceGroupName s
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Batch/batchAccounts/{accountName}/pools/{poolName}", pathParameters),

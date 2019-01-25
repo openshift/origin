@@ -14,9 +14,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
@@ -86,16 +86,14 @@ func NewCmdCanI(name, fullName string, f kcmdutil.Factory, streams genericcliopt
 	cmd.Flags().StringSliceVar(&o.Scopes, "scopes", o.Scopes, "Check the specified action using these scopes.  By default, the scopes on the current token will be used.")
 	cmd.Flags().StringVar(&o.User, "user", o.User, "Check the specified action using this user instead of your user.")
 	cmd.Flags().StringSliceVar(&o.Groups, "groups", o.Groups, "Check the specified action using these groups instead of your groups.")
+	cmd.Flags().BoolVar(&o.NoHeaders, "no-headers", o.NoHeaders, "When using the default output format, don't print headers (default print headers).")
 
-	kcmdutil.AddNoHeadersFlags(cmd)
 	o.PrintFlags.AddFlags(cmd)
 	return cmd
 }
 
 func (o *CanIOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
 	o.Args = args
-
-	o.NoHeaders = kcmdutil.GetFlagBool(cmd, "no-headers")
 
 	if o.ListAll && o.AllNamespaces {
 		return errors.New("--list and --all-namespaces are mutually exclusive")

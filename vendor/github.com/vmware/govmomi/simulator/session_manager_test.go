@@ -19,6 +19,7 @@ package simulator
 import (
 	"context"
 	"crypto/tls"
+	"log"
 	"strings"
 	"testing"
 
@@ -28,6 +29,7 @@ import (
 	"github.com/vmware/govmomi/session"
 	"github.com/vmware/govmomi/simulator/vpx"
 	"github.com/vmware/govmomi/vim25/methods"
+	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
 )
@@ -222,5 +224,104 @@ func TestSessionManagerLoginExtension(t *testing.T) {
 	_, err = methods.GetCurrentTime(ctx, c)
 	if err != nil {
 		t.Error(err)
+	}
+}
+
+// Test WaitForUpdates against the PropertyCollector singleton.
+// Includes test for issue 1172, where a 2nd session use of the PropertyCollector singleton followed by Logout()
+// unregistered the 1st session's update listener as the PC singleton has the same moref regardless of session instance.
+func TestSessionManagerPropertyCollector(t *testing.T) {
+	ctx := context.Background()
+
+	m := VPX()
+
+	defer m.Remove()
+
+	err := m.Create()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s := m.Service.NewServer()
+	defer s.Close()
+
+	c, err := govmomi.NewClient(ctx, s.URL, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pc := property.DefaultCollector(c.Client)
+	root := object.NewRootFolder(c.Client)
+
+	filter := types.CreateFilter{
+		This: pc.Reference(),
+		Spec: types.PropertyFilterSpec{
+			PropSet: []types.PropertySpec{
+				{
+					Type:    "Datacenter",
+					All:     types.NewBool(false),
+					PathSet: []string{"name"},
+				},
+			},
+			ObjectSet: []types.ObjectSpec{
+				{
+					Obj:  root.Reference(),
+					Skip: (*bool)(nil),
+					SelectSet: []types.BaseSelectionSpec{
+						&types.TraversalSpec{
+							SelectionSpec: types.SelectionSpec{
+								Name: "folder2childEntity",
+							},
+							Type: "Folder",
+							Path: "childEntity",
+							Skip: types.NewBool(false),
+							SelectSet: []types.BaseSelectionSpec{
+								&types.SelectionSpec{
+									Name: "folder2childEntity",
+								},
+							},
+						},
+					},
+				},
+			},
+			ReportMissingObjectsInResults: (*bool)(nil),
+		},
+		PartialUpdates: true,
+	}
+
+	if err = pc.CreateFilter(ctx, filter); err != nil {
+		t.Fatal(err)
+	}
+
+	updates, _ := pc.WaitForUpdates(ctx, "") // disregard first result
+	// add DC and poll
+	dc, _ := root.CreateDatacenter(ctx, "DC-A")
+	updates, _ = pc.WaitForUpdates(ctx, updates.Version)
+	set := updates.FilterSet[0].ObjectSet[0]
+	if set.Obj.Type != "Datacenter" {
+		t.Errorf("obj=%s", set.Obj)
+	}
+	if set.Kind != types.ObjectUpdateKindEnter {
+		t.Errorf("kind=%s", set.Kind)
+	}
+
+	// create a new session and a call to the PropertyCollector singleton
+	c2, err := govmomi.NewClient(ctx, s.URL, true)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var folder mo.Folder
+	property.DefaultCollector(c2.Client).RetrieveOne(ctx, root.Reference(), []string{"name"}, &folder)
+	_ = c2.Logout(ctx)
+
+	// remove DC and poll
+	_, _ = dc.Destroy(ctx)
+	updates, _ = pc.WaitForUpdates(ctx, updates.Version)
+	set = updates.FilterSet[0].ObjectSet[0]
+	if set.Obj.Type != "Datacenter" {
+		t.Errorf("obj=%s", set.Obj)
+	}
+	if set.Kind != types.ObjectUpdateKindLeave {
+		t.Errorf("kind=%s", set.Kind)
 	}
 }

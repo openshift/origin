@@ -55,7 +55,7 @@ func addUngroupifiedInternalRouteTypes(scheme *runtime.Scheme) error {
 }
 
 func addLegacyRouteFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
-	if err := scheme.AddFieldLabelConversionFunc(GroupVersion.String(), "Route", legacyRouteFieldSelectorKeyConversionFunc); err != nil {
+	if err := scheme.AddFieldLabelConversionFunc(GroupVersion.WithKind("Route"), legacyRouteFieldSelectorKeyConversionFunc); err != nil {
 		return err
 	}
 	return nil

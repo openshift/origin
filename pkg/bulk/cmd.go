@@ -9,14 +9,15 @@ import (
 	"github.com/spf13/pflag"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/dynamic"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 )
 
 type Runner interface {
@@ -190,7 +191,7 @@ func (c Creator) Create(obj *unstructured.Unstructured, namespace string) (*unst
 		namespace = ""
 	}
 
-	return c.Client.Resource(mapping.Resource).Namespace(namespace).Create(obj)
+	return c.Client.Resource(mapping.Resource).Namespace(namespace).Create(obj, metav1.CreateOptions{})
 }
 
 func NoOp(obj *unstructured.Unstructured, namespace string) (*unstructured.Unstructured, error) {

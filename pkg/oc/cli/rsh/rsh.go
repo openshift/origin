@@ -10,6 +10,7 @@ import (
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/batch"
@@ -20,7 +21,6 @@ import (
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 	"k8s.io/kubernetes/pkg/kubectl/util/term"
 
@@ -155,11 +155,10 @@ func (o *RshOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []str
 	}
 	o.Config = config
 
-	client, err := kclientset.NewForConfig(config)
+	o.PodClient, err = corev1client.NewForConfig(config)
 	if err != nil {
 		return err
 	}
-	o.PodClient = client.Core()
 
 	o.PodName, err = podForResource(f, resource, time.Duration(o.Timeout)*time.Second)
 
@@ -212,11 +211,7 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 	case kapi.Resource("pods"):
 		return name, nil
 	case kapi.Resource("replicationcontrollers"):
-		config, err := f.ToRESTConfig()
-		if err != nil {
-			return "", err
-		}
-		kc, err := corev1client.NewForConfig(config)
+		kc, err := corev1client.NewForConfig(clientConfig)
 		if err != nil {
 			return "", err
 		}
@@ -241,7 +236,7 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		}
 		return podForResource(f, fmt.Sprintf("rc/%s", appsutil.LatestDeploymentNameForConfig(dc)), timeout)
 	case extensions.Resource("daemonsets"):
-		kc, err := f.ClientSet()
+		kc, err := kclientset.NewForConfig(clientConfig)
 		if err != nil {
 			return "", err
 		}
@@ -253,11 +248,7 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		if err != nil {
 			return "", err
 		}
-		config, err := f.ToRESTConfig()
-		if err != nil {
-			return "", err
-		}
-		coreclient, err := corev1client.NewForConfig(config)
+		coreclient, err := corev1client.NewForConfig(clientConfig)
 		if err != nil {
 			return "", err
 		}
@@ -268,7 +259,7 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		}
 		return pod.Name, nil
 	case extensions.Resource("deployments"):
-		kc, err := f.ClientSet()
+		kc, err := kclientset.NewForConfig(clientConfig)
 		if err != nil {
 			return "", err
 		}
@@ -280,11 +271,7 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		if err != nil {
 			return "", err
 		}
-		config, err := f.ToRESTConfig()
-		if err != nil {
-			return "", err
-		}
-		coreclient, err := corev1client.NewForConfig(config)
+		coreclient, err := corev1client.NewForConfig(clientConfig)
 		if err != nil {
 			return "", err
 		}
@@ -294,7 +281,7 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		}
 		return pod.Name, nil
 	case apps.Resource("statefulsets"):
-		kc, err := f.ClientSet()
+		kc, err := kclientset.NewForConfig(clientConfig)
 		if err != nil {
 			return "", err
 		}
@@ -306,11 +293,7 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		if err != nil {
 			return "", err
 		}
-		config, err := f.ToRESTConfig()
-		if err != nil {
-			return "", err
-		}
-		coreclient, err := corev1client.NewForConfig(config)
+		coreclient, err := corev1client.NewForConfig(clientConfig)
 		if err != nil {
 			return "", err
 		}
@@ -320,7 +303,7 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		}
 		return pod.Name, nil
 	case extensions.Resource("replicasets"):
-		kc, err := f.ClientSet()
+		kc, err := kclientset.NewForConfig(clientConfig)
 		if err != nil {
 			return "", err
 		}
@@ -332,11 +315,7 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		if err != nil {
 			return "", err
 		}
-		config, err := f.ToRESTConfig()
-		if err != nil {
-			return "", err
-		}
-		coreclient, err := corev1client.NewForConfig(config)
+		coreclient, err := corev1client.NewForConfig(clientConfig)
 		if err != nil {
 			return "", err
 		}
@@ -346,7 +325,7 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		}
 		return pod.Name, nil
 	case batch.Resource("jobs"):
-		kc, err := f.ClientSet()
+		kc, err := kclientset.NewForConfig(clientConfig)
 		if err != nil {
 			return "", err
 		}
@@ -354,11 +333,7 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 		if err != nil {
 			return "", err
 		}
-		config, err := f.ToRESTConfig()
-		if err != nil {
-			return "", err
-		}
-		coreclient, err := corev1client.NewForConfig(config)
+		coreclient, err := corev1client.NewForConfig(clientConfig)
 		if err != nil {
 			return "", err
 		}

@@ -55,7 +55,7 @@ const (
 
 func (plugin *iscsiPlugin) Init(host volume.VolumeHost) error {
 	plugin.host = host
-	plugin.targetLocks = keymutex.NewKeyMutex()
+	plugin.targetLocks = keymutex.NewHashed(0)
 	return nil
 }
 
@@ -207,7 +207,7 @@ func (plugin *iscsiPlugin) ConstructVolumeSpec(volumeName, mountPath string) (*v
 	// Find globalPDPath from pod volume directory(mountPath)
 	var globalPDPath string
 	mounter := plugin.host.GetMounter(plugin.GetPluginName())
-	paths, err := mount.GetMountRefs(mounter, mountPath)
+	paths, err := mounter.GetMountRefs(mountPath)
 	if err != nil {
 		return nil, err
 	}

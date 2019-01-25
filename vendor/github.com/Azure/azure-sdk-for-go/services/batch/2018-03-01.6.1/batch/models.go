@@ -1575,7 +1575,7 @@ type CloudPool struct {
 	// AllocationState - Possible values include: 'Steady', 'Resizing', 'Stopping'
 	AllocationState               AllocationState `json:"allocationState,omitempty"`
 	AllocationStateTransitionTime *date.Time      `json:"allocationStateTransitionTime,omitempty"`
-	// VMSize - For information about available sizes of virtual machines for Cloud Services pools (pools created with cloudServiceConfiguration), see Sizes for Cloud Services (http://azure.microsoft.com/documentation/articles/cloud-services-sizes-specs/). Batch supports all Cloud Services VM sizes except ExtraSmall, A1V2 and A2V2. For information about available VM sizes for pools using images from the Virtual Machines Marketplace (pools created with virtualMachineConfiguration) see Sizes for Virtual Machines (Linux) (https://azure.microsoft.com/documentation/articles/virtual-machines-linux-sizes/) or Sizes for Virtual Machines (Windows) (https://azure.microsoft.com/documentation/articles/virtual-machines-windows-sizes/). Batch supports all Azure VM sizes except STANDARD_A0 and those with premium storage (STANDARD_GS, STANDARD_DS, and STANDARD_DSV2 series).
+	// VMSize - For information about available sizes of virtual machines for Cloud Services pools (pools created with cloudServiceConfiguration), see Sizes for Cloud Services (https://azure.microsoft.com/documentation/articles/cloud-services-sizes-specs/). Batch supports all Cloud Services VM sizes except ExtraSmall, A1V2 and A2V2. For information about available VM sizes for pools using images from the Virtual Machines Marketplace (pools created with virtualMachineConfiguration) see Sizes for Virtual Machines (Linux) (https://azure.microsoft.com/documentation/articles/virtual-machines-linux-sizes/) or Sizes for Virtual Machines (Windows) (https://azure.microsoft.com/documentation/articles/virtual-machines-windows-sizes/). Batch supports all Azure VM sizes except STANDARD_A0 and those with premium storage (STANDARD_GS, STANDARD_DS, and STANDARD_DSV2 series).
 	VMSize *string `json:"vmSize,omitempty"`
 	// CloudServiceConfiguration - This property and virtualMachineConfiguration are mutually exclusive and one of the properties must be specified. This property cannot be specified if the Batch account was created with its poolAllocationMode property set to 'UserSubscription'.
 	CloudServiceConfiguration *CloudServiceConfiguration `json:"cloudServiceConfiguration,omitempty"`
@@ -1724,7 +1724,13 @@ type CloudServiceConfiguration struct {
 	CurrentOSVersion *string `json:"currentOSVersion,omitempty"`
 }
 
-// CloudTask ...
+// CloudTask batch will retry tasks when a recovery operation is triggered on a compute node. Examples of recovery
+// operations include (but are not limited to) when an unhealthy compute node is rebooted or a compute node
+// disappeared due to host failure. Retries due to recovery operations are independent of and are not counted
+// against the maxTaskRetryCount. Even if the maxTaskRetryCount is 0, an internal retry due to a recovery operation
+// may occur. Because of this, all tasks should be idempotent. This means tasks need to tolerate being interrupted
+// and restarted without causing any corruption or duplicate data. The best practice for long running tasks is to
+// use some form of checkpointing.
 type CloudTask struct {
 	autorest.Response `json:"-"`
 	// ID - The ID can contain any combination of alphanumeric characters including hyphens and underscores, and cannot contain more than 64 characters.
@@ -1745,11 +1751,11 @@ type CloudTask struct {
 	PreviousState TaskState `json:"previousState,omitempty"`
 	// PreviousStateTransitionTime - This property is not set if the task is in its initial Active state.
 	PreviousStateTransitionTime *date.Time `json:"previousStateTransitionTime,omitempty"`
-	// CommandLine - For multi-instance tasks, the command line is executed as the primary task, after the primary task and all subtasks have finished executing the coordination command line. The command line does not run under a shell, and therefore cannot take advantage of shell features such as environment variable expansion. If you want to take advantage of such features, you should invoke the shell in the command line, for example using "cmd /c MyCommand" in Windows or "/bin/sh -c MyCommand" in Linux.
+	// CommandLine - For multi-instance tasks, the command line is executed as the primary task, after the primary task and all subtasks have finished executing the coordination command line. The command line does not run under a shell, and therefore cannot take advantage of shell features such as environment variable expansion. If you want to take advantage of such features, you should invoke the shell in the command line, for example using "cmd /c MyCommand" in Windows or "/bin/sh -c MyCommand" in Linux. If the command line refers to file paths, it should use a relative path (relative to the task working directory), or use the Batch provided environment variable (https://docs.microsoft.com/en-us/azure/batch/batch-compute-node-environment-variables).
 	CommandLine *string `json:"commandLine,omitempty"`
 	// ContainerSettings - If the pool that will run this task has containerConfiguration set, this must be set as well. If the pool that will run this task doesn't have containerConfiguration set, this must not be set. When this is specified, all directories recursively below the AZ_BATCH_NODE_ROOT_DIR (the root of Azure Batch directories on the node) are mapped into the container, all task environment variables are mapped into the container, and the task command line is executed in the container.
 	ContainerSettings *TaskContainerSettings `json:"containerSettings,omitempty"`
-	// ResourceFiles - For multi-instance tasks, the resource files will only be downloaded to the compute node on which the primary task is executed.
+	// ResourceFiles - For multi-instance tasks, the resource files will only be downloaded to the compute node on which the primary task is executed. There is a maximum size for the list of resource files.  When the max size is exceeded, the request will fail and the response error code will be RequestEntityTooLarge. If this occurs, the collection of ResourceFiles must be reduced in size. This can be achieved using .zip files, Application Packages, or Docker Containers.
 	ResourceFiles *[]ResourceFile `json:"resourceFiles,omitempty"`
 	// OutputFiles - For multi-instance tasks, the files will only be uploaded from the compute node on which the primary task is executed.
 	OutputFiles         *[]OutputFile         `json:"outputFiles,omitempty"`
@@ -1894,7 +1900,7 @@ type ComputeNode struct {
 	IPAddress *string `json:"ipAddress,omitempty"`
 	// AffinityID - Note that this is just a soft affinity. If the target node is busy or unavailable at the time the task is scheduled, then the task will be scheduled elsewhere.
 	AffinityID *string `json:"affinityId,omitempty"`
-	// VMSize - For information about available sizes of virtual machines for Cloud Services pools (pools created with cloudServiceConfiguration), see Sizes for Cloud Services (http://azure.microsoft.com/documentation/articles/cloud-services-sizes-specs/). Batch supports all Cloud Services VM sizes except ExtraSmall, A1V2 and A2V2. For information about available VM sizes for pools using images from the Virtual Machines Marketplace (pools created with virtualMachineConfiguration) see Sizes for Virtual Machines (Linux) (https://azure.microsoft.com/documentation/articles/virtual-machines-linux-sizes/) or Sizes for Virtual Machines (Windows) (https://azure.microsoft.com/documentation/articles/virtual-machines-windows-sizes/). Batch supports all Azure VM sizes except STANDARD_A0 and those with premium storage (STANDARD_GS, STANDARD_DS, and STANDARD_DSV2 series).
+	// VMSize - For information about available sizes of virtual machines for Cloud Services pools (pools created with cloudServiceConfiguration), see Sizes for Cloud Services (https://azure.microsoft.com/documentation/articles/cloud-services-sizes-specs/). Batch supports all Cloud Services VM sizes except ExtraSmall, A1V2 and A2V2. For information about available VM sizes for pools using images from the Virtual Machines Marketplace (pools created with virtualMachineConfiguration) see Sizes for Virtual Machines (Linux) (https://azure.microsoft.com/documentation/articles/virtual-machines-linux-sizes/) or Sizes for Virtual Machines (Windows) (https://azure.microsoft.com/documentation/articles/virtual-machines-windows-sizes/). Batch supports all Azure VM sizes except STANDARD_A0 and those with premium storage (STANDARD_GS, STANDARD_DS, and STANDARD_DSV2 series).
 	VMSize              *string `json:"vmSize,omitempty"`
 	TotalTasksRun       *int32  `json:"totalTasksRun,omitempty"`
 	RunningTasksCount   *int32  `json:"runningTasksCount,omitempty"`
@@ -2261,17 +2267,23 @@ type JobExecutionInformation struct {
 // system may terminate one of the running tasks in the pool and return it to the queue in order to make room for
 // the Job Manager task to restart. Note that a Job Manager task in one job does not have priority over tasks in
 // other jobs. Across jobs, only job level priorities are observed. For example, if a Job Manager in a priority 0
-// job needs to be restarted, it will not displace tasks of a priority 1 job.
+// job needs to be restarted, it will not displace tasks of a priority 1 job. Batch will retry tasks when a
+// recovery operation is triggered on a compute node. Examples of recovery operations include (but are not limited
+// to) when an unhealthy compute node is rebooted or a compute node disappeared due to host failure. Retries due to
+// recovery operations are independent of and are not counted against the maxTaskRetryCount. Even if the
+// maxTaskRetryCount is 0, an internal retry due to a recovery operation may occur. Because of this, all tasks
+// should be idempotent. This means tasks need to tolerate being interrupted and restarted without causing any
+// corruption or duplicate data. The best practice for long running tasks is to use some form of checkpointing.
 type JobManagerTask struct {
 	// ID - The ID can contain any combination of alphanumeric characters including hyphens and underscores and cannot contain more than 64 characters.
 	ID *string `json:"id,omitempty"`
 	// DisplayName - It need not be unique and can contain any Unicode characters up to a maximum length of 1024.
 	DisplayName *string `json:"displayName,omitempty"`
-	// CommandLine - The command line does not run under a shell, and therefore cannot take advantage of shell features such as environment variable expansion. If you want to take advantage of such features, you should invoke the shell in the command line, for example using "cmd /c MyCommand" in Windows or "/bin/sh -c MyCommand" in Linux.
+	// CommandLine - The command line does not run under a shell, and therefore cannot take advantage of shell features such as environment variable expansion. If you want to take advantage of such features, you should invoke the shell in the command line, for example using "cmd /c MyCommand" in Windows or "/bin/sh -c MyCommand" in Linux. If the command line refers to file paths, it should use a relative path (relative to the task working directory), or use the Batch provided environment variable (https://docs.microsoft.com/en-us/azure/batch/batch-compute-node-environment-variables).
 	CommandLine *string `json:"commandLine,omitempty"`
 	// ContainerSettings - If the pool that will run this task has containerConfiguration set, this must be set as well. If the pool that will run this task doesn't have containerConfiguration set, this must not be set. When this is specified, all directories recursively below the AZ_BATCH_NODE_ROOT_DIR (the root of Azure Batch directories on the node) are mapped into the container, all task environment variables are mapped into the container, and the task command line is executed in the container.
 	ContainerSettings *TaskContainerSettings `json:"containerSettings,omitempty"`
-	// ResourceFiles - Files listed under this element are located in the task's working directory.
+	// ResourceFiles - Files listed under this element are located in the task's working directory. There is a maximum size for the list of resource files.  When the max size is exceeded, the request will fail and the response error code will be RequestEntityTooLarge. If this occurs, the collection of ResourceFiles must be reduced in size. This can be achieved using .zip files, Application Packages, or Docker Containers.
 	ResourceFiles *[]ResourceFile `json:"resourceFiles,omitempty"`
 	// OutputFiles - For multi-instance tasks, the files will only be uploaded from the compute node on which the primary task is executed.
 	OutputFiles         *[]OutputFile         `json:"outputFiles,omitempty"`
@@ -2287,7 +2299,7 @@ type JobManagerTask struct {
 	ApplicationPackageReferences *[]ApplicationPackageReference `json:"applicationPackageReferences,omitempty"`
 	// AuthenticationTokenSettings - If this property is set, the Batch service provides the task with an authentication token which can be used to authenticate Batch service operations without requiring an account access key. The token is provided via the AZ_BATCH_AUTHENTICATION_TOKEN environment variable. The operations that the task can carry out using the token depend on the settings. For example, a task can request job permissions in order to add other tasks to the job, or check the status of the job or of other tasks under the job.
 	AuthenticationTokenSettings *AuthenticationTokenSettings `json:"authenticationTokenSettings,omitempty"`
-	// AllowLowPriorityNode - The default value is false.
+	// AllowLowPriorityNode - The default value is true.
 	AllowLowPriorityNode *bool `json:"allowLowPriorityNode,omitempty"`
 }
 
@@ -2326,15 +2338,21 @@ type JobPreparationAndReleaseTaskExecutionInformation struct {
 // Preparation task to handle re-execution. If the compute node is rebooted, the Job Preparation task is run again
 // on the node before scheduling any other task of the job, if rerunOnNodeRebootAfterSuccess is true or if the Job
 // Preparation task did not previously complete. If the compute node is reimaged, the Job Preparation task is run
-// again before scheduling any task of the job.
+// again before scheduling any task of the job. Batch will retry tasks when a recovery operation is triggered on a
+// compute node. Examples of recovery operations include (but are not limited to) when an unhealthy compute node is
+// rebooted or a compute node disappeared due to host failure. Retries due to recovery operations are independent
+// of and are not counted against the maxTaskRetryCount. Even if the maxTaskRetryCount is 0, an internal retry due
+// to a recovery operation may occur. Because of this, all tasks should be idempotent. This means tasks need to
+// tolerate being interrupted and restarted without causing any corruption or duplicate data. The best practice for
+// long running tasks is to use some form of checkpointing.
 type JobPreparationTask struct {
 	// ID - The ID can contain any combination of alphanumeric characters including hyphens and underscores and cannot contain more than 64 characters. If you do not specify this property, the Batch service assigns a default value of 'jobpreparation'. No other task in the job can have the same ID as the Job Preparation task. If you try to submit a task with the same id, the Batch service rejects the request with error code TaskIdSameAsJobPreparationTask; if you are calling the REST API directly, the HTTP status code is 409 (Conflict).
 	ID *string `json:"id,omitempty"`
-	// CommandLine - The command line does not run under a shell, and therefore cannot take advantage of shell features such as environment variable expansion. If you want to take advantage of such features, you should invoke the shell in the command line, for example using "cmd /c MyCommand" in Windows or "/bin/sh -c MyCommand" in Linux.
+	// CommandLine - The command line does not run under a shell, and therefore cannot take advantage of shell features such as environment variable expansion. If you want to take advantage of such features, you should invoke the shell in the command line, for example using "cmd /c MyCommand" in Windows or "/bin/sh -c MyCommand" in Linux. If the command line refers to file paths, it should use a relative path (relative to the task working directory), or use the Batch provided environment variable (https://docs.microsoft.com/en-us/azure/batch/batch-compute-node-environment-variables).
 	CommandLine *string `json:"commandLine,omitempty"`
 	// ContainerSettings - When this is specified, all directories recursively below the AZ_BATCH_NODE_ROOT_DIR (the root of Azure Batch directories on the node) are mapped into the container, all task environment variables are mapped into the container, and the task command line is executed in the container.
 	ContainerSettings *TaskContainerSettings `json:"containerSettings,omitempty"`
-	// ResourceFiles - Files listed under this element are located in the task's working directory.
+	// ResourceFiles - Files listed under this element are located in the task's working directory.  There is a maximum size for the list of resource files.  When the max size is exceeded, the request will fail and the response error code will be RequestEntityTooLarge. If this occurs, the collection of ResourceFiles must be reduced in size. This can be achieved using .zip files, Application Packages, or Docker Containers.
 	ResourceFiles       *[]ResourceFile       `json:"resourceFiles,omitempty"`
 	EnvironmentSettings *[]EnvironmentSetting `json:"environmentSettings,omitempty"`
 	Constraints         *TaskConstraints      `json:"constraints,omitempty"`
@@ -2384,7 +2402,7 @@ type JobPreparationTaskExecutionInformation struct {
 type JobReleaseTask struct {
 	// ID - The ID can contain any combination of alphanumeric characters including hyphens and underscores and cannot contain more than 64 characters. If you do not specify this property, the Batch service assigns a default value of 'jobrelease'. No other task in the job can have the same ID as the Job Release task. If you try to submit a task with the same id, the Batch service rejects the request with error code TaskIdSameAsJobReleaseTask; if you are calling the REST API directly, the HTTP status code is 409 (Conflict).
 	ID *string `json:"id,omitempty"`
-	// CommandLine - The command line does not run under a shell, and therefore cannot take advantage of shell features such as environment variable expansion. If you want to take advantage of such features, you should invoke the shell in the command line, for example using "cmd /c MyCommand" in Windows or "/bin/sh -c MyCommand" in Linux.
+	// CommandLine - The command line does not run under a shell, and therefore cannot take advantage of shell features such as environment variable expansion. If you want to take advantage of such features, you should invoke the shell in the command line, for example using "cmd /c MyCommand" in Windows or "/bin/sh -c MyCommand" in Linux. If the command line refers to file paths, it should use a relative path (relative to the task working directory), or use the Batch provided environment variable (https://docs.microsoft.com/en-us/azure/batch/batch-compute-node-environment-variables).
 	CommandLine *string `json:"commandLine,omitempty"`
 	// ContainerSettings - When this is specified, all directories recursively below the AZ_BATCH_NODE_ROOT_DIR (the root of Azure Batch directories on the node) are mapped into the container, all task environment variables are mapped into the container, and the task command line is executed in the container.
 	ContainerSettings *TaskContainerSettings `json:"containerSettings,omitempty"`
@@ -2579,7 +2597,7 @@ type MultiInstanceSettings struct {
 	NumberOfInstances *int32 `json:"numberOfInstances,omitempty"`
 	// CoordinationCommandLine - A typical coordination command line launches a background service and verifies that the service is ready to process inter-node messages.
 	CoordinationCommandLine *string `json:"coordinationCommandLine,omitempty"`
-	// CommonResourceFiles - The difference between common resource files and task resource files is that common resource files are downloaded for all subtasks including the primary, whereas task resource files are downloaded only for the primary. Also note that these resource files are not downloaded to the task working directory, but instead are downloaded to the task root directory (one directory above the working directory).
+	// CommonResourceFiles - The difference between common resource files and task resource files is that common resource files are downloaded for all subtasks including the primary, whereas task resource files are downloaded only for the primary. Also note that these resource files are not downloaded to the task working directory, but instead are downloaded to the task root directory (one directory above the working directory).  There is a maximum size for the list of resource files.  When the max size is exceeded, the request will fail and the response error code will be RequestEntityTooLarge. If this occurs, the collection of ResourceFiles must be reduced in size. This can be achieved using .zip files, Application Packages, or Docker Containers.
 	CommonResourceFiles *[]ResourceFile `json:"commonResourceFiles,omitempty"`
 }
 
@@ -2629,6 +2647,7 @@ type NodeCounts struct {
 	Running             *int32 `json:"running,omitempty"`
 	Starting            *int32 `json:"starting,omitempty"`
 	StartTaskFailed     *int32 `json:"startTaskFailed,omitempty"`
+	LeavingPool         *int32 `json:"leavingPool,omitempty"`
 	Unknown             *int32 `json:"unknown,omitempty"`
 	Unusable            *int32 `json:"unusable,omitempty"`
 	WaitingForStartTask *int32 `json:"waitingForStartTask,omitempty"`
@@ -2819,7 +2838,7 @@ type PoolAddParameter struct {
 	ID *string `json:"id,omitempty"`
 	// DisplayName - The display name need not be unique and can contain any Unicode characters up to a maximum length of 1024.
 	DisplayName *string `json:"displayName,omitempty"`
-	// VMSize - For information about available sizes of virtual machines for Cloud Services pools (pools created with cloudServiceConfiguration), see Sizes for Cloud Services (http://azure.microsoft.com/documentation/articles/cloud-services-sizes-specs/). Batch supports all Cloud Services VM sizes except ExtraSmall, A1V2 and A2V2. For information about available VM sizes for pools using images from the Virtual Machines Marketplace (pools created with virtualMachineConfiguration) see Sizes for Virtual Machines (Linux) (https://azure.microsoft.com/documentation/articles/virtual-machines-linux-sizes/) or Sizes for Virtual Machines (Windows) (https://azure.microsoft.com/documentation/articles/virtual-machines-windows-sizes/). Batch supports all Azure VM sizes except STANDARD_A0 and those with premium storage (STANDARD_GS, STANDARD_DS, and STANDARD_DSV2 series).
+	// VMSize - For information about available sizes of virtual machines for Cloud Services pools (pools created with cloudServiceConfiguration), see Sizes for Cloud Services (https://azure.microsoft.com/documentation/articles/cloud-services-sizes-specs/). Batch supports all Cloud Services VM sizes except ExtraSmall, A1V2 and A2V2. For information about available VM sizes for pools using images from the Virtual Machines Marketplace (pools created with virtualMachineConfiguration) see Sizes for Virtual Machines (Linux) (https://azure.microsoft.com/documentation/articles/virtual-machines-linux-sizes/) or Sizes for Virtual Machines (Windows) (https://azure.microsoft.com/documentation/articles/virtual-machines-windows-sizes/). Batch supports all Azure VM sizes except STANDARD_A0 and those with premium storage (STANDARD_GS, STANDARD_DS, and STANDARD_DSV2 series).
 	VMSize *string `json:"vmSize,omitempty"`
 	// CloudServiceConfiguration - This property and virtualMachineConfiguration are mutually exclusive and one of the properties must be specified. This property cannot be specified if the Batch account was created with its poolAllocationMode property set to 'UserSubscription'.
 	CloudServiceConfiguration *CloudServiceConfiguration `json:"cloudServiceConfiguration,omitempty"`
@@ -3117,7 +3136,7 @@ type PoolResizeParameter struct {
 type PoolSpecification struct {
 	// DisplayName - The display name need not be unique and can contain any Unicode characters up to a maximum length of 1024.
 	DisplayName *string `json:"displayName,omitempty"`
-	// VMSize - For information about available sizes of virtual machines for Cloud Services pools (pools created with cloudServiceConfiguration), see Sizes for Cloud Services (http://azure.microsoft.com/documentation/articles/cloud-services-sizes-specs/). Batch supports all Cloud Services VM sizes except ExtraSmall, A1V2 and A2V2. For information about available VM sizes for pools using images from the Virtual Machines Marketplace (pools created with virtualMachineConfiguration) see Sizes for Virtual Machines (Linux) (https://azure.microsoft.com/documentation/articles/virtual-machines-linux-sizes/) or Sizes for Virtual Machines (Windows) (https://azure.microsoft.com/documentation/articles/virtual-machines-windows-sizes/). Batch supports all Azure VM sizes except STANDARD_A0 and those with premium storage (STANDARD_GS, STANDARD_DS, and STANDARD_DSV2 series).
+	// VMSize - For information about available sizes of virtual machines for Cloud Services pools (pools created with cloudServiceConfiguration), see Sizes for Cloud Services (https://azure.microsoft.com/documentation/articles/cloud-services-sizes-specs/). Batch supports all Cloud Services VM sizes except ExtraSmall, A1V2 and A2V2. For information about available VM sizes for pools using images from the Virtual Machines Marketplace (pools created with virtualMachineConfiguration) see Sizes for Virtual Machines (Linux) (https://azure.microsoft.com/documentation/articles/virtual-machines-linux-sizes/) or Sizes for Virtual Machines (Windows) (https://azure.microsoft.com/documentation/articles/virtual-machines-windows-sizes/). Batch supports all Azure VM sizes except STANDARD_A0 and those with premium storage (STANDARD_GS, STANDARD_DS, and STANDARD_DSV2 series).
 	VMSize *string `json:"vmSize,omitempty"`
 	// CloudServiceConfiguration - This property must be specified if the pool needs to be created with Azure PaaS VMs. This property and virtualMachineConfiguration are mutually exclusive and one of the properties must be specified. If neither is specified then the Batch service returns an error; if you are calling the REST API directly, the HTTP status code is 400 (Bad Request). This property cannot be specified if the Batch account was created with its poolAllocationMode property set to 'UserSubscription'.
 	CloudServiceConfiguration *CloudServiceConfiguration `json:"cloudServiceConfiguration,omitempty"`
@@ -3248,9 +3267,15 @@ type Schedule struct {
 	RecurrenceInterval *string `json:"recurrenceInterval,omitempty"`
 }
 
-// StartTask ...
+// StartTask batch will retry tasks when a recovery operation is triggered on a compute node. Examples of recovery
+// operations include (but are not limited to) when an unhealthy compute node is rebooted or a compute node
+// disappeared due to host failure. Retries due to recovery operations are independent of and are not counted
+// against the maxTaskRetryCount. Even if the maxTaskRetryCount is 0, an internal retry due to a recovery operation
+// may occur. Because of this, all tasks should be idempotent. This means tasks need to tolerate being interrupted
+// and restarted without causing any corruption or duplicate data. The best practice for long running tasks is to
+// use some form of checkpointing.
 type StartTask struct {
-	// CommandLine - The command line does not run under a shell, and therefore cannot take advantage of shell features such as environment variable expansion. If you want to take advantage of such features, you should invoke the shell in the command line, for example using "cmd /c MyCommand" in Windows or "/bin/sh -c MyCommand" in Linux.
+	// CommandLine - The command line does not run under a shell, and therefore cannot take advantage of shell features such as environment variable expansion. If you want to take advantage of such features, you should invoke the shell in the command line, for example using "cmd /c MyCommand" in Windows or "/bin/sh -c MyCommand" in Linux. If the command line refers to file paths, it should use a relative path (relative to the task working directory), or use the Batch provided environment variable (https://docs.microsoft.com/en-us/azure/batch/batch-compute-node-environment-variables).
 	CommandLine *string `json:"commandLine,omitempty"`
 	// ContainerSettings - When this is specified, all directories recursively below the AZ_BATCH_NODE_ROOT_DIR (the root of Azure Batch directories on the node) are mapped into the container, all task environment variables are mapped into the container, and the task command line is executed in the container.
 	ContainerSettings *TaskContainerSettings `json:"containerSettings,omitempty"`
@@ -3313,7 +3338,7 @@ type SubtaskInformation struct {
 
 // TaskAddCollectionParameter ...
 type TaskAddCollectionParameter struct {
-	// Value - The total serialized size of this collection must be less than 4MB. If it is greater than 4MB (for example if each task has 100's of resource files or environment variables), the request will fail with code 'RequestBodyTooLarge' and should be retried again with fewer tasks.
+	// Value - The total serialized size of this collection must be less than 1MB. If it is greater than 1MB (for example if each task has 100's of resource files or environment variables), the request will fail with code 'RequestBodyTooLarge' and should be retried again with fewer tasks.
 	Value *[]TaskAddParameter `json:"value,omitempty"`
 }
 
@@ -3323,19 +3348,25 @@ type TaskAddCollectionResult struct {
 	Value             *[]TaskAddResult `json:"value,omitempty"`
 }
 
-// TaskAddParameter ...
+// TaskAddParameter batch will retry tasks when a recovery operation is triggered on a compute node. Examples of
+// recovery operations include (but are not limited to) when an unhealthy compute node is rebooted or a compute
+// node disappeared due to host failure. Retries due to recovery operations are independent of and are not counted
+// against the maxTaskRetryCount. Even if the maxTaskRetryCount is 0, an internal retry due to a recovery operation
+// may occur. Because of this, all tasks should be idempotent. This means tasks need to tolerate being interrupted
+// and restarted without causing any corruption or duplicate data. The best practice for long running tasks is to
+// use some form of checkpointing.
 type TaskAddParameter struct {
 	// ID - The ID can contain any combination of alphanumeric characters including hyphens and underscores, and cannot contain more than 64 characters. The ID is case-preserving and case-insensitive (that is, you may not have two IDs within a job that differ only by case).
 	ID *string `json:"id,omitempty"`
 	// DisplayName - The display name need not be unique and can contain any Unicode characters up to a maximum length of 1024.
 	DisplayName *string `json:"displayName,omitempty"`
-	// CommandLine - For multi-instance tasks, the command line is executed as the primary task, after the primary task and all subtasks have finished executing the coordination command line. The command line does not run under a shell, and therefore cannot take advantage of shell features such as environment variable expansion. If you want to take advantage of such features, you should invoke the shell in the command line, for example using "cmd /c MyCommand" in Windows or "/bin/sh -c MyCommand" in Linux.
+	// CommandLine - For multi-instance tasks, the command line is executed as the primary task, after the primary task and all subtasks have finished executing the coordination command line. The command line does not run under a shell, and therefore cannot take advantage of shell features such as environment variable expansion. If you want to take advantage of such features, you should invoke the shell in the command line, for example using "cmd /c MyCommand" in Windows or "/bin/sh -c MyCommand" in Linux. If the command line refers to file paths, it should use a relative path (relative to the task working directory), or use the Batch provided environment variable (https://docs.microsoft.com/en-us/azure/batch/batch-compute-node-environment-variables).
 	CommandLine *string `json:"commandLine,omitempty"`
 	// ContainerSettings - If the pool that will run this task has containerConfiguration set, this must be set as well. If the pool that will run this task doesn't have containerConfiguration set, this must not be set. When this is specified, all directories recursively below the AZ_BATCH_NODE_ROOT_DIR (the root of Azure Batch directories on the node) are mapped into the container, all task environment variables are mapped into the container, and the task command line is executed in the container.
 	ContainerSettings *TaskContainerSettings `json:"containerSettings,omitempty"`
 	// ExitConditions - How the Batch service should respond when the task completes.
 	ExitConditions *ExitConditions `json:"exitConditions,omitempty"`
-	// ResourceFiles - For multi-instance tasks, the resource files will only be downloaded to the compute node on which the primary task is executed.
+	// ResourceFiles - For multi-instance tasks, the resource files will only be downloaded to the compute node on which the primary task is executed. There is a maximum size for the list of resource files.  When the max size is exceeded, the request will fail and the response error code will be RequestEntityTooLarge. If this occurs, the collection of ResourceFiles must be reduced in size. This can be achieved using .zip files, Application Packages, or Docker Containers.
 	ResourceFiles *[]ResourceFile `json:"resourceFiles,omitempty"`
 	// OutputFiles - For multi-instance tasks, the files will only be uploaded from the compute node on which the primary task is executed.
 	OutputFiles         *[]OutputFile         `json:"outputFiles,omitempty"`
@@ -3372,7 +3403,7 @@ type TaskConstraints struct {
 	MaxWallClockTime *string `json:"maxWallClockTime,omitempty"`
 	// RetentionTime - The default is infinite, i.e. the task directory will be retained until the compute node is removed or reimaged.
 	RetentionTime *string `json:"retentionTime,omitempty"`
-	// MaxTaskRetryCount - Note that this value specifically controls the number of retries. The Batch service will try the task once, and may then retry up to this limit. For example, if the maximum retry count is 3, Batch tries the task up to 4 times (one initial try and 3 retries). If the maximum retry count is 0, the Batch service does not retry the task. If the maximum retry count is -1, the Batch service retries the task without limit.
+	// MaxTaskRetryCount - Note that this value specifically controls the number of retries for the task executable due to a nonzero exit code. The Batch service will try the task once, and may then retry up to this limit. For example, if the maximum retry count is 3, Batch tries the task up to 4 times (one initial try and 3 retries). If the maximum retry count is 0, the Batch service does not retry the task after the first attempt. If the maximum retry count is -1, the Batch service retries the task without limit. Resource files and application packages are only downloaded again if the task is retried on a new compute node.
 	MaxTaskRetryCount *int32 `json:"maxTaskRetryCount,omitempty"`
 }
 
@@ -3528,7 +3559,9 @@ type UserAccount struct {
 	LinuxUserConfiguration *LinuxUserConfiguration `json:"linuxUserConfiguration,omitempty"`
 }
 
-// UserIdentity specify either the userName or autoUser property, but not both.
+// UserIdentity specify either the userName or autoUser property, but not both. On CloudServiceConfiguration pools,
+// this user is logged in with the INTERACTIVE flag. On Windows VirtualMachineConfiguration pools, this user is
+// logged in with the BATCH flag.
 type UserIdentity struct {
 	// UserName - The userName and autoUser properties are mutually exclusive; you must specify one but not both.
 	UserName *string `json:"username,omitempty"`

@@ -4,7 +4,7 @@
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 # Open port scanning
-os::log::info "Checking open ports ('sudo openshift start' should already be running)"
+os::log::info "Checking open ports..."
 
 # 53 (DNS)
 # 4001,7001 (etcd)

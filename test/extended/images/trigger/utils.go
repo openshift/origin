@@ -1,6 +1,7 @@
 package trigger
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"time"
@@ -11,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	appsv1clientset "k8s.io/client-go/kubernetes/typed/apps/v1"
+	watchtools "k8s.io/client-go/tools/watch"
 )
 
 func readDeploymentFixture(path string) (*appsv1.Deployment, error) {
@@ -34,7 +36,9 @@ func waitForDeploymentModification(appsClient appsv1clientset.AppsV1Interface, o
 		return nil, err
 	}
 
-	event, err := watch.Until(timeout, watcher, func(event watch.Event) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	event, err := watchtools.UntilWithoutRetry(ctx, watcher, func(event watch.Event) (bool, error) {
 		if event.Type != watch.Modified && (objMeta.ResourceVersion == "" && event.Type != watch.Added) {
 			return true, fmt.Errorf("different kind of event appeared while waiting for Deployment modification: event: %#v", event)
 		}

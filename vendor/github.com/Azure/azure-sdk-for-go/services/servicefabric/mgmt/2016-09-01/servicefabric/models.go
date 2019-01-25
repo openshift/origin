@@ -51,6 +51,11 @@ const (
 	WaitingForNodes ClusterState = "WaitingForNodes"
 )
 
+// PossibleClusterStateValues returns an array of possible values for the ClusterState const type.
+func PossibleClusterStateValues() []ClusterState {
+	return []ClusterState{AutoScale, BaselineUpgrade, Deploying, EnforcingClusterVersion, Ready, UpdatingInfrastructure, UpdatingUserCertificate, UpdatingUserConfiguration, UpgradeServiceUnreachable, WaitingForNodes}
+}
+
 // DurabilityLevel enumerates the values for durability level.
 type DurabilityLevel string
 
@@ -63,6 +68,11 @@ const (
 	Silver DurabilityLevel = "Silver"
 )
 
+// PossibleDurabilityLevelValues returns an array of possible values for the DurabilityLevel const type.
+func PossibleDurabilityLevelValues() []DurabilityLevel {
+	return []DurabilityLevel{Bronze, Gold, Silver}
+}
+
 // Environment enumerates the values for environment.
 type Environment string
 
@@ -72,6 +82,11 @@ const (
 	// Windows ...
 	Windows Environment = "Windows"
 )
+
+// PossibleEnvironmentValues returns an array of possible values for the Environment const type.
+func PossibleEnvironmentValues() []Environment {
+	return []Environment{Linux, Windows}
+}
 
 // ProvisioningState enumerates the values for provisioning state.
 type ProvisioningState string
@@ -87,6 +102,11 @@ const (
 	Updating ProvisioningState = "Updating"
 )
 
+// PossibleProvisioningStateValues returns an array of possible values for the ProvisioningState const type.
+func PossibleProvisioningStateValues() []ProvisioningState {
+	return []ProvisioningState{Canceled, Failed, Succeeded, Updating}
+}
+
 // ReliabilityLevel enumerates the values for reliability level.
 type ReliabilityLevel string
 
@@ -98,6 +118,11 @@ const (
 	// ReliabilityLevelSilver ...
 	ReliabilityLevelSilver ReliabilityLevel = "Silver"
 )
+
+// PossibleReliabilityLevelValues returns an array of possible values for the ReliabilityLevel const type.
+func PossibleReliabilityLevelValues() []ReliabilityLevel {
+	return []ReliabilityLevel{ReliabilityLevelBronze, ReliabilityLevelGold, ReliabilityLevelSilver}
+}
 
 // ReliabilityLevel1 enumerates the values for reliability level 1.
 type ReliabilityLevel1 string
@@ -113,6 +138,11 @@ const (
 	ReliabilityLevel1Silver ReliabilityLevel1 = "Silver"
 )
 
+// PossibleReliabilityLevel1Values returns an array of possible values for the ReliabilityLevel1 const type.
+func PossibleReliabilityLevel1Values() []ReliabilityLevel1 {
+	return []ReliabilityLevel1{ReliabilityLevel1Bronze, ReliabilityLevel1Gold, ReliabilityLevel1Platinum, ReliabilityLevel1Silver}
+}
+
 // UpgradeMode enumerates the values for upgrade mode.
 type UpgradeMode string
 
@@ -123,6 +153,11 @@ const (
 	Manual UpgradeMode = "Manual"
 )
 
+// PossibleUpgradeModeValues returns an array of possible values for the UpgradeMode const type.
+func PossibleUpgradeModeValues() []UpgradeMode {
+	return []UpgradeMode{Automatic, Manual}
+}
+
 // UpgradeMode1 enumerates the values for upgrade mode 1.
 type UpgradeMode1 string
 
@@ -132,6 +167,11 @@ const (
 	// UpgradeMode1Manual ...
 	UpgradeMode1Manual UpgradeMode1 = "Manual"
 )
+
+// PossibleUpgradeMode1Values returns an array of possible values for the UpgradeMode1 const type.
+func PossibleUpgradeMode1Values() []UpgradeMode1 {
+	return []UpgradeMode1{UpgradeMode1Automatic, UpgradeMode1Manual}
+}
 
 // X509StoreName enumerates the values for x509 store name.
 type X509StoreName string
@@ -154,6 +194,11 @@ const (
 	// TrustedPublisher ...
 	TrustedPublisher X509StoreName = "TrustedPublisher"
 )
+
+// PossibleX509StoreNameValues returns an array of possible values for the X509StoreName const type.
+func PossibleX509StoreNameValues() []X509StoreName {
+	return []X509StoreName{AddressBook, AuthRoot, CertificateAuthority, Disallowed, My, Root, TrustedPeople, TrustedPublisher}
+}
 
 // AvailableOperationDisplay operation supported by ServiceFabric resource provider
 type AvailableOperationDisplay struct {
@@ -427,6 +472,24 @@ type ClusterCodeVersionsResult struct {
 	*ClusterVersionDetails `json:"properties,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for ClusterCodeVersionsResult.
+func (ccvr ClusterCodeVersionsResult) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if ccvr.ID != nil {
+		objectMap["id"] = ccvr.ID
+	}
+	if ccvr.Name != nil {
+		objectMap["name"] = ccvr.Name
+	}
+	if ccvr.Type != nil {
+		objectMap["type"] = ccvr.Type
+	}
+	if ccvr.ClusterVersionDetails != nil {
+		objectMap["properties"] = ccvr.ClusterVersionDetails
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for ClusterCodeVersionsResult struct.
 func (ccvr *ClusterCodeVersionsResult) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -656,12 +719,11 @@ type ClusterPropertiesUpdateParameters struct {
 // ClustersCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ClustersCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ClustersCreateFuture) Result(client ClustersClient) (c Cluster, err error) {
+func (future *ClustersCreateFuture) Result(client ClustersClient) (c Cluster, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -669,34 +731,15 @@ func (future ClustersCreateFuture) Result(client ClustersClient) (c Cluster, err
 		return
 	}
 	if !done {
-		return c, azure.NewAsyncOpIncompleteError("servicefabric.ClustersCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		c, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "servicefabric.ClustersCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("servicefabric.ClustersCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if c.Response.Response, err = future.GetResult(sender); err == nil && c.Response.Response.StatusCode != http.StatusNoContent {
+		c, err = client.CreateResponder(c.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "servicefabric.ClustersCreateFuture", "Result", c.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicefabric.ClustersCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	c, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicefabric.ClustersCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -704,12 +747,11 @@ func (future ClustersCreateFuture) Result(client ClustersClient) (c Cluster, err
 // ClustersUpdateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type ClustersUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ClustersUpdateFuture) Result(client ClustersClient) (c Cluster, err error) {
+func (future *ClustersUpdateFuture) Result(client ClustersClient) (c Cluster, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -717,34 +759,15 @@ func (future ClustersUpdateFuture) Result(client ClustersClient) (c Cluster, err
 		return
 	}
 	if !done {
-		return c, azure.NewAsyncOpIncompleteError("servicefabric.ClustersUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		c, err = client.UpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "servicefabric.ClustersUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("servicefabric.ClustersUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if c.Response.Response, err = future.GetResult(sender); err == nil && c.Response.Response.StatusCode != http.StatusNoContent {
+		c, err = client.UpdateResponder(c.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "servicefabric.ClustersUpdateFuture", "Result", c.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicefabric.ClustersUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	c, err = client.UpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "servicefabric.ClustersUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -926,7 +949,9 @@ func (ntd NodeTypeDescription) MarshalJSON() ([]byte, error) {
 	if ntd.HTTPGatewayEndpointPort != nil {
 		objectMap["httpGatewayEndpointPort"] = ntd.HTTPGatewayEndpointPort
 	}
-	objectMap["durabilityLevel"] = ntd.DurabilityLevel
+	if ntd.DurabilityLevel != "" {
+		objectMap["durabilityLevel"] = ntd.DurabilityLevel
+	}
 	if ntd.ApplicationPorts != nil {
 		objectMap["applicationPorts"] = ntd.ApplicationPorts
 	}

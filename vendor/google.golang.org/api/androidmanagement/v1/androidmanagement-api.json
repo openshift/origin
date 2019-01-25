@@ -60,11 +60,6 @@
       "location": "query",
       "type": "string"
     },
-    "bearer_token": {
-      "description": "OAuth bearer token.",
-      "location": "query",
-      "type": "string"
-    },
     "callback": {
       "description": "JSONP",
       "location": "query",
@@ -84,12 +79,6 @@
       "description": "OAuth 2.0 token for the current user.",
       "location": "query",
       "type": "string"
-    },
-    "pp": {
-      "default": "true",
-      "description": "Pretty-print response.",
-      "location": "query",
-      "type": "boolean"
     },
     "prettyPrint": {
       "default": "true",
@@ -766,7 +755,7 @@
       }
     }
   },
-  "revision": "20180530",
+  "revision": "20180604",
   "rootUrl": "https://androidmanagement.googleapis.com/",
   "schemas": {
     "AlwaysOnVpnPackage": {
@@ -928,7 +917,7 @@
           "type": "array"
         },
         "disabled": {
-          "description": "Whether the app should be disabled, but app data is preserved.",
+          "description": "Whether the app is disabled. When disabled, the app data is still preserved.",
           "type": "boolean"
         },
         "installType": {
@@ -936,12 +925,14 @@
           "enum": [
             "INSTALL_TYPE_UNSPECIFIED",
             "PREINSTALLED",
-            "FORCE_INSTALLED"
+            "FORCE_INSTALLED",
+            "AVAILABLE"
           ],
           "enumDescriptions": [
-            "No automatic installation is performed. Any other app policies will be applied if the user installs the app.",
+            "Unspecified. Defaults to AVAILABLE.",
             "The app is automatically installed and can be removed by the user.",
-            "The app is automatically installed and can't be removed by the user."
+            "The app is automatically installed and can't be removed by the user.",
+            "The app is available to install."
           ],
           "type": "string"
         },
@@ -1254,7 +1245,7 @@
           "type": "array"
         },
         "lastPolicyComplianceReportTime": {
-          "description": "The last time the device sent a policy compliance report.",
+          "description": "The last time the device sent a policy compliance report. Important: This field is deprecated. The timestamp will be on last_status_report_time field, and last_status_report_time will be used for both status report and compliance report.",
           "format": "google-datetime",
           "type": "string"
         },
@@ -1508,7 +1499,7 @@
           "enumDescriptions": [
             "This value is ignored.",
             "A notification sent when a device enrolls.",
-            "A notification sent when a device issues a policy compliance report.",
+            "A notification sent when a device issues a policy compliance report. Important: This enum value is deprecated. The notification will be sent as STATUS_REPORT.",
             "A notification sent when a device issues a status report.",
             "A notification sent when a device command has completed."
           ],
@@ -2195,7 +2186,7 @@
       "id": "PermissionGrant",
       "properties": {
         "permission": {
-          "description": "The android permission, e.g. android.permission.READ_CALENDAR.",
+          "description": "The android permission or group, e.g. android.permission.READ_CALENDAR or android.permission_group.CALENDAR.",
           "type": "string"
         },
         "policy": {

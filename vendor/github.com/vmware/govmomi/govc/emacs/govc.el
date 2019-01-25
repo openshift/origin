@@ -3,7 +3,7 @@
 ;; Author: The govc developers
 ;; URL: https://github.com/vmware/govmomi/tree/master/govc/emacs
 ;; Keywords: convenience
-;; Version: 0.16.0
+;; Version: 0.18.0
 ;; Package-Requires: ((emacs "24.3") (dash "1.5.0") (s "1.9.0") (magit-popup "2.0.50") (json-mode "1.6.0"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -447,7 +447,10 @@ Also fixes the case where user contains an '@'."
             (progn (setf (url-host url) (govc-table-column-value "Name"))
                    (setf (url-target url) nil))
           (progn (setf (url-host url) (govc-table-column-value "IP address"))
-                 (setf (url-target url) (govc-table-column-value "Name"))))
+                 (setf (url-target url) (govc-table-column-value "Name"))
+                 ;; default url-user to Administrator@$domain when connecting to a vCenter VM
+                 (let ((sts (ignore-errors (govc "sso.service.ls" "-t" "sso:sts" "-U" "-u" (url-host url)))))
+                   (if sts (setf (url-user url) (concat "Administrator@" (file-name-nondirectory (car sts))))))))
         (setf (url-filename url) "") ; erase query string
         (if (string-empty-p (url-user url))
             (setf (url-user url) "root")) ; local workstation url has no user set
@@ -1208,7 +1211,7 @@ Optionally filter by FILTER and inherit SESSION."
   (interactive)
   (delete-other-windows)
   (govc-shell-command
-   (list "datastore.disk.info" (if current-prefix-arg "-c") (govc-selection))))
+   (list "datastore.disk.info" "-uuid" (if current-prefix-arg "-c") (govc-selection))))
 
 (defun govc-datastore-ls-json ()
   "JSON via govc datastore.ls -json on current selection."

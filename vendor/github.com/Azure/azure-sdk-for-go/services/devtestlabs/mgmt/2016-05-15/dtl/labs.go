@@ -41,8 +41,9 @@ func NewLabsClientWithBaseURI(baseURI string, subscriptionID string) LabsClient 
 }
 
 // ClaimAnyVM claim a random claimable virtual machine in the lab. This operation can take a while to complete.
-//
-// resourceGroupName is the name of the resource group. name is the name of the lab.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// name - the name of the lab.
 func (client LabsClient) ClaimAnyVM(ctx context.Context, resourceGroupName string, name string) (result LabsClaimAnyVMFuture, err error) {
 	req, err := client.ClaimAnyVMPreparer(ctx, resourceGroupName, name)
 	if err != nil {
@@ -83,15 +84,17 @@ func (client LabsClient) ClaimAnyVMPreparer(ctx context.Context, resourceGroupNa
 // ClaimAnyVMSender sends the ClaimAnyVM request. The method will close the
 // http.Response Body if it receives an error.
 func (client LabsClient) ClaimAnyVMSender(req *http.Request) (future LabsClaimAnyVMFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -108,9 +111,10 @@ func (client LabsClient) ClaimAnyVMResponder(resp *http.Response) (result autore
 }
 
 // CreateEnvironment create virtual machines in a lab. This operation can take a while to complete.
-//
-// resourceGroupName is the name of the resource group. name is the name of the lab.
-// labVirtualMachineCreationParameter is properties for creating a virtual machine.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// name - the name of the lab.
+// labVirtualMachineCreationParameter - properties for creating a virtual machine.
 func (client LabsClient) CreateEnvironment(ctx context.Context, resourceGroupName string, name string, labVirtualMachineCreationParameter LabVirtualMachineCreationParameter) (result LabsCreateEnvironmentFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: labVirtualMachineCreationParameter,
@@ -156,7 +160,7 @@ func (client LabsClient) CreateEnvironmentPreparer(ctx context.Context, resource
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DevTestLab/labs/{name}/createEnvironment", pathParameters),
@@ -168,15 +172,17 @@ func (client LabsClient) CreateEnvironmentPreparer(ctx context.Context, resource
 // CreateEnvironmentSender sends the CreateEnvironment request. The method will close the
 // http.Response Body if it receives an error.
 func (client LabsClient) CreateEnvironmentSender(req *http.Request) (future LabsCreateEnvironmentFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -193,8 +199,10 @@ func (client LabsClient) CreateEnvironmentResponder(resp *http.Response) (result
 }
 
 // CreateOrUpdate create or replace an existing lab. This operation can take a while to complete.
-//
-// resourceGroupName is the name of the resource group. name is the name of the lab. lab is a lab.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// name - the name of the lab.
+// lab - a lab.
 func (client LabsClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, name string, lab Lab) (result LabsCreateOrUpdateFuture, err error) {
 	req, err := client.CreateOrUpdatePreparer(ctx, resourceGroupName, name, lab)
 	if err != nil {
@@ -225,7 +233,7 @@ func (client LabsClient) CreateOrUpdatePreparer(ctx context.Context, resourceGro
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DevTestLab/labs/{name}", pathParameters),
@@ -237,15 +245,17 @@ func (client LabsClient) CreateOrUpdatePreparer(ctx context.Context, resourceGro
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client LabsClient) CreateOrUpdateSender(req *http.Request) (future LabsCreateOrUpdateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -263,8 +273,9 @@ func (client LabsClient) CreateOrUpdateResponder(resp *http.Response) (result La
 }
 
 // Delete delete lab. This operation can take a while to complete.
-//
-// resourceGroupName is the name of the resource group. name is the name of the lab.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// name - the name of the lab.
 func (client LabsClient) Delete(ctx context.Context, resourceGroupName string, name string) (result LabsDeleteFuture, err error) {
 	req, err := client.DeletePreparer(ctx, resourceGroupName, name)
 	if err != nil {
@@ -305,15 +316,17 @@ func (client LabsClient) DeletePreparer(ctx context.Context, resourceGroupName s
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client LabsClient) DeleteSender(req *http.Request) (future LabsDeleteFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -331,9 +344,10 @@ func (client LabsClient) DeleteResponder(resp *http.Response) (result autorest.R
 
 // ExportResourceUsage exports the lab resource usage into a storage account This operation can take a while to
 // complete.
-//
-// resourceGroupName is the name of the resource group. name is the name of the lab. exportResourceUsageParameters
-// is the parameters of the export operation.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// name - the name of the lab.
+// exportResourceUsageParameters - the parameters of the export operation.
 func (client LabsClient) ExportResourceUsage(ctx context.Context, resourceGroupName string, name string, exportResourceUsageParameters ExportResourceUsageParameters) (result LabsExportResourceUsageFuture, err error) {
 	req, err := client.ExportResourceUsagePreparer(ctx, resourceGroupName, name, exportResourceUsageParameters)
 	if err != nil {
@@ -364,7 +378,7 @@ func (client LabsClient) ExportResourceUsagePreparer(ctx context.Context, resour
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DevTestLab/labs/{name}/exportResourceUsage", pathParameters),
@@ -376,15 +390,17 @@ func (client LabsClient) ExportResourceUsagePreparer(ctx context.Context, resour
 // ExportResourceUsageSender sends the ExportResourceUsage request. The method will close the
 // http.Response Body if it receives an error.
 func (client LabsClient) ExportResourceUsageSender(req *http.Request) (future LabsExportResourceUsageFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -401,9 +417,10 @@ func (client LabsClient) ExportResourceUsageResponder(resp *http.Response) (resu
 }
 
 // GenerateUploadURI generate a URI for uploading custom disk images to a Lab.
-//
-// resourceGroupName is the name of the resource group. name is the name of the lab. generateUploadURIParameter is
-// properties for generating an upload URI.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// name - the name of the lab.
+// generateUploadURIParameter - properties for generating an upload URI.
 func (client LabsClient) GenerateUploadURI(ctx context.Context, resourceGroupName string, name string, generateUploadURIParameter GenerateUploadURIParameter) (result GenerateUploadURIResponse, err error) {
 	req, err := client.GenerateUploadURIPreparer(ctx, resourceGroupName, name, generateUploadURIParameter)
 	if err != nil {
@@ -440,7 +457,7 @@ func (client LabsClient) GenerateUploadURIPreparer(ctx context.Context, resource
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DevTestLab/labs/{name}/generateUploadUri", pathParameters),
@@ -470,9 +487,10 @@ func (client LabsClient) GenerateUploadURIResponder(resp *http.Response) (result
 }
 
 // Get get lab.
-//
-// resourceGroupName is the name of the resource group. name is the name of the lab. expand is specify the $expand
-// query. Example: 'properties($select=defaultStorageAccount)'
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// name - the name of the lab.
+// expand - specify the $expand query. Example: 'properties($select=defaultStorageAccount)'
 func (client LabsClient) Get(ctx context.Context, resourceGroupName string, name string, expand string) (result Lab, err error) {
 	req, err := client.GetPreparer(ctx, resourceGroupName, name, expand)
 	if err != nil {
@@ -540,11 +558,12 @@ func (client LabsClient) GetResponder(resp *http.Response) (result Lab, err erro
 }
 
 // ListByResourceGroup list labs in a resource group.
-//
-// resourceGroupName is the name of the resource group. expand is specify the $expand query. Example:
-// 'properties($select=defaultStorageAccount)' filter is the filter to apply to the operation. top is the maximum
-// number of resources to return from the operation. orderby is the ordering expression for the results, using
-// OData notation.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// expand - specify the $expand query. Example: 'properties($select=defaultStorageAccount)'
+// filter - the filter to apply to the operation.
+// top - the maximum number of resources to return from the operation.
+// orderby - the ordering expression for the results, using OData notation.
 func (client LabsClient) ListByResourceGroup(ctx context.Context, resourceGroupName string, expand string, filter string, top *int32, orderby string) (result ResponseWithContinuationLabPage, err error) {
 	result.fn = client.listByResourceGroupNextResults
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName, expand, filter, top, orderby)
@@ -648,10 +667,11 @@ func (client LabsClient) ListByResourceGroupComplete(ctx context.Context, resour
 }
 
 // ListBySubscription list labs in a subscription.
-//
-// expand is specify the $expand query. Example: 'properties($select=defaultStorageAccount)' filter is the filter
-// to apply to the operation. top is the maximum number of resources to return from the operation. orderby is the
-// ordering expression for the results, using OData notation.
+// Parameters:
+// expand - specify the $expand query. Example: 'properties($select=defaultStorageAccount)'
+// filter - the filter to apply to the operation.
+// top - the maximum number of resources to return from the operation.
+// orderby - the ordering expression for the results, using OData notation.
 func (client LabsClient) ListBySubscription(ctx context.Context, expand string, filter string, top *int32, orderby string) (result ResponseWithContinuationLabPage, err error) {
 	result.fn = client.listBySubscriptionNextResults
 	req, err := client.ListBySubscriptionPreparer(ctx, expand, filter, top, orderby)
@@ -754,8 +774,9 @@ func (client LabsClient) ListBySubscriptionComplete(ctx context.Context, expand 
 }
 
 // ListVhds list disk images available for custom image creation.
-//
-// resourceGroupName is the name of the resource group. name is the name of the lab.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// name - the name of the lab.
 func (client LabsClient) ListVhds(ctx context.Context, resourceGroupName string, name string) (result ResponseWithContinuationLabVhdPage, err error) {
 	result.fn = client.listVhdsNextResults
 	req, err := client.ListVhdsPreparer(ctx, resourceGroupName, name)
@@ -848,8 +869,10 @@ func (client LabsClient) ListVhdsComplete(ctx context.Context, resourceGroupName
 }
 
 // Update modify properties of labs.
-//
-// resourceGroupName is the name of the resource group. name is the name of the lab. lab is a lab.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// name - the name of the lab.
+// lab - a lab.
 func (client LabsClient) Update(ctx context.Context, resourceGroupName string, name string, lab LabFragment) (result Lab, err error) {
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, name, lab)
 	if err != nil {
@@ -886,7 +909,7 @@ func (client LabsClient) UpdatePreparer(ctx context.Context, resourceGroupName s
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DevTestLab/labs/{name}", pathParameters),

@@ -18,7 +18,9 @@ package simulator
 
 import (
 	"context"
+	"log"
 	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/vmware/govmomi"
@@ -27,6 +29,7 @@ import (
 	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/simulator/esx"
 	"github.com/vmware/govmomi/simulator/vpx"
+	"github.com/vmware/govmomi/view"
 	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/soap"
@@ -250,6 +253,7 @@ func TestWaitForUpdates(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	updates := make(chan bool)
 	cb := func(once bool) func([]types.PropertyChange) bool {
 		return func(pc []types.PropertyChange) bool {
 			if len(pc) != 1 {
@@ -267,6 +271,9 @@ func TestWaitForUpdates(t *testing.T) {
 				t.Fail()
 			}
 
+			if once == false {
+				updates <- true
+			}
 			return once
 		}
 	}
@@ -279,11 +286,16 @@ func TestWaitForUpdates(t *testing.T) {
 		t.Error(err)
 	}
 
-	// incremental updates not yet suppported
-	err = property.Wait(ctx, pc, folder.Reference(), props, cb(false))
-	if err == nil {
-		t.Error("expected error")
-	}
+	wctx, cancel := context.WithCancel(ctx)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		_ = property.Wait(wctx, pc, folder.Reference(), props, cb(false))
+	}()
+	<-updates
+	cancel()
+	wg.Wait()
 
 	// test object not found
 	Map.Remove(folder.Reference())
@@ -305,10 +317,137 @@ func TestWaitForUpdates(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = methods.CancelWaitForUpdates(ctx, c.Client, &types.CancelWaitForUpdates{This: p.Reference()})
+	err = p.CancelWaitForUpdates(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestIncrementalWaitForUpdates(t *testing.T) {
+	ctx := context.Background()
+
+	m := VPX()
+
+	defer m.Remove()
+
+	err := m.Create()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s := m.Service.NewServer()
+	defer s.Close()
+
+	c, err := govmomi.NewClient(ctx, s.URL, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pc := property.DefaultCollector(c.Client)
+	obj := Map.Any("VirtualMachine").(*VirtualMachine)
+	ref := obj.Reference()
+	vm := object.NewVirtualMachine(c.Client, ref)
+
+	tests := []struct {
+		name  string
+		props []string
+	}{
+		{"1 field", []string{"runtime.powerState"}},
+		{"2 fields", []string{"summary.runtime.powerState", "summary.runtime.bootTime"}},
+		{"3 fields", []string{"runtime.powerState", "summary.runtime.powerState", "summary.runtime.bootTime"}},
+		{"parent field", []string{"runtime"}},
+		{"nested parent field", []string{"summary.runtime"}},
+		{"all", nil},
+	}
+
+	// toggle power state to generate updates
+	state := map[types.VirtualMachinePowerState]func(context.Context) (*object.Task, error){
+		types.VirtualMachinePowerStatePoweredOff: vm.PowerOn,
+		types.VirtualMachinePowerStatePoweredOn:  vm.PowerOff,
+	}
+
+	for i, test := range tests {
+		var props []string
+		matches := false
+		wait := make(chan bool)
+		host := obj.Summary.Runtime.Host // add host to filter just to have a different type in the filter
+		filter := new(property.WaitFilter).Add(*host, host.Type, nil).Add(ref, ref.Type, test.props)
+
+		go func() {
+			perr := property.WaitForUpdates(ctx, pc, filter, func(updates []types.ObjectUpdate) bool {
+				if updates[0].Kind == types.ObjectUpdateKindEnter {
+					wait <- true
+					return false
+				}
+				for _, update := range updates {
+					for _, change := range update.ChangeSet {
+						props = append(props, change.Name)
+					}
+				}
+
+				if test.props == nil {
+					// special case to test All flag
+					matches = isTrue(filter.Spec.PropSet[0].All) && len(props) > 1
+
+					return matches
+				}
+
+				if len(props) > len(test.props) {
+					return true
+				}
+
+				matches = reflect.DeepEqual(props, test.props)
+				return matches
+			})
+
+			if perr != nil {
+				t.Error(perr)
+			}
+			wait <- matches
+		}()
+
+		<-wait // wait for enter
+		_, _ = state[obj.Runtime.PowerState](ctx)
+		if !<-wait { // wait for modify
+			t.Errorf("%d: updates=%s, expected=%s", i, props, test.props)
+		}
+	}
+
+	// Test ContainerView + Delete
+	v, err := view.NewManager(c.Client).CreateContainerView(ctx, c.Client.ServiceContent.RootFolder, []string{ref.Type}, true)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		filter := new(property.WaitFilter).Add(v.Reference(), ref.Type, tests[0].props, v.TraversalSpec())
+		perr := property.WaitForUpdates(ctx, pc, filter, func(updates []types.ObjectUpdate) bool {
+			for _, update := range updates {
+				switch update.Kind {
+				case types.ObjectUpdateKindEnter:
+					wg.Done()
+					return false
+				case types.ObjectUpdateKindModify:
+				case types.ObjectUpdateKindLeave:
+					return update.Obj == vm.Reference()
+				}
+			}
+			return false
+		})
+		if perr != nil {
+			t.Error(perr)
+		}
+	}()
+
+	wg.Wait() // wait for 1st enter
+	wg.Add(1)
+	_, _ = vm.PowerOff(ctx)
+	_, _ = vm.Destroy(ctx)
+	wg.Wait() // wait for Delete to be reported
 }
 
 func TestPropertyCollectorWithUnsetValues(t *testing.T) {
@@ -463,22 +602,6 @@ func TestExtractEmbeddedField(t *testing.T) {
 
 	if obj.Type() != reflect.ValueOf(new(mo.ResourcePool)).Elem().Type() {
 		t.Errorf("unexpected type=%s", obj.Type().Name())
-	}
-
-	// satisfies the mo.Reference interface, but does not embed a type from the "mo" package
-	type NoMo struct {
-		types.ManagedObjectReference
-
-		Self types.ManagedObjectReference
-	}
-
-	n := new(NoMo)
-	n.ManagedObjectReference = types.ManagedObjectReference{Type: "NoMo", Value: "no-mo"}
-	Map.Put(n)
-
-	_, ok = getObject(internalContext, n.Reference())
-	if ok {
-		t.Error("expected not ok")
 	}
 }
 

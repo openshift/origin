@@ -1,4 +1,4 @@
-package tarexport
+package tarexport // import "github.com/docker/docker/image/tarexport"
 
 import (
 	"encoding/json"
@@ -82,8 +82,7 @@ func (l *tarexporter) Load(inTar io.ReadCloser, outStream io.Writer, quiet bool)
 		if err := checkCompatibleOS(img.OS); err != nil {
 			return err
 		}
-		var rootFS image.RootFS
-		rootFS = *img.RootFS
+		rootFS := *img.RootFS
 		rootFS.DiffIDs = nil
 
 		if expected, actual := len(m.Layers), len(img.RootFS.DiffIDs); expected != actual {
@@ -91,13 +90,13 @@ func (l *tarexporter) Load(inTar io.ReadCloser, outStream io.Writer, quiet bool)
 		}
 
 		// On Windows, validate the platform, defaulting to windows if not present.
-		platform := layer.Platform(img.OS)
+		os := img.OS
+		if os == "" {
+			os = runtime.GOOS
+		}
 		if runtime.GOOS == "windows" {
-			if platform == "" {
-				platform = "windows"
-			}
-			if (platform != "windows") && (platform != "linux") {
-				return fmt.Errorf("configuration for this image has an unsupported platform: %s", platform)
+			if (os != "windows") && (os != "linux") {
+				return fmt.Errorf("configuration for this image has an unsupported operating system: %s", os)
 			}
 		}
 
@@ -108,14 +107,14 @@ func (l *tarexporter) Load(inTar io.ReadCloser, outStream io.Writer, quiet bool)
 			}
 			r := rootFS
 			r.Append(diffID)
-			newLayer, err := l.ls.Get(r.ChainID())
+			newLayer, err := l.lss[os].Get(r.ChainID())
 			if err != nil {
-				newLayer, err = l.loadLayer(layerPath, rootFS, diffID.String(), platform, m.LayerSources[diffID], progressOutput)
+				newLayer, err = l.loadLayer(layerPath, rootFS, diffID.String(), os, m.LayerSources[diffID], progressOutput)
 				if err != nil {
 					return err
 				}
 			}
-			defer layer.ReleaseAndLog(l.ls, newLayer)
+			defer layer.ReleaseAndLog(l.lss[os], newLayer)
 			if expected, actual := diffID, newLayer.DiffID(); expected != actual {
 				return fmt.Errorf("invalid diffID for layer %d: expected %q, got %q", i, expected, actual)
 			}
@@ -177,7 +176,7 @@ func (l *tarexporter) setParentID(id, parentID image.ID) error {
 	return l.is.SetParent(id, parentID)
 }
 
-func (l *tarexporter) loadLayer(filename string, rootFS image.RootFS, id string, platform layer.Platform, foreignSrc distribution.Descriptor, progressOutput progress.Output) (layer.Layer, error) {
+func (l *tarexporter) loadLayer(filename string, rootFS image.RootFS, id string, os string, foreignSrc distribution.Descriptor, progressOutput progress.Output) (layer.Layer, error) {
 	// We use system.OpenSequential to use sequential file access on Windows, avoiding
 	// depleting the standby list. On Linux, this equates to a regular os.Open.
 	rawTar, err := system.OpenSequential(filename)
@@ -206,21 +205,18 @@ func (l *tarexporter) loadLayer(filename string, rootFS image.RootFS, id string,
 	}
 	defer inflatedLayerData.Close()
 
-	if ds, ok := l.ls.(layer.DescribableStore); ok {
-		return ds.RegisterWithDescriptor(inflatedLayerData, rootFS.ChainID(), platform, foreignSrc)
+	if ds, ok := l.lss[os].(layer.DescribableStore); ok {
+		return ds.RegisterWithDescriptor(inflatedLayerData, rootFS.ChainID(), foreignSrc)
 	}
-	return l.ls.Register(inflatedLayerData, rootFS.ChainID(), platform)
+	return l.lss[os].Register(inflatedLayerData, rootFS.ChainID())
 }
 
-func (l *tarexporter) setLoadedTag(ref reference.NamedTagged, imgID digest.Digest, outStream io.Writer) error {
+func (l *tarexporter) setLoadedTag(ref reference.Named, imgID digest.Digest, outStream io.Writer) error {
 	if prevID, err := l.rs.Get(ref); err == nil && prevID != imgID {
 		fmt.Fprintf(outStream, "The image %s already exists, renaming the old one with ID %s to empty string\n", reference.FamiliarString(ref), string(prevID)) // todo: this message is wrong in case of multiple tags
 	}
 
-	if err := l.rs.AddTag(ref, imgID, true); err != nil {
-		return err
-	}
-	return nil
+	return l.rs.AddTag(ref, imgID, true)
 }
 
 func (l *tarexporter) legacyLoad(tmpDir string, outStream io.Writer, progressOutput progress.Output) error {
@@ -306,6 +302,9 @@ func (l *tarexporter) legacyLoadImage(oldID, sourceDir string, loadedMap map[str
 	if err := checkCompatibleOS(img.OS); err != nil {
 		return err
 	}
+	if img.OS == "" {
+		img.OS = runtime.GOOS
+	}
 
 	var parentID image.ID
 	if img.Parent != "" {
@@ -339,7 +338,7 @@ func (l *tarexporter) legacyLoadImage(oldID, sourceDir string, loadedMap map[str
 	if err != nil {
 		return err
 	}
-	newLayer, err := l.loadLayer(layerPath, *rootFS, oldID, "", distribution.Descriptor{}, progressOutput)
+	newLayer, err := l.loadLayer(layerPath, *rootFS, oldID, img.OS, distribution.Descriptor{}, progressOutput)
 	if err != nil {
 		return err
 	}
@@ -360,7 +359,7 @@ func (l *tarexporter) legacyLoadImage(oldID, sourceDir string, loadedMap map[str
 		return err
 	}
 
-	metadata, err := l.ls.Release(newLayer)
+	metadata, err := l.lss[img.OS].Release(newLayer)
 	layer.LogReleaseMetadata(metadata)
 	if err != nil {
 		return err
@@ -413,19 +412,18 @@ func checkValidParent(img, parent *image.Image) bool {
 	return true
 }
 
-func checkCompatibleOS(os string) error {
-	// TODO @jhowardmsft LCOW - revisit for simultaneous platforms
-	platform := runtime.GOOS
-	if system.LCOWSupported() {
-		platform = "linux"
-	}
-	// always compatible if the OS matches; also match an empty OS
-	if os == platform || os == "" {
+func checkCompatibleOS(imageOS string) error {
+	// always compatible if the images OS matches the host OS; also match an empty image OS
+	if imageOS == runtime.GOOS || imageOS == "" {
 		return nil
 	}
-	// for compatibility, only fail if the image or runtime OS is Windows
-	if os == "windows" || platform == "windows" {
-		return fmt.Errorf("cannot load %s image on %s", os, platform)
+	// On non-Windows hosts, for compatibility, fail if the image is Windows.
+	if runtime.GOOS != "windows" && imageOS == "windows" {
+		return fmt.Errorf("cannot load %s image on %s", imageOS, runtime.GOOS)
+	}
+	// Finally, check the image OS is supported for the platform.
+	if err := system.ValidatePlatform(system.ParsePlatform(imageOS)); err != nil {
+		return fmt.Errorf("cannot load %s image on %s: %s", imageOS, runtime.GOOS, err)
 	}
 	return nil
 }

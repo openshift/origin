@@ -22,90 +22,23 @@ package batch
 import original "github.com/Azure/azure-sdk-for-go/services/batch/2018-03-01.6.1/batch"
 
 type AccountClient = original.AccountClient
-
-func NewAccountClient() AccountClient {
-	return original.NewAccountClient()
-}
-func NewAccountClientWithBaseURI(baseURI string) AccountClient {
-	return original.NewAccountClientWithBaseURI(baseURI)
-}
-
 type ApplicationClient = original.ApplicationClient
-
-func NewApplicationClient() ApplicationClient {
-	return original.NewApplicationClient()
-}
-func NewApplicationClientWithBaseURI(baseURI string) ApplicationClient {
-	return original.NewApplicationClientWithBaseURI(baseURI)
-}
-
 type CertificateClient = original.CertificateClient
-
-func NewCertificateClient() CertificateClient {
-	return original.NewCertificateClient()
-}
-func NewCertificateClientWithBaseURI(baseURI string) CertificateClient {
-	return original.NewCertificateClientWithBaseURI(baseURI)
-}
 
 const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
 type BaseClient = original.BaseClient
-
-func New() BaseClient {
-	return original.New()
-}
-func NewWithBaseURI(baseURI string) BaseClient {
-	return original.NewWithBaseURI(baseURI)
-}
-
 type ComputeNodeClient = original.ComputeNodeClient
-
-func NewComputeNodeClient() ComputeNodeClient {
-	return original.NewComputeNodeClient()
-}
-func NewComputeNodeClientWithBaseURI(baseURI string) ComputeNodeClient {
-	return original.NewComputeNodeClientWithBaseURI(baseURI)
-}
-
 type FileClient = original.FileClient
-
-func NewFileClient() FileClient {
-	return original.NewFileClient()
-}
-func NewFileClientWithBaseURI(baseURI string) FileClient {
-	return original.NewFileClientWithBaseURI(baseURI)
-}
-
 type JobClient = original.JobClient
-
-func NewJobClient() JobClient {
-	return original.NewJobClient()
-}
-func NewJobClientWithBaseURI(baseURI string) JobClient {
-	return original.NewJobClientWithBaseURI(baseURI)
-}
-
 type JobScheduleClient = original.JobScheduleClient
-
-func NewJobScheduleClient() JobScheduleClient {
-	return original.NewJobScheduleClient()
-}
-func NewJobScheduleClientWithBaseURI(baseURI string) JobScheduleClient {
-	return original.NewJobScheduleClientWithBaseURI(baseURI)
-}
-
 type AccessScope = original.AccessScope
 
 const (
 	Job AccessScope = original.Job
 )
-
-func PossibleAccessScopeValues() []AccessScope {
-	return original.PossibleAccessScopeValues()
-}
 
 type AllocationState = original.AllocationState
 
@@ -115,20 +48,12 @@ const (
 	Stopping AllocationState = original.Stopping
 )
 
-func PossibleAllocationStateValues() []AllocationState {
-	return original.PossibleAllocationStateValues()
-}
-
 type AutoUserScope = original.AutoUserScope
 
 const (
 	Pool AutoUserScope = original.Pool
 	Task AutoUserScope = original.Task
 )
-
-func PossibleAutoUserScopeValues() []AutoUserScope {
-	return original.PossibleAutoUserScopeValues()
-}
 
 type CachingType = original.CachingType
 
@@ -138,20 +63,12 @@ const (
 	ReadWrite CachingType = original.ReadWrite
 )
 
-func PossibleCachingTypeValues() []CachingType {
-	return original.PossibleCachingTypeValues()
-}
-
 type CertificateFormat = original.CertificateFormat
 
 const (
 	Cer CertificateFormat = original.Cer
 	Pfx CertificateFormat = original.Pfx
 )
-
-func PossibleCertificateFormatValues() []CertificateFormat {
-	return original.PossibleCertificateFormatValues()
-}
 
 type CertificateState = original.CertificateState
 
@@ -161,20 +78,12 @@ const (
 	Deleting     CertificateState = original.Deleting
 )
 
-func PossibleCertificateStateValues() []CertificateState {
-	return original.PossibleCertificateStateValues()
-}
-
 type CertificateStoreLocation = original.CertificateStoreLocation
 
 const (
 	CurrentUser  CertificateStoreLocation = original.CurrentUser
 	LocalMachine CertificateStoreLocation = original.LocalMachine
 )
-
-func PossibleCertificateStoreLocationValues() []CertificateStoreLocation {
-	return original.PossibleCertificateStoreLocationValues()
-}
 
 type CertificateVisibility = original.CertificateVisibility
 
@@ -183,10 +92,6 @@ const (
 	CertificateVisibilityStartTask  CertificateVisibility = original.CertificateVisibilityStartTask
 	CertificateVisibilityTask       CertificateVisibility = original.CertificateVisibilityTask
 )
-
-func PossibleCertificateVisibilityValues() []CertificateVisibility {
-	return original.PossibleCertificateVisibilityValues()
-}
 
 type ComputeNodeDeallocationOption = original.ComputeNodeDeallocationOption
 
@@ -197,20 +102,12 @@ const (
 	Terminate      ComputeNodeDeallocationOption = original.Terminate
 )
 
-func PossibleComputeNodeDeallocationOptionValues() []ComputeNodeDeallocationOption {
-	return original.PossibleComputeNodeDeallocationOptionValues()
-}
-
 type ComputeNodeFillType = original.ComputeNodeFillType
 
 const (
 	Pack   ComputeNodeFillType = original.Pack
 	Spread ComputeNodeFillType = original.Spread
 )
-
-func PossibleComputeNodeFillTypeValues() []ComputeNodeFillType {
-	return original.PossibleComputeNodeFillTypeValues()
-}
 
 type ComputeNodeRebootOption = original.ComputeNodeRebootOption
 
@@ -221,10 +118,6 @@ const (
 	ComputeNodeRebootOptionTerminate      ComputeNodeRebootOption = original.ComputeNodeRebootOptionTerminate
 )
 
-func PossibleComputeNodeRebootOptionValues() []ComputeNodeRebootOption {
-	return original.PossibleComputeNodeRebootOptionValues()
-}
-
 type ComputeNodeReimageOption = original.ComputeNodeReimageOption
 
 const (
@@ -233,10 +126,6 @@ const (
 	ComputeNodeReimageOptionTaskCompletion ComputeNodeReimageOption = original.ComputeNodeReimageOptionTaskCompletion
 	ComputeNodeReimageOptionTerminate      ComputeNodeReimageOption = original.ComputeNodeReimageOptionTerminate
 )
-
-func PossibleComputeNodeReimageOptionValues() []ComputeNodeReimageOption {
-	return original.PossibleComputeNodeReimageOptionValues()
-}
 
 type ComputeNodeState = original.ComputeNodeState
 
@@ -256,20 +145,12 @@ const (
 	WaitingForStartTask ComputeNodeState = original.WaitingForStartTask
 )
 
-func PossibleComputeNodeStateValues() []ComputeNodeState {
-	return original.PossibleComputeNodeStateValues()
-}
-
 type DependencyAction = original.DependencyAction
 
 const (
 	Block   DependencyAction = original.Block
 	Satisfy DependencyAction = original.Satisfy
 )
-
-func PossibleDependencyActionValues() []DependencyAction {
-	return original.PossibleDependencyActionValues()
-}
 
 type DisableComputeNodeSchedulingOption = original.DisableComputeNodeSchedulingOption
 
@@ -279,10 +160,6 @@ const (
 	DisableComputeNodeSchedulingOptionTerminate      DisableComputeNodeSchedulingOption = original.DisableComputeNodeSchedulingOptionTerminate
 )
 
-func PossibleDisableComputeNodeSchedulingOptionValues() []DisableComputeNodeSchedulingOption {
-	return original.PossibleDisableComputeNodeSchedulingOptionValues()
-}
-
 type DisableJobOption = original.DisableJobOption
 
 const (
@@ -291,20 +168,12 @@ const (
 	DisableJobOptionWait      DisableJobOption = original.DisableJobOptionWait
 )
 
-func PossibleDisableJobOptionValues() []DisableJobOption {
-	return original.PossibleDisableJobOptionValues()
-}
-
 type ElevationLevel = original.ElevationLevel
 
 const (
 	Admin    ElevationLevel = original.Admin
 	NonAdmin ElevationLevel = original.NonAdmin
 )
-
-func PossibleElevationLevelValues() []ElevationLevel {
-	return original.PossibleElevationLevelValues()
-}
 
 type ErrorCategory = original.ErrorCategory
 
@@ -313,20 +182,12 @@ const (
 	UserError   ErrorCategory = original.UserError
 )
 
-func PossibleErrorCategoryValues() []ErrorCategory {
-	return original.PossibleErrorCategoryValues()
-}
-
 type InboundEndpointProtocol = original.InboundEndpointProtocol
 
 const (
 	TCP InboundEndpointProtocol = original.TCP
 	UDP InboundEndpointProtocol = original.UDP
 )
-
-func PossibleInboundEndpointProtocolValues() []InboundEndpointProtocol {
-	return original.PossibleInboundEndpointProtocolValues()
-}
 
 type JobAction = original.JobAction
 
@@ -336,10 +197,6 @@ const (
 	JobActionTerminate JobAction = original.JobActionTerminate
 )
 
-func PossibleJobActionValues() []JobAction {
-	return original.PossibleJobActionValues()
-}
-
 type JobPreparationTaskState = original.JobPreparationTaskState
 
 const (
@@ -347,20 +204,12 @@ const (
 	JobPreparationTaskStateRunning   JobPreparationTaskState = original.JobPreparationTaskStateRunning
 )
 
-func PossibleJobPreparationTaskStateValues() []JobPreparationTaskState {
-	return original.PossibleJobPreparationTaskStateValues()
-}
-
 type JobReleaseTaskState = original.JobReleaseTaskState
 
 const (
 	JobReleaseTaskStateCompleted JobReleaseTaskState = original.JobReleaseTaskStateCompleted
 	JobReleaseTaskStateRunning   JobReleaseTaskState = original.JobReleaseTaskStateRunning
 )
-
-func PossibleJobReleaseTaskStateValues() []JobReleaseTaskState {
-	return original.PossibleJobReleaseTaskStateValues()
-}
 
 type JobScheduleState = original.JobScheduleState
 
@@ -371,10 +220,6 @@ const (
 	JobScheduleStateDisabled    JobScheduleState = original.JobScheduleStateDisabled
 	JobScheduleStateTerminating JobScheduleState = original.JobScheduleStateTerminating
 )
-
-func PossibleJobScheduleStateValues() []JobScheduleState {
-	return original.PossibleJobScheduleStateValues()
-}
 
 type JobState = original.JobState
 
@@ -388,20 +233,12 @@ const (
 	JobStateTerminating JobState = original.JobStateTerminating
 )
 
-func PossibleJobStateValues() []JobState {
-	return original.PossibleJobStateValues()
-}
-
 type NetworkSecurityGroupRuleAccess = original.NetworkSecurityGroupRuleAccess
 
 const (
 	Allow NetworkSecurityGroupRuleAccess = original.Allow
 	Deny  NetworkSecurityGroupRuleAccess = original.Deny
 )
-
-func PossibleNetworkSecurityGroupRuleAccessValues() []NetworkSecurityGroupRuleAccess {
-	return original.PossibleNetworkSecurityGroupRuleAccessValues()
-}
 
 type OnAllTasksComplete = original.OnAllTasksComplete
 
@@ -410,10 +247,6 @@ const (
 	TerminateJob OnAllTasksComplete = original.TerminateJob
 )
 
-func PossibleOnAllTasksCompleteValues() []OnAllTasksComplete {
-	return original.PossibleOnAllTasksCompleteValues()
-}
-
 type OnTaskFailure = original.OnTaskFailure
 
 const (
@@ -421,20 +254,12 @@ const (
 	OnTaskFailurePerformExitOptionsJobAction OnTaskFailure = original.OnTaskFailurePerformExitOptionsJobAction
 )
 
-func PossibleOnTaskFailureValues() []OnTaskFailure {
-	return original.PossibleOnTaskFailureValues()
-}
-
 type OSType = original.OSType
 
 const (
 	Linux   OSType = original.Linux
 	Windows OSType = original.Windows
 )
-
-func PossibleOSTypeValues() []OSType {
-	return original.PossibleOSTypeValues()
-}
 
 type OutputFileUploadCondition = original.OutputFileUploadCondition
 
@@ -444,20 +269,12 @@ const (
 	OutputFileUploadConditionTaskSuccess    OutputFileUploadCondition = original.OutputFileUploadConditionTaskSuccess
 )
 
-func PossibleOutputFileUploadConditionValues() []OutputFileUploadCondition {
-	return original.PossibleOutputFileUploadConditionValues()
-}
-
 type PoolLifetimeOption = original.PoolLifetimeOption
 
 const (
 	PoolLifetimeOptionJob         PoolLifetimeOption = original.PoolLifetimeOptionJob
 	PoolLifetimeOptionJobSchedule PoolLifetimeOption = original.PoolLifetimeOptionJobSchedule
 )
-
-func PossiblePoolLifetimeOptionValues() []PoolLifetimeOption {
-	return original.PossiblePoolLifetimeOptionValues()
-}
 
 type PoolState = original.PoolState
 
@@ -467,20 +284,12 @@ const (
 	PoolStateUpgrading PoolState = original.PoolStateUpgrading
 )
 
-func PossiblePoolStateValues() []PoolState {
-	return original.PossiblePoolStateValues()
-}
-
 type SchedulingState = original.SchedulingState
 
 const (
 	Disabled SchedulingState = original.Disabled
 	Enabled  SchedulingState = original.Enabled
 )
-
-func PossibleSchedulingStateValues() []SchedulingState {
-	return original.PossibleSchedulingStateValues()
-}
 
 type StartTaskState = original.StartTaskState
 
@@ -489,20 +298,12 @@ const (
 	StartTaskStateRunning   StartTaskState = original.StartTaskStateRunning
 )
 
-func PossibleStartTaskStateValues() []StartTaskState {
-	return original.PossibleStartTaskStateValues()
-}
-
 type StorageAccountType = original.StorageAccountType
 
 const (
 	PremiumLRS  StorageAccountType = original.PremiumLRS
 	StandardLRS StorageAccountType = original.StandardLRS
 )
-
-func PossibleStorageAccountTypeValues() []StorageAccountType {
-	return original.PossibleStorageAccountTypeValues()
-}
 
 type SubtaskState = original.SubtaskState
 
@@ -512,10 +313,6 @@ const (
 	SubtaskStateRunning   SubtaskState = original.SubtaskStateRunning
 )
 
-func PossibleSubtaskStateValues() []SubtaskState {
-	return original.PossibleSubtaskStateValues()
-}
-
 type TaskAddStatus = original.TaskAddStatus
 
 const (
@@ -524,10 +321,6 @@ const (
 	TaskAddStatusSuccess     TaskAddStatus = original.TaskAddStatusSuccess
 )
 
-func PossibleTaskAddStatusValues() []TaskAddStatus {
-	return original.PossibleTaskAddStatusValues()
-}
-
 type TaskCountValidationStatus = original.TaskCountValidationStatus
 
 const (
@@ -535,20 +328,12 @@ const (
 	Validated   TaskCountValidationStatus = original.Validated
 )
 
-func PossibleTaskCountValidationStatusValues() []TaskCountValidationStatus {
-	return original.PossibleTaskCountValidationStatusValues()
-}
-
 type TaskExecutionResult = original.TaskExecutionResult
 
 const (
 	Failure TaskExecutionResult = original.Failure
 	Success TaskExecutionResult = original.Success
 )
-
-func PossibleTaskExecutionResultValues() []TaskExecutionResult {
-	return original.PossibleTaskExecutionResultValues()
-}
 
 type TaskState = original.TaskState
 
@@ -558,10 +343,6 @@ const (
 	TaskStatePreparing TaskState = original.TaskStatePreparing
 	TaskStateRunning   TaskState = original.TaskStateRunning
 )
-
-func PossibleTaskStateValues() []TaskState {
-	return original.PossibleTaskStateValues()
-}
 
 type AccountListNodeAgentSkusResult = original.AccountListNodeAgentSkusResult
 type AccountListNodeAgentSkusResultIterator = original.AccountListNodeAgentSkusResultIterator
@@ -724,16 +505,179 @@ type UserIdentity = original.UserIdentity
 type VirtualMachineConfiguration = original.VirtualMachineConfiguration
 type WindowsConfiguration = original.WindowsConfiguration
 type PoolClient = original.PoolClient
+type TaskClient = original.TaskClient
 
+func NewAccountClient() AccountClient {
+	return original.NewAccountClient()
+}
+func NewAccountClientWithBaseURI(baseURI string) AccountClient {
+	return original.NewAccountClientWithBaseURI(baseURI)
+}
+func NewApplicationClient() ApplicationClient {
+	return original.NewApplicationClient()
+}
+func NewApplicationClientWithBaseURI(baseURI string) ApplicationClient {
+	return original.NewApplicationClientWithBaseURI(baseURI)
+}
+func NewCertificateClient() CertificateClient {
+	return original.NewCertificateClient()
+}
+func NewCertificateClientWithBaseURI(baseURI string) CertificateClient {
+	return original.NewCertificateClientWithBaseURI(baseURI)
+}
+func New() BaseClient {
+	return original.New()
+}
+func NewWithBaseURI(baseURI string) BaseClient {
+	return original.NewWithBaseURI(baseURI)
+}
+func NewComputeNodeClient() ComputeNodeClient {
+	return original.NewComputeNodeClient()
+}
+func NewComputeNodeClientWithBaseURI(baseURI string) ComputeNodeClient {
+	return original.NewComputeNodeClientWithBaseURI(baseURI)
+}
+func NewFileClient() FileClient {
+	return original.NewFileClient()
+}
+func NewFileClientWithBaseURI(baseURI string) FileClient {
+	return original.NewFileClientWithBaseURI(baseURI)
+}
+func NewJobClient() JobClient {
+	return original.NewJobClient()
+}
+func NewJobClientWithBaseURI(baseURI string) JobClient {
+	return original.NewJobClientWithBaseURI(baseURI)
+}
+func NewJobScheduleClient() JobScheduleClient {
+	return original.NewJobScheduleClient()
+}
+func NewJobScheduleClientWithBaseURI(baseURI string) JobScheduleClient {
+	return original.NewJobScheduleClientWithBaseURI(baseURI)
+}
+func PossibleAccessScopeValues() []AccessScope {
+	return original.PossibleAccessScopeValues()
+}
+func PossibleAllocationStateValues() []AllocationState {
+	return original.PossibleAllocationStateValues()
+}
+func PossibleAutoUserScopeValues() []AutoUserScope {
+	return original.PossibleAutoUserScopeValues()
+}
+func PossibleCachingTypeValues() []CachingType {
+	return original.PossibleCachingTypeValues()
+}
+func PossibleCertificateFormatValues() []CertificateFormat {
+	return original.PossibleCertificateFormatValues()
+}
+func PossibleCertificateStateValues() []CertificateState {
+	return original.PossibleCertificateStateValues()
+}
+func PossibleCertificateStoreLocationValues() []CertificateStoreLocation {
+	return original.PossibleCertificateStoreLocationValues()
+}
+func PossibleCertificateVisibilityValues() []CertificateVisibility {
+	return original.PossibleCertificateVisibilityValues()
+}
+func PossibleComputeNodeDeallocationOptionValues() []ComputeNodeDeallocationOption {
+	return original.PossibleComputeNodeDeallocationOptionValues()
+}
+func PossibleComputeNodeFillTypeValues() []ComputeNodeFillType {
+	return original.PossibleComputeNodeFillTypeValues()
+}
+func PossibleComputeNodeRebootOptionValues() []ComputeNodeRebootOption {
+	return original.PossibleComputeNodeRebootOptionValues()
+}
+func PossibleComputeNodeReimageOptionValues() []ComputeNodeReimageOption {
+	return original.PossibleComputeNodeReimageOptionValues()
+}
+func PossibleComputeNodeStateValues() []ComputeNodeState {
+	return original.PossibleComputeNodeStateValues()
+}
+func PossibleDependencyActionValues() []DependencyAction {
+	return original.PossibleDependencyActionValues()
+}
+func PossibleDisableComputeNodeSchedulingOptionValues() []DisableComputeNodeSchedulingOption {
+	return original.PossibleDisableComputeNodeSchedulingOptionValues()
+}
+func PossibleDisableJobOptionValues() []DisableJobOption {
+	return original.PossibleDisableJobOptionValues()
+}
+func PossibleElevationLevelValues() []ElevationLevel {
+	return original.PossibleElevationLevelValues()
+}
+func PossibleErrorCategoryValues() []ErrorCategory {
+	return original.PossibleErrorCategoryValues()
+}
+func PossibleInboundEndpointProtocolValues() []InboundEndpointProtocol {
+	return original.PossibleInboundEndpointProtocolValues()
+}
+func PossibleJobActionValues() []JobAction {
+	return original.PossibleJobActionValues()
+}
+func PossibleJobPreparationTaskStateValues() []JobPreparationTaskState {
+	return original.PossibleJobPreparationTaskStateValues()
+}
+func PossibleJobReleaseTaskStateValues() []JobReleaseTaskState {
+	return original.PossibleJobReleaseTaskStateValues()
+}
+func PossibleJobScheduleStateValues() []JobScheduleState {
+	return original.PossibleJobScheduleStateValues()
+}
+func PossibleJobStateValues() []JobState {
+	return original.PossibleJobStateValues()
+}
+func PossibleNetworkSecurityGroupRuleAccessValues() []NetworkSecurityGroupRuleAccess {
+	return original.PossibleNetworkSecurityGroupRuleAccessValues()
+}
+func PossibleOnAllTasksCompleteValues() []OnAllTasksComplete {
+	return original.PossibleOnAllTasksCompleteValues()
+}
+func PossibleOnTaskFailureValues() []OnTaskFailure {
+	return original.PossibleOnTaskFailureValues()
+}
+func PossibleOSTypeValues() []OSType {
+	return original.PossibleOSTypeValues()
+}
+func PossibleOutputFileUploadConditionValues() []OutputFileUploadCondition {
+	return original.PossibleOutputFileUploadConditionValues()
+}
+func PossiblePoolLifetimeOptionValues() []PoolLifetimeOption {
+	return original.PossiblePoolLifetimeOptionValues()
+}
+func PossiblePoolStateValues() []PoolState {
+	return original.PossiblePoolStateValues()
+}
+func PossibleSchedulingStateValues() []SchedulingState {
+	return original.PossibleSchedulingStateValues()
+}
+func PossibleStartTaskStateValues() []StartTaskState {
+	return original.PossibleStartTaskStateValues()
+}
+func PossibleStorageAccountTypeValues() []StorageAccountType {
+	return original.PossibleStorageAccountTypeValues()
+}
+func PossibleSubtaskStateValues() []SubtaskState {
+	return original.PossibleSubtaskStateValues()
+}
+func PossibleTaskAddStatusValues() []TaskAddStatus {
+	return original.PossibleTaskAddStatusValues()
+}
+func PossibleTaskCountValidationStatusValues() []TaskCountValidationStatus {
+	return original.PossibleTaskCountValidationStatusValues()
+}
+func PossibleTaskExecutionResultValues() []TaskExecutionResult {
+	return original.PossibleTaskExecutionResultValues()
+}
+func PossibleTaskStateValues() []TaskState {
+	return original.PossibleTaskStateValues()
+}
 func NewPoolClient() PoolClient {
 	return original.NewPoolClient()
 }
 func NewPoolClientWithBaseURI(baseURI string) PoolClient {
 	return original.NewPoolClientWithBaseURI(baseURI)
 }
-
-type TaskClient = original.TaskClient
-
 func NewTaskClient() TaskClient {
 	return original.NewTaskClient()
 }

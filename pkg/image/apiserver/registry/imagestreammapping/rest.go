@@ -60,7 +60,7 @@ func (s *REST) NamespaceScoped() bool {
 // with a resource conflict, the update will be retried if the newer
 // ImageStream has no tag diffs from the previous state. If tag diffs are
 // detected, the conflict error is returned.
-func (s *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, _ bool) (runtime.Object, error) {
+func (s *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
 	if err := rest.BeforeCreate(s.strategy, ctx, obj); err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 			return true, nil
 		}
 		imageapi.UpdateTrackingTags(stream, tag, next)
-		_, err := s.imageStreamRegistry.UpdateImageStreamStatus(ctx, stream)
+		_, err := s.imageStreamRegistry.UpdateImageStreamStatus(ctx, stream, false, &metav1.UpdateOptions{})
 		if err == nil {
 			return true, nil
 		}

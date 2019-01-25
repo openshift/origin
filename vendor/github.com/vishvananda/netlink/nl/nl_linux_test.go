@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"syscall"
 	"testing"
+	"time"
 )
 
 type testSerializer interface {
@@ -59,4 +60,40 @@ func TestIfInfomsgDeserializeSerialize(t *testing.T) {
 	safemsg := deserializeIfInfomsgSafe(orig)
 	msg := DeserializeIfInfomsg(orig)
 	testDeserializeSerialize(t, orig, safemsg, msg)
+}
+
+func TestIfSocketCloses(t *testing.T) {
+	nlSock, err := Subscribe(syscall.NETLINK_ROUTE, syscall.RTNLGRP_NEIGH)
+	if err != nil {
+		t.Fatalf("Error on creating the socket: %v", err)
+	}
+	nlSock.SetReceiveTimeout(&syscall.Timeval{Sec: 2, Usec: 0})
+	endCh := make(chan error)
+	go func(sk *NetlinkSocket, endCh chan error) {
+		endCh <- nil
+		for {
+			_, err := sk.Receive()
+			// Receive returned because of a timeout and the FD == -1 means that the socket got closed
+			if err == syscall.EAGAIN && nlSock.GetFd() == -1 {
+				endCh <- err
+				return
+			}
+		}
+	}(nlSock, endCh)
+
+	// first receive nil
+	if msg := <-endCh; msg != nil {
+		t.Fatalf("Expected nil instead got: %v", msg)
+	}
+	// this to guarantee that the receive is invoked before the close
+	time.Sleep(4 * time.Second)
+
+	// Close the socket
+	nlSock.Close()
+
+	// Expect to have an error
+	msg := <-endCh
+	if msg == nil {
+		t.Fatalf("Expected error instead received nil")
+	}
 }

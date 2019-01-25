@@ -1,28 +1,21 @@
-package daemon
+package daemon // import "github.com/docker/docker/daemon"
 
 import (
 	"fmt"
 	"strings"
 	"syscall"
 
+	"github.com/docker/docker/errdefs"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 )
 
 func errNotRunning(id string) error {
-	return stateConflictError{errors.Errorf("Container %s is not running", id)}
+	return errdefs.Conflict(errors.Errorf("Container %s is not running", id))
 }
 
 func containerNotFound(id string) error {
 	return objNotFoundError{"container", id}
-}
-
-func volumeNotFound(id string) error {
-	return objNotFoundError{"volume", id}
-}
-
-func networkNotFound(id string) error {
-	return objNotFoundError{"network", id}
 }
 
 type objNotFoundError struct {
@@ -36,23 +29,9 @@ func (e objNotFoundError) Error() string {
 
 func (e objNotFoundError) NotFound() {}
 
-type stateConflictError struct {
-	cause error
-}
-
-func (e stateConflictError) Error() string {
-	return e.cause.Error()
-}
-
-func (e stateConflictError) Cause() error {
-	return e.cause
-}
-
-func (e stateConflictError) Conflict() {}
-
 func errContainerIsRestarting(containerID string) error {
 	cause := errors.Errorf("Container %s is restarting, wait until the container is running", containerID)
-	return stateConflictError{cause}
+	return errdefs.Conflict(cause)
 }
 
 func errExecNotFound(id string) error {
@@ -61,36 +40,24 @@ func errExecNotFound(id string) error {
 
 func errExecPaused(id string) error {
 	cause := errors.Errorf("Container %s is paused, unpause the container before exec", id)
-	return stateConflictError{cause}
+	return errdefs.Conflict(cause)
 }
 
-type validationError struct {
-	cause error
+func errNotPaused(id string) error {
+	cause := errors.Errorf("Container %s is already paused", id)
+	return errdefs.Conflict(cause)
 }
 
-func (e validationError) Error() string {
-	return e.cause.Error()
+type nameConflictError struct {
+	id   string
+	name string
 }
 
-func (e validationError) InvalidParameter() {}
-
-func (e validationError) Cause() error {
-	return e.cause
+func (e nameConflictError) Error() string {
+	return fmt.Sprintf("Conflict. The container name %q is already in use by container %q. You have to remove (or rename) that container to be able to reuse that name.", e.name, e.id)
 }
 
-type notAllowedError struct {
-	cause error
-}
-
-func (e notAllowedError) Error() string {
-	return e.cause.Error()
-}
-
-func (e notAllowedError) Forbidden() {}
-
-func (e notAllowedError) Cause() error {
-	return e.cause
-}
+func (nameConflictError) Conflict() {}
 
 type containerNotModifiedError struct {
 	running bool
@@ -104,20 +71,6 @@ func (e containerNotModifiedError) Error() string {
 }
 
 func (e containerNotModifiedError) NotModified() {}
-
-type systemError struct {
-	cause error
-}
-
-func (e systemError) Error() string {
-	return e.cause.Error()
-}
-
-func (e systemError) SystemError() {}
-
-func (e systemError) Cause() error {
-	return e.cause
-}
 
 type invalidIdentifier string
 
@@ -160,20 +113,6 @@ func (e invalidFilter) Error() string {
 
 func (e invalidFilter) InvalidParameter() {}
 
-type unknownError struct {
-	cause error
-}
-
-func (e unknownError) Error() string {
-	return e.cause.Error()
-}
-
-func (unknownError) Unknown() {}
-
-func (e unknownError) Cause() error {
-	return e.cause
-}
-
 type startInvalidConfigError string
 
 func (e startInvalidConfigError) Error() string {
@@ -187,7 +126,7 @@ func translateContainerdStartErr(cmd string, setExitCode func(int), err error) e
 	contains := func(s1, s2 string) bool {
 		return strings.Contains(strings.ToLower(s1), s2)
 	}
-	var retErr error = unknownError{errors.New(errDesc)}
+	var retErr = errdefs.Unknown(errors.New(errDesc))
 	// if we receive an internal error from the initial start of a container then lets
 	// return it instead of entering the restart loop
 	// set to 127 for container cmd not found/does not exist)

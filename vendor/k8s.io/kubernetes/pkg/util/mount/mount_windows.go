@@ -83,14 +83,20 @@ func (mounter *Mounter) Mount(source string, target string, fstype string, optio
 			return fmt.Errorf("azureMount: only cifs mount is supported now, fstype: %q, mounting source (%q), target (%q), with options (%q)", fstype, source, target, options)
 		}
 
-		cmdLine := fmt.Sprintf(`$User = "%s";$PWord = ConvertTo-SecureString -String "%s" -AsPlainText -Force;`+
-			`$Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, $PWord`,
-			options[0], options[1])
-
 		bindSource = source
-		cmdLine += fmt.Sprintf(";New-SmbGlobalMapping -RemotePath %s -Credential $Credential", source)
 
-		if output, err := exec.Command("powershell", "/c", cmdLine).CombinedOutput(); err != nil {
+		// use PowerShell Environment Variables to store user input string to prevent command line injection
+		// https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_environment_variables?view=powershell-5.1
+		cmdLine := fmt.Sprintf(`$PWord = ConvertTo-SecureString -String $Env:smbpassword -AsPlainText -Force` +
+			`;$Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $Env:smbuser, $PWord` +
+			`;New-SmbGlobalMapping -RemotePath $Env:smbremotepath -Credential $Credential`)
+
+		cmd := exec.Command("powershell", "/c", cmdLine)
+		cmd.Env = append(os.Environ(),
+			fmt.Sprintf("smbuser=%s", options[0]),
+			fmt.Sprintf("smbpassword=%s", options[1]),
+			fmt.Sprintf("smbremotepath=%s", source))
+		if output, err := cmd.CombinedOutput(); err != nil {
 			return fmt.Errorf("azureMount: SmbGlobalMapping failed: %v, only SMB mount is supported now, output: %q", err, string(output))
 		}
 	}
@@ -112,16 +118,6 @@ func (mounter *Mounter) Unmount(target string) error {
 		return err
 	}
 	return nil
-}
-
-// GetMountRefs finds all other references to the device(drive) referenced
-// by mountPath; returns a list of paths.
-func GetMountRefs(mounter Interface, mountPath string) ([]string, error) {
-	refs, err := getAllParentLinks(normalizeWindowsPath(mountPath))
-	if err != nil {
-		return nil, err
-	}
-	return refs, nil
 }
 
 // List returns a list of all mounted filesystems. todo
@@ -170,7 +166,7 @@ func (mounter *Mounter) GetDeviceNameFromMount(mountPath, pluginDir string) (str
 // the mount path reference should match the given plugin directory. In case no mount path reference
 // matches, returns the volume name taken from its given mountPath
 func getDeviceNameFromMount(mounter Interface, mountPath, pluginDir string) (string, error) {
-	refs, err := GetMountRefs(mounter, mountPath)
+	refs, err := mounter.GetMountRefs(mountPath)
 	if err != nil {
 		glog.V(4).Infof("GetMountRefs failed for mount path %q: %v", mountPath, err)
 		return "", err
@@ -313,7 +309,7 @@ func lockAndCheckSubPathWithoutSymlink(volumePath, subPath string) ([]uintptr, e
 			break
 		}
 
-		if !pathWithinBase(currentFullPath, volumePath) {
+		if !PathWithinBase(currentFullPath, volumePath) {
 			errorResult = fmt.Errorf("SubPath %q not within volume path %q", currentFullPath, volumePath)
 			break
 		}
@@ -462,12 +458,14 @@ func getAllParentLinks(path string) ([]string, error) {
 	return links, nil
 }
 
+// GetMountRefs : empty implementation here since there is no place to query all mount points on Windows
 func (mounter *Mounter) GetMountRefs(pathname string) ([]string, error) {
-	realpath, err := filepath.EvalSymlinks(pathname)
-	if err != nil {
+	if _, err := os.Stat(normalizeWindowsPath(pathname)); os.IsNotExist(err) {
+		return []string{}, nil
+	} else if err != nil {
 		return nil, err
 	}
-	return getMountRefsByDev(mounter, realpath)
+	return []string{pathname}, nil
 }
 
 // Note that on windows, it always returns 0. We actually don't set FSGroup on
@@ -503,7 +501,7 @@ func (mounter *Mounter) SafeMakeDir(subdir string, base string, perm os.FileMode
 func doSafeMakeDir(pathname string, base string, perm os.FileMode) error {
 	glog.V(4).Infof("Creating directory %q within base %q", pathname, base)
 
-	if !pathWithinBase(pathname, base) {
+	if !PathWithinBase(pathname, base) {
 		return fmt.Errorf("path %s is outside of allowed base %s", pathname, base)
 	}
 
@@ -538,7 +536,7 @@ func doSafeMakeDir(pathname string, base string, perm os.FileMode) error {
 	if err != nil {
 		return fmt.Errorf("cannot read link %s: %s", base, err)
 	}
-	if !pathWithinBase(fullExistingPath, fullBasePath) {
+	if !PathWithinBase(fullExistingPath, fullBasePath) {
 		return fmt.Errorf("path %s is outside of allowed base %s", fullExistingPath, err)
 	}
 

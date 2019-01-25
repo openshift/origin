@@ -1,18 +1,19 @@
-package daemon
+package daemon // import "github.com/docker/docker/daemon"
 
 import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	containertypes "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/container"
-	"github.com/docker/docker/layer"
 	"github.com/docker/docker/oci"
 	"github.com/docker/docker/pkg/sysinfo"
 	"github.com/docker/docker/pkg/system"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 )
@@ -23,7 +24,7 @@ const (
 )
 
 func (daemon *Daemon) createSpec(c *container.Container) (*specs.Spec, error) {
-	img, err := daemon.GetImage(string(c.ImageID))
+	img, err := daemon.imageService.GetImage(string(c.ImageID))
 	if err != nil {
 		return nil, err
 	}
@@ -92,12 +93,17 @@ func (daemon *Daemon) createSpec(c *container.Container) (*specs.Spec, error) {
 		}
 	}
 
-	if m := c.SecretMounts(); m != nil {
-		mounts = append(mounts, m...)
+	secretMounts, err := c.SecretMounts()
+	if err != nil {
+		return nil, err
+	}
+	if secretMounts != nil {
+		mounts = append(mounts, secretMounts...)
 	}
 
-	if m := c.ConfigMounts(); m != nil {
-		mounts = append(mounts, m...)
+	configMounts := c.ConfigMounts()
+	if configMounts != nil {
+		mounts = append(mounts, configMounts...)
 	}
 
 	for _, mount := range mounts {
@@ -107,6 +113,11 @@ func (daemon *Daemon) createSpec(c *container.Container) (*specs.Spec, error) {
 		}
 		if !mount.Writable {
 			m.Options = append(m.Options, "ro")
+		}
+		if img.OS != runtime.GOOS {
+			m.Type = "bind"
+			m.Options = append(m.Options, "rbind")
+			m.Options = append(m.Options, fmt.Sprintf("uvmpath=/tmp/gcs/%s/binds", c.ID))
 		}
 		s.Mounts = append(s.Mounts, m)
 	}
@@ -127,23 +138,10 @@ func (daemon *Daemon) createSpec(c *container.Container) (*specs.Spec, error) {
 		}
 	}
 	s.Process.User.Username = c.Config.User
-
-	// Get the layer path for each layer.
-	max := len(img.RootFS.DiffIDs)
-	for i := 1; i <= max; i++ {
-		img.RootFS.DiffIDs = img.RootFS.DiffIDs[:i]
-		layerPath, err := layer.GetLayerPath(daemon.stores[c.Platform].layerStore, img.RootFS.ChainID())
-		if err != nil {
-			return nil, fmt.Errorf("failed to get layer path from graphdriver %s for ImageID %s - %s", daemon.stores[c.Platform].layerStore, img.RootFS.ChainID(), err)
-		}
-		// Reverse order, expecting parent most first
-		s.Windows.LayerFolders = append([]string{layerPath}, s.Windows.LayerFolders...)
-	}
-	m, err := c.RWLayer.Metadata()
+	s.Windows.LayerFolders, err = daemon.imageService.GetLayerFolders(img, c.RWLayer)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get layer metadata - %s", err)
+		return nil, errors.Wrapf(err, "container %s", c.ID)
 	}
-	s.Windows.LayerFolders = append(s.Windows.LayerFolders, m["dir"])
 
 	dnsSearch := daemon.getDNSSearchSettings(c)
 
@@ -158,7 +156,7 @@ func (daemon *Daemon) createSpec(c *container.Container) (*specs.Spec, error) {
 				continue
 			}
 
-			ep, err := c.GetEndpointInNetwork(sn)
+			ep, err := getEndpointInNetwork(c.Name, sn)
 			if err != nil {
 				continue
 			}
@@ -204,15 +202,18 @@ func (daemon *Daemon) createSpec(c *container.Container) (*specs.Spec, error) {
 		NetworkSharedContainerName: networkSharedContainerID,
 	}
 
-	if img.OS == "windows" {
+	switch img.OS {
+	case "windows":
 		if err := daemon.createSpecWindowsFields(c, &s, isHyperV); err != nil {
 			return nil, err
 		}
-	} else {
-		// TODO @jhowardmsft LCOW Support. Modify this check when running in dual-mode
-		if system.LCOWSupported() && img.OS == "linux" {
-			daemon.createSpecLinuxFields(c, &s)
+	case "linux":
+		if !system.LCOWSupported() {
+			return nil, fmt.Errorf("Linux containers on Windows are not supported")
 		}
+		daemon.createSpecLinuxFields(c, &s)
+	default:
+		return nil, fmt.Errorf("Unsupported platform %q", img.OS)
 	}
 
 	return (*specs.Spec)(&s), nil
@@ -233,7 +234,11 @@ func (daemon *Daemon) createSpecWindowsFields(c *container.Container, s *specs.S
 
 	s.Root.Readonly = false // Windows does not support a read-only root filesystem
 	if !isHyperV {
-		s.Root.Path = c.BaseFS // This is not set for Hyper-V containers
+		if c.BaseFS == nil {
+			return errors.New("createSpecWindowsFields: BaseFS of container " + c.ID + " is unexpectedly nil")
+		}
+
+		s.Root.Path = c.BaseFS.Path() // This is not set for Hyper-V containers
 		if !strings.HasSuffix(s.Root.Path, `\`) {
 			s.Root.Path = s.Root.Path + `\` // Ensure a correctly formatted volume GUID path \\?\Volume{GUID}\
 		}
@@ -324,9 +329,6 @@ func (daemon *Daemon) createSpecWindowsFields(c *container.Container, s *specs.S
 		}
 		s.Windows.CredentialSpec = cs
 	}
-
-	// Assume we are not starting a container for a servicing operation
-	s.Windows.Servicing = false
 
 	return nil
 }

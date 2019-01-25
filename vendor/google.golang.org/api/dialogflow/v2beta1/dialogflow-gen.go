@@ -511,11 +511,10 @@ type GoogleCloudDialogflowV2ExportAgentResponse struct {
 	//
 	// Example for how to export an agent to a zip file via a command
 	// line:
+	// <pre>curl \
 	//
-	// curl \
-	//
-	// 'https://dialogflow.googleapis.com/v2/projects/<project_name>/agent:ex
-	// port'\
+	// 'https://dialogflow.googleapis.com/v2/projects/&lt;project_name&gt;/ag
+	// ent:export'\
 	//   -X POST \
 	//   -H 'Authorization: Bearer '$(gcloud auth print-access-token) \
 	//   -H 'Accept: application/json' \
@@ -524,7 +523,7 @@ type GoogleCloudDialogflowV2ExportAgentResponse struct {
 	//   --data-binary '{}' \
 	// | grep agentContent | sed -e 's/.*"agentContent": "\([^"]*\)".*/\1/'
 	// \
-	// | base64 --decode > <agent zip file>
+	// | base64 --decode > &lt;agent zip file&gt;</pre>
 	AgentContent string `json:"agentContent,omitempty"`
 
 	// AgentUri: The URI to a file containing the exported agent. This field
@@ -2548,11 +2547,11 @@ type GoogleCloudDialogflowV2beta1Context struct {
 	// ID>/users/<User
 	// ID>/sessions/<Session ID>/contexts/<Context ID>`. Note: Environments
 	// and
-	// users are under construction and will be available soon. The Context
-	// ID is
-	// always converted to lowercase. If <Environment ID> is not specified,
-	// we
-	// assume default 'draft' environment. If <User ID> is not specified,
+	// users are under construction and will be available soon. The `Context
+	// ID`
+	// is always converted to lowercase. If `Environment ID` is not
+	// specified, we
+	// assume default 'draft' environment. If `User ID` is not specified,
 	// we
 	// assume default '-' user.
 	Name string `json:"name,omitempty"`
@@ -2916,11 +2915,10 @@ type GoogleCloudDialogflowV2beta1ExportAgentResponse struct {
 	//
 	// Example for how to export an agent to a zip file via a command
 	// line:
+	// <pre>curl \
 	//
-	// curl \
-	//
-	// 'https://dialogflow.googleapis.com/v2beta1/projects/<project_name>/age
-	// nt:export'\
+	// 'https://dialogflow.googleapis.com/v2beta1/projects/&lt;project_name&g
+	// t;/agent:export'\
 	//   -X POST \
 	//   -H 'Authorization: Bearer '$(gcloud auth print-access-token) \
 	//   -H 'Accept: application/json' \
@@ -2929,7 +2927,7 @@ type GoogleCloudDialogflowV2beta1ExportAgentResponse struct {
 	//   --data-binary '{}' \
 	// | grep agentContent | sed -e 's/.*"agentContent": "\([^"]*\)".*/\1/'
 	// \
-	// | base64 --decode > <agent zip file>
+	// | base64 --decode > &lt;agent zip file&gt;</pre>
 	AgentContent string `json:"agentContent,omitempty"`
 
 	// AgentUri: The URI to a file containing the exported agent. This field
@@ -2966,19 +2964,18 @@ type GoogleCloudDialogflowV2beta1ImportAgentRequest struct {
 	// AgentContent: The agent to import.
 	//
 	// Example for how to import an agent via the command line:
+	// <pre>curl \
 	//
-	// curl \
-	//
-	// 'https://dialogflow.googleapis.com/v2beta1/projects/<project_name>/age
-	// nt:import\
+	// 'https://dialogflow.googleapis.com/v2beta1/projects/&lt;project_name&g
+	// t;/agent:import\
 	//    -X POST \
 	//    -H 'Authorization: Bearer '$(gcloud auth print-access-token) \
 	//    -H 'Accept: application/json' \
 	//    -H 'Content-Type: application/json' \
 	//    --compressed \
 	//    --data-binary "{
-	//       'agentContent': '$(cat <agent zip file> | base64 -w 0)'
-	//    }"
+	//       'agentContent': '$(cat &lt;agent zip file&gt; | base64 -w 0)'
+	//    }"</pre>
 	AgentContent string `json:"agentContent,omitempty"`
 
 	// AgentUri: The URI to a Google Cloud Storage file containing the agent
@@ -4845,19 +4842,18 @@ type GoogleCloudDialogflowV2beta1RestoreAgentRequest struct {
 	// AgentContent: The agent to restore.
 	//
 	// Example for how to restore an agent via the command line:
+	// <pre>curl \
 	//
-	// curl \
-	//
-	// 'https://dialogflow.googleapis.com/v2beta1/projects/<project_name>/age
-	// nt:restore\
+	// 'https://dialogflow.googleapis.com/v2beta1/projects/&lt;project_name&g
+	// t;/agent:restore\
 	//    -X POST \
 	//    -H 'Authorization: Bearer '$(gcloud auth print-access-token) \
 	//    -H 'Accept: application/json' \
 	//    -H 'Content-Type: application/json' \
 	//    --compressed \
 	//    --data-binary "{
-	//        'agentContent': '$(cat <agent zip file> | base64 -w 0)'
-	//    }" \
+	//        'agentContent': '$(cat &lt;agent zip file&gt; | base64 -w 0)'
+	//    }"</pre>
 	AgentContent string `json:"agentContent,omitempty"`
 
 	// AgentUri: The URI to a Google Cloud Storage file containing the agent
@@ -4978,9 +4974,9 @@ type GoogleCloudDialogflowV2beta1SessionEntityType struct {
 	// /<Session ID>/entityTypes/<Entity Type Display Name>`.
 	// Note: Environments and users are under construction and will be
 	// available
-	// soon. If <Environment ID> is not specified, we assume default
+	// soon. If `Environment ID` is not specified, we assume default
 	// 'draft'
-	// environment. If <User ID> is not specified, we assume default '-'
+	// environment. If `User ID` is not specified, we assume default '-'
 	// user.
 	Name string `json:"name,omitempty"`
 
@@ -7976,7 +7972,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsDeleteContextsCall) Do(opts ...go
 	//   ],
 	//   "parameters": {
 	//     "parent": {
-	//       "description": "Required. The name of the session to delete all contexts from. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e` or `projects/\u003cProject\nID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser ID\u003e/sessions/\u003cSession\nID\u003e`. Note: Environments and users are under construction and will be\navailable soon. If \u003cEnvironment ID\u003e is not specified we assume default\n'draft' environment. If \u003cUser ID\u003e is not specified, we assume default\n'-' user.",
+	//       "description": "Required. The name of the session to delete all contexts from. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e` or `projects/\u003cProject\nID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser ID\u003e/sessions/\u003cSession\nID\u003e`. Note: Environments and users are under construction and will be\navailable soon. If `Environment ID` is not specified we assume default\n'draft' environment. If `User ID` is not specified, we assume default\n'-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/environments/[^/]+/users/[^/]+/sessions/[^/]+$",
 	//       "required": true,
@@ -8116,7 +8112,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsDetectIntentCall) Do(opts ...goog
 	//   ],
 	//   "parameters": {
 	//     "session": {
-	//       "description": "Required. The name of the session this query is sent to. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e`, or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e`. Note: Environments and users are under\nconstruction and will be available soon. If \u003cEnvironment ID\u003e is not\nspecified, we assume default 'draft' environment. If \u003cUser ID\u003e is not\nspecified, we are using \"-\". It’s up to the API caller to choose an\nappropriate \u003cSession ID\u003e. and \u003cUser Id\u003e. They can be a random numbers or\nsome type of user and session identifiers (preferably hashed). The length\nof the \u003cSession ID\u003e and \u003cUser ID\u003e must not exceed 36 characters.",
+	//       "description": "Required. The name of the session this query is sent to. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e`, or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e`. Note: Environments and users are under\nconstruction and will be available soon. If `Environment ID` is not\nspecified, we assume default 'draft' environment. If `User ID` is not\nspecified, we are using \"-\". It’s up to the API caller to choose an\nappropriate `Session ID` and `User Id`. They can be a random numbers or\nsome type of user and session identifiers (preferably hashed). The length\nof the `Session ID` and `User ID` must not exceed 36 characters.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/environments/[^/]+/users/[^/]+/sessions/[^/]+$",
 	//       "required": true,
@@ -8252,7 +8248,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsContextsCreateCall) Do(opts ...go
 	//   ],
 	//   "parameters": {
 	//     "parent": {
-	//       "description": "Required. The session to create a context for.\nFormat: `projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e` or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e`. Note: Environments and users are under\nconstruction and will be available soon. If \u003cEnvironment ID\u003e is not\nspecified, we assume default 'draft' environment. If \u003cUser ID\u003e is not\nspecified, we assume default '-' user.",
+	//       "description": "Required. The session to create a context for.\nFormat: `projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e` or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e`. Note: Environments and users are under\nconstruction and will be available soon. If `Environment ID` is not\nspecified, we assume default 'draft' environment. If `User ID` is not\nspecified, we assume default '-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/environments/[^/]+/users/[^/]+/sessions/[^/]+$",
 	//       "required": true,
@@ -8380,7 +8376,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsContextsDeleteCall) Do(opts ...go
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "Required. The name of the context to delete. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`\nor `projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`. Note: Environments and\nusers are under construction and will be available soon. If \u003cEnvironment\nID\u003e is not specified, we assume default 'draft' environment. If \u003cUser ID\u003e\nis not specified, we assume default\n'-' user.",
+	//       "description": "Required. The name of the context to delete. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`\nor `projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`. Note: Environments and\nusers are under construction and will be available soon. If `Environment\nID` is not specified, we assume default 'draft' environment. If `User ID`\nis not specified, we assume default\n'-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/environments/[^/]+/users/[^/]+/sessions/[^/]+/contexts/[^/]+$",
 	//       "required": true,
@@ -8520,7 +8516,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsContextsGetCall) Do(opts ...googl
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "Required. The name of the context. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`\nor `projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`. Note: Environments and\nusers are under construction and will be available soon. If \u003cEnvironment\nID\u003e is not specified, we assume default 'draft' environment. If \u003cUser ID\u003e\nis not specified, we assume default '-' user.",
+	//       "description": "Required. The name of the context. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`\nor `projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`. Note: Environments and\nusers are under construction and will be available soon. If `Environment\nID` is not specified, we assume default 'draft' environment. If `User ID`\nis not specified, we assume default '-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/environments/[^/]+/users/[^/]+/sessions/[^/]+/contexts/[^/]+$",
 	//       "required": true,
@@ -8687,7 +8683,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsContextsListCall) Do(opts ...goog
 	//       "type": "string"
 	//     },
 	//     "parent": {
-	//       "description": "Required. The session to list all contexts from.\nFormat: `projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e` or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e`. Note: Environments and users are under\nconstruction and will be available soon. If \u003cEnvironment ID\u003e is not\nspecified, we assume default 'draft' environment. If \u003cUser ID\u003e is not\nspecified, we assume default '-' user.",
+	//       "description": "Required. The session to list all contexts from.\nFormat: `projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e` or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e`. Note: Environments and users are under\nconstruction and will be available soon. If `Environment ID` is not\nspecified, we assume default 'draft' environment. If `User ID` is not\nspecified, we assume default '-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/environments/[^/]+/users/[^/]+/sessions/[^/]+$",
 	//       "required": true,
@@ -8848,7 +8844,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsContextsPatchCall) Do(opts ...goo
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "Required. The unique identifier of the context. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`,\nor\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`. Note: Environments and\nusers are under construction and will be available soon. The Context ID is\nalways converted to lowercase. If \u003cEnvironment ID\u003e is not specified, we\nassume default 'draft' environment. If \u003cUser ID\u003e is not specified, we\nassume default '-' user.",
+	//       "description": "Required. The unique identifier of the context. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`,\nor\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`. Note: Environments and\nusers are under construction and will be available soon. The `Context ID`\nis always converted to lowercase. If `Environment ID` is not specified, we\nassume default 'draft' environment. If `User ID` is not specified, we\nassume default '-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/environments/[^/]+/users/[^/]+/sessions/[^/]+/contexts/[^/]+$",
 	//       "required": true,
@@ -8991,7 +8987,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesCreateCall) Do(opts ..
 	//   ],
 	//   "parameters": {
 	//     "parent": {
-	//       "description": "Required. The session to create a session entity type for.\nFormat: `projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e` or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser ID\u003e/\nsessions/\u003cSession ID\u003e`.\nNote: Environments and users are under construction and will be available\nsoon. If \u003cEnvironment ID\u003e is not specified, we assume default 'draft'\nenvironment. If \u003cUser ID\u003e is not specified, we assume default '-' user.",
+	//       "description": "Required. The session to create a session entity type for.\nFormat: `projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e` or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser ID\u003e/\nsessions/\u003cSession ID\u003e`.\nNote: Environments and users are under construction and will be available\nsoon. If `Environment ID` is not specified, we assume default 'draft'\nenvironment. If `User ID` is not specified, we assume default '-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/environments/[^/]+/users/[^/]+/sessions/[^/]+$",
 	//       "required": true,
@@ -9119,7 +9115,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesDeleteCall) Do(opts ..
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "Required. The name of the entity type to delete. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/entityTypes/\u003cEntity Type\nDisplay Name\u003e` or `projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment\nID\u003e/users/\u003cUser ID\u003e/sessions/\u003cSession ID\u003e/entityTypes/\u003cEntity Type Display\nName\u003e`.\nNote: Environments and users are under construction and will be available\nsoon. If \u003cEnvironment ID\u003e is not specified, we assume default 'draft'\nenvironment. If \u003cUser ID\u003e is not specified, we assume default '-' user.",
+	//       "description": "Required. The name of the entity type to delete. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/entityTypes/\u003cEntity Type\nDisplay Name\u003e` or `projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment\nID\u003e/users/\u003cUser ID\u003e/sessions/\u003cSession ID\u003e/entityTypes/\u003cEntity Type Display\nName\u003e`.\nNote: Environments and users are under construction and will be available\nsoon. If `Environment ID` is not specified, we assume default 'draft'\nenvironment. If `User ID` is not specified, we assume default '-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/environments/[^/]+/users/[^/]+/sessions/[^/]+/entityTypes/[^/]+$",
 	//       "required": true,
@@ -9260,7 +9256,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesGetCall) Do(opts ...go
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "Required. The name of the session entity type. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/entityTypes/\u003cEntity Type\nDisplay Name\u003e` or `projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment\nID\u003e/users/\u003cUser ID\u003e/sessions/\u003cSession ID\u003e/\nentityTypes/\u003cEntity Type Display Name\u003e`.\nNote: Environments and users re under construction and will be available\nsoon. If \u003cEnvironment ID\u003e is not specified, we assume default 'draft'\nenvironment. If \u003cUser ID\u003e is not specified, we assume default '-' user.",
+	//       "description": "Required. The name of the session entity type. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/entityTypes/\u003cEntity Type\nDisplay Name\u003e` or `projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment\nID\u003e/users/\u003cUser ID\u003e/sessions/\u003cSession ID\u003e/\nentityTypes/\u003cEntity Type Display Name\u003e`.\nNote: Environments and users re under construction and will be available\nsoon. If `Environment ID` is not specified, we assume default 'draft'\nenvironment. If `User ID` is not specified, we assume default '-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/environments/[^/]+/users/[^/]+/sessions/[^/]+/entityTypes/[^/]+$",
 	//       "required": true,
@@ -9429,7 +9425,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesListCall) Do(opts ...g
 	//       "type": "string"
 	//     },
 	//     "parent": {
-	//       "description": "Required. The session to list all session entity types from.\nFormat: `projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e` or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser ID\u003e/\nsessions/\u003cSession ID\u003e`.\nNote: Environments and users are under construction and will be available\nsoon. If \u003cEnvironment ID\u003e is not specified, we assume default 'draft'\nenvironment. If \u003cUser ID\u003e is not specified, we assume default '-' user.",
+	//       "description": "Required. The session to list all session entity types from.\nFormat: `projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e` or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser ID\u003e/\nsessions/\u003cSession ID\u003e`.\nNote: Environments and users are under construction and will be available\nsoon. If `Environment ID` is not specified, we assume default 'draft'\nenvironment. If `User ID` is not specified, we assume default '-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/environments/[^/]+/users/[^/]+/sessions/[^/]+$",
 	//       "required": true,
@@ -9591,7 +9587,7 @@ func (c *ProjectsAgentEnvironmentsUsersSessionsEntityTypesPatchCall) Do(opts ...
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "Required. The unique identifier of this session entity type. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/entityTypes/\u003cEntity Type\nDisplay Name\u003e`, or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions\n/\u003cSession ID\u003e/entityTypes/\u003cEntity Type Display Name\u003e`.\nNote: Environments and users are under construction and will be available\nsoon. If \u003cEnvironment ID\u003e is not specified, we assume default 'draft'\nenvironment. If \u003cUser ID\u003e is not specified, we assume default '-' user.",
+	//       "description": "Required. The unique identifier of this session entity type. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/entityTypes/\u003cEntity Type\nDisplay Name\u003e`, or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions\n/\u003cSession ID\u003e/entityTypes/\u003cEntity Type Display Name\u003e`.\nNote: Environments and users are under construction and will be available\nsoon. If `Environment ID` is not specified, we assume default 'draft'\nenvironment. If `User ID` is not specified, we assume default '-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/environments/[^/]+/users/[^/]+/sessions/[^/]+/entityTypes/[^/]+$",
 	//       "required": true,
@@ -10897,7 +10893,7 @@ func (c *ProjectsAgentSessionsDeleteContextsCall) Do(opts ...googleapi.CallOptio
 	//   ],
 	//   "parameters": {
 	//     "parent": {
-	//       "description": "Required. The name of the session to delete all contexts from. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e` or `projects/\u003cProject\nID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser ID\u003e/sessions/\u003cSession\nID\u003e`. Note: Environments and users are under construction and will be\navailable soon. If \u003cEnvironment ID\u003e is not specified we assume default\n'draft' environment. If \u003cUser ID\u003e is not specified, we assume default\n'-' user.",
+	//       "description": "Required. The name of the session to delete all contexts from. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e` or `projects/\u003cProject\nID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser ID\u003e/sessions/\u003cSession\nID\u003e`. Note: Environments and users are under construction and will be\navailable soon. If `Environment ID` is not specified we assume default\n'draft' environment. If `User ID` is not specified, we assume default\n'-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/sessions/[^/]+$",
 	//       "required": true,
@@ -11037,7 +11033,7 @@ func (c *ProjectsAgentSessionsDetectIntentCall) Do(opts ...googleapi.CallOption)
 	//   ],
 	//   "parameters": {
 	//     "session": {
-	//       "description": "Required. The name of the session this query is sent to. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e`, or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e`. Note: Environments and users are under\nconstruction and will be available soon. If \u003cEnvironment ID\u003e is not\nspecified, we assume default 'draft' environment. If \u003cUser ID\u003e is not\nspecified, we are using \"-\". It’s up to the API caller to choose an\nappropriate \u003cSession ID\u003e. and \u003cUser Id\u003e. They can be a random numbers or\nsome type of user and session identifiers (preferably hashed). The length\nof the \u003cSession ID\u003e and \u003cUser ID\u003e must not exceed 36 characters.",
+	//       "description": "Required. The name of the session this query is sent to. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e`, or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e`. Note: Environments and users are under\nconstruction and will be available soon. If `Environment ID` is not\nspecified, we assume default 'draft' environment. If `User ID` is not\nspecified, we are using \"-\". It’s up to the API caller to choose an\nappropriate `Session ID` and `User Id`. They can be a random numbers or\nsome type of user and session identifiers (preferably hashed). The length\nof the `Session ID` and `User ID` must not exceed 36 characters.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/sessions/[^/]+$",
 	//       "required": true,
@@ -11173,7 +11169,7 @@ func (c *ProjectsAgentSessionsContextsCreateCall) Do(opts ...googleapi.CallOptio
 	//   ],
 	//   "parameters": {
 	//     "parent": {
-	//       "description": "Required. The session to create a context for.\nFormat: `projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e` or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e`. Note: Environments and users are under\nconstruction and will be available soon. If \u003cEnvironment ID\u003e is not\nspecified, we assume default 'draft' environment. If \u003cUser ID\u003e is not\nspecified, we assume default '-' user.",
+	//       "description": "Required. The session to create a context for.\nFormat: `projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e` or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e`. Note: Environments and users are under\nconstruction and will be available soon. If `Environment ID` is not\nspecified, we assume default 'draft' environment. If `User ID` is not\nspecified, we assume default '-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/sessions/[^/]+$",
 	//       "required": true,
@@ -11301,7 +11297,7 @@ func (c *ProjectsAgentSessionsContextsDeleteCall) Do(opts ...googleapi.CallOptio
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "Required. The name of the context to delete. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`\nor `projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`. Note: Environments and\nusers are under construction and will be available soon. If \u003cEnvironment\nID\u003e is not specified, we assume default 'draft' environment. If \u003cUser ID\u003e\nis not specified, we assume default\n'-' user.",
+	//       "description": "Required. The name of the context to delete. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`\nor `projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`. Note: Environments and\nusers are under construction and will be available soon. If `Environment\nID` is not specified, we assume default 'draft' environment. If `User ID`\nis not specified, we assume default\n'-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/sessions/[^/]+/contexts/[^/]+$",
 	//       "required": true,
@@ -11441,7 +11437,7 @@ func (c *ProjectsAgentSessionsContextsGetCall) Do(opts ...googleapi.CallOption) 
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "Required. The name of the context. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`\nor `projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`. Note: Environments and\nusers are under construction and will be available soon. If \u003cEnvironment\nID\u003e is not specified, we assume default 'draft' environment. If \u003cUser ID\u003e\nis not specified, we assume default '-' user.",
+	//       "description": "Required. The name of the context. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`\nor `projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`. Note: Environments and\nusers are under construction and will be available soon. If `Environment\nID` is not specified, we assume default 'draft' environment. If `User ID`\nis not specified, we assume default '-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/sessions/[^/]+/contexts/[^/]+$",
 	//       "required": true,
@@ -11608,7 +11604,7 @@ func (c *ProjectsAgentSessionsContextsListCall) Do(opts ...googleapi.CallOption)
 	//       "type": "string"
 	//     },
 	//     "parent": {
-	//       "description": "Required. The session to list all contexts from.\nFormat: `projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e` or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e`. Note: Environments and users are under\nconstruction and will be available soon. If \u003cEnvironment ID\u003e is not\nspecified, we assume default 'draft' environment. If \u003cUser ID\u003e is not\nspecified, we assume default '-' user.",
+	//       "description": "Required. The session to list all contexts from.\nFormat: `projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e` or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e`. Note: Environments and users are under\nconstruction and will be available soon. If `Environment ID` is not\nspecified, we assume default 'draft' environment. If `User ID` is not\nspecified, we assume default '-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/sessions/[^/]+$",
 	//       "required": true,
@@ -11769,7 +11765,7 @@ func (c *ProjectsAgentSessionsContextsPatchCall) Do(opts ...googleapi.CallOption
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "Required. The unique identifier of the context. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`,\nor\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`. Note: Environments and\nusers are under construction and will be available soon. The Context ID is\nalways converted to lowercase. If \u003cEnvironment ID\u003e is not specified, we\nassume default 'draft' environment. If \u003cUser ID\u003e is not specified, we\nassume default '-' user.",
+	//       "description": "Required. The unique identifier of the context. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`,\nor\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions/\u003cSession ID\u003e/contexts/\u003cContext ID\u003e`. Note: Environments and\nusers are under construction and will be available soon. The `Context ID`\nis always converted to lowercase. If `Environment ID` is not specified, we\nassume default 'draft' environment. If `User ID` is not specified, we\nassume default '-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/sessions/[^/]+/contexts/[^/]+$",
 	//       "required": true,
@@ -11912,7 +11908,7 @@ func (c *ProjectsAgentSessionsEntityTypesCreateCall) Do(opts ...googleapi.CallOp
 	//   ],
 	//   "parameters": {
 	//     "parent": {
-	//       "description": "Required. The session to create a session entity type for.\nFormat: `projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e` or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser ID\u003e/\nsessions/\u003cSession ID\u003e`.\nNote: Environments and users are under construction and will be available\nsoon. If \u003cEnvironment ID\u003e is not specified, we assume default 'draft'\nenvironment. If \u003cUser ID\u003e is not specified, we assume default '-' user.",
+	//       "description": "Required. The session to create a session entity type for.\nFormat: `projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e` or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser ID\u003e/\nsessions/\u003cSession ID\u003e`.\nNote: Environments and users are under construction and will be available\nsoon. If `Environment ID` is not specified, we assume default 'draft'\nenvironment. If `User ID` is not specified, we assume default '-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/sessions/[^/]+$",
 	//       "required": true,
@@ -12040,7 +12036,7 @@ func (c *ProjectsAgentSessionsEntityTypesDeleteCall) Do(opts ...googleapi.CallOp
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "Required. The name of the entity type to delete. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/entityTypes/\u003cEntity Type\nDisplay Name\u003e` or `projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment\nID\u003e/users/\u003cUser ID\u003e/sessions/\u003cSession ID\u003e/entityTypes/\u003cEntity Type Display\nName\u003e`.\nNote: Environments and users are under construction and will be available\nsoon. If \u003cEnvironment ID\u003e is not specified, we assume default 'draft'\nenvironment. If \u003cUser ID\u003e is not specified, we assume default '-' user.",
+	//       "description": "Required. The name of the entity type to delete. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/entityTypes/\u003cEntity Type\nDisplay Name\u003e` or `projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment\nID\u003e/users/\u003cUser ID\u003e/sessions/\u003cSession ID\u003e/entityTypes/\u003cEntity Type Display\nName\u003e`.\nNote: Environments and users are under construction and will be available\nsoon. If `Environment ID` is not specified, we assume default 'draft'\nenvironment. If `User ID` is not specified, we assume default '-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/sessions/[^/]+/entityTypes/[^/]+$",
 	//       "required": true,
@@ -12181,7 +12177,7 @@ func (c *ProjectsAgentSessionsEntityTypesGetCall) Do(opts ...googleapi.CallOptio
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "Required. The name of the session entity type. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/entityTypes/\u003cEntity Type\nDisplay Name\u003e` or `projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment\nID\u003e/users/\u003cUser ID\u003e/sessions/\u003cSession ID\u003e/\nentityTypes/\u003cEntity Type Display Name\u003e`.\nNote: Environments and users re under construction and will be available\nsoon. If \u003cEnvironment ID\u003e is not specified, we assume default 'draft'\nenvironment. If \u003cUser ID\u003e is not specified, we assume default '-' user.",
+	//       "description": "Required. The name of the session entity type. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/entityTypes/\u003cEntity Type\nDisplay Name\u003e` or `projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment\nID\u003e/users/\u003cUser ID\u003e/sessions/\u003cSession ID\u003e/\nentityTypes/\u003cEntity Type Display Name\u003e`.\nNote: Environments and users re under construction and will be available\nsoon. If `Environment ID` is not specified, we assume default 'draft'\nenvironment. If `User ID` is not specified, we assume default '-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/sessions/[^/]+/entityTypes/[^/]+$",
 	//       "required": true,
@@ -12350,7 +12346,7 @@ func (c *ProjectsAgentSessionsEntityTypesListCall) Do(opts ...googleapi.CallOpti
 	//       "type": "string"
 	//     },
 	//     "parent": {
-	//       "description": "Required. The session to list all session entity types from.\nFormat: `projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e` or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser ID\u003e/\nsessions/\u003cSession ID\u003e`.\nNote: Environments and users are under construction and will be available\nsoon. If \u003cEnvironment ID\u003e is not specified, we assume default 'draft'\nenvironment. If \u003cUser ID\u003e is not specified, we assume default '-' user.",
+	//       "description": "Required. The session to list all session entity types from.\nFormat: `projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e` or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser ID\u003e/\nsessions/\u003cSession ID\u003e`.\nNote: Environments and users are under construction and will be available\nsoon. If `Environment ID` is not specified, we assume default 'draft'\nenvironment. If `User ID` is not specified, we assume default '-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/sessions/[^/]+$",
 	//       "required": true,
@@ -12512,7 +12508,7 @@ func (c *ProjectsAgentSessionsEntityTypesPatchCall) Do(opts ...googleapi.CallOpt
 	//   ],
 	//   "parameters": {
 	//     "name": {
-	//       "description": "Required. The unique identifier of this session entity type. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/entityTypes/\u003cEntity Type\nDisplay Name\u003e`, or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions\n/\u003cSession ID\u003e/entityTypes/\u003cEntity Type Display Name\u003e`.\nNote: Environments and users are under construction and will be available\nsoon. If \u003cEnvironment ID\u003e is not specified, we assume default 'draft'\nenvironment. If \u003cUser ID\u003e is not specified, we assume default '-' user.",
+	//       "description": "Required. The unique identifier of this session entity type. Format:\n`projects/\u003cProject ID\u003e/agent/sessions/\u003cSession ID\u003e/entityTypes/\u003cEntity Type\nDisplay Name\u003e`, or\n`projects/\u003cProject ID\u003e/agent/environments/\u003cEnvironment ID\u003e/users/\u003cUser\nID\u003e/sessions\n/\u003cSession ID\u003e/entityTypes/\u003cEntity Type Display Name\u003e`.\nNote: Environments and users are under construction and will be available\nsoon. If `Environment ID` is not specified, we assume default 'draft'\nenvironment. If `User ID` is not specified, we assume default '-' user.",
 	//       "location": "path",
 	//       "pattern": "^projects/[^/]+/agent/sessions/[^/]+/entityTypes/[^/]+$",
 	//       "required": true,

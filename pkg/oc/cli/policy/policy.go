@@ -2,8 +2,8 @@ package policy
 
 import (
 	"github.com/spf13/cobra"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	adminpolicy "github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	"github.com/openshift/origin/pkg/oc/cli/policy/cani"

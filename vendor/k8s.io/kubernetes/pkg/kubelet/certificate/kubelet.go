@@ -30,16 +30,16 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clientset "k8s.io/client-go/kubernetes"
-	clientcertificates "k8s.io/client-go/kubernetes/typed/certificates/v1beta1"
+	certificatesclient "k8s.io/client-go/kubernetes/typed/certificates/v1beta1"
 	"k8s.io/client-go/util/certificate"
-	"k8s.io/kubernetes/pkg/kubelet/apis/kubeletconfig"
+	kubeletconfig "k8s.io/kubernetes/pkg/kubelet/apis/config"
 	"k8s.io/kubernetes/pkg/kubelet/metrics"
 )
 
 // NewKubeletServerCertificateManager creates a certificate manager for the kubelet when retrieving a server certificate
 // or returns an error.
-func NewKubeletServerCertificateManager(kubeClient clientset.Interface, kubeCfg *kubeletconfig.KubeletConfiguration, nodeName types.NodeName, ips []net.IP, hostnames []string, certDirectory string) (certificate.Manager, error) {
-	var certSigningRequestClient clientcertificates.CertificateSigningRequestInterface
+func NewKubeletServerCertificateManager(kubeClient clientset.Interface, kubeCfg *kubeletconfig.KubeletConfiguration, nodeName types.NodeName, getAddresses func() []v1.NodeAddress, certDirectory string) (certificate.Manager, error) {
+	var certSigningRequestClient certificatesclient.CertificateSigningRequestInterface
 	if kubeClient != nil && kubeClient.CertificatesV1beta1() != nil {
 		certSigningRequestClient = kubeClient.CertificatesV1beta1().CertificateSigningRequests()
 	}
@@ -62,18 +62,27 @@ func NewKubeletServerCertificateManager(kubeClient clientset.Interface, kubeCfg 
 	)
 	prometheus.MustRegister(certificateExpiration)
 
-	m, err := certificate.NewManager(&certificate.Config{
-		ClientFn: func(current *tls.Certificate) (clientcertificates.CertificateSigningRequestInterface, error) {
-			return certSigningRequestClient, nil
-		},
-		Template: &x509.CertificateRequest{
+	getTemplate := func() *x509.CertificateRequest {
+		hostnames, ips := addressesToHostnamesAndIPs(getAddresses())
+		// don't return a template if we have no addresses to request for
+		if len(hostnames) == 0 && len(ips) == 0 {
+			return nil
+		}
+		return &x509.CertificateRequest{
 			Subject: pkix.Name{
 				CommonName:   fmt.Sprintf("system:node:%s", nodeName),
 				Organization: []string{"system:nodes"},
 			},
 			DNSNames:    hostnames,
 			IPAddresses: ips,
+		}
+	}
+
+	m, err := certificate.NewManager(&certificate.Config{
+		ClientFn: func(current *tls.Certificate) (certificatesclient.CertificateSigningRequestInterface, error) {
+			return certSigningRequestClient, nil
 		},
+		GetTemplate: getTemplate,
 		Usages: []certificates.KeyUsage{
 			// https://tools.ietf.org/html/rfc5280#section-4.2.1.3
 			//

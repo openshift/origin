@@ -19,46 +19,69 @@ package kubeadm
 import (
 	fuzz "github.com/google/gofuzz"
 
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kubeletconfigv1beta1 "k8s.io/kubernetes/pkg/kubelet/apis/kubeletconfig/v1beta1"
-	kubeproxyconfigv1alpha1 "k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig/v1alpha1"
+	kubeletconfig "k8s.io/kubernetes/pkg/kubelet/apis/config"
+	kubeproxyconfig "k8s.io/kubernetes/pkg/proxy/apis/config"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// MasterConfiguration contains a list of elements which make up master's
-// configuration object.
-type MasterConfiguration struct {
+// InitConfiguration contains a list of fields that are specifically "kubeadm init"-only runtime
+// information. The cluster-wide config is stored in ClusterConfiguration. The InitConfiguration
+// object IS NOT uploaded to the kubeadm-config ConfigMap in the cluster, only the
+// ClusterConfiguration is.
+type InitConfiguration struct {
 	metav1.TypeMeta
 
-	// `kubeadm init`-only information. These fields are solely used the first time `kubeadm init` runs.
-	// After that, the information in the fields ARE NOT uploaded to the `kubeadm-config` ConfigMap
-	// that is used by `kubeadm upgrade` for instance.
+	// ClusterConfiguration holds the cluster-wide information, and embeds that struct (which can be (un)marshalled separately as well)
+	// When InitConfiguration is marshalled to bytes in the external version, this information IS NOT preserved (which can be seen from
+	// the `json:"-"` tag in the external variant of these API types. Here, in the internal version `json:",inline"` is used, which means
+	// that all of ClusterConfiguration's fields will appear as they would be InitConfiguration's fields. This is used in practice solely
+	// in kubeadm API roundtrip unit testing. Check out `cmd/kubeadm/app/util/config/*_test.go` for more information. Normally, the internal
+	// type is NEVER marshalled, but always converted to some external version first.
+	ClusterConfiguration `json:",inline"`
 
 	// BootstrapTokens is respected at `kubeadm init` time and describes a set of Bootstrap Tokens to create.
-	// This information IS NOT uploaded to the kubeadm cluster configmap, partly because of its sensitive nature
 	BootstrapTokens []BootstrapToken
 
 	// NodeRegistration holds fields that relate to registering the new master node to the cluster
 	NodeRegistration NodeRegistrationOptions
 
-	// Cluster-wide configuration
-	// TODO: Move these fields under some kind of ClusterConfiguration or similar struct that describes
-	// one cluster. Eventually we want this kind of spec to align well with the Cluster API spec.
+	// APIEndpoint represents the endpoint of the instance of the API server to be deployed on this node.
+	APIEndpoint APIEndpoint
+}
 
-	// API holds configuration for the k8s apiserver.
-	API API
-	// KubeProxy holds configuration for the k8s service proxy.
-	KubeProxy KubeProxy
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// ClusterConfiguration contains cluster-wide configuration for a kubeadm cluster
+type ClusterConfiguration struct {
+	metav1.TypeMeta
+
+	// ComponentConfigs holds internal ComponentConfig struct types known to kubeadm, should long-term only exist in the internal kubeadm API
+	// +k8s:conversion-gen=false
+	ComponentConfigs ComponentConfigs
+
 	// Etcd holds configuration for etcd.
 	Etcd Etcd
-	// KubeletConfiguration holds configuration for the kubelet.
-	KubeletConfiguration KubeletConfiguration
+
 	// Networking holds configuration for the networking topology of the cluster.
 	Networking Networking
 	// KubernetesVersion is the target version of the control plane.
 	KubernetesVersion string
+
+	// ControlPlaneEndpoint sets a stable IP address or DNS name for the control plane; it
+	// can be a valid IP address or a RFC-1123 DNS subdomain, both with optional TCP port.
+	// In case the ControlPlaneEndpoint is not specified, the AdvertiseAddress + BindPort
+	// are used; in case the ControlPlaneEndpoint is specified but without a TCP port,
+	// the BindPort is used.
+	// Possible usages are:
+	// e.g. In an cluster with more than one control plane instances, this field should be
+	// assigned the address of the external load balancer in front of the
+	// control plane instances.
+	// e.g.  in environments with enforced node recycling, the ControlPlaneEndpoint
+	// could be used for assigning a stable DNS to the control plane.
+	ControlPlaneEndpoint string
 
 	// APIServerExtraArgs is a set of extra flags to pass to the API Server or override
 	// default ones in form of <flagname>=<value>.
@@ -112,22 +135,37 @@ type MasterConfiguration struct {
 	ClusterName string
 }
 
-// API struct contains elements of API server address.
-type API struct {
+// ComponentConfigs holds known internal ComponentConfig types for other components
+type ComponentConfigs struct {
+	// Kubelet holds the ComponentConfiguration for the kubelet
+	Kubelet *kubeletconfig.KubeletConfiguration
+	// KubeProxy holds the ComponentConfiguration for the kube-proxy
+	KubeProxy *kubeproxyconfig.KubeProxyConfiguration
+}
+
+// Fuzz is a dummy function here to get the roundtrip tests working in cmd/kubeadm/app/apis/kubeadm/fuzzer working.
+// This makes the fuzzer not go and randomize all fields in the ComponentConfigs struct, as that wouldn't work for
+// a roundtrip. A roundtrip to the v1alpha3 API obviously doesn't work as it's not stored there at all. With this,
+// the roundtrip is considered valid, as semi-static values are set and preserved during a roundtrip.
+func (cc ComponentConfigs) Fuzz(c fuzz.Continue) {}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// ClusterStatus contains the cluster status. The ClusterStatus will be stored in the kubeadm-config
+// ConfigMap in the cluster, and then updated by kubeadm when additional control plane instance joins or leaves the cluster.
+type ClusterStatus struct {
+	metav1.TypeMeta
+
+	// APIEndpoints currently available in the cluster, one for each control plane/api server instance.
+	// The key of the map is the IP of the host's default interface
+	APIEndpoints map[string]APIEndpoint
+}
+
+// APIEndpoint struct contains elements of API server instance deployed on a node.
+type APIEndpoint struct {
 	// AdvertiseAddress sets the IP address for the API server to advertise.
 	AdvertiseAddress string
-	// ControlPlaneEndpoint sets a stable IP address or DNS name for the control plane; it
-	// can be a valid IP address or a RFC-1123 DNS subdomain, both with optional TCP port.
-	// In case the ControlPlaneEndpoint is not specified, the AdvertiseAddress + BindPort
-	// are used; in case the ControlPlaneEndpoint is specified but without a TCP port,
-	// the BindPort is used.
-	// Possible usages are:
-	// e.g. In an cluster with more than one control plane instances, this field should be
-	// assigned the address of the external load balancer in front of the
-	// control plane instances.
-	// e.g.  in environments with enforced node recycling, the ControlPlaneEndpoint
-	// could be used for assigning a stable DNS to the control plane.
-	ControlPlaneEndpoint string
+
 	// BindPort sets the secure port for the API Server to bind to.
 	// Defaults to 6443.
 	BindPort int32
@@ -201,14 +239,6 @@ type Etcd struct {
 	External *ExternalEtcd
 }
 
-// Fuzz is a dummy function here to get the roundtrip tests working in cmd/kubeadm/app/apis/kubeadm/fuzzer working.
-// As we split the monolith-etcd struct into two smaller pieces with pointers and they are mutually exclusive, roundtrip
-// tests that randomize all values in this struct isn't feasible. Instead, we override the fuzzing function for .Etcd with
-// this func by letting Etcd implement the fuzz.Interface interface. As this func does nothing, we rely on the values given
-// in fuzzer/fuzzer.go for the roundtrip tests, which is exactly what we want.
-// TODO: Remove this function when we remove the v1alpha1 API
-func (e Etcd) Fuzz(c fuzz.Continue) {}
-
 // LocalEtcd describes that kubeadm should run an etcd cluster locally
 type LocalEtcd struct {
 
@@ -247,9 +277,8 @@ type ExternalEtcd struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// NodeConfiguration contains elements describing a particular node.
-// TODO: This struct should be replaced by dynamic kubelet configuration.
-type NodeConfiguration struct {
+// JoinConfiguration contains elements describing a particular node.
+type JoinConfiguration struct {
 	metav1.TypeMeta
 
 	// NodeRegistration holds fields that relate to registering the new master node to the cluster
@@ -294,13 +323,15 @@ type NodeConfiguration struct {
 	// the security of kubeadm since other nodes can impersonate the master.
 	DiscoveryTokenUnsafeSkipCAVerification bool
 
+	// ControlPlane flag specifies that the joining node should host an additional
+	// control plane instance.
+	ControlPlane bool
+
+	// APIEndpoint represents the endpoint of the instance of the API server eventually to be deployed on this node.
+	APIEndpoint APIEndpoint
+
 	// FeatureGates enabled by the user.
 	FeatureGates map[string]bool
-}
-
-// KubeletConfiguration contains elements describing initial remote configuration of kubelet.
-type KubeletConfiguration struct {
-	BaseConfig *kubeletconfigv1beta1.KubeletConfiguration
 }
 
 // GetControlPlaneImageRepository returns name of image repository
@@ -308,7 +339,7 @@ type KubeletConfiguration struct {
 // It will override location with CI registry name in case user requests special
 // Kubernetes version from CI build area.
 // (See: kubeadmconstants.DefaultCIImageRepository)
-func (cfg *MasterConfiguration) GetControlPlaneImageRepository() string {
+func (cfg *ClusterConfiguration) GetControlPlaneImageRepository() string {
 	if cfg.CIImageRepository != "" {
 		return cfg.CIImageRepository
 	}
@@ -331,11 +362,6 @@ type HostPathMount struct {
 	PathType v1.HostPathType
 }
 
-// KubeProxy contains elements describing the proxy configuration.
-type KubeProxy struct {
-	Config *kubeproxyconfigv1alpha1.KubeProxyConfiguration
-}
-
 // AuditPolicyConfiguration holds the options for configuring the api server audit policy.
 type AuditPolicyConfiguration struct {
 	// Path is the local path to an audit policy.
@@ -348,7 +374,7 @@ type AuditPolicyConfiguration struct {
 }
 
 // CommonConfiguration defines the list of common configuration elements and the getter
-// methods that must exist for both the MasterConfiguration and NodeConfiguration objects.
+// methods that must exist for both the InitConfiguration and JoinConfiguration objects.
 // This is used internally to deduplicate the kubeadm preflight checks.
 type CommonConfiguration interface {
 	GetCRISocket() string
@@ -356,40 +382,40 @@ type CommonConfiguration interface {
 	GetKubernetesVersion() string
 }
 
-// GetCRISocket will return the CRISocket that is defined for the MasterConfiguration.
+// GetCRISocket will return the CRISocket that is defined for the InitConfiguration.
 // This is used internally to deduplicate the kubeadm preflight checks.
-func (cfg *MasterConfiguration) GetCRISocket() string {
+func (cfg *InitConfiguration) GetCRISocket() string {
 	return cfg.NodeRegistration.CRISocket
 }
 
-// GetNodeName will return the NodeName that is defined for the MasterConfiguration.
+// GetNodeName will return the NodeName that is defined for the InitConfiguration.
 // This is used internally to deduplicate the kubeadm preflight checks.
-func (cfg *MasterConfiguration) GetNodeName() string {
+func (cfg *InitConfiguration) GetNodeName() string {
 	return cfg.NodeRegistration.Name
 }
 
-// GetKubernetesVersion will return the KubernetesVersion that is defined for the MasterConfiguration.
+// GetKubernetesVersion will return the KubernetesVersion that is defined for the InitConfiguration.
 // This is used internally to deduplicate the kubeadm preflight checks.
-func (cfg *MasterConfiguration) GetKubernetesVersion() string {
+func (cfg *InitConfiguration) GetKubernetesVersion() string {
 	return cfg.KubernetesVersion
 }
 
-// GetCRISocket will return the CRISocket that is defined for the NodeConfiguration.
+// GetCRISocket will return the CRISocket that is defined for the JoinConfiguration.
 // This is used internally to deduplicate the kubeadm preflight checks.
-func (cfg *NodeConfiguration) GetCRISocket() string {
+func (cfg *JoinConfiguration) GetCRISocket() string {
 	return cfg.NodeRegistration.CRISocket
 }
 
-// GetNodeName will return the NodeName that is defined for the NodeConfiguration.
+// GetNodeName will return the NodeName that is defined for the JoinConfiguration.
 // This is used internally to deduplicate the kubeadm preflight checks.
-func (cfg *NodeConfiguration) GetNodeName() string {
+func (cfg *JoinConfiguration) GetNodeName() string {
 	return cfg.NodeRegistration.Name
 }
 
 // GetKubernetesVersion will return an empty string since KubernetesVersion is not a
-// defined property for NodeConfiguration. This will just cause the regex validation
+// defined property for JoinConfiguration. This will just cause the regex validation
 // of the defined version to be skipped during the preflight checks.
 // This is used internally to deduplicate the kubeadm preflight checks.
-func (cfg *NodeConfiguration) GetKubernetesVersion() string {
+func (cfg *JoinConfiguration) GetKubernetesVersion() string {
 	return ""
 }

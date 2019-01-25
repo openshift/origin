@@ -35,9 +35,17 @@
       "httpGet": {
         "host": "127.0.0.1",
         "port": 8080,
-        "path": "/healthz"
+        "path": "/healthz?exclude=etcd"
       },
       "initialDelaySeconds": {{liveness_probe_initial_delay}},
+      "timeoutSeconds": 15
+    },
+    "readinessProbe": {
+      "httpGet": {
+        "host": "127.0.0.1",
+        "port": 8080,
+        "path": "/healthz"
+      },
       "timeoutSeconds": 15
     },
     "ports":[
@@ -60,7 +68,7 @@
         {{admission_controller_config_mount}}
         {{image_policy_webhook_config_mount}}
         { "name": "srvkube",
-        "mountPath": "{{srv_kube_path}}",
+        "mountPath": "/etc/srv/kubernetes",
         "readOnly": true},
         { "name": "logfile",
         "mountPath": "/var/log/kube-apiserver.log",
@@ -102,7 +110,7 @@
   {{image_policy_webhook_config_volume}}
   { "name": "srvkube",
     "hostPath": {
-        "path": "{{srv_kube_path}}"}
+        "path": "/etc/srv/kubernetes"}
   },
   { "name": "logfile",
     "hostPath": {

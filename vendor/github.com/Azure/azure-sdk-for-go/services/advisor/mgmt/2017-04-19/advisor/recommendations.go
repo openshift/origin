@@ -103,9 +103,10 @@ func (client RecommendationsClient) GenerateResponder(resp *http.Response) (resu
 }
 
 // Get obtains details of a cached recommendation.
-//
-// resourceURI is the fully qualified Azure Resource Manager identifier of the resource to which the recommendation
-// applies. recommendationID is the recommendation ID.
+// Parameters:
+// resourceURI - the fully qualified Azure Resource Manager identifier of the resource to which the
+// recommendation applies.
+// recommendationID - the recommendation ID.
 func (client RecommendationsClient) Get(ctx context.Context, resourceURI string, recommendationID string) (result ResourceRecommendationBase, err error) {
 	req, err := client.GetPreparer(ctx, resourceURI, recommendationID)
 	if err != nil {
@@ -171,20 +172,26 @@ func (client RecommendationsClient) GetResponder(resp *http.Response) (result Re
 // GetGenerateStatus retrieves the status of the recommendation computation or generation process. Invoke this API
 // after calling the generation recommendation. The URI of this API is returned in the Location field of the response
 // header.
-//
-// operationID is the operation ID, which can be found from the Location field in the generate recommendation
+// Parameters:
+// operationID - the operation ID, which can be found from the Location field in the generate recommendation
 // response header.
-func (client RecommendationsClient) GetGenerateStatus(ctx context.Context, operationID uuid.UUID) (result RecommendationsGetGenerateStatusFuture, err error) {
+func (client RecommendationsClient) GetGenerateStatus(ctx context.Context, operationID uuid.UUID) (result autorest.Response, err error) {
 	req, err := client.GetGenerateStatusPreparer(ctx, operationID)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "advisor.RecommendationsClient", "GetGenerateStatus", nil, "Failure preparing request")
 		return
 	}
 
-	result, err = client.GetGenerateStatusSender(req)
+	resp, err := client.GetGenerateStatusSender(req)
 	if err != nil {
-		err = autorest.NewErrorWithError(err, "advisor.RecommendationsClient", "GetGenerateStatus", result.Response(), "Failure sending request")
+		result.Response = resp
+		err = autorest.NewErrorWithError(err, "advisor.RecommendationsClient", "GetGenerateStatus", resp, "Failure sending request")
 		return
+	}
+
+	result, err = client.GetGenerateStatusResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "advisor.RecommendationsClient", "GetGenerateStatus", resp, "Failure responding to request")
 	}
 
 	return
@@ -212,17 +219,9 @@ func (client RecommendationsClient) GetGenerateStatusPreparer(ctx context.Contex
 
 // GetGenerateStatusSender sends the GetGenerateStatus request. The method will close the
 // http.Response Body if it receives an error.
-func (client RecommendationsClient) GetGenerateStatusSender(req *http.Request) (future RecommendationsGetGenerateStatusFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
-	return
+func (client RecommendationsClient) GetGenerateStatusSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 }
 
 // GetGenerateStatusResponder handles the response to the GetGenerateStatus request. The method always
@@ -239,10 +238,10 @@ func (client RecommendationsClient) GetGenerateStatusResponder(resp *http.Respon
 
 // List obtains cached recommendations for a subscription. The recommendations are generated or computed by invoking
 // generateRecommendations.
-//
-// filter is the filter to apply to the recommendations. top is the number of recommendations per page if a paged
-// version of this API is being used. skipToken is the page-continuation token to use with a paged version of this
-// API.
+// Parameters:
+// filter - the filter to apply to the recommendations.
+// top - the number of recommendations per page if a paged version of this API is being used.
+// skipToken - the page-continuation token to use with a paged version of this API.
 func (client RecommendationsClient) List(ctx context.Context, filter string, top *int32, skipToken string) (result ResourceRecommendationBaseListResultPage, err error) {
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, filter, top, skipToken)

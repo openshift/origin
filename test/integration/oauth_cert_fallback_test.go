@@ -8,8 +8,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/util"
@@ -36,7 +36,7 @@ func TestOAuthCertFallback(t *testing.T) {
 		certUser  = "system:admin"
 
 		unauthorizedError = "Unauthorized"
-		anonymousError    = `users.user.openshift.io "~" is forbidden: User "system:anonymous" cannot get users.user.openshift.io at the cluster scope: no RBAC policy matched`
+		anonymousError    = `users.user.openshift.io "~" is forbidden: User "system:anonymous" cannot get resource "users" in API group "user.openshift.io" at the cluster scope`
 	)
 
 	// Build master config

@@ -35,6 +35,7 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
+	gcecloud "k8s.io/kubernetes/pkg/cloudprovider/providers/gce"
 	"k8s.io/kubernetes/pkg/controller/endpoint"
 	"k8s.io/kubernetes/test/e2e/framework"
 	imageutils "k8s.io/kubernetes/test/utils/image"
@@ -57,7 +58,7 @@ var (
 			Ports: []v1.ServicePort{{
 				Port:       int32(defaultServeHostnameServicePort),
 				TargetPort: intstr.FromInt(9376),
-				Protocol:   "TCP",
+				Protocol:   v1.ProtocolTCP,
 			}},
 			Selector: map[string]string{
 				"name": defaultServeHostnameServiceName,
@@ -90,8 +91,8 @@ var _ = SIGDescribe("Services", func() {
 			framework.DescribeSvc(f.Namespace.Name)
 		}
 		for _, lb := range serviceLBNames {
-			framework.Logf("cleaning gce resource for %s", lb)
-			framework.CleanupServiceGCEResources(cs, lb, framework.TestContext.CloudConfig.Region, framework.TestContext.CloudConfig.Zone)
+			framework.Logf("cleaning load balancer resource for %s", lb)
+			framework.CleanupServiceResources(cs, lb, framework.TestContext.CloudConfig.Region, framework.TestContext.CloudConfig.Zone)
 		}
 		//reset serviceLBNames
 		serviceLBNames = []string{}
@@ -100,8 +101,9 @@ var _ = SIGDescribe("Services", func() {
 	// TODO: We get coverage of TCP/UDP and multi-port services through the DNS test. We should have a simpler test for multi-port TCP here.
 
 	/*
-	   Testname: service-kubernetes-exists
-	   Description: Make sure kubernetes service does exist.
+		Release : v1.9
+		Testname: Kubernetes Service
+		Description: By default when a kubernetes cluster is running there MUST be a ‘kubernetes’ service running in the cluster.
 	*/
 	framework.ConformanceIt("should provide secure master service ", func() {
 		_, err := cs.CoreV1().Services(metav1.NamespaceDefault).Get("kubernetes", metav1.GetOptions{})
@@ -109,9 +111,9 @@ var _ = SIGDescribe("Services", func() {
 	})
 
 	/*
-		    Testname: service-valid-endpoints
-		    Description: Ensure a service with no pod, one pod or two pods has
-			valid/accessible endpoints (same port number for service and pods).
+		Release : v1.9
+		Testname: Service, endpoints
+		Description: Create a service with a endpoint without any Pods, the service MUST run and show empty endpoints. Add a pod to the service and the service MUST validate to show all the endpoints for the ports exposed by the Pod. Add another Pod then the list of all Ports exposed by both the Pods MUST be valid and have corresponding service endpoint. Once the second Pod is deleted then set of endpoint MUST be validated to show only ports from the first container that are exposed. Once both pods are deleted the endpoints from the service MUST be empty.
 	*/
 	framework.ConformanceIt("should serve a basic endpoint from pods ", func() {
 		serviceName := "endpoint-test2"
@@ -166,9 +168,9 @@ var _ = SIGDescribe("Services", func() {
 	})
 
 	/*
-		    Testname: service-valid-endpoints-multiple-ports
-		    Description: Ensure a service with no pod, one pod or two pods has
-			valid/accessible endpoints (different port number for pods).
+		Release : v1.9
+		Testname: Service, endpoints with multiple ports
+		Description: Create a service with two ports but no Pods are added to the service yet.  The service MUST run and show empty set of endpoints. Add a Pod to the first port, service MUST list one endpoint for the Pod on that port. Add another Pod to the second port, service MUST list both the endpoints. Delete the first Pod and the service MUST list only the endpoint to the second Pod. Delete the second Pod and the service must now have empty set of endpoints.
 	*/
 	framework.ConformanceIt("should serve multiport endpoints from pods ", func() {
 		// repacking functionality is intentionally not tested here - it's better to test it in an integration test.
@@ -620,9 +622,9 @@ var _ = SIGDescribe("Services", func() {
 				s.Spec.Type = v1.ServiceTypeLoadBalancer
 			})
 		}
-		serviceLBNames = append(serviceLBNames, cloudprovider.GetLoadBalancerName(tcpService))
+		serviceLBNames = append(serviceLBNames, cloudprovider.DefaultLoadBalancerName(tcpService))
 		if loadBalancerSupportsUDP {
-			serviceLBNames = append(serviceLBNames, cloudprovider.GetLoadBalancerName(udpService))
+			serviceLBNames = append(serviceLBNames, cloudprovider.DefaultLoadBalancerName(udpService))
 		}
 
 		By("waiting for the TCP service to have a load balancer")
@@ -896,7 +898,7 @@ var _ = SIGDescribe("Services", func() {
 			s.Spec.Type = v1.ServiceTypeClusterIP
 			s.Spec.ExternalName = ""
 			s.Spec.Ports = []v1.ServicePort{
-				{Port: 80, Name: "http", Protocol: "TCP"},
+				{Port: 80, Name: "http", Protocol: v1.ProtocolTCP},
 			}
 		})
 		jig.SanityCheckService(clusterIPService, v1.ServiceTypeClusterIP)
@@ -920,7 +922,7 @@ var _ = SIGDescribe("Services", func() {
 			s.Spec.Type = v1.ServiceTypeNodePort
 			s.Spec.ExternalName = ""
 			s.Spec.Ports = []v1.ServicePort{
-				{Port: 80, Name: "http", Protocol: "TCP"},
+				{Port: 80, Name: "http", Protocol: v1.ProtocolTCP},
 			}
 		})
 		jig.SanityCheckService(nodePortService, v1.ServiceTypeNodePort)
@@ -1544,6 +1546,78 @@ var _ = SIGDescribe("Services", func() {
 		jig.ChangeServiceType(svc.Namespace, svc.Name, v1.ServiceTypeClusterIP, createTimeout)
 	})
 
+	// This test creates a load balancer, make sure its health check interval
+	// equals to gceHcCheckIntervalSeconds. Then the interval is manipulated
+	// to be something else, see if the interval will be reconciled.
+	It("should reconcile LB health check interval [Slow][Serial]", func() {
+		const gceHcCheckIntervalSeconds = int64(8)
+		// This test is for clusters on GCE/GKE.
+		framework.SkipUnlessProviderIs("gce")
+		clusterID, err := framework.GetClusterID(cs)
+		if err != nil {
+			framework.Failf("framework.GetClusterID(cs) = _, %v; want nil", err)
+		}
+		gceCloud, err := framework.GetGCECloud()
+		if err != nil {
+			framework.Failf("framework.GetGCECloud() = _, %v; want nil", err)
+		}
+
+		namespace := f.Namespace.Name
+		serviceName := "lb-hc-int"
+		jig := framework.NewServiceTestJig(cs, serviceName)
+
+		By("create load balancer service")
+		// Create loadbalancer service with source range from node[0] and podAccept
+		svc := jig.CreateTCPServiceOrFail(namespace, func(svc *v1.Service) {
+			svc.Spec.Type = v1.ServiceTypeLoadBalancer
+		})
+
+		// Clean up loadbalancer service
+		defer func() {
+			jig.UpdateServiceOrFail(svc.Namespace, svc.Name, func(svc *v1.Service) {
+				svc.Spec.Type = v1.ServiceTypeNodePort
+			})
+			Expect(cs.CoreV1().Services(svc.Namespace).Delete(svc.Name, nil)).NotTo(HaveOccurred())
+		}()
+
+		svc = jig.WaitForLoadBalancerOrFail(namespace, serviceName, framework.LoadBalancerCreateTimeoutDefault)
+
+		hcName := gcecloud.MakeNodesHealthCheckName(clusterID)
+		hc, err := gceCloud.GetHttpHealthCheck(hcName)
+		if err != nil {
+			framework.Failf("gceCloud.GetHttpHealthCheck(%q) = _, %v; want nil", hcName, err)
+		}
+		Expect(hc.CheckIntervalSec).To(Equal(gceHcCheckIntervalSeconds))
+
+		By("modify the health check interval")
+		hc.CheckIntervalSec = gceHcCheckIntervalSeconds - 1
+		if err = gceCloud.UpdateHttpHealthCheck(hc); err != nil {
+			framework.Failf("gcecloud.UpdateHttpHealthCheck(%#v) = %v; want nil", hc, err)
+		}
+
+		By("restart kube-controller-manager")
+		if err := framework.RestartControllerManager(); err != nil {
+			framework.Failf("framework.RestartControllerManager() = %v; want nil", err)
+		}
+		if err := framework.WaitForControllerManagerUp(); err != nil {
+			framework.Failf("framework.WaitForControllerManagerUp() = %v; want nil", err)
+		}
+
+		By("health check should be reconciled")
+		pollInterval := framework.Poll * 10
+		if pollErr := wait.PollImmediate(pollInterval, framework.LoadBalancerCreateTimeoutDefault, func() (bool, error) {
+			hc, err := gceCloud.GetHttpHealthCheck(hcName)
+			if err != nil {
+				framework.Logf("Failed to get HttpHealthCheck(%q): %v", hcName, err)
+				return false, err
+			}
+			framework.Logf("hc.CheckIntervalSec = %v", hc.CheckIntervalSec)
+			return hc.CheckIntervalSec == gceHcCheckIntervalSeconds, nil
+		}); pollErr != nil {
+			framework.Failf("Health check %q does not reconcile its check interval to %d.", hcName, gceHcCheckIntervalSeconds)
+		}
+	})
+
 	It("should have session affinity work for service with type clusterIP", func() {
 		svc := getServeHostnameService("service")
 		svc.Spec.Type = v1.ServiceTypeClusterIP
@@ -1624,8 +1698,8 @@ var _ = SIGDescribe("ESIPP [Slow] [DisabledForLargeClusters]", func() {
 			framework.DescribeSvc(f.Namespace.Name)
 		}
 		for _, lb := range serviceLBNames {
-			framework.Logf("cleaning gce resource for %s", lb)
-			framework.CleanupServiceGCEResources(cs, lb, framework.TestContext.CloudConfig.Region, framework.TestContext.CloudConfig.Zone)
+			framework.Logf("cleaning load balancer resource for %s", lb)
+			framework.CleanupServiceResources(cs, lb, framework.TestContext.CloudConfig.Region, framework.TestContext.CloudConfig.Zone)
 		}
 		//reset serviceLBNames
 		serviceLBNames = []string{}
@@ -1637,7 +1711,7 @@ var _ = SIGDescribe("ESIPP [Slow] [DisabledForLargeClusters]", func() {
 		jig := framework.NewServiceTestJig(cs, serviceName)
 
 		svc := jig.CreateOnlyLocalLoadBalancerService(namespace, serviceName, loadBalancerCreateTimeout, true, nil)
-		serviceLBNames = append(serviceLBNames, cloudprovider.GetLoadBalancerName(svc))
+		serviceLBNames = append(serviceLBNames, cloudprovider.DefaultLoadBalancerName(svc))
 		healthCheckNodePort := int(svc.Spec.HealthCheckNodePort)
 		if healthCheckNodePort == 0 {
 			framework.Failf("Service HealthCheck NodePort was not allocated")
@@ -1709,7 +1783,7 @@ var _ = SIGDescribe("ESIPP [Slow] [DisabledForLargeClusters]", func() {
 				}
 
 			})
-		serviceLBNames = append(serviceLBNames, cloudprovider.GetLoadBalancerName(svc))
+		serviceLBNames = append(serviceLBNames, cloudprovider.DefaultLoadBalancerName(svc))
 		defer func() {
 			jig.ChangeServiceType(svc.Namespace, svc.Name, v1.ServiceTypeClusterIP, loadBalancerCreateTimeout)
 			Expect(cs.CoreV1().Services(svc.Namespace).Delete(svc.Name, nil)).NotTo(HaveOccurred())
@@ -1764,7 +1838,7 @@ var _ = SIGDescribe("ESIPP [Slow] [DisabledForLargeClusters]", func() {
 		nodes := jig.GetNodes(framework.MaxNodesForEndpointsTests)
 
 		svc := jig.CreateOnlyLocalLoadBalancerService(namespace, serviceName, loadBalancerCreateTimeout, true, nil)
-		serviceLBNames = append(serviceLBNames, cloudprovider.GetLoadBalancerName(svc))
+		serviceLBNames = append(serviceLBNames, cloudprovider.DefaultLoadBalancerName(svc))
 		defer func() {
 			jig.ChangeServiceType(svc.Namespace, svc.Name, v1.ServiceTypeClusterIP, loadBalancerCreateTimeout)
 			Expect(cs.CoreV1().Services(svc.Namespace).Delete(svc.Name, nil)).NotTo(HaveOccurred())
@@ -1817,7 +1891,7 @@ var _ = SIGDescribe("ESIPP [Slow] [DisabledForLargeClusters]", func() {
 		}
 
 		svc := jig.CreateOnlyLocalLoadBalancerService(namespace, serviceName, loadBalancerCreateTimeout, true, nil)
-		serviceLBNames = append(serviceLBNames, cloudprovider.GetLoadBalancerName(svc))
+		serviceLBNames = append(serviceLBNames, cloudprovider.DefaultLoadBalancerName(svc))
 		defer func() {
 			jig.ChangeServiceType(svc.Namespace, svc.Name, v1.ServiceTypeClusterIP, loadBalancerCreateTimeout)
 			Expect(cs.CoreV1().Services(svc.Namespace).Delete(svc.Name, nil)).NotTo(HaveOccurred())
@@ -2024,9 +2098,9 @@ func execAffinityTestForLBService(f *framework.Framework, cs clientset.Interface
 	jig.SanityCheckService(svc, v1.ServiceTypeLoadBalancer)
 	defer func() {
 		framework.StopServeHostnameService(cs, ns, serviceName)
-		lb := cloudprovider.GetLoadBalancerName(svc)
-		framework.Logf("cleaning gce resource for %s", lb)
-		framework.CleanupServiceGCEResources(cs, lb, framework.TestContext.CloudConfig.Region, framework.TestContext.CloudConfig.Zone)
+		lb := cloudprovider.DefaultLoadBalancerName(svc)
+		framework.Logf("cleaning load balancer resource for %s", lb)
+		framework.CleanupServiceResources(cs, lb, framework.TestContext.CloudConfig.Region, framework.TestContext.CloudConfig.Zone)
 	}()
 	ingressIP := framework.GetIngressPoint(&svc.Status.LoadBalancer.Ingress[0])
 	port := int(svc.Spec.Ports[0].Port)

@@ -23,11 +23,14 @@ import (
 	apps "k8s.io/api/apps/v1"
 	api "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/fake"
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
 
 func TestDeploymentStatusViewerStatus(t *testing.T) {
 	tests := []struct {
+		name         string
 		generation   int64
 		specReplicas int32
 		status       apps.DeploymentStatus
@@ -35,6 +38,7 @@ func TestDeploymentStatusViewerStatus(t *testing.T) {
 		done         bool
 	}{
 		{
+			name:         "test1",
 			generation:   0,
 			specReplicas: 1,
 			status: apps.DeploymentStatus{
@@ -49,6 +53,7 @@ func TestDeploymentStatusViewerStatus(t *testing.T) {
 			done: false,
 		},
 		{
+			name:         "test2",
 			generation:   1,
 			specReplicas: 1,
 			status: apps.DeploymentStatus{
@@ -63,6 +68,7 @@ func TestDeploymentStatusViewerStatus(t *testing.T) {
 			done: false,
 		},
 		{
+			name:         "test3",
 			generation:   1,
 			specReplicas: 2,
 			status: apps.DeploymentStatus{
@@ -77,6 +83,7 @@ func TestDeploymentStatusViewerStatus(t *testing.T) {
 			done: false,
 		},
 		{
+			name:         "test4",
 			generation:   1,
 			specReplicas: 2,
 			status: apps.DeploymentStatus{
@@ -91,6 +98,7 @@ func TestDeploymentStatusViewerStatus(t *testing.T) {
 			done: true,
 		},
 		{
+			name:         "test5",
 			generation:   2,
 			specReplicas: 2,
 			status: apps.DeploymentStatus{
@@ -107,46 +115,56 @@ func TestDeploymentStatusViewerStatus(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		d := &apps.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  "bar",
-				Name:       "foo",
-				UID:        "8764ae47-9092-11e4-8393-42010af018ff",
-				Generation: test.generation,
-			},
-			Spec: apps.DeploymentSpec{
-				Replicas: &test.specReplicas,
-			},
-			Status: test.status,
-		}
-		client := fake.NewSimpleClientset(d).Apps()
-		dsv := &DeploymentStatusViewer{c: client}
-		msg, done, err := dsv.Status("bar", "foo", 0)
-		if err != nil {
-			t.Fatalf("DeploymentStatusViewer.Status(): %v", err)
-		}
-		if done != test.done || msg != test.msg {
-			t.Errorf("DeploymentStatusViewer.Status() for deployment with generation %d, %d replicas specified, and status %+v returned %q, %t, want %q, %t",
-				test.generation,
-				test.specReplicas,
-				test.status,
-				msg,
-				done,
-				test.msg,
-				test.done,
-			)
-		}
+		t.Run(test.name, func(t *testing.T) {
+			d := &apps.Deployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace:  "bar",
+					Name:       "foo",
+					UID:        "8764ae47-9092-11e4-8393-42010af018ff",
+					Generation: test.generation,
+				},
+				Spec: apps.DeploymentSpec{
+					Replicas: &test.specReplicas,
+				},
+				Status: test.status,
+			}
+			unstructuredD := &unstructured.Unstructured{}
+			err := scheme.Scheme.Convert(d, unstructuredD, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			client := fake.NewSimpleClientset(d).Apps()
+			dsv := &DeploymentStatusViewer{c: client}
+			msg, done, err := dsv.Status(unstructuredD, 0)
+			if err != nil {
+				t.Fatalf("DeploymentStatusViewer.Status(): %v", err)
+			}
+			if done != test.done || msg != test.msg {
+				t.Errorf("DeploymentStatusViewer.Status() for deployment with generation %d, %d replicas specified, and status %+v returned %q, %t, want %q, %t",
+					test.generation,
+					test.specReplicas,
+					test.status,
+					msg,
+					done,
+					test.msg,
+					test.done,
+				)
+			}
+		})
 	}
 }
 
 func TestDaemonSetStatusViewerStatus(t *testing.T) {
 	tests := []struct {
+		name       string
 		generation int64
 		status     apps.DaemonSetStatus
 		msg        string
 		done       bool
 	}{
 		{
+			name:       "test1",
 			generation: 0,
 			status: apps.DaemonSetStatus{
 				ObservedGeneration:     1,
@@ -159,6 +177,7 @@ func TestDaemonSetStatusViewerStatus(t *testing.T) {
 			done: false,
 		},
 		{
+			name:       "test2",
 			generation: 1,
 			status: apps.DaemonSetStatus{
 				ObservedGeneration:     1,
@@ -171,6 +190,7 @@ func TestDaemonSetStatusViewerStatus(t *testing.T) {
 			done: false,
 		},
 		{
+			name:       "test3",
 			generation: 1,
 			status: apps.DaemonSetStatus{
 				ObservedGeneration:     1,
@@ -183,6 +203,7 @@ func TestDaemonSetStatusViewerStatus(t *testing.T) {
 			done: true,
 		},
 		{
+			name:       "test4",
 			generation: 2,
 			status: apps.DaemonSetStatus{
 				ObservedGeneration:     1,
@@ -196,40 +217,47 @@ func TestDaemonSetStatusViewerStatus(t *testing.T) {
 		},
 	}
 
-	for i := range tests {
-		test := tests[i]
-		t.Logf("testing scenario %d", i)
-		d := &apps.DaemonSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:  "bar",
-				Name:       "foo",
-				UID:        "8764ae47-9092-11e4-8393-42010af018ff",
-				Generation: test.generation,
-			},
-			Spec: apps.DaemonSetSpec{
-				UpdateStrategy: apps.DaemonSetUpdateStrategy{
-					Type: apps.RollingUpdateDaemonSetStrategyType,
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			d := &apps.DaemonSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace:  "bar",
+					Name:       "foo",
+					UID:        "8764ae47-9092-11e4-8393-42010af018ff",
+					Generation: test.generation,
 				},
-			},
-			Status: test.status,
-		}
-		client := fake.NewSimpleClientset(d).Apps()
-		dsv := &DaemonSetStatusViewer{c: client}
-		msg, done, err := dsv.Status("bar", "foo", 0)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if done != test.done || msg != test.msg {
-			t.Errorf("daemon set with generation %d, %d pods specified, and status:\n%+v\nreturned:\n%q, %t\nwant:\n%q, %t",
-				test.generation,
-				d.Status.DesiredNumberScheduled,
-				test.status,
-				msg,
-				done,
-				test.msg,
-				test.done,
-			)
-		}
+				Spec: apps.DaemonSetSpec{
+					UpdateStrategy: apps.DaemonSetUpdateStrategy{
+						Type: apps.RollingUpdateDaemonSetStrategyType,
+					},
+				},
+				Status: test.status,
+			}
+
+			unstructuredD := &unstructured.Unstructured{}
+			err := scheme.Scheme.Convert(d, unstructuredD, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			client := fake.NewSimpleClientset(d).Apps()
+			dsv := &DaemonSetStatusViewer{c: client}
+			msg, done, err := dsv.Status(unstructuredD, 0)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if done != test.done || msg != test.msg {
+				t.Errorf("daemon set with generation %d, %d pods specified, and status:\n%+v\nreturned:\n%q, %t\nwant:\n%q, %t",
+					test.generation,
+					d.Status.DesiredNumberScheduled,
+					test.status,
+					msg,
+					done,
+					test.msg,
+					test.done,
+				)
+			}
+		})
 	}
 }
 
@@ -350,27 +378,36 @@ func TestStatefulSetStatusViewerStatus(t *testing.T) {
 			err:  false,
 		},
 	}
-	for i := range tests {
-		test := tests[i]
-		s := newStatefulSet(3)
-		s.Status = test.status
-		s.Spec.UpdateStrategy = test.strategy
-		s.Generation = test.generation
-		client := fake.NewSimpleClientset(s).AppsV1()
-		dsv := &StatefulSetStatusViewer{c: client}
-		msg, done, err := dsv.Status(s.Namespace, s.Name, 0)
-		if test.err && err == nil {
-			t.Fatalf("%s: expected error", test.name)
-		}
-		if !test.err && err != nil {
-			t.Fatalf("%s: %s", test.name, err)
-		}
-		if done && !test.done {
-			t.Errorf("%s: want done %v got %v", test.name, done, test.done)
-		}
-		if msg != test.msg {
-			t.Errorf("%s: want message %s got %s", test.name, test.msg, msg)
-		}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			s := newStatefulSet(3)
+			s.Status = test.status
+			s.Spec.UpdateStrategy = test.strategy
+			s.Generation = test.generation
+
+			unstructuredS := &unstructured.Unstructured{}
+			err := scheme.Scheme.Convert(s, unstructuredS, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			client := fake.NewSimpleClientset(s).AppsV1()
+			dsv := &StatefulSetStatusViewer{c: client}
+			msg, done, err := dsv.Status(unstructuredS, 0)
+			if test.err && err == nil {
+				t.Fatalf("%s: expected error", test.name)
+			}
+			if !test.err && err != nil {
+				t.Fatalf("%s: %s", test.name, err)
+			}
+			if done && !test.done {
+				t.Errorf("%s: want done %v got %v", test.name, done, test.done)
+			}
+			if msg != test.msg {
+				t.Errorf("%s: want message %s got %s", test.name, test.msg, msg)
+			}
+		})
 	}
 }
 
@@ -387,10 +424,17 @@ func TestDaemonSetStatusViewerStatusWithWrongUpdateStrategyType(t *testing.T) {
 			},
 		},
 	}
+
+	unstructuredD := &unstructured.Unstructured{}
+	err := scheme.Scheme.Convert(d, unstructuredD, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	client := fake.NewSimpleClientset(d).Apps()
 	dsv := &DaemonSetStatusViewer{c: client}
-	msg, done, err := dsv.Status("bar", "foo", 0)
-	errMsg := "Status is available only for RollingUpdate strategy type"
+	msg, done, err := dsv.Status(unstructuredD, 0)
+	errMsg := "rollout status is only available for RollingUpdate strategy type"
 	if err == nil || err.Error() != errMsg {
 		t.Errorf("Status for daemon sets with UpdateStrategy type different than RollingUpdate should return error. Instead got: msg: %s\ndone: %t\n err: %v", msg, done, err)
 	}

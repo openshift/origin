@@ -20,7 +20,7 @@ func ToServerConfig(servingInfo configv1.HTTPServingInfo, authenticationConfig o
 	if err != nil {
 		return nil, err
 	}
-	if err := servingOptions.ApplyTo(config); err != nil {
+	if err := servingOptions.ApplyTo(&config.SecureServing, &config.LoopbackClientConfig); err != nil {
 		return nil, err
 	}
 

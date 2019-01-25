@@ -3,6 +3,7 @@ includes:
   - 'layer:basic'
   - 'layer:debug'
   - 'layer:snap'
+  - 'layer:leadership'
   - 'layer:docker'
   - 'layer:metrics'
   - 'layer:nagios'
@@ -12,8 +13,11 @@ includes:
   - 'interface:kubernetes-cni'
   - 'interface:kube-dns'
   - 'interface:kube-control'
-  - 'interface:aws'
-  - 'interface:gcp'
+  - 'interface:aws-integration'
+  - 'interface:gcp-integration'
+  - 'interface:openstack-integration'
+  - 'interface:vsphere-integration'
+  - 'interface:azure-integration'
   - 'interface:mount'
 config:
   deletes:

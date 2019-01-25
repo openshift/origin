@@ -1,6 +1,4 @@
-// +build !solaris
-
-package registry
+package registry // import "github.com/docker/docker/registry"
 
 import (
 	"encoding/json"
@@ -175,7 +173,7 @@ func makePublicIndex() *registrytypes.IndexInfo {
 	return index
 }
 
-func makeServiceConfig(mirrors []string, insecureRegistries []string) *serviceConfig {
+func makeServiceConfig(mirrors []string, insecureRegistries []string) (*serviceConfig, error) {
 	options := ServiceOptions{
 		Mirrors:            mirrors,
 		InsecureRegistries: insecureRegistries,
@@ -432,7 +430,7 @@ func handlerImages(w http.ResponseWriter, r *http.Request) {
 		writeResponse(w, "", 204)
 		return
 	}
-	images := []map[string]string{}
+	var images []map[string]string
 	for imageID, layer := range testLayers {
 		image := make(map[string]string)
 		image["id"] = imageID

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
@@ -326,26 +327,41 @@ func setNodeStatusFn(status *operatorv1.NodeStatus) v1helpers.UpdateStaticPodSta
 func setAvailableProgressingConditions(newStatus *operatorv1.StaticPodOperatorStatus) error {
 	// Available means that we have at least one pod at the latest level
 	numAvailable := 0
+	numAtLatestRevision := 0
 	numProgressing := 0
+	counts := map[int32]int{}
 	for _, currNodeStatus := range newStatus.NodeStatuses {
+		if currNodeStatus.CurrentRevision != 0 {
+			numAvailable++
+		}
+		existing := counts[currNodeStatus.CurrentRevision]
+		counts[currNodeStatus.CurrentRevision] = existing + 1
+
 		if newStatus.LatestAvailableRevision == currNodeStatus.CurrentRevision {
-			numAvailable += 1
+			numAtLatestRevision += 1
 		} else {
 			numProgressing += 1
 		}
 	}
+
+	revisionStrings := []string{}
+	for revision, count := range counts {
+		revisionStrings = append(revisionStrings, fmt.Sprintf("%d nodes are at revision %d", count, revision))
+	}
+	revisionDescription := strings.Join(revisionStrings, "; ")
+
 	if numAvailable > 0 {
 		v1helpers.SetOperatorCondition(&newStatus.Conditions, operatorv1.OperatorCondition{
 			Type:    operatorv1.OperatorStatusTypeAvailable,
 			Status:  operatorv1.ConditionTrue,
-			Message: fmt.Sprintf("%d of %d nodes are at revision %d", numAvailable, len(newStatus.NodeStatuses), newStatus.LatestAvailableRevision),
+			Message: fmt.Sprintf("%d nodes are active; %s", numAvailable, revisionDescription),
 		})
 	} else {
 		v1helpers.SetOperatorCondition(&newStatus.Conditions, operatorv1.OperatorCondition{
 			Type:    operatorv1.OperatorStatusTypeAvailable,
 			Status:  operatorv1.ConditionFalse,
-			Reason:  "ZeroNodesAtLatestRevision",
-			Message: fmt.Sprintf("%d of %d nodes are at revision %d", numAvailable, len(newStatus.NodeStatuses), newStatus.LatestAvailableRevision),
+			Reason:  "ZeroNodesActive",
+			Message: fmt.Sprintf("%d nodes are active; %s", numAvailable, revisionDescription),
 		})
 	}
 
@@ -354,14 +370,14 @@ func setAvailableProgressingConditions(newStatus *operatorv1.StaticPodOperatorSt
 		v1helpers.SetOperatorCondition(&newStatus.Conditions, operatorv1.OperatorCondition{
 			Type:    operatorv1.OperatorStatusTypeProgressing,
 			Status:  operatorv1.ConditionTrue,
-			Message: fmt.Sprintf("%d of %d nodes are at revision %d, %d are not", len(newStatus.NodeStatuses)-numProgressing, len(newStatus.NodeStatuses), newStatus.LatestAvailableRevision, numProgressing),
+			Message: fmt.Sprintf("%s", revisionDescription),
 		})
 	} else {
 		v1helpers.SetOperatorCondition(&newStatus.Conditions, operatorv1.OperatorCondition{
 			Type:    operatorv1.OperatorStatusTypeProgressing,
 			Status:  operatorv1.ConditionFalse,
 			Reason:  "AllNodesAtLatestRevision",
-			Message: fmt.Sprintf("%d of %d nodes are at revision %d", len(newStatus.NodeStatuses)-numProgressing, len(newStatus.NodeStatuses), newStatus.LatestAvailableRevision),
+			Message: fmt.Sprintf("%s", revisionDescription),
 		})
 	}
 

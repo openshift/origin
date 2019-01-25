@@ -186,7 +186,7 @@ os::cmd::expect_success_and_text "oc get is/mysql-new-single --template='{{(len 
 os::cmd::expect_success 'oc delete is/mysql-new-single'
 # import creates new image stream with all tags
 os::cmd::expect_failure_and_text 'oc import-image mysql-new-all --from=mysql --all' '\-\-confirm'
-os::cmd::expect_success_and_text 'oc import-image mysql-new-all --from=mysql --all --confirm' 'sha256:'
+os::cmd::expect_success_and_text 'oc import-image mysql-new-all --from=mysql --all --confirm --request-timeout=1m' 'sha256:'
 name=$(oc get istag/mysql-new-all:latest --template='{{ .image.metadata.name }}')
 echo "import-image: ok"
 os::test::junit::declare_suite_end

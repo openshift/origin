@@ -43,10 +43,13 @@ func NewTriggersClientWithBaseURI(baseURI string, subscriptionID string) Trigger
 }
 
 // CreateOrUpdate creates or updates a trigger.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name. triggerName is the trigger name.
-// trigger is trigger resource definition. ifMatch is eTag of the trigger entity.  Should only be specified for
-// update, for which it should match existing entity or can be * for unconditional update.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// triggerName - the trigger name.
+// trigger - trigger resource definition.
+// ifMatch - eTag of the trigger entity.  Should only be specified for update, for which it should match
+// existing entity or can be * for unconditional update.
 func (client TriggersClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, factoryName string, triggerName string, trigger TriggerResource, ifMatch string) (result TriggerResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -102,7 +105,7 @@ func (client TriggersClient) CreateOrUpdatePreparer(ctx context.Context, resourc
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DataFactory/factories/{factoryName}/triggers/{triggerName}", pathParameters),
@@ -136,8 +139,10 @@ func (client TriggersClient) CreateOrUpdateResponder(resp *http.Response) (resul
 }
 
 // Delete deletes a trigger.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name. triggerName is the trigger name.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// triggerName - the trigger name.
 func (client TriggersClient) Delete(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -218,8 +223,10 @@ func (client TriggersClient) DeleteResponder(resp *http.Response) (result autore
 }
 
 // Get gets a trigger.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name. triggerName is the trigger name.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// triggerName - the trigger name.
 func (client TriggersClient) Get(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (result TriggerResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -301,8 +308,9 @@ func (client TriggersClient) GetResponder(resp *http.Response) (result TriggerRe
 }
 
 // ListByFactory lists triggers.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
 func (client TriggersClient) ListByFactory(ctx context.Context, resourceGroupName string, factoryName string) (result TriggerListResponsePage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -407,9 +415,12 @@ func (client TriggersClient) ListByFactoryComplete(ctx context.Context, resource
 }
 
 // ListRuns list trigger runs.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name. triggerName is the trigger name.
-// startTime is start time for trigger runs. endTime is end time for trigger runs.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// triggerName - the trigger name.
+// startTime - start time for trigger runs.
+// endTime - end time for trigger runs.
 func (client TriggersClient) ListRuns(ctx context.Context, resourceGroupName string, factoryName string, triggerName string, startTime date.Time, endTime date.Time) (result TriggerRunListResponsePage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -521,8 +532,10 @@ func (client TriggersClient) ListRunsComplete(ctx context.Context, resourceGroup
 }
 
 // Start starts a trigger.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name. triggerName is the trigger name.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// triggerName - the trigger name.
 func (client TriggersClient) Start(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (result TriggersStartFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -605,8 +618,10 @@ func (client TriggersClient) StartResponder(resp *http.Response) (result autores
 }
 
 // Stop stops a trigger.
-//
-// resourceGroupName is the resource group name. factoryName is the factory name. triggerName is the trigger name.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// triggerName - the trigger name.
 func (client TriggersClient) Stop(ctx context.Context, resourceGroupName string, factoryName string, triggerName string) (result TriggersStopFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,

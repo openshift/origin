@@ -14,12 +14,13 @@ import (
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	apiserverflag "k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/client-go/kubernetes/scheme"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
 	kubeproxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app"
 	proxy "k8s.io/kubernetes/pkg/proxy"
-	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
+	kubeproxyconfig "k8s.io/kubernetes/pkg/proxy/apis/config"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
 	"k8s.io/kubernetes/pkg/proxy/healthcheck"
 	"k8s.io/kubernetes/pkg/proxy/iptables"
@@ -76,7 +77,7 @@ func ProxyConfigFromNodeConfig(options configapi.NodeConfig) (*kubeproxyconfig.K
 	proxyconfig.ResourceContainer = ""
 
 	// use the same client as the node
-	proxyconfig.ClientConnection.KubeConfigFile = options.MasterKubeConfig
+	proxyconfig.ClientConnection.Kubeconfig = options.MasterKubeConfig
 
 	// ProxyMode, set to iptables
 	proxyconfig.Mode = "iptables"
@@ -102,7 +103,9 @@ func ProxyConfigFromNodeConfig(options configapi.NodeConfig) (*kubeproxyconfig.K
 	// UDPIdleTimeout, use default
 
 	// Resolve cmd flags to add any user overrides
-	if err := cmdflags.Resolve(options.ProxyArguments, proxyOptions.AddFlags); len(err) > 0 {
+	fss := apiserverflag.NamedFlagSets{}
+	proxyOptions.AddFlags(fss.FlagSet("proxy"))
+	if err := cmdflags.Resolve(options.ProxyArguments, fss); len(err) > 0 {
 		return nil, kerrors.NewAggregate(err)
 	}
 
@@ -134,7 +137,10 @@ func (sdn *OpenShiftSDN) runProxy() {
 
 	portRange := utilnet.ParsePortRangeOrDie(sdn.ProxyConfig.PortRange)
 
-	hostname := utilnode.GetHostname(sdn.ProxyConfig.HostnameOverride)
+	hostname, err := utilnode.GetHostname(sdn.ProxyConfig.HostnameOverride)
+	if err != nil {
+		glog.Fatalf("Unable to get hostname: %v", err)
+	}
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: sdn.informers.KubeClient.CoreV1().Events("")})
@@ -235,7 +241,7 @@ func (sdn *OpenShiftSDN) runProxy() {
 	// only notify on changes, and the initial update (on process start) may be lost if no handlers
 	// are registered yet.
 	serviceConfig := pconfig.NewServiceConfig(
-		sdn.informers.InternalKubeInformers.Core().InternalVersion().Services(),
+		sdn.informers.KubeInformers.Core().V1().Services(),
 		sdn.ProxyConfig.ConfigSyncPeriod.Duration,
 	)
 
@@ -254,7 +260,7 @@ func (sdn *OpenShiftSDN) runProxy() {
 			proxier,
 			unidlingUserspaceProxy,
 			sdn.ProxyConfig.IPTables.SyncPeriod.Duration,
-			sdn.informers.InternalKubeInformers.Core().InternalVersion().Services().Lister(),
+			sdn.informers.KubeInformers.Core().V1().Services().Lister(),
 		)
 		if err != nil {
 			glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
@@ -269,7 +275,7 @@ func (sdn *OpenShiftSDN) runProxy() {
 	go serviceConfig.Run(utilwait.NeverStop)
 
 	endpointsConfig := pconfig.NewEndpointsConfig(
-		sdn.informers.InternalKubeInformers.Core().InternalVersion().Endpoints(),
+		sdn.informers.KubeInformers.Core().V1().Endpoints(),
 		sdn.ProxyConfig.ConfigSyncPeriod.Duration,
 	)
 	// customized handling registration that inserts a filter if needed

@@ -208,7 +208,7 @@ func ModifyConfig(configAccess ConfigAccess, newConfig clientcmdapi.Config, rela
 		}
 	}
 
-	// seenConfigs stores a map of config source filenames to computed config objects.
+	// seenConfigs stores a map of config source filenames to computed config objects
 	seenConfigs := map[string]*clientcmdapi.Config{}
 
 	for key, context := range newConfig.Contexts {

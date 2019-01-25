@@ -165,9 +165,7 @@ Must Gather
 -----------
 If you find yourself still stuck, before seeking help in #openshift on freenode.net, please recreate your issue with verbose logging and gather the following:
 
-1. OpenShift logs at level 4 (verbose logging):
-
-        $ openshift start --loglevel=4 &> /tmp/openshift.log
+1. OpenShift logs at level 4 (verbose logging)
 
 1. Container logs
 

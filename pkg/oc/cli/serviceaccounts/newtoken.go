@@ -1,6 +1,7 @@
 package serviceaccounts
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -12,11 +13,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 	sautil "k8s.io/kubernetes/pkg/serviceaccount"
 
 	"github.com/openshift/origin/pkg/cmd/util/term"
@@ -205,7 +207,9 @@ func waitForToken(token *corev1.Secret, serviceAccount *corev1.ServiceAccount, t
 		return nil, fmt.Errorf("could not begin watch for token: %v", err)
 	}
 
-	event, err := watch.Until(timeout, watcher, func(event watch.Event) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	event, err := watchtools.UntilWithoutRetry(ctx, watcher, func(event watch.Event) (bool, error) {
 		if event.Type == watch.Error {
 			return false, fmt.Errorf("encountered error while watching for token: %v", event.Object)
 		}

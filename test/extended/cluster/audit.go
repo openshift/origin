@@ -13,6 +13,7 @@ import (
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
+	imageutils "k8s.io/kubernetes/test/utils/image"
 )
 
 var _ = g.Describe("[Feature:Audit] Basic audit", func() {
@@ -29,7 +30,7 @@ var _ = g.Describe("[Feature:Audit] Basic audit", func() {
 			Spec: apiv1.PodSpec{
 				Containers: []apiv1.Container{{
 					Name:  "pause",
-					Image: framework.GetPauseImageName(f.ClientSet),
+					Image: imageutils.GetPauseImageName(),
 				}},
 			},
 		}

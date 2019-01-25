@@ -41,9 +41,12 @@ func NewVolumeContainersClientWithBaseURI(baseURI string, subscriptionID string)
 }
 
 // CreateOrUpdate creates or updates the volume container.
-//
-// deviceName is the device name volumeContainerName is the name of the volume container. parameters is the volume
-// container to be added or updated. resourceGroupName is the resource group name managerName is the manager name
+// Parameters:
+// deviceName - the device name
+// volumeContainerName - the name of the volume container.
+// parameters - the volume container to be added or updated.
+// resourceGroupName - the resource group name
+// managerName - the manager name
 func (client VolumeContainersClient) CreateOrUpdate(ctx context.Context, deviceName string, volumeContainerName string, parameters VolumeContainer, resourceGroupName string, managerName string) (result VolumeContainersCreateOrUpdateFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
@@ -89,7 +92,7 @@ func (client VolumeContainersClient) CreateOrUpdatePreparer(ctx context.Context,
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.StorSimple/managers/{managerName}/devices/{deviceName}/volumeContainers/{volumeContainerName}", pathParameters),
@@ -101,15 +104,17 @@ func (client VolumeContainersClient) CreateOrUpdatePreparer(ctx context.Context,
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client VolumeContainersClient) CreateOrUpdateSender(req *http.Request) (future VolumeContainersCreateOrUpdateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -127,9 +132,11 @@ func (client VolumeContainersClient) CreateOrUpdateResponder(resp *http.Response
 }
 
 // Delete deletes the volume container.
-//
-// deviceName is the device name volumeContainerName is the name of the volume container. resourceGroupName is the
-// resource group name managerName is the manager name
+// Parameters:
+// deviceName - the device name
+// volumeContainerName - the name of the volume container.
+// resourceGroupName - the resource group name
+// managerName - the manager name
 func (client VolumeContainersClient) Delete(ctx context.Context, deviceName string, volumeContainerName string, resourceGroupName string, managerName string) (result VolumeContainersDeleteFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
@@ -179,15 +186,17 @@ func (client VolumeContainersClient) DeletePreparer(ctx context.Context, deviceN
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client VolumeContainersClient) DeleteSender(req *http.Request) (future VolumeContainersDeleteFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -204,9 +213,11 @@ func (client VolumeContainersClient) DeleteResponder(resp *http.Response) (resul
 }
 
 // Get gets the properties of the specified volume container name.
-//
-// deviceName is the device name volumeContainerName is the name of the volume container. resourceGroupName is the
-// resource group name managerName is the manager name
+// Parameters:
+// deviceName - the device name
+// volumeContainerName - the name of the volume container.
+// resourceGroupName - the resource group name
+// managerName - the manager name
 func (client VolumeContainersClient) Get(ctx context.Context, deviceName string, volumeContainerName string, resourceGroupName string, managerName string) (result VolumeContainer, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
@@ -280,8 +291,10 @@ func (client VolumeContainersClient) GetResponder(resp *http.Response) (result V
 }
 
 // ListByDevice gets all the volume containers in a device.
-//
-// deviceName is the device name resourceGroupName is the resource group name managerName is the manager name
+// Parameters:
+// deviceName - the device name
+// resourceGroupName - the resource group name
+// managerName - the manager name
 func (client VolumeContainersClient) ListByDevice(ctx context.Context, deviceName string, resourceGroupName string, managerName string) (result VolumeContainerList, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
@@ -354,9 +367,11 @@ func (client VolumeContainersClient) ListByDeviceResponder(resp *http.Response) 
 }
 
 // ListMetricDefinition gets the metric definitions for the specified volume container.
-//
-// deviceName is the device name volumeContainerName is the volume container name. resourceGroupName is the
-// resource group name managerName is the manager name
+// Parameters:
+// deviceName - the device name
+// volumeContainerName - the volume container name.
+// resourceGroupName - the resource group name
+// managerName - the manager name
 func (client VolumeContainersClient) ListMetricDefinition(ctx context.Context, deviceName string, volumeContainerName string, resourceGroupName string, managerName string) (result MetricDefinitionList, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,
@@ -430,9 +445,12 @@ func (client VolumeContainersClient) ListMetricDefinitionResponder(resp *http.Re
 }
 
 // ListMetrics gets the metrics for the specified volume container.
-//
-// deviceName is the device name volumeContainerName is the volume container name. resourceGroupName is the
-// resource group name managerName is the manager name filter is oData Filter options
+// Parameters:
+// deviceName - the device name
+// volumeContainerName - the volume container name.
+// resourceGroupName - the resource group name
+// managerName - the manager name
+// filter - oData Filter options
 func (client VolumeContainersClient) ListMetrics(ctx context.Context, deviceName string, volumeContainerName string, resourceGroupName string, managerName string, filter string) (result MetricList, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: managerName,

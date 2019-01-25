@@ -15,7 +15,7 @@ const opAssociateCreatedArtifact = "AssociateCreatedArtifact"
 
 // AssociateCreatedArtifactRequest generates a "aws/request.Request" representing the
 // client's request for the AssociateCreatedArtifact operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -36,7 +36,7 @@ const opAssociateCreatedArtifact = "AssociateCreatedArtifact"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/AssociateCreatedArtifact
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/AssociateCreatedArtifact
 func (c *MigrationHub) AssociateCreatedArtifactRequest(input *AssociateCreatedArtifactInput) (req *request.Request, output *AssociateCreatedArtifactOutput) {
 	op := &request.Operation{
 		Name:       opAssociateCreatedArtifact,
@@ -78,16 +78,15 @@ func (c *MigrationHub) AssociateCreatedArtifactRequest(input *AssociateCreatedAr
 //
 // Returned Error Codes:
 //   * ErrCodeAccessDeniedException "AccessDeniedException"
-//   Exception raised when the account making the call is not whitelisted or there
-//   are other authentication errors.
+//   You do not have sufficient access to perform this action.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   Exception raised when there is an internal, configuration, or dependency
 //   error encountered.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   Exception raised when the service encounters throttled communication with
-//   upstream dependencies or is overloaded with requests.
+//   Exception raised when there is an internal, configuration, or dependency
+//   error encountered.
 //
 //   * ErrCodeDryRunOperation "DryRunOperation"
 //   Exception raised to indicate a successfully authorized action when the DryRun
@@ -106,7 +105,7 @@ func (c *MigrationHub) AssociateCreatedArtifactRequest(input *AssociateCreatedAr
 //   update stream, migration task, etc.) that does not exist in ADS (Application
 //   Discovery Service) or in Migration Hub's repository.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/AssociateCreatedArtifact
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/AssociateCreatedArtifact
 func (c *MigrationHub) AssociateCreatedArtifact(input *AssociateCreatedArtifactInput) (*AssociateCreatedArtifactOutput, error) {
 	req, out := c.AssociateCreatedArtifactRequest(input)
 	return out, req.Send()
@@ -132,7 +131,7 @@ const opAssociateDiscoveredResource = "AssociateDiscoveredResource"
 
 // AssociateDiscoveredResourceRequest generates a "aws/request.Request" representing the
 // client's request for the AssociateDiscoveredResource operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -153,7 +152,7 @@ const opAssociateDiscoveredResource = "AssociateDiscoveredResource"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/AssociateDiscoveredResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/AssociateDiscoveredResource
 func (c *MigrationHub) AssociateDiscoveredResourceRequest(input *AssociateDiscoveredResourceInput) (req *request.Request, output *AssociateDiscoveredResourceOutput) {
 	op := &request.Operation{
 		Name:       opAssociateDiscoveredResource,
@@ -184,16 +183,15 @@ func (c *MigrationHub) AssociateDiscoveredResourceRequest(input *AssociateDiscov
 //
 // Returned Error Codes:
 //   * ErrCodeAccessDeniedException "AccessDeniedException"
-//   Exception raised when the account making the call is not whitelisted or there
-//   are other authentication errors.
+//   You do not have sufficient access to perform this action.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   Exception raised when there is an internal, configuration, or dependency
 //   error encountered.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   Exception raised when the service encounters throttled communication with
-//   upstream dependencies or is overloaded with requests.
+//   Exception raised when there is an internal, configuration, or dependency
+//   error encountered.
 //
 //   * ErrCodeDryRunOperation "DryRunOperation"
 //   Exception raised to indicate a successfully authorized action when the DryRun
@@ -209,15 +207,15 @@ func (c *MigrationHub) AssociateDiscoveredResourceRequest(input *AssociateDiscov
 //
 //   * ErrCodePolicyErrorException "PolicyErrorException"
 //   Exception raised when there are problems accessing ADS (Application Discovery
-//   Service); most likely due to a misconfigured policy or the ADSCaller role
-//   is missing or not configured correctly.
+//   Service); most likely due to a misconfigured policy or the migrationhub-discovery
+//   role is missing or not configured correctly.
 //
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Exception raised when the request references a resource (ADS configuration,
 //   update stream, migration task, etc.) that does not exist in ADS (Application
 //   Discovery Service) or in Migration Hub's repository.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/AssociateDiscoveredResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/AssociateDiscoveredResource
 func (c *MigrationHub) AssociateDiscoveredResource(input *AssociateDiscoveredResourceInput) (*AssociateDiscoveredResourceOutput, error) {
 	req, out := c.AssociateDiscoveredResourceRequest(input)
 	return out, req.Send()
@@ -243,7 +241,7 @@ const opCreateProgressUpdateStream = "CreateProgressUpdateStream"
 
 // CreateProgressUpdateStreamRequest generates a "aws/request.Request" representing the
 // client's request for the CreateProgressUpdateStream operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -264,7 +262,7 @@ const opCreateProgressUpdateStream = "CreateProgressUpdateStream"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/CreateProgressUpdateStream
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/CreateProgressUpdateStream
 func (c *MigrationHub) CreateProgressUpdateStreamRequest(input *CreateProgressUpdateStreamInput) (req *request.Request, output *CreateProgressUpdateStreamOutput) {
 	op := &request.Operation{
 		Name:       opCreateProgressUpdateStream,
@@ -298,16 +296,15 @@ func (c *MigrationHub) CreateProgressUpdateStreamRequest(input *CreateProgressUp
 //
 // Returned Error Codes:
 //   * ErrCodeAccessDeniedException "AccessDeniedException"
-//   Exception raised when the account making the call is not whitelisted or there
-//   are other authentication errors.
+//   You do not have sufficient access to perform this action.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   Exception raised when there is an internal, configuration, or dependency
 //   error encountered.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   Exception raised when the service encounters throttled communication with
-//   upstream dependencies or is overloaded with requests.
+//   Exception raised when there is an internal, configuration, or dependency
+//   error encountered.
 //
 //   * ErrCodeDryRunOperation "DryRunOperation"
 //   Exception raised to indicate a successfully authorized action when the DryRun
@@ -321,7 +318,7 @@ func (c *MigrationHub) CreateProgressUpdateStreamRequest(input *CreateProgressUp
 //   Exception raised when the provided input violates a policy constraint or
 //   is entered in the wrong format or data type.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/CreateProgressUpdateStream
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/CreateProgressUpdateStream
 func (c *MigrationHub) CreateProgressUpdateStream(input *CreateProgressUpdateStreamInput) (*CreateProgressUpdateStreamOutput, error) {
 	req, out := c.CreateProgressUpdateStreamRequest(input)
 	return out, req.Send()
@@ -347,7 +344,7 @@ const opDeleteProgressUpdateStream = "DeleteProgressUpdateStream"
 
 // DeleteProgressUpdateStreamRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteProgressUpdateStream operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -368,7 +365,7 @@ const opDeleteProgressUpdateStream = "DeleteProgressUpdateStream"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DeleteProgressUpdateStream
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DeleteProgressUpdateStream
 func (c *MigrationHub) DeleteProgressUpdateStreamRequest(input *DeleteProgressUpdateStreamInput) (req *request.Request, output *DeleteProgressUpdateStreamOutput) {
 	op := &request.Operation{
 		Name:       opDeleteProgressUpdateStream,
@@ -394,9 +391,9 @@ func (c *MigrationHub) DeleteProgressUpdateStreamRequest(input *DeleteProgressUp
 //    * The only parameter needed for DeleteProgressUpdateStream is the stream
 //    name (same as a CreateProgressUpdateStream call).
 //
-//    * The call will return, and a background process will asynchronously be
-//    doing the actual delete of the stream and all of its resources (tasks,
-//    associated resources, resource attributes, created artifacts).
+//    * The call will return, and a background process will asynchronously delete
+//    the stream and all of its resources (tasks, associated resources, resource
+//    attributes, created artifacts).
 //
 //    * If the stream takes time to be deleted, it might still show up on a
 //    ListProgressUpdateStreams call.
@@ -420,16 +417,15 @@ func (c *MigrationHub) DeleteProgressUpdateStreamRequest(input *DeleteProgressUp
 //
 // Returned Error Codes:
 //   * ErrCodeAccessDeniedException "AccessDeniedException"
-//   Exception raised when the account making the call is not whitelisted or there
-//   are other authentication errors.
+//   You do not have sufficient access to perform this action.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   Exception raised when there is an internal, configuration, or dependency
 //   error encountered.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   Exception raised when the service encounters throttled communication with
-//   upstream dependencies or is overloaded with requests.
+//   Exception raised when there is an internal, configuration, or dependency
+//   error encountered.
 //
 //   * ErrCodeDryRunOperation "DryRunOperation"
 //   Exception raised to indicate a successfully authorized action when the DryRun
@@ -448,7 +444,7 @@ func (c *MigrationHub) DeleteProgressUpdateStreamRequest(input *DeleteProgressUp
 //   update stream, migration task, etc.) that does not exist in ADS (Application
 //   Discovery Service) or in Migration Hub's repository.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DeleteProgressUpdateStream
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DeleteProgressUpdateStream
 func (c *MigrationHub) DeleteProgressUpdateStream(input *DeleteProgressUpdateStreamInput) (*DeleteProgressUpdateStreamOutput, error) {
 	req, out := c.DeleteProgressUpdateStreamRequest(input)
 	return out, req.Send()
@@ -474,7 +470,7 @@ const opDescribeApplicationState = "DescribeApplicationState"
 
 // DescribeApplicationStateRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeApplicationState operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -495,7 +491,7 @@ const opDescribeApplicationState = "DescribeApplicationState"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DescribeApplicationState
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DescribeApplicationState
 func (c *MigrationHub) DescribeApplicationStateRequest(input *DescribeApplicationStateInput) (req *request.Request, output *DescribeApplicationStateOutput) {
 	op := &request.Operation{
 		Name:       opDescribeApplicationState,
@@ -525,16 +521,15 @@ func (c *MigrationHub) DescribeApplicationStateRequest(input *DescribeApplicatio
 //
 // Returned Error Codes:
 //   * ErrCodeAccessDeniedException "AccessDeniedException"
-//   Exception raised when the account making the call is not whitelisted or there
-//   are other authentication errors.
+//   You do not have sufficient access to perform this action.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   Exception raised when there is an internal, configuration, or dependency
 //   error encountered.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   Exception raised when the service encounters throttled communication with
-//   upstream dependencies or is overloaded with requests.
+//   Exception raised when there is an internal, configuration, or dependency
+//   error encountered.
 //
 //   * ErrCodeInvalidInputException "InvalidInputException"
 //   Exception raised when the provided input violates a policy constraint or
@@ -542,15 +537,15 @@ func (c *MigrationHub) DescribeApplicationStateRequest(input *DescribeApplicatio
 //
 //   * ErrCodePolicyErrorException "PolicyErrorException"
 //   Exception raised when there are problems accessing ADS (Application Discovery
-//   Service); most likely due to a misconfigured policy or the ADSCaller role
-//   is missing or not configured correctly.
+//   Service); most likely due to a misconfigured policy or the migrationhub-discovery
+//   role is missing or not configured correctly.
 //
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Exception raised when the request references a resource (ADS configuration,
 //   update stream, migration task, etc.) that does not exist in ADS (Application
 //   Discovery Service) or in Migration Hub's repository.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DescribeApplicationState
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DescribeApplicationState
 func (c *MigrationHub) DescribeApplicationState(input *DescribeApplicationStateInput) (*DescribeApplicationStateOutput, error) {
 	req, out := c.DescribeApplicationStateRequest(input)
 	return out, req.Send()
@@ -576,7 +571,7 @@ const opDescribeMigrationTask = "DescribeMigrationTask"
 
 // DescribeMigrationTaskRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeMigrationTask operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -597,7 +592,7 @@ const opDescribeMigrationTask = "DescribeMigrationTask"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DescribeMigrationTask
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DescribeMigrationTask
 func (c *MigrationHub) DescribeMigrationTaskRequest(input *DescribeMigrationTaskInput) (req *request.Request, output *DescribeMigrationTaskOutput) {
 	op := &request.Operation{
 		Name:       opDescribeMigrationTask,
@@ -627,16 +622,15 @@ func (c *MigrationHub) DescribeMigrationTaskRequest(input *DescribeMigrationTask
 //
 // Returned Error Codes:
 //   * ErrCodeAccessDeniedException "AccessDeniedException"
-//   Exception raised when the account making the call is not whitelisted or there
-//   are other authentication errors.
+//   You do not have sufficient access to perform this action.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   Exception raised when there is an internal, configuration, or dependency
 //   error encountered.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   Exception raised when the service encounters throttled communication with
-//   upstream dependencies or is overloaded with requests.
+//   Exception raised when there is an internal, configuration, or dependency
+//   error encountered.
 //
 //   * ErrCodeInvalidInputException "InvalidInputException"
 //   Exception raised when the provided input violates a policy constraint or
@@ -647,7 +641,7 @@ func (c *MigrationHub) DescribeMigrationTaskRequest(input *DescribeMigrationTask
 //   update stream, migration task, etc.) that does not exist in ADS (Application
 //   Discovery Service) or in Migration Hub's repository.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DescribeMigrationTask
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DescribeMigrationTask
 func (c *MigrationHub) DescribeMigrationTask(input *DescribeMigrationTaskInput) (*DescribeMigrationTaskOutput, error) {
 	req, out := c.DescribeMigrationTaskRequest(input)
 	return out, req.Send()
@@ -673,7 +667,7 @@ const opDisassociateCreatedArtifact = "DisassociateCreatedArtifact"
 
 // DisassociateCreatedArtifactRequest generates a "aws/request.Request" representing the
 // client's request for the DisassociateCreatedArtifact operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -694,7 +688,7 @@ const opDisassociateCreatedArtifact = "DisassociateCreatedArtifact"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DisassociateCreatedArtifact
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DisassociateCreatedArtifact
 func (c *MigrationHub) DisassociateCreatedArtifactRequest(input *DisassociateCreatedArtifactInput) (req *request.Request, output *DisassociateCreatedArtifactOutput) {
 	op := &request.Operation{
 		Name:       opDisassociateCreatedArtifact,
@@ -736,16 +730,15 @@ func (c *MigrationHub) DisassociateCreatedArtifactRequest(input *DisassociateCre
 //
 // Returned Error Codes:
 //   * ErrCodeAccessDeniedException "AccessDeniedException"
-//   Exception raised when the account making the call is not whitelisted or there
-//   are other authentication errors.
+//   You do not have sufficient access to perform this action.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   Exception raised when there is an internal, configuration, or dependency
 //   error encountered.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   Exception raised when the service encounters throttled communication with
-//   upstream dependencies or is overloaded with requests.
+//   Exception raised when there is an internal, configuration, or dependency
+//   error encountered.
 //
 //   * ErrCodeDryRunOperation "DryRunOperation"
 //   Exception raised to indicate a successfully authorized action when the DryRun
@@ -764,7 +757,7 @@ func (c *MigrationHub) DisassociateCreatedArtifactRequest(input *DisassociateCre
 //   update stream, migration task, etc.) that does not exist in ADS (Application
 //   Discovery Service) or in Migration Hub's repository.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DisassociateCreatedArtifact
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DisassociateCreatedArtifact
 func (c *MigrationHub) DisassociateCreatedArtifact(input *DisassociateCreatedArtifactInput) (*DisassociateCreatedArtifactOutput, error) {
 	req, out := c.DisassociateCreatedArtifactRequest(input)
 	return out, req.Send()
@@ -790,7 +783,7 @@ const opDisassociateDiscoveredResource = "DisassociateDiscoveredResource"
 
 // DisassociateDiscoveredResourceRequest generates a "aws/request.Request" representing the
 // client's request for the DisassociateDiscoveredResource operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -811,7 +804,7 @@ const opDisassociateDiscoveredResource = "DisassociateDiscoveredResource"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DisassociateDiscoveredResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DisassociateDiscoveredResource
 func (c *MigrationHub) DisassociateDiscoveredResourceRequest(input *DisassociateDiscoveredResourceInput) (req *request.Request, output *DisassociateDiscoveredResourceOutput) {
 	op := &request.Operation{
 		Name:       opDisassociateDiscoveredResource,
@@ -842,16 +835,15 @@ func (c *MigrationHub) DisassociateDiscoveredResourceRequest(input *Disassociate
 //
 // Returned Error Codes:
 //   * ErrCodeAccessDeniedException "AccessDeniedException"
-//   Exception raised when the account making the call is not whitelisted or there
-//   are other authentication errors.
+//   You do not have sufficient access to perform this action.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   Exception raised when there is an internal, configuration, or dependency
 //   error encountered.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   Exception raised when the service encounters throttled communication with
-//   upstream dependencies or is overloaded with requests.
+//   Exception raised when there is an internal, configuration, or dependency
+//   error encountered.
 //
 //   * ErrCodeDryRunOperation "DryRunOperation"
 //   Exception raised to indicate a successfully authorized action when the DryRun
@@ -870,7 +862,7 @@ func (c *MigrationHub) DisassociateDiscoveredResourceRequest(input *Disassociate
 //   update stream, migration task, etc.) that does not exist in ADS (Application
 //   Discovery Service) or in Migration Hub's repository.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DisassociateDiscoveredResource
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DisassociateDiscoveredResource
 func (c *MigrationHub) DisassociateDiscoveredResource(input *DisassociateDiscoveredResourceInput) (*DisassociateDiscoveredResourceOutput, error) {
 	req, out := c.DisassociateDiscoveredResourceRequest(input)
 	return out, req.Send()
@@ -896,7 +888,7 @@ const opImportMigrationTask = "ImportMigrationTask"
 
 // ImportMigrationTaskRequest generates a "aws/request.Request" representing the
 // client's request for the ImportMigrationTask operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -917,7 +909,7 @@ const opImportMigrationTask = "ImportMigrationTask"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ImportMigrationTask
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ImportMigrationTask
 func (c *MigrationHub) ImportMigrationTaskRequest(input *ImportMigrationTaskInput) (req *request.Request, output *ImportMigrationTaskOutput) {
 	op := &request.Operation{
 		Name:       opImportMigrationTask,
@@ -952,16 +944,15 @@ func (c *MigrationHub) ImportMigrationTaskRequest(input *ImportMigrationTaskInpu
 //
 // Returned Error Codes:
 //   * ErrCodeAccessDeniedException "AccessDeniedException"
-//   Exception raised when the account making the call is not whitelisted or there
-//   are other authentication errors.
+//   You do not have sufficient access to perform this action.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   Exception raised when there is an internal, configuration, or dependency
 //   error encountered.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   Exception raised when the service encounters throttled communication with
-//   upstream dependencies or is overloaded with requests.
+//   Exception raised when there is an internal, configuration, or dependency
+//   error encountered.
 //
 //   * ErrCodeDryRunOperation "DryRunOperation"
 //   Exception raised to indicate a successfully authorized action when the DryRun
@@ -980,7 +971,7 @@ func (c *MigrationHub) ImportMigrationTaskRequest(input *ImportMigrationTaskInpu
 //   update stream, migration task, etc.) that does not exist in ADS (Application
 //   Discovery Service) or in Migration Hub's repository.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ImportMigrationTask
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ImportMigrationTask
 func (c *MigrationHub) ImportMigrationTask(input *ImportMigrationTaskInput) (*ImportMigrationTaskOutput, error) {
 	req, out := c.ImportMigrationTaskRequest(input)
 	return out, req.Send()
@@ -1006,7 +997,7 @@ const opListCreatedArtifacts = "ListCreatedArtifacts"
 
 // ListCreatedArtifactsRequest generates a "aws/request.Request" representing the
 // client's request for the ListCreatedArtifacts operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1027,7 +1018,7 @@ const opListCreatedArtifacts = "ListCreatedArtifacts"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListCreatedArtifacts
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListCreatedArtifacts
 func (c *MigrationHub) ListCreatedArtifactsRequest(input *ListCreatedArtifactsInput) (req *request.Request, output *ListCreatedArtifactsOutput) {
 	op := &request.Operation{
 		Name:       opListCreatedArtifacts,
@@ -1065,16 +1056,15 @@ func (c *MigrationHub) ListCreatedArtifactsRequest(input *ListCreatedArtifactsIn
 //
 // Returned Error Codes:
 //   * ErrCodeAccessDeniedException "AccessDeniedException"
-//   Exception raised when the account making the call is not whitelisted or there
-//   are other authentication errors.
+//   You do not have sufficient access to perform this action.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   Exception raised when there is an internal, configuration, or dependency
 //   error encountered.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   Exception raised when the service encounters throttled communication with
-//   upstream dependencies or is overloaded with requests.
+//   Exception raised when there is an internal, configuration, or dependency
+//   error encountered.
 //
 //   * ErrCodeInvalidInputException "InvalidInputException"
 //   Exception raised when the provided input violates a policy constraint or
@@ -1085,7 +1075,7 @@ func (c *MigrationHub) ListCreatedArtifactsRequest(input *ListCreatedArtifactsIn
 //   update stream, migration task, etc.) that does not exist in ADS (Application
 //   Discovery Service) or in Migration Hub's repository.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListCreatedArtifacts
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListCreatedArtifacts
 func (c *MigrationHub) ListCreatedArtifacts(input *ListCreatedArtifactsInput) (*ListCreatedArtifactsOutput, error) {
 	req, out := c.ListCreatedArtifactsRequest(input)
 	return out, req.Send()
@@ -1111,7 +1101,7 @@ const opListDiscoveredResources = "ListDiscoveredResources"
 
 // ListDiscoveredResourcesRequest generates a "aws/request.Request" representing the
 // client's request for the ListDiscoveredResources operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1132,7 +1122,7 @@ const opListDiscoveredResources = "ListDiscoveredResources"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListDiscoveredResources
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListDiscoveredResources
 func (c *MigrationHub) ListDiscoveredResourcesRequest(input *ListDiscoveredResourcesInput) (req *request.Request, output *ListDiscoveredResourcesOutput) {
 	op := &request.Operation{
 		Name:       opListDiscoveredResources,
@@ -1162,16 +1152,15 @@ func (c *MigrationHub) ListDiscoveredResourcesRequest(input *ListDiscoveredResou
 //
 // Returned Error Codes:
 //   * ErrCodeAccessDeniedException "AccessDeniedException"
-//   Exception raised when the account making the call is not whitelisted or there
-//   are other authentication errors.
+//   You do not have sufficient access to perform this action.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   Exception raised when there is an internal, configuration, or dependency
 //   error encountered.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   Exception raised when the service encounters throttled communication with
-//   upstream dependencies or is overloaded with requests.
+//   Exception raised when there is an internal, configuration, or dependency
+//   error encountered.
 //
 //   * ErrCodeInvalidInputException "InvalidInputException"
 //   Exception raised when the provided input violates a policy constraint or
@@ -1182,7 +1171,7 @@ func (c *MigrationHub) ListDiscoveredResourcesRequest(input *ListDiscoveredResou
 //   update stream, migration task, etc.) that does not exist in ADS (Application
 //   Discovery Service) or in Migration Hub's repository.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListDiscoveredResources
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListDiscoveredResources
 func (c *MigrationHub) ListDiscoveredResources(input *ListDiscoveredResourcesInput) (*ListDiscoveredResourcesOutput, error) {
 	req, out := c.ListDiscoveredResourcesRequest(input)
 	return out, req.Send()
@@ -1208,7 +1197,7 @@ const opListMigrationTasks = "ListMigrationTasks"
 
 // ListMigrationTasksRequest generates a "aws/request.Request" representing the
 // client's request for the ListMigrationTasks operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1229,7 +1218,7 @@ const opListMigrationTasks = "ListMigrationTasks"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListMigrationTasks
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListMigrationTasks
 func (c *MigrationHub) ListMigrationTasksRequest(input *ListMigrationTasksInput) (req *request.Request, output *ListMigrationTasksOutput) {
 	op := &request.Operation{
 		Name:       opListMigrationTasks,
@@ -1267,16 +1256,15 @@ func (c *MigrationHub) ListMigrationTasksRequest(input *ListMigrationTasksInput)
 //
 // Returned Error Codes:
 //   * ErrCodeAccessDeniedException "AccessDeniedException"
-//   Exception raised when the account making the call is not whitelisted or there
-//   are other authentication errors.
+//   You do not have sufficient access to perform this action.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   Exception raised when there is an internal, configuration, or dependency
 //   error encountered.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   Exception raised when the service encounters throttled communication with
-//   upstream dependencies or is overloaded with requests.
+//   Exception raised when there is an internal, configuration, or dependency
+//   error encountered.
 //
 //   * ErrCodeInvalidInputException "InvalidInputException"
 //   Exception raised when the provided input violates a policy constraint or
@@ -1284,15 +1272,15 @@ func (c *MigrationHub) ListMigrationTasksRequest(input *ListMigrationTasksInput)
 //
 //   * ErrCodePolicyErrorException "PolicyErrorException"
 //   Exception raised when there are problems accessing ADS (Application Discovery
-//   Service); most likely due to a misconfigured policy or the ADSCaller role
-//   is missing or not configured correctly.
+//   Service); most likely due to a misconfigured policy or the migrationhub-discovery
+//   role is missing or not configured correctly.
 //
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Exception raised when the request references a resource (ADS configuration,
 //   update stream, migration task, etc.) that does not exist in ADS (Application
 //   Discovery Service) or in Migration Hub's repository.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListMigrationTasks
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListMigrationTasks
 func (c *MigrationHub) ListMigrationTasks(input *ListMigrationTasksInput) (*ListMigrationTasksOutput, error) {
 	req, out := c.ListMigrationTasksRequest(input)
 	return out, req.Send()
@@ -1318,7 +1306,7 @@ const opListProgressUpdateStreams = "ListProgressUpdateStreams"
 
 // ListProgressUpdateStreamsRequest generates a "aws/request.Request" representing the
 // client's request for the ListProgressUpdateStreams operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1339,7 +1327,7 @@ const opListProgressUpdateStreams = "ListProgressUpdateStreams"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListProgressUpdateStreams
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListProgressUpdateStreams
 func (c *MigrationHub) ListProgressUpdateStreamsRequest(input *ListProgressUpdateStreamsInput) (req *request.Request, output *ListProgressUpdateStreamsOutput) {
 	op := &request.Operation{
 		Name:       opListProgressUpdateStreams,
@@ -1370,22 +1358,21 @@ func (c *MigrationHub) ListProgressUpdateStreamsRequest(input *ListProgressUpdat
 //
 // Returned Error Codes:
 //   * ErrCodeAccessDeniedException "AccessDeniedException"
-//   Exception raised when the account making the call is not whitelisted or there
-//   are other authentication errors.
+//   You do not have sufficient access to perform this action.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   Exception raised when there is an internal, configuration, or dependency
 //   error encountered.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   Exception raised when the service encounters throttled communication with
-//   upstream dependencies or is overloaded with requests.
+//   Exception raised when there is an internal, configuration, or dependency
+//   error encountered.
 //
 //   * ErrCodeInvalidInputException "InvalidInputException"
 //   Exception raised when the provided input violates a policy constraint or
 //   is entered in the wrong format or data type.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListProgressUpdateStreams
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListProgressUpdateStreams
 func (c *MigrationHub) ListProgressUpdateStreams(input *ListProgressUpdateStreamsInput) (*ListProgressUpdateStreamsOutput, error) {
 	req, out := c.ListProgressUpdateStreamsRequest(input)
 	return out, req.Send()
@@ -1411,7 +1398,7 @@ const opNotifyApplicationState = "NotifyApplicationState"
 
 // NotifyApplicationStateRequest generates a "aws/request.Request" representing the
 // client's request for the NotifyApplicationState operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1432,7 +1419,7 @@ const opNotifyApplicationState = "NotifyApplicationState"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/NotifyApplicationState
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/NotifyApplicationState
 func (c *MigrationHub) NotifyApplicationStateRequest(input *NotifyApplicationStateInput) (req *request.Request, output *NotifyApplicationStateOutput) {
 	op := &request.Operation{
 		Name:       opNotifyApplicationState,
@@ -1464,16 +1451,15 @@ func (c *MigrationHub) NotifyApplicationStateRequest(input *NotifyApplicationSta
 //
 // Returned Error Codes:
 //   * ErrCodeAccessDeniedException "AccessDeniedException"
-//   Exception raised when the account making the call is not whitelisted or there
-//   are other authentication errors.
+//   You do not have sufficient access to perform this action.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   Exception raised when there is an internal, configuration, or dependency
 //   error encountered.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   Exception raised when the service encounters throttled communication with
-//   upstream dependencies or is overloaded with requests.
+//   Exception raised when there is an internal, configuration, or dependency
+//   error encountered.
 //
 //   * ErrCodeDryRunOperation "DryRunOperation"
 //   Exception raised to indicate a successfully authorized action when the DryRun
@@ -1489,15 +1475,15 @@ func (c *MigrationHub) NotifyApplicationStateRequest(input *NotifyApplicationSta
 //
 //   * ErrCodePolicyErrorException "PolicyErrorException"
 //   Exception raised when there are problems accessing ADS (Application Discovery
-//   Service); most likely due to a misconfigured policy or the ADSCaller role
-//   is missing or not configured correctly.
+//   Service); most likely due to a misconfigured policy or the migrationhub-discovery
+//   role is missing or not configured correctly.
 //
 //   * ErrCodeResourceNotFoundException "ResourceNotFoundException"
 //   Exception raised when the request references a resource (ADS configuration,
 //   update stream, migration task, etc.) that does not exist in ADS (Application
 //   Discovery Service) or in Migration Hub's repository.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/NotifyApplicationState
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/NotifyApplicationState
 func (c *MigrationHub) NotifyApplicationState(input *NotifyApplicationStateInput) (*NotifyApplicationStateOutput, error) {
 	req, out := c.NotifyApplicationStateRequest(input)
 	return out, req.Send()
@@ -1523,7 +1509,7 @@ const opNotifyMigrationTaskState = "NotifyMigrationTaskState"
 
 // NotifyMigrationTaskStateRequest generates a "aws/request.Request" representing the
 // client's request for the NotifyMigrationTaskState operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1544,7 +1530,7 @@ const opNotifyMigrationTaskState = "NotifyMigrationTaskState"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/NotifyMigrationTaskState
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/NotifyMigrationTaskState
 func (c *MigrationHub) NotifyMigrationTaskStateRequest(input *NotifyMigrationTaskStateInput) (req *request.Request, output *NotifyMigrationTaskStateOutput) {
 	op := &request.Operation{
 		Name:       opNotifyMigrationTaskState,
@@ -1583,16 +1569,15 @@ func (c *MigrationHub) NotifyMigrationTaskStateRequest(input *NotifyMigrationTas
 //
 // Returned Error Codes:
 //   * ErrCodeAccessDeniedException "AccessDeniedException"
-//   Exception raised when the account making the call is not whitelisted or there
-//   are other authentication errors.
+//   You do not have sufficient access to perform this action.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   Exception raised when there is an internal, configuration, or dependency
 //   error encountered.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   Exception raised when the service encounters throttled communication with
-//   upstream dependencies or is overloaded with requests.
+//   Exception raised when there is an internal, configuration, or dependency
+//   error encountered.
 //
 //   * ErrCodeDryRunOperation "DryRunOperation"
 //   Exception raised to indicate a successfully authorized action when the DryRun
@@ -1611,7 +1596,7 @@ func (c *MigrationHub) NotifyMigrationTaskStateRequest(input *NotifyMigrationTas
 //   update stream, migration task, etc.) that does not exist in ADS (Application
 //   Discovery Service) or in Migration Hub's repository.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/NotifyMigrationTaskState
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/NotifyMigrationTaskState
 func (c *MigrationHub) NotifyMigrationTaskState(input *NotifyMigrationTaskStateInput) (*NotifyMigrationTaskStateOutput, error) {
 	req, out := c.NotifyMigrationTaskStateRequest(input)
 	return out, req.Send()
@@ -1637,7 +1622,7 @@ const opPutResourceAttributes = "PutResourceAttributes"
 
 // PutResourceAttributesRequest generates a "aws/request.Request" representing the
 // client's request for the PutResourceAttributes operation. The "output" return
-// value will be populated with the request's response once the request complets
+// value will be populated with the request's response once the request completes
 // successfuly.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
@@ -1658,7 +1643,7 @@ const opPutResourceAttributes = "PutResourceAttributes"
 //        fmt.Println(resp)
 //    }
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/PutResourceAttributes
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/PutResourceAttributes
 func (c *MigrationHub) PutResourceAttributesRequest(input *PutResourceAttributesInput) (req *request.Request, output *PutResourceAttributesOutput) {
 	op := &request.Operation{
 		Name:       opPutResourceAttributes,
@@ -1687,9 +1672,13 @@ func (c *MigrationHub) PutResourceAttributesRequest(input *PutResourceAttributes
 // to call it with both the IP and MAC addresses to prevent overiding the MAC
 // address.
 //
+// Note the instructions regarding the special use case of the ResourceAttributeList
+// (https://docs.aws.amazon.com/migrationhub/latest/ug/API_PutResourceAttributes.html#migrationhub-PutResourceAttributes-request-ResourceAttributeList)
+// parameter when specifying any "VM" related value.
+//
 // Because this is an asynchronous call, it will always return 200, whether
 // an association occurs or not. To confirm if an association was found based
-// on the provided details, call ListAssociatedResource.
+// on the provided details, call ListDiscoveredResources.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -1700,16 +1689,15 @@ func (c *MigrationHub) PutResourceAttributesRequest(input *PutResourceAttributes
 //
 // Returned Error Codes:
 //   * ErrCodeAccessDeniedException "AccessDeniedException"
-//   Exception raised when the account making the call is not whitelisted or there
-//   are other authentication errors.
+//   You do not have sufficient access to perform this action.
 //
 //   * ErrCodeInternalServerError "InternalServerError"
 //   Exception raised when there is an internal, configuration, or dependency
 //   error encountered.
 //
 //   * ErrCodeServiceUnavailableException "ServiceUnavailableException"
-//   Exception raised when the service encounters throttled communication with
-//   upstream dependencies or is overloaded with requests.
+//   Exception raised when there is an internal, configuration, or dependency
+//   error encountered.
 //
 //   * ErrCodeDryRunOperation "DryRunOperation"
 //   Exception raised to indicate a successfully authorized action when the DryRun
@@ -1728,7 +1716,7 @@ func (c *MigrationHub) PutResourceAttributesRequest(input *PutResourceAttributes
 //   update stream, migration task, etc.) that does not exist in ADS (Application
 //   Discovery Service) or in Migration Hub's repository.
 //
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/PutResourceAttributes
+// See also, https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/PutResourceAttributes
 func (c *MigrationHub) PutResourceAttributes(input *PutResourceAttributesInput) (*PutResourceAttributesOutput, error) {
 	req, out := c.PutResourceAttributesRequest(input)
 	return out, req.Send()
@@ -1750,7 +1738,6 @@ func (c *MigrationHub) PutResourceAttributesWithContext(ctx aws.Context, input *
 	return out, req.Send()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/AssociateCreatedArtifactRequest
 type AssociateCreatedArtifactInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1839,7 +1826,6 @@ func (s *AssociateCreatedArtifactInput) SetProgressUpdateStream(v string) *Assoc
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/AssociateCreatedArtifactResult
 type AssociateCreatedArtifactOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1854,7 +1840,6 @@ func (s AssociateCreatedArtifactOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/AssociateDiscoveredResourceRequest
 type AssociateDiscoveredResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -1942,7 +1927,6 @@ func (s *AssociateDiscoveredResourceInput) SetProgressUpdateStream(v string) *As
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/AssociateDiscoveredResourceResult
 type AssociateDiscoveredResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -1957,7 +1941,6 @@ func (s AssociateDiscoveredResourceOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/CreateProgressUpdateStreamRequest
 type CreateProgressUpdateStreamInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2009,7 +1992,6 @@ func (s *CreateProgressUpdateStreamInput) SetProgressUpdateStreamName(v string) 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/CreateProgressUpdateStreamResult
 type CreateProgressUpdateStreamOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2026,7 +2008,6 @@ func (s CreateProgressUpdateStreamOutput) GoString() string {
 
 // An ARN of the AWS cloud resource target receiving the migration (e.g., AMI,
 // EC2 instance, RDS instance, etc.).
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/CreatedArtifact
 type CreatedArtifact struct {
 	_ struct{} `type:"structure"`
 
@@ -2078,7 +2059,6 @@ func (s *CreatedArtifact) SetName(v string) *CreatedArtifact {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DeleteProgressUpdateStreamRequest
 type DeleteProgressUpdateStreamInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2130,7 +2110,6 @@ func (s *DeleteProgressUpdateStreamInput) SetProgressUpdateStreamName(v string) 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DeleteProgressUpdateStreamResult
 type DeleteProgressUpdateStreamOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2145,7 +2124,6 @@ func (s DeleteProgressUpdateStreamOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DescribeApplicationStateRequest
 type DescribeApplicationStateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2187,7 +2165,6 @@ func (s *DescribeApplicationStateInput) SetApplicationId(v string) *DescribeAppl
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DescribeApplicationStateResult
 type DescribeApplicationStateOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2220,7 +2197,6 @@ func (s *DescribeApplicationStateOutput) SetLastUpdatedTime(v time.Time) *Descri
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DescribeMigrationTaskRequest
 type DescribeMigrationTaskInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2279,7 +2255,6 @@ func (s *DescribeMigrationTaskInput) SetProgressUpdateStream(v string) *Describe
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DescribeMigrationTaskResult
 type DescribeMigrationTaskOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2303,7 +2278,6 @@ func (s *DescribeMigrationTaskOutput) SetMigrationTask(v *MigrationTask) *Descri
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DisassociateCreatedArtifactRequest
 type DisassociateCreatedArtifactInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2391,7 +2365,6 @@ func (s *DisassociateCreatedArtifactInput) SetProgressUpdateStream(v string) *Di
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DisassociateCreatedArtifactResult
 type DisassociateCreatedArtifactOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2406,7 +2379,6 @@ func (s DisassociateCreatedArtifactOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DisassociateDiscoveredResourceRequest
 type DisassociateDiscoveredResourceInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2492,7 +2464,6 @@ func (s *DisassociateDiscoveredResourceInput) SetProgressUpdateStream(v string) 
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DisassociateDiscoveredResourceResult
 type DisassociateDiscoveredResourceOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2508,7 +2479,6 @@ func (s DisassociateDiscoveredResourceOutput) GoString() string {
 }
 
 // Object representing the on-premises resource being migrated.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/DiscoveredResource
 type DiscoveredResource struct {
 	_ struct{} `type:"structure"`
 
@@ -2560,7 +2530,6 @@ func (s *DiscoveredResource) SetDescription(v string) *DiscoveredResource {
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ImportMigrationTaskRequest
 type ImportMigrationTaskInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2629,7 +2598,6 @@ func (s *ImportMigrationTaskInput) SetProgressUpdateStream(v string) *ImportMigr
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ImportMigrationTaskResult
 type ImportMigrationTaskOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -2644,7 +2612,6 @@ func (s ImportMigrationTaskOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListCreatedArtifactsRequest
 type ListCreatedArtifactsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2726,7 +2693,6 @@ func (s *ListCreatedArtifactsInput) SetProgressUpdateStream(v string) *ListCreat
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListCreatedArtifactsResult
 type ListCreatedArtifactsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2761,7 +2727,6 @@ func (s *ListCreatedArtifactsOutput) SetNextToken(v string) *ListCreatedArtifact
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListDiscoveredResourcesRequest
 type ListDiscoveredResourcesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2843,7 +2808,6 @@ func (s *ListDiscoveredResourcesInput) SetProgressUpdateStream(v string) *ListDi
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListDiscoveredResourcesResult
 type ListDiscoveredResourcesOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2877,7 +2841,6 @@ func (s *ListDiscoveredResourcesOutput) SetNextToken(v string) *ListDiscoveredRe
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListMigrationTasksRequest
 type ListMigrationTasksInput struct {
 	_ struct{} `type:"structure"`
 
@@ -2937,7 +2900,6 @@ func (s *ListMigrationTasksInput) SetResourceName(v string) *ListMigrationTasksI
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListMigrationTasksResult
 type ListMigrationTasksOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -2972,7 +2934,6 @@ func (s *ListMigrationTasksOutput) SetNextToken(v string) *ListMigrationTasksOut
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListProgressUpdateStreamsRequest
 type ListProgressUpdateStreamsInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3020,7 +2981,6 @@ func (s *ListProgressUpdateStreamsInput) SetNextToken(v string) *ListProgressUpd
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ListProgressUpdateStreamsResult
 type ListProgressUpdateStreamsOutput struct {
 	_ struct{} `type:"structure"`
 
@@ -3056,7 +3016,6 @@ func (s *ListProgressUpdateStreamsOutput) SetProgressUpdateStreamSummaryList(v [
 }
 
 // Represents a migration task in a migration tool.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/MigrationTask
 type MigrationTask struct {
 	_ struct{} `type:"structure"`
 
@@ -3117,7 +3076,6 @@ func (s *MigrationTask) SetUpdateDateTime(v time.Time) *MigrationTask {
 
 // MigrationTaskSummary includes MigrationTaskName, ProgressPercent, ProgressUpdateStream,
 // Status, and UpdateDateTime for each task.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/MigrationTaskSummary
 type MigrationTaskSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -3186,7 +3144,6 @@ func (s *MigrationTaskSummary) SetUpdateDateTime(v time.Time) *MigrationTaskSumm
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/NotifyApplicationStateRequest
 type NotifyApplicationStateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3252,7 +3209,6 @@ func (s *NotifyApplicationStateInput) SetStatus(v string) *NotifyApplicationStat
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/NotifyApplicationStateResult
 type NotifyApplicationStateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3267,7 +3223,6 @@ func (s NotifyApplicationStateOutput) GoString() string {
 	return s.String()
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/NotifyMigrationTaskStateRequest
 type NotifyMigrationTaskStateInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3385,7 +3340,6 @@ func (s *NotifyMigrationTaskStateInput) SetUpdateDateTime(v time.Time) *NotifyMi
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/NotifyMigrationTaskStateResult
 type NotifyMigrationTaskStateOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3402,7 +3356,6 @@ func (s NotifyMigrationTaskStateOutput) GoString() string {
 
 // Summary of the AWS resource used for access control that is implicitly linked
 // to your AWS account.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ProgressUpdateStreamSummary
 type ProgressUpdateStreamSummary struct {
 	_ struct{} `type:"structure"`
 
@@ -3426,7 +3379,6 @@ func (s *ProgressUpdateStreamSummary) SetProgressUpdateStreamName(v string) *Pro
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/PutResourceAttributesRequest
 type PutResourceAttributesInput struct {
 	_ struct{} `type:"structure"`
 
@@ -3447,6 +3399,23 @@ type PutResourceAttributesInput struct {
 	// Information about the resource that is being migrated. This data will be
 	// used to map the task to a resource in the Application Discovery Service (ADS)'s
 	// repository.
+	//
+	// Takes the object array of ResourceAttribute where the Type field is reserved
+	// for the following values: IPV4_ADDRESS | IPV6_ADDRESS | MAC_ADDRESS | FQDN
+	// | VM_MANAGER_ID | VM_MANAGED_OBJECT_REFERENCE | VM_NAME | VM_PATH | BIOS_ID
+	// | MOTHERBOARD_SERIAL_NUMBER where the identifying value can be a string up
+	// to 256 characters.
+	//
+	// If any "VM" related value is set for a ResourceAttribute object, it is required
+	// that VM_MANAGER_ID, as a minimum, is always set. If VM_MANAGER_ID is not
+	// set, then all "VM" fields will be discarded and "VM" fields will not be used
+	// for matching the migration task to a server in Application Discovery Service
+	// (ADS)'s repository. See the Example (https://docs.aws.amazon.com/migrationhub/latest/ug/API_PutResourceAttributes.html#API_PutResourceAttributes_Examples)
+	// section below for a use case of specifying "VM" related values.
+	//
+	//  If a server you are trying to match has multiple IP or MAC addresses, you
+	// should provide as many as you know in separate type/value pairs passed to
+	// the ResourceAttributeList parameter to maximize the chances of matching.
 	//
 	// ResourceAttributeList is a required field
 	ResourceAttributeList []*ResourceAttribute `min:"1" type:"list" required:"true"`
@@ -3524,7 +3493,6 @@ func (s *PutResourceAttributesInput) SetResourceAttributeList(v []*ResourceAttri
 	return s
 }
 
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/PutResourceAttributesResult
 type PutResourceAttributesOutput struct {
 	_ struct{} `type:"structure"`
 }
@@ -3540,7 +3508,20 @@ func (s PutResourceAttributesOutput) GoString() string {
 }
 
 // Attribute associated with a resource.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/ResourceAttribute
+//
+// Note the corresponding format required per type listed below:
+//
+// IPV4x.x.x.x
+//
+// where x is an integer in the range [0,255]
+//
+// IPV6y : y : y : y : y : y : y : y
+//
+// where y is a hexadecimal between 0 and FFFF. [0, FFFF]
+//
+// MAC_ADDRESS^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$
+//
+// FQDN^[^<>{}\\\\/?,=\\p{Cntrl}]{1,256}$
 type ResourceAttribute struct {
 	_ struct{} `type:"structure"`
 
@@ -3597,7 +3578,6 @@ func (s *ResourceAttribute) SetValue(v string) *ResourceAttribute {
 }
 
 // Task object encapsulating task information.
-// Please also see https://docs.aws.amazon.com/goto/WebAPI/AWSMigrationHub-2017-05-31/Task
 type Task struct {
 	_ struct{} `type:"structure"`
 
@@ -3697,9 +3677,6 @@ const (
 
 	// ResourceAttributeTypeMotherboardSerialNumber is a ResourceAttributeType enum value
 	ResourceAttributeTypeMotherboardSerialNumber = "MOTHERBOARD_SERIAL_NUMBER"
-
-	// ResourceAttributeTypeLabel is a ResourceAttributeType enum value
-	ResourceAttributeTypeLabel = "LABEL"
 )
 
 const (

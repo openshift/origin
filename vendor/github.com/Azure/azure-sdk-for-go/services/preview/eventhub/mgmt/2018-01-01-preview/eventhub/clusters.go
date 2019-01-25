@@ -25,7 +25,8 @@ import (
 	"net/http"
 )
 
-// ClustersClient is the azure Event Hubs Cluster client for managing Event Hubs Cluster resources.
+// ClustersClient is the azure Event Hubs client for managing Event Hubs Cluster, IPFilter Rules and
+// VirtualNetworkRules resources.
 type ClustersClient struct {
 	BaseClient
 }
@@ -41,9 +42,9 @@ func NewClustersClientWithBaseURI(baseURI string, subscriptionID string) Cluster
 }
 
 // Get gets the resource description of the specified Event Hubs Cluster.
-//
-// resourceGroupName is name of the resource group within the Azure subscription. clusterName is the name of the
-// Event Hubs Cluster.
+// Parameters:
+// resourceGroupName - name of the resource group within the Azure subscription.
+// clusterName - the name of the Event Hubs Cluster.
 func (client ClustersClient) Get(ctx context.Context, resourceGroupName string, clusterName string) (result Cluster, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -118,8 +119,8 @@ func (client ClustersClient) GetResponder(resp *http.Response) (result Cluster, 
 }
 
 // ListByResourceGroup lists the available Event Hubs Clusters within an ARM resource group.
-//
-// resourceGroupName is name of the resource group within the Azure subscription.
+// Parameters:
+// resourceGroupName - name of the resource group within the Azure subscription.
 func (client ClustersClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result ClusterListResultPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -218,9 +219,10 @@ func (client ClustersClient) ListByResourceGroupComplete(ctx context.Context, re
 }
 
 // Patch modifies mutable properties on the Event Hubs Cluster. This operation is idempotent.
-//
-// resourceGroupName is name of the resource group within the Azure subscription. clusterName is the name of the
-// Event Hubs Cluster. parameters is the properties of the Event Hubs Cluster which should be updated.
+// Parameters:
+// resourceGroupName - name of the resource group within the Azure subscription.
+// clusterName - the name of the Event Hubs Cluster.
+// parameters - the properties of the Event Hubs Cluster which should be updated.
 func (client ClustersClient) Patch(ctx context.Context, resourceGroupName string, clusterName string, parameters Cluster) (result ClustersPatchFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -273,15 +275,17 @@ func (client ClustersClient) PatchPreparer(ctx context.Context, resourceGroupNam
 // PatchSender sends the Patch request. The method will close the
 // http.Response Body if it receives an error.
 func (client ClustersClient) PatchSender(req *http.Request) (future ClustersPatchFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 

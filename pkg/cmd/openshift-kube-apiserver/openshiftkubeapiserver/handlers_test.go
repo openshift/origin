@@ -7,12 +7,13 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/util/sets"
 	apifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	apiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
-	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
+	"github.com/openshift/origin/pkg/api/legacy"
 )
 
 var (
@@ -261,7 +262,7 @@ func TestVersionSkewFilterSkippedOnNonAPIRequest(t *testing.T) {
 
 func testHandlerChain(handler http.Handler) http.Handler {
 	kgenericconfig := apiserver.NewConfig(legacyscheme.Codecs)
-	kgenericconfig.LegacyAPIGroupPrefixes = kubernetes.LegacyAPIGroupPrefixes
+	kgenericconfig.LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, legacy.RESTPrefix)
 
 	handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(kgenericconfig))
 	return handler

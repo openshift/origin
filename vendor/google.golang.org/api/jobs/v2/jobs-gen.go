@@ -441,6 +441,8 @@ type Company struct {
 	// the job. Best practice is to create a distinct company identifier for
 	// each
 	// distinct brand displayed.
+	//
+	// The maximum number of allowed characters is 255.
 	DistributorCompanyId string `json:"distributorCompanyId,omitempty"`
 
 	// EeoText: Optional.
@@ -489,7 +491,11 @@ type Company struct {
 	// with
 	// `string_values` under these specified field keys are returned if
 	// any
-	// of the values matches the search keyword.
+	// of the values matches the search keyword. Custom field values
+	// with
+	// parenthesis, brackets and special symbols might not be properly
+	// searchable,
+	// and those keyword queries need to be surrounded by quotes.
 	KeywordSearchableCustomAttributes []string `json:"keywordSearchableCustomAttributes,omitempty"`
 
 	// KeywordSearchableCustomFields: Deprecated. Use
@@ -501,7 +507,11 @@ type Company struct {
 	// keyword
 	// search. The jobs of this company are returned if any of these
 	// custom
-	// fields matches the search keyword.
+	// fields matches the search keyword. Custom field values with
+	// parenthesis,
+	// brackets and special symbols might not be properly searchable, and
+	// those
+	// keyword queries need to be surrounded by quotes.
 	KeywordSearchableCustomFields []int64 `json:"keywordSearchableCustomFields,omitempty"`
 
 	// Name: Required during company update.
@@ -763,8 +773,8 @@ type CompensationFilter struct {
 	// Possible values:
 	//   "FILTER_TYPE_UNSPECIFIED" - Filter type unspecified. Position
 	// holder, INVALID, should never be used.
-	//   "UNIT_ONLY" - Filter by ** base compensation entry's ** unit. A job
-	// is a match if and
+	//   "UNIT_ONLY" - Filter by `base compensation entry's` unit. A job is
+	// a match if and
 	// only if the job contains a base CompensationEntry and the
 	// base
 	// CompensationEntry's unit matches provided units.
@@ -772,8 +782,8 @@ type CompensationFilter struct {
 	//
 	// See CompensationInfo.CompensationEntry for definition of
 	// base compensation entry.
-	//   "UNIT_AND_AMOUNT" - Filter by ** base compensation entry's ** unit
-	// and amount / range. A job
+	//   "UNIT_AND_AMOUNT" - Filter by `base compensation entry's` unit and
+	// amount / range. A job
 	// is a match if and only if the job contains a base CompensationEntry,
 	// and
 	// the base entry's unit matches provided compensation_units and
@@ -785,17 +795,17 @@ type CompensationFilter struct {
 	//
 	// Set exactly one units and populate range.
 	//   "ANNUALIZED_BASE_AMOUNT" - Filter by annualized base compensation
-	// amount and  ** base compensation
-	// entry's ** unit. Populate range and zero or more units.
+	// amount and `base compensation
+	// entry's` unit. Populate range and zero or more units.
 	//   "ANNUALIZED_TOTAL_AMOUNT" - Filter by annualized total compensation
-	// amount and ** base compensation
-	// entry's ** unit . Populate range and zero or more units.
+	// amount and `base compensation
+	// entry's` unit . Populate range and zero or more units.
 	Type string `json:"type,omitempty"`
 
 	// Units: Required.
 	//
-	// Specify desired ** base compensation entry's
-	// **
+	// Specify desired `base compensation
+	// entry's`
 	// CompensationInfo.CompensationUnit.
 	//
 	// Possible values:
@@ -1533,8 +1543,7 @@ func (s *DeleteJobsByFilterRequest) MarshalJSON() ([]byte, error) {
 
 // DeviceInfo: Input only.
 //
-// Device information collected from the job searcher, candidate,
-// or
+// Device information collected from the job seeker, candidate, or
 // other entity conducting the job search. Providing this information
 // improves
 // the quality of the search results across devices.
@@ -1544,7 +1553,7 @@ type DeviceInfo struct {
 	// Type of the device.
 	//
 	// Possible values:
-	//   "DEVICE_TYPE_UNSPECIFIED" - The device type is not specified.
+	//   "DEVICE_TYPE_UNSPECIFIED" - The device type isn't specified.
 	//   "WEB" - A desktop web browser, such as, Chrome, Firefox, Safari, or
 	// Internet
 	// Explorer)
@@ -1558,7 +1567,7 @@ type DeviceInfo struct {
 
 	// Id: Optional.
 	//
-	// A device-specific ID. It must be a unique identifier, which
+	// A device-specific ID. The ID must be a unique identifier that
 	// distinguishes
 	// the device from other devices.
 	Id string `json:"id,omitempty"`
@@ -1618,8 +1627,8 @@ type ExtendedCompensationFilter struct {
 
 	// CompensationUnits: Required.
 	//
-	// Specify desired ** base compensation entry's
-	// **
+	// Specify desired `base compensation
+	// entry's`
 	// ExtendedCompensationInfo.CompensationUnit.
 	//
 	// Possible values:
@@ -1654,8 +1663,8 @@ type ExtendedCompensationFilter struct {
 	// Possible values:
 	//   "FILTER_TYPE_UNSPECIFIED" - Filter type unspecified. Position
 	// holder, INVALID, should never be used.
-	//   "UNIT_ONLY" - Filter by ** base compensation entry's ** unit. A job
-	// is a match if and
+	//   "UNIT_ONLY" - Filter by `base compensation entry's` unit. A job is
+	// a match if and
 	// only if the job contains a base CompensationEntry and the
 	// base
 	// CompensationEntry's unit matches provided
@@ -1664,8 +1673,8 @@ type ExtendedCompensationFilter struct {
 	//
 	// See ExtendedCompensationInfo.CompensationEntry for definition of
 	// base compensation entry.
-	//   "UNIT_AND_AMOUNT" - Filter by ** base compensation entry's ** unit
-	// and amount / range. A job
+	//   "UNIT_AND_AMOUNT" - Filter by `base compensation entry's` unit and
+	// amount / range. A job
 	// is a match if and only if the job contains a base CompensationEntry,
 	// and
 	// the base entry's unit matches provided compensation_units and
@@ -1679,13 +1688,13 @@ type ExtendedCompensationFilter struct {
 	// compensation_units and populate
 	// compensation_range.
 	//   "ANNUALIZED_BASE_AMOUNT" - Filter by annualized base compensation
-	// amount and  ** base compensation
-	// entry's ** unit. Populate compensation_range and zero or
+	// amount and `base compensation
+	// entry's` unit. Populate compensation_range and zero or
 	// more
 	// compensation_units.
 	//   "ANNUALIZED_TOTAL_AMOUNT" - Filter by annualized total compensation
-	// amount and ** base compensation
-	// entry's ** unit . Populate compensation_range and zero or
+	// amount and `base compensation
+	// entry's` unit . Populate compensation_range and zero or
 	// more
 	// compensation_units.
 	Type string `json:"type,omitempty"`
@@ -2219,17 +2228,19 @@ type HistogramFacets struct {
 	// CompensationHistogramFacets: Optional.
 	//
 	// Specifies compensation field-based histogram requests.
-	// Duplicate CompensationHistogramRequest.types are not allowed.
+	// Duplicate values of CompensationHistogramRequest.type are not
+	// allowed.
 	CompensationHistogramFacets []*CompensationHistogramRequest `json:"compensationHistogramFacets,omitempty"`
 
 	// CustomAttributeHistogramFacets: Optional.
 	//
 	// Specifies the custom attributes histogram requests.
-	// Duplicate CustomAttributeHistogramRequest.keys are not allowed.
+	// Duplicate values of CustomAttributeHistogramRequest.key are not
+	// allowed.
 	CustomAttributeHistogramFacets []*CustomAttributeHistogramRequest `json:"customAttributeHistogramFacets,omitempty"`
 
 	// SimpleHistogramFacets: Optional. Specifies the simple type of
-	// histogram facets, e.g,
+	// histogram facets, for example,
 	// `COMPANY_SIZE`, `EMPLOYMENT_TYPE` etc. This field is equivalent
 	// to
 	// GetHistogramRequest.
@@ -2671,7 +2682,7 @@ type Job struct {
 	// distributor_company_id must be
 	// provided.
 	//
-	// A unique company identifier that used by job distributors to identify
+	// A unique company identifier used by job distributors to identify
 	// an
 	// employer's company entity. company_name takes precedence over
 	// this field, and is the recommended field to use to identify
@@ -2745,8 +2756,8 @@ type Job struct {
 	// Dates prior to 1970/1/1 and invalid date formats are ignored.
 	EndDate *Date `json:"endDate,omitempty"`
 
-	// ExpireTime: Optional but strongly recommended to be provided for the
-	// best service
+	// ExpireTime: Optional but strongly recommended for the best
+	// service
 	// experience.
 	//
 	// The expiration timestamp of the job. After this timestamp, the
@@ -2756,10 +2767,8 @@ type Job struct {
 	// ListJobs APIs, but it can be retrieved with the GetJob API or
 	// updated with the UpdateJob API. An expired job can be updated
 	// and
-	// opened again by using a future expiration timestamp. It can also
-	// remain
-	// expired. Updating an expired job to be open fails if there is
-	// another
+	// opened again by using a future expiration timestamp. Updating an
+	// expired job fails if there is another
 	// existing open job with same requisition_id, company_name
 	// and
 	// language_code.
@@ -2786,8 +2795,8 @@ type Job struct {
 	// expire
 	// time not provided.
 	//
-	// If this value is not provided on job creation or invalid, the job
-	// posting
+	// If this value is not provided at the time of job creation or is
+	// invalid, the job posting
 	// expires after 30 days from the job's creation time. For example, if
 	// the
 	// job was created on 2017/01/01 13:00AM UTC with an unspecified
@@ -2927,8 +2936,8 @@ type Job struct {
 	// Language codes must be in BCP-47 format, such as "en-US" or
 	// "sr-Latn".
 	// For more information, see
-	// [Tags for Identifying
-	// Languages](https://tools.ietf.org/html/bcp47).
+	// [Tags for Identifying Languages](https://tools.ietf.org/html/bcp47){:
+	// class="external" target="_blank" }.
 	//
 	// The default value is `en-US`.
 	LanguageCode string `json:"languageCode,omitempty"`
@@ -2954,15 +2963,15 @@ type Job struct {
 	// positions.
 	Level string `json:"level,omitempty"`
 
-	// Locations: Optional but strongly recommended to be provided for the
-	// best service
+	// Locations: Optional but strongly recommended for the best service
 	// experience.
 	//
-	// Location(s) where the job is hiring.
+	// Location(s) where the emploeyer is looking to hire for this job
+	// posting.
 	//
-	// Providing the full street address(es) of the hiring
-	// location is recommended to enable better API results, including
-	// job searches by commute time.
+	// Specifying the full street address(es) of the hiring location
+	// enables
+	// better API results, especially job searches by commute time.
 	//
 	// At most 50 locations are allowed for best search performance. If a
 	// job has
@@ -3075,7 +3084,7 @@ type Job struct {
 	// requisition_id,
 	// company_name and language_code.
 	//
-	// The maximum number of allowed characters is 225.
+	// The maximum number of allowed characters is 255.
 	RequisitionId string `json:"requisitionId,omitempty"`
 
 	// Responsibilities: Optional.
@@ -3429,12 +3438,12 @@ type JobFilters struct {
 	// This filter specifies the locale of jobs to search against,
 	// for example, "en-US".
 	//
-	// If a value is not specified, the search results can contain jobs in
+	// If a value is not specified, the search results may contain jobs in
 	// any
 	// locale.
 	//
 	//
-	// Language codes should be in BCP-47 format, such as "en-US" or
+	// Language codes should be in BCP-47 format, for example, "en-US" or
 	// "sr-Latn".
 	// For more information, see
 	// [Tags for Identifying
@@ -3469,7 +3478,7 @@ type JobFilters struct {
 	// against, for example, DateRange.PAST_MONTH. If a value is
 	// not
 	// specified, all open jobs are searched against regardless of the
-	// date on which they were published.
+	// date they were published.
 	//
 	// Possible values:
 	//   "DATE_RANGE_UNSPECIFIED" - Default value: Filtering on time is not
@@ -3487,16 +3496,16 @@ type JobFilters struct {
 	// job
 	// title, description, and location fields.
 	//
-	// The maximum query size is 255 bytes.
+	// The maximum query size is 255 bytes/characters.
 	Query string `json:"query,omitempty"`
 
-	// TenantJobOnly: Optional.
+	// TenantJobOnly: Deprecated. Do not use this field.
 	//
 	// This flag controls whether the job search should be restricted to
 	// jobs
 	// owned by the current user.
 	//
-	// Defaults to false that all jobs accessible to the
+	// Defaults to false where all jobs accessible to the
 	// user are searched against.
 	TenantJobOnly bool `json:"tenantJobOnly,omitempty"`
 
@@ -3699,21 +3708,22 @@ type JobQuery struct {
 	// CommuteFilter: Optional.
 	//
 	//  Allows filtering jobs by commute time with different travel methods
-	// (e.g.
-	//  driving or public transit). Note: this only works with COMMUTE
-	//  MODE. When specified, [JobQuery.location_filters] will be
+	// (for
+	//  example, driving or public transit). Note: This only works with
+	// COMMUTE
+	//  MODE. When specified, [JobQuery.location_filters] is
 	//  ignored.
 	//
-	//  Currently we do not support sorting by commute time.
+	//  Currently we don't support sorting by commute time.
 	CommuteFilter *CommutePreference `json:"commuteFilter,omitempty"`
 
 	// CompanyDisplayNames: Optional.
 	//
 	// This filter specifies the exact company display
-	// name of jobs to search against.
+	// name of the jobs to search against.
 	//
-	// If a value is not specified, jobs within the search results can
-	// be
+	// If a value isn't specified, jobs within the search results
+	// are
 	// associated with any company.
 	//
 	// If multiple values are specified, jobs within the search results may
@@ -3725,17 +3735,15 @@ type JobQuery struct {
 
 	// CompanyNames: Optional.
 	//
-	// The company names filter specifies the company entities to
-	// search
-	// against.
+	// This filter specifies the company entities to search against.
 	//
-	// If a value is not specified, jobs are searched for against
+	// If a value isn't specified, jobs are searched for against
 	// all
 	// companies.
 	//
 	// If multiple values are specified, jobs are searched against
 	// the
-	// specified companies.
+	// companies specified.
 	//
 	// At most 20 company filters are allowed.
 	CompanyNames []string `json:"companyNames,omitempty"`
@@ -3744,9 +3752,9 @@ type JobQuery struct {
 	//
 	// This search filter is applied only to
 	// Job.compensation_info. For example, if the filter is specified
-	// as "Hourly job with per-hour compensation > $15", only jobs that
-	// meet
-	// these criteria are searched. If a filter is not defined, all open
+	// as "Hourly job with per-hour compensation > $15", only jobs
+	// meeting
+	// these criteria are searched. If a filter isn't defined, all open
 	// jobs
 	// are searched.
 	CompensationFilter *CompensationFilter `json:"compensationFilter,omitempty"`
@@ -3755,7 +3763,7 @@ type JobQuery struct {
 	//
 	// This filter specifies a structured syntax to match against
 	// the
-	// Job.custom_attributes that are marked as `filterable`.
+	// Job.custom_attributes marked as `filterable`.
 	//
 	// The syntax for this expression is a subset of Google SQL
 	// syntax.
@@ -3773,9 +3781,9 @@ type JobQuery struct {
 	//
 	// Boolean expressions (AND/OR/NOT) are supported up to 3 levels
 	// of
-	// nesting (for example, "((A AND B AND C) OR NOT D) AND E"), and there
-	// can
-	// be a maximum of 50 comparisons/functions in the expression. The
+	// nesting (for example, "((A AND B AND C) OR NOT D) AND E"), a maximum
+	// of 50
+	// comparisons/functions are allowed in the expression. The
 	// expression
 	// must be < 2000 characters in length.
 	//
@@ -3799,7 +3807,7 @@ type JobQuery struct {
 	// to
 	// search against, such as EmploymentType.FULL_TIME.
 	//
-	// If a value is not specified, jobs in the search results will include
+	// If a value is not specified, jobs in the search results includes
 	// any
 	// employment type.
 	//
@@ -3847,7 +3855,7 @@ type JobQuery struct {
 	// This filter specifies the locale of jobs to search against,
 	// for example, "en-US".
 	//
-	// If a value is not specified, the search results can contain jobs in
+	// If a value isn't specified, the search results can contain jobs in
 	// any
 	// locale.
 	//
@@ -3867,7 +3875,7 @@ type JobQuery struct {
 	// to
 	// search against. See LocationFilter for more information.
 	//
-	// If a location value is not specified, jobs that fit the other
+	// If a location value isn'tt specified, jobs fitting the other
 	// search
 	// criteria are retrieved regardless of where they're located.
 	//
@@ -3885,10 +3893,11 @@ type JobQuery struct {
 	//
 	// Jobs published within a range specified by this filter are
 	// searched
-	// against, for example, DateRange.PAST_MONTH. If a value is
-	// not
-	// specified, all open jobs are searched against regardless of the
-	// date on which they were published.
+	// against, for example, DateRange.PAST_MONTH. If a value
+	// isn't
+	// specified, all open jobs are searched against regardless of
+	// their
+	// published date.
 	//
 	// Possible values:
 	//   "DATE_RANGE_UNSPECIFIED" - Default value: Filtering on time is not
@@ -3908,16 +3917,6 @@ type JobQuery struct {
 	//
 	// The maximum query size is 255 bytes.
 	Query string `json:"query,omitempty"`
-
-	// TenantJobOnly: Optional.
-	//
-	// This flag controls whether the job search should be restricted to
-	// jobs
-	// owned by the current user.
-	//
-	// Defaults to false: all jobs accessible to the
-	// user are searched against.
-	TenantJobOnly bool `json:"tenantJobOnly,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "Categories") to
 	// unconditionally include in API requests. By default, fields with
@@ -4260,9 +4259,9 @@ type MatchingJob struct {
 	JobSummary string `json:"jobSummary,omitempty"`
 
 	// JobTitleSnippet: Contains snippets of text from the Job.job_title
-	// field that most
-	// closely match a search query's keywords, if available. The matching
-	// query
+	// field most
+	// closely matching a search query's keywords, if available. The
+	// matching query
 	// keywords are enclosed in HTML bold tags.
 	JobTitleSnippet string `json:"jobTitleSnippet,omitempty"`
 
@@ -4651,8 +4650,9 @@ type RequestMetadata struct {
 	// the
 	// career site.
 	//
-	// If this field is not available for some reason, please send
-	// "UNKNOWN".
+	// If this field is not available for some reason, send "UNKNOWN". Note
+	// that any improvements to the {{ api_name }} model for a particular
+	// tenant site, rely on this field being set correctly to some domain.
 	Domain string `json:"domain,omitempty"`
 
 	// SessionId: Required.
@@ -4665,7 +4665,9 @@ type RequestMetadata struct {
 	// providing it to the API.
 	//
 	// If this field is not available for some reason, please send
-	// "UNKNOWN".
+	// "UNKNOWN". Note that any improvements to the {{ api_name }} model for
+	// a particular tenant site, rely on this field being set correctly to
+	// some unique session_id.
 	SessionId string `json:"sessionId,omitempty"`
 
 	// UserId: Required.
@@ -4680,7 +4682,9 @@ type RequestMetadata struct {
 	// providing it to the service.
 	//
 	// If this field is not available for some reason, please send
-	// "UNKNOWN".
+	// "UNKNOWN". Note that any improvements to the {{ api_name }} model for
+	// a particular tenant site, rely on this field being set correctly to
+	// some unique user_id.
 	UserId string `json:"userId,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "DeviceInfo") to
@@ -4723,13 +4727,13 @@ type ResponseMetadata struct {
 	// search.
 	//
 	// Possible values:
-	//   "SEARCH_MODE_UNSPECIFIED" - The mode of the search method is not
+	//   "SEARCH_MODE_UNSPECIFIED" - The mode of the search method isn't
 	// specified.
 	//   "JOB_SEARCH" - The job search doesn't include support for featured
 	// jobs.
 	//   "FEATURED_JOB_SEARCH" - The job search matches only against
 	// featured jobs (jobs with a
-	// promotionValue > 0). This method does not return any jobs that have
+	// promotionValue > 0). This method doesn't return any jobs having
 	// a
 	// promotionValue <= 0. The search results order is determined by
 	// the
@@ -4739,8 +4743,7 @@ type ResponseMetadata struct {
 	//   "EMAIL_ALERT_SEARCH" - Deprecated. Please use the
 	// SearchJobsForAlert API.
 	//
-	// The job search matches against jobs that are suited to email
-	// notifications.
+	// The job search matches against jobs suited to email notifications.
 	Mode string `json:"mode,omitempty"`
 
 	// RequestId: A unique id associated with this call.
@@ -4776,7 +4779,7 @@ func (s *ResponseMetadata) MarshalJSON() ([]byte, error) {
 // The Request body of the `SearchJobs` call.
 type SearchJobsRequest struct {
 	// DisableRelevanceThresholding: Deprecated. Any value provided in this
-	// field will be ignored.
+	// field is ignored.
 	//
 	// Optional.
 	//
@@ -4840,7 +4843,7 @@ type SearchJobsRequest struct {
 
 	// JobView: Optional.
 	//
-	// The number of job attributes that is returned for jobs in the
+	// The number of job attributes returned for jobs in the
 	// search response. Defaults to JobView.SMALL if no value is specified.
 	//
 	// Possible values:
@@ -4877,13 +4880,13 @@ type SearchJobsRequest struct {
 	// Mode of a search.
 	//
 	// Possible values:
-	//   "SEARCH_MODE_UNSPECIFIED" - The mode of the search method is not
+	//   "SEARCH_MODE_UNSPECIFIED" - The mode of the search method isn't
 	// specified.
 	//   "JOB_SEARCH" - The job search doesn't include support for featured
 	// jobs.
 	//   "FEATURED_JOB_SEARCH" - The job search matches only against
 	// featured jobs (jobs with a
-	// promotionValue > 0). This method does not return any jobs that have
+	// promotionValue > 0). This method doesn't return any jobs having
 	// a
 	// promotionValue <= 0. The search results order is determined by
 	// the
@@ -4893,13 +4896,13 @@ type SearchJobsRequest struct {
 	//   "EMAIL_ALERT_SEARCH" - Deprecated. Please use the
 	// SearchJobsForAlert API.
 	//
-	// The job search matches against jobs that are suited to email
-	// notifications.
+	// The job search matches against jobs suited to email notifications.
 	Mode string `json:"mode,omitempty"`
 
 	// Offset: Optional.
 	//
-	// An integer that specifies the current offset (i.e. starting result)
+	// An integer that specifies the current offset (that is, starting
+	// result location, amongst the jobs deemed by the API as relevant)
 	// in
 	// search results. This field is only considered if page_token is
 	// unset.
@@ -4917,7 +4920,7 @@ type SearchJobsRequest struct {
 	//
 	// Optional.
 	//
-	// The criteria that determine how search results are sorted.
+	// The criteria determining how search results are sorted.
 	// Defaults to SortBy.RELEVANCE_DESC if no value is specified.
 	//
 	// Possible values:
@@ -4965,7 +4968,7 @@ type SearchJobsRequest struct {
 
 	// PageToken: Optional.
 	//
-	// The token that specifies the current offset within
+	// The token specifying the current offset within
 	// search results. See SearchJobsResponse.next_page_token for
 	// an explanation of how to obtain the next set of query results.
 	PageToken string `json:"pageToken,omitempty"`
@@ -4987,7 +4990,7 @@ type SearchJobsRequest struct {
 
 	// SortBy: Optional.
 	//
-	// The criteria that determine how search results are sorted.
+	// The criteria determining how search results are sorted.
 	// Defaults to SortBy.RELEVANCE_DESC if no value is specified.
 	//
 	// Possible values:
@@ -5053,8 +5056,8 @@ func (s *SearchJobsRequest) MarshalJSON() ([]byte, error) {
 //
 // Response for SearchJob method.
 type SearchJobsResponse struct {
-	// AppliedCommuteFilter: The commute filter that the service applied to
-	// the specified query. This
+	// AppliedCommuteFilter: The commute filter the service applied to the
+	// specified query. This
 	// information is only available when query has a valid
 	// CommutePreference.
 	AppliedCommuteFilter *CommutePreference `json:"appliedCommuteFilter,omitempty"`
@@ -6125,7 +6128,7 @@ func (c *CompaniesJobsListCall) IncludeJobsCount(includeJobsCount bool) *Compani
 // requisition ID, also known as posting ID, assigned by the company
 // to the job.
 //
-// The number of allowable characters is 225.
+// The maximum number of allowable characters is 225.
 func (c *CompaniesJobsListCall) JobRequisitionId(jobRequisitionId string) *CompaniesJobsListCall {
 	c.urlParams_.Set("jobRequisitionId", jobRequisitionId)
 	return c
@@ -6270,7 +6273,7 @@ func (c *CompaniesJobsListCall) Do(opts ...googleapi.CallOption) (*ListCompanyJo
 	//       "type": "boolean"
 	//     },
 	//     "jobRequisitionId": {
-	//       "description": "Optional.\n\nThe requisition ID, also known as posting ID, assigned by the company\nto the job.\n\nThe number of allowable characters is 225.",
+	//       "description": "Optional.\n\nThe requisition ID, also known as posting ID, assigned by the company\nto the job.\n\nThe maximum number of allowable characters is 225.",
 	//       "location": "query",
 	//       "type": "string"
 	//     },
@@ -6329,7 +6332,7 @@ type JobsBatchDeleteCall struct {
 	header_                http.Header
 }
 
-// BatchDelete: Deletes a list of Jobs by filter.
+// BatchDelete: Deletes a list of Job postings by filter.
 func (r *JobsService) BatchDelete(batchdeletejobsrequest *BatchDeleteJobsRequest) *JobsBatchDeleteCall {
 	c := &JobsBatchDeleteCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.batchdeletejobsrequest = batchdeletejobsrequest
@@ -6419,7 +6422,7 @@ func (c *JobsBatchDeleteCall) Do(opts ...googleapi.CallOption) (*Empty, error) {
 	}
 	return ret, nil
 	// {
-	//   "description": "Deletes a list of Jobs by filter.",
+	//   "description": "Deletes a list of Job postings by filter.",
 	//   "flatPath": "v2/jobs:batchDelete",
 	//   "httpMethod": "POST",
 	//   "id": "jobs.jobs.batchDelete",
@@ -7351,10 +7354,10 @@ type JobsPatchCall struct {
 	header_          http.Header
 }
 
-// Patch: Updates the specified job.
+// Patch: Updates specified job.
 //
-// Typically, the updated contents become visible in search results
-// within 10
+// Typically, updated contents become visible in search results within
+// 10
 // seconds, but it may take up to 5 minutes.
 func (r *JobsService) Patch(name string, updatejobrequest *UpdateJobRequest) *JobsPatchCall {
 	c := &JobsPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
@@ -7449,7 +7452,7 @@ func (c *JobsPatchCall) Do(opts ...googleapi.CallOption) (*Job, error) {
 	}
 	return ret, nil
 	// {
-	//   "description": "Updates the specified job.\n\nTypically, the updated contents become visible in search results within 10\nseconds, but it may take up to 5 minutes.",
+	//   "description": "Updates specified job.\n\nTypically, updated contents become visible in search results within 10\nseconds, but it may take up to 5 minutes.",
 	//   "flatPath": "v2/jobs/{jobsId}",
 	//   "httpMethod": "PATCH",
 	//   "id": "jobs.jobs.patch",
@@ -7640,10 +7643,13 @@ type JobsSearchForAlertCall struct {
 // SearchForAlert: Searches for jobs using the provided
 // SearchJobsRequest.
 //
-// This call is intended to use for large, periodic tasks such as
-// email alert processing, and has different algorithmic adjustments
-// that are
-// targeted to passive job seekers.
+// This API call is intended for the use case of targeting passive
+// job
+// seekers (for example, job seekers who have signed up to receive
+// email
+// alerts about potential job opportunities), and has different
+// algorithmic
+// adjustments that are targeted to passive job seekers.
 //
 // This call constrains the visibility of jobs
 // present in the database, and only returns jobs the caller
@@ -7738,7 +7744,7 @@ func (c *JobsSearchForAlertCall) Do(opts ...googleapi.CallOption) (*SearchJobsRe
 	}
 	return ret, nil
 	// {
-	//   "description": "Searches for jobs using the provided SearchJobsRequest.\n\nThis call is intended to use for large, periodic tasks such as\nemail alert processing, and has different algorithmic adjustments that are\ntargeted to passive job seekers.\n\nThis call constrains the visibility of jobs\npresent in the database, and only returns jobs the caller has\npermission to search against.",
+	//   "description": "Searches for jobs using the provided SearchJobsRequest.\n\nThis API call is intended for the use case of targeting passive job\nseekers (for example, job seekers who have signed up to receive email\nalerts about potential job opportunities), and has different algorithmic\nadjustments that are targeted to passive job seekers.\n\nThis call constrains the visibility of jobs\npresent in the database, and only returns jobs the caller has\npermission to search against.",
 	//   "flatPath": "v2/jobs:searchForAlert",
 	//   "httpMethod": "POST",
 	//   "id": "jobs.jobs.searchForAlert",

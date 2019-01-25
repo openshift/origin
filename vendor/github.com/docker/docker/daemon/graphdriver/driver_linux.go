@@ -1,10 +1,6 @@
-// +build linux
-
-package graphdriver
+package graphdriver // import "github.com/docker/docker/daemon/graphdriver"
 
 import (
-	"path/filepath"
-
 	"github.com/docker/docker/pkg/mount"
 	"golang.org/x/sys/unix"
 )
@@ -51,22 +47,15 @@ const (
 )
 
 var (
-	// Slice of drivers that should be used in an order
-	priority = []string{
-		"btrfs",
-		"zfs",
-		"overlay2",
-		"aufs",
-		"overlay",
-		"devicemapper",
-		"vfs",
-	}
+	// List of drivers that should be used in an order
+	priority = "btrfs,zfs,overlay2,aufs,overlay,devicemapper,vfs"
 
 	// FsNames maps filesystem id to name of the filesystem.
 	FsNames = map[FsMagic]string{
 		FsMagicAufs:        "aufs",
 		FsMagicBtrfs:       "btrfs",
 		FsMagicCramfs:      "cramfs",
+		FsMagicEcryptfs:    "ecryptfs",
 		FsMagicExtfs:       "extfs",
 		FsMagicF2fs:        "f2fs",
 		FsMagicGPFS:        "gpfs",
@@ -89,7 +78,7 @@ var (
 // GetFSMagic returns the filesystem id given the path.
 func GetFSMagic(rootpath string) (FsMagic, error) {
 	var buf unix.Statfs_t
-	if err := unix.Statfs(filepath.Dir(rootpath), &buf); err != nil {
+	if err := unix.Statfs(rootpath, &buf); err != nil {
 		return 0, err
 	}
 	return FsMagic(buf.Type), nil

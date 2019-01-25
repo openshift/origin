@@ -7,7 +7,7 @@ package v1
 import (
 	v1 "github.com/openshift/api/quota/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	core_v1 "k8s.io/kubernetes/pkg/apis/core/v1"
+	corev1 "k8s.io/kubernetes/pkg/apis/core/v1"
 )
 
 // RegisterDefaults adds defaulters functions to the given scheme.
@@ -26,13 +26,13 @@ func RegisterDefaults(scheme *runtime.Scheme) error {
 }
 
 func SetObjectDefaults_AppliedClusterResourceQuota(in *v1.AppliedClusterResourceQuota) {
-	core_v1.SetDefaults_ResourceList(&in.Spec.Quota.Hard)
-	core_v1.SetDefaults_ResourceList(&in.Status.Total.Hard)
-	core_v1.SetDefaults_ResourceList(&in.Status.Total.Used)
+	corev1.SetDefaults_ResourceList(&in.Spec.Quota.Hard)
+	corev1.SetDefaults_ResourceList(&in.Status.Total.Hard)
+	corev1.SetDefaults_ResourceList(&in.Status.Total.Used)
 	for i := range in.Status.Namespaces {
 		a := &in.Status.Namespaces[i]
-		core_v1.SetDefaults_ResourceList(&a.Status.Hard)
-		core_v1.SetDefaults_ResourceList(&a.Status.Used)
+		corev1.SetDefaults_ResourceList(&a.Status.Hard)
+		corev1.SetDefaults_ResourceList(&a.Status.Used)
 	}
 }
 
@@ -44,13 +44,13 @@ func SetObjectDefaults_AppliedClusterResourceQuotaList(in *v1.AppliedClusterReso
 }
 
 func SetObjectDefaults_ClusterResourceQuota(in *v1.ClusterResourceQuota) {
-	core_v1.SetDefaults_ResourceList(&in.Spec.Quota.Hard)
-	core_v1.SetDefaults_ResourceList(&in.Status.Total.Hard)
-	core_v1.SetDefaults_ResourceList(&in.Status.Total.Used)
+	corev1.SetDefaults_ResourceList(&in.Spec.Quota.Hard)
+	corev1.SetDefaults_ResourceList(&in.Status.Total.Hard)
+	corev1.SetDefaults_ResourceList(&in.Status.Total.Used)
 	for i := range in.Status.Namespaces {
 		a := &in.Status.Namespaces[i]
-		core_v1.SetDefaults_ResourceList(&a.Status.Hard)
-		core_v1.SetDefaults_ResourceList(&a.Status.Used)
+		corev1.SetDefaults_ResourceList(&a.Status.Hard)
+		corev1.SetDefaults_ResourceList(&a.Status.Used)
 	}
 }
 

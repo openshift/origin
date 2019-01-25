@@ -31,6 +31,9 @@ type EndpointInfo interface {
 
 	// Sandbox returns the attached sandbox if there, nil otherwise.
 	Sandbox() Sandbox
+
+	// LoadBalancer returns whether the endpoint is the load balancer endpoint for the network.
+	LoadBalancer() bool
 }
 
 // InterfaceInfo provides an interface to retrieve interface addresses bound to the endpoint.
@@ -46,6 +49,9 @@ type InterfaceInfo interface {
 
 	// LinkLocalAddresses returns the list of link-local (IPv4/IPv6) addresses assigned to the endpoint.
 	LinkLocalAddresses() []*net.IPNet
+
+	// SrcName returns the name of the interface w/in the container
+	SrcName() string
 }
 
 type endpointInterface struct {
@@ -199,11 +205,7 @@ func (ep *endpoint) Info() EndpointInfo {
 		return ep
 	}
 
-	if epi := sb.getEndpoint(ep.ID()); epi != nil {
-		return epi
-	}
-
-	return nil
+	return sb.getEndpoint(ep.ID())
 }
 
 func (ep *endpoint) Iface() InterfaceInfo {
@@ -273,6 +275,10 @@ func (epi *endpointInterface) LinkLocalAddresses() []*net.IPNet {
 	return epi.llAddrs
 }
 
+func (epi *endpointInterface) SrcName() string {
+	return epi.srcName
+}
+
 func (epi *endpointInterface) SetNames(srcName string, dstPrefix string) error {
 	epi.srcName = srcName
 	epi.dstPrefix = dstPrefix
@@ -325,6 +331,12 @@ func (ep *endpoint) Sandbox() Sandbox {
 		return nil
 	}
 	return cnt
+}
+
+func (ep *endpoint) LoadBalancer() bool {
+	ep.Lock()
+	defer ep.Unlock()
+	return ep.loadBalancer
 }
 
 func (ep *endpoint) StaticRoutes() []*types.StaticRoute {

@@ -1754,10 +1754,11 @@ type GoogleCloudMlV1__Version struct {
 	// the runtime version of the model to 1.4 or greater.
 	//
 	// Possible values:
-	//   "FRAMEWORK_UNSPECIFIED"
-	//   "TENSORFLOW"
-	//   "SCIKIT_LEARN"
-	//   "XGBOOST"
+	//   "FRAMEWORK_UNSPECIFIED" - Unspecified framework. Defaults to
+	// TensorFlow.
+	//   "TENSORFLOW" - Tensorflow framework.
+	//   "SCIKIT_LEARN" - Scikit-learn framework.
+	//   "XGBOOST" - XGBoost framework.
 	Framework string `json:"framework,omitempty"`
 
 	// IsDefault: Output only. If true, this version will be used to handle
@@ -1773,6 +1774,22 @@ type GoogleCloudMlV1__Version struct {
 	// LastUseTime: Output only. The time the version was last used for
 	// prediction.
 	LastUseTime string `json:"lastUseTime,omitempty"`
+
+	// MachineType: Optional. The type of machine on which to serve the
+	// model. Currently only
+	// applies to online prediction service.
+	// Naming design doc for CMLE online prediction Machine
+	// Types:
+	// https://docs.google.com/document/d/1V3tko3VJ64PcpsmNxCXiPoPGccL
+	// 9_K8gX1YjC8UofzQ/edit#heading=h.7lvy6owfx4eh.
+	// The following are currently supported and will be deprecated in
+	// Beta release.
+	//   mls1-highmem-1    1 core    2 Gb RAM
+	//   mls1-highcpu-4    4 core    2 Gb RAM
+	// The following are available in Beta:
+	//   mls1-c1-m2        1 core    2 Gb RAM   Default
+	//   mls1-c4-m2        4 core    2 Gb RAM
+	MachineType string `json:"machineType,omitempty"`
 
 	// ManualScaling: Manually select the number of nodes to use for serving
 	// the
@@ -6113,7 +6130,9 @@ type ProjectsModelsVersionsPatchCall struct {
 
 // Patch: Updates the specified Version resource.
 //
-// Currently the only supported field to update is `description`.
+// Currently the only update-able fields are `description`
+// and
+// `autoScaling.minNodes`.
 func (r *ProjectsModelsVersionsService) Patch(name string, googlecloudmlv1__version *GoogleCloudMlV1__Version) *ProjectsModelsVersionsPatchCall {
 	c := &ProjectsModelsVersionsPatchCall{s: r.s, urlParams_: make(gensupport.URLParams)}
 	c.name = name
@@ -6134,7 +6153,9 @@ func (r *ProjectsModelsVersionsService) Patch(name string, googlecloudmlv1__vers
 //       "description": "foo"
 //     }
 //
-// Currently the only supported update mask is`description`.
+// Currently the only supported update mask fields are `description`
+// and
+// `autoScaling.minNodes`.
 func (c *ProjectsModelsVersionsPatchCall) UpdateMask(updateMask string) *ProjectsModelsVersionsPatchCall {
 	c.urlParams_.Set("updateMask", updateMask)
 	return c
@@ -6226,7 +6247,7 @@ func (c *ProjectsModelsVersionsPatchCall) Do(opts ...googleapi.CallOption) (*Goo
 	}
 	return ret, nil
 	// {
-	//   "description": "Updates the specified Version resource.\n\nCurrently the only supported field to update is `description`.",
+	//   "description": "Updates the specified Version resource.\n\nCurrently the only update-able fields are `description` and\n`autoScaling.minNodes`.",
 	//   "flatPath": "v1/projects/{projectsId}/models/{modelsId}/versions/{versionsId}",
 	//   "httpMethod": "PATCH",
 	//   "id": "ml.projects.models.versions.patch",
@@ -6242,7 +6263,7 @@ func (c *ProjectsModelsVersionsPatchCall) Do(opts ...googleapi.CallOption) (*Goo
 	//       "type": "string"
 	//     },
 	//     "updateMask": {
-	//       "description": "Required. Specifies the path, relative to `Version`, of the field to\nupdate. Must be present and non-empty.\n\nFor example, to change the description of a version to \"foo\", the\n`update_mask` parameter would be specified as `description`, and the\n`PATCH` request body would specify the new value, as follows:\n    {\n      \"description\": \"foo\"\n    }\n\nCurrently the only supported update mask is`description`.",
+	//       "description": "Required. Specifies the path, relative to `Version`, of the field to\nupdate. Must be present and non-empty.\n\nFor example, to change the description of a version to \"foo\", the\n`update_mask` parameter would be specified as `description`, and the\n`PATCH` request body would specify the new value, as follows:\n    {\n      \"description\": \"foo\"\n    }\n\nCurrently the only supported update mask fields are `description` and\n`autoScaling.minNodes`.",
 	//       "format": "google-fieldmask",
 	//       "location": "query",
 	//       "type": "string"

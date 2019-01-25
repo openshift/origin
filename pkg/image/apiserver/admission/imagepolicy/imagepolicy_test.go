@@ -146,7 +146,7 @@ func TestDefaultPolicy(t *testing.T) {
 		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "index.docker.io/mysql:latest"}}}},
 		nil, schema.GroupVersionKind{Version: "v1", Kind: "Pod"},
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
-		"", admission.Create, nil,
+		"", admission.Create, false, nil,
 	)
 	if err := plugin.Admit(attrs); err != nil {
 		t.Fatal(err)
@@ -160,7 +160,7 @@ func TestDefaultPolicy(t *testing.T) {
 		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "index.docker.io/mysql@" + goodSHA}}}},
 		nil, schema.GroupVersionKind{Version: "v1", Kind: "Pod"},
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
-		"", admission.Create, nil,
+		"", admission.Create, false, nil,
 	)
 	if err := plugin.Admit(attrs); err != nil {
 		t.Fatal(err)
@@ -174,7 +174,7 @@ func TestDefaultPolicy(t *testing.T) {
 		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "integrated.registry/repo/mysql@" + goodSHA}}}},
 		nil, schema.GroupVersionKind{Version: "v1", Kind: "Pod"},
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
-		"", admission.Create, nil,
+		"", admission.Create, false, nil,
 	)
 	if err := plugin.Admit(attrs); err != nil {
 		t.Fatal(err)
@@ -188,7 +188,7 @@ func TestDefaultPolicy(t *testing.T) {
 		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "integrated.registry/repo/mysql:missingtag"}}}},
 		nil, schema.GroupVersionKind{Version: "v1", Kind: "Pod"},
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
-		"", admission.Create, nil,
+		"", admission.Create, false, nil,
 	)
 	if err := plugin.Admit(attrs); err != nil {
 		t.Fatal(err)
@@ -202,7 +202,7 @@ func TestDefaultPolicy(t *testing.T) {
 		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "integrated.registry/repo/mysql:goodtag"}}}},
 		nil, schema.GroupVersionKind{Version: "v1", Kind: "Pod"},
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
-		"", admission.Create, nil,
+		"", admission.Create, false, nil,
 	)
 	if err := plugin.Admit(attrs); err != nil {
 		t.Fatal(err)
@@ -216,7 +216,7 @@ func TestDefaultPolicy(t *testing.T) {
 		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "integrated.registry/repo/mysql:badtag"}}}},
 		nil, schema.GroupVersionKind{Version: "v1", Kind: "Pod"},
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
-		"", admission.Create, nil,
+		"", admission.Create, false, nil,
 	)
 	t.Logf("%#v", plugin.accepter)
 	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
@@ -231,7 +231,7 @@ func TestDefaultPolicy(t *testing.T) {
 		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "index.docker.io/mysql@" + badSHA}}}},
 		nil, schema.GroupVersionKind{Version: "v1", Kind: "Pod"},
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
-		"", admission.Create, nil,
+		"", admission.Create, false, nil,
 	)
 	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
@@ -245,7 +245,7 @@ func TestDefaultPolicy(t *testing.T) {
 		&kapi.Pod{Spec: kapi.PodSpec{InitContainers: []kapi.Container{{Image: "index.docker.io/mysql@" + badSHA}}}},
 		nil, schema.GroupVersionKind{Version: "v1", Kind: "Pod"},
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
-		"", admission.Create, nil,
+		"", admission.Create, false, nil,
 	)
 	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
@@ -261,7 +261,7 @@ func TestDefaultPolicy(t *testing.T) {
 		}}}}},
 		nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
 		"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
-		"", admission.Create, nil,
+		"", admission.Create, false, nil,
 	)
 	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
@@ -275,7 +275,7 @@ func TestDefaultPolicy(t *testing.T) {
 		}}}}},
 		nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
 		"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
-		"", admission.Create, nil,
+		"", admission.Create, false, nil,
 	)
 	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
@@ -289,7 +289,7 @@ func TestDefaultPolicy(t *testing.T) {
 		}}}}},
 		nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
 		"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
-		"", admission.Create, nil,
+		"", admission.Create, false, nil,
 	)
 	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
@@ -303,7 +303,7 @@ func TestDefaultPolicy(t *testing.T) {
 		}}}}},
 		nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
 		"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
-		"", admission.Create, nil,
+		"", admission.Create, false, nil,
 	)
 	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
@@ -320,7 +320,7 @@ func TestDefaultPolicy(t *testing.T) {
 		}}}}},
 		nil, schema.GroupVersionKind{Version: "v1", Kind: "BuildConfig"},
 		"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "buildconfigs"},
-		"", admission.Create, nil,
+		"", admission.Create, false, nil,
 	)
 	if err := plugin.Admit(attrs); err != nil {
 		t.Fatal(err)
@@ -335,7 +335,7 @@ func TestDefaultPolicy(t *testing.T) {
 		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "index.docker.io/mysql@" + goodSHA}}}},
 		nil, schema.GroupVersionKind{Version: "v1", Kind: "Pod"},
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
-		"", admission.Create, nil,
+		"", admission.Create, false, nil,
 	)
 	if err := plugin.Admit(attrs); err != nil {
 		t.Fatal(err)
@@ -350,7 +350,7 @@ func TestDefaultPolicy(t *testing.T) {
 		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "index.docker.io/mysql@" + goodSHA}}}},
 		nil, schema.GroupVersionKind{Version: "v1", Kind: "Pod"},
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
-		"", admission.Create, nil,
+		"", admission.Create, false, nil,
 	)
 	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
@@ -373,7 +373,7 @@ func TestDefaultPolicy(t *testing.T) {
 		&kapi.Pod{Spec: kapi.PodSpec{Containers: []kapi.Container{{Image: "index.docker.io/mysql@" + goodSHA}}}},
 		nil, schema.GroupVersionKind{Version: "v1", Kind: "Pod"},
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
-		"", admission.Create, nil,
+		"", admission.Create, false, nil,
 	)
 	if err := plugin.Admit(attrs); err != nil {
 		t.Fatal(err)
@@ -397,7 +397,7 @@ func TestAdmissionWithoutPodSpec(t *testing.T) {
 		&kapi.Node{},
 		nil, schema.GroupVersionKind{Version: "v1", Kind: "Node"},
 		"", "node1", schema.GroupVersionResource{Version: "v1", Resource: "nodes"},
-		"", admission.Create, nil,
+		"", admission.Create, false, nil,
 	)
 	if err := p.Admit(attrs); !kerrors.IsForbidden(err) || !strings.Contains(err.Error(), "No list of images available for this object") {
 		t.Fatal(err)
@@ -456,7 +456,9 @@ func TestAdmissionResolution(t *testing.T) {
 		},
 		nil, schema.GroupVersionKind{Version: "v1", Kind: "Pod"},
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
-		"", admission.Create, nil,
+		"", admission.Create,
+		false,
+		nil,
 	)
 	if err := p.Admit(failingAttrs); err == nil {
 		t.Fatal(err)
@@ -477,7 +479,7 @@ func TestAdmissionResolution(t *testing.T) {
 		pod,
 		nil, schema.GroupVersionKind{Version: "v1", Kind: "Pod"},
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
-		"", admission.Create, nil,
+		"", admission.Create, false, nil,
 	)
 	if err := p.Admit(attrs); err != nil {
 		t.Logf("object: %#v", attrs.GetObject())
@@ -543,7 +545,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 					},
 				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Pod"},
 				"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
-				"", admission.Create, nil,
+				"", admission.Create, false, nil,
 			),
 		},
 		{
@@ -561,7 +563,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 					},
 				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Pod"},
 				"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
-				"", admission.Create, nil,
+				"", admission.Create, false, nil,
 			),
 			admit: true,
 			expect: &kapi.Pod{
@@ -587,7 +589,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 					},
 				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Pod"},
 				"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
-				"", admission.Create, nil,
+				"", admission.Create, false, nil,
 			),
 			admit: true,
 			expect: &kapi.Pod{
@@ -617,7 +619,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 					},
 				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
 				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
-				"", admission.Create, nil,
+				"", admission.Create, false, nil,
 			),
 			admit: true,
 			expect: &buildapi.Build{
@@ -654,7 +656,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 					},
 				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
 				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
-				"", admission.Create, nil,
+				"", admission.Create, false, nil,
 			),
 			admit: true,
 			expect: &buildapi.Build{
@@ -703,7 +705,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 				schema.GroupVersionKind{Version: "v1", Kind: "Build"},
 				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
-				"", admission.Create, nil,
+				"", admission.Create, false, nil,
 			),
 			admit: true,
 			expect: &buildapi.Build{
@@ -737,7 +739,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 					},
 				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
 				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
-				"", admission.Create, nil,
+				"", admission.Create, false, nil,
 			),
 			admit: true,
 			expect: &buildapi.Build{
@@ -779,7 +781,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 					},
 				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
 				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
-				"", admission.Create, nil,
+				"", admission.Create, false, nil,
 			),
 			admit: true,
 			expect: &buildapi.Build{
@@ -821,7 +823,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 					},
 				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
 				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
-				"", admission.Create, nil,
+				"", admission.Create, false, nil,
 			),
 			admit: true,
 			expect: &buildapi.Build{
@@ -863,7 +865,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 					},
 				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
 				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
-				"", admission.Create, nil,
+				"", admission.Create, false, nil,
 			),
 			admit: true,
 			expect: &buildapi.Build{
@@ -900,7 +902,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 					},
 				}, nil, schema.GroupVersionKind{Group: "build.openshift.io", Version: "v1", Kind: "Build"},
 				"default", "build1", schema.GroupVersionResource{Group: "build.openshift.io", Version: "v1", Resource: "builds"},
-				"", admission.Create, nil,
+				"", admission.Create, false, nil,
 			),
 			admit: true,
 			expect: &buildapi.Build{
@@ -937,7 +939,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 					},
 				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
 				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
-				"", admission.Create, nil,
+				"", admission.Create, false, nil,
 			),
 			admit: true,
 			expect: &buildapi.Build{
@@ -975,7 +977,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 					},
 				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
 				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
-				"", admission.Create, nil,
+				"", admission.Create, false, nil,
 			),
 			admit: true,
 			expect: &buildapi.Build{
@@ -1009,7 +1011,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 					},
 				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Pod", Group: ""},
 				"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods", Group: ""},
-				"", admission.Create, nil,
+				"", admission.Create, false, nil,
 			),
 			admit: true,
 			expect: &kapi.Pod{
@@ -1043,7 +1045,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 					},
 				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "ReplicaSet", Group: "extensions"},
 				"default", "rs1", schema.GroupVersionResource{Version: "v1", Resource: "replicasets", Group: "extensions"},
-				"", admission.Create, nil,
+				"", admission.Create, false, nil,
 			),
 			admit: true,
 			expect: &kapiextensions.ReplicaSet{
@@ -1080,7 +1082,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 					},
 				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "ReplicaSet", Group: "extensions"},
 				"default", "rs1", schema.GroupVersionResource{Version: "v1", Resource: "replicasets", Group: "extensions"},
-				"", admission.Create, nil,
+				"", admission.Create, false, nil,
 			),
 			admit: true,
 			expect: &kapiextensions.ReplicaSet{
@@ -1119,7 +1121,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 					},
 				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "ReplicaSet", Group: "extensions"},
 				"default", "rs1", schema.GroupVersionResource{Version: "v1", Resource: "replicasets", Group: "extensions"},
-				"", admission.Create, nil,
+				"", admission.Create, false, nil,
 			),
 			admit: true,
 			expect: &kapiextensions.ReplicaSet{
@@ -1169,7 +1171,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 					},
 				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "ReplicaSet", Group: "extensions"},
 				"default", "rs1", schema.GroupVersionResource{Version: "v1", Resource: "replicasets", Group: "extensions"},
-				"", admission.Create, nil,
+				"", admission.Create, false, nil,
 			),
 			admit: true,
 			expect: &kapiextensions.ReplicaSet{
@@ -1218,7 +1220,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 					},
 				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "ReplicaSet", Group: "extensions"},
 				"default", "rs1", schema.GroupVersionResource{Version: "v1", Resource: "replicasets", Group: "extensions"},
-				"", admission.Create, nil,
+				"", admission.Create, false, nil,
 			),
 			admit: true,
 			expect: &kapiextensions.ReplicaSet{
@@ -1267,7 +1269,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 					},
 				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "ReplicaSet", Group: "extensions"},
 				"default", "rs1", schema.GroupVersionResource{Version: "v1", Resource: "replicasets", Group: "extensions"},
-				"", admission.Create, nil,
+				"", admission.Create, false, nil,
 			),
 			admit: true,
 			expect: &kapiextensions.ReplicaSet{

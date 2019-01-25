@@ -67,10 +67,10 @@ func addUngroupifiedInternalBuildTypes(scheme *runtime.Scheme) error {
 }
 
 func addLegacyBuildFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
-	if err := scheme.AddFieldLabelConversionFunc(GroupVersion.String(), "Build", legacyBuildFieldSelectorKeyConversionFunc); err != nil {
+	if err := scheme.AddFieldLabelConversionFunc(GroupVersion.WithKind("Build"), legacyBuildFieldSelectorKeyConversionFunc); err != nil {
 		return err
 	}
-	if err := scheme.AddFieldLabelConversionFunc(GroupVersion.String(), "BuildConfig", apihelpers.LegacyMetaV1FieldSelectorConversionWithName); err != nil {
+	if err := scheme.AddFieldLabelConversionFunc(GroupVersion.WithKind("BuildConfig"), apihelpers.LegacyMetaV1FieldSelectorConversionWithName); err != nil {
 		return err
 	}
 	return nil

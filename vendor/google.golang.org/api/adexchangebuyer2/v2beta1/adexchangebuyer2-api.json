@@ -59,11 +59,6 @@
       "location": "query",
       "type": "string"
     },
-    "bearer_token": {
-      "description": "OAuth bearer token.",
-      "location": "query",
-      "type": "string"
-    },
     "callback": {
       "description": "JSONP",
       "location": "query",
@@ -83,12 +78,6 @@
       "description": "OAuth 2.0 token for the current user.",
       "location": "query",
       "type": "string"
-    },
-    "pp": {
-      "default": "true",
-      "description": "Pretty-print response.",
-      "location": "query",
-      "type": "boolean"
     },
     "prettyPrint": {
       "default": "true",
@@ -1947,7 +1936,7 @@
       }
     }
   },
-  "revision": "20180524",
+  "revision": "20180614",
   "rootUrl": "https://adexchangebuyer.googleapis.com/",
   "schemas": {
     "AbsoluteDateRange": {
@@ -2297,7 +2286,7 @@
       "type": "object"
     },
     "Creative": {
-      "description": "A creative and its classification data.\n\nNext ID: 35",
+      "description": "A creative and its classification data.\n\nNext ID: 36",
       "id": "Creative",
       "properties": {
         "accountId": {

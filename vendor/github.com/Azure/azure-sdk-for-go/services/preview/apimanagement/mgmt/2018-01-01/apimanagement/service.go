@@ -42,11 +42,12 @@ func NewServiceClientWithBaseURI(baseURI string, subscriptionID string) ServiceC
 
 // ApplyNetworkConfigurationUpdates updates the Microsoft.ApiManagement resource running in the Virtual network to pick
 // the updated network settings.
-//
-// resourceGroupName is the name of the resource group. serviceName is the name of the API Management service.
-// parameters is parameters supplied to the Apply Network Configuration operation. If the parameters are empty, all
-// the regions in which the Api Management service is deployed will be updated sequentially without incurring
-// downtime in the region.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// serviceName - the name of the API Management service.
+// parameters - parameters supplied to the Apply Network Configuration operation. If the parameters are empty,
+// all the regions in which the Api Management service is deployed will be updated sequentially without
+// incurring downtime in the region.
 func (client ServiceClient) ApplyNetworkConfigurationUpdates(ctx context.Context, resourceGroupName string, serviceName string, parameters *ServiceApplyNetworkConfigurationParameters) (result ServiceApplyNetworkConfigurationUpdatesFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
@@ -100,15 +101,17 @@ func (client ServiceClient) ApplyNetworkConfigurationUpdatesPreparer(ctx context
 // ApplyNetworkConfigurationUpdatesSender sends the ApplyNetworkConfigurationUpdates request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceClient) ApplyNetworkConfigurationUpdatesSender(req *http.Request) (future ServiceApplyNetworkConfigurationUpdatesFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -127,9 +130,10 @@ func (client ServiceClient) ApplyNetworkConfigurationUpdatesResponder(resp *http
 
 // Backup creates a backup of the API Management service to the given Azure Storage Account. This is long running
 // operation and could take several minutes to complete.
-//
-// resourceGroupName is the name of the resource group. serviceName is the name of the API Management service.
-// parameters is parameters supplied to the ApiManagementService_Backup operation.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// serviceName - the name of the API Management service.
+// parameters - parameters supplied to the ApiManagementService_Backup operation.
 func (client ServiceClient) Backup(ctx context.Context, resourceGroupName string, serviceName string, parameters ServiceBackupRestoreParameters) (result ServiceBackupFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
@@ -185,15 +189,17 @@ func (client ServiceClient) BackupPreparer(ctx context.Context, resourceGroupNam
 // BackupSender sends the Backup request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceClient) BackupSender(req *http.Request) (future ServiceBackupFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -211,8 +217,8 @@ func (client ServiceClient) BackupResponder(resp *http.Response) (result Service
 }
 
 // CheckNameAvailability checks availability and correctness of a name for an API Management service.
-//
-// parameters is parameters supplied to the CheckNameAvailability operation.
+// Parameters:
+// parameters - parameters supplied to the CheckNameAvailability operation.
 func (client ServiceClient) CheckNameAvailability(ctx context.Context, parameters ServiceCheckNameAvailabilityParameters) (result ServiceNameAvailabilityResult, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: parameters,
@@ -284,9 +290,10 @@ func (client ServiceClient) CheckNameAvailabilityResponder(resp *http.Response) 
 
 // CreateOrUpdate creates or updates an API Management service. This is long running operation and could take several
 // minutes to complete.
-//
-// resourceGroupName is the name of the resource group. serviceName is the name of the API Management service.
-// parameters is parameters supplied to the CreateOrUpdate API Management service operation.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// serviceName - the name of the API Management service.
+// parameters - parameters supplied to the CreateOrUpdate API Management service operation.
 func (client ServiceClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, serviceName string, parameters ServiceResource) (result ServiceCreateOrUpdateFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
@@ -348,15 +355,17 @@ func (client ServiceClient) CreateOrUpdatePreparer(ctx context.Context, resource
 // CreateOrUpdateSender sends the CreateOrUpdate request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceClient) CreateOrUpdateSender(req *http.Request) (future ServiceCreateOrUpdateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -374,8 +383,9 @@ func (client ServiceClient) CreateOrUpdateResponder(resp *http.Response) (result
 }
 
 // Delete deletes an existing API Management service.
-//
-// resourceGroupName is the name of the resource group. serviceName is the name of the API Management service.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// serviceName - the name of the API Management service.
 func (client ServiceClient) Delete(ctx context.Context, resourceGroupName string, serviceName string) (result autorest.Response, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
@@ -447,8 +457,9 @@ func (client ServiceClient) DeleteResponder(resp *http.Response) (result autores
 }
 
 // Get gets an API Management service resource description.
-//
-// resourceGroupName is the name of the resource group. serviceName is the name of the API Management service.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// serviceName - the name of the API Management service.
 func (client ServiceClient) Get(ctx context.Context, resourceGroupName string, serviceName string) (result ServiceResource, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
@@ -521,8 +532,9 @@ func (client ServiceClient) GetResponder(resp *http.Response) (result ServiceRes
 }
 
 // GetSsoToken gets the Single-Sign-On token for the API Management Service which is valid for 5 Minutes.
-//
-// resourceGroupName is the name of the resource group. serviceName is the name of the API Management service.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// serviceName - the name of the API Management service.
 func (client ServiceClient) GetSsoToken(ctx context.Context, resourceGroupName string, serviceName string) (result ServiceGetSsoTokenResult, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
@@ -685,8 +697,8 @@ func (client ServiceClient) ListComplete(ctx context.Context) (result ServiceLis
 }
 
 // ListByResourceGroup list all API Management services within a resource group.
-//
-// resourceGroupName is the name of the resource group.
+// Parameters:
+// resourceGroupName - the name of the resource group.
 func (client ServiceClient) ListByResourceGroup(ctx context.Context, resourceGroupName string) (result ServiceListResultPage, err error) {
 	result.fn = client.listByResourceGroupNextResults
 	req, err := client.ListByResourceGroupPreparer(ctx, resourceGroupName)
@@ -779,9 +791,10 @@ func (client ServiceClient) ListByResourceGroupComplete(ctx context.Context, res
 
 // Restore restores a backup of an API Management service created using the ApiManagementService_Backup operation on
 // the current service. This is a long running operation and could take several minutes to complete.
-//
-// resourceGroupName is the name of the resource group. serviceName is the name of the API Management service.
-// parameters is parameters supplied to the Restore API Management service from backup operation.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// serviceName - the name of the API Management service.
+// parameters - parameters supplied to the Restore API Management service from backup operation.
 func (client ServiceClient) Restore(ctx context.Context, resourceGroupName string, serviceName string, parameters ServiceBackupRestoreParameters) (result ServiceRestoreFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
@@ -837,15 +850,17 @@ func (client ServiceClient) RestorePreparer(ctx context.Context, resourceGroupNa
 // RestoreSender sends the Restore request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceClient) RestoreSender(req *http.Request) (future ServiceRestoreFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -863,9 +878,10 @@ func (client ServiceClient) RestoreResponder(resp *http.Response) (result Servic
 }
 
 // Update updates an existing API Management service.
-//
-// resourceGroupName is the name of the resource group. serviceName is the name of the API Management service.
-// parameters is parameters supplied to the CreateOrUpdate API Management service operation.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// serviceName - the name of the API Management service.
+// parameters - parameters supplied to the CreateOrUpdate API Management service operation.
 func (client ServiceClient) Update(ctx context.Context, resourceGroupName string, serviceName string, parameters ServiceUpdateParameters) (result ServiceUpdateFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
@@ -916,15 +932,17 @@ func (client ServiceClient) UpdatePreparer(ctx context.Context, resourceGroupNam
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceClient) UpdateSender(req *http.Request) (future ServiceUpdateFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -944,9 +962,10 @@ func (client ServiceClient) UpdateResponder(resp *http.Response) (result Service
 // UpdateHostname creates, updates, or deletes the custom hostnames for an API Management service. The custom hostname
 // can be applied to the Proxy and Portal endpoint. This is a long running operation and could take several minutes to
 // complete. This operation will be deprecated in the next version update.
-//
-// resourceGroupName is the name of the resource group. serviceName is the name of the API Management service.
-// parameters is parameters supplied to the UpdateHostname operation.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// serviceName - the name of the API Management service.
+// parameters - parameters supplied to the UpdateHostname operation.
 func (client ServiceClient) UpdateHostname(ctx context.Context, resourceGroupName string, serviceName string, parameters ServiceUpdateHostnameParameters) (result ServiceUpdateHostnameFuture, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,
@@ -997,15 +1016,17 @@ func (client ServiceClient) UpdateHostnamePreparer(ctx context.Context, resource
 // UpdateHostnameSender sends the UpdateHostname request. The method will close the
 // http.Response Body if it receives an error.
 func (client ServiceClient) UpdateHostnameSender(req *http.Request) (future ServiceUpdateHostnameFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -1024,9 +1045,10 @@ func (client ServiceClient) UpdateHostnameResponder(resp *http.Response) (result
 
 // UploadCertificate upload Custom Domain SSL certificate for an API Management service. This operation will be
 // deprecated in future releases.
-//
-// resourceGroupName is the name of the resource group. serviceName is the name of the API Management service.
-// parameters is parameters supplied to the Upload SSL certificate for an API Management service operation.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// serviceName - the name of the API Management service.
+// parameters - parameters supplied to the Upload SSL certificate for an API Management service operation.
 func (client ServiceClient) UploadCertificate(ctx context.Context, resourceGroupName string, serviceName string, parameters ServiceUploadCertificateParameters) (result CertificateInformation, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: serviceName,

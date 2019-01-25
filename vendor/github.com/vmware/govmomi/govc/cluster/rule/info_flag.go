@@ -31,6 +31,7 @@ type InfoFlag struct {
 	rules []types.BaseClusterRuleInfo
 
 	name string
+	Long bool
 }
 
 func NewInfoFlag(ctx context.Context) (*InfoFlag, context.Context) {
@@ -43,6 +44,7 @@ func (f *InfoFlag) Register(ctx context.Context, fs *flag.FlagSet) {
 	f.ClusterFlag.Register(ctx, fs)
 
 	fs.StringVar(&f.name, "name", "", "Cluster rule name")
+	fs.BoolVar(&f.Long, "l", false, "Long listing format")
 }
 
 func (f *InfoFlag) Process(ctx context.Context) error {
@@ -72,9 +74,21 @@ func (f *InfoFlag) Rules(ctx context.Context) ([]types.BaseClusterRuleInfo, erro
 type ClusterRuleInfo struct {
 	info types.BaseClusterRuleInfo
 
+	ruleType string
+
+	// only ClusterAffinityRuleSpec and ClusterAntiAffinityRuleSpec
 	refs *[]types.ManagedObjectReference
 
 	kind string
+
+	// only ClusterVmHostRuleInfo
+	vmGroupName             string
+	affineHostGroupName     string
+	antiAffineHostGroupName string
+
+	// only ClusterDependencyRuleInfo
+	VmGroup          string
+	DependsOnVmGroup string
 }
 
 func (f *InfoFlag) Rule(ctx context.Context) (*ClusterRuleInfo, error) {
@@ -88,21 +102,36 @@ func (f *InfoFlag) Rule(ctx context.Context) (*ClusterRuleInfo, error) {
 			continue
 		}
 
-		r := &ClusterRuleInfo{info: rule}
-
-		switch info := rule.(type) {
-		case *types.ClusterAffinityRuleSpec:
-			r.refs = &info.Vm
-			r.kind = "VirtualMachine"
-		case *types.ClusterAntiAffinityRuleSpec:
-			r.refs = &info.Vm
-			r.kind = "VirtualMachine"
-		}
-
-		return r, nil
+		r := GetExtendedClusterRuleInfo(rule)
+		return &r, nil
 	}
 
 	return nil, fmt.Errorf("rule %q not found", f.name)
+}
+
+func GetExtendedClusterRuleInfo(rule types.BaseClusterRuleInfo) ClusterRuleInfo {
+	r := ClusterRuleInfo{info: rule}
+
+	switch info := rule.(type) {
+	case *types.ClusterAffinityRuleSpec:
+		r.ruleType = "ClusterAffinityRuleSpec"
+		r.refs = &info.Vm
+		r.kind = "VirtualMachine"
+	case *types.ClusterAntiAffinityRuleSpec:
+		r.ruleType = "ClusterAntiAffinityRuleSpec"
+		r.refs = &info.Vm
+		r.kind = "VirtualMachine"
+	case *types.ClusterVmHostRuleInfo:
+		r.ruleType = "ClusterVmHostRuleInfo"
+		r.vmGroupName = info.VmGroupName
+		r.affineHostGroupName = info.AffineHostGroupName
+		r.antiAffineHostGroupName = info.AntiAffineHostGroupName
+	case *types.ClusterDependencyRuleInfo:
+		r.ruleType = "ClusterDependencyRuleInfo"
+		r.VmGroup = info.VmGroup
+		r.DependsOnVmGroup = info.DependsOnVmGroup
+	}
+	return r
 }
 
 func (f *InfoFlag) Apply(ctx context.Context, update types.ArrayUpdateSpec, info types.BaseClusterRuleInfo) error {

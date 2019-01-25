@@ -380,18 +380,18 @@ func formatHPATargets(hpa *autoscaling.HorizontalPodAutoscaler) []string {
 	for i, metricSpec := range hpa.Spec.Metrics {
 		switch metricSpec.Type {
 		case autoscaling.PodsMetricSourceType:
-			descriptions[i] = fmt.Sprintf("%s %s average per pod", metricSpec.Pods.TargetAverageValue.String(), metricSpec.Pods.MetricName)
+			descriptions[i] = fmt.Sprintf("%s %s average per pod", metricSpec.Pods.Target.AverageValue.String(), metricSpec.Pods.Metric.Name)
 		case autoscaling.ObjectMetricSourceType:
 			// TODO: it'd probably be more accurate if we put the group in here too,
 			// but it might be a bit to verbose to read at a glance
 			// TODO: we might want to use the resource name here instead of the kind?
-			targetObjDesc := fmt.Sprintf("%s %s", metricSpec.Object.Target.Kind, metricSpec.Object.Target.Name)
-			descriptions[i] = fmt.Sprintf("%s %s on %s", metricSpec.Object.TargetValue.String(), metricSpec.Object.MetricName, targetObjDesc)
+			targetObjDesc := fmt.Sprintf("%s %s", metricSpec.Object.Target.Type, metricSpec.Object.Metric.Name)
+			descriptions[i] = fmt.Sprintf("%s %s on %s", metricSpec.Object.Target.Value.String(), metricSpec.Object.Metric.Name, targetObjDesc)
 		case autoscaling.ResourceMetricSourceType:
-			if metricSpec.Resource.TargetAverageValue != nil {
-				descriptions[i] = fmt.Sprintf("%s %s average per pod", metricSpec.Resource.TargetAverageValue.String(), metricSpec.Resource.Name)
-			} else if metricSpec.Resource.TargetAverageUtilization != nil {
-				descriptions[i] = fmt.Sprintf("%d%% %s average per pod", *metricSpec.Resource.TargetAverageUtilization, metricSpec.Resource.Name)
+			if metricSpec.Resource.Target.AverageValue != nil {
+				descriptions[i] = fmt.Sprintf("%s %s average per pod", metricSpec.Resource.Target.AverageValue.String(), metricSpec.Resource.Name)
+			} else if metricSpec.Resource.Target.AverageUtilization != nil {
+				descriptions[i] = fmt.Sprintf("%d%% %s average per pod", *metricSpec.Resource.Target.AverageUtilization, metricSpec.Resource.Name)
 			} else {
 				descriptions[i] = "<unset resource metric>"
 			}

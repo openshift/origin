@@ -61,7 +61,7 @@ func TestListProjects(t *testing.T) {
 func TestCreateProjectBadObject(t *testing.T) {
 	storage := REST{}
 
-	obj, err := storage.Create(apirequest.NewContext(), &projectapi.ProjectList{}, rest.ValidateAllObjectFunc, false)
+	obj, err := storage.Create(apirequest.NewContext(), &projectapi.ProjectList{}, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if obj != nil {
 		t.Errorf("Expected nil, got %v", obj)
 	}
@@ -77,7 +77,7 @@ func TestCreateInvalidProject(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{oapi.OpenShiftDisplayName: "h\t\ni"},
 		},
-	}, rest.ValidateAllObjectFunc, false)
+	}, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if !errors.IsInvalid(err) {
 		t.Errorf("Expected 'invalid' error, got %v", err)
 	}
@@ -88,7 +88,7 @@ func TestCreateProjectOK(t *testing.T) {
 	storage := NewREST(mockClient.Core().Namespaces(), &mockLister{}, nil, nil)
 	_, err := storage.Create(apirequest.NewContext(), &projectapi.Project{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo"},
-	}, rest.ValidateAllObjectFunc, false)
+	}, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if err != nil {
 		t.Errorf("Unexpected non-nil error: %#v", err)
 	}

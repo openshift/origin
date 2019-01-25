@@ -608,6 +608,7 @@ func (util *ISCSIUtil) DetachDisk(c iscsiDiskUnmounter, mntPath string) error {
 			return err
 		}
 	}
+
 	// if device is no longer used, see if need to logout the target
 	device, prefix, err := extractDeviceAndPrefix(mntPath)
 	if err != nil {
@@ -731,7 +732,7 @@ func (util *ISCSIUtil) DetachBlockISCSIDisk(c iscsiDiskUnmapper, mapPath string)
 		if err.Error() != volumepathhandler.ErrDeviceNotFound {
 			return fmt.Errorf("failed to get loopback for device: %v, err: %v", devicePath, err)
 		}
-		glog.Warning("iscsi: loopback for device: %s not found", device)
+		glog.Warningf("iscsi: loopback for device: %s not found", device)
 	}
 	// Detach a volume from kubelet node
 	err = util.detachISCSIDisk(c.exec, portals, iqn, iface, volName, initiatorName, found)

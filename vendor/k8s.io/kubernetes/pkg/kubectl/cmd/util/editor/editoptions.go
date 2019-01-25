@@ -42,14 +42,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/openshiftpatch"
+	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
+	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/util/editor/crlf"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/openshiftpatch"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
 
@@ -118,10 +118,12 @@ func (e *editPrinterOptions) Complete(fromPrintFlags *genericclioptions.PrintFla
 	if e.printFlags == nil {
 		return fmt.Errorf("missing PrintFlags in editor printer options")
 	}
+
 	// bind output format from existing printflags
 	if fromPrintFlags != nil && len(*fromPrintFlags.OutputFormat) > 0 {
 		e.printFlags.OutputFormat = fromPrintFlags.OutputFormat
 	}
+
 	// prevent a commented header at the top of the user's
 	// default editor if presenting contents as json.
 	if *e.printFlags.OutputFormat == "json" {
@@ -129,16 +131,19 @@ func (e *editPrinterOptions) Complete(fromPrintFlags *genericclioptions.PrintFla
 		e.ext = ".json"
 		return nil
 	}
+
 	// we default to yaml if check above is false, as only json or yaml are supported
 	e.addHeader = true
 	e.ext = ".yaml"
 	return nil
 }
+
 func (e *editPrinterOptions) PrintObj(obj runtime.Object, out io.Writer) error {
 	p, err := e.printFlags.ToPrinter()
 	if err != nil {
 		return err
 	}
+
 	return p.PrintObj(obj, out)
 }
 
@@ -499,7 +504,7 @@ func (o *EditOptions) annotationPatch(update *resource.Info) error {
 		return err
 	}
 	helper := resource.NewHelper(client, mapping)
-	_, err = helper.Patch(o.CmdNamespace, update.Name, patchType, patch)
+	_, err = helper.Patch(o.CmdNamespace, update.Name, patchType, patch, nil)
 	if err != nil {
 		return err
 	}
@@ -628,7 +633,7 @@ func (o *EditOptions) visitToPatch(originalInfos []*resource.Info, patchVisitor 
 			fmt.Fprintf(o.Out, "Patch: %s\n", string(patch))
 		}
 
-		patched, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, patchType, patch)
+		patched, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, patchType, patch, nil)
 		if err != nil {
 			fmt.Fprintln(o.ErrOut, results.addError(err, info))
 			return nil

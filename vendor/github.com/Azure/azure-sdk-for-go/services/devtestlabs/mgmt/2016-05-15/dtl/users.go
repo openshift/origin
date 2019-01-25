@@ -40,9 +40,11 @@ func NewUsersClientWithBaseURI(baseURI string, subscriptionID string) UsersClien
 }
 
 // CreateOrUpdate create or replace an existing user profile.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// user profile. userParameter is profile of a lab user.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the user profile.
+// userParameter - profile of a lab user.
 func (client UsersClient) CreateOrUpdate(ctx context.Context, resourceGroupName string, labName string, name string, userParameter User) (result User, err error) {
 	req, err := client.CreateOrUpdatePreparer(ctx, resourceGroupName, labName, name, userParameter)
 	if err != nil {
@@ -80,7 +82,7 @@ func (client UsersClient) CreateOrUpdatePreparer(ctx context.Context, resourceGr
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DevTestLab/labs/{labName}/users/{name}", pathParameters),
@@ -110,9 +112,10 @@ func (client UsersClient) CreateOrUpdateResponder(resp *http.Response) (result U
 }
 
 // Delete delete user profile. This operation can take a while to complete.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// user profile.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the user profile.
 func (client UsersClient) Delete(ctx context.Context, resourceGroupName string, labName string, name string) (result UsersDeleteFuture, err error) {
 	req, err := client.DeletePreparer(ctx, resourceGroupName, labName, name)
 	if err != nil {
@@ -154,15 +157,17 @@ func (client UsersClient) DeletePreparer(ctx context.Context, resourceGroupName 
 // DeleteSender sends the Delete request. The method will close the
 // http.Response Body if it receives an error.
 func (client UsersClient) DeleteSender(req *http.Request) (future UsersDeleteFuture, err error) {
-	sender := autorest.DecorateSender(client, azure.DoRetryWithRegistration(client.Client))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -179,9 +184,11 @@ func (client UsersClient) DeleteResponder(resp *http.Response) (result autorest.
 }
 
 // Get get user profile.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// user profile. expand is specify the $expand query. Example: 'properties($select=identity)'
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the user profile.
+// expand - specify the $expand query. Example: 'properties($select=identity)'
 func (client UsersClient) Get(ctx context.Context, resourceGroupName string, labName string, name string, expand string) (result User, err error) {
 	req, err := client.GetPreparer(ctx, resourceGroupName, labName, name, expand)
 	if err != nil {
@@ -250,11 +257,13 @@ func (client UsersClient) GetResponder(resp *http.Response) (result User, err er
 }
 
 // List list user profiles in a given lab.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. expand is specify the
-// $expand query. Example: 'properties($select=identity)' filter is the filter to apply to the operation. top is
-// the maximum number of resources to return from the operation. orderby is the ordering expression for the
-// results, using OData notation.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// expand - specify the $expand query. Example: 'properties($select=identity)'
+// filter - the filter to apply to the operation.
+// top - the maximum number of resources to return from the operation.
+// orderby - the ordering expression for the results, using OData notation.
 func (client UsersClient) List(ctx context.Context, resourceGroupName string, labName string, expand string, filter string, top *int32, orderby string) (result ResponseWithContinuationUserPage, err error) {
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, resourceGroupName, labName, expand, filter, top, orderby)
@@ -359,9 +368,11 @@ func (client UsersClient) ListComplete(ctx context.Context, resourceGroupName st
 }
 
 // Update modify properties of user profiles.
-//
-// resourceGroupName is the name of the resource group. labName is the name of the lab. name is the name of the
-// user profile. userParameter is profile of a lab user.
+// Parameters:
+// resourceGroupName - the name of the resource group.
+// labName - the name of the lab.
+// name - the name of the user profile.
+// userParameter - profile of a lab user.
 func (client UsersClient) Update(ctx context.Context, resourceGroupName string, labName string, name string, userParameter UserFragment) (result User, err error) {
 	req, err := client.UpdatePreparer(ctx, resourceGroupName, labName, name, userParameter)
 	if err != nil {
@@ -399,7 +410,7 @@ func (client UsersClient) UpdatePreparer(ctx context.Context, resourceGroupName 
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DevTestLab/labs/{labName}/users/{name}", pathParameters),

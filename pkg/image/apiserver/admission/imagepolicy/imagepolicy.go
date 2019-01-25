@@ -168,6 +168,7 @@ func mutateAttributesToLegacyResources(attr admission.Attributes) admission.Attr
 		resource,
 		attr.GetSubresource(),
 		attr.GetOperation(),
+		false,
 		attr.GetUserInfo(),
 	)
 	return attrs

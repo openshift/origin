@@ -11,6 +11,7 @@ import (
 
 	"github.com/pborman/uuid"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -19,6 +20,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	corev1conversions "k8s.io/kubernetes/pkg/apis/core/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/quota"
@@ -189,8 +191,16 @@ func GetClientForServiceAccount(adminClient kclientset.Interface, clientConfig r
 		if err != nil {
 			return false, err
 		}
+		sav1 := &corev1.ServiceAccount{}
+		if err := corev1conversions.Convert_core_ServiceAccount_To_v1_ServiceAccount(sa, sav1, nil); err != nil {
+			return false, err
+		}
 		for _, secret := range secrets.Items {
-			if sautil.InternalIsServiceAccountToken(&secret, sa) {
+			secretv1 := &corev1.Secret{}
+			if err := corev1conversions.Convert_core_Secret_To_v1_Secret(&secret, secretv1, nil); err != nil {
+				return false, err
+			}
+			if sautil.IsServiceAccountToken(secretv1, sav1) {
 				token = string(secret.Data[kapi.ServiceAccountTokenKey])
 				return true, nil
 			}

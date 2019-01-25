@@ -36,6 +36,11 @@ const (
 	Secondary AccountKeyType = "Secondary"
 )
 
+// PossibleAccountKeyTypeValues returns an array of possible values for the AccountKeyType const type.
+func PossibleAccountKeyTypeValues() []AccountKeyType {
+	return []AccountKeyType{Primary, Secondary}
+}
+
 // AllocationState enumerates the values for allocation state.
 type AllocationState string
 
@@ -48,6 +53,11 @@ const (
 	Stopping AllocationState = "Stopping"
 )
 
+// PossibleAllocationStateValues returns an array of possible values for the AllocationState const type.
+func PossibleAllocationStateValues() []AllocationState {
+	return []AllocationState{Resizing, Steady, Stopping}
+}
+
 // AutoUserScope enumerates the values for auto user scope.
 type AutoUserScope string
 
@@ -57,6 +67,11 @@ const (
 	// AutoUserScopeTask ...
 	AutoUserScopeTask AutoUserScope = "Task"
 )
+
+// PossibleAutoUserScopeValues returns an array of possible values for the AutoUserScope const type.
+func PossibleAutoUserScopeValues() []AutoUserScope {
+	return []AutoUserScope{AutoUserScopePool, AutoUserScopeTask}
+}
 
 // CachingType enumerates the values for caching type.
 type CachingType string
@@ -70,6 +85,11 @@ const (
 	ReadWrite CachingType = "ReadWrite"
 )
 
+// PossibleCachingTypeValues returns an array of possible values for the CachingType const type.
+func PossibleCachingTypeValues() []CachingType {
+	return []CachingType{None, ReadOnly, ReadWrite}
+}
+
 // CertificateFormat enumerates the values for certificate format.
 type CertificateFormat string
 
@@ -79,6 +99,11 @@ const (
 	// Pfx ...
 	Pfx CertificateFormat = "Pfx"
 )
+
+// PossibleCertificateFormatValues returns an array of possible values for the CertificateFormat const type.
+func PossibleCertificateFormatValues() []CertificateFormat {
+	return []CertificateFormat{Cer, Pfx}
+}
 
 // CertificateProvisioningState enumerates the values for certificate provisioning state.
 type CertificateProvisioningState string
@@ -92,6 +117,11 @@ const (
 	Succeeded CertificateProvisioningState = "Succeeded"
 )
 
+// PossibleCertificateProvisioningStateValues returns an array of possible values for the CertificateProvisioningState const type.
+func PossibleCertificateProvisioningStateValues() []CertificateProvisioningState {
+	return []CertificateProvisioningState{Deleting, Failed, Succeeded}
+}
+
 // CertificateStoreLocation enumerates the values for certificate store location.
 type CertificateStoreLocation string
 
@@ -101,6 +131,11 @@ const (
 	// LocalMachine ...
 	LocalMachine CertificateStoreLocation = "LocalMachine"
 )
+
+// PossibleCertificateStoreLocationValues returns an array of possible values for the CertificateStoreLocation const type.
+func PossibleCertificateStoreLocationValues() []CertificateStoreLocation {
+	return []CertificateStoreLocation{CurrentUser, LocalMachine}
+}
 
 // CertificateVisibility enumerates the values for certificate visibility.
 type CertificateVisibility string
@@ -113,6 +148,11 @@ const (
 	// CertificateVisibilityTask ...
 	CertificateVisibilityTask CertificateVisibility = "Task"
 )
+
+// PossibleCertificateVisibilityValues returns an array of possible values for the CertificateVisibility const type.
+func PossibleCertificateVisibilityValues() []CertificateVisibility {
+	return []CertificateVisibility{CertificateVisibilityRemoteUser, CertificateVisibilityStartTask, CertificateVisibilityTask}
+}
 
 // ComputeNodeDeallocationOption enumerates the values for compute node deallocation option.
 type ComputeNodeDeallocationOption string
@@ -128,6 +168,11 @@ const (
 	Terminate ComputeNodeDeallocationOption = "Terminate"
 )
 
+// PossibleComputeNodeDeallocationOptionValues returns an array of possible values for the ComputeNodeDeallocationOption const type.
+func PossibleComputeNodeDeallocationOptionValues() []ComputeNodeDeallocationOption {
+	return []ComputeNodeDeallocationOption{Requeue, RetainedData, TaskCompletion, Terminate}
+}
+
 // ComputeNodeFillType enumerates the values for compute node fill type.
 type ComputeNodeFillType string
 
@@ -137,6 +182,11 @@ const (
 	// Spread ...
 	Spread ComputeNodeFillType = "Spread"
 )
+
+// PossibleComputeNodeFillTypeValues returns an array of possible values for the ComputeNodeFillType const type.
+func PossibleComputeNodeFillTypeValues() []ComputeNodeFillType {
+	return []ComputeNodeFillType{Pack, Spread}
+}
 
 // ElevationLevel enumerates the values for elevation level.
 type ElevationLevel string
@@ -148,6 +198,11 @@ const (
 	NonAdmin ElevationLevel = "NonAdmin"
 )
 
+// PossibleElevationLevelValues returns an array of possible values for the ElevationLevel const type.
+func PossibleElevationLevelValues() []ElevationLevel {
+	return []ElevationLevel{Admin, NonAdmin}
+}
+
 // InboundEndpointProtocol enumerates the values for inbound endpoint protocol.
 type InboundEndpointProtocol string
 
@@ -157,6 +212,11 @@ const (
 	// UDP ...
 	UDP InboundEndpointProtocol = "UDP"
 )
+
+// PossibleInboundEndpointProtocolValues returns an array of possible values for the InboundEndpointProtocol const type.
+func PossibleInboundEndpointProtocolValues() []InboundEndpointProtocol {
+	return []InboundEndpointProtocol{TCP, UDP}
+}
 
 // InterNodeCommunicationState enumerates the values for inter node communication state.
 type InterNodeCommunicationState string
@@ -168,6 +228,11 @@ const (
 	Enabled InterNodeCommunicationState = "Enabled"
 )
 
+// PossibleInterNodeCommunicationStateValues returns an array of possible values for the InterNodeCommunicationState const type.
+func PossibleInterNodeCommunicationStateValues() []InterNodeCommunicationState {
+	return []InterNodeCommunicationState{Disabled, Enabled}
+}
+
 // NameAvailabilityReason enumerates the values for name availability reason.
 type NameAvailabilityReason string
 
@@ -178,6 +243,11 @@ const (
 	Invalid NameAvailabilityReason = "Invalid"
 )
 
+// PossibleNameAvailabilityReasonValues returns an array of possible values for the NameAvailabilityReason const type.
+func PossibleNameAvailabilityReasonValues() []NameAvailabilityReason {
+	return []NameAvailabilityReason{AlreadyExists, Invalid}
+}
+
 // NetworkSecurityGroupRuleAccess enumerates the values for network security group rule access.
 type NetworkSecurityGroupRuleAccess string
 
@@ -187,6 +257,11 @@ const (
 	// Deny ...
 	Deny NetworkSecurityGroupRuleAccess = "Deny"
 )
+
+// PossibleNetworkSecurityGroupRuleAccessValues returns an array of possible values for the NetworkSecurityGroupRuleAccess const type.
+func PossibleNetworkSecurityGroupRuleAccessValues() []NetworkSecurityGroupRuleAccess {
+	return []NetworkSecurityGroupRuleAccess{Allow, Deny}
+}
 
 // PackageState enumerates the values for package state.
 type PackageState string
@@ -200,6 +275,11 @@ const (
 	Unmapped PackageState = "Unmapped"
 )
 
+// PossiblePackageStateValues returns an array of possible values for the PackageState const type.
+func PossiblePackageStateValues() []PackageState {
+	return []PackageState{Active, Pending, Unmapped}
+}
+
 // PoolAllocationMode enumerates the values for pool allocation mode.
 type PoolAllocationMode string
 
@@ -210,6 +290,11 @@ const (
 	UserSubscription PoolAllocationMode = "UserSubscription"
 )
 
+// PossiblePoolAllocationModeValues returns an array of possible values for the PoolAllocationMode const type.
+func PossiblePoolAllocationModeValues() []PoolAllocationMode {
+	return []PoolAllocationMode{BatchService, UserSubscription}
+}
+
 // PoolProvisioningState enumerates the values for pool provisioning state.
 type PoolProvisioningState string
 
@@ -219,6 +304,11 @@ const (
 	// PoolProvisioningStateSucceeded ...
 	PoolProvisioningStateSucceeded PoolProvisioningState = "Succeeded"
 )
+
+// PossiblePoolProvisioningStateValues returns an array of possible values for the PoolProvisioningState const type.
+func PossiblePoolProvisioningStateValues() []PoolProvisioningState {
+	return []PoolProvisioningState{PoolProvisioningStateDeleting, PoolProvisioningStateSucceeded}
+}
 
 // ProvisioningState enumerates the values for provisioning state.
 type ProvisioningState string
@@ -238,6 +328,11 @@ const (
 	ProvisioningStateSucceeded ProvisioningState = "Succeeded"
 )
 
+// PossibleProvisioningStateValues returns an array of possible values for the ProvisioningState const type.
+func PossibleProvisioningStateValues() []ProvisioningState {
+	return []ProvisioningState{ProvisioningStateCancelled, ProvisioningStateCreating, ProvisioningStateDeleting, ProvisioningStateFailed, ProvisioningStateInvalid, ProvisioningStateSucceeded}
+}
+
 // StorageAccountType enumerates the values for storage account type.
 type StorageAccountType string
 
@@ -247,6 +342,11 @@ const (
 	// StandardLRS ...
 	StandardLRS StorageAccountType = "Standard_LRS"
 )
+
+// PossibleStorageAccountTypeValues returns an array of possible values for the StorageAccountType const type.
+func PossibleStorageAccountTypeValues() []StorageAccountType {
+	return []StorageAccountType{PremiumLRS, StandardLRS}
+}
 
 // Account contains information about an Azure Batch account.
 type Account struct {
@@ -361,12 +461,11 @@ func (a *Account) UnmarshalJSON(body []byte) error {
 // AccountCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type AccountCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future AccountCreateFuture) Result(client AccountClient) (a Account, err error) {
+func (future *AccountCreateFuture) Result(client AccountClient) (a Account, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -374,34 +473,15 @@ func (future AccountCreateFuture) Result(client AccountClient) (a Account, err e
 		return
 	}
 	if !done {
-		return a, azure.NewAsyncOpIncompleteError("batch.AccountCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		a, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "batch.AccountCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("batch.AccountCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if a.Response.Response, err = future.GetResult(sender); err == nil && a.Response.Response.StatusCode != http.StatusNoContent {
+		a, err = client.CreateResponder(a.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "batch.AccountCreateFuture", "Result", a.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "batch.AccountCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	a, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "batch.AccountCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -486,12 +566,11 @@ type AccountCreateProperties struct {
 // AccountDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type AccountDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future AccountDeleteFuture) Result(client AccountClient) (ar autorest.Response, err error) {
+func (future *AccountDeleteFuture) Result(client AccountClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -499,35 +578,10 @@ func (future AccountDeleteFuture) Result(client AccountClient) (ar autorest.Resp
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("batch.AccountDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "batch.AccountDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("batch.AccountDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "batch.AccountDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "batch.AccountDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -851,6 +905,27 @@ type Certificate struct {
 	Etag *string `json:"etag,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for Certificate.
+func (c Certificate) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if c.CertificateProperties != nil {
+		objectMap["properties"] = c.CertificateProperties
+	}
+	if c.ID != nil {
+		objectMap["id"] = c.ID
+	}
+	if c.Name != nil {
+		objectMap["name"] = c.Name
+	}
+	if c.Type != nil {
+		objectMap["type"] = c.Type
+	}
+	if c.Etag != nil {
+		objectMap["etag"] = c.Etag
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for Certificate struct.
 func (c *Certificate) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -924,12 +999,11 @@ type CertificateBaseProperties struct {
 // CertificateCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type CertificateCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future CertificateCreateFuture) Result(client CertificateClient) (c Certificate, err error) {
+func (future *CertificateCreateFuture) Result(client CertificateClient) (c Certificate, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -937,34 +1011,15 @@ func (future CertificateCreateFuture) Result(client CertificateClient) (c Certif
 		return
 	}
 	if !done {
-		return c, azure.NewAsyncOpIncompleteError("batch.CertificateCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		c, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "batch.CertificateCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("batch.CertificateCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if c.Response.Response, err = future.GetResult(sender); err == nil && c.Response.Response.StatusCode != http.StatusNoContent {
+		c, err = client.CreateResponder(c.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "batch.CertificateCreateFuture", "Result", c.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "batch.CertificateCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	c, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "batch.CertificateCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -981,6 +1036,27 @@ type CertificateCreateOrUpdateParameters struct {
 	Type *string `json:"type,omitempty"`
 	// Etag - The ETag of the resource, used for concurrency statements.
 	Etag *string `json:"etag,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for CertificateCreateOrUpdateParameters.
+func (ccoup CertificateCreateOrUpdateParameters) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if ccoup.CertificateCreateOrUpdateProperties != nil {
+		objectMap["properties"] = ccoup.CertificateCreateOrUpdateProperties
+	}
+	if ccoup.ID != nil {
+		objectMap["id"] = ccoup.ID
+	}
+	if ccoup.Name != nil {
+		objectMap["name"] = ccoup.Name
+	}
+	if ccoup.Type != nil {
+		objectMap["type"] = ccoup.Type
+	}
+	if ccoup.Etag != nil {
+		objectMap["etag"] = ccoup.Etag
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for CertificateCreateOrUpdateParameters struct.
@@ -1060,12 +1136,11 @@ type CertificateCreateOrUpdateProperties struct {
 // CertificateDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type CertificateDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future CertificateDeleteFuture) Result(client CertificateClient) (ar autorest.Response, err error) {
+func (future *CertificateDeleteFuture) Result(client CertificateClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1073,35 +1148,10 @@ func (future CertificateDeleteFuture) Result(client CertificateClient) (ar autor
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("batch.CertificateDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "batch.CertificateDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("batch.CertificateDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "batch.CertificateDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "batch.CertificateDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -1769,6 +1819,27 @@ type Pool struct {
 	Etag *string `json:"etag,omitempty"`
 }
 
+// MarshalJSON is the custom marshaler for Pool.
+func (p Pool) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if p.PoolProperties != nil {
+		objectMap["properties"] = p.PoolProperties
+	}
+	if p.ID != nil {
+		objectMap["id"] = p.ID
+	}
+	if p.Name != nil {
+		objectMap["name"] = p.Name
+	}
+	if p.Type != nil {
+		objectMap["type"] = p.Type
+	}
+	if p.Etag != nil {
+		objectMap["etag"] = p.Etag
+	}
+	return json.Marshal(objectMap)
+}
+
 // UnmarshalJSON is the custom unmarshaler for Pool struct.
 func (p *Pool) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -1832,12 +1903,11 @@ func (p *Pool) UnmarshalJSON(body []byte) error {
 // PoolCreateFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type PoolCreateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future PoolCreateFuture) Result(client PoolClient) (p Pool, err error) {
+func (future *PoolCreateFuture) Result(client PoolClient) (p Pool, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1845,34 +1915,15 @@ func (future PoolCreateFuture) Result(client PoolClient) (p Pool, err error) {
 		return
 	}
 	if !done {
-		return p, azure.NewAsyncOpIncompleteError("batch.PoolCreateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		p, err = client.CreateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "batch.PoolCreateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("batch.PoolCreateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if p.Response.Response, err = future.GetResult(sender); err == nil && p.Response.Response.StatusCode != http.StatusNoContent {
+		p, err = client.CreateResponder(p.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "batch.PoolCreateFuture", "Result", p.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "batch.PoolCreateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	p, err = client.CreateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "batch.PoolCreateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -1880,12 +1931,11 @@ func (future PoolCreateFuture) Result(client PoolClient) (p Pool, err error) {
 // PoolDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type PoolDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future PoolDeleteFuture) Result(client PoolClient) (ar autorest.Response, err error) {
+func (future *PoolDeleteFuture) Result(client PoolClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -1893,35 +1943,10 @@ func (future PoolDeleteFuture) Result(client PoolClient) (ar autorest.Response, 
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("batch.PoolDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "batch.PoolDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("batch.PoolDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "batch.PoolDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "batch.PoolDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 

@@ -1,9 +1,8 @@
-package dockerfile
+package dockerfile // import "github.com/docker/docker/builder/dockerfile"
 
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"runtime"
 	"testing"
 
@@ -13,9 +12,10 @@ import (
 	"github.com/docker/docker/builder"
 	"github.com/docker/docker/builder/remotecontext"
 	"github.com/docker/docker/pkg/archive"
-	"github.com/docker/docker/pkg/idtools"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/docker/go-connections/nat"
+	"github.com/gotestyourself/gotestyourself/assert"
+	is "github.com/gotestyourself/gotestyourself/assert/cmp"
+	"github.com/gotestyourself/gotestyourself/skip"
 )
 
 func TestEmptyDockerfile(t *testing.T) {
@@ -61,8 +61,9 @@ func TestNonExistingDockerfile(t *testing.T) {
 }
 
 func readAndCheckDockerfile(t *testing.T, testName, contextDir, dockerfilePath, expectedError string) {
+	skip.IfCondition(t, os.Getuid() != 0, "skipping test that requires root")
 	tarStream, err := archive.Tar(contextDir, archive.Uncompressed)
-	require.NoError(t, err)
+	assert.NilError(t, err)
 
 	defer func() {
 		if err = tarStream.Close(); err != nil {
@@ -79,7 +80,7 @@ func readAndCheckDockerfile(t *testing.T, testName, contextDir, dockerfilePath, 
 		Source:  tarStream,
 	}
 	_, _, err = remotecontext.Detect(config)
-	assert.EqualError(t, err, expectedError)
+	assert.Check(t, is.Error(err, expectedError))
 }
 
 func TestCopyRunConfig(t *testing.T) {
@@ -103,7 +104,7 @@ func TestCopyRunConfig(t *testing.T) {
 			doc:       "Set the command to a comment",
 			modifiers: []runConfigModifier{withCmdComment("comment", runtime.GOOS)},
 			expected: &container.Config{
-				Cmd: append(defaultShellForPlatform(runtime.GOOS), "#(nop) ", "comment"),
+				Cmd: append(defaultShellForOS(runtime.GOOS), "#(nop) ", "comment"),
 				Env: defaultEnv,
 			},
 		},
@@ -126,136 +127,47 @@ func TestCopyRunConfig(t *testing.T) {
 			Env: defaultEnv,
 		}
 		runConfigCopy := copyRunConfig(runConfig, testcase.modifiers...)
-		assert.Equal(t, testcase.expected, runConfigCopy, testcase.doc)
+		assert.Check(t, is.DeepEqual(testcase.expected, runConfigCopy), testcase.doc)
 		// Assert the original was not modified
-		assert.NotEqual(t, runConfig, runConfigCopy, testcase.doc)
+		assert.Check(t, runConfig != runConfigCopy, testcase.doc)
 	}
 
 }
 
-func TestChownFlagParsing(t *testing.T) {
-	testFiles := map[string]string{
-		"passwd": `root:x:0:0::/bin:/bin/false
-bin:x:1:1::/bin:/bin/false
-wwwwww:x:21:33::/bin:/bin/false
-unicorn:x:1001:1002::/bin:/bin/false
-		`,
-		"group": `root:x:0:
-bin:x:1:
-wwwwww:x:33:
-unicorn:x:1002:
-somegrp:x:5555:
-othergrp:x:6666:
-		`,
-	}
-	// test mappings for validating use of maps
-	idMaps := []idtools.IDMap{
-		{
-			ContainerID: 0,
-			HostID:      100000,
-			Size:        65536,
+func fullMutableRunConfig() *container.Config {
+	return &container.Config{
+		Cmd: []string{"command", "arg1"},
+		Env: []string{"env1=foo", "env2=bar"},
+		ExposedPorts: nat.PortSet{
+			"1000/tcp": {},
+			"1001/tcp": {},
 		},
+		Volumes: map[string]struct{}{
+			"one": {},
+			"two": {},
+		},
+		Entrypoint: []string{"entry", "arg1"},
+		OnBuild:    []string{"first", "next"},
+		Labels: map[string]string{
+			"label1": "value1",
+			"label2": "value2",
+		},
+		Shell: []string{"shell", "-c"},
 	}
-	remapped := idtools.NewIDMappingsFromMaps(idMaps, idMaps)
-	unmapped := &idtools.IDMappings{}
+}
 
-	contextDir, cleanup := createTestTempDir(t, "", "builder-chown-parse-test")
-	defer cleanup()
+func TestDeepCopyRunConfig(t *testing.T) {
+	runConfig := fullMutableRunConfig()
+	copy := copyRunConfig(runConfig)
+	assert.Check(t, is.DeepEqual(fullMutableRunConfig(), copy))
 
-	if err := os.Mkdir(filepath.Join(contextDir, "etc"), 0755); err != nil {
-		t.Fatalf("error creating test directory: %v", err)
-	}
-
-	for filename, content := range testFiles {
-		createTestTempFile(t, filepath.Join(contextDir, "etc"), filename, content, 0644)
-	}
-
-	// positive tests
-	for _, testcase := range []struct {
-		name      string
-		chownStr  string
-		idMapping *idtools.IDMappings
-		expected  idtools.IDPair
-	}{
-		{
-			name:      "UIDNoMap",
-			chownStr:  "1",
-			idMapping: unmapped,
-			expected:  idtools.IDPair{UID: 1, GID: 1},
-		},
-		{
-			name:      "UIDGIDNoMap",
-			chownStr:  "0:1",
-			idMapping: unmapped,
-			expected:  idtools.IDPair{UID: 0, GID: 1},
-		},
-		{
-			name:      "UIDWithMap",
-			chownStr:  "0",
-			idMapping: remapped,
-			expected:  idtools.IDPair{UID: 100000, GID: 100000},
-		},
-		{
-			name:      "UIDGIDWithMap",
-			chownStr:  "1:33",
-			idMapping: remapped,
-			expected:  idtools.IDPair{UID: 100001, GID: 100033},
-		},
-		{
-			name:      "UserNoMap",
-			chownStr:  "bin:5555",
-			idMapping: unmapped,
-			expected:  idtools.IDPair{UID: 1, GID: 5555},
-		},
-		{
-			name:      "GroupWithMap",
-			chownStr:  "0:unicorn",
-			idMapping: remapped,
-			expected:  idtools.IDPair{UID: 100000, GID: 101002},
-		},
-		{
-			name:      "UserOnlyWithMap",
-			chownStr:  "unicorn",
-			idMapping: remapped,
-			expected:  idtools.IDPair{UID: 101001, GID: 101002},
-		},
-	} {
-		t.Run(testcase.name, func(t *testing.T) {
-			idPair, err := parseChownFlag(testcase.chownStr, contextDir, testcase.idMapping)
-			require.NoError(t, err, "Failed to parse chown flag: %q", testcase.chownStr)
-			assert.Equal(t, testcase.expected, idPair, "chown flag mapping failure")
-		})
-	}
-
-	// error tests
-	for _, testcase := range []struct {
-		name      string
-		chownStr  string
-		idMapping *idtools.IDMappings
-		descr     string
-	}{
-		{
-			name:      "BadChownFlagFormat",
-			chownStr:  "bob:1:555",
-			idMapping: unmapped,
-			descr:     "invalid chown string format: bob:1:555",
-		},
-		{
-			name:      "UserNoExist",
-			chownStr:  "bob",
-			idMapping: unmapped,
-			descr:     "can't find uid for user bob: no such user: bob",
-		},
-		{
-			name:      "GroupNoExist",
-			chownStr:  "root:bob",
-			idMapping: unmapped,
-			descr:     "can't find gid for group bob: no such group: bob",
-		},
-	} {
-		t.Run(testcase.name, func(t *testing.T) {
-			_, err := parseChownFlag(testcase.chownStr, contextDir, testcase.idMapping)
-			assert.EqualError(t, err, testcase.descr, "Expected error string doesn't match")
-		})
-	}
+	copy.Cmd[1] = "arg2"
+	copy.Env[1] = "env2=new"
+	copy.ExposedPorts["10002"] = struct{}{}
+	copy.Volumes["three"] = struct{}{}
+	copy.Entrypoint[1] = "arg2"
+	copy.OnBuild[0] = "start"
+	copy.Labels["label3"] = "value3"
+	copy.Shell[0] = "sh"
+	assert.Check(t, is.DeepEqual(fullMutableRunConfig(), runConfig))
 }

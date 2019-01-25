@@ -1,5 +1,122 @@
 # CHANGELOG
 
+## v10.14.0
+
+### New Features
+
+- Added package version that contains version constants and user-agent data.
+
+### Bug Fixes
+
+- Add the user-agent to token requests.
+
+## v10.13.0
+
+- Added support for additionalInfo in ServiceError type.
+
+## v10.12.0
+
+### New Features
+
+- Added field ServicePrincipalToken.MaxMSIRefreshAttempts to configure the maximun number of attempts to refresh an MSI token.
+
+## v10.11.4
+
+### Bug Fixes
+
+- If an LRO returns http.StatusOK on the initial response with no async headers return the response body from Future.GetResult().
+- If there is no "final GET URL" return an error from Future.GetResult().
+
+## v10.11.3
+
+### Bug Fixes
+
+- In IMDS retry logic, if we don't receive a response don't retry.
+  - Renamed the retry function so it's clear it's meant for IMDS only.
+- For error response bodies that aren't OData-v4 compliant stick the raw JSON in the ServiceError.Details field so the information isn't lost.
+  - Also add the raw HTTP response to the DetailedResponse.
+- Removed superfluous wrapping of response error in azure.DoRetryWithRegistration().
+
+## v10.11.2
+
+### Bug Fixes
+
+- Validation for integers handles int and int64 types.
+
+## v10.11.1
+
+### Bug Fixes
+
+- Adding User information to authorization config as parsed from CLI cache.
+
+## v10.11.0
+
+### New Features
+
+- Added NewServicePrincipalTokenFromManualTokenSecret for creating a new SPT using a manual token and secret
+- Added method ServicePrincipalToken.MarshalTokenJSON() to marshall the inner Token
+
+## v10.10.0
+
+### New Features
+
+- Most ServicePrincipalTokens can now be marshalled/unmarshall to/from JSON (ServicePrincipalCertificateSecret and ServicePrincipalMSISecret are not supported).
+- Added method ServicePrincipalToken.SetRefreshCallbacks().
+
+## v10.9.2
+
+### Bug Fixes
+
+- Refreshing a refresh token obtained from a web app authorization code now works.
+
+## v10.9.1
+
+### Bug Fixes
+
+- The retry logic for MSI token requests now uses exponential backoff per the guidelines.
+- IsTemporaryNetworkError() will return true for errors that don't implement the net.Error interface.
+
+## v10.9.0
+
+### Deprecated Methods
+
+| Old Method | New Method |
+|-------------:|:-----------:|
+|azure.NewFuture() | azure.NewFutureFromResponse()|
+|Future.WaitForCompletion() | Future.WaitForCompletionRef()|
+
+### New Features
+
+- Added azure.NewFutureFromResponse() for creating a Future from the initial response from an async operation.
+- Added Future.GetResult() for making the final GET call to retrieve the result from an async operation.
+
+### Bug Fixes
+
+- Some futures failed to return their results, this should now be fixed.
+
+## v10.8.2
+
+### Bug Fixes
+
+- Add nil-gaurd to token retry logic.
+
+## v10.8.1
+
+### Bug Fixes
+
+- Return a TokenRefreshError if the sender fails on the initial request.
+- Don't retry on non-temporary network errors.
+
+## v10.8.0
+
+- Added NewAuthorizerFromEnvironmentWithResource() helper function.
+
+## v10.7.0
+
+### New Features
+
+- Added *WithContext() methods to ADAL token refresh operations.
+
 ## v10.6.2
 
 - Fixed a bug on device authentication.

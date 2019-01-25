@@ -1,7 +1,6 @@
 package libnetwork
 
 import (
-	"container/heap"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -75,6 +74,7 @@ type endpoint struct {
 	dbIndex           uint64
 	dbExists          bool
 	serviceEnabled    bool
+	loadBalancer      bool
 	sync.Mutex
 }
 
@@ -101,6 +101,7 @@ func (ep *endpoint) MarshalJSON() ([]byte, error) {
 	epMap["virtualIP"] = ep.virtualIP.String()
 	epMap["ingressPorts"] = ep.ingressPorts
 	epMap["svcAliases"] = ep.svcAliases
+	epMap["loadBalancer"] = ep.loadBalancer
 
 	return json.Marshal(epMap)
 }
@@ -201,6 +202,10 @@ func (ep *endpoint) UnmarshalJSON(b []byte) (err error) {
 		ep.virtualIP = net.ParseIP(vip.(string))
 	}
 
+	if v, ok := epMap["loadBalancer"]; ok {
+		ep.loadBalancer = v.(bool)
+	}
+
 	sal, _ := json.Marshal(epMap["svcAliases"])
 	var svcAliases []string
 	json.Unmarshal(sal, &svcAliases)
@@ -238,6 +243,7 @@ func (ep *endpoint) CopyTo(o datastore.KVObject) error {
 	dstEp.svcName = ep.svcName
 	dstEp.svcID = ep.svcID
 	dstEp.virtualIP = ep.virtualIP
+	dstEp.loadBalancer = ep.loadBalancer
 
 	dstEp.svcAliases = make([]string, len(ep.svcAliases))
 	copy(dstEp.svcAliases, ep.svcAliases)
@@ -304,16 +310,25 @@ func (ep *endpoint) isAnonymous() bool {
 	return ep.anonymous
 }
 
-// enableService sets ep's serviceEnabled to the passed value if it's not in the
-// current state and returns true; false otherwise.
-func (ep *endpoint) enableService(state bool) bool {
+// isServiceEnabled check if service is enabled on the endpoint
+func (ep *endpoint) isServiceEnabled() bool {
 	ep.Lock()
 	defer ep.Unlock()
-	if ep.serviceEnabled != state {
-		ep.serviceEnabled = state
-		return true
-	}
-	return false
+	return ep.serviceEnabled
+}
+
+// enableService sets service enabled on the endpoint
+func (ep *endpoint) enableService() {
+	ep.Lock()
+	defer ep.Unlock()
+	ep.serviceEnabled = true
+}
+
+// disableService disables service on the endpoint
+func (ep *endpoint) disableService() {
+	ep.Lock()
+	defer ep.Unlock()
+	ep.serviceEnabled = false
 }
 
 func (ep *endpoint) needResolver() bool {
@@ -498,9 +513,7 @@ func (ep *endpoint) sbJoin(sb *sandbox, options ...EndpointOption) (err error) {
 	// Current endpoint providing external connectivity for the sandbox
 	extEp := sb.getGatewayEndpoint()
 
-	sb.Lock()
-	heap.Push(&sb.endpoints, ep)
-	sb.Unlock()
+	sb.addEndpoint(ep)
 	defer func() {
 		if err != nil {
 			sb.removeEndpoint(ep)
@@ -526,6 +539,12 @@ func (ep *endpoint) sbJoin(sb *sandbox, options ...EndpointOption) (err error) {
 			}
 		}
 	}()
+
+	// Load balancing endpoints should never have a default gateway nor
+	// should they alter the status of a network's default gateway
+	if ep.loadBalancer && !sb.ingress {
+		return nil
+	}
 
 	if sb.needDefaultGW() && sb.getEndpointInGWNetwork() == nil {
 		return sb.setupDefaultGW()
@@ -604,7 +623,7 @@ func (ep *endpoint) rename(name string) error {
 	}
 
 	if c.isAgent() {
-		if err = ep.deleteServiceInfoFromCluster(sb, "rename"); err != nil {
+		if err = ep.deleteServiceInfoFromCluster(sb, true, "rename"); err != nil {
 			return types.InternalErrorf("Could not delete service state for endpoint %s from cluster on rename: %v", ep.Name(), err)
 		}
 	} else {
@@ -628,7 +647,7 @@ func (ep *endpoint) rename(name string) error {
 		}
 		defer func() {
 			if err != nil {
-				ep.deleteServiceInfoFromCluster(sb, "rename")
+				ep.deleteServiceInfoFromCluster(sb, true, "rename")
 				ep.name = oldName
 				ep.anonymous = oldAnonymous
 				ep.addServiceInfoToCluster(sb)
@@ -739,8 +758,12 @@ func (ep *endpoint) sbLeave(sb *sandbox, force bool, options ...EndpointOption) 
 		}
 	}
 
+	if err := ep.deleteServiceInfoFromCluster(sb, true, "sbLeave"); err != nil {
+		logrus.Warnf("Failed to clean up service info on container %s disconnect: %v", ep.name, err)
+	}
+
 	if err := sb.clearNetworkResources(ep); err != nil {
-		logrus.Warnf("Could not cleanup network resources on container %s disconnect: %v", ep.name, err)
+		logrus.Warnf("Failed to clean up network resources on container %s disconnect: %v", ep.name, err)
 	}
 
 	// Update the store about the sandbox detach only after we
@@ -752,12 +775,8 @@ func (ep *endpoint) sbLeave(sb *sandbox, force bool, options ...EndpointOption) 
 		return err
 	}
 
-	if e := ep.deleteServiceInfoFromCluster(sb, "sbLeave"); e != nil {
-		logrus.Errorf("Could not delete service state for endpoint %s from cluster: %v", ep.Name(), e)
-	}
-
 	if e := ep.deleteDriverInfoFromCluster(); e != nil {
-		logrus.Errorf("Could not delete endpoint state for endpoint %s from cluster: %v", ep.Name(), e)
+		logrus.Errorf("Failed to delete endpoint state for endpoint %s from cluster: %v", ep.Name(), e)
 	}
 
 	sb.deleteHostsEntries(n.getSvcRecords(ep))
@@ -985,7 +1004,7 @@ func CreateOptionDisableResolution() EndpointOption {
 	}
 }
 
-//CreateOptionAlias function returns an option setter for setting endpoint alias
+// CreateOptionAlias function returns an option setter for setting endpoint alias
 func CreateOptionAlias(name string, alias string) EndpointOption {
 	return func(ep *endpoint) {
 		if ep.aliases == nil {
@@ -1006,10 +1025,17 @@ func CreateOptionService(name, id string, vip net.IP, ingressPorts []*PortConfig
 	}
 }
 
-//CreateOptionMyAlias function returns an option setter for setting endpoint's self alias
+// CreateOptionMyAlias function returns an option setter for setting endpoint's self alias
 func CreateOptionMyAlias(alias string) EndpointOption {
 	return func(ep *endpoint) {
 		ep.myAliases = append(ep.myAliases, alias)
+	}
+}
+
+// CreateOptionLoadBalancer function returns an option setter for denoting the endpoint is a load balancer for a network
+func CreateOptionLoadBalancer() EndpointOption {
+	return func(ep *endpoint) {
+		ep.loadBalancer = true
 	}
 }
 

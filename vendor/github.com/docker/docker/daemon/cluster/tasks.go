@@ -1,12 +1,13 @@
-package cluster
+package cluster // import "github.com/docker/docker/daemon/cluster"
 
 import (
+	"context"
+
 	apitypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	types "github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/daemon/cluster/convert"
 	swarmapi "github.com/docker/swarmkit/api"
-	"golang.org/x/net/context"
 )
 
 // GetTasks returns a list of tasks matching the filter options.
@@ -15,7 +16,7 @@ func (c *Cluster) GetTasks(options apitypes.TaskListOptions) ([]types.Task, erro
 
 	if err := c.lockedManagerAction(func(ctx context.Context, state nodeState) error {
 		filterTransform := func(filter filters.Args) error {
-			if filter.Include("service") {
+			if filter.Contains("service") {
 				serviceFilters := filter.Get("service")
 				for _, serviceFilter := range serviceFilters {
 					service, err := getService(ctx, state.controlClient, serviceFilter, false)
@@ -26,7 +27,7 @@ func (c *Cluster) GetTasks(options apitypes.TaskListOptions) ([]types.Task, erro
 					filter.Add("service", service.ID)
 				}
 			}
-			if filter.Include("node") {
+			if filter.Contains("node") {
 				nodeFilters := filter.Get("node")
 				for _, nodeFilter := range nodeFilters {
 					node, err := getNode(ctx, state.controlClient, nodeFilter)
@@ -37,7 +38,7 @@ func (c *Cluster) GetTasks(options apitypes.TaskListOptions) ([]types.Task, erro
 					filter.Add("node", node.ID)
 				}
 			}
-			if !filter.Include("runtime") {
+			if !filter.Contains("runtime") {
 				// default to only showing container tasks
 				filter.Add("runtime", "container")
 				filter.Add("runtime", "")

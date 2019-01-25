@@ -38,6 +38,11 @@ const (
 	Send AccessRights = "Send"
 )
 
+// PossibleAccessRightsValues returns an array of possible values for the AccessRights const type.
+func PossibleAccessRightsValues() []AccessRights {
+	return []AccessRights{Listen, Manage, Send}
+}
+
 // PolicyKey enumerates the values for policy key.
 type PolicyKey string
 
@@ -48,6 +53,11 @@ const (
 	SecondaryKey PolicyKey = "SecondaryKey"
 )
 
+// PossiblePolicyKeyValues returns an array of possible values for the PolicyKey const type.
+func PossiblePolicyKeyValues() []PolicyKey {
+	return []PolicyKey{PrimaryKey, SecondaryKey}
+}
+
 // RelaytypeEnum enumerates the values for relaytype enum.
 type RelaytypeEnum string
 
@@ -57,6 +67,11 @@ const (
 	// NetTCP ...
 	NetTCP RelaytypeEnum = "NetTcp"
 )
+
+// PossibleRelaytypeEnumValues returns an array of possible values for the RelaytypeEnum const type.
+func PossibleRelaytypeEnumValues() []RelaytypeEnum {
+	return []RelaytypeEnum{HTTP, NetTCP}
+}
 
 // UnavailableReason enumerates the values for unavailable reason.
 type UnavailableReason string
@@ -76,6 +91,11 @@ const (
 	TooManyNamespaceInCurrentSubscription UnavailableReason = "TooManyNamespaceInCurrentSubscription"
 )
 
+// PossibleUnavailableReasonValues returns an array of possible values for the UnavailableReason const type.
+func PossibleUnavailableReasonValues() []UnavailableReason {
+	return []UnavailableReason{InvalidName, NameInLockdown, NameInUse, None, SubscriptionIsDisabled, TooManyNamespaceInCurrentSubscription}
+}
+
 // AuthorizationRule description of a Namespace AuthorizationRules.
 type AuthorizationRule struct {
 	autorest.Response `json:"-"`
@@ -87,6 +107,24 @@ type AuthorizationRule struct {
 	Name *string `json:"name,omitempty"`
 	// Type - Resource type
 	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for AuthorizationRule.
+func (ar AuthorizationRule) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if ar.AuthorizationRuleProperties != nil {
+		objectMap["properties"] = ar.AuthorizationRuleProperties
+	}
+	if ar.ID != nil {
+		objectMap["id"] = ar.ID
+	}
+	if ar.Name != nil {
+		objectMap["name"] = ar.Name
+	}
+	if ar.Type != nil {
+		objectMap["type"] = ar.Type
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for AuthorizationRule struct.
@@ -300,6 +338,24 @@ type HybridConnection struct {
 	Name *string `json:"name,omitempty"`
 	// Type - Resource type
 	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for HybridConnection.
+func (hc HybridConnection) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if hc.HybridConnectionProperties != nil {
+		objectMap["properties"] = hc.HybridConnectionProperties
+	}
+	if hc.ID != nil {
+		objectMap["id"] = hc.ID
+	}
+	if hc.Name != nil {
+		objectMap["name"] = hc.Name
+	}
+	if hc.Type != nil {
+		objectMap["type"] = hc.Type
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for HybridConnection struct.
@@ -713,12 +769,11 @@ type NamespaceProperties struct {
 // operation.
 type NamespacesCreateOrUpdateFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future NamespacesCreateOrUpdateFuture) Result(client NamespacesClient) (n Namespace, err error) {
+func (future *NamespacesCreateOrUpdateFuture) Result(client NamespacesClient) (n Namespace, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -726,34 +781,15 @@ func (future NamespacesCreateOrUpdateFuture) Result(client NamespacesClient) (n 
 		return
 	}
 	if !done {
-		return n, azure.NewAsyncOpIncompleteError("relay.NamespacesCreateOrUpdateFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		n, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "relay.NamespacesCreateOrUpdateFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("relay.NamespacesCreateOrUpdateFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if n.Response.Response, err = future.GetResult(sender); err == nil && n.Response.Response.StatusCode != http.StatusNoContent {
+		n, err = client.CreateOrUpdateResponder(n.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "relay.NamespacesCreateOrUpdateFuture", "Result", n.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "relay.NamespacesCreateOrUpdateFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	n, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "relay.NamespacesCreateOrUpdateFuture", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -761,12 +797,11 @@ func (future NamespacesCreateOrUpdateFuture) Result(client NamespacesClient) (n 
 // NamespacesDeleteFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type NamespacesDeleteFuture struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future NamespacesDeleteFuture) Result(client NamespacesClient) (ar autorest.Response, err error) {
+func (future *NamespacesDeleteFuture) Result(client NamespacesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -774,35 +809,10 @@ func (future NamespacesDeleteFuture) Result(client NamespacesClient) (ar autores
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("relay.NamespacesDeleteFuture")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "relay.NamespacesDeleteFuture", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("relay.NamespacesDeleteFuture")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "relay.NamespacesDeleteFuture", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "relay.NamespacesDeleteFuture", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 
@@ -1017,6 +1027,24 @@ type WcfRelay struct {
 	Name *string `json:"name,omitempty"`
 	// Type - Resource type
 	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for WcfRelay.
+func (wr WcfRelay) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if wr.WcfRelayProperties != nil {
+		objectMap["properties"] = wr.WcfRelayProperties
+	}
+	if wr.ID != nil {
+		objectMap["id"] = wr.ID
+	}
+	if wr.Name != nil {
+		objectMap["name"] = wr.Name
+	}
+	if wr.Type != nil {
+		objectMap["type"] = wr.Type
+	}
+	return json.Marshal(objectMap)
 }
 
 // UnmarshalJSON is the custom unmarshaler for WcfRelay struct.

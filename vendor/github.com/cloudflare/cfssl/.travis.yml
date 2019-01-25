@@ -21,7 +21,7 @@ services:
   - postgresql
 before_install:
   # CFSSL consists of multiple Go packages, which refer to each other by
-  # their absolute GitHub path, e.g. github.com/cloudflare/crypto/pkcs11key.
+  # their absolute GitHub path, e.g. github.com/cloudflare/crypto/pkcs7.
   # That means, by default, if someone forks the repo and makes changes across
   # multiple packages within CFSSL, Travis won't pass for the branch on their
   # own repo. To fix that, we move the directory
@@ -39,13 +39,8 @@ branches:
     - /^test-.*$/
 
 before_script:
-  - go get golang.org/x/tools/cmd/goimports
-  - go get github.com/onsi/gomega
-  - go get github.com/onsi/ginkgo
   - go get -u github.com/golang/lint/golint
-  - go get github.com/modocache/gover
   - go get -v github.com/GeertJohan/fgt
-  - go get -u honnef.co/go/tools/cmd/staticcheck
   # Setup DBs + run migrations
   - go get bitbucket.org/liamstask/goose/cmd/goose
   - if [[ $(uname -s) == 'Linux' ]]; then
@@ -59,9 +54,9 @@ script:
 notifications:
   email:
     recipients:
-    - nick@cloudflare.com
-    - zi@cloudflare.com
+    - cbroglie@cloudflare.com
     - kyle@cloudflare.com
+    - nick@cloudflare.com
     on_success: never
     on_failure: change
 env:

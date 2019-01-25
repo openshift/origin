@@ -1,7 +1,8 @@
-package client
+package client // import "github.com/docker/docker/client"
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -11,8 +12,8 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
-	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
+	"github.com/gotestyourself/gotestyourself/assert"
+	is "github.com/gotestyourself/gotestyourself/assert/cmp"
 )
 
 func TestSecretCreateUnsupported(t *testing.T) {
@@ -21,7 +22,7 @@ func TestSecretCreateUnsupported(t *testing.T) {
 		client:  &http.Client{},
 	}
 	_, err := client.SecretCreate(context.Background(), swarm.SecretSpec{})
-	assert.EqualError(t, err, `"secret create" requires API version 1.25, but the Docker daemon API version is 1.24`)
+	assert.Check(t, is.Error(err, `"secret create" requires API version 1.25, but the Docker daemon API version is 1.24`))
 }
 
 func TestSecretCreateError(t *testing.T) {

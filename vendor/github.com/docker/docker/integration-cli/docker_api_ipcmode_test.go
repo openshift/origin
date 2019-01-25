@@ -3,6 +3,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -12,9 +13,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/integration-cli/checker"
 	"github.com/docker/docker/integration-cli/cli"
-	"github.com/docker/docker/integration-cli/request"
 	"github.com/go-check/check"
-	"golang.org/x/net/context"
 )
 
 /* testIpcCheckDevExists checks whether a given mount (identified by its
@@ -44,11 +43,7 @@ func testIpcCheckDevExists(mm string) (bool, error) {
 		}
 	}
 
-	if err := s.Err(); err != nil {
-		return false, err
-	}
-
-	return false, nil
+	return false, s.Err()
 }
 
 // testIpcNonePrivateShareable is a helper function to test "none",
@@ -63,8 +58,7 @@ func testIpcNonePrivateShareable(c *check.C, mode string, mustBeMounted bool, mu
 	}
 	ctx := context.Background()
 
-	client, err := request.NewClient()
-	c.Assert(err, checker.IsNil)
+	client := testEnv.APIClient()
 
 	resp, err := client.ContainerCreate(ctx, &cfg, &hostCfg, nil, "")
 	c.Assert(err, checker.IsNil)
@@ -94,7 +88,7 @@ func testIpcNonePrivateShareable(c *check.C, mode string, mustBeMounted bool, mu
  * /dev/shm mount inside the container.
  */
 func (s *DockerSuite) TestAPIIpcModeNone(c *check.C) {
-	testRequires(c, DaemonIsLinux)
+	testRequires(c, DaemonIsLinux, MinimumAPIVersion("1.32"))
 	testIpcNonePrivateShareable(c, "none", false, false)
 }
 
@@ -129,8 +123,7 @@ func testIpcContainer(s *DockerSuite, c *check.C, donorMode string, mustWork boo
 	}
 	ctx := context.Background()
 
-	client, err := request.NewClient()
-	c.Assert(err, checker.IsNil)
+	client := testEnv.APIClient()
 
 	// create and start the "donor" container
 	resp, err := client.ContainerCreate(ctx, &cfg, &hostCfg, nil, "")
@@ -180,7 +173,7 @@ func (s *DockerSuite) TestAPIIpcModeShareableAndContainer(c *check.C) {
  * --ipc container:ID can NOT use IPC of another private container.
  */
 func (s *DockerSuite) TestAPIIpcModePrivateAndContainer(c *check.C) {
-	testRequires(c, DaemonIsLinux)
+	testRequires(c, DaemonIsLinux, MinimumAPIVersion("1.32"))
 	testIpcContainer(s, c, "private", false)
 }
 
@@ -199,9 +192,7 @@ func (s *DockerSuite) TestAPIIpcModeHost(c *check.C) {
 	}
 	ctx := context.Background()
 
-	client, err := request.NewClient()
-	c.Assert(err, checker.IsNil)
-
+	client := testEnv.APIClient()
 	resp, err := client.ContainerCreate(ctx, &cfg, &hostCfg, nil, "")
 	c.Assert(err, checker.IsNil)
 	c.Assert(len(resp.Warnings), checker.Equals, 0)

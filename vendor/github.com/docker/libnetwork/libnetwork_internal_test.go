@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/libnetwork/common"
 	"github.com/docker/libnetwork/datastore"
 	"github.com/docker/libnetwork/discoverapi"
 	"github.com/docker/libnetwork/driverapi"
+	"github.com/docker/libnetwork/internal/setmatrix"
 	"github.com/docker/libnetwork/ipamapi"
 	"github.com/docker/libnetwork/netlabel"
 	"github.com/docker/libnetwork/netutils"
@@ -383,9 +383,9 @@ func TestSRVServiceQuery(t *testing.T) {
 	}
 
 	sr := svcInfo{
-		svcMap:     common.NewSetMatrix(),
-		svcIPv6Map: common.NewSetMatrix(),
-		ipMap:      common.NewSetMatrix(),
+		svcMap:     setmatrix.NewSetMatrix(),
+		svcIPv6Map: setmatrix.NewSetMatrix(),
+		ipMap:      setmatrix.NewSetMatrix(),
 		service:    make(map[string][]servicePorts),
 	}
 	// backing container for the service
@@ -601,7 +601,7 @@ func TestIpamReleaseOnNetDriverFailures(t *testing.T) {
 	}
 
 	// Now create good bridge network with different gateway
-	ipamOpt2 := NetworkOptionIpam(ipamapi.DefaultIPAM, "", []*IpamConf{{PreferredPool: "10.34.0.0/16", Gateway: "10.34.255.253"}}, nil, nil)
+	ipamOpt2 := NetworkOptionIpam(ipamapi.DefaultIPAM, "", []*IpamConf{{PreferredPool: "10.35.0.0/16", Gateway: "10.35.255.253"}}, nil, nil)
 	gnw, err = c.NewNetwork("bridge", "goodnet2", "", ipamOpt2)
 	if err != nil {
 		t.Fatal(err)
@@ -614,7 +614,7 @@ func TestIpamReleaseOnNetDriverFailures(t *testing.T) {
 	}
 	defer ep.Delete(false)
 
-	expectedIP, _ := types.ParseCIDR("10.34.0.1/16")
+	expectedIP, _ := types.ParseCIDR("10.35.0.1/16")
 	if !types.CompareIPNet(ep.Info().Iface().Address(), expectedIP) {
 		t.Fatalf("Ipam release must have failed, endpoint has unexpected address: %v", ep.Info().Iface().Address())
 	}

@@ -32,7 +32,7 @@ var staticSuites = []*ginkgo.TestSuite{
 			return strings.Contains(name, "[Suite:openshift/conformance/parallel")
 		},
 		Parallelism:          30,
-		MaximumAllowedFlakes: 5,
+		MaximumAllowedFlakes: 15,
 	},
 	{
 		Name: "openshift/conformance/serial",

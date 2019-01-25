@@ -13,6 +13,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -82,6 +84,8 @@ func TestServiceAccountAuthorization(t *testing.T) {
 		RoleKind:   "ClusterRole",
 		RbacClient: rbacv1client.NewForConfigOrDie(cluster1AdminConfig),
 		Users:      []string{saUsername},
+		PrintFlags: genericclioptions.NewPrintFlags(""),
+		ToPrinter:  func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
 	}
 	if err := addRoleOptions.AddRole(); err != nil {
 		t.Fatal(err)

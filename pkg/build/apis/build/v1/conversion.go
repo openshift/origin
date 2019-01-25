@@ -174,7 +174,7 @@ func AddConversionFuncs(scheme *runtime.Scheme) error {
 }
 
 func AddFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
-	return scheme.AddFieldLabelConversionFunc(v1.GroupVersion.String(), "Build", buildFieldSelectorKeyConversionFunc)
+	return scheme.AddFieldLabelConversionFunc(v1.GroupVersion.WithKind("Build"), buildFieldSelectorKeyConversionFunc)
 }
 
 func buildFieldSelectorKeyConversionFunc(label, value string) (internalLabel, internalValue string, err error) {

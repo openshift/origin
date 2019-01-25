@@ -22,14 +22,6 @@ package computervision
 import original "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v1.0/computervision"
 
 type BaseClient = original.BaseClient
-
-func New(azureRegion AzureRegions) BaseClient {
-	return original.New(azureRegion)
-}
-func NewWithoutDefaults(azureRegion AzureRegions) BaseClient {
-	return original.NewWithoutDefaults(azureRegion)
-}
-
 type AzureRegions = original.AzureRegions
 
 const (
@@ -52,13 +44,6 @@ type Details = original.Details
 const (
 	Celebrities Details = original.Celebrities
 	Landmarks   Details = original.Landmarks
-)
-
-type DomainModels = original.DomainModels
-
-const (
-	DomainModelsCelebrities DomainModels = original.DomainModelsCelebrities
-	DomainModelsLandmarks   DomainModels = original.DomainModelsLandmarks
 )
 
 type ErrorCodes = original.ErrorCodes
@@ -86,43 +71,36 @@ const (
 	Male   Gender = original.Male
 )
 
-type Language1 = original.Language1
-
-const (
-	En Language1 = original.En
-	Zh Language1 = original.Zh
-)
-
 type OcrLanguages = original.OcrLanguages
 
 const (
-	OcrLanguagesAr     OcrLanguages = original.OcrLanguagesAr
-	OcrLanguagesCs     OcrLanguages = original.OcrLanguagesCs
-	OcrLanguagesDa     OcrLanguages = original.OcrLanguagesDa
-	OcrLanguagesDe     OcrLanguages = original.OcrLanguagesDe
-	OcrLanguagesEl     OcrLanguages = original.OcrLanguagesEl
-	OcrLanguagesEn     OcrLanguages = original.OcrLanguagesEn
-	OcrLanguagesEs     OcrLanguages = original.OcrLanguagesEs
-	OcrLanguagesFi     OcrLanguages = original.OcrLanguagesFi
-	OcrLanguagesFr     OcrLanguages = original.OcrLanguagesFr
-	OcrLanguagesHu     OcrLanguages = original.OcrLanguagesHu
-	OcrLanguagesIt     OcrLanguages = original.OcrLanguagesIt
-	OcrLanguagesJa     OcrLanguages = original.OcrLanguagesJa
-	OcrLanguagesKo     OcrLanguages = original.OcrLanguagesKo
-	OcrLanguagesNb     OcrLanguages = original.OcrLanguagesNb
-	OcrLanguagesNl     OcrLanguages = original.OcrLanguagesNl
-	OcrLanguagesPl     OcrLanguages = original.OcrLanguagesPl
-	OcrLanguagesPt     OcrLanguages = original.OcrLanguagesPt
-	OcrLanguagesRo     OcrLanguages = original.OcrLanguagesRo
-	OcrLanguagesRu     OcrLanguages = original.OcrLanguagesRu
-	OcrLanguagesSk     OcrLanguages = original.OcrLanguagesSk
-	OcrLanguagesSrCyrl OcrLanguages = original.OcrLanguagesSrCyrl
-	OcrLanguagesSrLatn OcrLanguages = original.OcrLanguagesSrLatn
-	OcrLanguagesSv     OcrLanguages = original.OcrLanguagesSv
-	OcrLanguagesTr     OcrLanguages = original.OcrLanguagesTr
-	OcrLanguagesUnk    OcrLanguages = original.OcrLanguagesUnk
-	OcrLanguagesZhHans OcrLanguages = original.OcrLanguagesZhHans
-	OcrLanguagesZhHant OcrLanguages = original.OcrLanguagesZhHant
+	Ar     OcrLanguages = original.Ar
+	Cs     OcrLanguages = original.Cs
+	Da     OcrLanguages = original.Da
+	De     OcrLanguages = original.De
+	El     OcrLanguages = original.El
+	En     OcrLanguages = original.En
+	Es     OcrLanguages = original.Es
+	Fi     OcrLanguages = original.Fi
+	Fr     OcrLanguages = original.Fr
+	Hu     OcrLanguages = original.Hu
+	It     OcrLanguages = original.It
+	Ja     OcrLanguages = original.Ja
+	Ko     OcrLanguages = original.Ko
+	Nb     OcrLanguages = original.Nb
+	Nl     OcrLanguages = original.Nl
+	Pl     OcrLanguages = original.Pl
+	Pt     OcrLanguages = original.Pt
+	Ro     OcrLanguages = original.Ro
+	Ru     OcrLanguages = original.Ru
+	Sk     OcrLanguages = original.Sk
+	SrCyrl OcrLanguages = original.SrCyrl
+	SrLatn OcrLanguages = original.SrLatn
+	Sv     OcrLanguages = original.Sv
+	Tr     OcrLanguages = original.Tr
+	Unk    OcrLanguages = original.Unk
+	ZhHans OcrLanguages = original.ZhHans
+	ZhHant OcrLanguages = original.ZhHant
 )
 
 type TextOperationStatusCodes = original.TextOperationStatusCodes
@@ -150,8 +128,8 @@ type AdultInfo = original.AdultInfo
 type Category = original.Category
 type CategoryDetail = original.CategoryDetail
 type CelebritiesModel = original.CelebritiesModel
+type CelebrityResults = original.CelebrityResults
 type ColorInfo = original.ColorInfo
-type DomainModelResult = original.DomainModelResult
 type DomainModelResults = original.DomainModelResults
 type Error = original.Error
 type FaceDescription = original.FaceDescription
@@ -164,6 +142,8 @@ type ImageMetadata = original.ImageMetadata
 type ImageTag = original.ImageTag
 type ImageType = original.ImageType
 type ImageURL = original.ImageURL
+type LandmarkResults = original.LandmarkResults
+type LandmarkResultsLandmarksItem = original.LandmarkResultsLandmarksItem
 type Line = original.Line
 type ListModelsResult = original.ListModelsResult
 type ModelDescription = original.ModelDescription
@@ -177,6 +157,33 @@ type TagResult = original.TagResult
 type TextOperationResult = original.TextOperationResult
 type Word = original.Word
 
+func New(azureRegion AzureRegions) BaseClient {
+	return original.New(azureRegion)
+}
+func NewWithoutDefaults(azureRegion AzureRegions) BaseClient {
+	return original.NewWithoutDefaults(azureRegion)
+}
+func PossibleAzureRegionsValues() []AzureRegions {
+	return original.PossibleAzureRegionsValues()
+}
+func PossibleDetailsValues() []Details {
+	return original.PossibleDetailsValues()
+}
+func PossibleErrorCodesValues() []ErrorCodes {
+	return original.PossibleErrorCodesValues()
+}
+func PossibleGenderValues() []Gender {
+	return original.PossibleGenderValues()
+}
+func PossibleOcrLanguagesValues() []OcrLanguages {
+	return original.PossibleOcrLanguagesValues()
+}
+func PossibleTextOperationStatusCodesValues() []TextOperationStatusCodes {
+	return original.PossibleTextOperationStatusCodesValues()
+}
+func PossibleVisualFeatureTypesValues() []VisualFeatureTypes {
+	return original.PossibleVisualFeatureTypesValues()
+}
 func UserAgent() string {
 	return original.UserAgent() + " profiles/latest"
 }

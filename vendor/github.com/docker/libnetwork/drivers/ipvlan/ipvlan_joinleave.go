@@ -84,7 +84,7 @@ func (d *driver) Join(nid, eid string, sboxKey string, jinfo driverapi.JoinInfo,
 			}
 			v4gw, _, err := net.ParseCIDR(s.GwIP)
 			if err != nil {
-				return fmt.Errorf("gatway %s is not a valid ipv4 address: %v", s.GwIP, err)
+				return fmt.Errorf("gateway %s is not a valid ipv4 address: %v", s.GwIP, err)
 			}
 			err = jinfo.SetGateway(v4gw)
 			if err != nil {
@@ -101,7 +101,7 @@ func (d *driver) Join(nid, eid string, sboxKey string, jinfo driverapi.JoinInfo,
 			}
 			v6gw, _, err := net.ParseCIDR(s.GwIP)
 			if err != nil {
-				return fmt.Errorf("gatway %s is not a valid ipv6 address: %v", s.GwIP, err)
+				return fmt.Errorf("gateway %s is not a valid ipv6 address: %v", s.GwIP, err)
 			}
 			err = jinfo.SetGatewayIPv6(v6gw)
 			if err != nil {
@@ -117,7 +117,7 @@ func (d *driver) Join(nid, eid string, sboxKey string, jinfo driverapi.JoinInfo,
 		return err
 	}
 	if err = d.storeUpdate(ep); err != nil {
-		return fmt.Errorf("failed to save ipvlan endpoint %s to store: %v", ep.id[0:7], err)
+		return fmt.Errorf("failed to save ipvlan endpoint %.7s to store: %v", ep.id, err)
 	}
 
 	return nil

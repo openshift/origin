@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -15,9 +16,8 @@ import (
 	"github.com/docker/docker/api/types/versions"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/integration-cli/checker"
-	"github.com/docker/docker/integration-cli/request"
+	"github.com/docker/docker/internal/test/request"
 	"github.com/go-check/check"
-	"golang.org/x/net/context"
 )
 
 var expectedNetworkInterfaceStats = strings.Split("rx_bytes rx_dropped rx_errors rx_packets tx_bytes tx_dropped tx_errors tx_packets", " ")
@@ -39,7 +39,7 @@ func (s *DockerSuite) TestAPIStatsNoStreamGetCpu(c *check.C) {
 
 	var cpuPercent = 0.0
 
-	if testEnv.DaemonPlatform() != "windows" {
+	if testEnv.OSType != "windows" {
 		cpuDelta := float64(v.CPUStats.CPUUsage.TotalUsage - v.PreCPUStats.CPUUsage.TotalUsage)
 		systemDelta := float64(v.CPUStats.SystemUsage - v.PreCPUStats.SystemUsage)
 		cpuPercent = (cpuDelta / systemDelta) * float64(len(v.CPUStats.CPUUsage.PercpuUsage)) * 100.0
@@ -105,7 +105,7 @@ func (s *DockerSuite) TestAPIStatsNetworkStats(c *check.C) {
 
 	// Retrieve the container address
 	net := "bridge"
-	if testEnv.DaemonPlatform() == "windows" {
+	if testEnv.OSType == "windows" {
 		net = "nat"
 	}
 	contIP := findContainerIP(c, id, net)
@@ -153,7 +153,7 @@ func (s *DockerSuite) TestAPIStatsNetworkStats(c *check.C) {
 	// On Linux, account for ARP.
 	expRxPkts := preRxPackets + uint64(numPings)
 	expTxPkts := preTxPackets + uint64(numPings)
-	if testEnv.DaemonPlatform() != "windows" {
+	if testEnv.OSType != "windows" {
 		expRxPkts++
 		expTxPkts++
 	}
@@ -285,7 +285,7 @@ func (s *DockerSuite) TestAPIStatsNoStreamConnectedContainers(c *check.C) {
 	id2 := strings.TrimSpace(out2)
 	c.Assert(waitRun(id2), checker.IsNil)
 
-	ch := make(chan error)
+	ch := make(chan error, 1)
 	go func() {
 		resp, body, err := request.Get(fmt.Sprintf("/containers/%s/stats?stream=false", id2))
 		defer body.Close()

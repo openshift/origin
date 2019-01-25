@@ -29,11 +29,13 @@ import (
 
 	gcm "google.golang.org/api/monitoring/v3"
 	"k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/discovery"
 	"k8s.io/kubernetes/test/e2e/framework"
+	cmv1beta1 "k8s.io/metrics/pkg/apis/custom_metrics/v1beta1"
 	customclient "k8s.io/metrics/pkg/client/custom_metrics"
 	externalclient "k8s.io/metrics/pkg/client/external_metrics"
 )
@@ -57,8 +59,10 @@ var _ = instrumentation.SIGDescribe("Stackdriver Monitoring", func() {
 		if err != nil {
 			framework.Failf("Failed to load config: %s", err)
 		}
-		customMetricsClient := customclient.NewForConfigOrDie(config)
 		discoveryClient := discovery.NewDiscoveryClientForConfigOrDie(config)
+		apiVersionsGetter := customclient.NewAvailableAPIsGetter(discoveryClient)
+		restMapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{cmv1beta1.SchemeGroupVersion})
+		customMetricsClient := customclient.NewForConfig(config, restMapper, apiVersionsGetter)
 		testCustomMetrics(f, kubeClient, customMetricsClient, discoveryClient, AdapterForOldResourceModel)
 	})
 
@@ -68,8 +72,10 @@ var _ = instrumentation.SIGDescribe("Stackdriver Monitoring", func() {
 		if err != nil {
 			framework.Failf("Failed to load config: %s", err)
 		}
-		customMetricsClient := customclient.NewForConfigOrDie(config)
 		discoveryClient := discovery.NewDiscoveryClientForConfigOrDie(config)
+		apiVersionsGetter := customclient.NewAvailableAPIsGetter(discoveryClient)
+		restMapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{cmv1beta1.SchemeGroupVersion})
+		customMetricsClient := customclient.NewForConfig(config, restMapper, apiVersionsGetter)
 		testCustomMetrics(f, kubeClient, customMetricsClient, discoveryClient, AdapterForNewResourceModel)
 	})
 
@@ -109,7 +115,10 @@ func testCustomMetrics(f *framework.Framework, kubeClient clientset.Interface, c
 	defer CleanupAdapter(adapterDeployment)
 
 	_, err = kubeClient.RbacV1().ClusterRoleBindings().Create(HPAPermissions)
-	defer kubeClient.RbacV1().ClusterRoleBindings().Delete("custom-metrics-reader", &metav1.DeleteOptions{})
+	if err != nil {
+		framework.Failf("Failed to create ClusterRoleBindings: %v", err)
+	}
+	defer kubeClient.RbacV1().ClusterRoleBindings().Delete(HPAPermissions.Name, &metav1.DeleteOptions{})
 
 	// Run application that exports the metric
 	_, err = createSDExporterPods(f, kubeClient)
@@ -153,7 +162,10 @@ func testExternalMetrics(f *framework.Framework, kubeClient clientset.Interface,
 	defer CleanupAdapter(AdapterForOldResourceModel)
 
 	_, err = kubeClient.RbacV1().ClusterRoleBindings().Create(HPAPermissions)
-	defer kubeClient.RbacV1().ClusterRoleBindings().Delete("custom-metrics-reader", &metav1.DeleteOptions{})
+	if err != nil {
+		framework.Failf("Failed to create ClusterRoleBindings: %v", err)
+	}
+	defer kubeClient.RbacV1().ClusterRoleBindings().Delete(HPAPermissions.Name, &metav1.DeleteOptions{})
 
 	// Run application that exports the metric
 	pod, err := createSDExporterPods(f, kubeClient)
@@ -181,7 +193,7 @@ func verifyResponsesFromCustomMetricsAPI(f *framework.Framework, customMetricsCl
 	if !containsResource(resources.APIResources, "*/custom.googleapis.com|"+UnusedMetricName) {
 		framework.Failf("Metric '%s' expected but not received", UnusedMetricName)
 	}
-	value, err := customMetricsClient.NamespacedMetrics(f.Namespace.Name).GetForObject(schema.GroupKind{Group: "", Kind: "Pod"}, stackdriverExporterPod1, CustomMetricName)
+	value, err := customMetricsClient.NamespacedMetrics(f.Namespace.Name).GetForObject(schema.GroupKind{Group: "", Kind: "Pod"}, stackdriverExporterPod1, CustomMetricName, labels.NewSelector())
 	if err != nil {
 		framework.Failf("Failed query: %s", err)
 	}
@@ -192,7 +204,7 @@ func verifyResponsesFromCustomMetricsAPI(f *framework.Framework, customMetricsCl
 	if err != nil {
 		framework.Failf("Couldn't create a label filter")
 	}
-	values, err := customMetricsClient.NamespacedMetrics(f.Namespace.Name).GetForObjects(schema.GroupKind{Group: "", Kind: "Pod"}, labels.NewSelector().Add(*filter), CustomMetricName)
+	values, err := customMetricsClient.NamespacedMetrics(f.Namespace.Name).GetForObjects(schema.GroupKind{Group: "", Kind: "Pod"}, labels.NewSelector().Add(*filter), CustomMetricName, labels.NewSelector())
 	if err != nil {
 		framework.Failf("Failed query: %s", err)
 	}

@@ -39,6 +39,11 @@ const (
 	Swarm OchestratorTypes = "Swarm"
 )
 
+// PossibleOchestratorTypesValues returns an array of possible values for the OchestratorTypes const type.
+func PossibleOchestratorTypesValues() []OchestratorTypes {
+	return []OchestratorTypes{Custom, DCOS, Kubernetes, Swarm}
+}
+
 // VMSizeTypes enumerates the values for vm size types.
 type VMSizeTypes string
 
@@ -138,6 +143,11 @@ const (
 	// StandardGS5 ...
 	StandardGS5 VMSizeTypes = "Standard_GS5"
 )
+
+// PossibleVMSizeTypesValues returns an array of possible values for the VMSizeTypes const type.
+func PossibleVMSizeTypesValues() []VMSizeTypes {
+	return []VMSizeTypes{StandardA0, StandardA1, StandardA10, StandardA11, StandardA2, StandardA3, StandardA4, StandardA5, StandardA6, StandardA7, StandardA8, StandardA9, StandardD1, StandardD11, StandardD11V2, StandardD12, StandardD12V2, StandardD13, StandardD13V2, StandardD14, StandardD14V2, StandardD1V2, StandardD2, StandardD2V2, StandardD3, StandardD3V2, StandardD4, StandardD4V2, StandardD5V2, StandardDS1, StandardDS11, StandardDS12, StandardDS13, StandardDS14, StandardDS2, StandardDS3, StandardDS4, StandardG1, StandardG2, StandardG3, StandardG4, StandardG5, StandardGS1, StandardGS2, StandardGS3, StandardGS4, StandardGS5}
+}
 
 // AgentPoolProfile profile for the container service agent pool.
 type AgentPoolProfile struct {
@@ -266,12 +276,11 @@ func (cs *ContainerService) UnmarshalJSON(body []byte) error {
 // long-running operation.
 type ContainerServicesCreateOrUpdateFutureType struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ContainerServicesCreateOrUpdateFutureType) Result(client ContainerServicesClient) (cs ContainerService, err error) {
+func (future *ContainerServicesCreateOrUpdateFutureType) Result(client ContainerServicesClient) (cs ContainerService, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -279,34 +288,15 @@ func (future ContainerServicesCreateOrUpdateFutureType) Result(client ContainerS
 		return
 	}
 	if !done {
-		return cs, azure.NewAsyncOpIncompleteError("containerservice.ContainerServicesCreateOrUpdateFutureType")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		cs, err = client.CreateOrUpdateResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesCreateOrUpdateFutureType", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("containerservice.ContainerServicesCreateOrUpdateFutureType")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if cs.Response.Response, err = future.GetResult(sender); err == nil && cs.Response.Response.StatusCode != http.StatusNoContent {
+		cs, err = client.CreateOrUpdateResponder(cs.Response.Response)
 		if err != nil {
-			return
+			err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesCreateOrUpdateFutureType", "Result", cs.Response.Response, "Failure responding to request")
 		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesCreateOrUpdateFutureType", "Result", resp, "Failure sending request")
-		return
-	}
-	cs, err = client.CreateOrUpdateResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesCreateOrUpdateFutureType", "Result", resp, "Failure responding to request")
 	}
 	return
 }
@@ -315,12 +305,11 @@ func (future ContainerServicesCreateOrUpdateFutureType) Result(client ContainerS
 // operation.
 type ContainerServicesDeleteFutureType struct {
 	azure.Future
-	req *http.Request
 }
 
 // Result returns the result of the asynchronous operation.
 // If the operation has not completed it will return an error.
-func (future ContainerServicesDeleteFutureType) Result(client ContainerServicesClient) (ar autorest.Response, err error) {
+func (future *ContainerServicesDeleteFutureType) Result(client ContainerServicesClient) (ar autorest.Response, err error) {
 	var done bool
 	done, err = future.Done(client)
 	if err != nil {
@@ -328,35 +317,10 @@ func (future ContainerServicesDeleteFutureType) Result(client ContainerServicesC
 		return
 	}
 	if !done {
-		return ar, azure.NewAsyncOpIncompleteError("containerservice.ContainerServicesDeleteFutureType")
-	}
-	if future.PollingMethod() == azure.PollingLocation {
-		ar, err = client.DeleteResponder(future.Response())
-		if err != nil {
-			err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesDeleteFutureType", "Result", future.Response(), "Failure responding to request")
-		}
+		err = azure.NewAsyncOpIncompleteError("containerservice.ContainerServicesDeleteFutureType")
 		return
 	}
-	var req *http.Request
-	var resp *http.Response
-	if future.PollingURL() != "" {
-		req, err = http.NewRequest(http.MethodGet, future.PollingURL(), nil)
-		if err != nil {
-			return
-		}
-	} else {
-		req = autorest.ChangeToGet(future.req)
-	}
-	resp, err = autorest.SendWithSender(client, req,
-		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesDeleteFutureType", "Result", resp, "Failure sending request")
-		return
-	}
-	ar, err = client.DeleteResponder(resp)
-	if err != nil {
-		err = autorest.NewErrorWithError(err, "containerservice.ContainerServicesDeleteFutureType", "Result", resp, "Failure responding to request")
-	}
+	ar.Response = future.Response()
 	return
 }
 

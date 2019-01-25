@@ -34,6 +34,7 @@ import (
 	"github.com/vmware/govmomi/simulator/esx"
 	"github.com/vmware/govmomi/simulator/vpx"
 	sts "github.com/vmware/govmomi/sts/simulator"
+	vapi "github.com/vmware/govmomi/vapi/simulator"
 )
 
 func main() {
@@ -142,6 +143,10 @@ func main() {
 	if !*isESX {
 		// STS simulator
 		path, handler := sts.New(s.URL, vpx.Setting)
+		model.Service.ServeMux.Handle(path, handler)
+
+		// vAPI simulator
+		path, handler = vapi.New(s.URL, vpx.Setting)
 		model.Service.ServeMux.Handle(path, handler)
 
 		// Lookup Service simulator

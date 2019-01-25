@@ -1,6 +1,7 @@
 package support
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	watchtools "k8s.io/client-go/tools/watch"
 )
 
 // NewAcceptAvailablePods makes a new acceptAvailablePods from a real client.
@@ -49,7 +51,9 @@ func (c *acceptAvailablePods) Accept(rc *corev1.ReplicationController) error {
 		return fmt.Errorf("acceptAvailablePods failed to watch ReplicationController %s/%s: %v", rc.Namespace, rc.Name, err)
 	}
 
-	_, err = watch.Until(c.timeout, watcher, func(event watch.Event) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+	defer cancel()
+	_, err = watchtools.UntilWithoutRetry(ctx, watcher, func(event watch.Event) (bool, error) {
 		if t := event.Type; t != watch.Modified {
 			return false, fmt.Errorf("acceptAvailablePods failed watching for ReplicationController %s/%s: received event %v", rc.Namespace, rc.Name, t)
 		}

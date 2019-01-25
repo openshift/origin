@@ -1019,21 +1019,7 @@ type PostalAddress struct {
 
 	DependentLocalityName string `json:"dependentLocalityName,omitempty"`
 
-	DependentThoroughfareLeadingType string `json:"dependentThoroughfareLeadingType,omitempty"`
-
 	DependentThoroughfareName string `json:"dependentThoroughfareName,omitempty"`
-
-	DependentThoroughfarePostDirection string `json:"dependentThoroughfarePostDirection,omitempty"`
-
-	DependentThoroughfarePreDirection string `json:"dependentThoroughfarePreDirection,omitempty"`
-
-	DependentThoroughfareTrailingType string `json:"dependentThoroughfareTrailingType,omitempty"`
-
-	DependentThoroughfaresConnector string `json:"dependentThoroughfaresConnector,omitempty"`
-
-	DependentThoroughfaresIndicator string `json:"dependentThoroughfaresIndicator,omitempty"`
-
-	DependentThoroughfaresType string `json:"dependentThoroughfaresType,omitempty"`
 
 	FirmName string `json:"firmName,omitempty"`
 
@@ -1059,17 +1045,9 @@ type PostalAddress struct {
 
 	SubPremiseName string `json:"subPremiseName,omitempty"`
 
-	ThoroughfareLeadingType string `json:"thoroughfareLeadingType,omitempty"`
-
 	ThoroughfareName string `json:"thoroughfareName,omitempty"`
 
 	ThoroughfareNumber string `json:"thoroughfareNumber,omitempty"`
-
-	ThoroughfarePostDirection string `json:"thoroughfarePostDirection,omitempty"`
-
-	ThoroughfarePreDirection string `json:"thoroughfarePreDirection,omitempty"`
-
-	ThoroughfareTrailingType string `json:"thoroughfareTrailingType,omitempty"`
 
 	// ForceSendFields is a list of field names (e.g. "AddressLines") to
 	// unconditionally include in API requests. By default, fields with
@@ -1349,9 +1327,17 @@ type VoterInfoResponse struct {
 	// NormalizedInput: The normalized version of the requested address
 	NormalizedInput *SimpleAddressType `json:"normalizedInput,omitempty"`
 
-	// OtherElections: If no election ID was specified in the query, and
-	// there was more than one election with data for the given voter, this
-	// will contain information about the other elections that could apply.
+	// OtherElections: When there are multiple elections for a voter
+	// address, the otherElections field is populated in the API response
+	// and there are two possibilities: 1. If the earliest election is not
+	// the intended election, specify the election ID of the desired
+	// election in a second API request using the electionId field. 2. If
+	// these elections occur on the same day, the API doesn?t return any
+	// polling location, contest, or election official information to ensure
+	// that an additional query is made. For user-facing applications, we
+	// recommend displaying these elections to the user to disambiguate. A
+	// second API request using the electionId field should be made for the
+	// election that is relevant to the user.
 	OtherElections []*Election `json:"otherElections,omitempty"`
 
 	// PollingLocations: Locations where the voter is eligible to vote on
@@ -1711,7 +1697,10 @@ func (r *ElectionsService) VoterInfoQuery(address string, voterinforequest *Vote
 
 // ElectionId sets the optional parameter "electionId": The unique ID of
 // the election to look up. A list of election IDs can be obtained at
-// https://www.googleapis.com/civicinfo/{version}/elections
+// https://www.googleapis.com/civicinfo/{version}/electionsIf no
+// election ID is specified in the query and there is more than one
+// election with data for the given voter, the additional elections are
+// provided in the otherElections response field.
 func (c *ElectionsVoterInfoQueryCall) ElectionId(electionId int64) *ElectionsVoterInfoQueryCall {
 	c.urlParams_.Set("electionId", fmt.Sprint(electionId))
 	return c
@@ -1840,7 +1829,7 @@ func (c *ElectionsVoterInfoQueryCall) Do(opts ...googleapi.CallOption) (*VoterIn
 	//     },
 	//     "electionId": {
 	//       "default": "0",
-	//       "description": "The unique ID of the election to look up. A list of election IDs can be obtained at https://www.googleapis.com/civicinfo/{version}/elections",
+	//       "description": "The unique ID of the election to look up. A list of election IDs can be obtained at https://www.googleapis.com/civicinfo/{version}/electionsIf no election ID is specified in the query and there is more than one election with data for the given voter, the additional elections are provided in the otherElections response field.",
 	//       "format": "int64",
 	//       "location": "query",
 	//       "type": "string"

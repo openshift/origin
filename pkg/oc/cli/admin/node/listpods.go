@@ -17,9 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/duration"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions/printers"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 )
 
 type ListPodsOptions struct {
@@ -29,7 +28,7 @@ type ListPodsOptions struct {
 }
 
 func (o *ListPodsOptions) AddFlags(cmd *cobra.Command) {
-	kcmdutil.AddNoHeadersFlags(cmd)
+	cmd.Flags().Bool("no-headers", false, "When using the default output format, don't print headers (default print headers).")
 	o.Options.PrintFlags.AddFlags(cmd)
 }
 

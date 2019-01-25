@@ -14,9 +14,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-	"k8s.io/kubernetes/pkg/kubectl/genericclioptions"
 
 	configv1 "github.com/openshift/api/config/v1"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
@@ -40,7 +40,7 @@ func New(f kcmdutil.Factory, parentName string, streams genericclioptions.IOStre
 			This command will request that the cluster begin an upgrade. If no arguments are passed
 			the command will retrieve the current version info and display whether an upgrade is
 			in progress or whether any errors might prevent an upgrade, as well as show the suggested
-			updates available to the cluster. Information about compatible updates is periodically 
+			updates available to the cluster. Information about compatible updates is periodically
 			retrieved from the update server and cached on the cluster - these are updates that are
 			known to be supported as upgrades from the current version.
 
@@ -55,8 +55,8 @@ func New(f kcmdutil.Factory, parentName string, streams genericclioptions.IOStre
 			updates from being retrieved, the more powerful and dangerous --to-image=IMAGE option
 			may be used. This forces the cluster to upgrade to the contents of the specified release
 			image, regardless of whether that upgrade is safe to apply to the current version. While
-			rolling back to a previous micro version (4.0.2 -> 4.0.1) may be safe, upgrading more 
-			than one minor version ahead (4.0 -> 4.2) or downgrading one minor version (4.1 -> 4.0) 
+			rolling back to a previous micro version (4.0.2 -> 4.0.1) may be safe, upgrading more
+			than one minor version ahead (4.0 -> 4.2) or downgrading one minor version (4.1 -> 4.0)
 			is likely to cause data corruption or to completely break a cluster.
 
 			Experimental: This command is under active development and may change without notice.

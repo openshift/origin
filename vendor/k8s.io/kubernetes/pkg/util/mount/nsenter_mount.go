@@ -320,7 +320,7 @@ func (mounter *NsenterMounter) SafeMakeDir(subdir string, base string, perm os.F
 	evaluatedBase = filepath.Clean(evaluatedBase)
 
 	rootDir := filepath.Clean(mounter.rootDir)
-	if pathWithinBase(evaluatedBase, rootDir) {
+	if PathWithinBase(evaluatedBase, rootDir) {
 		// Base is in /var/lib/kubelet. This directory is shared between the
 		// container with kubelet and the host. We don't need to add '/rootfs'.
 		// This is useful when /rootfs is mounted as read-only - we can still
@@ -337,6 +337,13 @@ func (mounter *NsenterMounter) SafeMakeDir(subdir string, base string, perm os.F
 }
 
 func (mounter *NsenterMounter) GetMountRefs(pathname string) ([]string, error) {
+	exists, err := mounter.ExistsPath(pathname)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return []string{}, nil
+	}
 	hostpath, err := mounter.ne.EvalSymlinks(pathname, true /* mustExist */)
 	if err != nil {
 		return nil, err

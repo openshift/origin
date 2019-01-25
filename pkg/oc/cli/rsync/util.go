@@ -7,8 +7,9 @@ import (
 	"runtime"
 
 	"github.com/golang/glog"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/client-go/kubernetes"
 )
 
 var (
@@ -125,7 +126,7 @@ func rsyncSpecificFlags(o *RsyncOptions) []string {
 }
 
 type podAPIChecker struct {
-	client    kclientset.Interface
+	client    kubernetes.Interface
 	namespace string
 	podName   string
 }

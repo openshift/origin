@@ -1,0 +1,14 @@
+The following make targets are available:
+all
+build
+clean
+clean-binaries
+help
+test
+test-unit
+update
+update-gofmt
+verify
+verify-gofmt
+verify-golint
+verify-govet

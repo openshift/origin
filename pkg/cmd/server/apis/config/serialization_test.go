@@ -27,7 +27,7 @@ import (
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
-	"k8s.io/apimachinery/pkg/api/testing/fuzzer"
+	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 )
 
 func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runtime.Object, seed int64) runtime.Object {
@@ -166,6 +166,10 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 				}
 			}
 
+			if len(obj.AdmissionConfig.PluginOrderOverride) == 0 {
+				obj.AdmissionConfig.PluginOrderOverride = nil
+			}
+
 			if obj.OAuthConfig != nil && c.RandBool() {
 				obj.OAuthConfig.IdentityProviders = []configapi.IdentityProvider{
 					{
@@ -195,6 +199,14 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 			}
 			if len(obj.PodEvictionTimeout) == 0 {
 				obj.PodEvictionTimeout = "5m"
+			}
+			for k, v := range obj.DisabledAPIGroupVersions {
+				if len(v) == 0 {
+					delete(obj.DisabledAPIGroupVersions, k)
+				}
+			}
+			if len(obj.DisabledAPIGroupVersions) == 0 {
+				obj.DisabledAPIGroupVersions = map[string][]string{}
 			}
 		},
 		func(obj *configapi.JenkinsPipelineConfig, c fuzz.Continue) {
@@ -286,6 +298,9 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 			c.FuzzNoCustom(obj)
 			if len(obj.BindNetwork) == 0 {
 				obj.BindNetwork = "tcp4"
+			}
+			if len(obj.CipherSuites) == 0 {
+				obj.CipherSuites = nil // override empty slice
 			}
 		},
 		func(obj *configapi.ImagePolicyConfig, c fuzz.Continue) {

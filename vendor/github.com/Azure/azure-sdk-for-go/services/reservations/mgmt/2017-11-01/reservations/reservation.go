@@ -40,8 +40,9 @@ func NewClientWithBaseURI(baseURI string) Client {
 }
 
 // Get get specific `Reservation` details.
-//
-// reservationID is id of the Reservation Item reservationOrderID is order Id of the reservation
+// Parameters:
+// reservationID - id of the Reservation Item
+// reservationOrderID - order Id of the reservation
 func (client Client) Get(ctx context.Context, reservationID string, reservationOrderID string) (result Response, err error) {
 	req, err := client.GetPreparer(ctx, reservationID, reservationOrderID)
 	if err != nil {
@@ -105,8 +106,8 @@ func (client Client) GetResponder(resp *http.Response) (result Response, err err
 }
 
 // List list `Reservation`s within a single `ReservationOrder`.
-//
-// reservationOrderID is order Id of the reservation
+// Parameters:
+// reservationOrderID - order Id of the reservation
 func (client Client) List(ctx context.Context, reservationOrderID string) (result ListPage, err error) {
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, reservationOrderID)
@@ -197,8 +198,9 @@ func (client Client) ListComplete(ctx context.Context, reservationOrderID string
 }
 
 // ListRevisions list of all the revisions for the `Reservation`.
-//
-// reservationID is id of the Reservation Item reservationOrderID is order Id of the reservation
+// Parameters:
+// reservationID - id of the Reservation Item
+// reservationOrderID - order Id of the reservation
 func (client Client) ListRevisions(ctx context.Context, reservationID string, reservationOrderID string) (result ListPage, err error) {
 	result.fn = client.listRevisionsNextResults
 	req, err := client.ListRevisionsPreparer(ctx, reservationID, reservationOrderID)
@@ -291,9 +293,9 @@ func (client Client) ListRevisionsComplete(ctx context.Context, reservationID st
 
 // Merge merge the specified `Reservation`s into a new `Reservation`. The two `Reservation`s being merged must have
 // same properties.
-//
-// reservationOrderID is order Id of the reservation body is information needed for commercial request for a
-// reservation
+// Parameters:
+// reservationOrderID - order Id of the reservation
+// body - information needed for commercial request for a reservation
 func (client Client) Merge(ctx context.Context, reservationOrderID string, body MergeRequest) (result ReservationMergeFuture, err error) {
 	req, err := client.MergePreparer(ctx, reservationOrderID, body)
 	if err != nil {
@@ -322,7 +324,7 @@ func (client Client) MergePreparer(ctx context.Context, reservationOrderID strin
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/providers/Microsoft.Capacity/reservationOrders/{reservationOrderId}/merge", pathParameters),
@@ -334,15 +336,17 @@ func (client Client) MergePreparer(ctx context.Context, reservationOrderID strin
 // MergeSender sends the Merge request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) MergeSender(req *http.Request) (future ReservationMergeFuture, err error) {
-	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -360,8 +364,9 @@ func (client Client) MergeResponder(resp *http.Response) (result ListResponse, e
 }
 
 // Split split a `Reservation` into two `Reservation`s with specified quantity distribution.
-//
-// reservationOrderID is order Id of the reservation body is information needed to Split a reservation item
+// Parameters:
+// reservationOrderID - order Id of the reservation
+// body - information needed to Split a reservation item
 func (client Client) Split(ctx context.Context, reservationOrderID string, body SplitRequest) (result SplitFuture, err error) {
 	req, err := client.SplitPreparer(ctx, reservationOrderID, body)
 	if err != nil {
@@ -390,7 +395,7 @@ func (client Client) SplitPreparer(ctx context.Context, reservationOrderID strin
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/providers/Microsoft.Capacity/reservationOrders/{reservationOrderId}/split", pathParameters),
@@ -402,15 +407,17 @@ func (client Client) SplitPreparer(ctx context.Context, reservationOrderID strin
 // SplitSender sends the Split request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) SplitSender(req *http.Request) (future SplitFuture, err error) {
-	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
@@ -428,9 +435,10 @@ func (client Client) SplitResponder(resp *http.Response) (result ListResponse, e
 }
 
 // Update updates the applied scopes of the `Reservation`.
-//
-// reservationOrderID is order Id of the reservation reservationID is id of the Reservation Item parameters is
-// information needed to patch a reservation item
+// Parameters:
+// reservationOrderID - order Id of the reservation
+// reservationID - id of the Reservation Item
+// parameters - information needed to patch a reservation item
 func (client Client) Update(ctx context.Context, reservationOrderID string, reservationID string, parameters Patch) (result ReservationUpdateFuture, err error) {
 	req, err := client.UpdatePreparer(ctx, reservationOrderID, reservationID, parameters)
 	if err != nil {
@@ -460,7 +468,7 @@ func (client Client) UpdatePreparer(ctx context.Context, reservationOrderID stri
 	}
 
 	preparer := autorest.CreatePreparer(
-		autorest.AsJSON(),
+		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
 		autorest.WithBaseURL(client.BaseURI),
 		autorest.WithPathParameters("/providers/Microsoft.Capacity/reservationOrders/{reservationOrderId}/reservations/{reservationId}", pathParameters),
@@ -472,15 +480,17 @@ func (client Client) UpdatePreparer(ctx context.Context, reservationOrderID stri
 // UpdateSender sends the Update request. The method will close the
 // http.Response Body if it receives an error.
 func (client Client) UpdateSender(req *http.Request) (future ReservationUpdateFuture, err error) {
-	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	future.Future = azure.NewFuture(req)
-	future.req = req
-	_, err = future.Done(sender)
+	var resp *http.Response
+	resp, err = autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(future.Response(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
+	if err != nil {
+		return
+	}
+	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
 
