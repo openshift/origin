@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/blang/semver"
@@ -691,10 +692,13 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 		}
 	}
 
+	var lock sync.Mutex
 	opts := extract.NewOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
 	opts.OnlyFiles = true
 	opts.MaxPerRegistry = o.MaxPerRegistry
 	opts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {
+		lock.Lock()
+		defer lock.Unlock()
 		metadata[m.Name] = imageData{
 			Directory: m.To,
 			Ref:       m.ImageRef,

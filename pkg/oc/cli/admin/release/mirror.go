@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/golang/glog"
 	digest "github.com/opencontainers/go-digest"
@@ -228,10 +229,14 @@ func (o *MirrorOptions) Run() error {
 	}
 
 	fmt.Fprintf(os.Stderr, "info: Mirroring %d images to %s ...\n", len(mappings), dst)
+	var lock sync.Mutex
 	opts := mirror.NewMirrorImageOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
 	opts.Mappings = mappings
 	opts.DryRun = o.DryRun
 	opts.ManifestUpdateCallback = func(registry string, manifests map[digest.Digest]digest.Digest) error {
+		lock.Lock()
+		defer lock.Unlock()
+
 		// when uploading to a schema1 registry, manifest ids change and we must remap them
 		for i := range is.Spec.Tags {
 			tag := &is.Spec.Tags[i]
