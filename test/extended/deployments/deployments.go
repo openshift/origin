@@ -205,7 +205,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("by checking that the deployment config has the correct version"))
-			err = wait.PollImmediate(500*time.Millisecond, 5*time.Second, func() (bool, error) {
+			err = wait.PollImmediate(500*time.Millisecond, time.Minute, func() (bool, error) {
 				dc, _, _, err := deploymentInfo(oc, dc.Name)
 				if err != nil {
 					return false, nil
@@ -215,7 +215,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("by checking that the second deployment exists"))
-			err = wait.PollImmediate(500*time.Millisecond, 50*time.Second, func() (bool, error) {
+			err = wait.PollImmediate(500*time.Millisecond, time.Minute, func() (bool, error) {
 				_, rcs, _, err := deploymentInfo(oc, dcName)
 				if err != nil {
 					return false, nil
@@ -234,7 +234,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By(fmt.Sprintf("by checking that the first deployer was deleted and the second deployer exists"))
-			err = wait.PollImmediate(500*time.Millisecond, 10*time.Second, func() (bool, error) {
+			err = wait.PollImmediate(500*time.Millisecond, time.Minute, func() (bool, error) {
 				_, _, pods, err := deploymentInfo(oc, dcName)
 				if err != nil {
 					return false, nil
