@@ -326,7 +326,11 @@ func admissionFlags(admissionPluginConfig map[string]configv1.AdmissionPluginCon
 func sniCertKeys(namedCertificates []configv1.NamedCertificate) []string {
 	args := []string{}
 	for _, nc := range namedCertificates {
-		args = append(args, fmt.Sprintf("%s,%s:%s", nc.CertFile, nc.KeyFile, strings.Join(nc.Names, ",")))
+		names := ""
+		if len(nc.Names) > 0 {
+			names = ":" + strings.Join(nc.Names, ",")
+		}
+		args = append(args, fmt.Sprintf("%s,%s%s", nc.CertFile, nc.KeyFile, names))
 	}
 	return args
 }
