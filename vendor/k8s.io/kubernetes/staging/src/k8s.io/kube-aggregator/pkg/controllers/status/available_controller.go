@@ -20,6 +20,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/golang/glog"
@@ -33,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/server/healthz"
 	v1informers "k8s.io/client-go/informers/core/v1"
 	v1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
@@ -70,8 +74,14 @@ type AvailableConditionController struct {
 	// To allow injection for testing.
 	syncFn func(key string) error
 
+	lastSetUnavailableReason       map[string]string
+	flappingAPIServicesWeCauseLock sync.RWMutex
+	flappingAPIServicesWeCause     map[string]struct{}
+
 	queue workqueue.RateLimitingInterface
 }
+
+var _ healthz.HealthzChecker = &AvailableConditionController{}
 
 func NewAvailableConditionController(
 	apiServiceInformer informers.APIServiceInformer,
@@ -98,6 +108,8 @@ func NewAvailableConditionController(
 			// the maximum disruption time to a minimum, but it does prevent hot loops.
 			workqueue.NewItemExponentialFailureRateLimiter(5*time.Millisecond, 30*time.Second),
 			"AvailableConditionController"),
+		lastSetUnavailableReason:   map[string]string{},
+		flappingAPIServicesWeCause: map[string]struct{}{},
 	}
 
 	// construct an http client that will ignore TLS verification (if someone owns the network and messes with your status
@@ -153,6 +165,18 @@ func NewAvailableConditionController(
 }
 
 func (c *AvailableConditionController) sync(key string) error {
+	// update whether we are flapping this service, needed for the health check
+	weCauseFlapping := false
+	defer func() {
+		c.flappingAPIServicesWeCauseLock.Lock()
+		defer c.flappingAPIServicesWeCauseLock.Unlock()
+		if weCauseFlapping {
+			c.flappingAPIServicesWeCause[key] = struct{}{}
+		} else {
+			delete(c.flappingAPIServicesWeCause, key)
+		}
+	}()
+
 	originalAPIService, err := c.apiServiceLister.Get(key)
 	if apierrors.IsNotFound(err) {
 		return nil
@@ -172,7 +196,7 @@ func (c *AvailableConditionController) sync(key string) error {
 	// local API services are always considered available
 	if apiService.Spec.Service == nil {
 		apiregistration.SetAPIServiceCondition(apiService, apiregistration.NewLocalAvailableAPIServiceCondition())
-		_, err := updateAPIServiceStatus(c.apiServiceClient, originalAPIService, apiService)
+		_, _, err := updateAPIServiceStatus(c.apiServiceClient, originalAPIService, apiService, c.lastSetUnavailableReason)
 		return err
 	}
 
@@ -182,14 +206,14 @@ func (c *AvailableConditionController) sync(key string) error {
 		availableCondition.Reason = "ServiceNotFound"
 		availableCondition.Message = fmt.Sprintf("service/%s in %q is not present", apiService.Spec.Service.Name, apiService.Spec.Service.Namespace)
 		apiregistration.SetAPIServiceCondition(apiService, availableCondition)
-		_, err := updateAPIServiceStatus(c.apiServiceClient, originalAPIService, apiService)
+		_, _, err := updateAPIServiceStatus(c.apiServiceClient, originalAPIService, apiService, c.lastSetUnavailableReason)
 		return err
 	} else if err != nil {
 		availableCondition.Status = apiregistration.ConditionUnknown
 		availableCondition.Reason = "ServiceAccessError"
 		availableCondition.Message = fmt.Sprintf("service/%s in %q cannot be checked due to: %v", apiService.Spec.Service.Name, apiService.Spec.Service.Namespace, err)
 		apiregistration.SetAPIServiceCondition(apiService, availableCondition)
-		_, err := updateAPIServiceStatus(c.apiServiceClient, originalAPIService, apiService)
+		_, _, err := updateAPIServiceStatus(c.apiServiceClient, originalAPIService, apiService, c.lastSetUnavailableReason)
 		return err
 	}
 
@@ -206,7 +230,7 @@ func (c *AvailableConditionController) sync(key string) error {
 			availableCondition.Reason = "ServicePortError"
 			availableCondition.Message = fmt.Sprintf("service/%s in %q is not listening on port 443", apiService.Spec.Service.Name, apiService.Spec.Service.Namespace)
 			apiregistration.SetAPIServiceCondition(apiService, availableCondition)
-			_, err := updateAPIServiceStatus(c.apiServiceClient, originalAPIService, apiService)
+			_, _, err := updateAPIServiceStatus(c.apiServiceClient, originalAPIService, apiService, c.lastSetUnavailableReason)
 			return err
 		}
 
@@ -216,14 +240,14 @@ func (c *AvailableConditionController) sync(key string) error {
 			availableCondition.Reason = "EndpointsNotFound"
 			availableCondition.Message = fmt.Sprintf("cannot find endpoints for service/%s in %q", apiService.Spec.Service.Name, apiService.Spec.Service.Namespace)
 			apiregistration.SetAPIServiceCondition(apiService, availableCondition)
-			_, err := updateAPIServiceStatus(c.apiServiceClient, originalAPIService, apiService)
+			_, _, err := updateAPIServiceStatus(c.apiServiceClient, originalAPIService, apiService, c.lastSetUnavailableReason)
 			return err
 		} else if err != nil {
 			availableCondition.Status = apiregistration.ConditionUnknown
 			availableCondition.Reason = "EndpointsAccessError"
 			availableCondition.Message = fmt.Sprintf("service/%s in %q cannot be checked due to: %v", apiService.Spec.Service.Name, apiService.Spec.Service.Namespace, err)
 			apiregistration.SetAPIServiceCondition(apiService, availableCondition)
-			_, err := updateAPIServiceStatus(c.apiServiceClient, originalAPIService, apiService)
+			_, _, err := updateAPIServiceStatus(c.apiServiceClient, originalAPIService, apiService, c.lastSetUnavailableReason)
 			return err
 		}
 		hasActiveEndpoints := false
@@ -238,7 +262,7 @@ func (c *AvailableConditionController) sync(key string) error {
 			availableCondition.Reason = "MissingEndpoints"
 			availableCondition.Message = fmt.Sprintf("endpoints for service/%s in %q have no addresses", apiService.Spec.Service.Name, apiService.Spec.Service.Namespace)
 			apiregistration.SetAPIServiceCondition(apiService, availableCondition)
-			_, err := updateAPIServiceStatus(c.apiServiceClient, originalAPIService, apiService)
+			_, _, err := updateAPIServiceStatus(c.apiServiceClient, originalAPIService, apiService, c.lastSetUnavailableReason)
 			return err
 		}
 	}
@@ -302,14 +326,31 @@ func (c *AvailableConditionController) sync(key string) error {
 		}
 
 		if lastError != nil {
+			hostname, err := os.Hostname()
+			if err != nil || len(hostname) == 0 {
+				hostname = "unknown"
+			}
+
+			// store whether some other kube-aggregator set this to Available after we had set Unavailable
+			lastUnvailableReason := c.lastSetUnavailableReason[apiServer.Name]
+			originalAvailableCondition := apiregistration.GetAPIServiceConditionByType(apiService, availableCondition)
+
 			availableCondition.Status = apiregistration.ConditionFalse
 			availableCondition.Reason = "FailedDiscoveryCheck"
-			availableCondition.Message = lastError.Error()
+			availableCondition.Message = fmt.Errorf("discovery test failed on master %q: %v", hostname, lastError.Error())
 			apiregistration.SetAPIServiceCondition(apiService, availableCondition)
-			_, updateErr := updateAPIServiceStatus(c.apiServiceClient, originalAPIService, apiService)
+			_, availabilityChanged, updateErr := updateAPIServiceStatus(c.apiServiceClient, originalAPIService, apiService, c.lastSetUnavailableReason)
 			if updateErr != nil {
 				return updateErr
 			}
+
+			// did some other kube-aggregator set this to Available after we had set it to Unavailable?
+			// i.e. are we causing flapping while other kube-aggregators are fine?
+			if originalAvailableCondition != nil && lastUnvailableReason == availableCondition.Reason && originalAvailableCondition.Status == apiregistration.ConditionTrue {
+				unavailableFlapping.WithLabelValues(newAPIService.Name).Inc()
+				weCauseFlapping = true
+			}
+
 			// force a requeue to make it very obvious that this will be retried at some point in the future
 			// along with other requeues done via service change, endpoint change, and resync
 			return lastError
@@ -319,13 +360,33 @@ func (c *AvailableConditionController) sync(key string) error {
 	availableCondition.Reason = "Passed"
 	availableCondition.Message = "all checks passed"
 	apiregistration.SetAPIServiceCondition(apiService, availableCondition)
-	_, err = updateAPIServiceStatus(c.apiServiceClient, originalAPIService, apiService)
+	_, _, err = updateAPIServiceStatus(c.apiServiceClient, originalAPIService, apiService, c.lastSetUnavailableReason)
 	return err
+}
+
+// Name implements the HealthCheck interface.
+func (c *AvailableConditionController) Name() string {
+	return "available-controller-flapping-detector"
+}
+
+// Name implements the HealthCheck interface.
+func (c *AvailableConditionController) Check(req *http.Request) error {
+	c.flappingAPIServicesWeCauseLock.RLock()
+	defer c.flappingAPIServicesWeCauseLock.RUnlock()
+	if len(c.flappingAPIServicesWeCause) > 0 {
+		flapping := make([]string, 0, len(c.flappingAPIServicesWeCause))
+		for n := range c.flappingAPIServicesWeCause {
+			flapping = append(flapping, n)
+		}
+		return fmt.Errorf("causing flapping for APIServices: %s", strings.Join(flapping, ","))
+	}
+	return nil
 }
 
 // updateAPIServiceStatus only issues an update if a change is detected.  We have a tight resync loop to quickly detect dead
 // apiservices.  Doing that means we don't want to quickly issue no-op updates.
-func updateAPIServiceStatus(client apiregistrationclient.APIServicesGetter, originalAPIService, newAPIService *apiregistration.APIService) (*apiregistration.APIService, error) {
+// lastSetUnavailableReason is updated with the new reason for the APIService name in case of update success.
+func updateAPIServiceStatus(client apiregistrationclient.APIServicesGetter, originalAPIService, newAPIService *apiregistration.APIService, lastSetUnavailableReason map[string]string) (*apiregistration.APIService, bool, error) {
 	if equality.Semantic.DeepEqual(originalAPIService.Status, newAPIService.Status) {
 		return newAPIService, nil
 	}
@@ -340,6 +401,7 @@ func updateAPIServiceStatus(client apiregistrationclient.APIServicesGetter, orig
 	if isAvailable != wasAvailable {
 		if isAvailable {
 			unavailableGauge.WithLabelValues(newAPIService.Name).Set(0.0)
+			delete(lastSetUnavailableReason, newAPIService.Name)
 		} else {
 			unavailableGauge.WithLabelValues(newAPIService.Name).Set(1.0)
 
@@ -348,10 +410,13 @@ func updateAPIServiceStatus(client apiregistrationclient.APIServicesGetter, orig
 				reason = newCondition.Reason
 			}
 			unavailableCounter.WithLabelValues(newAPIService.Name, reason).Inc()
+			lastSetUnavailableReason[newAPIService.Name] = reason
 		}
+	} else if isAvailable {
+		delete(lastSetUnavailableReason, newAPIService.Name)
 	}
 
-	return newAPIService, nil
+	return newAPIService, isAvailable != wasAvailable, nil
 }
 
 func (c *AvailableConditionController) Run(threadiness int, stopCh <-chan struct{}) {

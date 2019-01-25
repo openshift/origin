@@ -35,9 +35,17 @@ var (
 		},
 		[]string{"name"},
 	)
+	unavailableFlapping = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "aggregator_unavailable_flapping_apiservice_count",
+			Help: "Counter of flapping events broken down by APIService name.",
+		},
+		[]string{"name"},
+	)
 )
 
 func init() {
 	prometheus.MustRegister(unavailableCounter)
 	prometheus.MustRegister(unavailableGauge)
+	prometheus.MustRegister(unavailableFlapping)
 }

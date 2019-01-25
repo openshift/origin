@@ -203,6 +203,9 @@ func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.Deleg
 		go availableController.Run(5, context.StopCh)
 		return nil
 	})
+	if err := s.GenericAPIServer.AddHealthzChecks(availableController); err != nil {
+		return err
+	}
 
 	if openApiConfig != nil {
 		specDownloader := openapicontroller.NewDownloader()
