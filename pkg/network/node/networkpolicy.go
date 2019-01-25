@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/golang/glog"
 
@@ -17,7 +19,7 @@ import (
 	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/sets"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/networking"
@@ -25,6 +27,7 @@ import (
 	networkapi "github.com/openshift/api/network/v1"
 	"github.com/openshift/origin/pkg/network"
 	"github.com/openshift/origin/pkg/network/common"
+	"github.com/openshift/origin/pkg/util/ovs"
 )
 
 type networkPolicyPlugin struct {
@@ -91,6 +94,7 @@ func (np *networkPolicyPlugin) Start(node *OsdnNode) error {
 		otx.AddFlow("table=21, priority=200, ip, nw_dst=%s, actions=ct(commit,table=30)", cn.ClusterCIDR.String())
 	}
 	otx.AddFlow("table=80, priority=200, ip, ct_state=+rpl, actions=output:NXM_NX_REG2[]")
+	otx.AddFlow("table=80, priority=1, actions=output:NXM_NX_REG2[]")
 	if err := otx.Commit(); err != nil {
 		return err
 	}
@@ -102,7 +106,64 @@ func (np *networkPolicyPlugin) Start(node *OsdnNode) error {
 	np.watchNamespaces()
 	np.watchPods()
 	np.watchNetworkPolicies()
+	go utilwait.Forever(np.dumpDebugFlows, 5*time.Minute)
 	return nil
+}
+
+func (np *networkPolicyPlugin) dumpDebugFlows() {
+	np.lock.Lock()
+	defer np.lock.Unlock()
+
+	flows, _ := np.node.oc.ovs.DumpFlows("table=80")
+	glog.Infof("DUMP: %d flows", len(flows))
+	for _, flow := range flows {
+		parsed, err := ovs.ParseFlow(ovs.ParseForDump, flow)
+		if err != nil {
+			glog.Errorf("DUMP: parse error %v", err)
+			continue
+		}
+		n_packets, found := parsed.FindField("n_packets")
+		if !found || n_packets.Value == "0" {
+			continue
+		}
+		if parsed.Priority == 1 {
+			glog.Infof("DUMP: %s packets hit fallback rule!", n_packets.Value)
+			continue
+		}
+
+		reg0hex, found := parsed.FindField("reg0")
+		if !found {
+			continue
+		}
+		reg1hex, found := parsed.FindField("reg1")
+		if !found {
+			continue
+		}
+		reg0, err := strconv.ParseUint(reg0hex.Value, 0, 0)
+		if err != nil {
+			glog.Errorf("DUMP: parse error %v", err)
+			continue
+		}
+		reg1, err := strconv.ParseUint(reg1hex.Value, 0, 0)
+		if err != nil {
+			glog.Errorf("DUMP: parse error %v", err)
+			continue
+		}
+		if reg0 == reg1 {
+			continue
+		}
+		ns0 := np.namespaces[uint32(reg0)]
+		ns1 := np.namespaces[uint32(reg1)]
+		if ns0 == nil && ns1 == nil {
+			glog.Infof("DUMP: %d -> %d", reg0, reg1)
+		} else if ns0 == nil {
+			glog.Infof("DUMP: %d -> %s", reg0, ns1.name)
+		} else if ns1 == nil {
+			glog.Infof("DUMP: %s -> %d", ns0.name, reg1)
+		} else {
+			glog.Infof("DUMP: %s -> %s", ns0.name, ns1.name)
+		}
+	}
 }
 
 func (np *networkPolicyPlugin) initNamespaces() error {
@@ -160,6 +221,7 @@ func (np *networkPolicyPlugin) AddNetNamespace(netns *networkapi.NetNamespace) {
 		inUse:    false,
 		policies: make(map[ktypes.UID]*npPolicy),
 	}
+	np.syncNamespace(np.namespaces[netns.NetID])
 }
 
 func (np *networkPolicyPlugin) UpdateNetNamespace(netns *networkapi.NetNamespace, oldNetID uint32) {
@@ -190,47 +252,16 @@ func (np *networkPolicyPlugin) GetMulticastEnabled(vnid uint32) bool {
 }
 
 func (np *networkPolicyPlugin) syncNamespace(npns *npNamespace) {
-	glog.V(5).Infof("syncNamespace %d", npns.vnid)
+	glog.Infof("syncNamespace %d", npns.vnid)
 	otx := np.node.oc.NewTransaction()
-	otx.DeleteFlows("table=80, reg1=%d", npns.vnid)
-	if npns.inUse {
-		allPodsSelected := false
-
-		// Add "allow" rules for all traffic allowed by a NetworkPolicy
-		for _, npp := range npns.policies {
-			for _, flow := range npp.flows {
-				otx.AddFlow("table=80, priority=150, reg1=%d, %s actions=output:NXM_NX_REG2[]", npns.vnid, flow)
-			}
-			if npp.selectedIPs == nil {
-				allPodsSelected = true
-			}
-		}
-
-		if allPodsSelected {
-			// Some policy selects all pods, so all pods are "isolated" and no
-			// traffic is allowed beyond what we explicitly allowed above. (And
-			// the "priority=0, actions=drop" rule will filter out all remaining
-			// traffic in this Namespace).
-		} else {
-			// No policy selects all pods, so we need an "else accept" rule to
-			// allow traffic to pod IPs that aren't selected by a policy. But
-			// before that we need rules to drop any remaining traffic for any pod
-			// IP that *is* selected by a policy.
-			selectedIPs := sets.NewString()
-			for _, npp := range npns.policies {
-				for _, ip := range npp.selectedIPs {
-					if !selectedIPs.Has(ip) {
-						selectedIPs.Insert(ip)
-						otx.AddFlow("table=80, priority=100, reg1=%d, ip, nw_dst=%s, actions=drop", npns.vnid, ip)
-					}
-				}
-			}
-
-			otx.AddFlow("table=80, priority=50, reg1=%d, actions=output:NXM_NX_REG2[]", npns.vnid)
-		}
+	for otherVNID := range np.namespaces {
+		otx.AddFlow("table=80, priority=150, reg0=%d, reg1=%d, actions=output:NXM_NX_REG2[]", otherVNID, npns.vnid)
+		otx.AddFlow("table=80, priority=150, reg0=%d, reg1=%d, actions=output:NXM_NX_REG2[]", npns.vnid, otherVNID)
 	}
 	if err := otx.Commit(); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error syncing OVS flows for VNID: %v", err))
+	} else {
+		glog.Infof("syncedNamespace %d", npns.vnid)
 	}
 }
 
@@ -244,23 +275,10 @@ func (np *networkPolicyPlugin) EnsureVNIDRules(vnid uint32) {
 	}
 
 	npns.inUse = true
-	np.syncNamespace(npns)
+	//np.syncNamespace(npns)
 }
 
 func (np *networkPolicyPlugin) SyncVNIDRules() {
-	np.lock.Lock()
-	defer np.lock.Unlock()
-
-	unused := np.node.oc.FindUnusedVNIDs()
-	glog.Infof("SyncVNIDRules: %d unused VNIDs", len(unused))
-
-	for _, vnid := range unused {
-		npns, exists := np.namespaces[uint32(vnid)]
-		if exists {
-			npns.inUse = false
-			np.syncNamespace(npns)
-		}
-	}
 }
 
 func (np *networkPolicyPlugin) selectPodsFromNamespaces(nsLabelSel, podLabelSel *metav1.LabelSelector) []string {
@@ -474,7 +492,7 @@ func (np *networkPolicyPlugin) handleAddOrUpdateNetworkPolicy(obj, _ interface{}
 	if npns, exists := np.namespaces[vnid]; exists {
 		if changed := np.updateNetworkPolicy(npns, policy); changed {
 			if npns.inUse {
-				np.syncNamespace(npns)
+				//np.syncNamespace(npns)
 			}
 		}
 	}
@@ -496,7 +514,7 @@ func (np *networkPolicyPlugin) handleDeleteNetworkPolicy(obj interface{}) {
 	if npns, exists := np.namespaces[vnid]; exists {
 		delete(npns.policies, policy.UID)
 		if npns.inUse {
-			np.syncNamespace(npns)
+			//np.syncNamespace(npns)
 		}
 	}
 }
@@ -590,7 +608,7 @@ func (np *networkPolicyPlugin) refreshNetworkPolicies(refreshFor refreshForType)
 			}
 		}
 		if changed && npns.inUse {
-			np.syncNamespace(npns)
+			//np.syncNamespace(npns)
 		}
 	}
 }
