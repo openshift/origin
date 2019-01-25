@@ -2,6 +2,7 @@ package strategy
 
 import (
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"testing"
 	"unsafe"
@@ -402,6 +403,30 @@ func TestSetupBuildSystem(t *testing.T) {
 		}
 		if !foundMount {
 			t.Errorf("registry config was not mounted into container %s", c.Name)
+		}
+		foundRegistriesConf := false
+		foundSignaturePolicy := false
+		for _, env := range c.Env {
+			if env.Name == "BUILD_REGISTRIES_CONF_PATH" {
+				foundRegistriesConf = true
+				expectedMountPath := filepath.Join(ConfigMapBuildSystemConfigsMountPath, util.RegistryConfKey)
+				if env.Value != expectedMountPath {
+					t.Errorf("expected BUILD_REGISTRIES_CONF_PATH %s, got %s", expectedMountPath, env.Value)
+				}
+			}
+			if env.Name == "BUILD_SIGNATURE_POLICY_PATH" {
+				foundSignaturePolicy = true
+				expectedMountMapth := filepath.Join(ConfigMapBuildSystemConfigsMountPath, util.SignaturePolicyKey)
+				if env.Value != expectedMountMapth {
+					t.Errorf("expected BUILD_SIGNATURE_POLICY_PATH %s, got %s", expectedMountMapth, env.Value)
+				}
+			}
+		}
+		if !foundRegistriesConf {
+			t.Errorf("env var %s was not present in container %s", "BUILD_REGISTRIES_CONF_PATH", c.Name)
+		}
+		if !foundSignaturePolicy {
+			t.Errorf("env var %s was not present in container %s", "BUILD_SIGNATURE_POLICY_PATH", c.Name)
 		}
 	}
 }

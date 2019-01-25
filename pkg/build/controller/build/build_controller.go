@@ -1,6 +1,7 @@
 package build
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -8,7 +9,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/containers/image/signature"
 	"github.com/golang/glog"
+	toml "github.com/pelletier/go-toml"
+
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	metrics "github.com/openshift/origin/pkg/build/metrics/prometheus"
 	corev1 "k8s.io/api/core/v1"
@@ -29,6 +33,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	buildv1informer "github.com/openshift/client-go/build/informers/externalversions/build/v1"
@@ -102,6 +107,20 @@ func (q *resourceTriggerQueue) Pop(key string) []string {
 	resources := q.queue[key]
 	delete(q.queue, key)
 	return resources
+}
+
+type registryList struct {
+	Registries []string `toml:"registries"`
+}
+
+type registries struct {
+	Search   registryList `toml:"search"`
+	Insecure registryList `toml:"insecure"`
+	Block    registryList `toml:"block"`
+}
+
+type tomlConfig struct {
+	Registries registries `toml:"registries"`
 }
 
 // BuildController watches builds and synchronizes them with their
@@ -1573,43 +1592,191 @@ func (bc *BuildController) controllerConfigWork() bool {
 	}
 	defer bc.controllerConfigQueue.Done(key)
 
-	err := bc.handleControllerConfig()
+	var err error
+	errs := bc.handleControllerConfig()
+	if len(errs) > 0 {
+		msgs := make([]string, len(errs))
+		for i, e := range errs {
+			msgs[i] = fmt.Sprintf("%v", e)
+		}
+		err = fmt.Errorf("failed to apply build controller config: %v", msgs)
+	}
 	bc.handleControllerConfigError(err, key)
 	return false
 }
 
 // handleControllerConfig synchronizes the build controller config in the cluster
 // `build.config.openshift.io` instance and any referenced data in the `openshift-config` namespace.
-func (bc *BuildController) handleControllerConfig() error {
+func (bc *BuildController) handleControllerConfig() []error {
+	configErrs := []error{}
 	config, err := bc.configLister.Get("cluster")
 	if err != nil && !errors.IsNotFound(err) {
-		return err
+		configErrs = append(configErrs, err)
+		return configErrs
 	}
 	if config == nil {
 		bc.additionalTrustedCAData = nil
 		bc.buildDefaults.DefaultProxy = nil
+		bc.registryConfData = ""
+		bc.signaturePolicyData = ""
 		return nil
 	}
+	if glog.V(5) {
+		configJSON, _ := json.Marshal(config)
+		if configJSON != nil {
+			glog.Infof("build controller config: %s", string(configJSON))
+		}
+	}
 	bc.buildDefaults.DefaultProxy = config.Spec.BuildDefaults.DefaultProxy
+
+	additionalCAs, caErr := bc.getAdditionalTrustedCAData(config)
+	if caErr != nil {
+		configErrs = append(configErrs, caErr)
+	} else {
+		bc.additionalTrustedCAData = additionalCAs
+	}
+
+	registriesTOML, regErr := bc.createBuildRegistriesConfigData(config)
+	if regErr != nil {
+		configErrs = append(configErrs, regErr)
+	} else {
+		bc.registryConfData = registriesTOML
+	}
+
+	signatureJSON, sigErr := bc.createBuildSignaturePolicyData(config)
+	if sigErr != nil {
+		configErrs = append(configErrs, sigErr)
+	} else {
+		bc.signaturePolicyData = signatureJSON
+	}
+
+	return configErrs
+}
+
+func (bc *BuildController) getAdditionalTrustedCAData(config *configv1.Build) (map[string]string, error) {
 	if len(config.Spec.AdditionalTrustedCA.Name) == 0 {
-		bc.additionalTrustedCAData = nil
-		return nil
+		glog.V(4).Info("additional certificate authorities for builds not specified")
+		return nil, nil
 	}
 	additionalCA, err := bc.openShiftConfigConfigMapStore.ConfigMaps("openshift-config").Get(config.Spec.AdditionalTrustedCA.Name)
 	if err != nil && !errors.IsNotFound(err) {
-		return err
+		return nil, err
 	}
 	if additionalCA == nil {
-		bc.additionalTrustedCAData = nil
-		return nil
+		glog.V(3).Infof("configMap reference %s/%s with additional certificate authorities for builds not found",
+			"openshift-config",
+			config.Spec.AdditionalTrustedCA.Name)
+		return nil, nil
 	}
-	bc.additionalTrustedCAData = additionalCA.Data
-	return nil
+	if glog.V(5) {
+		keys := make([]string, len(additionalCA.Data))
+		i := 0
+		for key := range additionalCA.Data {
+			keys[i] = key
+			i++
+		}
+		glog.Infof("found certificate authorities for hosts %s", keys)
+	}
+	return additionalCA.Data, nil
+}
+
+func (bc *BuildController) createBuildRegistriesConfigData(config *configv1.Build) (string, error) {
+	registriesConfig := config.Spec.BuildDefaults.RegistriesConfig
+	if registriesConfig.SearchRegistries == nil && len(registriesConfig.InsecureRegistries) == 0 {
+		glog.V(4).Info("using default search and insecure registry settings for builds")
+		return "", nil
+	}
+	configObj := tomlConfig{
+		Registries: registries{
+			// Default search to docker.io
+			Search: registryList{
+				Registries: []string{"docker.io"},
+			},
+			Insecure: registryList{
+				Registries: registriesConfig.InsecureRegistries,
+			},
+		},
+	}
+	// Override search if provided SearchRegistries is non-nil
+	// This allows empty lists, which disables image search for builds
+	if registriesConfig.SearchRegistries != nil {
+		configObj.Registries.Search.Registries = *registriesConfig.SearchRegistries
+	}
+
+	configTOML, err := toml.Marshal(configObj)
+	if err != nil {
+		return "", err
+	}
+	if len(configTOML) == 0 {
+		glog.V(4).Info("using default search and insecure registry settings for builds")
+		return "", nil
+	}
+	glog.V(4).Info("overrode search and insecure registry settings for builds")
+	glog.V(5).Infof("generated registries.conf for build pods: \n%s", string(configTOML))
+	return string(configTOML), nil
+}
+
+func (bc *BuildController) createBuildSignaturePolicyData(config *configv1.Build) (string, error) {
+	registriesConfig := config.Spec.BuildDefaults.RegistriesConfig
+	if len(registriesConfig.AllowedRegistries) == 0 && len(registriesConfig.BlockedRegistries) == 0 {
+		glog.V(4).Info("allowing builds to pull images from all registries")
+		return "", nil
+	}
+	if len(registriesConfig.AllowedRegistries) != 0 && len(registriesConfig.BlockedRegistries) != 0 {
+		return "", fmt.Errorf("invalid registries config: only one of AllowedRegistries or BlockedRegistries may be specified")
+	}
+	policyObj := &signature.Policy{}
+	transportScopes := make(signature.PolicyTransportScopes)
+	if len(registriesConfig.AllowedRegistries) > 0 {
+		glog.V(4).Infof("only allowing image pulls from %s for builds", registriesConfig.AllowedRegistries)
+		policyObj.Default = signature.PolicyRequirements{
+			signature.NewPRReject(),
+		}
+		for _, registry := range registriesConfig.AllowedRegistries {
+			transportScopes[registry] = signature.PolicyRequirements{
+				signature.NewPRInsecureAcceptAnything(),
+			}
+		}
+	}
+	if len(registriesConfig.BlockedRegistries) > 0 {
+		glog.V(4).Infof("blocking image pulls from %s for builds", registriesConfig.BlockedRegistries)
+		policyObj.Default = signature.PolicyRequirements{
+			signature.NewPRInsecureAcceptAnything(),
+		}
+		for _, registry := range registriesConfig.BlockedRegistries {
+			transportScopes[registry] = signature.PolicyRequirements{
+				signature.NewPRReject(),
+			}
+		}
+	}
+
+	// Policies for image pull/push are set on a per-transport basis.
+	// This list will need to be updated if addtitional transports are used by the build pod.
+	// The following transports are currently available in openshift builds:
+	//
+	// 1. docker: a docker v2 registry (docker.io, quay.io, internal registry, etc.)
+	// 2. atomic: an ImageStreamTag reference - deprecated
+	//
+	// See man skopeo(1) for the full list of supported transports.
+	policyObj.Transports = map[string]signature.PolicyTransportScopes{
+		"atomic": transportScopes,
+		"docker": transportScopes,
+	}
+
+	policyJSON, err := json.Marshal(policyObj)
+	if err != nil {
+		return "", err
+	}
+	if len(policyJSON) == 0 {
+		return "", nil
+	}
+	glog.V(5).Infof("generated policy.json for build pods: \n%s", string(policyJSON))
+	return string(policyJSON), err
 }
 
 func (bc *BuildController) handleControllerConfigError(err error, key interface{}) {
 	if err != nil {
-		glog.V(2).Infof("Failed to update controller config: %v", err)
+		utilruntime.HandleError(err)
 	}
 	bc.controllerConfigQueue.Forget(key)
 }

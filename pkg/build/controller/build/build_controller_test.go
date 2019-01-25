@@ -6,10 +6,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/containers/image/signature"
 	"github.com/google/uuid"
+	toml "github.com/pelletier/go-toml"
 
 	"github.com/openshift/origin/pkg/build/buildscheme"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -1326,6 +1329,98 @@ func TestHandleControllerConfig(t *testing.T) {
 			errorGetCA:  true,
 			expectError: true,
 		},
+		{
+			name: "search registries - override",
+			build: &configv1.Build{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: configv1.BuildSpec{
+					BuildDefaults: configv1.BuildDefaults{
+						RegistriesConfig: configv1.RegistriesConfig{
+							SearchRegistries: &[]string{"quay.io", "docker.io"},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "search registries - empty",
+			build: &configv1.Build{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: configv1.BuildSpec{
+					BuildDefaults: configv1.BuildDefaults{
+						RegistriesConfig: configv1.RegistriesConfig{
+							SearchRegistries: &[]string{},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "insecure registries",
+			build: &configv1.Build{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: configv1.BuildSpec{
+					BuildDefaults: configv1.BuildDefaults{
+						RegistriesConfig: configv1.RegistriesConfig{
+							InsecureRegistries: []string{"my-local.registry:5000", "omni.corp.org:5000"},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "allowed registries",
+			build: &configv1.Build{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: configv1.BuildSpec{
+					BuildDefaults: configv1.BuildDefaults{
+						RegistriesConfig: configv1.RegistriesConfig{
+							AllowedRegistries: []string{"quay.io"},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "blocked registries",
+			build: &configv1.Build{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: configv1.BuildSpec{
+					BuildDefaults: configv1.BuildDefaults{
+						RegistriesConfig: configv1.RegistriesConfig{
+							BlockedRegistries: []string{"docker.io"},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "allowed and blocked registries",
+			build: &configv1.Build{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: configv1.BuildSpec{
+					BuildDefaults: configv1.BuildDefaults{
+						RegistriesConfig: configv1.RegistriesConfig{
+							AllowedRegistries: []string{"quay.io"},
+							BlockedRegistries: []string{"docker.io"},
+						},
+					},
+				},
+			},
+			expectError: true,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1357,29 +1452,160 @@ func TestHandleControllerConfig(t *testing.T) {
 				bc.openShiftConfigConfigMapStore = &errorConfigMapLister{}
 			}
 
-			err := bc.handleControllerConfig()
+			errs := bc.handleControllerConfig()
 			if tc.expectError {
-				if err == nil {
-					t.Errorf("expected error, but got nil")
+				if len(errs) == 0 {
+					t.Errorf("expected errors, but got none")
 				}
 				return
 			}
-			if err != nil {
-				t.Fatalf("error handling controller config change: %v", err)
+			if len(errs) > 0 {
+				msgs := make([]string, len(errs))
+				for i, e := range errs {
+					msgs[i] = fmt.Sprintf("%v", e)
+				}
+				t.Fatalf("error handling controller config change: %v", msgs)
 			}
 
-			if tc.build == nil || tc.casMap == nil {
+			if tc.build == nil {
 				if len(bc.additionalTrustedCAData) > 0 {
 					t.Errorf("expected empty additional CAs data, got %v", bc.additionalTrustedCAData)
 				}
+				if len(bc.registryConfData) > 0 {
+					t.Errorf("expected empty registries config, got %v", bc.registryConfData)
+				}
+				if len(bc.signaturePolicyData) > 0 {
+					t.Errorf("expected empty signature policy config, got %v", bc.signaturePolicyData)
+				}
 				return
 			}
-			if !reflect.DeepEqual(tc.casMap.Data, bc.additionalTrustedCAData) {
+
+			if tc.casMap == nil {
+				if len(bc.additionalTrustedCAData) > 0 {
+					t.Errorf("expected empty additional CAs data, got %v", bc.additionalTrustedCAData)
+				}
+			} else if !reflect.DeepEqual(tc.casMap.Data, bc.additionalTrustedCAData) {
 				t.Errorf("expected ca data %v\n\ngot:\n\n%v", tc.casMap.Data, bc.additionalTrustedCAData)
+			}
+
+			buildRegistriesConfig := tc.build.Spec.BuildDefaults.RegistriesConfig
+
+			if isRegistryConfigEmpty(buildRegistriesConfig) {
+				if len(bc.registryConfData) > 0 {
+					t.Errorf("expected empty registries config, got %s", bc.registryConfData)
+				}
+			}
+			registriesConfig, err := decodeRegistries(bc.registryConfData)
+			if err != nil {
+				t.Errorf("unexpected error decoding registries config: %v", err)
+			}
+
+			if !equality.Semantic.DeepEqual(registriesConfig.Registries.Insecure.Registries,
+				buildRegistriesConfig.InsecureRegistries) {
+				t.Errorf("expected insecure registries to equal %v, got %v",
+					buildRegistriesConfig.InsecureRegistries,
+					registriesConfig.Registries.Insecure.Registries)
+			}
+
+			expectedSearchRegistries := []string{}
+			// If only insecure registries are specified, default search should be docker.io
+			if len(buildRegistriesConfig.InsecureRegistries) > 0 {
+				expectedSearchRegistries = []string{"docker.io"}
+			}
+			// Search registries can be overrode to be an empty list
+			if buildRegistriesConfig.SearchRegistries != nil {
+				expectedSearchRegistries = *buildRegistriesConfig.SearchRegistries
+			}
+			if !equality.Semantic.DeepEqual(registriesConfig.Registries.Search.Registries,
+				expectedSearchRegistries) {
+				t.Errorf("expected search registries to equal %v, got %v",
+					expectedSearchRegistries,
+					registriesConfig.Registries.Search.Registries)
+			}
+
+			if isSignaturePolicyConfigEmpty(buildRegistriesConfig) {
+				if len(bc.signaturePolicyData) > 0 {
+					t.Errorf("expected empty signature policy config, got %s", bc.signaturePolicyData)
+				}
+				return
+			}
+			if len(buildRegistriesConfig.AllowedRegistries) > 0 && len(buildRegistriesConfig.BlockedRegistries) > 0 {
+				// Condition is not allowed - no policy should be set
+				if len(bc.signaturePolicyData) > 0 {
+					t.Errorf("signature policy should be empty if both allowed and blocked registries are set, got %v", bc.signaturePolicyData)
+				}
+				return
+			}
+			policy, err := decodePolicyConfig(bc.signaturePolicyData)
+			if err != nil {
+				t.Fatalf("unexpected error decoding signature policy config: %v", err)
+			}
+
+			if len(buildRegistriesConfig.AllowedRegistries) > 0 {
+				expectedDefaults := signature.PolicyRequirements{
+					signature.NewPRReject(),
+				}
+				if !reflect.DeepEqual(expectedDefaults, policy.Default) {
+					t.Errorf("expected signature defaults %v, got %v", expectedDefaults, policy.Default)
+				}
+				expectedRepos := make(signature.PolicyTransportScopes)
+				for _, reg := range buildRegistriesConfig.AllowedRegistries {
+					expectedRepos[reg] = signature.PolicyRequirements{
+						signature.NewPRInsecureAcceptAnything(),
+					}
+				}
+				expectedScopes := map[string]signature.PolicyTransportScopes{
+					"atomic": expectedRepos,
+					"docker": expectedRepos,
+				}
+				if !reflect.DeepEqual(expectedScopes, policy.Transports) {
+					t.Errorf("expected transport scopes %v, got %v", expectedScopes, policy.Transports)
+				}
+			}
+			if len(buildRegistriesConfig.BlockedRegistries) > 0 {
+				expectedDefaults := signature.PolicyRequirements{
+					signature.NewPRInsecureAcceptAnything(),
+				}
+				if !reflect.DeepEqual(expectedDefaults, policy.Default) {
+					t.Errorf("expected signature defaults %v, got %v", expectedDefaults, policy.Default)
+				}
+				expectedRepos := make(signature.PolicyTransportScopes)
+				for _, reg := range buildRegistriesConfig.BlockedRegistries {
+					expectedRepos[reg] = signature.PolicyRequirements{
+						signature.NewPRReject(),
+					}
+				}
+				expectedScopes := map[string]signature.PolicyTransportScopes{
+					"atomic": expectedRepos,
+					"docker": expectedRepos,
+				}
+				if !reflect.DeepEqual(expectedScopes, policy.Transports) {
+					t.Errorf("expected transport scopes %v, got %v", expectedScopes, policy.Transports)
+				}
 			}
 		})
 	}
+}
 
+func isRegistryConfigEmpty(config configv1.RegistriesConfig) bool {
+	return config.SearchRegistries == nil && len(config.InsecureRegistries) == 0
+}
+
+func decodeRegistries(configTOML string) (*tomlConfig, error) {
+	config := &tomlConfig{}
+	err := toml.Unmarshal([]byte(configTOML), config)
+	return config, err
+}
+
+func isSignaturePolicyConfigEmpty(config configv1.RegistriesConfig) bool {
+	return len(config.AllowedRegistries) == 0 && len(config.BlockedRegistries) == 0
+}
+
+func decodePolicyConfig(configJSON string) (*signature.Policy, error) {
+	if len(configJSON) == 0 {
+		return &signature.Policy{}, nil
+	}
+	return signature.NewPolicyFromBytes([]byte(configJSON))
 }
 
 type errorConfigLister struct{}
