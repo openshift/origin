@@ -4,15 +4,15 @@
 # simple scenarios.  It does not require Docker so it can run in travis.
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 os::util::environment::setup_time_vars
-source "${OS_ROOT}/hack/local-up-master/lib.sh"
 
 function cleanup() {
   return_code=$?
+  set +e
+  echo $(jobs -p)
+  kill $(jobs -p)
   os::test::junit::generate_report
   os::cleanup::all
   os::util::describe_return_code "${return_code}"
-  clusterup::cleanup
-  clusterup::cleanup_config
   exit "${return_code}"
 }
 trap "cleanup" EXIT
@@ -41,9 +41,9 @@ tests=( $(find_tests ${1:-.*}) )
 export OS_INTEGRATION_TEST='true'
 
 # deconflict ports so we can run in parallel with other test suites
-export API_PORT=${API_PORT:-28443}
-export ETCD_PORT=${ETCD_PORT:-24001}
-export ETCD_PEER_PORT=${ETCD_PEER_PORT:-27001}
+export API_PORT=${API_PORT:-8443}
+export ETCD_PORT=${ETCD_PORT:-2379}
+export ETCD_PEER_PORT=${ETCD_PEER_PORT:-2380}
 
 # use a network plugin for network tests
 export NETWORK_PLUGIN='redhat/openshift-ovs-multitenant'
@@ -62,9 +62,18 @@ unset KUBECONFIG
 export ALLOWED_REGISTRIES='[{"domainName":"172.30.30.30:5000"},{"domainName":"myregistry.com"},{"domainName":"registry.centos.org"},{"domainName":"docker.io"},{"domainName":"gcr.io"},{"domainName":"quay.io"},{"domainName":"*.redhat.com"},{"domainName":"*.docker.io"},{"domainName":"registry.redhat.io"}]'
 
 export PATH="$( ./hack/install-etcd.sh --export-path )":$PATH
-LOCALUP_ROOT=$(mktemp -d) localup::init_master
-
+LOCALUP_CONFIG=${OS_ROOT}/_output/scripts/test-cmd
 export ADMIN_KUBECONFIG="${LOCALUP_CONFIG}/admin.kubeconfig"
+rm -f "${ADMIN_KUBECONFIG}"
+
+"${OS_ROOT}/hack/local-master/start.sh" "${LOCALUP_CONFIG}" &
+while [[ ! -f "${ADMIN_KUBECONFIG}" ]]; do
+    sleep 1
+    if ! jobs -pr %- &>/dev/null; then
+        os::log::error "Server failed to start"
+        exit 1
+    fi
+done
 
 os::test::junit::declare_suite_start "cmd/version"
 os::cmd::expect_success_and_not_text "KUBECONFIG='${LOCALUP_CONFIG}/admin.kubeconfig' oc version" "did you specify the right host or port"
@@ -130,9 +139,6 @@ for test in "${tests[@]}"; do
   cp ${KUBECONFIG}{.bak,}  # since nothing ever gets deleted from kubeconfig, reset it
   os::test::junit::declare_suite_end
 done
-
-os::log::debug "Metrics information logged to ${LOG_DIR}/metrics.log"
-oc get --raw /metrics --kubeconfig="${MASTER_CONFIG_DIR}/admin.kubeconfig"> "${LOG_DIR}/metrics.log"
 
 if [[ -n "${failed:-}" ]]; then
     exit 1

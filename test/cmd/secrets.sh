@@ -17,8 +17,7 @@ os::cmd::expect_success 'oc secrets new foo --type=blah makefile=Makefile --conf
 os::cmd::expect_success_and_text 'oc get secrets/foo -o jsonpath={.type}' 'blah'
 
 os::cmd::expect_success 'oc secrets new-dockercfg dockerconfigjson --docker-username=sample-user --docker-password=sample-password --docker-email=fake@example.org'
-# can't use a go template here because the output needs to be base64 decoded.  base64 isn't installed by default in all distros
-os::cmd::expect_success "oc get secrets/dockerconfigjson -o jsonpath='{ .data.\.dockerconfigjson }' | base64 -d > ${HOME}/dockerconfigjson"
+os::cmd::expect_success "oc extract secrets/dockerconfigjson --to=- --keys=.dockerconfigjson > ${HOME}/dockerconfigjson"
 os::cmd::expect_success 'oc secrets new from-file .dockerconfigjson=${HOME}/dockerconfigjson'
 # check to make sure the type was correctly auto-detected
 os::cmd::expect_success_and_text 'oc get secret/from-file --template="{{ .type }}"' 'kubernetes.io/dockerconfigjson'
