@@ -5,11 +5,13 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"net"
 
 	"github.com/golang/glog"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	nodeoptions "github.com/openshift/origin/pkg/cmd/server/kubernetes/node/options"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
 )
 
 // safeArgRegexp matches only characters that are known safe. DO NOT add to this list
@@ -28,14 +30,33 @@ func shellEscapeArg(s string) string {
 
 // FinalizeNodeConfig controls the node configuration before it is used by the Kubelet
 func FinalizeNodeConfig(nodeConfig *configapi.NodeConfig) error {
+	// If DNSIP is configured "0.0.0.0"
+        // 1) Use NodeIP as Default
+        // 2) If the user has specified an NodeName,
+        //    lookup the IP from nodeName and use the first IPv4 address.
+        // 3) Try to get the IP from the network interface used as default gateway.
+        // 4) If not setting DNSIP through above steps, use the network interface first ip address.	
 	if nodeConfig.DNSIP == "0.0.0.0" {
 		glog.V(4).Infof("Defaulting to the DNSIP config to the node's IP")
 		nodeConfig.DNSIP = nodeConfig.NodeIP
+		if len(nodeConfig.NodeName) != 0 {
+			glog.V(4).Infof("Setting to the DNSIP config to the nodeName's lookup IP")
+			addrs, _ := net.LookupIP(nodeConfig.NodeName)
+                        for _, addr := range addrs {
+                        	if addr.To4() != nil {
+				nodeConfig.DNSIP = addr.String()
+				}
+			}
+                }
 		// TODO: the Kubelet should do this defaulting (to the IP it recognizes)
 		if len(nodeConfig.DNSIP) == 0 {
-			if ip, err := cmdutil.DefaultLocalIP4(); err == nil {
-				nodeConfig.DNSIP = ip.String()
-			}
+			if ip, err := utilnet.ChooseHostInterface(); ip != nil && err == nil {
+                                glog.V(4).Infof("Setting to the DNSIP config to the default gateway IP")
+                                nodeConfig.DNSIP = ip.String()
+                        } else if ip, err := cmdutil.DefaultLocalIP4(); err == nil {
+                                glog.V(4).Infof("Setting to the DNSIP config to the first network interface IP")
+                                nodeConfig.DNSIP = ip.String()
+                        }
 		}
 	}
 	return nil
