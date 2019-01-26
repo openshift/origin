@@ -278,5 +278,9 @@ os::cmd::try_until_text "oc policy can-i list pods --all-namespaces --as=system:
 os::cmd::expect_success_and_text "oc adm policy add-cluster-role-to-user cluster-reader -z=testserviceaccount" 'clusterrole.rbac.authorization.k8s.io/cluster-reader added: "testserviceaccount"'
 os::cmd::try_until_text "oc policy can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "yes"
 
+# make sure users can easily create roles for RBAC based SCC access
+os::cmd::expect_success_and_text 'oc create role scc-privileged --verb=use --resource=scc --resource-name=privileged' 'role.rbac.authorization.k8s.io/scc-privileged created'
+os::cmd::expect_success_and_text 'oc delete role.rbac scc-privileged' 'role.rbac.authorization.k8s.io "scc-privileged" deleted'
+
 echo "policy: ok"
 os::test::junit::declare_suite_end
