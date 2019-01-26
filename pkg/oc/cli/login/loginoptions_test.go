@@ -272,12 +272,13 @@ func (r *oauthMetadataResponse) Serialize() ([]byte, error) {
 }
 
 func TestPreserveErrTypeAuthInfo(t *testing.T) {
-	invoked := make(chan struct{}, 2)
+	invoked := make(chan struct{}, 3)
 	oauthResponse := []byte{}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		select {
 		case invoked <- struct{}{}:
+			t.Logf("saw %s request for path: %s", r.Method, r.URL.String())
 		default:
 			t.Fatalf("unexpected request handled by test server: %v: %v", r.Method, r.URL)
 		}
@@ -323,7 +324,7 @@ func TestPreserveErrTypeAuthInfo(t *testing.T) {
 	}
 
 	if !kapierrs.IsUnauthorized(err) {
-		t.Fatalf("expecting error of type metav1.StatusReasonUnauthorized, but got %T", err)
+		t.Fatalf("expecting error of type metav1.StatusReasonUnauthorized, but got type %T: %v", err, err)
 	}
 }
 

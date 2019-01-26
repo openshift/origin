@@ -1,13 +1,19 @@
 package tokencmd
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/RangelReale/osincli"
+	"github.com/golang/glog"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,9 +22,6 @@ import (
 
 	"github.com/openshift/origin/pkg/oauth/urls"
 	"github.com/openshift/origin/pkg/oauth/util"
-
-	"github.com/RangelReale/osincli"
-	"github.com/golang/glog"
 )
 
 const (
@@ -107,7 +110,8 @@ func (o *RequestTokenOptions) SetDefaultOsinConfig() error {
 		return fmt.Errorf("osin config is already set to: %#v", *o.OsinConfig)
 	}
 
-	// get the OAuth metadata from the server
+	// get the OAuth metadata directly from the api server
+	// we only want to use the ca data from our config
 	rt, err := restclient.TransportFor(o.ClientConfig)
 	if err != nil {
 		return err
@@ -161,15 +165,21 @@ func (o *RequestTokenOptions) RequestToken() (string, error) {
 		}
 	}()
 
-	rt, err := restclient.TransportFor(o.ClientConfig)
-	if err != nil {
-		return "", err
-	}
-
 	if o.OsinConfig == nil {
 		if err := o.SetDefaultOsinConfig(); err != nil {
 			return "", err
 		}
+	}
+
+	// we are going to use this transport to talk
+	// with a server that may not be the api server
+	// thus we need to include the system roots
+	// in our ca data otherwise an external
+	// oauth server with a valid cert will fail with
+	// error: x509: certificate signed by unknown authority
+	rt, err := transportWithSystemRoots(o.OsinConfig, o.ClientConfig)
+	if err != nil {
+		return "", err
 	}
 
 	client, err := osincli.NewClient(o.OsinConfig)
@@ -379,4 +389,57 @@ func request(rt http.RoundTripper, requestURL string, requestHeaders http.Header
 
 	// Make the request
 	return rt.RoundTrip(req)
+}
+
+func transportWithSystemRoots(osinConfig *osincli.ClientConfig, clientConfig *restclient.Config) (http.RoundTripper, error) {
+	// copy the config so we can freely mutate it
+	configWithSystemRoots := restclient.CopyConfig(clientConfig)
+
+	// explicitly unset CA cert information
+	// this will make the transport use the system roots or OS specific verification
+	// this is required to have reasonable behavior on windows (cannot get system roots)
+	// in general there is no good with to say "I want system roots plus this CA bundle"
+	// so we just try system roots first before using the kubeconfig CA bundle
+	configWithSystemRoots.CAFile = ""
+	configWithSystemRoots.CAData = nil
+
+	systemRootsRT, err := restclient.TransportFor(configWithSystemRoots)
+	if err != nil {
+		return nil, err
+	}
+
+	// build a request to probe the OAuth server CA
+	req, err := http.NewRequest(http.MethodHead, osinConfig.RedirectUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// see if get a certificate error when using the system roots
+	// we perform the check using this transport (instead of the kubeconfig based one)
+	// because it is most likely to work with a route (which is what the OAuth server uses in 4.0+)
+	// note that both transports are "safe" to use (in the sense that they have valid TLS configurations)
+	// thus the fallback case is not an "unsafe" operation
+	_, err = systemRootsRT.RoundTrip(req)
+	switch err.(type) {
+	case nil:
+		// no error meaning the system roots work with the OAuth server
+		glog.V(4).Info("using system roots as no error was encountered")
+		return systemRootsRT, nil
+	case x509.UnknownAuthorityError, x509.HostnameError, x509.CertificateInvalidError, x509.SystemRootsError,
+		tls.RecordHeaderError, *net.OpError:
+		// fallback to the CA in the kubeconfig since the system roots did not work
+		// we are very broad on the errors here to avoid failing when we should fallback
+		glog.V(4).Infof("falling back to kubeconfig CA due to possible x509 error: %v", err)
+		return restclient.TransportFor(clientConfig)
+	default:
+		switch err {
+		case io.EOF, io.ErrUnexpectedEOF, io.ErrNoProgress:
+			// also fallback on various io errors
+			glog.V(4).Infof("falling back to kubeconfig CA due to possible IO error: %v", err)
+			return restclient.TransportFor(clientConfig)
+		}
+		// unknown error, fail (ideally should never occur)
+		glog.V(4).Infof("unexpected error during system roots probe: %v", err)
+		return nil, err
+	}
 }
