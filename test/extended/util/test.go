@@ -440,7 +440,7 @@ var (
 			`openshift mongodb replication creating from a template`,                                     // flaking on deployment
 			`should use be able to process many pods and reuse local volumes`,                            // https://bugzilla.redhat.com/show_bug.cgi?id=1635893
 
-			`[sig-storage] Volume limits should verify that all nodes have volume limits`, // flaking due to a kubelet issue
+			`Volume limits should verify that all nodes have volume limits`, // flaking due to a kubelet issue
 		},
 		// tests that must be run without competition
 		"[Serial]": {
