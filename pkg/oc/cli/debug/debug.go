@@ -618,9 +618,7 @@ func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*cor
 	} else {
 		newEnv = container.Env
 	}
-	for _, env := range o.AddEnv {
-		newEnv = append(newEnv, env)
-	}
+	newEnv = append(newEnv, o.AddEnv...)
 	container.Env = newEnv
 
 	if container.SecurityContext == nil {

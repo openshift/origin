@@ -89,10 +89,8 @@ func (s imageStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Ob
 	newImage.DockerImageLayers = oldImage.DockerImageLayers
 
 	if oldImage.DockerImageSignatures != nil {
-		newImage.DockerImageSignatures = nil
-		for _, v := range oldImage.DockerImageSignatures {
-			newImage.DockerImageSignatures = append(newImage.DockerImageSignatures, v)
-		}
+		newImage.DockerImageSignatures = make([][]byte, 0, len(oldImage.DockerImageSignatures))
+		newImage.DockerImageSignatures = append(newImage.DockerImageSignatures, oldImage.DockerImageSignatures...)
 	}
 
 	var err error
