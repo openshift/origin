@@ -37,12 +37,15 @@ os::build::require_clean_tree
 remote="${UPSTREAM_REMOTE:-origin}"
 git fetch ${remote}
 
-if [[ -n "${APPLY_PR_COMMITS-}" ]]; then
-    selector="$(os::build::commit_range $pr ${remote}/${UPSTREAM_BRANCH:-master})"
+if [[ "${1}" == *".."* ]]; then
+  selector=$1
+  pr="TODO"
+elif [[ -n "${APPLY_PR_COMMITS-}" ]]; then
+  selector="$(os::build::commit_range $pr ${remote}/${UPSTREAM_BRANCH:-master})"
 else
-    pr_commit="$(git rev-parse ${remote}/pr/$1)"
-    echo "++ PR merge commit on branch ${UPSTREAM_BRANCH:-master}: ${pr_commit}"
-    selector="${pr_commit}^1..${pr_commit}"
+  pr_commit="$(git rev-parse ${remote}/pr/$1)"
+  echo "++ PR merge commit on branch ${UPSTREAM_BRANCH:-master}: ${pr_commit}"
+  selector="${pr_commit}^1..${pr_commit}"
 fi
 
 if [[ -z "${NO_REBASE-}" ]]; then
