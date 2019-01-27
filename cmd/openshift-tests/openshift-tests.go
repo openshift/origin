@@ -172,6 +172,7 @@ func initProvider(provider string) error {
 		return err
 	}
 	exutil.TestContext.AllowedNotReadyNodes = 100
+	exutil.TestContext.MaxNodesToGather = 0
 
 	exutil.AnnotateTestSuite()
 	exutil.InitTest()
