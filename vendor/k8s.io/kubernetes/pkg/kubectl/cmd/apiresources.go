@@ -26,6 +26,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
@@ -123,9 +124,10 @@ func (o *ApiResourcesOptions) RunApiResources(cmd *cobra.Command, f cmdutil.Fact
 		discoveryclient.Invalidate()
 	}
 
+	errs := []error{}
 	lists, err := discoveryclient.ServerPreferredResources()
 	if err != nil {
-		return err
+		errs = append(errs, err)
 	}
 
 	resources := []groupResource{}
@@ -179,7 +181,7 @@ func (o *ApiResourcesOptions) RunApiResources(cmd *cobra.Command, f cmdutil.Fact
 				name += "." + r.APIGroup
 			}
 			if _, err := fmt.Fprintf(w, "%s\n", name); err != nil {
-				return err
+				errs = append(errs, err)
 			}
 		case "wide":
 			if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%v\t%s\t%v\n",
@@ -189,7 +191,7 @@ func (o *ApiResourcesOptions) RunApiResources(cmd *cobra.Command, f cmdutil.Fact
 				r.APIResource.Namespaced,
 				r.APIResource.Kind,
 				r.APIResource.Verbs); err != nil {
-				return err
+				errs = append(errs, err)
 			}
 		case "":
 			if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%v\t%s\n",
@@ -198,9 +200,13 @@ func (o *ApiResourcesOptions) RunApiResources(cmd *cobra.Command, f cmdutil.Fact
 				r.APIGroup,
 				r.APIResource.Namespaced,
 				r.APIResource.Kind); err != nil {
-				return err
+				errs = append(errs, err)
 			}
 		}
+	}
+
+	if len(errs) > 0 {
+		return errors.NewAggregate(errs)
 	}
 	return nil
 }
