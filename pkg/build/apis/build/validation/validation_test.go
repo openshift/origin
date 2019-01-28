@@ -2941,19 +2941,6 @@ func TestValidatePostCommit(t *testing.T) {
 		},
 		{
 			spec: buildapi.BuildPostCommitSpec{
-				Args: []string{"rake", "test"},
-			},
-			want: field.ErrorList{},
-		},
-		{
-			spec: buildapi.BuildPostCommitSpec{
-				Script: "rake test $1",
-				Args:   []string{"--verbose"},
-			},
-			want: field.ErrorList{},
-		},
-		{
-			spec: buildapi.BuildPostCommitSpec{
 				Command: []string{"/bin/bash", "-c"},
 				Args:    []string{"rake test"},
 			},
