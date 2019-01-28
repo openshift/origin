@@ -6,6 +6,10 @@ rules:
     source:
       branch: master
       dir: vendor/k8s.io/kubernetes
+  - name: origin-3.11-kubernetes-1.11.1
+    source:
+      branch: release-3.11
+      dir: vendor/k8s.io/kubernetes
   - name: origin-3.10-kubernetes-1.10.2
     source:
       branch: release-3.10
