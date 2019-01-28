@@ -11,10 +11,9 @@ import (
 	"testing"
 	"time"
 
-	gocontext "golang.org/x/net/context"
+	"golang.org/x/net/context"
 
 	"github.com/docker/distribution"
-	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/distribution/reference"
@@ -34,7 +33,7 @@ type mockRetriever struct {
 	err      error
 }
 
-func (r *mockRetriever) Repository(ctx gocontext.Context, registry *url.URL, repoName string, insecure bool) (distribution.Repository, error) {
+func (r *mockRetriever) Repository(ctx context.Context, registry *url.URL, repoName string, insecure bool) (distribution.Repository, error) {
 	r.insecure = insecure
 	return r.repo, r.err
 }
@@ -189,7 +188,7 @@ func TestDockerV1Fallback(t *testing.T) {
 	}))
 
 	client := dockerregistry.NewClient(10*time.Second, false)
-	ctx := gocontext.WithValue(gocontext.Background(), ContextKeyV1RegistryClient, client)
+	ctx := context.WithValue(context.Background(), ContextKeyV1RegistryClient, client)
 
 	uri, _ = url.Parse(server.URL)
 	isi := &imageapi.ImageStreamImport{
