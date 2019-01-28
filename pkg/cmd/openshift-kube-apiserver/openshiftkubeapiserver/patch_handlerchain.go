@@ -5,12 +5,15 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+
+	genericapiserver "k8s.io/apiserver/pkg/server"
+
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	"github.com/openshift/origin/pkg/oauth/urls"
+	"github.com/openshift/origin/pkg/oauth/util"
 	"github.com/openshift/origin/pkg/util/httprequest"
-	genericapiserver "k8s.io/apiserver/pkg/server"
 )
 
 const (
@@ -21,7 +24,15 @@ const (
 )
 
 // TODO switch back to taking a kubeapiserver config.  For now make it obviously safe for 3.11
-func BuildHandlerChain(genericConfig *genericapiserver.Config, oauthConfig *osinv1.OAuthConfig, userAgentMatchingConfig kubecontrolplanev1.UserAgentMatchingConfig, consolePublicURL string) (func(apiHandler http.Handler, kc *genericapiserver.Config) http.Handler, map[string]genericapiserver.PostStartHookFunc, error) {
+func BuildHandlerChain(genericConfig *genericapiserver.Config, oauthConfig *osinv1.OAuthConfig, authConfig kubecontrolplanev1.MasterAuthConfig, userAgentMatchingConfig kubecontrolplanev1.UserAgentMatchingConfig, consolePublicURL string) (func(apiHandler http.Handler, kc *genericapiserver.Config) http.Handler, map[string]genericapiserver.PostStartHookFunc, error) {
+	// ignore oauthConfig if we have a valid OAuth metadata file
+	// this prevents us from running the internal OAuth server when we are honoring an external one
+	if oauthMetadataFile := authConfig.OAuthMetadataFile; len(oauthMetadataFile) > 0 {
+		if _, _, err := util.LoadOAuthMetadataFile(oauthMetadataFile); err == nil {
+			oauthConfig = nil // simplest way to keep existing code paths working
+		}
+	}
+
 	extraPostStartHooks := map[string]genericapiserver.PostStartHookFunc{}
 
 	oauthServerHandler, newPostStartHooks, err := NewOAuthServerHandler(genericConfig, oauthConfig)
