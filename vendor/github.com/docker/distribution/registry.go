@@ -1,7 +1,8 @@
 package distribution
 
 import (
-	"github.com/docker/distribution/context"
+	"context"
+
 	"github.com/docker/distribution/reference"
 )
 
@@ -51,6 +52,11 @@ type Namespace interface {
 // RepositoryEnumerator describes an operation to enumerate repositories
 type RepositoryEnumerator interface {
 	Enumerate(ctx context.Context, ingester func(string) error) error
+}
+
+// RepositoryRemover removes given repository
+type RepositoryRemover interface {
+	Remove(ctx context.Context, name reference.Named) error
 }
 
 // ManifestServiceOption is a function argument for Manifest Service methods

@@ -1,5 +1,5 @@
-hash: 7a39ba76dd7417789ddcf8b78f18ad67113efb88e0f5ec0c79499f1581272509
-updated: 2018-09-07T13:17:51.235169419-04:00
+hash: d94f6a446504a92159017cfee30d160dc38ad7bd513e83a9416a8cc2b9ed11a2
+updated: 2019-01-29T13:58:16.690431458-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -302,15 +302,15 @@ imports:
 - name: github.com/dgrijalva/jwt-go
   version: 01aeca54ebda6e0fbfafd0a524d234159c05ec20
 - name: github.com/docker/distribution
-  version: 9e3018b6ff58e5b86c76b5f9b8826494caca28ea
+  version: d4c35485a70df4dce2179bc227b1393a69edb809
   repo: https://github.com/openshift/docker-distribution.git
   subpackages:
-  - context
   - digestset
   - manifest
   - manifest/manifestlist
   - manifest/schema1
   - manifest/schema2
+  - metrics
   - reference
   - registry/api/errcode
   - registry/api/v2
@@ -320,7 +320,6 @@ imports:
   - registry/client/transport
   - registry/storage/cache
   - registry/storage/cache/memory
-  - uuid
 - name: github.com/docker/docker
   version: fcdab531a6d9b133eaa3f2a3f6c11fd02a97de75
   repo: https://github.com/openshift/moby-moby.git
@@ -371,6 +370,8 @@ imports:
   - nat
   - sockets
   - tlsconfig
+- name: github.com/docker/go-metrics
+  version: b84716841b82eab644a0c64fc8b42d480e49add5
 - name: github.com/docker/go-units
   version: 9e638d38cf6977a37a8ea0078f3ee75a7cdb2dd1
 - name: github.com/docker/libnetwork
@@ -399,7 +400,7 @@ imports:
   subpackages:
   - kmsgparser
 - name: github.com/evanphx/json-patch
-  version: f195058310bd062ea7c754a834f0ff43b4b63afb
+  version: 94e38aa1586e8a6c8a75770bddf5ff84c48a106b
 - name: github.com/exponent-io/jsonpath
   version: d6023ce2651d8eafb5c75bb0c7167536102ec9f5
 - name: github.com/fatih/camelcase
@@ -748,7 +749,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/onsi/ginkgo
-  version: 6e93088a6ab736ec6a12d10ef99962f8d9e435ee
+  version: 53ca7dc85f609e8aa3af7902f189ed5dca96dbb5
   repo: https://github.com/openshift/onsi-ginkgo.git
   subpackages:
   - config
@@ -971,7 +972,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/imagebuilder
-  version: 9e710ba9bcf926e020306b67633bf38b8e671da5
+  version: b0aa506a32c010487342d7dd54abb847fbf9da51
   subpackages:
   - dockerclient
   - imageprogress
@@ -998,7 +999,7 @@ imports:
   - pkg/controller/servingcert
   - pkg/controller/servingcert/cryptoextensions
 - name: github.com/openshift/source-to-image
-  version: ac6dc9858fa90b751686436fea9a951f183c79bb
+  version: d7dca853b2f3049d054901133f69bcab5db63ad1
   subpackages:
   - pkg/api
   - pkg/api/constants
@@ -1399,7 +1400,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 7dbb63fb7dacd49193fb013af5bea8ec7a047cdd
+  version: 45cb0b8537cf79d23914721e0bf41a3479769b22
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apis/apiextensions
@@ -1436,7 +1437,7 @@ imports:
   - pkg/registry/customresourcedefinition
   - test/integration/testserver
 - name: k8s.io/apimachinery
-  version: 0b908666f6c964370af24212f499d77109c65937
+  version: 5f1ab6ad9104144e43c7e477938fd278ade27eb2
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/equality
@@ -1504,7 +1505,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 9661477daf70563d97981c06b3aa7f3277b765c9
+  version: 996cefeb14170756dc1626dde64fcfb63c8edb24
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1617,7 +1618,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: 427190a5c8fb757089de86d5081f2e058408d217
+  version: 7eaf7133bcfa11e19ebbbc76ff53e2cb32524683
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
@@ -1809,7 +1810,7 @@ imports:
   - util/testing
   - util/workqueue
 - name: k8s.io/code-generator
-  version: f8b4a111163516cf26185a0530df90263c59bcc1
+  version: 8499bb57ac4c499aa239500d522666033e42ea31
   repo: https://github.com/openshift/kubernetes-code-generator.git
 - name: k8s.io/gengo
   version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b
@@ -1818,7 +1819,7 @@ imports:
   subpackages:
   - metrics/api/v1/types
 - name: k8s.io/kube-aggregator
-  version: 7c242b7f0eabe510ee2f4d25785b54a7fa60dab9
+  version: 58b18a68bc127d7d1110e64230fb202252299ea3
   repo: https://github.com/openshift/kube-aggregator.git
   subpackages:
   - pkg/apis/apiregistration
@@ -1859,7 +1860,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 91becade863adc3e9a01585d027896fd1f0d12a7
+  version: 763e9251f56c67913afb352101f541107b10448c
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
@@ -2667,7 +2668,7 @@ imports:
   - third_party/forked/gonum/graph/simple
   - third_party/forked/gonum/graph/traverse
 - name: k8s.io/metrics
-  version: e893287544cef14c3a95de2db93baa9c2de610f2
+  version: 685524df5cb7bf3d3a6cdc7e7045c8ad4f84792b
   repo: https://github.com/openshift/kubernetes-metrics.git
   subpackages:
   - pkg/apis/custom_metrics

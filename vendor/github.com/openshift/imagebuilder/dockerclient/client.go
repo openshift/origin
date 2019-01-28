@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -201,6 +202,10 @@ func (e *ClientExecutor) Stages(b *imagebuilder.Builder, stages imagebuilder.Sta
 		if err := stageExecutor.Execute(stage.Builder, stage.Node); err != nil {
 			return nil, err
 		}
+
+		// remember the outcome of the stage execution on the container config in case
+		// another stage needs to access incremental state
+		stageExecutor.Container.Config = stage.Builder.Config()
 	}
 	return stageExecutor, nil
 }
@@ -784,12 +789,14 @@ func (c closers) Close() error {
 
 func (e *ClientExecutor) archiveFromContainer(from string, src, dst string) (io.Reader, io.Closer, error) {
 	var containerID string
+	var containerConfig *docker.Config
 	if other, ok := e.Named[from]; ok {
 		if other.Container == nil {
 			return nil, nil, fmt.Errorf("the stage %q has not been built yet", from)
 		}
 		glog.V(5).Infof("Using container %s as input for archive request", other.Container.ID)
 		containerID = other.Container.ID
+		containerConfig = other.Container.Config
 	} else {
 		glog.V(5).Infof("Creating a container temporarily for image input from %q in %s", from, src)
 		_, err := e.LoadImage(from)
@@ -805,7 +812,12 @@ func (e *ClientExecutor) archiveFromContainer(from string, src, dst string) (io.
 			return nil, nil, err
 		}
 		containerID = c.ID
+		containerConfig = c.Config
 		e.Deferred = append([]func() error{func() error { return e.removeContainer(containerID) }}, e.Deferred...)
+	}
+
+	if !strings.HasPrefix(src, "/") {
+		src = path.Join(containerConfig.WorkingDir, src)
 	}
 
 	check := newDirectoryCheck(e.Client, e.Container.ID)
