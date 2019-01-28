@@ -22,6 +22,7 @@ import (
 	genericmux "k8s.io/apiserver/pkg/server/mux"
 	kubeinformers "k8s.io/client-go/informers"
 	restclient "k8s.io/client-go/rest"
+	openapicontroller "k8s.io/kube-aggregator/pkg/controllers/openapi"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -67,6 +68,7 @@ import (
 	securityapiv1 "github.com/openshift/api/security/v1"
 	templateapiv1 "github.com/openshift/api/template/v1"
 	userapiv1 "github.com/openshift/api/user/v1"
+	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 
 	// register api groups
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -509,6 +511,33 @@ func (c *completedConfig) withUserAPIServer(delegateAPIServer genericapiserver.D
 	return server.GenericAPIServer, &legacyStorageVersionMutator{version: userapiv1.SchemeGroupVersion, storage: storage}, nil
 }
 
+func (c *completedConfig) withOpenAPIAggregationController(delegatedAPIServer *genericapiserver.GenericAPIServer) error {
+	// We must remove openapi config-related fields from the head of the delegation chain that we pass to the OpenAPI aggregation controller.
+	// This is necessary in order to prevent conflicts with the aggregation controller, as it expects the apiserver passed to it to have
+	// no openapi config previously set. An alternative to stripping this data away would be to create and append a new apiserver to the head
+	// of the delegation chain altogether, then pass that to the controller. But in the spirit of simplicity, we'll just strip default
+	// openapi fields that may have been previously set.
+	delegatedAPIServer.RemoveOpenAPIData()
+
+	specDownloader := openapicontroller.NewDownloader()
+	openAPIAggregator, err := openapicontroller.BuildAndRegisterAggregator(
+		&specDownloader,
+		delegatedAPIServer,
+		delegatedAPIServer.Handler.GoRestfulContainer.RegisteredWebServices(),
+		configprocessing.DefaultOpenAPIConfig(nil),
+		delegatedAPIServer.Handler.NonGoRestfulMux)
+	if err != nil {
+		return err
+	}
+	openAPIAggregationController := openapicontroller.NewAggregationController(&specDownloader, openAPIAggregator)
+
+	delegatedAPIServer.AddPostStartHook("apiservice-openapi-controller", func(context genericapiserver.PostStartHookContext) error {
+		go openAPIAggregationController.Run(context.StopCh)
+		return nil
+	})
+	return nil
+}
+
 type apiServerAppenderFunc func(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error)
 
 func addAPIServerOrDie(delegateAPIServer genericapiserver.DelegationTarget, legacyStorageModifiers legacyStorageMutators, apiServerAppenderFn apiServerAppenderFunc) (genericapiserver.DelegationTarget, legacyStorageMutators) {
@@ -542,6 +571,10 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget,
 
 	genericServer, err := c.GenericConfig.New("openshift-apiserver", delegateAPIServer)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := c.withOpenAPIAggregationController(genericServer); err != nil {
 		return nil, err
 	}
 

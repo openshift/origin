@@ -377,6 +377,11 @@ func (s *GenericAPIServer) InstallLegacyAPIGroup(apiPrefix string, apiGroupInfo 
 	return nil
 }
 
+func (s *GenericAPIServer) RemoveOpenAPIData() {
+	s.openAPIConfig = nil
+	s.swaggerConfig = nil
+}
+
 // Exposes the given api group in the API.
 func (s *GenericAPIServer) InstallAPIGroup(apiGroupInfo *APIGroupInfo) error {
 	// Do not register empty group or empty version.  Doing so claims /apis/ for the wrong entity to be returned.
