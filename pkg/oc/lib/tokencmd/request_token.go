@@ -318,7 +318,7 @@ func oauthTokenFlow(location string) (string, error) {
 // of the challenge flow (an authenticating proxy for example) and not a redirect step in the OAuth flow.
 func oauthCodeFlow(client *osincli.Client, authorizeRequest *osincli.AuthorizeRequest, location string) (string, error) {
 	// Make a request out of the URL since that is what AuthorizeRequest.HandleRequest expects to extract data from
-	req, err := http.NewRequest("GET", location, nil)
+	req, err := http.NewRequest(http.MethodGet, location, nil)
 	if err != nil {
 		return "", err
 	}
@@ -368,7 +368,7 @@ func createOAuthError(errorCode, errorDescription string) error {
 
 func request(rt http.RoundTripper, requestURL string, requestHeaders http.Header) (*http.Response, error) {
 	// Build the request
-	req, err := http.NewRequest("GET", requestURL, nil)
+	req, err := http.NewRequest(http.MethodGet, requestURL, nil)
 	if err != nil {
 		return nil, err
 	}

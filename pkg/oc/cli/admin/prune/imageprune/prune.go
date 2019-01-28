@@ -1659,7 +1659,7 @@ func (p *imageStreamDeleter) NotifyImageStreamPrune(stream *imagev1.ImageStream,
 // provided url. It attempts an https request first; if that fails, it fails
 // back to http.
 func deleteFromRegistry(registryClient *http.Client, url string) error {
-	req, err := http.NewRequest("DELETE", url, nil)
+	req, err := http.NewRequest(http.MethodDelete, url, nil)
 	if err != nil {
 		return err
 	}
