@@ -108,6 +108,17 @@ func (rt *cacheRoundTripper) RoundTrip(req *http.Request) (*http.Response, error
 	return rt.rt.RoundTrip(req)
 }
 
+func (rt *cacheRoundTripper) CancelRequest(req *http.Request) {
+	type canceler interface {
+		CancelRequest(*http.Request)
+	}
+	if cr, ok := rt.rt.Transport.(canceler); ok {
+		cr.CancelRequest(req)
+	} else {
+		glog.Errorf("CancelRequest not implemented by %T", rt.rt.Transport)
+	}
+}
+
 func (rt *cacheRoundTripper) WrappedRoundTripper() http.RoundTripper { return rt.rt.Transport }
 
 type authProxyRoundTripper struct {
@@ -169,7 +180,7 @@ func (rt *authProxyRoundTripper) CancelRequest(req *http.Request) {
 	if canceler, ok := rt.rt.(requestCanceler); ok {
 		canceler.CancelRequest(req)
 	} else {
-		glog.Errorf("CancelRequest not implemented")
+		glog.Errorf("CancelRequest not implemented by %T", rt.rt)
 	}
 }
 
@@ -197,7 +208,7 @@ func (rt *userAgentRoundTripper) CancelRequest(req *http.Request) {
 	if canceler, ok := rt.rt.(requestCanceler); ok {
 		canceler.CancelRequest(req)
 	} else {
-		glog.Errorf("CancelRequest not implemented")
+		glog.Errorf("CancelRequest not implemented by %T", rt.rt)
 	}
 }
 
@@ -228,7 +239,7 @@ func (rt *basicAuthRoundTripper) CancelRequest(req *http.Request) {
 	if canceler, ok := rt.rt.(requestCanceler); ok {
 		canceler.CancelRequest(req)
 	} else {
-		glog.Errorf("CancelRequest not implemented")
+		glog.Errorf("CancelRequest not implemented by %T", rt.rt)
 	}
 }
 
@@ -288,7 +299,7 @@ func (rt *impersonatingRoundTripper) CancelRequest(req *http.Request) {
 	if canceler, ok := rt.delegate.(requestCanceler); ok {
 		canceler.CancelRequest(req)
 	} else {
-		glog.Errorf("CancelRequest not implemented")
+		glog.Errorf("CancelRequest not implemented by %T", rt.delegate)
 	}
 }
 
@@ -319,7 +330,7 @@ func (rt *bearerAuthRoundTripper) CancelRequest(req *http.Request) {
 	if canceler, ok := rt.rt.(requestCanceler); ok {
 		canceler.CancelRequest(req)
 	} else {
-		glog.Errorf("CancelRequest not implemented")
+		glog.Errorf("CancelRequest not implemented by %T", rt.rt)
 	}
 }
 
@@ -403,7 +414,7 @@ func (rt *debuggingRoundTripper) CancelRequest(req *http.Request) {
 	if canceler, ok := rt.delegatedRoundTripper.(requestCanceler); ok {
 		canceler.CancelRequest(req)
 	} else {
-		glog.Errorf("CancelRequest not implemented")
+		glog.Errorf("CancelRequest not implemented by %T", rt.delegatedRoundTripper)
 	}
 }
 
