@@ -64,7 +64,7 @@ func dialToServer(clientConfig restclient.Config) error {
 	// Do a HEAD request to serverPathToDial to make sure the server is alive.
 	// We don't care about the response, any err != nil is valid for the sake of reachability.
 	serverURLToDial := (&url.URL{Scheme: parsedURL.Scheme, Host: parsedURL.Host, Path: "/"}).String()
-	req, err := http.NewRequest("HEAD", serverURLToDial, nil)
+	req, err := http.NewRequest(http.MethodHead, serverURLToDial, nil)
 	if err != nil {
 		return err
 	}
