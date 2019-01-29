@@ -58,28 +58,6 @@ func TestDeployScale(t *testing.T) {
 
 	{
 		// Get scale subresource
-		legacyPath := fmt.Sprintf("/oapi/v1/namespaces/%s/deploymentconfigs/%s/scale", dc.Namespace, dc.Name)
-		legacyScale := &unstructured.Unstructured{}
-		if err := adminAppsClient.RESTClient().Get().AbsPath(legacyPath).Do().Into(legacyScale); err != nil {
-			t.Fatal(err)
-		}
-		// Ensure correct type
-		if legacyScale.GetAPIVersion() != "extensions/v1beta1" {
-			t.Fatalf("Expected extensions/v1beta1, got %v", legacyScale.GetAPIVersion())
-		}
-		scaleBytes, err := legacyScale.MarshalJSON()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		// Ensure we can submit the same type back
-		if err := adminAppsClient.RESTClient().Put().AbsPath(legacyPath).Body(scaleBytes).Do().Error(); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	{
-		// Get scale subresource
 		scalePath := fmt.Sprintf("/apis/apps.openshift.io/v1/namespaces/%s/deploymentconfigs/%s/scale", dc.Namespace, dc.Name)
 		scale := &unstructured.Unstructured{}
 		if err := adminAppsClient.RESTClient().Get().AbsPath(scalePath).Do().Into(scale); err != nil {

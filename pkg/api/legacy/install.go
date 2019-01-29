@@ -6,7 +6,6 @@ import (
 )
 
 var (
-	RESTPrefix           = "/oapi"
 	GroupName            = ""
 	GroupVersion         = schema.GroupVersion{Group: GroupName, Version: "v1"}
 	InternalGroupVersion = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}

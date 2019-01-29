@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/emicklei/go-restful-swagger12"
 	"github.com/golang/glog"
 
 	"k8s.io/apiserver/pkg/admission"
@@ -25,7 +24,6 @@ import (
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/origin/pkg/admission/namespaceconditions"
-	"github.com/openshift/origin/pkg/api/legacy"
 	originadmission "github.com/openshift/origin/pkg/apiserver/admission"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
@@ -101,10 +99,8 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 	genericConfig.AuditPolicyChecker = policyChecker
 	genericConfig.ExternalAddress = "apiserver.openshift-apiserver.svc"
 	genericConfig.BuildHandlerChainFunc = OpenshiftHandlerChain
-	genericConfig.LegacyAPIGroupPrefixes = configprocessing.LegacyAPIGroupPrefixes
 	genericConfig.RequestInfoResolver = configprocessing.OpenshiftRequestInfoResolver()
 	genericConfig.OpenAPIConfig = configprocessing.DefaultOpenAPIConfig(nil)
-	genericConfig.SwaggerConfig = defaultSwaggerConfig()
 	genericConfig.RESTOptionsGetter = restOptsGetter
 	// previously overwritten.  I don't know why
 	genericConfig.RequestTimeout = time.Duration(60) * time.Second
@@ -257,54 +253,6 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 	}
 
 	return ret, ret.ExtraConfig.Validate()
-}
-
-var apiInfo = map[string]swagger.Info{
-	legacy.RESTPrefix + "/" + legacy.GroupVersion.Version: {
-		Title:       "OpenShift v1 REST API",
-		Description: `The OpenShift API exposes operations for managing an enterprise Kubernetes cluster, including security and user management, application deployments, image and source builds, HTTP(s) routing, and project management.`,
-	},
-}
-
-// customizeSwaggerDefinition applies selective patches to the swagger API docs
-// TODO: move most of these upstream or to go-restful
-func customizeSwaggerDefinition(apiList *swagger.ApiDeclarationList) {
-	for path, info := range apiInfo {
-		if dec, ok := apiList.At(path); ok {
-			if len(info.Title) > 0 {
-				dec.Info.Title = info.Title
-			}
-			if len(info.Description) > 0 {
-				dec.Info.Description = info.Description
-			}
-			apiList.Put(path, dec)
-		} else {
-			glog.Warningf("No API exists for predefined swagger description %s", path)
-		}
-	}
-	for _, version := range []string{legacy.RESTPrefix + "/" + legacy.GroupVersion.Version} {
-		apiDeclaration, _ := apiList.At(version)
-		models := &apiDeclaration.Models
-
-		model, _ := models.At("runtime.RawExtension")
-		model.Required = []string{}
-		model.Properties = swagger.ModelPropertyList{}
-		model.Description = "this may be any JSON object with a 'kind' and 'apiVersion' field; and is preserved unmodified by processing"
-		models.Put("runtime.RawExtension", model)
-
-		model, _ = models.At("patch.Object")
-		model.Description = "represents an object patch, which may be any of: JSON patch (RFC 6902), JSON merge patch (RFC 7396), or the Kubernetes strategic merge patch"
-		models.Put("patch.Object", model)
-
-		apiDeclaration.Models = *models
-		apiList.Put(version, apiDeclaration)
-	}
-}
-
-func defaultSwaggerConfig() *swagger.Config {
-	ret := genericapiserver.DefaultSwaggerConfig()
-	ret.PostBuildHandler = customizeSwaggerDefinition
-	return ret
 }
 
 func OpenshiftHandlerChain(apiHandler http.Handler, genericConfig *genericapiserver.Config) http.Handler {

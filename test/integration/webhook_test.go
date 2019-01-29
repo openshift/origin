@@ -64,9 +64,9 @@ func TestWebhook(t *testing.T) {
 			Payload:    "generic/testdata/push-generic.json",
 			HeaderFunc: genericHeaderFunc,
 			URLs: []string{
-				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret200/generic",
-				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret201/generic",
-				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret202/generic",
+				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret200/generic",
+				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret201/generic",
+				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret202/generic",
 			},
 		},
 		{
@@ -74,9 +74,9 @@ func TestWebhook(t *testing.T) {
 			Payload:    "github/testdata/pushevent.json",
 			HeaderFunc: githubHeaderFunc,
 			URLs: []string{
-				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
-				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
-				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret102/github",
+				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
+				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
+				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret102/github",
 			},
 		},
 		{
@@ -84,9 +84,9 @@ func TestWebhook(t *testing.T) {
 			Payload:    "gitlab/testdata/pushevent.json",
 			HeaderFunc: gitlabHeaderFunc,
 			URLs: []string{
-				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret300/gitlab",
-				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret301/gitlab",
-				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret302/gitlab",
+				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret300/gitlab",
+				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret301/gitlab",
+				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret302/gitlab",
 			},
 		},
 		{
@@ -94,9 +94,9 @@ func TestWebhook(t *testing.T) {
 			Payload:    "bitbucket/testdata/pushevent.json",
 			HeaderFunc: bitbucketHeaderFunc,
 			URLs: []string{
-				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret400/bitbucket",
-				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret401/bitbucket",
-				"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret402/bitbucket",
+				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret400/bitbucket",
+				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret401/bitbucket",
+				"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret402/bitbucket",
 			},
 		},
 	}
@@ -206,9 +206,9 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 	}
 
 	for _, s := range []string{
-		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
-		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
-		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret102/github",
+		"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
+		"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
+		"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret102/github",
 	} {
 
 		// trigger build event sending push notification
@@ -324,7 +324,7 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 	}
 	defer watch.Stop()
 
-	s := "/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github"
+	s := "/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github"
 
 	// trigger build event sending push notification
 	postFile(clusterAdminBuildClient.RESTClient(), githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
@@ -385,9 +385,9 @@ func TestWebhookGitHubPing(t *testing.T) {
 	defer watch.Stop()
 
 	for _, s := range []string{
-		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
-		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
-		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret102/github",
+		"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
+		"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret100/github",
+		"/apis/build.openshift.io/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret102/github",
 	} {
 		// trigger build event sending push notification
 		clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)

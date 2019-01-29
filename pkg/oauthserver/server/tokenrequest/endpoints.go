@@ -187,7 +187,7 @@ var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(`
   <pre>oc login <span class="nowrap">--token={{.AccessToken}}</span> <span class="nowrap">--server={{.PublicMasterURL}}</span></pre>
 
   <h3>Use this token directly against the API</h3>
-  <pre>curl <span class="nowrap">-H "Authorization: Bearer {{.AccessToken}}"</span> <span class="nowrap">"{{.PublicMasterURL}}/oapi/v1/users/~"</span></pre>
+  <pre>curl <span class="nowrap">-H "Authorization: Bearer {{.AccessToken}}"</span> <span class="nowrap">"{{.PublicMasterURL}}/apis/user.openshift.io/v1/users/~"</span></pre>
 {{ end }}
 
 <br><br>

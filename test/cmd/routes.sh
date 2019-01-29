@@ -35,7 +35,6 @@ os::cmd::expect_success_and_text 'oc create route edge --service bar --port=9090
 # verify that reencrypt routes with no destination CA return the stub PEM block on the old API
 project="$(oc project -q)"
 os::cmd::expect_success_and_text     'oc create route reencrypt --service baz --port=9090' 'created'
-os::cmd::expect_success_and_text     'oc get --raw /oapi/v1/namespaces/${project}/routes/baz' 'This is an empty PEM file'
 os::cmd::expect_success_and_not_text 'oc get --raw /apis/route.openshift.io/v1/namespaces/${project}/routes/baz' 'This is an empty PEM file'
 
 os::cmd::expect_success_and_text 'oc set route-backends foo' 'routes/foo'

@@ -58,12 +58,8 @@ func DefaultOpenAPIConfig(oauthMetadata *oauthutil.OauthAuthorizationServerMetad
 			op := r.Operation
 			path := r.Path
 			// DEPRECATED: These endpoints are going to be removed in 1.8 or 1.9 release.
-			if strings.HasPrefix(path, "/oapi/v1/namespaces/{namespace}/processedtemplates") {
-				op = "createNamespacedProcessedTemplate"
-			} else if strings.HasPrefix(path, "/apis/template.openshift.io/v1/namespaces/{namespace}/processedtemplates") {
+			if strings.HasPrefix(path, "/apis/template.openshift.io/v1/namespaces/{namespace}/processedtemplates") {
 				op = "createNamespacedProcessedTemplateV1"
-			} else if strings.HasPrefix(path, "/oapi/v1/processedtemplates") {
-				op = "createProcessedTemplateForAllNamespacesV1"
 			} else if strings.HasPrefix(path, "/apis/template.openshift.io/v1/processedtemplates") {
 				op = "createProcessedTemplateForAllNamespaces"
 			}
