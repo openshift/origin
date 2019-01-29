@@ -7,8 +7,10 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 
+	"github.com/blang/semver"
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	imageapi "github.com/openshift/api/image/v1"
@@ -145,7 +147,7 @@ func readReleaseImageReferences(data []byte) (*imageapi.ImageStream, error) {
 
 type ManifestMapper func(data []byte) ([]byte, error)
 
-func NewImageMapperFromImageStreamFile(path string, input *imageapi.ImageStream, allowMissingImages bool) (ManifestMapper, error) {
+func NewTransformFromImageStreamFile(path string, input *imageapi.ImageStream, allowMissingImages bool) (ManifestMapper, error) {
 	is, err := parseImageStream(path)
 	if err != nil {
 		return nil, err
@@ -175,7 +177,54 @@ func NewImageMapperFromImageStreamFile(path string, input *imageapi.ImageStream,
 		}
 		references[tag.Name] = ref
 	}
-	return NewImageMapper(references)
+	imageMapper, err := NewImageMapper(references)
+	if err != nil {
+		return nil, err
+	}
+
+	// load all version values from the input stream, including any defaults, to perform
+	// version substitution in the returned manifests.
+	versions := make(map[string]string)
+	tagsByName := make(map[string][]string)
+	for _, tag := range input.Spec.Tags {
+		if _, ok := references[tag.Name]; !ok {
+			continue
+		}
+		value := tag.Annotations["io.openshift.build.versions"]
+		items, err := parseComponentVersionsLabel(value)
+		if err != nil {
+			return nil, fmt.Errorf("input image stream has an invalid version annotation for tag %q: %v", tag.Name, value)
+		}
+		for k, v := range items {
+			existing, ok := versions[k]
+			if ok {
+				if existing != v {
+					return nil, fmt.Errorf("input image stream has multiple versions defined for version %s: %s defines %s but was already set to %s on %s", k, tag.Name, v, existing, strings.Join(tagsByName[k], ", "))
+				}
+			} else {
+				versions[k] = v
+			}
+			tagsByName[k] = append(tagsByName[k], tag.Name)
+		}
+	}
+	defaults, err := parseComponentVersionsLabel(input.Annotations["io.openshift.build.versions"])
+	if err != nil {
+		return nil, fmt.Errorf("unable to read default versions label on input image stream: %v", err)
+	}
+	for k, v := range defaults {
+		if _, ok := versions[k]; !ok {
+			versions[k] = v
+		}
+	}
+
+	versionMapper := NewComponentVersionsMapper(input.Name, versions, tagsByName)
+	return func(data []byte) ([]byte, error) {
+		data, err := imageMapper(data)
+		if err != nil {
+			return nil, err
+		}
+		return versionMapper(data)
+	}, nil
 }
 
 type ImageReference struct {
@@ -282,4 +331,134 @@ func ComponentReferencesForImageStream(is *imageapi.ImageStream) (func(string) i
 		}
 		return ref
 	}, nil
+}
+
+const (
+	componentVersionFormat = `([\W]|^)0\.0\.1-snapshot([a-z0-9\-]*)`
+)
+
+// NewComponentVersionsMapper substitutes strings of the form 0.0.1-snapshot with releaseName and strings
+// of the form 0.0.1-snapshot-[component] with the version value located in versions, or returns an error.
+// tagsByName allows the caller to return an error if references are ambiguous (two tags declare different
+// version values) - if that replacement is detected and tagsByName[component] has more than one entry,
+// then an error is returned by the ManifestMapper.
+// If the input release name is not a semver, a request for `0.0.1-snapshot` will be left unmodified.
+func NewComponentVersionsMapper(releaseName string, versions map[string]string, tagsByName map[string][]string) ManifestMapper {
+	if v, err := semver.Parse(releaseName); err == nil {
+		v.Build = nil
+		releaseName = v.String()
+	} else {
+		releaseName = ""
+	}
+	re, err := regexp.Compile(componentVersionFormat)
+	if err != nil {
+		return func([]byte) ([]byte, error) {
+			return nil, fmt.Errorf("component versions mapper regex: %v", err)
+		}
+	}
+	return func(data []byte) ([]byte, error) {
+		var missing []string
+		var conflicts []string
+		data = re.ReplaceAllFunc(data, func(part []byte) []byte {
+			matches := re.FindSubmatch(part)
+			if matches == nil {
+				return part
+			}
+			key := string(matches[2])
+			if len(key) == 0 && len(releaseName) > 0 {
+				buf := &bytes.Buffer{}
+				buf.Write(matches[1])
+				buf.WriteString(releaseName)
+				return buf.Bytes()
+			}
+			if !strings.HasPrefix(key, "-") {
+				return part
+			}
+			key = key[1:]
+			value, ok := versions[key]
+			if !ok {
+				missing = append(missing, key)
+				return part
+			}
+			if len(tagsByName[key]) > 1 {
+				conflicts = append(conflicts, key)
+				return part
+			}
+			buf := &bytes.Buffer{}
+			buf.Write(matches[1])
+			buf.WriteString(value)
+			return buf.Bytes()
+		})
+		if len(missing) > 0 {
+			switch len(missing) {
+			case 1:
+				if len(missing[0]) == 0 {
+					return nil, fmt.Errorf("empty version references are not allowed")
+				}
+				return nil, fmt.Errorf("unknown version reference %q", missing[0])
+			default:
+				return nil, fmt.Errorf("unknown version references: %s", strings.Join(missing, ", "))
+			}
+		}
+		if len(conflicts) > 0 {
+			allImageTags := tagsByName[conflicts[0]]
+			sort.Strings(allImageTags)
+			return nil, fmt.Errorf("the version for %q is inconsistent across the referenced images: %s", conflicts[0], strings.Join(allImageTags, ", "))
+		}
+		return data, nil
+	}
+}
+
+var (
+	reAllowedVersionKey = regexp.MustCompile(`^[a-z0-9]+[\-a-z0-9]*[a-z0-9]+$`)
+)
+
+// ComponentVersions is a map of component names to semantic versions. Names are
+// lowercase alphanumeric and dashes. Semantic versions will have all build
+// labels removed, but prerelease segments are preserved.
+type ComponentVersions map[string]string
+
+func (v ComponentVersions) String() string {
+	var keys []string
+	for k := range v {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	buf := &bytes.Buffer{}
+	for i, k := range keys {
+		if i != 0 {
+			buf.WriteRune(',')
+		}
+		fmt.Fprintf(buf, "%s=%s", k, v[k])
+	}
+	return buf.String()
+}
+
+// parseComponentVersionsLabel returns the version labels specified in the string or
+// an error. Labels are comma-delimited, key=value pairs, and surrounding whitespace is
+// ignored. Names must be a-z, 0-9, or have interior dashes. All values must be
+// semantic versions.
+func parseComponentVersionsLabel(label string) (ComponentVersions, error) {
+	label = strings.TrimSpace(label)
+	if len(label) == 0 {
+		return nil, nil
+	}
+	labels := make(map[string]string)
+	for _, pair := range strings.Split(label, ",") {
+		pair = strings.TrimSpace(pair)
+		parts := strings.SplitN(pair, "=", 2)
+		if len(parts) == 1 {
+			return nil, fmt.Errorf("the version pair %q must be NAME=VERSION", pair)
+		}
+		if !reAllowedVersionKey.MatchString(parts[0]) {
+			return nil, fmt.Errorf("the version name %q must only be ASCII alphanumerics and internal hyphens", parts[0])
+		}
+		v, err := semver.Parse(parts[1])
+		if err != nil {
+			return nil, fmt.Errorf("the version pair %q must have a valid semantic version: %v", pair, err)
+		}
+		v.Build = nil
+		labels[parts[0]] = v.String()
+	}
+	return labels, nil
 }
