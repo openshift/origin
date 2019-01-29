@@ -173,6 +173,7 @@ func initProvider(provider string) error {
 	}
 	exutil.TestContext.AllowedNotReadyNodes = 100
 	exutil.TestContext.MaxNodesToGather = 0
+	exutil.TestContext.Viper = os.Getenv("VIPERCONFIG")
 
 	exutil.AnnotateTestSuite()
 	exutil.InitTest()
