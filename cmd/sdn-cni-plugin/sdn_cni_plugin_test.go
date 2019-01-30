@@ -152,29 +152,31 @@ func TestOpenshiftSdnCNIPlugin(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		var result cnitypes.Result
-		var err error
+		t.Run(tc.name, func(t *testing.T) {
+			var result cnitypes.Result
+			var err error
 
-		skelArgsToEnv(tc.reqType, tc.skelArgs)
-		switch tc.reqType {
-		case cniserver.CNI_ADD:
-			result, err = cniPlugin.testCmdAdd(tc.skelArgs)
-		case cniserver.CNI_DEL:
-			err = cniPlugin.CmdDel(tc.skelArgs)
-		default:
-			t.Fatalf("[%s] unhandled CNI command type", tc.name)
-		}
-		clearEnv()
+			skelArgsToEnv(tc.reqType, tc.skelArgs)
+			switch tc.reqType {
+			case cniserver.CNI_ADD:
+				result, err = cniPlugin.testCmdAdd(tc.skelArgs)
+			case cniserver.CNI_DEL:
+				err = cniPlugin.CmdDel(tc.skelArgs)
+			default:
+				t.Fatalf("[%s] unhandled CNI command type", tc.name)
+			}
+			clearEnv()
 
-		if tc.errorPrefix == "" {
-			if err != nil {
-				t.Fatalf("[%s] expected result %v but got error: %v", tc.name, tc.result, err)
+			if tc.errorPrefix == "" {
+				if err != nil {
+					t.Fatalf("[%s] expected result %v but got error: %v", tc.name, tc.result, err)
+				}
+				if tc.result != nil && !reflect.DeepEqual(result, tc.result) {
+					t.Fatalf("[%s] expected result %v but got %v", tc.name, tc.result, result)
+				}
+			} else if !strings.HasPrefix(fmt.Sprintf("%v", err), tc.errorPrefix) {
+				t.Fatalf("[%s] unexpected error message '%v'", tc.name, err)
 			}
-			if tc.result != nil && !reflect.DeepEqual(result, tc.result) {
-				t.Fatalf("[%s] expected result %v but got %v", tc.name, tc.result, result)
-			}
-		} else if !strings.HasPrefix(fmt.Sprintf("%v", err), tc.errorPrefix) {
-			t.Fatalf("[%s] unexpected error message '%v'", tc.name, err)
-		}
+		})
 	}
 }
