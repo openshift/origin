@@ -73,14 +73,18 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	}
 
 	success := false
-	for i := 0; i < 10; i++ {
+	// with the move to ocp/rhel as the default for the samples in 4.0, there are alot more imagestreams
+	// so we've bumped was 30 seconds to 2 min 30 seconds or 150 seconds (manual perf testing shows typical times of
+	// 1 to 2 minutes, assuming registry.access.redhat.com / registry.redhat.io are behaving ... they
+	// have proven less reliable that docker.io)
+	for i := 0; i < 15; i++ {
 		e2e.Logf("Running scan #%v \n", i)
 		success = scan()
 		if success {
 			break
 		}
-		e2e.Logf("Sleeping for 3 seconds \n")
-		time.Sleep(3 * time.Second)
+		e2e.Logf("Sleeping for 10 seconds \n")
+		time.Sleep(10 * time.Second)
 	}
 	if success {
 		e2e.Logf("Success! \n")
