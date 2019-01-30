@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	oc := cli.NewCommandCLI("oc", "oc", os.Stdin, os.Stdout, os.Stderr)
+	oc := cli.NewOcCommand("oc", "oc", os.Stdin, os.Stdout, os.Stderr)
 	errors := sanity.CheckCmdTree(oc, sanity.AllCmdChecks, nil)
 	if len(errors) > 0 {
 		for i, err := range errors {
