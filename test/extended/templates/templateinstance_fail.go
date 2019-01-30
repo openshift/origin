@@ -25,12 +25,6 @@ var _ = g.Describe("[Conformance][templates] templateinstance creation with inva
 	)
 
 	g.Context("", func() {
-		g.BeforeEach(func() {
-			g.By("waiting for default service account")
-			err := exutil.WaitForServiceAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-
 		g.It("should report a failure on creation", func() {
 			err := cli.Run("create").Args("-f", templatefixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())

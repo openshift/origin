@@ -16,13 +16,6 @@ import (
 
 func Before(oc *exutil.CLI) {
 	exutil.PreTestDump()
-
-	g.By("waiting for default service account")
-	err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-	o.Expect(err).NotTo(o.HaveOccurred())
-	g.By("waiting for builder service account")
-	err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-	o.Expect(err).NotTo(o.HaveOccurred())
 }
 
 func After(oc *exutil.CLI) {

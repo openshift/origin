@@ -27,14 +27,8 @@ var _ = g.Describe("[image_ecosystem][php][Slow] hot deploy for openshift php im
 	)
 
 	g.Context("", func() {
-		g.BeforeEach(func() {
+		g.JustBeforeEach(func() {
 			exutil.PreTestDump()
-			g.By("waiting for default service account")
-			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
 		g.AfterEach(func() {

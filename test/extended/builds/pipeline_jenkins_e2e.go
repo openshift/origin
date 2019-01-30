@@ -169,13 +169,6 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
 			}
-
-			g.By("waiting for default service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
 		debugAnyJenkinsFailure = func(br *exutil.BuildResult, name string, oc *exutil.CLI, dumpMaster bool) {
