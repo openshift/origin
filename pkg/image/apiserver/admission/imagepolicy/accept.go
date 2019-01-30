@@ -13,7 +13,7 @@ import (
 
 	imagereferencemutators "github.com/openshift/origin/pkg/api/imagereferencemutators/internalversion"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy"
+	imagepolicy "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/rules"
 )
 
@@ -30,7 +30,8 @@ type policyDecision struct {
 func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imageResolver, m imagereferencemutators.ImageReferenceMutator, annotations imagereferencemutators.AnnotationAccessor, attr admission.Attributes, excludedRules sets.String) error {
 	decisions := policyDecisions{}
 
-	gr := attr.GetResource().GroupResource()
+	t := attr.GetResource().GroupResource()
+	gr := imagepolicy.GroupResource{Resource: t.Resource, Group: t.Group}
 
 	var resolveAllNames bool
 	if annotations != nil {
