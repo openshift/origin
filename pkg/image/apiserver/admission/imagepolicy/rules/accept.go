@@ -2,21 +2,22 @@ package rules
 
 import (
 	"github.com/golang/glog"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	imagepolicy "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 )
 
 type Accepter interface {
-	Covers(schema.GroupResource) bool
+	Covers(metav1.GroupResource) bool
 
 	Accepts(*ImagePolicyAttributes) bool
 }
 
 // mappedAccepter implements the Accepter interface for a map of group resources and accepters
-type mappedAccepter map[schema.GroupResource]Accepter
+type mappedAccepter map[metav1.GroupResource]Accepter
 
-func (a mappedAccepter) Covers(gr schema.GroupResource) bool {
+func (a mappedAccepter) Covers(gr metav1.GroupResource) bool {
 	_, ok := a[gr]
 	return ok
 }
@@ -33,7 +34,7 @@ func (a mappedAccepter) Accepts(attr *ImagePolicyAttributes) bool {
 
 type executionAccepter struct {
 	rules         []imagepolicy.ImageExecutionPolicyRule
-	covers        schema.GroupResource
+	covers        metav1.GroupResource
 	defaultReject bool
 
 	integratedRegistryMatcher RegistryMatcher
@@ -81,7 +82,7 @@ func NewExecutionRulesAccepter(rules []imagepolicy.ImageExecutionPolicyRule, int
 	return mapped, nil
 }
 
-func (r *executionAccepter) Covers(gr schema.GroupResource) bool {
+func (r *executionAccepter) Covers(gr metav1.GroupResource) bool {
 	return r.covers == gr
 }
 

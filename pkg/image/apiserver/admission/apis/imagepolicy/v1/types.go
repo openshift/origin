@@ -2,6 +2,20 @@ package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+)
+
+const (
+	PluginName = "image.openshift.io/ImagePolicy"
+
+	// IgnorePolicyRulesAnnotation is a comma delimited list of rule names to omit from consideration
+	// in a given namespace. Loaded from the namespace.
+	IgnorePolicyRulesAnnotation = "alpha.image.policy.openshift.io/ignore-rules"
+	// ResolveNamesAnnotation when placed on an object template or object requests that all relevant
+	// image names be resolved by taking the name and tag and attempting to resolve a local image stream.
+	// This overrides the imageLookupPolicy on the image stream. If the object is not namespaced the
+	// annotation is ignored. The only valid value is '*'.
+	ResolveNamesAnnotation = "alpha.image.policy.openshift.io/resolve-names"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -51,7 +65,7 @@ type ImageResolutionPolicyRule struct {
 	Policy ImageResolutionType `json:"policy"`
 	// TargetResource is the identified group and resource. If Resource is *, this rule will apply
 	// to all resources in that group.
-	TargetResource GroupResource `json:"targetResource"`
+	TargetResource metav1.GroupResource `json:"targetResource"`
 	// LocalNames will allow single segment names to be interpreted as namespace local image
 	// stream tags, but only if the target image stream tag has the "resolveLocalNames" field
 	// set.
@@ -67,14 +81,6 @@ type ImageExecutionPolicyRule struct {
 	Reject bool `json:"reject"`
 }
 
-// GroupResource represents a resource in a specific group.
-type GroupResource struct {
-	// Resource is the name of an admission resource to process, e.g. 'statefulsets'.
-	Resource string `json:"resource"`
-	// Group is the name of the group the resource is in, e.g. 'apps'.
-	Group string `json:"group"`
-}
-
 // ImageCondition defines the conditions for matching a particular image source. The conditions below
 // are all required (logical AND). If Reject is specified, the condition is false if all conditions match,
 // and true otherwise.
@@ -86,7 +92,7 @@ type ImageCondition struct {
 	IgnoreNamespaceOverride bool `json:"ignoreNamespaceOverride"`
 
 	// OnResources determines which resources this applies to. Defaults to 'pods' for ImageExecutionPolicyRules.
-	OnResources []GroupResource `json:"onResources"`
+	OnResources []metav1.GroupResource `json:"onResources"`
 
 	// InvertMatch means the value of the condition is logically inverted (true -> false, false -> true).
 	InvertMatch bool `json:"invertMatch"`
@@ -107,6 +113,10 @@ type ImageCondition struct {
 	MatchDockerImageLabels []ValueCondition `json:"matchDockerImageLabels"`
 	// MatchImageLabels checks against the resolved image for a label. All conditions must match.
 	MatchImageLabels []metav1.LabelSelector `json:"matchImageLabels"`
+	// MatchImageLabelSelectors is the processed form of MatchImageLabels. All conditions must match.
+	// TODO: this only existed on the internal type, it's set as part of processing the configuration,
+	// so presumably it should not be supplied by the user.  Not sure the best way to deal with it.
+	MatchImageLabelSelectors []labels.Selector `json:"-"`
 	// MatchImageAnnotations checks against the resolved image for an annotation. All conditions must match.
 	MatchImageAnnotations []ValueCondition `json:"matchImageAnnotations"`
 }

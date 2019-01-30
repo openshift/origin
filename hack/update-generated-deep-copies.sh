@@ -18,7 +18,6 @@ ALL_FQ_APIS=(
     github.com/openshift/origin/pkg/cmd/server/apis/config
     github.com/openshift/origin/pkg/cmd/server/apis/config/v1
     github.com/openshift/origin/pkg/cmd/server/apis/config/v1/testing
-    github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy
     github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1
     github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit
     github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit/v1

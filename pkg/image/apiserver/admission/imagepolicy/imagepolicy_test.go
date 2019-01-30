@@ -2,6 +2,7 @@ package imagepolicy
 
 import (
 	"bytes"
+	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
@@ -13,7 +14,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/diff"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/admission"
 	fakev1 "k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
@@ -25,9 +28,8 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configinstall "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
-	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy"
+	imagepolicy "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/validation"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/rules"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
@@ -61,17 +63,20 @@ func TestDefaultPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	obj, err := configlatest.ReadYAML(input)
+	config := &imagepolicy.ImagePolicyConfig{}
+	configContent, err := ioutil.ReadAll(input)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if obj == nil {
-		t.Fatal(obj)
+	scheme := runtime.NewScheme()
+	utilruntime.Must(imagepolicy.Install(scheme))
+	codecs := serializer.NewCodecFactory(scheme)
+	err = runtime.DecodeInto(codecs.UniversalDecoder(imagepolicy.GroupVersion), configContent, config)
+	if err != nil {
+		t.Fatal(err)
 	}
-	config, ok := obj.(*imagepolicy.ImagePolicyConfig)
-	if !ok {
-		t.Fatal(config)
-	}
+	imagepolicy.SetDefaults_ImagePolicyConfig(config)
+
 	if errs := validation.Validate(config); len(errs) > 0 {
 		t.Fatal(errs.ToAggregate())
 	}
@@ -384,7 +389,7 @@ func TestDefaultPolicy(t *testing.T) {
 }
 
 func TestAdmissionWithoutPodSpec(t *testing.T) {
-	onResources := []schema.GroupResource{{Resource: "nodes"}}
+	onResources := []metav1.GroupResource{{Resource: "nodes"}}
 	p, err := newImagePolicyPlugin(&imagepolicy.ImagePolicyConfig{
 		ExecutionRules: []imagepolicy.ImageExecutionPolicyRule{
 			{ImageCondition: imagepolicy.ImageCondition{OnResources: onResources}},
@@ -408,7 +413,7 @@ func TestAdmissionWithoutPodSpec(t *testing.T) {
 }
 
 func TestAdmissionResolution(t *testing.T) {
-	onResources := []schema.GroupResource{{Resource: "pods"}}
+	onResources := []metav1.GroupResource{{Resource: "pods"}}
 	p, err := newImagePolicyPlugin(&imagepolicy.ImagePolicyConfig{
 		ResolveImages: imagepolicy.AttemptRewrite,
 		ExecutionRules: []imagepolicy.ImageExecutionPolicyRule{
@@ -513,11 +518,19 @@ func TestAdmissionResolveImages(t *testing.T) {
 		DockerImageReference: "integrated.registry/image1/image1@sha256:0000000000000000000000000000000000000000000000000000000000000001",
 	}
 
-	obj, err := configlatest.ReadYAML(bytes.NewBufferString(`{"kind":"ImagePolicyConfig","apiVersion":"image.openshift.io/v1"}`))
-	if err != nil || obj == nil {
+	defaultPolicyConfig := &imagepolicy.ImagePolicyConfig{}
+	configContent, err := ioutil.ReadAll(bytes.NewBufferString(`{"kind":"ImagePolicyConfig","apiVersion":"image.openshift.io/v1"}`))
+	if err != nil {
 		t.Fatal(err)
 	}
-	defaultPolicyConfig := obj.(*imagepolicy.ImagePolicyConfig)
+	scheme := runtime.NewScheme()
+	utilruntime.Must(imagepolicy.Install(scheme))
+	codecs := serializer.NewCodecFactory(scheme)
+	err = runtime.DecodeInto(codecs.UniversalDecoder(imagepolicy.GroupVersion), configContent, defaultPolicyConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	imagepolicy.SetDefaults_ImagePolicyConfig(defaultPolicyConfig)
 
 	testCases := []struct {
 		name   string
@@ -1287,7 +1300,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 	}
 	for i, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
-			onResources := []schema.GroupResource{{Resource: "builds"}, {Resource: "pods"}}
+			onResources := []metav1.GroupResource{{Resource: "builds"}, {Resource: "pods"}}
 			config := test.config
 			if config == nil {
 				// old style config
@@ -1344,7 +1357,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 func TestResolutionConfig(t *testing.T) {
 	testCases := []struct {
 		config   *imagepolicy.ImagePolicyConfig
-		resource schema.GroupResource
+		resource metav1.GroupResource
 		attrs    rules.ImagePolicyAttributes
 		update   bool
 
@@ -1389,7 +1402,7 @@ func TestResolutionConfig(t *testing.T) {
 					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "test", Resource: "*"}},
 				},
 			},
-			resource: schema.GroupResource{Group: "other"},
+			resource: metav1.GroupResource{Group: "other"},
 			resolve:  false,
 			rewrite:  false,
 		},
@@ -1402,7 +1415,7 @@ func TestResolutionConfig(t *testing.T) {
 					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "test", Resource: "self"}},
 				},
 			},
-			resource: schema.GroupResource{Group: "test", Resource: "other"},
+			resource: metav1.GroupResource{Group: "test", Resource: "other"},
 			resolve:  false,
 			rewrite:  false,
 		},
@@ -1415,7 +1428,7 @@ func TestResolutionConfig(t *testing.T) {
 					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "test", Resource: "self"}},
 				},
 			},
-			resource: schema.GroupResource{Group: "test", Resource: "self"},
+			resource: metav1.GroupResource{Group: "test", Resource: "self"},
 			resolve:  true,
 			rewrite:  true,
 		},
@@ -1428,7 +1441,7 @@ func TestResolutionConfig(t *testing.T) {
 					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "batch", Resource: "jobs"}},
 				},
 			},
-			resource: schema.GroupResource{Group: "batch", Resource: "jobs"},
+			resource: metav1.GroupResource{Group: "batch", Resource: "jobs"},
 			update:   true,
 			resolve:  true,
 			rewrite:  false,
@@ -1442,7 +1455,7 @@ func TestResolutionConfig(t *testing.T) {
 					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "batch", Resource: "jobs"}},
 				},
 			},
-			resource: schema.GroupResource{Group: "batch", Resource: "jobs"},
+			resource: metav1.GroupResource{Group: "batch", Resource: "jobs"},
 			update:   false,
 			resolve:  true,
 			rewrite:  true,
@@ -1456,7 +1469,7 @@ func TestResolutionConfig(t *testing.T) {
 					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "build.openshift.io", Resource: "builds"}},
 				},
 			},
-			resource: schema.GroupResource{Group: "build.openshift.io", Resource: "builds"},
+			resource: metav1.GroupResource{Group: "build.openshift.io", Resource: "builds"},
 			update:   true,
 			resolve:  true,
 			rewrite:  false,
@@ -1471,7 +1484,7 @@ func TestResolutionConfig(t *testing.T) {
 					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "apps", Resource: "statefulsets"}},
 				},
 			},
-			resource: schema.GroupResource{Group: "apps", Resource: "statefulsets"},
+			resource: metav1.GroupResource{Group: "apps", Resource: "statefulsets"},
 			update:   true,
 			resolve:  true,
 			rewrite:  false,

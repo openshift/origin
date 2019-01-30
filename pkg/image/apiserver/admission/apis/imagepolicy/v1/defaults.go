@@ -1,6 +1,7 @@
 package v1
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
@@ -16,21 +17,23 @@ func SetDefaults_ImagePolicyConfig(obj *ImagePolicyConfig) {
 
 	for i := range obj.ExecutionRules {
 		if len(obj.ExecutionRules[i].OnResources) == 0 {
-			obj.ExecutionRules[i].OnResources = []GroupResource{{Resource: "pods", Group: kapi.GroupName}}
+			obj.ExecutionRules[i].OnResources = []metav1.GroupResource{{Resource: "pods", Group: kapi.GroupName}}
 		}
 	}
 
 	if obj.ResolutionRules == nil {
 		obj.ResolutionRules = []ImageResolutionPolicyRule{
-			{TargetResource: GroupResource{Resource: "pods"}, LocalNames: true},
-			{TargetResource: GroupResource{Group: "build.openshift.io", Resource: "builds"}, LocalNames: true},
-			{TargetResource: GroupResource{Group: "batch", Resource: "jobs"}, LocalNames: true},
-			{TargetResource: GroupResource{Group: "extensions", Resource: "replicasets"}, LocalNames: true},
-			{TargetResource: GroupResource{Resource: "replicationcontrollers"}, LocalNames: true},
-			{TargetResource: GroupResource{Group: "apps", Resource: "deployments"}, LocalNames: true},
-			{TargetResource: GroupResource{Group: "extensions", Resource: "deployments"}, LocalNames: true},
-			{TargetResource: GroupResource{Group: "apps", Resource: "statefulsets"}, LocalNames: true},
-			{TargetResource: GroupResource{Group: "extensions", Resource: "daemonsets"}, LocalNames: true},
+			{TargetResource: metav1.GroupResource{Resource: "pods"}, LocalNames: true},
+			{TargetResource: metav1.GroupResource{Group: "build.openshift.io", Resource: "builds"}, LocalNames: true},
+			// TODO remove this when https://bugzilla.redhat.com/show_bug.cgi?id=1679602 is resolved.
+			{TargetResource: metav1.GroupResource{Group: "", Resource: "builds"}, LocalNames: true},
+			{TargetResource: metav1.GroupResource{Group: "batch", Resource: "jobs"}, LocalNames: true},
+			{TargetResource: metav1.GroupResource{Group: "extensions", Resource: "replicasets"}, LocalNames: true},
+			{TargetResource: metav1.GroupResource{Resource: "replicationcontrollers"}, LocalNames: true},
+			{TargetResource: metav1.GroupResource{Group: "apps", Resource: "deployments"}, LocalNames: true},
+			{TargetResource: metav1.GroupResource{Group: "extensions", Resource: "deployments"}, LocalNames: true},
+			{TargetResource: metav1.GroupResource{Group: "apps", Resource: "statefulsets"}, LocalNames: true},
+			{TargetResource: metav1.GroupResource{Group: "extensions", Resource: "daemonsets"}, LocalNames: true},
 		}
 		// default the resolution policy to the global default
 		for i := range obj.ResolutionRules {
@@ -63,7 +66,7 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 }
 
 // executionRuleCoversResource returns true if gr is covered by rule.
-func executionRuleCoversResource(rule ImageExecutionPolicyRule, gr GroupResource) bool {
+func executionRuleCoversResource(rule ImageExecutionPolicyRule, gr metav1.GroupResource) bool {
 	for _, target := range rule.OnResources {
 		if target.Group == gr.Group && (target.Resource == gr.Resource || target.Resource == "*") {
 			return true
