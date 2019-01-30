@@ -20,6 +20,8 @@ import (
 	coreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/openshift/origin/test/extended/prometheus"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -29,30 +31,11 @@ const (
 
 	// pods whose metrics show a larger ratio of requests per
 	// second than maxQPSAllowed are considered "unhealthy".
-	maxQPSAllowed = 1.5
-)
-
-var (
-	// TODO: these exceptions should not exist. Update operators to have a better request-rate per second
-	perComponentNamespaceMaxQPSAllowed = map[string]float64{
-		"openshift-apiserver-operator":                            3.0,
-		"openshift-kube-apiserver-operator":                       6.8,
-		"openshift-kube-controller-manager-operator":              2.0,
-		"openshift-cluster-kube-scheduler-operator":               1.8,
-		"openshift-cluster-openshift-controller-manager-operator": 1.7,
-		"openshift-kube-scheduler-operator":                       1.7,
-	}
+	maxQPSAllowed = 7.0 // ideal value: 1.5
 )
 
 var _ = g.Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 	defer g.GinkgoRecover()
-	var oc = exutil.NewCLIWithoutNamespace("operators")
-
-	g.BeforeEach(func() {
-		if !locatePrometheus(oc) {
-			e2e.Skipf("Prometheus could not be located on this cluster, skipping operator test")
-		}
-	})
 
 	g.It("start all core operators", func() {
 		cfg, err := e2e.LoadConfig()
@@ -182,55 +165,77 @@ var _ = g.Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 			e2e.Failf("None of the required core operators are available")
 		}
 	})
+})
+
+var _ = g.Describe("[Feature:Platform] Managed cluster", func() {
+	defer g.GinkgoRecover()
+	var (
+		oc               = exutil.NewCLIWithoutNamespace("operators")
+		url, bearerToken string
+	)
+	g.BeforeEach(func() {
+		var ok bool
+		url, bearerToken, ok = prometheus.LocatePrometheus(oc)
+		if !ok {
+			e2e.Skipf("Prometheus could not be located on this cluster, skipping prometheus test")
+		}
+	})
 
 	g.It("should iterate through operator pods and detect higher-than-normal queries per second", func() {
-		podURLGetter := &portForwardURLGetter{
-			Protocol:   "https",
-			Host:       "localhost",
-			RemotePort: "8443",
-			LocalPort:  "37587",
+		if !prometheus.HasPullSecret(oc.AdminKubeClient(), "cloud.openshift.com") {
+			e2e.Skipf("Telemetry is disabled")
 		}
+		oc.SetupProject()
+		ns := oc.Namespace()
 
-		namespaces, err := oc.AdminKubeClient().CoreV1().Namespaces().List(metav1.ListOptions{})
+		execPodName := e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) { pod.Spec.Containers[0].Image = "centos:7" })
+		defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+
+		client, err := configclient.NewForConfig(oc.AdminConfig())
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		failures := []error{}
-		failedPods := []v1.Pod{}
-		for _, ns := range namespaces.Items {
-			// skip namespaces which do not meet "operator namespace" criteria
-			if !strings.HasPrefix(ns.Name, "openshift-") || !strings.HasSuffix(ns.Name, "-operator") {
+		operators, err := client.ConfigV1().ClusterOperators().List(metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// TODO: standardize operator / operator client names
+		// names of exceptions for operators with client names that deviate slightly from what is expected
+		knownNameConversions := map[string]string{
+			"kube-controller-manager":               "cluster-kube-controller-manager-operator",
+			"openshift-apiserver":                   "cluster-openshift-apiserver-operator",
+			"openshift-cluster-samples-operator":    "cluster-samples-operator",
+			"openshift-controller-manager-operator": "cluster-openshift-controller-manager-operator",
+		}
+
+		// names of operators without corresponding metrics
+		knownMissingOperators := map[string]bool{
+			"cluster-monitoring-operator": true,
+		}
+
+		// obtain cluster operator client names
+		operatorClientNames := []string{}
+		for _, co := range operators.Items {
+			clientName := co.Name
+			if knownMissingOperators[clientName] {
 				continue
 			}
 
-			infos, err := getPodInfoForNamespace(oc.AdminKubeClient(), oc.AdminConfig(), podURLGetter, ns.Name)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			for _, info := range infos {
-				if info.failed {
-					failures = append(failures, fmt.Errorf("failed to fetch operator pod metrics for pod %q: %s", info.name, info.result))
-					continue
-				}
-				if info.skipped {
-					continue
-				}
-
-				qpsLimit := maxQPSAllowed
-				if customLimit, ok := perComponentNamespaceMaxQPSAllowed[info.namespace]; ok {
-					qpsLimit = customLimit
-				}
-
-				if info.qps > qpsLimit {
-					failedPods = append(failedPods, *info.pod)
-					failures = append(failures, fmt.Errorf("operator pod %q in namespace %q is making %v requests per second. Maximum allowed is %v requests per second", info.name, info.namespace, info.qps, maxQPSAllowed))
-					continue
-				}
+			if cName, ok := knownNameConversions[clientName]; ok {
+				clientName = cName
+			} else if strings.HasPrefix(clientName, "openshift-") {
+				clientName = strings.Replace(clientName, "openshift-", "cluster-", 1)
 			}
-
-			if len(failures) > 0 {
-				exutil.DumpPodLogs(failedPods, oc)
-			}
-			o.Expect(failures).To(o.BeEmpty())
+			operatorClientNames = append(operatorClientNames, clientName)
 		}
+
+		// detect rate of requests for a given operator over a timespan of 4 mins
+		metricFormat := `sum(rate(apiserver_request_count{client="%s/v0.0.0 (linux/amd64) kubernetes/$Format"}[4m]))`
+
+		tests := map[string][]prometheus.MetricTest{}
+		for _, c := range operatorClientNames {
+			tests[fmt.Sprintf(metricFormat, c)] = []prometheus.MetricTest{{GreaterThanEqual: false, Value: maxQPSAllowed}}
+		}
+
+		prometheus.RunQueries(tests, oc, ns, execPodName, url, bearerToken)
 	})
 })
 

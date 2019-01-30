@@ -42,7 +42,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 
 	g.BeforeEach(func() {
 		var ok bool
-		url, bearerToken, ok = locatePrometheus(oc)
+		url, bearerToken, ok = LocatePrometheus(oc)
 		if !ok {
 			e2e.Skipf("Prometheus could not be located on this cluster, skipping prometheus test")
 		}
@@ -50,7 +50,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 
 	g.Describe("when installed on the cluster", func() {
 		g.It("should report telemetry if a cloud.openshift.com token is present", func() {
-			if !hasPullSecret(oc.AdminKubeClient(), "cloud.openshift.com") {
+			if !HasPullSecret(oc.AdminKubeClient(), "cloud.openshift.com") {
 				e2e.Skipf("Telemetry is disabled")
 			}
 			oc.SetupProject()
@@ -59,13 +59,13 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			execPodName := e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) { pod.Spec.Containers[0].Image = "centos:7" })
 			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
-			tests := map[string][]metricTest{
+			tests := map[string][]MetricTest{
 				// should have successfully sent at least once to remote
-				`metricsclient_request_send{client="federate_to",job="telemeter-client",status_code="200"}`: {metricTest{greaterThanEqual: true, value: 1}},
+				`metricsclient_request_send{client="federate_to",job="telemeter-client",status_code="200"}`: {MetricTest{GreaterThanEqual: true, Value: 1}},
 				// should have scraped some metrics from prometheus
-				`federate_samples{job="telemeter-client"}`: {metricTest{greaterThanEqual: true, value: 10}},
+				`federate_samples{job="telemeter-client"}`: {MetricTest{GreaterThanEqual: true, Value: 10}},
 			}
-			runQueries(tests, oc, ns, execPodName, url, bearerToken)
+			RunQueries(tests, oc, ns, execPodName, url, bearerToken)
 
 			e2e.Logf("Telemetry is enabled: %s", bearerToken)
 		})
@@ -329,7 +329,7 @@ func waitForServiceAccountInNamespace(c clientset.Interface, ns, serviceAccountN
 	return err
 }
 
-func locatePrometheus(oc *exutil.CLI) (url, bearerToken string, ok bool) {
+func LocatePrometheus(oc *exutil.CLI) (url, bearerToken string, ok bool) {
 	_, err := oc.AdminKubeClient().Core().Services("openshift-monitoring").Get("prometheus-k8s", metav1.GetOptions{})
 	if kapierrs.IsNotFound(err) {
 		return "", "", false
@@ -360,7 +360,7 @@ func locatePrometheus(oc *exutil.CLI) (url, bearerToken string, ok bool) {
 	return "https://prometheus-k8s.openshift-monitoring.svc:9091", bearerToken, true
 }
 
-func hasPullSecret(client clientset.Interface, name string) bool {
+func HasPullSecret(client clientset.Interface, name string) bool {
 	cm, err := client.CoreV1().ConfigMaps("kube-system").Get("cluster-config-v1", metav1.GetOptions{})
 	if err != nil {
 		if kapierrs.IsNotFound(err) {
