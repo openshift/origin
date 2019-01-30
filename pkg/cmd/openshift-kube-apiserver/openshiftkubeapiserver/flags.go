@@ -172,6 +172,7 @@ func admissionFlags(admissionConfig configv1.AdmissionConfig) (map[string][]stri
 	}
 	tempFile.Close()
 
+	// TODO these should come from a config type
 	configflags.SetIfUnset(args, "admission-control-config-file", tempFile.Name())
 	configflags.SetIfUnset(args, "disable-admission-plugins", admissionConfig.DisabledAdmissionPlugins...)
 	configflags.SetIfUnset(args, "enable-admission-plugins", admissionConfig.EnabledAdmissionPlugins...)

@@ -8,14 +8,15 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
 
 var scheme = runtime.NewScheme()
 var codecs = serializer.NewCodecFactory(scheme)
 var parameterCodec = runtime.NewParameterCodec(scheme)
-var localSchemeBuilder = runtime.SchemeBuilder{
-	userinternalversion.AddToScheme,
+
+func init() {
+	v1.AddToGroupVersion(scheme, schema.GroupVersion{Version: "v1"})
+	AddToScheme(scheme)
 }
 
 // AddToScheme adds all types of this clientset into the given scheme. This allows composition
@@ -28,13 +29,10 @@ var localSchemeBuilder = runtime.SchemeBuilder{
 //   )
 //
 //   kclientset, _ := kubernetes.NewForConfig(c)
-//   _ = aggregatorclientsetscheme.AddToScheme(clientsetscheme.Scheme)
+//   aggregatorclientsetscheme.AddToScheme(clientsetscheme.Scheme)
 //
 // After this, RawExtensions in Kubernetes types will serialize kube-aggregator types
 // correctly.
-var AddToScheme = localSchemeBuilder.AddToScheme
-
-func init() {
-	v1.AddToGroupVersion(scheme, schema.GroupVersion{Version: "v1"})
-	utilruntime.Must(AddToScheme(scheme))
+func AddToScheme(scheme *runtime.Scheme) {
+	userinternalversion.AddToScheme(scheme)
 }

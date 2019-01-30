@@ -10,7 +10,7 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
-	imagepolicyinstall "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/install"
+	imagepolicyapiv1 "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 	requestlimitinstall "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit/install"
 	clusterresourceoverrideinstall "github.com/openshift/origin/pkg/quota/apiserver/admission/apis/clusterresourceoverride/install"
 	runoncedurationinstall "github.com/openshift/origin/pkg/quota/apiserver/admission/apis/runonceduration/install"
@@ -35,12 +35,12 @@ func InstallLegacyInternal(scheme *runtime.Scheme) {
 	auditv1beta1.AddToScheme(scheme)
 	apiserver.AddToScheme(scheme)
 	apiserverv1alpha1.AddToScheme(scheme)
+	imagepolicyapiv1.InstallLegacy(scheme)
 
 	// add the other admission config types we have
 	requestlimitinstall.InstallInternal(scheme)
 
 	// add the other admission config types we have to the core group if they are legacy types
-	imagepolicyinstall.InstallInternal(scheme)
 	ingressadmissioninstall.InstallInternal(scheme)
 	clusterresourceoverrideinstall.InstallInternal(scheme)
 	runoncedurationinstall.InstallInternal(scheme)

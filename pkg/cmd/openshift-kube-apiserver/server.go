@@ -16,8 +16,6 @@ import (
 	"github.com/openshift/origin/pkg/admission/customresourcevalidation/customresourcevalidationregistration"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/kubeadmission"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
-	imagepolicyapi "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy"
-	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy"
 	"k8s.io/kubernetes/pkg/kubeapiserver/options"
 
 	// for metrics
@@ -39,14 +37,12 @@ func RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig *kubecontrolplanev1.Kub
 	bootstrappolicy.ClusterRoleBindings = bootstrappolicy.OpenshiftClusterRoleBindings
 
 	options.AllOrderedPlugins = kubeadmission.NewOrderedKubeAdmissionPlugins(options.AllOrderedPlugins)
-	options.AllOrderedPlugins = append(options.AllOrderedPlugins, imagepolicyapi.PluginName)
 
 	kubeRegisterAdmission := options.RegisterAllAdmissionPlugins
 	options.RegisterAllAdmissionPlugins = func(plugins *admission.Plugins) {
 		kubeRegisterAdmission(plugins)
 		kubeadmission.RegisterOpenshiftKubeAdmissionPlugins(plugins)
 		customresourcevalidationregistration.RegisterCustomResourceValidation(plugins)
-		imagepolicy.Register(plugins)
 	}
 	options.DefaultOffAdmissionPlugins = kubeadmission.NewDefaultOffPluginsFunc(options.DefaultOffAdmissionPlugins())
 

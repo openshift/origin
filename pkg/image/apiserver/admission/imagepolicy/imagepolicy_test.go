@@ -27,7 +27,7 @@ import (
 	configinstall "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy"
+	imagepolicy "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/validation"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/rules"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"

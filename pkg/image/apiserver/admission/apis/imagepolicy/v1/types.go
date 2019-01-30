@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	PluginName = "openshift.io/ImagePolicy"
+	PluginName = "image.openshift.io/ImagePolicy"
 	ConfigKind = "ImagePolicyConfig"
 
 	// IgnorePolicyRulesAnnotation is a comma delimited list of rule names to omit from consideration

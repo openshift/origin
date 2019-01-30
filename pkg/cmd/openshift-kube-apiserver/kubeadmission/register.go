@@ -7,6 +7,7 @@ import (
 
 	"github.com/openshift/origin/pkg/admission/customresourcevalidation/customresourcevalidationregistration"
 	authorizationrestrictusers "github.com/openshift/origin/pkg/authorization/apiserver/admission/restrictusers"
+	imagepolicyapiv1 "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy"
 	projectnodeenv "github.com/openshift/origin/pkg/project/apiserver/admission/nodeenv"
 	quotaclusterresourceoverride "github.com/openshift/origin/pkg/quota/apiserver/admission/clusterresourceoverride"
@@ -43,8 +44,7 @@ var (
 	SkipRunLevelOnePlugins = sets.NewString(
 		"authorization.openshift.io/RestrictSubjectBindings",
 		"autoscaling.openshift.io/ClusterResourceOverride",
-		"autoscaling.openshift.io/RunOnceDuration",
-		"image.openshift.io/ImagePolicy",
+		imagepolicyapiv1.PluginName,
 		"project.openshift.io/ProjectRequestLimit",
 		"quota.openshift.io/ClusterResourceQuota",
 		"scheduling.openshift.io/OriginPodNodeEnvironment",
@@ -61,7 +61,7 @@ var (
 		"scheduling.openshift.io/OriginPodNodeEnvironment",
 		"network.openshift.io/ExternalIPRanger",
 		"network.openshift.io/RestrictedEndpointsAdmission",
-		"image.openshift.io/ImagePolicy",
+		imagepolicyapiv1.PluginName,
 		"security.openshift.io/SecurityContextConstraint",
 		"security.openshift.io/SCCExecRestrictions",
 		"route.openshift.io/IngressAdmission",
@@ -76,6 +76,7 @@ var (
 		"PodNodeSelector",
 		"PodTolerationRestriction",
 		"Priority",
+		imagepolicyapiv1.PluginName,
 		"StorageObjectInUseProtection",
 	)
 )

@@ -182,24 +182,3 @@ func captureSurroundingJSONForError(prefix string, data []byte, err error) error
 	}
 	return err
 }
-
-// IsAdmissionPluginActivated returns true if the admission plugin is activated using configapi.DefaultAdmissionConfig
-// otherwise it returns a default value
-func IsAdmissionPluginActivated(reader io.Reader, defaultValue bool) (bool, error) {
-	obj, err := ReadYAML(reader)
-	if err != nil {
-		return false, err
-	}
-	if obj == nil {
-		return defaultValue, nil
-	}
-	activationConfig, ok := obj.(*configapi.DefaultAdmissionConfig)
-	if !ok {
-		// if we failed the cast, then we've got a config object specified for this admission plugin
-		// that means that this must be enabled and all additional validation is up to the
-		// admission plugin itself
-		return true, nil
-	}
-
-	return !activationConfig.Disable, nil
-}

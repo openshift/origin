@@ -8,6 +8,7 @@ import (
 
 	buildsecretinjector "github.com/openshift/origin/pkg/build/apiserver/admission/secretinjector"
 	buildstrategyrestrictions "github.com/openshift/origin/pkg/build/apiserver/admission/strategyrestrictions"
+	imagepolicyapiv1 "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 	projectrequestlimit "github.com/openshift/origin/pkg/project/apiserver/admission/requestlimit"
@@ -55,7 +56,7 @@ var (
 		"build.openshift.io/BuildByStrategy",
 		"image.openshift.io/ImageLimitRange",
 		"scheduling.openshift.io/PodNodeConstraints",
-		"image.openshift.io/ImagePolicy",
+		imagepolicyapiv1.PluginName,
 		"quota.openshift.io/ClusterResourceQuota",
 
 		// the rest of the kube chain goes here

@@ -24,6 +24,7 @@ func SetDefaults_ImagePolicyConfig(obj *ImagePolicyConfig) {
 		obj.ResolutionRules = []ImageResolutionPolicyRule{
 			{TargetResource: GroupResource{Resource: "pods"}, LocalNames: true},
 			{TargetResource: GroupResource{Group: "build.openshift.io", Resource: "builds"}, LocalNames: true},
+			{TargetResource: GroupResource{Group: "", Resource: "builds"}, LocalNames: true},
 			{TargetResource: GroupResource{Group: "batch", Resource: "jobs"}, LocalNames: true},
 			{TargetResource: GroupResource{Group: "extensions", Resource: "replicasets"}, LocalNames: true},
 			{TargetResource: GroupResource{Resource: "replicationcontrollers"}, LocalNames: true},

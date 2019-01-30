@@ -37,31 +37,36 @@ import (
 func Register(plugins *admission.Plugins) {
 	plugins.Register(imagepolicy.PluginName,
 		func(input io.Reader) (admission.Interface, error) {
-
-			configContent, err := ioutil.ReadAll(input)
-			if err != nil {
-				return nil, err
-			}
-			scheme := runtime.NewScheme()
-			utilruntime.Must(imagepolicy.InstallLegacy(scheme))
-			codecs := serializer.NewCodecFactory(scheme)
-			obj, err := runtime.Decode(codecs.UniversalDecoder(imagepolicy.SchemeGroupVersion), configContent)
-			if err != nil {
-				return nil, err
-			}
 			config := &imagepolicy.ImagePolicyConfig{}
-			if obj != nil {
-				var ok bool
-				config, ok = obj.(*imagepolicy.ImagePolicyConfig)
-				if !ok {
-					return nil, fmt.Errorf("unexpected config object: %#v", obj)
+			if input != nil {
+				configContent, err := ioutil.ReadAll(input)
+				fmt.Printf("read config: %s\n, err: %v\n", configContent, err)
+				if err != nil {
+					return nil, err
+				}
+				scheme := runtime.NewScheme()
+				utilruntime.Must(imagepolicy.InstallLegacy(scheme))
+				codecs := serializer.NewCodecFactory(scheme)
+				obj, err := runtime.Decode(codecs.UniversalDecoder(imagepolicy.GroupVersion), configContent)
+				fmt.Printf("decoded object: %#v\n, err: %v\n", obj, err)
+				if err != nil {
+					return nil, err
+				}
+				if obj != nil {
+					var ok bool
+					config, ok = obj.(*imagepolicy.ImagePolicyConfig)
+					if !ok {
+						return nil, fmt.Errorf("unexpected config object: %#v", obj)
+					}
 				}
 			}
-			imagepolicy.SetDefaults_ImagePolicyConfig(config)
 
+			imagepolicy.SetDefaults_ImagePolicyConfig(config)
+			fmt.Printf("defaulted object: %#v\n", config)
 			if errs := validation.Validate(config); len(errs) > 0 {
 				return nil, errs.ToAggregate()
 			}
+			glog.Infof("%s admission controller loaded with config: %#v", imagepolicy.PluginName, config)
 			glog.V(5).Infof("%s admission controller loaded with config: %#v", imagepolicy.PluginName, config)
 			return newImagePolicyPlugin(config)
 		})

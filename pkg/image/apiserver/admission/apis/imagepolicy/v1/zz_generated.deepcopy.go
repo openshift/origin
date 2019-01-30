@@ -6,6 +6,7 @@ package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	labels "k8s.io/apimachinery/pkg/labels"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -48,6 +49,15 @@ func (in *ImageCondition) DeepCopyInto(out *ImageCondition) {
 		*out = make([]metav1.LabelSelector, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.MatchImageLabelSelectors != nil {
+		in, out := &in.MatchImageLabelSelectors, &out.MatchImageLabelSelectors
+		*out = make([]labels.Selector, len(*in))
+		for i := range *in {
+			if (*in)[i] != nil {
+				(*out)[i] = (*in)[i].DeepCopySelector()
+			}
 		}
 	}
 	if in.MatchImageAnnotations != nil {
