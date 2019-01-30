@@ -355,7 +355,7 @@ func (node *OsdnNode) Start() error {
 	// our network plugin is ready
 	return ioutil.WriteFile(filepath.Join(node.cniDirPath, openshiftCNIFile), []byte(`
 {
-  "cniVersion": "0.2.0",
+  "cniVersion": "0.3.1",
   "name": "openshift-sdn",
   "type": "openshift-sdn"
 }

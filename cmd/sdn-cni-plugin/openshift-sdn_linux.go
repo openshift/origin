@@ -108,11 +108,26 @@ func (p *cniPlugin) doCNIServerAdd(req *cniserver.CNIRequest, hostVeth string) (
 		return nil, fmt.Errorf("failed to unmarshal response '%s': %v", string(body), err)
 	}
 
+	// We'll create the 0.3.x (current) version of the Result, because it will allow us to
+	// properly convert it to any lower version
+	result, err = current.NewResultFromResult(result)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert result to %v: %v", current.ImplementedSpecVersion, err)
+	}
+
 	return result, nil
 }
 
 func (p *cniPlugin) testCmdAdd(args *skel.CmdArgs) (types.Result, error) {
-	return p.doCNIServerAdd(newCNIRequest(args), "dummy0")
+	result, err := p.doCNIServerAdd(newCNIRequest(args), "dummy0")
+	if err != nil {
+		return nil, err
+	}
+	result, err = convertToRequestedVersion(args.StdinData, result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
@@ -234,7 +249,26 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 		return err
 	}
 
+	result, err = convertToRequestedVersion(req.Config, result)
+	if err != nil {
+		return err
+	}
 	return result.Print()
+}
+
+func convertToRequestedVersion(stdinData []byte, result types.Result) (types.Result, error) {
+	// Plugin must return result in same version as specified in netconf
+	versionDecoder := &version.ConfigDecoder{}
+	confVersion, err := versionDecoder.Decode(stdinData)
+	if err != nil {
+		return nil, err
+	}
+
+	newResult, err := result.GetAsVersion(confVersion)
+	if err != nil {
+		return nil, err
+	}
+	return newResult, nil
 }
 
 func (p *cniPlugin) CmdDel(args *skel.CmdArgs) error {
@@ -250,5 +284,5 @@ func main() {
 	}
 	defer hostNS.Close()
 	p := NewCNIPlugin(cniserver.CNIServerSocketPath, hostNS)
-	skel.PluginMain(p.CmdAdd, p.CmdDel, version.Legacy)
+	skel.PluginMain(p.CmdAdd, p.CmdDel, version.All)
 }

@@ -15,6 +15,7 @@ import (
 	cniskel "github.com/containernetworking/cni/pkg/skel"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	cni020 "github.com/containernetworking/cni/pkg/types/020"
+	cni030 "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 
 	"github.com/openshift/origin/pkg/network/node/cniserver"
@@ -92,6 +93,7 @@ func TestOpenshiftSdnCNIPlugin(t *testing.T) {
 
 	expectedIP, expectedNet, _ := net.ParseCIDR("10.0.0.2/24")
 	expectedResult = &cni020.Result{
+		CNIVersion: "0.2.0",
 		IP4: &cni020.IPConfig{
 			IP: net.IPNet{
 				IP:   expectedIP,
@@ -122,6 +124,58 @@ func TestOpenshiftSdnCNIPlugin(t *testing.T) {
 				StdinData:   []byte("{\"cniVersion\": \"0.1.0\",\"name\": \"openshift-sdn\",\"type\": \"openshift-sdn\"}"),
 			},
 			result: expectedResult,
+		},
+		// ADD request using cniVersion 0.3.0
+		{
+			name:    "ADD-0.3.0",
+			reqType: cniserver.CNI_ADD,
+			skelArgs: &cniskel.CmdArgs{
+				ContainerID: "adsfadsfasfdasdfasf",
+				Netns:       "/path/to/something",
+				IfName:      "eth0",
+				Args:        "K8S_POD_NAMESPACE=awesome-namespace;K8S_POD_NAME=awesome-name",
+				Path:        "/some/path",
+				StdinData:   []byte("{\"cniVersion\": \"0.3.0\",\"name\": \"openshift-sdn\",\"type\": \"openshift-sdn\"}"),
+			},
+			result: &cni030.Result{
+				CNIVersion: "0.3.0",
+				IPs: []*cni030.IPConfig{
+					{
+						Version: "4",
+						Address: net.IPNet{
+							IP:   expectedIP,
+							Mask: expectedNet.Mask,
+						},
+					},
+				},
+				Routes: []*cnitypes.Route{},
+			},
+		},
+		// ADD request using cniVersion 0.3.1
+		{
+			name:    "ADD-0.3.1",
+			reqType: cniserver.CNI_ADD,
+			skelArgs: &cniskel.CmdArgs{
+				ContainerID: "adsfadsfasfdasdfasf",
+				Netns:       "/path/to/something",
+				IfName:      "eth0",
+				Args:        "K8S_POD_NAMESPACE=awesome-namespace;K8S_POD_NAME=awesome-name",
+				Path:        "/some/path",
+				StdinData:   []byte("{\"cniVersion\": \"0.3.1\",\"name\": \"openshift-sdn\",\"type\": \"openshift-sdn\"}"),
+			},
+			result: &cni030.Result{
+				CNIVersion: "0.3.1",
+				IPs: []*cni030.IPConfig{
+					{
+						Version: "4",
+						Address: net.IPNet{
+							IP:   expectedIP,
+							Mask: expectedNet.Mask,
+						},
+					},
+				},
+				Routes: []*cnitypes.Route{},
+			},
 		},
 		// Normal DEL request
 		{
@@ -172,7 +226,7 @@ func TestOpenshiftSdnCNIPlugin(t *testing.T) {
 					t.Fatalf("[%s] expected result %v but got error: %v", tc.name, tc.result, err)
 				}
 				if tc.result != nil && !reflect.DeepEqual(result, tc.result) {
-					t.Fatalf("[%s] expected result %v but got %v", tc.name, tc.result, result)
+					t.Fatalf("[%s] expected result:\n%v\nbut got:\n%v", tc.name, tc.result, result)
 				}
 			} else if !strings.HasPrefix(fmt.Sprintf("%v", err), tc.errorPrefix) {
 				t.Fatalf("[%s] unexpected error message '%v'", tc.name, err)
