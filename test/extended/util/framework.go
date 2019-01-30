@@ -73,8 +73,10 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	}
 
 	success := false
-	// with the move to ocp/rhel as the default for the samples in 4.0, there are alot more imagestreams
-	// so we've bumped was 30 seconds to 2 min 30 seconds or 150 seconds (manual perf testing shows typical times of
+	// with the move to ocp/rhel as the default for the samples in 4.0, there are alot more imagestreams;
+	// if by some chance this path runs very soon after the cluster has come up, the original time out would
+	// not be sufficient;
+	// so we've bumped what was 30 seconds to 2 min 30 seconds or 150 seconds (manual perf testing shows typical times of
 	// 1 to 2 minutes, assuming registry.access.redhat.com / registry.redhat.io are behaving ... they
 	// have proven less reliable that docker.io)
 	for i := 0; i < 15; i++ {
@@ -91,6 +93,7 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 		return nil
 	}
 	DumpImageStreams(oc)
+	DumpSampleOperator(oc)
 	return fmt.Errorf("Failed to import expected imagestreams")
 }
 
@@ -143,6 +146,17 @@ func DumpImageStreams(oc *CLI) {
 			e2e.Logf(" found local image %s\n", id)
 		}
 	}
+}
+
+func DumpSampleOperator(oc *CLI) {
+	out, err := oc.AsAdmin().Run("get").Args("configs.samples.operator.openshift.io", "instance", "-n", "openshift-cluster-samples-operator", "-o", "yaml", "--config", KubeConfigPath()).Output()
+	if err == nil {
+		e2e.Logf("\n  samples operator CR: \n%s\n", out)
+	} else {
+		e2e.Logf("\n  error on getting samples operator CR: %+v\n%#v\n", err, out)
+	}
+	DumpPodLogsStartingWithInNamespace("cluster-samples-operator", "openshift-cluster-samples-operator", oc)
+
 }
 
 // DumpBuildLogs will dump the latest build logs for a BuildConfig for debug purposes
