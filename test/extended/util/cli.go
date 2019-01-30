@@ -3,6 +3,7 @@ package util
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -15,17 +16,22 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/api/meta"
 
 	authorizationapiv1 "k8s.io/api/authorization/v1"
 	kapiv1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/discovery/cached"
 	kclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
+	watchtools "k8s.io/client-go/tools/watch"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -37,6 +43,7 @@ import (
 	_ "github.com/openshift/origin/pkg/api/install"
 	authorizationclientset "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageclientset "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/lib/kubeconfig"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
@@ -201,8 +208,60 @@ func (c *CLI) SetupProject() {
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	err = WaitForServiceAccount(c.KubeClient().Core().ServiceAccounts(newNamespace), "default")
-	o.Expect(err).NotTo(o.HaveOccurred())
+	// Wait for SAs and default dockercfg Secret to be injected
+	// TODO: it would be nice to have a shared list but it is defined in at least 3 place,
+	// TODO: some of them not even using the constants
+	DefaultServiceAccounts := []string{
+		bootstrappolicy.DefaultServiceAccountName,
+		bootstrappolicy.DeployerServiceAccountName,
+		bootstrappolicy.BuilderServiceAccountName,
+	}
+	for _, sa := range DefaultServiceAccounts {
+		e2e.Logf("Waiting for ServiceAccount %q to be provisioned...", sa)
+		err = WaitForServiceAccount(c.KubeClient().CoreV1().ServiceAccounts(newNamespace), sa)
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
+
+	var ctx context.Context
+	cancel := func() {}
+	defer cancel()
+	// Wait for default role bindings for those SAs
+	defaultRoleBindings := bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(newNamespace)
+	for _, rb := range defaultRoleBindings {
+		o.Expect(rb.Namespace).To(o.BeEquivalentTo(newNamespace))
+
+		e2e.Logf("Waiting for RoleBinding %q to be provisioned...", rb)
+
+		ctx, cancel = watchtools.ContextWithOptionalTimeout(context.Background(), 3*time.Minute)
+
+		fieldSelector := fields.OneTermEqualSelector("metadata.name", rb.Name).String()
+		lw := &cache.ListWatch{
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+				options.FieldSelector = fieldSelector
+				return c.KubeClient().RbacV1().RoleBindings(rb.Namespace).List(options)
+			},
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+				options.FieldSelector = fieldSelector
+				return c.KubeClient().RbacV1().RoleBindings(rb.Namespace).Watch(options)
+			},
+		}
+
+		_, err := watchtools.UntilWithSync(ctx, lw, &rb, nil, func(event watch.Event) (b bool, e error) {
+			switch t := event.Type; t {
+			case watch.Added, watch.Modified:
+				return true, nil
+
+			case watch.Deleted:
+				return true, fmt.Errorf("object has been deleted")
+
+			default:
+				return true, fmt.Errorf("internal error: unexpected event %#v", e)
+			}
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
+
+	e2e.Logf("Project %q has been fully provisioned.", newNamespace)
 }
 
 // SetupProject creates a new project and assign a random user to the project.
