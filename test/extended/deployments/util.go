@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
@@ -738,10 +739,14 @@ func (d *deployerPodInvariantChecker) UpdatePod(pod *corev1.Pod) {
 	// Check for sanity.
 	// This is not paranoid; kubelet has already been broken this way:
 	// https://github.com/openshift/origin/issues/17011
-	oldPhase := d.cache[key][index].Status.Phase
+	oldPod := d.cache[key][index]
+	oldPhase := oldPod.Status.Phase
 	oldPhaseIsTerminated := oldPhase == corev1.PodSucceeded || oldPhase == corev1.PodFailed
 	o.Expect(oldPhaseIsTerminated && pod.Status.Phase != oldPhase).To(o.BeFalse(),
-		fmt.Sprintf("%v: detected deployer pod transition from terminated phase: %q -> %q", time.Now(), oldPhase, pod.Status.Phase))
+		fmt.Sprintf("%v: detected deployer pod '%s/%s' transition from terminated phase: %q -> %q;\n"+
+			"old: %#v\nnew: %#v\ndiff: %s"+
+			pod.Namespace, pod.Name, time.Now(), oldPhase, pod.Status.Phase,
+			oldPod, pod, diff.ObjectReflectDiff(oldPod, pod)))
 
 	d.cache[key][index] = pod
 
