@@ -42,7 +42,7 @@ import:
 - package: github.com/openshift/client-go
   version: release-3.11
 - package: github.com/openshift/imagebuilder
-  version: master
+  version: openshift-3.11
 - package: github.com/openshift/library-go
   version: release-3.11
 - package: github.com/openshift/service-serving-cert-signer
@@ -79,7 +79,7 @@ import:
 # cli
 - package: github.com/docker/distribution
   repo:    https://github.com/openshift/docker-distribution.git
-  version: openshift-3.10-docker-edc3ab2
+  version: image-registry-3.11
 # close-write carry
 - package: github.com/docker/docker
   repo:    https://github.com/openshift/moby-moby.git
@@ -185,9 +185,9 @@ import:
   version: a5c9099e2484f1551abb9433885e158610a25f4b
 - package: github.com/bcicen/go-haproxy
   version: ff5824fe38bede761b873cab6e247a530e89236a
-# keep us up to date with latest DNS security fixes
+# used to be ~v1 to keep up with fixes.  It didn't build past v1.0.8.
 - package: github.com/miekg/dns
-  version: ~v1
+  version: v1.0.8
 # etcd pins a very old version that has contention issues
 - package: github.com/google/btree
   version: master
