@@ -57,6 +57,7 @@ func NewInfo(f kcmdutil.Factory, parentName string, streams genericclioptions.IO
 		},
 	}
 	flags := cmd.Flags()
+	flags.StringVarP(&o.RegistryConfig, "registry-config", "a", o.RegistryConfig, "Path to your registry credentials (defaults to ~/.docker/config.json)")
 	flags.StringVar(&o.From, "changes-from", o.From, "Show changes from this image to the requested image.")
 	flags.BoolVar(&o.ShowCommit, "commits", o.ShowCommit, "Display information about the source an image was created with.")
 	flags.BoolVar(&o.ShowPullSpec, "pullspecs", o.ShowPullSpec, "Display the pull spec of each image instead of the digest.")
@@ -76,6 +77,8 @@ type InfoOptions struct {
 	ShowCommit   bool
 	ShowPullSpec bool
 	Verify       bool
+
+	RegistryConfig string
 }
 
 func (o *InfoOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
@@ -319,6 +322,7 @@ func (o *InfoOptions) LoadReleaseInfo(image string) (*ReleaseInfo, error) {
 		return nil, err
 	}
 	opts := extract.NewOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
+	opts.RegistryConfig = o.RegistryConfig
 
 	release := &ReleaseInfo{
 		Image: image,

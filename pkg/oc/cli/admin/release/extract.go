@@ -46,6 +46,7 @@ func NewExtract(f kcmdutil.Factory, parentName string, streams genericclioptions
 		},
 	}
 	flags := cmd.Flags()
+	flags.StringVarP(&o.RegistryConfig, "registry-config", "a", o.RegistryConfig, "Path to your registry credentials (defaults to ~/.docker/config.json)")
 	flags.StringVar(&o.From, "from", o.From, "Image containing the release payload.")
 	flags.StringVar(&o.File, "file", o.File, "Extract a single file from the payload to standard output.")
 	flags.StringVar(&o.Directory, "to", o.Directory, "Directory to write release contents to, defaults to the current directory.")
@@ -59,6 +60,8 @@ type ExtractOptions struct {
 
 	Directory string
 	File      string
+
+	RegistryConfig string
 
 	ImageMetadataCallback func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig)
 }
@@ -86,6 +89,7 @@ func (o *ExtractOptions) Run() error {
 		return err
 	}
 	opts := extract.NewOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
+	opts.RegistryConfig = o.RegistryConfig
 
 	switch {
 	case len(o.File) > 0:
