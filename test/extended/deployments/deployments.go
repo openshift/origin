@@ -202,6 +202,16 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			dc, err := createDeploymentConfig(oc, simpleDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
+			g.By(fmt.Sprintf("by checking that the deployment config has the correct version"))
+			err = wait.PollImmediate(500*time.Millisecond, time.Minute, func() (bool, error) {
+				dc, _, _, err := deploymentInfo(oc, dc.Name)
+				if err != nil {
+					return false, nil
+				}
+				return dc.Status.LatestVersion == 1, nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+
 			_, err = oc.Run("set", "env").Args("dc/"+dc.Name, "TRY=ONCE").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
