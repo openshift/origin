@@ -35,9 +35,6 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 
 	g.Describe("when installed on the cluster", func() {
 		g.It("should start and expose a secured proxy and verify build metrics", func() {
-			if exutil.IsClusterOperated(oc) {
-				e2e.Skipf("https://bugzilla.redhat.com/show_bug.cgi?id=1666118 blocks openshift-controller-manager metrics")
-			}
 			const (
 				buildCountQuery = "openshift_build_total"
 			)
