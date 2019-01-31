@@ -10,9 +10,7 @@ RUN INSTALL_PKGS="origin-clients" && \
     yum --enablerepo=origin-local-release install -y ${INSTALL_PKGS} && \
     rpm -V ${INSTALL_PKGS} && \
     yum clean all
-COPY manifests /manifests
 
 LABEL io.k8s.display-name="OpenShift Client" \
       io.k8s.description="OpenShift is a platform for developing, building, and deploying containerized applications." \
-      io.openshift.tags="openshift,cli" \
-      io.openshift.release.operator="true"
+      io.openshift.tags="openshift,cli"
