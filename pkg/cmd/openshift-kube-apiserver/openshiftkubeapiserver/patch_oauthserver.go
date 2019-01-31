@@ -21,9 +21,6 @@ func NewOAuthServerConfigFromMasterConfig(genericConfig *genericapiserver.Config
 	oauthServerConfig.GenericConfig.AuditBackend = genericConfig.AuditBackend
 	oauthServerConfig.GenericConfig.AuditPolicyChecker = genericConfig.AuditPolicyChecker
 
-	// Build the list of valid redirect_uri prefixes for a login using the openshift-web-console client to redirect to
-	oauthServerConfig.ExtraOAuthConfig.AssetPublicAddresses = []string{oauthConfig.AssetPublicURL}
-
 	return oauthServerConfig, nil
 }
 

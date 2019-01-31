@@ -191,9 +191,6 @@ func isHTTPS(u string) bool {
 type ExtraOAuthConfig struct {
 	Options osinv1.OAuthConfig
 
-	// AssetPublicAddresses contains valid redirectURI prefixes to direct browsers to the web console
-	AssetPublicAddresses []string
-
 	// KubeClient is kubeclient with enough permission for the auth API
 	KubeClient kclientset.Interface
 
@@ -290,18 +287,6 @@ func (c *OAuthServerConfig) StartOAuthClientsBootstrapping(context genericapiser
 	go func() {
 		// error is guaranteed to be nil
 		_ = wait.PollUntil(1*time.Second, func() (done bool, err error) {
-			webConsoleClient := oauthv1.OAuthClient{
-				ObjectMeta:            metav1.ObjectMeta{Name: openShiftWebConsoleClientID},
-				Secret:                "",
-				RespondWithChallenges: false,
-				RedirectURIs:          c.ExtraOAuthConfig.AssetPublicAddresses,
-				GrantMethod:           oauthv1.GrantHandlerAuto,
-			}
-			if err := ensureOAuthClient(webConsoleClient, c.ExtraOAuthConfig.OAuthClientClient, true, false); err != nil {
-				utilruntime.HandleError(err)
-				return false, nil
-			}
-
 			browserClient := oauthv1.OAuthClient{
 				ObjectMeta:            metav1.ObjectMeta{Name: openShiftBrowserClientID},
 				Secret:                crypto.Random256BitsString(),

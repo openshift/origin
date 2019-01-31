@@ -70,7 +70,6 @@ const (
 	openShiftLogoutPrefix        = "/logout"
 	openShiftApproveSubpath      = "approve"
 	openShiftOAuthCallbackPrefix = "/oauth2callback"
-	openShiftWebConsoleClientID  = "openshift-web-console"
 	openShiftBrowserClientID     = "openshift-browser-client"
 	openShiftCLIClientID         = "openshift-challenging-client"
 )

@@ -63,8 +63,5 @@ func newOAuthServerConfig(osinConfig *kubecontrolplanev1.KubeAPIServerConfig) (*
 	//oauthServerConfig.GenericConfig.AuditBackend = genericConfig.AuditBackend
 	//oauthServerConfig.GenericConfig.AuditPolicyChecker = genericConfig.AuditPolicyChecker
 
-	// Build the list of valid redirect_uri prefixes for a login using the openshift-web-console client to redirect to
-	oauthServerConfig.ExtraOAuthConfig.AssetPublicAddresses = []string{osinConfig.OAuthConfig.AssetPublicURL}
-
 	return oauthServerConfig, nil
 }
