@@ -14,6 +14,8 @@ type Interface interface {
 	KubeControllerManagers() KubeControllerManagerInformer
 	// OpenShiftAPIServers returns a OpenShiftAPIServerInformer.
 	OpenShiftAPIServers() OpenShiftAPIServerInformer
+	// OpenShiftControllerManagers returns a OpenShiftControllerManagerInformer.
+	OpenShiftControllerManagers() OpenShiftControllerManagerInformer
 }
 
 type version struct {
@@ -40,4 +42,9 @@ func (v *version) KubeControllerManagers() KubeControllerManagerInformer {
 // OpenShiftAPIServers returns a OpenShiftAPIServerInformer.
 func (v *version) OpenShiftAPIServers() OpenShiftAPIServerInformer {
 	return &openShiftAPIServerInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// OpenShiftControllerManagers returns a OpenShiftControllerManagerInformer.
+func (v *version) OpenShiftControllerManagers() OpenShiftControllerManagerInformer {
+	return &openShiftControllerManagerInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

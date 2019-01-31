@@ -13,3 +13,7 @@ type KubeControllerManagerListerExpansion interface{}
 // OpenShiftAPIServerListerExpansion allows custom methods to be added to
 // OpenShiftAPIServerLister.
 type OpenShiftAPIServerListerExpansion interface{}
+
+// OpenShiftControllerManagerListerExpansion allows custom methods to be added to
+// OpenShiftControllerManagerLister.
+type OpenShiftControllerManagerListerExpansion interface{}

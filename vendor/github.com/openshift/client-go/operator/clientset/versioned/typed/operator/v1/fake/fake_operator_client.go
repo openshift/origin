@@ -24,6 +24,10 @@ func (c *FakeOperatorV1) OpenShiftAPIServers() v1.OpenShiftAPIServerInterface {
 	return &FakeOpenShiftAPIServers{c}
 }
 
+func (c *FakeOperatorV1) OpenShiftControllerManagers() v1.OpenShiftControllerManagerInterface {
+	return &FakeOpenShiftControllerManagers{c}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeOperatorV1) RESTClient() rest.Interface {

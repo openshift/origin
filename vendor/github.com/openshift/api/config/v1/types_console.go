@@ -7,7 +7,6 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Console holds cluster-wide information about Console.  The canonical name is `cluster`
-// TODO this object is an example of a possible grouping and is subject to change or removal
 type Console struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
@@ -20,11 +19,14 @@ type Console struct {
 }
 
 type ConsoleSpec struct {
-	// special console public url?
+	// +optional
+	Authentication ConsoleAuthentication `json:"authentication,omitempty"`
 }
 
 type ConsoleStatus struct {
-	// console public url
+	// The hostname for the console. This will match the host for the route that
+	// is created for the console.
+	PublicHostname string `json:"publicHostname"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -34,4 +36,19 @@ type ConsoleList struct {
 	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Console `json:"items"`
+}
+
+type ConsoleAuthentication struct {
+	// An optional, absolute URL to redirect web browsers to after logging out of
+	// the console. If not specified, it will redirect to the default login page.
+	// This is required when using an identity provider that supports single
+	// sign-on (SSO) such as:
+	// - OpenID (Keycloak, Azure)
+	// - RequestHeader (GSSAPI, SSPI, SAML)
+	// - OAuth (GitHub, GitLab, Google)
+	// Logging out of the console will destroy the user's token. The logoutRedirect
+	// provides the user the option to perform single logout (SLO) through the identity
+	// provider to destroy their single sign-on session.
+	// +optional
+	LogoutRedirect string `json:"logoutRedirect,omitempty"`
 }

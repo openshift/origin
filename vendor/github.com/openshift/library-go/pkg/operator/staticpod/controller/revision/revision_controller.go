@@ -85,7 +85,7 @@ func NewRevisionController(
 
 // createRevisionIfNeeded takes care of creating content for the static pods to use.
 // returns whether or not requeue and if an error happened when updating status.  Normally it updates status itself.
-func (c RevisionController) createRevisionIfNeeded(operatorSpec *operatorv1.OperatorSpec, operatorStatusOriginal *operatorv1.StaticPodOperatorStatus, resourceVersion string) (bool, error) {
+func (c RevisionController) createRevisionIfNeeded(operatorSpec *operatorv1.StaticPodOperatorSpec, operatorStatusOriginal *operatorv1.StaticPodOperatorStatus, resourceVersion string) (bool, error) {
 	operatorStatus := operatorStatusOriginal.DeepCopy()
 
 	latestRevision := operatorStatus.LatestAvailableRevision
@@ -153,7 +153,7 @@ func (c RevisionController) isLatestRevisionCurrent(revision int32) (bool, strin
 			existingData = existing.Data
 		}
 		if !equality.Semantic.DeepEqual(existingData, requiredData) {
-			return false, fmt.Sprintf("configmap/%s has changed", required.Name)
+			return false, fmt.Sprintf("configmap/%s has changed", cm.Name)
 		}
 	}
 	for _, s := range c.secrets {
@@ -175,7 +175,7 @@ func (c RevisionController) isLatestRevisionCurrent(revision int32) (bool, strin
 			existingData = existing.Data
 		}
 		if !equality.Semantic.DeepEqual(existingData, requiredData) {
-			return false, fmt.Sprintf("secret/%s has changed", required.Name)
+			return false, fmt.Sprintf("secret/%s has changed", s.Name)
 		}
 	}
 

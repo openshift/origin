@@ -233,6 +233,42 @@ func (StringSourceSpec) SwaggerDoc() map[string]string {
 	return map_StringSourceSpec
 }
 
+var map_APIServer = map[string]string{
+	"": "APIServer holds cluster-wide information about api-servers.  The canonical name is `cluster`",
+}
+
+func (APIServer) SwaggerDoc() map[string]string {
+	return map_APIServer
+}
+
+var map_APIServerNamedServingCert = map[string]string{
+	"":                   "APIServerNamedServingCert maps a server DNS name, as understood by a client, to a certificate.",
+	"names":              "names is a optional list of explicit DNS names (leading wildcards allowed) that should use this certificate to serve secure traffic. If no names are provided, the implicit names will be extracted from the certificates. Exact names trump over wildcard names. Explicit names defined here trump over extracted implicit names.",
+	"servingCertificate": "servingCertificate references a kubernetes.io/tls type secret containing the TLS cert info for serving secure traffic. The secret must exist in the openshift-config namespace and contain the following required fields: - Secret.Data[\"tls.key\"] - TLS private key. - Secret.Data[\"tls.crt\"] - TLS certificate.",
+}
+
+func (APIServerNamedServingCert) SwaggerDoc() map[string]string {
+	return map_APIServerNamedServingCert
+}
+
+var map_APIServerServingCerts = map[string]string{
+	"defaultServingCertificate": "defaultServingCertificate references a kubernetes.io/tls type secret containing the default TLS cert info for serving secure traffic. If no named certificates match the server name as understood by a client, this default certificate will be used. If defaultServingCertificate is not specified, then a operator managed certificate will be used. The secret must exist in the openshift-config namespace and contain the following required fields: - Secret.Data[\"tls.key\"] - TLS private key. - Secret.Data[\"tls.crt\"] - TLS certificate.",
+	"namedCertificates":         "namedCertificates references secrets containing the TLS cert info for serving secure traffic to specific hostnames. If no named certificates are provided, or no named certificates match the server name as understood by a client, the defaultServingCertificate will be used.",
+}
+
+func (APIServerServingCerts) SwaggerDoc() map[string]string {
+	return map_APIServerServingCerts
+}
+
+var map_APIServerSpec = map[string]string{
+	"servingCerts": "servingCert is the TLS cert info for serving secure traffic. If not specified, operator managed certificates will be used for serving secure traffic.",
+	"clientCA":     "clientCA references a ConfigMap containing a certificate bundle for the signers that will be recognized for incoming client certificates in addition to the operator managed signers. If this is empty, then only operator managed signers are valid. You usually only have to set this if you have your own PKI you wish to honor client certificates from. The ConfigMap must exist in the openshift-config namespace and contain the following required fields: - ConfigMap.Data[\"ca-bundle.crt\"] - CA bundle.",
+}
+
+func (APIServerSpec) SwaggerDoc() map[string]string {
+	return map_APIServerSpec
+}
+
 var map_Authentication = map[string]string{
 	"":         "Authentication holds cluster-wide information about Authentication.  The canonical name is `cluster`",
 	"metadata": "Standard object's metadata.",
@@ -453,13 +489,13 @@ func (ClusterVersionSpec) SwaggerDoc() map[string]string {
 }
 
 var map_ClusterVersionStatus = map[string]string{
-	"":                 "ClusterVersionStatus reports the status of the cluster versioning, including any upgrades that are in progress. The current field will be set to whichever version the cluster is reconciling to, and the conditions array will report whether the update succeeded, is in progress, or is failing.",
-	"desired":          "desired is the version that the cluster is reconciling towards. If the cluster is not yet fully initialized desired will be set with the information available, which may be an image or a tag.",
-	"history":          "history contains a list of the most recent versions applied to the cluster. This value may be empty during cluster startup, and then will be updated when a new update is being applied. The newest update is first in the list and it is ordered by recency. Updates in the history have state Completed if the rollout completed - if an update was failing or halfway applied the state will be Partial. Only a limited amount of update history is preserved.",
-	"generation":       "generation reports which version of the spec is being processed. If this value is not equal to metadata.generation, then the current and conditions fields have not yet been updated to reflect the latest request.",
-	"versionHash":      "versionHash is a fingerprint of the content that the cluster will be updated with. It is used by the operator to avoid unnecessary work and is for internal use only.",
-	"conditions":       "conditions provides information about the cluster version. The condition \"Available\" is set to true if the desiredUpdate has been reached. The condition \"Progressing\" is set to true if an update is being applied. The condition \"Failing\" is set to true if an update is currently blocked by a temporary or permanent error. Conditions are only valid for the current desiredUpdate when metadata.generation is equal to status.generation.",
-	"availableUpdates": "availableUpdates contains the list of updates that are appropriate for this cluster. This list may be empty if no updates are recommended, if the update service is unavailable, or if an invalid channel has been specified.",
+	"":                   "ClusterVersionStatus reports the status of the cluster versioning, including any upgrades that are in progress. The current field will be set to whichever version the cluster is reconciling to, and the conditions array will report whether the update succeeded, is in progress, or is failing.",
+	"desired":            "desired is the version that the cluster is reconciling towards. If the cluster is not yet fully initialized desired will be set with the information available, which may be an image or a tag.",
+	"history":            "history contains a list of the most recent versions applied to the cluster. This value may be empty during cluster startup, and then will be updated when a new update is being applied. The newest update is first in the list and it is ordered by recency. Updates in the history have state Completed if the rollout completed - if an update was failing or halfway applied the state will be Partial. Only a limited amount of update history is preserved.",
+	"observedGeneration": "observedGeneration reports which version of the spec is being synced. If this value is not equal to metadata.generation, then the desired and conditions fields may represent from a previous version.",
+	"versionHash":        "versionHash is a fingerprint of the content that the cluster will be updated with. It is used by the operator to avoid unnecessary work and is for internal use only.",
+	"conditions":         "conditions provides information about the cluster version. The condition \"Available\" is set to true if the desiredUpdate has been reached. The condition \"Progressing\" is set to true if an update is being applied. The condition \"Failing\" is set to true if an update is currently blocked by a temporary or permanent error. Conditions are only valid for the current desiredUpdate when metadata.generation is equal to status.generation.",
+	"availableUpdates":   "availableUpdates contains the list of updates that are appropriate for this cluster. This list may be empty if no updates are recommended, if the update service is unavailable, or if an invalid channel has been specified.",
 }
 
 func (ClusterVersionStatus) SwaggerDoc() map[string]string {
@@ -513,12 +549,28 @@ func (Console) SwaggerDoc() map[string]string {
 	return map_Console
 }
 
+var map_ConsoleAuthentication = map[string]string{
+	"logoutRedirect": "An optional, absolute URL to redirect web browsers to after logging out of the console. If not specified, it will redirect to the default login page. This is required when using an identity provider that supports single sign-on (SSO) such as: - OpenID (Keycloak, Azure) - RequestHeader (GSSAPI, SSPI, SAML) - OAuth (GitHub, GitLab, Google) Logging out of the console will destroy the user's token. The logoutRedirect provides the user the option to perform single logout (SLO) through the identity provider to destroy their single sign-on session.",
+}
+
+func (ConsoleAuthentication) SwaggerDoc() map[string]string {
+	return map_ConsoleAuthentication
+}
+
 var map_ConsoleList = map[string]string{
 	"metadata": "Standard object's metadata.",
 }
 
 func (ConsoleList) SwaggerDoc() map[string]string {
 	return map_ConsoleList
+}
+
+var map_ConsoleStatus = map[string]string{
+	"publicHostname": "The hostname for the console. This will match the host for the route that is created for the console.",
+}
+
+func (ConsoleStatus) SwaggerDoc() map[string]string {
+	return map_ConsoleStatus
 }
 
 var map_DNS = map[string]string{
@@ -608,6 +660,7 @@ func (Infrastructure) SwaggerDoc() map[string]string {
 }
 
 var map_InfrastructureList = map[string]string{
+	"":         "InfrastructureList is",
 	"metadata": "Standard object's metadata.",
 }
 
@@ -615,8 +668,19 @@ func (InfrastructureList) SwaggerDoc() map[string]string {
 	return map_InfrastructureList
 }
 
+var map_InfrastructureSpec = map[string]string{
+	"": "InfrastructureSpec contains settings that apply to the cluster infrastructure.",
+}
+
+func (InfrastructureSpec) SwaggerDoc() map[string]string {
+	return map_InfrastructureSpec
+}
+
 var map_InfrastructureStatus = map[string]string{
-	"platform": "platform is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled.",
+	"":                    "InfrastructureStatus describes the infrastructure the cluster is leveraging.",
+	"platform":            "platform is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are \"AWS\", \"Azure\", \"GCP\", \"Libvirt\", \"OpenStack\", \"VSphere\", and \"None\". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform.",
+	"etcdDiscoveryDomain": "etcdDiscoveryDomain is the domain used to fetch the SRV records for discovering etcd servers and clients. For more info: https://github.com/etcd-io/etcd/blob/329be66e8b3f9e2e6af83c123ff89297e49ebd15/Documentation/op-guide/clustering.md#dns-discovery",
+	"apiServerURL":        "apiServerURL is a valid URL with scheme(http/https), address and port. apiServerURL can be used by components like kubelet on machines, to contact the `apisever` using the infrastructure provider rather than the kubernetes networking.",
 }
 
 func (InfrastructureStatus) SwaggerDoc() map[string]string {
@@ -1016,6 +1080,14 @@ var map_SchedulingList = map[string]string{
 
 func (SchedulingList) SwaggerDoc() map[string]string {
 	return map_SchedulingList
+}
+
+var map_SchedulingSpec = map[string]string{
+	"policy": "policy is a reference to a ConfigMap containing scheduler policy which has user specified predicates and priorities. If this ConfigMap is not available scheduler will default to use DefaultAlgorithmProvider. The namespace for this configmap is openshift-config.",
+}
+
+func (SchedulingSpec) SwaggerDoc() map[string]string {
+	return map_SchedulingSpec
 }
 
 // AUTO-GENERATED FUNCTIONS END HERE

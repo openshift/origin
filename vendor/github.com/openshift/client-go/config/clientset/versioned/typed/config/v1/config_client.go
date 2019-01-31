@@ -11,6 +11,7 @@ import (
 
 type ConfigV1Interface interface {
 	RESTClient() rest.Interface
+	APIServersGetter
 	AuthenticationsGetter
 	BuildsGetter
 	ClusterOperatorsGetter
@@ -30,6 +31,10 @@ type ConfigV1Interface interface {
 // ConfigV1Client is used to interact with features provided by the config.openshift.io group.
 type ConfigV1Client struct {
 	restClient rest.Interface
+}
+
+func (c *ConfigV1Client) APIServers() APIServerInterface {
+	return newAPIServers(c)
 }
 
 func (c *ConfigV1Client) Authentications() AuthenticationInterface {

@@ -5,13 +5,13 @@ import:
   version: origin-3.11-kubernetes-1.11.1
 - package: k8s.io/code-generator
   repo:    https://github.com/openshift/kubernetes-code-generator.git
-  version: origin-3.11-kubernetes-1.11.1
+  version: origin-4.0-kubernetes-1.12.4
 - package: k8s.io/apimachinery
-  version: kubernetes-1.11.1
+  version: kubernetes-1.12.5
 - package: k8s.io/api
-  version: kubernetes-1.11.1
+  version: kubernetes-1.12.5
 - package: k8s.io/client-go
-  version: kubernetes-1.11.1
+  version: kubernetes-1.12.5
 - package: github.com/openshift/api
   version: master
 - package: github.com/golang/glog

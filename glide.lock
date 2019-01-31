@@ -1,5 +1,5 @@
-hash: cd012b6ba8b834df4dfba91a04531d00bb6cd862eb963e123c46c960f83fcea6
-updated: 2019-01-25T17:24:14.898922243+01:00
+hash: 8a5b99c7083c1f254e667e7aca9401ee2c2b4fb65e4ce039b6ef589fb475d1f8
+updated: 2019-01-31T13:19:38.099909+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -216,7 +216,7 @@ imports:
   - pkg/ns
   - pkg/utils/hwaddr
 - name: github.com/containers/image
-  version: 9dc3776eaea701cad0c09f04ec489c35a520e2b2
+  version: 4bc6d24282b115f8b61a6d08470ed42ac7c91392
   repo: https://github.com/openshift/containers-image.git
   subpackages:
   - docker
@@ -882,7 +882,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 74cf02537628c9ca144e7f09c8db26ee7e7f56e4
+  version: 0e93a752a8cbf93d6c542ab9eeb1a89c2a38f899
   subpackages:
   - apps
   - apps/v1
@@ -928,7 +928,7 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 8fb54357b899c50a2c5b96408cb909818c3e25c8
+  version: 9d9c3dc826335abee846500602f450ba1bdb70ed
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/fake
@@ -1052,7 +1052,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 5d4485484d0a510bffbf146235694e28da5ecbe9
+  version: bc1eaa8a350dacaf8e2f0571cb780337daf7686e
   subpackages:
   - pkg/config/configdefaults
   - pkg/config/helpers
@@ -1076,7 +1076,7 @@ imports:
   - pkg/controller/servingcert/controller
   - pkg/controller/servingcert/cryptoextensions
 - name: github.com/openshift/source-to-image
-  version: b54d75d3de92d123e68a79c6ee09c2c5fe44e720
+  version: bb50d6fa68f20128269ecec4d792be1e18ef4254
   subpackages:
   - pkg/api
   - pkg/api/constants
@@ -1559,7 +1559,7 @@ imports:
   - pkg/registry/customresourcedefinition
   - test/integration/fixtures
 - name: k8s.io/apimachinery
-  version: eff96bababfae8931b95de8149c7a0847e31c066
+  version: cc581476df18d1280d23106cf104193e80d3ec73
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/apitesting
@@ -1629,7 +1629,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 11efb795044c61415883d94fa65a384d95607ca3
+  version: 9d6ee14469634b6d64c25129cf228d818d7de385
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1962,12 +1962,12 @@ imports:
   version: aef8d122b95ddd821e3bd35d4013593b1e5eda16
   repo: https://github.com/openshift/kubernetes-code-generator.git
 - name: k8s.io/component-base
-  version: 939a2693e908cbb76bd0dc26f3c376280816f218
+  version: b9b4123fb418af909f7ead83fbfa22b5e7941910
   subpackages:
   - config
   - config/v1alpha1
 - name: k8s.io/csi-api
-  version: 9225cacc8063f94c82922f00a4eb25cf8572816d
+  version: 44b4e43813fb993187d8f6faab18309bb7050d3a
   subpackages:
   - pkg/apis/csi/v1alpha1
   - pkg/client/clientset/versioned
@@ -2016,7 +2016,7 @@ imports:
   - pkg/registry/apiservice/etcd
   - pkg/registry/apiservice/rest
 - name: k8s.io/kube-controller-manager
-  version: 23ab32967af199db0b37ef006a54e6b029c310d4
+  version: 6daf3da58e35a702d71ea98f4f63bdedc13cd414
   subpackages:
   - config/v1alpha1
 - name: k8s.io/kube-openapi
@@ -2031,7 +2031,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kube-proxy
-  version: 2dd02d8e32748ec2a02a88e3fe176dfe18193ee8
+  version: 71a8e7da4add563e5b1a8038e627136d98257ca2
   subpackages:
   - config/v1alpha1
 - name: k8s.io/kubelet
@@ -2039,7 +2039,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: f21fc982207ad0e2b16e34edb777c5f36955cfc3
+  version: 7e0dae94799766b4a4ea3456a33235d91c52ca0c
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config
@@ -2879,7 +2879,7 @@ imports:
   - pkg/client/custom_metrics/scheme
   - pkg/client/external_metrics
 - name: k8s.io/sample-apiserver
-  version: 564eb9fc24786fb1059dc32a82db1deec481bb41
+  version: 059663b7284aa12a9aecc0d8f45977d5d1eb7e4f
   subpackages:
   - pkg/apis/wardle
   - pkg/apis/wardle/v1alpha1
