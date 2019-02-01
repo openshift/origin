@@ -48,7 +48,8 @@ ${GOPATH}/bin/openapi-gen \
   --output-package "${ORIGIN_PREFIX}pkg/openapi" \
   --report-filename "${REPORT_FILENAME}" \
   "$@"
+sort -s "${REPORT_FILENAME}" > "${REPORT_FILENAME}-sorted"
 
-if ! diff -q "${REPORT_FILENAME}" "${KNOWN_VIOLATION_FILENAME}" ; then
+if ! diff "${REPORT_FILENAME}-sorted" "${KNOWN_VIOLATION_FILENAME}" ; then
 	os::log::fatal "Error: API rules check failed. Reported violations ${REPORT_FILENAME} differ from known violations ${KNOWN_VIOLATION_FILENAME}. Please fix API source file if new violation is detected, or update known violations ${KNOWN_VIOLATION_FILENAME} if existing violation is being fixed. Please refer to api/api-rules/README.md and https://github.com/kubernetes/kube-openapi/tree/master/pkg/generators/rules for more information about the API rules being enforced."
 fi
