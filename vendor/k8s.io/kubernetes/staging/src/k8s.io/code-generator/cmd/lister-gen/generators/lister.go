@@ -37,6 +37,7 @@ import (
 func NameSystems() namer.NameSystems {
 	pluralExceptions := map[string]string{
 		"Endpoints":                  "Endpoints",
+		"Features":                   "Features",
 		"SecurityContextConstraints": "SecurityContextConstraints",
 	}
 	return namer.NameSystems{
