@@ -142,6 +142,20 @@ func NewOAuthServerConfig(oauthConfig osinv1.OAuthConfig, userClientConfig *rest
 		)
 	}
 
+	if len(oauthConfig.IdentityProviders) == 0 {
+		oauthConfig.IdentityProviders = []osinv1.IdentityProvider{
+			{
+				Name:            "defaultDenyAll",
+				UseAsChallenger: true,
+				UseAsLogin:      true,
+				MappingMethod:   string(identitymapper.MappingMethodClaim),
+				Provider: runtime.RawExtension{
+					Object: &osinv1.DenyAllPasswordIdentityProvider{},
+				},
+			},
+		}
+	}
+
 	ret := &OAuthServerConfig{
 		GenericConfig: genericConfig,
 		ExtraOAuthConfig: ExtraOAuthConfig{
