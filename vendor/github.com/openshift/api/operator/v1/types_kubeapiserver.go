@@ -8,7 +8,7 @@ import (
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// KubeAPISOperatorConfig provides information to configure an operator to manage kube-apiserver.
+// KubeAPIServer provides information to configure an operator to manage kube-apiserver.
 type KubeAPIServer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
@@ -32,7 +32,7 @@ type KubeAPIServerStatus struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// KubeAPISOperatorConfigList is a collection of items
+// KubeAPIServerList is a collection of items
 type KubeAPIServerList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.

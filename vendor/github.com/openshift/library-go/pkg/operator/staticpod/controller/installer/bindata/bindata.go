@@ -64,6 +64,11 @@ spec:
       securityContext:
         privileged: true
         runAsUser: 0
+      env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
       terminationMessagePolicy: FallbackToLogsOnError
       volumeMounts:
         - mountPath: /etc/kubernetes/

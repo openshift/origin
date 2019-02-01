@@ -449,7 +449,7 @@ func EnsureCA(certFile, keyFile, serialFile, name string, expireDays int) (*CA, 
 	if ca, err := GetCA(certFile, keyFile, serialFile); err == nil {
 		return ca, false, err
 	}
-	ca, err := MakeCA(certFile, keyFile, serialFile, name, expireDays)
+	ca, err := MakeSelfSignedCA(certFile, keyFile, serialFile, name, expireDays)
 	return ca, true, err
 }
 
@@ -489,10 +489,10 @@ func GetCAFromBytes(certBytes, keyBytes []byte) (*CA, error) {
 }
 
 // if serialFile is empty, a RandomSerialGenerator will be used
-func MakeCA(certFile, keyFile, serialFile, name string, expireDays int) (*CA, error) {
+func MakeSelfSignedCA(certFile, keyFile, serialFile, name string, expireDays int) (*CA, error) {
 	glog.V(2).Infof("Generating new CA for %s cert, and key in %s, %s", name, certFile, keyFile)
 
-	caConfig, err := MakeCAConfig(name, expireDays)
+	caConfig, err := MakeSelfSignedCAConfig(name, expireDays)
 	if err != nil {
 		return nil, err
 	}
@@ -520,7 +520,7 @@ func MakeCA(certFile, keyFile, serialFile, name string, expireDays int) (*CA, er
 	}, nil
 }
 
-func MakeCAConfig(name string, expireDays int) (*TLSCertificateConfig, error) {
+func MakeSelfSignedCAConfig(name string, expireDays int) (*TLSCertificateConfig, error) {
 	var caLifetimeInDays = DefaultCACertificateLifetimeInDays
 	if expireDays > 0 {
 		caLifetimeInDays = expireDays
@@ -532,10 +532,10 @@ func MakeCAConfig(name string, expireDays int) (*TLSCertificateConfig, error) {
 
 	caLifetime := time.Duration(caLifetimeInDays) * 24 * time.Hour
 
-	return MakeCAConfigForDuration(name, caLifetime)
+	return MakeSelfSignedCAConfigForDuration(name, caLifetime)
 }
 
-func MakeCAConfigForDuration(name string, caLifetime time.Duration) (*TLSCertificateConfig, error) {
+func MakeSelfSignedCAConfigForDuration(name string, caLifetime time.Duration) (*TLSCertificateConfig, error) {
 	// Create CA cert
 	rootcaPublicKey, rootcaPrivateKey, err := NewKeyPair()
 	if err != nil {
@@ -551,6 +551,24 @@ func MakeCAConfigForDuration(name string, caLifetime time.Duration) (*TLSCertifi
 		Key:   rootcaPrivateKey,
 	}
 	return caConfig, nil
+}
+
+func MakeCAConfigForDuration(name string, caLifetime time.Duration, issuer *CA) (*TLSCertificateConfig, error) {
+	// Create CA cert
+	signerPublicKey, signerPrivateKey, err := NewKeyPair()
+	if err != nil {
+		return nil, err
+	}
+	signerTemplate := newSigningCertificateTemplateForDuration(pkix.Name{CommonName: name}, caLifetime, time.Now)
+	signerCert, err := issuer.signCertificate(signerTemplate, signerPublicKey)
+	if err != nil {
+		return nil, err
+	}
+	signerConfig := &TLSCertificateConfig{
+		Certs: append([]*x509.Certificate{signerCert}, issuer.Config.Certs...),
+		Key:   signerPrivateKey,
+	}
+	return signerConfig, nil
 }
 
 func (ca *CA) EnsureServerCert(certFile, keyFile string, hostnames sets.String, expireDays int) (*TLSCertificateConfig, bool, error) {

@@ -1,5 +1,5 @@
-hash: 8a5b99c7083c1f254e667e7aca9401ee2c2b4fb65e4ce039b6ef589fb475d1f8
-updated: 2019-01-31T13:19:38.099909+01:00
+hash: f673b06826e9fa526bda285c5109b133989e188db2d8aca9dbc6913af034857d
+updated: 2019-02-11T13:37:21.371065+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -800,6 +800,8 @@ imports:
   version: 4ee1cc9a80582a0c75febdd5cfa779ee4361cbca
 - name: github.com/mtrmac/gpgme
   version: b2432428689ca58c2b8e8dea9449d3295cf96fc9
+- name: github.com/munnerz/goautoneg
+  version: a547fc61f48d567d5b4ec6f8aee5573d8efce11d
 - name: github.com/mxk/go-flowrate
   version: cca7078d478f8520f85629ad7c68962d31ed7682
   subpackages:
@@ -882,7 +884,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 0e93a752a8cbf93d6c542ab9eeb1a89c2a38f899
+  version: 21e40de482627b2047cbf430594540413539a442
   subpackages:
   - apps
   - apps/v1
@@ -928,7 +930,7 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 9d9c3dc826335abee846500602f450ba1bdb70ed
+  version: f8b9b0633d7fe283277fc35b437428aed9ec5464
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/fake
@@ -1052,7 +1054,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: bc1eaa8a350dacaf8e2f0571cb780337daf7686e
+  version: b81912a34afc470eb8038e9ac40cf9a14b23be91
   subpackages:
   - pkg/config/configdefaults
   - pkg/config/helpers
@@ -1629,7 +1631,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 9d6ee14469634b6d64c25129cf228d818d7de385
+  version: cab02d13ed015832822975d2abde7c46eff35f66
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1749,7 +1751,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/cli-runtime
-  version: 3574f41f377dd53d64743476e673c0385f2ae863
+  version: 8cbe064267b9b95e174259c5ef25816b041e3fb0
   repo: https://github.com/openshift/kubernetes-cli-runtime.git
   subpackages:
   - pkg/genericclioptions
@@ -1959,15 +1961,15 @@ imports:
   - util/testing
   - util/workqueue
 - name: k8s.io/code-generator
-  version: aef8d122b95ddd821e3bd35d4013593b1e5eda16
+  version: 0581eeac5aced8f4935d973acfca5feee20766d0
   repo: https://github.com/openshift/kubernetes-code-generator.git
 - name: k8s.io/component-base
-  version: b9b4123fb418af909f7ead83fbfa22b5e7941910
+  version: 8791bf4a9cd291543acf800d1e972ecc8ba68e57
   subpackages:
   - config
   - config/v1alpha1
 - name: k8s.io/csi-api
-  version: 44b4e43813fb993187d8f6faab18309bb7050d3a
+  version: 1f17d75267910cfba9777a9e38beec31ccf1dda0
   subpackages:
   - pkg/apis/csi/v1alpha1
   - pkg/client/clientset/versioned
@@ -1986,7 +1988,7 @@ imports:
   subpackages:
   - metrics/api/v1/types
 - name: k8s.io/kube-aggregator
-  version: 275215807c22b334cc084f02e9cdc18fe1c815a8
+  version: ff36568a5a1caf3fe573f1bc588183c8192f849a
   repo: https://github.com/openshift/kubernetes-kube-aggregator.git
   subpackages:
   - pkg/apis/apiregistration
@@ -2016,11 +2018,12 @@ imports:
   - pkg/registry/apiservice/etcd
   - pkg/registry/apiservice/rest
 - name: k8s.io/kube-controller-manager
-  version: 6daf3da58e35a702d71ea98f4f63bdedc13cd414
+  version: 58144a281884b4871146ed52d775a74e6272a3ae
   subpackages:
   - config/v1alpha1
 - name: k8s.io/kube-openapi
-  version: 0cf8f7e6ed1d2e3d47d02e3b6e559369af24d803
+  version: 0e4a0ee171a31ddc90a138cbf89ec307b25f3096
+  repo: https://github.com/openshift/kube-openapi.git
   subpackages:
   - pkg/aggregator
   - pkg/builder
@@ -2031,15 +2034,15 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kube-proxy
-  version: 71a8e7da4add563e5b1a8038e627136d98257ca2
+  version: 30e63035f31fd35368eec2221222cb4022cceaf4
   subpackages:
   - config/v1alpha1
 - name: k8s.io/kubelet
-  version: 63bb2f3a8bebc7916b5a924e41af3316ac9cd01f
+  version: 9c44a397c7166476e3baf1257f94b8177201731d
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 7e0dae94799766b4a4ea3456a33235d91c52ca0c
+  version: b6d070086087e47aed0bd1405c3b72a664438bc0
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config
@@ -2879,7 +2882,7 @@ imports:
   - pkg/client/custom_metrics/scheme
   - pkg/client/external_metrics
 - name: k8s.io/sample-apiserver
-  version: 059663b7284aa12a9aecc0d8f45977d5d1eb7e4f
+  version: 7504e248016ab36a140ff0e0ff55c9564941c4d8
   subpackages:
   - pkg/apis/wardle
   - pkg/apis/wardle/v1alpha1

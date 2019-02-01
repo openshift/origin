@@ -41,12 +41,6 @@ type OpenShiftAPIServerConfig struct {
 	// TODO this needs to become a normal plugin config
 	CloudProviderFile string `json:"cloudProviderFile"`
 
-	// enableDeprecatedOAPIThatWillBeRemovedVerySoon allows the openshift-apiserver to serve oapi endpoints.  This option
-	// is going away along with the entire API. Consider yourself warned again.
-	// Deprecated
-	// +optional
-	EnableOAPI bool `json:"enableDeprecatedOAPIThatWillBeRemovedVerySoon"`
-
 	// TODO this needs to be removed.
 	APIServerArguments map[string][]string `json:"apiServerArguments"`
 }

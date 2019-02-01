@@ -1,12 +1,14 @@
 package installerpod
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +21,7 @@ kind: Pod
 metadata:
   namespace: some-ns
   name: kube-apiserver-pod
+spec:
 `
 
 func TestCopyContent(t *testing.T) {
@@ -187,8 +190,10 @@ func TestCopyContent(t *testing.T) {
 			o.KubeClient = test.client()
 			o.ResourceDir = path.Join(testDir, "resources")
 			o.PodManifestDir = path.Join(testDir, "static-pods")
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
 
-			err = o.copyContent()
+			err = o.copyContent(ctx)
 			switch {
 			case err == nil && len(test.expectedErr) == 0:
 			case err != nil && len(test.expectedErr) == 0:

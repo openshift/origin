@@ -22,6 +22,8 @@ type Interface interface {
 	Consoles() ConsoleInformer
 	// DNSs returns a DNSInformer.
 	DNSs() DNSInformer
+	// Features returns a FeaturesInformer.
+	Features() FeaturesInformer
 	// Images returns a ImageInformer.
 	Images() ImageInformer
 	// Infrastructures returns a InfrastructureInformer.
@@ -84,6 +86,11 @@ func (v *version) Consoles() ConsoleInformer {
 // DNSs returns a DNSInformer.
 func (v *version) DNSs() DNSInformer {
 	return &dNSInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// Features returns a FeaturesInformer.
+func (v *version) Features() FeaturesInformer {
+	return &featuresInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // Images returns a ImageInformer.
