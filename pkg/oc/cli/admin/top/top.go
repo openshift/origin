@@ -11,10 +11,6 @@ import (
 
 const (
 	TopRecommendedName = "top"
-
-	DefaultHeapsterNamespace = "openshift-infra"
-	DefaultHeapsterScheme    = "https"
-	DefaultHeapsterService   = "heapster"
 )
 
 var topLong = templates.LongDesc(`
@@ -32,21 +28,8 @@ func NewCommandTop(name, fullName string, f cmdutil.Factory, streams genericclio
 		Run:   cmdutil.DefaultSubCommandRun(streams.ErrOut),
 	}
 
-	ocHeapsterTopOpts := kcmd.HeapsterTopOptions{
-		Namespace: DefaultHeapsterNamespace,
-		Scheme:    DefaultHeapsterScheme,
-		Service:   DefaultHeapsterService,
-	}
-
-	cmdTopNodeOpts := &kcmd.TopNodeOptions{
-		HeapsterOptions: ocHeapsterTopOpts,
-	}
-	cmdTopNode := kcmd.NewCmdTopNode(f, cmdTopNodeOpts, streams)
-
-	cmdTopPodOpts := &kcmd.TopPodOptions{
-		HeapsterOptions: ocHeapsterTopOpts,
-	}
-	cmdTopPod := kcmd.NewCmdTopPod(f, cmdTopPodOpts, streams)
+	cmdTopNode := kcmd.NewCmdTopNode(f, nil, streams)
+	cmdTopPod := kcmd.NewCmdTopPod(f, nil, streams)
 
 	cmds.AddCommand(NewCmdTopImages(f, fullName, TopImagesRecommendedName, streams))
 	cmds.AddCommand(NewCmdTopImageStreams(f, fullName, TopImageStreamsRecommendedName, streams))
