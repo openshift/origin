@@ -1,13 +1,16 @@
 package configconversion
 
 import (
+	"k8s.io/kubernetes/pkg/kubeapiserver/options"
+
 	configv1 "github.com/openshift/api/config/v1"
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
 	"github.com/openshift/library-go/pkg/crypto"
-	"github.com/openshift/origin/pkg/apiserver/admission"
+	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftadmission"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/kubeadmission"
 )
 
 func ToHTTPServingInfo(in *legacyconfigv1.HTTPServingInfo) (out configv1.HTTPServingInfo, err error) {
@@ -78,7 +81,7 @@ func ToOpenShiftAdmissionPluginConfigMap(in map[string]*legacyconfigv1.Admission
 }
 
 func isKnownOpenShiftAdmissionPlugin(pluginName string) bool {
-	for _, plugin := range admission.OpenShiftAdmissionPlugins {
+	for _, plugin := range openshiftadmission.OpenShiftAdmissionPlugins {
 		if pluginName == plugin {
 			return true
 		}
@@ -108,7 +111,7 @@ func ToKubeAdmissionPluginConfigMap(in map[string]*legacyconfigv1.AdmissionPlugi
 }
 
 func isKnownKubeAdmissionPlugin(pluginName string) bool {
-	for _, plugin := range admission.KubeAdmissionPlugins {
+	for _, plugin := range kubeadmission.NewOrderedKubeAdmissionPlugins(options.AllOrderedPlugins) {
 		if pluginName == plugin {
 			return true
 		}

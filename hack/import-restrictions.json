@@ -38,6 +38,7 @@
     ],
     "ignoredSubTrees": [
       "github.com/openshift/origin/pkg/apiserver/admission",
+      "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/kubeadmission",
       "github.com/openshift/origin/pkg/apps/apiserver",
       "github.com/openshift/origin/pkg/build/apiserver",
       "github.com/openshift/origin/pkg/image/apiserver",

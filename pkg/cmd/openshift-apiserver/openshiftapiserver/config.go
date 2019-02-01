@@ -23,8 +23,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
-	"github.com/openshift/origin/pkg/admission/namespaceconditions"
-	originadmission "github.com/openshift/origin/pkg/apiserver/admission"
+	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftadmission"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
@@ -156,19 +155,11 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 	clusterQuotaMappingController := NewClusterQuotaMappingController(informers.kubernetesInformers.Core().V1().Namespaces(), informers.quotaInformers.Quota().InternalVersion().ClusterResourceQuotas())
 	discoveryClient := cacheddiscovery.NewMemCacheClient(kubeClient.Discovery())
 	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
-	admissionInitializer, err := originadmission.NewPluginInitializer(config.ImagePolicyConfig.ExternalRegistryHostnames, config.ImagePolicyConfig.InternalRegistryHostname, config.CloudProviderFile, kubeClientConfig, informers, genericConfig.Authorization.Authorizer, projectCache, restMapper, clusterQuotaMappingController)
+	admissionInitializer, err := openshiftadmission.NewPluginInitializer(config.ImagePolicyConfig.ExternalRegistryHostnames, config.ImagePolicyConfig.InternalRegistryHostname, config.CloudProviderFile, kubeClientConfig, informers, genericConfig.Authorization.Authorizer, projectCache, restMapper, clusterQuotaMappingController)
 	if err != nil {
 		return nil, err
 	}
-	namespaceLabelDecorator := namespaceconditions.NamespaceLabelConditions{
-		NamespaceClient: kubeClient.CoreV1(),
-		NamespaceLister: informers.GetKubernetesInformers().Core().V1().Namespaces().Lister(),
-
-		SkipLevelZeroNames: originadmission.SkipRunLevelZeroPlugins,
-		SkipLevelOneNames:  originadmission.SkipRunLevelOnePlugins,
-	}
 	admissionDecorators := admission.Decorators{
-		admission.DecoratorFunc(namespaceLabelDecorator.WithNamespaceLabelConditions),
 		admission.DecoratorFunc(admissionmetrics.WithControllerMetrics),
 	}
 	explicitOn := []string{}
@@ -186,7 +177,7 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 			explicitOff = append(explicitOff, plugin)
 		}
 	}
-	genericConfig.AdmissionControl, err = originadmission.NewAdmissionChains([]string{}, explicitOn, explicitOff, config.AdmissionPluginConfig, admissionInitializer, admissionDecorators)
+	genericConfig.AdmissionControl, err = openshiftadmission.NewAdmissionChains([]string{}, explicitOn, explicitOff, config.AdmissionPluginConfig, admissionInitializer, admissionDecorators)
 	if err != nil {
 		return nil, err
 	}
