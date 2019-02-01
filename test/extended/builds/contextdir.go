@@ -46,7 +46,7 @@ var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", fun
 		g.Describe("s2i context directory build", func() {
 			g.It(fmt.Sprintf("should s2i build an application using a context directory"), func() {
 
-				exutil.CheckOpenShiftNamespaceImageStreams(oc)
+				exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 				g.By(fmt.Sprintf("calling oc create -f %q", appFixture))
 				err := oc.Run("create").Args("-f", appFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -106,7 +106,7 @@ var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", fun
 				err = repo.AddAndCommit("2.3/Dockerfile", "FROM busybox")
 				o.Expect(err).NotTo(o.HaveOccurred())
 
-				exutil.CheckOpenShiftNamespaceImageStreams(oc)
+				exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 				g.By(fmt.Sprintf("calling oc create -f %q", appFixture))
 				err = oc.Run("create").Args("-f", appFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())

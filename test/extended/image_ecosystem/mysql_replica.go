@@ -75,7 +75,7 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase, cleanup func()) func() 
 		err := testutil.WaitForPolicyUpdate(oc.InternalKubeClient().Authorization(), oc.Namespace(), "create", template.Resource("templates"), true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		exutil.CheckOpenShiftNamespaceImageStreams(oc)
+		exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 		err = oc.Run("create").Args("-f", tc.TemplatePath).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 

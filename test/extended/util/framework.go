@@ -79,6 +79,8 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	// so we've bumped what was 30 seconds to 2 min 30 seconds or 150 seconds (manual perf testing shows typical times of
 	// 1 to 2 minutes, assuming registry.access.redhat.com / registry.redhat.io are behaving ... they
 	// have proven less reliable that docker.io)
+	// we've also determined that e2e-aws-image-ecosystem can be started before all the operators have completed; while
+	// that is getting sorted out, the longer time will help there as well
 	for i := 0; i < 15; i++ {
 		e2e.Logf("Running scan #%v \n", i)
 		success = scan()
@@ -95,32 +97,6 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	DumpImageStreams(oc)
 	DumpSampleOperator(oc)
 	return fmt.Errorf("Failed to import expected imagestreams")
-}
-
-// CheckOpenShiftNamespaceImageStreams is a temporary workaround for the intermittent
-// issue seen in extended tests where *something* is deleteing the pre-loaded, languange
-// imagestreams from the OpenShift namespace
-func CheckOpenShiftNamespaceImageStreams(oc *CLI) {
-	missing := false
-	langs := []string{"ruby", "nodejs", "perl", "php", "python", "mysql", "postgresql", "mongodb", "jenkins"}
-	for _, lang := range langs {
-		_, err := oc.ImageClient().Image().ImageStreams("openshift").Get(lang, metav1.GetOptions{})
-		if err != nil {
-			missing = true
-			break
-		}
-	}
-
-	if missing {
-		fmt.Fprint(g.GinkgoWriter, "\n\n openshift namespace image streams corrupted \n\n")
-		DumpImageStreams(oc)
-		out, err := oc.Run("get").Args("is", "-n", "openshift", "--config", KubeConfigPath()).Output()
-		err = fmt.Errorf("something has tampered with the image streams in the openshift namespace; look at audits in master log; \n%s\n", out)
-		o.Expect(err).NotTo(o.HaveOccurred())
-	} else {
-		fmt.Fprint(g.GinkgoWriter, "\n\n openshift namespace image streams OK \n\n")
-	}
-
 }
 
 //DumpImageStreams will dump both the openshift namespace and local namespace imagestreams
