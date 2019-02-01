@@ -17,7 +17,6 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow] alter builds via cluster conf
 		buildFixture           = exutil.FixturePath("testdata", "builds", "test-build.yaml")
 		defaultConfigFixture   = exutil.FixturePath("testdata", "builds", "cluster-config.yaml")
 		blacklistConfigFixture = exutil.FixturePath("testdata", "builds", "cluster-config", "registry-blacklist.yaml")
-		searchConfigFixture    = exutil.FixturePath("testdata", "builds", "cluster-config", "registry-search.yaml")
 		whitelistConfigFixture = exutil.FixturePath("testdata", "builds", "cluster-config", "registry-whitelist.yaml")
 		oc                     = exutil.NewCLI("build-cluster-config", exutil.KubeConfigPath())
 	)
@@ -64,22 +63,6 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow] alter builds via cluster conf
 				buildLog, err := br.LogsNoTimestamp()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(buildLog).To(o.ContainSubstring("defaulting registry to docker.io"))
-			})
-
-			g.It("can override registry search for image pulls", func() {
-				g.By("apply image search cluster configuration")
-				err := oc.AsAdmin().Run("apply").Args("-f", searchConfigFixture).Execute()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				g.By("waiting 1s for build controller configuration to propagate")
-				time.Sleep(1 * time.Second)
-				g.By("starting build sample-build and waiting for failure")
-				br, err := exutil.StartBuildAndWait(oc, "sample-build")
-				o.Expect(err).NotTo(o.HaveOccurred())
-				br.AssertFailure()
-				g.By("expecting the build logs to indicate the image was not found")
-				buildLog, err := br.LogsNoTimestamp()
-				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(buildLog).To(o.ContainSubstring("build error: no such image"))
 			})
 
 			g.It("should allow registries to be blacklisted", func() {

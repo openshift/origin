@@ -1330,36 +1330,6 @@ func TestHandleControllerConfig(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "search registries - override",
-			build: &configv1.Build{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "cluster",
-				},
-				Spec: configv1.BuildSpec{
-					BuildDefaults: configv1.BuildDefaults{
-						RegistriesConfig: configv1.RegistriesConfig{
-							SearchRegistries: &[]string{"quay.io", "docker.io"},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "search registries - empty",
-			build: &configv1.Build{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "cluster",
-				},
-				Spec: configv1.BuildSpec{
-					BuildDefaults: configv1.BuildDefaults{
-						RegistriesConfig: configv1.RegistriesConfig{
-							SearchRegistries: &[]string{},
-						},
-					},
-				},
-			},
-		},
-		{
 			name: "insecure registries",
 			build: &configv1.Build{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1512,10 +1482,6 @@ func TestHandleControllerConfig(t *testing.T) {
 			if len(buildRegistriesConfig.InsecureRegistries) > 0 {
 				expectedSearchRegistries = []string{"docker.io"}
 			}
-			// Search registries can be overrode to be an empty list
-			if buildRegistriesConfig.SearchRegistries != nil {
-				expectedSearchRegistries = *buildRegistriesConfig.SearchRegistries
-			}
 			if !equality.Semantic.DeepEqual(registriesConfig.Registries.Search.Registries,
 				expectedSearchRegistries) {
 				t.Errorf("expected search registries to equal %v, got %v",
@@ -1588,7 +1554,7 @@ func TestHandleControllerConfig(t *testing.T) {
 }
 
 func isRegistryConfigEmpty(config configv1.RegistriesConfig) bool {
-	return config.SearchRegistries == nil && len(config.InsecureRegistries) == 0
+	return len(config.InsecureRegistries) == 0
 }
 
 func decodeRegistries(configTOML string) (*tomlConfig, error) {
