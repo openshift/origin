@@ -10,7 +10,6 @@
 /assets/nbproject
 /examples/sample-app/openshift.local.*
 /examples/sample-app/logs/openshift.log
-/dind-*.rc
 /os-version-defs
 /.make/
 /cmd/oc/oc.syso
