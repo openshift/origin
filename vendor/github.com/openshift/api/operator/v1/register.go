@@ -38,6 +38,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&KubeControllerManagerList{},
 		&OpenShiftAPIServer{},
 		&OpenShiftAPIServerList{},
+		&OpenShiftControllerManager{},
+		&OpenShiftControllerManagerList{},
 	)
 
 	return nil

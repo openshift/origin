@@ -74,6 +74,9 @@ spec:
         limits:
           memory: 100M
   restartPolicy: Never
+  priorityClassName: system-node-critical
+  tolerations:
+  - operator: "Exists"
   securityContext:
     runAsUser: 0
   volumes:

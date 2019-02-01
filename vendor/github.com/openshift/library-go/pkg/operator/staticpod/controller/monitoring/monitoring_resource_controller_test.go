@@ -62,6 +62,11 @@ func TestNewMonitoringResourcesController(t *testing.T) {
 					ManagementState: operatorv1.Managed,
 				},
 				&operatorv1.OperatorStatus{},
+				&operatorv1.StaticPodOperatorSpec{
+					OperatorSpec: operatorv1.OperatorSpec{
+						ManagementState: operatorv1.Managed,
+					},
+				},
 				&operatorv1.StaticPodOperatorStatus{},
 				nil,
 			),
@@ -93,6 +98,11 @@ func TestNewMonitoringResourcesController(t *testing.T) {
 					ManagementState: operatorv1.Managed,
 				},
 				&operatorv1.OperatorStatus{},
+				&operatorv1.StaticPodOperatorSpec{
+					OperatorSpec: operatorv1.OperatorSpec{
+						ManagementState: operatorv1.Managed,
+					},
+				},
 				&operatorv1.StaticPodOperatorStatus{},
 				nil,
 			),

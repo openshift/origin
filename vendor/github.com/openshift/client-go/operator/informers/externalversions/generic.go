@@ -43,6 +43,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Operator().V1().KubeControllerManagers().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("openshiftapiservers"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Operator().V1().OpenShiftAPIServers().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("openshiftcontrollermanagers"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Operator().V1().OpenShiftControllerManagers().Informer()}, nil
 
 	}
 

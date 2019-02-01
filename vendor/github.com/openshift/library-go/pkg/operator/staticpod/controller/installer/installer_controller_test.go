@@ -45,6 +45,11 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 			ManagementState: operatorv1.Managed,
 		},
 		&operatorv1.OperatorStatus{},
+		&operatorv1.StaticPodOperatorSpec{
+			OperatorSpec: operatorv1.OperatorSpec{
+				ManagementState: operatorv1.Managed,
+			},
+		},
 		&operatorv1.StaticPodOperatorStatus{
 			LatestAvailableRevision: 1,
 			NodeStatuses: []operatorv1.NodeStatus{
@@ -251,6 +256,11 @@ func TestCreateInstallerPod(t *testing.T) {
 			ManagementState: operatorv1.Managed,
 		},
 		&operatorv1.OperatorStatus{},
+		&operatorv1.StaticPodOperatorSpec{
+			OperatorSpec: operatorv1.OperatorSpec{
+				ManagementState: operatorv1.Managed,
+			},
+		},
 		&operatorv1.StaticPodOperatorStatus{
 			LatestAvailableRevision: 1,
 			NodeStatuses: []operatorv1.NodeStatus{
@@ -411,6 +421,11 @@ func TestEnsureInstallerPod(t *testing.T) {
 					ManagementState: operatorv1.Managed,
 				},
 				&operatorv1.OperatorStatus{},
+				&operatorv1.StaticPodOperatorSpec{
+					OperatorSpec: operatorv1.OperatorSpec{
+						ManagementState: operatorv1.Managed,
+					},
+				},
 				&operatorv1.StaticPodOperatorStatus{
 					LatestAvailableRevision: 1,
 					NodeStatuses: []operatorv1.NodeStatus{
@@ -670,6 +685,11 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 					ManagementState: operatorv1.Managed,
 				},
 				&operatorv1.OperatorStatus{},
+				&operatorv1.StaticPodOperatorSpec{
+					OperatorSpec: operatorv1.OperatorSpec{
+						ManagementState: operatorv1.Managed,
+					},
+				},
 				&operatorv1.StaticPodOperatorStatus{
 					LatestAvailableRevision: test.latestAvailableRevision,
 					NodeStatuses:            test.nodeStatuses,
@@ -737,7 +757,7 @@ func TestInstallerController_manageInstallationPods(t *testing.T) {
 		installerPodImageFn  func() string
 	}
 	type args struct {
-		operatorSpec           *operatorv1.OperatorSpec
+		operatorSpec           *operatorv1.StaticPodOperatorSpec
 		originalOperatorStatus *operatorv1.StaticPodOperatorStatus
 		resourceVersion        string
 	}
@@ -948,29 +968,36 @@ func TestSetConditions(t *testing.T) {
 	type TestCase struct {
 		name                      string
 		latestAvailableRevision   int32
+		lastFailedRevision        int32
 		currentRevisions          []int32
 		expectedAvailableStatus   operatorv1.ConditionStatus
 		expectedProgressingStatus operatorv1.ConditionStatus
+		expectedFailingStatus     operatorv1.ConditionStatus
 	}
 
-	testCase := func(name string, available, progressing bool, latest int32, current ...int32) TestCase {
+	testCase := func(name string, available, progressing, failed bool, lastFailedRevision, latest int32, current ...int32) TestCase {
 		availableStatus := operatorv1.ConditionFalse
 		pendingStatus := operatorv1.ConditionFalse
+		expectedFailingStatus := operatorv1.ConditionFalse
 		if available {
 			availableStatus = operatorv1.ConditionTrue
 		}
 		if progressing {
 			pendingStatus = operatorv1.ConditionTrue
 		}
-		return TestCase{name, latest, current, availableStatus, pendingStatus}
+		if failed {
+			expectedFailingStatus = operatorv1.ConditionTrue
+		}
+		return TestCase{name, latest, lastFailedRevision, current, availableStatus, pendingStatus, expectedFailingStatus}
 	}
 
 	testCases := []TestCase{
-		testCase("AvailableProgressing", true, true, 2, 2, 1, 2, 1),
-		testCase("AvailableNotProgressing", true, false, 2, 2, 2, 2),
-		testCase("NotAvailableProgressing", false, true, 2, 0, 0),
-		testCase("NotAvailableAtOldLevelProgressing", true, true, 2, 1, 1),
-		testCase("NotAvailableNotProgressing", false, false, 2),
+		testCase("AvailableProgressingFailing", true, true, true, 1, 2, 2, 1, 2, 1),
+		testCase("AvailableProgressing", true, true, false, 0, 2, 2, 1, 2, 1),
+		testCase("AvailableNotProgressing", true, false, false, 0, 2, 2, 2, 2),
+		testCase("NotAvailableProgressing", false, true, false, 0, 2, 0, 0),
+		testCase("NotAvailableAtOldLevelProgressing", true, true, false, 0, 2, 1, 1),
+		testCase("NotAvailableNotProgressing", false, false, false, 0, 2),
 	}
 
 	for _, tc := range testCases {
@@ -979,20 +1006,29 @@ func TestSetConditions(t *testing.T) {
 				LatestAvailableRevision: tc.latestAvailableRevision,
 			}
 			for _, current := range tc.currentRevisions {
-				status.NodeStatuses = append(status.NodeStatuses, operatorv1.NodeStatus{CurrentRevision: current})
+				status.NodeStatuses = append(status.NodeStatuses, operatorv1.NodeStatus{CurrentRevision: current, LastFailedRevision: tc.lastFailedRevision})
 			}
-			setAvailableProgressingConditions(status)
+			setAvailableProgressingNodeInstallerFailingConditions(status)
+
 			availableCondition := v1helpers.FindOperatorCondition(status.Conditions, operatorv1.OperatorStatusTypeAvailable)
 			if availableCondition == nil {
 				t.Error("Available condition: not found")
 			} else if availableCondition.Status != tc.expectedAvailableStatus {
 				t.Errorf("Available condition: expected status %v, actual status %v", tc.expectedAvailableStatus, availableCondition.Status)
 			}
+
 			pendingCondition := v1helpers.FindOperatorCondition(status.Conditions, operatorv1.OperatorStatusTypeProgressing)
 			if pendingCondition == nil {
 				t.Error("Progressing condition: not found")
 			} else if pendingCondition.Status != tc.expectedProgressingStatus {
 				t.Errorf("Progressing condition: expected status %v, actual status %v", tc.expectedProgressingStatus, pendingCondition.Status)
+			}
+
+			failingCondition := v1helpers.FindOperatorCondition(status.Conditions, nodeInstallerFailing)
+			if failingCondition == nil {
+				t.Error("Failing condition: not found")
+			} else if failingCondition.Status != tc.expectedFailingStatus {
+				t.Errorf("Failing condition: expected status %v, actual status %v", tc.expectedFailingStatus, failingCondition.Status)
 			}
 		})
 	}

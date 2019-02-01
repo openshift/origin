@@ -36,7 +36,7 @@ const (
 // (templated with the config) if they differ.
 type BackingResourceController struct {
 	targetNamespace      string
-	operatorConfigClient v1helpers.StaticPodOperatorClient
+	operatorConfigClient v1helpers.OperatorClient
 
 	saListerSynced cache.InformerSynced
 	saLister       corelisterv1.ServiceAccountLister
@@ -54,7 +54,7 @@ type BackingResourceController struct {
 // NewBackingResourceController creates a new backing resource controller.
 func NewBackingResourceController(
 	targetNamespace string,
-	operatorConfigClient v1helpers.StaticPodOperatorClient,
+	operatorConfigClient v1helpers.OperatorClient,
 	kubeInformersForTargetNamespace informers.SharedInformerFactory,
 	kubeClient kubernetes.Interface,
 	eventRecorder events.Recorder,
@@ -92,7 +92,7 @@ func (c BackingResourceController) mustTemplateAsset(name string) ([]byte, error
 }
 
 func (c BackingResourceController) sync() error {
-	operatorSpec, _, _, err := c.operatorConfigClient.GetStaticPodOperatorState()
+	operatorSpec, _, _, err := c.operatorConfigClient.GetOperatorState()
 	if err != nil {
 		return err
 	}
@@ -128,7 +128,7 @@ func (c BackingResourceController) sync() error {
 		cond.Reason = "Error"
 		cond.Message = err.Error()
 	}
-	if _, _, updateError := v1helpers.UpdateStaticPodStatus(c.operatorConfigClient, v1helpers.UpdateStaticPodConditionFn(cond)); updateError != nil {
+	if _, _, updateError := v1helpers.UpdateStatus(c.operatorConfigClient, v1helpers.UpdateConditionFn(cond)); updateError != nil {
 		if err == nil {
 			return updateError
 		}

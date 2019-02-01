@@ -14,6 +14,6 @@ type OperatorClient interface {
 
 type StaticPodOperatorClient interface {
 	OperatorClient
-	GetStaticPodOperatorState() (*operatorv1.OperatorSpec, *operatorv1.StaticPodOperatorStatus, string, error)
+	GetStaticPodOperatorState() (*operatorv1.StaticPodOperatorSpec, *operatorv1.StaticPodOperatorStatus, string, error)
 	UpdateStaticPodOperatorStatus(string, *operatorv1.StaticPodOperatorStatus) (*operatorv1.StaticPodOperatorStatus, error)
 }

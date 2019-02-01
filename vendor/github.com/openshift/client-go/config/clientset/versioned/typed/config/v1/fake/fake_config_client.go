@@ -12,6 +12,10 @@ type FakeConfigV1 struct {
 	*testing.Fake
 }
 
+func (c *FakeConfigV1) APIServers() v1.APIServerInterface {
+	return &FakeAPIServers{c}
+}
+
 func (c *FakeConfigV1) Authentications() v1.AuthenticationInterface {
 	return &FakeAuthentications{c}
 }

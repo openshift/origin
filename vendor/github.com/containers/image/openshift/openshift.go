@@ -136,7 +136,7 @@ func (c *openshiftClient) doRequest(ctx context.Context, method, path string, re
 // getImage loads the specified image object.
 func (c *openshiftClient) getImage(ctx context.Context, imageStreamImageName string) (*image, error) {
 	// FIXME: validate components per validation.IsValidPathSegmentName?
-	path := fmt.Sprintf("/oapi/v1/namespaces/%s/imagestreamimages/%s@%s", c.ref.namespace, c.ref.stream, imageStreamImageName)
+	path := fmt.Sprintf("/apis/image.openshift.io/v1/namespaces/%s/imagestreamimages/%s@%s", c.ref.namespace, c.ref.stream, imageStreamImageName)
 	body, err := c.doRequest(ctx, "GET", path, nil)
 	if err != nil {
 		return nil, err
@@ -253,7 +253,7 @@ func (s *openshiftImageSource) ensureImageIsResolved(ctx context.Context) error 
 	}
 
 	// FIXME: validate components per validation.IsValidPathSegmentName?
-	path := fmt.Sprintf("/oapi/v1/namespaces/%s/imagestreams/%s", s.client.ref.namespace, s.client.ref.stream)
+	path := fmt.Sprintf("/apis/image.openshift.io/v1/namespaces/%s/imagestreams/%s", s.client.ref.namespace, s.client.ref.stream)
 	body, err := s.client.doRequest(ctx, "GET", path, nil)
 	if err != nil {
 		return err
@@ -453,7 +453,7 @@ sigExists:
 			Content:    newSig,
 		}
 		body, err := json.Marshal(sig)
-		_, err = d.client.doRequest(context.TODO(), "POST", "/oapi/v1/imagesignatures", body)
+		_, err = d.client.doRequest(context.TODO(), "POST", "/apis/image.openshift.io/v1/imagesignatures", body)
 		if err != nil {
 			return err
 		}

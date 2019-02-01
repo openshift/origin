@@ -2,6 +2,10 @@
 
 package v1
 
+// APIServerListerExpansion allows custom methods to be added to
+// APIServerLister.
+type APIServerListerExpansion interface{}
+
 // AuthenticationListerExpansion allows custom methods to be added to
 // AuthenticationLister.
 type AuthenticationListerExpansion interface{}

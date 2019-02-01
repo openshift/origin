@@ -1,5 +1,5 @@
-hash: 4706437668176d9e0adaaa2493e2642bf662086605f8cb4d1284810cbef429d3
-updated: 2019-01-22T09:54:06.750107296+01:00
+hash: c8161b3b35173fc68d50dcacf28ff2a5696159b2882ab6e47cbf28a65eaa214c
+updated: 2019-01-28T11:14:07.854686283-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -196,7 +196,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/openshift/api
-  version: b4c87b238bcc4a218221986b8d6231b3ed9cdaa7
+  version: 130a85ac529b6626098a97be326c244a6bf380b5
   subpackages:
   - apps
   - apps/v1
@@ -242,7 +242,7 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 8fb54357b899c50a2c5b96408cb909818c3e25c8
+  version: 1540772775fa910515f0ff094d83ef41735d470b
   subpackages:
   - config/clientset/versioned
   - config/clientset/versioned/fake
@@ -416,7 +416,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 853f76028711219c2fc251fd5184f23fd44a7aa0
+  version: a384d17938fe55d54a52d5668bf0ff40044daef0
   subpackages:
   - pkg/apis/apiextensions
   - pkg/apis/apiextensions/v1beta1
@@ -475,7 +475,7 @@ imports:
   - third_party/forked/golang/json
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 9601a7bf41efece7e12a8f9f74d2c3b10cdd998e
+  version: a748535592ba957da14f6279ebd43cfb2fe44463
   subpackages:
   - pkg/admission
   - pkg/admission/configuration
@@ -571,7 +571,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/client-go
-  version: 5e6a3d4e34f694e895b13ae728111e726a5b69df
+  version: 701b913670036511e3d752318272c97f1a2a2edd
   subpackages:
   - discovery
   - discovery/fake
@@ -743,7 +743,7 @@ imports:
   - util/retry
   - util/workqueue
 - name: k8s.io/kube-aggregator
-  version: e95ebe3de8a24c3da1ad7606ca5a2444a64f4c82
+  version: 4764f3a1991175f477682bbba516e97fab77b19f
   subpackages:
   - pkg/apis/apiregistration
   - pkg/apis/apiregistration/v1

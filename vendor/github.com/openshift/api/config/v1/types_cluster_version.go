@@ -88,11 +88,10 @@ type ClusterVersionStatus struct {
 	// is preserved.
 	History []UpdateHistory `json:"history"`
 
-	// generation reports which version of the spec is being processed.
-	// If this value is not equal to metadata.generation, then the
-	// current and conditions fields have not yet been updated to reflect
-	// the latest request.
-	Generation int64 `json:"generation"`
+	// observedGeneration reports which version of the spec is being synced.
+	// If this value is not equal to metadata.generation, then the desired
+	// and conditions fields may represent from a previous version.
+	ObservedGeneration int64 `json:"observedGeneration"`
 
 	// versionHash is a fingerprint of the content that the cluster will be
 	// updated with. It is used by the operator to avoid unnecessary work

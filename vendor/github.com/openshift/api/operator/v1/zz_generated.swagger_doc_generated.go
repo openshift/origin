@@ -199,4 +199,22 @@ func (OpenShiftAPIServerList) SwaggerDoc() map[string]string {
 	return map_OpenShiftAPIServerList
 }
 
+var map_OpenShiftControllerManager = map[string]string{
+	"": "OpenShiftControllerManager provides information to configure an operator to manage openshift-controller-manager.",
+}
+
+func (OpenShiftControllerManager) SwaggerDoc() map[string]string {
+	return map_OpenShiftControllerManager
+}
+
+var map_OpenShiftControllerManagerList = map[string]string{
+	"":         "OpenShiftControllerManagerList is a collection of items",
+	"metadata": "Standard object's metadata.",
+	"items":    "Items contains the items",
+}
+
+func (OpenShiftControllerManagerList) SwaggerDoc() map[string]string {
+	return map_OpenShiftControllerManagerList
+}
+
 // AUTO-GENERATED FUNCTIONS END HERE

@@ -69,6 +69,9 @@ spec:
     - mountPath: /etc/kubernetes/
       name: kubelet-dir
   restartPolicy: Never
+  priorityClassName: system-node-critical
+  tolerations:
+  - operator: "Exists"
   securityContext:
     runAsUser: 0
   volumes:

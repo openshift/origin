@@ -6,7 +6,7 @@ build:
 .PHONY: build
 
 test:
-	go test github.com/openshift/api/pkg/testing/...
+	go test github.com/openshift/api/...
 .PHONY: test
 
 verify:

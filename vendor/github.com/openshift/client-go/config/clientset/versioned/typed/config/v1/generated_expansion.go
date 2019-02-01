@@ -2,6 +2,8 @@
 
 package v1
 
+type APIServerExpansion interface{}
+
 type AuthenticationExpansion interface{}
 
 type BuildExpansion interface{}

@@ -7,3 +7,5 @@ type KubeAPIServerExpansion interface{}
 type KubeControllerManagerExpansion interface{}
 
 type OpenShiftAPIServerExpansion interface{}
+
+type OpenShiftControllerManagerExpansion interface{}

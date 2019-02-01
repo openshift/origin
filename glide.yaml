@@ -131,6 +131,12 @@ import:
 # pinned to a level that includes two fixes we need to avoid crashes
 - package: github.com/evanphx/json-patch
   version: 36442dbdb585210f8d5a1b45e67aa323c197d5c4
+# pinned to a level that kubernetes 1.12 use
+- package: github.com/gorilla/mux
+  version: 08e7f807d38d6a870193019bb439056118661505
+# pinned to a level that kubernetes 1.12 use
+- package: github.com/ghodss/yaml
+  version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
 
 # mine: specific to openshift
 # networking
