@@ -16,9 +16,6 @@ import (
 	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus"
 )
 
-// default this to true so that the integration tests don't instantly break
-var featureKeepRemovedNetworkingAPI = true
-
 func RunOpenShiftAPIServer(serverConfig *openshiftcontrolplanev1.OpenShiftAPIServerConfig, stopCh <-chan struct{}) error {
 	util.InitLogrus()
 	// Allow privileged containers
@@ -35,7 +32,7 @@ func RunOpenShiftAPIServer(serverConfig *openshiftcontrolplanev1.OpenShiftAPISer
 	if err != nil {
 		return err
 	}
-	openshiftAPIServer, err := openshiftAPIServerRuntimeConfig.Complete().New(genericapiserver.NewEmptyDelegate(), featureKeepRemovedNetworkingAPI)
+	openshiftAPIServer, err := openshiftAPIServerRuntimeConfig.Complete().New(genericapiserver.NewEmptyDelegate())
 	if err != nil {
 		return err
 	}

@@ -38,7 +38,6 @@ import (
 	imageapiserver "github.com/openshift/origin/pkg/image/apiserver"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
-	networkapiserver "github.com/openshift/origin/pkg/network/apiserver"
 	oauthapiserver "github.com/openshift/origin/pkg/oauth/apiserver"
 	projectapiserver "github.com/openshift/origin/pkg/project/apiserver"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
@@ -260,24 +259,6 @@ func (c *completedConfig) withImageAPIServer(delegateAPIServer genericapiserver.
 	return server.GenericAPIServer, nil
 }
 
-func (c *completedConfig) withNetworkAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, error) {
-	cfg := &networkapiserver.NetworkAPIServerConfig{
-		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
-		ExtraConfig: networkapiserver.ExtraConfig{
-			Codecs: legacyscheme.Codecs,
-			Scheme: legacyscheme.Scheme,
-		},
-	}
-	config := cfg.Complete()
-	server, err := config.New(delegateAPIServer)
-	if err != nil {
-		return nil, err
-	}
-	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
-
-	return server.GenericAPIServer, nil
-}
-
 func (c *completedConfig) withOAuthAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, error) {
 	cfg := &oauthapiserver.OAuthAPIServerConfig{
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config},
@@ -461,16 +442,13 @@ func addAPIServerOrDie(delegateAPIServer genericapiserver.DelegationTarget, apiS
 	return delegateAPIServer
 }
 
-func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget, keepRemovedNetworkingAPIs bool) (*OpenshiftAPIServer, error) {
+func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget) (*OpenshiftAPIServer, error) {
 	delegateAPIServer := delegationTarget
 
 	delegateAPIServer = addAPIServerOrDie(delegateAPIServer, c.withAppsAPIServer)
 	delegateAPIServer = addAPIServerOrDie(delegateAPIServer, c.withAuthorizationAPIServer)
 	delegateAPIServer = addAPIServerOrDie(delegateAPIServer, c.withBuildAPIServer)
 	delegateAPIServer = addAPIServerOrDie(delegateAPIServer, c.withImageAPIServer)
-	if keepRemovedNetworkingAPIs {
-		delegateAPIServer = addAPIServerOrDie(delegateAPIServer, c.withNetworkAPIServer)
-	}
 	delegateAPIServer = addAPIServerOrDie(delegateAPIServer, c.withOAuthAPIServer)
 	delegateAPIServer = addAPIServerOrDie(delegateAPIServer, c.withProjectAPIServer)
 	delegateAPIServer = addAPIServerOrDie(delegateAPIServer, c.withQuotaAPIServer)
