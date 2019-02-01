@@ -20,8 +20,8 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	internalimagereferencemutators "github.com/openshift/origin/pkg/api/imagereferencemutators/internalversion"
 	oadmission "github.com/openshift/origin/pkg/admission/admissioninitializers"
+	internalimagereferencemutators "github.com/openshift/origin/pkg/api/imagereferencemutators/internalversion"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy"

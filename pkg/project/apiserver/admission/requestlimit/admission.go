@@ -16,8 +16,8 @@ import (
 
 	"github.com/openshift/api/project"
 	usertypedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	"github.com/openshift/origin/pkg/api/legacy"
 	oadmission "github.com/openshift/origin/pkg/admission/admissioninitializers"
+	"github.com/openshift/origin/pkg/api/legacy"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	requestlimitapi "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit"
