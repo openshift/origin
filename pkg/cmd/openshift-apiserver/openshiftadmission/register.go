@@ -52,35 +52,35 @@ var (
 	OpenShiftAdmissionPlugins = []string{
 		lifecycle.PluginName,
 		"OwnerReferencesPermissionEnforcement",
-		"ProjectRequestLimit",
-		"openshift.io/BuildConfigSecretInjector",
-		"BuildByStrategy",
+		"project.openshift.io/ProjectRequestLimit",
+		"build.openshift.io/BuildConfigSecretInjector",
+		"build.openshift.io/BuildByStrategy",
 		imageadmission.PluginName,
-		"PodNodeConstraints",
+		"scheduling.openshift.io/PodNodeConstraints",
 		imagepolicyapi.PluginName,
+		"quota.openshift.io/ClusterResourceQuota",
 		mutatingwebhook.PluginName,
 		validatingwebhook.PluginName,
 		"ResourceQuota",
-		"openshift.io/ClusterResourceQuota",
 	}
 
 	DefaultOnPlugins = sets.NewString(
 		lifecycle.PluginName,
-		"openshift.io/BuildConfigSecretInjector",
-		"BuildByStrategy",
+		"build.openshift.io/BuildConfigSecretInjector",
+		"build.openshift.io/BuildByStrategy",
 		imageadmission.PluginName,
 		"OwnerReferencesPermissionEnforcement",
 		imagepolicyapi.PluginName,
 		mutatingwebhook.PluginName,
 		validatingwebhook.PluginName,
 		"ResourceQuota",
-		"openshift.io/ClusterResourceQuota",
+		"quota.openshift.io/ClusterResourceQuota",
 	)
 
 	// DefaultOffPlugins includes plugins which require explicit configuration to run
 	// if you wire them incorrectly, they may prevent the server from starting
 	DefaultOffPlugins = sets.NewString(
-		"ProjectRequestLimit",
+		"project.openshift.io/ProjectRequestLimit",
 		"PodNodeConstraints",
 	)
 )

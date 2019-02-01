@@ -20,14 +20,14 @@ import (
 )
 
 func Register(plugins *admission.Plugins) {
-	plugins.Register("RunOnceDuration",
+	plugins.Register("autoscaling.openshift.io/RunOnceDuration",
 		func(config io.Reader) (admission.Interface, error) {
 			pluginConfig, err := readConfig(config)
 			if err != nil {
 				return nil, err
 			}
 			if pluginConfig == nil {
-				glog.Infof("Admission plugin %q is not configured so it will be disabled.", "RunOnceDuration")
+				glog.Infof("Admission plugin %q is not configured so it will be disabled.", "autoscaling.openshift.io/RunOnceDuration")
 				return nil, nil
 			}
 			return NewRunOnceDuration(pluginConfig), nil
@@ -107,7 +107,7 @@ func (a *runOnceDuration) SetProjectCache(cache *projectcache.ProjectCache) {
 
 func (a *runOnceDuration) ValidateInitialization() error {
 	if a.cache == nil {
-		return errors.New("RunOnceDuration plugin requires a project cache")
+		return errors.New("autoscaling.openshift.io/RunOnceDuration plugin requires a project cache")
 	}
 	return nil
 }

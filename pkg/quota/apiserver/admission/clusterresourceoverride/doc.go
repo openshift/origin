@@ -4,5 +4,5 @@ package clusterresourceoverride
 // The plugin allows administrators to override user-provided container request/limit values
 // in order to control overcommit and optionally pin CPU to memory.
 // The plugin's actions can be disabled per-project with the project annotation
-// quota.openshift.io/cluster-resource-override-enabled="false", so cluster admins
+// autoscaling.openshift.io/cluster-resource-override-enabled="false", so cluster admins
 // can exempt infrastructure projects and such from the overrides.

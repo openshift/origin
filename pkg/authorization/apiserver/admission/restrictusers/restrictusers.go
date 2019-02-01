@@ -25,7 +25,7 @@ import (
 )
 
 func Register(plugins *admission.Plugins) {
-	plugins.Register("openshift.io/RestrictSubjectBindings",
+	plugins.Register("authorization.openshift.io/RestrictSubjectBindings",
 		func(config io.Reader) (admission.Interface, error) {
 			return NewRestrictUsersAdmission()
 		})

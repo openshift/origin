@@ -20,7 +20,7 @@ import (
 )
 
 func Register(plugins *admission.Plugins) {
-	plugins.Register("openshift.io/BuildConfigSecretInjector",
+	plugins.Register("build.openshift.io/BuildConfigSecretInjector",
 		func(config io.Reader) (admission.Interface, error) {
 			return &secretInjector{
 				Handler: admission.NewHandler(admission.Create),

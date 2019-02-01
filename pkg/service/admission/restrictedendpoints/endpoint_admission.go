@@ -17,7 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/service/admission/apis/restrictedendpoints"
 )
 
-const RestrictedEndpointsPluginName = "openshift.io/RestrictedEndpointsAdmission"
+const RestrictedEndpointsPluginName = "network.openshift.io/RestrictedEndpointsAdmission"
 
 func RegisterRestrictedEndpoints(plugins *admission.Plugins) {
 	plugins.Register(RestrictedEndpointsPluginName,

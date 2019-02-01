@@ -61,7 +61,7 @@ func setupClusterAdminPodNodeConstraintsTest(t *testing.T, pluginConfig *plugina
 		t.Fatalf("error creating config: %v", err)
 	}
 	cfg := map[string]*configapi.AdmissionPluginConfig{
-		"PodNodeConstraints": {
+		"scheduling.openshift.io/PodNodeConstraints": {
 			Configuration: pluginConfig,
 		},
 	}
@@ -99,7 +99,7 @@ func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNo
 		t.Fatalf("error creating config: %v", err)
 	}
 	cfg := map[string]*configapi.AdmissionPluginConfig{
-		"PodNodeConstraints": {
+		"scheduling.openshift.io/PodNodeConstraints": {
 			Configuration: pluginConfig,
 		},
 	}

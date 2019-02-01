@@ -18,10 +18,10 @@ import (
 	"github.com/openshift/origin/pkg/service/admission/apis/externalipranger"
 )
 
-const ExternalIPPluginName = "ExternalIPRanger"
+const ExternalIPPluginName = "network.openshift.io/ExternalIPRanger"
 
 func RegisterExternalIP(plugins *admission.Plugins) {
-	plugins.Register("ExternalIPRanger",
+	plugins.Register("network.openshift.io/ExternalIPRanger",
 		func(config io.Reader) (admission.Interface, error) {
 			pluginConfig, err := readConfig(config)
 			if err != nil {

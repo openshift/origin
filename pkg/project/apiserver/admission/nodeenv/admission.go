@@ -16,7 +16,7 @@ import (
 )
 
 func Register(plugins *admission.Plugins) {
-	plugins.Register("OriginPodNodeEnvironment",
+	plugins.Register("scheduling.openshift.io/OriginPodNodeEnvironment",
 		func(config io.Reader) (admission.Interface, error) {
 			return NewPodNodeEnvironment()
 		})

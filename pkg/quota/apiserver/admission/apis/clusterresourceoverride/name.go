@@ -1,4 +1,4 @@
 package clusterresourceoverride
 
-const PluginName = "ClusterResourceOverride"
+const PluginName = "autoscaling.openshift.io/ClusterResourceOverride"
 const ConfigKind = "ClusterResourceOverrideConfig"
