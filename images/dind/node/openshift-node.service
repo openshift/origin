@@ -1,6 +1,6 @@
 [Unit]
 Description=OpenShift Node
-Requires=network.target
+Requires=network.target crio.service
 After=docker.target network.target
 
 [Service]

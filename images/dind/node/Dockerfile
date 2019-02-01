@@ -18,18 +18,16 @@ RUN dnf -y update && dnf -y install\
  tar\
  which\
  # Node-specific packages
- bridge-utils\
  ethtool\
  iptables-services\
  conntrack-tools\
- openvswitch\
- openvswitch-ovn-*\
  python-netaddr\
  python2-pyroute2\
  python2-requests\
  PyYAML\
  cri-o\
- cri-tools
+ cri-tools\
+ openssl
 
 # Remove the CRI-O CNI network configs so openshift-sdn's will be used instead
 RUN rm -f /etc/cni/net.d/*
@@ -47,8 +45,6 @@ COPY iptables /etc/sysconfig/
 
 COPY openshift-node.sh /usr/local/bin/
 COPY openshift-dind-lib.sh /usr/local/bin/
-
-RUN systemctl enable openvswitch
 
 COPY openshift-node.service /etc/systemd/system/
 RUN systemctl enable openshift-node.service
@@ -69,37 +65,20 @@ RUN mkdir -p /opt/cni/bin
 RUN ln -sf /data/oc        /usr/local/bin/ && \
     ln -sf /data/hyperkube /usr/local/bin/ && \
     ln -sf /data/openshift-node-config /usr/local/bin/ && \
-    ln -sf /data/openshift-sdn-node /usr/local/bin/openshift-sdn-node && \
     ln -sf /data/openshift /usr/local/bin/openshift-deploy && \
     ln -sf /data/openshift /usr/local/bin/openshift-docker-build && \
     ln -sf /data/openshift /usr/local/bin/openshift-sti-build && \
     ln -sf /data/openshift /usr/local/bin/openshift-git-clone && \
     ln -sf /data/openshift /usr/local/bin/openshift-manage-dockerfile && \
     ln -sf /data/openshift /usr/local/bin/openshift-extract-image-content && \
-    ln -sf /data/openshift /usr/local/bin/openshift-f5-router && \
-    ln -sf /data/openshift-sdn /opt/cni/bin/ && \
-    ln -sf /data/host-local    /opt/cni/bin/ && \
-    ln -sf /data/loopback      /opt/cni/bin/
+    ln -sf /data/openshift /usr/local/bin/openshift-f5-router
 
 ENV KUBECONFIG /data/openshift.local.config/master/admin.kubeconfig
 
-COPY openshift-sdn-node.service /etc/systemd/system/
-COPY openshift-sdn-node.sh /usr/local/bin/
-RUN systemctl enable openshift-sdn-node.service
-
-COPY ovn-kubernetes-node-setup.service /etc/systemd/system/
-COPY ovn-kubernetes-node-setup.sh /usr/local/bin/
-RUN systemctl enable ovn-kubernetes-node-setup.service
-
-COPY ovn-kubernetes-node.service /etc/systemd/system/
-COPY ovn-kubernetes-node.sh /usr/local/bin/
-RUN systemctl enable ovn-kubernetes-node.service
-
-COPY crio-node.sh /usr/local/bin/
-COPY crio-node.service /etc/systemd/system/
-RUN systemctl enable crio-node.service
+RUN systemctl enable crio.service
 
 # Default crio storage to vfs. overlay on overlayfs is not supported in crio.
 RUN echo "CRIO_STORAGE_OPTIONS=--storage-driver vfs" > /etc/sysconfig/crio-storage
 RUN sed -i 's/^plugin_dir .*/plugin_dir = "\/opt\/cni\/bin\/"/g' /etc/crio/crio.conf
-RUN sed -i 's/^registries .*/registries = [\n\t"docker.io",\n\t"registry.fedoraproject.org",\n\t"registry.access.redhat.com",/g' /etc/crio/crio.conf
+RUN sed -i 's/^network_dir .*/network_dir = "\/etc\/kubernetes\/cni\/net.d\/"/g' /etc/crio/crio.conf
+RUN sed -i 's/^registries .*/registries = [\n\t"docker.io",\n\t"registry.fedoraproject.org",\n\t"registry.access.redhat.com",\n\t"quay.io",/g' /etc/crio/crio.conf

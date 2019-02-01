@@ -6,14 +6,18 @@
 
 FROM openshift/dind-node
 
+RUN dnf -y install\
+ psmisc\
+ net-tools\
+ etcd
+RUN systemctl disable etcd.service
+
 RUN ln -sf /data/openshift /usr/local/bin/ && \
     ln -sf /data/hypershift /usr/local/bin/
 
 # Disable iptables on the master since it will prevent access to the
 # openshift api from outside the master.
 RUN systemctl disable iptables.service
-
-COPY openshift-generate-master-config.sh /usr/local/bin/
 
 COPY openshift-disable-master-node.sh /usr/local/bin/
 COPY openshift-disable-master-node.service /etc/systemd/system/
@@ -25,24 +29,15 @@ COPY openshift-remove-from-hosts.sh /usr/local/bin/
 COPY openshift-sync-etc-hosts.service /etc/systemd/system/
 RUN systemctl enable openshift-sync-etc-hosts.service
 
+COPY openshift-start-master.sh /usr/local/bin/
 COPY openshift-master.service /etc/systemd/system/
 RUN systemctl enable openshift-master.service
 
 RUN mkdir -p /etc/systemd/system/openshift-node.service.d
 COPY master-node.conf /etc/systemd/system/openshift-node.service.d/
 
-COPY openshift-sdn-master-setup.service /etc/systemd/system/
-COPY openshift-sdn-master-setup.sh /usr/local/bin/
-RUN systemctl enable openshift-sdn-master-setup.service
+COPY cluster-network-operator.sh /usr/local/bin/
+COPY cluster-network-operator.service /etc/systemd/system/
+RUN systemctl enable cluster-network-operator.service
 
-COPY openshift-sdn-master.service /etc/systemd/system/
-RUN systemctl enable openshift-sdn-master.service
-
-COPY ovn-kubernetes-master-setup.service /etc/systemd/system/
-COPY ovn-kubernetes-master-setup.sh /usr/local/bin/
-RUN systemctl enable ovn-kubernetes-master-setup.service
-
-COPY ovn-kubernetes-master.service /etc/systemd/system/
-COPY ovn-kubernetes-master.sh /usr/local/bin/
-RUN systemctl enable ovn-kubernetes-master.service
-
+COPY networks.config.openshift.io-crd.yaml /var/lib/

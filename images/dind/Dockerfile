@@ -18,7 +18,7 @@
 #      $ docker run -d --privileged openshift/dind
 #
 
-FROM fedora:27
+FROM fedora:29
 
 # Fix 'WARNING: terminal is not fully functional' when TERM=dumb
 ENV TERM=xterm
@@ -54,6 +54,9 @@ RUN cp /usr/lib/systemd/system/dbus.service /etc/systemd/system/;\
 # utils for network debugging.
 RUN dnf -y update && dnf -y install\
  docker\
+ containers-common\
+ podman\
+ cri-o\
  glibc-langpack-en\
  iptables\
  openssh-clients\
@@ -67,6 +70,9 @@ RUN systemctl enable docker.service
 # Default storage to vfs.  overlay will be enabled at runtime if available.
 RUN echo "DOCKER_STORAGE_OPTIONS=--storage-driver vfs" >\
  /etc/sysconfig/docker-storage
+
+# Cannot use overlay with podman/CRIO inside a docker container
+RUN sed -i 's/driver = "overlay"/driver = "vfs"/g' /etc/containers/storage.conf
 
 RUN mkdir -p /usr/local/bin
 COPY dind-setup.sh /usr/local/bin/

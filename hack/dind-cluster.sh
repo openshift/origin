@@ -62,33 +62,21 @@ source "${OS_ROOT}/images/dind/node/openshift-dind-lib.sh"
 
 function start() {
   local origin_root=$1
-  local ovn_root=$2
+  local cno_root=$2
   local config_root=$3
   local deployed_config_root=$4
   local cluster_id=$5
   local network_plugin=$6
-  local container_runtime=$7
-  local wait_for_cluster=$8
-  local node_count=$9
-  local local_registry=${10}
-  local local_registry_images=${11}
-  local additional_args=${12}
+  local wait_for_cluster=$7
+  local node_count=$8
+  local local_registry=$9
+  local local_registry_images=${10}
+  local additional_args=${11}
 
   # docker-in-docker's use of volumes is not compatible with SELinux
   check-selinux
 
-  runtime_endpoint=
-  if [[ "${container_runtime}" = "dockershim" ]]; then
-    # dockershim is default and doesn't need an endpoint path
-    runtime_endpoint=
-  elif [[ "${container_runtime}" = "crio" ]]; then
-    runtime_endpoint="unix:///var/run/crio/crio.sock"
-  else
-    >&2 echo "Invalid container runtime: ${container_runtime}"
-    exit 1
-  fi
-
-  echo "Starting dind cluster '${cluster_id}' with plugin '${network_plugin}' and runtime '${container_runtime}'"
+  echo "Starting dind cluster '${cluster_id}' with plugin '${network_plugin}'"
 
   # Error if a cluster is already configured
   check-no-containers "start"
@@ -109,15 +97,12 @@ function start() {
   echo "OPENSHIFT_ADDITIONAL_ARGS='${additional_args}'" >> "${config_root}/dind-env"
   copy-runtime "${origin_root}" "${config_root}/"
 
-  echo "OPENSHIFT_CONTAINER_RUNTIME=${container_runtime}" >> "${config_root}/dind-env"
-  echo "OPENSHIFT_REMOTE_RUNTIME_ENDPOINT=${runtime_endpoint}" >> "${config_root}/dind-env"
+  imagever=$(git describe  | cut -d'-' -f1)
+  echo "OPENSHIFT_IMAGE_VERSION=${imagever}" >> "${config_root}/dind-env"
 
-  ovn_kubernetes=
-  if [[ -d "${ovn_root}" ]]; then
-    copy-ovn-runtime "${ovn_root}" "${config_root}/"
-    ovn_kubernetes=1
-  fi
-  echo "OPENSHIFT_OVN_KUBERNETES=${ovn_kubernetes}" >> "${config_root}/dind-env"
+  cno_dir="${config_root}/openshift.local.config/cluster-network-operator"
+  mkdir -p "${cno_dir}"
+  copy-cno-runtime "${cno_root}" "${cno_dir}/" "${network_plugin}"
 
   local registry_ip=
   if [[ -n "${local_registry}" ]]; then
@@ -670,24 +655,14 @@ function check-selinux() {
 function get-network-plugin() {
   local plugin=$1
 
-  local subnet_plugin="redhat/openshift-ovs-subnet"
-  local multitenant_plugin="redhat/openshift-ovs-multitenant"
-  local networkpolicy_plugin="redhat/openshift-ovs-networkpolicy"
-  local ovn_plugin="ovn"
-  local default_plugin="${multitenant_plugin}"
+  local sdn_plugin="OpenShiftSDN"
+  local ovn_plugin="OVNKubernetes"
+  local default_plugin="${sdn_plugin}"
 
-  if [[ "${plugin}" = "subnet" || "${plugin}" = "${subnet_plugin}" ]]; then
-    echo "${subnet_plugin}"
-  elif [[ "${plugin}" = "multitenant" || "${plugin}" = "${multitenant_plugin}" ]]; then
-    echo "${multitenant_plugin}"
-  elif [[ "${plugin}" = "networkpolicy" || "${plugin}" = "${networkpolicy_plugin}" ]]; then
-    echo "${networkpolicy_plugin}"
-  elif [[ "${plugin}" = "ovn" ]]; then
+  if [[ "${plugin}" = "sdn" || "${plugin}" = "${sdn_plugin}" ]]; then
+    echo "${sdn_plugin}"
+  elif [[ "${plugin}" = "ovn" || "${plugin}" = "${ovn_plugin}" ]]; then
     echo "${ovn_plugin}"
-  elif [[ "${plugin}" = "cni" ]]; then
-    echo "cni"
-  elif [[ "${plugin}" = "none" ]]; then
-    echo ""
   elif [[ -n "${plugin}" ]]; then
     >&2 echo "Invalid network plugin: ${plugin}"
     exit 1
@@ -721,16 +696,35 @@ function copy-runtime() {
   cp "$(os::util::find::built_binary host-local)" "${target}"
   cp "$(os::util::find::built_binary loopback)" "${target}"
   cp "$(os::util::find::built_binary sdn-cni-plugin)" "${target}/openshift-sdn"
+
+  # Copy scripts
+  mkdir -p "${target}/hack"
+  cp -R "$(dirname "${BASH_SOURCE}")/"* "${target}/hack/"
 }
 
-function copy-ovn-runtime() {
-  local ovn_root=$1
+function copy-cno-runtime() {
+  local cno_root=$1
   local target=$2
+  local plugin=$3
 
-  local ovn_go_controller_built_binaries_path="${ovn_root}/go-controller/_output/go/bin"
-  cp "${ovn_go_controller_built_binaries_path}/ovnkube" "${target}"
-  cp "${ovn_go_controller_built_binaries_path}/ovn-kube-util" "${target}"
-  cp "${ovn_go_controller_built_binaries_path}/ovn-k8s-cni-overlay" "${target}"
+  mkdir -p "${target}/bin"
+  cp "${cno_root}/_output/linux/amd64/cluster-network-operator" "${target}/bin"
+  cp -R "${cno_root}/bindata" "${target}"
+  cp -R "${cno_root}/manifests" "${target}"
+
+  cat >"${target}/cluster-network-config.yaml" <<EOF
+apiVersion: config.openshift.io/v1
+kind: Network
+metadata:
+  name: cluster
+spec:
+  serviceNetwork:
+    - "172.30.0.0/16"
+  clusterNetwork: 
+    - cidr: "10.128.0.0/14"
+      hostPrefix: 23 
+  networkType: ${plugin}
+EOF
 }
 
 function wait-for-cluster() {
@@ -748,12 +742,12 @@ function wait-for-cluster() {
   oc="$(os::util::find::built_binary oc)"
 
   # wait for healthz to report ok before trying to get nodes
-  os::util::wait-for-condition "ok" "${oc} get --config=${kubeconfig} --raw=/healthz" "120"
+  os::util::wait-for-condition "ok" "${oc} get --config=${kubeconfig} --raw=/healthz" "360"
 
   local msg condition timeout
   msg="${expected_node_count} nodes to report readiness"
   condition="nodes-are-ready ${kubeconfig} ${oc} ${expected_node_count}"
-  timeout=120
+  timeout=340
   os::util::wait-for-condition "${msg}" "${condition}" "${timeout}"
 }
 
@@ -851,8 +845,8 @@ NODE_IMAGE="openshift/dind-node"
 MASTER_IMAGE="openshift/dind-master"
 ADDITIONAL_ARGS=""
 
-OVN_ROOT="${OVN_ROOT:-}"
 CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-dockershim}"
+CNO_ROOT="${CNO_ROOT:-}"
 
 case "${1:-""}" in
   start)
@@ -933,17 +927,6 @@ case "${1:-""}" in
 
     NETWORK_PLUGIN="$(get-network-plugin "${NETWORK_PLUGIN}")"
 
-    # OVN requires CNI network plugin and OVN_ROOT to be set
-    if [[ "${NETWORK_PLUGIN}" = "ovn" ]]; then
-      NETWORK_PLUGIN="cni"
-      if [[ -z "${OVN_ROOT}" ]]; then
-        echo "OVN network plugin requires OVN_ROOT set to ovn-kubernetes checkout"
-        exit 1
-      fi
-    elif [[ -n "${OVN_ROOT}" ]]; then
-      OVN_ROOT=
-    fi
-
     declare -a images=("")
     if [[ -n "${ENABLE_LOCAL_REGISTRY}" ]]; then
       error=0
@@ -954,8 +937,13 @@ case "${1:-""}" in
       fi
     fi
 
-    start "${OS_ROOT}" "${OVN_ROOT}" "${CONFIG_ROOT}" "${DEPLOYED_CONFIG_ROOT}" \
-          "${CLUSTER_ID}" "${NETWORK_PLUGIN}" "${CONTAINER_RUNTIME}" \
+    if [[ -z "${CNO_ROOT}" ]]; then
+      echo "CNO_ROOT must point to a built cluster-network-operator git checkout"
+      exit 1
+    fi
+
+    start "${OS_ROOT}" "${CNO_ROOT}" "${CONFIG_ROOT}" "${DEPLOYED_CONFIG_ROOT}" \
+          "${CLUSTER_ID}" "${NETWORK_PLUGIN}" \
           "${WAIT_FOR_CLUSTER}" "${NODE_COUNT}" "${ENABLE_LOCAL_REGISTRY}" \
           "${images[@]}" "${ADDITIONAL_ARGS}"
     ;;

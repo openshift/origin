@@ -285,7 +285,7 @@ function localup::start_openshiftcontrollermanager() {
 
 function localup::init_master() {
     export LOCALUP_ROOT=${LOCALUP_ROOT:-$(pwd)}
-    export LOCALUP_CONFIG=${LOCALUP_ROOT}/openshift.local.masterup
+    export LOCALUP_CONFIG=${LOCALUP_CONFIG:-${LOCALUP_ROOT}/openshift.local.masterup}
     ETCD_DIR=${LOCALUP_CONFIG}/etcd
     CERT_DIR=${LOCALUP_CONFIG}/kube-apiserver
     ROOT_CA_FILE=${CERT_DIR}/server-ca.crt

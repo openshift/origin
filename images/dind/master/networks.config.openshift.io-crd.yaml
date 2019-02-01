@@ -1,0 +1,95 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: networks.config.openshift.io
+spec:
+  group: config.openshift.io
+  names:
+    kind: Network
+    listKind: NetworkList
+    plural: networks
+    singular: network
+  scope: Cluster
+  versions:
+  - name: v1
+    served: true
+    storage: true
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          description: Standard object's metadata.
+          type: object
+        spec:
+          description: spec holds user settable values for configuration.
+          properties:
+            clusterNetwork:
+              description: IP address pool to use for pod IPs.
+              items:
+                properties:
+                  cidr:
+                    description: The complete block for pod IPs.
+                    type: string
+                  hostPrefix:
+                    description: The size (prefix) of block to allocate to each node.
+                    format: int32
+                    type: integer
+                type: object
+              type: array
+            networkType:
+              description: 'NetworkType is the plugin that is to be deployed (e.g.
+                OpenShiftSDN). This should match a value that the cluster-network-operator
+                understands, or else no networking will be installed. Currently supported
+                values are: - OpenShiftSDN'
+              type: string
+            serviceNetwork:
+              description: IP address pool for services. Currently, we only support
+                a single entry here.
+              items:
+                type: string
+              type: array
+          type: object
+        status:
+          description: status holds observed values from the cluster. They may not
+            be overridden.
+          properties:
+            clusterNetwork:
+              description: IP address pool to use for pod IPs.
+              items:
+                properties:
+                  cidr:
+                    description: The complete block for pod IPs.
+                    type: string
+                  hostPrefix:
+                    description: The size (prefix) of block to allocate to each node.
+                    format: int32
+                    type: integer
+                type: object
+              type: array
+            clusterNetworkMTU:
+              description: ClusterNetworkMTU is the MTU for inter-pod networking.
+              format: int64
+              type: integer
+            networkType:
+              description: NetworkType is the plugin that is deployed (e.g. OpenShiftSDN).
+              type: string
+            serviceNetwork:
+              description: IP address pool for services. Currently, we only support
+                a single entry here.
+              items:
+                type: string
+              type: array
+          type: object
+      required:
+      - spec
+

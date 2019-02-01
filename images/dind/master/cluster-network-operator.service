@@ -1,0 +1,12 @@
+[Unit]
+Description=OpenShift Cluster Network Operator
+Requires=openshift-master.service
+
+[Service]
+ExecStart=/usr/local/bin/cluster-network-operator.sh
+WorkingDirectory=/data
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
