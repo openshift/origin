@@ -19,7 +19,7 @@ import (
 
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
 	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	oadmission "github.com/openshift/origin/pkg/admission/admissioninitializers"
 	allocator "github.com/openshift/origin/pkg/security"
 	scc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
 	admission "k8s.io/apiserver/pkg/admission"

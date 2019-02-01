@@ -17,7 +17,7 @@ import (
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	oadmission "github.com/openshift/origin/pkg/admission/admissioninitializers"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated"
 	"github.com/openshift/origin/pkg/project/cache"

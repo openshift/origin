@@ -15,7 +15,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	authclient "github.com/openshift/origin/pkg/client/impersonatingclient"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	oadmission "github.com/openshift/origin/pkg/admission/admissioninitializers"
 	"github.com/openshift/origin/pkg/util/urlpattern"
 )
 

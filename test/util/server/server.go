@@ -50,11 +50,11 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
-	"github.com/openshift/origin/pkg/cmd/server/start"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/configconversion"
 	newproject "github.com/openshift/origin/pkg/oc/cli/admin/project"
 	"github.com/openshift/origin/test/util"
+	"github.com/openshift/origin/test/util/server/start"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"

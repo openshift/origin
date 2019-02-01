@@ -12,7 +12,7 @@ import (
 	"k8s.io/client-go/util/integer"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	oadmission "github.com/openshift/origin/pkg/admission/admissioninitializers"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/apiserver/admission/apis/runonceduration"

@@ -1,4 +1,4 @@
-package admission
+package admissioninitializers
 
 import (
 	"k8s.io/apiserver/pkg/admission"

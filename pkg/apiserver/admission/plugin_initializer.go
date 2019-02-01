@@ -26,7 +26,7 @@ import (
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
 	userv1informer "github.com/openshift/client-go/user/informers/externalversions"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	oadmission "github.com/openshift/origin/pkg/admission/admissioninitializers"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"

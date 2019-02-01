@@ -10,7 +10,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	oadmission "github.com/openshift/origin/pkg/admission/admissioninitializers"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/util/labelselector"
 )

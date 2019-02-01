@@ -17,7 +17,7 @@ import (
 	"github.com/openshift/api/project"
 	userapi "github.com/openshift/api/user/v1"
 	fakeuserclient "github.com/openshift/client-go/user/clientset/versioned/fake"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	oadmission "github.com/openshift/origin/pkg/admission/admissioninitializers"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	requestlimitapi "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit"
 	projectcache "github.com/openshift/origin/pkg/project/cache"

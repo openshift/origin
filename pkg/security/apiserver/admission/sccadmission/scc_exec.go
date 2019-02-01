@@ -13,7 +13,7 @@ import (
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	securityv1informers "github.com/openshift/client-go/security/informers/externalversions"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	oadmission "github.com/openshift/origin/pkg/admission/admissioninitializers"
 )
 
 func RegisterSCCExecRestrictions(plugins *admission.Plugins) {
