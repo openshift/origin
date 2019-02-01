@@ -205,5 +205,6 @@ func decodeProviderTo(provider string, testContext *e2e.TestContextType) error {
 		}
 	}
 	glog.V(2).Infof("Provider %s: %#v", testContext.Provider, testContext.CloudConfig)
+	glog.V(2).Infof("CI-operator")
 	return nil
 }
