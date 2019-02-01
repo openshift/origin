@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/golang/glog"
@@ -26,6 +27,8 @@ import (
 	"github.com/openshift/origin/pkg/admission/namespaceconditions"
 	originadmission "github.com/openshift/origin/pkg/apiserver/admission"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	usercache "github.com/openshift/origin/pkg/user/cache"
@@ -186,8 +189,33 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 			explicitOff = append(explicitOff, plugin)
 		}
 	}
-	genericConfig.AdmissionControl, err = originadmission.NewAdmissionChains([]string{}, explicitOn, explicitOff, config.AdmissionPluginConfig, admissionInitializer, admissionDecorators)
+	upstreamAdmissionConfig, err := originadmission.ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(config.AdmissionPluginConfig)
 	if err != nil {
+		return nil, err
+	}
+	configBytes, err := configapilatest.WriteYAML(upstreamAdmissionConfig)
+	if err != nil {
+		return nil, err
+	}
+	tempFile, err := ioutil.TempFile("", "master-config.yaml")
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(tempFile.Name())
+	if _, err := tempFile.Write(configBytes); err != nil {
+		return nil, err
+	}
+	tempFile.Close()
+	admissionOptions := genericapiserveroptions.NewAdmissionOptions()
+	admissionOptions.RecommendedPluginOrder = originadmission.OpenShiftAdmissionPlugins
+	admissionOptions.DefaultOffPlugins = originadmission.DefaultOffPlugins
+	admissionOptions.EnablePlugins = explicitOn
+	admissionOptions.DisablePlugins = explicitOff
+	admissionOptions.ConfigFile = tempFile.Name()
+	admissionOptions.Plugins = originadmission.OriginAdmissionPlugins
+	// TODO pass this in properly when upstream moves in 1.14
+	genericapiserveroptions.AdmissionDecorator = admissionDecorators
+	if err := admissionOptions.ApplyTo(&genericConfig.Config, informers.kubernetesInformers, kubeClientConfig, configapi.Scheme, admissionInitializer); err != nil {
 		return nil, err
 	}
 

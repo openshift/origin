@@ -59,7 +59,7 @@ func TestKubeAdmissionControllerUsage(t *testing.T) {
 }
 
 func TestAdmissionOnOffCoverage(t *testing.T) {
-	configuredAdmissionPlugins := sets.NewString(combinedAdmissionControlPlugins...)
+	configuredAdmissionPlugins := sets.NewString(KubeAdmissionPlugins...)
 	allCoveredAdmissionPlugins := sets.String{}
 	allCoveredAdmissionPlugins.Insert(DefaultOnPlugins.List()...)
 	allCoveredAdmissionPlugins.Insert(DefaultOffPlugins.List()...)
