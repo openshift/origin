@@ -22,7 +22,6 @@ import (
 	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
 	buildclienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
-	"github.com/openshift/origin/pkg/api/legacy"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildv1helpers "github.com/openshift/origin/pkg/build/apis/build/v1"
 	"github.com/openshift/origin/pkg/build/client"
@@ -35,8 +34,6 @@ var (
 )
 
 func init() {
-	// webhooks need to return legacy build serialization when hit via oapi
-	legacy.InstallInternalLegacyBuild(webhookEncodingScheme)
 	// TODO eventually we shouldn't deal in internal versions, but for now decode into one.
 	utilruntime.Must(buildv1helpers.Install(webhookEncodingScheme))
 	webhookEncodingCodecFactory = serializer.NewCodecFactory(webhookEncodingScheme)

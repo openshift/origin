@@ -26,7 +26,6 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 		successfulBuildConfig = filepath.Join(buildPruningBaseDir, "successful-build-config.yaml")
 		failedBuildConfig     = filepath.Join(buildPruningBaseDir, "failed-build-config.yaml")
 		erroredBuildConfig    = filepath.Join(buildPruningBaseDir, "errored-build-config.yaml")
-		legacyBuildConfig     = filepath.Join(buildPruningBaseDir, "default-legacy-build-config.yaml")
 		groupBuildConfig      = filepath.Join(buildPruningBaseDir, "default-group-build-config.yaml")
 		oc                    = exutil.NewCLI("build-pruning", exutil.KubeConfigPath())
 		pollingInterval       = time.Second
@@ -312,20 +311,6 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 				"the buildconfig should have the default successful history limit set")
 			o.Expect(*buildConfig.Spec.FailedBuildsHistoryLimit).To(o.Equal(buildutil.DefaultFailedBuildsHistoryLimit),
 				"the buildconfig should have the default failed history limit set")
-		})
-
-		g.It("[Conformance] buildconfigs should not have a default history limit set when created via the legacy api", func() {
-
-			g.By("creating a build config with the legacy api")
-			err := oc.Run("create").Args("-f", legacyBuildConfig, "--raw=/oapi/v1/namespaces/"+oc.Namespace()+"/buildconfigs").Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
-			if err != nil {
-				fmt.Fprintf(g.GinkgoWriter, "%v", err)
-			}
-			o.Expect(buildConfig.Spec.SuccessfulBuildsHistoryLimit).To(o.BeNil(), "the buildconfig should not have the default successful history limit set")
-			o.Expect(buildConfig.Spec.FailedBuildsHistoryLimit).To(o.BeNil(), "the buildconfig should not have the default failed history limit set")
 		})
 	})
 })

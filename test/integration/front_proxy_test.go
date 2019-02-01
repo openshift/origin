@@ -164,7 +164,7 @@ func TestFrontProxy(t *testing.T) {
 	} {
 		proxyHTTPHandler.setUser(test.user)
 
-		response, err := http.Get(proxyServer.URL + "/oapi/v1/projects")
+		response, err := http.Get(proxyServer.URL + "/apis/projects.openshift.io/v1/projects")
 		if err != nil {
 			t.Fatal(err)
 		}

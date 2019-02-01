@@ -5,21 +5,15 @@ import (
 	"testing"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/diff"
-	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
-	appsclientscheme "github.com/openshift/client-go/apps/clientset/versioned/scheme"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/openshift/origin/pkg/api/legacy"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
 )
 
@@ -119,61 +113,6 @@ func TestDeploymentConfigDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create appsClient: %v", err)
 	}
-	// install the legacy types into the client for decoding
-	legacy.InstallInternalLegacyApps(appsclientscheme.Scheme)
-
-	ttLegacy := []struct {
-		obj    *appsv1.DeploymentConfig
-		legacy *appsv1.DeploymentConfig
-	}{
-		{
-			obj: func() *appsv1.DeploymentConfig {
-				dc := minimalDC("test-legacy-01", 0)
-				dc.Spec.RevisionHistoryLimit = nil
-				return dc
-			}(),
-			legacy: func() *appsv1.DeploymentConfig {
-				dc := minimalDC("test-legacy-01", 1)
-				setEssentialDefaults(dc)
-				// Legacy API shall not default RevisionHistoryLimit to maintain backwards compatibility
-				dc.Spec.RevisionHistoryLimit = nil
-				return dc
-			}(),
-		},
-		{
-			obj: func() *appsv1.DeploymentConfig {
-				dc := minimalDC("test-legacy-02", 0)
-				dc.Spec.RevisionHistoryLimit = &nonDefaultRevisionHistoryLimit
-				return dc
-			}(),
-			legacy: func() *appsv1.DeploymentConfig {
-				dc := minimalDC("test-legacy-02", 1)
-				setEssentialDefaults(dc)
-				dc.Spec.RevisionHistoryLimit = &nonDefaultRevisionHistoryLimit
-				return dc
-			}(),
-		},
-	}
-	t.Run("Legacy API", func(t *testing.T) {
-		for _, tc := range ttLegacy {
-			t.Run("", func(t *testing.T) {
-				dcBytes, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), tc.obj)
-				if err != nil {
-					t.Fatal(err)
-				}
-				legacyObj, err := appsClient.Apps().RESTClient().Post().AbsPath("/oapi/v1/namespaces/" + namespace + "/deploymentconfigs").Body(dcBytes).Do().Get()
-				if err != nil {
-					t.Fatalf("Failed to create DC: %v", err)
-				}
-				legacyDC := legacyObj.(*appsv1.DeploymentConfig)
-
-				clearTransient(legacyDC)
-				if !reflect.DeepEqual(legacyDC, tc.legacy) {
-					t.Errorf("Legacy DC differs from expected output: %s", diff.ObjectReflectDiff(legacyDC, tc.legacy))
-				}
-			})
-		}
-	})
 
 	ttApps := []struct {
 		obj  *appsv1.DeploymentConfig

@@ -122,7 +122,6 @@ var expectedIndex = []string{
 	"/healthz/poststarthook/start-kube-apiserver-admission-initializer",
 	"/healthz/poststarthook/start-kube-apiserver-informers",
 	"/metrics",
-	"/oapi",
 	"/openapi/v2",
 	"/swagger-2.0.0.json",
 	"/swagger-2.0.0.pb-v1",

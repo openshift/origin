@@ -261,12 +261,6 @@ func (s *APIAggregator) AddAPIService(apiService *apiregistration.APIService) er
 	s.GenericAPIServer.Handler.NonGoRestfulMux.Handle(proxyPath, proxyHandler)
 	s.GenericAPIServer.Handler.NonGoRestfulMux.UnlistedHandlePrefix(proxyPath+"/", proxyHandler)
 
-	// this exists to proxy /oapi
-	if apiService.Spec.Group == "apps.openshift.io" {
-		s.GenericAPIServer.Handler.NonGoRestfulMux.Handle("/oapi", proxyHandler)
-		s.GenericAPIServer.Handler.NonGoRestfulMux.UnlistedHandlePrefix("/oapi/", proxyHandler)
-	}
-
 	// if we're dealing with the legacy group, we're done here
 	if apiService.Name == legacyAPIServiceName {
 		return nil
