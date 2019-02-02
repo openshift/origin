@@ -76,6 +76,10 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 		genericConfig.Authorization.Authorizer = authorizer
 		// END AUTHORIZER
 
+		// Inject OpenShift API long running endpoints (like for binary builds).
+		// TODO: We should disable the timeout code for aggregated endpoints as this can cause problems when upstream add additional endpoints.
+		genericConfig.LongRunningFunc = configprocessing.IsLongRunningRequest
+
 		// ADMISSION
 		projectCache, err := openshiftapiserver.NewProjectCache(kubeAPIServerInformers.KubernetesInformers.Core().V1().Namespaces(), genericConfig.LoopbackClientConfig, kubeAPIServerConfig.ProjectConfig.DefaultNodeSelector)
 		if err != nil {
