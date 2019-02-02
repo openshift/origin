@@ -699,7 +699,7 @@ func ValidateStrategyEnv(vars []kapi.EnvVar, fldPath *field.Path) field.ErrorLis
 
 func validatePostCommit(spec buildapi.BuildPostCommitSpec, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	if spec.Script != "" && len(spec.Command) > 0 {
+	if len(spec.Script) != 0 && len(spec.Command) > 0 {
 		allErrs = append(allErrs, field.Invalid(fldPath, spec, "cannot use command and script together"))
 	}
 	return allErrs
