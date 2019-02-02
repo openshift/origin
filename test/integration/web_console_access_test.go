@@ -16,6 +16,7 @@ import (
 	knet "k8s.io/apimachinery/pkg/util/net"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/origin/pkg/oauth/urls"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
@@ -131,8 +132,8 @@ func TestAccessOriginWebConsoleMultipleIdentityProviders(t *testing.T) {
 	urlMap["/login"] = urlResults{http.StatusNotFound, ""}
 
 	// Create the common base URLs
-	escapedPublicURL := url.QueryEscape(masterOptions.OAuthConfig.AssetPublicURL)
-	loginSelectorBase := "/oauth/authorize?client_id=openshift-web-console&response_type=token&state=%2F&redirect_uri=" + escapedPublicURL
+	escapedPublicURL := url.QueryEscape(urls.OpenShiftOAuthTokenDisplayURL(masterOptions.OAuthConfig.MasterPublicURL))
+	loginSelectorBase := "/oauth/authorize?client_id=openshift-browser-client&response_type=token&state=%2F&redirect_uri=" + escapedPublicURL
 
 	// Iterate through each of the providers and verify that they redirect to
 	// the appropriate login page and that the login page exists.

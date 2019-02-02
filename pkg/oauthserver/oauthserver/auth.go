@@ -70,7 +70,6 @@ const (
 	openShiftLogoutPrefix        = "/logout"
 	openShiftApproveSubpath      = "approve"
 	openShiftOAuthCallbackPrefix = "/oauth2callback"
-	openShiftWebConsoleClientID  = "openshift-web-console"
 	openShiftBrowserClientID     = "openshift-browser-client"
 	openShiftCLIClientID         = "openshift-challenging-client"
 )
@@ -148,7 +147,7 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error
 	tokenRequestEndpoints.Install(mux, urls.OpenShiftOAuthAPIPrefix)
 
 	if session := c.ExtraOAuthConfig.SessionAuth; session != nil {
-		logoutHandler := logout.NewLogout(session)
+		logoutHandler := logout.NewLogout(session, c.ExtraOAuthConfig.Options.AssetPublicURL)
 		logoutHandler.Install(mux, openShiftLogoutPrefix)
 	}
 

@@ -3,6 +3,7 @@ package logout
 import (
 	"net/http"
 
+	"github.com/RangelReale/osin"
 	"github.com/golang/glog"
 
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -16,14 +17,16 @@ import (
 
 const thenParam = "then"
 
-func NewLogout(invalidator session.SessionInvalidator) tokenrequest.Endpoints {
+func NewLogout(invalidator session.SessionInvalidator, redirect string) tokenrequest.Endpoints {
 	return &logout{
 		invalidator: invalidator,
+		redirect:    redirect,
 	}
 }
 
 type logout struct {
 	invalidator session.SessionInvalidator
+	redirect    string
 }
 
 func (l *logout) Install(mux oauthserver.Mux, paths ...string) {
@@ -37,6 +40,12 @@ func (l *logout) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// we also do not set these headers on the OAuth endpoints or the token request endpoint...
 	headers.SetStandardHeaders(w)
 
+	// TODO while having a POST provides some protection, this endpoint is invokable via JS.
+	// we could easily add CSRF protection, but then it would make it really hard for the console
+	// to actually use this endpoint.  we could have some alternative logout path that validates
+	// the request based on the OAuth client secret, but all of that seems overkill for logout.
+	// to make this perfectly safe, we would need the console to redirect to this page and then
+	// have the user click logout.  forgo that for now to keep the UX of kube:admin clean.
 	if req.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -49,8 +58,17 @@ func (l *logout) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if then := req.FormValue(thenParam); redirect.IsServerRelativeURL(then) {
+	// optionally redirect if safe to do so
+	if then := req.FormValue(thenParam); l.isValidRedirect(then) {
 		http.Redirect(w, req, then, http.StatusFound)
 		return
 	}
+}
+
+func (l *logout) isValidRedirect(then string) bool {
+	if redirect.IsServerRelativeURL(then) {
+		return true
+	}
+
+	return osin.ValidateUri(l.redirect, then) == nil
 }

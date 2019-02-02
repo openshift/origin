@@ -1,7 +1,6 @@
 package oauthserver
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"net/http"
@@ -22,15 +21,12 @@ import (
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 
-	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	routeclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	"github.com/openshift/origin/pkg/configconversion"
 	"github.com/openshift/origin/pkg/oauth/urls"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
 	"github.com/openshift/origin/pkg/oauthserver/config"
@@ -50,27 +46,6 @@ func init() {
 
 // TODO we need to switch the oauth server to an external type, but that can be done after we get our externally facing flag values fixed
 // TODO remaining bits involve the session file, LDAP util code, validation, ...
-func NewOAuthServerConfigFromInternal(oauthConfig configapi.OAuthConfig, userClientConfig *rest.Config) (*OAuthServerConfig, error) {
-	osinConfig, err := internalOAuthConfigToExternal(oauthConfig)
-	if err != nil {
-		return nil, err
-	}
-	return NewOAuthServerConfig(*osinConfig, userClientConfig)
-}
-
-func internalOAuthConfigToExternal(oauthConfig configapi.OAuthConfig) (*osinv1.OAuthConfig, error) {
-	buf := &bytes.Buffer{}
-	internalConfig := &configapi.MasterConfig{OAuthConfig: &oauthConfig}
-	if err := latest.Codec.Encode(internalConfig, buf); err != nil {
-		return nil, err
-	}
-	legacyConfig := &legacyconfigv1.MasterConfig{}
-	if _, _, err := latest.Codec.Decode(buf.Bytes(), nil, legacyConfig); err != nil {
-		return nil, err
-	}
-	return configconversion.ToOAuthConfig(legacyConfig.OAuthConfig)
-}
-
 func NewOAuthServerConfig(oauthConfig osinv1.OAuthConfig, userClientConfig *rest.Config) (*OAuthServerConfig, error) {
 	// TODO: there is probably some better way to do this
 	decoder := codecs.UniversalDecoder(osinv1.GroupVersion)
@@ -230,9 +205,6 @@ func isHTTPS(u string) bool {
 type ExtraOAuthConfig struct {
 	Options osinv1.OAuthConfig
 
-	// AssetPublicAddresses contains valid redirectURI prefixes to direct browsers to the web console
-	AssetPublicAddresses []string
-
 	// KubeClient is kubeclient with enough permission for the auth API
 	KubeClient kclientset.Interface
 
@@ -329,18 +301,6 @@ func (c *OAuthServerConfig) StartOAuthClientsBootstrapping(context genericapiser
 	go func() {
 		// error is guaranteed to be nil
 		_ = wait.PollUntil(1*time.Second, func() (done bool, err error) {
-			webConsoleClient := oauthv1.OAuthClient{
-				ObjectMeta:            metav1.ObjectMeta{Name: openShiftWebConsoleClientID},
-				Secret:                "",
-				RespondWithChallenges: false,
-				RedirectURIs:          c.ExtraOAuthConfig.AssetPublicAddresses,
-				GrantMethod:           oauthv1.GrantHandlerAuto,
-			}
-			if err := ensureOAuthClient(webConsoleClient, c.ExtraOAuthConfig.OAuthClientClient, true, false); err != nil {
-				utilruntime.HandleError(err)
-				return false, nil
-			}
-
 			browserClient := oauthv1.OAuthClient{
 				ObjectMeta:            metav1.ObjectMeta{Name: openShiftBrowserClientID},
 				Secret:                crypto.Random256BitsString(),
