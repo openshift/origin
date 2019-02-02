@@ -40,6 +40,10 @@
 // test/extended/testdata/builds/build-timing/test-docker-build.json
 // test/extended/testdata/builds/build-timing/test-is.json
 // test/extended/testdata/builds/build-timing/test-s2i-build.json
+// test/extended/testdata/builds/cluster-config/registry-blacklist.yaml
+// test/extended/testdata/builds/cluster-config/registry-search.yaml
+// test/extended/testdata/builds/cluster-config/registry-whitelist.yaml
+// test/extended/testdata/builds/cluster-config.yaml
 // test/extended/testdata/builds/gradle-pipeline.yaml
 // test/extended/testdata/builds/incremental-auth-build.json
 // test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment
@@ -1782,6 +1786,107 @@ func testExtendedTestdataBuildsBuildTimingTestS2iBuildJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/build-timing/test-s2i-build.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml = []byte(`kind: Build
+apiVersion: config.openshift.io/v1
+metadata:
+  name: cluster
+spec:
+  buildDefaults:
+    registriesConfig:
+      blockedRegistries:
+      - docker.io
+      - quay.io
+`)
+
+func testExtendedTestdataBuildsClusterConfigRegistryBlacklistYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml, nil
+}
+
+func testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsClusterConfigRegistryBlacklistYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/cluster-config/registry-blacklist.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsClusterConfigRegistrySearchYaml = []byte(`kind: Build
+apiVersion: config.openshift.io/v1
+metadata:
+  name: cluster
+spec:
+  buildDefaults:
+    registriesConfig:
+      searchRegistries:
+      - badregistry.foo
+`)
+
+func testExtendedTestdataBuildsClusterConfigRegistrySearchYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsClusterConfigRegistrySearchYaml, nil
+}
+
+func testExtendedTestdataBuildsClusterConfigRegistrySearchYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsClusterConfigRegistrySearchYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/cluster-config/registry-search.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml = []byte(`kind: Build
+apiVersion: config.openshift.io/v1
+metadata:
+  name: cluster
+spec:
+  buildDefaults:
+    registriesConfig:
+      allowedRegistries:
+      - quay.io
+`)
+
+func testExtendedTestdataBuildsClusterConfigRegistryWhitelistYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml, nil
+}
+
+func testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsClusterConfigRegistryWhitelistYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/cluster-config/registry-whitelist.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsClusterConfigYaml = []byte(`kind: Build
+apiVersion: config.openshift.io/v1
+metadata:
+  name: cluster
+spec: {}
+`)
+
+func testExtendedTestdataBuildsClusterConfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsClusterConfigYaml, nil
+}
+
+func testExtendedTestdataBuildsClusterConfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsClusterConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/cluster-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -32749,6 +32854,10 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/build-timing/test-docker-build.json": testExtendedTestdataBuildsBuildTimingTestDockerBuildJson,
 	"test/extended/testdata/builds/build-timing/test-is.json": testExtendedTestdataBuildsBuildTimingTestIsJson,
 	"test/extended/testdata/builds/build-timing/test-s2i-build.json": testExtendedTestdataBuildsBuildTimingTestS2iBuildJson,
+	"test/extended/testdata/builds/cluster-config/registry-blacklist.yaml": testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml,
+	"test/extended/testdata/builds/cluster-config/registry-search.yaml": testExtendedTestdataBuildsClusterConfigRegistrySearchYaml,
+	"test/extended/testdata/builds/cluster-config/registry-whitelist.yaml": testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml,
+	"test/extended/testdata/builds/cluster-config.yaml": testExtendedTestdataBuildsClusterConfigYaml,
 	"test/extended/testdata/builds/gradle-pipeline.yaml": testExtendedTestdataBuildsGradlePipelineYaml,
 	"test/extended/testdata/builds/incremental-auth-build.json": testExtendedTestdataBuildsIncrementalAuthBuildJson,
 	"test/extended/testdata/builds/s2i-environment-build-app/.s2i/environment": testExtendedTestdataBuildsS2iEnvironmentBuildAppS2iEnvironment,
@@ -33164,6 +33273,12 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"test-is.json": &bintree{testExtendedTestdataBuildsBuildTimingTestIsJson, map[string]*bintree{}},
 						"test-s2i-build.json": &bintree{testExtendedTestdataBuildsBuildTimingTestS2iBuildJson, map[string]*bintree{}},
 					}},
+					"cluster-config": &bintree{nil, map[string]*bintree{
+						"registry-blacklist.yaml": &bintree{testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml, map[string]*bintree{}},
+						"registry-search.yaml": &bintree{testExtendedTestdataBuildsClusterConfigRegistrySearchYaml, map[string]*bintree{}},
+						"registry-whitelist.yaml": &bintree{testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml, map[string]*bintree{}},
+					}},
+					"cluster-config.yaml": &bintree{testExtendedTestdataBuildsClusterConfigYaml, map[string]*bintree{}},
 					"gradle-pipeline.yaml": &bintree{testExtendedTestdataBuildsGradlePipelineYaml, map[string]*bintree{}},
 					"incremental-auth-build.json": &bintree{testExtendedTestdataBuildsIncrementalAuthBuildJson, map[string]*bintree{}},
 					"s2i-environment-build-app": &bintree{nil, map[string]*bintree{

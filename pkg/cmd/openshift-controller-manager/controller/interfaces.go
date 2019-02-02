@@ -78,7 +78,7 @@ func NewControllerContext(
 	if err != nil {
 		return nil, err
 	}
-	configClient, err := configclient.NewForConfig(clientConfig)
+	configClient, err := configclient.NewForConfig(nonProtobufConfig(clientConfig))
 	if err != nil {
 		return nil, err
 	}
@@ -374,7 +374,7 @@ func (b OpenshiftControllerClientBuilder) OpenshiftConfigClient(name string) (co
 	if err != nil {
 		return nil, err
 	}
-	return configclient.NewForConfig(clientConfig)
+	return configclient.NewForConfig(nonProtobufConfig(clientConfig))
 }
 
 // OpenshiftConfigClientOrDie provides a REST client for the build API.
