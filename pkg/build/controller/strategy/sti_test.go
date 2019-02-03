@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -89,7 +89,23 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 
 	// strategy ENV variables are whitelisted(filtered) into the container environment, and not all
 	// the values are allowed, so don't expect to see the filtered values in the result.
-	expectedKeys := map[string]string{"BUILD": "", "SOURCE_REPOSITORY": "", "SOURCE_URI": "", "SOURCE_CONTEXT_DIR": "", "SOURCE_REF": "", "BUILD_LOGLEVEL": "", "PUSH_DOCKERCFG_PATH": "", "PULL_DOCKERCFG_PATH": "", "BUILD_REGISTRIES_CONF_PATH": "", "BUILD_REGISTRIES_DIR_PATH": "", "BUILD_SIGNATURE_POLICY_PATH": "", "BUILD_STORAGE_CONF_PATH": "", "BUILD_STORAGE_DRIVER": "", "BUILD_ISOLATION": ""}
+	expectedKeys := map[string]string{
+		"BUILD":                       "",
+		"SOURCE_REPOSITORY":           "",
+		"SOURCE_URI":                  "",
+		"SOURCE_CONTEXT_DIR":          "",
+		"SOURCE_REF":                  "",
+		"BUILD_LOGLEVEL":              "",
+		"PUSH_DOCKERCFG_PATH":         "",
+		"PULL_DOCKERCFG_PATH":         "",
+		"BUILD_REGISTRIES_CONF_PATH":  "",
+		"BUILD_REGISTRIES_DIR_PATH":   "",
+		"BUILD_SIGNATURE_POLICY_PATH": "",
+		"BUILD_STORAGE_CONF_PATH":     "",
+		"BUILD_STORAGE_DRIVER":        "",
+		"BUILD_ISOLATION":             "",
+		"BUILD_BLOBCACHE_DIR":         "",
+	}
 	if !rootAllowed {
 		expectedKeys["ALLOWED_UIDS"] = ""
 		expectedKeys["DROP_CAPS"] = ""
@@ -104,6 +120,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 
 	// expected volumes:
 	// buildworkdir
+	// blobs meta cache
 	// pushsecret
 	// pullsecret
 	// inputsecret
@@ -111,9 +128,9 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	// build-system-configmap
 	// certificate authorities
 	// container storage
-	// blobs cache
-	if len(container.VolumeMounts) != 9 {
-		t.Fatalf("Expected 9 volumes in container, got %d %v", len(container.VolumeMounts), container.VolumeMounts)
+	// blobs content cache
+	if len(container.VolumeMounts) != 10 {
+		t.Fatalf("Expected 10 volumes in container, got %d %v", len(container.VolumeMounts), container.VolumeMounts)
 	}
 	expectedMounts := []string{buildutil.BuildWorkDirMount,
 		buildutil.BuildBlobsMetaCache,
@@ -124,6 +141,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		ConfigMapBuildSystemConfigsMountPath,
 		ConfigMapCertsMountPath,
 		"/var/lib/containers/storage",
+		buildutil.BuildBlobsContentCache,
 	}
 	for i, expected := range expectedMounts {
 		if container.VolumeMounts[i].MountPath != expected {
@@ -131,8 +149,8 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		}
 	}
 	// build pod has an extra volume: the git clone source secret
-	if len(actual.Spec.Volumes) != 10 {
-		t.Fatalf("Expected 10 volumes in Build pod, got %d", len(actual.Spec.Volumes))
+	if len(actual.Spec.Volumes) != 11 {
+		t.Fatalf("Expected 11 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
 	if *actual.Spec.ActiveDeadlineSeconds != 60 {
 		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)
