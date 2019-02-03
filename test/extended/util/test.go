@@ -324,7 +324,6 @@ var (
 		// alpha features that are not gated
 		"[Disabled:Alpha]": {
 			`\[Feature:Initializers\]`,                       // admission controller disabled
-			`\[Feature:LocalPersistentVolumes\]`,             // flag gate is off
 			`\[Feature:PodPreemption\]`,                      // flag gate is off
 			`\[Feature:RunAsGroup\]`,                         // flag gate is off
 			`\[NodeAlphaFeature:VolumeSubpathEnvExpansion\]`, // flag gate is off
@@ -343,6 +342,7 @@ var (
 			`kube-ui`,                         // Not installed by default
 			`Kubernetes Dashboard`,            // Not installed by default (also probably slow image pull)
 			`\[Feature:ServiceLoadBalancer\]`, // Not enabled yet
+			`PersistentVolumes-local`,         // Disable local storage in 4.0 for now (sig-storage/hekumar@redhat.com)
 
 			`NetworkPolicy between server and client should allow egress access on one named port`, // not yet implemented
 
