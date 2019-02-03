@@ -1,8 +1,0 @@
-kind: ImageStream
-apiVersion: image.openshift.io/v1
-spec:
-  tags:
-  - name: cli
-    from:
-      kind: DockerImage
-      name: docker.io/openshift/origin-cli:v4.0
