@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -56,6 +57,9 @@ var (
 	// This is used in the ownerRef of builder pods.
 	BuildControllerRefKind = buildv1.GroupVersion.WithKind("Build")
 )
+
+// hostPortRegex matches the final "..[port]" in ConfigMap keys
+var hostPortRegex = regexp.MustCompile("\\.\\.(\\d+)$")
 
 // FatalError is an error which can't be retried.
 type FatalError struct {
@@ -504,9 +508,11 @@ func setupBuildCAs(build *buildv1.Build, pod *corev1.Pod, additionalCAs map[stri
 		// This will be mounted to certs.d/<domain>/ca.crt so that it can be copied
 		// to /etc/docker/certs.d
 		for key := range additionalCAs {
+			// Replace "..[port]" with ":[port]" due to limiations with ConfigMap key names
+			mountDir := hostPortRegex.ReplaceAllString(key, ":$1")
 			cmSource.Items = append(cmSource.Items, corev1.KeyToPath{
 				Key:  key,
-				Path: fmt.Sprintf("certs.d/%s/ca.crt", key),
+				Path: fmt.Sprintf("certs.d/%s/ca.crt", mountDir),
 			})
 		}
 		pod.Spec.Volumes = append(pod.Spec.Volumes,

@@ -252,8 +252,9 @@ func TestMountConfigsAndSecrets(t *testing.T) {
 
 func TestSetupBuildCAs(t *testing.T) {
 	tests := []struct {
-		name  string
-		certs map[string]string
+		name           string
+		certs          map[string]string
+		expectedMounts map[string]string
 	}{
 		{
 			name: "no certs",
@@ -261,9 +262,16 @@ func TestSetupBuildCAs(t *testing.T) {
 		{
 			name: "additional certs",
 			certs: map[string]string{
-				"first":                       dummyCA,
-				"second":                      dummyCA,
-				"internal.svc.localhost:5000": dummyCA,
+				"first":                        dummyCA,
+				"second.domain.com":            dummyCA,
+				"internal.svc.localhost..5000": dummyCA,
+				"myregistry.foo...2345":        dummyCA,
+			},
+			expectedMounts: map[string]string{
+				"first":                        "first",
+				"second.domain.com":            "second.domain.com",
+				"internal.svc.localhost..5000": "internal.svc.localhost:5000",
+				"myregistry.foo...2345":        "myregistry.foo.:2345",
 			},
 		},
 	}
@@ -314,7 +322,7 @@ func TestSetupBuildCAs(t *testing.T) {
 					continue
 				}
 
-				expectedPath := fmt.Sprintf("certs.d/%s/ca.crt", expected)
+				expectedPath := fmt.Sprintf("certs.d/%s/ca.crt", tc.expectedMounts[expected])
 				if foundItem.Path != expectedPath {
 					t.Errorf("expected mount path to be %s; got %s", expectedPath, foundItem.Path)
 				}
