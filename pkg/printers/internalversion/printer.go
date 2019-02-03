@@ -21,7 +21,6 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
@@ -59,11 +58,6 @@ var (
 
 	// IsPersonalSubjectAccessReviewColumns contains known custom role extensions
 	IsPersonalSubjectAccessReviewColumns = []string{"NAME"}
-
-	hostSubnetColumns          = []string{"NAME", "HOST", "HOST IP", "SUBNET", "EGRESS CIDRS", "EGRESS IPS"}
-	netNamespaceColumns        = []string{"NAME", "NETID", "EGRESS IPS"}
-	clusterNetworkColumns      = []string{"NAME", "CLUSTER NETWORKS", "SERVICE NETWORK", "PLUGIN NAME"}
-	egressNetworkPolicyColumns = []string{"NAME"}
 
 	clusterResourceQuotaColumns = []string{"NAME", "LABEL SELECTOR", "ANNOTATION SELECTOR"}
 
@@ -138,15 +132,6 @@ func AddHandlers(p kprinters.PrintHandler) {
 	p.Handler(groupColumns, nil, printGroupList)
 
 	p.Handler(IsPersonalSubjectAccessReviewColumns, nil, printIsPersonalSubjectAccessReview)
-
-	p.Handler(hostSubnetColumns, nil, printHostSubnet)
-	p.Handler(hostSubnetColumns, nil, printHostSubnetList)
-	p.Handler(netNamespaceColumns, nil, printNetNamespaceList)
-	p.Handler(netNamespaceColumns, nil, printNetNamespace)
-	p.Handler(clusterNetworkColumns, nil, printClusterNetwork)
-	p.Handler(clusterNetworkColumns, nil, printClusterNetworkList)
-	p.Handler(egressNetworkPolicyColumns, nil, printEgressNetworkPolicy)
-	p.Handler(egressNetworkPolicyColumns, nil, printEgressNetworkPolicyList)
 
 	p.Handler(clusterResourceQuotaColumns, nil, printClusterResourceQuota)
 	p.Handler(clusterResourceQuotaColumns, nil, printClusterResourceQuotaList)
@@ -994,89 +979,6 @@ func printGroup(group *userapi.Group, w io.Writer, opts kprinters.PrintOptions) 
 func printGroupList(list *userapi.GroupList, w io.Writer, opts kprinters.PrintOptions) error {
 	for _, item := range list.Items {
 		if err := printGroup(&item, w, opts); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func printHostSubnet(h *networkapi.HostSubnet, w io.Writer, opts kprinters.PrintOptions) error {
-	name := formatResourceName(opts.Kind, h.Name, opts.WithKind)
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t[%s]\t[%s]\n", name, h.Host, h.HostIP, h.Subnet, strings.Join(h.EgressCIDRs, ", "), strings.Join(h.EgressIPs, ", "))
-	return err
-}
-
-func printHostSubnetList(list *networkapi.HostSubnetList, w io.Writer, opts kprinters.PrintOptions) error {
-	for _, item := range list.Items {
-		if err := printHostSubnet(&item, w, opts); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func printNetNamespace(n *networkapi.NetNamespace, w io.Writer, opts kprinters.PrintOptions) error {
-	name := formatResourceName(opts.Kind, n.NetName, opts.WithKind)
-	_, err := fmt.Fprintf(w, "%s\t%d\t[%s]\n", name, n.NetID, strings.Join(n.EgressIPs, ", "))
-	return err
-}
-
-func printNetNamespaceList(list *networkapi.NetNamespaceList, w io.Writer, opts kprinters.PrintOptions) error {
-	for _, item := range list.Items {
-		if err := printNetNamespace(&item, w, opts); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func printClusterNetwork(n *networkapi.ClusterNetwork, w io.Writer, opts kprinters.PrintOptions) error {
-	name := formatResourceName(opts.Kind, n.Name, opts.WithKind)
-	const numOfNetworksShown = 3
-	var networksList []string
-	var networks string
-	for _, cidr := range n.ClusterNetworks {
-		networksList = append(networksList, fmt.Sprintf("%s:%d", cidr.CIDR, cidr.HostSubnetLength))
-	}
-
-	if _, err := fmt.Fprintf(w, "%s", name); err != nil {
-		return err
-	}
-	if len(networksList) > numOfNetworksShown {
-		networks = fmt.Sprintf("%s + %d more...",
-			strings.Join(networksList[:numOfNetworksShown], ", "),
-			len(networksList)-numOfNetworksShown)
-	} else {
-		networks = strings.Join(networksList, ", ")
-	}
-	_, err := fmt.Fprintf(w, "\t%s\t%s\t%s\n", networks, n.ServiceNetwork, n.PluginName)
-	return err
-}
-
-func printClusterNetworkList(list *networkapi.ClusterNetworkList, w io.Writer, opts kprinters.PrintOptions) error {
-	for _, item := range list.Items {
-		if err := printClusterNetwork(&item, w, opts); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func printEgressNetworkPolicy(n *networkapi.EgressNetworkPolicy, w io.Writer, opts kprinters.PrintOptions) error {
-	if opts.WithNamespace {
-		if _, err := fmt.Fprintf(w, "%s\t", n.Namespace); err != nil {
-			return err
-		}
-	}
-	if _, err := fmt.Fprintf(w, "%s\n", n.Name); err != nil {
-		return err
-	}
-	return nil
-}
-
-func printEgressNetworkPolicyList(list *networkapi.EgressNetworkPolicyList, w io.Writer, opts kprinters.PrintOptions) error {
-	for _, item := range list.Items {
-		if err := printEgressNetworkPolicy(&item, w, opts); err != nil {
 			return err
 		}
 	}

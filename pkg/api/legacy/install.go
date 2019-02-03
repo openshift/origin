@@ -31,7 +31,6 @@ func InstallInternalLegacyAll(scheme *runtime.Scheme) {
 	InstallInternalLegacyAuthorization(scheme)
 	InstallInternalLegacyBuild(scheme)
 	InstallInternalLegacyImage(scheme)
-	InstallInternalLegacyNetwork(scheme)
 	InstallInternalLegacyOAuth(scheme)
 	InstallInternalLegacyProject(scheme)
 	InstallInternalLegacyQuota(scheme)
