@@ -36,7 +36,7 @@ var _ = g.Describe("[image_ecosystem][mongodb] openshift mongodb image", func() 
 		g.Describe("creating from a template", func() {
 			g.It(fmt.Sprintf("should instantiate the template"), func() {
 
-				exutil.CheckOpenShiftNamespaceImageStreams(oc)
+				exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 				g.By("creating a new app")
 				o.Expect(oc.Run("new-app").Args("-f", templatePath).Execute()).Should(o.Succeed())
 

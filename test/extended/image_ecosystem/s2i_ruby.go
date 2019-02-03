@@ -51,7 +51,7 @@ var _ = g.Describe("[image_ecosystem][ruby][Slow] hot deploy for openshift ruby 
 		g.Describe("Rails example", func() {
 			g.It(fmt.Sprintf("should work with hot deploy"), func() {
 
-				exutil.CheckOpenShiftNamespaceImageStreams(oc)
+				exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 				g.By(fmt.Sprintf("calling oc new-app -f %q", railsTemplate))
 				err := oc.Run("new-app").Args("-f", railsTemplate).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())

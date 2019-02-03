@@ -466,7 +466,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					err = os.Symlink(repo.RepoPath+"/package.json", repo.RepoPath+"/link")
 					o.Expect(err).NotTo(o.HaveOccurred())
 
-					exutil.CheckOpenShiftNamespaceImageStreams(oc)
+					exutil.WaitForOpenShiftNamespaceImageStreams(oc)
 					g.By(fmt.Sprintf("calling oc create -f %q", symlinkFixture))
 					err = oc.Run("create").Args("-f", symlinkFixture).Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
