@@ -551,6 +551,10 @@ func (o *NewOptions) Run() error {
 			// when we override the spec, we have to reset any annotations
 			tag.Annotations = nil
 		}
+		if tag.Annotations == nil {
+			tag.Annotations = make(map[string]string)
+		}
+		tag.Annotations["io.openshift.release.override"] = "true"
 		tag.From = &corev1.ObjectReference{
 			Name: m.Destination,
 			Kind: "DockerImage",
@@ -718,6 +722,17 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 		if err != nil {
 			return err
 		}
+
+		// when the user provides an override, look at all layers for manifests
+		// in case the user did a layered build and overrode only one. This is
+		// an unsupported release configuration
+		var custom bool
+		filter := extract.NewPositionLayerFilter(-1)
+		if tag.Annotations["io.openshift.release.override"] == "true" {
+			custom = true
+			filter = nil
+		}
+
 		opts.Mappings = append(opts.Mappings, extract.Mapping{
 			Name:     tag.Name,
 			ImageRef: ref,
@@ -725,7 +740,7 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 			From: "manifests/",
 			To:   dstDir,
 
-			LayerFilter: extract.NewPositionLayerFilter(-1),
+			LayerFilter: filter,
 
 			ConditionFn: func(m *extract.Mapping, dgst digest.Digest, imageConfig *docker10.DockerImageConfig) (bool, error) {
 				var labels map[string]string
@@ -747,11 +762,16 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 				if err := os.MkdirAll(dstDir, 0770); err != nil {
 					return false, err
 				}
-				fmt.Fprintf(o.Out, "Loading manifests from %s: %s ...\n", tag.Name, m.ImageRef.ID)
+				if custom {
+					fmt.Fprintf(o.Out, "Loading override manifests from %s: %s ...\n", tag.Name, m.ImageRef.Exact())
+				} else {
+					fmt.Fprintf(o.Out, "Loading manifests from %s: %s ...\n", tag.Name, m.ImageRef.ID)
+				}
 				return true, nil
 			},
 		})
 	}
+	glog.V(4).Infof("Manifests will be extracted from:\n%#v", opts.Mappings)
 	return opts.Run()
 }
 
