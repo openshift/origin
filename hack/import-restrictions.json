@@ -260,19 +260,6 @@
 
   {
     "checkedPackages": [
-      "github.com/openshift/origin/pkg/network/apis/network",
-      "github.com/openshift/origin/pkg/network/apis/network/v1"
-    ],
-    "allowedImportPackageRoots": [
-      "vendor/k8s.io/apimachinery",
-      "vendor/k8s.io/api",
-      "vendor/github.com/openshift/api"
-    ],
-    "allowedImportPackages": []
-  },
-
-  {
-    "checkedPackages": [
       "github.com/openshift/origin/pkg/oauth/apis/oauth",
       "github.com/openshift/origin/pkg/oauth/apis/oauth/v1"
     ],
