@@ -1,0 +1,140 @@
+# This was copied from https://raw.githubusercontent.com/Maistra/openshift-ansible/maistra-0.7/istio/istio_community_operator_template.yaml
+# to ensure templates with CRDs keep working, see https://bugzilla.redhat.com/show_bug.cgi?id=1671528
+apiVersion: v1
+kind: Template
+metadata:
+  name: istio-operator-job
+parameters:
+- displayName: Master Public URL
+  description: The public URL for master
+  name: OPENSHIFT_ISTIO_MASTER_PUBLIC_URL
+  value: https://127.0.0.1:8443
+- displayName: OpenShift Release
+  description: The version of the OpenShift release.
+  name: OPENSHIFT_RELEASE
+  value: v3.11.0
+  required: true
+- displayName: Istio Operator Namespace
+  description: The namespace for the Istio operator
+  name: OPENSHIFT_ISTIO_OPERATOR_NAMESPACE
+  value: istio-operator
+  required: true
+- displayName: Default Prefix
+  description: The default image prefix for istio deployments
+  name: OPENSHIFT_ISTIO_PREFIX
+  value: maistra/
+- displayName: Default Version
+  description: The default image version for istio deployments
+  name: OPENSHIFT_ISTIO_VERSION
+  value: 0.7.0
+- displayName: Default Deployment Type
+  description: The default deployment type for istio deployments
+  name: OPENSHIFT_DEPLOYMENT_TYPE
+  value: origin
+objects:
+- kind: CustomResourceDefinition
+  apiVersion: apiextensions.k8s.io/v1beta1
+  metadata:
+    name: installations.istio.openshift.com
+  spec:
+    group: istio.openshift.com
+    names:
+      kind: Installation
+      plural: installations
+      singular: installation
+    scope: Namespaced
+    version: v1alpha1
+- kind: Role
+  apiVersion: rbac.authorization.k8s.io/v1
+  metadata:
+    name: istio-operator
+  rules:
+  - apiGroups:
+    - istio.openshift.com
+    resources:
+    - "*"
+    verbs:
+    - "*"
+  - apiGroups:
+    - ""
+    resources:
+    - pods
+    - services
+    - endpoints
+    - persistentvolumeclaims
+    - events
+    - configmaps
+    - secrets
+    - securitycontextconstraints
+    verbs:
+    - "*"
+  - apiGroups:
+    - apps
+    resources:
+    - deployments
+    - daemonsets
+    - replicasets
+    - statefulsets
+    verbs:
+    - "*"
+- kind: RoleBinding
+  apiVersion: rbac.authorization.k8s.io/v1
+  metadata:
+    name: default-account-istio-operator
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${OPENSHIFT_ISTIO_OPERATOR_NAMESPACE}
+    name: default
+  roleRef:
+    kind: Role
+    name: istio-operator
+    apiGroup: rbac.authorization.k8s.io
+- kind: ClusterRoleBinding
+  apiVersion: rbac.authorization.k8s.io/v1
+  metadata:
+    name: default-account-istio-operator-cluster-role-binding
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${OPENSHIFT_ISTIO_OPERATOR_NAMESPACE}
+    name: default
+  roleRef:
+    kind: ClusterRole
+    name: cluster-admin
+    apiGroup: rbac.authorization.k8s.io
+- kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    name: istio-operator
+    namespace: ${OPENSHIFT_ISTIO_OPERATOR_NAMESPACE}
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        name: istio-operator
+    template:
+      metadata:
+        labels:
+          name: istio-operator
+      spec:
+        containers:
+          - name: istio-operator
+            image: ${OPENSHIFT_ISTIO_PREFIX}istio-operator-centos7:${OPENSHIFT_ISTIO_VERSION}
+            ports:
+            - containerPort: 60000
+              name: metrics
+            command:
+            - istio-operator
+            args:
+            - "--release=${OPENSHIFT_RELEASE}"
+            - "--masterPublicURL=${OPENSHIFT_ISTIO_MASTER_PUBLIC_URL}"
+            - "--istioPrefix=${OPENSHIFT_ISTIO_PREFIX}"
+            - "--istioVersion=${OPENSHIFT_ISTIO_VERSION}"
+            - "--deploymentType=${OPENSHIFT_DEPLOYMENT_TYPE}"
+            imagePullPolicy: IfNotPresent
+            env:
+              - name: WATCH_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+              - name: OPERATOR_NAME
+                value: "istio-operator"

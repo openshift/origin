@@ -142,6 +142,8 @@ os::cmd::expect_success 'oc delete all --selector="label=cakephp-ex"'
 os::cmd::expect_success_and_text 'oc new-build https://github.com/sclorg/cakephp-ex --push-secret=mynewsecret -o yaml' 'name: mynewsecret'
 os::cmd::expect_failure_and_text 'oc new-build https://github.com/sclorg/cakephp-ex --push-secret=InvalidSecretName -o yaml' 'error: push secret name "InvalidSecretName" is invalid'
 
+# check CRDs work with new-app
+os::cmd::expect_success_and_text 'oc new-app -f test/testdata/template-with-crd.yaml -o yaml' 'CustomResourceDefinition'
 
 # check label creation
 os::cmd::try_until_success 'oc get imagestreamtags php:latest'

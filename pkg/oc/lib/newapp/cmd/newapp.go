@@ -13,26 +13,43 @@ import (
 	"github.com/golang/glog"
 
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
-	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
+	"github.com/openshift/api/apps"
+	"github.com/openshift/api/authorization"
 	authv1 "github.com/openshift/api/authorization/v1"
+	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/api/image"
 	imagev1 "github.com/openshift/api/image/v1"
+	"github.com/openshift/api/network"
+	"github.com/openshift/api/oauth"
+	"github.com/openshift/api/project"
+	"github.com/openshift/api/quota"
+	"github.com/openshift/api/route"
+	"github.com/openshift/api/security"
+	"github.com/openshift/api/template"
+	"github.com/openshift/api/user"
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	routev1typedclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	templatev1typedclient "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
 	ometa "github.com/openshift/origin/pkg/api/imagereferencemutators"
+	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
@@ -169,6 +186,31 @@ func (e ErrRequiresExplicitAccess) Error() string {
 
 // ErrNoInputs is returned when no inputs are specified
 var ErrNoInputs = errors.New("no inputs provided")
+
+// TODO: we should run entire new-app using unstructured only
+var newAppScheme = runtime.NewScheme()
+
+func init() {
+	// Register external types for Scheme
+	metav1.AddToGroupVersion(newAppScheme, schema.GroupVersion{Version: "v1"})
+	utilruntime.Must(scheme.AddToScheme(newAppScheme))
+
+	// below is a nasty copy&paste from cmd/oc/oc.go:
+	utilruntime.Must(apps.Install(newAppScheme))
+	utilruntime.Must(authorization.Install(newAppScheme))
+	utilruntime.Must(build.Install(newAppScheme))
+	utilruntime.Must(image.Install(newAppScheme))
+	utilruntime.Must(network.Install(newAppScheme))
+	utilruntime.Must(oauth.Install(newAppScheme))
+	utilruntime.Must(project.Install(newAppScheme))
+	utilruntime.Must(quota.Install(newAppScheme))
+	utilruntime.Must(route.Install(newAppScheme))
+	utilruntime.Must(security.Install(newAppScheme))
+	utilruntime.Must(template.Install(newAppScheme))
+	utilruntime.Must(user.Install(newAppScheme))
+	utilruntime.Must(apiextensionsv1beta1.AddToScheme(newAppScheme))
+	legacy.InstallExternalLegacyAll(newAppScheme)
+}
 
 // AppResult contains the results of an application
 type AppResult struct {
@@ -811,11 +853,22 @@ func templateObjectsToAppObjects(objs []runtime.RawExtension) (app.Objects, erro
 			continue
 		}
 
-		obj, err := runtime.Decode(scheme.Codecs.UniversalDeserializer(), raw.Raw)
+		obj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, raw.Raw)
 		if err != nil {
 			return nil, err
 		}
-		converted = append(converted, obj)
+		unstructuredObj, ok := obj.(*unstructured.Unstructured)
+		if !ok {
+			return nil, fmt.Errorf("unable to cast %T to *unstructured.Unstructured", obj)
+		}
+		newObj, err := newAppScheme.New(unstructuredObj.GroupVersionKind())
+		if err != nil {
+			return nil, err
+		}
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructuredObj.Object, newObj); err != nil {
+			return nil, err
+		}
+		converted = append(converted, newObj)
 	}
 
 	return converted, nil
@@ -992,7 +1045,7 @@ func (c *AppConfig) Run() (*AppResult, error) {
 		}
 		for _, obj := range objects {
 			if bc, ok := obj.(*buildv1.BuildConfig); ok {
-				glog.V(4).Infof("Setting push secret for build config to: %v", c.SourceSecret)
+				glog.V(4).Infof("Setting push secret for build config to: %v", c.PushSecret)
 				bc.Spec.Output.PushSecret = &corev1.LocalObjectReference{Name: c.PushSecret}
 				break
 			}
