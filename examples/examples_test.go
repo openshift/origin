@@ -22,7 +22,6 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 
@@ -120,7 +119,6 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"test-service-with-finalizer":         &kapi.Service{},
 			"test-buildcli":                       &kapi.List{},
 			"test-buildcli-beta2":                 &kapi.List{},
-			"test-egress-network-policy":          &networkapi.EgressNetworkPolicy{},
 		},
 		"../test/templates/testdata": {
 			"crunchydata-pod": nil, // Explicitly fails validation, but should pass transformation
