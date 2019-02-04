@@ -743,9 +743,9 @@ func (d *deployerPodInvariantChecker) UpdatePod(pod *corev1.Pod) {
 	oldPhase := oldPod.Status.Phase
 	oldPhaseIsTerminated := oldPhase == corev1.PodSucceeded || oldPhase == corev1.PodFailed
 	o.Expect(oldPhaseIsTerminated && pod.Status.Phase != oldPhase).To(o.BeFalse(),
-		fmt.Sprintf("%v: detected deployer pod '%s/%s' transition from terminated phase: %q -> %q;\n"+
-			"old: %#v\nnew: %#v\ndiff: %s"+
-			pod.Namespace, pod.Name, time.Now(), oldPhase, pod.Status.Phase,
+		spew.Sprintf("%v: detected deployer pod '%s/%s' transition from terminated phase: %q -> %q;\n"+
+			"old: %#+v\nnew: %#+v\ndiff: %s",
+			time.Now(), pod.Namespace, pod.Name, oldPhase, pod.Status.Phase,
 			oldPod, pod, diff.ObjectReflectDiff(oldPod, pod)))
 
 	d.cache[key][index] = pod
