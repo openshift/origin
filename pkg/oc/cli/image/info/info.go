@@ -207,12 +207,22 @@ func describeImage(out io.Writer, image *Image) error {
 	case 1:
 		fmt.Fprintf(w, "Image Size:\t%s\n", units.HumanSize(float64(image.Layers[0].Size)))
 	default:
-		fmt.Fprintf(w, "Image Size:\t%s\n", fmt.Sprintf("%s in %d layers", units.HumanSize(float64(image.Config.Size)), len(image.Layers)))
+		imageSize := fmt.Sprintf("%s in %d layers", units.HumanSize(float64(image.Config.Size)), len(image.Layers))
+		if image.Config.Size == 0 {
+			imageSize = fmt.Sprintf("%d layers (size unavailable)", len(image.Layers))
+		}
+
+		fmt.Fprintf(w, "Image Size:\t%s\n", imageSize)
 		for i, layer := range image.Layers {
+			layerSize := units.HumanSize(float64(layer.Size))
+			if layer.Size == 0 {
+				layerSize = "--"
+			}
+
 			if i == 0 {
-				fmt.Fprintf(w, "%s\t%s\t%s\n", "Layers:", units.HumanSize(float64(layer.Size)), layer.Digest)
+				fmt.Fprintf(w, "%s\t%s\t%s\n", "Layers:", layerSize, layer.Digest)
 			} else {
-				fmt.Fprintf(w, "%s\t%s\t%s\n", "", units.HumanSize(float64(layer.Size)), layer.Digest)
+				fmt.Fprintf(w, "%s\t%s\t%s\n", "", layerSize, layer.Digest)
 			}
 		}
 	}
