@@ -54,7 +54,7 @@ func NewOpenShiftAPIServerCommand(name, basename string, out, errout io.Writer, 
 
 			serviceability.StartProfiler()
 
-			if err := options.WithoutNetworkingAPI().RunAPIServer(stopCh); err != nil {
+			if err := options.RunAPIServer(stopCh); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
 						fmt.Fprintf(errout, "Invalid %s %s\n", details.Kind, details.Name)
@@ -84,11 +84,6 @@ func (o *OpenShiftAPIServer) Validate() error {
 	}
 
 	return nil
-}
-
-func (o *OpenShiftAPIServer) WithoutNetworkingAPI() *OpenShiftAPIServer {
-	featureKeepRemovedNetworkingAPI = false
-	return o
 }
 
 // RunAPIServer takes the options, starts the API server and waits until stopCh is closed or initial listening fails.
