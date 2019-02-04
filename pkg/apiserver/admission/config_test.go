@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
 	"github.com/openshift/origin/pkg/service/admission/externalipranger"
 	"github.com/openshift/origin/pkg/service/admission/restrictedendpoints"
+	"k8s.io/kubernetes/plugin/pkg/admission/nodetaint"
 )
 
 // combinedAdmissionControlPlugins gives the in-order default admission chain for all resources resources.
@@ -53,6 +54,7 @@ var combinedAdmissionControlPlugins = []string{
 	"LimitRanger",
 	"ServiceAccount",
 	noderestriction.PluginName,
+	nodetaint.PluginName,
 	"SecurityContextDeny",
 	sccadmission.PluginName,
 	"PodSecurityPolicy",

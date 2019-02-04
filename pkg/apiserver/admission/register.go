@@ -9,6 +9,7 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	kubeapiserver "k8s.io/kubernetes/pkg/kubeapiserver/options"
 	"k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
+	"k8s.io/kubernetes/plugin/pkg/admission/nodetaint"
 	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/persistentvolume/resize"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/storageclass/setdefault"
 
@@ -94,6 +95,7 @@ var (
 		"LimitRanger",
 		"ServiceAccount",
 		noderestriction.PluginName,
+		nodetaint.PluginName,
 		securityadmission.PluginName,
 		"StorageObjectInUseProtection",
 		"SCCExecRestrictions",

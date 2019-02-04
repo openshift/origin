@@ -15,6 +15,7 @@ import (
 	validatingwebhook "k8s.io/apiserver/pkg/admission/plugin/webhook/validating"
 	"k8s.io/apiserver/pkg/apis/apiserver"
 	"k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
+	"k8s.io/kubernetes/plugin/pkg/admission/nodetaint"
 	expandpvcadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/persistentvolume/resize"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storage/storageclass/setdefault"
 
@@ -85,6 +86,7 @@ var (
 		"LimitRanger",
 		"ServiceAccount",
 		noderestriction.PluginName,
+		nodetaint.PluginName,
 		"SecurityContextDeny",
 		sccadmission.PluginName,
 		"PodSecurityPolicy",
