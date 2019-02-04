@@ -97,7 +97,29 @@ var (
     To see the full list of commands supported, run '%[1]s --help'.`)
 )
 
-func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewDefaultOcCommand(name, fullName string, in io.Reader, out, errout io.Writer) *cobra.Command {
+	cmd := NewOcCommand(name, fullName, in, out, errout)
+
+	if len(os.Args) <= 1 {
+		return cmd
+	}
+
+	cmdPathPieces := os.Args[1:]
+	pluginHandler := kubecmd.NewDefaultPluginHandler(kubecmd.ValidPluginFilenamePrefixes)
+
+	// only look for suitable extension executables if
+	// the specified command does not already exist
+	if _, _, err := cmd.Find(cmdPathPieces); err != nil {
+		if err := kubecmd.HandlePluginCommand(pluginHandler, cmdPathPieces); err != nil {
+			fmt.Fprintf(errout, "%v\n", err)
+			os.Exit(1)
+		}
+	}
+
+	return cmd
+}
+
+func NewOcCommand(name, fullName string, in io.Reader, out, errout io.Writer) *cobra.Command {
 	// Main command
 	cmds := &cobra.Command{
 		Use:   name,
@@ -330,14 +352,14 @@ func CommandFor(basename string) *cobra.Command {
 
 	switch basename {
 	case "kubectl":
-		cmd = kubecmd.NewKubectlCommand(in, out, errout)
+		cmd = kubecmd.NewDefaultKubectlCommand()
 	case "openshift-deploy":
 		cmd = deployer.NewCommandDeployer(basename)
 	case "openshift-recycle":
 		cmd = recycle.NewCommandRecycle(basename, out)
 	default:
 		shimKubectlForOc()
-		cmd = NewCommandCLI("oc", "oc", in, out, errout)
+		cmd = NewDefaultOcCommand("oc", "oc", in, out, errout)
 
 		// treat oc as a kubectl plugin
 		if strings.HasPrefix(basename, "kubectl-") {
