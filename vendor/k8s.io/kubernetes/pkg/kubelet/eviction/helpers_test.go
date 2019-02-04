@@ -941,13 +941,13 @@ func TestSortByEvictionPriority(t *testing.T) {
 			expected:   []evictionapi.Threshold{},
 		},
 		{
-			name: "memory first, PID last",
+			name: "memory first",
 			thresholds: []evictionapi.Threshold{
 				{
-					Signal: evictionapi.SignalPIDAvailable,
+					Signal: evictionapi.SignalNodeFsAvailable,
 				},
 				{
-					Signal: evictionapi.SignalNodeFsAvailable,
+					Signal: evictionapi.SignalPIDAvailable,
 				},
 				{
 					Signal: evictionapi.SignalMemoryAvailable,
@@ -966,13 +966,13 @@ func TestSortByEvictionPriority(t *testing.T) {
 			},
 		},
 		{
-			name: "allocatable memory first, PID last",
+			name: "allocatable memory first",
 			thresholds: []evictionapi.Threshold{
 				{
-					Signal: evictionapi.SignalPIDAvailable,
+					Signal: evictionapi.SignalNodeFsAvailable,
 				},
 				{
-					Signal: evictionapi.SignalNodeFsAvailable,
+					Signal: evictionapi.SignalPIDAvailable,
 				},
 				{
 					Signal: evictionapi.SignalAllocatableMemoryAvailable,
