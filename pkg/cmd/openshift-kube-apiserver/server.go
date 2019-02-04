@@ -5,7 +5,6 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/kubernetes/cmd/kube-apiserver/app"
@@ -15,7 +14,7 @@ import (
 
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	"github.com/openshift/origin/pkg/admission/customresourcevalidation/customresourcevalidationregistration"
-	originadmission "github.com/openshift/origin/pkg/apiserver/admission"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/kubeadmission"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
 	"k8s.io/kubernetes/pkg/kubeapiserver/options"
 
@@ -37,22 +36,15 @@ func RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig *kubecontrolplanev1.Kub
 	bootstrappolicy.ClusterRoles = bootstrappolicy.OpenshiftClusterRoles
 	bootstrappolicy.ClusterRoleBindings = bootstrappolicy.OpenshiftClusterRoleBindings
 
-	options.AllOrderedPlugins = append([]string{}, originadmission.KubeAdmissionPlugins...)
-	options.AllOrderedPlugins = append(options.AllOrderedPlugins, customresourcevalidationregistration.AllCustomResourceValidators...)
+	options.AllOrderedPlugins = kubeadmission.NewOrderedKubeAdmissionPlugins(options.AllOrderedPlugins)
 
 	kubeRegisterAdmission := options.RegisterAllAdmissionPlugins
 	options.RegisterAllAdmissionPlugins = func(plugins *admission.Plugins) {
 		kubeRegisterAdmission(plugins)
-		originadmission.RegisterOpenshiftKubeAdmissionPlugins(plugins)
+		kubeadmission.RegisterOpenshiftKubeAdmissionPlugins(plugins)
 		customresourcevalidationregistration.RegisterCustomResourceValidation(plugins)
 	}
-	kubeDefaultOffAdmission := options.DefaultOffAdmissionPlugins
-	options.DefaultOffAdmissionPlugins = func() sets.String {
-		kubeOff := kubeDefaultOffAdmission()
-		kubeOff.Insert(originadmission.DefaultOffPlugins.List()...)
-		kubeOff.Delete(originadmission.DefaultOnPlugins.List()...)
-		return kubeOff
-	}
+	options.DefaultOffAdmissionPlugins = kubeadmission.NewDefaultOffPluginsFunc(options.DefaultOffAdmissionPlugins())
 
 	configPatchFn, serverPatchContext := openshiftkubeapiserver.NewOpenShiftKubeAPIServerConfigPatch(genericapiserver.NewEmptyDelegate(), kubeAPIServerConfig)
 	app.OpenShiftKubeAPIServerConfigPatch = configPatchFn

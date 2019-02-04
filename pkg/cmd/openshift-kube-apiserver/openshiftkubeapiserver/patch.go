@@ -27,9 +27,9 @@ import (
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	"github.com/openshift/origin/pkg/admission/namespaceconditions"
-	originadmission "github.com/openshift/origin/pkg/apiserver/admission"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
+	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/kubeadmission"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
@@ -122,8 +122,8 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 			NamespaceClient: kubeClient.CoreV1(),
 			NamespaceLister: kubeInformers.Core().V1().Namespaces().Lister(),
 
-			SkipLevelZeroNames: originadmission.SkipRunLevelZeroPlugins,
-			SkipLevelOneNames:  originadmission.SkipRunLevelOnePlugins,
+			SkipLevelZeroNames: kubeadmission.SkipRunLevelZeroPlugins,
+			SkipLevelOneNames:  kubeadmission.SkipRunLevelOnePlugins,
 		}
 		options.AdmissionDecorator = admission.Decorators{
 			admission.DecoratorFunc(namespaceLabelDecorator.WithNamespaceLabelConditions),

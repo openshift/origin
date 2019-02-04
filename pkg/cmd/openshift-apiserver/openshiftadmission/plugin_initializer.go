@@ -1,4 +1,4 @@
-package admission
+package openshiftadmission
 
 import (
 	"fmt"
