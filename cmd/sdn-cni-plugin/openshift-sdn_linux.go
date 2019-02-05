@@ -110,7 +110,7 @@ func (p *cniPlugin) doCNIServerAdd(req *cniserver.CNIRequest, hostVeth string) (
 
 	// We'll create the 0.3.x (current) version of the Result, because it will allow us to
 	// properly convert it to any lower version
-	result, err = current.NewResultFromResult(result)
+	result, err = convertTo03x(result)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert result to %v: %v", current.ImplementedSpecVersion, err)
 	}
@@ -291,4 +291,54 @@ func main() {
 	defer hostNS.Close()
 	p := NewCNIPlugin(cniserver.CNIServerSocketPath, hostNS)
 	skel.PluginMain(p.CmdAdd, p.CmdDel, version.All)
+}
+
+// convertTo03x properly converts a 0.2.0 result to a 0.3.x result, without breaking nil gw fields
+// this code is a patched version of convertFrom020() from vendor/github.com/containernetworking/cni/pkg/types/current/types.go
+// TODO: remove when https://github.com/containernetworking/cni/pull/617 is merged
+func convertTo03x(result types.Result) (types.Result, error) {
+	oldResult, err := types020.GetResult(result)
+	if err != nil {
+		return nil, err
+	}
+
+	newResult := &current.Result{
+		CNIVersion: current.ImplementedSpecVersion,
+		DNS:        oldResult.DNS,
+		Routes:     []*types.Route{},
+	}
+
+	if oldResult.IP4 != nil {
+		newResult.IPs = append(newResult.IPs, &current.IPConfig{
+			Version: "4",
+			Address: oldResult.IP4.IP,
+			Gateway: oldResult.IP4.Gateway,
+		})
+		for _, route := range oldResult.IP4.Routes {
+			newResult.Routes = append(newResult.Routes, &types.Route{
+				Dst: route.Dst,
+				GW:  route.GW,
+			})
+		}
+	}
+
+	if oldResult.IP6 != nil {
+		newResult.IPs = append(newResult.IPs, &current.IPConfig{
+			Version: "6",
+			Address: oldResult.IP6.IP,
+			Gateway: oldResult.IP6.Gateway,
+		})
+		for _, route := range oldResult.IP6.Routes {
+			newResult.Routes = append(newResult.Routes, &types.Route{
+				Dst: route.Dst,
+				GW:  route.GW,
+			})
+		}
+	}
+
+	if len(newResult.IPs) == 0 {
+		return nil, fmt.Errorf("cannot convert: no valid IP addresses")
+	}
+
+	return newResult, nil
 }

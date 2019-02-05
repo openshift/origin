@@ -92,12 +92,22 @@ func TestOpenshiftSdnCNIPlugin(t *testing.T) {
 	cniPlugin := NewCNIPlugin(path, &dummyHostNS{})
 
 	expectedIP, expectedNet, _ := net.ParseCIDR("10.0.0.2/24")
+	expectedGateway := net.ParseIP("10.0.0.1")
 	expectedResult = &cni020.Result{
 		CNIVersion: "0.2.0",
 		IP4: &cni020.IPConfig{
 			IP: net.IPNet{
 				IP:   expectedIP,
 				Mask: expectedNet.Mask,
+			},
+			Gateway: expectedGateway,
+			Routes: []cnitypes.Route{
+				{
+					Dst: net.IPNet{
+						IP:   expectedIP,
+						Mask: expectedNet.Mask,
+					},
+				},
 			},
 		},
 	}
@@ -146,9 +156,18 @@ func TestOpenshiftSdnCNIPlugin(t *testing.T) {
 							IP:   expectedIP,
 							Mask: expectedNet.Mask,
 						},
+						Gateway: expectedGateway,
 					},
 				},
-				Routes: []*cnitypes.Route{},
+				Routes: []*cnitypes.Route{
+					{
+						Dst: net.IPNet{
+							IP:   expectedIP,
+							Mask: expectedNet.Mask,
+						},
+						GW: nil,
+					},
+				},
 			},
 		},
 		// ADD request using cniVersion 0.3.1
@@ -172,9 +191,18 @@ func TestOpenshiftSdnCNIPlugin(t *testing.T) {
 							IP:   expectedIP,
 							Mask: expectedNet.Mask,
 						},
+						Gateway: expectedGateway,
 					},
 				},
-				Routes: []*cnitypes.Route{},
+				Routes: []*cnitypes.Route{
+					{
+						Dst: net.IPNet{
+							IP:   expectedIP,
+							Mask: expectedNet.Mask,
+						},
+						GW: nil,
+					},
+				},
 			},
 		},
 		// Normal DEL request
