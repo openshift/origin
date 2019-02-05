@@ -3,11 +3,56 @@ package configdefault
 import (
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 
+	"github.com/golang/glog"
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/configdefaults"
 )
+
+// ResolveDirectoriesForSATokenVerification takes our config (which allows directories) and navigates one level of
+// those directories for files.  This makes it easy to build a single configmap that contains lots of aggregated files.
+// if we fail to open the file for inspection, the resolving code in kube-apiserver may have drifted from us
+// we include the raw file and let the kube-apiserver succeed or fail.
+func ResolveDirectoriesForSATokenVerification(config *kubecontrolplanev1.KubeAPIServerConfig) {
+	// kube doesn't honor directories, but we want to allow them in our sa token validators
+	resolvedSATokenValidationCerts := []string{}
+	for _, filename := range config.ServiceAccountPublicKeyFiles {
+		file, err := os.Open(filename)
+		if err != nil {
+			resolvedSATokenValidationCerts = append(resolvedSATokenValidationCerts, filename)
+			glog.Warningf(err.Error())
+			continue
+		}
+		fileInfo, err := file.Stat()
+		if err != nil {
+			resolvedSATokenValidationCerts = append(resolvedSATokenValidationCerts, filename)
+			glog.Warningf(err.Error())
+			continue
+		}
+		if !fileInfo.IsDir() {
+			resolvedSATokenValidationCerts = append(resolvedSATokenValidationCerts, filename)
+			continue
+		}
+
+		contents, err := ioutil.ReadDir(filename)
+		switch {
+		case os.IsNotExist(err) || os.IsPermission(err):
+			glog.Warningf(err.Error())
+		case err != nil:
+			panic(err) // some weird, unexpected error
+		default:
+			for _, content := range contents {
+				if !content.Mode().IsRegular() {
+					continue
+				}
+				resolvedSATokenValidationCerts = append(resolvedSATokenValidationCerts, filepath.Join(filename, content.Name()))
+			}
+		}
+	}
+
+	config.ServiceAccountPublicKeyFiles = resolvedSATokenValidationCerts
+}
 
 func SetRecommendedKubeAPIServerConfigDefaults(config *kubecontrolplanev1.KubeAPIServerConfig) {
 	configdefaults.DefaultString(&config.GenericAPIServerConfig.StorageConfig.StoragePrefix, "kubernetes.io")
@@ -22,19 +67,7 @@ func SetRecommendedKubeAPIServerConfigDefaults(config *kubecontrolplanev1.KubeAP
 	configdefaults.DefaultString(&config.ServicesNodePortRange, "30000-32767")
 
 	if len(config.ServiceAccountPublicKeyFiles) == 0 {
-		contents, err := ioutil.ReadDir("/var/run/configmaps/sa-token-signing-certs")
-		switch {
-		case os.IsNotExist(err) || os.IsPermission(err):
-		case err != nil:
-			panic(err) // some weird, unexpected error
-		default:
-			for _, content := range contents {
-				if !content.Mode().IsRegular() {
-					continue
-				}
-				config.ServiceAccountPublicKeyFiles = append(config.ServiceAccountPublicKeyFiles, path.Join("/var/run/configmaps/sa-token-signing-certs", content.Name()))
-			}
-		}
+		config.ServiceAccountPublicKeyFiles = append([]string{}, "/etc/kubernetes/static-pod-resources/configmaps/sa-token-signing-certs")
 	}
 
 	// after the aggregator defaults are set, we can default the auth config values

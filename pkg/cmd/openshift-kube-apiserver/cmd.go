@@ -118,6 +118,7 @@ func (o *OpenShiftKubeAPIServerServer) RunAPIServer(stopCh <-chan struct{}) erro
 			return err
 		}
 		configdefault.SetRecommendedKubeAPIServerConfigDefaults(config)
+		configdefault.ResolveDirectoriesForSATokenVerification(config)
 
 		return RunOpenShiftKubeAPIServerServer(config, stopCh)
 	}
