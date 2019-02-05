@@ -9,41 +9,24 @@ import (
 )
 
 const (
-	GroupName           = "requestlimit.project.openshift.io"
-	DeprecatedGroupName = ""
+	GroupName = "project.openshift.io"
 )
 
 var (
-	SchemeGroupVersion           = schema.GroupVersion{Group: GroupName, Version: "v1"}
-	DeprecatedSchemeGroupVersion = schema.GroupVersion{Group: DeprecatedGroupName, Version: "v1"}
+	GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1"}
 
-	DeprecatedSchemeBuilder = runtime.NewSchemeBuilder(
-		addDeprecatedKnownTypes,
-		requestlimit.InstallLegacy,
-	)
-	DeprecatedInstall = DeprecatedSchemeBuilder.AddToScheme
-
-	SchemeBuilder = runtime.NewSchemeBuilder(
+	schemeBuilder = runtime.NewSchemeBuilder(
 		addKnownTypes,
 		requestlimit.Install,
 	)
-	Install = SchemeBuilder.AddToScheme
+	Install = schemeBuilder.AddToScheme
 )
 
 // Adds the list of known types to api.Scheme.
-func addDeprecatedKnownTypes(scheme *runtime.Scheme) error {
-	types := []runtime.Object{
-		&ProjectRequestLimitConfig{},
-	}
-	scheme.AddKnownTypes(DeprecatedSchemeGroupVersion, types...)
-	return nil
-}
-
-// Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
+	scheme.AddKnownTypes(GroupVersion,
 		&ProjectRequestLimitConfig{},
 	)
-	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
+	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil
 }

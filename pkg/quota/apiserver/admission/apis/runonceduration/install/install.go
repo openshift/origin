@@ -8,7 +8,7 @@ import (
 	"github.com/openshift/origin/pkg/quota/apiserver/admission/apis/runonceduration/v1"
 )
 
-func InstallLegacyInternal(scheme *runtime.Scheme) {
-	utilruntime.Must(runonceduration.InstallLegacy(scheme))
-	utilruntime.Must(v1.DeprecatedInstall(scheme))
+func InstallInternal(scheme *runtime.Scheme) {
+	utilruntime.Must(runonceduration.Install(scheme))
+	utilruntime.Must(v1.Install(scheme))
 }

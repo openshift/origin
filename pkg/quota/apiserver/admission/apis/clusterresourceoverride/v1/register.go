@@ -7,23 +7,21 @@ import (
 	"github.com/openshift/origin/pkg/quota/apiserver/admission/apis/clusterresourceoverride"
 )
 
-// SchemeGroupVersion is group version used to register these objects
-var DeprecatedSchemeGroupVersion = schema.GroupVersion{Group: "", Version: "v1"}
+func (obj *ClusterResourceOverrideConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
+
+var GroupVersion = schema.GroupVersion{Group: "autoscaling.openshift.io", Version: "v1"}
 
 var (
-	DeprecatedSchemeBuilder = runtime.NewSchemeBuilder(
-		deprecatedAddKnownTypes,
-		clusterresourceoverride.InstallLegacy,
+	schemeBuilder = runtime.NewSchemeBuilder(
+		addKnownTypes,
+		clusterresourceoverride.Install,
 	)
-	DeprecatedInstall = DeprecatedSchemeBuilder.AddToScheme
+	Install = schemeBuilder.AddToScheme
 )
 
-// Adds the list of known types to api.Scheme.
-func deprecatedAddKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(DeprecatedSchemeGroupVersion,
+func addKnownTypes(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(GroupVersion,
 		&ClusterResourceOverrideConfig{},
 	)
 	return nil
 }
-
-func (obj *ClusterResourceOverrideConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }

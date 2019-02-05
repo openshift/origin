@@ -40,12 +40,11 @@ func InstallLegacyInternal(scheme *runtime.Scheme) {
 	requestlimitinstall.InstallInternal(scheme)
 
 	// add the other admission config types we have to the core group if they are legacy types
-	imagepolicyinstall.InstallLegacyInternal(scheme)
-	ingressadmissioninstall.InstallLegacyInternal(scheme)
-	requestlimitinstall.InstallLegacyInternal(scheme)
-	clusterresourceoverrideinstall.InstallLegacyInternal(scheme)
-	runoncedurationinstall.InstallLegacyInternal(scheme)
-	podnodeconstraintsinstall.InstallLegacyInternal(scheme)
+	imagepolicyinstall.InstallInternal(scheme)
+	ingressadmissioninstall.InstallInternal(scheme)
+	clusterresourceoverrideinstall.InstallInternal(scheme)
+	runoncedurationinstall.InstallInternal(scheme)
+	podnodeconstraintsinstall.InstallInternal(scheme)
 	restrictedendpointsinstall.InstallLegacyInternal(scheme)
 	externaliprangerinstall.InstallLegacyInternal(scheme)
 }

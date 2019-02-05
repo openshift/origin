@@ -7,22 +7,21 @@ import (
 	"github.com/openshift/origin/pkg/route/apiserver/admission/apis/ingressadmission"
 )
 
-// SchemeGroupVersion is group version used to register these objects
-var DeprecatedSchemeGroupVersion = schema.GroupVersion{Group: "", Version: "v1"}
+func (obj *IngressAdmissionConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
+
+var GroupVersion = schema.GroupVersion{Group: "route.openshift.io", Version: "v1"}
 
 var (
-	DeprecatedSchemeBuilder = runtime.NewSchemeBuilder(
-		deprecatedAddKnownTypes,
-		ingressadmission.InstallLegacy,
+	schemeBuilder = runtime.NewSchemeBuilder(
+		addKnownTypes,
+		ingressadmission.Install,
 	)
-	DeprecatedInstall = DeprecatedSchemeBuilder.AddToScheme
+	Install = schemeBuilder.AddToScheme
 )
 
-func deprecatedAddKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(DeprecatedSchemeGroupVersion,
+func addKnownTypes(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(GroupVersion,
 		&IngressAdmissionConfig{},
 	)
 	return nil
 }
-
-func (obj *IngressAdmissionConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }

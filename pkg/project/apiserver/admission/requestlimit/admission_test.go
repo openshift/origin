@@ -36,7 +36,7 @@ func TestReadConfig(t *testing.T) {
 	}{
 		{
 			// multiple selectors
-			config: `apiVersion: v1
+			config: `apiVersion: project.openshift.io/v1
 kind: ProjectRequestLimitConfig
 limits:
 - selector:
@@ -84,7 +84,7 @@ limits:
 		},
 		{
 			// single selector
-			config: `apiVersion: v1
+			config: `apiVersion: project.openshift.io/v1
 kind: ProjectRequestLimitConfig
 limits:
 - maxProjects: 1
@@ -100,7 +100,7 @@ limits:
 		},
 		{
 			// no selectors
-			config: `apiVersion: v1
+			config: `apiVersion: project.openshift.io/v1
 kind: ProjectRequestLimitConfig
 `,
 			expected: requestlimitapi.ProjectRequestLimitConfig{},

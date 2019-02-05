@@ -29,19 +29,19 @@ import (
 
 const (
 	yamlConfig = `
-apiVersion: v1
+apiVersion: autoscaling.openshift.io/v1
 kind: ClusterResourceOverrideConfig
 limitCPUToMemoryPercent: 100
 cpuRequestToLimitPercent: 10
 memoryRequestToLimitPercent: 25
 `
 	invalidConfig = `
-apiVersion: v1
+apiVersion: autoscaling.openshift.io/v1
 kind: ClusterResourceOverrideConfig
 cpuRequestToLimitPercent: 200
 `
 	invalidConfig2 = `
-apiVersion: v1
+apiVersion: autoscaling.openshift.io/v1
 kind: ClusterResourceOverrideConfig
 `
 )

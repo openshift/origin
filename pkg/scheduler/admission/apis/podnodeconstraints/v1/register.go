@@ -6,24 +6,23 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// SchemeGroupVersion is group version used to register these objects
-var DeprecatedSchemeGroupVersion = schema.GroupVersion{Group: "", Version: "v1"}
+func (obj *PodNodeConstraintsConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
+
+var GroupVersion = schema.GroupVersion{Group: "scheduling.openshift.io", Version: "v1"}
 
 var (
-	DeprecatedSchemeBuilder = runtime.NewSchemeBuilder(
-		deprecatedAddKnownTypes,
-		podnodeconstraints.InstallLegacy,
+	schemeBuilder = runtime.NewSchemeBuilder(
+		addKnownTypes,
+		podnodeconstraints.Install,
 
 		addDefaultingFuncs,
 	)
-	DeprecatedInstall = DeprecatedSchemeBuilder.AddToScheme
+	Install = schemeBuilder.AddToScheme
 )
 
-func deprecatedAddKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(DeprecatedSchemeGroupVersion,
+func addKnownTypes(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(GroupVersion,
 		&PodNodeConstraintsConfig{},
 	)
 	return nil
 }
-
-func (obj *PodNodeConstraintsConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
