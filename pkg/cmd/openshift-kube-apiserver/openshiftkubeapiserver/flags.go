@@ -5,31 +5,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"os"
-	"path/filepath"
-	"sort"
-	"strconv"
 	"strings"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	configv1 "github.com/openshift/api/config/v1"
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
+	"github.com/openshift/origin/pkg/cmd/configflags"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/configconversion"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
-const defaultAuditPolicyFilePath = "openshift.local.audit/policy.yaml"
-
 func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) ([]string, error) {
-	args := map[string][]string{}
-	for key, slice := range kubeAPIServerConfig.APIServerArguments {
-		for _, val := range slice {
-			args[key] = append(args[key], val)
-		}
-	}
+	args := unmaskArgs(kubeAPIServerConfig.APIServerArguments)
 
 	host, portString, err := net.SplitHostPort(kubeAPIServerConfig.ServingInfo.BindAddress)
 	if err != nil {
@@ -113,125 +101,56 @@ func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) 
 		return nil, err
 	}
 	for flag, value := range admissionFlags {
-		setIfUnset(args, flag, value...)
+		configflags.SetIfUnset(args, flag, value...)
 	}
-	setIfUnset(args, "allow-privileged", "true")
-	setIfUnset(args, "anonymous-auth", "false")
-	setIfUnset(args, "authorization-mode", "RBAC", "Node") // overridden later, but this runs the poststarthook for bootstrapping RBAC
-	for flag, value := range auditFlags(kubeAPIServerConfig) {
-		setIfUnset(args, flag, value...)
+	configflags.SetIfUnset(args, "allow-privileged", "true")
+	configflags.SetIfUnset(args, "anonymous-auth", "false")
+	configflags.SetIfUnset(args, "authorization-mode", "RBAC", "Node") // overridden later, but this runs the poststarthook for bootstrapping RBAC
+	for flag, value := range configflags.AuditFlags(&kubeAPIServerConfig.AuditConfig, configflags.ArgsWithPrefix(args, "audit-")) {
+		configflags.SetIfUnset(args, flag, value...)
 	}
-	setIfUnset(args, "bind-address", host)
-	setIfUnset(args, "client-ca-file", kubeAPIServerConfig.ServingInfo.ClientCA)
-	setIfUnset(args, "cors-allowed-origins", kubeAPIServerConfig.CORSAllowedOrigins...)
-	setIfUnset(args, "enable-logs-handler", "false")
-	setIfUnset(args, "enable-swagger-ui", "true")
-	setIfUnset(args, "endpoint-reconciler-type", "lease")
-	setIfUnset(args, "etcd-cafile", kubeAPIServerConfig.StorageConfig.CA)
-	setIfUnset(args, "etcd-certfile", kubeAPIServerConfig.StorageConfig.CertFile)
-	setIfUnset(args, "etcd-keyfile", kubeAPIServerConfig.StorageConfig.KeyFile)
-	setIfUnset(args, "etcd-prefix", kubeAPIServerConfig.StorageConfig.StoragePrefix)
-	setIfUnset(args, "etcd-servers", kubeAPIServerConfig.StorageConfig.URLs...)
-	setIfUnset(args, "insecure-port", "0")
-	setIfUnset(args, "kubelet-certificate-authority", kubeAPIServerConfig.KubeletClientInfo.CA)
-	setIfUnset(args, "kubelet-client-certificate", kubeAPIServerConfig.KubeletClientInfo.CertFile)
-	setIfUnset(args, "kubelet-client-key", kubeAPIServerConfig.KubeletClientInfo.KeyFile)
-	setIfUnset(args, "kubelet-https", "true")
-	setIfUnset(args, "kubelet-preferred-address-types", "Hostname", "InternalIP", "ExternalIP")
-	setIfUnset(args, "kubelet-read-only-port", "0")
-	setIfUnset(args, "kubernetes-service-node-port", "0")
-	setIfUnset(args, "max-mutating-requests-inflight", fmt.Sprintf("%d", kubeAPIServerConfig.ServingInfo.MaxRequestsInFlight/2))
-	setIfUnset(args, "max-requests-inflight", fmt.Sprintf("%d", kubeAPIServerConfig.ServingInfo.MaxRequestsInFlight))
-	setIfUnset(args, "min-request-timeout", fmt.Sprintf("%d", kubeAPIServerConfig.ServingInfo.RequestTimeoutSeconds))
-	setIfUnset(args, "proxy-client-cert-file", kubeAPIServerConfig.AggregatorConfig.ProxyClientInfo.CertFile)
-	setIfUnset(args, "proxy-client-key-file", kubeAPIServerConfig.AggregatorConfig.ProxyClientInfo.KeyFile)
-	setIfUnset(args, "requestheader-allowed-names", kubeAPIServerConfig.AuthConfig.RequestHeader.ClientCommonNames...)
-	setIfUnset(args, "requestheader-client-ca-file", kubeAPIServerConfig.AuthConfig.RequestHeader.ClientCA)
-	setIfUnset(args, "requestheader-extra-headers-prefix", kubeAPIServerConfig.AuthConfig.RequestHeader.ExtraHeaderPrefixes...)
-	setIfUnset(args, "requestheader-group-headers", kubeAPIServerConfig.AuthConfig.RequestHeader.GroupHeaders...)
-	setIfUnset(args, "requestheader-username-headers", kubeAPIServerConfig.AuthConfig.RequestHeader.UsernameHeaders...)
-	setIfUnset(args, "secure-port", portString)
-	setIfUnset(args, "service-cluster-ip-range", kubeAPIServerConfig.ServicesSubnet)
-	setIfUnset(args, "service-node-port-range", kubeAPIServerConfig.ServicesNodePortRange)
-	setIfUnset(args, "storage-backend", "etcd3")
-	setIfUnset(args, "storage-media-type", "application/vnd.kubernetes.protobuf")
-	setIfUnset(args, "tls-cert-file", kubeAPIServerConfig.ServingInfo.CertFile)
-	setIfUnset(args, "tls-cipher-suites", kubeAPIServerConfig.ServingInfo.CipherSuites...)
-	setIfUnset(args, "tls-min-version", kubeAPIServerConfig.ServingInfo.MinTLSVersion)
-	setIfUnset(args, "tls-private-key-file", kubeAPIServerConfig.ServingInfo.KeyFile)
-	setIfUnset(args, "tls-sni-cert-key", sniCertKeys(kubeAPIServerConfig.ServingInfo.NamedCertificates)...)
-	setIfUnset(args, "secure-port", portString)
+	configflags.SetIfUnset(args, "bind-address", host)
+	configflags.SetIfUnset(args, "client-ca-file", kubeAPIServerConfig.ServingInfo.ClientCA)
+	configflags.SetIfUnset(args, "cors-allowed-origins", kubeAPIServerConfig.CORSAllowedOrigins...)
+	configflags.SetIfUnset(args, "enable-logs-handler", "false")
+	configflags.SetIfUnset(args, "enable-swagger-ui", "true")
+	configflags.SetIfUnset(args, "endpoint-reconciler-type", "lease")
+	configflags.SetIfUnset(args, "etcd-cafile", kubeAPIServerConfig.StorageConfig.CA)
+	configflags.SetIfUnset(args, "etcd-certfile", kubeAPIServerConfig.StorageConfig.CertFile)
+	configflags.SetIfUnset(args, "etcd-keyfile", kubeAPIServerConfig.StorageConfig.KeyFile)
+	configflags.SetIfUnset(args, "etcd-prefix", kubeAPIServerConfig.StorageConfig.StoragePrefix)
+	configflags.SetIfUnset(args, "etcd-servers", kubeAPIServerConfig.StorageConfig.URLs...)
+	configflags.SetIfUnset(args, "insecure-port", "0")
+	configflags.SetIfUnset(args, "kubelet-certificate-authority", kubeAPIServerConfig.KubeletClientInfo.CA)
+	configflags.SetIfUnset(args, "kubelet-client-certificate", kubeAPIServerConfig.KubeletClientInfo.CertFile)
+	configflags.SetIfUnset(args, "kubelet-client-key", kubeAPIServerConfig.KubeletClientInfo.KeyFile)
+	configflags.SetIfUnset(args, "kubelet-https", "true")
+	configflags.SetIfUnset(args, "kubelet-preferred-address-types", "Hostname", "InternalIP", "ExternalIP")
+	configflags.SetIfUnset(args, "kubelet-read-only-port", "0")
+	configflags.SetIfUnset(args, "kubernetes-service-node-port", "0")
+	configflags.SetIfUnset(args, "max-mutating-requests-inflight", fmt.Sprintf("%d", kubeAPIServerConfig.ServingInfo.MaxRequestsInFlight/2))
+	configflags.SetIfUnset(args, "max-requests-inflight", fmt.Sprintf("%d", kubeAPIServerConfig.ServingInfo.MaxRequestsInFlight))
+	configflags.SetIfUnset(args, "min-request-timeout", fmt.Sprintf("%d", kubeAPIServerConfig.ServingInfo.RequestTimeoutSeconds))
+	configflags.SetIfUnset(args, "proxy-client-cert-file", kubeAPIServerConfig.AggregatorConfig.ProxyClientInfo.CertFile)
+	configflags.SetIfUnset(args, "proxy-client-key-file", kubeAPIServerConfig.AggregatorConfig.ProxyClientInfo.KeyFile)
+	configflags.SetIfUnset(args, "requestheader-allowed-names", kubeAPIServerConfig.AuthConfig.RequestHeader.ClientCommonNames...)
+	configflags.SetIfUnset(args, "requestheader-client-ca-file", kubeAPIServerConfig.AuthConfig.RequestHeader.ClientCA)
+	configflags.SetIfUnset(args, "requestheader-extra-headers-prefix", kubeAPIServerConfig.AuthConfig.RequestHeader.ExtraHeaderPrefixes...)
+	configflags.SetIfUnset(args, "requestheader-group-headers", kubeAPIServerConfig.AuthConfig.RequestHeader.GroupHeaders...)
+	configflags.SetIfUnset(args, "requestheader-username-headers", kubeAPIServerConfig.AuthConfig.RequestHeader.UsernameHeaders...)
+	configflags.SetIfUnset(args, "secure-port", portString)
+	configflags.SetIfUnset(args, "service-cluster-ip-range", kubeAPIServerConfig.ServicesSubnet)
+	configflags.SetIfUnset(args, "service-node-port-range", kubeAPIServerConfig.ServicesNodePortRange)
+	configflags.SetIfUnset(args, "storage-backend", "etcd3")
+	configflags.SetIfUnset(args, "storage-media-type", "application/vnd.kubernetes.protobuf")
+	configflags.SetIfUnset(args, "tls-cert-file", kubeAPIServerConfig.ServingInfo.CertFile)
+	configflags.SetIfUnset(args, "tls-cipher-suites", kubeAPIServerConfig.ServingInfo.CipherSuites...)
+	configflags.SetIfUnset(args, "tls-min-version", kubeAPIServerConfig.ServingInfo.MinTLSVersion)
+	configflags.SetIfUnset(args, "tls-private-key-file", kubeAPIServerConfig.ServingInfo.KeyFile)
+	configflags.SetIfUnset(args, "tls-sni-cert-key", sniCertKeys(kubeAPIServerConfig.ServingInfo.NamedCertificates)...)
+	configflags.SetIfUnset(args, "secure-port", portString)
 
-	var keys []string
-	for key := range args {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-
-	var arguments []string
-	for _, key := range keys {
-		for _, token := range args[key] {
-			arguments = append(arguments, fmt.Sprintf("--%s=%v", key, token))
-		}
-	}
-	return arguments, nil
-}
-
-func auditFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) map[string][]string {
-	args := map[string][]string{}
-
-	for key, slice := range kubeAPIServerConfig.APIServerArguments {
-		if !strings.HasPrefix("audit-", key) {
-			continue
-		}
-		for _, val := range slice {
-			args[key] = append(args[key], val)
-		}
-	}
-
-	if !kubeAPIServerConfig.AuditConfig.Enabled {
-		return args
-	}
-
-	auditPolicyFilePath := kubeAPIServerConfig.AuditConfig.PolicyFile
-	if len(kubeAPIServerConfig.AuditConfig.PolicyConfiguration.Raw) > 0 && string(kubeAPIServerConfig.AuditConfig.PolicyConfiguration.Raw) != "null" {
-		if len(auditPolicyFilePath) == 0 {
-			auditPolicyFilePath = defaultAuditPolicyFilePath
-		}
-		if err := os.MkdirAll(filepath.Dir(auditPolicyFilePath), 0755); err != nil {
-			utilruntime.HandleError(err)
-		}
-		if err := ioutil.WriteFile(auditPolicyFilePath, kubeAPIServerConfig.AuditConfig.PolicyConfiguration.Raw, 0644); err != nil {
-			utilruntime.HandleError(err)
-		}
-	}
-
-	setIfUnset(args, "audit-log-maxbackup", strconv.Itoa(int(kubeAPIServerConfig.AuditConfig.MaximumRetainedFiles)))
-	setIfUnset(args, "audit-log-maxsize", strconv.Itoa(int(kubeAPIServerConfig.AuditConfig.MaximumFileSizeMegabytes)))
-	setIfUnset(args, "audit-log-maxage", strconv.Itoa(int(kubeAPIServerConfig.AuditConfig.MaximumFileRetentionDays)))
-	auditFilePath := kubeAPIServerConfig.AuditConfig.AuditFilePath
-	if len(auditFilePath) == 0 {
-		auditFilePath = "-"
-	}
-	setIfUnset(args, "audit-log-path", auditFilePath)
-	if len(auditPolicyFilePath) > 0 {
-		setIfUnset(args, "audit-policy-file", auditPolicyFilePath)
-	}
-	if len(kubeAPIServerConfig.AuditConfig.LogFormat) > 0 {
-		setIfUnset(args, "audit-log-format", string(kubeAPIServerConfig.AuditConfig.LogFormat))
-	}
-	if len(kubeAPIServerConfig.AuditConfig.WebHookMode) > 0 {
-		setIfUnset(args, "audit-webhook-mode", string(kubeAPIServerConfig.AuditConfig.WebHookMode))
-	}
-	setIfUnset(args, "audit-webhook-config-file", string(kubeAPIServerConfig.AuditConfig.WebHookKubeConfig))
-
-	return args
-}
-
-func setIfUnset(cmdLineArgs map[string][]string, key string, value ...string) {
-	if _, ok := cmdLineArgs[key]; !ok {
-		cmdLineArgs[key] = value
-	}
+	return configflags.ToFlagSlice(args), nil
 }
 
 func admissionFlags(admissionPluginConfig map[string]configv1.AdmissionPluginConfig) (map[string][]string, error) {
@@ -316,9 +235,9 @@ func admissionFlags(admissionPluginConfig map[string]configv1.AdmissionPluginCon
 	}
 	tempFile.Close()
 
-	setIfUnset(args, "admission-control-config-file", tempFile.Name())
-	setIfUnset(args, "disable-admission-plugins", forceOff...)
-	setIfUnset(args, "enable-admission-plugins", forceOn...)
+	configflags.SetIfUnset(args, "admission-control-config-file", tempFile.Name())
+	configflags.SetIfUnset(args, "disable-admission-plugins", forceOff...)
+	configflags.SetIfUnset(args, "enable-admission-plugins", forceOn...)
 
 	return args, nil
 }
@@ -333,4 +252,14 @@ func sniCertKeys(namedCertificates []configv1.NamedCertificate) []string {
 		args = append(args, fmt.Sprintf("%s,%s%s", nc.CertFile, nc.KeyFile, names))
 	}
 	return args
+}
+
+func unmaskArgs(args map[string]kubecontrolplanev1.Arguments) map[string][]string {
+	ret := map[string][]string{}
+	for key, slice := range args {
+		for _, val := range slice {
+			ret[key] = append(ret[key], val)
+		}
+	}
+	return ret
 }
