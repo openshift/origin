@@ -87,7 +87,7 @@ var (
 	ServeHostname       = ImageConfig{e2eRegistry, "serve-hostname", "1.1"}
 	TestWebserver       = ImageConfig{e2eRegistry, "test-webserver", "1.0"}
 	VolumeNFSServer     = ImageConfig{e2eRegistry, "volume/nfs", "1.0"}
-	VolumeISCSIServer   = ImageConfig{e2eRegistry, "volume/iscsi", "1.0"}
+	VolumeISCSIServer   = ImageConfig{"quay.io/jsafrane", "iscsi-test", "latest"}
 	VolumeGlusterServer = ImageConfig{e2eRegistry, "volume/gluster", "1.0"}
 	VolumeRBDServer     = ImageConfig{e2eRegistry, "volume/rbd", "1.0.1"}
 )
