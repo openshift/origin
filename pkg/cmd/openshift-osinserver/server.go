@@ -58,7 +58,7 @@ func newOAuthServerConfig(osinConfig *kubecontrolplanev1.KubeAPIServerConfig) (*
 	}
 
 	// TODO you probably want to set this
-	//oauthServerConfig.GenericConfig.CorsAllowedOriginList = genericConfig.CorsAllowedOriginList
+	oauthServerConfig.GenericConfig.CorsAllowedOriginList = osinConfig.CORSAllowedOrigins
 	oauthServerConfig.GenericConfig.SecureServing = genericConfig.SecureServing
 	//oauthServerConfig.GenericConfig.AuditBackend = genericConfig.AuditBackend
 	//oauthServerConfig.GenericConfig.AuditPolicyChecker = genericConfig.AuditPolicyChecker
