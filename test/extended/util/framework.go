@@ -211,6 +211,17 @@ func DumpPodStates(oc *CLI) {
 	e2e.Logf(out)
 }
 
+// DumpPodStatesInNamespace dumps the state of all pods in the provided namespace.
+func DumpPodStatesInNamespace(namespace string, oc *CLI) {
+	e2e.Logf("Dumping pod state for namespace %s", namespace)
+	out, err := oc.AsAdmin().Run("get").Args("pods", "-n", namespace, "-o", "yaml").Output()
+	if err != nil {
+		e2e.Logf("Error dumping pod states: %v", err)
+		return
+	}
+	e2e.Logf(out)
+}
+
 // DumpPodLogsStartingWith will dump any pod starting with the name prefix provided
 func DumpPodLogsStartingWith(prefix string, oc *CLI) {
 	podsToDump := []kapiv1.Pod{}
