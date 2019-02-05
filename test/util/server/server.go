@@ -406,9 +406,18 @@ func startEtcd(etcdConfig *configapi.EtcdConfig, etcdClientInfo configapi.EtcdCo
 	return nil
 }
 
+var configGroupVersioner = schema.GroupVersions([]schema.GroupVersion{
+	{Group: "autoscaling.openshift.io", Version: "v1"},
+	{Group: "image.openshift.io", Version: "v1"},
+	{Group: "network.openshift.io", Version: "v1"},
+	{Group: "scheduling.openshift.io", Version: "v1"},
+	{Group: "project.openshift.io", Version: "v1"},
+	legacyconfigv1.LegacySchemeGroupVersion,
+})
+
 func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig *restclient.Config, stopCh <-chan struct{}) error {
 	// TODO: replace this with a default which produces the new configs
-	uncastExternalMasterConfig, err := configapi.Scheme.ConvertToVersion(masterConfig, legacyconfigv1.LegacySchemeGroupVersion)
+	uncastExternalMasterConfig, err := configapi.Scheme.ConvertToVersion(masterConfig, configGroupVersioner)
 	if err != nil {
 		return err
 	}
@@ -449,7 +458,7 @@ func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig
 
 func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig *restclient.Config, stopCh <-chan struct{}) error {
 	// TODO: replace this with a default which produces the new configs
-	uncastExternalMasterConfig, err := configapi.Scheme.ConvertToVersion(masterConfig, legacyconfigv1.LegacySchemeGroupVersion)
+	uncastExternalMasterConfig, err := configapi.Scheme.ConvertToVersion(masterConfig, configGroupVersioner)
 	if err != nil {
 		return err
 	}
@@ -663,7 +672,7 @@ func startOpenShiftControllers(masterConfig *configapi.MasterConfig) error {
 	}
 
 	// TODO: replace this with a default which produces the new configs
-	uncastExternalMasterConfig, err := configapi.Scheme.ConvertToVersion(masterConfig, legacyconfigv1.LegacySchemeGroupVersion)
+	uncastExternalMasterConfig, err := configapi.Scheme.ConvertToVersion(masterConfig, configGroupVersioner)
 	if err != nil {
 		return err
 	}
