@@ -87,6 +87,7 @@ type MirrorImageOptions struct {
 	SkipMissing        bool
 	Force              bool
 
+	RegistryConfig string
 	MaxRegistry    int
 	MaxPerRegistry int
 
@@ -126,6 +127,7 @@ func NewCmdMirrorImage(name string, streams genericclioptions.IOStreams) *cobra.
 	flag := cmd.Flags()
 	o.FilterOptions.Bind(flag)
 
+	flag.StringVarP(&o.RegistryConfig, "registry-config", "a", o.RegistryConfig, "Path to your registry credentials (defaults to ~/.docker/config.json)")
 	flag.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the actions that would be taken and exit without writing to the destinations.")
 	flag.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow push and pull operations to registries to be made over HTTP")
 	flag.BoolVar(&o.SkipMissing, "skip-missing", o.SkipMissing, "If an input image is not found, skip them.")
@@ -322,6 +324,12 @@ func (o *MirrorImageOptions) plan() (*plan, error) {
 		return nil, err
 	}
 	creds := dockercredentials.NewLocal()
+	if len(o.RegistryConfig) > 0 {
+		creds, err = dockercredentials.NewFromFile(o.RegistryConfig)
+		if err != nil {
+			return nil, fmt.Errorf("unable to load --registry-config: %v", err)
+		}
+	}
 	ctx := apirequest.NewContext()
 	fromContext := registryclient.NewContext(rt, insecureRT).WithCredentials(creds)
 	toContext := registryclient.NewContext(rt, insecureRT).WithActions("pull", "push").WithCredentials(creds)

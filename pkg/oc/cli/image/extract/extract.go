@@ -96,6 +96,8 @@ type TarEntryFunc func(*tar.Header, LayerInfo, io.Reader) (cont bool, err error)
 type Options struct {
 	Mappings []Mapping
 
+	RegistryConfig string
+
 	Files []string
 	Paths []string
 
@@ -152,6 +154,7 @@ func New(name string, streams genericclioptions.IOStreams) *cobra.Command {
 	flag := cmd.Flags()
 	o.FilterOptions.Bind(flag)
 
+	flag.StringVarP(&o.RegistryConfig, "registry-config", "a", o.RegistryConfig, "Path to your registry credentials (defaults to ~/.docker/config.json)")
 	flag.BoolVar(&o.Confirm, "confirm", o.Confirm, "Pass to allow extracting to non-empty directories.")
 	flag.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the actions that would be taken and exit without writing any contents.")
 	flag.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow pull operations to registries to be made over HTTP")
@@ -313,6 +316,12 @@ func (o *Options) Run() error {
 		return err
 	}
 	creds := dockercredentials.NewLocal()
+	if len(o.RegistryConfig) > 0 {
+		creds, err = dockercredentials.NewFromFile(o.RegistryConfig)
+		if err != nil {
+			return fmt.Errorf("unable to load --registry-config: %v", err)
+		}
+	}
 	ctx := context.Background()
 	fromContext := registryclient.NewContext(rt, insecureRT).WithCredentials(creds)
 

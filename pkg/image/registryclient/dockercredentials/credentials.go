@@ -17,11 +17,29 @@ var (
 	emptyKeyring = &credentialprovider.BasicDockerKeyring{}
 )
 
+// NewLocal creates a new credential store that uses the default
+// local configuration to find a valid authentication for registry
+// targets.
 func NewLocal() auth.CredentialStore {
 	return &keyringCredentialStore{
 		DockerKeyring:     credentialprovider.NewDockerKeyring(),
 		RefreshTokenStore: registryclient.NewRefreshTokenStore(),
 	}
+}
+
+// NewFromFile creates a new credential store for the provided Docker config.json
+// authentication file.
+func NewFromFile(path string) (auth.CredentialStore, error) {
+	cfg, err := credentialprovider.ReadSpecificDockerConfigJsonFile(path)
+	if err != nil {
+		return nil, err
+	}
+	keyring := &credentialprovider.BasicDockerKeyring{}
+	keyring.Add(cfg)
+	return &keyringCredentialStore{
+		DockerKeyring:     keyring,
+		RefreshTokenStore: registryclient.NewRefreshTokenStore(),
+	}, nil
 }
 
 type keyringCredentialStore struct {

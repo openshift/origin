@@ -126,6 +126,7 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 	flags.StringVar(&o.ToImageBaseTag, "to-image-base-tag", o.ToImageBaseTag, "If specified, the image tag in the input to add the release layer on top of. Defaults to cluster-version-operator.")
 
 	// misc
+	flags.StringVarP(&o.RegistryConfig, "registry-config", "a", o.RegistryConfig, "Path to your registry credentials (defaults to ~/.docker/config.json)")
 	flags.StringVarP(&o.Output, "output", "o", o.Output, "Output the mapping definition in this format.")
 	flags.StringVar(&o.Directory, "dir", o.Directory, "Directory to write release contents to, will default to a temporary directory.")
 	flags.IntVar(&o.MaxPerRegistry, "max-per-registry", o.MaxPerRegistry, "Number of concurrent images that will be extracted at a time.")
@@ -165,6 +166,7 @@ type NewOptions struct {
 
 	Mirror string
 
+	RegistryConfig string
 	MaxPerRegistry int
 
 	AllowMissingImages bool
@@ -343,6 +345,7 @@ func (o *NewOptions) Run() error {
 		var baseDigest string
 		buf := &bytes.Buffer{}
 		extractOpts := NewExtractOptions(genericclioptions.IOStreams{Out: buf, ErrOut: o.ErrOut})
+		extractOpts.RegistryConfig = o.RegistryConfig
 		extractOpts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {
 			if config.Config != nil {
 				baseDigest = config.Config.Labels["io.openshift.release.base-image-digest"]
@@ -698,6 +701,7 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 
 	var lock sync.Mutex
 	opts := extract.NewOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
+	opts.RegistryConfig = o.RegistryConfig
 	opts.OnlyFiles = true
 	opts.MaxPerRegistry = o.MaxPerRegistry
 	opts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {
@@ -783,6 +787,7 @@ func (o *NewOptions) mirrorImages(is *imageapi.ImageStream, payload *Payload) er
 	opts.ImageStream = copied
 	opts.To = o.Mirror
 	opts.SkipRelease = true
+	opts.RegistryConfig = o.RegistryConfig
 
 	if err := opts.Run(); err != nil {
 		return err
@@ -900,6 +905,7 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 		}
 
 		options := imageappend.NewAppendImageOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
+		options.RegistryConfig = o.RegistryConfig
 		options.DryRun = o.DryRun
 		options.From = toImageBase
 		options.ConfigurationCallback = func(dgst digest.Digest, config *docker10.DockerImageConfig) error {
