@@ -333,6 +333,7 @@ type iSCSIDriver struct {
 type iSCSITestResource struct {
 	serverPod *v1.Pod
 	serverIP  string
+	iqn       string
 }
 
 var _ TestDriver = &iSCSIDriver{}
@@ -374,11 +375,10 @@ func (i *iSCSIDriver) GetVolumeSource(readOnly bool, fsType string, testResource
 
 	volSource := v1.VolumeSource{
 		ISCSI: &v1.ISCSIVolumeSource{
-			TargetPortal: itr.serverIP + ":3260",
-			// from test/images/volume/iscsi/initiatorname.iscsi
-			IQN:      "iqn.2003-01.org.linux-iscsi.f21.x8664:sn.4b0aae584f7c",
-			Lun:      0,
-			ReadOnly: readOnly,
+			TargetPortal: "127.0.0.1:3260",
+			IQN:          itr.iqn,
+			Lun:          0,
+			ReadOnly:     readOnly,
 		},
 	}
 	if fsType != "" {
@@ -393,8 +393,8 @@ func (i *iSCSIDriver) GetPersistentVolumeSource(readOnly bool, fsType string, te
 
 	pvSource := v1.PersistentVolumeSource{
 		ISCSI: &v1.ISCSIPersistentVolumeSource{
-			TargetPortal: itr.serverIP + ":3260",
-			IQN:          "iqn.2003-01.org.linux-iscsi.f21.x8664:sn.4b0aae584f7c",
+			TargetPortal: "127.0.0.1:3260",
+			IQN:          itr.iqn,
 			Lun:          0,
 			ReadOnly:     readOnly,
 		},
@@ -416,11 +416,12 @@ func (i *iSCSIDriver) CreateVolume(volType testpatterns.TestVolType) interface{}
 	cs := f.ClientSet
 	ns := f.Namespace
 
-	config, serverPod, serverIP := framework.NewISCSIServer(cs, ns.Name)
+	config, serverPod, serverIP, iqn := framework.NewISCSIServer(cs, ns.Name)
 	i.driverInfo.Config = config
 	return &iSCSITestResource{
 		serverPod: serverPod,
 		serverIP:  serverIP,
+		iqn:       iqn,
 	}
 }
 
