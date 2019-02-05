@@ -15,5 +15,5 @@ func InstallInternal(scheme *runtime.Scheme) {
 
 func InstallLegacyInternal(scheme *runtime.Scheme) {
 	utilruntime.Must(requestlimit.InstallLegacy(scheme))
-	utilruntime.Must(v1.InstallLegacy(scheme))
+	utilruntime.Must(v1.DeprecatedInstall(scheme))
 }

@@ -7,19 +7,19 @@ import (
 )
 
 // SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = schema.GroupVersion{Group: "", Version: "v1"}
+var DeprecatedSchemeGroupVersion = schema.GroupVersion{Group: "", Version: "v1"}
 
 var (
-	SchemeBuilder = runtime.NewSchemeBuilder(
-		addKnownTypes,
+	DeprecatedSchemeBuilder = runtime.NewSchemeBuilder(
+		deprecatedAddKnownTypes,
 		restrictedendpoints.InstallLegacy,
 	)
-	InstallLegacy = SchemeBuilder.AddToScheme
+	DeprecatedInstall = DeprecatedSchemeBuilder.AddToScheme
 )
 
 // Adds the list of known types to api.Scheme.
-func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
+func deprecatedAddKnownTypes(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(DeprecatedSchemeGroupVersion,
 		&ExternalIPRangerAdmissionConfig{},
 	)
 	return nil

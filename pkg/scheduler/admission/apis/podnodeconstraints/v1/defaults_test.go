@@ -10,8 +10,8 @@ import (
 )
 
 func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
-	scheme, codecs := apitesting.SchemeForOrDie(InstallLegacy)
-	data, err := runtime.Encode(codecs.LegacyCodec(SchemeGroupVersion), obj)
+	scheme, codecs := apitesting.SchemeForOrDie(DeprecatedInstall)
+	data, err := runtime.Encode(codecs.LegacyCodec(DeprecatedSchemeGroupVersion), obj)
 	if err != nil {
 		t.Errorf("%v\n %#v", err, obj)
 		return nil

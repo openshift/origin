@@ -9,19 +9,19 @@ import (
 )
 
 const (
-	GroupName       = "requestlimit.project.openshift.io"
-	LegacyGroupName = ""
+	GroupName           = "requestlimit.project.openshift.io"
+	DeprecatedGroupName = ""
 )
 
 var (
-	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: "v1"}
-	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: "v1"}
+	SchemeGroupVersion           = schema.GroupVersion{Group: GroupName, Version: "v1"}
+	DeprecatedSchemeGroupVersion = schema.GroupVersion{Group: DeprecatedGroupName, Version: "v1"}
 
-	LegacySchemeBuilder = runtime.NewSchemeBuilder(
-		addLegacyKnownTypes,
+	DeprecatedSchemeBuilder = runtime.NewSchemeBuilder(
+		addDeprecatedKnownTypes,
 		requestlimit.InstallLegacy,
 	)
-	InstallLegacy = LegacySchemeBuilder.AddToScheme
+	DeprecatedInstall = DeprecatedSchemeBuilder.AddToScheme
 
 	SchemeBuilder = runtime.NewSchemeBuilder(
 		addKnownTypes,
@@ -31,11 +31,11 @@ var (
 )
 
 // Adds the list of known types to api.Scheme.
-func addLegacyKnownTypes(scheme *runtime.Scheme) error {
+func addDeprecatedKnownTypes(scheme *runtime.Scheme) error {
 	types := []runtime.Object{
 		&ProjectRequestLimitConfig{},
 	}
-	scheme.AddKnownTypes(LegacySchemeGroupVersion, types...)
+	scheme.AddKnownTypes(DeprecatedSchemeGroupVersion, types...)
 	return nil
 }
 

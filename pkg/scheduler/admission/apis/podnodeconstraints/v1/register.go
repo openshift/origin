@@ -7,20 +7,20 @@ import (
 )
 
 // SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = schema.GroupVersion{Group: "", Version: "v1"}
+var DeprecatedSchemeGroupVersion = schema.GroupVersion{Group: "", Version: "v1"}
 
 var (
-	SchemeBuilder = runtime.NewSchemeBuilder(
-		addKnownTypes,
+	DeprecatedSchemeBuilder = runtime.NewSchemeBuilder(
+		deprecatedAddKnownTypes,
 		podnodeconstraints.InstallLegacy,
 
 		addDefaultingFuncs,
 	)
-	InstallLegacy = SchemeBuilder.AddToScheme
+	DeprecatedInstall = DeprecatedSchemeBuilder.AddToScheme
 )
 
-func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
+func deprecatedAddKnownTypes(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(DeprecatedSchemeGroupVersion,
 		&PodNodeConstraintsConfig{},
 	)
 	return nil
