@@ -1,5 +1,5 @@
 hash: d94f6a446504a92159017cfee30d160dc38ad7bd513e83a9416a8cc2b9ed11a2
-updated: 2019-01-29T13:58:16.690431458-05:00
+updated: 2019-02-04T13:33:36.550515359Z
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -1860,7 +1860,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: 763e9251f56c67913afb352101f541107b10448c
+  version: f9d4b56f819866e5955f02fd5b9233a56b85cec1
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
