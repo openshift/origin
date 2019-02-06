@@ -60,7 +60,7 @@ func NewCmdWhoCan(name, fullName string, f kcmdutil.Factory, streams genericclio
 		},
 	}
 
-	cmd.Flags().BoolVar(&o.allNamespaces, "all-namespaces", o.allNamespaces, "If true, list who can perform the specified action in all namespaces.")
+	cmd.Flags().BoolVarP(&o.allNamespaces, "all-namespaces", "A", o.allNamespaces, "If true, list who can perform the specified action in all namespaces.")
 
 	o.PrintFlags.AddFlags(cmd)
 	return cmd
