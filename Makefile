@@ -85,6 +85,7 @@ check: | build verify
 verify: build
 	# build-tests task has been disabled until we can determine why memory usage is so high
 	{ \
+	hack/verify-generated-versions.sh ||r=1;\
 	hack/verify-gofmt.sh ||r=1;\
 	hack/verify-govet.sh ||r=1;\
 	hack/verify-imports.sh ||r=1;\
@@ -118,6 +119,7 @@ verify-commits:
 # Example:
 #   make update
 update:
+	hack/update-generated-versions.sh
 	hack/update-generated-bindata.sh
 	hack/update-generated-conversions.sh
 	hack/update-generated-clientsets.sh
