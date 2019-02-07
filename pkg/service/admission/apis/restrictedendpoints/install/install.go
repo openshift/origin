@@ -9,6 +9,8 @@ import (
 )
 
 func InstallLegacyInternal(scheme *runtime.Scheme) {
-	utilruntime.Must(restrictedendpoints.InstallLegacy(scheme))
+	utilruntime.Must(restrictedendpoints.Install(scheme))
+	utilruntime.Must(v1.Install(scheme))
+	utilruntime.Must(restrictedendpoints.DeprecatedInstall(scheme))
 	utilruntime.Must(v1.DeprecatedInstall(scheme))
 }

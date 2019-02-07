@@ -5,15 +5,29 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-var SchemeGroupVersion = schema.GroupVersion{Group: "", Version: runtime.APIVersionInternal}
+var DeprecatedSchemeGroupVersion = schema.GroupVersion{Group: "", Version: runtime.APIVersionInternal}
 
 var (
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	InstallLegacy = SchemeBuilder.AddToScheme
+	deprecatedSchemeBuilder = runtime.NewSchemeBuilder(addDeprecatedKnownTypes)
+	DeprecatedInstall       = deprecatedSchemeBuilder.AddToScheme
+)
+
+func addDeprecatedKnownTypes(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(DeprecatedSchemeGroupVersion,
+		&RestrictedEndpointsAdmissionConfig{},
+	)
+	return nil
+}
+
+var GroupVersion = schema.GroupVersion{Group: "network.openshift.io", Version: runtime.APIVersionInternal}
+
+var (
+	schemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
+	Install       = schemeBuilder.AddToScheme
 )
 
 func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
+	scheme.AddKnownTypes(GroupVersion,
 		&RestrictedEndpointsAdmissionConfig{},
 	)
 	return nil

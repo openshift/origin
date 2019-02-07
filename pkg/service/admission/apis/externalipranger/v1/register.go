@@ -12,7 +12,7 @@ var DeprecatedSchemeGroupVersion = schema.GroupVersion{Group: "", Version: "v1"}
 var (
 	DeprecatedSchemeBuilder = runtime.NewSchemeBuilder(
 		deprecatedAddKnownTypes,
-		restrictedendpoints.InstallLegacy,
+		restrictedendpoints.DeprecatedInstall,
 	)
 	DeprecatedInstall = DeprecatedSchemeBuilder.AddToScheme
 )
@@ -20,6 +20,23 @@ var (
 // Adds the list of known types to api.Scheme.
 func deprecatedAddKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(DeprecatedSchemeGroupVersion,
+		&ExternalIPRangerAdmissionConfig{},
+	)
+	return nil
+}
+
+var GroupVersion = schema.GroupVersion{Group: "", Version: "v1"}
+
+var (
+	schemeBuilder = runtime.NewSchemeBuilder(
+		addKnownTypes,
+		restrictedendpoints.DeprecatedInstall,
+	)
+	Install = schemeBuilder.AddToScheme
+)
+
+func addKnownTypes(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(GroupVersion,
 		&ExternalIPRangerAdmissionConfig{},
 	)
 	return nil
