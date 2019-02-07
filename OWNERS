@@ -1,15 +1,17 @@
 reviewers:
-  - smarterclayton
-  - deads2k
   - bparees
+  - deads2k
+  - sjenning
+  - smarterclayton
   - soltysh
   - tbielawa
 approvers:
-  - smarterclayton
-  - deads2k
   - bparees
-  - mfojtik
-  - eparis
+  - deads2k
   - derekwaynecarr
-  - tbielawa # also for build and automated release tooling changes
+  - eparis
+  - mfojtik
   - pweil-
+  - sjenning
+  - smarterclayton
+  - tbielawa # also for build and automated release tooling changes
