@@ -77,7 +77,7 @@ func setupRunOnceDurationTest(t *testing.T, pluginConfig *pluginapi.RunOnceDurat
 		t.Fatalf("error creating config: %v", err)
 	}
 	masterConfig.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{
-		"RunOnceDuration": {
+		"autoscaling.openshift.io/RunOnceDuration": {
 			Configuration: pluginConfig,
 		},
 	}

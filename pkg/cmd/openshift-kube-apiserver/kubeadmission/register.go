@@ -36,7 +36,9 @@ func RegisterOpenshiftKubeAdmissionPlugins(plugins *admission.Plugins) {
 	securityadmission.Register(plugins)
 	securityadmission.RegisterSCCExecRestrictions(plugins)
 	externalipranger.RegisterExternalIP(plugins)
+	externalipranger.DeprecatedRegisterExternalIP(plugins)
 	restrictedendpoints.RegisterRestrictedEndpoints(plugins)
+	restrictedendpoints.DeprecatedRegisterRestrictedEndpoints(plugins)
 }
 
 var (
@@ -46,83 +48,77 @@ var (
 	SkipRunLevelZeroPlugins = sets.NewString()
 	// these are admission plugins that cannot be applied until after the openshiftapiserver apiserver starts.
 	SkipRunLevelOnePlugins = sets.NewString(
-		"ProjectRequestLimit",
-		"openshift.io/RestrictSubjectBindings",
-		"openshift.io/ClusterResourceQuota",
-		"openshift.io/ImagePolicy",
-		overrideapi.PluginName,
-		"OriginPodNodeEnvironment",
-		"RunOnceDuration",
-		sccadmission.PluginName,
-		"SCCExecRestrictions",
+		"project.openshift.io/ProjectRequestLimit",
+		"authorization.openshift.io/RestrictSubjectBindings",
+		"quota.openshift.io/ClusterResourceQuota",
+		"image.openshift.io/ImagePolicy",
+		overrideapi.PluginName, // "autoscaling.openshift.io/ClusterResourceOverride"
+		"scheduling.openshift.io/OriginPodNodeEnvironment",
+		"autoscaling.openshift.io/RunOnceDuration",
+		sccadmission.PluginName, // "security.openshift.io/SecurityContextConstraint"
+		"security.openshift.io/SCCExecRestrictions",
 	)
 
-	// BeforeKubeAdmissionPlugins is the list of plugins to add before kube admission, so we run before limit ranges
-	// TODO this cannot be done on today's mutation
-	beforeKubeAdmissionPlugins = []string{
-		"ClusterResourceOverride",
-	}
-
 	// AfterKubeAdmissionPlugins are the admission plugins to add after kube admission, before mutating webhooks
-	afterKubeAdmissionPlugins = []string{
-		"openshift.io/RestrictSubjectBindings",
-		"RunOnceDuration",
-		"PodNodeConstraints",
-		"OriginPodNodeEnvironment",
+	openshiftAdmissionPluginsForKube = []string{
+		"autoscaling.openshift.io/ClusterResourceOverride",
+		"authorization.openshift.io/RestrictSubjectBindings",
+		"autoscaling.openshift.io/RunOnceDuration",
+		"scheduling.openshift.io/PodNodeConstraints",
+		"scheduling.openshift.io/OriginPodNodeEnvironment",
 		externalipranger.ExternalIPPluginName,
+		"ExternalIPRanger",
 		restrictedendpoints.RestrictedEndpointsPluginName,
-		"openshift.io/ImagePolicy",
+		"openshift.io/RestrictedEndpointsAdmission",
+		"image.openshift.io/ImagePolicy",
 		sccadmission.PluginName,
-		"SCCExecRestrictions",
+		"security.openshift.io/SCCExecRestrictions",
 		ingressadmission.IngressAdmission,
-	}
-
-	// FinalKubeAdmissionPlugins are the admission plugins to add after quota.  You shouldn't ever add this.
-	finalKubeAdmissionPlugins = []string{
-		"openshift.io/ClusterResourceQuota",
+		"quota.openshift.io/ClusterResourceQuota",
 	}
 
 	// additionalDefaultOnPlugins is a list of plugins we turn on by default that core kube does not.
 	additionalDefaultOnPlugins = sets.NewString(
-		imageadmission.PluginName, // "openshift.io/ImageLimitRange"
-		"OriginPodNodeEnvironment",
+		imageadmission.PluginName, // "image.openshift.io/ImageLimitRange"
+		"scheduling.openshift.io/OriginPodNodeEnvironment",
 		"PodNodeSelector",
 		"Priority",
 		externalipranger.ExternalIPPluginName,
+		"ExternalIPRanger",
 		restrictedendpoints.RestrictedEndpointsPluginName,
+		"openshift.io/RestrictedEndpointsAdmission",
 		noderestriction.PluginName,
 		securityadmission.PluginName,
 		"StorageObjectInUseProtection",
-		"SCCExecRestrictions",
+		"security.openshift.io/SCCExecRestrictions",
 		"PersistentVolumeLabel",
 		"OwnerReferencesPermissionEnforcement",
 		"PodTolerationRestriction",
-		"openshift.io/ClusterResourceQuota",
-		"openshift.io/IngressAdmission",
+		"quota.openshift.io/ClusterResourceQuota",
+		"route.openshift.io/IngressAdmission",
 	)
 
 	// additionalDefaultOffPlugins are admission plugins we choose not to enable by default in openshift
 	// you shouldn't put anything from kube in this list without api-approvers signing off on it.
 	additionalDefaultOffPlugins = sets.NewString(
-		"ProjectRequestLimit",
-		"RunOnceDuration",
-		"PodNodeConstraints",
+		"project.openshift.io/ProjectRequestLimit",
+		"autoscaling.openshift.io/RunOnceDuration",
+		"scheduling.openshift.io/PodNodeConstraints",
 		overrideapi.PluginName,
 		imagepolicyapi.PluginName,
-		"openshift.io/RestrictSubjectBindings",
+		"authorization.openshift.io/RestrictSubjectBindings",
 	)
 )
 
 func NewOrderedKubeAdmissionPlugins(kubeAdmissionOrder []string) []string {
-	ret := append([]string{}, beforeKubeAdmissionPlugins...)
+	ret := []string{}
 	for _, curr := range kubeAdmissionOrder {
 		if curr == mutatingwebhook.PluginName {
-			ret = append(ret, afterKubeAdmissionPlugins...)
+			ret = append(ret, openshiftAdmissionPluginsForKube...)
 			ret = append(ret, customresourcevalidationregistration.AllCustomResourceValidators...)
 		}
 		ret = append(ret, curr)
 	}
-	ret = append(ret, finalKubeAdmissionPlugins...)
 	return ret
 }
 

@@ -30,7 +30,7 @@ import (
 )
 
 func Register(plugins *admission.Plugins) {
-	plugins.Register("openshift.io/ClusterResourceQuota",
+	plugins.Register("quota.openshift.io/ClusterResourceQuota",
 		func(config io.Reader) (admission.Interface, error) {
 			return NewClusterResourceQuota()
 		})

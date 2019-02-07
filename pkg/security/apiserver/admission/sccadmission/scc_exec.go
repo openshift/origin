@@ -17,7 +17,7 @@ import (
 )
 
 func RegisterSCCExecRestrictions(plugins *admission.Plugins) {
-	plugins.Register("SCCExecRestrictions",
+	plugins.Register("security.openshift.io/SCCExecRestrictions",
 		func(config io.Reader) (admission.Interface, error) {
 			execAdmitter := NewSCCExecRestrictions()
 			return execAdmitter, nil

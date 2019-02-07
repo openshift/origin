@@ -28,7 +28,7 @@ import (
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 )
 
-const PluginName = "SecurityContextConstraint"
+const PluginName = "security.openshift.io/SecurityContextConstraint"
 
 func Register(plugins *admission.Plugins) {
 	plugins.Register(PluginName,

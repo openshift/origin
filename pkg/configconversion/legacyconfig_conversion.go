@@ -40,7 +40,7 @@ func convertNetworkConfigToAdmissionConfig(masterConfig *legacyconfigv1.MasterCo
 	if err != nil {
 		return err
 	}
-	masterConfig.AdmissionConfig.PluginConfig["openshift.io/RestrictedEndpointsAdmission"] = &legacyconfigv1.AdmissionPluginConfig{
+	masterConfig.AdmissionConfig.PluginConfig["network.openshift.io/RestrictedEndpointsAdmission"] = &legacyconfigv1.AdmissionPluginConfig{
 		Configuration: runtime.RawExtension{Raw: restrictedEndpointConfigContent},
 	}
 
@@ -56,7 +56,7 @@ func convertNetworkConfigToAdmissionConfig(masterConfig *legacyconfigv1.MasterCo
 	if err != nil {
 		return err
 	}
-	masterConfig.AdmissionConfig.PluginConfig["ExternalIPRanger"] = &legacyconfigv1.AdmissionPluginConfig{
+	masterConfig.AdmissionConfig.PluginConfig["network.openshift.io/ExternalIPRanger"] = &legacyconfigv1.AdmissionPluginConfig{
 		Configuration: runtime.RawExtension{Raw: externalIPRangerAdmissionConfigContent},
 	}
 

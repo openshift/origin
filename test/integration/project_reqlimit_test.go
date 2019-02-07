@@ -27,7 +27,7 @@ func setupProjectRequestLimitTest(t *testing.T, pluginConfig *requestlimit.Proje
 		t.Fatalf("error creating config: %v", err)
 	}
 	masterConfig.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{
-		"ProjectRequestLimit": {
+		"project.openshift.io/ProjectRequestLimit": {
 			Configuration: pluginConfig,
 		},
 	}

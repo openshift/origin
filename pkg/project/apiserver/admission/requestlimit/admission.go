@@ -31,14 +31,14 @@ import (
 const allowedTerminatingProjects = 2
 
 func Register(plugins *admission.Plugins) {
-	plugins.Register("ProjectRequestLimit",
+	plugins.Register("project.openshift.io/ProjectRequestLimit",
 		func(config io.Reader) (admission.Interface, error) {
 			pluginConfig, err := readConfig(config)
 			if err != nil {
 				return nil, err
 			}
 			if pluginConfig == nil {
-				glog.Infof("Admission plugin %q is not configured so it will be disabled.", "ProjectRequestLimit")
+				glog.Infof("Admission plugin %q is not configured so it will be disabled.", "project.openshift.io/ProjectRequestLimit")
 				return nil, nil
 			}
 			return NewProjectRequestLimit(pluginConfig)
@@ -188,10 +188,10 @@ func (o *projectRequestLimit) SetProjectCache(cache *projectcache.ProjectCache) 
 
 func (o *projectRequestLimit) ValidateInitialization() error {
 	if o.userClient == nil {
-		return fmt.Errorf("ProjectRequestLimit plugin requires an Openshift client")
+		return fmt.Errorf("project.openshift.io/ProjectRequestLimit plugin requires an Openshift client")
 	}
 	if o.cache == nil {
-		return fmt.Errorf("ProjectRequestLimit plugin requires a project cache")
+		return fmt.Errorf("project.openshift.io/ProjectRequestLimit plugin requires a project cache")
 	}
 	return nil
 }

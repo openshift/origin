@@ -18,13 +18,6 @@ import (
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 )
 
-// fixupAdmissionPlugins fixes the input plugins to handle deprecation and duplicates.
-func fixupAdmissionPlugins(plugins []string) []string {
-	result := replace(plugins, "openshift.io/OriginResourceQuota", "ResourceQuota")
-	result = dedupe(result)
-	return result
-}
-
 func NewAdmissionChains(
 	admissionConfigFiles []string,
 	explicitOn, explicitOff []string,
@@ -68,7 +61,7 @@ func NewAdmissionChains(
 			orderedPlugins = append(orderedPlugins, plugin)
 		}
 	}
-	admissionChain, err := newAdmissionChainFunc(fixupAdmissionPlugins(orderedPlugins), admissionPluginConfigFilename, admissionInitializer, admissionDecorator)
+	admissionChain, err := newAdmissionChainFunc(orderedPlugins, admissionPluginConfigFilename, admissionInitializer, admissionDecorator)
 	if err != nil {
 		return nil, err
 	}
@@ -110,34 +103,6 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, adm
 	}
 
 	return admission.NewChainHandler(plugins...), nil
-}
-
-// replace returns a slice where each instance of the input that is x is replaced with y
-func replace(input []string, x, y string) []string {
-	result := []string{}
-	for i := range input {
-		if input[i] == x {
-			result = append(result, y)
-		} else {
-			result = append(result, input[i])
-		}
-	}
-	return result
-}
-
-// dedupe removes duplicate items from the input list.
-// the last instance of a duplicate is kept in the input list.
-func dedupe(input []string) []string {
-	items := sets.NewString()
-	result := []string{}
-	for i := len(input) - 1; i >= 0; i-- {
-		if items.Has(input[i]) {
-			continue
-		}
-		items.Insert(input[i])
-		result = append([]string{input[i]}, result...)
-	}
-	return result
 }
 
 func init() {

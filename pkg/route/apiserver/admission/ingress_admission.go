@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	IngressAdmission = "openshift.io/IngressAdmission"
+	IngressAdmission = "route.openshift.io/IngressAdmission"
 )
 
 func Register(plugins *admission.Plugins) {

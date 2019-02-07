@@ -27,7 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 )
 
-const PluginName = "PodNodeConstraints"
+const PluginName = "scheduling.openshift.io/PodNodeConstraints"
 
 // kindsToIgnore is a list of kinds that contain a PodSpec that
 // we choose not to handle in this plugin

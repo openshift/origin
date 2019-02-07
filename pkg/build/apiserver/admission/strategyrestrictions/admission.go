@@ -28,7 +28,7 @@ import (
 )
 
 func Register(plugins *admission.Plugins) {
-	plugins.Register("BuildByStrategy",
+	plugins.Register("build.openshift.io/BuildByStrategy",
 		func(config io.Reader) (admission.Interface, error) {
 			return NewBuildByStrategy(), nil
 		})
@@ -102,10 +102,10 @@ func (a *buildByStrategy) SetRESTClientConfig(restClientConfig rest.Config) {
 
 func (a *buildByStrategy) ValidateInitialization() error {
 	if a.buildClient == nil {
-		return fmt.Errorf("BuildByStrategy needs an Openshift buildClient")
+		return fmt.Errorf("build.openshift.io/BuildByStrategy needs an Openshift buildClient")
 	}
 	if a.sarClient == nil {
-		return fmt.Errorf("BuildByStrategy needs an Openshift sarClient")
+		return fmt.Errorf("build.openshift.io/BuildByStrategy needs an Openshift sarClient")
 	}
 	return nil
 }

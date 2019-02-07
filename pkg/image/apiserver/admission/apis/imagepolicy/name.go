@@ -1,4 +1,4 @@
 package imagepolicy
 
-const PluginName = "openshift.io/ImagePolicy"
+const PluginName = "image.openshift.io/ImagePolicy"
 const ConfigKind = "ImagePolicyConfig"
