@@ -1,4 +1,4 @@
-package openshift_osinserver
+package openshift_integrated_oauth_server
 
 import (
 	"errors"
@@ -6,7 +6,7 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
+	osinv1 "github.com/openshift/api/osin/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	"github.com/openshift/origin/pkg/oauthserver/oauthserver"
@@ -15,8 +15,8 @@ import (
 	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus"
 )
 
-func RunOpenShiftOsinServer(osinConfig *kubecontrolplanev1.KubeAPIServerConfig, stopCh <-chan struct{}) error {
-	if osinConfig == nil || osinConfig.OAuthConfig == nil {
+func RunOsinServer(osinConfig *osinv1.OsinServerConfig, stopCh <-chan struct{}) error {
+	if osinConfig == nil {
 		return errors.New("osin server requires non-empty oauthConfig")
 	}
 
@@ -35,7 +35,7 @@ func RunOpenShiftOsinServer(osinConfig *kubecontrolplanev1.KubeAPIServerConfig, 
 	return oauthServer.GenericAPIServer.PrepareRun().Run(stopCh)
 }
 
-func newOAuthServerConfig(osinConfig *kubecontrolplanev1.KubeAPIServerConfig) (*oauthserver.OAuthServerConfig, error) {
+func newOAuthServerConfig(osinConfig *osinv1.OsinServerConfig) (*oauthserver.OAuthServerConfig, error) {
 	genericConfig := genericapiserver.NewRecommendedConfig(legacyscheme.Codecs)
 
 	servingOptions, err := configprocessing.ToServingOptions(osinConfig.ServingInfo)
@@ -52,7 +52,7 @@ func newOAuthServerConfig(osinConfig *kubecontrolplanev1.KubeAPIServerConfig) (*
 		return nil, err
 	}
 
-	oauthServerConfig, err := oauthserver.NewOAuthServerConfig(*osinConfig.OAuthConfig, kubeClientConfig)
+	oauthServerConfig, err := oauthserver.NewOAuthServerConfig(osinConfig.OAuthConfig, kubeClientConfig)
 	if err != nil {
 		return nil, err
 	}

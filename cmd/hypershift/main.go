@@ -8,8 +8,6 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/openshift/origin/pkg/cmd/openshift-osinserver"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
@@ -21,6 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver"
 	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
 	"github.com/openshift/origin/pkg/cmd/openshift-etcd"
+	"github.com/openshift/origin/pkg/cmd/openshift-integrated-oauth-server"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
 	"github.com/openshift/origin/pkg/cmd/openshift-network-controller"
 	"github.com/openshift/origin/pkg/version"
@@ -77,7 +76,8 @@ func NewHyperShiftCommand(stopCh <-chan struct{}) *cobra.Command {
 	startOpenShiftNetworkController := openshift_network_controller.NewOpenShiftNetworkControllerCommand(openshift_network_controller.RecommendedStartNetworkControllerName, "hypershift", os.Stdout, os.Stderr)
 	cmd.AddCommand(startOpenShiftNetworkController)
 
-	startOsin := openshift_osinserver.NewOpenShiftOsinServer(os.Stdout, os.Stderr, stopCh)
+	startOsin := openshift_integrated_oauth_server.NewOsinServer(os.Stdout, os.Stderr, stopCh)
+	startOsin.Use = "openshift-osinserver"
 	startOsin.Deprecated = "will be removed in 4.0"
 	startOsin.Hidden = true
 	cmd.AddCommand(startOsin)
