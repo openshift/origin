@@ -316,7 +316,7 @@ func (o *ProcessOptions) RunProcess() error {
 		if file == "" {
 			duplicatedKeys.Insert(key)
 		} else {
-			fmt.Fprintf(o.ErrOut, "warning: Template parameter %q already defined, ignoring value from file %q", key, file)
+			fmt.Fprintf(o.ErrOut, "warning: Template parameter %q already defined, ignoring value from file %q\n", key, file)
 		}
 		return nil
 	})
@@ -381,7 +381,7 @@ func (o *ProcessOptions) RunProcess() error {
 		// a parameter that the template wants or when they give a parameter the template doesn't need,
 		// as this may indicate that they have mis-used `oc process`. This is much less complicated when
 		// we process at most one template.
-		fmt.Fprintf(o.Out, "%d input templates found, but only the first will be processed", len(infos))
+		fmt.Fprintf(o.Out, "%d input templates found, but only the first will be processed\n", len(infos))
 	}
 
 	obj, ok := infos[0].Object.(*templatev1.Template)
