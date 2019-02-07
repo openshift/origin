@@ -8,7 +8,7 @@ import (
 	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 )
 
-func InstallLegacyInternal(scheme *runtime.Scheme) {
+func InstallInternal(scheme *runtime.Scheme) {
 	utilruntime.Must(imagepolicy.InstallLegacy(scheme))
-	utilruntime.Must(v1.InstallLegacy(scheme))
+	utilruntime.Must(v1.Install(scheme))
 }

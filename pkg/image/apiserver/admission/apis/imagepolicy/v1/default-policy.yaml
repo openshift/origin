@@ -1,5 +1,5 @@
 kind: ImagePolicyConfig
-apiVersion: v1
+apiVersion: image.openshift.io/v1
 # To require that all images running on the platform be imported first, you may uncomment the
 # following rule. Any image that refers to a registry outside of OpenShift will be rejected unless it
 # unless it points directly to an image digest (myregistry.com/myrepo/image@sha256:ea83bcf...) and that

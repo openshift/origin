@@ -8,7 +8,7 @@ import (
 	"github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints/v1"
 )
 
-func InstallLegacyInternal(scheme *runtime.Scheme) {
-	utilruntime.Must(podnodeconstraints.InstallLegacy(scheme))
-	utilruntime.Must(v1.InstallLegacy(scheme))
+func InstallInternal(scheme *runtime.Scheme) {
+	utilruntime.Must(podnodeconstraints.Install(scheme))
+	utilruntime.Must(v1.Install(scheme))
 }

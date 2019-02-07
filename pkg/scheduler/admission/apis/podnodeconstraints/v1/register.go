@@ -6,24 +6,23 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = schema.GroupVersion{Group: "", Version: "v1"}
+func (obj *PodNodeConstraintsConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
+
+var GroupVersion = schema.GroupVersion{Group: "scheduling.openshift.io", Version: "v1"}
 
 var (
-	SchemeBuilder = runtime.NewSchemeBuilder(
+	schemeBuilder = runtime.NewSchemeBuilder(
 		addKnownTypes,
-		podnodeconstraints.InstallLegacy,
+		podnodeconstraints.Install,
 
 		addDefaultingFuncs,
 	)
-	InstallLegacy = SchemeBuilder.AddToScheme
+	Install = schemeBuilder.AddToScheme
 )
 
 func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
+	scheme.AddKnownTypes(GroupVersion,
 		&PodNodeConstraintsConfig{},
 	)
 	return nil
 }
-
-func (obj *PodNodeConstraintsConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }

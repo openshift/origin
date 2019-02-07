@@ -8,28 +8,6 @@ import (
 	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy"
 )
 
-// SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = schema.GroupVersion{Group: "", Version: "v1"}
-
-var (
-	SchemeBuilder = runtime.NewSchemeBuilder(
-		addKnownTypes,
-		imagepolicy.InstallLegacy,
-
-		addConversionFuncs,
-		addDefaultingFuncs,
-	)
-	InstallLegacy = SchemeBuilder.AddToScheme
-)
-
-// Adds the list of known types to api.Scheme.
-func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
-		&ImagePolicyConfig{},
-	)
-	return nil
-}
-
 func addConversionFuncs(scheme *runtime.Scheme) error {
 	return scheme.AddConversionFuncs(
 		// TODO: remove when MatchSignatures is implemented
@@ -44,3 +22,24 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 }
 
 func (obj *ImagePolicyConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
+
+var GroupVersion = schema.GroupVersion{Group: "image.openshift.io", Version: "v1"}
+
+var (
+	schemeBuilder = runtime.NewSchemeBuilder(
+		addKnownTypes,
+		imagepolicy.InstallLegacy,
+
+		addConversionFuncs,
+		addDefaultingFuncs,
+	)
+	Install = schemeBuilder.AddToScheme
+)
+
+// Adds the list of known types to api.Scheme.
+func addKnownTypes(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(GroupVersion,
+		&ImagePolicyConfig{},
+	)
+	return nil
+}

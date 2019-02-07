@@ -158,7 +158,7 @@ func TestRunOnceDurationAdmit(t *testing.T) {
 }
 
 func TestReadConfig(t *testing.T) {
-	configStr := `apiVersion: v1
+	configStr := `apiVersion: autoscaling.openshift.io/v1
 kind: RunOnceDurationConfig
 activeDeadlineSecondsOverride: 3600
 `

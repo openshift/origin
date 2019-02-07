@@ -7,22 +7,21 @@ import (
 	"github.com/openshift/origin/pkg/route/apiserver/admission/apis/ingressadmission"
 )
 
-// SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = schema.GroupVersion{Group: "", Version: "v1"}
+func (obj *IngressAdmissionConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
+
+var GroupVersion = schema.GroupVersion{Group: "route.openshift.io", Version: "v1"}
 
 var (
-	SchemeBuilder = runtime.NewSchemeBuilder(
+	schemeBuilder = runtime.NewSchemeBuilder(
 		addKnownTypes,
-		ingressadmission.InstallLegacy,
+		ingressadmission.Install,
 	)
-	InstallLegacy = SchemeBuilder.AddToScheme
+	Install = schemeBuilder.AddToScheme
 )
 
 func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
+	scheme.AddKnownTypes(GroupVersion,
 		&IngressAdmissionConfig{},
 	)
 	return nil
 }
-
-func (obj *IngressAdmissionConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }

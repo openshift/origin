@@ -513,7 +513,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		DockerImageReference: "integrated.registry/image1/image1@sha256:0000000000000000000000000000000000000000000000000000000000000001",
 	}
 
-	obj, err := configlatest.ReadYAML(bytes.NewBufferString(`{"kind":"ImagePolicyConfig","apiVersion":"v1"}`))
+	obj, err := configlatest.ReadYAML(bytes.NewBufferString(`{"kind":"ImagePolicyConfig","apiVersion":"image.openshift.io/v1"}`))
 	if err != nil || obj == nil {
 		t.Fatal(err)
 	}

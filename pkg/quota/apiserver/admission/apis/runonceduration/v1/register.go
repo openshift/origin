@@ -7,25 +7,23 @@ import (
 	"github.com/openshift/origin/pkg/quota/apiserver/admission/apis/runonceduration"
 )
 
-// SchemeGroupVersion is group version used to register these objects
-var SchemeGroupVersion = schema.GroupVersion{Group: "", Version: "v1"}
+func (obj *RunOnceDurationConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
+
+var GroupVersion = schema.GroupVersion{Group: "autoscaling.openshift.io", Version: "v1"}
 
 var (
-	SchemeBuilder = runtime.NewSchemeBuilder(
+	schemeBuilder = runtime.NewSchemeBuilder(
 		addKnownTypes,
-		runonceduration.InstallLegacy,
+		runonceduration.Install,
 
 		addConversionFuncs,
 	)
-	InstallLegacy = SchemeBuilder.AddToScheme
+	Install = schemeBuilder.AddToScheme
 )
 
-// Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
+	scheme.AddKnownTypes(GroupVersion,
 		&RunOnceDurationConfig{},
 	)
 	return nil
 }
-
-func (obj *RunOnceDurationConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }

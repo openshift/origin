@@ -8,7 +8,7 @@ import (
 	"github.com/openshift/origin/pkg/quota/apiserver/admission/apis/clusterresourceoverride/v1"
 )
 
-func InstallLegacyInternal(scheme *runtime.Scheme) {
-	utilruntime.Must(clusterresourceoverride.InstallLegacy(scheme))
-	utilruntime.Must(v1.InstallLegacy(scheme))
+func InstallInternal(scheme *runtime.Scheme) {
+	utilruntime.Must(clusterresourceoverride.Install(scheme))
+	utilruntime.Must(v1.Install(scheme))
 }

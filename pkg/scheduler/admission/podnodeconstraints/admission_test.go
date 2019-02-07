@@ -481,7 +481,7 @@ func reviewResponse(allowed bool, msg string) *authorizationapi.SubjectAccessRev
 }
 
 func TestReadConfig(t *testing.T) {
-	configStr := `apiVersion: v1
+	configStr := `apiVersion: scheduling.openshift.io/v1
 kind: PodNodeConstraintsConfig
 nodeSelectorLabelBlacklist:
   - bogus

@@ -9,11 +9,6 @@ import (
 )
 
 func InstallInternal(scheme *runtime.Scheme) {
-	utilruntime.Must(requestlimit.InstallLegacy(scheme))
+	utilruntime.Must(requestlimit.Install(scheme))
 	utilruntime.Must(v1.Install(scheme))
-}
-
-func InstallLegacyInternal(scheme *runtime.Scheme) {
-	utilruntime.Must(requestlimit.InstallLegacy(scheme))
-	utilruntime.Must(v1.InstallLegacy(scheme))
 }

@@ -6,33 +6,19 @@ import (
 )
 
 const (
-	GroupName       = "requestlimit.project.openshift.io"
-	LegacyGroupName = ""
+	GroupName = "project.openshift.io"
 )
 
 var (
-	SchemeGroupVersion       = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
-	LegacySchemeGroupVersion = schema.GroupVersion{Group: LegacyGroupName, Version: runtime.APIVersionInternal}
+	GroupVersion = schema.GroupVersion{Group: GroupName, Version: runtime.APIVersionInternal}
 
-	LegacySchemeBuilder = runtime.NewSchemeBuilder(addLegacyKnownTypes)
-	InstallLegacy       = LegacySchemeBuilder.AddToScheme
-
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
-	Install       = SchemeBuilder.AddToScheme
+	schemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
+	Install       = schemeBuilder.AddToScheme
 )
 
 // Adds the list of known types to api.Scheme.
-func addLegacyKnownTypes(scheme *runtime.Scheme) error {
-	types := []runtime.Object{
-		&ProjectRequestLimitConfig{},
-	}
-	scheme.AddKnownTypes(LegacySchemeGroupVersion, types...)
-	return nil
-}
-
-// Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(SchemeGroupVersion,
+	scheme.AddKnownTypes(GroupVersion,
 		&ProjectRequestLimitConfig{},
 	)
 	return nil
