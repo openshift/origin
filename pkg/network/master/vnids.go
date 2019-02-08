@@ -26,11 +26,12 @@ type masterVNIDMap struct {
 	ids          map[string]uint32
 	netIDManager *pnetid.Allocator
 
-	adminNamespaces  sets.String
-	allowRenumbering bool
+	adminNamespaces    sets.String
+	allowRenumbering   bool
+	requireUniqueVNIDs bool
 }
 
-func newMasterVNIDMap(allowRenumbering bool) *masterVNIDMap {
+func newMasterVNIDMap(pluginName string) *masterVNIDMap {
 	netIDRange, err := pnetid.NewNetIDRange(network.MinVNID, network.MaxVNID)
 	if err != nil {
 		panic(err)
@@ -40,7 +41,12 @@ func newMasterVNIDMap(allowRenumbering bool) *masterVNIDMap {
 		netIDManager:     pnetid.NewInMemory(netIDRange),
 		adminNamespaces:  sets.NewString(metav1.NamespaceDefault),
 		ids:              make(map[string]uint32),
-		allowRenumbering: allowRenumbering,
+		allowRenumbering: pluginName == network.MultiTenantPluginName,
+
+		// For historical compatibility, the original ovs-networkpolicy plugin
+		// does not force VNID uniqueness (even though it may not work correctly
+		// without it). The new plugins do.
+		requireUniqueVNIDs: (pluginName != network.MultiTenantPluginName && pluginName != network.NetworkPolicyPluginName),
 	}
 }
 
@@ -76,17 +82,24 @@ func (vmap *masterVNIDMap) isAdminNamespace(nsName string) bool {
 	return false
 }
 
-func (vmap *masterVNIDMap) markAllocatedNetID(netid uint32) error {
-	// Skip GlobalVNID, not part of netID allocation range
-	if netid == network.GlobalVNID {
+func (vmap *masterVNIDMap) markAllocatedNetID(netns *networkv1.NetNamespace) error {
+	if netns.NetID == network.GlobalVNID {
+		if !vmap.allowRenumbering && netns.NetName != metav1.NamespaceDefault {
+			return fmt.Errorf("there are NetNamespaces with duplicate NetIDs (eg, %q and %q both have NetID 0)", netns.NetName, metav1.NamespaceDefault)
+		}
+		// else skip GlobalVNID, not part of netID allocation range
 		return nil
 	}
 
-	switch err := vmap.netIDManager.Allocate(netid); err {
-	case nil: // Expected normal case
-	case pnetid.ErrAllocated: // Expected when project networks are joined
+	switch err := vmap.netIDManager.Allocate(netns.NetID); err {
+	case nil:
+		// OK
+	case pnetid.ErrAllocated:
+		if !vmap.allowRenumbering {
+			return fmt.Errorf("there are NetNamespaces with duplicate NetIDs (eg, %q and at least one other NetNamespace have NetID %d)", netns.NetName, netns.NetID)
+		}
 	default:
-		return fmt.Errorf("unable to allocate netid %d: %v", netid, err)
+		return fmt.Errorf("unable to allocate netid %d: %v", netns.NetID, err)
 	}
 	return nil
 }
@@ -267,9 +280,12 @@ func (vmap *masterVNIDMap) updateVNID(networkClient networkclient.Interface, ori
 	return nil
 }
 
-//--------------------- Master methods ----------------------
+func (master *OsdnMaster) startVNIDMaster(pluginName string) error {
+	if pluginName == network.SingleTenantPluginName {
+		return nil
+	}
 
-func (master *OsdnMaster) startVNIDMaster() error {
+	master.vnids = newMasterVNIDMap(pluginName)
 	if err := master.initNetIDAllocator(); err != nil {
 		return err
 	}
@@ -287,8 +303,12 @@ func (master *OsdnMaster) initNetIDAllocator() error {
 	}
 
 	for _, netns := range netnsList.Items {
-		if err := master.vnids.markAllocatedNetID(netns.NetID); err != nil {
-			utilruntime.HandleError(err)
+		if err := master.vnids.markAllocatedNetID(&netns); err != nil {
+			if master.vnids.requireUniqueVNIDs {
+				return err
+			} else {
+				utilruntime.HandleError(err)
+			}
 		}
 		master.vnids.setVNID(netns.Name, netns.NetID)
 	}

@@ -22,7 +22,6 @@ import (
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
 	networkinternalinformers "github.com/openshift/client-go/network/informers/externalversions"
 	networkinformers "github.com/openshift/client-go/network/informers/externalversions/network/v1"
-	"github.com/openshift/origin/pkg/network"
 	"github.com/openshift/origin/pkg/network/common"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
@@ -181,16 +180,8 @@ func (master *OsdnMaster) startSubSystems(pluginName string) {
 		glog.Fatalf("failed to start subnet master: %v", err)
 	}
 
-	switch pluginName {
-	case network.MultiTenantPluginName:
-		master.vnids = newMasterVNIDMap(true)
-	case network.NetworkPolicyPluginName:
-		master.vnids = newMasterVNIDMap(false)
-	}
-	if master.vnids != nil {
-		if err := master.startVNIDMaster(); err != nil {
-			glog.Fatalf("failed to start VNID master: %v", err)
-		}
+	if err := master.startVNIDMaster(pluginName); err != nil {
+		glog.Fatalf("failed to start VNID master: %v", err)
 	}
 
 	eim := newEgressIPManager()

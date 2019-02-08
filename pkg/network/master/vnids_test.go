@@ -10,7 +10,7 @@ import (
 )
 
 func TestMasterVNIDMap(t *testing.T) {
-	vmap := newMasterVNIDMap(true)
+	vmap := newMasterVNIDMap(network.MultiTenantPluginName)
 
 	// empty vmap
 	checkCurrentVNIDs(t, vmap, 0, 0)

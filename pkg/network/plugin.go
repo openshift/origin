@@ -6,9 +6,13 @@ import (
 )
 
 const (
+	// legacy plugin names
 	SingleTenantPluginName  = "redhat/openshift-ovs-subnet"
 	MultiTenantPluginName   = "redhat/openshift-ovs-multitenant"
 	NetworkPolicyPluginName = "redhat/openshift-ovs-networkpolicy"
+
+	// new plugin names
+	OpenShiftSDNOpenPluginName     = "openshift-sdn-open"
 
 	DefaultInformerResyncPeriod = 30 * time.Minute
 )
@@ -16,6 +20,8 @@ const (
 func IsOpenShiftNetworkPlugin(pluginName string) bool {
 	switch strings.ToLower(pluginName) {
 	case SingleTenantPluginName, MultiTenantPluginName, NetworkPolicyPluginName:
+		return true
+	case OpenShiftSDNOpenPluginName:
 		return true
 	}
 	return false
