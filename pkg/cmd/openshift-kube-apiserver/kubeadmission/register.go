@@ -79,6 +79,7 @@ var (
 
 	// additionalDefaultOnPlugins is a list of plugins we turn on by default that core kube does not.
 	additionalDefaultOnPlugins = sets.NewString(
+		"authorization.openshift.io/RestrictSubjectBindings",
 		imageadmission.PluginName, // "image.openshift.io/ImageLimitRange"
 		"scheduling.openshift.io/OriginPodNodeEnvironment",
 		"PodNodeSelector",
@@ -106,7 +107,6 @@ var (
 		"scheduling.openshift.io/PodNodeConstraints",
 		overrideapi.PluginName,
 		imagepolicyapi.PluginName,
-		"authorization.openshift.io/RestrictSubjectBindings",
 	)
 )
 

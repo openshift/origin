@@ -1,7 +1,6 @@
 package openshiftkubeapiserver
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -10,10 +9,8 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	"github.com/openshift/origin/pkg/cmd/configflags"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/configconversion"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) ([]string, error) {
@@ -156,68 +153,12 @@ func ConfigToFlags(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig) 
 func admissionFlags(admissionPluginConfig map[string]configv1.AdmissionPluginConfig) (map[string][]string, error) {
 	args := map[string][]string{}
 
+	// TODO these should come from a config type
 	forceOn := []string{}
-	forceOff := []string{}
-	pluginConfig := map[string]configv1.AdmissionPluginConfig{}
-	for pluginName, origConfig := range admissionPluginConfig {
-		config := *origConfig.DeepCopy()
-		if len(config.Location) > 0 {
-			content, err := ioutil.ReadFile(config.Location)
-			if err != nil {
-				return nil, err
-			}
-			// if the config isn't a DefaultAdmissionConfig, then assume we're enabled (we were called out after all)
-			// if the config *is* a DefaultAdmissionConfig and it explicitly said to disable us, we are disabled
-			obj, err := configapilatest.ReadYAML(bytes.NewBuffer(content))
-			// if we can't read it, let the plugin deal with it
-			// if nothing was there, let the plugin deal with it
-			if err != nil || obj == nil {
-				forceOn = append(forceOn, pluginName)
-				config.Location = ""
-				config.Configuration = runtime.RawExtension{Raw: content}
-				pluginConfig[pluginName] = config
-				continue
-			}
-
-			if defaultConfig, ok := obj.(*configapi.DefaultAdmissionConfig); !ok {
-				forceOn = append(forceOn, pluginName)
-				config.Location = ""
-				config.Configuration = runtime.RawExtension{Raw: content}
-				pluginConfig[pluginName] = config
-
-			} else if defaultConfig.Disable {
-				forceOff = append(forceOff, pluginName)
-
-			} else {
-				forceOn = append(forceOn, pluginName)
-			}
-
-			continue
-		}
-
-		// if it wasn't a DefaultAdmissionConfig object, let the plugin deal with it
-		currConfig := &configapi.DefaultAdmissionConfig{}
-		uncastDefaultConfig, _, decodingErr := configapilatest.Codec.Decode(config.Configuration.Raw, nil, currConfig)
-		if decodingErr != nil {
-			forceOn = append(forceOn, pluginName)
-			pluginConfig[pluginName] = config
-			continue
-		}
-
-		defaultConfig, ok := uncastDefaultConfig.(*configapi.DefaultAdmissionConfig)
-		if !ok {
-			forceOn = append(forceOn, pluginName)
-			pluginConfig[pluginName] = config
-
-		} else if defaultConfig.Disable {
-			forceOff = append(forceOff, pluginName)
-
-		} else {
-			forceOn = append(forceOn, pluginName)
-		}
-
+	for pluginName := range admissionPluginConfig {
+		forceOn = append(forceOn, pluginName)
 	}
-	upstreamAdmissionConfig, err := configconversion.ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(pluginConfig)
+	upstreamAdmissionConfig, err := configconversion.ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(admissionPluginConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -235,6 +176,8 @@ func admissionFlags(admissionPluginConfig map[string]configv1.AdmissionPluginCon
 	}
 	tempFile.Close()
 
+	// TODO these should come from a config type
+	forceOff := []string{}
 	configflags.SetIfUnset(args, "admission-control-config-file", tempFile.Name())
 	configflags.SetIfUnset(args, "disable-admission-plugins", forceOff...)
 	configflags.SetIfUnset(args, "enable-admission-plugins", forceOn...)

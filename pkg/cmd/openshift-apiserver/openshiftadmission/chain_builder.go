@@ -1,11 +1,8 @@
 package openshiftadmission
 
 import (
-	"bytes"
-	"io"
 	"io/ioutil"
 	"os"
-	"reflect"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -19,37 +16,30 @@ import (
 )
 
 func NewAdmissionChains(
-	admissionConfigFiles []string,
 	explicitOn, explicitOff []string,
 	pluginConfig map[string]configv1.AdmissionPluginConfig,
 	admissionInitializer admission.PluginInitializer,
 	admissionDecorator admission.Decorator,
 ) (admission.Interface, error) {
-	admissionPluginConfigFilename := ""
-	if len(admissionConfigFiles) > 0 {
-		admissionPluginConfigFilename = admissionConfigFiles[0]
-
-	} else {
-		upstreamAdmissionConfig, err := ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(pluginConfig)
-		if err != nil {
-			return nil, err
-		}
-		configBytes, err := configapilatest.WriteYAML(upstreamAdmissionConfig)
-		if err != nil {
-			return nil, err
-		}
-
-		tempFile, err := ioutil.TempFile("", "master-config.yaml")
-		if err != nil {
-			return nil, err
-		}
-		defer os.Remove(tempFile.Name())
-		if _, err := tempFile.Write(configBytes); err != nil {
-			return nil, err
-		}
-		tempFile.Close()
-		admissionPluginConfigFilename = tempFile.Name()
+	upstreamAdmissionConfig, err := ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(pluginConfig)
+	if err != nil {
+		return nil, err
 	}
+	configBytes, err := configapilatest.WriteYAML(upstreamAdmissionConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	tempFile, err := ioutil.TempFile("", "master-config.yaml")
+	if err != nil {
+		return nil, err
+	}
+	defer os.Remove(tempFile.Name())
+	if _, err := tempFile.Write(configBytes); err != nil {
+		return nil, err
+	}
+	tempFile.Close()
+	admissionPluginConfigFilename := tempFile.Name()
 
 	allOffPlugins := append(DefaultOffPlugins.List(), explicitOff...)
 	disabledPlugins := sets.NewString(allOffPlugins...)
@@ -103,53 +93,6 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, adm
 	}
 
 	return admission.NewChainHandler(plugins...), nil
-}
-
-func init() {
-	// add a filter that will remove DefaultAdmissionConfig
-	admission.FactoryFilterFn = filterEnableAdmissionConfigs
-}
-
-func filterEnableAdmissionConfigs(delegate admission.Factory) admission.Factory {
-	return func(config io.Reader) (admission.Interface, error) {
-		config1, config2, err := splitStream(config)
-		if err != nil {
-			return nil, err
-		}
-		// if the config isn't a DefaultAdmissionConfig, then assume we're enabled (we were called after all)
-		// if the config *is* a DefaultAdmissionConfig and it explicitly said
-		obj, err := configapilatest.ReadYAML(config1)
-		// if we can't read it, let the plugin deal with it
-		if err != nil {
-			return delegate(config2)
-		}
-		// if nothing was there, let the plugin deal with it
-		if obj == nil {
-			return delegate(config2)
-		}
-		// if it wasn't a DefaultAdmissionConfig object, let the plugin deal with it
-		if _, ok := obj.(*configapi.DefaultAdmissionConfig); !ok {
-			return delegate(config2)
-		}
-
-		// if it was a DefaultAdmissionConfig, then it must have said "enabled" and it wasn't really meant for the
-		// admission plugin
-		return delegate(nil)
-	}
-}
-
-// splitStream reads the stream bytes and constructs two copies of it.
-func splitStream(config io.Reader) (io.Reader, io.Reader, error) {
-	if config == nil || reflect.ValueOf(config).IsNil() {
-		return nil, nil, nil
-	}
-
-	configBytes, err := ioutil.ReadAll(config)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return bytes.NewBuffer(configBytes), bytes.NewBuffer(configBytes), nil
 }
 
 func ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(in map[string]configv1.AdmissionPluginConfig) (*apiserver.AdmissionConfiguration, error) {

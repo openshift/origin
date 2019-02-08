@@ -1,7 +1,6 @@
 package openshiftapiserver
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -22,13 +21,11 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	configv1 "github.com/openshift/api/config/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/origin/pkg/cmd/configflags"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftadmission"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
-	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	"github.com/openshift/origin/pkg/version"
@@ -172,22 +169,10 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 	admissionDecorators := admission.Decorators{
 		admission.DecoratorFunc(admissionmetrics.WithControllerMetrics),
 	}
+	// TODO these should be explicit strings in the API
 	explicitOn := []string{}
 	explicitOff := []string{}
-	for plugin, config := range config.AdmissionPluginConfig {
-		enabled, err := isAdmissionPluginActivated(config)
-		if err != nil {
-			return nil, err
-		}
-		if enabled {
-			glog.V(2).Infof("Enabling %s", plugin)
-			explicitOn = append(explicitOn, plugin)
-		} else {
-			glog.V(2).Infof("Disabling %s", plugin)
-			explicitOff = append(explicitOff, plugin)
-		}
-	}
-	genericConfig.AdmissionControl, err = openshiftadmission.NewAdmissionChains([]string{}, explicitOn, explicitOff, config.AdmissionPluginConfig, admissionInitializer, admissionDecorators)
+	genericConfig.AdmissionControl, err = openshiftadmission.NewAdmissionChains(explicitOn, explicitOff, config.AdmissionPluginConfig, admissionInitializer, admissionDecorators)
 	if err != nil {
 		return nil, err
 	}
@@ -263,21 +248,4 @@ func OpenshiftHandlerChain(apiHandler http.Handler, genericConfig *genericapiser
 	handler = configprocessing.WithCacheControl(handler, "no-store") // protected endpoints should not be cached
 
 	return handler
-}
-
-func isAdmissionPluginActivated(config configv1.AdmissionPluginConfig) (bool, error) {
-	var (
-		data []byte
-		err  error
-	)
-	switch {
-	case len(config.Configuration.Raw) == 0:
-		data, err = ioutil.ReadFile(config.Location)
-	default:
-		data = config.Configuration.Raw
-	}
-	if err != nil {
-		return false, err
-	}
-	return configlatest.IsAdmissionPluginActivated(bytes.NewReader(data), true)
 }

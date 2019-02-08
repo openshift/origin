@@ -11,7 +11,6 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/apis/authorization/rbacconversion"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -22,12 +21,6 @@ func TestRestrictUsers(t *testing.T) {
 		t.Fatalf("error creating config: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-
-	masterConfig.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{
-		"authorization.openshift.io/RestrictSubjectBindings": {
-			Configuration: &configapi.DefaultAdmissionConfig{},
-		},
-	}
 
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(masterConfig)
 	if err != nil {

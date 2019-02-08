@@ -29,7 +29,6 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	etcddata "k8s.io/kubernetes/test/integration/etcd"
 
-	serverapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -237,9 +236,6 @@ func TestEtcd3StoragePath(t *testing.T) {
 			"batch/v2alpha1=true",
 		},
 		"storage-media-type": {"application/json"},
-	}
-	masterConfig.AdmissionConfig.PluginConfig["ServiceAccount"] = &serverapi.AdmissionPluginConfig{
-		Configuration: &serverapi.DefaultAdmissionConfig{Disable: true},
 	}
 
 	_, err = testserver.StartConfiguredMasterAPI(masterConfig)
