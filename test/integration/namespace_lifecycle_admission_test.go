@@ -35,7 +35,7 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, ns := range []string{"default", "openshift", "openshift-infra"} {
+	for _, ns := range []string{"default", "openshift-config", "openshift-cluster-version"} {
 		if err := clusterAdminKubeClientset.Core().Namespaces().Delete(ns, nil); err == nil {
 			t.Fatalf("expected error deleting %q namespace, got none", ns)
 		}
