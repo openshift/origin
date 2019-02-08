@@ -40,7 +40,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/logs"
 	"github.com/openshift/origin/pkg/oc/cli/newapp"
 	"github.com/openshift/origin/pkg/oc/cli/newbuild"
-	"github.com/openshift/origin/pkg/oc/cli/nodessh"
 	"github.com/openshift/origin/pkg/oc/cli/observe"
 	"github.com/openshift/origin/pkg/oc/cli/options"
 	"github.com/openshift/origin/pkg/oc/cli/policy"
@@ -195,7 +194,6 @@ func NewOcCommand(name, fullName string, in io.Reader, out, errout io.Writer) *c
 			Commands: []*cobra.Command{
 				logs.NewCmdLogs(logs.LogsRecommendedCommandName, fullName, f, ioStreams),
 				rsh.NewCmdRsh(rsh.RshRecommendedName, fullName, f, ioStreams),
-				nodessh.NewCmdNodessh(nodessh.NodesshRecommendedName, fullName, f, ioStreams),
 				rsync.NewCmdRsync(rsync.RsyncRecommendedName, fullName, f, ioStreams),
 				kubectlwrappers.NewCmdPortForward(fullName, f, ioStreams),
 				debug.NewCmdDebug(fullName, f, ioStreams),

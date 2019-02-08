@@ -39,6 +39,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/admin/upgrade"
 	"github.com/openshift/origin/pkg/oc/cli/admin/verifyimagesignature"
 	"github.com/openshift/origin/pkg/oc/cli/kubectlwrappers"
+	"github.com/openshift/origin/pkg/oc/cli/nodessh"
 	"github.com/openshift/origin/pkg/oc/cli/options"
 	"github.com/openshift/origin/pkg/oc/cli/version"
 )
@@ -91,6 +92,7 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 			Message: "Maintenance:",
 			Commands: []*cobra.Command{
 				prune.NewCommandPrune(prune.PruneRecommendedName, fullName+" "+prune.PruneRecommendedName, f, streams),
+				nodessh.NewCmdNodessh(nodessh.NodesshRecommendedName, fullName, f, streams),
 				buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, streams),
 				migrate.NewCommandMigrate(
 					migrate.MigrateRecommendedName, fullName+" "+migrate.MigrateRecommendedName, f, streams,
