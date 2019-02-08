@@ -29,58 +29,48 @@ func init() {
 
 // RegisterAllAdmissionPlugins registers all admission plugins
 func RegisterAllAdmissionPlugins(plugins *admission.Plugins) {
-	// register gc protection plugin
-	gc.Register(plugins)
-	resourcequota.Register(plugins)
+	// register kubernetes plugins that are not yet generic
+	gc.Register(plugins)            // "OwnerReferencesPermissionEnforcement"
+	resourcequota.Register(plugins) // "ResourceQuota"
 
+	// register the generic plugins
 	genericapiserver.RegisterAllAdmissionPlugins(plugins)
+
+	// register openshift specific plugins
 	RegisterOpenshiftAdmissionPlugins(plugins)
 }
 
 func RegisterOpenshiftAdmissionPlugins(plugins *admission.Plugins) {
-	projectrequestlimit.Register(plugins)
-	buildsecretinjector.Register(plugins)
-	buildstrategyrestrictions.Register(plugins)
-	imageadmission.Register(plugins)
-	schedulerpodnodeconstraints.Register(plugins)
-	imagepolicy.Register(plugins)
-	quotaclusterresourcequota.Register(plugins)
+	projectrequestlimit.Register(plugins)         // "project.openshift.io/ProjectRequestLimit"
+	buildsecretinjector.Register(plugins)         // "build.openshift.io/BuildConfigSecretInjector"
+	buildstrategyrestrictions.Register(plugins)   // "build.openshift.io/BuildByStrategy"
+	imageadmission.Register(plugins)              // "image.openshift.io/ImageLimitRange"
+	schedulerpodnodeconstraints.Register(plugins) // "scheduling.openshift.io/PodNodeConstraints"
+	imagepolicy.Register(plugins)                 // "image.openshift.io/ImagePolicy"
+	quotaclusterresourcequota.Register(plugins)   // "quota.openshift.io/ClusterResourceQuota"
 }
 
 var (
 	// OpenShiftAdmissionPlugins gives the in-order default admission chain for openshift resources.
 	OpenShiftAdmissionPlugins = []string{
-		lifecycle.PluginName,
+		lifecycle.PluginName, // "NamespaceLifecycle"
 		"OwnerReferencesPermissionEnforcement",
 		"project.openshift.io/ProjectRequestLimit",
 		"build.openshift.io/BuildConfigSecretInjector",
 		"build.openshift.io/BuildByStrategy",
-		imageadmission.PluginName,
+		imageadmission.PluginName, // "image.openshift.io/ImageLimitRange"
 		"scheduling.openshift.io/PodNodeConstraints",
-		imagepolicyapi.PluginName,
-		"quota.openshift.io/ClusterResourceQuota",
-		mutatingwebhook.PluginName,
-		validatingwebhook.PluginName,
+		imagepolicyapi.PluginName,    // "image.openshift.io/ImagePolicy"
+		mutatingwebhook.PluginName,   // "MutatingAdmissionWebhook"
+		validatingwebhook.PluginName, // "ValidatingAdmissionWebhook"
 		"ResourceQuota",
+		"quota.openshift.io/ClusterResourceQuota",
 	}
-
-	DefaultOnPlugins = sets.NewString(
-		lifecycle.PluginName,
-		"build.openshift.io/BuildConfigSecretInjector",
-		"build.openshift.io/BuildByStrategy",
-		imageadmission.PluginName,
-		"OwnerReferencesPermissionEnforcement",
-		imagepolicyapi.PluginName,
-		mutatingwebhook.PluginName,
-		validatingwebhook.PluginName,
-		"ResourceQuota",
-		"quota.openshift.io/ClusterResourceQuota",
-	)
 
 	// DefaultOffPlugins includes plugins which require explicit configuration to run
 	// if you wire them incorrectly, they may prevent the server from starting
 	DefaultOffPlugins = sets.NewString(
 		"project.openshift.io/ProjectRequestLimit",
-		"PodNodeConstraints",
+		"scheduling.openshift.io/PodNodeConstraints",
 	)
 )

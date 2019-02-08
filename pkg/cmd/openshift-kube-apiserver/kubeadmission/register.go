@@ -8,9 +8,7 @@ import (
 
 	"github.com/openshift/origin/pkg/admission/customresourcevalidation/customresourcevalidationregistration"
 	authorizationrestrictusers "github.com/openshift/origin/pkg/authorization/apiserver/admission/restrictusers"
-	imagepolicyapi "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy"
-	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 	projectnodeenv "github.com/openshift/origin/pkg/project/apiserver/admission/nodeenv"
 	overrideapi "github.com/openshift/origin/pkg/quota/apiserver/admission/apis/clusterresourceoverride"
 	quotaclusterresourceoverride "github.com/openshift/origin/pkg/quota/apiserver/admission/clusterresourceoverride"
@@ -25,20 +23,20 @@ import (
 )
 
 func RegisterOpenshiftKubeAdmissionPlugins(plugins *admission.Plugins) {
-	authorizationrestrictusers.Register(plugins)
-	imagepolicy.Register(plugins)
-	ingressadmission.Register(plugins)
-	projectnodeenv.Register(plugins)
-	quotaclusterresourceoverride.Register(plugins)
-	quotaclusterresourcequota.Register(plugins)
-	quotarunonceduration.Register(plugins)
-	schedulerpodnodeconstraints.Register(plugins)
-	securityadmission.Register(plugins)
-	securityadmission.RegisterSCCExecRestrictions(plugins)
-	externalipranger.RegisterExternalIP(plugins)
+	authorizationrestrictusers.Register(plugins)   // "authorization.openshift.io/RestrictSubjectBindings"
+	quotaclusterresourceoverride.Register(plugins) // "autoscaling.openshift.io/ClusterResourceOverride"
+	quotarunonceduration.Register(plugins)         // "autoscaling.openshift.io/RunOnceDuration"
+	imagepolicy.Register(plugins)                  // "image.openshift.io/ImagePolicy"
+	externalipranger.RegisterExternalIP(plugins)   // "network.openshift.io/ExternalIPRanger"
 	externalipranger.DeprecatedRegisterExternalIP(plugins)
-	restrictedendpoints.RegisterRestrictedEndpoints(plugins)
+	restrictedendpoints.RegisterRestrictedEndpoints(plugins) // "network.openshift.io/RestrictedEndpointsAdmission"
 	restrictedendpoints.DeprecatedRegisterRestrictedEndpoints(plugins)
+	quotaclusterresourcequota.Register(plugins)            // "quota.openshift.io/ClusterResourceQuota"
+	ingressadmission.Register(plugins)                     // "route.openshift.io/IngressAdmission"
+	projectnodeenv.Register(plugins)                       // "scheduling.openshift.io/OriginPodNodeEnvironment"
+	schedulerpodnodeconstraints.Register(plugins)          // "scheduling.openshift.io/PodNodeConstraints"
+	securityadmission.Register(plugins)                    // "security.openshift.io/SecurityContextConstraint"
+	securityadmission.RegisterSCCExecRestrictions(plugins) // "security.openshift.io/SCCExecRestrictions"
 }
 
 var (
@@ -48,65 +46,55 @@ var (
 	SkipRunLevelZeroPlugins = sets.NewString()
 	// these are admission plugins that cannot be applied until after the openshiftapiserver apiserver starts.
 	SkipRunLevelOnePlugins = sets.NewString(
-		"project.openshift.io/ProjectRequestLimit",
 		"authorization.openshift.io/RestrictSubjectBindings",
-		"quota.openshift.io/ClusterResourceQuota",
-		"image.openshift.io/ImagePolicy",
 		overrideapi.PluginName, // "autoscaling.openshift.io/ClusterResourceOverride"
-		"scheduling.openshift.io/OriginPodNodeEnvironment",
 		"autoscaling.openshift.io/RunOnceDuration",
+		"image.openshift.io/ImagePolicy",
+		"quota.openshift.io/ClusterResourceQuota",
+		"scheduling.openshift.io/OriginPodNodeEnvironment",
 		sccadmission.PluginName, // "security.openshift.io/SecurityContextConstraint"
 		"security.openshift.io/SCCExecRestrictions",
 	)
 
-	// AfterKubeAdmissionPlugins are the admission plugins to add after kube admission, before mutating webhooks
+	// openshiftAdmissionPluginsForKube are the admission plugins to add after kube admission, before mutating webhooks.
+	// this list is ordered first by required order for correctness (partial ordering). DO NOT ALPHABETIZE.
 	openshiftAdmissionPluginsForKube = []string{
-		"autoscaling.openshift.io/ClusterResourceOverride",
 		"authorization.openshift.io/RestrictSubjectBindings",
+		"autoscaling.openshift.io/ClusterResourceOverride",
 		"autoscaling.openshift.io/RunOnceDuration",
+		externalipranger.ExternalIPPluginName,             // "network.openshift.io/ExternalIPRanger"
+		"ExternalIPRanger",                                // TODO deprecated to be removed
+		restrictedendpoints.RestrictedEndpointsPluginName, // "network.openshift.io/RestrictedEndpointsAdmission"
+		"openshift.io/RestrictedEndpointsAdmission",       // TODO deprecated to be removed
+		"image.openshift.io/ImagePolicy",
+		ingressadmission.IngressAdmission, // "route.openshift.io/IngressAdmission"
 		"scheduling.openshift.io/PodNodeConstraints",
 		"scheduling.openshift.io/OriginPodNodeEnvironment",
-		externalipranger.ExternalIPPluginName,
-		"ExternalIPRanger",
-		restrictedendpoints.RestrictedEndpointsPluginName,
-		"openshift.io/RestrictedEndpointsAdmission",
-		"image.openshift.io/ImagePolicy",
-		sccadmission.PluginName,
+		sccadmission.PluginName, // "security.openshift.io/SecurityContextConstraint"
 		"security.openshift.io/SCCExecRestrictions",
-		ingressadmission.IngressAdmission,
+
+		// quota always comes last because of relative validation cost.
 		"quota.openshift.io/ClusterResourceQuota",
 	}
 
-	// additionalDefaultOnPlugins is a list of plugins we turn on by default that core kube does not.
+	// additionalDefaultOnPlugins is a list of plugins that core kube explicitly disables
 	additionalDefaultOnPlugins = sets.NewString(
-		imageadmission.PluginName, // "image.openshift.io/ImageLimitRange"
-		"scheduling.openshift.io/OriginPodNodeEnvironment",
-		"PodNodeSelector",
-		"Priority",
-		externalipranger.ExternalIPPluginName,
-		"ExternalIPRanger",
-		restrictedendpoints.RestrictedEndpointsPluginName,
-		"openshift.io/RestrictedEndpointsAdmission",
-		noderestriction.PluginName,
-		securityadmission.PluginName,
-		"StorageObjectInUseProtection",
-		"security.openshift.io/SCCExecRestrictions",
-		"PersistentVolumeLabel",
-		"OwnerReferencesPermissionEnforcement",
-		"PodTolerationRestriction",
-		"quota.openshift.io/ClusterResourceQuota",
-		"route.openshift.io/IngressAdmission",
+		noderestriction.PluginName,             // "NodeRestriction"
+		"OwnerReferencesPermissionEnforcement", // master
+		"PersistentVolumeLabel",                // storage
+		"PodNodeSelector",                      // scheduling
+		"PodTolerationRestriction",             // scheduling
+		"Priority",                             // scheduling
+		"StorageObjectInUseProtection",         //storage
 	)
 
 	// additionalDefaultOffPlugins are admission plugins we choose not to enable by default in openshift
 	// you shouldn't put anything from kube in this list without api-approvers signing off on it.
 	additionalDefaultOffPlugins = sets.NewString(
-		"project.openshift.io/ProjectRequestLimit",
+		"authorization.openshift.io/RestrictSubjectBindings",
+		overrideapi.PluginName, // "autoscaling.openshift.io/ClusterResourceOverride"
 		"autoscaling.openshift.io/RunOnceDuration",
 		"scheduling.openshift.io/PodNodeConstraints",
-		overrideapi.PluginName,
-		imagepolicyapi.PluginName,
-		"authorization.openshift.io/RestrictSubjectBindings",
 	)
 )
 
