@@ -99,6 +99,7 @@ var (
 		"ResourceQuota",
 		"openshift.io/ClusterResourceQuota",
 		"openshift.io/IngressAdmission",
+		expandpvcadmission.PluginName,
 	)
 
 	// DefaultOffPlugins includes plugins which require explicit configuration to run
@@ -121,7 +122,6 @@ var (
 		"ValidatingAdmissionWebhook",
 		"MutatingAdmissionWebhook",
 		"ExtendedResourceToleration",
-		expandpvcadmission.PluginName,
 
 		// these should usually be off.
 		"AlwaysAdmit",
