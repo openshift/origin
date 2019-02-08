@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bufio"
 	"bytes"
+	"context"
 	"compress/gzip"
 	"encoding/json"
 	"fmt"
@@ -37,6 +38,12 @@ import (
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 	imageappend "github.com/openshift/origin/pkg/oc/cli/image/append"
 	"github.com/openshift/origin/pkg/oc/cli/image/extract"
+)
+
+const (
+	// coreOSBootImageLabel contains JSON metadata from coreos-assembler.
+	// In the future it may be used by the installer.
+	coreOSBootImageLabel = "io.openshift.release.coreos-boot-image"
 )
 
 func NewNewOptions(streams genericclioptions.IOStreams) *NewOptions {
@@ -102,6 +109,8 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 	flags.StringVar(&o.FromDirectory, "from-dir", o.FromDirectory, "Use this directory as the source for the release payload.")
 	flags.StringVar(&o.FromReleaseImage, "from-release", o.FromReleaseImage, "Use an existing release image as input.")
 	flags.StringVar(&o.ReferenceMode, "reference-mode", o.ReferenceMode, "By default, the image reference from an image stream points to the public registry for the stream and the image digest. Pass 'source' to build references to the originating image.")
+	flags.StringVar(&o.CoreOSURL, "coreos-url", o.CoreOSURL, "URL for CoreOS release server")
+	flags.StringVar(&o.CoreOSVersion, "coreos-version", o.CoreOSVersion, "Choose this CoreOS version instead of picking latest in the stream")
 
 	// properties of the release
 	flags.StringVar(&o.Name, "name", o.Name, "The name of the release. Will default to the current time.")
@@ -148,6 +157,8 @@ type NewOptions struct {
 	FromImageStream string
 	Namespace       string
 	ReferenceMode   string
+	CoreOSURL       string
+	CoreOSVersion   string
 
 	Exclude       []string
 	AlwaysInclude []string
@@ -536,6 +547,32 @@ func (o *NewOptions) Run() error {
 	is.Name = name
 	if is.Annotations == nil {
 		is.Annotations = make(map[string]string)
+	}
+
+	if o.CoreOSURL != "" {
+		coreosBuild, err := GetCoreOSBuild(context.TODO(), o.CoreOSURL, o.CoreOSVersion)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(o.Out, "Using CoreOS build %s\n", coreosBuild.BuildID)
+		digestedImage := fmt.Sprintf("%s@%s", coreosBuild.OSContainer.Image, coreosBuild.OSContainer.Digest)
+		if digestedImage == "@" {
+			return fmt.Errorf("No oscontainer in CoreOS build")
+		}
+
+		// Hardcoded, this name was chosen in one of the machine-config-operator PRs
+		// and added to the release payload by Clayton.
+		o.Mappings = append(o.Mappings, Mapping{Source: "machine-os-content",
+			Destination: digestedImage})
+
+		// And inject the full build metadata - primarily useful for
+		// "bootimages" i.e. AMIs/qcow2/etc.
+		serializedBuild, err := json.Marshal(coreosBuild)
+		if err != nil {
+			return err
+		}
+		// This is written as a label in the final image
+		is.Annotations[coreOSBootImageLabel] = string(serializedBuild)
 	}
 
 	// update any custom mappings and then sort the spec tags
@@ -930,6 +967,8 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 			if len(dgst) > 0 {
 				config.Config.Labels["io.openshift.release.base-image-digest"] = dgst.String()
 			}
+			config.Config.Labels[coreOSBootImageLabel] = is.Annotations[coreOSBootImageLabel]
+
 			return nil
 		}
 
