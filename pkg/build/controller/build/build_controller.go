@@ -1682,13 +1682,14 @@ func (bc *BuildController) getAdditionalTrustedCAData(config *configv1.Build) (m
 
 func (bc *BuildController) createBuildRegistriesConfigData(config *configv1.Build) (string, error) {
 	registriesConfig := config.Spec.BuildDefaults.RegistriesConfig
-	if registriesConfig.SearchRegistries == nil && len(registriesConfig.InsecureRegistries) == 0 {
-		glog.V(4).Info("using default search and insecure registry settings for builds")
+	if len(registriesConfig.InsecureRegistries) == 0 {
+		glog.V(4).Info("using default insecure registry settings for builds")
 		return "", nil
 	}
 	configObj := tomlConfig{
 		Registries: registries{
-			// Default search to docker.io
+			// docker.io must be the only entry in the registry search list
+			// See https://github.com/openshift/builder/pull/40
 			Search: registryList{
 				Registries: []string{"docker.io"},
 			},
@@ -1697,21 +1698,16 @@ func (bc *BuildController) createBuildRegistriesConfigData(config *configv1.Buil
 			},
 		},
 	}
-	// Override search if provided SearchRegistries is non-nil
-	// This allows empty lists, which disables image search for builds
-	if registriesConfig.SearchRegistries != nil {
-		configObj.Registries.Search.Registries = *registriesConfig.SearchRegistries
-	}
 
 	configTOML, err := toml.Marshal(configObj)
 	if err != nil {
 		return "", err
 	}
 	if len(configTOML) == 0 {
-		glog.V(4).Info("using default search and insecure registry settings for builds")
+		glog.V(4).Info("using default insecure registry settings for builds")
 		return "", nil
 	}
-	glog.V(4).Info("overrode search and insecure registry settings for builds")
+	glog.V(4).Info("overrode insecure registry settings for builds")
 	glog.V(5).Infof("generated registries.conf for build pods: \n%s", string(configTOML))
 	return string(configTOML), nil
 }
