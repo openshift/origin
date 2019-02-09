@@ -256,7 +256,9 @@ func (m *cgroupManagerImpl) Exists(name CgroupName) bool {
 	// in https://github.com/opencontainers/runc/issues/1440
 	// once resolved, we can remove this code.
 	whitelistControllers := sets.NewString("cpu", "cpuacct", "cpuset", "memory", "systemd")
-
+	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.SupportPodPidsLimit) {
+		whitelistControllers.Insert("pids")
+	}
 	// If even one cgroup path doesn't exist, then the cgroup doesn't exist.
 	for controller, path := range cgroupPaths {
 		// ignore mounts we don't care about
@@ -370,7 +372,11 @@ func (m *cgroupManagerImpl) toResources(resourceConfig *ResourceConfig) *libcont
 	if resourceConfig.CpuPeriod != nil {
 		resources.CpuPeriod = *resourceConfig.CpuPeriod
 	}
-
+	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.SupportPodPidsLimit) {
+		if resourceConfig.PodPidsLimit != nil {
+			resources.PidsLimit = *resourceConfig.PodPidsLimit
+		}
+	}
 	// if huge pages are enabled, we set them in libcontainer
 	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.HugePages) {
 		// for each page size enumerated, set that value
@@ -422,7 +428,7 @@ func (m *cgroupManagerImpl) Update(cgroupConfig *CgroupConfig) error {
 		libcontainerCgroupConfig.Path = cgroupConfig.Name.ToCgroupfs()
 	}
 
-	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.SupportPodPidsLimit) && cgroupConfig.ResourceParameters.PodPidsLimit != nil {
+	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.SupportPodPidsLimit) && cgroupConfig.ResourceParameters != nil && cgroupConfig.ResourceParameters.PodPidsLimit != nil {
 		libcontainerCgroupConfig.PidsLimit = *cgroupConfig.ResourceParameters.PodPidsLimit
 	}
 
@@ -452,7 +458,7 @@ func (m *cgroupManagerImpl) Create(cgroupConfig *CgroupConfig) error {
 		libcontainerCgroupConfig.Path = cgroupConfig.Name.ToCgroupfs()
 	}
 
-	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.SupportPodPidsLimit) && cgroupConfig.ResourceParameters.PodPidsLimit != nil {
+	if utilfeature.DefaultFeatureGate.Enabled(kubefeatures.SupportPodPidsLimit) && cgroupConfig.ResourceParameters != nil && cgroupConfig.ResourceParameters.PodPidsLimit != nil {
 		libcontainerCgroupConfig.PidsLimit = *cgroupConfig.ResourceParameters.PodPidsLimit
 	}
 
