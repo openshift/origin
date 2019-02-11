@@ -36,7 +36,7 @@ func NewCmdPolicy(name, fullName string, f cmdutil.Factory, streams genericcliop
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,
-		Short: "Manage policy",
+		Short: "Manage cluster authorization and security policy",
 		Long:  policyLong,
 		Run:   cmdutil.DefaultSubCommandRun(streams.ErrOut),
 	}

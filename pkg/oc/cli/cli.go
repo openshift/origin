@@ -32,7 +32,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/extract"
 	"github.com/openshift/origin/pkg/oc/cli/idle"
 	"github.com/openshift/origin/pkg/oc/cli/image"
-	"github.com/openshift/origin/pkg/oc/cli/importer"
 	"github.com/openshift/origin/pkg/oc/cli/importimage"
 	"github.com/openshift/origin/pkg/oc/cli/kubectlwrappers"
 	"github.com/openshift/origin/pkg/oc/cli/login"
@@ -157,7 +156,6 @@ func NewOcCommand(name, fullName string, in io.Reader, out, errout io.Writer) *c
 				project.NewCmdProject(fullName, f, ioStreams),
 				projects.NewCmdProjects(fullName, f, ioStreams),
 				kubectlwrappers.NewCmdExplain(fullName, f, ioStreams),
-				kubectlwrappers.NewCmdClusterInfo(fullName, f, ioStreams),
 			},
 		},
 		{
@@ -175,6 +173,8 @@ func NewOcCommand(name, fullName string, in io.Reader, out, errout io.Writer) *c
 		{
 			Message: "Application Management Commands:",
 			Commands: []*cobra.Command{
+				kubectlwrappers.NewCmdCreate(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdApply(fullName, f, ioStreams),
 				kubectlwrappers.NewCmdGet(fullName, f, ioStreams),
 				kubectlwrappers.NewCmdDescribe(fullName, f, ioStreams),
 				kubectlwrappers.NewCmdEdit(fullName, f, ioStreams),
@@ -209,22 +209,20 @@ func NewOcCommand(name, fullName string, in io.Reader, out, errout io.Writer) *c
 			Message: "Advanced Commands:",
 			Commands: []*cobra.Command{
 				admin.NewCommandAdmin("adm", fullName+" "+"adm", f, ioStreams),
-				kubectlwrappers.NewCmdCreate(fullName, f, ioStreams),
 				kubectlwrappers.NewCmdReplace(fullName, f, ioStreams),
-				kubectlwrappers.NewCmdApply(fullName, f, ioStreams),
 				kubectlwrappers.NewCmdPatch(fullName, f, ioStreams),
 				process.NewCmdProcess(fullName, f, ioStreams),
 				extract.NewCmdExtract(fullName, f, ioStreams),
-				idle.NewCmdIdle(fullName, f, ioStreams),
 				observe.NewCmdObserve(fullName, f, ioStreams),
 				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, ioStreams),
 				kubectlwrappers.NewCmdAuth(fullName, f, ioStreams),
 				kubectlwrappers.NewCmdConvert(fullName, f, ioStreams),
-				importer.NewCmdImport(fullName, f, ioStreams),
 				image.NewCmdImage(fullName, f, ioStreams),
 				registry.NewCmd(fullName, f, ioStreams),
+				idle.NewCmdIdle(fullName, f, ioStreams),
 				kubectlwrappers.NewCmdApiVersions(fullName, f, ioStreams),
 				kubectlwrappers.NewCmdApiResources(fullName, f, ioStreams),
+				kubectlwrappers.NewCmdClusterInfo(fullName, f, ioStreams),
 			},
 		},
 		{
