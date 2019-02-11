@@ -76,10 +76,8 @@ func Convert_image_Image_To_v1_Image(in *newer.Image, out *v1.Image, s conversio
 	}
 
 	if in.DockerImageSignatures != nil {
-		out.DockerImageSignatures = nil
-		for _, v := range in.DockerImageSignatures {
-			out.DockerImageSignatures = append(out.DockerImageSignatures, v)
-		}
+		out.DockerImageSignatures = make([][]byte, 0, len(in.DockerImageSignatures))
+		out.DockerImageSignatures = append(out.DockerImageSignatures, in.DockerImageSignatures...)
 	} else {
 		out.DockerImageSignatures = nil
 	}

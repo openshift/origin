@@ -259,9 +259,7 @@ func (rw *registryWhitelister) Copy() RegistryWhitelister {
 		pullSpecs:             sets.NewString(rw.pullSpecs.List()...),
 		registryHostRetriever: rw.registryHostRetriever,
 	}
+	copy(newRW.whitelist, rw.whitelist)
 
-	for i, item := range rw.whitelist {
-		newRW.whitelist[i] = item
-	}
 	return &newRW
 }
