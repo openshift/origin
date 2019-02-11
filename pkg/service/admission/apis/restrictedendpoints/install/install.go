@@ -8,9 +8,7 @@ import (
 	"github.com/openshift/origin/pkg/service/admission/apis/restrictedendpoints/v1"
 )
 
-func InstallLegacyInternal(scheme *runtime.Scheme) {
+func InstallInternal(scheme *runtime.Scheme) {
 	utilruntime.Must(restrictedendpoints.Install(scheme))
 	utilruntime.Must(v1.Install(scheme))
-	utilruntime.Must(restrictedendpoints.DeprecatedInstall(scheme))
-	utilruntime.Must(v1.DeprecatedInstall(scheme))
 }

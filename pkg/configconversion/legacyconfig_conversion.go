@@ -22,10 +22,10 @@ func convertNetworkConfigToAdmissionConfig(masterConfig *legacyconfigv1.MasterCo
 	}
 
 	scheme := runtime.NewScheme()
-	utilruntime.Must(externaliprangerv1.DeprecatedInstall(scheme))
-	utilruntime.Must(restrictedendpointsv1.DeprecatedInstall(scheme))
+	utilruntime.Must(externaliprangerv1.Install(scheme))
+	utilruntime.Must(restrictedendpointsv1.Install(scheme))
 	codecs := serializer.NewCodecFactory(scheme)
-	encoder := codecs.LegacyCodec(externaliprangerv1.DeprecatedSchemeGroupVersion, restrictedendpointsv1.DeprecatedSchemeGroupVersion)
+	encoder := codecs.LegacyCodec(externaliprangerv1.GroupVersion, restrictedendpointsv1.GroupVersion)
 
 	// convert the networkconfig to admissionconfig
 	var restricted []string
