@@ -49,7 +49,7 @@ done
 
 # Swagger 2.0 / OpenAPI docs
 generated_file="${SWAGGER_SPEC_OUT_DIR}/openshift-openapi-spec.json"
-oc get --raw "/swagger.json" --config="${MASTER_CONFIG_DIR}/admin.kubeconfig" > "${generated_file}"
+oc get --raw "/swagger.json" --config="${MASTER_CONFIG_DIR}/admin.kubeconfig" | jq -S . > "${generated_file}"
 
 os::util::sed 's|https://127.0.0.1:38443|https://127.0.0.1:8443|g' "${generated_file}"
 os::util::sed -E '0,/"version":/ s|"version": "[^\"]+"|"version": "latest"|g' "${generated_file}"
