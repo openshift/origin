@@ -5,7 +5,6 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -16,11 +15,10 @@ func TestAlwaysPullImagesOn(t *testing.T) {
 		t.Fatalf("error creating config: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	masterConfig.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{
-		"AlwaysPullImages": {
-			Configuration: &configapi.DefaultAdmissionConfig{},
-		},
-	}
+	masterConfig.KubernetesMasterConfig.APIServerArguments["enable-admission-plugins"] = append(
+		masterConfig.KubernetesMasterConfig.APIServerArguments["enable-admission-plugins"],
+		"AlwaysPullImages")
+
 	kubeConfigFile, err := testserver.StartConfiguredMaster(masterConfig)
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)

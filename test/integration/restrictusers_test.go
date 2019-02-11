@@ -11,7 +11,6 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/apis/authorization/rbacconversion"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -23,11 +22,9 @@ func TestRestrictUsers(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	masterConfig.AdmissionConfig.PluginConfig = map[string]*configapi.AdmissionPluginConfig{
-		"authorization.openshift.io/RestrictSubjectBindings": {
-			Configuration: &configapi.DefaultAdmissionConfig{},
-		},
-	}
+	masterConfig.KubernetesMasterConfig.APIServerArguments["enable-admission-plugins"] = append(
+		masterConfig.KubernetesMasterConfig.APIServerArguments["enable-admission-plugins"],
+		"authorization.openshift.io/RestrictSubjectBindings")
 
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(masterConfig)
 	if err != nil {
