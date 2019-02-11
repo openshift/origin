@@ -26,8 +26,11 @@ API rule violation: names_match,github.com/openshift/api/build/v1,BuildTriggerPo
 API rule violation: names_match,github.com/openshift/api/build/v1,BuildTriggerPolicy,GenericWebHook
 API rule violation: names_match,github.com/openshift/api/build/v1,BuildTriggerPolicy,GitLabWebHook
 API rule violation: names_match,github.com/openshift/api/build/v1,BuildTriggerPolicy,BitbucketWebHook
+API rule violation: names_match,github.com/openshift/api/config/v1,AdmissionConfig,EnabledAdmissionPlugins
+API rule violation: names_match,github.com/openshift/api/config/v1,AdmissionConfig,DisabledAdmissionPlugins
 API rule violation: names_match,github.com/openshift/api/config/v1,AuthenticationSpec,OAuthMetadata
 API rule violation: names_match,github.com/openshift/api/config/v1,EtcdConnectionInfo,URLs
+API rule violation: names_match,github.com/openshift/api/config/v1,GenericAPIServerConfig,AdmissionConfig
 API rule violation: names_match,github.com/openshift/api/config/v1,IdentityProvider,UseAsChallenger
 API rule violation: names_match,github.com/openshift/api/config/v1,IdentityProvider,UseAsLogin
 API rule violation: names_match,github.com/openshift/api/config/v1,IdentityProviderConfig,GitHub
@@ -73,12 +76,12 @@ API rule violation: names_match,github.com/openshift/api/network/v1,ClusterNetwo
 API rule violation: names_match,github.com/openshift/api/network/v1,NetNamespace,NetName
 API rule violation: names_match,github.com/openshift/api/network/v1,NetNamespace,NetID
 API rule violation: names_match,github.com/openshift/api/oauth/v1,ScopeRestriction,ExactValues
-API rule violation: names_match,github.com/openshift/api/openshiftcontrolplane/v1,OpenShiftAPIServerConfig,EnableOAPI
 API rule violation: names_match,github.com/openshift/api/operator/v1alpha1,OperatorStatus,CurrentAvailability
 API rule violation: names_match,github.com/openshift/api/operator/v1alpha1,OperatorStatus,TargetAvailability
 API rule violation: names_match,github.com/openshift/api/osin/v1,IdentityProvider,UseAsChallenger
 API rule violation: names_match,github.com/openshift/api/osin/v1,IdentityProvider,UseAsLogin
 API rule violation: names_match,github.com/openshift/api/osin/v1,OpenIDIdentityProvider,URLs
+API rule violation: names_match,github.com/openshift/api/osin/v1,OsinServerConfig,OAuthConfig
 API rule violation: names_match,github.com/openshift/api/quota/v1,ClusterResourceQuotaSelector,LabelSelector
 API rule violation: names_match,github.com/openshift/api/quota/v1,ClusterResourceQuotaSelector,AnnotationSelector
 API rule violation: names_match,github.com/openshift/api/template/v1,Template,ObjectLabels
