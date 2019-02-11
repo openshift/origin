@@ -6,31 +6,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// SchemeGroupVersion is group version used to register these objects
-var DeprecatedSchemeGroupVersion = schema.GroupVersion{Group: "", Version: "v1"}
-
-var (
-	DeprecatedSchemeBuilder = runtime.NewSchemeBuilder(
-		deprecatedAddKnownTypes,
-		restrictedendpoints.DeprecatedInstall,
-	)
-	DeprecatedInstall = DeprecatedSchemeBuilder.AddToScheme
-)
-
-// Adds the list of known types to api.Scheme.
-func deprecatedAddKnownTypes(scheme *runtime.Scheme) error {
-	scheme.AddKnownTypes(DeprecatedSchemeGroupVersion,
-		&ExternalIPRangerAdmissionConfig{},
-	)
-	return nil
-}
-
-var GroupVersion = schema.GroupVersion{Group: "", Version: "v1"}
+var GroupVersion = schema.GroupVersion{Group: "network.openshift.io", Version: "v1"}
 
 var (
 	schemeBuilder = runtime.NewSchemeBuilder(
 		addKnownTypes,
-		restrictedendpoints.DeprecatedInstall,
+		restrictedendpoints.Install,
 	)
 	Install = schemeBuilder.AddToScheme
 )

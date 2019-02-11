@@ -420,7 +420,16 @@ func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig
 	if err != nil {
 		return err
 	}
-	legacyConfigCodec := configapi.Codecs.LegacyCodec(legacyconfigv1.LegacySchemeGroupVersion)
+	legacyConfigCodec := configapi.Codecs.LegacyCodec(
+		legacyconfigv1.LegacySchemeGroupVersion,
+		schema.GroupVersion{Group: "autoscaling.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "image.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "scheduling.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "project.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "apiserver.k8s.io", Version: "v1alpha1"},
+		schema.GroupVersion{Group: "audit.k8s.io", Version: "v1alpha1"},
+		schema.GroupVersion{Group: "admission.config.openshift.io", Version: "v1"},
+	)
 	externalBytes, err := runtime.Encode(legacyConfigCodec, uncastExternalMasterConfig)
 	if err != nil {
 		return err
@@ -461,7 +470,16 @@ func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig 
 	if err != nil {
 		return err
 	}
-	legacyConfigCodec := configapi.Codecs.LegacyCodec(legacyconfigv1.LegacySchemeGroupVersion)
+	legacyConfigCodec := configapi.Codecs.LegacyCodec(
+		legacyconfigv1.LegacySchemeGroupVersion,
+		schema.GroupVersion{Group: "autoscaling.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "image.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "scheduling.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "project.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "apiserver.k8s.io", Version: "v1alpha1"},
+		schema.GroupVersion{Group: "audit.k8s.io", Version: "v1alpha1"},
+		schema.GroupVersion{Group: "admission.config.openshift.io", Version: "v1"},
+	)
 	externalBytes, err := runtime.Encode(legacyConfigCodec, uncastExternalMasterConfig)
 	if err != nil {
 		return err
@@ -675,7 +693,16 @@ func startOpenShiftControllers(masterConfig *configapi.MasterConfig) error {
 	if err != nil {
 		return err
 	}
-	legacyConfigCodec := configapi.Codecs.LegacyCodec(legacyconfigv1.LegacySchemeGroupVersion)
+	legacyConfigCodec := configapi.Codecs.LegacyCodec(
+		legacyconfigv1.LegacySchemeGroupVersion,
+		schema.GroupVersion{Group: "autoscaling.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "image.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "scheduling.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "project.openshift.io", Version: "v1"},
+		schema.GroupVersion{Group: "apiserver.k8s.io", Version: "v1alpha1"},
+		schema.GroupVersion{Group: "audit.k8s.io", Version: "v1alpha1"},
+		schema.GroupVersion{Group: "admission.config.openshift.io", Version: "v1"},
+	)
 	externalBytes, err := runtime.Encode(legacyConfigCodec, uncastExternalMasterConfig)
 	if err != nil {
 		return err

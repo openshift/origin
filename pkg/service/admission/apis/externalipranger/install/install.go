@@ -8,9 +8,7 @@ import (
 	"github.com/openshift/origin/pkg/service/admission/apis/externalipranger/v1"
 )
 
-func InstallLegacyInternal(scheme *runtime.Scheme) {
+func InstallInternal(scheme *runtime.Scheme) {
 	utilruntime.Must(externalipranger.Install(scheme))
 	utilruntime.Must(v1.Install(scheme))
-	utilruntime.Must(externalipranger.DeprecatedInstallLegacy(scheme))
-	utilruntime.Must(v1.DeprecatedInstall(scheme))
 }
