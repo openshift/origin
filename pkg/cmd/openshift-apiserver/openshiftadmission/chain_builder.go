@@ -51,7 +51,7 @@ func NewAdmissionChains(
 		admissionPluginConfigFilename = tempFile.Name()
 	}
 
-	allOffPlugins := append(DefaultOffPlugins.List(), explicitOff...)
+	allOffPlugins := append([]string{}, explicitOff...)
 	disabledPlugins := sets.NewString(allOffPlugins...)
 	enabledPlugins := sets.NewString(explicitOn...)
 	disabledPlugins = disabledPlugins.Difference(enabledPlugins)
