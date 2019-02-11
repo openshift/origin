@@ -102,7 +102,7 @@ func (o CreateSignerCertOptions) CreateSignerCert() (*crypto.CA, error) {
 	var err error
 	written := true
 	if o.Overwrite {
-		ca, err = crypto.MakeCA(o.CertFile, o.KeyFile, o.SerialFile, o.Name, o.ExpireDays)
+		ca, err = crypto.MakeSelfSignedCA(o.CertFile, o.KeyFile, o.SerialFile, o.Name, o.ExpireDays)
 	} else {
 		ca, written, err = crypto.EnsureCA(o.CertFile, o.KeyFile, o.SerialFile, o.Name, o.ExpireDays)
 	}
