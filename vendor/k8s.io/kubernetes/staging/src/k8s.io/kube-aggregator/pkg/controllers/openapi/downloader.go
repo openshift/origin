@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/go-openapi/spec"
+	"github.com/golang/glog"
 
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/endpoints/request"
@@ -102,6 +103,7 @@ func (s *Downloader) Download(handler http.Handler, etag string) (returnSpec *sp
 	req.Header.Add("Accept", "application/json")
 
 	// Only pass eTag if it is not generated locally
+	glog.Infof("DEBUG: AGGREGATOR(1): etag: %q (has local etag prefix: %v)", etag, strings.HasPrefix(etag, locallyGeneratedEtagPrefix))
 	if len(etag) > 0 && !strings.HasPrefix(etag, locallyGeneratedEtagPrefix) {
 		req.Header.Add("If-None-Match", etag)
 	}
@@ -118,6 +120,7 @@ func (s *Downloader) Download(handler http.Handler, etag string) (returnSpec *sp
 		}
 
 		// Only pass eTag if it is not generated locally
+		glog.Infof("DEBUG: AGGREGATOR(2): etag: %q (has local etag prefix: %v)", etag, strings.HasPrefix(etag, locallyGeneratedEtagPrefix))
 		if len(etag) > 0 && !strings.HasPrefix(etag, locallyGeneratedEtagPrefix) {
 			req.Header.Add("If-None-Match", etag)
 		}
@@ -128,6 +131,7 @@ func (s *Downloader) Download(handler http.Handler, etag string) (returnSpec *sp
 
 	switch writer.respCode {
 	case http.StatusNotModified:
+		glog.Infof("DEBUG: AGGREGATOR(4): etag: %q, not modified", etag)
 		if len(etag) == 0 {
 			return nil, etag, http.StatusNotModified, fmt.Errorf("http.StatusNotModified is not allowed in absence of etag")
 		}
@@ -141,8 +145,10 @@ func (s *Downloader) Download(handler http.Handler, etag string) (returnSpec *sp
 			return nil, "", 0, err
 		}
 		newEtag = writer.Header().Get("Etag")
+		glog.Infof("DEBUG: AGGREGATOR(5): newEtag: %q", newEtag)
 		if len(newEtag) == 0 {
 			newEtag = etagFor(writer.data)
+			glog.Infof("DEBUG: AGGREGATOR(3): etag: %q, newEtag: %q (has local etag prefix: %v)", etag, newEtag, strings.HasPrefix(etag, locallyGeneratedEtagPrefix))
 			if len(etag) > 0 && strings.HasPrefix(etag, locallyGeneratedEtagPrefix) {
 				// The function call with an etag and server does not report an etag.
 				// That means this server does not support etag and the etag that passed
