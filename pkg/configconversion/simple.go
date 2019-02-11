@@ -80,6 +80,36 @@ func ToOpenShiftAdmissionPluginConfigMap(in map[string]*legacyconfigv1.Admission
 	return out, nil
 }
 
+func ToOpenShiftAdmissionPluginList(in []string) (out []string) {
+	if in == nil {
+		return nil
+	}
+
+	for _, name := range in {
+		if !isKnownOpenShiftAdmissionPlugin(name) {
+			continue
+		}
+		out = append(out, name)
+	}
+
+	return out
+}
+
+func ToKubeAdmissionPluginList(in []string) (out []string) {
+	if in == nil {
+		return nil
+	}
+
+	for _, name := range in {
+		if !isKnownKubeAdmissionPlugin(name) {
+			continue
+		}
+		out = append(out, name)
+	}
+
+	return out
+}
+
 func isKnownOpenShiftAdmissionPlugin(pluginName string) bool {
 	for _, plugin := range openshiftadmission.OpenShiftAdmissionPlugins {
 		if pluginName == plugin {
