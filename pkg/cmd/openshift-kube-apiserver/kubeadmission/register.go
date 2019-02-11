@@ -36,9 +36,7 @@ func RegisterOpenshiftKubeAdmissionPlugins(plugins *admission.Plugins) {
 	securityadmission.Register(plugins)
 	securityadmission.RegisterSCCExecRestrictions(plugins)
 	externalipranger.RegisterExternalIP(plugins)
-	externalipranger.DeprecatedRegisterExternalIP(plugins)
 	restrictedendpoints.RegisterRestrictedEndpoints(plugins)
-	restrictedendpoints.DeprecatedRegisterRestrictedEndpoints(plugins)
 }
 
 var (
@@ -67,9 +65,7 @@ var (
 		"scheduling.openshift.io/PodNodeConstraints",
 		"scheduling.openshift.io/OriginPodNodeEnvironment",
 		externalipranger.ExternalIPPluginName,
-		"ExternalIPRanger",
 		restrictedendpoints.RestrictedEndpointsPluginName,
-		"openshift.io/RestrictedEndpointsAdmission",
 		"image.openshift.io/ImagePolicy",
 		sccadmission.PluginName,
 		"security.openshift.io/SCCExecRestrictions",
@@ -84,9 +80,7 @@ var (
 		"PodNodeSelector",
 		"Priority",
 		externalipranger.ExternalIPPluginName,
-		"ExternalIPRanger",
 		restrictedendpoints.RestrictedEndpointsPluginName,
-		"openshift.io/RestrictedEndpointsAdmission",
 		noderestriction.PluginName,
 		securityadmission.PluginName,
 		"StorageObjectInUseProtection",

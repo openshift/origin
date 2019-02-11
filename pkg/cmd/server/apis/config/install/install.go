@@ -45,6 +45,6 @@ func InstallLegacyInternal(scheme *runtime.Scheme) {
 	clusterresourceoverrideinstall.InstallInternal(scheme)
 	runoncedurationinstall.InstallInternal(scheme)
 	podnodeconstraintsinstall.InstallInternal(scheme)
-	restrictedendpointsinstall.InstallLegacyInternal(scheme)
-	externaliprangerinstall.InstallLegacyInternal(scheme)
+	restrictedendpointsinstall.InstallInternal(scheme)
+	externaliprangerinstall.InstallInternal(scheme)
 }
