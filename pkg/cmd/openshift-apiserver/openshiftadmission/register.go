@@ -75,11 +75,6 @@ var (
 		validatingwebhook.PluginName,
 		"ResourceQuota",
 		"quota.openshift.io/ClusterResourceQuota",
-	)
-
-	// DefaultOffPlugins includes plugins which require explicit configuration to run
-	// if you wire them incorrectly, they may prevent the server from starting
-	DefaultOffPlugins = sets.NewString(
 		"project.openshift.io/ProjectRequestLimit",
 		"PodNodeConstraints",
 	)
