@@ -145,7 +145,7 @@ func FindAvailableBindAddress(lowPort, highPort int) (string, error) {
 	return "", fmt.Errorf("Could not find available port in the range %d-%d", lowPort, highPort)
 }
 
-func setupStartOptions(useDefaultPort bool) *start.MasterArgs {
+func setupStartOptions() *start.MasterArgs {
 	masterArgs := start.NewDefaultMasterArgs()
 
 	basedir := util.GetBaseDir()
@@ -159,19 +159,17 @@ func setupStartOptions(useDefaultPort bool) *start.MasterArgs {
 	masterArgs.EtcdDir = etcdDir
 	masterArgs.ConfigDir.Default(path.Join(basedir, "openshift.local.config", "master"))
 
-	if !useDefaultPort {
-		// don't wait for nodes to come up
-		masterAddr := os.Getenv("OS_MASTER_ADDR")
-		if len(masterAddr) == 0 {
-			if addr, err := FindAvailableBindAddress(10000, 29999); err != nil {
-				glog.Fatalf("Couldn't find free address for master: %v", err)
-			} else {
-				masterAddr = addr
-			}
+	// don't wait for nodes to come up
+	masterAddr := os.Getenv("OS_MASTER_ADDR")
+	if len(masterAddr) == 0 {
+		if addr, err := FindAvailableBindAddress(10000, 29999); err != nil {
+			glog.Fatalf("Couldn't find free address for master: %v", err)
+		} else {
+			masterAddr = addr
 		}
-		masterArgs.MasterAddr.Set(masterAddr)
-		masterArgs.ListenArg.ListenAddr.Set(masterAddr)
 	}
+	masterArgs.MasterAddr.Set(masterAddr)
+	masterArgs.ListenArg.ListenAddr.Set(masterAddr)
 
 	dnsAddr := os.Getenv("OS_DNS_ADDR")
 	if len(dnsAddr) == 0 {
@@ -187,11 +185,11 @@ func setupStartOptions(useDefaultPort bool) *start.MasterArgs {
 }
 
 func DefaultMasterOptions() (*configapi.MasterConfig, error) {
-	return DefaultMasterOptionsWithTweaks(false)
+	return DefaultMasterOptionsWithTweaks()
 }
 
-func DefaultMasterOptionsWithTweaks(useDefaultPort bool) (*configapi.MasterConfig, error) {
-	masterArgs := setupStartOptions(useDefaultPort)
+func DefaultMasterOptionsWithTweaks() (*configapi.MasterConfig, error) {
+	masterArgs := setupStartOptions()
 	if !masterArgs.ConfigDir.Provided() {
 		masterArgs.ConfigDir.Default("openshift.local.config/master")
 	}
@@ -210,6 +208,7 @@ func DefaultMasterOptionsWithTweaks(useDefaultPort bool) (*configapi.MasterConfi
 	if masterConfig.AdmissionConfig.PluginConfig == nil {
 		masterConfig.AdmissionConfig.PluginConfig = make(map[string]*configapi.AdmissionPluginConfig)
 	}
+	masterConfig.KubernetesMasterConfig.APIServerArguments = map[string][]string{}
 
 	if masterConfig.EtcdConfig != nil {
 		addr, err := FindAvailableBindAddress(10000, 29999)
