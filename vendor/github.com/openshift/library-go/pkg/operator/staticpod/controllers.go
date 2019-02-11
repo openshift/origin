@@ -13,12 +13,14 @@ import (
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/node"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/prune"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/revision"
+	"github.com/openshift/library-go/pkg/operator/staticpod/controller/staticpodstate"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 type staticPodOperatorControllers struct {
 	revisionController           *revision.RevisionController
 	installerController          *installer.InstallerController
+	staticPodStateController     *staticpodstate.StaticPodStateController
 	pruneController              *prune.PruneController
 	nodeController               *node.NodeController
 	backingResourceController    *backingresource.BackingResourceController
@@ -36,10 +38,19 @@ type staticPodOperatorControllers struct {
 // 4. BackingResourceController - this creates the backing resources needed for the operand, such as cluster rolebindings and installer service
 //    account.
 // 5. MonitoringResourceController - this creates the service monitor used by prometheus to scrape metrics.
-func NewControllers(targetNamespaceName, staticPodName, podResourcePrefix string, installerCommand, prunerCommand []string, revisionConfigMaps, revisionSecrets []revision.RevisionResource,
-	staticPodOperatorClient v1helpers.StaticPodOperatorClient, configMapGetter corev1client.ConfigMapsGetter, secretGetter corev1client.SecretsGetter, podsGetter corev1client.PodsGetter,
-	kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, kubeInformersNamespaceScoped,
-	kubeInformersClusterScoped informers.SharedInformerFactory, eventRecorder events.Recorder) *staticPodOperatorControllers {
+func NewControllers(
+	targetNamespaceName, staticPodName, podResourcePrefix string,
+	installerCommand, prunerCommand []string,
+	revisionConfigMaps, revisionSecrets []revision.RevisionResource,
+	staticPodOperatorClient v1helpers.StaticPodOperatorClient,
+	configMapGetter corev1client.ConfigMapsGetter,
+	secretGetter corev1client.SecretsGetter,
+	podsGetter corev1client.PodsGetter,
+	kubeClient kubernetes.Interface,
+	dynamicClient dynamic.Interface,
+	kubeInformersNamespaceScoped, kubeInformersClusterScoped informers.SharedInformerFactory,
+	eventRecorder events.Recorder) *staticPodOperatorControllers {
+
 	controller := &staticPodOperatorControllers{}
 
 	controller.revisionController = revision.NewRevisionController(
@@ -59,6 +70,15 @@ func NewControllers(targetNamespaceName, staticPodName, podResourcePrefix string
 		revisionConfigMaps,
 		revisionSecrets,
 		installerCommand,
+		kubeInformersNamespaceScoped,
+		staticPodOperatorClient,
+		kubeClient,
+		eventRecorder,
+	)
+
+	controller.staticPodStateController = staticpodstate.NewStaticPodStateController(
+		targetNamespaceName,
+		staticPodName,
 		kubeInformersNamespaceScoped,
 		staticPodOperatorClient,
 		kubeClient,
@@ -103,9 +123,15 @@ func NewControllers(targetNamespaceName, staticPodName, podResourcePrefix string
 	return controller
 }
 
+func (o *staticPodOperatorControllers) WithInstallerPodMutationFn(installerPodMutationFn installer.InstallerPodMutationFunc) *staticPodOperatorControllers {
+	o.installerController.WithInstallerPodMutationFn(installerPodMutationFn)
+	return o
+}
+
 func (o *staticPodOperatorControllers) Run(stopCh <-chan struct{}) {
 	go o.revisionController.Run(1, stopCh)
 	go o.installerController.Run(1, stopCh)
+	go o.staticPodStateController.Run(1, stopCh)
 	go o.pruneController.Run(1, stopCh)
 	go o.nodeController.Run(1, stopCh)
 	go o.backingResourceController.Run(1, stopCh)

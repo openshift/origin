@@ -130,7 +130,7 @@ func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
 				return err
 			}
 			signerName := fmt.Sprintf("%s-signer@%d", c.componentName, time.Now().Unix())
-			ca, err := crypto.MakeCA(
+			ca, err := crypto.MakeSelfSignedCA(
 				filepath.Join(temporaryCertDir, "serving-signer.crt"),
 				filepath.Join(temporaryCertDir, "serving-signer.key"),
 				filepath.Join(temporaryCertDir, "serving-signer.serial"),

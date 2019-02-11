@@ -2,13 +2,12 @@ package query
 
 import (
 	"fmt"
+	"github.com/pelletier/go-toml"
 	"io/ioutil"
 	"sort"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/pelletier/go-toml"
 )
 
 type queryTestNode struct {
@@ -407,7 +406,8 @@ func TestQueryFilterFn(t *testing.T) {
 
 	assertQueryPositions(t, string(buff),
 		"$..[?(float)]",
-		[]interface{}{ // no float values in document
+		[]interface{}{
+		// no float values in document
 		})
 
 	tv, _ := time.Parse(time.RFC3339, "1979-05-27T07:32:00Z")

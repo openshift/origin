@@ -224,6 +224,9 @@ func TestPruneAPIResources(t *testing.T) {
 			eventRecorder:        eventRecorder,
 			operatorConfigClient: fakeStaticPodOperatorClient,
 		}
+		c.ownerRefsFn = func(revision int32) ([]metav1.OwnerReference, error) {
+			return []metav1.OwnerReference{}, nil
+		}
 		c.prunerPodImageFn = func() string { return "docker.io/foo/bar" }
 
 		operatorSpec, _, _, err := c.operatorConfigClient.GetStaticPodOperatorState()
@@ -436,6 +439,9 @@ func TestPruneDiskResources(t *testing.T) {
 				podGetter:            kubeClient.CoreV1(),
 				eventRecorder:        eventRecorder,
 				operatorConfigClient: fakeStaticPodOperatorClient,
+			}
+			c.ownerRefsFn = func(revision int32) ([]metav1.OwnerReference, error) {
+				return []metav1.OwnerReference{}, nil
 			}
 			c.prunerPodImageFn = func() string { return "docker.io/foo/bar" }
 

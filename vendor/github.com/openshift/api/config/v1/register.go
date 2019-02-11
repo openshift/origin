@@ -44,6 +44,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ConsoleList{},
 		&DNS{},
 		&DNSList{},
+		&Features{},
+		&FeaturesList{},
 		&Image{},
 		&ImageList{},
 		&Infrastructure{},

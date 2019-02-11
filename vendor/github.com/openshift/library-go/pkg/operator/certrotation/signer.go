@@ -75,7 +75,7 @@ func needNewSigningCertKeyPair(annotations map[string]string, validity time.Dura
 // setSigningCertKeyPairSecret creates a new signing cert/key pair and sets them in the secret
 func setSigningCertKeyPairSecret(signingCertKeyPairSecret *corev1.Secret, validity time.Duration) error {
 	signerName := fmt.Sprintf("%s_%s@%d", signingCertKeyPairSecret.Namespace, signingCertKeyPairSecret.Name, time.Now().Unix())
-	ca, err := crypto.MakeCAConfigForDuration(signerName, validity)
+	ca, err := crypto.MakeSelfSignedCAConfigForDuration(signerName, validity)
 	if err != nil {
 		return err
 	}

@@ -30,6 +30,10 @@ type ConsoleListerExpansion interface{}
 // DNSLister.
 type DNSListerExpansion interface{}
 
+// FeaturesListerExpansion allows custom methods to be added to
+// FeaturesLister.
+type FeaturesListerExpansion interface{}
+
 // ImageListerExpansion allows custom methods to be added to
 // ImageLister.
 type ImageListerExpansion interface{}

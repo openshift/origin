@@ -1,0 +1,16 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: kubeapiserveroperatorconfigs.kubeapiserver.operator.openshift.io
+spec:
+  scope: Cluster
+  group: kubeapiserver.operator.openshift.io
+  version: v1alpha1
+  names:
+    kind: KubeAPIServerOperatorConfig
+    plural: kubeapiserveroperatorconfigs
+    singular: kubeapiserveroperatorconfig
+    categories:
+    - coreoperators
+  subresources:
+    status: {}

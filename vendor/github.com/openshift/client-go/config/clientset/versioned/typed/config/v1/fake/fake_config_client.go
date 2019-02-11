@@ -40,6 +40,10 @@ func (c *FakeConfigV1) DNSs() v1.DNSInterface {
 	return &FakeDNSs{c}
 }
 
+func (c *FakeConfigV1) Features() v1.FeaturesInterface {
+	return &FakeFeatures{c}
+}
+
 func (c *FakeConfigV1) Images() v1.ImageInterface {
 	return &FakeImages{c}
 }

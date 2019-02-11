@@ -16,6 +16,8 @@ type ConsoleExpansion interface{}
 
 type DNSExpansion interface{}
 
+type FeaturesExpansion interface{}
+
 type ImageExpansion interface{}
 
 type InfrastructureExpansion interface{}

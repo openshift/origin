@@ -2,10 +2,20 @@
 
 package v1
 
+type AuthenticationExpansion interface{}
+
+type ConsoleExpansion interface{}
+
+type EtcdExpansion interface{}
+
 type KubeAPIServerExpansion interface{}
 
 type KubeControllerManagerExpansion interface{}
 
+type KubeSchedulerExpansion interface{}
+
 type OpenShiftAPIServerExpansion interface{}
 
 type OpenShiftControllerManagerExpansion interface{}
+
+type ServiceCAExpansion interface{}
