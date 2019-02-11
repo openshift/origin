@@ -21,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/controller"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 
 	extensions "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -58,6 +58,9 @@ func (t *DaemonSetUpgradeTest) Setup(f *framework.Framework) {
 					Labels: labelSet,
 				},
 				Spec: v1.PodSpec{
+					Tolerations: []v1.Toleration{
+						{Operator: v1.TolerationOpExists},
+					},
 					Containers: []v1.Container{
 						{
 							Name:  daemonSetName,
