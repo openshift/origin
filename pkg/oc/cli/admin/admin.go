@@ -34,7 +34,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/admin/project"
 	"github.com/openshift/origin/pkg/oc/cli/admin/prune"
 	"github.com/openshift/origin/pkg/oc/cli/admin/release"
-	"github.com/openshift/origin/pkg/oc/cli/admin/router"
 	"github.com/openshift/origin/pkg/oc/cli/admin/top"
 	"github.com/openshift/origin/pkg/oc/cli/admin/upgrade"
 	"github.com/openshift/origin/pkg/oc/cli/admin/verifyimagesignature"
@@ -125,7 +124,6 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 		// these will be removed soon
 		admin.NewCommandNodeConfig(admin.NodeConfigCommandName, fullName+" "+admin.NodeConfigCommandName, streams),
 		node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, streams),
-		router.NewCmdRouter(f, fullName, "router", streams),
 		ipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", streams),
 	}
 	deprecatedCACommands := []*cobra.Command{

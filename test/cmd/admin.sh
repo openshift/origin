@@ -6,7 +6,6 @@ trap os::test::junit::reconcile_output EXIT
 (
   set +e
   oc delete project/example project/ui-test-project project/recreated-project
-  oc delete sa/router -n default
   oc delete node/fake-node
   oc delete groups/shortoutputgroup
   oc delete groups/group1
@@ -256,17 +255,6 @@ os::cmd::try_until_failure 'oc get project recreated-project'
 os::cmd::expect_success 'oc adm new-project recreated-project --admin="createuser2"'
 os::cmd::expect_success_and_text "oc get rolebinding admin -n recreated-project -o jsonpath='{.subjects[*].name}'" '^createuser2$'
 echo "new-project: ok"
-os::test::junit::declare_suite_end
-
-os::test::junit::declare_suite_start "cmd/admin/router"
-# Test running a router
-os::cmd::expect_failure_and_text 'oc adm router --dry-run' 'does not exist'
-os::cmd::expect_success "oc adm policy add-scc-to-user privileged system:serviceaccount:default:router"
-os::cmd::expect_success_and_text "oc adm router -o yaml --service-account=router -n default" 'image:.*\-haproxy\-router:'
-os::cmd::expect_success "oc adm router --images='${USE_IMAGES}' --service-account=router -n default"
-os::cmd::expect_success_and_text 'oc adm router -n default' 'service exists'
-os::cmd::expect_success_and_text 'oc get dc/router -o yaml -n default' 'readinessProbe'
-echo "router: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/build-chain"
