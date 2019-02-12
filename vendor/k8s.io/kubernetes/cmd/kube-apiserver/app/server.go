@@ -550,7 +550,12 @@ func buildGenericConfig(
 				if server == "kubernetes.default.svc" {
 					return genericConfig.LoopbackClientConfig, nil
 				}
-				return delegate.ClientConfigFor(server)
+				clientConfig, err := delegate.ClientConfigFor(server)
+				if err != nil {
+					return nil, err
+				}
+				clientConfig.UserAgent = strings.Replace(clientConfig.UserAgent, "hypershift", "webhook-auth-resolver", 1)
+				return clientConfig, nil
 			},
 			ClientConfigForServiceFunc: func(serviceName, serviceNamespace string) (*rest.Config, error) {
 				if serviceName == "kubernetes" && serviceNamespace == "default" {
@@ -560,6 +565,7 @@ func buildGenericConfig(
 				if err != nil {
 					return nil, err
 				}
+				ret.UserAgent = strings.Replace(ret.UserAgent, "hypershift", "webhook-auth-resolver", 1)
 				if proxyTransport != nil && proxyTransport.DialContext != nil {
 					ret.Dial = proxyTransport.DialContext
 				}

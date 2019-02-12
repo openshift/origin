@@ -19,6 +19,7 @@ package options
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/spf13/pflag"
 
@@ -150,6 +151,7 @@ func (s *DeprecatedInsecureServingOptionsWithLoopback) ApplyTo(insecureServingIn
 	}
 
 	secureLoopbackClientConfig, err := (*insecureServingInfo).NewLoopbackClientConfig()
+	secureLoopbackClientConfig.UserAgent = strings.Replace(secureLoopbackClientConfig.UserAgent, "hypershift", "kube-apiserver", 1)
 	switch {
 	// if we failed and there's no fallback loopback client config, we need to fail
 	case err != nil && secureLoopbackClientConfig == nil:

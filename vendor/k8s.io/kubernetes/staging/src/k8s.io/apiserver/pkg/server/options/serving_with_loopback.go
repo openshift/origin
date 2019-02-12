@@ -19,6 +19,7 @@ package options
 import (
 	"crypto/tls"
 	"fmt"
+	"strings"
 
 	"github.com/pborman/uuid"
 
@@ -61,6 +62,7 @@ func (s *SecureServingOptionsWithLoopback) ApplyTo(secureServingInfo **server.Se
 	}
 
 	secureLoopbackClientConfig, err := (*secureServingInfo).NewLoopbackClientConfig(uuid.NewRandom().String(), certPem)
+	secureLoopbackClientConfig.UserAgent = strings.Replace(secureLoopbackClientConfig.UserAgent, "hypershift", "kube-apiserver", 1)
 	switch {
 	// if we failed and there's no fallback loopback client config, we need to fail
 	case err != nil && secureLoopbackClientConfig == nil:
