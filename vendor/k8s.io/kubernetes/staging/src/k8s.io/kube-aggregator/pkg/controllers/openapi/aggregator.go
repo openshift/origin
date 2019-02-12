@@ -19,12 +19,14 @@ package openapi
 import (
 	"fmt"
 	"net/http"
+	"reflect"
 	"sort"
 	"sync"
 	"time"
 
 	restful "github.com/emicklei/go-restful"
 	"github.com/go-openapi/spec"
+	"github.com/golang/glog"
 
 	"k8s.io/apiserver/pkg/server"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
@@ -276,6 +278,13 @@ func (s *specAggregator) UpdateAPIServiceSpec(apiServiceName string, spec *spec.
 	specInfo, existingService := s.openAPISpecs[apiServiceName]
 	if !existingService {
 		return fmt.Errorf("APIService %q does not exists", apiServiceName)
+	}
+
+	// bandaid for broken etag handling
+	// TODO: make sure the controller never calls here with the same, known etag
+	if specInfo.etag == etag && reflect.DeepEqual(specInfo.spec, spec) {
+		glog.V(2).Infof("Ignoring OpenAPI spec update for service %q with same etag %q", apiServiceName, etag)
+		return nil
 	}
 
 	// For APIServices (non-local) specs, only merge their /apis/ prefixed endpoint as it is the only paths
