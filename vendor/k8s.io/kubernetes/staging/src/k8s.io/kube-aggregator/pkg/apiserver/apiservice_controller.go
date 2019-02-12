@@ -73,6 +73,7 @@ func NewAPIServiceRegistrationController(apiServiceInformer informers.APIService
 func (c *APIServiceRegistrationController) sync(key string) error {
 	apiService, err := c.apiServiceLister.Get(key)
 	if apierrors.IsNotFound(err) {
+		glog.Infof("AGGREGATOR: APIServiceRegistrationController.sync() notfound: %+v", err)
 		c.apiHandlerManager.RemoveAPIService(key)
 		return nil
 	}

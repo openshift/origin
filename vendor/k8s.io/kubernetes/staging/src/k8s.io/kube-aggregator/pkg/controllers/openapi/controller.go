@@ -130,7 +130,9 @@ func (c *AggregationController) sync(key string) (syncAction, error) {
 	if !exists || handler == nil {
 		return syncNothing, nil
 	}
+	glog.Infof("DEBUG: AGGREGATOR: processing download for %q: etag: %v", key, etag)
 	returnSpec, newEtag, httpStatus, err := c.downloader.Download(handler, etag)
+	glog.Infof("DEBUG: AGGREGATOR: download for %q finished: new etag: %v (http: %v)", key, newEtag, httpStatus)
 	switch {
 	case err != nil:
 		return syncRequeueRateLimited, err

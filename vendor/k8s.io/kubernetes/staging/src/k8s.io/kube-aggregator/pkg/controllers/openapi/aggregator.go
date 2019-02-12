@@ -25,6 +25,7 @@ import (
 
 	restful "github.com/emicklei/go-restful"
 	"github.com/go-openapi/spec"
+	"github.com/golang/glog"
 
 	"k8s.io/apiserver/pkg/server"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
@@ -225,6 +226,7 @@ func (s *specAggregator) updateOpenAPISpec() error {
 	}
 	specToServe, err := s.buildOpenAPISpec()
 	if err != nil {
+		glog.Infof("AGGREGATOR: updateOpenAPISpec error: %+v")
 		return err
 	}
 	// openAPIService.UpdateSpec and openAPIVersionedService.UpdateSpec read the same swagger spec
@@ -232,6 +234,7 @@ func (s *specAggregator) updateOpenAPISpec() error {
 	// their caches if the caller is holding proper locks.
 	err = s.openAPIService.UpdateSpec(specToServe)
 	if err != nil {
+		glog.Infof("AGGREGATOR: updateSpec error: %+v")
 		return err
 	}
 	return s.openAPIVersionedService.UpdateSpec(specToServe)
@@ -296,6 +299,7 @@ func (s *specAggregator) UpdateAPIServiceSpec(apiServiceName string, spec *spec.
 func (s *specAggregator) AddUpdateAPIService(handler http.Handler, apiService *apiregistration.APIService) error {
 	s.rwMutex.Lock()
 	defer s.rwMutex.Unlock()
+	glog.Infof("AGGREGATOR: Calling AddUpdateAPIService(%+v)", apiService.Name)
 
 	if apiService.Spec.Service == nil {
 		// All local specs should be already aggregated using local delegate chain
@@ -310,6 +314,7 @@ func (s *specAggregator) AddUpdateAPIService(handler http.Handler, apiService *a
 		newSpec.etag = specInfo.etag
 		newSpec.spec = specInfo.spec
 	}
+	glog.Infof("AGGREGATOR: Calling AddUpdateAPIService (%+v) (try update)", newSpec)
 	return s.tryUpdatingServiceSpecs(newSpec)
 }
 
@@ -318,6 +323,7 @@ func (s *specAggregator) AddUpdateAPIService(handler http.Handler, apiService *a
 func (s *specAggregator) RemoveAPIServiceSpec(apiServiceName string) error {
 	s.rwMutex.Lock()
 	defer s.rwMutex.Unlock()
+	glog.Infof("AGGREGATOR: Calling RemoveAPIServiceSpec(%+v)", apiServiceName)
 
 	if _, existingService := s.openAPISpecs[apiServiceName]; !existingService {
 		return nil
@@ -331,6 +337,7 @@ func (s *specAggregator) GetAPIServiceInfo(apiServiceName string) (handler http.
 	s.rwMutex.RLock()
 	defer s.rwMutex.RUnlock()
 
+	glog.Infof("AGGREGATOR: GettingAPIServiceInfo (%+v)", s.openAPISpecs[apiServiceName])
 	if info, existingService := s.openAPISpecs[apiServiceName]; existingService {
 		return info.handler, info.etag, true
 	}

@@ -109,6 +109,7 @@ func (s *Downloader) Download(handler http.Handler, etag string) (returnSpec *sp
 	}
 
 	writer := newInMemoryResponseWriter()
+	glog.Infof("DEBUG: AGGREGATOR: headers: %+v", req.Header)
 	handler.ServeHTTP(writer, req)
 
 	// single endpoint not found/registered in old server, try to fetch old endpoint
@@ -131,7 +132,7 @@ func (s *Downloader) Download(handler http.Handler, etag string) (returnSpec *sp
 
 	switch writer.respCode {
 	case http.StatusNotModified:
-		glog.Infof("DEBUG: AGGREGATOR(4): etag: %q, not modified", etag)
+		glog.Infof("DEBUG: AGGREGATOR(4): etag: %q, not modified (code: %v)", etag, writer.respCode)
 		if len(etag) == 0 {
 			return nil, etag, http.StatusNotModified, fmt.Errorf("http.StatusNotModified is not allowed in absence of etag")
 		}
