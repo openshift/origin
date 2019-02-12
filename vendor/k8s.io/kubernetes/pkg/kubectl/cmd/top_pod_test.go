@@ -387,6 +387,10 @@ func (d *fakeDiscovery) ServerGroups() (*metav1.APIGroupList, error) {
 	return nil, nil
 }
 
+func (d *fakeDiscovery) ServerGroupsAndResources() ([]*metav1.APIGroup, []*metav1.APIResourceList, error) {
+	return nil, nil, nil
+}
+
 // ServerResourcesForGroupVersion returns the supported resources for a group and version.
 func (d *fakeDiscovery) ServerResourcesForGroupVersion(groupVersion string) (*metav1.APIResourceList, error) {
 	return nil, nil
