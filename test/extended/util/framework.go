@@ -79,9 +79,10 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	// so we've bumped what was 30 seconds to 2 min 30 seconds or 150 seconds (manual perf testing shows typical times of
 	// 1 to 2 minutes, assuming registry.access.redhat.com / registry.redhat.io are behaving ... they
 	// have proven less reliable that docker.io)
-	// we've also determined that e2e-aws-image-ecosystem can be started before all the operators have completed; while
-	// that is getting sorted out, the longer time will help there as well
-	for i := 0; i < 15; i++ {
+	// we've also determined that e2e-aws-image-ecosystem can be started before all the operators have completed; samples
+	// operator is currently gating install completion, but if that changes, we've added an additional 10 minutes on
+	// top
+	for i := 0; i < 75; i++ {
 		e2e.Logf("Running scan #%v \n", i)
 		success = scan()
 		if success {
