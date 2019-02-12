@@ -15,20 +15,41 @@
         "tags": [
           {
             "annotations": {
-              "description": "Build and run .NET Core applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.1/build/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of .NET Core available on OpenShift, including major versions updates.",
+              "description": "Build and run .NET Core applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.2/build/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of .NET Core available on OpenShift, including major versions updates.",
               "iconClass": "icon-dotnet",
               "openshift.io/display-name": ".NET Core (Latest)",
               "sampleContextDir": "app",
-              "sampleRef": "dotnetcore-2.1",
+              "sampleRef": "dotnetcore-2.2",
               "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
               "supports": "dotnet",
               "tags": "builder,.net,dotnet,dotnetcore"
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "2.1"
+              "name": "2.2"
             },
             "name": "latest",
+            "referencePolicy": {
+              "type": "Local"
+            }
+          },
+          {
+            "annotations": {
+              "description": "Build and run .NET Core 2.2 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/redhat-developer/s2i-dotnetcore/tree/master/2.2/build/README.md.",
+              "iconClass": "icon-dotnet",
+              "openshift.io/display-name": ".NET Core 2.2",
+              "sampleContextDir": "app",
+              "sampleRef": "dotnetcore-2.2",
+              "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
+              "supports": "dotnet:2.2,dotnet",
+              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnet22",
+              "version": "2.2"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.redhat.io/dotnet/dotnet-22-rhel7:2.2"
+            },
+            "name": "2.2",
             "referencePolicy": {
               "type": "Local"
             }
@@ -63,7 +84,7 @@
               "sampleRef": "dotnetcore-2.0",
               "sampleRepo": "https://github.com/redhat-developer/s2i-dotnetcore-ex.git",
               "supports": "dotnet:2.0,dotnet",
-              "tags": "builder,.net,dotnet,dotnetcore,rh-dotnet20",
+              "tags": "hidden,builder,.net,dotnet,dotnetcore,rh-dotnet20",
               "version": "2.0"
             },
             "from": {
@@ -203,24 +224,6 @@
           },
           {
             "annotations": {
-              "description": "Provides a Jenkins 1.X server on RHEL 7. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.",
-              "iconClass": "icon-jenkins",
-              "openshift.io/display-name": "Jenkins 1.X",
-              "openshift.io/provider-display-name": "Red Hat, Inc.",
-              "tags": "hidden,jenkins",
-              "version": "1.x"
-            },
-            "from": {
-              "kind": "DockerImage",
-              "name": "registry.redhat.io/openshift3/jenkins-1-rhel7:latest"
-            },
-            "name": "1",
-            "referencePolicy": {
-              "type": "Local"
-            }
-          },
-          {
-            "annotations": {
               "description": "Provides a Jenkins 2.X server on RHEL 7. For more information about using this container image, including OpenShift considerations, see https://github.com/openshift/jenkins/blob/master/README.md.",
               "iconClass": "icon-jenkins",
               "openshift.io/display-name": "Jenkins 2.X",
@@ -230,7 +233,7 @@
             },
             "from": {
               "kind": "DockerImage",
-              "name": "registry.redhat.io/openshift3/jenkins-2-rhel7:v4.0"
+              "name": "registry.redhat.io/openshift/jenkins-2-rhel7:v4.0"
             },
             "name": "2",
             "referencePolicy": {
