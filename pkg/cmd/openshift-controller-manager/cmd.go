@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
@@ -137,6 +138,7 @@ func (o *OpenShiftControllerManager) RunControllerManager() error {
 		if err != nil {
 			return err
 		}
+		clientConfig.UserAgent = strings.Replace(clientConfig.UserAgent, "hypershift", "openshift-controller-manager", 1)
 		return RunOpenShiftControllerManager(config, clientConfig)
 	}
 
@@ -165,6 +167,7 @@ func (o *OpenShiftControllerManager) RunControllerManager() error {
 	if err != nil {
 		return err
 	}
+	clientConfig.UserAgent = strings.Replace(clientConfig.UserAgent, "hypershift", "openshift-controller-manager", 1)
 
 	return RunOpenShiftControllerManager(config, clientConfig)
 }
