@@ -142,14 +142,15 @@ type tomlConfig struct {
 // a secret or make it usable by a build - but this is identical to our existing model
 // where a service account determines access to secrets used in pods.
 type BuildController struct {
-	buildPatcher      buildmanualclient.BuildPatcher
-	buildLister       buildv1lister.BuildLister
-	buildConfigGetter buildv1lister.BuildConfigLister
-	buildDeleter      buildmanualclient.BuildDeleter
-	configLister      configv1lister.BuildLister
-	podClient         ktypedclient.PodsGetter
-	configMapClient   ktypedclient.ConfigMapsGetter
-	kubeClient        kubernetes.Interface
+	buildPatcher                buildmanualclient.BuildPatcher
+	buildLister                 buildv1lister.BuildLister
+	buildConfigGetter           buildv1lister.BuildConfigLister
+	buildDeleter                buildmanualclient.BuildDeleter
+	buildControllerConfigLister configv1lister.BuildLister
+	imageConfigLister           configv1lister.ImageLister
+	podClient                   ktypedclient.PodsGetter
+	configMapClient             ktypedclient.ConfigMapsGetter
+	kubeClient                  kubernetes.Interface
 
 	buildQueue            workqueue.RateLimitingInterface
 	imageStreamQueue      *resourceTriggerQueue
@@ -165,12 +166,13 @@ type BuildController struct {
 	podInformer   cache.SharedIndexInformer
 	buildInformer cache.SharedIndexInformer
 
-	buildStoreSynced            cache.InformerSynced
-	controllerConfigStoreSynced cache.InformerSynced
-	podStoreSynced              cache.InformerSynced
-	secretStoreSynced           cache.InformerSynced
-	imageStreamStoreSynced      cache.InformerSynced
-	configMapStoreSynced        cache.InformerSynced
+	buildStoreSynced                 cache.InformerSynced
+	buildControllerConfigStoreSynced cache.InformerSynced
+	imageConfigStoreSynced           cache.InformerSynced
+	podStoreSynced                   cache.InformerSynced
+	secretStoreSynced                cache.InformerSynced
+	imageStreamStoreSynced           cache.InformerSynced
+	configMapStoreSynced             cache.InformerSynced
 
 	runPolicies              []policy.RunPolicy
 	createStrategy           buildPodCreationStrategy
@@ -189,7 +191,8 @@ type BuildController struct {
 type BuildControllerParams struct {
 	BuildInformer                    buildv1informer.BuildInformer
 	BuildConfigInformer              buildv1informer.BuildConfigInformer
-	ControllerConfigInformer         configv1informer.BuildInformer
+	BuildControllerConfigInformer    configv1informer.BuildInformer
+	ImageConfigInformer              configv1informer.ImageInformer
 	ImageStreamInformer              imagev1informer.ImageStreamInformer
 	PodInformer                      kubeinformers.PodInformer
 	SecretInformer                   kubeinformers.SecretInformer
@@ -217,7 +220,8 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 		buildLister:                   buildLister,
 		buildConfigGetter:             buildConfigGetter,
 		buildDeleter:                  buildClient,
-		configLister:                  params.ControllerConfigInformer.Lister(),
+		buildControllerConfigLister:   params.BuildControllerConfigInformer.Lister(),
+		imageConfigLister:             params.ImageConfigInformer.Lister(),
 		secretStore:                   params.SecretInformer.Lister(),
 		podClient:                     params.KubeClient.CoreV1(),
 		configMapClient:               params.KubeClient.CoreV1(),
@@ -259,10 +263,15 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 		AddFunc:    c.imageStreamAdded,
 		UpdateFunc: c.imageStreamUpdated,
 	})
-	params.ControllerConfigInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    c.controllerConfigAdded,
-		UpdateFunc: c.controllerConfigUpdated,
-		DeleteFunc: c.controllerConfigDeleted,
+	params.BuildControllerConfigInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    c.buildControllerConfigAdded,
+		UpdateFunc: c.buildControllerConfigUpdated,
+		DeleteFunc: c.buildControllerConfigDeleted,
+	})
+	params.ImageConfigInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    c.imageConfigAdded,
+		UpdateFunc: c.imageConfigUpdated,
+		DeleteFunc: c.imageConfigDeleted,
 	})
 	params.OpenshiftConfigConfigMapInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.configMapAdded,
@@ -274,7 +283,8 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 	c.podStoreSynced = c.podInformer.HasSynced
 	c.secretStoreSynced = params.SecretInformer.Informer().HasSynced
 	c.imageStreamStoreSynced = params.ImageStreamInformer.Informer().HasSynced
-	c.controllerConfigStoreSynced = params.ControllerConfigInformer.Informer().HasSynced
+	c.buildControllerConfigStoreSynced = params.BuildControllerConfigInformer.Informer().HasSynced
+	c.imageConfigStoreSynced = params.ImageConfigInformer.Informer().HasSynced
 	c.configMapStoreSynced = params.OpenshiftConfigConfigMapInformer.Informer().HasSynced
 
 	return c
@@ -300,7 +310,9 @@ func (bc *BuildController) Run(workers int, stopCh <-chan struct{}) {
 
 	// Integration tests currently do not support cache sync for operator-installed custom resource definitions
 	if os.Getenv("OS_INTEGRATION_TEST") != "true" {
-		if !cache.WaitForCacheSync(stopCh, bc.controllerConfigStoreSynced) {
+		if !cache.WaitForCacheSync(stopCh,
+			bc.buildControllerConfigStoreSynced,
+			bc.imageConfigStoreSynced) {
 			utilruntime.HandleError(fmt.Errorf("timed out waiting for caches to sync"))
 			return
 		}
@@ -1606,44 +1618,47 @@ func (bc *BuildController) controllerConfigWork() bool {
 }
 
 // handleControllerConfig synchronizes the build controller config in the cluster
-// `build.config.openshift.io` instance and any referenced data in the `openshift-config` namespace.
+// `*.config.openshift.io` instances and any referenced data in the `openshift-config` namespace.
 func (bc *BuildController) handleControllerConfig() []error {
+	configErrs := bc.readClusterBuildControllerConfig()
+	err := bc.readClusterImageConfig()
+	if err != nil {
+		configErrs = append(configErrs, err)
+	}
+	return configErrs
+}
+
+// readClusterBuildControllerConfig synchronizes the build controller config
+// in `builds.config.openshift.io/cluster`, and generates container runtime configuration data
+// used by the build pods.
+func (bc *BuildController) readClusterBuildControllerConfig() []error {
 	configErrs := []error{}
-	config, err := bc.configLister.Get("cluster")
+	buildConfig, err := bc.buildControllerConfigLister.Get("cluster")
 	if err != nil && !errors.IsNotFound(err) {
 		configErrs = append(configErrs, err)
-		return configErrs
-	}
-	if config == nil {
-		bc.additionalTrustedCAData = nil
+	} else if buildConfig == nil {
 		bc.buildDefaults.DefaultProxy = nil
 		bc.registryConfData = ""
 		bc.signaturePolicyData = ""
-		return nil
+		return configErrs
 	}
+
 	if glog.V(5) {
-		configJSON, _ := json.Marshal(config)
+		configJSON, _ := json.Marshal(buildConfig)
 		if configJSON != nil {
 			glog.Infof("build controller config: %s", string(configJSON))
 		}
 	}
-	bc.buildDefaults.DefaultProxy = config.Spec.BuildDefaults.DefaultProxy
+	bc.buildDefaults.DefaultProxy = buildConfig.Spec.BuildDefaults.DefaultProxy
 
-	additionalCAs, caErr := bc.getAdditionalTrustedCAData(config)
-	if caErr != nil {
-		configErrs = append(configErrs, caErr)
-	} else {
-		bc.additionalTrustedCAData = additionalCAs
-	}
-
-	registriesTOML, regErr := bc.createBuildRegistriesConfigData(config)
+	registriesTOML, regErr := bc.createBuildRegistriesConfigData(buildConfig)
 	if regErr != nil {
 		configErrs = append(configErrs, regErr)
 	} else {
 		bc.registryConfData = registriesTOML
 	}
 
-	signatureJSON, sigErr := bc.createBuildSignaturePolicyData(config)
+	signatureJSON, sigErr := bc.createBuildSignaturePolicyData(buildConfig)
 	if sigErr != nil {
 		configErrs = append(configErrs, sigErr)
 	} else {
@@ -1653,7 +1668,35 @@ func (bc *BuildController) handleControllerConfig() []error {
 	return configErrs
 }
 
-func (bc *BuildController) getAdditionalTrustedCAData(config *configv1.Build) (map[string]string, error) {
+// readClusterImageConfig synchronizes the cluster image configuration in
+// `image.config.openshift.io/cluster`, including the additional certificate authorities
+// that are saved in the `openshift-config` namespace.
+func (bc *BuildController) readClusterImageConfig() error {
+	// Get additional CAs from the image config
+	imageConfig, err := bc.imageConfigLister.Get("cluster")
+	if err != nil && !errors.IsNotFound(err) {
+		return err
+	} else if imageConfig == nil {
+		bc.additionalTrustedCAData = nil
+		return nil
+	}
+
+	if glog.V(5) {
+		configJSON, _ := json.Marshal(imageConfig)
+		if configJSON != nil {
+			glog.Infof("image config: %s", string(configJSON))
+		}
+	}
+
+	additionalCAs, err := bc.getAdditionalTrustedCAData(imageConfig)
+	if err != nil {
+		return err
+	}
+	bc.additionalTrustedCAData = additionalCAs
+	return nil
+}
+
+func (bc *BuildController) getAdditionalTrustedCAData(config *configv1.Image) (map[string]string, error) {
 	if len(config.Spec.AdditionalTrustedCA.Name) == 0 {
 		glog.V(4).Info("additional certificate authorities for builds not specified")
 		return nil, nil
@@ -1777,15 +1820,27 @@ func (bc *BuildController) handleControllerConfigError(err error, key interface{
 	bc.controllerConfigQueue.Forget(key)
 }
 
-func (bc *BuildController) controllerConfigAdded(obj interface{}) {
+func (bc *BuildController) buildControllerConfigAdded(obj interface{}) {
 	bc.controllerConfigChanged()
 }
 
-func (bc *BuildController) controllerConfigUpdated(old, cur interface{}) {
+func (bc *BuildController) buildControllerConfigUpdated(old, cur interface{}) {
 	bc.controllerConfigChanged()
 }
 
-func (bc *BuildController) controllerConfigDeleted(obj interface{}) {
+func (bc *BuildController) buildControllerConfigDeleted(obj interface{}) {
+	bc.controllerConfigChanged()
+}
+
+func (bc *BuildController) imageConfigAdded(obj interface{}) {
+	bc.controllerConfigChanged()
+}
+
+func (bc *BuildController) imageConfigUpdated(old, cur interface{}) {
+	bc.controllerConfigChanged()
+}
+
+func (bc *BuildController) imageConfigDeleted(obj interface{}) {
 	bc.controllerConfigChanged()
 }
 
@@ -1802,7 +1857,7 @@ func (bc *BuildController) configMapAdded(obj interface{}) {
 	if configMap == nil {
 		return
 	}
-	config, err := bc.configLister.Get("cluster")
+	config, err := bc.buildControllerConfigLister.Get("cluster")
 	if err != nil && !errors.IsNotFound(err) {
 		utilruntime.HandleError(fmt.Errorf("could not get cluster build controller config: %v", err))
 		return
@@ -1825,7 +1880,7 @@ func (bc *BuildController) configMapUpdated(old, curr interface{}) {
 	if configMap == nil {
 		return
 	}
-	config, err := bc.configLister.Get("cluster")
+	config, err := bc.buildControllerConfigLister.Get("cluster")
 	if err != nil && !errors.IsNotFound(err) {
 		utilruntime.HandleError(fmt.Errorf("could not get cluster build controller config: %v", err))
 		return
@@ -1853,7 +1908,7 @@ func (bc *BuildController) configMapDeleted(obj interface{}) {
 			return
 		}
 	}
-	config, err := bc.configLister.Get("cluster")
+	config, err := bc.buildControllerConfigLister.Get("cluster")
 	if err != nil && !errors.IsNotFound(err) {
 		utilruntime.HandleError(fmt.Errorf("could not get cluster build controller config: %v", err))
 		return
