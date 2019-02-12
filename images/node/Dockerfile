@@ -7,12 +7,10 @@
 FROM openshift/origin-cli
 
 RUN INSTALL_PKGS=" \
-      origin-hyperkube origin-node origin-sdn-ovs \
-      socat ethtool iptables nmap-ncat \
+      origin-sdn-ovs origin-clients \
+      socat ethtool iptables nmap-ncat dbus tcpdump \
       libmnl libnetfilter_conntrack conntrack-tools \
       libnfnetlink iproute bridge-utils procps-ng openssl \
-      binutils xz kmod-libs kmod sysvinit-tools dbus \
-      e2fsprogs xfsprogs \
       " && \
     yum --enablerepo=origin-local-release install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \

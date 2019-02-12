@@ -177,7 +177,6 @@ Summary:          %{product_name} SDN Plugin for Open vSwitch
 Requires:         openvswitch >= %{openvswitch_version}
 # selinux-policy is required because openvswitch doesn't yet take a dependency on selinux-policy but changes the files
 Requires:         selinux-policy
-Requires:         %{name}-node = %{version}-%{release}
 Requires:         bridge-utils
 Requires:         ethtool
 Requires:         procps-ng
