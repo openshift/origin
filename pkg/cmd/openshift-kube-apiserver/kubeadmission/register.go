@@ -101,7 +101,6 @@ var (
 		"scheduling.openshift.io/PodNodeConstraints",
 		overrideapi.PluginName,
 		imagepolicyapi.PluginName,
-		"authorization.openshift.io/RestrictSubjectBindings",
 	)
 )
 
@@ -120,6 +119,7 @@ func NewOrderedKubeAdmissionPlugins(kubeAdmissionOrder []string) []string {
 func NewDefaultOffPluginsFunc(kubeDefaultOffAdmission sets.String) func() sets.String {
 	return func() sets.String {
 		kubeOff := sets.NewString(kubeDefaultOffAdmission.UnsortedList()...)
+		kubeOff.Insert("authorization.openshift.io/RestrictSubjectBindings")
 		kubeOff.Delete(additionalDefaultOnPlugins.List()...)
 		return kubeOff
 	}
