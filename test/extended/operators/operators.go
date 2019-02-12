@@ -123,19 +123,21 @@ var _ = g.Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 
 			o.Expect(lastErr).NotTo(o.HaveOccurred())
 			var unavailable []string
+			var missingRelatedNamespaces []string
 			buf := &bytes.Buffer{}
 			w := tabwriter.NewWriter(buf, 0, 4, 1, ' ', 0)
-			fmt.Fprintf(w, "NAMESPACE\tNAME\tPROGRESSING\tAVAILABLE\tVERSION\tMESSAGE\n")
+			fmt.Fprintf(w, "NAME\tPROGRESSING\tAVAILABLE\tVERSION\tMESSAGE\n")
 			for _, co := range lastCOs {
-				ns := co.Get("metadata.namespace").String()
 				name := co.Get("metadata.name").String()
 				if condition(co, "Available").Get("status").String() != "True" {
-					unavailable = append(unavailable, fmt.Sprintf("%s/%s", ns, name))
+					unavailable = append(unavailable, fmt.Sprintf("%s", name))
 				} else {
-					available[fmt.Sprintf("%s/%s", ns, name)] = struct{}{}
+					available[fmt.Sprintf("%s", name)] = struct{}{}
 				}
-				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n",
-					ns,
+				if val := relatedNamespaces(co); len(val) == 0 {
+					missingRelatedNamespaces = append(missingRelatedNamespaces, fmt.Sprintf("%s", name))
+				}
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
 					name,
 					condition(co, "Progressing").Get("status").String(),
 					condition(co, "Available").Get("status").String(),
@@ -145,9 +147,12 @@ var _ = g.Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 			}
 			w.Flush()
 			e2e.Logf("ClusterOperators:\n%s", buf.String())
-			// TODO: make this an e2e.Failf()
 			if len(unavailable) > 0 {
-				e2e.Logf("Some cluster operators never became available %s", strings.Join(unavailable, ", "))
+				e2e.Failf("Some cluster operators never became available %s", strings.Join(unavailable, ", "))
+			}
+			// TODO: make this an e2e.Failf()
+			if len(missingRelatedNamespaces) > 0 {
+				e2e.Logf("Some cluster operators have no related namespace objects %s", strings.Join(missingRelatedNamespaces, ", "))
 			}
 		}
 
@@ -209,4 +214,14 @@ func condition(cv objx.Map, condition string) objx.Map {
 		}
 	}
 	return objx.Map(nil)
+}
+
+func relatedNamespaces(cv objx.Map) []string {
+	namespaces := []string{}
+	for _, obj := range objects(cv.Get("status.relatedObjects")) {
+		if obj.Get("resource").String() == "namespaces" {
+			namespaces = append(namespaces, obj.Get("resource").String())
+		}
+	}
+	return namespaces
 }
