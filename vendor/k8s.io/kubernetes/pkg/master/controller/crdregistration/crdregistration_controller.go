@@ -213,8 +213,8 @@ func (c *crdRegistrationController) handleVersionUpdate(groupVersion schema.Grou
 				Spec: apiregistration.APIServiceSpec{
 					Group:                groupVersion.Group,
 					Version:              groupVersion.Version,
-					GroupPriorityMinimum: 1000, // CRDs should have relatively low priority
-					VersionPriority:      100,  // CRDs will be sorted by kube-like versions like any other APIService with the same VersionPriority
+					GroupPriorityMinimum: getGroupPriorityMin(groupVersion.Group), // CRDs should have relatively low priority
+					VersionPriority:      100,                                     // CRDs will be sorted by kube-like versions like any other APIService with the same VersionPriority
 				},
 			})
 			return nil
