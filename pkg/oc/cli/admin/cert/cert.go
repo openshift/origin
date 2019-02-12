@@ -15,7 +15,7 @@ func NewCmdCert(name, fullName string, streams genericclioptions.IOStreams) *cob
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,
-		Short: "Manage certificates and keys",
+		Short: "Create CA certificates",
 		Long:  `Manage certificates and keys`,
 		Run:   cmdutil.DefaultSubCommandRun(streams.ErrOut),
 	}
