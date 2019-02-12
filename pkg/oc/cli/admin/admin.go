@@ -122,7 +122,6 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 	// Deprecated commands that are bundled with the binary but not displayed to end users directly
 	deprecatedCommands := []*cobra.Command{
 		// these will be removed soon
-		admin.NewCommandNodeConfig(admin.NodeConfigCommandName, fullName+" "+admin.NodeConfigCommandName, streams),
 		node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, streams),
 		ipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", streams),
 	}
