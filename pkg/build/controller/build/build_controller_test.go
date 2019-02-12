@@ -1246,8 +1246,10 @@ func TestHandleControllerConfig(t *testing.T) {
 		name string
 		// Conditions
 		build         *configv1.Build
+		image         *configv1.Image
 		casMap        *corev1.ConfigMap
 		errorGetBuild bool
+		errorGetImage bool
 		errorGetCA    bool
 		// Results
 		expectError bool
@@ -1257,11 +1259,11 @@ func TestHandleControllerConfig(t *testing.T) {
 		},
 		{
 			name: "ca exists",
-			build: &configv1.Build{
+			image: &configv1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
 				},
-				Spec: configv1.BuildSpec{
+				Spec: configv1.ImageSpec{
 					AdditionalTrustedCA: configv1.ConfigMapNameReference{
 						Name: "cluster-cas",
 					},
@@ -1273,17 +1275,18 @@ func TestHandleControllerConfig(t *testing.T) {
 					Namespace: "openshift-config",
 				},
 				Data: map[string]string{
-					"mydomain": dummyCA,
+					"mydomain":    dummyCA,
+					"otherdomain": dummyCA,
 				},
 			},
 		},
 		{
 			name: "ca configMap removed",
-			build: &configv1.Build{
+			image: &configv1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
 				},
-				Spec: configv1.BuildSpec{
+				Spec: configv1.ImageSpec{
 					AdditionalTrustedCA: configv1.ConfigMapNameReference{
 						Name: "cluster-cas",
 					},
@@ -1291,27 +1294,27 @@ func TestHandleControllerConfig(t *testing.T) {
 			},
 		},
 		{
-			name: "get build CRD error",
-			build: &configv1.Build{
+			name: "get image CRD error",
+			image: &configv1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
 				},
-				Spec: configv1.BuildSpec{
+				Spec: configv1.ImageSpec{
 					AdditionalTrustedCA: configv1.ConfigMapNameReference{
 						Name: "cluster-cas",
 					},
 				},
 			},
-			errorGetBuild: true,
+			errorGetImage: true,
 			expectError:   true,
 		},
 		{
 			name: "get configMap error",
-			build: &configv1.Build{
+			image: &configv1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
 				},
-				Spec: configv1.BuildSpec{
+				Spec: configv1.ImageSpec{
 					AdditionalTrustedCA: configv1.ConfigMapNameReference{
 						Name: "cluster-cas",
 					},
@@ -1395,11 +1398,15 @@ func TestHandleControllerConfig(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			var configClient configv1client.Interface
+			objs := []runtime.Object{}
 			if tc.build != nil {
-				configClient = fakeConfigClient(tc.build)
-			} else {
-				configClient = fakeConfigClient()
+				objs = append(objs, tc.build)
+
 			}
+			if tc.image != nil {
+				objs = append(objs, tc.image)
+			}
+			configClient = fakeConfigClient(objs...)
 			var kubeClient kubernetes.Interface
 			if tc.casMap != nil {
 				kubeClient = fakeKubeExternalClientSet(tc.casMap)
@@ -1416,7 +1423,10 @@ func TestHandleControllerConfig(t *testing.T) {
 			defer bc.stop()
 
 			if tc.errorGetBuild {
-				bc.configLister = &errorConfigLister{}
+				bc.buildControllerConfigLister = &errorBuildLister{}
+			}
+			if tc.errorGetImage {
+				bc.imageConfigLister = &errorImageLister{}
 			}
 			if tc.errorGetCA {
 				bc.openShiftConfigConfigMapStore = &errorConfigMapLister{}
@@ -1437,10 +1447,23 @@ func TestHandleControllerConfig(t *testing.T) {
 				t.Fatalf("error handling controller config change: %v", msgs)
 			}
 
-			if tc.build == nil {
+			// Test additional certificate authorities
+			if tc.image == nil {
 				if len(bc.additionalTrustedCAData) > 0 {
 					t.Errorf("expected empty additional CAs data, got %v", bc.additionalTrustedCAData)
 				}
+			}
+
+			if tc.casMap == nil {
+				if len(bc.additionalTrustedCAData) > 0 {
+					t.Errorf("expected empty additional CAs data, got %v", bc.additionalTrustedCAData)
+				}
+			} else if tc.image != nil && !reflect.DeepEqual(tc.casMap.Data, bc.additionalTrustedCAData) {
+				t.Errorf("expected ca data:\n  %v\ngot:\n  %v", tc.casMap.Data, bc.additionalTrustedCAData)
+			}
+
+			// Test registry configuration (insecure, allowed, blocked)
+			if tc.build == nil {
 				if len(bc.registryConfData) > 0 {
 					t.Errorf("expected empty registries config, got %v", bc.registryConfData)
 				}
@@ -1448,14 +1471,6 @@ func TestHandleControllerConfig(t *testing.T) {
 					t.Errorf("expected empty signature policy config, got %v", bc.signaturePolicyData)
 				}
 				return
-			}
-
-			if tc.casMap == nil {
-				if len(bc.additionalTrustedCAData) > 0 {
-					t.Errorf("expected empty additional CAs data, got %v", bc.additionalTrustedCAData)
-				}
-			} else if !reflect.DeepEqual(tc.casMap.Data, bc.additionalTrustedCAData) {
-				t.Errorf("expected ca data %v\n\ngot:\n\n%v", tc.casMap.Data, bc.additionalTrustedCAData)
 			}
 
 			buildRegistriesConfig := tc.build.Spec.BuildDefaults.RegistriesConfig
@@ -1574,13 +1589,23 @@ func decodePolicyConfig(configJSON string) (*signature.Policy, error) {
 	return signature.NewPolicyFromBytes([]byte(configJSON))
 }
 
-type errorConfigLister struct{}
+type errorBuildLister struct{}
 
-func (e *errorConfigLister) List(selector labels.Selector) ([]*configv1.Build, error) {
+func (e *errorBuildLister) List(selector labels.Selector) ([]*configv1.Build, error) {
 	return nil, fmt.Errorf("error")
 }
 
-func (e *errorConfigLister) Get(name string) (*configv1.Build, error) {
+func (e *errorBuildLister) Get(name string) (*configv1.Build, error) {
+	return nil, fmt.Errorf("error")
+}
+
+type errorImageLister struct{}
+
+func (e *errorImageLister) List(selector labels.Selector) ([]*configv1.Image, error) {
+	return nil, fmt.Errorf("error")
+}
+
+func (e *errorImageLister) Get(name string) (*configv1.Image, error) {
 	return nil, fmt.Errorf("error")
 }
 
@@ -1727,7 +1752,8 @@ func (c *fakeBuildController) start() {
 		c.podStoreSynced,
 		c.secretStoreSynced,
 		c.imageStreamStoreSynced,
-		c.controllerConfigStoreSynced,
+		c.buildControllerConfigStoreSynced,
+		c.imageConfigStoreSynced,
 		c.configMapStoreSynced) {
 		panic("cannot sync cache")
 	}
@@ -1767,7 +1793,8 @@ func newFakeBuildController(buildClient buildv1client.Interface, imageClient ima
 		PodInformer:                      kubeExternalInformers.Core().V1().Pods(),
 		SecretInformer:                   kubeExternalInformers.Core().V1().Secrets(),
 		OpenshiftConfigConfigMapInformer: kubeExternalInformers.Core().V1().ConfigMaps(),
-		ControllerConfigInformer:         configInformers.Config().V1().Builds(),
+		BuildControllerConfigInformer:    configInformers.Config().V1().Builds(),
+		ImageConfigInformer:              configInformers.Config().V1().Images(),
 		KubeClient:                       kubeExternalClient,
 		BuildClient:                      buildClient,
 		DockerBuildStrategy: &strategy.DockerBuildStrategy{
