@@ -1620,8 +1620,8 @@ func (bc *BuildController) controllerConfigWork() bool {
 // handleControllerConfig synchronizes the build controller config in the cluster
 // `*.config.openshift.io` instances and any referenced data in the `openshift-config` namespace.
 func (bc *BuildController) handleControllerConfig() []error {
-	configErrs := bc.readClusterBuildControllerConfig()
-	err := bc.readClusterImageConfig()
+	configErrs := bc.readClusterImageConfig()
+	err := bc.readClusterBuildControllerConfig()
 	if err != nil {
 		configErrs = append(configErrs, err)
 	}
@@ -1629,18 +1629,14 @@ func (bc *BuildController) handleControllerConfig() []error {
 }
 
 // readClusterBuildControllerConfig synchronizes the build controller config
-// in `builds.config.openshift.io/cluster`, and generates container runtime configuration data
-// used by the build pods.
-func (bc *BuildController) readClusterBuildControllerConfig() []error {
-	configErrs := []error{}
+// in `builds.config.openshift.io/cluster`
+func (bc *BuildController) readClusterBuildControllerConfig() error {
 	buildConfig, err := bc.buildControllerConfigLister.Get("cluster")
 	if err != nil && !errors.IsNotFound(err) {
-		configErrs = append(configErrs, err)
+		return err
 	} else if buildConfig == nil {
 		bc.buildDefaults.DefaultProxy = nil
-		bc.registryConfData = ""
-		bc.signaturePolicyData = ""
-		return configErrs
+		return nil
 	}
 
 	if glog.V(5) {
@@ -1651,34 +1647,25 @@ func (bc *BuildController) readClusterBuildControllerConfig() []error {
 	}
 	bc.buildDefaults.DefaultProxy = buildConfig.Spec.BuildDefaults.DefaultProxy
 
-	registriesTOML, regErr := bc.createBuildRegistriesConfigData(buildConfig)
-	if regErr != nil {
-		configErrs = append(configErrs, regErr)
-	} else {
-		bc.registryConfData = registriesTOML
-	}
-
-	signatureJSON, sigErr := bc.createBuildSignaturePolicyData(buildConfig)
-	if sigErr != nil {
-		configErrs = append(configErrs, sigErr)
-	} else {
-		bc.signaturePolicyData = signatureJSON
-	}
-
-	return configErrs
+	return nil
 }
 
 // readClusterImageConfig synchronizes the cluster image configuration in
 // `image.config.openshift.io/cluster`, including the additional certificate authorities
 // that are saved in the `openshift-config` namespace.
-func (bc *BuildController) readClusterImageConfig() error {
+// This also generates the container runtime configuration data used by the build pods.
+func (bc *BuildController) readClusterImageConfig() []error {
+	configErrs := []error{}
 	// Get additional CAs from the image config
 	imageConfig, err := bc.imageConfigLister.Get("cluster")
 	if err != nil && !errors.IsNotFound(err) {
-		return err
+		configErrs = append(configErrs, err)
+		return configErrs
 	} else if imageConfig == nil {
 		bc.additionalTrustedCAData = nil
-		return nil
+		bc.registryConfData = ""
+		bc.signaturePolicyData = ""
+		return configErrs
 	}
 
 	if glog.V(5) {
@@ -1690,10 +1677,26 @@ func (bc *BuildController) readClusterImageConfig() error {
 
 	additionalCAs, err := bc.getAdditionalTrustedCAData(imageConfig)
 	if err != nil {
-		return err
+		configErrs = append(configErrs, err)
+	} else {
+		bc.additionalTrustedCAData = additionalCAs
 	}
-	bc.additionalTrustedCAData = additionalCAs
-	return nil
+
+	registriesTOML, regErr := bc.createBuildRegistriesConfigData(imageConfig)
+	if regErr != nil {
+		configErrs = append(configErrs, regErr)
+	} else {
+		bc.registryConfData = registriesTOML
+	}
+
+	signatureJSON, sigErr := bc.createBuildSignaturePolicyData(imageConfig)
+	if sigErr != nil {
+		configErrs = append(configErrs, sigErr)
+	} else {
+		bc.signaturePolicyData = signatureJSON
+	}
+
+	return configErrs
 }
 
 func (bc *BuildController) getAdditionalTrustedCAData(config *configv1.Image) (map[string]string, error) {
@@ -1723,8 +1726,8 @@ func (bc *BuildController) getAdditionalTrustedCAData(config *configv1.Image) (m
 	return additionalCA.Data, nil
 }
 
-func (bc *BuildController) createBuildRegistriesConfigData(config *configv1.Build) (string, error) {
-	registriesConfig := config.Spec.BuildDefaults.RegistriesConfig
+func (bc *BuildController) createBuildRegistriesConfigData(config *configv1.Image) (string, error) {
+	registriesConfig := config.Spec.RegistrySources
 	if len(registriesConfig.InsecureRegistries) == 0 {
 		glog.V(4).Info("using default insecure registry settings for builds")
 		return "", nil
@@ -1755,8 +1758,8 @@ func (bc *BuildController) createBuildRegistriesConfigData(config *configv1.Buil
 	return string(configTOML), nil
 }
 
-func (bc *BuildController) createBuildSignaturePolicyData(config *configv1.Build) (string, error) {
-	registriesConfig := config.Spec.BuildDefaults.RegistriesConfig
+func (bc *BuildController) createBuildSignaturePolicyData(config *configv1.Image) (string, error) {
+	registriesConfig := config.Spec.RegistrySources
 	if len(registriesConfig.AllowedRegistries) == 0 && len(registriesConfig.BlockedRegistries) == 0 {
 		glog.V(4).Info("allowing builds to pull images from all registries")
 		return "", nil
