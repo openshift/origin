@@ -39,7 +39,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildv1.Build, additionalCA
 		return nil, fmt.Errorf("failed to encode the build: %v", err)
 	}
 
-	privileged := true
+	privileged := false
 	strategy := build.Spec.Strategy.DockerStrategy
 
 	containerEnv := []v1.EnvVar{
