@@ -21,7 +21,7 @@ import (
 
 	dockerref "github.com/docker/distribution/reference"
 	"github.com/golang/glog"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/flowcontrol"
 	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
@@ -125,7 +125,7 @@ func (m *imageManager) EnsureImageExists(pod *v1.Pod, container *v1.Container, p
 		m.logIt(ref, v1.EventTypeNormal, events.BackOffPullImage, logPrefix, msg, glog.Info)
 		return "", msg, ErrImagePullBackOff
 	}
-	m.logIt(ref, v1.EventTypeNormal, events.PullingImage, logPrefix, fmt.Sprintf("pulling image %q", container.Image), glog.Info)
+	m.logIt(ref, v1.EventTypeNormal, events.PullingImage, logPrefix, fmt.Sprintf("Pulling image %q", container.Image), glog.Info)
 	pullChan := make(chan pullResult)
 	m.puller.pullImage(spec, pullSecrets, pullChan)
 	imagePullResult := <-pullChan
