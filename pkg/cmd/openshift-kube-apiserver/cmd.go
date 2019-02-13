@@ -15,6 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -23,12 +25,12 @@ import (
 	osinv1 "github.com/openshift/api/osin/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/library-go/pkg/serviceability"
+
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/configdefault"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
 	"github.com/openshift/origin/pkg/configconversion"
-	"k8s.io/client-go/tools/clientcmd/api"
 )
 
 const RecommendedStartAPIServerName = "openshift-kube-apiserver"
@@ -49,6 +51,7 @@ func NewOpenShiftKubeAPIServerServerCommand(name, basename string, out, errout i
 		Short: "Start the OpenShift kube-apiserver",
 		Long:  longDescription,
 		Run: func(c *cobra.Command, args []string) {
+			rest.CommandNameOverride = name
 			if err := options.Validate(); err != nil {
 				glog.Fatal(err)
 			}
