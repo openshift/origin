@@ -16,6 +16,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 )
 
 // CABundleRotation maintains a CA bundle config map, but adding new CA certs and removing expired old ones.
@@ -46,13 +47,8 @@ func (c CABundleRotation) ensureConfigMapCABundle(signingCertKeyPair *crypto.CA)
 	}
 	if originalCABundleConfigMap == nil || originalCABundleConfigMap.Data == nil || !equality.Semantic.DeepEqual(originalCABundleConfigMap.Data, caBundleConfigMap.Data) {
 		c.EventRecorder.Eventf("CABundleUpdateRequired", "%q in %q requires a new cert", c.Name, c.Namespace)
-		actualCABundleConfigMap, err := c.Client.ConfigMaps(c.Namespace).Update(caBundleConfigMap)
-		if apierrors.IsNotFound(err) {
-			actualCABundleConfigMap, err = c.Client.ConfigMaps(c.Namespace).Create(caBundleConfigMap)
-			if err != nil {
-				return nil, err
-			}
-		}
+
+		actualCABundleConfigMap, _, err := resourceapply.ApplyConfigMap(c.Client, c.EventRecorder, caBundleConfigMap)
 		if err != nil {
 			return nil, err
 		}

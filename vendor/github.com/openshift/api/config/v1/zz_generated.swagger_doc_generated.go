@@ -643,7 +643,8 @@ func (ImageList) SwaggerDoc() map[string]string {
 var map_ImageSpec = map[string]string{
 	"allowedRegistriesForImport": "AllowedRegistriesForImport limits the container image registries that normal users may import images from. Set this list to the registries that you trust to contain valid Docker images and that you want applications to be able to import from. Users with permission to create Images or ImageStreamMappings via the API are not affected by this policy - typically only administrators or system integrations will have those permissions.",
 	"externalRegistryHostnames":  "externalRegistryHostnames provides the hostnames for the default external image registry. The external hostname should be set only when the image registry is exposed externally. The first value is used in 'publicDockerImageRepository' field in ImageStreams. The value must be in \"hostname[:port]\" format.",
-	"additionalTrustedCA":        "AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that should be trusted during imagestream import. The namespace for this config map is openshift-config.",
+	"additionalTrustedCA":        "AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that should be trusted during imagestream import, pod image pull, and imageregistry pullthrough. The namespace for this config map is openshift-config.",
+	"registrySources":            "RegistrySources contains configuration that determines how the container runtime should treat individual registries when accessing images for builds+pods. (e.g. whether or not to allow insecure access).  It does not contain configuration for the internal cluster registry.",
 }
 
 func (ImageSpec) SwaggerDoc() map[string]string {
@@ -667,6 +668,17 @@ var map_RegistryLocation = map[string]string{
 
 func (RegistryLocation) SwaggerDoc() map[string]string {
 	return map_RegistryLocation
+}
+
+var map_RegistrySources = map[string]string{
+	"":                   "RegistrySources holds cluster-wide information about how to handle the registries config.",
+	"insecureRegistries": "InsecureRegistries are registries which do not have a valid SSL certificate or only support HTTP connections.",
+	"blockedRegistries":  "BlockedRegistries are blacklisted from image pull/push. All other registries are allowed.\n\nOnly one of BlockedRegistries or AllowedRegistries may be set.",
+	"allowedRegistries":  "AllowedRegistries are whitelisted for image pull/push. All other registries are blocked.\n\nOnly one of BlockedRegistries or AllowedRegistries may be set.",
+}
+
+func (RegistrySources) SwaggerDoc() map[string]string {
+	return map_RegistrySources
 }
 
 var map_Infrastructure = map[string]string{
@@ -1082,34 +1094,6 @@ var map_ProxySpec = map[string]string{
 
 func (ProxySpec) SwaggerDoc() map[string]string {
 	return map_ProxySpec
-}
-
-var map_Registry = map[string]string{
-	"":         "Registry holds cluster-wide information about how to handle the registries config.  The canonical name is `cluster`",
-	"metadata": "Standard object's metadata.",
-	"spec":     "spec holds user settable values for configuration",
-}
-
-func (Registry) SwaggerDoc() map[string]string {
-	return map_Registry
-}
-
-var map_RegistryList = map[string]string{
-	"metadata": "Standard object's metadata.",
-}
-
-func (RegistryList) SwaggerDoc() map[string]string {
-	return map_RegistryList
-}
-
-var map_RegistrySpec = map[string]string{
-	"insecureRegistries": "InsecureRegistries are registries which do not have a valid SSL certificate or only support HTTP connections.",
-	"blockedRegistries":  "BlockedRegistries are blacklisted from image pull/push. All other registries are allowed.\n\nOnly one of BlockedRegistries or AllowedRegistries may be set.",
-	"allowedRegistries":  "AllowedRegistries are whitelisted for image pull/push. All other registries are blocked.\n\nOnly one of BlockedRegistries or AllowedRegistries may be set.",
-}
-
-func (RegistrySpec) SwaggerDoc() map[string]string {
-	return map_RegistrySpec
 }
 
 var map_Scheduling = map[string]string{

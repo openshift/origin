@@ -49,7 +49,7 @@ func TestEnsureConfigMapCABundle(t *testing.T) {
 					t.Fatal(spew.Sdump(actions))
 				}
 
-				if !actions[0].Matches("update", "configmaps") {
+				if !actions[0].Matches("get", "configmaps") {
 					t.Error(actions[0])
 				}
 				if !actions[1].Matches("create", "configmaps") {
@@ -85,15 +85,15 @@ func TestEnsureConfigMapCABundle(t *testing.T) {
 			},
 			verifyActions: func(t *testing.T, client *kubefake.Clientset) {
 				actions := client.Actions()
-				if len(actions) != 1 {
+				if len(actions) != 2 {
 					t.Fatal(spew.Sdump(actions))
 				}
 
-				if !actions[0].Matches("update", "configmaps") {
-					t.Error(actions[0])
+				if !actions[1].Matches("update", "configmaps") {
+					t.Error(actions[1])
 				}
 
-				actual := actions[0].(clienttesting.UpdateAction).GetObject().(*corev1.ConfigMap)
+				actual := actions[1].(clienttesting.UpdateAction).GetObject().(*corev1.ConfigMap)
 				if len(actual.Data["ca-bundle.crt"]) == 0 {
 					t.Error(actual.Data)
 				}
@@ -129,15 +129,15 @@ func TestEnsureConfigMapCABundle(t *testing.T) {
 			},
 			verifyActions: func(t *testing.T, client *kubefake.Clientset) {
 				actions := client.Actions()
-				if len(actions) != 1 {
+				if len(actions) != 2 {
 					t.Fatal(spew.Sdump(actions))
 				}
 
-				if !actions[0].Matches("update", "configmaps") {
-					t.Error(actions[0])
+				if !actions[1].Matches("update", "configmaps") {
+					t.Error(actions[1])
 				}
 
-				actual := actions[0].(clienttesting.UpdateAction).GetObject().(*corev1.ConfigMap)
+				actual := actions[1].(clienttesting.UpdateAction).GetObject().(*corev1.ConfigMap)
 				if len(actual.Data["ca-bundle.crt"]) == 0 {
 					t.Error(actual.Data)
 				}
@@ -177,15 +177,15 @@ func TestEnsureConfigMapCABundle(t *testing.T) {
 			},
 			verifyActions: func(t *testing.T, client *kubefake.Clientset) {
 				actions := client.Actions()
-				if len(actions) != 1 {
+				if len(actions) != 2 {
 					t.Fatal(spew.Sdump(actions))
 				}
 
-				if !actions[0].Matches("update", "configmaps") {
-					t.Error(actions[0])
+				if !actions[1].Matches("update", "configmaps") {
+					t.Error(actions[1])
 				}
 
-				actual := actions[0].(clienttesting.UpdateAction).GetObject().(*corev1.ConfigMap)
+				actual := actions[1].(clienttesting.UpdateAction).GetObject().(*corev1.ConfigMap)
 				if len(actual.Data["ca-bundle.crt"]) == 0 {
 					t.Error(actual.Data)
 				}

@@ -5,11 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openshift/library-go/pkg/operator/events"
-	corev1informers "k8s.io/client-go/informers/core/v1"
-	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-	corev1listers "k8s.io/client-go/listers/core/v1"
-
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,6 +12,11 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 
 	"github.com/openshift/library-go/pkg/crypto"
+	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
+	corev1informers "k8s.io/client-go/informers/core/v1"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 )
 
 // TargetRotation rotates a key and cert signed by a CA. It creates a new one when <RefreshPercentage>
@@ -74,13 +74,7 @@ func (c TargetRotation) ensureTargetCertKeyPair(signingCertKeyPair *crypto.CA, c
 			return err
 		}
 
-		actualTargetCertKeyPairSecret, err := c.Client.Secrets(c.Namespace).Update(targetCertKeyPairSecret)
-		if apierrors.IsNotFound(err) {
-			actualTargetCertKeyPairSecret, err = c.Client.Secrets(c.Namespace).Create(targetCertKeyPairSecret)
-			if err != nil {
-				return err
-			}
-		}
+		actualTargetCertKeyPairSecret, _, err := resourceapply.ApplySecret(c.Client, c.EventRecorder, targetCertKeyPairSecret)
 		if err != nil {
 			return err
 		}
