@@ -72,7 +72,8 @@ func NewControllers(
 		installerCommand,
 		kubeInformersNamespaceScoped,
 		staticPodOperatorClient,
-		kubeClient,
+		configMapGetter,
+		podsGetter,
 		eventRecorder,
 	)
 
@@ -81,7 +82,7 @@ func NewControllers(
 		staticPodName,
 		kubeInformersNamespaceScoped,
 		staticPodOperatorClient,
-		kubeClient,
+		podsGetter,
 		eventRecorder,
 	)
 

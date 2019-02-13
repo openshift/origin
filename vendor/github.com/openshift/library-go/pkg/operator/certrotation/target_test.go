@@ -41,7 +41,7 @@ func TestNeedNewTargetCertKeyPairForTime(t *testing.T) {
 		validity          time.Duration
 		renewalPercentage float32
 
-		expected bool
+		expected string
 	}{
 		{
 			name: "from nothing",
@@ -50,7 +50,7 @@ func TestNeedNewTargetCertKeyPairForTime(t *testing.T) {
 			},
 			validity:          100 * time.Minute,
 			renewalPercentage: 0.5,
-			expected:          true,
+			expected:          "missing target expiry",
 		},
 		{
 			name:        "malformed",
@@ -60,7 +60,7 @@ func TestNeedNewTargetCertKeyPairForTime(t *testing.T) {
 			},
 			validity:          100 * time.Minute,
 			renewalPercentage: 0.5,
-			expected:          true,
+			expected:          `bad expiry: "malformed"`,
 		},
 		{
 			name:        "past midpoint and cert is ready",
@@ -70,7 +70,7 @@ func TestNeedNewTargetCertKeyPairForTime(t *testing.T) {
 			},
 			validity:          100 * time.Minute,
 			renewalPercentage: 0.5,
-			expected:          true,
+			expected:          "past its renewal time",
 		},
 		{
 			name:        "past midpoint and cert is new",
@@ -80,7 +80,7 @@ func TestNeedNewTargetCertKeyPairForTime(t *testing.T) {
 			},
 			validity:          100 * time.Minute,
 			renewalPercentage: 0.5,
-			expected:          false,
+			expected:          "",
 		},
 	}
 
@@ -92,7 +92,7 @@ func TestNeedNewTargetCertKeyPairForTime(t *testing.T) {
 			}
 
 			actual := needNewTargetCertKeyPairForTime(test.annotations, signer, test.validity, test.renewalPercentage)
-			if test.expected != actual {
+			if !strings.HasPrefix(actual, test.expected) {
 				t.Errorf("expected %v, got %v", test.expected, actual)
 			}
 		})

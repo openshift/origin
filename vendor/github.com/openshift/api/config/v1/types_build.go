@@ -78,12 +78,6 @@ type ImageLabel struct {
 }
 
 type RegistriesConfig struct {
-	// SearchRegistries lists the registries to search for images if an image repository is not specified in an image pull spec.
-	//
-	// If this is not set, builds will search Docker Hub (docker.io) when a repository is not specified.
-	// Setting this to an empty list will require all builds to fully qualify their image pull specs.
-	// +optional
-	SearchRegistries *[]string `json:"searchRegistries,omitempty"`
 	// InsecureRegistries are registries which do not have a valid SSL certificate or only support HTTP connections.
 	// +optional
 	InsecureRegistries []string `json:"insecureRegistries,omitempty"`

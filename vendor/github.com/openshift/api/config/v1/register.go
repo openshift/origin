@@ -60,6 +60,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ProjectList{},
 		&Proxy{},
 		&ProxyList{},
+		&Registry{},
+		&RegistryList{},
 		&Scheduling{},
 		&SchedulingList{},
 	)

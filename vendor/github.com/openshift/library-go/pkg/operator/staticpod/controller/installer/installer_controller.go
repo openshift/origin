@@ -19,11 +19,12 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
@@ -60,7 +61,8 @@ type InstallerController struct {
 
 	operatorConfigClient v1helpers.StaticPodOperatorClient
 
-	kubeClient kubernetes.Interface
+	configMapsGetter corev1client.ConfigMapsGetter
+	podsGetter       corev1client.PodsGetter
 
 	eventRecorder events.Recorder
 
@@ -103,7 +105,8 @@ func NewInstallerController(
 	command []string,
 	kubeInformersForTargetNamespace informers.SharedInformerFactory,
 	operatorConfigClient v1helpers.StaticPodOperatorClient,
-	kubeClient kubernetes.Interface,
+	configMapsGetter corev1client.ConfigMapsGetter,
+	podsGetter corev1client.PodsGetter,
 	eventRecorder events.Recorder,
 ) *InstallerController {
 	c := &InstallerController{
@@ -114,7 +117,8 @@ func NewInstallerController(
 		command:         command,
 
 		operatorConfigClient: operatorConfigClient,
-		kubeClient:           kubeClient,
+		configMapsGetter:     configMapsGetter,
+		podsGetter:           podsGetter,
 		eventRecorder:        eventRecorder,
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "InstallerController"),
@@ -130,7 +134,7 @@ func NewInstallerController(
 }
 
 func (c *InstallerController) getStaticPodState(nodeName string) (state staticPodState, revision string, errors []string, err error) {
-	pod, err := c.kubeClient.CoreV1().Pods(c.targetNamespace).Get(mirrorPodNameForNode(c.staticPodName, nodeName), metav1.GetOptions{})
+	pod, err := c.podsGetter.Pods(c.targetNamespace).Get(mirrorPodNameForNode(c.staticPodName, nodeName), metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return staticPodStatePending, "", nil, nil
@@ -303,7 +307,7 @@ func (c *InstallerController) manageInstallationPods(operatorSpec *operatorv1.St
 			// OOM is special. We want to retry the installer pod by falling through here. Also we don't set LastFailedRevision.
 			glog.V(2).Infof("Retrying %q for revision %d because it was OOM killed", currNodeState.NodeName, currNodeState.TargetRevision)
 			installerPodName := getInstallerPodName(currNodeState.TargetRevision, currNodeState.NodeName)
-			if err := c.kubeClient.CoreV1().Pods(c.targetNamespace).Delete(installerPodName, &metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+			if err := c.podsGetter.Pods(c.targetNamespace).Delete(installerPodName, &metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 				return true, err
 			}
 		}
@@ -359,7 +363,7 @@ func (c *InstallerController) updateRevisionStatus(operatorStatus *operatorv1.St
 
 func (c *InstallerController) updateConfigMapForRevision(currentRevisions map[int32]struct{}, status string) error {
 	for currentRevision := range currentRevisions {
-		statusConfigMap, err := c.kubeClient.CoreV1().ConfigMaps(c.targetNamespace).Get(statusConfigMapNameForRevision(currentRevision), metav1.GetOptions{})
+		statusConfigMap, err := c.configMapsGetter.ConfigMaps(c.targetNamespace).Get(statusConfigMapNameForRevision(currentRevision), metav1.GetOptions{})
 		if apierrors.IsNotFound(err) {
 			glog.Infof("%s configmap not found, skipping update revision status", statusConfigMapNameForRevision(currentRevision))
 			continue
@@ -368,7 +372,7 @@ func (c *InstallerController) updateConfigMapForRevision(currentRevisions map[in
 			return err
 		}
 		statusConfigMap.Data["status"] = status
-		_, _, err = resourceapply.ApplyConfigMap(c.kubeClient.CoreV1(), c.eventRecorder, statusConfigMap)
+		_, _, err = resourceapply.ApplyConfigMap(c.configMapsGetter, c.eventRecorder, statusConfigMap)
 		if err != nil {
 			return err
 		}
@@ -482,7 +486,7 @@ func setAvailableProgressingNodeInstallerFailingConditions(newStatus *operatorv1
 // newNodeStateForInstallInProgress returns the new NodeState, whether it was killed by OOM or an error
 func (c *InstallerController) newNodeStateForInstallInProgress(currNodeState *operatorv1.NodeStatus, newRevisionPending bool) (status *operatorv1.NodeStatus, oom bool, err error) {
 	ret := currNodeState.DeepCopy()
-	installerPod, err := c.kubeClient.CoreV1().Pods(c.targetNamespace).Get(getInstallerPodName(currNodeState.TargetRevision, currNodeState.NodeName), metav1.GetOptions{})
+	installerPod, err := c.podsGetter.Pods(c.targetNamespace).Get(getInstallerPodName(currNodeState.TargetRevision, currNodeState.NodeName), metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		ret.LastFailedRevision = currNodeState.TargetRevision
 		ret.TargetRevision = currNodeState.CurrentRevision
@@ -634,13 +638,13 @@ func (c *InstallerController) ensureInstallerPod(nodeName string, operatorSpec *
 		}
 	}
 
-	_, _, err = resourceapply.ApplyPod(c.kubeClient.CoreV1(), c.eventRecorder, pod)
+	_, _, err = resourceapply.ApplyPod(c.podsGetter, c.eventRecorder, pod)
 	return err
 }
 
 func (c *InstallerController) setOwnerRefs(revision int32) ([]metav1.OwnerReference, error) {
 	ownerReferences := []metav1.OwnerReference{}
-	statusConfigMap, err := c.kubeClient.CoreV1().ConfigMaps(c.targetNamespace).Get(fmt.Sprintf("revision-status-%d", revision), metav1.GetOptions{})
+	statusConfigMap, err := c.configMapsGetter.ConfigMaps(c.targetNamespace).Get(fmt.Sprintf("revision-status-%d", revision), metav1.GetOptions{})
 	if err == nil {
 		ownerReferences = append(ownerReferences, metav1.OwnerReference{
 			APIVersion: "v1",

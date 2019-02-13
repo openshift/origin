@@ -137,6 +137,19 @@ type RemoteConnectionInfo struct {
 	CertInfo `json:",inline"`
 }
 
+type AdmissionConfig struct {
+	PluginConfig map[string]AdmissionPluginConfig `json:"pluginConfig"`
+
+	// enabledPlugins is a list of admission plugins that must be on in addition to the default list.
+	// Some admission plugins are disabled by default, but certain configurations require them.  This is fairly uncommon
+	// and can result in performance penalties and unexpected behavior.
+	EnabledAdmissionPlugins []string `json:"enabledPlugins"`
+
+	// disabledPlugins is a list of admission plugins that must be off.  Putting something in this list
+	// is almost always a mistake and likely to result in cluster instability.
+	DisabledAdmissionPlugins []string `json:"disabledPlugins"`
+}
+
 // AdmissionPluginConfig holds the necessary configuration options for admission plugins
 type AdmissionPluginConfig struct {
 	// Location is the path to a configuration file that contains the plugin's
@@ -220,18 +233,22 @@ type EtcdStorageConfig struct {
 
 // GenericAPIServerConfig is an inline-able struct for aggregated apiservers that need to store data in etcd
 type GenericAPIServerConfig struct {
-	// ServingInfo describes how to start serving
+	// servingInfo describes how to start serving
 	ServingInfo HTTPServingInfo `json:"servingInfo"`
 
-	// CORSAllowedOrigins
+	// corsAllowedOrigins
 	CORSAllowedOrigins []string `json:"corsAllowedOrigins"`
 
-	// AuditConfig describes how to configure audit information
+	// auditConfig describes how to configure audit information
 	AuditConfig AuditConfig `json:"auditConfig"`
 
-	// StorageConfig contains information about how to use
+	// storageConfig contains information about how to use
 	StorageConfig EtcdStorageConfig `json:"storageConfig"`
 
+	// admissionConfig holds information about how to configure admission.
+	AdmissionConfig AdmissionConfig `json:"admission"`
+
+	// TODO remove this.  We need a cut-over or we'll have a gap.
 	AdmissionPluginConfig map[string]AdmissionPluginConfig `json:"admissionPluginConfig"`
 
 	KubeClientConfig KubeClientConfig `json:"kubeClientConfig"`

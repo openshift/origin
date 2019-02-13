@@ -125,27 +125,6 @@ func (c CertRotationController) syncWorker() error {
 	return nil
 }
 
-func needNewCertKeyPairForTime(annotations map[string]string, validity time.Duration, renewalPercentage float32) bool {
-	signingCertKeyPairExpiry := annotations[CertificateExpiryAnnotation]
-	if len(signingCertKeyPairExpiry) == 0 {
-		return true
-	}
-	certExpiry, err := time.Parse(time.RFC3339, signingCertKeyPairExpiry)
-	if err != nil {
-		glog.Infof("bad expiry: %q", signingCertKeyPairExpiry)
-		// just create a new one
-		return true
-	}
-
-	// If Certificate is not-expired, skip this iteration.
-	renewalDuration := -1 * float32(validity) * (1 - renewalPercentage)
-	if certExpiry.Add(time.Duration(renewalDuration)).After(time.Now()) {
-		return false
-	}
-
-	return true
-}
-
 func (c *CertRotationController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()

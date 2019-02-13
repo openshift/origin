@@ -41,8 +41,8 @@ func (c SigningRotation) ensureSigningCertKeyPair() (*crypto.CA, error) {
 	}
 	signingCertKeyPairSecret.Type = corev1.SecretTypeTLS
 
-	if needNewSigningCertKeyPair(signingCertKeyPairSecret.Annotations, c.Validity, c.RefreshPercentage) {
-		c.EventRecorder.Eventf("SignerUpdateRequired", "%q in %q requires a new signing cert/key pair", c.Name, c.Namespace)
+	if reason := needNewSigningCertKeyPair(signingCertKeyPairSecret.Annotations, c.Validity, c.RefreshPercentage); len(reason) > 0 {
+		c.EventRecorder.Eventf("SignerUpdateRequired", "%q in %q requires a new signing cert/key pair: %v", c.Name, c.Namespace, reason)
 		if err := setSigningCertKeyPairSecret(signingCertKeyPairSecret, c.Validity); err != nil {
 			return nil, err
 		}
@@ -68,8 +68,23 @@ func (c SigningRotation) ensureSigningCertKeyPair() (*crypto.CA, error) {
 	return signingCertKeyPair, nil
 }
 
-func needNewSigningCertKeyPair(annotations map[string]string, validity time.Duration, renewalPercentage float32) bool {
-	return needNewCertKeyPairForTime(annotations, validity, renewalPercentage)
+func needNewSigningCertKeyPair(annotations map[string]string, validity time.Duration, renewalPercentage float32) string {
+	signingCertKeyPairExpiry := annotations[CertificateExpiryAnnotation]
+	if len(signingCertKeyPairExpiry) == 0 {
+		return "missing target expiry"
+	}
+	certExpiry, err := time.Parse(time.RFC3339, signingCertKeyPairExpiry)
+	if err != nil {
+		return fmt.Sprintf("bad expiry: %q", signingCertKeyPairExpiry)
+	}
+
+	// If Certificate is not-expired, skip this iteration.
+	renewalDuration := -1 * float32(validity) * (1 - renewalPercentage)
+	if certExpiry.Add(time.Duration(renewalDuration)).After(time.Now()) {
+		return ""
+	}
+
+	return fmt.Sprintf("past its renewal time %v, versus %v", certExpiry, certExpiry.Add(time.Duration(renewalDuration)))
 }
 
 // setSigningCertKeyPairSecret creates a new signing cert/key pair and sets them in the secret

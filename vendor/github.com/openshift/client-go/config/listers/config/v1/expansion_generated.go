@@ -62,6 +62,10 @@ type ProjectListerExpansion interface{}
 // ProxyLister.
 type ProxyListerExpansion interface{}
 
+// RegistryListerExpansion allows custom methods to be added to
+// RegistryLister.
+type RegistryListerExpansion interface{}
+
 // SchedulingListerExpansion allows custom methods to be added to
 // SchedulingLister.
 type SchedulingListerExpansion interface{}

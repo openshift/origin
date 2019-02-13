@@ -72,7 +72,8 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 		podCommand,
 		kubeInformers,
 		fakeStaticPodOperatorClient,
-		kubeClient,
+		kubeClient.CoreV1(),
+		kubeClient.CoreV1(),
 		eventRecorder,
 	)
 	c.ownerRefsFn = func(revision int32) ([]metav1.OwnerReference, error) {
@@ -285,7 +286,8 @@ func TestCreateInstallerPod(t *testing.T) {
 		[]string{"/bin/true"},
 		kubeInformers,
 		fakeStaticPodOperatorClient,
-		kubeClient,
+		kubeClient.CoreV1(),
+		kubeClient.CoreV1(),
 		eventRecorder,
 	)
 	c.ownerRefsFn = func(revision int32) ([]metav1.OwnerReference, error) {
@@ -453,7 +455,8 @@ func TestEnsureInstallerPod(t *testing.T) {
 				[]string{"/bin/true"},
 				kubeInformers,
 				fakeStaticPodOperatorClient,
-				kubeClient,
+				kubeClient.CoreV1(),
+				kubeClient.CoreV1(),
 				eventRecorder,
 			)
 			c.ownerRefsFn = func(revision int32) ([]metav1.OwnerReference, error) {
@@ -996,7 +999,8 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 				[]string{"/bin/true"},
 				kubeInformers,
 				fakeStaticPodOperatorClient,
-				kubeClient,
+				kubeClient.CoreV1(),
+				kubeClient.CoreV1(),
 				eventRecorder,
 			)
 			c.ownerRefsFn = func(revision int32) ([]metav1.OwnerReference, error) {
@@ -1072,7 +1076,8 @@ func TestInstallerController_manageInstallationPods(t *testing.T) {
 				secrets:              tt.fields.secrets,
 				command:              tt.fields.command,
 				operatorConfigClient: tt.fields.operatorConfigClient,
-				kubeClient:           tt.fields.kubeClient,
+				configMapsGetter:     tt.fields.kubeClient.CoreV1(),
+				podsGetter:           tt.fields.kubeClient.CoreV1(),
 				eventRecorder:        tt.fields.eventRecorder,
 				queue:                tt.fields.queue,
 				installerPodImageFn:  tt.fields.installerPodImageFn,

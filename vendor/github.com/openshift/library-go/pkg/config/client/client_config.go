@@ -21,8 +21,14 @@ func GetKubeConfigOrInClusterConfig(kubeConfigFile string, overrides *ClientConn
 	if err != nil {
 		return nil, err
 	}
+
 	applyClientConnectionOverrides(overrides, clientConfig)
-	clientConfig.WrapTransport = defaultClientTransport
+
+	t := &clientTransportOverrides{}
+	if overrides != nil {
+		t.maxIdleConnsPerHost = overrides.MaxIdleConnsPerHost
+	}
+	clientConfig.WrapTransport = t.defaultClientTransport
 
 	return clientConfig, nil
 }
@@ -33,23 +39,21 @@ func GetClientConfig(kubeConfigFile string, overrides *ClientConnectionOverrides
 	if err != nil {
 		return nil, err
 	}
-	// TODO after 1.11 rebase, restore this
-	//kubeConfig, err := clientcmd.NewClientConfigFromBytes(kubeConfigBytes)
-	//if err != nil {
-	//	return nil, err
-	//}
-	config, err := clientcmd.Load(kubeConfigBytes)
+	kubeConfig, err := clientcmd.NewClientConfigFromBytes(kubeConfigBytes)
 	if err != nil {
 		return nil, err
 	}
-	kubeConfig := clientcmd.NewNonInteractiveClientConfig(*config, "", &clientcmd.ConfigOverrides{}, nil)
-
 	clientConfig, err := kubeConfig.ClientConfig()
 	if err != nil {
 		return nil, err
 	}
 	applyClientConnectionOverrides(overrides, clientConfig)
-	clientConfig.WrapTransport = defaultClientTransport
+
+	t := &clientTransportOverrides{}
+	if overrides != nil {
+		t.maxIdleConnsPerHost = overrides.MaxIdleConnsPerHost
+	}
+	clientConfig.WrapTransport = t.defaultClientTransport
 
 	return clientConfig, nil
 }
@@ -78,26 +82,32 @@ func applyClientConnectionOverrides(overrides *ClientConnectionOverrides, kubeCo
 		kubeConfig.ContentConfig.AcceptContentTypes = "application/vnd.kubernetes.protobuf,application/json"
 	}
 	if len(kubeConfig.ContentConfig.ContentType) == 0 {
-		kubeConfig.ContentConfig.ContentType = "application/vnd.kubernetes.protobuf,application/json"
+		kubeConfig.ContentConfig.ContentType = "application/vnd.kubernetes.protobuf"
 	}
 }
 
+type clientTransportOverrides struct {
+	maxIdleConnsPerHost int
+}
+
 // defaultClientTransport sets defaults for a client Transport that are suitable for use by infrastructure components.
-func defaultClientTransport(rt http.RoundTripper) http.RoundTripper {
+func (c *clientTransportOverrides) defaultClientTransport(rt http.RoundTripper) http.RoundTripper {
 	transport, ok := rt.(*http.Transport)
 	if !ok {
 		return rt
 	}
 
-	// TODO: this should be configured by the caller, not in this method.
-	dialer := &net.Dialer{
+	transport.DialContext = (&net.Dialer{
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
-	}
-	transport.Dial = dialer.Dial
+	}).DialContext
+
 	// Hold open more internal idle connections
-	// TODO: this should be configured by the caller, not in this method.
 	transport.MaxIdleConnsPerHost = 100
+	if c.maxIdleConnsPerHost > 0 {
+		transport.MaxIdleConnsPerHost = c.maxIdleConnsPerHost
+	}
+
 	return transport
 }
 
@@ -115,4 +125,8 @@ type ClientConnectionOverrides struct {
 	QPS float32
 	// Burst allows extra queries to accumulate when a client is exceeding its rate.
 	Burst int32
+
+	// MaxIdleConnsPerHost, if non-zero, controls the maximum idle (keep-alive) connections to keep per-host:port.
+	// If zero, DefaultMaxIdleConnsPerHost is used.
+	MaxIdleConnsPerHost int
 }

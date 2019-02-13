@@ -45,6 +45,8 @@ func TestSyncConfigMap(t *testing.T) {
 	)
 	eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &corev1.ObjectReference{})
 
+	kubeInformersForNamespaces := v1helpers.NewFakeKubeInformersForNamespaces(map[string]informers.SharedInformerFactory{"other": configInformers})
+
 	c := NewResourceSyncController(
 		fakeStaticPodOperatorClient,
 		v1helpers.NewFakeKubeInformersForNamespaces(map[string]informers.SharedInformerFactory{
@@ -52,7 +54,8 @@ func TestSyncConfigMap(t *testing.T) {
 			"config-managed": configManagedInformers,
 			"operator":       operatorInformers,
 		}),
-		kubeClient,
+		v1helpers.CachedSecretGetter(kubeClient.CoreV1(), kubeInformersForNamespaces),
+		v1helpers.CachedConfigMapGetter(kubeClient.Core(), kubeInformersForNamespaces),
 		eventRecorder,
 	)
 	c.configMapGetter = kubeClient.CoreV1()
