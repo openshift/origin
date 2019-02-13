@@ -1334,65 +1334,74 @@ func TestHandleControllerConfig(t *testing.T) {
 		},
 		{
 			name: "insecure registries",
-			build: &configv1.Build{
+			image: &configv1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
 				},
-				Spec: configv1.BuildSpec{
-					BuildDefaults: configv1.BuildDefaults{
-						RegistriesConfig: configv1.RegistriesConfig{
-							InsecureRegistries: []string{"my-local.registry:5000", "omni.corp.org:5000"},
-						},
+				Spec: configv1.ImageSpec{
+					RegistrySources: configv1.RegistrySources{
+						InsecureRegistries: []string{"my-local.registry:5000", "omni.corp.org:5000"},
 					},
 				},
 			},
 		},
 		{
 			name: "allowed registries",
-			build: &configv1.Build{
+			image: &configv1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
 				},
-				Spec: configv1.BuildSpec{
-					BuildDefaults: configv1.BuildDefaults{
-						RegistriesConfig: configv1.RegistriesConfig{
-							AllowedRegistries: []string{"quay.io"},
-						},
+				Spec: configv1.ImageSpec{
+					RegistrySources: configv1.RegistrySources{
+						AllowedRegistries: []string{"quay.io"},
 					},
 				},
 			},
 		},
 		{
 			name: "blocked registries",
-			build: &configv1.Build{
+			image: &configv1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
 				},
-				Spec: configv1.BuildSpec{
-					BuildDefaults: configv1.BuildDefaults{
-						RegistriesConfig: configv1.RegistriesConfig{
-							BlockedRegistries: []string{"docker.io"},
-						},
+				Spec: configv1.ImageSpec{
+					RegistrySources: configv1.RegistrySources{
+						BlockedRegistries: []string{"docker.io"},
 					},
 				},
 			},
 		},
 		{
 			name: "allowed and blocked registries",
+			image: &configv1.Image{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: configv1.ImageSpec{
+					RegistrySources: configv1.RegistrySources{
+						AllowedRegistries: []string{"quay.io"},
+						BlockedRegistries: []string{"docker.io"},
+					},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "default proxy",
 			build: &configv1.Build{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
 				},
 				Spec: configv1.BuildSpec{
 					BuildDefaults: configv1.BuildDefaults{
-						RegistriesConfig: configv1.RegistriesConfig{
-							AllowedRegistries: []string{"quay.io"},
-							BlockedRegistries: []string{"docker.io"},
+						DefaultProxy: &configv1.ProxySpec{
+							HTTPProxy:  "http://my-proxy.org",
+							HTTPSProxy: "https://my-proxy.org",
+							NoProxy:    "mydomain",
 						},
 					},
 				},
 			},
-			expectError: true,
 		},
 	}
 	for _, tc := range tests {
@@ -1447,11 +1456,30 @@ func TestHandleControllerConfig(t *testing.T) {
 				t.Fatalf("error handling controller config change: %v", msgs)
 			}
 
+			if tc.build == nil {
+				if bc.buildDefaults.DefaultProxy != nil {
+					t.Errorf("expected no default proxy, got %v", bc.buildDefaults.DefaultProxy)
+				}
+			} else {
+				if !reflect.DeepEqual(tc.build.Spec.BuildDefaults.DefaultProxy, bc.buildDefaults.DefaultProxy) {
+					t.Errorf("expected default proxy %v, got %v",
+						tc.build.Spec.BuildDefaults.DefaultProxy,
+						bc.buildDefaults.DefaultProxy)
+				}
+			}
+
 			// Test additional certificate authorities
 			if tc.image == nil {
 				if len(bc.additionalTrustedCAData) > 0 {
 					t.Errorf("expected empty additional CAs data, got %v", bc.additionalTrustedCAData)
 				}
+				if len(bc.registryConfData) > 0 {
+					t.Errorf("expected empty registries config, got %v", bc.registryConfData)
+				}
+				if len(bc.signaturePolicyData) > 0 {
+					t.Errorf("expected empty signature policy config, got %v", bc.signaturePolicyData)
+				}
+				return
 			}
 
 			if tc.casMap == nil {
@@ -1462,18 +1490,7 @@ func TestHandleControllerConfig(t *testing.T) {
 				t.Errorf("expected ca data:\n  %v\ngot:\n  %v", tc.casMap.Data, bc.additionalTrustedCAData)
 			}
 
-			// Test registry configuration (insecure, allowed, blocked)
-			if tc.build == nil {
-				if len(bc.registryConfData) > 0 {
-					t.Errorf("expected empty registries config, got %v", bc.registryConfData)
-				}
-				if len(bc.signaturePolicyData) > 0 {
-					t.Errorf("expected empty signature policy config, got %v", bc.signaturePolicyData)
-				}
-				return
-			}
-
-			buildRegistriesConfig := tc.build.Spec.BuildDefaults.RegistriesConfig
+			buildRegistriesConfig := tc.image.Spec.RegistrySources
 
 			if isRegistryConfigEmpty(buildRegistriesConfig) {
 				if len(bc.registryConfData) > 0 {
@@ -1568,7 +1585,7 @@ func TestHandleControllerConfig(t *testing.T) {
 	}
 }
 
-func isRegistryConfigEmpty(config configv1.RegistriesConfig) bool {
+func isRegistryConfigEmpty(config configv1.RegistrySources) bool {
 	return len(config.InsecureRegistries) == 0
 }
 
@@ -1578,7 +1595,7 @@ func decodeRegistries(configTOML string) (*tomlConfig, error) {
 	return config, err
 }
 
-func isSignaturePolicyConfigEmpty(config configv1.RegistriesConfig) bool {
+func isSignaturePolicyConfigEmpty(config configv1.RegistrySources) bool {
 	return len(config.AllowedRegistries) == 0 && len(config.BlockedRegistries) == 0
 }
 
