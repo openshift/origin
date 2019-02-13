@@ -34,9 +34,6 @@ INPUT_DIRS=(
 
 INPUT_DIRS=$(IFS=,; echo "${INPUT_DIRS[*]}")
 
-REPORT_FILENAME=$(mktemp)
-KNOWN_VIOLATION_FILENAME=${SCRIPT_ROOT}/hack/openapi-violation.list
-
 echo "Generating openapi"
 ${GOPATH}/bin/openapi-gen \
   --logtostderr \
@@ -46,9 +43,5 @@ ${GOPATH}/bin/openapi-gen \
   --output-base="${GOPATH}/src" \
   --input-dirs "${INPUT_DIRS}" \
   --output-package "${ORIGIN_PREFIX}pkg/openapi" \
-  --report-filename "${REPORT_FILENAME}" \
+  --report-filename "${SCRIPT_ROOT}/hack/openapi-violation.list" \
   "$@"
-
-if ! diff -q "${REPORT_FILENAME}" "${KNOWN_VIOLATION_FILENAME}" ; then
-	os::log::fatal "Error: API rules check failed. Reported violations ${REPORT_FILENAME} differ from known violations ${KNOWN_VIOLATION_FILENAME}. Please fix API source file if new violation is detected, or update known violations ${KNOWN_VIOLATION_FILENAME} if existing violation is being fixed. Please refer to api/api-rules/README.md and https://github.com/kubernetes/kube-openapi/tree/master/pkg/generators/rules for more information about the API rules being enforced."
-fi

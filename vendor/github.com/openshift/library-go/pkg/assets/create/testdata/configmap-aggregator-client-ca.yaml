@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aggregator-client-ca
+  namespace: openshift-kube-apiserver
+data:
+  ca-bundle.crt:

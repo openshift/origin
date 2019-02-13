@@ -39,6 +39,8 @@ type PruneController struct {
 
 	// prunerPodImageFn returns the image name for the pruning pod
 	prunerPodImageFn func() string
+	// ownerRefsFn sets the ownerrefs on the pruner pod
+	ownerRefsFn func(revision int32) ([]metav1.OwnerReference, error)
 
 	operatorConfigClient v1helpers.StaticPodOperatorClient
 
@@ -71,15 +73,17 @@ func NewPruneController(
 		command:           command,
 
 		operatorConfigClient: operatorConfigClient,
-		configMapGetter:      configMapGetter,
-		secretGetter:         secretGetter,
-		podGetter:            podGetter,
-		eventRecorder:        eventRecorder,
+
+		configMapGetter: configMapGetter,
+		secretGetter:    secretGetter,
+		podGetter:       podGetter,
+		eventRecorder:   eventRecorder,
 
 		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "PruneController"),
 		prunerPodImageFn: getPrunerPodImageFromEnv,
 	}
 
+	c.ownerRefsFn = c.setOwnerRefs
 	operatorConfigClient.Informer().AddEventHandler(c.eventHandler())
 
 	return c
@@ -134,7 +138,8 @@ func (c *PruneController) excludedRevisionHistory(operatorStatus *operatorv1.Sta
 
 	// Return early if nothing to prune
 	if len(succeededRevisionIDs)+len(failedRevisionIDs) == 0 {
-		return []int{}, fmt.Errorf("no revision IDs currently eligible to prune")
+		glog.V(2).Info("no revision IDs currently eligible to prune")
+		return []int{}, nil
 	}
 
 	// Get list of protected IDs
@@ -223,8 +228,28 @@ func (c *PruneController) ensurePrunePod(nodeName string, maxEligibleRevision in
 		fmt.Sprintf("--static-pod-name=%s", c.podResourcePrefix),
 	)
 
-	_, _, err := resourceapply.ApplyPod(c.podGetter, c.eventRecorder, pod)
+	ownerRefs, err := c.ownerRefsFn(revision)
+	if err != nil {
+		return fmt.Errorf("unable to set pruner pod ownerrefs: %+v", err)
+	}
+	pod.OwnerReferences = ownerRefs
+
+	_, _, err = resourceapply.ApplyPod(c.podGetter, c.eventRecorder, pod)
 	return err
+}
+
+func (c *PruneController) setOwnerRefs(revision int32) ([]metav1.OwnerReference, error) {
+	ownerReferences := []metav1.OwnerReference{}
+	statusConfigMap, err := c.configMapGetter.ConfigMaps(c.targetNamespace).Get(fmt.Sprintf("revision-status-%d", revision), metav1.GetOptions{})
+	if err == nil {
+		ownerReferences = append(ownerReferences, metav1.OwnerReference{
+			APIVersion: "v1",
+			Kind:       "ConfigMap",
+			Name:       statusConfigMap.Name,
+			UID:        statusConfigMap.UID,
+		})
+	}
+	return ownerReferences, err
 }
 
 func getPrunerPodName(nodeName string, revision int32) string {

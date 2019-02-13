@@ -21,3 +21,7 @@ function verify_glide_version() {
 verify_glide_version
 
 glide update --strip-vendor
+
+# glide doesn't handle mercurial properly and leaves internal files (equivalent of .git/) laying around
+# Given those files differ by mercurial version it was cloned with, verify-deps would break
+find ./vendor -name '.hg_archival.txt' -delete
