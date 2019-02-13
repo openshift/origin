@@ -18,16 +18,25 @@ package apiserver
 
 import (
 	"net/http"
+	"strings"
 	"time"
+
+	"github.com/golang/glog"
+
+	"k8s.io/apimachinery/pkg/labels"
+
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
 	"k8s.io/client-go/pkg/version"
 
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
+	apiregistrationapi "k8s.io/kube-aggregator/pkg/apis/apiregistration"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
 	aggregatorscheme "k8s.io/kube-aggregator/pkg/apiserver/scheme"
@@ -203,6 +212,33 @@ func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.Deleg
 		go availableController.Run(5, context.StopCh)
 		return nil
 	})
+	s.GenericAPIServer.AddPostStartHook("apiservice-wait-for-first-sync", func(context genericapiserver.PostStartHookContext) error {
+		// when the aggregator first starts, it should make sure that it has proxy handlers for all the known good API services at this time
+		// we only need to do this once.
+		err := wait.PollImmediateUntil(100*time.Millisecond, func() (bool, error) {
+			// fix race
+			handledAPIServices := sets.StringKeySet(s.proxyHandlers)
+			apiservices, err := s.lister.List(labels.Everything())
+			if err != nil {
+				return false, err
+			}
+			expectedAPIServices := sets.NewString()
+			for _, apiservice := range apiservices {
+				if apiregistrationapi.IsAPIServiceConditionTrue(apiservice, apiregistrationapi.Available) {
+					expectedAPIServices.Insert(apiservice.Name)
+				}
+			}
+
+			notYetHandledAPIServices := expectedAPIServices.Difference(handledAPIServices)
+			if len(notYetHandledAPIServices) == 0 {
+				return true, nil
+			}
+			glog.Infof("still waiting on handling APIServices: %v", strings.Join(notYetHandledAPIServices.List(), ","))
+
+			return false, nil
+		}, context.StopCh)
+		return err
+	})
 
 	if openApiConfig != nil {
 		specDownloader := openapicontroller.NewDownloader()
@@ -255,9 +291,16 @@ func (s *APIAggregator) AddAPIService(apiService *apiregistration.APIService) er
 	}
 	proxyHandler.updateAPIService(apiService)
 	if s.openAPIAggregationController != nil {
-		s.openAPIAggregationController.AddAPIService(proxyHandler, apiService)
+		// this is calling a controller.  It should already handle being async.
+		go func() {
+			defer utilruntime.HandleCrash()
+			s.openAPIAggregationController.AddAPIService(proxyHandler, apiService)
+		}()
 	}
-	s.proxyHandlers[apiService.Name] = proxyHandler
+	// we want to update the registration bit last after all the pieces are wired together
+	defer func() {
+		s.proxyHandlers[apiService.Name] = proxyHandler
+	}()
 	s.GenericAPIServer.Handler.NonGoRestfulMux.Handle(proxyPath, proxyHandler)
 	s.GenericAPIServer.Handler.NonGoRestfulMux.UnlistedHandlePrefix(proxyPath+"/", proxyHandler)
 
