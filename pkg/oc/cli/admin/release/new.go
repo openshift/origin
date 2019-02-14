@@ -1059,10 +1059,10 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, cm *Cinc
 				filename = fmt.Sprintf("0000_70_%s_%s", name, filename)
 			}
 			if count, ok := files[filename]; ok {
-				count++
 				ext := path.Ext(path.Base(filename))
-				filename = fmt.Sprintf("%s_%d%s", strings.TrimSuffix(filename, ext), count, ext)
-				files[filename] = count
+				files[filename] = count + 1
+				filename = fmt.Sprintf("%s_%d%s", strings.TrimSuffix(filename, ext), count+1, ext)
+				files[filename] = 1
 			} else {
 				files[filename] = 1
 			}
