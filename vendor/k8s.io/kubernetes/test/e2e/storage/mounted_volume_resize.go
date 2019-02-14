@@ -34,7 +34,7 @@ import (
 	"k8s.io/kubernetes/test/e2e/storage/utils"
 )
 
-var _ = utils.SIGDescribe("Mounted volume expand[Slow]", func() {
+var _ = utils.SIGDescribe("Mounted volume expand", func() {
 	var (
 		c                 clientset.Interface
 		ns                string
@@ -73,10 +73,11 @@ var _ = utils.SIGDescribe("Mounted volume expand[Slow]", func() {
 		}
 
 		test := storageClassTest{
-			name:      "default",
-			claimSize: "2Gi",
+			name:                 "default",
+			claimSize:            "2Gi",
+			AllowVolumeExpansion: true,
 		}
-		resizableSc, err = createResizableStorageClass(test, ns, "resizing", c)
+		resizableSc, err = createStorageClass(test, ns, "resizing", c)
 		Expect(err).NotTo(HaveOccurred(), "Error creating resizable storage class")
 		Expect(*resizableSc.AllowVolumeExpansion).To(BeTrue())
 
