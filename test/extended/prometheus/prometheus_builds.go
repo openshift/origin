@@ -33,6 +33,13 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 		}
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStatesInNamespace("openshift-monitoring", oc)
+			exutil.DumpPodLogsStartingWithInNamespace("prometheus-k8s", "openshift-monitoring", oc)
+		}
+	})
+
 	g.Describe("when installed on the cluster", func() {
 		g.It("should start and expose a secured proxy and verify build metrics", func() {
 			const (
