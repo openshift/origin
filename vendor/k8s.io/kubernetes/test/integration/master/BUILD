@@ -67,6 +67,9 @@ go_test(
         "//test/utils:go_default_library",
         "//vendor/github.com/evanphx/json-patch:go_default_library",
         "//vendor/sigs.k8s.io/yaml:go_default_library",
+        "//vendor/github.com/ghodss/yaml:go_default_library",
+        "//vendor/github.com/ghodss/yaml:go_default_library",
+        "//vendor/github.com/go-openapi/spec:go_default_library",
     ] + select({
         "@io_bazel_rules_go//go/platform:android": [
             "//staging/src/k8s.io/apiserver/pkg/storage/value/encrypt/envelope/v1beta1:go_default_library",

@@ -17,12 +17,12 @@ limitations under the License.
 package routes
 
 import (
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"github.com/go-openapi/spec"
 	"k8s.io/klog"
-	"k8s.io/kube-openapi/pkg/builder"
 
 	"k8s.io/apiserver/pkg/server/mux"
+	"k8s.io/kube-openapi/pkg/builder"
 	"k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/handler"
 )
@@ -36,12 +36,6 @@ type OpenAPI struct {
 func (oa OpenAPI) Install(c *restful.Container, mux *mux.PathRecorderMux) (*handler.OpenAPIService, *spec.Swagger) {
 	spec, err := builder.BuildOpenAPISpec(c.RegisteredWebServices(), oa.Config)
 	if err != nil {
-		klog.Fatalf("Failed to build open api spec for root: %v", err)
-	}
-	// NOTE: [DEPRECATION] We will announce deprecation for format-separated endpoints for OpenAPI spec,
-	// and switch to a single /openapi/v2 endpoint in Kubernetes 1.10. The design doc and deprecation process
-	// are tracked at: https://docs.google.com/document/d/19lEqE9lc4yHJ3WJAJxS_G7TcORIJXGHyq3wpwcH28nU.
-	if _, err := handler.BuildAndRegisterOpenAPIService("/swagger.json", c.RegisteredWebServices(), oa.Config, mux); err != nil {
 		klog.Fatalf("Failed to register open api spec for root: %v", err)
 	}
 	openAPIVersionedService, err := handler.RegisterOpenAPIVersionedService(spec, "/openapi/v2", mux)
