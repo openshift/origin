@@ -1,7 +1,6 @@
 package openshiftapiserver
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -11,8 +10,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apiserver/pkg/admission"
-	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
+	"k8s.io/apimachinery/pkg/util/sets"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericapiserveroptions "k8s.io/apiserver/pkg/server/options"
 	cacheddiscovery "k8s.io/client-go/discovery/cached"
@@ -22,13 +20,12 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	configv1 "github.com/openshift/api/config/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/origin/pkg/cmd/configflags"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftadmission"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
-	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	"github.com/openshift/origin/pkg/version"
@@ -169,13 +166,20 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 	if err != nil {
 		return nil, err
 	}
-	admissionDecorators := admission.Decorators{
-		admission.DecoratorFunc(admissionmetrics.WithControllerMetrics),
-	}
-	genericConfig.AdmissionControl, err = openshiftadmission.NewAdmissionChains([]string{}, config.AdmissionConfig.EnabledAdmissionPlugins, config.AdmissionConfig.DisabledAdmissionPlugins, config.AdmissionConfig.PluginConfig, admissionInitializer, admissionDecorators)
+
+	admissionConfigFile, cleanup, err := openshiftadmission.ToAdmissionConfigFile(config.AdmissionConfig.PluginConfig)
+	defer cleanup()
 	if err != nil {
 		return nil, err
 	}
+	admissionOptions := genericapiserveroptions.NewAdmissionOptions()
+	admissionOptions.DefaultOffPlugins = sets.String{}
+	admissionOptions.RecommendedPluginOrder = openshiftadmission.OpenShiftAdmissionPlugins
+	admissionOptions.Plugins = openshiftadmission.OriginAdmissionPlugins
+	admissionOptions.EnablePlugins = config.AdmissionConfig.EnabledAdmissionPlugins
+	admissionOptions.DisablePlugins = config.AdmissionConfig.DisabledAdmissionPlugins
+	admissionOptions.ConfigFile = admissionConfigFile
+	admissionOptions.ApplyTo(&genericConfig.Config, kubeInformers, kubeClientConfig, configapi.Scheme, admissionInitializer)
 
 	var externalRegistryHostname string
 	if len(config.ImagePolicyConfig.ExternalRegistryHostnames) > 0 {
@@ -248,21 +252,4 @@ func OpenshiftHandlerChain(apiHandler http.Handler, genericConfig *genericapiser
 	handler = configprocessing.WithCacheControl(handler, "no-store") // protected endpoints should not be cached
 
 	return handler
-}
-
-func isAdmissionPluginActivated(config configv1.AdmissionPluginConfig) (bool, error) {
-	var (
-		data []byte
-		err  error
-	)
-	switch {
-	case len(config.Configuration.Raw) == 0:
-		data, err = ioutil.ReadFile(config.Location)
-	default:
-		data = config.Configuration.Raw
-	}
-	if err != nil {
-		return false, err
-	}
-	return configlatest.IsAdmissionPluginActivated(bytes.NewReader(data), true)
 }
