@@ -1,18 +1,13 @@
 package openshiftadmission
 
 import (
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
-	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
-	mutatingwebhook "k8s.io/apiserver/pkg/admission/plugin/webhook/mutating"
-	validatingwebhook "k8s.io/apiserver/pkg/admission/plugin/webhook/validating"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/kubernetes/plugin/pkg/admission/gc"
 	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
 
 	buildsecretinjector "github.com/openshift/origin/pkg/build/apiserver/admission/secretinjector"
 	buildstrategyrestrictions "github.com/openshift/origin/pkg/build/apiserver/admission/strategyrestrictions"
-	imagepolicyapi "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 	projectrequestlimit "github.com/openshift/origin/pkg/project/apiserver/admission/requestlimit"
@@ -29,7 +24,7 @@ func init() {
 
 // RegisterAllAdmissionPlugins registers all admission plugins
 func RegisterAllAdmissionPlugins(plugins *admission.Plugins) {
-	// register gc protection plugin
+	// kube admission plugins that we rely up.  These should move to generic
 	gc.Register(plugins)
 	resourcequota.Register(plugins)
 
@@ -50,32 +45,22 @@ func RegisterOpenshiftAdmissionPlugins(plugins *admission.Plugins) {
 var (
 	// OpenShiftAdmissionPlugins gives the in-order default admission chain for openshift resources.
 	OpenShiftAdmissionPlugins = []string{
-		lifecycle.PluginName,
+		// these are from the kbue chain
+		"NamespaceLifecycle",
 		"OwnerReferencesPermissionEnforcement",
+
+		// all custom admission goes here to simulate being part of a webhook
 		"project.openshift.io/ProjectRequestLimit",
 		"build.openshift.io/BuildConfigSecretInjector",
 		"build.openshift.io/BuildByStrategy",
-		imageadmission.PluginName,
+		"image.openshift.io/ImageLimitRange",
 		"scheduling.openshift.io/PodNodeConstraints",
-		imagepolicyapi.PluginName,
+		"image.openshift.io/ImagePolicy",
 		"quota.openshift.io/ClusterResourceQuota",
-		mutatingwebhook.PluginName,
-		validatingwebhook.PluginName,
+
+		// the rest of the kube chain goes here
+		"MutatingAdmissionWebhook",
+		"ValidatingAdmissionWebhook",
 		"ResourceQuota",
 	}
-
-	DefaultOnPlugins = sets.NewString(
-		lifecycle.PluginName,
-		"build.openshift.io/BuildConfigSecretInjector",
-		"build.openshift.io/BuildByStrategy",
-		imageadmission.PluginName,
-		"OwnerReferencesPermissionEnforcement",
-		imagepolicyapi.PluginName,
-		mutatingwebhook.PluginName,
-		validatingwebhook.PluginName,
-		"ResourceQuota",
-		"quota.openshift.io/ClusterResourceQuota",
-		"project.openshift.io/ProjectRequestLimit",
-		"PodNodeConstraints",
-	)
 )
