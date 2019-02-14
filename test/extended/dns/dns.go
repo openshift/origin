@@ -22,7 +22,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
-func createDNSPod(namespace, probeCmd string) *kapiv1.Pod {
+func CreateDNSPod(namespace, probeCmd string) *kapiv1.Pod {
 	pod := &kapiv1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
@@ -376,7 +376,7 @@ var _ = Describe("DNS", func() {
 
 		// Run a pod which probes DNS and exposes the results by HTTP.
 		By("creating a pod to probe DNS")
-		pod := createDNSPod(f.Namespace.Name, cmd)
+		pod := CreateDNSPod(f.Namespace.Name, cmd)
 		validateDNSResults(f, pod, expect, times)
 	})
 })

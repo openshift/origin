@@ -1,33 +1,37 @@
 package router
 
 import (
+	"context"
 	"fmt"
-	"strings"
+	"io/ioutil"
 	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	watchtools "k8s.io/client-go/tools/watch"
+
+	routev1 "github.com/openshift/origin/pkg/route/apis/route"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	exdns "github.com/openshift/origin/test/extended/dns"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	defer g.GinkgoRecover()
 	var (
-		fixture = exutil.FixturePath("testdata", "reencrypt-serving-cert.yaml")
-		oc      *exutil.CLI
+		oc *exutil.CLI
 
 		ns string
 	)
 
-	oc = exutil.NewCLI("router-reencrypt", exutil.KubeConfigPath())
+	oc = exutil.NewCLI("router-wildcard", exutil.KubeConfigPath())
 
 	g.BeforeEach(func() {
 		_, routerNs, err := exutil.GetRouterPodTemplate(oc)
@@ -44,17 +48,26 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	})
 
 	g.Describe("The default ClusterIngress", func() {
-		g.It("should support default wildcard reencrypt routes through external DNS", func() {
-			execPodName := exutil.CreateExecPodOrFail(oc.AdminKubeClient().Core(), ns, "execpod")
-			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
-
-			g.By(fmt.Sprintf("deploying a service using a reencrypt route using only defaults"))
-			err := oc.Run("create").Args("-f", fixture).Execute()
+		g.It("should enable a route whose default host can be resolved by external DNS", func() {
+			g.By("creating a simple route with a default hostname")
+			route := &routev1.Route{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: ns,
+					Name:      "simple",
+				},
+				Spec: routev1.RouteSpec{
+					To: routev1.RouteTargetReference{
+						Name: "nowhere",
+					},
+				},
+			}
+			_, err := oc.RouteClient().Route().Routes(ns).Create(route)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
+			g.By("waiting for the route to be assigned a host")
 			var hostname string
 			err = wait.Poll(time.Second, changeTimeoutSeconds*time.Second, func() (bool, error) {
-				route, err := oc.RouteClient().Route().Routes(ns).Get("serving-cert", metav1.GetOptions{})
+				route, err := oc.RouteClient().Route().Routes(route.Namespace).Get(route.Name, metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}
@@ -66,40 +79,59 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			url := "https://" + hostname
-			g.By(fmt.Sprintf("verifying the route serves 200 from %s", url))
-			err = waitForURLOK(ns, execPodName, url, changeTimeoutSeconds)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			g.By(fmt.Sprintf("verifying the route host %q can be resolved through DNS", hostname))
+			probeCommand := probeCommand(hostname, changeTimeoutSeconds)
+			pod := exdns.CreateDNSPod(ns, probeCommand)
+
+			g.By("submitting the probe pod to kubernetes")
+			podClient := oc.AdminKubeClient().Core().Pods(ns)
+			defer func() {
+				g.By("deleting the probe pod")
+				defer g.GinkgoRecover()
+				podClient.Delete(pod.Name, metav1.NewDeleteOptions(0))
+			}()
+			updated, err := podClient.Create(pod)
+			if err != nil {
+				e2e.Failf("Failed to create %s pod: %v", pod.Name, err)
+			}
+
+			w, err := podClient.Watch(metav1.SingleObject(metav1.ObjectMeta{Name: pod.Name, ResourceVersion: updated.ResourceVersion}))
+			if err != nil {
+				e2e.Failf("Failed: %v", err)
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), e2e.PodStartTimeout)
+			defer cancel()
+			succeeded := true
+			if _, err = watchtools.UntilWithoutRetry(ctx, w, exdns.PodSucceeded); err != nil {
+				e2e.Logf("Failed: %v", err)
+				succeeded = false
+			}
+
+			g.By("retrieving the probe pod logs")
+			r, err := podClient.GetLogs(pod.Name, &corev1.PodLogOptions{Container: "querier"}).Stream()
+			if err != nil {
+				e2e.Failf("Failed to get pod logs %s: %v", pod.Name, err)
+			}
+			out, err := ioutil.ReadAll(r)
+			if err != nil {
+				e2e.Failf("Failed to read pod logs %s: %v", pod.Name, err)
+			}
+			e2e.Logf("Got results from pod:\n%s", out)
+			if !succeeded {
+				e2e.Failf("DNS probe pod failed")
+			}
 		})
 	})
 })
 
-func waitForURLOK(ns, execPodName, url string, timeoutSeconds int) error {
-	cmd := fmt.Sprintf(`
-		set -e
-		for i in $(seq 1 %d); do
-			code=$( curl -m 1 -k -s -o /dev/null -w '%%{http_code}\n' %q ) || rc=$?
-			if [[ "${rc:-0}" -eq 0 ]]; then
-				echo $code
-				if [[ $code -eq 200 ]]; then
-					exit 0
-				fi
-				if [[ $code -ne 503 ]]; then
-					exit 1
-				fi
-			else
-				echo "error ${rc}" 1>&2
-			fi
-			sleep 1
-		done
-		`, timeoutSeconds, url)
-	output, err := e2e.RunHostCmd(ns, execPodName, cmd)
-	if err != nil {
-		return fmt.Errorf("failed to receive 200 from %s: %v\n%s", url, err, output)
-	}
-	lines := strings.Split(strings.TrimSpace(output), "\n")
-	if lines[len(lines)-1] != "200" {
-		return fmt.Errorf("last response from %s was not 200:\n%s", url, output)
-	}
-	return nil
+func probeCommand(hostname string, timeoutSeconds int) string {
+	return fmt.Sprintf(`
+set +x
+for i in $(seq 1 %d); do
+  test -n "$(dig +noall +answer %s)" && exit 0
+  sleep 1
+done
+dig %s
+exit 1
+`, timeoutSeconds, hostname, hostname)
 }
