@@ -11,6 +11,7 @@ import (
 
 var Codec = serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(
 	schema.GroupVersion{Group: "", Version: "v1"},
+	schema.GroupVersion{Group: "network.openshift.io", Version: "v1"},
 	schema.GroupVersion{Group: "autoscaling.openshift.io", Version: "v1"},
 	schema.GroupVersion{Group: "image.openshift.io", Version: "v1"},
 	schema.GroupVersion{Group: "scheduling.openshift.io", Version: "v1"},
