@@ -1728,6 +1728,7 @@ items:
     - image.openshift.io
     resources:
     - imagestreamimages
+    - imagestreams/layers
     - imagestreams/secrets
     verbs:
     - get
