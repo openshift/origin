@@ -107,6 +107,7 @@ var expectedIndex = []string{
 	"/healthz/poststarthook/apiservice-openapi-controller",
 	"/healthz/poststarthook/apiservice-registration-controller",
 	"/healthz/poststarthook/apiservice-status-available-controller",
+	"/healthz/poststarthook/apiservice-wait-for-first-sync",
 	"/healthz/poststarthook/bootstrap-controller",
 	"/healthz/poststarthook/ca-registration",
 	"/healthz/poststarthook/generic-apiserver-start-informers",
