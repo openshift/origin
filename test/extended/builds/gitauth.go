@@ -32,10 +32,9 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 	)
 
 	var (
-		gitServerFixture          = exutil.FixturePath("testdata", "test-gitserver.yaml")
-		gitServerTokenAuthFixture = exutil.FixturePath("testdata", "test-gitserver-tokenauth.yaml")
-		testBuildFixture          = exutil.FixturePath("testdata", "builds", "test-auth-build.yaml")
-		oc                        = exutil.NewCLI("build-sti-private-repo", exutil.KubeConfigPath())
+		gitServerFixture = exutil.FixturePath("testdata", "test-gitserver.yaml")
+		testBuildFixture = exutil.FixturePath("testdata", "builds", "test-auth-build.yaml")
+		oc               = exutil.NewCLI("build-sti-private-repo", exutil.KubeConfigPath())
 	)
 
 	g.Context("", func() {
@@ -91,7 +90,7 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 
 		g.Describe("Build using a username and password", func() {
 			g.It("should create a new build using the internal gitserver", func() {
-				g.Skip("TODO: re-enable when we figure out why routing randomly fails in GCP")
+				g.Skip("Need to fetch router CA via https://github.com/openshift/cluster-ingress-operator/pull/111")
 				testGitAuth("gitserver", gitServerFixture, sourceURLTemplate, func() string {
 					g.By(fmt.Sprintf("creating a new secret for the gitserver by calling oc secrets new-basicauth %s --username=%s --password=%s",
 						sourceSecretName, gitUserName, gitPassword))
@@ -108,30 +107,11 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 								"--type", "kubernetes.io/basic-auth",
 								"--from-literal", fmt.Sprintf("username=%s", gitUserName),
 								"--from-literal", fmt.Sprintf("password=%s", gitPassword),
+								// TODO this needs to come from https://github.com/openshift/cluster-ingress-operator/pull/111 instead
 								"--from-literal", fmt.Sprintf("ca.crt=%s", string(secret.Data["service-ca.crt"])),
 							).Execute()
 							o.Expect(err).NotTo(o.HaveOccurred())
 							return sourceSecretName
-						}
-					}
-					return ""
-				})
-			})
-		})
-		g.Describe("Build using a service account token", func() {
-			g.It("should create a new build using the internal gitserver", func() {
-				g.Skip("TODO: re-enable when we figure out why routing randomly fails in GCP")
-				testGitAuth("gitserver-tokenauth", gitServerTokenAuthFixture, sourceURLTemplate, func() string {
-					g.By("assigning the edit role to the builder service account")
-					err := oc.Run("policy").Args("add-role-to-user", "edit", "--serviceaccount=builder").Execute()
-					o.Expect(err).NotTo(o.HaveOccurred())
-
-					g.By("getting the token secret name for the builder service account")
-					sa, err := oc.KubeClient().Core().ServiceAccounts(oc.Namespace()).Get("builder", metav1.GetOptions{})
-					o.Expect(err).NotTo(o.HaveOccurred())
-					for _, s := range sa.Secrets {
-						if strings.Contains(s.Name, "token") {
-							return s.Name
 						}
 					}
 					return ""
