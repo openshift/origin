@@ -12,12 +12,12 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
@@ -59,7 +59,8 @@ var _ ResourceSyncer = &ResourceSyncController{}
 func NewResourceSyncController(
 	operatorConfigClient v1helpers.OperatorClient,
 	kubeInformersForNamespaces v1helpers.KubeInformersForNamespaces,
-	kubeClient kubernetes.Interface,
+	secretsGetter corev1client.SecretsGetter,
+	configMapsGetter corev1client.ConfigMapsGetter,
 	eventRecorder events.Recorder,
 ) *ResourceSyncController {
 	c := &ResourceSyncController{
@@ -72,8 +73,8 @@ func NewResourceSyncController(
 		knownNamespaces:            kubeInformersForNamespaces.Namespaces(),
 
 		queue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ResourceSyncController"),
-		configMapGetter: v1helpers.CachedConfigMapGetter(kubeClient, kubeInformersForNamespaces),
-		secretGetter:    v1helpers.CachedSecretGetter(kubeClient, kubeInformersForNamespaces),
+		configMapGetter: configMapsGetter,
+		secretGetter:    secretsGetter,
 	}
 
 	for namespace := range kubeInformersForNamespaces.Namespaces() {

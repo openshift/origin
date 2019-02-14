@@ -97,7 +97,7 @@ func (c RevisionController) createRevisionIfNeeded(operatorSpec *operatorv1.Stat
 	}
 
 	nextRevision := latestRevision + 1
-	glog.Infof("new revision %d triggered by %q", nextRevision, reason)
+	c.eventRecorder.Eventf("RevisionTriggered", "new revision %d triggered by %q", nextRevision, reason)
 	if err := c.createNewRevision(nextRevision); err != nil {
 		cond := operatorv1.OperatorCondition{
 			Type:    "RevisionControllerFailing",

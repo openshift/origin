@@ -317,6 +317,10 @@ func (c *PruneController) sync() error {
 	if err != nil {
 		return err
 	}
+	// if no IDs are excluded, then there is nothing to prune
+	if len(excludedIDs) == 0 {
+		return nil
+	}
 
 	errs := []error{}
 	if diskErr := c.pruneDiskResources(operatorStatus, excludedIDs, excludedIDs[len(excludedIDs)-1]); diskErr != nil {

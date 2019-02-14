@@ -100,6 +100,8 @@ func ConvertMasterConfigToKubeAPIServerConfig(input *legacyconfigv1.MasterConfig
 	for k, v := range input.KubernetesMasterConfig.APIServerArguments {
 		ret.APIServerArguments[k] = v
 	}
+	ret.AdmissionConfig.EnabledAdmissionPlugins = ToKubeAdmissionPluginList(input.KubernetesMasterConfig.APIServerArguments["enable-admission-plugins"])
+	ret.AdmissionConfig.DisabledAdmissionPlugins = ToKubeAdmissionPluginList(input.KubernetesMasterConfig.APIServerArguments["disable-admission-plugins"])
 
 	// TODO this is likely to be a little weird.  I think we override most of this in the operator
 	ret.ServingInfo, err = ToHTTPServingInfo(&input.ServingInfo)
@@ -131,7 +133,7 @@ func ConvertMasterConfigToKubeAPIServerConfig(input *legacyconfigv1.MasterConfig
 	if err != nil {
 		return nil, err
 	}
-	ret.AdmissionPluginConfig, err = ToKubeAdmissionPluginConfigMap(input.AdmissionConfig.PluginConfig)
+	ret.AdmissionConfig.PluginConfig, err = ToKubeAdmissionPluginConfigMap(input.AdmissionConfig.PluginConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -177,6 +179,8 @@ func ConvertMasterConfigToOpenShiftAPIServerConfig(input *legacyconfigv1.MasterC
 	for k, v := range input.KubernetesMasterConfig.APIServerArguments {
 		ret.APIServerArguments[k] = v
 	}
+	ret.AdmissionConfig.EnabledAdmissionPlugins = ToOpenShiftAdmissionPluginList(input.KubernetesMasterConfig.APIServerArguments["enable-admission-plugins"])
+	ret.AdmissionConfig.DisabledAdmissionPlugins = ToOpenShiftAdmissionPluginList(input.KubernetesMasterConfig.APIServerArguments["disable-admission-plugins"])
 
 	// TODO this is likely to be a little weird.  I think we override most of this in the operator
 	ret.ServingInfo, err = ToHTTPServingInfo(&input.ServingInfo)
@@ -195,7 +199,7 @@ func ConvertMasterConfigToOpenShiftAPIServerConfig(input *legacyconfigv1.MasterC
 	if err != nil {
 		return nil, err
 	}
-	ret.AdmissionPluginConfig, err = ToOpenShiftAdmissionPluginConfigMap(input.AdmissionConfig.PluginConfig)
+	ret.AdmissionConfig.PluginConfig, err = ToOpenShiftAdmissionPluginConfigMap(input.AdmissionConfig.PluginConfig)
 	if err != nil {
 		return nil, err
 	}

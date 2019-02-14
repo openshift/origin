@@ -131,6 +131,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.APIServerServingCerts":                                                    schema_openshift_api_config_v1_APIServerServingCerts(ref),
 		"github.com/openshift/api/config/v1.APIServerSpec":                                                            schema_openshift_api_config_v1_APIServerSpec(ref),
 		"github.com/openshift/api/config/v1.APIServerStatus":                                                          schema_openshift_api_config_v1_APIServerStatus(ref),
+		"github.com/openshift/api/config/v1.AdmissionConfig":                                                          schema_openshift_api_config_v1_AdmissionConfig(ref),
 		"github.com/openshift/api/config/v1.AdmissionPluginConfig":                                                    schema_openshift_api_config_v1_AdmissionPluginConfig(ref),
 		"github.com/openshift/api/config/v1.AuditConfig":                                                              schema_openshift_api_config_v1_AuditConfig(ref),
 		"github.com/openshift/api/config/v1.Authentication":                                                           schema_openshift_api_config_v1_Authentication(ref),
@@ -167,6 +168,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.DNSList":                                                                  schema_openshift_api_config_v1_DNSList(ref),
 		"github.com/openshift/api/config/v1.DNSSpec":                                                                  schema_openshift_api_config_v1_DNSSpec(ref),
 		"github.com/openshift/api/config/v1.DNSStatus":                                                                schema_openshift_api_config_v1_DNSStatus(ref),
+		"github.com/openshift/api/config/v1.DNSZone":                                                                  schema_openshift_api_config_v1_DNSZone(ref),
 		"github.com/openshift/api/config/v1.DelegatedAuthentication":                                                  schema_openshift_api_config_v1_DelegatedAuthentication(ref),
 		"github.com/openshift/api/config/v1.DelegatedAuthorization":                                                   schema_openshift_api_config_v1_DelegatedAuthorization(ref),
 		"github.com/openshift/api/config/v1.EtcdConnectionInfo":                                                       schema_openshift_api_config_v1_EtcdConnectionInfo(ref),
@@ -228,7 +230,10 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.ProxyList":                                                                schema_openshift_api_config_v1_ProxyList(ref),
 		"github.com/openshift/api/config/v1.ProxySpec":                                                                schema_openshift_api_config_v1_ProxySpec(ref),
 		"github.com/openshift/api/config/v1.RegistriesConfig":                                                         schema_openshift_api_config_v1_RegistriesConfig(ref),
+		"github.com/openshift/api/config/v1.Registry":                                                                 schema_openshift_api_config_v1_Registry(ref),
+		"github.com/openshift/api/config/v1.RegistryList":                                                             schema_openshift_api_config_v1_RegistryList(ref),
 		"github.com/openshift/api/config/v1.RegistryLocation":                                                         schema_openshift_api_config_v1_RegistryLocation(ref),
+		"github.com/openshift/api/config/v1.RegistrySpec":                                                             schema_openshift_api_config_v1_RegistrySpec(ref),
 		"github.com/openshift/api/config/v1.RemoteConnectionInfo":                                                     schema_openshift_api_config_v1_RemoteConnectionInfo(ref),
 		"github.com/openshift/api/config/v1.RequestHeaderIdentityProvider":                                            schema_openshift_api_config_v1_RequestHeaderIdentityProvider(ref),
 		"github.com/openshift/api/config/v1.Scheduling":                                                               schema_openshift_api_config_v1_Scheduling(ref),
@@ -7077,6 +7082,62 @@ func schema_openshift_api_config_v1_APIServerStatus(ref common.ReferenceCallback
 	}
 }
 
+func schema_openshift_api_config_v1_AdmissionConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"pluginConfig": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/config/v1.AdmissionPluginConfig"),
+									},
+								},
+							},
+						},
+					},
+					"enabledPlugins": {
+						SchemaProps: spec.SchemaProps{
+							Description: "enabledPlugins is a list of admission plugins that must be on in addition to the default list. Some admission plugins are disabled by default, but certain configurations require them.  This is fairly uncommon and can result in performance penalties and unexpected behavior.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"disabledPlugins": {
+						SchemaProps: spec.SchemaProps{
+							Description: "disabledPlugins is a list of admission plugins that must be off.  Putting something in this list is almost always a mistake and likely to result in cluster instability.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"pluginConfig", "enabledPlugins", "disabledPlugins"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.AdmissionPluginConfig"},
+	}
+}
+
 func schema_openshift_api_config_v1_AdmissionPluginConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -8529,10 +8590,24 @@ func schema_openshift_api_config_v1_DNSSpec(ref common.ReferenceCallback) common
 							Format:      "",
 						},
 					},
+					"publicZone": {
+						SchemaProps: spec.SchemaProps{
+							Description: "publicZone is the location where all the DNS records that are publicly accessible to the internet exist. If this field is nil, no public records should be created.",
+							Ref:         ref("github.com/openshift/api/config/v1.DNSZone"),
+						},
+					},
+					"privateZone": {
+						SchemaProps: spec.SchemaProps{
+							Description: "privateZone is the location where all the DNS records that are only available internally to the cluster exist. If this field is nil, no private records should be created.",
+							Ref:         ref("github.com/openshift/api/config/v1.DNSZone"),
+						},
+					},
 				},
 				Required: []string{"baseDomain"},
 			},
 		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.DNSZone"},
 	}
 }
 
@@ -8541,6 +8616,41 @@ func schema_openshift_api_config_v1_DNSStatus(ref common.ReferenceCallback) comm
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Type: []string{"object"},
+			},
+		},
+	}
+}
+
+func schema_openshift_api_config_v1_DNSZone(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "DNSZone is used to define a DNS hosted zone. A zone can be identified by an ID or tags.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"id": {
+						SchemaProps: spec.SchemaProps{
+							Description: "id is the identifier that can be used to find the DNS hosted zone.\n\non AWS zone can be fetched using `ID` as id in [1] on Azure zone can be fetched using `ID` as a pre-determined name in [2], on GCP zone can be fetched using `ID` as a pre-determined name in [3].\n\n[1]: https://docs.aws.amazon.com/cli/latest/reference/route53/get-hosted-zone.html#options [2]: https://docs.microsoft.com/en-us/cli/azure/network/dns/zone?view=azure-cli-latest#az-network-dns-zone-show [3]: https://cloud.google.com/dns/docs/reference/v1/managedZones/get",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"tags": {
+						SchemaProps: spec.SchemaProps{
+							Description: "tags can be used to query the DNS hosted zone.\n\non AWS, resourcegroupstaggingapi [1] can be used to fetch a zone using `Tags` as tag-filters,\n\n[1]: https://docs.aws.amazon.com/cli/latest/reference/resourcegroupstaggingapi/get-resources.html#options",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	}
@@ -8892,13 +9002,13 @@ func schema_openshift_api_config_v1_GenericAPIServerConfig(ref common.ReferenceC
 				Properties: map[string]spec.Schema{
 					"servingInfo": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ServingInfo describes how to start serving",
+							Description: "servingInfo describes how to start serving",
 							Ref:         ref("github.com/openshift/api/config/v1.HTTPServingInfo"),
 						},
 					},
 					"corsAllowedOrigins": {
 						SchemaProps: spec.SchemaProps{
-							Description: "CORSAllowedOrigins",
+							Description: "corsAllowedOrigins",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -8912,14 +9022,20 @@ func schema_openshift_api_config_v1_GenericAPIServerConfig(ref common.ReferenceC
 					},
 					"auditConfig": {
 						SchemaProps: spec.SchemaProps{
-							Description: "AuditConfig describes how to configure audit information",
+							Description: "auditConfig describes how to configure audit information",
 							Ref:         ref("github.com/openshift/api/config/v1.AuditConfig"),
 						},
 					},
 					"storageConfig": {
 						SchemaProps: spec.SchemaProps{
-							Description: "StorageConfig contains information about how to use",
+							Description: "storageConfig contains information about how to use",
 							Ref:         ref("github.com/openshift/api/config/v1.EtcdStorageConfig"),
+						},
+					},
+					"admission": {
+						SchemaProps: spec.SchemaProps{
+							Description: "admissionConfig holds information about how to configure admission.",
+							Ref:         ref("github.com/openshift/api/config/v1.AdmissionConfig"),
 						},
 					},
 					"admissionPluginConfig": {
@@ -8941,11 +9057,11 @@ func schema_openshift_api_config_v1_GenericAPIServerConfig(ref common.ReferenceC
 						},
 					},
 				},
-				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admissionPluginConfig", "kubeClientConfig"},
+				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admission", "admissionPluginConfig", "kubeClientConfig"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.AdmissionPluginConfig", "github.com/openshift/api/config/v1.AuditConfig", "github.com/openshift/api/config/v1.EtcdStorageConfig", "github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/config/v1.KubeClientConfig"},
+			"github.com/openshift/api/config/v1.AdmissionConfig", "github.com/openshift/api/config/v1.AdmissionPluginConfig", "github.com/openshift/api/config/v1.AuditConfig", "github.com/openshift/api/config/v1.EtcdStorageConfig", "github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/config/v1.KubeClientConfig"},
 	}
 }
 
@@ -11146,20 +11262,6 @@ func schema_openshift_api_config_v1_RegistriesConfig(ref common.ReferenceCallbac
 			SchemaProps: spec.SchemaProps{
 				Type: []string{"object"},
 				Properties: map[string]spec.Schema{
-					"searchRegistries": {
-						SchemaProps: spec.SchemaProps{
-							Description: "SearchRegistries lists the registries to search for images if an image repository is not specified in an image pull spec.\n\nIf this is not set, builds will search Docker Hub (docker.io) when a repository is not specified. Setting this to an empty list will require all builds to fully qualify their image pull specs.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Type:   []string{"string"},
-										Format: "",
-									},
-								},
-							},
-						},
-					},
 					"insecureRegistries": {
 						SchemaProps: spec.SchemaProps{
 							Description: "InsecureRegistries are registries which do not have a valid SSL certificate or only support HTTP connections.",
@@ -11208,6 +11310,95 @@ func schema_openshift_api_config_v1_RegistriesConfig(ref common.ReferenceCallbac
 	}
 }
 
+func schema_openshift_api_config_v1_Registry(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Registry holds cluster-wide information about how to handle the registries config.  The canonical name is `cluster`",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "spec holds user settable values for configuration",
+							Ref:         ref("github.com/openshift/api/config/v1.RegistrySpec"),
+						},
+					},
+				},
+				Required: []string{"spec"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.RegistrySpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_openshift_api_config_v1_RegistryList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/config/v1.Registry"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.Registry", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
 func schema_openshift_api_config_v1_RegistryLocation(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -11231,6 +11422,60 @@ func schema_openshift_api_config_v1_RegistryLocation(ref common.ReferenceCallbac
 					},
 				},
 				Required: []string{"domainName"},
+			},
+		},
+	}
+}
+
+func schema_openshift_api_config_v1_RegistrySpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"insecureRegistries": {
+						SchemaProps: spec.SchemaProps{
+							Description: "InsecureRegistries are registries which do not have a valid SSL certificate or only support HTTP connections.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"blockedRegistries": {
+						SchemaProps: spec.SchemaProps{
+							Description: "BlockedRegistries are blacklisted from image pull/push. All other registries are allowed.\n\nOnly one of BlockedRegistries or AllowedRegistries may be set.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"allowedRegistries": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AllowedRegistries are whitelisted for image pull/push. All other registries are blocked.\n\nOnly one of BlockedRegistries or AllowedRegistries may be set.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 	}
@@ -13534,13 +13779,13 @@ func schema_openshift_api_kubecontrolplane_v1_KubeAPIServerConfig(ref common.Ref
 					},
 					"servingInfo": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ServingInfo describes how to start serving",
+							Description: "servingInfo describes how to start serving",
 							Ref:         ref("github.com/openshift/api/config/v1.HTTPServingInfo"),
 						},
 					},
 					"corsAllowedOrigins": {
 						SchemaProps: spec.SchemaProps{
-							Description: "CORSAllowedOrigins",
+							Description: "corsAllowedOrigins",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -13554,14 +13799,20 @@ func schema_openshift_api_kubecontrolplane_v1_KubeAPIServerConfig(ref common.Ref
 					},
 					"auditConfig": {
 						SchemaProps: spec.SchemaProps{
-							Description: "AuditConfig describes how to configure audit information",
+							Description: "auditConfig describes how to configure audit information",
 							Ref:         ref("github.com/openshift/api/config/v1.AuditConfig"),
 						},
 					},
 					"storageConfig": {
 						SchemaProps: spec.SchemaProps{
-							Description: "StorageConfig contains information about how to use",
+							Description: "storageConfig contains information about how to use",
 							Ref:         ref("github.com/openshift/api/config/v1.EtcdStorageConfig"),
+						},
+					},
+					"admission": {
+						SchemaProps: spec.SchemaProps{
+							Description: "admissionConfig holds information about how to configure admission.",
+							Ref:         ref("github.com/openshift/api/config/v1.AdmissionConfig"),
 						},
 					},
 					"admissionPluginConfig": {
@@ -13681,11 +13932,11 @@ func schema_openshift_api_kubecontrolplane_v1_KubeAPIServerConfig(ref common.Ref
 						},
 					},
 				},
-				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admissionPluginConfig", "kubeClientConfig", "authConfig", "aggregatorConfig", "kubeletClientInfo", "servicesSubnet", "servicesNodePortRange", "consolePublicURL", "userAgentMatchingConfig", "imagePolicyConfig", "projectConfig", "serviceAccountPublicKeyFiles", "oauthConfig", "apiServerArguments"},
+				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admission", "admissionPluginConfig", "kubeClientConfig", "authConfig", "aggregatorConfig", "kubeletClientInfo", "servicesSubnet", "servicesNodePortRange", "consolePublicURL", "userAgentMatchingConfig", "imagePolicyConfig", "projectConfig", "serviceAccountPublicKeyFiles", "oauthConfig", "apiServerArguments"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.AdmissionPluginConfig", "github.com/openshift/api/config/v1.AuditConfig", "github.com/openshift/api/config/v1.EtcdStorageConfig", "github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/config/v1.KubeClientConfig", "github.com/openshift/api/kubecontrolplane/v1.AggregatorConfig", "github.com/openshift/api/kubecontrolplane/v1.KubeAPIServerImagePolicyConfig", "github.com/openshift/api/kubecontrolplane/v1.KubeAPIServerProjectConfig", "github.com/openshift/api/kubecontrolplane/v1.KubeletConnectionInfo", "github.com/openshift/api/kubecontrolplane/v1.MasterAuthConfig", "github.com/openshift/api/kubecontrolplane/v1.UserAgentMatchingConfig", "github.com/openshift/api/osin/v1.OAuthConfig"},
+			"github.com/openshift/api/config/v1.AdmissionConfig", "github.com/openshift/api/config/v1.AdmissionPluginConfig", "github.com/openshift/api/config/v1.AuditConfig", "github.com/openshift/api/config/v1.EtcdStorageConfig", "github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/config/v1.KubeClientConfig", "github.com/openshift/api/kubecontrolplane/v1.AggregatorConfig", "github.com/openshift/api/kubecontrolplane/v1.KubeAPIServerImagePolicyConfig", "github.com/openshift/api/kubecontrolplane/v1.KubeAPIServerProjectConfig", "github.com/openshift/api/kubecontrolplane/v1.KubeletConnectionInfo", "github.com/openshift/api/kubecontrolplane/v1.MasterAuthConfig", "github.com/openshift/api/kubecontrolplane/v1.UserAgentMatchingConfig", "github.com/openshift/api/osin/v1.OAuthConfig"},
 	}
 }
 
@@ -20561,13 +20812,13 @@ func schema_openshift_api_openshiftcontrolplane_v1_OpenShiftAPIServerConfig(ref 
 					},
 					"servingInfo": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ServingInfo describes how to start serving",
+							Description: "servingInfo describes how to start serving",
 							Ref:         ref("github.com/openshift/api/config/v1.HTTPServingInfo"),
 						},
 					},
 					"corsAllowedOrigins": {
 						SchemaProps: spec.SchemaProps{
-							Description: "CORSAllowedOrigins",
+							Description: "corsAllowedOrigins",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -20581,14 +20832,20 @@ func schema_openshift_api_openshiftcontrolplane_v1_OpenShiftAPIServerConfig(ref 
 					},
 					"auditConfig": {
 						SchemaProps: spec.SchemaProps{
-							Description: "AuditConfig describes how to configure audit information",
+							Description: "auditConfig describes how to configure audit information",
 							Ref:         ref("github.com/openshift/api/config/v1.AuditConfig"),
 						},
 					},
 					"storageConfig": {
 						SchemaProps: spec.SchemaProps{
-							Description: "StorageConfig contains information about how to use",
+							Description: "storageConfig contains information about how to use",
 							Ref:         ref("github.com/openshift/api/config/v1.EtcdStorageConfig"),
+						},
+					},
+					"admission": {
+						SchemaProps: spec.SchemaProps{
+							Description: "admissionConfig holds information about how to configure admission.",
+							Ref:         ref("github.com/openshift/api/config/v1.AdmissionConfig"),
 						},
 					},
 					"admissionPluginConfig": {
@@ -20675,11 +20932,11 @@ func schema_openshift_api_openshiftcontrolplane_v1_OpenShiftAPIServerConfig(ref 
 						},
 					},
 				},
-				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admissionPluginConfig", "kubeClientConfig", "aggregatorConfig", "imagePolicyConfig", "projectConfig", "routingConfig", "serviceAccountOAuthGrantMethod", "jenkinsPipelineConfig", "cloudProviderFile", "apiServerArguments"},
+				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admission", "admissionPluginConfig", "kubeClientConfig", "aggregatorConfig", "imagePolicyConfig", "projectConfig", "routingConfig", "serviceAccountOAuthGrantMethod", "jenkinsPipelineConfig", "cloudProviderFile", "apiServerArguments"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.AdmissionPluginConfig", "github.com/openshift/api/config/v1.AuditConfig", "github.com/openshift/api/config/v1.EtcdStorageConfig", "github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/config/v1.KubeClientConfig", "github.com/openshift/api/openshiftcontrolplane/v1.FrontProxyConfig", "github.com/openshift/api/openshiftcontrolplane/v1.ImagePolicyConfig", "github.com/openshift/api/openshiftcontrolplane/v1.JenkinsPipelineConfig", "github.com/openshift/api/openshiftcontrolplane/v1.ProjectConfig", "github.com/openshift/api/openshiftcontrolplane/v1.RoutingConfig"},
+			"github.com/openshift/api/config/v1.AdmissionConfig", "github.com/openshift/api/config/v1.AdmissionPluginConfig", "github.com/openshift/api/config/v1.AuditConfig", "github.com/openshift/api/config/v1.EtcdStorageConfig", "github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/config/v1.KubeClientConfig", "github.com/openshift/api/openshiftcontrolplane/v1.FrontProxyConfig", "github.com/openshift/api/openshiftcontrolplane/v1.ImagePolicyConfig", "github.com/openshift/api/openshiftcontrolplane/v1.JenkinsPipelineConfig", "github.com/openshift/api/openshiftcontrolplane/v1.ProjectConfig", "github.com/openshift/api/openshiftcontrolplane/v1.RoutingConfig"},
 	}
 }
 
@@ -25275,13 +25532,13 @@ func schema_openshift_api_osin_v1_OsinServerConfig(ref common.ReferenceCallback)
 					},
 					"servingInfo": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ServingInfo describes how to start serving",
+							Description: "servingInfo describes how to start serving",
 							Ref:         ref("github.com/openshift/api/config/v1.HTTPServingInfo"),
 						},
 					},
 					"corsAllowedOrigins": {
 						SchemaProps: spec.SchemaProps{
-							Description: "CORSAllowedOrigins",
+							Description: "corsAllowedOrigins",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -25295,14 +25552,20 @@ func schema_openshift_api_osin_v1_OsinServerConfig(ref common.ReferenceCallback)
 					},
 					"auditConfig": {
 						SchemaProps: spec.SchemaProps{
-							Description: "AuditConfig describes how to configure audit information",
+							Description: "auditConfig describes how to configure audit information",
 							Ref:         ref("github.com/openshift/api/config/v1.AuditConfig"),
 						},
 					},
 					"storageConfig": {
 						SchemaProps: spec.SchemaProps{
-							Description: "StorageConfig contains information about how to use",
+							Description: "storageConfig contains information about how to use",
 							Ref:         ref("github.com/openshift/api/config/v1.EtcdStorageConfig"),
+						},
+					},
+					"admission": {
+						SchemaProps: spec.SchemaProps{
+							Description: "admissionConfig holds information about how to configure admission.",
+							Ref:         ref("github.com/openshift/api/config/v1.AdmissionConfig"),
 						},
 					},
 					"admissionPluginConfig": {
@@ -25330,11 +25593,11 @@ func schema_openshift_api_osin_v1_OsinServerConfig(ref common.ReferenceCallback)
 						},
 					},
 				},
-				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admissionPluginConfig", "kubeClientConfig", "oauthConfig"},
+				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admission", "admissionPluginConfig", "kubeClientConfig", "oauthConfig"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.AdmissionPluginConfig", "github.com/openshift/api/config/v1.AuditConfig", "github.com/openshift/api/config/v1.EtcdStorageConfig", "github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/config/v1.KubeClientConfig", "github.com/openshift/api/osin/v1.OAuthConfig"},
+			"github.com/openshift/api/config/v1.AdmissionConfig", "github.com/openshift/api/config/v1.AdmissionPluginConfig", "github.com/openshift/api/config/v1.AuditConfig", "github.com/openshift/api/config/v1.EtcdStorageConfig", "github.com/openshift/api/config/v1.HTTPServingInfo", "github.com/openshift/api/config/v1.KubeClientConfig", "github.com/openshift/api/osin/v1.OAuthConfig"},
 	}
 }
 

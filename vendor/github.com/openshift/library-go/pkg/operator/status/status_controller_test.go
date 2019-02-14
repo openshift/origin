@@ -92,6 +92,7 @@ func TestSync(t *testing.T) {
 				clusterOperatorClient: clusterOperatorClient.ConfigV1(),
 				operatorClient:        statusClient,
 				eventRecorder:         events.NewInMemoryRecorder("status"),
+				versionGetter:         NewVersionGetter(),
 			}
 			if err := controller.sync(); err != nil {
 				t.Errorf("unexpected sync error: %v", err)

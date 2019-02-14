@@ -96,17 +96,11 @@ var (
 		"PodTolerationRestriction",
 		"quota.openshift.io/ClusterResourceQuota",
 		"route.openshift.io/IngressAdmission",
-	)
-
-	// additionalDefaultOffPlugins are admission plugins we choose not to enable by default in openshift
-	// you shouldn't put anything from kube in this list without api-approvers signing off on it.
-	additionalDefaultOffPlugins = sets.NewString(
 		"project.openshift.io/ProjectRequestLimit",
 		"autoscaling.openshift.io/RunOnceDuration",
 		"scheduling.openshift.io/PodNodeConstraints",
 		overrideapi.PluginName,
 		imagepolicyapi.PluginName,
-		"authorization.openshift.io/RestrictSubjectBindings",
 	)
 )
 
@@ -125,7 +119,7 @@ func NewOrderedKubeAdmissionPlugins(kubeAdmissionOrder []string) []string {
 func NewDefaultOffPluginsFunc(kubeDefaultOffAdmission sets.String) func() sets.String {
 	return func() sets.String {
 		kubeOff := sets.NewString(kubeDefaultOffAdmission.UnsortedList()...)
-		kubeOff.Insert(additionalDefaultOffPlugins.List()...)
+		kubeOff.Insert("authorization.openshift.io/RestrictSubjectBindings")
 		kubeOff.Delete(additionalDefaultOnPlugins.List()...)
 		return kubeOff
 	}

@@ -8,15 +8,16 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
-	"github.com/openshift/library-go/pkg/operator/events"
-	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+
+	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 var (
@@ -30,7 +31,7 @@ type StaticPodStateController struct {
 	targetNamespace, staticPodName string
 
 	operatorConfigClient v1helpers.StaticPodOperatorClient
-	kubeClient           kubernetes.Interface
+	podsGetter           corev1client.PodsGetter
 	eventRecorder        events.Recorder
 
 	// queue only ever has one item, but it has nice error handling backoff/retry semantics
@@ -43,7 +44,7 @@ func NewStaticPodStateController(
 	targetNamespace, staticPodName string,
 	kubeInformersForTargetNamespace informers.SharedInformerFactory,
 	operatorConfigClient v1helpers.StaticPodOperatorClient,
-	kubeClient kubernetes.Interface,
+	podsGetter corev1client.PodsGetter,
 	eventRecorder events.Recorder,
 ) *StaticPodStateController {
 	c := &StaticPodStateController{
@@ -51,7 +52,7 @@ func NewStaticPodStateController(
 		staticPodName:   staticPodName,
 
 		operatorConfigClient: operatorConfigClient,
-		kubeClient:           kubeClient,
+		podsGetter:           podsGetter,
 		eventRecorder:        eventRecorder,
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "StaticPodStateController"),
@@ -79,7 +80,7 @@ func (c *StaticPodStateController) sync() error {
 
 	errs := []error{}
 	for _, node := range originalOperatorStatus.NodeStatuses {
-		pod, err := c.kubeClient.CoreV1().Pods(c.targetNamespace).Get(mirrorPodNameForNode(c.staticPodName, node.NodeName), metav1.GetOptions{})
+		pod, err := c.podsGetter.Pods(c.targetNamespace).Get(mirrorPodNameForNode(c.staticPodName, node.NodeName), metav1.GetOptions{})
 		if err != nil {
 			errs = append(errs, err)
 		}

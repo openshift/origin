@@ -61,24 +61,19 @@ func ExampleMarshal() {
 	type Postgres struct {
 		User     string `toml:"user"`
 		Password string `toml:"password"`
-		Database string `toml:"db" commented:"true" comment:"not used anymore"`
 	}
 	type Config struct {
-		Postgres Postgres `toml:"postgres" comment:"Postgres configuration"`
+		Postgres Postgres `toml:"postgres"`
 	}
 
-	config := Config{Postgres{User: "pelletier", Password: "mypassword", Database: "old_database"}}
+	config := Config{Postgres{User: "pelletier", Password: "mypassword"}}
 	b, err := toml.Marshal(config)
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println(string(b))
 	// Output:
-	// # Postgres configuration
 	// [postgres]
-	//
-	//   # not used anymore
-	//   # db = "old_database"
 	//   password = "mypassword"
 	//   user = "pelletier"
 }

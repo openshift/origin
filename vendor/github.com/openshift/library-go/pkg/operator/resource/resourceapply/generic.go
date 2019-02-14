@@ -34,7 +34,8 @@ type ApplyResult struct {
 	Error   error
 }
 
-func ApplyDirectly(client kubernetes.Interface, recorder events.Recorder, manifests AssetFunc, files ...string) []ApplyResult {
+// ApplyDirectly applies the given manifest files to API server.
+func ApplyDirectly(kubeClient kubernetes.Interface, recorder events.Recorder, manifests AssetFunc, files ...string) []ApplyResult {
 	ret := []ApplyResult{}
 
 	for _, file := range files {
@@ -53,27 +54,28 @@ func ApplyDirectly(client kubernetes.Interface, recorder events.Recorder, manife
 		}
 		result.Type = fmt.Sprintf("%T", requiredObj)
 
+		// NOTE: Do not add CR resources into this switch otherwise the protobuf client can cause problems.
 		switch t := requiredObj.(type) {
 		case *corev1.Namespace:
-			result.Result, result.Changed, result.Error = ApplyNamespace(client.CoreV1(), recorder, t)
+			result.Result, result.Changed, result.Error = ApplyNamespace(kubeClient.CoreV1(), recorder, t)
 		case *corev1.Service:
-			result.Result, result.Changed, result.Error = ApplyService(client.CoreV1(), recorder, t)
+			result.Result, result.Changed, result.Error = ApplyService(kubeClient.CoreV1(), recorder, t)
 		case *corev1.Pod:
-			result.Result, result.Changed, result.Error = ApplyPod(client.CoreV1(), recorder, t)
+			result.Result, result.Changed, result.Error = ApplyPod(kubeClient.CoreV1(), recorder, t)
 		case *corev1.ServiceAccount:
-			result.Result, result.Changed, result.Error = ApplyServiceAccount(client.CoreV1(), recorder, t)
+			result.Result, result.Changed, result.Error = ApplyServiceAccount(kubeClient.CoreV1(), recorder, t)
 		case *corev1.ConfigMap:
-			result.Result, result.Changed, result.Error = ApplyConfigMap(client.CoreV1(), recorder, t)
+			result.Result, result.Changed, result.Error = ApplyConfigMap(kubeClient.CoreV1(), recorder, t)
 		case *corev1.Secret:
-			result.Result, result.Changed, result.Error = ApplySecret(client.CoreV1(), recorder, t)
+			result.Result, result.Changed, result.Error = ApplySecret(kubeClient.CoreV1(), recorder, t)
 		case *rbacv1.ClusterRole:
-			result.Result, result.Changed, result.Error = ApplyClusterRole(client.RbacV1(), recorder, t)
+			result.Result, result.Changed, result.Error = ApplyClusterRole(kubeClient.RbacV1(), recorder, t)
 		case *rbacv1.ClusterRoleBinding:
-			result.Result, result.Changed, result.Error = ApplyClusterRoleBinding(client.RbacV1(), recorder, t)
+			result.Result, result.Changed, result.Error = ApplyClusterRoleBinding(kubeClient.RbacV1(), recorder, t)
 		case *rbacv1.Role:
-			result.Result, result.Changed, result.Error = ApplyRole(client.RbacV1(), recorder, t)
+			result.Result, result.Changed, result.Error = ApplyRole(kubeClient.RbacV1(), recorder, t)
 		case *rbacv1.RoleBinding:
-			result.Result, result.Changed, result.Error = ApplyRoleBinding(client.RbacV1(), recorder, t)
+			result.Result, result.Changed, result.Error = ApplyRoleBinding(kubeClient.RbacV1(), recorder, t)
 		default:
 			result.Error = fmt.Errorf("unhandled type %T", requiredObj)
 		}

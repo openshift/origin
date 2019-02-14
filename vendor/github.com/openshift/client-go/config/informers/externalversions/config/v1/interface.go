@@ -38,6 +38,8 @@ type Interface interface {
 	Projects() ProjectInformer
 	// Proxies returns a ProxyInformer.
 	Proxies() ProxyInformer
+	// Registries returns a RegistryInformer.
+	Registries() RegistryInformer
 	// Schedulings returns a SchedulingInformer.
 	Schedulings() SchedulingInformer
 }
@@ -126,6 +128,11 @@ func (v *version) Projects() ProjectInformer {
 // Proxies returns a ProxyInformer.
 func (v *version) Proxies() ProxyInformer {
 	return &proxyInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// Registries returns a RegistryInformer.
+func (v *version) Registries() RegistryInformer {
+	return &registryInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // Schedulings returns a SchedulingInformer.
