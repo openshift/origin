@@ -27,7 +27,7 @@ import (
 	migratestorage "github.com/openshift/origin/pkg/oc/cli/admin/migrate/storage"
 	migratetemplateinstances "github.com/openshift/origin/pkg/oc/cli/admin/migrate/templateinstances"
 	"github.com/openshift/origin/pkg/oc/cli/admin/network"
-	"github.com/openshift/origin/pkg/oc/cli/admin/node/logs"
+	"github.com/openshift/origin/pkg/oc/cli/admin/node"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	"github.com/openshift/origin/pkg/oc/cli/admin/project"
 	"github.com/openshift/origin/pkg/oc/cli/admin/prune"
@@ -69,7 +69,7 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(kubecmd.NewCmdCordon(f, streams))),
 				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(kubecmd.NewCmdUncordon(f, streams))),
 				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(kubecmd.NewCmdTaint(f, streams))),
-				logs.NewCmdLogs(fullName, f, streams),
+				node.NewCmdLogs(fullName, f, streams),
 			},
 		},
 		{
