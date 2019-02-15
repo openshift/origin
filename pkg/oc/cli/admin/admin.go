@@ -27,7 +27,6 @@ import (
 	migratestorage "github.com/openshift/origin/pkg/oc/cli/admin/migrate/storage"
 	migratetemplateinstances "github.com/openshift/origin/pkg/oc/cli/admin/migrate/templateinstances"
 	"github.com/openshift/origin/pkg/oc/cli/admin/network"
-	"github.com/openshift/origin/pkg/oc/cli/admin/node"
 	"github.com/openshift/origin/pkg/oc/cli/admin/node/logs"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	"github.com/openshift/origin/pkg/oc/cli/admin/project"
@@ -118,11 +117,6 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 	groups.Add(cmds)
 	templates.ActsAsRootCommand(cmds, []string{"options"}, groups...)
 
-	// Deprecated commands that are bundled with the binary but not displayed to end users directly
-	deprecatedCommands := []*cobra.Command{
-		// these will be removed soon
-		node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, streams),
-	}
 	deprecatedCACommands := []*cobra.Command{
 		admin.NewCommandCreateMasterCerts(admin.CreateMasterCertsCommandName, fullName+" "+admin.CreateMasterCertsCommandName, streams),
 		admin.NewCommandCreateKeyPair(admin.CreateKeyPairCommandName, fullName+" "+admin.CreateKeyPairCommandName, streams),
@@ -133,12 +127,6 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 		// Unsetting Short description will not show this command in help
 		cmd.Short = ""
 		cmd.Deprecated = fmt.Sprintf("Use '%s ca' instead.", fullName)
-		cmds.AddCommand(cmd)
-	}
-	for _, cmd := range deprecatedCommands {
-		// Unsetting Short description will not show this command in help
-		cmd.Short = ""
-		cmd.Deprecated = fmt.Sprintf("'%s %s' is DEPRECATED and will be removed in a future version.", fullName, cmd.Name())
 		cmds.AddCommand(cmd)
 	}
 
