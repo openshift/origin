@@ -4,6 +4,7 @@ package node
 
 import (
 	"fmt"
+	"github.com/openshift/origin/pkg/util/ovs"
 	"reflect"
 	"sort"
 	"strings"
@@ -42,6 +43,7 @@ type npNamespace struct {
 	name  string
 	vnid  uint32
 	inUse bool
+	flows sets.String
 
 	policies map[ktypes.UID]*npPolicy
 }
@@ -87,6 +89,10 @@ func (np *networkPolicyPlugin) Start(node *OsdnNode) error {
 	}
 
 	otx := node.oc.NewTransaction()
+
+	// force cleanup on init
+	otx.DeleteFlows("table=80")
+
 	for _, cn := range np.node.networkInfo.ClusterNetworks {
 		otx.AddFlow("table=21, priority=200, ip, nw_dst=%s, actions=ct(commit,table=30)", cn.ClusterCIDR.String())
 	}
@@ -122,6 +128,7 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 				vnid:     vnid,
 				inUse:    false,
 				policies: make(map[ktypes.UID]*npPolicy),
+				flows:    sets.String{},
 			}
 		}
 	}
@@ -139,6 +146,11 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 			continue
 		}
 		npns := np.namespaces[vnid]
+
+		// if we got a vnid set namespace as in use
+		// this is needed since EnsureVNIDRules or SyncVNIDRules is not triggered at start up
+		npns.inUse = true
+
 		np.updateNetworkPolicy(npns, &policy)
 	}
 
@@ -192,14 +204,17 @@ func (np *networkPolicyPlugin) GetMulticastEnabled(vnid uint32) bool {
 func (np *networkPolicyPlugin) syncNamespace(npns *npNamespace) {
 	glog.V(5).Infof("syncNamespace %d", npns.vnid)
 	otx := np.node.oc.NewTransaction()
-	otx.DeleteFlows("table=80, reg1=%d", npns.vnid)
+
+	// collector for all flows
+	var allFlows = sets.String{}
+
 	if npns.inUse {
 		allPodsSelected := false
 
 		// Add "allow" rules for all traffic allowed by a NetworkPolicy
 		for _, npp := range npns.policies {
 			for _, flow := range npp.flows {
-				otx.AddFlow("table=80, priority=150, reg1=%d, %s actions=output:NXM_NX_REG2[]", npns.vnid, flow)
+				allFlows.Insert(fmt.Sprintf("table=80, priority=150, reg1=%d, %s actions=output:NXM_NX_REG2[]", npns.vnid, flow))
 			}
 			if npp.selectedIPs == nil {
 				allPodsSelected = true
@@ -221,14 +236,54 @@ func (np *networkPolicyPlugin) syncNamespace(npns *npNamespace) {
 				for _, ip := range npp.selectedIPs {
 					if !selectedIPs.Has(ip) {
 						selectedIPs.Insert(ip)
-						otx.AddFlow("table=80, priority=100, reg1=%d, ip, nw_dst=%s, actions=drop", npns.vnid, ip)
+						// add cookie to prevent deleting all flows that belong to reg1=%d, ip, nw_dst=%s
+						allFlows.Insert(fmt.Sprintf("cookie=%d, table=80, priority=100, reg1=%d, ip, nw_dst=%s, actions=drop", npns.vnid, npns.vnid, ip))
 					}
 				}
 			}
 
-			otx.AddFlow("table=80, priority=50, reg1=%d, actions=output:NXM_NX_REG2[]", npns.vnid)
+			// added cookie to be able to delete the flow to prevent deleting all flows that belong to reg1=%d
+			allFlows.Insert(fmt.Sprintf("cookie=%d, table=80, priority=50, reg1=%d, actions=output:NXM_NX_REG2[]", npns.vnid, npns.vnid))
 		}
 	}
+
+	// returns flows that are new
+	newFlowsDiff := allFlows.Difference(npns.flows).UnsortedList()
+	for _, flow := range newFlowsDiff {
+		otx.AddFlow(flow)
+	}
+
+	// returns flows that needs to be deleted
+	deleteFlowsDiff := npns.flows.Difference(allFlows).UnsortedList()
+	for _, flow := range deleteFlowsDiff {
+		parsed, err := ovs.ParseFlow(ovs.ParseForDump, flow)
+		if err != nil {
+			glog.Warningf("syncNamespace: could not parse flow %q: %v", flow, err)
+			continue
+		}
+
+		var computedFlow []string
+		computedFlow = append(computedFlow, fmt.Sprintf("table=%d", parsed.Table))
+		if parsed.Cookie != "0" {
+			computedFlow = append(computedFlow, fmt.Sprintf("cookie=%s/-1", parsed.Cookie))
+		}
+
+		for _, f := range parsed.Fields {
+			if f.Value != "" {
+				computedFlow = append(computedFlow, fmt.Sprintf("%s=%s", f.Name, f.Value))
+			} else {
+				computedFlow = append(computedFlow, fmt.Sprintf("%s", f.Name))
+			}
+		}
+
+		otx.DeleteFlows(strings.Join(computedFlow, ", "))
+	}
+
+	glog.V(5).Infof("Flow count npns.flows: %d allFlows: %d newFlows: %d, deleteFlows: %d", len(npns.flows), len(allFlows), len(newFlowsDiff), len(deleteFlowsDiff))
+
+	// set the flows
+	npns.flows = allFlows
+
 	if err := otx.Commit(); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error syncing OVS flows for VNID: %v", err))
 	}
