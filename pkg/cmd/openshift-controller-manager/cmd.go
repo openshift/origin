@@ -11,6 +11,7 @@ import (
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/rest"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -50,6 +51,7 @@ func NewOpenShiftControllerManagerCommand(name, basename string, out, errout io.
 		Short: "Start the OpenShift controllers",
 		Long:  longDescription,
 		Run: func(c *cobra.Command, args []string) {
+			rest.CommandNameOverride = name
 			kcmdutil.CheckErr(options.Validate())
 
 			serviceability.StartProfiler()
