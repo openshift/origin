@@ -23,7 +23,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/admin"
 	"github.com/openshift/origin/pkg/oc/cli/admin/buildchain"
 	sync "github.com/openshift/origin/pkg/oc/cli/admin/groups/sync"
-	exipfailover "github.com/openshift/origin/pkg/oc/cli/admin/ipfailover"
 	"github.com/openshift/origin/pkg/oc/cli/buildlogs"
 	"github.com/openshift/origin/pkg/oc/cli/cancelbuild"
 	"github.com/openshift/origin/pkg/oc/cli/debug"
@@ -324,7 +323,6 @@ func newExperimentalCommand(name, fullName string, f kcmdutil.Factory, ioStreams
 		BashCompletionFunction: admin.BashCompletionFunc,
 	}
 
-	experimental.AddCommand(exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", ioStreams))
 	experimental.AddCommand(dockergc.NewCmdDockerGCConfig(f, fullName, "dockergc", ioStreams))
 	experimental.AddCommand(buildchain.NewCmdBuildChain(name, fullName+" "+buildchain.BuildChainRecommendedCommandName, f, ioStreams))
 	experimental.AddCommand(options.NewCmdOptions(ioStreams))

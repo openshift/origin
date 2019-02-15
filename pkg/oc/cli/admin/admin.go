@@ -20,7 +20,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/admin/createlogintemplate"
 	"github.com/openshift/origin/pkg/oc/cli/admin/createproviderselectiontemplate"
 	"github.com/openshift/origin/pkg/oc/cli/admin/groups"
-	"github.com/openshift/origin/pkg/oc/cli/admin/ipfailover"
 	"github.com/openshift/origin/pkg/oc/cli/admin/migrate"
 	migrateetcd "github.com/openshift/origin/pkg/oc/cli/admin/migrate/etcd"
 	migrateimages "github.com/openshift/origin/pkg/oc/cli/admin/migrate/images"
@@ -123,7 +122,6 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 	deprecatedCommands := []*cobra.Command{
 		// these will be removed soon
 		node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, streams),
-		ipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", streams),
 	}
 	deprecatedCACommands := []*cobra.Command{
 		admin.NewCommandCreateMasterCerts(admin.CreateMasterCertsCommandName, fullName+" "+admin.CreateMasterCertsCommandName, streams),
