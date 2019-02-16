@@ -1,0 +1,28 @@
+FROM registry.svc.ci.openshift.org/ocp/builder:golang-1.10 AS builder
+WORKDIR /go/src/github.com/openshift/origin
+COPY . .
+RUN make build WHAT=" \
+    cmd/openshift-sdn \
+    cmd/sdn-cni-plugin \
+    vendor/github.com/containernetworking/plugins/plugins/ipam/host-local \
+    vendor/github.com/containernetworking/plugins/plugins/main/loopback \
+    "
+
+FROM registry.svc.ci.openshift.org/ocp/4.0:base
+COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/openshift-sdn /usr/bin/
+COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/sdn-cni-plugin /opt/cni/bin/openshift-sdn
+COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/loopback /opt/cni/bin/
+COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/host-local /opt/cni/bin/
+RUN INSTALL_PKGS=" \
+      openvswitch socat ethtool iptables nmap-ncat \
+      libmnl libnetfilter_conntrack conntrack-tools \
+      libnfnetlink iproute bridge-utils procps-ng openssl \
+      binutils xz sysvinit-tools dbus \
+      " && \
+    yum install --setopt=tsflags=nodocs $INSTALL_PKGS && \
+    mkdir -p /etc/sysconfig/cni/net.d && \
+    yum clean all && rm -rf /var/cache/*
+LABEL io.k8s.display-name="OpenShift SDN" \
+      io.k8s.description="This is a component of OpenShift and contains the networking tool stack for the default SDN implementation." \
+      io.openshift.tags="openshift,sdn"
+ENTRYPOINT [ "/usr/local/bin/openshift-sdn" ]

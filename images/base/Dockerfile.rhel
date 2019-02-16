@@ -1,0 +1,10 @@
+FROM registry.access.redhat.com/ubi7/ubi-minimal:latest
+RUN INSTALL_PKGS=" \
+      which tar wget hostname \
+      socat findutils lsof bind-utils \
+      " && \
+    ln -s /usr/bin/microdnf /usr/bin/yum && \
+    yum install --setopt=tsflags=nodocs ${INSTALL_PKGS} && \
+    yum clean all && rm -rf /var/cache/* 
+LABEL io.k8s.display-name="OpenShift Base" \
+      io.k8s.description="This is the base image from which all OpenShift images inherit."
