@@ -155,9 +155,25 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 		},
 	}
 
+	startTime := time.Now().Add(-time.Minute)
 	podInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: func(obj interface{}) {},
+			AddFunc: func(obj interface{}) {
+				pod, ok := obj.(*corev1.Pod)
+				if !ok {
+					return
+				}
+				// filter out old pods so our monitor doesn't send a big chunk
+				// of pod creations
+				if pod.CreationTimestamp.Time.Before(startTime) {
+					return
+				}
+				m.Record(Condition{
+					Level:   Info,
+					Locator: locatePod(pod),
+					Message: "created",
+				})
+			},
 			DeleteFunc: func(obj interface{}) {
 				pod, ok := obj.(*corev1.Pod)
 				if !ok {

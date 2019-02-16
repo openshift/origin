@@ -18,6 +18,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 
+	configclientset "github.com/openshift/client-go/config/clientset/versioned"
 	clientimagev1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 )
 
@@ -34,6 +35,10 @@ func Start(ctx context.Context) (*Monitor, error) {
 	if err != nil {
 		return nil, err
 	}
+	configClient, err := configclientset.NewForConfig(clusterConfig)
+	if err != nil {
+		return nil, err
+	}
 
 	if err := startAPIMonitoring(ctx, m, clusterConfig); err != nil {
 		return nil, err
@@ -41,6 +46,7 @@ func Start(ctx context.Context) (*Monitor, error) {
 	startPodMonitoring(ctx, m, client)
 	startNodeMonitoring(ctx, m, client)
 	startEventMonitoring(ctx, m, client)
+	startClusterOperatorMonitoring(ctx, m, configClient)
 
 	m.StartSampling(ctx)
 	return m, nil
