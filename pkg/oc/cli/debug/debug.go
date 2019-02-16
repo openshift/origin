@@ -18,8 +18,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -132,6 +132,7 @@ type DebugOptions struct {
 	ExplicitNamespace  bool
 	DryRun             bool
 	FullCmdName        string
+	Image              string
 
 	resource.FilenameOptions
 	genericclioptions.IOStreams
@@ -191,6 +192,7 @@ func NewCmdDebug(fullName string, f kcmdutil.Factory, streams genericclioptions.
 	cmd.Flags().StringVar(&o.NodeName, "node-name", o.NodeName, "Set a specific node to run on - by default the pod will run on any valid node")
 	cmd.Flags().BoolVar(&o.AsRoot, "as-root", o.AsRoot, "If true, try to run the container as the root user")
 	cmd.Flags().Int64Var(&o.AsUser, "as-user", o.AsUser, "Try to run the container as a specific user UID (note: admins may limit your ability to use this flag)")
+	cmd.Flags().StringVar(&o.Image, "image", o.Image, "Override the image used by the targeted container.")
 
 	o.PrintFlags.AddFlags(cmd)
 	kcmdutil.AddDryRunFlag(cmd)
@@ -345,11 +347,15 @@ func (o *DebugOptions) RunDebug() error {
 		ObjectMeta: template.ObjectMeta,
 		Spec:       template.Spec,
 	}
-	pod.Name, pod.Namespace = fmt.Sprintf("%s-debug", generateapp.MakeSimpleName(infos[0].Name)), infos[0].Namespace
+	ns := infos[0].Namespace
+	if len(ns) == 0 {
+		ns = o.Namespace
+	}
+	pod.Name, pod.Namespace = fmt.Sprintf("%s-debug", generateapp.MakeSimpleName(infos[0].Name)), ns
 	o.Attach.Pod = pod
 
 	if len(o.Attach.ContainerName) == 0 && len(pod.Spec.Containers) > 0 {
-		if len(o.FullCmdName) > 0 {
+		if len(pod.Spec.Containers) > 1 && len(o.FullCmdName) > 0 {
 			fmt.Fprintf(o.ErrOut, "Defaulting container name to %s.\n", pod.Spec.Containers[0].Name)
 			fmt.Fprintf(o.ErrOut, "Use '%s describe pod/%s -n %s' to see all of the containers in this pod.\n", o.FullCmdName, pod.Name, pod.Namespace)
 			fmt.Fprintf(o.ErrOut, "\n")
@@ -379,7 +385,7 @@ func (o *DebugOptions) RunDebug() error {
 	case len(originalCommand) > 0:
 		commandString = strings.Join(originalCommand, " ")
 	default:
-		commandString = "<image entrypoint>"
+		commandString = ""
 	}
 
 	if o.Printer != nil {
@@ -387,7 +393,6 @@ func (o *DebugOptions) RunDebug() error {
 	}
 
 	glog.V(5).Infof("Creating pod: %#v", pod)
-	fmt.Fprintf(o.ErrOut, "Debugging with pod/%s, original command: %s\n", pod.Name, commandString)
 	pod, err = o.createPod(pod)
 	if err != nil {
 		return err
@@ -416,7 +421,11 @@ func (o *DebugOptions) RunDebug() error {
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(o.ErrOut, "Waiting for pod to start ...\n")
+		if len(commandString) > 0 {
+			fmt.Fprintf(o.ErrOut, "Starting pod/%s, command was: %s\n", pod.Name, commandString)
+		} else {
+			fmt.Fprintf(o.ErrOut, "Starting pod/%s ...\n", pod.Name)
+		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), o.Timeout)
 		defer cancel()
@@ -587,6 +596,10 @@ func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*cor
 		originalCommand = append(originalCommand, container.Args...)
 	}
 
+	if len(o.Image) > 0 {
+		container.Image = o.Image
+	}
+
 	container.Command = o.Command
 	container.Args = nil
 	container.TTY = o.Attach.Stdin && o.Attach.TTY
@@ -723,6 +736,62 @@ func containerNames(pod *corev1.Pod) []string {
 
 func (o *DebugOptions) approximatePodTemplateForObject(object runtime.Object) (*corev1.PodTemplateSpec, error) {
 	switch t := object.(type) {
+	case *corev1.Node:
+		if len(o.NodeName) > 0 {
+			return nil, fmt.Errorf("you may not set --node-name when debugging a node")
+		}
+		if o.AsNonRoot || o.AsUser > 0 {
+			// TODO: allow --as-root=false to skip all the namespaces except network
+			return nil, fmt.Errorf("can't debug nodes without running as the root user")
+		}
+		image := o.Image
+		if len(o.Image) == 0 {
+			istag, err := o.ImageClient.ImageStreamTags("openshift").Get("tools:latest", metav1.GetOptions{})
+			if err == nil && len(istag.Image.DockerImageReference) > 0 {
+				image = istag.Image.DockerImageReference
+			}
+		}
+		if len(o.Image) == 0 {
+			image = "registry.access.redhat.com/rhel7/rhel-tools"
+		}
+		zero := int64(0)
+		isTrue := true
+		hostPathType := corev1.HostPathDirectory
+		return &corev1.PodTemplateSpec{
+			Spec: corev1.PodSpec{
+				NodeName:    t.Name,
+				HostNetwork: true,
+				HostPID:     true,
+				Volumes: []corev1.Volume{
+					{
+						Name: "host",
+						VolumeSource: corev1.VolumeSource{
+							HostPath: &corev1.HostPathVolumeSource{
+								Path: "/",
+								Type: &hostPathType,
+							},
+						},
+					},
+				},
+				RestartPolicy: corev1.RestartPolicyNever,
+				Containers: []corev1.Container{
+					{
+						Name:  "container-00",
+						Image: image,
+						SecurityContext: &corev1.SecurityContext{
+							Privileged: &isTrue,
+							RunAsUser:  &zero,
+						},
+						VolumeMounts: []corev1.VolumeMount{
+							{
+								Name:      "host",
+								MountPath: "/host",
+							},
+						},
+					},
+				},
+			},
+		}, nil
 	case *imagev1.ImageStreamTag:
 		// create a minimal pod spec that uses the image referenced by the istag without any introspection
 		// it possible that we could someday do a better job introspecting it
