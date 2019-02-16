@@ -42,7 +42,7 @@ func guessObjectGroupKind(object runtime.Object) (string, string) {
 func reportCreateEvent(recorder events.Recorder, obj runtime.Object, originalErr error) {
 	reportingGroup, reportingKind := guessObjectGroupKind(obj)
 	if len(reportingGroup) != 0 {
-		reportingGroup += "."
+		reportingGroup = "." + reportingGroup
 	}
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
@@ -63,7 +63,7 @@ func reportCreateEvent(recorder events.Recorder, obj runtime.Object, originalErr
 func reportUpdateEvent(recorder events.Recorder, obj runtime.Object, originalErr error, details ...string) {
 	reportingGroup, reportingKind := guessObjectGroupKind(obj)
 	if len(reportingGroup) != 0 {
-		reportingGroup += "."
+		reportingGroup = "." + reportingGroup
 	}
 	accessor, err := meta.Accessor(obj)
 	if err != nil {

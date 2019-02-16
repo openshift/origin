@@ -230,10 +230,8 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.ProxyList":                                                                schema_openshift_api_config_v1_ProxyList(ref),
 		"github.com/openshift/api/config/v1.ProxySpec":                                                                schema_openshift_api_config_v1_ProxySpec(ref),
 		"github.com/openshift/api/config/v1.RegistriesConfig":                                                         schema_openshift_api_config_v1_RegistriesConfig(ref),
-		"github.com/openshift/api/config/v1.Registry":                                                                 schema_openshift_api_config_v1_Registry(ref),
-		"github.com/openshift/api/config/v1.RegistryList":                                                             schema_openshift_api_config_v1_RegistryList(ref),
 		"github.com/openshift/api/config/v1.RegistryLocation":                                                         schema_openshift_api_config_v1_RegistryLocation(ref),
-		"github.com/openshift/api/config/v1.RegistrySpec":                                                             schema_openshift_api_config_v1_RegistrySpec(ref),
+		"github.com/openshift/api/config/v1.RegistrySources":                                                          schema_openshift_api_config_v1_RegistrySources(ref),
 		"github.com/openshift/api/config/v1.RemoteConnectionInfo":                                                     schema_openshift_api_config_v1_RemoteConnectionInfo(ref),
 		"github.com/openshift/api/config/v1.RequestHeaderIdentityProvider":                                            schema_openshift_api_config_v1_RequestHeaderIdentityProvider(ref),
 		"github.com/openshift/api/config/v1.Scheduling":                                                               schema_openshift_api_config_v1_Scheduling(ref),
@@ -9712,15 +9710,21 @@ func schema_openshift_api_config_v1_ImageSpec(ref common.ReferenceCallback) comm
 					},
 					"additionalTrustedCA": {
 						SchemaProps: spec.SchemaProps{
-							Description: "AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that should be trusted during imagestream import. The namespace for this config map is openshift-config.",
+							Description: "AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that should be trusted during imagestream import, pod image pull, and imageregistry pullthrough. The namespace for this config map is openshift-config.",
 							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapNameReference"),
+						},
+					},
+					"registrySources": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RegistrySources contains configuration that determines how the container runtime should treat individual registries when accessing images for builds+pods. (e.g. whether or not to allow insecure access).  It does not contain configuration for the internal cluster registry.",
+							Ref:         ref("github.com/openshift/api/config/v1.RegistrySources"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ConfigMapNameReference", "github.com/openshift/api/config/v1.RegistryLocation"},
+			"github.com/openshift/api/config/v1.ConfigMapNameReference", "github.com/openshift/api/config/v1.RegistryLocation", "github.com/openshift/api/config/v1.RegistrySources"},
 	}
 }
 
@@ -11310,95 +11314,6 @@ func schema_openshift_api_config_v1_RegistriesConfig(ref common.ReferenceCallbac
 	}
 }
 
-func schema_openshift_api_config_v1_Registry(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "Registry holds cluster-wide information about how to handle the registries config.  The canonical name is `cluster`",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Standard object's metadata.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
-						},
-					},
-					"spec": {
-						SchemaProps: spec.SchemaProps{
-							Description: "spec holds user settable values for configuration",
-							Ref:         ref("github.com/openshift/api/config/v1.RegistrySpec"),
-						},
-					},
-				},
-				Required: []string{"spec"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/openshift/api/config/v1.RegistrySpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
-	}
-}
-
-func schema_openshift_api_config_v1_RegistryList(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Standard object's metadata.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
-						},
-					},
-					"items": {
-						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/config/v1.Registry"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"items"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/openshift/api/config/v1.Registry", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
-	}
-}
-
 func schema_openshift_api_config_v1_RegistryLocation(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -11427,11 +11342,12 @@ func schema_openshift_api_config_v1_RegistryLocation(ref common.ReferenceCallbac
 	}
 }
 
-func schema_openshift_api_config_v1_RegistrySpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_openshift_api_config_v1_RegistrySources(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "RegistrySources holds cluster-wide information about how to handle the registries config.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"insecureRegistries": {
 						SchemaProps: spec.SchemaProps{

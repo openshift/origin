@@ -72,10 +72,6 @@ func (c *FakeConfigV1) Proxies() v1.ProxyInterface {
 	return &FakeProxies{c}
 }
 
-func (c *FakeConfigV1) Registries() v1.RegistryInterface {
-	return &FakeRegistries{c}
-}
-
 func (c *FakeConfigV1) Schedulings() v1.SchedulingInterface {
 	return &FakeSchedulings{c}
 }

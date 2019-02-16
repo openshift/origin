@@ -34,9 +34,16 @@ type ImageSpec struct {
 	ExternalRegistryHostnames []string `json:"externalRegistryHostnames,omitempty"`
 
 	// AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that
-	// should be trusted during imagestream import.
+	// should be trusted during imagestream import, pod image pull, and imageregistry
+	// pullthrough.
 	// The namespace for this config map is openshift-config.
 	AdditionalTrustedCA ConfigMapNameReference `json:"additionalTrustedCA,omitempty"`
+
+	// RegistrySources contains configuration that determines how the container runtime
+	// should treat individual registries when accessing images for builds+pods. (e.g.
+	// whether or not to allow insecure access).  It does not contain configuration for the
+	// internal cluster registry.
+	RegistrySources RegistrySources `json:"registrySources,omitempty"`
 }
 
 type ImageStatus struct {
@@ -74,4 +81,21 @@ type RegistryLocation struct {
 	// Insecure indicates whether the registry is secure (https) or insecure (http)
 	// By default (if not specified) the registry is assumed as secure.
 	Insecure bool `json:"insecure,omitempty"`
+}
+
+// RegistrySources holds cluster-wide information about how to handle the registries config.
+type RegistrySources struct {
+	// InsecureRegistries are registries which do not have a valid SSL certificate or only support HTTP connections.
+	// +optional
+	InsecureRegistries []string `json:"insecureRegistries,omitempty"`
+	// BlockedRegistries are blacklisted from image pull/push. All other registries are allowed.
+	//
+	// Only one of BlockedRegistries or AllowedRegistries may be set.
+	// +optional
+	BlockedRegistries []string `json:"blockedRegistries,omitempty"`
+	// AllowedRegistries are whitelisted for image pull/push. All other registries are blocked.
+	//
+	// Only one of BlockedRegistries or AllowedRegistries may be set.
+	// +optional
+	AllowedRegistries []string `json:"allowedRegistries,omitempty"`
 }

@@ -35,7 +35,7 @@ func TestEnsureSigningCertKeyPair(t *testing.T) {
 					t.Fatal(spew.Sdump(actions))
 				}
 
-				if !actions[0].Matches("update", "secrets") {
+				if !actions[0].Matches("get", "secrets") {
 					t.Error(actions[0])
 				}
 				if !actions[1].Matches("create", "secrets") {
@@ -56,15 +56,15 @@ func TestEnsureSigningCertKeyPair(t *testing.T) {
 			verifyActions: func(t *testing.T, client *kubefake.Clientset) {
 				t.Helper()
 				actions := client.Actions()
-				if len(actions) != 1 {
+				if len(actions) != 2 {
 					t.Fatal(spew.Sdump(actions))
 				}
 
-				if !actions[0].Matches("update", "secrets") {
-					t.Error(actions[0])
+				if !actions[1].Matches("update", "secrets") {
+					t.Error(actions[1])
 				}
 
-				actual := actions[0].(clienttesting.UpdateAction).GetObject().(*corev1.Secret)
+				actual := actions[1].(clienttesting.UpdateAction).GetObject().(*corev1.Secret)
 				if len(actual.Data["tls.crt"]) == 0 || len(actual.Data["tls.key"]) == 0 {
 					t.Error(actual.Data)
 				}

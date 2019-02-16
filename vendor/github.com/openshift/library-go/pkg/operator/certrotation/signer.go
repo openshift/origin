@@ -7,6 +7,7 @@ import (
 
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,13 +48,7 @@ func (c SigningRotation) ensureSigningCertKeyPair() (*crypto.CA, error) {
 			return nil, err
 		}
 
-		actualSigningCertKeyPairSecret, err := c.Client.Secrets(c.Namespace).Update(signingCertKeyPairSecret)
-		if apierrors.IsNotFound(err) {
-			actualSigningCertKeyPairSecret, err = c.Client.Secrets(c.Namespace).Create(signingCertKeyPairSecret)
-			if err != nil {
-				return nil, err
-			}
-		}
+		actualSigningCertKeyPairSecret, _, err := resourceapply.ApplySecret(c.Client, c.EventRecorder, signingCertKeyPairSecret)
 		if err != nil {
 			return nil, err
 		}

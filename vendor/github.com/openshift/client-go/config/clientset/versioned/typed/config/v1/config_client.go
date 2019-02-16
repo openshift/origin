@@ -26,7 +26,6 @@ type ConfigV1Interface interface {
 	OAuthsGetter
 	ProjectsGetter
 	ProxiesGetter
-	RegistriesGetter
 	SchedulingsGetter
 }
 
@@ -93,10 +92,6 @@ func (c *ConfigV1Client) Projects() ProjectInterface {
 
 func (c *ConfigV1Client) Proxies() ProxyInterface {
 	return newProxies(c)
-}
-
-func (c *ConfigV1Client) Registries() RegistryInterface {
-	return newRegistries(c)
 }
 
 func (c *ConfigV1Client) Schedulings() SchedulingInterface {
