@@ -220,7 +220,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			o.Expect(results).To(o.ContainSubstring("# runtime.MemStats"))
 		})
 
-		g.It("should enable openshift-monitoring to pull metrics", func() {
+		g.It("[Flaky] should enable openshift-monitoring to pull metrics", func() {
 			prometheusURL, token, exists := locatePrometheus(oc)
 			if !exists {
 				g.Skip("prometheus not found on this cluster")
