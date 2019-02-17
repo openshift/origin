@@ -72,6 +72,7 @@ const (
 func testDynamicProvisioning(t storageClassTest, client clientset.Interface, claim *v1.PersistentVolumeClaim, class *storage.StorageClass) *v1.PersistentVolume {
 	var err error
 	if class != nil {
+		Expect(*claim.Spec.StorageClassName).To(Equal(class.Name))
 		By("creating a StorageClass " + class.Name)
 		class, err = client.StorageV1().StorageClasses().Create(class)
 		Expect(err).NotTo(HaveOccurred())
@@ -918,7 +919,7 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 		It("should create and delete persistent volumes [fast]", func() {
 			By("creating a Gluster DP server Pod")
 			pod := startGlusterDpServerPod(c, ns)
-			serverUrl := "https://" + pod.Status.PodIP + ":8081"
+			serverUrl := "http://" + pod.Status.PodIP + ":8081"
 			By("creating a StorageClass")
 			test := storageClassTest{
 				name:               "Gluster Dynamic provisioner test",
@@ -933,6 +934,7 @@ var _ = utils.SIGDescribe("Dynamic Provisioning", func() {
 
 			By("creating a claim object with a suffix for gluster dynamic provisioner")
 			claim := newClaim(test, ns, suffix)
+			claim.Spec.StorageClassName = &class.Name
 
 			testDynamicProvisioning(test, c, claim, class)
 		})
