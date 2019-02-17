@@ -539,7 +539,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 				rbacv1helpers.NewRule("get").Groups(kapiGroup).Resources("pods/log").RuleOrDie(),
 				rbacv1helpers.NewRule("create", "list").Groups(kapiGroup).Resources("events").RuleOrDie(),
 
-				rbacv1helpers.NewRule("update").Groups(imageGroup, legacyImageGroup).Resources("imagestreamtags").RuleOrDie(),
+				rbacv1helpers.NewRule("create", "update").Groups(imageGroup, legacyImageGroup).Resources("imagestreamtags").RuleOrDie(),
 			},
 		},
 		{
