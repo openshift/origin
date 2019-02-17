@@ -1246,8 +1246,10 @@ func TestHandleControllerConfig(t *testing.T) {
 		name string
 		// Conditions
 		build         *configv1.Build
+		image         *configv1.Image
 		casMap        *corev1.ConfigMap
 		errorGetBuild bool
+		errorGetImage bool
 		errorGetCA    bool
 		// Results
 		expectError bool
@@ -1257,11 +1259,11 @@ func TestHandleControllerConfig(t *testing.T) {
 		},
 		{
 			name: "ca exists",
-			build: &configv1.Build{
+			image: &configv1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
 				},
-				Spec: configv1.BuildSpec{
+				Spec: configv1.ImageSpec{
 					AdditionalTrustedCA: configv1.ConfigMapNameReference{
 						Name: "cluster-cas",
 					},
@@ -1273,17 +1275,18 @@ func TestHandleControllerConfig(t *testing.T) {
 					Namespace: "openshift-config",
 				},
 				Data: map[string]string{
-					"mydomain": dummyCA,
+					"mydomain":    dummyCA,
+					"otherdomain": dummyCA,
 				},
 			},
 		},
 		{
 			name: "ca configMap removed",
-			build: &configv1.Build{
+			image: &configv1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
 				},
-				Spec: configv1.BuildSpec{
+				Spec: configv1.ImageSpec{
 					AdditionalTrustedCA: configv1.ConfigMapNameReference{
 						Name: "cluster-cas",
 					},
@@ -1291,27 +1294,27 @@ func TestHandleControllerConfig(t *testing.T) {
 			},
 		},
 		{
-			name: "get build CRD error",
-			build: &configv1.Build{
+			name: "get image CRD error",
+			image: &configv1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
 				},
-				Spec: configv1.BuildSpec{
+				Spec: configv1.ImageSpec{
 					AdditionalTrustedCA: configv1.ConfigMapNameReference{
 						Name: "cluster-cas",
 					},
 				},
 			},
-			errorGetBuild: true,
+			errorGetImage: true,
 			expectError:   true,
 		},
 		{
 			name: "get configMap error",
-			build: &configv1.Build{
+			image: &configv1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
 				},
-				Spec: configv1.BuildSpec{
+				Spec: configv1.ImageSpec{
 					AdditionalTrustedCA: configv1.ConfigMapNameReference{
 						Name: "cluster-cas",
 					},
@@ -1331,75 +1334,88 @@ func TestHandleControllerConfig(t *testing.T) {
 		},
 		{
 			name: "insecure registries",
-			build: &configv1.Build{
+			image: &configv1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
 				},
-				Spec: configv1.BuildSpec{
-					BuildDefaults: configv1.BuildDefaults{
-						RegistriesConfig: configv1.RegistriesConfig{
-							InsecureRegistries: []string{"my-local.registry:5000", "omni.corp.org:5000"},
-						},
+				Spec: configv1.ImageSpec{
+					RegistrySources: configv1.RegistrySources{
+						InsecureRegistries: []string{"my-local.registry:5000", "omni.corp.org:5000"},
 					},
 				},
 			},
 		},
 		{
 			name: "allowed registries",
-			build: &configv1.Build{
+			image: &configv1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
 				},
-				Spec: configv1.BuildSpec{
-					BuildDefaults: configv1.BuildDefaults{
-						RegistriesConfig: configv1.RegistriesConfig{
-							AllowedRegistries: []string{"quay.io"},
-						},
+				Spec: configv1.ImageSpec{
+					RegistrySources: configv1.RegistrySources{
+						AllowedRegistries: []string{"quay.io"},
 					},
 				},
 			},
 		},
 		{
 			name: "blocked registries",
-			build: &configv1.Build{
+			image: &configv1.Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
 				},
-				Spec: configv1.BuildSpec{
-					BuildDefaults: configv1.BuildDefaults{
-						RegistriesConfig: configv1.RegistriesConfig{
-							BlockedRegistries: []string{"docker.io"},
-						},
+				Spec: configv1.ImageSpec{
+					RegistrySources: configv1.RegistrySources{
+						BlockedRegistries: []string{"docker.io"},
 					},
 				},
 			},
 		},
 		{
 			name: "allowed and blocked registries",
+			image: &configv1.Image{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cluster",
+				},
+				Spec: configv1.ImageSpec{
+					RegistrySources: configv1.RegistrySources{
+						AllowedRegistries: []string{"quay.io"},
+						BlockedRegistries: []string{"docker.io"},
+					},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "default proxy",
 			build: &configv1.Build{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "cluster",
 				},
 				Spec: configv1.BuildSpec{
 					BuildDefaults: configv1.BuildDefaults{
-						RegistriesConfig: configv1.RegistriesConfig{
-							AllowedRegistries: []string{"quay.io"},
-							BlockedRegistries: []string{"docker.io"},
+						DefaultProxy: &configv1.ProxySpec{
+							HTTPProxy:  "http://my-proxy.org",
+							HTTPSProxy: "https://my-proxy.org",
+							NoProxy:    "mydomain",
 						},
 					},
 				},
 			},
-			expectError: true,
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			var configClient configv1client.Interface
+			objs := []runtime.Object{}
 			if tc.build != nil {
-				configClient = fakeConfigClient(tc.build)
-			} else {
-				configClient = fakeConfigClient()
+				objs = append(objs, tc.build)
+
 			}
+			if tc.image != nil {
+				objs = append(objs, tc.image)
+			}
+			configClient = fakeConfigClient(objs...)
 			var kubeClient kubernetes.Interface
 			if tc.casMap != nil {
 				kubeClient = fakeKubeExternalClientSet(tc.casMap)
@@ -1416,7 +1432,10 @@ func TestHandleControllerConfig(t *testing.T) {
 			defer bc.stop()
 
 			if tc.errorGetBuild {
-				bc.configLister = &errorConfigLister{}
+				bc.buildControllerConfigLister = &errorBuildLister{}
+			}
+			if tc.errorGetImage {
+				bc.imageConfigLister = &errorImageLister{}
 			}
 			if tc.errorGetCA {
 				bc.openShiftConfigConfigMapStore = &errorConfigMapLister{}
@@ -1438,6 +1457,19 @@ func TestHandleControllerConfig(t *testing.T) {
 			}
 
 			if tc.build == nil {
+				if bc.buildDefaults.DefaultProxy != nil {
+					t.Errorf("expected no default proxy, got %v", bc.buildDefaults.DefaultProxy)
+				}
+			} else {
+				if !reflect.DeepEqual(tc.build.Spec.BuildDefaults.DefaultProxy, bc.buildDefaults.DefaultProxy) {
+					t.Errorf("expected default proxy %v, got %v",
+						tc.build.Spec.BuildDefaults.DefaultProxy,
+						bc.buildDefaults.DefaultProxy)
+				}
+			}
+
+			// Test additional certificate authorities
+			if tc.image == nil {
 				if len(bc.additionalTrustedCAData) > 0 {
 					t.Errorf("expected empty additional CAs data, got %v", bc.additionalTrustedCAData)
 				}
@@ -1454,11 +1486,11 @@ func TestHandleControllerConfig(t *testing.T) {
 				if len(bc.additionalTrustedCAData) > 0 {
 					t.Errorf("expected empty additional CAs data, got %v", bc.additionalTrustedCAData)
 				}
-			} else if !reflect.DeepEqual(tc.casMap.Data, bc.additionalTrustedCAData) {
-				t.Errorf("expected ca data %v\n\ngot:\n\n%v", tc.casMap.Data, bc.additionalTrustedCAData)
+			} else if tc.image != nil && !reflect.DeepEqual(tc.casMap.Data, bc.additionalTrustedCAData) {
+				t.Errorf("expected ca data:\n  %v\ngot:\n  %v", tc.casMap.Data, bc.additionalTrustedCAData)
 			}
 
-			buildRegistriesConfig := tc.build.Spec.BuildDefaults.RegistriesConfig
+			buildRegistriesConfig := tc.image.Spec.RegistrySources
 
 			if isRegistryConfigEmpty(buildRegistriesConfig) {
 				if len(bc.registryConfData) > 0 {
@@ -1553,7 +1585,7 @@ func TestHandleControllerConfig(t *testing.T) {
 	}
 }
 
-func isRegistryConfigEmpty(config configv1.RegistriesConfig) bool {
+func isRegistryConfigEmpty(config configv1.RegistrySources) bool {
 	return len(config.InsecureRegistries) == 0
 }
 
@@ -1563,7 +1595,7 @@ func decodeRegistries(configTOML string) (*tomlConfig, error) {
 	return config, err
 }
 
-func isSignaturePolicyConfigEmpty(config configv1.RegistriesConfig) bool {
+func isSignaturePolicyConfigEmpty(config configv1.RegistrySources) bool {
 	return len(config.AllowedRegistries) == 0 && len(config.BlockedRegistries) == 0
 }
 
@@ -1574,13 +1606,23 @@ func decodePolicyConfig(configJSON string) (*signature.Policy, error) {
 	return signature.NewPolicyFromBytes([]byte(configJSON))
 }
 
-type errorConfigLister struct{}
+type errorBuildLister struct{}
 
-func (e *errorConfigLister) List(selector labels.Selector) ([]*configv1.Build, error) {
+func (e *errorBuildLister) List(selector labels.Selector) ([]*configv1.Build, error) {
 	return nil, fmt.Errorf("error")
 }
 
-func (e *errorConfigLister) Get(name string) (*configv1.Build, error) {
+func (e *errorBuildLister) Get(name string) (*configv1.Build, error) {
+	return nil, fmt.Errorf("error")
+}
+
+type errorImageLister struct{}
+
+func (e *errorImageLister) List(selector labels.Selector) ([]*configv1.Image, error) {
+	return nil, fmt.Errorf("error")
+}
+
+func (e *errorImageLister) Get(name string) (*configv1.Image, error) {
 	return nil, fmt.Errorf("error")
 }
 
@@ -1727,7 +1769,8 @@ func (c *fakeBuildController) start() {
 		c.podStoreSynced,
 		c.secretStoreSynced,
 		c.imageStreamStoreSynced,
-		c.controllerConfigStoreSynced,
+		c.buildControllerConfigStoreSynced,
+		c.imageConfigStoreSynced,
 		c.configMapStoreSynced) {
 		panic("cannot sync cache")
 	}
@@ -1767,7 +1810,8 @@ func newFakeBuildController(buildClient buildv1client.Interface, imageClient ima
 		PodInformer:                      kubeExternalInformers.Core().V1().Pods(),
 		SecretInformer:                   kubeExternalInformers.Core().V1().Secrets(),
 		OpenshiftConfigConfigMapInformer: kubeExternalInformers.Core().V1().ConfigMaps(),
-		ControllerConfigInformer:         configInformers.Config().V1().Builds(),
+		BuildControllerConfigInformer:    configInformers.Config().V1().Builds(),
+		ImageConfigInformer:              configInformers.Config().V1().Images(),
 		KubeClient:                       kubeExternalClient,
 		BuildClient:                      buildClient,
 		DockerBuildStrategy: &strategy.DockerBuildStrategy{

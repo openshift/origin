@@ -1788,13 +1788,12 @@ func testExtendedTestdataBuildsBuildTimingTestS2iBuildJson() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml = []byte(`kind: Build
+var _testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml = []byte(`kind: Image
 apiVersion: config.openshift.io/v1
 metadata:
   name: cluster
 spec:
-  buildDefaults:
-    registriesConfig:
+  registrySources:
       blockedRegistries:
       - docker.io
       - quay.io
@@ -1815,13 +1814,12 @@ func testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml() (*asset, err
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml = []byte(`kind: Build
+var _testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml = []byte(`kind: Image
 apiVersion: config.openshift.io/v1
 metadata:
   name: cluster
 spec:
-  buildDefaults:
-    registriesConfig:
+  registrySources:
       allowedRegistries:
       - quay.io
 `)
@@ -1841,7 +1839,7 @@ func testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml() (*asset, err
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsClusterConfigYaml = []byte(`kind: Build
+var _testExtendedTestdataBuildsClusterConfigYaml = []byte(`kind: Image
 apiVersion: config.openshift.io/v1
 metadata:
   name: cluster

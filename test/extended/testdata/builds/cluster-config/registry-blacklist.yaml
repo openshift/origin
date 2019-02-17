@@ -1,10 +1,9 @@
-kind: Build
+kind: Image
 apiVersion: config.openshift.io/v1
 metadata:
   name: cluster
 spec:
-  buildDefaults:
-    registriesConfig:
+  registrySources:
       blockedRegistries:
       - docker.io
       - quay.io

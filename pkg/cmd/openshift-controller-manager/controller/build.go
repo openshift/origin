@@ -26,12 +26,14 @@ func RunBuildController(ctx *ControllerContext) (bool, error) {
 	podInformer := ctx.KubernetesInformers.Core().V1().Pods()
 	secretInformer := ctx.KubernetesInformers.Core().V1().Secrets()
 	controllerConfigInformer := ctx.ConfigInformers.Config().V1().Builds()
+	imageConfigInformer := ctx.ConfigInformers.Config().V1().Images()
 	configMapInformer := ctx.OpenshiftConfigKubernetesInformers.Core().V1().ConfigMaps()
 
 	buildControllerParams := &buildcontroller.BuildControllerParams{
 		BuildInformer:                    buildInformer,
 		BuildConfigInformer:              buildConfigInformer,
-		ControllerConfigInformer:         controllerConfigInformer,
+		BuildControllerConfigInformer:    controllerConfigInformer,
+		ImageConfigInformer:              imageConfigInformer,
 		ImageStreamInformer:              imageStreamInformer,
 		PodInformer:                      podInformer,
 		SecretInformer:                   secretInformer,
