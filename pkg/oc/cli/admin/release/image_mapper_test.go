@@ -1,6 +1,7 @@
 package release
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -251,6 +252,113 @@ func TestNewExactMapper(t *testing.T) {
 			}
 			if string(out) != tt.output {
 				t.Errorf("unexpected output, wanted\n%s\ngot\n%s", tt.output, string(out))
+			}
+		})
+	}
+}
+
+func TestNewComponentVersionsMapper(t *testing.T) {
+	type args struct {
+	}
+	tests := []struct {
+		name        string
+		releaseName string
+		versions    map[string]string
+		imagesByTag map[string][]string
+		in          string
+		out         string
+		wantErr     string
+	}{
+		{
+			in:  `version: 0.0.1-snapshot\n`,
+			out: `version: 0.0.1-snapshot\n`,
+		},
+		{
+			in:      `version: 0.0.1-snapshot-\n`,
+			wantErr: `empty version references are not allowed`,
+		},
+		{
+			in:      `version: 0.0.1-snapshot-a\n`,
+			wantErr: `unknown version reference "a"`,
+		},
+		{
+			releaseName: "2.0.0",
+			in:          `version: 0.0.1-snapshot\n`,
+			out:         `version: 2.0.0\n`,
+		},
+		{
+			name:        "release name is not semver",
+			releaseName: "2.0",
+			in:          `version: 0.0.1-snapshot\n`,
+			out:         `version: 0.0.1-snapshot\n`,
+		},
+		{
+			versions: map[string]string{"a": "2.0.0"},
+			in:       `version: 0.0.1-snapshot-a\n`,
+			out:      `version: 2.0.0\n`,
+		},
+		{
+			versions:    map[string]string{"a": "2.0.0"},
+			imagesByTag: map[string][]string{"a": {"tag1", "tag2"}},
+			in:          `version: 0.0.1-snapshot-a\n`,
+			wantErr:     `the version for "a" is inconsistent across the referenced images: tag1, tag2`,
+		},
+		{
+			versions:    map[string]string{"a": "2.0.0", "b": "3.0.0"},
+			imagesByTag: map[string][]string{"a": {"tag1", "tag2"}},
+			in:          `version: 0.0.1-snapshot-b\n`,
+			out:         `version: 3.0.0\n`,
+		},
+		{
+			versions: map[string]string{"a": "2.0.0"},
+			in:       `version: 0.0.1-snapshot-a`,
+			out:      `version: 2.0.0`,
+		},
+		{
+			versions: map[string]string{"a": "2.0.0"},
+			in:       `0.0.1-snapshot-a`,
+			out:      `2.0.0`,
+		},
+		{
+			versions: map[string]string{"a": "2.0.0"},
+			in:       `:0.0.1-snapshot-a`,
+			out:      `:2.0.0`,
+		},
+		{
+			versions: map[string]string{"a": "2.0.0"},
+			in:       `-0.0.1-snapshot-a_`,
+			out:      `-2.0.0_`,
+		},
+		{
+			versions: map[string]string{"a": "2.0.0"},
+			in:       `0.0.1-snapshot-a 0.0.1-snapshot-b`,
+			wantErr:  `unknown version reference "b"`,
+		},
+		{
+			versions: map[string]string{"a": "2.0.0", "b": "1.0.0"},
+			in:       `0.0.1-snapshot-a 0.0.1-snapshot-b`,
+			out:      `2.0.0 1.0.0`,
+		},
+		{
+			in:      `0.0.1-snapshot-a0.0.1-snapshot-b`,
+			wantErr: `unknown version reference "a0"`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := NewComponentVersionsMapper(tt.releaseName, tt.versions, tt.imagesByTag)
+			out, err := m([]byte(tt.in))
+			if (err != nil) != (len(tt.wantErr) > 0) {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if err != nil {
+				if !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				return
+			}
+			if tt.out != string(out) {
+				t.Errorf("mismatch:\n%s\n%s", tt.out, out)
 			}
 		})
 	}

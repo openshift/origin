@@ -4898,6 +4898,8 @@ _oc_adm_release_new()
 
     flags+=("--allow-missing-images")
     local_nonpersistent_flags+=("--allow-missing-images")
+    flags+=("--component-versions=")
+    local_nonpersistent_flags+=("--component-versions=")
     flags+=("--dir=")
     local_nonpersistent_flags+=("--dir=")
     flags+=("--dry-run")

@@ -13,4 +13,5 @@ RUN INSTALL_PKGS="origin-hyperkube" && \
 
 LABEL io.k8s.display-name="OpenShift Kubernetes Server Commands" \
       io.k8s.description="OpenShift is a platform for developing, building, and deploying containerized applications." \
-      io.openshift.tags="openshift,hyperkube"
+      io.openshift.tags="openshift,hyperkube" \
+      io.openshift.build.versions="kubernetes=1.12.4"
