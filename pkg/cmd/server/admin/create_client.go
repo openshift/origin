@@ -177,3 +177,20 @@ func (o CreateClientOptions) CreateClientFolder() error {
 
 	return nil
 }
+
+// readFiles returns a byte array containing the contents of all the given filenames,
+// optionally separated by a delimiter, or an error if any of the files cannot be read
+func readFiles(srcFiles []string, separator []byte) ([]byte, error) {
+	data := []byte{}
+	for _, srcFile := range srcFiles {
+		fileData, err := ioutil.ReadFile(srcFile)
+		if err != nil {
+			return nil, err
+		}
+		if len(data) > 0 && len(separator) > 0 {
+			data = append(data, separator...)
+		}
+		data = append(data, fileData...)
+	}
+	return data, nil
+}

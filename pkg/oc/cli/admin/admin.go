@@ -20,7 +20,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/admin/createlogintemplate"
 	"github.com/openshift/origin/pkg/oc/cli/admin/createproviderselectiontemplate"
 	"github.com/openshift/origin/pkg/oc/cli/admin/groups"
-	"github.com/openshift/origin/pkg/oc/cli/admin/ipfailover"
 	"github.com/openshift/origin/pkg/oc/cli/admin/migrate"
 	migrateetcd "github.com/openshift/origin/pkg/oc/cli/admin/migrate/etcd"
 	migrateimages "github.com/openshift/origin/pkg/oc/cli/admin/migrate/images"
@@ -29,12 +28,10 @@ import (
 	migratetemplateinstances "github.com/openshift/origin/pkg/oc/cli/admin/migrate/templateinstances"
 	"github.com/openshift/origin/pkg/oc/cli/admin/network"
 	"github.com/openshift/origin/pkg/oc/cli/admin/node"
-	"github.com/openshift/origin/pkg/oc/cli/admin/node/logs"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	"github.com/openshift/origin/pkg/oc/cli/admin/project"
 	"github.com/openshift/origin/pkg/oc/cli/admin/prune"
 	"github.com/openshift/origin/pkg/oc/cli/admin/release"
-	"github.com/openshift/origin/pkg/oc/cli/admin/router"
 	"github.com/openshift/origin/pkg/oc/cli/admin/top"
 	"github.com/openshift/origin/pkg/oc/cli/admin/upgrade"
 	"github.com/openshift/origin/pkg/oc/cli/admin/verifyimagesignature"
@@ -72,7 +69,7 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(kubecmd.NewCmdCordon(f, streams))),
 				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(kubecmd.NewCmdUncordon(f, streams))),
 				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(kubecmd.NewCmdTaint(f, streams))),
-				logs.NewCmdLogs(fullName, f, streams),
+				node.NewCmdLogs(fullName, f, streams),
 			},
 		},
 		{
@@ -120,14 +117,6 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 	groups.Add(cmds)
 	templates.ActsAsRootCommand(cmds, []string{"options"}, groups...)
 
-	// Deprecated commands that are bundled with the binary but not displayed to end users directly
-	deprecatedCommands := []*cobra.Command{
-		// these will be removed soon
-		admin.NewCommandNodeConfig(admin.NodeConfigCommandName, fullName+" "+admin.NodeConfigCommandName, streams),
-		node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, streams),
-		router.NewCmdRouter(f, fullName, "router", streams),
-		ipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", streams),
-	}
 	deprecatedCACommands := []*cobra.Command{
 		admin.NewCommandCreateMasterCerts(admin.CreateMasterCertsCommandName, fullName+" "+admin.CreateMasterCertsCommandName, streams),
 		admin.NewCommandCreateKeyPair(admin.CreateKeyPairCommandName, fullName+" "+admin.CreateKeyPairCommandName, streams),
@@ -138,12 +127,6 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 		// Unsetting Short description will not show this command in help
 		cmd.Short = ""
 		cmd.Deprecated = fmt.Sprintf("Use '%s ca' instead.", fullName)
-		cmds.AddCommand(cmd)
-	}
-	for _, cmd := range deprecatedCommands {
-		// Unsetting Short description will not show this command in help
-		cmd.Short = ""
-		cmd.Deprecated = fmt.Sprintf("'%s %s' is DEPRECATED and will be removed in a future version.", fullName, cmd.Name())
 		cmds.AddCommand(cmd)
 	}
 

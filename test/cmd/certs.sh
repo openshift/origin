@@ -59,66 +59,6 @@ os::cmd::expect_success_and_text \
     "openssl x509 -in '${CERT_DIR}/ca.crt' -enddate -noout | awk '{print \$4}'" \
     "${expected_year}"
 
-
-# oc adm create-node-config should generate certificates for 2 years by default
-# NOTE: tests order is important here because this test uses CA certificate that was generated before
-
-# we have to remove these files otherwise oc adm create-node-config won't generate new ones
-rm -f -- ${CERT_DIR}/master-client.crt ${CERT_DIR}/server.crt
-
-os::cmd::expect_success_and_not_text \
-    "oc adm create-node-config \
-            --node-dir='${CERT_DIR}' \
-            --node=example \
-            --hostnames=example.org \
-            --certificate-authority='${CERT_DIR}/ca.crt' \
-            --node-client-certificate-authority='${CERT_DIR}/ca.crt' \
-            --signer-cert='${CERT_DIR}/ca.crt' \
-            --signer-key='${CERT_DIR}/ca.key' \
-            --signer-serial='${CERT_DIR}/ca.serial.txt'" \
-    'WARNING: .* is greater than 2 years'
-
-os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '03'
-os::cmd::expect_success_and_text "tail -c 1 '${CERT_DIR}/ca.serial.txt' | wc -l" '1'  # check for newline at end
-
-expected_year="$(TZ=GMT date -d "+$((365*2)) days" +'%Y')"
-for CERT_FILE in master-client.crt server.crt; do
-    os::cmd::expect_success_and_text \
-        "openssl x509 -in '${CERT_DIR}/${CERT_FILE}' -enddate -noout | awk '{print \$4}'" \
-        "${expected_year}"
-done
-
-# oc adm create-node-config should generate certificates with specified number of days and show warning
-# NOTE: tests order is important here because this test uses CA certificate that was generated before
-
-# we have to remove these files otherwise oc adm create-node-config won't generate new ones
-rm -f -- ${CERT_DIR}/master-client.crt ${CERT_DIR}/server.crt
-
-os::cmd::expect_success_and_text \
-    "oc adm create-node-config \
-            --node-dir='${CERT_DIR}' \
-            --node=example \
-            --hostnames=example.org \
-            --certificate-authority='${CERT_DIR}/ca.crt' \
-            --node-client-certificate-authority='${CERT_DIR}/ca.crt' \
-            --signer-cert='${CERT_DIR}/ca.crt' \
-            --signer-key='${CERT_DIR}/ca.key' \
-            --signer-serial='${CERT_DIR}/ca.serial.txt' \
-            --expire-days=$((365*3))" \
-    'WARNING: .* is greater than 2 years'
-
-os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '05'
-os::cmd::expect_success_and_text "tail -c 1 '${CERT_DIR}/ca.serial.txt' | wc -l" '1'  # check for newline at end
-
-expected_year="$(TZ=GMT date -d "+$((365*3)) days" +'%Y')"
-
-for CERT_FILE in master-client.crt server.crt; do
-    os::cmd::expect_success_and_text \
-        "openssl x509 -in '${CERT_DIR}/${CERT_FILE}' -enddate -noout | awk '{print \$4}'" \
-        "${expected_year}"
-done
-
-
 # oc adm create-api-client-config should generate certificates for 2 years by default
 # NOTE: tests order is important here because this test uses CA certificate that was generated before
 
@@ -132,8 +72,7 @@ os::cmd::expect_success_and_not_text \
             --signer-serial='${CERT_DIR}/ca.serial.txt'" \
     'WARNING: .* is greater than 2 years'
 
-
-os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '06'
+os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '02'
 os::cmd::expect_success_and_text "tail -c 1 '${CERT_DIR}/ca.serial.txt' | wc -l" '1'  # check for newline at end
 
 expected_year="$(TZ=GMT date -d "+$((365*2)) days" +'%Y')"
@@ -155,7 +94,7 @@ os::cmd::expect_success_and_text \
             --expire-days=$((365*3))" \
     'WARNING: .* is greater than 2 years'
 
-os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '07'
+os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '03'
 os::cmd::expect_success_and_text "tail -c 1 '${CERT_DIR}/ca.serial.txt' | wc -l" '1'  # check for newline at end
 
 expected_year="$(TZ=GMT date -d "+$((365*3)) days" +'%Y')"
@@ -176,7 +115,7 @@ os::cmd::expect_success_and_not_text \
                                 --key='${CERT_DIR}/example.org.key'" \
     'WARNING: .* is greater than 2 years'
 
-os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '08'
+os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '04'
 os::cmd::expect_success_and_text "tail -c 1 '${CERT_DIR}/ca.serial.txt' | wc -l" '1'  # check for newline at end
 
 expected_year="$(TZ=GMT date -d "+$((365*2)) days" +'%Y')"
@@ -197,7 +136,7 @@ os::cmd::expect_success_and_text \
                                 --expire-days=$((365*3))" \
     'WARNING: .* is greater than 2 years'
 
-os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '09'
+os::cmd::expect_success_and_text "cat '${CERT_DIR}/ca.serial.txt'" '05'
 os::cmd::expect_success_and_text "tail -c 1 '${CERT_DIR}/ca.serial.txt' | wc -l" '1'  # check for newline at end
 
 expected_year="$(TZ=GMT date -d "+$((365*3)) days" +'%Y')"

@@ -37,7 +37,6 @@ function os::start::configure_server() {
 	current_user="$( id -u )"
 
 	os::start::internal::create_master_certs     "${version}"
-	os::start::internal::configure_node          "${version}"
 	os::start::internal::configure_master        "${version}"
 
 	# fix up owner after creating initial config
@@ -71,37 +70,6 @@ function os::start::internal::create_master_certs() {
 	                        --public-master="${API_SCHEME}://${PUBLIC_MASTER_HOST}:${API_PORT}"
 }
 readonly -f os::start::internal::create_master_certs
-
-# os::start::internal::configure_node creates a node configuration
-#
-# Globals:
-#  - NODE_CONFIG_DIR
-#  - KUBELET_SCHEME
-#  - KUBELET_BIND_HOST
-#  - KUBELET_PORT
-#  - KUBELET_HOST
-#  - MASTER_ADDR
-#  - MASTER_CONFIG_DIR
-# Arguments:
-#  1 - alternate version for the config
-function os::start::internal::configure_node() {
-	local version="${1:-}"
-	local openshift_volumes=( "${MASTER_CONFIG_DIR}" "${NODE_CONFIG_DIR}" )
-
-	os::log::debug "Creating node configuration for the OpenShift server"
-	oc adm create-node-config                                          \
-	                        --node-dir="${NODE_CONFIG_DIR}"                                   \
-	                        --node="${KUBELET_HOST}"                                          \
-	                        --hostnames="${KUBELET_HOST}"                                     \
-	                        --master="${MASTER_ADDR}"                                         \
-	                        --signer-cert="${MASTER_CONFIG_DIR}/ca.crt"                       \
-	                        --signer-key="${MASTER_CONFIG_DIR}/ca.key"                        \
-	                        --signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"              \
-	                        --certificate-authority="${MASTER_CONFIG_DIR}/ca.crt"             \
-	                        --node-client-certificate-authority="${MASTER_CONFIG_DIR}/ca.crt" \
-	                        --listen="${KUBELET_SCHEME}://${KUBELET_BIND_HOST}:${KUBELET_PORT}"
-}
-readonly -f os::start::internal::configure_node
 
 # os::start::internal::configure_master creates the configuration for the OpenShift master
 #
@@ -570,45 +538,3 @@ function os::start::internal::print_server_info() {
 	os::log::debug "Using images:             ${USE_IMAGES}"
 	os::log::debug "MasterIP is:              ${MASTER_ADDR}"
 }
-
-# os::start::router installs the OpenShift router and optionally creates
-# the server cert as well.
-#
-# Globals:
-#  - CREATE_ROUTER_CERT
-#  - MASTER_CONFIG_DIR
-#  - API_HOST
-#  - ADMIN_KUBECONFIG
-#  - USE_IMAGES
-# Arguments:
-#  None
-# Returns:
-#  None
-function os::start::router() {
-	os::log::debug "Installing the router"
-	oc adm policy add-scc-to-user privileged --serviceaccount='router' --config="${ADMIN_KUBECONFIG}"
-	# Create a TLS certificate for the router
-	if [[ -n "${CREATE_ROUTER_CERT:-}" ]]; then
-		os::log::debug "Generating router TLS certificate"
-		oc adm ca create-server-cert --hostnames="*.${API_HOST}.nip.io"        \
-		                           --key="${MASTER_CONFIG_DIR}/router.key"     \
-		                           --cert="${MASTER_CONFIG_DIR}/router.crt"    \
-		                           --signer-key="${MASTER_CONFIG_DIR}/ca.key"  \
-		                           --signer-cert="${MASTER_CONFIG_DIR}/ca.crt" \
-		                           --signer-serial="${MASTER_CONFIG_DIR}/ca.serial.txt"
-		cat "${MASTER_CONFIG_DIR}/router.crt" \
-		    "${MASTER_CONFIG_DIR}/router.key" \
-			"${MASTER_CONFIG_DIR}/ca.crt" > "${MASTER_CONFIG_DIR}/router.pem"
-		oc adm router --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router --default-cert="${MASTER_CONFIG_DIR}/router.pem"
-	else
-		oc adm router --config="${ADMIN_KUBECONFIG}" --images="${USE_IMAGES}" --service-account=router
-	fi
-
-	# Note that when the haproxy config manager is set based on router type,
-	# the env entry may need to be always set or removed (if defaulted).
-	if [[ -n "${ROUTER_HAPROXY_CONFIG_MANAGER:-}" ]]; then
-		os::log::debug "Changing the router DC to enable the haproxy config manager"
-		oc set env dc/router -c router ROUTER_HAPROXY_CONFIG_MANAGER=true
-	fi
-}
-readonly -f os::start::router
