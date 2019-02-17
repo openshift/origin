@@ -222,7 +222,7 @@ func (o *AppendImageOptions) Run() error {
 	}
 	ctx := context.Background()
 	fromContext := registryclient.NewContext(rt, insecureRT).WithCredentials(creds)
-	toContext := registryclient.NewContext(rt, insecureRT).WithActions("push").WithCredentials(creds)
+	toContext := registryclient.NewContext(rt, insecureRT).WithActions("pull", "push").WithCredentials(creds)
 
 	toRepo, err := toContext.Repository(ctx, to.DockerClientDefaults().RegistryURL(), to.RepositoryName(), o.Insecure)
 	if err != nil {
