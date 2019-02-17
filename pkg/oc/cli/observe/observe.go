@@ -246,7 +246,7 @@ func NewCmdObserve(fullName string, f kcmdutil.Factory, streams genericclioption
 	}
 
 	// flags controlling what to select
-	cmd.Flags().BoolVar(&o.allNamespaces, "all-namespaces", false, "If true, list the requested object(s) across all projects. Project in current context is ignored.")
+	cmd.Flags().BoolVarP(&o.allNamespaces, "all-namespaces", "A", o.allNamespaces, "If true, list the requested object(s) across all projects. Project in current context is ignored.")
 
 	// to perform deletion synchronization
 	cmd.Flags().VarP(&o.deleteCommand, "delete", "d", "A command to run when resources are deleted. Specify multiple times to add arguments.")
@@ -254,25 +254,25 @@ func NewCmdObserve(fullName string, f kcmdutil.Factory, streams genericclioption
 
 	// add additional arguments / info to the server
 	cmd.Flags().StringVar(&o.templateType, "output", o.templateType, "Controls the template type used for the --argument flags. Supported values are gotemplate and jsonpath.")
-	cmd.Flags().BoolVar(&o.strictTemplates, "strict-templates", false, "If true return an error on any field or map key that is not missing in a template.")
+	cmd.Flags().BoolVar(&o.strictTemplates, "strict-templates", o.strictTemplates, "If true return an error on any field or map key that is not missing in a template.")
 	cmd.Flags().VarP(&o.templates, "argument", "a", "Template for the arguments to be passed to each command in the format defined by --output.")
 	cmd.Flags().StringVar(&o.typeEnvVar, "type-env-var", "", "The name of an env var to set with the type of event received ('Sync', 'Updated', 'Deleted', 'Added') to the reaction command or --delete.")
 	cmd.Flags().StringVar(&o.objectEnvVar, "object-env-var", "", "The name of an env var to serialize the object to when calling the command, optional.")
 
 	// control retries of individual commands
 	cmd.Flags().IntVar(&o.maximumErrors, "maximum-errors", o.maximumErrors, "Exit after this many errors have been detected with. May be set to -1 for no maximum.")
-	cmd.Flags().IntVar(&o.retryExitStatus, "retry-on-exit-code", 0, "If any command returns this exit code, retry up to --retry-count times.")
+	cmd.Flags().IntVar(&o.retryExitStatus, "retry-on-exit-code", o.retryExitStatus, "If any command returns this exit code, retry up to --retry-count times.")
 	cmd.Flags().IntVar(&o.retryCount, "retry-count", o.retryCount, "The number of times to retry a failing command before continuing.")
 
 	// control observe program behavior
-	cmd.Flags().BoolVar(&o.once, "once", false, "If true, exit with a status code 0 after all current objects have been processed.")
-	cmd.Flags().DurationVar(&o.exitAfterPeriod, "exit-after", 0, "Exit with status code 0 after the provided duration, optional.")
-	cmd.Flags().DurationVar(&o.resyncPeriod, "resync-period", 0, "When non-zero, periodically reprocess every item from the server as a Sync event. Use to ensure external systems are kept up to date.")
-	cmd.Flags().BoolVar(&o.printMetricsOnExit, "print-metrics-on-exit", false, "If true, on exit write all metrics to stdout.")
+	cmd.Flags().BoolVar(&o.once, "once", o.once, "If true, exit with a status code 0 after all current objects have been processed.")
+	cmd.Flags().DurationVar(&o.exitAfterPeriod, "exit-after", o.exitAfterPeriod, "Exit with status code 0 after the provided duration, optional.")
+	cmd.Flags().DurationVar(&o.resyncPeriod, "resync-period", o.resyncPeriod, "When non-zero, periodically reprocess every item from the server as a Sync event. Use to ensure external systems are kept up to date.")
+	cmd.Flags().BoolVar(&o.printMetricsOnExit, "print-metrics-on-exit", o.printMetricsOnExit, "If true, on exit write all metrics to stdout.")
 	cmd.Flags().StringVar(&o.listenAddr, "listen-addr", o.listenAddr, "The name of an interface to listen on to expose metrics and health checking.")
 
 	// additional debug output
-	cmd.Flags().BoolVar(&o.noHeaders, "no-headers", false, "If true, skip printing information about each event prior to executing the command.")
+	cmd.Flags().BoolVar(&o.noHeaders, "no-headers", o.noHeaders, "If true, skip printing information about each event prior to executing the command.")
 
 	return cmd
 }

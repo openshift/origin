@@ -140,8 +140,9 @@ type ResourceOptions struct {
 
 func NewResourceOptions(streams genericclioptions.IOStreams) *ResourceOptions {
 	return &ResourceOptions{
-		PrintFlags: genericclioptions.NewPrintFlags("migrated").WithTypeSetter(scheme.Scheme),
-		IOStreams:  streams,
+		PrintFlags:    genericclioptions.NewPrintFlags("migrated").WithTypeSetter(scheme.Scheme),
+		IOStreams:     streams,
+		AllNamespaces: true,
 	}
 }
 
@@ -172,8 +173,8 @@ func (o *ResourceOptions) WithAllNamespaces() *ResourceOptions {
 
 func (o *ResourceOptions) Bind(c *cobra.Command) {
 	c.Flags().StringSliceVar(&o.Include, "include", o.Include, "Resource types to migrate. Passing --filename will override this flag.")
-	c.Flags().BoolVar(&o.AllNamespaces, "all-namespaces", true, "Migrate objects in all namespaces. Defaults to true.")
-	c.Flags().BoolVar(&o.Confirm, "confirm", false, "If true, all requested objects will be migrated. Defaults to false.")
+	c.Flags().BoolVarP(&o.AllNamespaces, "all-namespaces", "A", o.AllNamespaces, "Migrate objects in all namespaces. Defaults to true.")
+	c.Flags().BoolVar(&o.Confirm, "confirm", o.Confirm, "If true, all requested objects will be migrated. Defaults to false.")
 
 	c.Flags().StringVar(&o.FromKey, "from-key", o.FromKey, "If specified, only migrate items with a key (namespace/name or name) greater than or equal to this value")
 	c.Flags().StringVar(&o.ToKey, "to-key", o.ToKey, "If specified, only migrate items with a key (namespace/name or name) less than this value")

@@ -39,7 +39,7 @@ var (
 		Show details of a specific resource or group of resources
 
 		Print a detailed description of the selected resources, including related resources such
-		as events or controllers. You may select a single object by name, all objects of that 
+		as events or controllers. You may select a single object by name, all objects of that
 		type, provide a name prefix, or label selector. For example:
 
 		    $ kubectl describe TYPE NAME_PREFIX
@@ -114,7 +114,7 @@ func NewCmdDescribe(parent string, f cmdutil.Factory, streams genericclioptions.
 	usage := "containing the resource to describe"
 	cmdutil.AddFilenameOptionFlags(cmd, o.FilenameOptions, usage)
 	cmd.Flags().StringVarP(&o.Selector, "selector", "l", o.Selector, "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)")
-	cmd.Flags().BoolVar(&o.AllNamespaces, "all-namespaces", o.AllNamespaces, "If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace.")
+	cmd.Flags().BoolVarP(&o.AllNamespaces, "all-namespaces", "A", o.AllNamespaces, "If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even if specified with --namespace.")
 	cmd.Flags().BoolVar(&o.DescriberSettings.ShowEvents, "show-events", o.DescriberSettings.ShowEvents, "If true, display events related to the described object.")
 	cmdutil.AddIncludeUninitializedFlag(cmd)
 	return cmd

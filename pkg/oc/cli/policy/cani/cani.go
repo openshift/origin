@@ -79,7 +79,7 @@ func NewCmdCanI(name, fullName string, f kcmdutil.Factory, streams genericcliopt
 		Deprecated: "use 'oc auth can-i'",
 	}
 
-	cmd.Flags().BoolVar(&o.AllNamespaces, "all-namespaces", o.AllNamespaces, "If true, check the specified action in all namespaces.")
+	cmd.Flags().BoolVarP(&o.AllNamespaces, "all-namespaces", "A", o.AllNamespaces, "If true, check the specified action in all namespaces.")
 	cmd.Flags().BoolVar(&o.ListAll, "list", o.ListAll, "If true, list all the actions you can perform in a namespace, cannot be specified with --all-namespaces or a VERB RESOURCE")
 	cmd.Flags().BoolVarP(&o.Quiet, "quiet", "q", o.Quiet, "If true, suppress output and just return the exit code.")
 	cmd.Flags().BoolVar(&o.IgnoreScopes, "ignore-scopes", o.IgnoreScopes, "If true, disregard any scopes present on this request and evaluate considering full permissions.")
