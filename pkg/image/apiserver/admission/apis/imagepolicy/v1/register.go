@@ -14,7 +14,7 @@ var (
 		addKnownTypes,
 		addDefaultingFuncs,
 	)
-	InstallLegacy = schemeBuilder.AddToScheme
+	Install = schemeBuilder.AddToScheme
 )
 
 // Adds the list of known types to api.Scheme.

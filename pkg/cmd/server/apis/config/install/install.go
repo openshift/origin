@@ -35,7 +35,7 @@ func InstallLegacyInternal(scheme *runtime.Scheme) {
 	auditv1beta1.AddToScheme(scheme)
 	apiserver.AddToScheme(scheme)
 	apiserverv1alpha1.AddToScheme(scheme)
-	imagepolicyapiv1.InstallLegacy(scheme)
+	imagepolicyapiv1.Install(scheme)
 
 	// add the other admission config types we have
 	requestlimitinstall.InstallInternal(scheme)

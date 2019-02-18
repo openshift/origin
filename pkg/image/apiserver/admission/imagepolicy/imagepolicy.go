@@ -45,7 +45,7 @@ func Register(plugins *admission.Plugins) {
 					return nil, err
 				}
 				scheme := runtime.NewScheme()
-				utilruntime.Must(imagepolicy.InstallLegacy(scheme))
+				utilruntime.Must(imagepolicy.Install(scheme))
 				codecs := serializer.NewCodecFactory(scheme)
 				obj, err := runtime.Decode(codecs.UniversalDecoder(imagepolicy.GroupVersion), configContent)
 				fmt.Printf("decoded object: %#v\n, err: %v\n", obj, err)
