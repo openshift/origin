@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
+
 	"github.com/golang/glog"
 	lru "github.com/hashicorp/golang-lru"
 
@@ -47,17 +49,10 @@ func Register(plugins *admission.Plugins) {
 				scheme := runtime.NewScheme()
 				utilruntime.Must(imagepolicy.Install(scheme))
 				codecs := serializer.NewCodecFactory(scheme)
-				obj, err := runtime.Decode(codecs.UniversalDecoder(imagepolicy.GroupVersion), configContent)
-				fmt.Printf("decoded object: %#v\n, err: %v\n", obj, err)
+				err = runtime.DecodeInto(codecs.UniversalDecoder(imagepolicy.GroupVersion), configContent, config)
+				fmt.Printf("decoded object: %#v\n, err: %v\n", spew.Sdump(config), err)
 				if err != nil {
 					return nil, err
-				}
-				if obj != nil {
-					var ok bool
-					config, ok = obj.(*imagepolicy.ImagePolicyConfig)
-					if !ok {
-						return nil, fmt.Errorf("unexpected config object: %#v", obj)
-					}
 				}
 			}
 
