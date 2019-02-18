@@ -356,7 +356,7 @@ func (o *NewOptions) Run() error {
 		}
 		extractOpts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {
 			if config.Config != nil {
-				baseDigest = config.Config.Labels["io.openshift.release.base-image-digest"]
+				baseDigest = config.Config.Labels[annotationReleaseBaseImageDigest]
 				glog.V(4).Infof("Release image was built on top of %s", baseDigest)
 			}
 		}
@@ -394,12 +394,12 @@ func (o *NewOptions) Run() error {
 		if is.Annotations == nil {
 			is.Annotations = map[string]string{}
 		}
-		is.Annotations["release.openshift.io/from-release"] = o.FromReleaseImage
+		is.Annotations[annotationReleaseFromRelease] = o.FromReleaseImage
 
 		if inputIS.Annotations == nil {
 			inputIS.Annotations = make(map[string]string)
 		}
-		inputIS.Annotations["io.openshift.build.versions"] = extraComponentVersions.String()
+		inputIS.Annotations[annotationBuildVersions] = extraComponentVersions.String()
 
 		for _, tag := range is.Spec.Tags {
 			ordered = append(ordered, tag.Name)
@@ -435,7 +435,7 @@ func (o *NewOptions) Run() error {
 		is = &imageapi.ImageStream{}
 		is.Annotations = map[string]string{}
 		if len(o.FromImageStream) > 0 && len(o.Namespace) > 0 {
-			is.Annotations["release.openshift.io/from-image-stream"] = fmt.Sprintf("%s/%s", o.Namespace, o.FromImageStream)
+			is.Annotations[annotationReleaseFromImageStream] = fmt.Sprintf("%s/%s", o.Namespace, o.FromImageStream)
 		}
 
 		inputIS, err := o.ImageClient.ImageV1().ImageStreams(o.Namespace).Get(o.FromImageStream, metav1.GetOptions{})
@@ -446,7 +446,7 @@ func (o *NewOptions) Run() error {
 		if inputIS.Annotations == nil {
 			inputIS.Annotations = make(map[string]string)
 		}
-		inputIS.Annotations["io.openshift.build.versions"] = extraComponentVersions.String()
+		inputIS.Annotations[annotationBuildVersions] = extraComponentVersions.String()
 
 		if err := resolveImageStreamTagsToReferenceMode(inputIS, is, o.ReferenceMode, exclude); err != nil {
 			return err
@@ -534,7 +534,7 @@ func (o *NewOptions) Run() error {
 		if tag.Annotations == nil {
 			tag.Annotations = make(map[string]string)
 		}
-		tag.Annotations["io.openshift.release.override"] = "true"
+		tag.Annotations[annotationReleaseOverride] = "true"
 		tag.From = &corev1.ObjectReference{
 			Name: m.Destination,
 			Kind: "DockerImage",
@@ -784,7 +784,7 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 		// an unsupported release configuration
 		var custom bool
 		filter := extract.NewPositionLayerFilter(-1)
-		if tag.Annotations["io.openshift.release.override"] == "true" {
+		if tag.Annotations[annotationReleaseOverride] == "true" {
 			custom = true
 			filter = nil
 		}
@@ -807,19 +807,19 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 				if tag.Annotations == nil {
 					tag.Annotations = make(map[string]string)
 				}
-				tag.Annotations["io.openshift.build.commit.id"] = labels["io.openshift.build.commit.id"]
-				tag.Annotations["io.openshift.build.commit.ref"] = labels["io.openshift.build.commit.ref"]
-				tag.Annotations["io.openshift.build.source-location"] = labels["io.openshift.build.source-location"]
+				tag.Annotations[annotationBuildSourceCommit] = labels[annotationBuildSourceCommit]
+				tag.Annotations[annotationBuildSourceRef] = labels[annotationBuildSourceRef]
+				tag.Annotations[annotationBuildSourceLocation] = labels[annotationBuildSourceLocation]
 
-				if versions := labels["io.openshift.build.versions"]; len(versions) > 0 {
+				if versions := labels[annotationBuildVersions]; len(versions) > 0 {
 					if _, err := parseComponentVersionsLabel(versions); err != nil {
-						return false, fmt.Errorf("tag %q has an invalid io.openshift.build.versions label: %v", tag.Name, err)
+						return false, fmt.Errorf("tag %q has an invalid %s label: %v", tag.Name, annotationBuildVersions, err)
 					}
-					tag.Annotations["io.openshift.build.versions"] = versions
+					tag.Annotations[annotationBuildVersions] = versions
 				}
 
-				if len(labels["io.openshift.release.operator"]) == 0 {
-					glog.V(2).Infof("Image %s has no io.openshift.release.operator label, skipping", m.ImageRef)
+				if len(labels[annotationReleaseOperator]) == 0 {
+					glog.V(2).Infof("Image %s has no %s label, skipping", m.ImageRef, annotationReleaseOperator)
 					return false, nil
 				}
 				if err := os.MkdirAll(dstDir, 0770); err != nil {
@@ -987,7 +987,7 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 				{Comment: "Release image for OpenShift", Created: now},
 			}
 			if len(dgst) > 0 {
-				config.Config.Labels["io.openshift.release.base-image-digest"] = dgst.String()
+				config.Config.Labels[annotationReleaseBaseImageDigest] = dgst.String()
 			}
 			return nil
 		}

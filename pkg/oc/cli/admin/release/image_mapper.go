@@ -190,7 +190,7 @@ func NewTransformFromImageStreamFile(path string, input *imageapi.ImageStream, a
 		if _, ok := references[tag.Name]; !ok {
 			continue
 		}
-		value := tag.Annotations["io.openshift.build.versions"]
+		value := tag.Annotations[annotationBuildVersions]
 		items, err := parseComponentVersionsLabel(value)
 		if err != nil {
 			return nil, fmt.Errorf("input image stream has an invalid version annotation for tag %q: %v", tag.Name, value)
@@ -207,7 +207,7 @@ func NewTransformFromImageStreamFile(path string, input *imageapi.ImageStream, a
 			tagsByName[k] = append(tagsByName[k], tag.Name)
 		}
 	}
-	defaults, err := parseComponentVersionsLabel(input.Annotations["io.openshift.build.versions"])
+	defaults, err := parseComponentVersionsLabel(input.Annotations[annotationBuildVersions])
 	if err != nil {
 		return nil, fmt.Errorf("unable to read default versions label on input image stream: %v", err)
 	}
