@@ -25,7 +25,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/configflags"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftadmission"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	"github.com/openshift/origin/pkg/version"
@@ -179,7 +178,7 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 	admissionOptions.EnablePlugins = config.AdmissionConfig.EnabledAdmissionPlugins
 	admissionOptions.DisablePlugins = config.AdmissionConfig.DisabledAdmissionPlugins
 	admissionOptions.ConfigFile = admissionConfigFile
-	admissionOptions.ApplyTo(&genericConfig.Config, kubeInformers, kubeClientConfig, configapi.Scheme, admissionInitializer)
+	admissionOptions.ApplyTo(&genericConfig.Config, kubeInformers, kubeClientConfig, legacyscheme.Scheme, admissionInitializer)
 
 	var externalRegistryHostname string
 	if len(config.ImagePolicyConfig.ExternalRegistryHostnames) > 0 {
