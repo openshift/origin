@@ -8,7 +8,6 @@ import (
 
 	buildsecretinjector "github.com/openshift/origin/pkg/build/apiserver/admission/secretinjector"
 	buildstrategyrestrictions "github.com/openshift/origin/pkg/build/apiserver/admission/strategyrestrictions"
-	imagepolicyapiv1 "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy"
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 	projectrequestlimit "github.com/openshift/origin/pkg/project/apiserver/admission/requestlimit"
@@ -38,8 +37,8 @@ func RegisterOpenshiftAdmissionPlugins(plugins *admission.Plugins) {
 	buildsecretinjector.Register(plugins)
 	buildstrategyrestrictions.Register(plugins)
 	imageadmission.Register(plugins)
-	schedulerpodnodeconstraints.Register(plugins)
 	imagepolicy.Register(plugins)
+	schedulerpodnodeconstraints.Register(plugins)
 	quotaclusterresourcequota.Register(plugins)
 }
 
@@ -55,8 +54,8 @@ var (
 		"build.openshift.io/BuildConfigSecretInjector",
 		"build.openshift.io/BuildByStrategy",
 		"image.openshift.io/ImageLimitRange",
+		"image.openshift.io/ImagePolicy",
 		"scheduling.openshift.io/PodNodeConstraints",
-		imagepolicyapiv1.PluginName,
 		"quota.openshift.io/ClusterResourceQuota",
 
 		// the rest of the kube chain goes here
