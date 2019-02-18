@@ -105,30 +105,6 @@ func (opt *Options) Run(args []string) error {
 	}
 
 	if opt.DryRun {
-		// if true {
-		// 	bySuite := make(map[string][]*testCase)
-		// 	for _, test := range tests {
-		// 		bySuite[test.testExclusion] = append(bySuite[test.testExclusion], test)
-		// 	}
-		// 	var names []string
-		// 	for k := range bySuite {
-		// 		names = append(names, k)
-		// 	}
-		// 	sort.Slice(names, func(i, j int) bool {
-		// 		return len(bySuite[names[i]]) > len(bySuite[names[j]])
-		// 	})
-		// 	for _, name := range names {
-		// 		if len(name) == 0 {
-		// 			fmt.Fprintf(out, "<none>:\n")
-		// 		} else {
-		// 			fmt.Fprintf(out, "%s:\n", name)
-		// 		}
-		// 		for _, test := range sortedTests(bySuite[name]) {
-		// 			fmt.Fprintf(out, "  %q\n", test.name)
-		// 		}
-		// 	}
-		// 	return nil
-		// }
 		for _, test := range sortedTests(tests) {
 			fmt.Fprintf(opt.Out, "%q\n", test.name)
 		}
@@ -158,8 +134,6 @@ func (opt *Options) Run(args []string) error {
 		timeout = suite.TestTimeout
 	}
 	if timeout == 0 {
-		// TODO: temporarily increased because some normally fast build tests have become much slower
-		//   reduce back to 10m at some point in the future
 		timeout = 15 * time.Minute
 	}
 
