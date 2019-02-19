@@ -245,7 +245,7 @@ func (p *HostAdmitter) displacedRoutes(newRoute *routeapi.Route) ([]*routeapi.Ro
 	// See if any existing routes block our host, or if we displace their host
 	for i, route := range p.claimedHosts[newRoute.Spec.Host] {
 		if p.disableNamespaceCheck || route.Namespace == newRoute.Namespace {
-			if !p.disableNamespaceCheck && route.Name == newRoute.Name {
+			if route.UID == newRoute.UID {
 				continue
 			}
 
@@ -284,7 +284,7 @@ func (p *HostAdmitter) displacedRoutes(newRoute *routeapi.Route) ([]*routeapi.Ro
 	// See if any existing wildcard routes block our domain, or if we displace them
 	for i, route := range p.claimedWildcards[wildcardKey] {
 		if p.disableNamespaceCheck || route.Namespace == newRoute.Namespace {
-			if !p.disableNamespaceCheck && route.Name == newRoute.Name {
+			if route.UID == newRoute.UID {
 				continue
 			}
 
