@@ -35,12 +35,17 @@ func BuildHandlerChain(genericConfig *genericapiserver.Config, oauthConfig *osin
 
 	extraPostStartHooks := map[string]genericapiserver.PostStartHookFunc{}
 
-	oauthServerHandler, newPostStartHooks, err := NewOAuthServerHandler(genericConfig, oauthConfig)
-	if err != nil {
-		return nil, nil, err
-	}
-	for name, fn := range newPostStartHooks {
-		extraPostStartHooks[name] = fn
+	var oauthServerHandler http.Handler
+	if oauthConfig != nil {
+		var newPostStartHooks map[string]genericapiserver.PostStartHookFunc
+		var err error
+		oauthServerHandler, newPostStartHooks, err = NewOAuthServerHandler(genericConfig, oauthConfig)
+		if err != nil {
+			return nil, nil, err
+		}
+		for name, fn := range newPostStartHooks {
+			extraPostStartHooks[name] = fn
+		}
 	}
 
 	return func(apiHandler http.Handler, genericConfig *genericapiserver.Config) http.Handler {
@@ -57,9 +62,11 @@ func BuildHandlerChain(genericConfig *genericapiserver.Config, oauthConfig *osin
 			// redirects from / and /console to consolePublicURL if you're using a browser
 			handler = withConsoleRedirect(handler, consolePublicURL)
 
-			// these handlers are actually separate API servers which have their own handler chains.
-			// our server embeds these
-			handler = withOAuthRedirection(oauthConfig, handler, oauthServerHandler)
+			if oauthConfig != nil {
+				// these handlers are actually separate API servers which have their own handler chains.
+				// our server embeds these
+				handler = withOAuthRedirection(oauthConfig, handler, oauthServerHandler)
+			}
 
 			return handler
 		},
