@@ -668,8 +668,6 @@ func (o *DebugOptions) transformPodForDebug(annotations map[string]string) (*cor
 	} else {
 		pod.Labels = map[string]string{}
 	}
-	// always clear the NodeName
-	pod.Spec.NodeName = o.NodeName
 
 	pod.ResourceVersion = ""
 	pod.Spec.RestartPolicy = corev1.RestartPolicyNever
@@ -795,39 +793,39 @@ func (o *DebugOptions) approximatePodTemplateForObject(object runtime.Object) (*
 	case *imagev1.ImageStreamTag:
 		// create a minimal pod spec that uses the image referenced by the istag without any introspection
 		// it possible that we could someday do a better job introspecting it
-		return &corev1.PodTemplateSpec{
+		return setNodeName(&corev1.PodTemplateSpec{
 			Spec: corev1.PodSpec{
 				RestartPolicy: corev1.RestartPolicyNever,
 				Containers: []corev1.Container{
 					{Name: "container-00", Image: t.Image.DockerImageReference},
 				},
 			},
-		}, nil
+		}, o.NodeName), nil
 	case *imagev1.ImageStreamImage:
 		// create a minimal pod spec that uses the image referenced by the istag without any introspection
 		// it possible that we could someday do a better job introspecting it
-		return &corev1.PodTemplateSpec{
+		return setNodeName(&corev1.PodTemplateSpec{
 			Spec: corev1.PodSpec{
 				RestartPolicy: corev1.RestartPolicyNever,
 				Containers: []corev1.Container{
 					{Name: "container-00", Image: t.Image.DockerImageReference},
 				},
 			},
-		}, nil
+		}, o.NodeName), nil
 	case *appsv1.DeploymentConfig:
 		fallback := t.Spec.Template
 
 		latestDeploymentName := appsutil.LatestDeploymentNameForConfig(t)
 		deployment, err := o.CoreClient.ReplicationControllers(t.Namespace).Get(latestDeploymentName, metav1.GetOptions{})
 		if err != nil {
-			return fallback, err
+			return setNodeName(fallback, o.NodeName), err
 		}
 
 		fallback = deployment.Spec.Template
 
 		pods, err := o.CoreClient.Pods(deployment.Namespace).List(metav1.ListOptions{LabelSelector: labels.SelectorFromSet(deployment.Spec.Selector).String()})
 		if err != nil {
-			return fallback, err
+			return setNodeName(fallback, o.NodeName), err
 		}
 
 		// If we have any pods available, find the newest
@@ -843,48 +841,53 @@ func (o *DebugOptions) approximatePodTemplateForObject(object runtime.Object) (*
 				}
 			}
 		}
-		return fallback, nil
+		return setNodeName(fallback, o.NodeName), nil
 
 	case *corev1.Pod:
-		return &corev1.PodTemplateSpec{
+		return setNodeName(&corev1.PodTemplateSpec{
 			ObjectMeta: t.ObjectMeta,
 			Spec:       t.Spec,
-		}, nil
+		}, o.NodeName), nil
 
 	// ReplicationController
 	case *corev1.ReplicationController:
-		return t.Spec.Template, nil
+		return setNodeName(t.Spec.Template, o.NodeName), nil
 
 	// ReplicaSet
 	case *extensionsv1beta1.ReplicaSet:
-		return &t.Spec.Template, nil
+		return setNodeName(&t.Spec.Template, o.NodeName), nil
 	case *kappsv1beta2.ReplicaSet:
-		return &t.Spec.Template, nil
+		return setNodeName(&t.Spec.Template, o.NodeName), nil
 	case *kappsv1.ReplicaSet:
-		return &t.Spec.Template, nil
+		return setNodeName(&t.Spec.Template, o.NodeName), nil
 
 	// Deployment
 	case *extensionsv1beta1.Deployment:
-		return &t.Spec.Template, nil
+		return setNodeName(&t.Spec.Template, o.NodeName), nil
 	case *kappsv1beta1.Deployment:
-		return &t.Spec.Template, nil
+		return setNodeName(&t.Spec.Template, o.NodeName), nil
 	case *kappsv1beta2.Deployment:
-		return &t.Spec.Template, nil
+		return setNodeName(&t.Spec.Template, o.NodeName), nil
 	case *kappsv1.Deployment:
-		return &t.Spec.Template, nil
+		return setNodeName(&t.Spec.Template, o.NodeName), nil
 
 	// DaemonSet
 	case *extensionsv1beta1.DaemonSet:
-		return &t.Spec.Template, nil
+		return setNodeName(&t.Spec.Template, o.NodeName), nil
 	case *kappsv1beta2.DaemonSet:
-		return &t.Spec.Template, nil
+		return setNodeName(&t.Spec.Template, o.NodeName), nil
 	case *kappsv1.DaemonSet:
-		return &t.Spec.Template, nil
+		return setNodeName(&t.Spec.Template, o.NodeName), nil
 
 	// Job
 	case *batchv1.Job:
-		return &t.Spec.Template, nil
+		return setNodeName(&t.Spec.Template, o.NodeName), nil
 	}
 
 	return nil, fmt.Errorf("unable to extract pod template from type %v", reflect.TypeOf(object))
+}
+
+func setNodeName(template *corev1.PodTemplateSpec, nodeName string) *corev1.PodTemplateSpec {
+	template.Spec.NodeName = nodeName
+	return template
 }
