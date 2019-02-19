@@ -58,5 +58,5 @@ func init() {
 var defaultKubernetesFeatureGates = map[utilfeature.Feature]utilfeature.FeatureSpec{
 	CustomResourceValidation:     {Default: true, PreRelease: utilfeature.Beta},
 	CustomResourceSubresources:   {Default: true, PreRelease: utilfeature.Beta},
-	CustomResourcePublishOpenAPI: {Default: false, PreRelease: utilfeature.Alpha},
+	CustomResourcePublishOpenAPI: {Default: true, PreRelease: utilfeature.Alpha},
 }
