@@ -11,6 +11,10 @@ function codegen::join() { local IFS="$1"; shift; echo "$*"; }
 
 # enumerate group versions
 ALL_FQ_APIS=(
+    github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride
+    github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride/v1
+    github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration
+    github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration/v1
     github.com/openshift/origin/pkg/cmd/server/apis/config
     github.com/openshift/origin/pkg/cmd/server/apis/config/v1
     github.com/openshift/origin/pkg/cmd/server/apis/config/v1/testing
@@ -18,18 +22,14 @@ ALL_FQ_APIS=(
     github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1
     github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit
     github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit/v1
-    github.com/openshift/origin/pkg/quota/apiserver/admission/apis/clusterresourceoverride
-    github.com/openshift/origin/pkg/quota/apiserver/admission/apis/clusterresourceoverride/v1
-    github.com/openshift/origin/pkg/quota/apiserver/admission/apis/runonceduration
-    github.com/openshift/origin/pkg/quota/apiserver/admission/apis/runonceduration/v1
     github.com/openshift/origin/pkg/route/apiserver/admission/apis/ingressadmission
     github.com/openshift/origin/pkg/route/apiserver/admission/apis/ingressadmission/v1
     github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints
     github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints/v1
-    github.com/openshift/origin/pkg/service/admission/apis/externalipranger
-    github.com/openshift/origin/pkg/service/admission/apis/externalipranger/v1
-    github.com/openshift/origin/pkg/service/admission/apis/restrictedendpoints
-    github.com/openshift/origin/pkg/service/admission/apis/restrictedendpoints/v1
+    github.com/openshift/origin/pkg/network/admission/apis/externalipranger
+    github.com/openshift/origin/pkg/network/admission/apis/externalipranger/v1
+    github.com/openshift/origin/pkg/network/admission/apis/restrictedendpoints
+    github.com/openshift/origin/pkg/network/admission/apis/restrictedendpoints/v1
     github.com/openshift/origin/pkg/template/servicebroker/apis/config
     github.com/openshift/origin/pkg/template/servicebroker/apis/config/v1
     github.com/openshift/origin/pkg/util/testing

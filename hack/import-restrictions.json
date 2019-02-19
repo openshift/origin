@@ -38,6 +38,7 @@
     ],
     "ignoredSubTrees": [
       "github.com/openshift/origin/pkg/apiserver/admission",
+      "github.com/openshift/origin/pkg/autoscaling/admission/clusterresourceoverride",
       "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/kubeadmission",
       "github.com/openshift/origin/pkg/apps/apiserver",
       "github.com/openshift/origin/pkg/build/apiserver",
@@ -49,7 +50,6 @@
       "github.com/openshift/origin/pkg/security/apiserver",
       "github.com/openshift/origin/pkg/template/apiserver",
       "github.com/openshift/origin/pkg/user/apiserver",
-      "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride",
       "github.com/openshift/origin/pkg/oc/cli/admin/createbootstrapprojecttemplate",
       "github.com/openshift/origin/pkg/cmd/server",
       "github.com/openshift/origin/pkg/cmd/openshift-apiserver",
@@ -79,6 +79,7 @@
     ],
     "ignoredSubTrees": [
       "github.com/openshift/origin/pkg/apiserver/admission",
+      "github.com/openshift/origin/pkg/autoscaling/admission/clusterresourceoverride",
       "github.com/openshift/origin/pkg/image/generated",
       "github.com/openshift/origin/pkg/oauth/generated",
       "github.com/openshift/origin/pkg/project/generated",
@@ -96,7 +97,6 @@
       "github.com/openshift/origin/pkg/security/apiserver",
       "github.com/openshift/origin/pkg/template/apiserver",
       "github.com/openshift/origin/pkg/user/apiserver",
-      "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride",
       "github.com/openshift/origin/pkg/oc",
       "github.com/openshift/origin/pkg/cmd/server",
       "github.com/openshift/origin/pkg/cmd/openshift-apiserver",
