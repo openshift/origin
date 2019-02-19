@@ -33,6 +33,10 @@ func (r rejectionRecorder) RecordRouteRejection(route *routeapi.Route, reason, m
 	r.rejections[r.rejectionKey(route)] = reason
 }
 
+func (r rejectionRecorder) Clear() {
+	r.rejections = make(map[string]string)
+}
+
 func wildcardAdmitter(route *routeapi.Route) error {
 	if len(route.Spec.Host) < 1 {
 		return nil
@@ -1002,5 +1006,231 @@ func TestDisableOwnershipChecksFuzzing(t *testing.T) {
 
 	if len(errors) > 0 {
 		t.Errorf("Unexpected errors:\n%s", strings.Join(errors.List(), "\n"))
+	}
+}
+
+func TestWildcardPathRoutesWithoutNSCheckResyncs(t *testing.T) {
+	p := &fakePlugin{}
+
+	recorder := rejectionRecorder{rejections: make(map[string]string)}
+	admitter := NewHostAdmitter(p, wildcardAdmitter, true, true, recorder)
+
+	oldest := metav1.Time{Time: time.Now()}
+
+	tests := []struct {
+		namespace string
+		name      string
+		host      string
+		path      string
+		policy    routeapi.WildcardPolicyType
+		createdAt metav1.Time
+		errors    bool
+	}{
+		{
+			namespace: "wildness",
+			name:      "owner-wildcard-path",
+			host:      "star.wildcard.test",
+			path:      "/wildflowers",
+			policy:    routeapi.WildcardPolicySubdomain,
+			createdAt: oldest,
+			errors:    false,
+		},
+		{
+			namespace: "wildness",
+			name:      "same-ns-wildcard-frontend-nopath",
+			host:      "star.wildcard.test",
+			policy:    routeapi.WildcardPolicySubdomain,
+			createdAt: metav1.Time{Time: oldest.Add(1 * time.Hour)},
+			errors:    false,
+		},
+		{
+			namespace: "wildness",
+			name:      "same-ns-wildcard-mobile-path",
+			host:      "star.wildcard.test",
+			path:      "/mobile",
+			policy:    routeapi.WildcardPolicySubdomain,
+			createdAt: metav1.Time{Time: oldest.Add(2 * time.Hour)},
+			errors:    false,
+		},
+		{
+			namespace: "wildness",
+			name:      "same-ns-wildcard-auth-path",
+			host:      "star.wildcard.test",
+			path:      "/auth",
+			policy:    routeapi.WildcardPolicySubdomain,
+			createdAt: metav1.Time{Time: oldest.Add(3 * time.Hour)},
+			errors:    false,
+		},
+		{
+			namespace: "wildness",
+			name:      "same-ns-wildcard-nopath-rejected",
+			host:      "star.wildcard.test",
+			policy:    routeapi.WildcardPolicySubdomain,
+			createdAt: metav1.Time{Time: oldest.Add(4 * time.Hour)},
+			errors:    true,
+		},
+		{
+			namespace: "wildness",
+			name:      "same-ns-plain-nopath",
+			host:      "plain.wildcard.test",
+			policy:    routeapi.WildcardPolicyNone,
+			createdAt: metav1.Time{Time: oldest.Add(5 * time.Hour)},
+			errors:    false,
+		},
+		{
+			namespace: "wildness",
+			name:      "same-ns-plain-path",
+			host:      "star.wildcard.test",
+			path:      "/plain/rain",
+			policy:    routeapi.WildcardPolicyNone,
+			createdAt: metav1.Time{Time: oldest.Add(6 * time.Hour)},
+			errors:    false,
+		},
+		{
+			namespace: "wildness",
+			name:      "same-ns-dup-plain-nopath-rejected",
+			host:      "plain.wildcard.test",
+			policy:    routeapi.WildcardPolicyNone,
+			createdAt: metav1.Time{Time: oldest.Add(7 * time.Hour)},
+			errors:    true,
+		},
+		{
+			namespace: "bewilder",
+			name:      "other-ns-wildcard-status-path",
+			host:      "star.wildcard.test",
+			path:      "/status",
+			policy:    routeapi.WildcardPolicySubdomain,
+			createdAt: metav1.Time{Time: oldest.Add(10 * time.Hour)},
+			errors:    false,
+		},
+		{
+			namespace: "bewilder",
+			name:      "other-ns-plain-nopath-rejected",
+			host:      "plain.wildcard.test",
+			policy:    routeapi.WildcardPolicyNone,
+			createdAt: metav1.Time{Time: oldest.Add(11 * time.Hour)},
+			errors:    true,
+		},
+		{
+			namespace: "bewilder",
+			name:      "other-ns-plain-path",
+			host:      "star.wildcard.test",
+			path:      "/explain/ed",
+			policy:    routeapi.WildcardPolicyNone,
+			createdAt: metav1.Time{Time: oldest.Add(12 * time.Hour)},
+			errors:    false,
+		},
+		{
+			namespace: "wildcat",
+			name:      "another-ns-wildcard-nopath-rejected",
+			host:      "star.wildcard.test",
+			policy:    routeapi.WildcardPolicySubdomain,
+			createdAt: metav1.Time{Time: oldest.Add(20 * time.Hour)},
+			errors:    true,
+		},
+		{
+			namespace: "wildcat",
+			name:      "another-ns-dup-wildcard-path-rejected",
+			host:      "star.wildcard.test",
+			path:      "/auth",
+			policy:    routeapi.WildcardPolicySubdomain,
+			createdAt: metav1.Time{Time: oldest.Add(21 * time.Hour)},
+			errors:    true,
+		},
+		{
+			namespace: "wildcat",
+			name:      "another-ns-plain-path",
+			host:      "plain.wildcard.test",
+			path:      "/re/explain/ed",
+			policy:    routeapi.WildcardPolicyNone,
+			createdAt: metav1.Time{Time: oldest.Add(22 * time.Hour)},
+			errors:    false,
+		},
+		{
+			namespace: "wildcat",
+			name:      "another-ns-plain-path-rejected",
+			host:      "star.wildcard.test",
+			path:      "/plain/rain",
+			policy:    routeapi.WildcardPolicyNone,
+			createdAt: metav1.Time{Time: oldest.Add(23 * time.Hour)},
+			errors:    true,
+		},
+	}
+
+	for _, tc := range tests {
+		route := &routeapi.Route{
+			ObjectMeta: metav1.ObjectMeta{
+				CreationTimestamp: tc.createdAt,
+				Namespace:         tc.namespace,
+				Name:              tc.name,
+			},
+			Spec: routeapi.RouteSpec{
+				Host:           tc.host,
+				Path:           tc.path,
+				WildcardPolicy: tc.policy,
+			},
+		}
+
+		err := admitter.HandleRoute(watch.Added, route)
+		if tc.errors {
+			if err == nil {
+				t.Fatalf("Test case %s expected errors, got none", tc.name)
+			}
+
+			k := recorder.rejectionKey(route)
+			if _, ok := recorder.rejections[k]; !ok {
+				t.Fatalf("Test case %s expected a rejection, got none", tc.name)
+			}
+		} else {
+			if err != nil {
+				t.Fatalf("Test case %s expected no errors, got %v", tc.name, err)
+			}
+		}
+	}
+
+	rand.Seed(time.Now().UTC().UnixNano())
+	for i := 0; i < 10000; i++ {
+		index := rand.Intn(len(tests))
+		tc := tests[index]
+
+		route := &routeapi.Route{
+			ObjectMeta: metav1.ObjectMeta{
+				CreationTimestamp: tc.createdAt,
+				Namespace:         tc.namespace,
+				Name:              tc.name,
+			},
+			Spec: routeapi.RouteSpec{
+				Host:           tc.host,
+				Path:           tc.path,
+				WildcardPolicy: tc.policy,
+			},
+		}
+
+		eventType := watch.Modified
+		if rand.Intn(100)%2 == 0 {
+			eventType = watch.Added
+		}
+
+		// recorder.Clear()
+		err := admitter.HandleRoute(eventType, route)
+		if tc.errors {
+			if err == nil {
+				t.Fatalf("resync route for test case %s expected errors, got none", tc.name)
+			}
+
+			k := recorder.rejectionKey(route)
+			if _, ok := recorder.rejections[k]; !ok {
+				t.Fatalf("resync route for test case %s expected a rejection, got none", tc.name)
+			}
+		} else {
+			if err != nil {
+				t.Fatalf("resync route for test case %s expected no errors, got %v", tc.name, err)
+			}
+
+			k := recorder.rejectionKey(route)
+			if rejection, ok := recorder.rejections[k]; ok {
+				t.Fatalf("resync route for test case %s event=%s expected no rejection, got %s", tc.name, eventType, rejection)
+			}
+		}
 	}
 }
