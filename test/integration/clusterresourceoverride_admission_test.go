@@ -8,11 +8,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	overrideapi "github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configinstall "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	overrideapi "github.com/openshift/origin/pkg/quota/apiserver/admission/apis/clusterresourceoverride"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

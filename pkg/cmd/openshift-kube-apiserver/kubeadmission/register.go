@@ -7,16 +7,16 @@ import (
 
 	"github.com/openshift/origin/pkg/admission/customresourcevalidation/customresourcevalidationregistration"
 	authorizationrestrictusers "github.com/openshift/origin/pkg/authorization/apiserver/admission/restrictusers"
+	quotaclusterresourceoverride "github.com/openshift/origin/pkg/autoscaling/admission/clusterresourceoverride"
+	quotarunonceduration "github.com/openshift/origin/pkg/autoscaling/admission/runonceduration"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy"
-	projectnodeenv "github.com/openshift/origin/pkg/project/apiserver/admission/nodeenv"
-	quotaclusterresourceoverride "github.com/openshift/origin/pkg/quota/apiserver/admission/clusterresourceoverride"
+	"github.com/openshift/origin/pkg/network/admission/externalipranger"
+	"github.com/openshift/origin/pkg/network/admission/restrictedendpoints"
 	quotaclusterresourcequota "github.com/openshift/origin/pkg/quota/apiserver/admission/clusterresourcequota"
-	quotarunonceduration "github.com/openshift/origin/pkg/quota/apiserver/admission/runonceduration"
 	ingressadmission "github.com/openshift/origin/pkg/route/apiserver/admission"
+	projectnodeenv "github.com/openshift/origin/pkg/scheduler/admission/nodeenv"
 	schedulerpodnodeconstraints "github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints"
 	securityadmission "github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
-	"github.com/openshift/origin/pkg/service/admission/externalipranger"
-	"github.com/openshift/origin/pkg/service/admission/restrictedendpoints"
 )
 
 func RegisterOpenshiftKubeAdmissionPlugins(plugins *admission.Plugins) {
