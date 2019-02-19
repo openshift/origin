@@ -26,6 +26,10 @@ type Interface interface {
 	OpenShiftControllerManagers() OpenShiftControllerManagerInformer
 	// ServiceCAs returns a ServiceCAInformer.
 	ServiceCAs() ServiceCAInformer
+	// ServiceCatalogAPIServers returns a ServiceCatalogAPIServerInformer.
+	ServiceCatalogAPIServers() ServiceCatalogAPIServerInformer
+	// ServiceCatalogControllerManagers returns a ServiceCatalogControllerManagerInformer.
+	ServiceCatalogControllerManagers() ServiceCatalogControllerManagerInformer
 }
 
 type version struct {
@@ -82,4 +86,14 @@ func (v *version) OpenShiftControllerManagers() OpenShiftControllerManagerInform
 // ServiceCAs returns a ServiceCAInformer.
 func (v *version) ServiceCAs() ServiceCAInformer {
 	return &serviceCAInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// ServiceCatalogAPIServers returns a ServiceCatalogAPIServerInformer.
+func (v *version) ServiceCatalogAPIServers() ServiceCatalogAPIServerInformer {
+	return &serviceCatalogAPIServerInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// ServiceCatalogControllerManagers returns a ServiceCatalogControllerManagerInformer.
+func (v *version) ServiceCatalogControllerManagers() ServiceCatalogControllerManagerInformer {
+	return &serviceCatalogControllerManagerInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

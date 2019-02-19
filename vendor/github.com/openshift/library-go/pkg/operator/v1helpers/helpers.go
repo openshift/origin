@@ -133,6 +133,46 @@ func EnsureOperatorConfigExists(client dynamic.Interface, operatorConfigBytes []
 	}
 }
 
+// UpdateOperatorSpecFunc is a func that mutates an operator spec.
+type UpdateOperatorSpecFunc func(spec *operatorv1.OperatorSpec) error
+
+// UpdateSpec applies the update funcs to the oldStatus and tries to update via the client.
+func UpdateSpec(client OperatorClient, updateFuncs ...UpdateOperatorSpecFunc) (*operatorv1.OperatorSpec, bool, error) {
+	updated := false
+	var operatorSpec *operatorv1.OperatorSpec
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		oldSpec, _, resourceVersion, err := client.GetOperatorState()
+		if err != nil {
+			return err
+		}
+
+		newSpec := oldSpec.DeepCopy()
+		for _, update := range updateFuncs {
+			if err := update(newSpec); err != nil {
+				return err
+			}
+		}
+
+		if equality.Semantic.DeepEqual(oldSpec, newSpec) {
+			return nil
+		}
+
+		operatorSpec, _, err = client.UpdateOperatorSpec(resourceVersion, newSpec)
+		updated = err == nil
+		return err
+	})
+
+	return operatorSpec, updated, err
+}
+
+// UpdateSpecConfigFn returns a func to update the config.
+func UpdateObservedConfigFn(config map[string]interface{}) UpdateOperatorSpecFunc {
+	return func(oldSpec *operatorv1.OperatorSpec) error {
+		oldSpec.ObservedConfig = runtime.RawExtension{Object: &unstructured.Unstructured{Object: config}}
+		return nil
+	}
+}
+
 // UpdateStatusFunc is a func that mutates an operator status.
 type UpdateStatusFunc func(status *operatorv1.OperatorStatus) error
 
@@ -194,6 +234,8 @@ func UpdateStaticPodStatus(client StaticPodOperatorClient, updateFuncs ...Update
 		}
 
 		if equality.Semantic.DeepEqual(oldStatus, newStatus) {
+			// We return the newStatus which is a deep copy of oldStatus but with all update funcs applied.
+			updatedOperatorStatus = newStatus
 			return nil
 		}
 

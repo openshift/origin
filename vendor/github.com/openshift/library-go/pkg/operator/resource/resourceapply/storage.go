@@ -1,6 +1,8 @@
 package resourceapply
 
 import (
+	"github.com/golang/glog"
+
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -25,18 +27,24 @@ func ApplyStorageClass(client storageclientv1.StorageClassesGetter, recorder eve
 	}
 
 	modified := resourcemerge.BoolPtr(false)
-	resourcemerge.EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
-	contentSame := equality.Semantic.DeepEqual(existing, required)
+	existingCopy := existing.DeepCopy()
+
+	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	contentSame := equality.Semantic.DeepEqual(existingCopy, required)
 	if contentSame && !*modified {
-		return existing, false, nil
+		return existingCopy, false, nil
 	}
 
-	objectMeta := existing.ObjectMeta.DeepCopy()
-	existing = required.DeepCopy()
-	existing.ObjectMeta = *objectMeta
+	objectMeta := existingCopy.ObjectMeta.DeepCopy()
+	existingCopy = required.DeepCopy()
+	existingCopy.ObjectMeta = *objectMeta
+
+	if glog.V(4) {
+		glog.Infof("StorageClass %q changes: %v", required.Name, JSONPatch(existing, existingCopy))
+	}
 
 	// TODO if provisioner, parameters, reclaimpolicy, or volumebindingmode are different, update will fail so delete and recreate
-	actual, err := client.StorageClasses().Update(existing)
+	actual, err := client.StorageClasses().Update(existingCopy)
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }

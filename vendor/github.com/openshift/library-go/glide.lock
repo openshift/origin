@@ -1,5 +1,5 @@
-hash: c8161b3b35173fc68d50dcacf28ff2a5696159b2882ab6e47cbf28a65eaa214c
-updated: 2019-01-28T11:14:07.854686283-05:00
+hash: 6dba1fdcbca5b8cd27ff1f69ce80ee41c2c60087cbf3407dc847ac49e4878614
+updated: 2019-02-18T14:37:18.970240624-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -151,6 +151,41 @@ imports:
   - ptypes/any
   - ptypes/duration
   - ptypes/timestamp
+- name: github.com/gonum/blas
+  version: f22b278b28ac9805aadd613a754a60c35b24ae69
+  subpackages:
+  - blas64
+  - native
+  - native/internal/math32
+- name: github.com/gonum/floats
+  version: c233463c7e827fd71a8cdb62dfda0e98f7c39ad5
+- name: github.com/gonum/graph
+  version: 50b27dea7ebbfb052dfaf91681afc6fde28d8796
+  subpackages:
+  - encoding/dot
+  - formats/dot
+  - formats/dot/ast
+  - formats/dot/internal/astx
+  - formats/dot/internal/errors
+  - formats/dot/internal/lexer
+  - formats/dot/internal/parser
+  - formats/dot/internal/token
+  - internal/ordered
+  - simple
+- name: github.com/gonum/internal
+  version: f884aa71402950fb2796dbea0d5aa9ef9cfad8ca
+  subpackages:
+  - asm/f32
+  - asm/f64
+- name: github.com/gonum/lapack
+  version: e4cdc5a0bff924bb10be88482e635bd40429f65e
+  subpackages:
+  - lapack64
+  - native
+- name: github.com/gonum/matrix
+  version: c518dec07be9a636c38a4650e217be059b5952ec
+  subpackages:
+  - mat64
 - name: github.com/google/btree
   version: 7d79101e329e5a3adf994758c578dab82b90c017
 - name: github.com/google/gofuzz
@@ -196,7 +231,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/openshift/api
-  version: 130a85ac529b6626098a97be326c244a6bf380b5
+  version: af79befc50a8223c8122e9e654f65763dd17a87e
   subpackages:
   - apps
   - apps/v1
@@ -242,7 +277,7 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 1540772775fa910515f0ff094d83ef41735d470b
+  version: 31ef839c86359881d2c312c4f0131febc6662400
   subpackages:
   - config/clientset/versioned
   - config/clientset/versioned/fake
@@ -338,8 +373,12 @@ imports:
   version: f51c12702a4d776e4c1fa9b0fabab841babae631
   subpackages:
   - rate
+- name: golang.org/x/tools
+  version: 8dcb7bc8c7fe0a895995c76c721cef79419ac98a
+  subpackages:
+  - container/intsets
 - name: google.golang.org/appengine
-  version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
+  version: 54a98f90d1c46b7731eb8fb305d2a321c30ef610
   subpackages:
   - internal
   - internal/base
@@ -720,6 +759,7 @@ imports:
   - plugin/pkg/client/auth/exec
   - rest
   - rest/watch
+  - restmapper
   - testing
   - tools/auth
   - tools/cache
@@ -760,6 +800,6 @@ imports:
   - pkg/util/proto
 testImports:
 - name: vbom.ml/util
-  version: db5cfe13f5cc80a4990d98e2e1b0707a4d1a5394
+  version: efcd4e0f97874370259c7d93e12aad57911dea81
   subpackages:
   - sortorder

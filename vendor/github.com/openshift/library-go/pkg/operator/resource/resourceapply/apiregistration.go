@@ -1,6 +1,8 @@
 package resourceapply
 
 import (
+	"github.com/golang/glog"
+
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,17 +24,22 @@ func ApplyAPIService(client apiregistrationv1client.APIServicesGetter, required 
 	}
 
 	modified := resourcemerge.BoolPtr(false)
-	resourcemerge.EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
-	serviceSame := equality.Semantic.DeepEqual(existing.Spec.Service, required.Spec.Service)
-	prioritySame := existing.Spec.VersionPriority == required.Spec.VersionPriority && existing.Spec.GroupPriorityMinimum == required.Spec.GroupPriorityMinimum
-	insecureSame := existing.Spec.InsecureSkipTLSVerify == required.Spec.InsecureSkipTLSVerify
+	existingCopy := existing.DeepCopy()
+
+	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	serviceSame := equality.Semantic.DeepEqual(existingCopy.Spec.Service, required.Spec.Service)
+	prioritySame := existingCopy.Spec.VersionPriority == required.Spec.VersionPriority && existingCopy.Spec.GroupPriorityMinimum == required.Spec.GroupPriorityMinimum
+	insecureSame := existingCopy.Spec.InsecureSkipTLSVerify == required.Spec.InsecureSkipTLSVerify
 	// there was no change to metadata, the service and priorities were right
 	if !*modified && serviceSame && prioritySame && insecureSame {
-		return existing, false, nil
+		return existingCopy, false, nil
 	}
 
-	existing.Spec = required.Spec
+	existingCopy.Spec = required.Spec
 
-	actual, err := client.APIServices().Update(existing)
+	if glog.V(4) {
+		glog.Infof("APIService %q changes: %s", existing.Name, JSONPatch(existing, existingCopy))
+	}
+	actual, err := client.APIServices().Update(existingCopy)
 	return actual, true, err
 }

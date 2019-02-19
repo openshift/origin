@@ -320,4 +320,40 @@ func (ServiceCAList) SwaggerDoc() map[string]string {
 	return map_ServiceCAList
 }
 
+var map_ServiceCatalogAPIServer = map[string]string{
+	"": "ServiceCatalogAPIServer provides information to configure an operator to manage Service Catalog API Server",
+}
+
+func (ServiceCatalogAPIServer) SwaggerDoc() map[string]string {
+	return map_ServiceCatalogAPIServer
+}
+
+var map_ServiceCatalogAPIServerList = map[string]string{
+	"":         "ServiceCatalogAPIServerList is a collection of items",
+	"metadata": "Standard object's metadata.",
+	"items":    "Items contains the items",
+}
+
+func (ServiceCatalogAPIServerList) SwaggerDoc() map[string]string {
+	return map_ServiceCatalogAPIServerList
+}
+
+var map_ServiceCatalogControllerManager = map[string]string{
+	"": "ServiceCatalogControllerManager provides information to configure an operator to manage Service Catalog Controller Manager",
+}
+
+func (ServiceCatalogControllerManager) SwaggerDoc() map[string]string {
+	return map_ServiceCatalogControllerManager
+}
+
+var map_ServiceCatalogControllerManagerList = map[string]string{
+	"":         "ServiceCatalogControllerManagerList is a collection of items",
+	"metadata": "Standard object's metadata.",
+	"items":    "Items contains the items",
+}
+
+func (ServiceCatalogControllerManagerList) SwaggerDoc() map[string]string {
+	return map_ServiceCatalogControllerManagerList
+}
+
 // AUTO-GENERATED FUNCTIONS END HERE

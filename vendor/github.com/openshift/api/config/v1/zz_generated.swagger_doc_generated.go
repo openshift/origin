@@ -335,12 +335,11 @@ func (Build) SwaggerDoc() map[string]string {
 }
 
 var map_BuildDefaults = map[string]string{
-	"defaultProxy":     "DefaultProxy contains the default proxy settings for all build operations, including image pull/push and source download.\n\nValues can be overrode by setting the `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment variables in the build config's strategy.",
-	"gitProxy":         "GitProxy contains the proxy settings for git operations only. If set, this will override any Proxy settings for all git commands, such as git clone.\n\nValues that are not set here will be inherited from DefaultProxy.",
-	"env":              "Env is a set of default environment variables that will be applied to the build if the specified variables do not exist on the build",
-	"imageLabels":      "ImageLabels is a list of docker labels that are applied to the resulting image. User can override a default label by providing a label with the same name in their Build/BuildConfig.",
-	"resources":        "Resources defines resource requirements to execute the build.",
-	"registriesConfig": "RegistriesConfig controls the registries allowed for image pull and push.",
+	"defaultProxy": "DefaultProxy contains the default proxy settings for all build operations, including image pull/push and source download.\n\nValues can be overrode by setting the `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment variables in the build config's strategy.",
+	"gitProxy":     "GitProxy contains the proxy settings for git operations only. If set, this will override any Proxy settings for all git commands, such as git clone.\n\nValues that are not set here will be inherited from DefaultProxy.",
+	"env":          "Env is a set of default environment variables that will be applied to the build if the specified variables do not exist on the build",
+	"imageLabels":  "ImageLabels is a list of docker labels that are applied to the resulting image. User can override a default label by providing a label with the same name in their Build/BuildConfig.",
+	"resources":    "Resources defines resource requirements to execute the build.",
 }
 
 func (BuildDefaults) SwaggerDoc() map[string]string {
@@ -382,16 +381,6 @@ var map_ImageLabel = map[string]string{
 
 func (ImageLabel) SwaggerDoc() map[string]string {
 	return map_ImageLabel
-}
-
-var map_RegistriesConfig = map[string]string{
-	"insecureRegistries": "InsecureRegistries are registries which do not have a valid SSL certificate or only support HTTP connections.",
-	"blockedRegistries":  "BlockedRegistries are blacklisted from image pull/push. All other registries are allowed.\n\nOnly one of BlockedRegistries or AllowedRegistries may be set.",
-	"allowedRegistries":  "AllowedRegistries are whitelisted for image pull/push. All other registries are blocked.\n\nOnly one of BlockedRegistries or AllowedRegistries may be set.",
-}
-
-func (RegistriesConfig) SwaggerDoc() map[string]string {
-	return map_RegistriesConfig
 }
 
 var map_ClusterOperator = map[string]string{
@@ -619,6 +608,33 @@ var map_DNSZone = map[string]string{
 
 func (DNSZone) SwaggerDoc() map[string]string {
 	return map_DNSZone
+}
+
+var map_Features = map[string]string{
+	"":         "Features holds cluster-wide information about feature gates.  The canonical name is `cluster`",
+	"metadata": "Standard object's metadata.",
+	"spec":     "spec holds user settable values for configuration",
+	"status":   "status holds observed values from the cluster. They may not be overridden.",
+}
+
+func (Features) SwaggerDoc() map[string]string {
+	return map_Features
+}
+
+var map_FeaturesList = map[string]string{
+	"metadata": "Standard object's metadata.",
+}
+
+func (FeaturesList) SwaggerDoc() map[string]string {
+	return map_FeaturesList
+}
+
+var map_FeaturesSpec = map[string]string{
+	"featureSet": "featureSet changes the list of features in the cluster.  The default is empty.  Be very careful adjusting this setting. Turning on or off features may cause irreversible changes in your cluster which cannot be undone.",
+}
+
+func (FeaturesSpec) SwaggerDoc() map[string]string {
+	return map_FeaturesSpec
 }
 
 var map_Image = map[string]string{

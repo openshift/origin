@@ -20,6 +20,8 @@ type OperatorV1Interface interface {
 	OpenShiftAPIServersGetter
 	OpenShiftControllerManagersGetter
 	ServiceCAsGetter
+	ServiceCatalogAPIServersGetter
+	ServiceCatalogControllerManagersGetter
 }
 
 // OperatorV1Client is used to interact with features provided by the operator.openshift.io group.
@@ -61,6 +63,14 @@ func (c *OperatorV1Client) OpenShiftControllerManagers() OpenShiftControllerMana
 
 func (c *OperatorV1Client) ServiceCAs() ServiceCAInterface {
 	return newServiceCAs(c)
+}
+
+func (c *OperatorV1Client) ServiceCatalogAPIServers() ServiceCatalogAPIServerInterface {
+	return newServiceCatalogAPIServers(c)
+}
+
+func (c *OperatorV1Client) ServiceCatalogControllerManagers() ServiceCatalogControllerManagerInterface {
+	return newServiceCatalogControllerManagers(c)
 }
 
 // NewForConfig creates a new OperatorV1Client for the given config.
