@@ -19,7 +19,7 @@ RUN INSTALL_PKGS=" \
       libnfnetlink iproute bridge-utils procps-ng openssl \
       binutils xz sysvinit-tools dbus \
       " && \
-    yum install --setopt=tsflags=nodocs $INSTALL_PKGS && \
+    yum install -y --setopt=tsflags=nodocs $INSTALL_PKGS && \
     mkdir -p /etc/sysconfig/cni/net.d && \
     yum clean all && rm -rf /var/cache/*
 LABEL io.k8s.display-name="OpenShift SDN" \
