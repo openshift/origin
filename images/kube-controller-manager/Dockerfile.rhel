@@ -1,0 +1,5 @@
+FROM registry.svc.ci.openshift.org/ocp/4.0:hyperkube
+RUN yum install -y ceph-common && yum clean all && rm -rf /var/cache/yum/*
+LABEL io.k8s.display-name="OpenShift Kubernetes Controller Manager" \
+      io.k8s.description="The Controller Manager image contains the utilities that support integration with external systems." \
+      io.openshift.tags="openshift,controller-manager"
