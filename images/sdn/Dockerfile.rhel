@@ -14,7 +14,7 @@ COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/
 COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/loopback /opt/cni/bin/
 COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/host-local /opt/cni/bin/
 RUN INSTALL_PKGS=" \
-      openvswitch socat ethtool iptables nmap-ncat \
+      openvswitch2.11 container-selinux socat ethtool iptables nmap-ncat \
       libmnl libnetfilter_conntrack conntrack-tools \
       libnfnetlink iproute bridge-utils procps-ng openssl \
       binutils xz sysvinit-tools dbus \
