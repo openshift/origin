@@ -209,7 +209,7 @@ func (o *Options) Run() error {
 		}
 		if len(o.ToImage) > 0 {
 			if o.ToImage == cv.Status.Desired.Image {
-				fmt.Fprintf(o.Out, "info: Cluster is already using releaes image %s\n", o.ToImage)
+				fmt.Fprintf(o.Out, "info: Cluster is already using release image %s\n", o.ToImage)
 				return nil
 			}
 			update = &configv1.Update{
