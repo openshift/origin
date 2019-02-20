@@ -2,6 +2,7 @@ package cert
 
 import (
 	"github.com/spf13/cobra"
+
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -14,19 +15,30 @@ const CertRecommendedName = "ca"
 func NewCmdCert(name, fullName string, streams genericclioptions.IOStreams) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
-		Use:   name,
-		Short: "Create CA certificates",
-		Long:  `Manage certificates and keys`,
-		Run:   cmdutil.DefaultSubCommandRun(streams.ErrOut),
+		Use:        name,
+		Long:       "Manage certificates and keys",
+		Short:      "",
+		Run:        cmdutil.DefaultSubCommandRun(streams.ErrOut),
+		Deprecated: "and will be removed in the future version",
+		Hidden:     true,
 	}
 
-	cmds.AddCommand(admin.NewCommandCreateMasterCerts(admin.CreateMasterCertsCommandName, fullName+" "+admin.CreateMasterCertsCommandName, streams))
-	cmds.AddCommand(admin.NewCommandCreateKeyPair(admin.CreateKeyPairCommandName, fullName+" "+admin.CreateKeyPairCommandName, streams))
-	cmds.AddCommand(admin.NewCommandCreateServerCert(admin.CreateServerCertCommandName, fullName+" "+admin.CreateServerCertCommandName, streams))
-	cmds.AddCommand(admin.NewCommandCreateSignerCert(admin.CreateSignerCertCommandName, fullName+" "+admin.CreateSignerCertCommandName, streams))
+	subCommands := []*cobra.Command{
+		admin.NewCommandCreateMasterCerts(admin.CreateMasterCertsCommandName, fullName+" "+admin.CreateMasterCertsCommandName, streams),
+		admin.NewCommandCreateKeyPair(admin.CreateKeyPairCommandName, fullName+" "+admin.CreateKeyPairCommandName, streams),
+		admin.NewCommandCreateServerCert(admin.CreateServerCertCommandName, fullName+" "+admin.CreateServerCertCommandName, streams),
+		admin.NewCommandCreateSignerCert(admin.CreateSignerCertCommandName, fullName+" "+admin.CreateSignerCertCommandName, streams),
 
-	cmds.AddCommand(admin.NewCommandEncrypt(admin.EncryptCommandName, fullName+" "+admin.EncryptCommandName, streams))
-	cmds.AddCommand(admin.NewCommandDecrypt(admin.DecryptCommandName, fullName+" "+admin.DecryptCommandName, fullName+" "+admin.EncryptCommandName, streams))
+		admin.NewCommandEncrypt(admin.EncryptCommandName, fullName+" "+admin.EncryptCommandName, streams),
+		admin.NewCommandDecrypt(admin.DecryptCommandName, fullName+" "+admin.DecryptCommandName, fullName+" "+admin.EncryptCommandName, streams),
+	}
+
+	for _, cmd := range subCommands {
+		// Unsetting Short description will not show this command in help
+		cmd.Short = ""
+		cmd.Deprecated = "and will be removed in the future version"
+		cmds.AddCommand(cmd)
+	}
 
 	return cmds
 }
