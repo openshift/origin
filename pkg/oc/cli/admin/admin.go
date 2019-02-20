@@ -99,7 +99,6 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 		{
 			Message: "Configuration:",
 			Commands: []*cobra.Command{
-				cert.NewCmdCert(cert.CertRecommendedName, fullName+" "+cert.CertRecommendedName, streams),
 				admin.NewCommandCreateKubeConfig(admin.CreateKubeConfigCommandName, fullName+" "+admin.CreateKubeConfigCommandName, streams),
 				admin.NewCommandCreateClient(admin.CreateClientCommandName, fullName+" "+admin.CreateClientCommandName, streams),
 
@@ -113,21 +112,10 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 		},
 	}
 
+	cmds.AddCommand(cert.NewCmdCert(cert.CertRecommendedName, fullName+" "+cert.CertRecommendedName, streams))
+
 	groups.Add(cmds)
 	templates.ActsAsRootCommand(cmds, []string{"options"}, groups...)
-
-	deprecatedCACommands := []*cobra.Command{
-		admin.NewCommandCreateMasterCerts(admin.CreateMasterCertsCommandName, fullName+" "+admin.CreateMasterCertsCommandName, streams),
-		admin.NewCommandCreateKeyPair(admin.CreateKeyPairCommandName, fullName+" "+admin.CreateKeyPairCommandName, streams),
-		admin.NewCommandCreateServerCert(admin.CreateServerCertCommandName, fullName+" "+admin.CreateServerCertCommandName, streams),
-		admin.NewCommandCreateSignerCert(admin.CreateSignerCertCommandName, fullName+" "+admin.CreateSignerCertCommandName, streams),
-	}
-	for _, cmd := range deprecatedCACommands {
-		// Unsetting Short description will not show this command in help
-		cmd.Short = ""
-		cmd.Deprecated = fmt.Sprintf("Use '%s ca' instead.", fullName)
-		cmds.AddCommand(cmd)
-	}
 
 	cmds.AddCommand(
 		release.NewCmd(f, fullName, streams),

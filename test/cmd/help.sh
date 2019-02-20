@@ -23,12 +23,6 @@ os::cmd::expect_failure_and_text 'oc adm ca' 'Manage certificates'
 os::cmd::expect_success_and_text 'oc exec --help' '\[flags\] POD \[\-c CONTAINER\] \-\- COMMAND \[args\.\.\.\]$'
 os::cmd::expect_success_and_text 'oc rsh --help' '\[flags\] POD \[COMMAND\]$'
 
-# check deprecated admin cmds for backward compatibility
-os::cmd::expect_success_and_text 'oc adm create-master-certs -h' 'Create keys and certificates'
-os::cmd::expect_success_and_text 'oc adm create-key-pair -h' 'Create an RSA key pair'
-os::cmd::expect_success_and_text 'oc adm create-server-cert -h' 'Create a key and server certificate'
-os::cmd::expect_success_and_text 'oc adm create-signer-cert -h' 'Create a self-signed CA'
-
 # help for root commands with --help flag must be consistent
 os::cmd::expect_success_and_text 'oc --help' 'OpenShift Client'
 os::cmd::expect_success_and_text 'oc login --help' 'Options'
