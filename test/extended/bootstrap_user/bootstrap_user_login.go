@@ -5,7 +5,7 @@ import (
 	o "github.com/onsi/gomega"
 	"github.com/openshift/origin/pkg/oauthserver/server/crypto"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -23,7 +23,7 @@ var _ = g.Describe("The bootstrap user", func() {
 	secretExists := true
 	recorder := events.NewInMemoryRecorder("")
 	oc = exutil.NewCLI("bootstrap-login", exutil.KubeConfigPath())
-	g.It("should successfully login with password decoded from kubeadmin secret", func() {
+	g.It("should successfully login with password decoded from kubeadmin secret [Flaky]", func() {
 		// We aren't testing that the installer has created this secret here, instead,
 		// we create it/apply new data/restore it after (if it existed, or delete it if
 		// it didn't.  Here, we are only testing the oauth flow
