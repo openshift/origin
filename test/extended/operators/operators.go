@@ -134,6 +134,7 @@ var _ = g.Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 
 		o.Expect(lastErr).NotTo(o.HaveOccurred())
 		var unavailable []string
+		var missingRelatedNamespaces []string
 		buf := &bytes.Buffer{}
 		w := tabwriter.NewWriter(buf, 0, 4, 1, ' ', 0)
 		fmt.Fprintf(w, "NAMESPACE\tNAME\tPROGRESSING\tAVAILABLE\tVERSION\tMESSAGE\n")
@@ -153,6 +154,9 @@ var _ = g.Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 				co.Get("status.version").String(),
 				condition(co, "Failing").Get("message").String(),
 			)
+			if val := relatedNamespaces(co); len(val) == 0 {
+				missingRelatedNamespaces = append(missingRelatedNamespaces, fmt.Sprintf("%s", name))
+			}
 		}
 		w.Flush()
 		e2e.Logf("ClusterOperators:\n%s", buf.String())
@@ -163,6 +167,10 @@ var _ = g.Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 		// Check at least one core operator is available
 		if len(available) == 0 {
 			e2e.Failf("There must be at least one cluster operator")
+		}
+		// Check that we integrate with must-gather
+		if len(missingRelatedNamespaces) > 0 {
+			e2e.Logf("Some cluster operators have no related namespace objects %s", strings.Join(missingRelatedNamespaces, ", "))
 		}
 	})
 })
@@ -218,4 +226,14 @@ func condition(cv objx.Map, condition string) objx.Map {
 		}
 	}
 	return objx.Map(nil)
+}
+
+func relatedNamespaces(cv objx.Map) []string {
+	namespaces := []string{}
+	for _, obj := range objects(cv.Get("status.relatedObjects")) {
+		if obj.Get("resource").String() == "namespaces" {
+			namespaces = append(namespaces, obj.Get("resource").String())
+		}
+	}
+	return namespaces
 }
