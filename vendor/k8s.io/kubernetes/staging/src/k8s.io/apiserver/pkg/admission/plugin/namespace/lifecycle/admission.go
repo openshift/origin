@@ -59,7 +59,7 @@ func Register(plugins *admission.Plugins) {
 			// the CVO which is the root we use to rebuild all the rest
 			"openshift-cluster-version",
 			// contains a namespaced list of all nodes in the cluster (yeah, weird.  they do it for multi-tenant management I think?)
-			"openshift-cluster-api",
+			"openshift-machine-api",
 		))
 	})
 }
