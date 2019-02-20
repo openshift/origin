@@ -154,7 +154,8 @@ func (np *networkPolicyPlugin) syncFlows() error {
 		glog.Errorf("syncFlows: could not DumpFlows: %v", err)
 	}
 
-	allNamespaceFlowCount := 0
+	// start at 1 to take care of table=80, priority=200, ip, ct_state=+rpl, actions=output:NXM_NX_REG2[]
+	allNamespaceFlowCount := 1
 	for _, npns := range np.namespaces {
 		allNamespaceFlowCount += npns.flows.Len()
 	}
@@ -166,6 +167,8 @@ func (np *networkPolicyPlugin) syncFlows() error {
 		glog.V(5).Infof("syncFlows: start resync flows")
 		otx := np.node.oc.NewTransaction()
 		otx.DeleteFlows("table=80")
+
+		otx.AddFlow("table=80, priority=200, ip, ct_state=+rpl, actions=output:NXM_NX_REG2[]")
 
 		for _, npns := range np.namespaces {
 			for _, flow := range npns.flows.UnsortedList() {
