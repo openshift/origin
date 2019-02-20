@@ -1614,8 +1614,11 @@ func (i *awsInstance) describeInstance() (*ec2.Instance, error) {
 func (c *Cloud) getMountDevice(
 	i *awsInstance,
 	info *ec2.Instance,
-	volumeID awsVolumeID,
+	disk *awsDisk,
 	assign bool) (assigned mountDevice, alreadyAttached bool, err error) {
+
+	volumeID := disk.awsID
+
 	instanceType := i.getInstanceType()
 	if instanceType == nil {
 		return "", false, fmt.Errorf("could not get instance type for instance: %s", i.awsID)
@@ -1651,6 +1654,16 @@ func (c *Cloud) getMountDevice(
 		if volumeID == mappingVolumeID {
 			if assign {
 				glog.Warningf("Got assignment call for already-assigned volume: %s@%s", mountDevice, mappingVolumeID)
+			}
+			vol, err := disk.describeVolume()
+			if err != nil {
+				return mountDevice, true, nil
+			}
+			for _, a := range vol.Attachments {
+				if *a.State != "attached" {
+					glog.Warningf("Volume %q is in node %q's block device mappings but state %q instead of 'attached'", mappingVolumeID, i.nodeName, *a.State)
+					// return mountDevice(""), false, nil
+				}
 			}
 			return mountDevice, true, nil
 		}
@@ -2039,7 +2052,7 @@ func (c *Cloud) AttachDisk(diskName KubernetesVolumeID, nodeName types.NodeName)
 		}
 	}()
 
-	mountDevice, alreadyAttached, err = c.getMountDevice(awsInstance, info, disk.awsID, true)
+	mountDevice, alreadyAttached, err = c.getMountDevice(awsInstance, info, disk, true)
 	if err != nil {
 		return "", err
 	}
@@ -2131,7 +2144,7 @@ func (c *Cloud) DetachDisk(diskName KubernetesVolumeID, nodeName types.NodeName)
 
 	awsInstance := newAWSInstance(c.ec2, diskInfo.ec2Instance)
 
-	mountDevice, alreadyAttached, err := c.getMountDevice(awsInstance, diskInfo.ec2Instance, diskInfo.disk.awsID, false)
+	mountDevice, alreadyAttached, err := c.getMountDevice(awsInstance, diskInfo.ec2Instance, diskInfo.disk, false)
 	if err != nil {
 		return "", err
 	}
