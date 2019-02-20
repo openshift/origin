@@ -13,6 +13,7 @@ import (
 // AllCustomResourceValidators are the names of all custom resource validators that should be registered
 var AllCustomResourceValidators = []string{
 	authentication.PluginName,
+	features.DenyDeleteFeaturesPluginName,
 	features.PluginName,
 	image.PluginName,
 	oauth.PluginName,
@@ -21,6 +22,7 @@ var AllCustomResourceValidators = []string{
 
 func RegisterCustomResourceValidation(plugins *admission.Plugins) {
 	authentication.Register(plugins)
+	features.RegisterDenyDeleteFeatures(plugins)
 	features.Register(plugins)
 	image.Register(plugins)
 	oauth.Register(plugins)
