@@ -1,6 +1,8 @@
 package resourceapply
 
 import (
+	"github.com/golang/glog"
+
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,14 +27,16 @@ func ApplyDeployment(client appsclientv1.DeploymentsGetter, recorder events.Reco
 	}
 
 	modified := resourcemerge.BoolPtr(false)
-	resourcemerge.EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
+	existingCopy := existing.DeepCopy()
+
+	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
 	// there was no change to metadata, the generation was right, and we weren't asked for force the deployment
-	if !*modified && existing.ObjectMeta.Generation == expectedGeneration && !forceRollout {
-		return existing, false, nil
+	if !*modified && existingCopy.ObjectMeta.Generation == expectedGeneration && !forceRollout {
+		return existingCopy, false, nil
 	}
 
 	// at this point we know that we're going to perform a write.  We're just trying to get the object correct
-	toWrite := existing // shallow copy so the code reads easier
+	toWrite := existingCopy // shallow copy so the code reads easier
 	toWrite.Spec = *required.Spec.DeepCopy()
 	if forceRollout {
 		// forces a deployment
@@ -45,6 +49,10 @@ func ApplyDeployment(client appsclientv1.DeploymentsGetter, recorder events.Reco
 		}
 		toWrite.Annotations["operator.openshift.io/force"] = forceString
 		toWrite.Spec.Template.Annotations["operator.openshift.io/force"] = forceString
+	}
+
+	if glog.V(4) {
+		glog.Infof("Deployment %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(existing, toWrite))
 	}
 
 	actual, err := client.Deployments(required.Namespace).Update(toWrite)
@@ -65,14 +73,16 @@ func ApplyDaemonSet(client appsclientv1.DaemonSetsGetter, recorder events.Record
 	}
 
 	modified := resourcemerge.BoolPtr(false)
-	resourcemerge.EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
+	existingCopy := existing.DeepCopy()
+
+	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
 	// there was no change to metadata, the generation was right, and we weren't asked for force the deployment
-	if !*modified && existing.ObjectMeta.Generation == expectedGeneration && !forceRollout {
-		return existing, false, nil
+	if !*modified && existingCopy.ObjectMeta.Generation == expectedGeneration && !forceRollout {
+		return existingCopy, false, nil
 	}
 
 	// at this point we know that we're going to perform a write.  We're just trying to get the object correct
-	toWrite := existing // shallow copy so the code reads easier
+	toWrite := existingCopy // shallow copy so the code reads easier
 	toWrite.Spec = *required.Spec.DeepCopy()
 	if forceRollout {
 		// forces a deployment
@@ -87,6 +97,9 @@ func ApplyDaemonSet(client appsclientv1.DaemonSetsGetter, recorder events.Record
 		toWrite.Spec.Template.Annotations["operator.openshift.io/force"] = forceString
 	}
 
+	if glog.V(4) {
+		glog.Infof("DaemonSet %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(existing, toWrite))
+	}
 	actual, err := client.DaemonSets(required.Namespace).Update(toWrite)
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err

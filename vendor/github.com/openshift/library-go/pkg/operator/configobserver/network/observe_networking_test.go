@@ -6,10 +6,11 @@ import (
 
 	"github.com/ghodss/yaml"
 
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	corelistersv1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+
+	configv1 "github.com/openshift/api/config/v1"
+	configlistersv1 "github.com/openshift/client-go/config/listers/config/v1"
 
 	"github.com/openshift/library-go/pkg/operator/events"
 )
@@ -17,62 +18,20 @@ import (
 func TestObserveClusterCIDRs(t *testing.T) {
 	type Test struct {
 		name          string
-		config        *corev1.ConfigMap
+		config        *configv1.Network
 		expected      []string
 		expectedError bool
 	}
 	tests := []Test{
 		{
-			"podCIDR, empty old config",
-			&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cluster-config-v1",
-					Namespace: "kube-system",
-				},
-				Data: map[string]string{
-					"install-config": "networking:\n  podCIDR: podCIDR",
-				},
-			},
-			[]string{"podCIDR"},
-			false,
-		},
-		{
-			"podCIDR, existing config",
-			&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cluster-config-v1",
-					Namespace: "kube-system",
-				},
-				Data: map[string]string{
-					"install-config": "networking:\n  podCIDR: podCIDR",
-				},
-			},
-			[]string{"podCIDR"},
-			false,
-		},
-		{
 			"clusterNetworks",
-			&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cluster-config-v1",
-					Namespace: "kube-system",
-				},
-				Data: map[string]string{
-					"install-config": "networking:\n  clusterNetworks:\n  - cidr: podCIDR1\n  - cidr: podCIDR2",
-				},
-			},
-			[]string{"podCIDR1", "podCIDR2"},
-			false,
-		},
-		{
-			"both podCIDR and clusterNetworks",
-			&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cluster-config-v1",
-					Namespace: "kube-system",
-				},
-				Data: map[string]string{
-					"install-config": "networking:\n  clusterNetworks:\n  - cidr: podCIDR1\n  - cidr: podCIDR2\n  podCIDR: podCIDR",
+			&configv1.Network{
+				ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
+				Status: configv1.NetworkStatus{
+					ClusterNetwork: []configv1.ClusterNetworkEntry{
+						{CIDR: "podCIDR1"},
+						{CIDR: "podCIDR2"},
+					},
 				},
 			},
 			[]string{"podCIDR1", "podCIDR2"},
@@ -80,28 +39,18 @@ func TestObserveClusterCIDRs(t *testing.T) {
 		},
 		{
 			"none, no old config",
-			&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cluster-config-v1",
-					Namespace: "kube-system",
-				},
-				Data: map[string]string{
-					"install-config": "networking: {}\n",
-				},
+			&configv1.Network{
+				ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
+				Status:     configv1.NetworkStatus{},
 			},
 			nil,
 			true,
 		},
 		{
 			"none, existing config",
-			&corev1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cluster-config-v1",
-					Namespace: "kube-system",
-				},
-				Data: map[string]string{
-					"install-config": "networking: {}\n",
-				},
+			&configv1.Network{
+				ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
+				Status:     configv1.NetworkStatus{},
 			},
 			nil,
 			true,
@@ -113,7 +62,7 @@ func TestObserveClusterCIDRs(t *testing.T) {
 			if err := indexer.Add(test.config); err != nil {
 				t.Fatal(err.Error())
 			}
-			result, err := GetClusterCIDRs(corelistersv1.NewConfigMapLister(indexer), events.NewInMemoryRecorder("network"))
+			result, err := GetClusterCIDRs(configlistersv1.NewNetworkLister(indexer), events.NewInMemoryRecorder("network"))
 			if err != nil && !test.expectedError {
 				t.Fatal(err)
 			} else if err == nil {
@@ -130,18 +79,16 @@ func TestObserveClusterCIDRs(t *testing.T) {
 
 func TestObserveServiceClusterIPRanges(t *testing.T) {
 	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
-	if err := indexer.Add(&corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster-config-v1",
-			Namespace: "kube-system",
+	if err := indexer.Add(&configv1.Network{
+		ObjectMeta: metav1.ObjectMeta{Name: "cluster"},
+		Status: configv1.NetworkStatus{
+			ServiceNetwork: []string{"serviceCIDR"},
 		},
-		Data: map[string]string{
-			"install-config": "networking:\n  serviceCIDR: serviceCIDR",
-		},
-	}); err != nil {
+	},
+	); err != nil {
 		t.Fatal(err.Error())
 	}
-	result, err := GetServiceCIDR(corelistersv1.NewConfigMapLister(indexer), events.NewInMemoryRecorder("network"))
+	result, err := GetServiceCIDR(configlistersv1.NewNetworkLister(indexer), events.NewInMemoryRecorder("network"))
 	if err != nil {
 		t.Fatal(err)
 	}

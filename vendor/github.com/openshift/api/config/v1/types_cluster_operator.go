@@ -112,18 +112,24 @@ type ClusterOperatorStatusCondition struct {
 type ClusterStatusConditionType string
 
 const (
-	// OperatorAvailable indicates that the binary maintained by the operator (eg: openshift-apiserver for the
+	// Available indicates that the binary maintained by the operator (eg: openshift-apiserver for the
 	// openshift-apiserver-operator), is functional and available in the cluster.
 	OperatorAvailable ClusterStatusConditionType = "Available"
 
-	// OperatorProgressing indicates that the operator is actively making changes to the binary maintained by the
+	// Progressing indicates that the operator is actively making changes to the binary maintained by the
 	// operator (eg: openshift-apiserver for the openshift-apiserver-operator).
 	OperatorProgressing ClusterStatusConditionType = "Progressing"
 
-	// OperatorFailing indicates that the operator has encountered an error that is preventing it from working properly.
+	// Failing indicates that the operator has encountered an error that is preventing it from working properly.
 	// The binary maintained by the operator (eg: openshift-apiserver for the openshift-apiserver-operator) may still be
 	// available, but the user intent cannot be fulfilled.
 	OperatorFailing ClusterStatusConditionType = "Failing"
+
+	// Upgradeable indicates whether the operator is in a state that is safe to upgrade. When status is `False`
+	// administrators should not upgrade their cluster and the message field should contain a human readable description
+	// of what the administrator should do to allow the operator to successfully update.  A missing condition, True,
+	// and Unknown are all treated by the CVO as allowing an upgrade.
+	OperatorUpgradeable ClusterStatusConditionType = "Upgradeable"
 )
 
 // ClusterOperatorList is a list of OperatorStatus resources.

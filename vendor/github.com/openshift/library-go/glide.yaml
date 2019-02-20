@@ -44,3 +44,8 @@ import:
   version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
 - package: github.com/imdario/mergo
   version: 9316a62528ac99aaecb4e47eadd6dc8aa6533d58
+
+
+# matches openshift/origin
+- package: github.com/gonum/graph
+  version: 50b27dea7ebbfb052dfaf91681afc6fde28d8796

@@ -55,6 +55,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Operator().V1().OpenShiftControllerManagers().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("servicecas"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Operator().V1().ServiceCAs().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("servicecatalogapiservers"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Operator().V1().ServiceCatalogAPIServers().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("servicecatalogcontrollermanagers"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Operator().V1().ServiceCatalogControllerManagers().Informer()}, nil
 
 	}
 

@@ -11,6 +11,7 @@ import (
 	kubescheme "k8s.io/client-go/kubernetes/scheme"
 
 	openshiftapi "github.com/openshift/api"
+
 	"github.com/openshift/library-go/pkg/operator/events"
 )
 

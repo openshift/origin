@@ -3,10 +3,11 @@ package resourceapply
 import (
 	"testing"
 
-	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/davecgh/go-spew/spew"
+
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/davecgh/go-spew/spew"
+	"github.com/openshift/library-go/pkg/operator/events"
 )
 
 func TestApplyDirectly(t *testing.T) {

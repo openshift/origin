@@ -48,6 +48,14 @@ func (c *FakeOperatorV1) ServiceCAs() v1.ServiceCAInterface {
 	return &FakeServiceCAs{c}
 }
 
+func (c *FakeOperatorV1) ServiceCatalogAPIServers() v1.ServiceCatalogAPIServerInterface {
+	return &FakeServiceCatalogAPIServers{c}
+}
+
+func (c *FakeOperatorV1) ServiceCatalogControllerManagers() v1.ServiceCatalogControllerManagerInterface {
+	return &FakeServiceCatalogControllerManagers{c}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeOperatorV1) RESTClient() rest.Interface {

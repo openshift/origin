@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/golang/glog"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,12 +30,18 @@ func ApplyNamespace(client coreclientv1.NamespacesGetter, recorder events.Record
 	}
 
 	modified := resourcemerge.BoolPtr(false)
-	resourcemerge.EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
+	existingCopy := existing.DeepCopy()
+
+	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
 	if !*modified {
-		return existing, false, nil
+		return existingCopy, false, nil
 	}
 
-	actual, err := client.Namespaces().Update(existing)
+	if glog.V(4) {
+		glog.Infof("Namespace %q changes: %v", required.Name, JSONPatch(existing, existingCopy))
+	}
+
+	actual, err := client.Namespaces().Update(existingCopy)
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
@@ -53,24 +61,30 @@ func ApplyService(client coreclientv1.ServicesGetter, recorder events.Recorder, 
 	}
 
 	modified := resourcemerge.BoolPtr(false)
-	resourcemerge.EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
-	selectorSame := equality.Semantic.DeepEqual(existing.Spec.Selector, required.Spec.Selector)
+	existingCopy := existing.DeepCopy()
+
+	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	selectorSame := equality.Semantic.DeepEqual(existingCopy.Spec.Selector, required.Spec.Selector)
 
 	typeSame := false
 	requiredIsEmpty := len(required.Spec.Type) == 0
-	existingIsCluster := existing.Spec.Type == corev1.ServiceTypeClusterIP
-	if (requiredIsEmpty && existingIsCluster) || equality.Semantic.DeepEqual(existing.Spec.Type, required.Spec.Type) {
+	existingCopyIsCluster := existingCopy.Spec.Type == corev1.ServiceTypeClusterIP
+	if (requiredIsEmpty && existingCopyIsCluster) || equality.Semantic.DeepEqual(existingCopy.Spec.Type, required.Spec.Type) {
 		typeSame = true
 	}
 
 	if selectorSame && typeSame && !*modified {
-		return existing, false, nil
+		return existingCopy, false, nil
 	}
 
-	existing.Spec.Selector = required.Spec.Selector
-	existing.Spec.Type = required.Spec.Type // if this is different, the update will fail.  Status will indicate it.
+	existingCopy.Spec.Selector = required.Spec.Selector
+	existingCopy.Spec.Type = required.Spec.Type // if this is different, the update will fail.  Status will indicate it.
 
-	actual, err := client.Services(required.Namespace).Update(existing)
+	if glog.V(4) {
+		glog.Infof("Service %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(existing, required))
+	}
+
+	actual, err := client.Services(required.Namespace).Update(existingCopy)
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
@@ -88,12 +102,18 @@ func ApplyPod(client coreclientv1.PodsGetter, recorder events.Recorder, required
 	}
 
 	modified := resourcemerge.BoolPtr(false)
-	resourcemerge.EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
+	existingCopy := existing.DeepCopy()
+
+	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
 	if !*modified {
-		return existing, false, nil
+		return existingCopy, false, nil
 	}
 
-	actual, err := client.Pods(required.Namespace).Update(existing)
+	if glog.V(4) {
+		glog.Infof("Pod %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(existing, required))
+	}
+
+	actual, err := client.Pods(required.Namespace).Update(existingCopy)
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
@@ -111,12 +131,16 @@ func ApplyServiceAccount(client coreclientv1.ServiceAccountsGetter, recorder eve
 	}
 
 	modified := resourcemerge.BoolPtr(false)
-	resourcemerge.EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
-	if !*modified {
-		return existing, false, nil
-	}
+	existingCopy := existing.DeepCopy()
 
-	actual, err := client.ServiceAccounts(required.Namespace).Update(existing)
+	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	if !*modified {
+		return existingCopy, false, nil
+	}
+	if glog.V(4) {
+		glog.Infof("ServiceAccount %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(existing, required))
+	}
+	actual, err := client.ServiceAccounts(required.Namespace).Update(existingCopy)
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
@@ -134,32 +158,37 @@ func ApplyConfigMap(client coreclientv1.ConfigMapsGetter, recorder events.Record
 	}
 
 	modified := resourcemerge.BoolPtr(false)
-	resourcemerge.EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
+	existingCopy := existing.DeepCopy()
+
+	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
 
 	var modifiedKeys []string
-	for existingKey, existingValue := range existing.Data {
-		if requiredValue, ok := required.Data[existingKey]; !ok || (existingValue != requiredValue) {
-			modifiedKeys = append(modifiedKeys, "data."+existingKey)
+	for existingCopyKey, existingCopyValue := range existingCopy.Data {
+		if requiredValue, ok := required.Data[existingCopyKey]; !ok || (existingCopyValue != requiredValue) {
+			modifiedKeys = append(modifiedKeys, "data."+existingCopyKey)
 		}
 	}
 	for requiredKey := range required.Data {
-		if _, ok := existing.Data[requiredKey]; !ok {
+		if _, ok := existingCopy.Data[requiredKey]; !ok {
 			modifiedKeys = append(modifiedKeys, "data."+requiredKey)
 		}
 	}
 
 	dataSame := len(modifiedKeys) == 0
 	if dataSame && !*modified {
-		return existing, false, nil
+		return existingCopy, false, nil
 	}
-	existing.Data = required.Data
+	existingCopy.Data = required.Data
 
-	actual, err := client.ConfigMaps(required.Namespace).Update(existing)
+	actual, err := client.ConfigMaps(required.Namespace).Update(existingCopy)
 
 	var details string
 	if !dataSame {
 		sort.Sort(sort.StringSlice(modifiedKeys))
 		details = fmt.Sprintf("cause by changes in %v", strings.Join(modifiedKeys, ","))
+	}
+	if glog.V(4) {
+		glog.Infof("ConfigMap %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(existing, required))
 	}
 	reportUpdateEvent(recorder, required, err, details)
 	return actual, true, err
@@ -178,14 +207,20 @@ func ApplySecret(client coreclientv1.SecretsGetter, recorder events.Recorder, re
 	}
 
 	modified := resourcemerge.BoolPtr(false)
-	resourcemerge.EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
-	dataSame := equality.Semantic.DeepEqual(existing.Data, required.Data)
-	if dataSame && !*modified {
-		return existing, false, nil
-	}
-	existing.Data = required.Data
+	existingCopy := existing.DeepCopy()
 
-	actual, err := client.Secrets(required.Namespace).Update(existing)
+	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	dataSame := equality.Semantic.DeepEqual(existingCopy.Data, required.Data)
+	if dataSame && !*modified {
+		return existingCopy, false, nil
+	}
+	existingCopy.Data = required.Data
+
+	if glog.V(4) {
+		glog.Infof("Secret %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(existing, required))
+	}
+	actual, err := client.Secrets(required.Namespace).Update(existingCopy)
+
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }

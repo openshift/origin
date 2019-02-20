@@ -37,3 +37,11 @@ type OpenShiftControllerManagerListerExpansion interface{}
 // ServiceCAListerExpansion allows custom methods to be added to
 // ServiceCALister.
 type ServiceCAListerExpansion interface{}
+
+// ServiceCatalogAPIServerListerExpansion allows custom methods to be added to
+// ServiceCatalogAPIServerLister.
+type ServiceCatalogAPIServerListerExpansion interface{}
+
+// ServiceCatalogControllerManagerListerExpansion allows custom methods to be added to
+// ServiceCatalogControllerManagerLister.
+type ServiceCatalogControllerManagerListerExpansion interface{}

@@ -3,6 +3,7 @@ package configobserver
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
@@ -129,7 +130,7 @@ func TestSyncStatus(t *testing.T) {
 				},
 			},
 
-			expectError: false,
+			expectError: true,
 			expectedObservedConfig: &unstructured.Unstructured{Object: map[string]interface{}{
 				"foo": "one",
 				"bar": "two",
@@ -150,6 +151,7 @@ func TestSyncStatus(t *testing.T) {
 				}
 			},
 			expectEvents: [][]string{
+				{"ObservedConfigChanged", "Writing updated observed config"},
 				{"ObservedConfigWriteError", "Failed to write observed config: update spec failure"},
 			},
 			observers: []ObserveConfigFunc{
@@ -158,7 +160,7 @@ func TestSyncStatus(t *testing.T) {
 				},
 			},
 
-			expectError:            false,
+			expectError:            true,
 			expectedObservedConfig: nil,
 			expectedCondition: &operatorv1.OperatorCondition{
 				Type:    operatorStatusTypeConfigObservationFailing,
@@ -186,7 +188,7 @@ func TestSyncStatus(t *testing.T) {
 				},
 			},
 
-			expectError: false,
+			expectError: true,
 			expectedCondition: &operatorv1.OperatorCondition{
 				Type:    operatorStatusTypeConfigObservationFailing,
 				Status:  operatorv1.ConditionTrue,
@@ -211,7 +213,7 @@ func TestSyncStatus(t *testing.T) {
 			if tc.expectError && err == nil {
 				t.Fatal("error expected")
 			}
-			if err != nil {
+			if !tc.expectError && err != nil {
 				t.Fatal(err)
 			}
 
@@ -227,8 +229,8 @@ func TestSyncStatus(t *testing.T) {
 				if observedEvents[i][0] != event[0] {
 					t.Errorf("expected %d event reason to be %q, got %q", i, event[0], observedEvents[i][0])
 				}
-				if observedEvents[i][1] != event[1] {
-					t.Errorf("expected %d event message to be %q, got %q", i, event[0], observedEvents[i][0])
+				if !strings.HasPrefix(observedEvents[i][1], event[1]) {
+					t.Errorf("expected %d event message to be %q, got %q", i, event[1], observedEvents[i][1])
 				}
 			}
 			if len(tc.expectEvents) != len(observedEvents) {

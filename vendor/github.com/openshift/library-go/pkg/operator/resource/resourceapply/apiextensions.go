@@ -1,6 +1,8 @@
 package resourceapply
 
 import (
+	"github.com/golang/glog"
+
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextclientv1beta1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -23,12 +25,18 @@ func ApplyCustomResourceDefinition(client apiextclientv1beta1.CustomResourceDefi
 	}
 
 	modified := resourcemerge.BoolPtr(false)
-	resourcemerge.EnsureCustomResourceDefinition(modified, existing, *required)
+	existingCopy := existing.DeepCopy()
+	resourcemerge.EnsureCustomResourceDefinition(modified, existingCopy, *required)
 	if !*modified {
 		return existing, false, nil
 	}
 
-	actual, err := client.CustomResourceDefinitions().Update(existing)
+	if glog.V(4) {
+		glog.Infof("CustomResourceDefinition %q changes: %s", existing.Name, JSONPatch(existing, existingCopy))
+	}
+
+	actual, err := client.CustomResourceDefinitions().Update(existingCopy)
 	reportUpdateEvent(recorder, required, err)
+
 	return actual, true, err
 }

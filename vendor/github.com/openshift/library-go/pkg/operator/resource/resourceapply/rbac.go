@@ -3,6 +3,8 @@ package resourceapply
 import (
 	"fmt"
 
+	"github.com/golang/glog"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -30,15 +32,22 @@ func ApplyClusterRole(client rbacclientv1.ClusterRolesGetter, recorder events.Re
 	}
 
 	modified := resourcemerge.BoolPtr(false)
-	resourcemerge.EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
-	contentSame := equality.Semantic.DeepEqual(existing.Rules, required.Rules)
-	if contentSame && !*modified {
-		return existing, false, nil
-	}
-	existing.Rules = required.Rules
-	existing.AggregationRule = nil
+	existingCopy := existing.DeepCopy()
 
-	actual, err := client.ClusterRoles().Update(existing)
+	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	contentSame := equality.Semantic.DeepEqual(existingCopy.Rules, required.Rules)
+	if contentSame && !*modified {
+		return existingCopy, false, nil
+	}
+
+	existingCopy.Rules = required.Rules
+	existingCopy.AggregationRule = nil
+
+	if glog.V(4) {
+		glog.Infof("ClusterRole %q changes: %v", required.Name, JSONPatch(existing, existingCopy))
+	}
+
+	actual, err := client.ClusterRoles().Update(existingCopy)
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
@@ -57,16 +66,26 @@ func ApplyClusterRoleBinding(client rbacclientv1.ClusterRoleBindingsGetter, reco
 	}
 
 	modified := resourcemerge.BoolPtr(false)
-	resourcemerge.EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
-	contentSame := equality.Semantic.DeepEqual(existing.Subjects, required.Subjects) &&
-		deepEqualRoleRef(existing.RoleRef, required.RoleRef)
-	if contentSame && !*modified {
-		return existing, false, nil
-	}
-	existing.Subjects = required.Subjects
-	existing.RoleRef = required.RoleRef
+	existingCopy := existing.DeepCopy()
 
-	actual, err := client.ClusterRoleBindings().Update(existing)
+	// Enforce apiGroup field
+	existingCopy.RoleRef.APIGroup = rbacv1.GroupName
+
+	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	contentSame := equality.Semantic.DeepEqual(existingCopy.Subjects, required.Subjects) &&
+		deepEqualRoleRef(existingCopy.RoleRef, required.RoleRef)
+	if contentSame && !*modified {
+		return existingCopy, false, nil
+	}
+
+	existingCopy.Subjects = required.Subjects
+	existingCopy.RoleRef = required.RoleRef
+
+	if glog.V(4) {
+		glog.Infof("ClusterRoleBinding %q changes: %v", required.Name, JSONPatch(existing, existingCopy))
+	}
+
+	actual, err := client.ClusterRoleBindings().Update(existingCopy)
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
@@ -84,13 +103,18 @@ func ApplyRole(client rbacclientv1.RolesGetter, recorder events.Recorder, requir
 	}
 
 	modified := resourcemerge.BoolPtr(false)
-	resourcemerge.EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
-	contentSame := equality.Semantic.DeepEqual(existing.Rules, required.Rules)
-	if contentSame && !*modified {
-		return existing, false, nil
-	}
-	existing.Rules = required.Rules
+	existingCopy := existing.DeepCopy()
 
+	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	contentSame := equality.Semantic.DeepEqual(existingCopy.Rules, required.Rules)
+	if contentSame && !*modified {
+		return existingCopy, false, nil
+	}
+	existingCopy.Rules = required.Rules
+
+	if glog.V(4) {
+		glog.Infof("Role %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(existing, existingCopy))
+	}
 	actual, err := client.Roles(required.Namespace).Update(existing)
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
@@ -110,16 +134,23 @@ func ApplyRoleBinding(client rbacclientv1.RoleBindingsGetter, recorder events.Re
 	}
 
 	modified := resourcemerge.BoolPtr(false)
-	resourcemerge.EnsureObjectMeta(modified, &existing.ObjectMeta, required.ObjectMeta)
-	contentSame := equality.Semantic.DeepEqual(existing.Subjects, required.Subjects) &&
-		deepEqualRoleRef(existing.RoleRef, required.RoleRef)
-	if contentSame && !*modified {
-		return existing, false, nil
-	}
-	existing.Subjects = required.Subjects
-	existing.RoleRef = required.RoleRef
+	existingCopy := existing.DeepCopy()
 
-	actual, err := client.RoleBindings(required.Namespace).Update(existing)
+	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
+	contentSame := equality.Semantic.DeepEqual(existingCopy.Subjects, required.Subjects) &&
+		deepEqualRoleRef(existingCopy.RoleRef, required.RoleRef)
+	if contentSame && !*modified {
+		return existingCopy, false, nil
+	}
+
+	existingCopy.Subjects = required.Subjects
+	existingCopy.RoleRef = required.RoleRef
+
+	if glog.V(4) {
+		glog.Infof("RoleBinding %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(existing, existingCopy))
+	}
+
+	actual, err := client.RoleBindings(required.Namespace).Update(existingCopy)
 	reportUpdateEvent(recorder, required, err)
 	return actual, true, err
 }
