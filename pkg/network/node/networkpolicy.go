@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/golang/glog"
 
@@ -19,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/networking"
@@ -36,6 +38,7 @@ type networkPolicyPlugin struct {
 	namespaces  map[uint32]*npNamespace
 	kNamespaces map[string]kapi.Namespace
 	pods        map[ktypes.UID]kapi.Pod
+	syncPeriod  time.Duration
 }
 
 // npNamespace tracks NetworkPolicy-related data for a Namespace
@@ -70,6 +73,7 @@ func NewNetworkPolicyPlugin() osdnPolicy {
 		namespaces:  make(map[uint32]*npNamespace),
 		kNamespaces: make(map[string]kapi.Namespace),
 		pods:        make(map[ktypes.UID]kapi.Pod),
+		syncPeriod:  10 * time.Second,
 	}
 }
 
@@ -108,6 +112,72 @@ func (np *networkPolicyPlugin) Start(node *OsdnNode) error {
 	np.watchNamespaces()
 	np.watchPods()
 	np.watchNetworkPolicies()
+	go utilwait.Forever(np.syncLoop, 0)
+	return nil
+}
+
+func (np *networkPolicyPlugin) syncLoop() {
+	t := time.NewTicker(np.syncPeriod)
+	defer t.Stop()
+	for {
+		<-t.C
+		glog.V(6).Infof("Periodic openshift NetworkPolicies sync")
+		err := np.syncFlows()
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("Syncing openshift NetworkPolicies failed: %v", err))
+		}
+	}
+}
+
+// make sure that we do not run out of sync with the OVS
+func (np *networkPolicyPlugin) syncFlows() error {
+	np.lock.Lock()
+	defer np.lock.Unlock()
+
+	currentOvsFlowCount := 0
+	currentFlows, err := np.node.oc.ovs.DumpFlows("")
+	if err == nil {
+		// this can be simplified on OCP 3.9+ by dumping only the table=80
+		for _, flow := range currentFlows {
+			parsed, err := ovs.ParseFlow(ovs.ParseForDump, flow)
+			if err != nil {
+				glog.Warningf("syncFlows: could not parse flow %q: %v", flow, err)
+				continue
+			}
+
+			if parsed.Table == 80 {
+				currentOvsFlowCount++
+			}
+		}
+
+	} else {
+		glog.Errorf("syncFlows: could not DumpFlows: %v", err)
+	}
+
+	allNamespaceFlowCount := 0
+	for _, npns := range np.namespaces {
+		allNamespaceFlowCount += npns.flows.Len()
+	}
+
+	glog.V(6).Infof("syncFlows: currentOvsFlowCount %d allNamespaceFlowCount %d", currentOvsFlowCount, allNamespaceFlowCount)
+
+	// if the current OVS flows and the calculated are different then do a resync
+	if currentOvsFlowCount != allNamespaceFlowCount {
+		glog.V(5).Infof("syncFlows: start resync flows")
+		otx := np.node.oc.NewTransaction()
+		otx.DeleteFlows("table=80")
+
+		for _, npns := range np.namespaces {
+			for _, flow := range npns.flows.UnsortedList() {
+				otx.AddFlow("%s", flow)
+			}
+		}
+
+		if err := otx.Commit(); err != nil {
+			glog.Errorf("syncFlows: Error syncing OVS flows: %v", err)
+		}
+	}
+
 	return nil
 }
 
