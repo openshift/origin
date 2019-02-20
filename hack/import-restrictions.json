@@ -617,7 +617,6 @@
 
       "vendor/github.com/coreos/etcd/clientv3",
       "vendor/github.com/coreos/etcd/pkg/transport",
-      "vendor/github.com/coreos/etcd/version",
       "vendor/github.com/ghodss/yaml",
 
       "vendor/k8s.io/kubernetes/pkg/api/legacyscheme",
@@ -625,7 +624,6 @@
       "vendor/k8s.io/kubernetes/pkg/controller/deployment/util",
       "vendor/k8s.io/kubernetes/pkg/credentialprovider",
       "vendor/k8s.io/kubernetes/pkg/serviceaccount",
-      "vendor/k8s.io/kubernetes/pkg/version",
 
       "vendor/github.com/openshift/library-go/pkg/git"
     ]

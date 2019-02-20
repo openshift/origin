@@ -4,6 +4,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/genericclioptions/openshiftpatch"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
+	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	kcmdset "k8s.io/kubernetes/pkg/kubectl/cmd/set"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
@@ -11,6 +12,7 @@ import (
 	"github.com/openshift/origin/pkg/api/legacygroupification"
 	"github.com/openshift/origin/pkg/oc/originpolymorphichelpers"
 	"github.com/openshift/origin/pkg/oc/util/clientcmd"
+	"github.com/openshift/origin/pkg/version"
 )
 
 func shimKubectlForOc() {
@@ -41,4 +43,5 @@ func shimKubectlForOc() {
 	// update some functions we inject
 	kcmdutil.GeneratorFn = originpolymorphichelpers.NewGeneratorsFn(kcmdutil.GeneratorFn)
 	kcmdutil.DescriberFn = originpolymorphichelpers.NewDescriberFn(kcmdutil.DescriberFn)
+	kcmd.OverrideGetVersionFn = version.Get
 }

@@ -37,7 +37,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/admin/verifyimagesignature"
 	"github.com/openshift/origin/pkg/oc/cli/kubectlwrappers"
 	"github.com/openshift/origin/pkg/oc/cli/options"
-	"github.com/openshift/origin/pkg/oc/cli/version"
 )
 
 var adminLong = ktemplates.LongDesc(`
@@ -142,10 +141,6 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 		// hidden
 		options.NewCmdOptions(streams),
 	)
-
-	if name == fullName {
-		cmds.AddCommand(version.NewCmdVersion(fullName, f, version.NewVersionOptions(false, streams)))
-	}
 
 	return cmds
 }
