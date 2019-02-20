@@ -130,13 +130,13 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Feature:CustomResourcePublish
 
 		By("client-side validation (kubectl create and apply) allows request with any unknown properties")
 		randomCR := fmt.Sprintf(`{%s,"a":{"b":[{"c":"d"}]}}`, meta)
-		if _, err := framework.RunKubectlInput(randomCR, ns, "create", "-f", "-"); err != nil {
+		if _, err := framework.RunKubectlInput(randomCR, ns, "create", "--validate=false", "-f", "-"); err != nil {
 			framework.Failf("failed to create random CR %s for CRD without schema: %v", randomCR, err)
 		}
 		if _, err := framework.RunKubectl(ns, "delete", crd.GetPluralName(), "test-cr"); err != nil {
 			framework.Failf("failed to delete random CR: %v", err)
 		}
-		if _, err := framework.RunKubectlInput(randomCR, ns, "apply", "-f", "-"); err != nil {
+		if _, err := framework.RunKubectlInput(randomCR, ns, "apply", "--validate=false", "-f", "-"); err != nil {
 			framework.Failf("failed to apply random CR %s for CRD without schema: %v", randomCR, err)
 		}
 		if _, err := framework.RunKubectl(ns, "delete", crd.GetPluralName(), "test-cr"); err != nil {
@@ -201,7 +201,7 @@ func waitForDefinition(c k8sclientset.Interface, name string, schema []byte) err
 	}
 
 	lastMsg := ""
-	if err := wait.Poll(500*time.Millisecond, 10*time.Second, func() (bool, error) {
+	if err := wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
 		bs, err := c.CoreV1().RESTClient().Get().AbsPath("openapi", "v2").DoRaw()
 		if err != nil {
 			return false, err
@@ -298,14 +298,17 @@ func definitionName(crd *framework.TestCrd, version string) string {
 }
 
 var schemaFoo = []byte(`description: Foo CRD for Testing
+type: object
 properties:
   spec:
+    type: object
     description: Specification of Foo
     properties:
       bars:
         description: List of Bars and their specs.
         type: array
         items:
+          type: object
           required:
           - name
           properties:
@@ -322,11 +325,13 @@ properties:
               type: array
   status:
     description: Status of Foo
+    type: object
     properties:
       bars:
         description: List of Bars and their statuses.
         type: array
         items:
+          type: object
           properties:
             name:
               description: Name of Bar.
@@ -340,6 +345,7 @@ properties:
               type: string`)
 
 var schemaWaldo = []byte(`description: Waldo CRD for Testing
+type: object
 properties:
   spec:
     description: Specification of Waldo
