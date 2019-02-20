@@ -99,6 +99,32 @@ var PreferManifestList = distribution.WithManifestMediaTypes([]string{
 	schema2.MediaTypeManifest,
 })
 
+// AllManifests returns all non-list manifests, the list manifest (if any), the digest the from refers to, or an error.
+func AllManifests(ctx context.Context, from imagereference.DockerImageReference, repo distribution.Repository) (map[digest.Digest]distribution.Manifest, distribution.Manifest, digest.Digest, error) {
+	var srcDigest digest.Digest
+	if len(from.Tag) > 0 {
+		desc, err := repo.Tags(ctx).Get(ctx, from.Tag)
+		if err != nil {
+			return nil, nil, "", err
+		}
+		srcDigest = desc.Digest
+	} else if len(from.ID) > 0 {
+		srcDigest = digest.Digest(from.ID)
+	} else {
+		return nil, nil, "", fmt.Errorf("no tag or digest specified")
+	}
+	manifests, err := repo.Manifests(ctx)
+	if err != nil {
+		return nil, nil, "", err
+	}
+	srcManifest, err := manifests.Get(ctx, srcDigest, PreferManifestList)
+	if err != nil {
+		return nil, nil, "", err
+	}
+
+	return ManifestsFromList(ctx, srcDigest, srcManifest, manifests, from)
+}
+
 // FirstManifest returns the first manifest at the request location that matches the filter function.
 func FirstManifest(ctx context.Context, from imagereference.DockerImageReference, repo distribution.Repository, filterFn FilterFunc) (distribution.Manifest, digest.Digest, string, error) {
 	var srcDigest digest.Digest
@@ -264,6 +290,30 @@ func ProcessManifestList(ctx context.Context, srcDigest digest.Digest, srcManife
 
 	default:
 		return []distribution.Manifest{srcManifest}, srcManifest, srcDigest, nil
+	}
+}
+
+// ManifestsFromList returns a map of all image manifests for a given manifest. It returns the ManifestList and its digest if
+// srcManifest is a list, or an error.
+func ManifestsFromList(ctx context.Context, srcDigest digest.Digest, srcManifest distribution.Manifest, manifests distribution.ManifestService, ref imagereference.DockerImageReference) (map[digest.Digest]distribution.Manifest, distribution.Manifest, digest.Digest, error) {
+	switch t := srcManifest.(type) {
+	case *manifestlist.DeserializedManifestList:
+		allManifests := make(map[digest.Digest]distribution.Manifest)
+		manifestDigest := srcDigest
+		manifestList := t
+
+		for i, manifest := range t.Manifests {
+			childManifest, err := manifests.Get(ctx, manifest.Digest, distribution.WithManifestMediaTypes([]string{manifestlist.MediaTypeManifestList, schema2.MediaTypeManifest}))
+			if err != nil {
+				return nil, nil, "", fmt.Errorf("unable to retrieve source image %s manifest #%d from manifest list: %v", ref, i+1, err)
+			}
+			allManifests[manifest.Digest] = childManifest
+		}
+
+		return allManifests, manifestList, manifestDigest, nil
+
+	default:
+		return map[digest.Digest]distribution.Manifest{srcDigest: srcManifest}, nil, "", nil
 	}
 }
 

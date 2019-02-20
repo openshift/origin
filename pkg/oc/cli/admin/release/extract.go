@@ -204,7 +204,7 @@ func (o *ExtractOptions) extractGit(dir string) error {
 		return err
 	}
 
-	release, err := NewInfoOptions(o.IOStreams).LoadReleaseInfo(o.From)
+	release, err := NewInfoOptions(o.IOStreams).LoadReleaseInfo(o.From, false)
 	if err != nil {
 		return err
 	}
