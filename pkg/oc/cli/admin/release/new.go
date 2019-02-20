@@ -48,6 +48,10 @@ func NewNewOptions(streams genericclioptions.IOStreams) *NewOptions {
 		//   another operator.
 		AlwaysInclude:  []string{"cluster-version-operator", "cli", "installer"},
 		ToImageBaseTag: "cluster-version-operator",
+		// We strongly control the set of allowed component versions to prevent confusion
+		// about what component versions may be used for. Changing this list requires
+		// approval from the release architects.
+		AllowedComponents: []string{"kubernetes"},
 	}
 }
 
@@ -151,6 +155,7 @@ type NewOptions struct {
 	ReferenceMode   string
 
 	ExtraComponentVersions string
+	AllowedComponents      []string
 
 	Exclude       []string
 	AlwaysInclude []string
@@ -812,8 +817,15 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 				tag.Annotations[annotationBuildSourceLocation] = labels[annotationBuildSourceLocation]
 
 				if versions := labels[annotationBuildVersions]; len(versions) > 0 {
-					if _, err := parseComponentVersionsLabel(versions); err != nil {
+					components, err := parseComponentVersionsLabel(versions)
+					if err != nil {
 						return false, fmt.Errorf("tag %q has an invalid %s label: %v", tag.Name, annotationBuildVersions, err)
+					}
+					// TODO: eventually this can be relaxed
+					for component := range components {
+						if !stringArrContains(o.AllowedComponents, component) {
+							return false, fmt.Errorf("tag %q references a component version %q which is not in the allowed list", tag.Name, component)
+						}
 					}
 					tag.Annotations[annotationBuildVersions] = versions
 				}
