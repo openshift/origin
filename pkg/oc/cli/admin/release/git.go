@@ -71,14 +71,14 @@ func (g *git) basename() string {
 }
 
 func (g *git) CheckoutCommit(repo, commit string) error {
-	_, err := g.exec("show-ref", commit)
+	_, err := g.exec("checkout", commit)
 	if err == nil {
 		return nil
 	}
 
 	// try to fetch by URL
 	if _, err := g.exec("fetch", repo); err == nil {
-		if _, err := g.exec("show-ref", commit); err == nil {
+		if _, err := g.exec("checkout", commit); err == nil {
 			return nil
 		}
 	}
@@ -158,10 +158,10 @@ func mergeLogForRepo(g *git, from, to string) ([]MergeCommit, error) {
 		if _, err := g.exec("fetch", "--all"); err != nil {
 			return nil, gitOutputToError(err, out)
 		}
-		if _, err := g.exec("show-ref", from); err != nil {
+		if _, err := g.exec("cat-file", "-e", from+"^{commit}"); err != nil {
 			return nil, fmt.Errorf("from commit %s does not exist", from)
 		}
-		if _, err := g.exec("show-ref", to); err != nil {
+		if _, err := g.exec("cat-file", "-e", to+"^{commit}"); err != nil {
 			return nil, fmt.Errorf("to commit %s does not exist", to)
 		}
 		out, err = g.exec(args...)
