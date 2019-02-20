@@ -583,7 +583,12 @@ func makeRoute(ns, name, host, path string, wildcard bool, creationTimestamp met
 		policy = routeapi.WildcardPolicySubdomain
 	}
 	return &routeapi.Route{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns, CreationTimestamp: creationTimestamp},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              name,
+			Namespace:         ns,
+			CreationTimestamp: creationTimestamp,
+			UID:               types.UID(fmt.Sprintf("%d_%s_%s", creationTimestamp.Time.Unix(), ns, name)),
+		},
 		Spec: routeapi.RouteSpec{
 			Host:           host,
 			Path:           path,
