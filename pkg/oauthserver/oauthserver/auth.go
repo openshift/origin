@@ -22,6 +22,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/request/union"
 	x509request "k8s.io/apiserver/pkg/authentication/request/x509"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
+	ktransport "k8s.io/client-go/transport"
 	"k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/retry"
 
@@ -494,11 +495,15 @@ func (c *OAuthServerConfig) getOAuthProvider(identityProvider osinv1.IdentityPro
 		return gitlab.NewProvider(identityProvider.Name, provider.URL, provider.ClientID, clientSecret, transport, provider.Legacy)
 
 	case *osinv1.GoogleIdentityProvider:
+		transport, err := transportFor("", "", "")
+		if err != nil {
+			return nil, err
+		}
 		clientSecret, err := config.ResolveStringValue(provider.ClientSecret)
 		if err != nil {
 			return nil, err
 		}
-		return google.NewProvider(identityProvider.Name, provider.ClientID, clientSecret, provider.HostedDomain)
+		return google.NewProvider(identityProvider.Name, provider.ClientID, clientSecret, provider.HostedDomain, transport)
 
 	case *osinv1.OpenIDIdentityProvider:
 		transport, err := transportFor(provider.CA, "", "")
@@ -713,7 +718,15 @@ func (redirectSuccessHandler) AuthenticationSucceeded(user kuser.Info, then stri
 }
 
 // transportFor returns an http.Transport for the given ca and client cert (which may be empty strings)
-func transportFor(ca string, certFile string, keyFile string) (http.RoundTripper, error) {
+func transportFor(ca, certFile, keyFile string) (http.RoundTripper, error) {
+	transport, err := transportForInner(ca, certFile, keyFile)
+	if err != nil {
+		return nil, err
+	}
+	return ktransport.DebugWrappers(transport), nil
+}
+
+func transportForInner(ca, certFile, keyFile string) (http.RoundTripper, error) {
 	if len(ca) == 0 && len(certFile) == 0 && len(keyFile) == 0 {
 		return http.DefaultTransport, nil
 	}
