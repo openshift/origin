@@ -26,6 +26,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/googleapis/gnostic/OpenAPIv2"
+
 	"github.com/stretchr/testify/assert"
 
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
@@ -39,6 +41,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
+	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
@@ -782,7 +785,7 @@ func TestGetDeletableResources(t *testing.T) {
 			PreferredResources: test.serverResources,
 			Error:              test.err,
 		}
-		actual := GetDeletableResources(client)
+		actual := getDeletableResources(client)
 		if !reflect.DeepEqual(test.deletableResources, actual) {
 			t.Errorf("expected resources:\n%v\ngot:\n%v", test.deletableResources, actual)
 		}
@@ -930,6 +933,8 @@ type fakeServerResources struct {
 	InterfaceUsedCount int
 }
 
+var _ discovery.DiscoveryInterface = &fakeServerResources{}
+
 func (_ *fakeServerResources) ServerResourcesForGroupVersion(groupVersion string) (*metav1.APIResourceList, error) {
 	return nil, nil
 }
@@ -970,4 +975,20 @@ func (f *fakeServerResources) getInterfaceUsedCount() int {
 
 func (_ *fakeServerResources) ServerPreferredNamespacedResources() ([]*metav1.APIResourceList, error) {
 	return nil, nil
+}
+
+func (_ *fakeServerResources) RESTClient() restclient.Interface {
+	return nil
+}
+
+func (_ *fakeServerResources) ServerGroups() (*metav1.APIGroupList, error) {
+	panic("unsupported")
+}
+
+func (_ *fakeServerResources) ServerVersion() (*version.Info, error) {
+	panic("unsupported")
+}
+
+func (_ *fakeServerResources) OpenAPISchema() (*openapi_v2.Document, error) {
+	panic("unsupported")
 }
