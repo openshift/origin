@@ -320,11 +320,10 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 		g.It("should run a deployment to completion and then scale to zero", func() {
 			namespace := oc.Namespace()
 
-			dc, err := readDCFixture(deploymentFixture)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			dc := exutil.ReadFixtureOrFail(deploymentFixture).(*appsv1.DeploymentConfig)
 			o.Expect(dc.Name).To(o.Equal(dcName))
 
-			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(dc)
+			dc, err := oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(dc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Name).To(o.Equal(dcName))
 			e2e.Logf("created DC, creationTimestamp: %v", dc.CreationTimestamp)
@@ -585,11 +584,10 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 		g.It("should run the custom deployment steps", func() {
 			namespace := oc.Namespace()
 
-			dc, err := readDCFixture(customDeploymentFixture)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			dc := exutil.ReadFixtureOrFail(customDeploymentFixture).(*appsv1.DeploymentConfig)
 			o.Expect(dc.Name).To(o.Equal(dcName))
 
-			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(dc)
+			dc, err := oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(dc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Name).To(o.Equal(dcName))
 			e2e.Logf("created DC, creationTimestamp: %v", dc.CreationTimestamp)
@@ -1017,8 +1015,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 		})
 
 		g.It("should not transition the deployment to Complete before satisfied", func() {
-			dc, err := readDCFixture(minReadySecondsFixture)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			dc := exutil.ReadFixtureOrFail(minReadySecondsFixture).(*appsv1.DeploymentConfig)
 			o.Expect(dc.Name).To(o.Equal(dcName))
 
 			rcName := func(i int) string { return fmt.Sprintf("%s-%d", dc.Name, i) }
@@ -1152,8 +1149,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			var err error
 
 			g.By("should create ControllerRef in RCs it creates", func() {
-				dc, err = readDCFixture(simpleDeploymentFixture)
-				o.Expect(err).NotTo(o.HaveOccurred())
+				dc := exutil.ReadFixtureOrFail(simpleDeploymentFixture).(*appsv1.DeploymentConfig)
 				// Having more replicas will make us more resilient to pod failures
 				dc.Spec.Replicas = 3
 				dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(dc)
@@ -1251,14 +1247,13 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			namespace := oc.Namespace()
 
 			g.By("creating DC")
-			dc, err := readDCFixture(simpleDeploymentFixture)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			dc := exutil.ReadFixtureOrFail(simpleDeploymentFixture).(*appsv1.DeploymentConfig)
 			o.Expect(dc.Name).To(o.Equal(dcName))
 
 			dc.Spec.Replicas = 1
 			// Make sure the deployer pod doesn't end too soon
 			dc.Spec.MinReadySeconds = 60
-			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(dc)
+			dc, err := oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(dc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for RC to be created")
@@ -1322,14 +1317,13 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			namespace := oc.Namespace()
 
 			g.By("creating DC")
-			dc, err := readDCFixture(simpleDeploymentFixture)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			dc := exutil.ReadFixtureOrFail(simpleDeploymentFixture).(*appsv1.DeploymentConfig)
 			o.Expect(dc.Name).To(o.Equal(dcName))
 
 			dc.Spec.Replicas = 1
 			// Make sure the deployer pod doesn't end too soon
 			dc.Spec.MinReadySeconds = 60
-			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(dc)
+			dc, err := oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(dc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for RC to be created")
@@ -1388,14 +1382,13 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			)
 
 			g.By("creating DC")
-			dc, err := readDCFixture(simpleDeploymentFixture)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			dc := exutil.ReadFixtureOrFail(simpleDeploymentFixture).(*appsv1.DeploymentConfig)
 			o.Expect(dc.Name).To(o.Equal(dcName))
 
 			dc.Spec.Replicas = 1
 			// Make sure the deployer pod doesn't immediately
 			dc.Spec.MinReadySeconds = 3
-			dc, err = oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(dc)
+			dc, err := oc.AppsClient().AppsV1().DeploymentConfigs(namespace).Create(dc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for RC to be created")
@@ -1480,8 +1473,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			namespace := oc.Namespace()
 
 			g.By("creating DC")
-			dc, err := readDCFixture(imageChangeTriggerFixture)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			dc := exutil.ReadFixtureOrFail(imageChangeTriggerFixture).(*appsv1.DeploymentConfig)
 			o.Expect(dc.Name).To(o.Equal(dcName))
 
 			rcList, err := oc.KubeClient().CoreV1().ReplicationControllers(namespace).List(metav1.ListOptions{})
