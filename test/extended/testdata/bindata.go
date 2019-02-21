@@ -186,6 +186,9 @@
 // test/extended/testdata/roles/empty-role.yaml
 // test/extended/testdata/roles/policy-clusterroles.yaml
 // test/extended/testdata/roles/policy-roles.yaml
+// test/extended/testdata/router/hello-openshift-replicaset.yaml
+// test/extended/testdata/router/hello-openshift-route.yaml
+// test/extended/testdata/router/hello-openshift-service.yaml
 // test/extended/testdata/router-config-manager.yaml
 // test/extended/testdata/router-http-echo-server.yaml
 // test/extended/testdata/router-metrics.yaml
@@ -10319,6 +10322,102 @@ func testExtendedTestdataRolesPolicyRolesYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/roles/policy-roles.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterHelloOpenshiftReplicasetYaml = []byte(`apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: hello-openshift
+  labels:
+    app: hello-openshift
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hello-openshift
+  template:
+    metadata:
+      labels:
+        app: hello-openshift
+    spec:
+      containers:
+      - name: server
+        image: "openshift/hello-openshift"
+        ports:
+          - containerPort: 8080
+            name: http
+
+`)
+
+func testExtendedTestdataRouterHelloOpenshiftReplicasetYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterHelloOpenshiftReplicasetYaml, nil
+}
+
+func testExtendedTestdataRouterHelloOpenshiftReplicasetYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterHelloOpenshiftReplicasetYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/hello-openshift-replicaset.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterHelloOpenshiftRouteYaml = []byte(`apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: test
+spec:
+  host: ""
+  to:
+    kind: Service
+    name: hello-openshift
+  ports:
+    - targetPort: 8080
+`)
+
+func testExtendedTestdataRouterHelloOpenshiftRouteYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterHelloOpenshiftRouteYaml, nil
+}
+
+func testExtendedTestdataRouterHelloOpenshiftRouteYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterHelloOpenshiftRouteYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/hello-openshift-route.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterHelloOpenshiftServiceYaml = []byte(`apiVersion: v1
+kind: Service
+metadata:
+  name: hello-openshift
+  labels:
+    app: hello-openshift
+spec:
+  selector:
+    app: hello-openshift
+  ports:
+    - port: 8080
+`)
+
+func testExtendedTestdataRouterHelloOpenshiftServiceYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterHelloOpenshiftServiceYaml, nil
+}
+
+func testExtendedTestdataRouterHelloOpenshiftServiceYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterHelloOpenshiftServiceYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router/hello-openshift-service.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -34517,6 +34616,9 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/roles/empty-role.yaml": testExtendedTestdataRolesEmptyRoleYaml,
 	"test/extended/testdata/roles/policy-clusterroles.yaml": testExtendedTestdataRolesPolicyClusterrolesYaml,
 	"test/extended/testdata/roles/policy-roles.yaml": testExtendedTestdataRolesPolicyRolesYaml,
+	"test/extended/testdata/router/hello-openshift-replicaset.yaml": testExtendedTestdataRouterHelloOpenshiftReplicasetYaml,
+	"test/extended/testdata/router/hello-openshift-route.yaml": testExtendedTestdataRouterHelloOpenshiftRouteYaml,
+	"test/extended/testdata/router/hello-openshift-service.yaml": testExtendedTestdataRouterHelloOpenshiftServiceYaml,
 	"test/extended/testdata/router-config-manager.yaml": testExtendedTestdataRouterConfigManagerYaml,
 	"test/extended/testdata/router-http-echo-server.yaml": testExtendedTestdataRouterHttpEchoServerYaml,
 	"test/extended/testdata/router-metrics.yaml": testExtendedTestdataRouterMetricsYaml,
@@ -35076,6 +35178,11 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"empty-role.yaml": &bintree{testExtendedTestdataRolesEmptyRoleYaml, map[string]*bintree{}},
 					"policy-clusterroles.yaml": &bintree{testExtendedTestdataRolesPolicyClusterrolesYaml, map[string]*bintree{}},
 					"policy-roles.yaml": &bintree{testExtendedTestdataRolesPolicyRolesYaml, map[string]*bintree{}},
+				}},
+				"router": &bintree{nil, map[string]*bintree{
+					"hello-openshift-replicaset.yaml": &bintree{testExtendedTestdataRouterHelloOpenshiftReplicasetYaml, map[string]*bintree{}},
+					"hello-openshift-route.yaml": &bintree{testExtendedTestdataRouterHelloOpenshiftRouteYaml, map[string]*bintree{}},
+					"hello-openshift-service.yaml": &bintree{testExtendedTestdataRouterHelloOpenshiftServiceYaml, map[string]*bintree{}},
 				}},
 				"router-config-manager.yaml": &bintree{testExtendedTestdataRouterConfigManagerYaml, map[string]*bintree{}},
 				"router-http-echo-server.yaml": &bintree{testExtendedTestdataRouterHttpEchoServerYaml, map[string]*bintree{}},

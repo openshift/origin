@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: hello-openshift
+  labels:
+    app: hello-openshift
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hello-openshift
+  template:
+    metadata:
+      labels:
+        app: hello-openshift
+    spec:
+      containers:
+      - name: server
+        image: "openshift/hello-openshift"
+        ports:
+          - containerPort: 8080
+            name: http
+

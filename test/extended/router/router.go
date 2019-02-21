@@ -1,17 +1,22 @@
 package router
 
 import (
+	"io/ioutil"
 	"net/http"
 	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	routev1 "github.com/openshift/api/route/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"github.com/openshift/origin/test/extended/util/url"
@@ -40,6 +45,12 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	})
 
 	oc = exutil.NewCLI("router-stress", exutil.KubeConfigPath())
+
+	var (
+		helloOpenshiftReplicaset = exutil.FixturePath("testdata", "router", "hello-openshift-replicaset.yaml")
+		helloOpenshiftService    = exutil.FixturePath("testdata", "router", "hello-openshift-service.yaml")
+		helloOpenshiftRoute      = exutil.FixturePath("testdata", "router", "hello-openshift-route.yaml")
+	)
 
 	g.BeforeEach(func() {
 		var err error
@@ -92,6 +103,44 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 				url.Expect("GET", "https://3.ingress-test.com/").Through(host).SkipTLSVerification().HasStatusCode(200),
 				url.Expect("GET", "http://3.ingress-test.com/").Through(host).RedirectsTo("https://3.ingress-test.com/", http.StatusFound),
 			)
+		})
+
+		g.It("should be able to reach back to Routes with default subdomain", func() {
+			namespace := oc.Namespace()
+
+			rs := exutil.ReadFixtureOrFail(helloOpenshiftReplicaset).(*appsv1.ReplicaSet)
+			rs, err := oc.KubeClient().AppsV1().ReplicaSets(namespace).Create(rs)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			svc := exutil.ReadFixtureOrFail(helloOpenshiftService).(*corev1.Service)
+			svc, err = oc.KubeClient().CoreV1().Services(namespace).Create(svc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// TODO: move this to oc.RouteClient when it is migrated to external
+			routeclientset := routeclientset.NewForConfigOrDie(oc.UserConfig())
+			route := exutil.ReadFixtureOrFail(helloOpenshiftRoute).(*routev1.Route)
+			route, err = routeclientset.RouteV1().Routes(namespace).Create(route)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			url := "http://" + route.Spec.Host
+			err = wait.PollImmediate(2*time.Second, 120*time.Second, func() (bool, error) {
+				resp, err := http.Get(url)
+				if err != nil {
+					e2e.Logf("failed to GET %q: %v", url, err)
+					return false, nil
+				}
+
+				if resp.StatusCode != http.StatusOK {
+					e2e.Logf("GET %q: %d: %s", url, resp.StatusCode, resp.Status)
+					return false, nil
+				}
+
+				defer resp.Body.Close()
+				body, err := ioutil.ReadAll(resp.Body)
+				e2e.Logf("GET %q: %d: %s", url, resp.StatusCode, body)
+
+				return true, nil
+			})
 		})
 	})
 })

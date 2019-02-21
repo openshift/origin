@@ -42,11 +42,16 @@ import (
 	_ "github.com/openshift/origin/test/extended/security"
 	_ "github.com/openshift/origin/test/extended/templates"
 
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
+
+	routev1 "github.com/openshift/api/route/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 // init initialize the extended testing suite.
 func init() {
+	routev1.Install(scheme.Scheme)
+
 	exutil.InitTest()
 }
 
