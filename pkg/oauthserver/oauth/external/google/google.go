@@ -3,6 +3,7 @@ package google
 import (
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/openshift/origin/pkg/oauthserver/oauth/external"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/external/openid"
@@ -19,7 +20,7 @@ const (
 
 var googleOAuthScopes = []string{"openid", "email", "profile"}
 
-func NewProvider(providerName, clientID, clientSecret, hostedDomain string) (external.Provider, error) {
+func NewProvider(providerName, clientID, clientSecret, hostedDomain string, transport http.RoundTripper) (external.Provider, error) {
 	config := openid.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -55,5 +56,5 @@ func NewProvider(providerName, clientID, clientSecret, hostedDomain string) (ext
 		}
 	}
 
-	return openid.NewProvider(providerName, nil, config)
+	return openid.NewProvider(providerName, transport, config)
 }
