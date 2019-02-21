@@ -39,6 +39,85 @@ func TestFakePorts(t *testing.T) {
 	}
 }
 
+func TestTransaction(t *testing.T) {
+	ovsif := NewFake("br0")
+	if err := ovsif.AddBridge(); err != nil {
+		t.Fatalf("unexpected error adding bridge: %v", err)
+	}
+
+	// Empty transaction
+	otx := ovsif.NewTransaction()
+	if err := otx.EndTransaction(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if err := checkDump(ovsif, "", []string{}); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Add flows transaction
+	otx.AddFlow("table=100, priority=100, reg0=1, actions=one")
+	otx.AddFlow("table=100, priority=200, reg0=2, cookie=1, actions=two")
+	if err := otx.EndTransaction(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expectedFlows := []string{
+		" cookie=1, table=100, priority=200, reg0=2, actions=two",
+		" cookie=0, table=100, priority=100, reg0=1, actions=one",
+	}
+	if err := checkDump(ovsif, "", expectedFlows); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Add flows failed transaction, invalid action
+	otx.AddFlow("table=100, priority=300, reg0=3, actions=three")
+	otx.AddFlow("table=100, priority=400, reg0=2, actions")
+	if err := otx.EndTransaction(); err == nil {
+		t.Fatalf("expected no error but got %v", err)
+	}
+	if err := checkDump(ovsif, "", expectedFlows); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Delete flows transaction
+	otx.DeleteFlows("table=100, reg0=1")
+	if err := otx.EndTransaction(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expectedFlows = []string{
+		" cookie=1, table=100, priority=200, reg0=2, actions=two",
+	}
+	if err := checkDump(ovsif, "", expectedFlows); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Add and Delete flows transaction
+	otx.AddFlow("table=100, priority=300, reg0=3, actions=three")
+	otx.AddFlow("table=101, priority=100, reg0=1, actions=one")
+	otx.DeleteFlows("table=100")
+	otx.AddFlow("table=101, priority=200, reg0=2, actions=two")
+	if err := otx.EndTransaction(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expectedFlows = []string{
+		" cookie=0, table=101, priority=200, reg0=2, actions=two",
+		" cookie=0, table=101, priority=100, reg0=1, actions=one",
+	}
+	if err := checkDump(ovsif, "", expectedFlows); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Add and Delete flows failed transaction, missing action
+	otx.AddFlow("table=101, priority=300, reg0=3, actions=three")
+	otx.DeleteFlows("table=101")
+	otx.AddFlow("table=101, priority=400, reg0=4, actions")
+	if err := otx.EndTransaction(); err == nil {
+		t.Fatalf("expected no error but got %v", err)
+	}
+	if err := checkDump(ovsif, "", expectedFlows); err != nil {
+		t.Fatalf(err.Error())
+	}
+}
+
 func TestFind(t *testing.T) {
 	ovsif := NewFake("br0")
 	err := ovsif.AddBridge()
