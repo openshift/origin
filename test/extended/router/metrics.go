@@ -94,7 +94,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.It("should expose prometheus metrics for a route", func() {
+		g.It("[Flaky] should expose prometheus metrics for a route", func() {
 			g.By("when a route exists")
 			configPath := exutil.FixturePath("testdata", "router-metrics.yaml")
 			err := oc.Run("create").Args("-f", configPath).Execute()
