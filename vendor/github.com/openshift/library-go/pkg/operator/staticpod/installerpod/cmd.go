@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/openshift/library-go/pkg/config/client"
 	"github.com/openshift/library-go/pkg/operator/events"
@@ -109,7 +110,13 @@ func (o *InstallOptions) Complete() error {
 	if err != nil {
 		return err
 	}
-	o.KubeClient, err = kubernetes.NewForConfig(clientConfig)
+
+	// Use protobuf to fetch configmaps and secrets and create pods.
+	protoConfig := rest.CopyConfig(clientConfig)
+	protoConfig.AcceptContentTypes = "application/vnd.kubernetes.protobuf,application/json"
+	protoConfig.ContentType = "application/vnd.kubernetes.protobuf"
+
+	o.KubeClient, err = kubernetes.NewForConfig(protoConfig)
 	if err != nil {
 		return err
 	}
@@ -302,9 +309,23 @@ func (o *InstallOptions) copyContent(ctx context.Context) error {
 }
 
 func (o *InstallOptions) Run(ctx context.Context) error {
-	eventTarget, err := events.GetControllerReferenceForCurrentPod(o.KubeClient, o.Namespace, nil)
-	if err != nil {
-		return err
+	var eventTarget *corev1.ObjectReference
+
+	// Poll for the pod here to prevent flakes when the API server is temporary down or connection refused errors.
+	if pollErr := utilwait.PollImmediateUntil(200*time.Millisecond, func() (bool, error) {
+		var err error
+		eventTarget, err = events.GetControllerReferenceForCurrentPod(o.KubeClient, o.Namespace, nil)
+		switch {
+		case errors.IsNotFound(err):
+			return true, err
+		case err != nil:
+			glog.Warningf("Failed to obtain installer pod self-reference: %v (will retry)", err)
+			return false, err
+		default:
+			return true, nil
+		}
+	}, ctx.Done()); pollErr != nil {
+		return pollErr
 	}
 
 	recorder := events.NewRecorder(o.KubeClient.CoreV1().Events(o.Namespace), "static-pod-installer", eventTarget)

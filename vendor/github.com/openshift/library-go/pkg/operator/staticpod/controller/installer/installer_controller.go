@@ -668,12 +668,16 @@ func (c InstallerController) sync() error {
 	operatorStatus := originalOperatorStatus.DeepCopy()
 
 	switch operatorSpec.ManagementState {
+	case operatorv1.Managed:
 	case operatorv1.Unmanaged:
 		return nil
 	case operatorv1.Removed:
-		// TODO probably just fail.  Static pod managers can't be removed.
+		// TODO probably just fail
+		return nil
+	default:
 		return nil
 	}
+
 	requeue, syncErr := c.manageInstallationPods(operatorSpec, operatorStatus, resourceVersion)
 	if requeue && syncErr == nil {
 		return fmt.Errorf("synthetic requeue request")

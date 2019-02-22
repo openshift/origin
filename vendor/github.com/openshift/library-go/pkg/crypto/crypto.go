@@ -222,7 +222,7 @@ type TLSCARoots struct {
 	Roots []*x509.Certificate
 }
 
-func (c *TLSCertificateConfig) writeCertConfigFile(certFile, keyFile string) error {
+func (c *TLSCertificateConfig) WriteCertConfigFile(certFile, keyFile string) error {
 	// ensure parent dir
 	if err := os.MkdirAll(filepath.Dir(certFile), os.FileMode(0755)); err != nil {
 		return err
@@ -496,7 +496,7 @@ func MakeSelfSignedCA(certFile, keyFile, serialFile, name string, expireDays int
 	if err != nil {
 		return nil, err
 	}
-	if err := caConfig.writeCertConfigFile(certFile, keyFile); err != nil {
+	if err := caConfig.WriteCertConfigFile(certFile, keyFile); err != nil {
 		return nil, err
 	}
 
@@ -606,7 +606,7 @@ func (ca *CA) MakeAndWriteServerCert(certFile, keyFile string, hostnames sets.St
 	if err != nil {
 		return nil, err
 	}
-	if err := server.writeCertConfigFile(certFile, keyFile); err != nil {
+	if err := server.WriteCertConfigFile(certFile, keyFile); err != nil {
 		return server, err
 	}
 	return server, nil

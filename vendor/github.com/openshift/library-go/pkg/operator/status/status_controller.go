@@ -2,7 +2,6 @@ package status
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -76,7 +75,7 @@ func NewClusterOperatorStatusController(
 // sync reacts to a change in prereqs by finding information that is required to match another value in the cluster. This
 // must be information that is logically "owned" by another component.
 func (c StatusSyncer) sync() error {
-	_, currentDetailedStatus, _, err := c.operatorClient.GetOperatorState()
+	detailedSpec, currentDetailedStatus, _, err := c.operatorClient.GetOperatorState()
 	if apierrors.IsNotFound(err) {
 		c.eventRecorder.Warningf("StatusNotFound", "Unable to determine current operator status for %s", c.clusterOperatorName)
 		if err := c.clusterOperatorClient.ClusterOperators().Delete(c.clusterOperatorName, nil); err != nil && !apierrors.IsNotFound(err) {
@@ -93,78 +92,38 @@ func (c StatusSyncer) sync() error {
 		c.eventRecorder.Warningf("StatusFailed", "Unable to get current operator status for %s: %v", c.clusterOperatorName, err)
 		return err
 	}
+
+	// ensure that we have a clusteroperator resource
+	if originalClusterOperatorObj == nil || apierrors.IsNotFound(err) {
+		glog.Infof("clusteroperator/%s not found", c.clusterOperatorName)
+		var createErr error
+		originalClusterOperatorObj, createErr = c.clusterOperatorClient.ClusterOperators().Create(&configv1.ClusterOperator{
+			ObjectMeta: metav1.ObjectMeta{Name: c.clusterOperatorName},
+		})
+		if apierrors.IsNotFound(createErr) {
+			// this means that the API isn't present.  We did not fail.  Try again later
+			glog.Infof("ClusterOperator API not created")
+			c.queue.AddRateLimited(workQueueKey)
+			return nil
+		}
+		if createErr != nil {
+			c.eventRecorder.Warningf("StatusCreateFailed", "Failed to create operator status: %v", err)
+			return createErr
+		}
+	}
 	clusterOperatorObj := originalClusterOperatorObj.DeepCopy()
 
-	if clusterOperatorObj == nil || apierrors.IsNotFound(err) {
-		glog.Infof("clusteroperator/%s not found", c.clusterOperatorName)
-		clusterOperatorObj = &configv1.ClusterOperator{
-			ObjectMeta: metav1.ObjectMeta{Name: c.clusterOperatorName},
+	// if we are unmanaged, force everything to Unknown.
+	if detailedSpec.ManagementState == operatorv1.Unmanaged {
+		clusterOperatorObj.Status = configv1.ClusterOperatorStatus{}
+		configv1helpers.SetStatusCondition(&clusterOperatorObj.Status.Conditions, configv1.ClusterOperatorStatusCondition{Type: configv1.OperatorAvailable, Status: configv1.ConditionUnknown, Reason: "Unmanaged"})
+		configv1helpers.SetStatusCondition(&clusterOperatorObj.Status.Conditions, configv1.ClusterOperatorStatusCondition{Type: configv1.OperatorProgressing, Status: configv1.ConditionUnknown, Reason: "Unmanaged"})
+		configv1helpers.SetStatusCondition(&clusterOperatorObj.Status.Conditions, configv1.ClusterOperatorStatusCondition{Type: configv1.OperatorFailing, Status: configv1.ConditionUnknown, Reason: "Unmanaged"})
+		configv1helpers.SetStatusCondition(&clusterOperatorObj.Status.Conditions, configv1.ClusterOperatorStatusCondition{Type: configv1.OperatorUpgradeable, Status: configv1.ConditionUnknown, Reason: "Unmanaged"})
+
+		if equality.Semantic.DeepEqual(clusterOperatorObj, originalClusterOperatorObj) {
+			return nil
 		}
-	}
-	clusterOperatorObj.Status.RelatedObjects = c.relatedObjects
-
-	var failingConditions []operatorv1.OperatorCondition
-	for _, condition := range currentDetailedStatus.Conditions {
-		if strings.HasSuffix(condition.Type, "Failing") && condition.Status == operatorv1.ConditionTrue {
-			failingConditions = append(failingConditions, condition)
-		}
-	}
-	failingCondition := operatorv1.OperatorCondition{Type: operatorv1.OperatorStatusTypeFailing, Status: operatorv1.ConditionUnknown}
-	if len(failingConditions) > 0 {
-		failingCondition.Status = operatorv1.ConditionTrue
-		var messages []string
-		latestTransitionTime := metav1.Time{}
-		for _, condition := range failingConditions {
-			if latestTransitionTime.Before(&condition.LastTransitionTime) {
-				latestTransitionTime = condition.LastTransitionTime
-			}
-
-			if len(condition.Message) == 0 {
-				continue
-			}
-			for _, message := range strings.Split(condition.Message, "\n") {
-				messages = append(messages, fmt.Sprintf("%s: %s", condition.Type, message))
-			}
-		}
-		if len(messages) > 0 {
-			failingCondition.Message = strings.Join(messages, "\n")
-		}
-		if len(failingConditions) == 1 {
-			failingCondition.Reason = failingConditions[0].Type
-		} else {
-			failingCondition.Reason = "MultipleConditionsFailing"
-		}
-		failingCondition.LastTransitionTime = latestTransitionTime
-
-	} else {
-		failingCondition.Status = operatorv1.ConditionFalse
-	}
-	configv1helpers.SetStatusCondition(&clusterOperatorObj.Status.Conditions, OperatorConditionToClusterOperatorCondition(failingCondition))
-
-	if condition := operatorv1helpers.FindOperatorCondition(currentDetailedStatus.Conditions, operatorv1.OperatorStatusTypeAvailable); condition != nil {
-		configv1helpers.SetStatusCondition(&clusterOperatorObj.Status.Conditions, OperatorConditionToClusterOperatorCondition(*condition))
-	} else {
-		configv1helpers.RemoveStatusCondition(&clusterOperatorObj.Status.Conditions, configv1.ClusterStatusConditionType(operatorv1.OperatorStatusTypeAvailable))
-	}
-	if condition := operatorv1helpers.FindOperatorCondition(currentDetailedStatus.Conditions, operatorv1.OperatorStatusTypeProgressing); condition != nil {
-		configv1helpers.SetStatusCondition(&clusterOperatorObj.Status.Conditions, OperatorConditionToClusterOperatorCondition(*condition))
-	} else {
-		configv1helpers.RemoveStatusCondition(&clusterOperatorObj.Status.Conditions, configv1.ClusterStatusConditionType(operatorv1.OperatorStatusTypeProgressing))
-	}
-
-	// TODO work out removal.  We don't always know the existing value, so removing early seems like a bad idea.  Perhaps a remove flag.
-	versions := c.versionGetter.GetVersions()
-	for operand, version := range versions {
-		operatorv1helpers.SetOperandVersion(&clusterOperatorObj.Status.Versions, configv1.OperandVersion{Name: operand, Version: version})
-	}
-
-	if equality.Semantic.DeepEqual(clusterOperatorObj, originalClusterOperatorObj) {
-		return nil
-	}
-
-	glog.V(2).Infof("clusteroperator/%s diff %v", c.clusterOperatorName, resourceapply.JSONPatch(originalClusterOperatorObj, clusterOperatorObj))
-
-	if len(clusterOperatorObj.ResourceVersion) != 0 {
 		if _, updateErr := c.clusterOperatorClient.ClusterOperators().UpdateStatus(clusterOperatorObj); err != nil {
 			return updateErr
 		}
@@ -172,45 +131,28 @@ func (c StatusSyncer) sync() error {
 		return nil
 	}
 
-	freshOperatorConfig, createErr := c.clusterOperatorClient.ClusterOperators().Create(clusterOperatorObj)
-	if apierrors.IsNotFound(createErr) {
-		// this means that the API isn't present.  We did not fail.  Try again later
-		glog.Infof("ClusterOperator API not created")
-		c.queue.AddRateLimited(workQueueKey)
-		return nil
-	}
-	if createErr != nil {
-		c.eventRecorder.Warningf("StatusCreateFailed", "Failed to create operator status: %v", err)
-		return createErr
-	}
-
-	if condition := configv1helpers.FindStatusCondition(clusterOperatorObj.Status.Conditions, configv1.OperatorAvailable); condition != nil {
-		configv1helpers.SetStatusCondition(&freshOperatorConfig.Status.Conditions, *condition)
-	} else {
-		configv1helpers.RemoveStatusCondition(&freshOperatorConfig.Status.Conditions, configv1.OperatorAvailable)
-	}
-	if condition := configv1helpers.FindStatusCondition(clusterOperatorObj.Status.Conditions, configv1.OperatorProgressing); condition != nil {
-		configv1helpers.SetStatusCondition(&freshOperatorConfig.Status.Conditions, *condition)
-	} else {
-		configv1helpers.RemoveStatusCondition(&freshOperatorConfig.Status.Conditions, configv1.OperatorProgressing)
-	}
-	if condition := configv1helpers.FindStatusCondition(clusterOperatorObj.Status.Conditions, configv1.OperatorFailing); condition != nil {
-		configv1helpers.SetStatusCondition(&freshOperatorConfig.Status.Conditions, *condition)
-	} else {
-		configv1helpers.RemoveStatusCondition(&freshOperatorConfig.Status.Conditions, configv1.OperatorFailing)
-	}
+	clusterOperatorObj.Status.RelatedObjects = c.relatedObjects
+	configv1helpers.SetStatusCondition(&clusterOperatorObj.Status.Conditions, unionCondition("Failing", operatorv1.ConditionTrue, currentDetailedStatus.Conditions...))
+	configv1helpers.SetStatusCondition(&clusterOperatorObj.Status.Conditions, unionCondition("Progressing", operatorv1.ConditionTrue, currentDetailedStatus.Conditions...))
+	configv1helpers.SetStatusCondition(&clusterOperatorObj.Status.Conditions, unionCondition("Available", operatorv1.ConditionFalse, currentDetailedStatus.Conditions...))
+	configv1helpers.SetStatusCondition(&clusterOperatorObj.Status.Conditions, unionCondition("Upgradeable", operatorv1.ConditionFalse, currentDetailedStatus.Conditions...))
 
 	// TODO work out removal.  We don't always know the existing value, so removing early seems like a bad idea.  Perhaps a remove flag.
-	versions = c.versionGetter.GetVersions()
+	versions := c.versionGetter.GetVersions()
 	for operand, version := range versions {
-		operatorv1helpers.SetOperandVersion(&freshOperatorConfig.Status.Versions, configv1.OperandVersion{Name: operand, Version: version})
+		operatorv1helpers.SetOperandVersion(&clusterOperatorObj.Status.Versions, configv1.OperandVersion{Name: operand, Version: version})
 	}
 
-	if _, updateErr := c.clusterOperatorClient.ClusterOperators().UpdateStatus(freshOperatorConfig); updateErr != nil {
+	// if we have no diff, just return
+	if equality.Semantic.DeepEqual(clusterOperatorObj, originalClusterOperatorObj) {
+		return nil
+	}
+	glog.V(2).Infof("clusteroperator/%s diff %v", c.clusterOperatorName, resourceapply.JSONPatch(originalClusterOperatorObj, clusterOperatorObj))
+
+	if _, updateErr := c.clusterOperatorClient.ClusterOperators().UpdateStatus(clusterOperatorObj); err != nil {
 		return updateErr
 	}
 	c.eventRecorder.Eventf("OperatorStatusChanged", "Status for operator %s changed: %s", c.clusterOperatorName, configv1helpers.GetStatusDiff(originalClusterOperatorObj.Status, clusterOperatorObj.Status))
-
 	return nil
 }
 

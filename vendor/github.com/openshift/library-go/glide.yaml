@@ -17,6 +17,11 @@ import:
 - package: github.com/openshift/client-go
   version: master
 
+# crd-schema-gen
+- package: sigs.k8s.io/controller-tools
+  version: 447efe98e33eff8432a9dbc046828d9033021295
+- package: k8s.io/gengo
+  version: 4242d8e6c5dba56827bb7bcf14ad11cda38f3991
 
 # sig-master - needed for file observer
 - package: github.com/sigma/go-inotify

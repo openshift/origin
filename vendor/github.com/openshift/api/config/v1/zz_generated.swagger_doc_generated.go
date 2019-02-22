@@ -564,7 +564,7 @@ func (ConsoleList) SwaggerDoc() map[string]string {
 }
 
 var map_ConsoleStatus = map[string]string{
-	"publicHostname": "The hostname for the console. This will match the host for the route that is created for the console.",
+	"consoleURL": "The URL for the console. This will be derived from the host for the route that is created for the console.",
 }
 
 func (ConsoleStatus) SwaggerDoc() map[string]string {

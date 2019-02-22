@@ -75,7 +75,7 @@ func TestEnsureSigningCertKeyPair(t *testing.T) {
 			initialSecret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Namespace: "ns", Name: "signer",
 					Annotations: map[string]string{
-						"auth.openshift.io/certificate-expiry-date": "2108-09-08T22:47:31-07:00",
+						"auth.openshift.io/certificate-not-after": "2108-09-08T22:47:31-07:00",
 					}},
 			},
 			verifyActions: func(t *testing.T, client *kubefake.Clientset) {

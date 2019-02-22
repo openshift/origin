@@ -8465,15 +8465,15 @@ func schema_openshift_api_config_v1_ConsoleStatus(ref common.ReferenceCallback) 
 			SchemaProps: spec.SchemaProps{
 				Type: []string{"object"},
 				Properties: map[string]spec.Schema{
-					"publicHostname": {
+					"consoleURL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "The hostname for the console. This will match the host for the route that is created for the console.",
+							Description: "The URL for the console. This will be derived from the host for the route that is created for the console.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
-				Required: []string{"publicHostname"},
+				Required: []string{"consoleURL"},
 			},
 		},
 	}

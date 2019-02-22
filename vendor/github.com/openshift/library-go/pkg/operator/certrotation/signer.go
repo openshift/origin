@@ -64,7 +64,7 @@ func (c SigningRotation) ensureSigningCertKeyPair() (*crypto.CA, error) {
 }
 
 func needNewSigningCertKeyPair(annotations map[string]string, validity time.Duration, renewalPercentage float32) string {
-	signingCertKeyPairExpiry := annotations[CertificateExpiryAnnotation]
+	signingCertKeyPairExpiry := annotations[CertificateNotAfterAnnotation]
 	if len(signingCertKeyPairExpiry) == 0 {
 		return "missing target expiry"
 	}
@@ -104,7 +104,9 @@ func setSigningCertKeyPairSecret(signingCertKeyPairSecret *corev1.Secret, validi
 	}
 	signingCertKeyPairSecret.Data["tls.crt"] = certBytes.Bytes()
 	signingCertKeyPairSecret.Data["tls.key"] = keyBytes.Bytes()
-	signingCertKeyPairSecret.Annotations[CertificateExpiryAnnotation] = ca.Certs[0].NotAfter.Format(time.RFC3339)
+	signingCertKeyPairSecret.Annotations[CertificateNotAfterAnnotation] = ca.Certs[0].NotAfter.Format(time.RFC3339)
+	signingCertKeyPairSecret.Annotations[CertificateNotBeforeAnnotation] = ca.Certs[0].NotBefore.Format(time.RFC3339)
+	signingCertKeyPairSecret.Annotations[CertificateIssuer] = ca.Certs[0].Issuer.CommonName
 
 	return nil
 }

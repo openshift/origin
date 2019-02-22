@@ -90,7 +90,7 @@ func needNewTargetCertKeyPair(annotations map[string]string, signer *crypto.CA, 
 	}
 
 	// check the signer common name against all the common names in our ca bundle so we don't refresh early
-	signerCommonName := annotations[CertificateSignedBy]
+	signerCommonName := annotations[CertificateIssuer]
 	if len(signerCommonName) == 0 {
 		return "missing issuer name"
 	}
@@ -123,7 +123,7 @@ func needNewTargetCertKeyPair(annotations map[string]string, signer *crypto.CA, 
 //
 //So with a cert percentage of 75% and equally long CA and cert validities at the worst case we start at 85% of the cert to renew, trying again every minute.
 func needNewTargetCertKeyPairForTime(annotations map[string]string, signer *crypto.CA, validity time.Duration, renewalPercentage float32) string {
-	targetExpiry := annotations[CertificateExpiryAnnotation]
+	targetExpiry := annotations[CertificateNotAfterAnnotation]
 	if len(targetExpiry) == 0 {
 		return "missing target expiry"
 	}
@@ -202,8 +202,9 @@ func setTargetCertKeyPairSecret(targetCertKeyPairSecret *corev1.Secret, validity
 	if err != nil {
 		return err
 	}
-	targetCertKeyPairSecret.Annotations[CertificateExpiryAnnotation] = certKeyPair.Certs[0].NotAfter.Format(time.RFC3339)
-	targetCertKeyPairSecret.Annotations[CertificateSignedBy] = signer.Config.Certs[0].Subject.CommonName
+	targetCertKeyPairSecret.Annotations[CertificateNotAfterAnnotation] = certKeyPair.Certs[0].NotAfter.Format(time.RFC3339)
+	targetCertKeyPairSecret.Annotations[CertificateNotBeforeAnnotation] = certKeyPair.Certs[0].NotBefore.Format(time.RFC3339)
+	targetCertKeyPairSecret.Annotations[CertificateIssuer] = certKeyPair.Certs[0].Issuer.CommonName
 
 	return nil
 }

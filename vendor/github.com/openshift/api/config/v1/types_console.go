@@ -24,9 +24,9 @@ type ConsoleSpec struct {
 }
 
 type ConsoleStatus struct {
-	// The hostname for the console. This will match the host for the route that
+	// The URL for the console. This will be derived from the host for the route that
 	// is created for the console.
-	PublicHostname string `json:"publicHostname"`
+	ConsoleURL string `json:"consoleURL"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

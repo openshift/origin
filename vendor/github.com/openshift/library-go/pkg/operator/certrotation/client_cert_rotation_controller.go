@@ -15,10 +15,12 @@ import (
 )
 
 const (
-	// CertificateExpiryAnnotation contains the certificate expiration date in RFC3339 format.
-	CertificateExpiryAnnotation = "auth.openshift.io/certificate-expiry-date"
-	// CertificateSignedBy contains the common name of the certificate that signed another certificate.
-	CertificateSignedBy = "auth.openshift.io/certificate-signed-by"
+	// CertificateNotBeforeAnnotation contains the certificate expiration date in RFC3339 format.
+	CertificateNotBeforeAnnotation = "auth.openshift.io/certificate-not-before"
+	// CertificateNotAfterAnnotation contains the certificate expiration date in RFC3339 format.
+	CertificateNotAfterAnnotation = "auth.openshift.io/certificate-not-after"
+	// CertificateIssuer contains the common name of the certificate that signed another certificate.
+	CertificateIssuer = "auth.openshift.io/certificate-issuer"
 )
 
 const workQueueKey = "key"

@@ -22,10 +22,7 @@ func testResult(t *testing.T, key string, expected []string) {
 }
 
 func testError(t *testing.T, key string, expectedError string) {
-	res, err := parseKey(key)
-	if err == nil {
-		t.Fatalf("Expected error, but succesfully parsed key %s", res)
-	}
+	_, err := parseKey(key)
 	if fmt.Sprintf("%s", err) != expectedError {
 		t.Fatalf("Expected error \"%s\", but got \"%s\".", expectedError, err)
 	}
@@ -50,10 +47,6 @@ func TestBaseKeyPound(t *testing.T) {
 func TestQuotedKeys(t *testing.T) {
 	testResult(t, `hello."foo".bar`, []string{"hello", "foo", "bar"})
 	testResult(t, `"hello!"`, []string{"hello!"})
-	testResult(t, `foo."ba.r".baz`, []string{"foo", "ba.r", "baz"})
-
-	// escape sequences must not be converted
-	testResult(t, `"hello\tworld"`, []string{`hello\tworld`})
 }
 
 func TestEmptyKey(t *testing.T) {

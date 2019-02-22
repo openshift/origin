@@ -135,10 +135,13 @@ func (c *ResourceSyncController) sync() error {
 	}
 
 	switch operatorSpec.ManagementState {
+	case operatorv1.Managed:
 	case operatorv1.Unmanaged:
 		return nil
 	case operatorv1.Removed:
-		// TODO: Should we try to actively remove the resources created by this controller here?
+		// TODO probably just fail
+		return nil
+	default:
 		return nil
 	}
 

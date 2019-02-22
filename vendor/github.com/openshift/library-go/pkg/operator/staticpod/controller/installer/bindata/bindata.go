@@ -60,7 +60,7 @@ spec:
       command: # Value set by operator
       args: # Value set by operator
       image: # Value set by operator
-      imagePullPolicy: Always
+      imagePullPolicy: IfNotPresent
       securityContext:
         privileged: true
         runAsUser: 0

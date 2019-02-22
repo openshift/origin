@@ -1,5 +1,5 @@
-hash: 6dba1fdcbca5b8cd27ff1f69ce80ee41c2c60087cbf3407dc847ac49e4878614
-updated: 2019-02-18T14:37:18.970240624-05:00
+hash: 4acbb62668470e66c8fd59b579e66a6797ae8012704d3adff2f72bcb8c10c9db
+updated: 2019-02-20T11:36:58.819388+01:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -131,6 +131,8 @@ imports:
   version: 1de3e0542de65ad8d75452a595886fdd0befb363
 - name: github.com/go-openapi/swag
   version: f3f9494671f93fcff853e3c6e9e948b3eb71e590
+- name: github.com/gobuffalo/envy
+  version: fa0dfdc10b5366ce365b7d9d1755a03e4e797bc5
 - name: github.com/gogo/protobuf
   version: c0656edd0d9eab7c66d1eb0c568f9039345796f7
   subpackages:
@@ -145,20 +147,22 @@ imports:
 - name: github.com/golang/protobuf
   version: b4deda0973fb4c70b50d226b1af49f3da59f5265
   subpackages:
+  - jsonpb
   - proto
   - protoc-gen-go/descriptor
   - ptypes
   - ptypes/any
   - ptypes/duration
+  - ptypes/struct
   - ptypes/timestamp
 - name: github.com/gonum/blas
-  version: f22b278b28ac9805aadd613a754a60c35b24ae69
+  version: 37e82626499e1df7c54aeaba0959fd6e7e8dc1e4
   subpackages:
   - blas64
   - native
   - native/internal/math32
 - name: github.com/gonum/floats
-  version: c233463c7e827fd71a8cdb62dfda0e98f7c39ad5
+  version: f74b330d45c56584a6ea7a27f5c64ea2900631e9
 - name: github.com/gonum/graph
   version: 50b27dea7ebbfb052dfaf91681afc6fde28d8796
   subpackages:
@@ -173,17 +177,17 @@ imports:
   - internal/ordered
   - simple
 - name: github.com/gonum/internal
-  version: f884aa71402950fb2796dbea0d5aa9ef9cfad8ca
+  version: e57e4534cf9b3b00ef6c0175f59d8d2d34f60914
   subpackages:
   - asm/f32
   - asm/f64
 - name: github.com/gonum/lapack
-  version: e4cdc5a0bff924bb10be88482e635bd40429f65e
+  version: 5ed4b826becd1807e09377508f51756586d1a98c
   subpackages:
   - lapack64
   - native
 - name: github.com/gonum/matrix
-  version: c518dec07be9a636c38a4650e217be059b5952ec
+  version: dd6034299e4242c9f0ea36735e6d4264dfcb3f9f
   subpackages:
   - mat64
 - name: github.com/google/btree
@@ -210,16 +214,22 @@ imports:
   version: 9316a62528ac99aaecb4e47eadd6dc8aa6533d58
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/joho/godotenv
+  version: 6d367c18edf6ca7fd004efd6863e4c5728fa858e
 - name: github.com/json-iterator/go
   version: f2b4162afba35581b6d4a50d3b8f34e33c144682
 - name: github.com/jteeuwen/go-bindata
   version: a0ff2567cfb70903282db057e799fd826784d41d
+- name: github.com/kr/fs
+  version: 2788f0dbd16903de03cb8186e5c7d97b69ad387b
 - name: github.com/mailru/easyjson
   version: 2f5df55504ebc322e4d52d34df6a1f5b503bf26d
   subpackages:
   - buffer
   - jlexer
   - jwriter
+- name: github.com/markbates/inflect
+  version: 24b83195037b3bc61fcda2d28b7b0518bce293b6
 - name: github.com/matttproud/golang_protobuf_extensions
   version: c12348ce28de40eed0136aa2b644d0ee0650e56c
   subpackages:
@@ -231,7 +241,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/openshift/api
-  version: af79befc50a8223c8122e9e654f65763dd17a87e
+  version: 296f4c423703bb8b5b7e122cd4b3fc4153ef1130
   subpackages:
   - apps
   - apps/v1
@@ -292,6 +302,8 @@ imports:
   version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pkg/profile
   version: 22592cc4bae3572d59be8852c6980023e4c9dec5
+- name: github.com/pkg/sftp
+  version: 4d0e916071f68db74f8a73926335f809396d6b42
 - name: github.com/prometheus/client_golang
   version: e7e903064f5e9eb5da98208bae10b475d4db0f8c
   subpackages:
@@ -314,10 +326,21 @@ imports:
   version: 8a290539e2e8629dbc4e6bad948158f790ec31f4
 - name: github.com/PuerkitoBio/urlesc
   version: 5bd2802263f21d8788851d5305584c82a5c75d7e
+- name: github.com/rogpeppe/go-internal
+  version: 1cf9852c553c5b7da2d5a4a091129a7822fed0c9
+  subpackages:
+  - modfile
+  - module
+  - semver
 - name: github.com/sigma/go-inotify
   version: c87b6cf5033d2c6486046f045eeebdc3d910fd38
 - name: github.com/sirupsen/logrus
   version: 89742aefa4b206dcf400792f3bd35b542998eb3b
+- name: github.com/spf13/afero
+  version: b28a7effac979219c2a2ed6205a4d70e4b1bcd02
+  subpackages:
+  - mem
+  - sftp
 - name: github.com/spf13/cobra
   version: c439c4fa093711d42e1b01acb1235b52004753c1
 - name: github.com/spf13/pflag
@@ -329,13 +352,20 @@ imports:
 - name: golang.org/x/crypto
   version: de0752318171da717af4ce24d0a2e8626afaeb11
   subpackages:
+  - bcrypt
+  - blowfish
+  - curve25519
+  - ed25519
+  - ed25519/internal/edwards25519
+  - internal/chacha20
+  - internal/subtle
+  - poly1305
+  - ssh
   - ssh/terminal
 - name: golang.org/x/net
   version: 0ed95abb35c445290478a5348a7b38bb154135fd
   subpackages:
   - context
-  - html
-  - html/atom
   - http2
   - http2/hpack
   - idna
@@ -346,10 +376,7 @@ imports:
 - name: golang.org/x/oauth2
   version: a6bd8cefa1811bd24b86f8902872e4e8225f74c4
   subpackages:
-  - google
   - internal
-  - jws
-  - jwt
 - name: golang.org/x/sys
   version: 95c6576299259db960f6c5b9b69ea52422860fce
   subpackages:
@@ -374,11 +401,13 @@ imports:
   subpackages:
   - rate
 - name: golang.org/x/tools
-  version: 8dcb7bc8c7fe0a895995c76c721cef79419ac98a
+  version: 2382e3994d48b1d22acc2c86bcad0a2aff028e32
   subpackages:
   - container/intsets
+  - go/ast/astutil
+  - imports
 - name: google.golang.org/appengine
-  version: 54a98f90d1c46b7731eb8fb305d2a321c30ef610
+  version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
   subpackages:
   - internal
   - internal/base
@@ -782,6 +811,14 @@ imports:
   - util/integer
   - util/retry
   - util/workqueue
+- name: k8s.io/gengo
+  version: 4242d8e6c5dba56827bb7bcf14ad11cda38f3991
+  subpackages:
+  - args
+  - generator
+  - namer
+  - parser
+  - types
 - name: k8s.io/kube-aggregator
   version: 4764f3a1991175f477682bbba516e97fab77b19f
   subpackages:
@@ -798,8 +835,17 @@ imports:
   - pkg/handler
   - pkg/util
   - pkg/util/proto
+- name: sigs.k8s.io/controller-tools
+  version: 447efe98e33eff8432a9dbc046828d9033021295
+  subpackages:
+  - pkg/crd/generator
+  - pkg/crd/util
+  - pkg/internal/codegen
+  - pkg/internal/codegen/parse
+  - pkg/internal/general
+  - pkg/util
 testImports:
 - name: vbom.ml/util
-  version: efcd4e0f97874370259c7d93e12aad57911dea81
+  version: db5cfe13f5cc80a4990d98e2e1b0707a4d1a5394
   subpackages:
   - sortorder

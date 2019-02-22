@@ -54,7 +54,7 @@ func TestNeedNewTargetCertKeyPairForTime(t *testing.T) {
 		},
 		{
 			name:        "malformed",
-			annotations: map[string]string{CertificateExpiryAnnotation: "malformed"},
+			annotations: map[string]string{CertificateNotAfterAnnotation: "malformed"},
 			signerFn: func() (*crypto.CA, error) {
 				return nowCert, nil
 			},
@@ -64,7 +64,7 @@ func TestNeedNewTargetCertKeyPairForTime(t *testing.T) {
 		},
 		{
 			name:        "past midpoint and cert is ready",
-			annotations: map[string]string{CertificateExpiryAnnotation: now.Add(45 * time.Minute).Format(time.RFC3339)},
+			annotations: map[string]string{CertificateNotAfterAnnotation: now.Add(45 * time.Minute).Format(time.RFC3339)},
 			signerFn: func() (*crypto.CA, error) {
 				return elevenMinutesBeforeNowCert, nil
 			},
@@ -74,7 +74,7 @@ func TestNeedNewTargetCertKeyPairForTime(t *testing.T) {
 		},
 		{
 			name:        "past midpoint and cert is new",
-			annotations: map[string]string{CertificateExpiryAnnotation: now.Add(45 * time.Minute).Format(time.RFC3339)},
+			annotations: map[string]string{CertificateNotAfterAnnotation: now.Add(45 * time.Minute).Format(time.RFC3339)},
 			signerFn: func() (*crypto.CA, error) {
 				return nowCert, nil
 			},

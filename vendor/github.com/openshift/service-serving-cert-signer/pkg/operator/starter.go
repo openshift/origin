@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -15,6 +16,12 @@ import (
 	scsinformers "github.com/openshift/client-go/servicecertsigner/informers/externalversions"
 	"github.com/openshift/library-go/pkg/operator/status"
 )
+
+var serviceCAResource = schema.GroupVersionResource{
+	Group:    "operator.openshift.io",
+	Version:  "v1",
+	Resource: "servicecas",
+}
 
 func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 	kubeClient, err := kubernetes.NewForConfig(clientConfig)
@@ -29,6 +36,7 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 	if err != nil {
 		return err
 	}
+	serviceCAConfigClient := dynamicClient.Resource(serviceCAResource)
 
 	operatorInformers := scsinformers.NewSharedInformerFactory(scsClient, 10*time.Minute)
 	kubeInformersNamespaced := informers.NewFilteredSharedInformerFactory(kubeClient, 10*time.Minute, targetNamespaceName, nil)
@@ -44,6 +52,7 @@ func RunOperator(clientConfig *rest.Config, stopCh <-chan struct{}) error {
 		operatorInformers.Servicecertsigner().V1alpha1().ServiceCertSignerOperatorConfigs(),
 		kubeInformersNamespaced,
 		scsClient.ServicecertsignerV1alpha1(),
+		serviceCAConfigClient,
 		kubeClient.AppsV1(),
 		kubeClient.CoreV1(),
 		kubeClient.RbacV1(),

@@ -98,10 +98,13 @@ func (c BackingResourceController) sync() error {
 	}
 
 	switch operatorSpec.ManagementState {
+	case operatorv1.Managed:
 	case operatorv1.Unmanaged:
 		return nil
 	case operatorv1.Removed:
-		// TODO: Should we delete the installer-sa and cluster role binding?
+		// TODO probably just fail
+		return nil
+	default:
 		return nil
 	}
 

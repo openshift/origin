@@ -23,7 +23,7 @@ func NewManifestOptions(componentName, image string) *ManifestOptions {
 	return &ManifestOptions{
 		Namespace:             fmt.Sprintf("openshift-%s", componentName),
 		Image:                 image,
-		ImagePullPolicy:       "Always",
+		ImagePullPolicy:       "IfNotPresent",
 		ConfigHostPath:        "/etc/kubernetes/bootstrap-configs",
 		ConfigFileName:        fmt.Sprintf("%s-config.yaml", componentName),
 		CloudProviderHostPath: "/etc/kubernetes/cloud",

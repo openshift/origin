@@ -136,6 +136,9 @@ func ApplyRoleBinding(client rbacclientv1.RoleBindingsGetter, recorder events.Re
 	modified := resourcemerge.BoolPtr(false)
 	existingCopy := existing.DeepCopy()
 
+	// Enforce apiGroup field
+	existingCopy.RoleRef.APIGroup = rbacv1.GroupName
+
 	resourcemerge.EnsureObjectMeta(modified, &existingCopy.ObjectMeta, required.ObjectMeta)
 	contentSame := equality.Semantic.DeepEqual(existingCopy.Subjects, required.Subjects) &&
 		deepEqualRoleRef(existingCopy.RoleRef, required.RoleRef)

@@ -163,9 +163,6 @@ func create(ctx context.Context, manifests map[string]*unstructured.Unstructured
 			continue
 		}
 
-		if options.Verbose {
-			fmt.Fprintf(options.StdErr, "Creating %s ...\n", mappings.Resource.String())
-		}
 		if mappings.Scope.Name() == meta.RESTScopeNameRoot {
 			_, err = client.Resource(mappings.Resource).Create(manifests[path], metav1.CreateOptions{})
 		} else {
@@ -175,13 +172,23 @@ func create(ctx context.Context, manifests map[string]*unstructured.Unstructured
 		// Resource already exists means we already succeeded
 		// This should never happen as we remove already created items from the manifest list, unless the resource existed beforehand.
 		if kerrors.IsAlreadyExists(err) {
+			if options.Verbose {
+				fmt.Fprintf(options.StdErr, "Skipped %s as it already exists\n", mappings.Resource.String())
+			}
 			delete(manifests, path)
 			continue
 		}
 
 		if err != nil {
+			if options.Verbose {
+				fmt.Fprintf(options.StdErr, "Failed to create %s: %v\n", mappings.Resource.String(), err)
+			}
 			errs[path] = fmt.Errorf("failed to create: %v", err)
 			continue
+		}
+
+		if options.Verbose {
+			fmt.Fprintf(options.StdErr, "Created %s\n", mappings.Resource.String())
 		}
 
 		// Creation succeeded lets remove the manifest from the list to avoid creating it second time

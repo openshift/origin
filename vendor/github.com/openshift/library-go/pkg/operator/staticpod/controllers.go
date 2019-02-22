@@ -156,8 +156,9 @@ func (b *staticPodOperatorControllerBuilder) ToControllers() (*staticPodOperator
 		// TODO add handling for operator configmap changes to get version-mapping changes
 		controllers.staticPodStateController = staticpodstate.NewStaticPodStateController(
 			b.operandNamespace,
-			b.operandName,
 			b.staticPodName,
+			b.operatorNamespace,
+			b.operandName,
 			operandInformers,
 			b.staticPodOperatorClient,
 			configMapClient,
