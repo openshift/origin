@@ -68,6 +68,7 @@ type RequestTokenOptions struct {
 	ClientConfig *restclient.Config
 	Handler      ChallengeHandler
 	OsinConfig   *osincli.ClientConfig
+	Issuer       string
 	TokenFlow    bool
 }
 
@@ -147,6 +148,7 @@ func (o *RequestTokenOptions) SetDefaultOsinConfig() error {
 	}
 
 	o.OsinConfig = config
+	o.Issuer = metadata.Issuer
 	return nil
 }
 
@@ -177,7 +179,7 @@ func (o *RequestTokenOptions) RequestToken() (string, error) {
 	// in our ca data otherwise an external
 	// oauth server with a valid cert will fail with
 	// error: x509: certificate signed by unknown authority
-	rt, err := transportWithSystemRoots(o.OsinConfig, o.ClientConfig)
+	rt, err := transportWithSystemRoots(o.Issuer, o.ClientConfig)
 	if err != nil {
 		return "", err
 	}
@@ -391,7 +393,7 @@ func request(rt http.RoundTripper, requestURL string, requestHeaders http.Header
 	return rt.RoundTrip(req)
 }
 
-func transportWithSystemRoots(osinConfig *osincli.ClientConfig, clientConfig *restclient.Config) (http.RoundTripper, error) {
+func transportWithSystemRoots(issuer string, clientConfig *restclient.Config) (http.RoundTripper, error) {
 	// copy the config so we can freely mutate it
 	configWithSystemRoots := restclient.CopyConfig(clientConfig)
 
@@ -409,7 +411,7 @@ func transportWithSystemRoots(osinConfig *osincli.ClientConfig, clientConfig *re
 	}
 
 	// build a request to probe the OAuth server CA
-	req, err := http.NewRequest(http.MethodHead, osinConfig.RedirectUrl, nil)
+	req, err := http.NewRequest(http.MethodHead, issuer, nil)
 	if err != nil {
 		return nil, err
 	}
