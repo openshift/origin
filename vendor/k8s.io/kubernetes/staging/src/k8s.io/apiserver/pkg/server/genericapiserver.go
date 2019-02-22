@@ -155,6 +155,10 @@ type GenericAPIServer struct {
 	// HandlerChainWaitGroup allows you to wait for all chain handlers finish after the server shutdown.
 	HandlerChainWaitGroup *utilwaitgroup.SafeWaitGroup
 
+	// MinimalShutdownDuration allows to block shutdown for some time, e.g. until endpoints pointing to this API server
+	// have converged on all node. During this time, the API server keeps serving.
+	MinimalShutdownDuration time.Duration
+
 	// delegationTarget only exists
 	openAPIDelegationTarget OpenAPIDelegationTarget
 }
@@ -327,6 +331,10 @@ func (s preparedGenericAPIServer) NonBlockingRun(stopCh <-chan struct{}) error {
 	// ensure cleanup.
 	go func() {
 		<-stopCh
+
+		// keep serving for some time
+		time.Sleep(s.GenericAPIServer.MinimalShutdownDuration)
+
 		close(internalStopCh)
 		s.HandlerChainWaitGroup.Wait()
 		close(auditStopCh)

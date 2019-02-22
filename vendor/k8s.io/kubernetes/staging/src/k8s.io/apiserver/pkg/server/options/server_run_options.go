@@ -42,6 +42,7 @@ type ServerRunOptions struct {
 	MaxMutatingRequestsInFlight int
 	RequestTimeout              time.Duration
 	MinRequestTimeout           int
+	MinimalShutdownDuration     time.Duration
 	TargetRAMMB                 int
 }
 
@@ -52,6 +53,7 @@ func NewServerRunOptions() *ServerRunOptions {
 		MaxMutatingRequestsInFlight: defaults.MaxMutatingRequestsInFlight,
 		RequestTimeout:              defaults.RequestTimeout,
 		MinRequestTimeout:           defaults.MinRequestTimeout,
+		MinimalShutdownDuration:     defaults.MinimalShutdownDuration,
 	}
 }
 
@@ -63,6 +65,7 @@ func (s *ServerRunOptions) ApplyTo(c *server.Config) error {
 	c.MaxMutatingRequestsInFlight = s.MaxMutatingRequestsInFlight
 	c.RequestTimeout = s.RequestTimeout
 	c.MinRequestTimeout = s.MinRequestTimeout
+	c.MinimalShutdownDuration = s.MinimalShutdownDuration
 	c.PublicAddress = s.AdvertiseAddress
 
 	return nil
@@ -153,6 +156,10 @@ func (s *ServerRunOptions) AddUniversalFlags(fs *pflag.FlagSet) {
 		"a request open before timing it out. Currently only honored by the watch request "+
 		"handler, which picks a randomized value above this number as the connection timeout, "+
 		"to spread out load.")
+
+	fs.DurationVar(&s.MinimalShutdownDuration, "minimal-shutdown-duration", s.MinimalShutdownDuration, ""+
+		"Minimal duration of a graceful shutdown, e.g. to guarantee that all endpoints pointing to this API server "+
+		"have converged")
 
 	utilfeature.DefaultFeatureGate.AddFlag(fs)
 }
