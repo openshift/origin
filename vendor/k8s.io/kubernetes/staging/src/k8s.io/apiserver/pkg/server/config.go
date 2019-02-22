@@ -157,6 +157,9 @@ type Config struct {
 	// If specified, long running requests such as watch will be allocated a random timeout between this value, and
 	// twice this value.  Note that it is up to the request handlers to ignore or honor this timeout. In seconds.
 	MinRequestTimeout int
+	// MinimalShutdownDuration allows to block shutdown for some time, e.g. until endpoints pointing to this API server
+	// have converged on all node. During this time, the API server keeps serving.
+	MinimalShutdownDuration time.Duration
 	// MaxRequestsInFlight is the maximum number of parallel non-long-running requests. Every further
 	// request has to wait. Applies only to non-mutating requests.
 	MaxRequestsInFlight int
@@ -258,6 +261,7 @@ func NewConfig(codecs serializer.CodecFactory) *Config {
 		MaxMutatingRequestsInFlight:  200,
 		RequestTimeout:               time.Duration(60) * time.Second,
 		MinRequestTimeout:            1800,
+		MinimalShutdownDuration:      0,
 		EnableAPIResponseCompression: utilfeature.DefaultFeatureGate.Enabled(features.APIResponseCompression),
 
 		// Default to treating watch as a long-running operation
@@ -453,8 +457,9 @@ func (c completedConfig) New(name string, delegationTarget DelegationTarget) (*G
 		delegationTarget:       delegationTarget,
 		HandlerChainWaitGroup:  c.HandlerChainWaitGroup,
 
-		minRequestTimeout: time.Duration(c.MinRequestTimeout) * time.Second,
-		ShutdownTimeout:   c.RequestTimeout,
+		minRequestTimeout:       time.Duration(c.MinRequestTimeout) * time.Second,
+		MinimalShutdownDuration: c.MinimalShutdownDuration,
+		ShutdownTimeout:         c.RequestTimeout,
 
 		SecureServingInfo: c.SecureServing,
 		ExternalAddress:   c.ExternalAddress,
