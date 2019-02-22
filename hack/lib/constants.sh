@@ -39,6 +39,7 @@ readonly OS_IMAGE_COMPILE_TARGETS_LINUX=(
   cmd/openshift-sdn
   cmd/openshift-tests
   cmd/openshift
+  cmd/openshift-integrated-oauth-server
   vendor/k8s.io/kubernetes/cmd/hyperkube
 )
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX=(
