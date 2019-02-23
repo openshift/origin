@@ -27,10 +27,10 @@ import (
 	apimachineryversion "k8s.io/apimachinery/pkg/version"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
-	"k8s.io/kubernetes/pkg/version"
 )
 
 type Version struct {
@@ -61,7 +61,7 @@ func NewVersionOptions(ioStreams genericclioptions.IOStreams) *VersionOptions {
 
 }
 
-func NewCmdVersion(f cmdutil.Factory, ioStreams genericclioptions.IOStreams) *cobra.Command {
+func NewCmdVersion(f genericclioptions.RESTClientGetter, ioStreams genericclioptions.IOStreams) *cobra.Command {
 	o := NewVersionOptions(ioStreams)
 	cmd := &cobra.Command{
 		Use:     "version",
@@ -80,10 +80,12 @@ func NewCmdVersion(f cmdutil.Factory, ioStreams genericclioptions.IOStreams) *co
 	return cmd
 }
 
-func (o *VersionOptions) Complete(f cmdutil.Factory, cmd *cobra.Command) error {
+func (o *VersionOptions) Complete(f genericclioptions.RESTClientGetter, cmd *cobra.Command) error {
 	var err error
 	o.discoveryClient, err = f.ToDiscoveryClient()
-	if err != nil {
+	// if we had an empty rest.Config, continue and just print out client information.
+	// if we had an error other than being unable to build a rest.Config, fail.
+	if err != nil && !clientcmd.IsEmptyConfig(err) {
 		return err
 	}
 	return nil
@@ -104,10 +106,10 @@ func (o *VersionOptions) Run() error {
 		versionInfo   Version
 	)
 
-	clientVersion := version.Get()
+	clientVersion := getKubectlVersion()
 	versionInfo.ClientVersion = &clientVersion
 
-	if !o.ClientOnly {
+	if !o.ClientOnly && o.discoveryClient != nil {
 		// Always request fresh data from the server
 		o.discoveryClient.Invalidate()
 		serverVersion, serverErr = o.discoveryClient.ServerVersion()
