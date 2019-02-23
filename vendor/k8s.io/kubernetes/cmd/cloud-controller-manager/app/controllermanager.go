@@ -264,7 +264,7 @@ func startControllers(c *cloudcontrollerconfig.CompletedConfig, stop <-chan stru
 
 	// If apiserver is not running we should wait for some time and fail only then. This is particularly
 	// important when we start apiserver and controller manager at the same time.
-	err = genericcontrollermanager.WaitForAPIServer(c.VersionedClient, 10*time.Second)
+	err = genericcontrollermanager.WaitForAPIServer(c.VersionedClient.Discovery().RESTClient(), 10*time.Second)
 	if err != nil {
 		glog.Fatalf("Failed to wait for apiserver being healthy: %v", err)
 	}
