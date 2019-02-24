@@ -13,17 +13,18 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"text/tabwriter"
 	"time"
 
 	"github.com/MakeNowJust/heredoc"
-
 	"github.com/blang/semver"
-
+	"github.com/docker/distribution"
+	units "github.com/docker/go-units"
 	"github.com/golang/glog"
+	digest "github.com/opencontainers/go-digest"
 	"github.com/spf13/cobra"
 
-	digest "github.com/opencontainers/go-digest"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/duration"
@@ -37,11 +38,13 @@ import (
 	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 	"github.com/openshift/origin/pkg/oc/cli/image/extract"
+	imageinfo "github.com/openshift/origin/pkg/oc/cli/image/info"
 )
 
 func NewInfoOptions(streams genericclioptions.IOStreams) *InfoOptions {
 	return &InfoOptions{
-		IOStreams: streams,
+		IOStreams:      streams,
+		MaxPerRegistry: 4,
 	}
 }
 
@@ -63,9 +66,13 @@ func NewInfo(f kcmdutil.Factory, parentName string, streams genericclioptions.IO
 	}
 	flags := cmd.Flags()
 	flags.StringVarP(&o.RegistryConfig, "registry-config", "a", o.RegistryConfig, "Path to your registry credentials (defaults to ~/.docker/config.json)")
+	flags.IntVar(&o.MaxPerRegistry, "max-per-registry", o.MaxPerRegistry, "Number of concurrent requests allowed per registry when fetching image info.")
+	flags.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow image info operations to registries to be made over HTTP")
+
 	flags.StringVar(&o.From, "changes-from", o.From, "Show changes from this image to the requested image.")
 	flags.BoolVar(&o.ShowCommit, "commits", o.ShowCommit, "Display information about the source an image was created with.")
 	flags.BoolVar(&o.ShowPullSpec, "pullspecs", o.ShowPullSpec, "Display the pull spec of each image instead of the digest.")
+	flags.BoolVar(&o.ShowSize, "size", o.ShowSize, "Display the size of each image including overlap.")
 	flags.StringVar(&o.ImageFor, "image-for", o.ImageFor, "Print the pull spec of the specified image or an error if it does not exist.")
 	flags.StringVarP(&o.Output, "output", "o", o.Output, "Display the release info in an alternative format: json")
 	flags.StringVar(&o.ChangelogDir, "changelog", o.ChangelogDir, "Generate changelog output from the git directories extracted to this path.")
@@ -83,12 +90,15 @@ type InfoOptions struct {
 	ImageFor     string
 	ShowCommit   bool
 	ShowPullSpec bool
+	ShowSize     bool
 	Verify       bool
 
 	ChangelogDir string
 	BugsDir      string
 
 	RegistryConfig string
+	Insecure       bool
+	MaxPerRegistry int
 }
 
 func (o *InfoOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
@@ -136,7 +146,7 @@ func (o *InfoOptions) Validate() error {
 		if len(o.From) == 0 {
 			return fmt.Errorf("--changelog/--bugs require --from")
 		}
-		if len(o.ImageFor) > 0 || o.ShowCommit || o.ShowPullSpec || o.Verify {
+		if len(o.ImageFor) > 0 || o.ShowCommit || o.ShowPullSpec || o.ShowSize || o.Verify {
 			return fmt.Errorf("--changelog/--bugs may not be specified with any other flag except --from")
 		}
 	}
@@ -179,10 +189,10 @@ func (o *InfoOptions) Run() error {
 		done := make(chan struct{})
 		go func() {
 			defer close(done)
-			baseRelease, baseErr = o.LoadReleaseInfo(o.From)
+			baseRelease, baseErr = o.LoadReleaseInfo(o.From, o.ShowSize)
 		}()
 
-		release, err := o.LoadReleaseInfo(o.Images[0])
+		release, err := o.LoadReleaseInfo(o.Images[0], o.ShowSize)
 		if err != nil {
 			return err
 		}
@@ -216,7 +226,7 @@ func (o *InfoOptions) Run() error {
 }
 
 func (o *InfoOptions) describeImage(image string) error {
-	release, err := o.LoadReleaseInfo(image)
+	release, err := o.LoadReleaseInfo(image, o.ShowSize)
 	if err != nil {
 		return err
 	}
@@ -236,7 +246,7 @@ func (o *InfoOptions) describeImage(image string) error {
 		fmt.Fprintln(o.Out, spec)
 		return nil
 	}
-	return describeReleaseInfo(o.Out, release, o.ShowCommit, o.ShowPullSpec)
+	return describeReleaseInfo(o.Out, release, o.ShowCommit, o.ShowPullSpec, o.ShowSize)
 }
 
 func findImageSpec(image *imageapi.ImageStream, tagName, imageName string) (string, error) {
@@ -340,10 +350,21 @@ type ReleaseInfo struct {
 
 	ComponentVersions map[string]string `json:"versions"`
 
+	Images map[string]*Image `json:"images"`
+
 	ManifestFiles map[string][]byte `json:"-"`
 	UnknownFiles  []string          `json:"-"`
 
 	Warnings []string `json:"warnings"`
+}
+
+type Image struct {
+	Name      string                              `json:"name"`
+	Ref       imagereference.DockerImageReference `json:"-"`
+	Digest    digest.Digest                       `json:"digest"`
+	MediaType string                              `json:"mediaType"`
+	Layers    []distribution.Descriptor           `json:"layers"`
+	Config    *docker10.DockerImageConfig         `json:"config"`
 }
 
 func (i *ReleaseInfo) PreferredName() string {
@@ -365,7 +386,7 @@ func (i *ReleaseInfo) Platform() string {
 	return fmt.Sprintf("%s/%s", os, arch)
 }
 
-func (o *InfoOptions) LoadReleaseInfo(image string) (*ReleaseInfo, error) {
+func (o *InfoOptions) LoadReleaseInfo(image string, retrieveImages bool) (*ReleaseInfo, error) {
 	ref, err := imagereference.Parse(image)
 	if err != nil {
 		return nil, err
@@ -450,6 +471,43 @@ func (o *InfoOptions) LoadReleaseInfo(image string) (*ReleaseInfo, error) {
 	for _, err := range errs {
 		release.Warnings = append(release.Warnings, err.Error())
 	}
+
+	if retrieveImages {
+		var lock sync.Mutex
+		release.Images = make(map[string]*Image)
+		r := &imageinfo.ImageRetriever{
+			Image:          make(map[string]imagereference.DockerImageReference),
+			RegistryConfig: o.RegistryConfig,
+			Insecure:       o.Insecure,
+			MaxPerRegistry: o.MaxPerRegistry,
+			ImageMetadataCallback: func(name string, image *imageinfo.Image, err error) error {
+				lock.Lock()
+				defer lock.Unlock()
+				if err != nil {
+					release.Warnings = append(release.Warnings, fmt.Sprintf("tag %q: %v", name, err))
+					return nil
+				}
+				copied := Image(*image)
+				release.Images[name] = &copied
+				return nil
+			},
+		}
+		for _, tag := range release.References.Spec.Tags {
+			if tag.From == nil || tag.From.Kind != "DockerImage" {
+				continue
+			}
+			ref, err := imagereference.Parse(tag.From.Name)
+			if err != nil {
+				release.Warnings = append(release.Warnings, fmt.Sprintf("tag %q has an invalid reference: %v", tag.Name, err))
+				continue
+			}
+			r.Image[tag.Name] = ref
+		}
+		if err := r.Run(); err != nil {
+			return nil, err
+		}
+	}
+
 	sort.Strings(release.Warnings)
 
 	return release, nil
@@ -695,7 +753,7 @@ func codeChanged(from, to *imageapi.TagReference) bool {
 	return len(oldCommit) > 0 && len(newCommit) > 0 && oldCommit != newCommit
 }
 
-func describeReleaseInfo(out io.Writer, release *ReleaseInfo, showCommit, pullSpec bool) error {
+func describeReleaseInfo(out io.Writer, release *ReleaseInfo, showCommit, pullSpec, showSize bool) error {
 	w := tabwriter.NewWriter(out, 0, 4, 1, ' ', 0)
 	defer w.Flush()
 	fmt.Fprintf(w, "Name:\t%s\n", release.PreferredName())
@@ -739,6 +797,90 @@ func describeReleaseInfo(out io.Writer, release *ReleaseInfo, showCommit, pullSp
 		fmt.Fprintln(w)
 		fmt.Fprintf(w, "Images:\n")
 		switch {
+		case showSize:
+			layerCount := make(map[string]int)
+			baseLayer := make(map[string]int)
+			totalSize := int64(0)
+			for _, image := range release.Images {
+				for i, layer := range image.Layers {
+					digest := layer.Digest.String()
+					if i == 0 {
+						baseLayer[digest] = 0
+					}
+					count := layerCount[digest]
+					if count == 0 {
+						totalSize += layer.Size
+					}
+					layerCount[digest] = count + 1
+				}
+			}
+
+			var baseHeader string
+			if len(baseLayer) > 1 {
+				baseHeader = "BASE"
+			}
+			fmt.Fprintf(w, "  NAME\t LAYERS\t SIZE MB\t UNIQUE MB\t %s\n", baseHeader)
+			coveredLayer := make(map[string]struct{})
+			currentBase := 1
+			for _, tag := range release.References.Spec.Tags {
+				if tag.From == nil || tag.From.Kind != "DockerImage" {
+					continue
+				}
+
+				image, ok := release.Images[tag.Name]
+				if !ok {
+					fmt.Fprintf(w, "  %s\t\t\t\t\n", tag.Name)
+				}
+
+				// create a column for a small number of unique base layers that visually indicates
+				// which base layer belongs to which image
+				var base string
+				if len(baseLayer) > 1 {
+					if baseIndex, ok := baseLayer[image.Layers[0].Digest.String()]; ok {
+						if baseIndex == 0 {
+							baseLayer[image.Layers[0].Digest.String()] = currentBase
+							baseIndex = currentBase
+							currentBase++
+						}
+						if len(baseLayer) <= 5 {
+							base = strings.Repeat(" ", baseIndex-1) + string(rune('A'+baseIndex-1))
+						} else {
+							base = strconv.Itoa(baseIndex)
+						}
+					}
+				}
+
+				// count the size of the image and the unique size of the image, to give a better
+				// idea of which images impact the payload the most
+				unshared := int64(0)
+				size := int64(0)
+				for _, layer := range image.Layers {
+					size += layer.Size
+					if layerCount[layer.Digest.String()] > 1 {
+						continue
+					}
+					unshared += layer.Size
+				}
+				// if this image has no unique layers, find the top-most layer and if this is the
+				// first time it has been shown print the top layer size (as a reasonable proxy
+				// for how much this image in particular contributes)
+				if unshared == 0 {
+					top := image.Layers[len(image.Layers)-1]
+					if _, ok := coveredLayer[top.Digest.String()]; !ok {
+						unshared = top.Size
+						coveredLayer[top.Digest.String()] = struct{}{}
+					}
+				}
+
+				fmt.Fprintf(w, "  %s\t%7d\t%8.1f\t%10.1f\t %s\n", tag.Name, len(image.Layers), float64(size)/1024/1024, float64(unshared)/1024/1024, base)
+			}
+			fmt.Fprintln(w)
+			if len(baseLayer) > 1 {
+				fmt.Fprintf(w, "  %s across %d layers, %d different base images\n", units.HumanSize(float64(totalSize)), len(layerCount), len(baseLayer))
+			} else {
+				fmt.Fprintf(w, "  %s across %d layers\n", units.HumanSize(float64(totalSize)), len(layerCount))
+			}
+
 		case showCommit:
 			fmt.Fprintf(w, "  NAME\tREPO\tCOMMIT\t\n")
 			for _, tag := range release.References.Spec.Tags {
@@ -747,6 +889,7 @@ func describeReleaseInfo(out io.Writer, release *ReleaseInfo, showCommit, pullSp
 				}
 				fmt.Fprintf(w, "  %s\t%s\t%s\n", tag.Name, tag.Annotations[annotationBuildSourceLocation], tag.Annotations[annotationBuildSourceCommit])
 			}
+
 		case pullSpec:
 			fmt.Fprintf(w, "  NAME\tPULL SPEC\n")
 			for _, tag := range release.References.Spec.Tags {
@@ -755,6 +898,7 @@ func describeReleaseInfo(out io.Writer, release *ReleaseInfo, showCommit, pullSp
 				}
 				fmt.Fprintf(w, "  %s\t%s\n", tag.Name, tag.From.Name)
 			}
+
 		default:
 			fmt.Fprintf(w, "  NAME\tDIGEST\n")
 			for _, tag := range release.References.Spec.Tags {
