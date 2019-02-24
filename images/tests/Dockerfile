@@ -9,6 +9,7 @@ FROM openshift/origin-cli
 RUN INSTALL_PKGS=" \
       origin-tests \
       git \
+      gzip \
       " && \
     yum --enablerepo=origin-local-release install -y ${INSTALL_PKGS} && \
     rpm -V ${INSTALL_PKGS} && \
