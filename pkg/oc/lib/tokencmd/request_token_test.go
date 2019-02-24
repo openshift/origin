@@ -142,7 +142,7 @@ func TestRequestToken(t *testing.T) {
 		}
 	}
 
-	initialHead := req{"", http.MethodHead, "/oauth/token/implicit"}
+	initialHead := req{"", http.MethodHead, "/"}
 	initialHeadResp := resp{http.StatusInternalServerError, "", nil} // value of status is ignored
 
 	initialRequest := req{}
@@ -489,6 +489,7 @@ func TestRequestToken(t *testing.T) {
 				TokenUrl:     urls.OpenShiftOAuthTokenURL(s.URL),
 				RedirectUrl:  urls.OpenShiftOAuthTokenImplicitURL(s.URL),
 			},
+			Issuer:    s.URL,
 			TokenFlow: true,
 		}
 		token, err := opts.RequestToken()
