@@ -21,10 +21,15 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/golang/glog"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/apiserver/pkg/endpoints/discovery"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic"
@@ -199,6 +204,52 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		go establishingController.Run(context.StopCh)
 		go finalizingController.Run(5, context.StopCh)
 		return nil
+	})
+	s.GenericAPIServer.AddPostStartHookOrDie("crd-discovery-available", func(context genericapiserver.PostStartHookContext) error {
+		return wait.PollImmediateUntil(100*time.Millisecond, func() (bool, error) {
+			// only check if we have a valid list for a given resourceversion
+			if !s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions().Informer().HasSynced() {
+				return false, nil
+			}
+
+			_, serverGroupsAndResources, err := crdClient.Discovery().ServerGroupsAndResources()
+			if err != nil {
+				return false, err
+			}
+			
+			serverCRDs, err := s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions().Lister().List(labels.Everything())
+			if err != nil {
+				return false, err
+			}
+			
+			crdGroupsAndResources := sets.NewString()
+			for _, crd := range serverCRDs {
+				// Skip not active CRD
+				if !apiextensions.IsCRDConditionTrue(crd, apiextensions.Established) {
+					continue
+				}
+				for _, version := range crd.Spec.Versions {
+					// Skip versions that are not served
+					if !version.Served {
+						continue
+					}
+					crdGroupsAndResources.Insert(fmt.Sprintf("%s.%s.%s", crd.Spec.Names.Plural, version.Name, crd.Spec.Group))
+				}
+			}
+			
+			discoveryGroupsAndResources := sets.NewString()
+			for _, resource := range serverGroupsAndResources {
+				for _, apiResource := range resource.APIResources {
+					discoveryGroupsAndResources.Insert(fmt.Sprintf("%s.%s.%s", apiResource.Name, apiResource.Version, apiResource.Group))
+				}
+			}
+			
+			if !discoveryGroupsAndResources.HasAll(crdGroupsAndResources.List()...) {
+				glog.Infof("waiting for CRD resources in discovery: %#v", discoveryGroupsAndResources.Difference(crdGroupsAndResources))	
+				return false, nil
+			}
+			return true, nil
+		}, context.StopCh)
 	})
 
 	// we don't want to report healthy until we can handle all CRDs that have already been registered.  Waiting for the informer
