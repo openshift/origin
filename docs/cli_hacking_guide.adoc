@@ -21,7 +21,6 @@ Commands are organized in the package structure as:
 * https://github.com/openshift/origin/tree/master/pkg/cmd[pkg/cmd]
 ** https://github.com/openshift/origin/tree/master/pkg/cmd/openshift[pkg/cmd/openshift] - `openshift` or `origin` command.
 ** https://github.com/openshift/origin/tree/master/pkg/cmd/infra[pkg/cmd/infra]
-*** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/builder[pkg/cmd/infra/builder] - `openshift-sti-build` and `openshift-docker-build` commands.
 *** https://github.com/openshift/origin/tree/master/pkg/cmd/infra/deployer[pkg/cmd/infra/deployer] - `openshift-deploy` command.
 
 * https://github.com/openshift/origin/tree/master/pkg/oc[pkg/oc]
@@ -224,7 +223,7 @@ There are a number of helper functions available in `cmdutil` and `kcmdutil`. Im
 import (
   // other imports...
   kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-  cmdutil "github.com/openshift/origin/pkg/oc/util"
+  cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 ----
 ====
@@ -234,7 +233,7 @@ Examples:
 |=======
 |`kcmdutil.CheckErr(err error)`                                |handles an error (check for `nil` and exit the program accordingly), this should always be used instead of handling the `err` manually.
 |`kcmdutil.GetFlag<Type>(cmd *cobra.Command, flagName string)` |gets the instance of a declared flag, by type. If possible, use the link:#command-structure[struct var binding] to get flag values instead.
-|`cmdutil.IsTerminal(r io.Reader)`                             |checks if the given `io.Reader` is a terminal.
+|`cmdutil.IsTerminalReader(r io.Reader)`                             |checks if the given `io.Reader` is a terminal.
 |=======
 
 === Commented Example
