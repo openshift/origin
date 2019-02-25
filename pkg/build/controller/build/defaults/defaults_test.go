@@ -155,32 +155,10 @@ func TestGlobalProxyDefaults(t *testing.T) {
 	}
 
 	admitter := BuildDefaults{nil, defaultsProxy}
+
+	// source builds should have the defaulted env vars applied to the build pod
 	pod := testutil.Pod().WithBuild(t, testutil.Build().WithSourceStrategy().AsBuild())
 	err := admitter.ApplyDefaults((*corev1.Pod)(pod))
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	build, err := common.GetBuildFromPod((*corev1.Pod)(pod))
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	env := buildutil.GetBuildEnv(build)
-	for _, ev := range env {
-		if ev.Name == "HTTP_PROXY" {
-			t.Errorf("HTTP_PROXY was found, but should not have been")
-		}
-		if ev.Name == "HTTPS_PROXY" {
-			t.Errorf("HTTPS_PROXY was found, but should not have been")
-		}
-		if ev.Name == "NO_PROXY" {
-			t.Errorf("NO_PROXY was found, but should not have been")
-		}
-	}
-
-	// custom builds should have the defaulted env vars applied to the build pod
-	pod = testutil.Pod().WithBuild(t, testutil.Build().WithCustomStrategy().AsBuild())
-	err = admitter.ApplyDefaults((*corev1.Pod)(pod))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -214,6 +192,139 @@ func TestGlobalProxyDefaults(t *testing.T) {
 	}
 	if !noProxyFound {
 		t.Errorf("NO_PROXY not found")
+	}
+
+	// source builds should not have the defaulted env vars applied to the build
+	build, err := common.GetBuildFromPod((*corev1.Pod)(pod))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	env := buildutil.GetBuildEnv(build)
+	for _, ev := range env {
+		if ev.Name == "HTTP_PROXY" {
+			t.Errorf("HTTP_PROXY was found, but should not have been")
+		}
+		if ev.Name == "HTTPS_PROXY" {
+			t.Errorf("HTTPS_PROXY was found, but should not have been")
+		}
+		if ev.Name == "NO_PROXY" {
+			t.Errorf("NO_PROXY was found, but should not have been")
+		}
+	}
+
+	// docker builds should have the defaulted env vars applied to the build pod
+	pod = testutil.Pod().WithBuild(t, testutil.Build().WithDockerStrategy().AsBuild())
+	err = admitter.ApplyDefaults((*corev1.Pod)(pod))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	httpProxyFound, httpsProxyFound, noProxyFound = false, false, false
+	for _, ev := range pod.Spec.Containers[0].Env {
+		if ev.Name == "HTTP_PROXY" {
+			if ev.Value != "http" {
+				t.Errorf("unexpected value %s", ev.Value)
+			}
+			httpProxyFound = true
+		}
+		if ev.Name == "HTTPS_PROXY" {
+			if ev.Value != "https" {
+				t.Errorf("unexpected value %s", ev.Value)
+			}
+			httpsProxyFound = true
+		}
+		if ev.Name == "NO_PROXY" {
+			if ev.Value != "no" {
+				t.Errorf("unexpected value %s", ev.Value)
+			}
+			noProxyFound = true
+		}
+	}
+	if !httpProxyFound {
+		t.Errorf("HTTP_PROXY not found")
+	}
+	if !httpsProxyFound {
+		t.Errorf("HTTPS_PROXY not found")
+	}
+	if !noProxyFound {
+		t.Errorf("NO_PROXY not found")
+	}
+
+	// docker builds should not have the defaulted env vars applied to the build
+	build, err = common.GetBuildFromPod((*corev1.Pod)(pod))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	env = buildutil.GetBuildEnv(build)
+	for _, ev := range env {
+		if ev.Name == "HTTP_PROXY" {
+			t.Errorf("HTTP_PROXY was found, but should not have been")
+		}
+		if ev.Name == "HTTPS_PROXY" {
+			t.Errorf("HTTPS_PROXY was found, but should not have been")
+		}
+		if ev.Name == "NO_PROXY" {
+			t.Errorf("NO_PROXY was found, but should not have been")
+		}
+	}
+
+	// custom builds should have the defaulted env vars applied to the build pod
+	pod = testutil.Pod().WithBuild(t, testutil.Build().WithCustomStrategy().AsBuild())
+	err = admitter.ApplyDefaults((*corev1.Pod)(pod))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	httpProxyFound, httpsProxyFound, noProxyFound = false, false, false
+	for _, ev := range pod.Spec.Containers[0].Env {
+		if ev.Name == "HTTP_PROXY" {
+			if ev.Value != "http" {
+				t.Errorf("unexpected value %s", ev.Value)
+			}
+			httpProxyFound = true
+		}
+		if ev.Name == "HTTPS_PROXY" {
+			if ev.Value != "https" {
+				t.Errorf("unexpected value %s", ev.Value)
+			}
+			httpsProxyFound = true
+		}
+		if ev.Name == "NO_PROXY" {
+			if ev.Value != "no" {
+				t.Errorf("unexpected value %s", ev.Value)
+			}
+			noProxyFound = true
+		}
+	}
+	if !httpProxyFound {
+		t.Errorf("HTTP_PROXY not found")
+	}
+	if !httpsProxyFound {
+		t.Errorf("HTTPS_PROXY not found")
+	}
+	if !noProxyFound {
+		t.Errorf("NO_PROXY not found")
+	}
+
+	// custom builds should not have the defaulted env vars applied to the build
+	build, err = common.GetBuildFromPod((*corev1.Pod)(pod))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	env = buildutil.GetBuildEnv(build)
+	for _, ev := range env {
+		if ev.Name == "HTTP_PROXY" {
+			t.Errorf("HTTP_PROXY was found, but should not have been")
+		}
+		if ev.Name == "HTTPS_PROXY" {
+			t.Errorf("HTTPS_PROXY was found, but should not have been")
+		}
+		if ev.Name == "NO_PROXY" {
+			t.Errorf("NO_PROXY was found, but should not have been")
+		}
 	}
 }
 

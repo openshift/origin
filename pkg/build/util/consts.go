@@ -3,7 +3,7 @@ package util
 // TODO: This list needs triage and move to openshift/api and library-go:
 
 var (
-	WhitelistEnvVarNames = []string{"BUILD_LOGLEVEL", "GIT_SSL_NO_VERIFY"}
+	WhitelistEnvVarNames = []string{"BUILD_LOGLEVEL", "GIT_SSL_NO_VERIFY", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY"}
 
 	// DefaultSuccessfulBuildsHistoryLimit is the default number of successful builds to retain
 	DefaultSuccessfulBuildsHistoryLimit = int32(5)
