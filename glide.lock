@@ -2022,7 +2022,7 @@ imports:
   subpackages:
   - config/v1alpha1
 - name: k8s.io/kube-openapi
-  version: 0e4a0ee171a31ddc90a138cbf89ec307b25f3096
+  version: 1fddd894a3d3e4eb9f4a20d5849e44102f30a419
   repo: https://github.com/openshift/kube-openapi.git
   subpackages:
   - pkg/aggregator
