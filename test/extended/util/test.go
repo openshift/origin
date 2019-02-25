@@ -340,7 +340,7 @@ var (
 			`\[Feature:Audit\]`,                         // Needs special configuration
 			`\[Feature:LocalStorageCapacityIsolation\]`, // relies on a separate daemonset?
 
-			`kube-dns-autoscaler`,                                                    // Don't run kube-dns
+			`kube-dns-autoscaler`, // Don't run kube-dns
 			`should check if Kubernetes master services is included in cluster-info`, // Don't run kube-dns
 			`DNS configMap`, // this tests dns federation configuration via configmap, which we don't support yet
 
@@ -384,25 +384,10 @@ var (
 
 			`Services should be able to create a functioning NodePort service`, // https://github.com/openshift/origin/issues/21708
 
-			`SSH`,                // TRIAGE
-			`SELinux relabeling`, // https://github.com/openshift/origin/issues/7287 still broken
-			`Volumes CephFS`,     // permission denied, selinux?
-
-			`should support inline execution and attach`, // https://bugzilla.redhat.com/show_bug.cgi?id=1624041
+			`SSH`,            // TRIAGE
+			`Volumes CephFS`, // permission denied, selinux?
 
 			`should idle the service and DeploymentConfig properly`, // idling with a single service and DeploymentConfig [Conformance]
-
-			`\[Feature:Volumes\]`, // storage team to investigate it post-rebase
-
-			// TODO: the following list of tests is disabled temporarily due to the fact
-			// that we're running kubelet 1.11 and these require 1.12. We will remove them
-			// post-rebase
-			`\[Feature:NodeAuthenticator\]`,
-			`PreemptionExecutionPath`,
-			`\[Volume type: blockfswithoutformat\]`,
-			`CSI Volumes CSI attach test using HostPath driver`,
-			`CSI Volumes CSI plugin test using CSI driver: hostPath`,
-			`Volume metrics should create volume metrics in Volume Manager`,
 		},
 		// tests too slow to be part of conformance
 		"[Slow]": {
