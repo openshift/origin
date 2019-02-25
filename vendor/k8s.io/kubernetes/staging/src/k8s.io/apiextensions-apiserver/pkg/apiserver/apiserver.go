@@ -21,10 +21,15 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/golang/glog"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/apiserver/pkg/endpoints/discovery"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic"
@@ -198,6 +203,69 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		go establishingController.Run(context.StopCh)
 		go finalizingController.Run(5, context.StopCh)
 		return nil
+	})
+	s.GenericAPIServer.AddPostStartHookOrDie("crd-discovery-available", func(context genericapiserver.PostStartHookContext) error {
+		return wait.PollImmediateUntil(100*time.Millisecond, func() (bool, error) {
+			// only check if we have a valid list for a given resourceversion
+			if !s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions().Informer().HasSynced() {
+				return false, nil
+			}
+
+			_, resourceLists, err := crdClient.Discovery().ServerGroupsAndResources()
+			if err != nil {
+				return false, err
+			}
+			crds, err := s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions().Lister().List(labels.Everything())
+			if err != nil {
+				return false, err
+			}
+			missingCRDs := sets.String{}
+			for _, crd := range crds {
+				// only check for those that should be in discovery
+				if !apiextensions.IsCRDConditionTrue(crd, apiextensions.Established) {
+					continue
+				}
+
+				for _, versionSpec := range crd.Spec.Versions {
+					if !versionSpec.Served {
+						continue
+					}
+
+					foundCRDVersion := false
+					for _, resourceList := range resourceLists {
+						for _, resource := range resourceList.APIResources {
+							if resource.Group != crd.Spec.Group {
+								continue
+							}
+							if resource.Name != crd.Spec.Names.Plural {
+								continue
+							}
+							if resource.Version != versionSpec.Name {
+								continue
+							}
+
+							foundCRDVersion = true
+							break
+						}
+
+						if foundCRDVersion {
+							break
+						}
+					}
+
+					if !foundCRDVersion {
+						missingCRDs.Insert(crd.Spec.Names.Plural + "." + versionSpec.Name + "." + crd.Spec.Group)
+					}
+				}
+			}
+
+			if len(missingCRDs) > 0 {
+				glog.Infof("waiting on CRD discovery for %v", missingCRDs.List())
+				return false, nil
+			}
+
+			return true, nil
+		}, context.StopCh)
 	})
 
 	return s, nil
