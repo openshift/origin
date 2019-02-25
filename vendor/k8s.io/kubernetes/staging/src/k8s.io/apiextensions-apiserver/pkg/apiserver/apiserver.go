@@ -279,6 +279,18 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		return nil, err
 	}
 
+	// we don't want to report healthy until we can handle all CRDs that have already been registered.  Waiting for the informer
+	// to sync makes sure that the lister will be valid before we begin.  There may still be races for CRDs added after startup,
+	// but we won't go healthy until we can handle the ones already present.
+	if err := s.GenericAPIServer.AddHealthzChecks(
+		&informerSyncedHealthCheck{
+			name:   "crd-informer-synced",
+			synced: s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions().Informer().HasSynced,
+		},
+	); err != nil {
+		return nil, err
+	}
+
 	return s, nil
 }
 
