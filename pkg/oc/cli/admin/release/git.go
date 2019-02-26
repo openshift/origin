@@ -41,7 +41,7 @@ func (g *git) exec(command ...string) (string, error) {
 }
 
 func (g *git) streamExec(out, errOut io.Writer, command ...string) error {
-	cmd := exec.Command("git", append([]string{"-C", g.path}, command...)...)
+	cmd := exec.Command("git", append([]string{"--git-dir", filepath.Join(g.path, ".git")}, command...)...)
 	cmd.Stdout = out
 	cmd.Stderr = errOut
 	return cmd.Run()
