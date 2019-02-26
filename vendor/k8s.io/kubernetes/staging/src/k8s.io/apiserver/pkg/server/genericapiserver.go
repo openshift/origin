@@ -294,17 +294,31 @@ func (s *GenericAPIServer) PrepareRun() preparedGenericAPIServer {
 // Run spawns the secure http server. It only returns if stopCh is closed
 // or the secure port cannot be listened on initially.
 func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
-	err := s.NonBlockingRun(stopCh)
+	delayedStopCh := make(chan struct{})
+
+	go func() {
+		defer close(delayedStopCh)
+		<-stopCh
+
+		time.Sleep(s.MinimalShutdownDuration)
+	}()
+
+	// close socker after delayed stopCh
+	err := s.NonBlockingRun(delayedStopCh)
 	if err != nil {
 		return err
 	}
 
 	<-stopCh
 
+	// run shutdown hooks directly. This includes deregistering from the kubernetes endpoint in case of kube-apiserver.
 	err = s.RunPreShutdownHooks()
 	if err != nil {
 		return err
 	}
+
+	// wait for the delayed stopCh before closing the handler chain (it rejects everything after Wait has been called).
+	<-delayedStopCh
 
 	// Wait for all requests to finish, which are bounded by the RequestTimeout variable.
 	s.HandlerChainWaitGroup.Wait()
@@ -342,9 +356,6 @@ func (s preparedGenericAPIServer) NonBlockingRun(stopCh <-chan struct{}) error {
 	// ensure cleanup.
 	go func() {
 		<-stopCh
-
-		// keep serving for some time
-		time.Sleep(s.GenericAPIServer.MinimalShutdownDuration)
 
 		close(internalStopCh)
 		s.HandlerChainWaitGroup.Wait()
