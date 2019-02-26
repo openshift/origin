@@ -63,15 +63,19 @@ var _ = SIGDescribe("CustomResourcePublishOpenAPI [Feature:CustomResourcePublish
 		By("client-side validation (kubectl create and apply) allows request with known and required properties")
 		validCR := fmt.Sprintf(`{%s,"spec":{"bars":[{"name":"test-bar"}]}}`, meta)
 		if _, err := framework.RunKubectlInput(validCR, ns, "create", "-f", "-"); err != nil {
+			dumpDefinition(f, crd, "v1")
 			framework.Failf("failed to create valid CR %s: %v", validCR, err)
 		}
 		if _, err := framework.RunKubectl(ns, "delete", crd.GetPluralName(), "test-foo"); err != nil {
+			dumpDefinition(f, crd, "v1")
 			framework.Failf("failed to delete valid CR: %v", err)
 		}
 		if _, err := framework.RunKubectlInput(validCR, ns, "apply", "-f", "-"); err != nil {
+			dumpDefinition(f, crd, "v1")
 			framework.Failf("failed to apply valid CR %s: %v", validCR, err)
 		}
 		if _, err := framework.RunKubectl(ns, "delete", crd.GetPluralName(), "test-foo"); err != nil {
+			dumpDefinition(f, crd, "v1")
 			framework.Failf("failed to delete valid CR: %v", err)
 		}
 
@@ -191,6 +195,23 @@ func patchSchema(schema []byte, crd *framework.TestCrd) error {
 	patch := []byte(fmt.Sprintf(`{"spec":{"validation":{"openAPIV3Schema":%s}}}`, string(s)))
 	crd.Crd, err = crd.ApiExtensionClient.ApiextensionsV1beta1().CustomResourceDefinitions().Patch(crd.GetMetaName(), types.MergePatchType, patch)
 	return err
+}
+
+func dumpDefinition(f *framework.Framework, crd *framework.TestCrd, version string) {
+	bs, err := f.ClientSet.CoreV1().RESTClient().Get().AbsPath("openapi", "v2").DoRaw()
+	if err != nil {
+		return
+	}
+	spec := spec.Swagger{}
+	if err := json.Unmarshal(bs, &spec); err != nil {
+		return
+	}
+	name := definitionName(crd, version)
+	d, ok := spec.SwaggerProps.Definitions[name]
+	if !ok {
+		return
+	}
+	framework.Logf("definitions is:\n\n%#v\n\n", d)
 }
 
 // waitForDefinition waits for given definition showing up in swagger with given schema
