@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -37,7 +38,8 @@ import (
 const (
 	aggregatorUser                = "system:aggregator"
 	specDownloadTimeout           = 60 * time.Second
-	localDelegateChainNamePattern = "k8s_internal_local_delegation_chain_%010d"
+	localDelegateChainNamePrefix  = "k8s_internal_local_delegation_chain_"
+	localDelegateChainNamePattern = localDelegateChainNamePrefix + "%010d"
 
 	// A randomly generated UUID to differentiate local and remote eTags.
 	locallyGeneratedEtagPrefix = "\"6E8F849B434D4B98A569B9D7718876E9-"
@@ -57,6 +59,11 @@ type specAggregator struct {
 
 var _ AggregationManager = &specAggregator{}
 
+// IsLocalAPIService returns true for local specs from delegates.
+func IsLocalAPIService(apiServiceName string) bool {
+	return strings.HasPrefix(apiServiceName, localDelegateChainNamePrefix)
+}
+
 // This function is not thread safe as it only being called on startup.
 func (s *specAggregator) addLocalSpec(spec *spec.Swagger, localHandler http.Handler, name, etag string) {
 	localAPIService := apiregistration.APIService{}
@@ -66,7 +73,19 @@ func (s *specAggregator) addLocalSpec(spec *spec.Swagger, localHandler http.Hand
 		apiService: localAPIService,
 		handler:    localHandler,
 		spec:       spec,
+		local:      true,
 	}
+}
+
+// GetAPIServicesName returns the names of APIServices recorded in specAggregator.openAPISpecs.
+// We use this function to pass the names of local APIServices to the controller in this package,
+// so that the controller can periodically sync the OpenAPI spec from delegation API servers.
+func (s *specAggregator) GetAPIServiceNames() []string {
+	names := make([]string, len(s.openAPISpecs))
+	for key := range s.openAPISpecs {
+		names = append(names, key)
+	}
+	return names
 }
 
 // BuildAndRegisterAggregator registered OpenAPI aggregator handler. This function is not thread safe as it only being called on startup.
@@ -136,6 +155,7 @@ type openAPISpecInfo struct {
 	spec    *spec.Swagger
 	handler http.Handler
 	etag    string
+	local   bool
 }
 
 // byPriority can be used in sort.Sort to sort specs with their priorities.
@@ -211,6 +231,7 @@ func (s *specAggregator) buildOpenAPISpec() (specToReturn *spec.Swagger, err err
 			return nil, err
 		}
 	}
+
 	return specToReturn, nil
 }
 
@@ -240,7 +261,14 @@ func (s *specAggregator) updateOpenAPISpec() error {
 // tryUpdatingServiceSpecs tries updating openAPISpecs map with specified specInfo, and keeps the map intact
 // if the update fails.
 func (s *specAggregator) tryUpdatingServiceSpecs(specInfo *openAPISpecInfo) error {
+	if specInfo == nil {
+		return fmt.Errorf("invalid input: specInfo must be non-nil")
+	}
 	orgSpecInfo, exists := s.openAPISpecs[specInfo.apiService.Name]
+	// Skip aggregation if OpenAPI spec didn't change
+	if exists && orgSpecInfo != nil && orgSpecInfo.etag == specInfo.etag {
+		return nil
+	}
 	s.openAPISpecs[specInfo.apiService.Name] = specInfo
 	if err := s.updateOpenAPISpec(); err != nil {
 		if exists {
@@ -288,6 +316,30 @@ func (s *specAggregator) UpdateAPIServiceSpec(apiServiceName string, spec *spec.
 		apiService: specInfo.apiService,
 		spec:       spec,
 		handler:    specInfo.handler,
+		etag:       etag,
+	})
+}
+
+// AddUpdateLocalAPIService allows adding/updating local API service with nil handler and
+// nil Spec.Service. This function can be used for local dynamic OpenAPI spec aggregation
+// management (e.g. CRD)
+func (s *specAggregator) AddUpdateLocalAPIServiceSpec(name string, spec *spec.Swagger, etag string) error {
+	s.rwMutex.Lock()
+	defer s.rwMutex.Unlock()
+
+	localAPIService := apiregistration.APIService{
+		Spec: apiregistration.APIServiceSpec{
+			Service:              &apiregistration.ServiceReference{},
+			Group:                "dynamiclocalgroup",
+			Version:              "v1",
+			GroupPriorityMinimum: 1000, // CRDs should have relatively low priority
+			VersionPriority:      100,  // CRDs will be sorted by kube-like versions like any other APIService with the same VersionPriority
+		},
+	}
+	localAPIService.Name = name
+	return s.tryUpdatingServiceSpecs(&openAPISpecInfo{
+		apiService: localAPIService,
+		spec:       spec,
 		etag:       etag,
 	})
 }
