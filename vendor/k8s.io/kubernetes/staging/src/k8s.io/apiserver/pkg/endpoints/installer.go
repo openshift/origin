@@ -377,6 +377,8 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 			resourcePath = itemPath
 			resourceParams = nameParams
 		}
+		apiResource.Group = a.group.GroupVersion.Group
+		apiResource.Version = a.group.GroupVersion.Version
 		apiResource.Name = path
 		apiResource.Namespaced = false
 		apiResource.Kind = resourceKind
@@ -427,6 +429,8 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 			resourcePath = itemPath
 			resourceParams = nameParams
 		}
+		apiResource.Group = a.group.GroupVersion.Group
+		apiResource.Version = a.group.GroupVersion.Version
 		apiResource.Name = path
 		apiResource.Namespaced = true
 		apiResource.Kind = resourceKind
