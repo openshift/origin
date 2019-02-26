@@ -121,6 +121,15 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 	np.lock.Lock()
 	defer np.lock.Unlock()
 
+	pods, err := np.node.GetLocalPods(metav1.NamespaceAll)
+	if err != nil {
+		return err
+	}
+	inUseNamespaces := sets.NewString()
+	for _, pod := range pods {
+		inUseNamespaces.Insert(pod.Namespace)
+	}
+
 	namespaces, err := np.node.kClient.Core().Namespaces().List(metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -132,7 +141,7 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 			np.namespaces[vnid] = &npNamespace{
 				name:     ns.Name,
 				vnid:     vnid,
-				inUse:    false,
+				inUse:    inUseNamespaces.Has(ns.Name),
 				policies: make(map[ktypes.UID]*npPolicy),
 			}
 		}
