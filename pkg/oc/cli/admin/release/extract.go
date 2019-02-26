@@ -209,8 +209,6 @@ func (o *ExtractOptions) extractGit(dir string) error {
 		return err
 	}
 
-	cloner := &git{}
-
 	hadErrors := false
 	alreadyExtracted := make(map[string]string)
 	for _, ref := range release.References.Spec.Tags {
@@ -232,37 +230,13 @@ func (o *ExtractOptions) extractGit(dir string) error {
 		}
 		alreadyExtracted[repo] = commit
 
-		basePath, err := sourceLocationAsRelativePath(dir, repo)
+		extractedRepo, err := ensureCloneForRepo(dir, repo, o.Out, o.ErrOut)
 		if err != nil {
-			return err
+			hadErrors = true
+			fmt.Fprintf(o.ErrOut, "error: cloning %s: %v\n", repo, err)
+			continue
 		}
 
-		var extractedRepo *git
-		fi, err := os.Stat(basePath)
-		if err != nil {
-			if !os.IsNotExist(err) {
-				return err
-			}
-			if err := os.MkdirAll(basePath, 0750); err != nil {
-				return err
-			}
-		} else {
-			if !fi.IsDir() {
-				return fmt.Errorf("repo path %s is not a directory", basePath)
-			}
-		}
-		extractedRepo, err = cloner.ChangeContext(basePath)
-		if err != nil {
-			if err != noSuchRepo {
-				return err
-			}
-			glog.V(2).Infof("Cloning %s ...", repo)
-			if err := extractedRepo.Clone(repo, o.Out, o.ErrOut); err != nil {
-				hadErrors = true
-				fmt.Fprintf(o.ErrOut, "error: cloning %s: %v\n", repo, err)
-				continue
-			}
-		}
 		glog.V(2).Infof("Checkout %s from %s ...", commit, repo)
 		if err := extractedRepo.CheckoutCommit(repo, commit); err != nil {
 			hadErrors = true
@@ -274,4 +248,36 @@ func (o *ExtractOptions) extractGit(dir string) error {
 		return kcmdutil.ErrExit
 	}
 	return nil
+}
+
+func ensureCloneForRepo(dir string, repo string, out, errOut io.Writer) (*git, error) {
+	basePath, err := sourceLocationAsRelativePath(dir, repo)
+	if err != nil {
+		return nil, err
+	}
+	fi, err := os.Stat(basePath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
+		if err := os.MkdirAll(basePath, 0750); err != nil {
+			return nil, err
+		}
+	} else {
+		if !fi.IsDir() {
+			return nil, fmt.Errorf("repo path %s is not a directory", basePath)
+		}
+	}
+	cloner := &git{}
+	extractedRepo, err := cloner.ChangeContext(basePath)
+	if err != nil {
+		if err != noSuchRepo {
+			return nil, err
+		}
+		glog.V(2).Infof("Cloning %s ...", repo)
+		if err := extractedRepo.Clone(repo, out, errOut); err != nil {
+			return nil, err
+		}
+	}
+	return extractedRepo, nil
 }

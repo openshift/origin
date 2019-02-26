@@ -1039,7 +1039,7 @@ func describeChangelog(out, errOut io.Writer, diff *ReleaseDiff, dir string) err
 	}
 
 	for _, change := range codeChanges {
-		u, commits, err := commitsForRepo(dir, change)
+		u, commits, err := commitsForRepo(dir, change, out, errOut)
 		if err != nil {
 			fmt.Fprintf(errOut, "error: %v\n", err)
 			hasError = true
@@ -1103,7 +1103,7 @@ func describeBugs(out, errOut io.Writer, diff *ReleaseDiff, dir string, format s
 
 	bugIDs := sets.NewInt()
 	for _, change := range codeChanges {
-		_, commits, err := commitsForRepo(dir, change)
+		_, commits, err := commitsForRepo(dir, change, out, errOut)
 		if err != nil {
 			fmt.Fprintf(errOut, "error: %v\n", err)
 			hasError = true
@@ -1249,19 +1249,14 @@ func (c CodeChange) ToShort() string {
 	return c.To
 }
 
-func commitsForRepo(dir string, change CodeChange) (*url.URL, []MergeCommit, error) {
-	basePath, err := sourceLocationAsRelativePath(dir, change.Repo)
-	if err != nil {
-		return nil, nil, fmt.Errorf("Unable to load change info for %s: %v", change.ImagesAffected[0], err)
-	}
+func commitsForRepo(dir string, change CodeChange, out, errOut io.Writer) (*url.URL, []MergeCommit, error) {
 	u, err := sourceLocationAsURL(change.Repo)
 	if err != nil {
 		return nil, nil, fmt.Errorf("The source repository cannot be parsed %s: %v", change.Repo, err)
 	}
-	g := &git{}
-	g, err = g.ChangeContext(basePath)
+	g, err := ensureCloneForRepo(dir, change.Repo, errOut, errOut)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s is not a git repo: %v", basePath, err)
+		return nil, nil, err
 	}
 	commits, err := mergeLogForRepo(g, change.From, change.To)
 	if err != nil {
