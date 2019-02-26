@@ -2,11 +2,13 @@ package top
 
 import (
 	"github.com/spf13/cobra"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
-	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 const (
@@ -19,17 +21,17 @@ var topLong = templates.LongDesc(`
 	This command analyzes resources managed by the platform and presents current
 	usage statistics.`)
 
-func NewCommandTop(name, fullName string, f cmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+func NewCommandTop(name, fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,
 		Short: "Show usage statistics of resources on the server",
 		Long:  topLong,
-		Run:   cmdutil.DefaultSubCommandRun(streams.ErrOut),
+		Run:   kcmdutil.DefaultSubCommandRun(streams.ErrOut),
 	}
 
-	cmdTopNode := kcmd.NewCmdTopNode(f, nil, streams)
-	cmdTopPod := kcmd.NewCmdTopPod(f, nil, streams)
+	cmdTopNode := cmdutil.ReplaceCommandName("kubectl", fullName, kcmd.NewCmdTopNode(f, nil, streams))
+	cmdTopPod := cmdutil.ReplaceCommandName("kubectl", fullName, kcmd.NewCmdTopPod(f, nil, streams))
 
 	cmds.AddCommand(NewCmdTopImages(f, fullName, TopImagesRecommendedName, streams))
 	cmds.AddCommand(NewCmdTopImageStreams(f, fullName, TopImageStreamsRecommendedName, streams))
