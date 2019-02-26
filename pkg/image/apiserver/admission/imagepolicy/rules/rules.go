@@ -5,15 +5,14 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy"
+	imagepolicy "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 )
 
 type ImagePolicyAttributes struct {
-	Resource           schema.GroupResource
+	Resource           metav1.GroupResource
 	Name               imageapi.DockerImageReference
 	Image              *imageapi.Image
 	ExcludedRules      sets.String
@@ -50,7 +49,7 @@ func NewRegistryMatcher(names []string) RegistryMatcher {
 	return nameSet(names)
 }
 
-type resourceSet map[schema.GroupResource]struct{}
+type resourceSet map[metav1.GroupResource]struct{}
 
 func imageConditionInfo(rule *imagepolicy.ImageCondition) (covers resourceSet, selectors []labels.Selector, err error) {
 	covers = make(resourceSet)

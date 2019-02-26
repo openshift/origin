@@ -22,7 +22,7 @@ import (
 
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	imagepolicyapi "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy"
+	imagepolicyapi "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 	podnodeapi "github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 
 	// install all APIs
@@ -374,7 +374,7 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 			}
 			for i := range obj.ExecutionRules {
 				if len(obj.ExecutionRules[i].OnResources) == 0 {
-					obj.ExecutionRules[i].OnResources = []schema.GroupResource{{Resource: "pods"}}
+					obj.ExecutionRules[i].OnResources = []metav1.GroupResource{{Resource: "pods"}}
 				}
 				obj.ExecutionRules[i].MatchImageLabelSelectors = nil
 			}

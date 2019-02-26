@@ -9,6 +9,7 @@ import (
 	authorizationrestrictusers "github.com/openshift/origin/pkg/authorization/apiserver/admission/restrictusers"
 	quotaclusterresourceoverride "github.com/openshift/origin/pkg/autoscaling/admission/clusterresourceoverride"
 	quotarunonceduration "github.com/openshift/origin/pkg/autoscaling/admission/runonceduration"
+	imagepolicyapiv1 "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy"
 	"github.com/openshift/origin/pkg/network/admission/externalipranger"
 	"github.com/openshift/origin/pkg/network/admission/restrictedendpoints"
@@ -44,7 +45,7 @@ var (
 		"authorization.openshift.io/RestrictSubjectBindings",
 		"autoscaling.openshift.io/ClusterResourceOverride",
 		"autoscaling.openshift.io/RunOnceDuration",
-		"image.openshift.io/ImagePolicy",
+		imagepolicyapiv1.PluginName, // "image.openshift.io/ImagePolicy"
 		"project.openshift.io/ProjectRequestLimit",
 		"quota.openshift.io/ClusterResourceQuota",
 		"scheduling.openshift.io/OriginPodNodeEnvironment",
@@ -61,7 +62,7 @@ var (
 		"scheduling.openshift.io/OriginPodNodeEnvironment",
 		"network.openshift.io/ExternalIPRanger",
 		"network.openshift.io/RestrictedEndpointsAdmission",
-		"image.openshift.io/ImagePolicy",
+		imagepolicyapiv1.PluginName, // "image.openshift.io/ImagePolicy"
 		"security.openshift.io/SecurityContextConstraint",
 		"security.openshift.io/SCCExecRestrictions",
 		"route.openshift.io/IngressAdmission",
@@ -76,6 +77,7 @@ var (
 		"PodNodeSelector",
 		"PodTolerationRestriction",
 		"Priority",
+		imagepolicyapiv1.PluginName, // "image.openshift.io/ImagePolicy"
 		"StorageObjectInUseProtection",
 	)
 )

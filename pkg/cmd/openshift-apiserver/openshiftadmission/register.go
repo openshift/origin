@@ -37,8 +37,8 @@ func RegisterOpenshiftAdmissionPlugins(plugins *admission.Plugins) {
 	buildsecretinjector.Register(plugins)
 	buildstrategyrestrictions.Register(plugins)
 	imageadmission.Register(plugins)
-	schedulerpodnodeconstraints.Register(plugins)
 	imagepolicy.Register(plugins)
+	schedulerpodnodeconstraints.Register(plugins)
 	quotaclusterresourcequota.Register(plugins)
 }
 
@@ -54,8 +54,8 @@ var (
 		"build.openshift.io/BuildConfigSecretInjector",
 		"build.openshift.io/BuildByStrategy",
 		"image.openshift.io/ImageLimitRange",
-		"scheduling.openshift.io/PodNodeConstraints",
 		"image.openshift.io/ImagePolicy",
+		"scheduling.openshift.io/PodNodeConstraints",
 		"quota.openshift.io/ClusterResourceQuota",
 
 		// the rest of the kube chain goes here
