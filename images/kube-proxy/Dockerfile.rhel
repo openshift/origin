@@ -1,0 +1,10 @@
+FROM registry.svc.ci.openshift.org/ocp/4.0:hyperkube
+
+RUN INSTALL_PKGS="iptables conntrack-tools" && \
+    yum install -y --setopt=tsflags=nodocs $INSTALL_PKGS && \
+    yum clean all && rm -rf /var/cache/*
+
+LABEL io.k8s.display-name="Kubernetes kube-proxy" \
+      io.k8s.description="Provides kube-proxy for external CNI plugins" \
+      io.openshift.tags="openshift,kube-proxy" \
+      io.openshift.build.versions="kubernetes=1.12.4"
