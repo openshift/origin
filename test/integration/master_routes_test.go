@@ -15,7 +15,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/diff"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -26,112 +25,6 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 	"k8s.io/client-go/rest"
 )
-
-// expectedIndex contains the routes expected at the api root /. Keep them sorted.
-var expectedIndex = []string{
-	"/api",
-	"/api/v1",
-	"/apis",
-	"/apis/",
-	"/apis/admissionregistration.k8s.io",
-	"/apis/admissionregistration.k8s.io/v1beta1",
-	"/apis/apiextensions.k8s.io",
-	"/apis/apiextensions.k8s.io/v1beta1",
-	"/apis/apiregistration.k8s.io",
-	"/apis/apiregistration.k8s.io/v1",
-	"/apis/apiregistration.k8s.io/v1beta1",
-	"/apis/apps",
-	"/apis/apps.openshift.io",
-	"/apis/apps.openshift.io/v1",
-	"/apis/apps/v1",
-	"/apis/apps/v1beta1",
-	"/apis/apps/v1beta2",
-	"/apis/authentication.k8s.io",
-	"/apis/authentication.k8s.io/v1",
-	"/apis/authentication.k8s.io/v1beta1",
-	"/apis/authorization.k8s.io",
-	"/apis/authorization.k8s.io/v1",
-	"/apis/authorization.k8s.io/v1beta1",
-	"/apis/authorization.openshift.io",
-	"/apis/authorization.openshift.io/v1",
-	"/apis/autoscaling",
-	"/apis/autoscaling/v1",
-	"/apis/autoscaling/v2beta1",
-	"/apis/autoscaling/v2beta2",
-	"/apis/batch",
-	"/apis/batch/v1",
-	"/apis/batch/v1beta1",
-	"/apis/build.openshift.io",
-	"/apis/build.openshift.io/v1",
-	"/apis/certificates.k8s.io",
-	"/apis/certificates.k8s.io/v1beta1",
-	"/apis/coordination.k8s.io",
-	"/apis/coordination.k8s.io/v1beta1",
-	"/apis/events.k8s.io",
-	"/apis/events.k8s.io/v1beta1",
-	"/apis/extensions",
-	"/apis/extensions/v1beta1",
-	"/apis/image.openshift.io",
-	"/apis/image.openshift.io/v1",
-	"/apis/networking.k8s.io",
-	"/apis/networking.k8s.io/v1",
-	"/apis/oauth.openshift.io",
-	"/apis/oauth.openshift.io/v1",
-	"/apis/policy",
-	"/apis/policy/v1beta1",
-	"/apis/project.openshift.io",
-	"/apis/project.openshift.io/v1",
-	"/apis/quota.openshift.io",
-	"/apis/quota.openshift.io/v1",
-	"/apis/rbac.authorization.k8s.io",
-	"/apis/rbac.authorization.k8s.io/v1",
-	"/apis/rbac.authorization.k8s.io/v1beta1",
-	"/apis/route.openshift.io",
-	"/apis/route.openshift.io/v1",
-	"/apis/scheduling.k8s.io",
-	"/apis/scheduling.k8s.io/v1beta1",
-	"/apis/security.openshift.io",
-	"/apis/security.openshift.io/v1",
-	"/apis/storage.k8s.io",
-	"/apis/storage.k8s.io/v1",
-	"/apis/storage.k8s.io/v1beta1",
-	"/apis/template.openshift.io",
-	"/apis/template.openshift.io/v1",
-	"/apis/user.openshift.io",
-	"/apis/user.openshift.io/v1",
-	"/healthz",
-	"/healthz/autoregister-completion",
-	"/healthz/etcd",
-	"/healthz/log",
-	"/healthz/ping",
-	"/healthz/poststarthook/apiservice-openapi-controller",
-	"/healthz/poststarthook/apiservice-registration-controller",
-	"/healthz/poststarthook/apiservice-status-available-controller",
-	"/healthz/poststarthook/apiservice-wait-for-first-sync",
-	"/healthz/poststarthook/bootstrap-controller",
-	"/healthz/poststarthook/ca-registration",
-	"/healthz/poststarthook/generic-apiserver-start-informers",
-	"/healthz/poststarthook/kube-apiserver-autoregistration",
-	"/healthz/poststarthook/oauth.openshift.io-startoauthclientsbootstrapping",
-	"/healthz/poststarthook/openshift.io-startkubeinformers",
-	"/healthz/poststarthook/quota.openshift.io-clusterquotamapping",
-	"/healthz/poststarthook/rbac/bootstrap-roles",
-	"/healthz/poststarthook/scheduling/bootstrap-system-priority-classes",
-	"/healthz/poststarthook/start-apiextensions-controllers",
-	"/healthz/poststarthook/start-apiextensions-informers",
-	"/healthz/poststarthook/start-kube-aggregator-informers",
-	"/healthz/poststarthook/start-kube-apiserver-admission-initializer",
-	"/healthz/poststarthook/start-kube-apiserver-informers",
-	"/metrics",
-	"/openapi/v2",
-	"/swagger-2.0.0.json",
-	"/swagger-2.0.0.pb-v1",
-	"/swagger-2.0.0.pb-v1.gz",
-	"/swagger-ui/",
-	"/swagger.json",
-	"/swaggerapi",
-	"/version",
-}
 
 func TestRootRedirect(t *testing.T) {
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
@@ -166,22 +59,6 @@ func TestRootRedirect(t *testing.T) {
 	}
 	var got result
 	json.Unmarshal(body, &got)
-	sort.Strings(got.Paths)
-	if !reflect.DeepEqual(got.Paths, expectedIndex) {
-		for i := range got.Paths {
-			if i > len(expectedIndex) {
-				t.Errorf("expected missing %v", got.Paths[i:])
-				break
-			}
-			if got.Paths[i] == expectedIndex[i] {
-				continue
-			}
-			t.Errorf("expected[%d]==%v actual[%d]==%v", i, expectedIndex[i], i, got.Paths[i])
-			break
-		}
-
-		t.Fatalf("Unexpected index: \ngot=%v,\n\n expected=%v,\n\ndiff=%v", got.Paths, expectedIndex, diff.ObjectDiff(expectedIndex, got.Paths))
-	}
 }
 
 func TestWellKnownOAuth(t *testing.T) {

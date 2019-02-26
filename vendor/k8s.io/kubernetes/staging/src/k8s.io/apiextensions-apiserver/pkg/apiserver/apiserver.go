@@ -31,6 +31,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
+	"k8s.io/client-go/tools/cache"
 
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install"
@@ -200,6 +201,18 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		return nil
 	})
 
+	// we don't want to report healthy until we can handle all CRDs that have already been registered.  Waiting for the informer
+	// to sync makes sure that the lister will be valid before we begin.  There may still be races for CRDs added after startup,
+	// but we won't go healthy until we can handle the ones already present.
+	if err := s.GenericAPIServer.AddHealthzChecks(
+		&informerSyncedHealthCheck{
+			name:   "crd-informer-synced",
+			synced: s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions().Informer().HasSynced,
+		},
+	); err != nil {
+		return nil, err
+	}
+
 	return s, nil
 }
 
@@ -211,4 +224,20 @@ func DefaultAPIResourceConfigSource() *serverstorage.ResourceConfig {
 	)
 
 	return ret
+}
+
+type informerSyncedHealthCheck struct {
+	name   string
+	synced cache.InformerSynced
+}
+
+func (h *informerSyncedHealthCheck) Name() string {
+	return h.name
+}
+
+func (h *informerSyncedHealthCheck) Check(req *http.Request) error {
+	if h.synced() {
+		return nil
+	}
+	return fmt.Errorf("informer not yet synced")
 }
