@@ -51,17 +51,18 @@ import (
 )
 
 type storageClassTest struct {
-	name               string
-	cloudProviders     []string
-	provisioner        string
-	parameters         map[string]string
-	delayBinding       bool
-	claimSize          string
-	expectedSize       string
-	pvCheck            func(volume *v1.PersistentVolume) error
-	nodeName           string
-	skipWriteReadCheck bool
-	volumeMode         *v1.PersistentVolumeMode
+	name                 string
+	cloudProviders       []string
+	provisioner          string
+	parameters           map[string]string
+	delayBinding         bool
+	claimSize            string
+	expectedSize         string
+	pvCheck              func(volume *v1.PersistentVolume) error
+	nodeName             string
+	skipWriteReadCheck   bool
+	volumeMode           *v1.PersistentVolumeMode
+	AllowVolumeExpansion bool
 }
 
 const (
@@ -1315,7 +1316,11 @@ func newStorageClass(t storageClassTest, ns string, suffix string) *storage.Stor
 	if t.delayBinding {
 		bindingMode = storage.VolumeBindingWaitForFirstConsumer
 	}
-	return getStorageClass(pluginName, t.parameters, &bindingMode, ns, suffix)
+	sc := getStorageClass(pluginName, t.parameters, &bindingMode, ns, suffix)
+	if t.AllowVolumeExpansion {
+		sc.AllowVolumeExpansion = &t.AllowVolumeExpansion
+	}
+	return sc
 }
 
 func getStorageClass(
