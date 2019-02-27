@@ -222,11 +222,9 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 			}
 
 			_, serverGroupsAndResources, err := crdClient.Discovery().ServerGroupsAndResources()
-			switch {
-			case clientdiscovery.IsGroupDiscoveryFailedError(err):
+			if err != nil {
+				glog.Infof("failed to get discovery: %v (will retry)", err)
 				return false, nil
-			case err != nil:
-				return false, err
 			}
 			
 			serverCRDs, err := s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions().Lister().List(labels.Everything())
