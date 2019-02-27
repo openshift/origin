@@ -1,29 +1,37 @@
 package bootstrap_user
 
 import (
+	"strings"
+	"time"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
-	"github.com/openshift/origin/pkg/oauthserver/server/crypto"
+	"golang.org/x/crypto/bcrypt"
 
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
+	"github.com/openshift/origin/pkg/oauthserver/server/crypto"
 	exutil "github.com/openshift/origin/test/extended/util"
-	"golang.org/x/crypto/bcrypt"
 )
 
 var _ = g.Describe("The bootstrap user", func() {
 	defer g.GinkgoRecover()
-	var oc *exutil.CLI
-	var originalPasswordHash []byte
-	secretExists := true
-	recorder := events.NewInMemoryRecorder("")
-	oc = exutil.NewCLI("bootstrap-login", exutil.KubeConfigPath())
-	g.It("should successfully login with password decoded from kubeadmin secret [Flaky]", func() {
+
+	// since login mutates the current kubeconfig we want to use NewCLI
+	// as that will give each one of our test runs a new config via SetupProject
+	oc := exutil.NewCLI("bootstrap-login", exutil.KubeConfigPath())
+
+	g.It("should successfully login with password decoded from kubeadmin secret", func() {
+		var originalPasswordHash []byte
+		secretExists := true
+		recorder := events.NewInMemoryRecorder("")
+
 		// We aren't testing that the installer has created this secret here, instead,
 		// we create it/apply new data/restore it after (if it existed, or delete it if
 		// it didn't.  Here, we are only testing the oauth flow
@@ -48,9 +56,19 @@ var _ = g.Describe("The bootstrap user", func() {
 		_, _, err = resourceapply.ApplySecret(oc.AsAdmin().KubeClient().CoreV1(), recorder, kubeadminSecret)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		e2e.Logf("logging in as kubeadmin user")
-		out, err := oc.Run("login").Args("-u", "kubeadmin", "-p", password).Output()
+		err = wait.Poll(10*time.Second, 5*time.Minute, func() (done bool, err error) {
+			out, err := oc.Run("login").Args("-u", "kubeadmin").InputString(password + "\n").Output()
+			if err != nil {
+				e2e.Logf("oc login for bootstrap user failed: %s", strings.Replace(err.Error(), password, "<redacted>", -1))
+				return false, nil
+			}
+			if !strings.Contains(out, "Login successful") {
+				e2e.Logf("oc login output did not contain success message:\n%s", strings.Replace(out, password, "<redacted>", -1))
+				return false, nil
+			}
+			return true, nil
+		})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("Login successful"))
 		user, err := oc.Run("whoami").Args().Output()
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(user).To(o.ContainSubstring("kube:admin"))
