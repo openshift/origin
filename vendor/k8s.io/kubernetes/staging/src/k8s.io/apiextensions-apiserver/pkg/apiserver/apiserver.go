@@ -38,6 +38,7 @@ import (
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/tools/cache"
+	clientdiscovery "k8s.io/client-go/discovery"
 
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/install"
@@ -221,7 +222,10 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 			}
 
 			_, serverGroupsAndResources, err := crdClient.Discovery().ServerGroupsAndResources()
-			if err != nil {
+			switch {
+			case clientdiscovery.IsGroupDiscoveryFailedError(err):
+				return false, nil
+			case err != nil:
 				return false, err
 			}
 			
