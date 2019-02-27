@@ -29,10 +29,11 @@ var noSuchRepo = errors.New("location is not a git repo")
 func (g *git) exec(command ...string) (string, error) {
 	buf := &bytes.Buffer{}
 	bufErr := &bytes.Buffer{}
-	cmd := exec.Command("git", append([]string{"-C", g.path}, command...)...)
-	glog.V(5).Infof("Executing git: %v\n", cmd.Args)
+	cmd := exec.Command("git", command...)
+	cmd.Dir = g.path
 	cmd.Stdout = buf
 	cmd.Stderr = bufErr
+	glog.V(5).Infof("Executing git: %v\n", cmd.Args)
 	err := cmd.Run()
 	if err != nil {
 		return bufErr.String(), err
@@ -41,7 +42,8 @@ func (g *git) exec(command ...string) (string, error) {
 }
 
 func (g *git) streamExec(out, errOut io.Writer, command ...string) error {
-	cmd := exec.Command("git", append([]string{"--git-dir", filepath.Join(g.path, ".git")}, command...)...)
+	cmd := exec.Command("git", command...)
+	cmd.Dir = g.path
 	cmd.Stdout = out
 	cmd.Stderr = errOut
 	return cmd.Run()
@@ -59,7 +61,10 @@ func (g *git) ChangeContext(path string) (*git, error) {
 }
 
 func (g *git) Clone(repository string, out, errOut io.Writer) error {
-	return (&git{}).streamExec(out, errOut, "clone", repository, g.path)
+	cmd := exec.Command("git", "clone", repository, g.path)
+	cmd.Stdout = out
+	cmd.Stderr = errOut
+	return cmd.Run()
 }
 
 func (g *git) parent() *git {
