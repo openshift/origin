@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -111,16 +112,19 @@ func sourceLocationAsRelativePath(dir, location string) (string, error) {
 	return basePath, nil
 }
 
-type MergeCommit struct {
-	CommitDate time.Time
+type commit struct {
+	// Merkle graph information
+	Hash          string
+	Parents       []string
+	KnownChildren []string
 
-	Commit        string
-	ParentCommits []string
+	// Local Merkle-graph node information
+	Subject       string
+	CommitterDate time.Time
 
+	// Extracted metadata
 	PullRequest int
-	Bug         int
-
-	Subject string
+	Issues      []*issue
 }
 
 func gitOutputToError(err error, out string) error {
@@ -134,7 +138,7 @@ func gitOutputToError(err error, out string) error {
 	return fmt.Errorf(out)
 }
 
-func mergeLogForRepo(g *git, from, to string) ([]MergeCommit, error) {
+func firstParentLogForRepo(g *git, from, to string) ([]*commit, error) {
 	if from == to {
 		return nil, nil
 	}
@@ -148,7 +152,7 @@ func mergeLogForRepo(g *git, from, to string) ([]MergeCommit, error) {
 		return nil, err
 	}
 
-	args := []string{"log", "--merges", "--topo-order", "-z", "--pretty=format:%H %P%x1E%ct%x1E%s%x1E%b", "--reverse", fmt.Sprintf("%s..%s", from, to)}
+	args := []string{"log", "--topo-order", "-z", "--format=%H %P%x1E%ct%x1E%s%x1E%b", fmt.Sprintf("%s..%s", from, to)}
 	out, err := g.exec(args...)
 	if err != nil {
 		// retry once if there's a chance we haven't fetched the latest commits
@@ -174,55 +178,141 @@ func mergeLogForRepo(g *git, from, to string) ([]MergeCommit, error) {
 		glog.Infof("Got commit info:\n%s", strconv.Quote(out))
 	}
 
-	var commits []MergeCommit
 	if len(out) == 0 {
 		return nil, nil
 	}
+
+	var tip *commit
+	commitMap := map[string]*commit{}
 	for _, entry := range strings.Split(out, "\x00") {
+		if entry == "" {
+			continue
+		}
+
 		records := strings.Split(entry, "\x1e")
 		if len(records) != 4 {
 			return nil, fmt.Errorf("unexpected git log output width %d columns", len(records))
 		}
+
+		commitHashes := strings.Split(records[0], " ")
 		unixTS, err := strconv.ParseInt(records[1], 10, 64)
 		if err != nil {
 			return nil, fmt.Errorf("unexpected timestamp: %v", err)
 		}
-		commitValues := strings.Split(records[0], " ")
 
-		mergeCommit := MergeCommit{
-			CommitDate:    time.Unix(unixTS, 0).UTC(),
-			Commit:        commitValues[0],
-			ParentCommits: commitValues[1:],
+		cmt := &commit{
+			CommitterDate: time.Unix(unixTS, 0).UTC(),
+			Hash:          commitHashes[0],
+			Parents:       commitHashes[1:],
+			Subject:       records[2],
+		}
+		for _, potentialChild := range commitMap {
+			for _, hash := range potentialChild.Parents {
+				if hash == cmt.Hash {
+					cmt.KnownChildren = append(cmt.KnownChildren, potentialChild.Hash)
+					break
+				}
+			}
 		}
 
-		msg := records[3]
-		if m := reBug.FindStringSubmatch(msg); m != nil {
-			mergeCommit.Subject = msg[len(m[0]):]
-			mergeCommit.Bug, err = strconv.Atoi(m[1])
-			if err != nil {
-				return nil, fmt.Errorf("could not extract bug number from %q: %v", msg, err)
-			}
-		} else {
-			mergeCommit.Subject = msg
+		commitMap[cmt.Hash] = cmt
+		if tip == nil {
+			tip = cmt
 		}
-		mergeCommit.Subject = strings.TrimSpace(mergeCommit.Subject)
-		mergeCommit.Subject = strings.SplitN(mergeCommit.Subject, "\n", 2)[0]
 
-		mergeMsg := records[2]
-		if m := rePR.FindStringSubmatch(mergeMsg); m != nil {
-			mergeCommit.PullRequest, err = strconv.Atoi(m[1])
-			if err != nil {
-				return nil, fmt.Errorf("could not extract PR number from %q: %v", mergeMsg, err)
+		body := records[3]
+		if len(cmt.Parents) > 1 { // merge commit
+			if m := rePR.FindStringSubmatch(cmt.Subject); m != nil {
+				cmt.PullRequest, err = strconv.Atoi(m[1])
+				if err != nil {
+					return nil, fmt.Errorf("could not extract PR number from %q: %v", cmt.Subject, err)
+				}
 			}
-		} else {
-			glog.V(2).Infof("Omitted commit %s which has no pull-request", mergeCommit.Commit)
+
+			cmt.Subject = strings.SplitN(strings.TrimSpace(body), "\n", 2)[0]
+		}
+
+		if m := reBug.FindStringSubmatch(cmt.Subject); m != nil {
+			bug, err := strconv.Atoi(m[1])
+			if err != nil {
+				return nil, fmt.Errorf("could not extract bug number from %q: %v", cmt.Subject, err)
+			}
+			cmt.Subject = cmt.Subject[len(m[0]):]
+			cmt.Issues = append(cmt.Issues, &issue{
+				Store: "rhbz",
+				ID:    bug,
+				URI:   fmt.Sprintf("https://bugzilla.redhat.com/show_bug.cgi?id=%d", bug),
+			})
+		}
+	}
+
+	exists := struct{}{}
+	firstParents := map[string]struct{}{}
+	commits := []*commit{}
+	for cmt := tip; cmt != nil; cmt = commitMap[cmt.Parents[0]] { // [0] is ok, because there will be no orphans in a from..to log
+		commits = append(commits, cmt)
+		firstParents[cmt.Hash] = exists
+	}
+
+	// collect issue information from commits outside the first-parent chain
+	for _, cmt := range commitMap {
+		if len(cmt.Issues) == 0 {
 			continue
 		}
-		if len(mergeCommit.Subject) == 0 {
-			mergeCommit.Subject = "Merge"
+
+		if _, ok := firstParents[cmt.Hash]; ok {
+			continue
 		}
 
-		commits = append(commits, mergeCommit)
+		// figure out which first-parent is closest
+		var closestFirstParent *commit
+		for generation := cmt.KnownChildren; closestFirstParent == nil && len(generation) > 0; {
+			nextGeneration := []string{}
+			for _, hash := range generation {
+				child := commitMap[hash]
+				if _, ok := firstParents[hash]; ok {
+					closestFirstParent = child
+					break
+				}
+				for _, grandChild := range child.KnownChildren {
+					nextGeneration = append(nextGeneration, grandChild)
+				}
+			}
+
+			generation = nextGeneration
+		}
+
+		if closestFirstParent == nil {
+			return nil, fmt.Errorf("no first-parent found for %s", cmt.Hash)
+		}
+
+		for _, issue := range cmt.Issues {
+			alreadyOnClosestFirstParent := false
+			for _, mergeIssue := range closestFirstParent.Issues {
+				if mergeIssue.URI == issue.URI {
+					alreadyOnClosestFirstParent = true
+					break
+				}
+			}
+
+			if !alreadyOnClosestFirstParent {
+				closestFirstParent.Issues = append(closestFirstParent.Issues, issue)
+			}
+		}
+	}
+
+	for _, cmt := range commits {
+		sort.Slice(cmt.Issues, func(i, j int) bool {
+			if cmt.Issues[i].Store != cmt.Issues[j].Store {
+				return cmt.Issues[i].Store < cmt.Issues[j].Store
+			}
+
+			if cmt.Issues[i].ID != cmt.Issues[j].ID {
+				return cmt.Issues[i].ID < cmt.Issues[j].ID
+			}
+
+			return cmt.Issues[i].URI < cmt.Issues[j].URI
+		})
 	}
 
 	return commits, nil
