@@ -253,7 +253,7 @@
             "displayName": ".NET builder",
             "name": "DOTNET_IMAGE_STREAM_TAG",
             "required": true,
-            "value": "dotnet:2.1"
+            "value": "dotnet:2.2"
         },
         {
             "description": "The OpenShift Namespace where the ImageStream resides.",
@@ -273,7 +273,7 @@
             "description": "Set this to a branch name, tag or other ref of your repository if you are not using the default branch.",
             "displayName": "Git Reference",
             "name": "SOURCE_REPOSITORY_REF",
-            "value": "dotnetcore-2.1"
+            "value": "dotnetcore-2.2"
         },
         {
             "description": "Set this to use a subdirectory of the source code repository",

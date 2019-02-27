@@ -368,18 +368,6 @@
                                         "containerPort": 5432
                                     }
                                 ],
-                                "readinessProbe": {
-                                    "exec": {
-                                        "command": [
-                                            "/bin/sh",
-                                            "-i",
-                                            "-c",
-                                            "psql -h 127.0.0.1 -U ${POSTGRESQL_USER} -q -d ${POSTGRESQL_DATABASE} -c 'SELECT 1'"
-                                        ]
-                                    },
-                                    "initialDelaySeconds": 5,
-                                    "timeoutSeconds": 1
-                                },
                                 "resources": {
                                     "limits": {
                                         "memory": "${MEMORY_POSTGRESQL_LIMIT}"
