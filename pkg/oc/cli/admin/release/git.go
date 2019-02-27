@@ -41,7 +41,7 @@ func (g *git) exec(command ...string) (string, error) {
 }
 
 func (g *git) streamExec(out, errOut io.Writer, command ...string) error {
-	cmd := exec.Command("git", append([]string{"-C", g.path}, command...)...)
+	cmd := exec.Command("git", append([]string{"--git-dir", filepath.Join(g.path, ".git")}, command...)...)
 	cmd.Stdout = out
 	cmd.Stderr = errOut
 	return cmd.Run()
@@ -175,6 +175,9 @@ func mergeLogForRepo(g *git, from, to string) ([]MergeCommit, error) {
 	}
 
 	var commits []MergeCommit
+	if len(out) == 0 {
+		return nil, nil
+	}
 	for _, entry := range strings.Split(out, "\x00") {
 		records := strings.Split(entry, "\x1e")
 		if len(records) != 4 {
