@@ -175,6 +175,9 @@ func mergeLogForRepo(g *git, from, to string) ([]MergeCommit, error) {
 	}
 
 	var commits []MergeCommit
+	if len(out) == 0 {
+		return nil, nil
+	}
 	for _, entry := range strings.Split(out, "\x00") {
 		records := strings.Split(entry, "\x1e")
 		if len(records) != 4 {
