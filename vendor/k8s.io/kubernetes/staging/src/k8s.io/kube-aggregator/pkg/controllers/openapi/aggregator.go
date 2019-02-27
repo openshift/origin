@@ -26,6 +26,7 @@ import (
 
 	restful "github.com/emicklei/go-restful"
 	"github.com/go-openapi/spec"
+	"k8s.io/apiserver/pkg/server/mux"
 
 	"k8s.io/apiserver/pkg/server"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
@@ -53,7 +54,6 @@ type specAggregator struct {
 	openAPISpecs map[string]*openAPISpecInfo
 
 	// provided for dynamic OpenAPI spec
-	openAPIService          *handler.OpenAPIService
 	openAPIVersionedService *handler.OpenAPIService
 }
 
@@ -90,7 +90,7 @@ func (s *specAggregator) GetAPIServiceNames() []string {
 
 // BuildAndRegisterAggregator registered OpenAPI aggregator handler. This function is not thread safe as it only being called on startup.
 func BuildAndRegisterAggregator(downloader *Downloader, delegationTarget server.DelegationTarget, webServices []*restful.WebService,
-	config *common.Config, pathHandler common.PathHandler) (AggregationManager, error) {
+	config *common.Config, pathHandler *mux.PathRecorderMux) (AggregationManager, error) {
 	s := &specAggregator{
 		openAPISpecs: map[string]*openAPISpecInfo{},
 	}
@@ -128,20 +128,24 @@ func BuildAndRegisterAggregator(downloader *Downloader, delegationTarget server.
 		return nil, err
 	}
 
-	// Install handler
-	// NOTE: [DEPRECATION] We will announce deprecation for format-separated endpoints for OpenAPI spec,
-	// and switch to a single /openapi/v2 endpoint in Kubernetes 1.10. The design doc and deprecation process
-	// are tracked at: https://docs.google.com/document/d/19lEqE9lc4yHJ3WJAJxS_G7TcORIJXGHyq3wpwcH28nU.
-	s.openAPIService, err = handler.RegisterOpenAPIService(
-		specToServe, "/swagger.json", pathHandler)
-	if err != nil {
-		return nil, err
-	}
 	s.openAPIVersionedService, err = handler.RegisterOpenAPIVersionedService(
 		specToServe, "/openapi/v2", pathHandler)
 	if err != nil {
 		return nil, err
 	}
+
+	// NOTE: [DEPRECATION] We will announce deprecation for format-separated endpoints for OpenAPI spec,
+	// and switch to a single /openapi/v2 endpoint in Kubernetes 1.10. The design doc and deprecation process
+	// are tracked at: https://docs.google.com/document/d/19lEqE9lc4yHJ3WJAJxS_G7TcORIJXGHyq3wpwcH28nU.
+	pathHandler.Handle("/swagger.json", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		// forward request to /openapi/v2
+		clone := *req
+		u := *req.URL
+		u.Path = "/openapi/v2"
+		u.RawPath = "/openapi/v2"
+		clone.URL = &u
+		pathHandler.ServeHTTP(w, &clone)
+	}))
 
 	return s, nil
 }
@@ -237,21 +241,10 @@ func (s *specAggregator) buildOpenAPISpec() (specToReturn *spec.Swagger, err err
 
 // updateOpenAPISpec aggregates all OpenAPI specs.  It is not thread-safe. The caller is responsible to hold proper locks.
 func (s *specAggregator) updateOpenAPISpec() error {
-	if s.openAPIService == nil || s.openAPIVersionedService == nil {
-		// openAPIVersionedService and deprecated openAPIService should be initialized together
-		if !(s.openAPIService == nil && s.openAPIVersionedService == nil) {
-			return fmt.Errorf("unexpected openapi service initialization error")
-		}
+	if s.openAPIVersionedService == nil {
 		return nil
 	}
 	specToServe, err := s.buildOpenAPISpec()
-	if err != nil {
-		return err
-	}
-	// openAPIService.UpdateSpec and openAPIVersionedService.UpdateSpec read the same swagger spec
-	// serially and update their local caches separately. Both endpoints will have same spec in
-	// their caches if the caller is holding proper locks.
-	err = s.openAPIService.UpdateSpec(specToServe)
 	if err != nil {
 		return err
 	}
