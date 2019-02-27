@@ -18,8 +18,9 @@ limitations under the License.
 package reconcilers
 
 import (
-	api "k8s.io/kubernetes/pkg/apis/core"
 	"net"
+
+	api "k8s.io/kubernetes/pkg/apis/core"
 )
 
 // NoneEndpointReconciler allows for the endpoint reconciler to be disabled
@@ -36,7 +37,11 @@ func (r *noneEndpointReconciler) ReconcileEndpoints(serviceName string, ip net.I
 	return nil
 }
 
-// StopReconciling noop reconcile
-func (r *noneEndpointReconciler) StopReconciling(serviceName string, ip net.IP, endpointPorts []api.EndpointPort) error {
+// RemoveEndpoints noop reconcile
+func (r *noneEndpointReconciler) RemoveEndpoints(serviceName string, ip net.IP, endpointPorts []api.EndpointPort) error {
 	return nil
+}
+
+func (r *noneEndpointReconciler) StopReconciling() {
+
 }
