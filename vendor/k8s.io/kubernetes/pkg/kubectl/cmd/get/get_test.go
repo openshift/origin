@@ -278,6 +278,10 @@ func (f FakeResources) LookupResource(s schema.GroupVersionKind) proto.Schema {
 	return f.resources[s]
 }
 
+func (f FakeResources) LookupSchema(gvk schema.GroupVersionKind) *openapi_v2.Schema {
+	return nil
+}
+
 var _ openapi.Resources = &FakeResources{}
 
 func testOpenAPISchemaData() (openapi.Resources, error) {

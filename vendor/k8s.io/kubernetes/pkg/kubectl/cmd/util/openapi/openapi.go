@@ -17,6 +17,7 @@ limitations under the License.
 package openapi
 
 import (
+	"github.com/davecgh/go-spew/spew"
 	openapi_v2 "github.com/googleapis/gnostic/OpenAPIv2"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -75,6 +76,10 @@ func (d *document) LookupResource(gvk schema.GroupVersionKind) proto.Schema {
 	if !found {
 		return nil
 	}
+
+	s := d.models.LookupSchema(modelName)
+	spew.Sdump(s)
+
 	return d.models.LookupModel(modelName)
 }
 
