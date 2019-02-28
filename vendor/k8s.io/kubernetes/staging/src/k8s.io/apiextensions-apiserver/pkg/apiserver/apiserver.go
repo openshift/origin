@@ -19,6 +19,7 @@ package apiserver
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -254,9 +255,10 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 			}
 
 			discoveryGroupsAndResources := sets.NewString()
-			for _, resource := range serverGroupsAndResources {
-				for _, apiResource := range resource.APIResources {
-					discoveryGroupsAndResources.Insert(fmt.Sprintf("%s.%s.%s", apiResource.Name, apiResource.Version, apiResource.Group))
+			for _, resourceList := range serverGroupsAndResources {
+				for _, apiResource := range resourceList.APIResources {
+					group, version := splitGroupVersion(resourceList.GroupVersion)
+					discoveryGroupsAndResources.Insert(fmt.Sprintf("%s.%s.%s", apiResource.Name, version, group))
 				}
 			}
 			if !discoveryGroupsAndResources.HasAll(crdGroupsAndResources.List()...) {
@@ -292,6 +294,16 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	}
 
 	return s, nil
+}
+
+func splitGroupVersion(gv string) (group string, version string) {
+	ss := strings.SplitN(gv, "/", 2)
+	if len(ss) == 1 {
+		version = ss[0]
+	} else {
+		group, version = ss[0], ss[1]
+	}
+	return
 }
 
 func DefaultAPIResourceConfigSource() *serverstorage.ResourceConfig {
