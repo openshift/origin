@@ -25,7 +25,12 @@ type git struct {
 	path string
 }
 
-var noSuchRepo = errors.New("location is not a git repo")
+var (
+	noSuchRepo = errors.New("location is not a git repo")
+	rePR       = regexp.MustCompile(`^Merge pull request #(\d+) from`)
+	reBug      = regexp.MustCompile(`^Bug (\d+)\s*(-|:)\s*`)
+	reIssue    = regexp.MustCompile(`^Issue:\s*(\S*)\s*$`)
+)
 
 func (g *git) exec(command ...string) (string, error) {
 	buf := &bytes.Buffer{}
@@ -127,6 +132,58 @@ type commit struct {
 	Issues      []*issue
 }
 
+func (cmt *commit) process(body string) error {
+	if len(cmt.Parents) > 1 { // merge commit
+		if m := rePR.FindStringSubmatch(cmt.Subject); m != nil {
+			var err error
+			cmt.PullRequest, err = strconv.Atoi(m[1])
+			if err != nil {
+				return fmt.Errorf("could not extract PR number from %q: %v", cmt.Subject, err)
+			}
+		}
+
+		cmt.Subject = strings.SplitN(strings.TrimSpace(body), "\n", 2)[0]
+	}
+
+	if m := reBug.FindStringSubmatch(cmt.Subject); m != nil {
+		bug, err := strconv.Atoi(m[1])
+		if err != nil {
+			return fmt.Errorf("could not extract bug number from %q: %v", cmt.Subject, err)
+		}
+		cmt.Subject = cmt.Subject[len(m[0]):]
+		cmt.Issues = append(cmt.Issues, &issue{
+			Store: "rhbz",
+			ID:    bug,
+			URI:   fmt.Sprintf("https://bugzilla.redhat.com/show_bug.cgi?id=%d", bug),
+		})
+	}
+
+	cmd := exec.Command("git", "interpret-trailers", "--parse")
+	cmd.Stdin = bytes.NewBufferString(body)
+	glog.V(5).Infof("Executing git: %v (on %s)\n", cmd.Args, cmt.Hash)
+	output, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+
+	for _, line := range strings.Split(string(output), "\n") {
+		if len(line) == 0 {
+			continue
+		}
+
+		if m := reIssue.FindStringSubmatch(line); m != nil {
+			issue, err := issueFromURI(m[1])
+			if err != nil {
+				return err
+			}
+
+			cmt.Issues = append(cmt.Issues, issue)
+		}
+	}
+
+	return nil
+}
+
 func gitOutputToError(err error, out string) error {
 	out = strings.TrimSpace(out)
 	if strings.HasPrefix(out, "fatal: ") {
@@ -141,15 +198,6 @@ func gitOutputToError(err error, out string) error {
 func firstParentLogForRepo(g *git, from, to string) ([]*commit, error) {
 	if from == to {
 		return nil, nil
-	}
-
-	rePR, err := regexp.Compile(`^Merge pull request #(\d+) from`)
-	if err != nil {
-		return nil, err
-	}
-	reBug, err := regexp.Compile(`^Bug (\d+)\s*(-|:)\s*`)
-	if err != nil {
-		return nil, err
 	}
 
 	args := []string{"log", "--topo-order", "-z", "--format=%H %P%x1E%ct%x1E%s%x1E%b", fmt.Sprintf("%s..%s", from, to)}
@@ -221,28 +269,9 @@ func firstParentLogForRepo(g *git, from, to string) ([]*commit, error) {
 		}
 
 		body := records[3]
-		if len(cmt.Parents) > 1 { // merge commit
-			if m := rePR.FindStringSubmatch(cmt.Subject); m != nil {
-				cmt.PullRequest, err = strconv.Atoi(m[1])
-				if err != nil {
-					return nil, fmt.Errorf("could not extract PR number from %q: %v", cmt.Subject, err)
-				}
-			}
-
-			cmt.Subject = strings.SplitN(strings.TrimSpace(body), "\n", 2)[0]
-		}
-
-		if m := reBug.FindStringSubmatch(cmt.Subject); m != nil {
-			bug, err := strconv.Atoi(m[1])
-			if err != nil {
-				return nil, fmt.Errorf("could not extract bug number from %q: %v", cmt.Subject, err)
-			}
-			cmt.Subject = cmt.Subject[len(m[0]):]
-			cmt.Issues = append(cmt.Issues, &issue{
-				Store: "rhbz",
-				ID:    bug,
-				URI:   fmt.Sprintf("https://bugzilla.redhat.com/show_bug.cgi?id=%d", bug),
-			})
+		err = cmt.process(body)
+		if err != nil {
+			return nil, err
 		}
 	}
 
