@@ -63,10 +63,6 @@ func (f EmptyResources) LookupResource(gvk schema.GroupVersionKind) proto.Schema
 	return nil
 }
 
-func (f EmptyResources) LookupSchema(gvk schema.GroupVersionKind) *openapi_v2.Schema {
-	return nil
-}
-
 // CreateOpenAPISchemaFunc returns a function useful for the TestFactory.
 func CreateOpenAPISchemaFunc(path string) func() (openapi.Resources, error) {
 	return func() (openapi.Resources, error) {

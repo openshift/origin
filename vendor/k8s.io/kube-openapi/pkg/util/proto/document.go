@@ -59,7 +59,8 @@ func VendorExtensionToMap(e []*openapi_v2.NamedAny) map[string]interface{} {
 // Definitions is an implementation of `Models`. It looks for
 // models in an openapi Schema.
 type Definitions struct {
-	models map[string]Schema
+	models       map[string]Schema
+	protoSchemas map[string]*openapi_v2.Schema
 }
 
 var _ Models = &Definitions{}
@@ -67,13 +68,15 @@ var _ Models = &Definitions{}
 // NewOpenAPIData creates a new `Models` out of the openapi document.
 func NewOpenAPIData(doc *openapi_v2.Document) (Models, error) {
 	definitions := Definitions{
-		models: map[string]Schema{},
+		models:       map[string]Schema{},
+		protoSchemas: map[string]*openapi_v2.Schema{},
 	}
 
 	// Save the list of all models first. This will allow us to
 	// validate that we don't have any dangling reference.
 	for _, namedSchema := range doc.GetDefinitions().GetAdditionalProperties() {
 		definitions.models[namedSchema.GetName()] = nil
+		definitions.protoSchemas[namedSchema.GetName()] = namedSchema.Value
 	}
 
 	// Now, parse each model. We can validate that references exists.
@@ -264,6 +267,12 @@ func (d *Definitions) ParseSchema(s *openapi_v2.Schema, path *Path) (Schema, err
 // returns a visitable schema from the given model name.
 func (d *Definitions) LookupModel(model string) Schema {
 	return d.models[model]
+}
+
+// LookupModel is public through the interface of Models. It
+// returns a visitable schema from the given model name.
+func (d *Definitions) LookupSchema(model string) *openapi_v2.Schema {
+	return d.protoSchemas[model]
 }
 
 func (d *Definitions) ListModels() []string {

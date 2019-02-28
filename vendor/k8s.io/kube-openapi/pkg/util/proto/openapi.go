@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/googleapis/gnostic/OpenAPIv2"
 )
 
 // Defines openapi types.
@@ -39,6 +41,7 @@ const (
 // schema for a specific model.
 type Models interface {
 	LookupModel(string) Schema
+	LookupSchema(string) *openapi_v2.Schema
 	ListModels() []string
 }
 
