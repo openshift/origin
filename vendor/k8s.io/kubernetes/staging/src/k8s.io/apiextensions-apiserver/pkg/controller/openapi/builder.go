@@ -288,13 +288,19 @@ func (b *builder) buildKubeNative(schema *spec.Schema) *spec.Schema {
 	// and forbid anything outside of apiVersion, kind and metadata. We have to fix kubectl to stop doing this, e.g. by
 	// adding additionalProperties=true support to explicitly allow additional fields.
 	// TODO: fix kubectl to understand additionalProperties=true
-	if schema != nil {
+	if schema == nil {
+		schema = &spec.Schema{
+			SchemaProps: spec.SchemaProps{Type: []string{"object"}},
+		}
+		// not we cannot add more properties here, not even TypeMeta/ObjectMeta because kubectl will complain about
+		// unknown fields for anything else.
+	} else {
 		schema.SetProperty("metadata", *spec.RefSchema(objectMetaSchemaRef).
 			WithDescription(swaggerPartialObjectMetadataDescriptions["metadata"]))
 		addTypeMetaProperties(schema)
 	}
-	schema.AddExtension(endpoints.ROUTE_META_GVK, []map[string]string{
-		{
+	schema.AddExtension(endpoints.ROUTE_META_GVK, []interface{}{
+		map[string]interface{}{
 			"group":   b.group,
 			"version": b.version,
 			"kind":    b.kind,
@@ -392,12 +398,6 @@ func newBuilder(crd *apiextensions.CustomResourceDefinition, version string, sch
 	}
 	if crd.Spec.Scope == apiextensions.NamespaceScoped {
 		b.namespaced = true
-	}
-
-	if schema == nil {
-		schema = &spec.Schema{
-			SchemaProps: spec.SchemaProps{Type: []string{"object"}},
-		}
 	}
 
 	// Pre-build schema with Kubernetes native properties
