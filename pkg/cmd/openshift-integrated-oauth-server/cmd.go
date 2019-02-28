@@ -1,12 +1,12 @@
-package openshift_osinserver
+package openshift_integrated_oauth_server
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -15,29 +15,24 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	configv1 "github.com/openshift/api/config/v1"
-	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
-	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/api/legacy"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/configdefault"
-	"github.com/openshift/origin/pkg/configconversion"
 )
 
-type OpenShiftOsinServer struct {
+type OsinServer struct {
 	ConfigFile string
 }
 
-func NewOpenShiftOsinServer(out, errout io.Writer, stopCh <-chan struct{}) *cobra.Command {
-	options := &OpenShiftOsinServer{}
+func NewOsinServer(out, errout io.Writer, stopCh <-chan struct{}) *cobra.Command {
+	options := &OsinServer{}
 
 	cmd := &cobra.Command{
-		Use:   "openshift-osinserver",
+		Use:   "osinserver",
 		Short: "Launch OpenShift osin server",
 		Run: func(c *cobra.Command, args []string) {
 			legacy.InstallInternalLegacyAll(legacyscheme.Scheme)
@@ -70,7 +65,7 @@ func NewOpenShiftOsinServer(out, errout io.Writer, stopCh <-chan struct{}) *cobr
 	return cmd
 }
 
-func (o *OpenShiftOsinServer) Validate() error {
+func (o *OsinServer) Validate() error {
 	if len(o.ConfigFile) == 0 {
 		return errors.New("--config is required for this command")
 	}
@@ -78,9 +73,7 @@ func (o *OpenShiftOsinServer) Validate() error {
 	return nil
 }
 
-func (o *OpenShiftOsinServer) RunOsinServer(stopCh <-chan struct{}) error {
-	// try to decode into our new types first.  right now there is no validation, no file path resolution.  this unsticks the operator to start.
-	// TODO add those things
+func (o *OsinServer) RunOsinServer(stopCh <-chan struct{}) error {
 	configContent, err := ioutil.ReadFile(o.ConfigFile)
 	if err != nil {
 		return err
@@ -88,26 +81,23 @@ func (o *OpenShiftOsinServer) RunOsinServer(stopCh <-chan struct{}) error {
 
 	// TODO this probably needs to be updated to a container inside openshift/api/osin/v1
 	scheme := runtime.NewScheme()
-	utilruntime.Must(kubecontrolplanev1.Install(scheme))
+	utilruntime.Must(osinv1.Install(scheme))
 	codecs := serializer.NewCodecFactory(scheme)
-	obj, err := runtime.Decode(codecs.UniversalDecoder(kubecontrolplanev1.GroupVersion, configv1.GroupVersion, osinv1.GroupVersion), configContent)
+	obj, err := runtime.Decode(codecs.UniversalDecoder(osinv1.GroupVersion, configv1.GroupVersion), configContent)
 	if err != nil {
-		return err
+		// TODO drop this code once we remove the hypershift path
+		obj = &osinv1.OsinServerConfig{}
+		if jsonErr := json.Unmarshal(configContent, obj); jsonErr != nil {
+			glog.Errorf("osin config parse error: %v", jsonErr)
+			return err
+		}
+		// return err
 	}
 
-	// Resolve relative to CWD
-	absoluteConfigFile, err := api.MakeAbs(o.ConfigFile, "")
-	if err != nil {
-		return err
+	config, ok := obj.(*osinv1.OsinServerConfig)
+	if !ok {
+		return fmt.Errorf("expected OsinServerConfig, got %T", config)
 	}
-	configFileLocation := path.Dir(absoluteConfigFile)
 
-	// TODO this is our pretend OsinServerConfig
-	config := obj.(*kubecontrolplanev1.KubeAPIServerConfig)
-	if err := helpers.ResolvePaths(configconversion.GetKubeAPIServerConfigFileReferences(config), configFileLocation); err != nil {
-		return err
-	}
-	configdefault.SetRecommendedKubeAPIServerConfigDefaults(config)
-
-	return RunOpenShiftOsinServer(config, stopCh)
+	return RunOsinServer(config, stopCh)
 }

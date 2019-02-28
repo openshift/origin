@@ -151,6 +151,7 @@
       "github.com/openshift/origin/pkg/apiserver/authentication/oauth",
       "github.com/openshift/origin/pkg/oauth/apis/oauth/validation",
 
+      "github.com/openshift/origin/pkg/cmd/openshift-integrated-oauth-server",
       "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver",
       "github.com/openshift/origin/pkg/cmd/server/origin",
       "github.com/openshift/origin/pkg/cmd/server/apis/config/validation",
