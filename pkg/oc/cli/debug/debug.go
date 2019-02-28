@@ -134,6 +134,9 @@ type DebugOptions struct {
 	FullCmdName        string
 	Image              string
 
+	// IsNode is set after we see the object we're debugging.  We use it to be able to print pertinent advice.
+	IsNode bool
+
 	resource.FilenameOptions
 	genericclioptions.IOStreams
 }
@@ -425,6 +428,9 @@ func (o *DebugOptions) RunDebug() error {
 			fmt.Fprintf(o.ErrOut, "Starting pod/%s, command was: %s\n", pod.Name, commandString)
 		} else {
 			fmt.Fprintf(o.ErrOut, "Starting pod/%s ...\n", pod.Name)
+		}
+		if o.IsNode {
+			fmt.Fprintf(o.ErrOut, "To directly access the host PATH, try `chroot /host /bin/bash`\n")
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), o.Timeout)
@@ -735,6 +741,7 @@ func containerNames(pod *corev1.Pod) []string {
 func (o *DebugOptions) approximatePodTemplateForObject(object runtime.Object) (*corev1.PodTemplateSpec, error) {
 	switch t := object.(type) {
 	case *corev1.Node:
+		o.IsNode = true
 		if len(o.NodeName) > 0 {
 			return nil, fmt.Errorf("you may not set --node-name when debugging a node")
 		}
