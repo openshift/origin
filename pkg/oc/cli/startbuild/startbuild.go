@@ -347,11 +347,22 @@ func (o *StartBuildOptions) Validate() error {
 	if len(o.FromBuild) != 0 && o.AsBinary {
 		// TODO: we should support this, it should be possible to clone a build to run again with new uploaded artifacts.
 		// Doing so requires introducing a new clonebinary endpoint.
-		return fmt.Errorf("Cannot use '--from-build' flag with binary builds")
+		return fmt.Errorf("cannot use '--from-build' flag with binary builds")
 	}
 
 	if len(o.Name) == 0 && len(o.FromWebhook) == 0 && len(o.FromBuild) == 0 {
 		return fmt.Errorf("a resource name is required either as an argument or by using --from-build")
+	}
+
+	if len(o.ListWebhooks) > 0 {
+		switch o.ListWebhooks {
+		case "all":
+		case "generic":
+		case "github":
+			// do nothing
+		default:
+			return fmt.Errorf("--list-webhooks must be 'all', 'generic', or 'github'")
+		}
 	}
 
 	return nil
@@ -429,7 +440,7 @@ func (o *StartBuildOptions) Run() error {
 	case len(o.FromBuild) > 0:
 		if newBuild, err = o.BuildClient.Builds(o.Namespace).Clone(request.Name, request); err != nil {
 			if isInvalidSourceInputsError(err) {
-				return fmt.Errorf("Build %s/%s has no valid source inputs and '--from-build' cannot be used for binary builds", o.Namespace, o.Name)
+				return fmt.Errorf("build %s/%s has no valid source inputs and '--from-build' cannot be used for binary builds", o.Namespace, o.Name)
 			}
 			if kerrors.IsAlreadyExists(err) {
 				return transformIsAlreadyExistsError(err, o.Name)
@@ -439,7 +450,7 @@ func (o *StartBuildOptions) Run() error {
 	default:
 		if newBuild, err = o.BuildClient.BuildConfigs(o.Namespace).Instantiate(request.Name, request); err != nil {
 			if isInvalidSourceInputsError(err) {
-				return fmt.Errorf("Build configuration %s/%s has no valid source inputs, if this is a binary build you must specify one of '--from-dir', '--from-repo', or '--from-file'", o.Namespace, o.Name)
+				return fmt.Errorf("build configuration %s/%s has no valid source inputs, if this is a binary build you must specify one of '--from-dir', '--from-repo', or '--from-file'", o.Namespace, o.Name)
 			}
 			if kerrors.IsAlreadyExists(err) {
 				return transformIsAlreadyExistsError(err, o.Name)
@@ -449,7 +460,7 @@ func (o *StartBuildOptions) Run() error {
 	}
 
 	if err := o.Printer.PrintObj(newBuild, o.Out); err != nil {
-		fmt.Fprintf(o.ErrOut, "error: %v\n", err)
+		fmt.Fprintf(o.ErrOut, "%v\n", err)
 	}
 
 	// Stream the logs from the build
@@ -495,20 +506,6 @@ func (o *StartBuildOptions) streamBuildLogs(build *buildv1.Build) error {
 
 // RunListBuildWebHooks prints the webhooks for the provided build config.
 func (o *StartBuildOptions) RunListBuildWebHooks() error {
-	generic, github := false, false
-	prefix := false
-	switch o.ListWebhooks {
-	case "all":
-		generic, github = true, true
-		prefix = true
-	case "generic":
-		generic = true
-	case "github":
-		github = true
-	default:
-		return fmt.Errorf("--list-webhooks must be 'all', 'generic', or 'github'")
-	}
-
 	config, err := o.BuildClient.BuildConfigs(o.Namespace).Get(o.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -516,17 +513,10 @@ func (o *StartBuildOptions) RunListBuildWebHooks() error {
 
 	webhookClient := buildclientmanual.NewWebhookURLClient(o.BuildClient.RESTClient(), o.Namespace)
 	for _, t := range config.Spec.Triggers {
-		hookType := ""
-		switch {
-		case t.GenericWebHook != nil && generic:
-			if prefix {
-				hookType = "generic "
-			}
-		case t.GitHubWebHook != nil && github:
-			if prefix {
-				hookType = "github "
-			}
-		default:
+		if t.Type == buildv1.ImageChangeBuildTriggerType {
+			continue
+		}
+		if o.ListWebhooks != "all" && o.ListWebhooks != strings.ToLower(string(t.Type)) {
 			continue
 		}
 		u, err := webhookClient.WebHookURL(o.Name, &t)
@@ -536,8 +526,11 @@ func (o *StartBuildOptions) RunListBuildWebHooks() error {
 			}
 			continue
 		}
+		if o.ListWebhooks == "all" {
+			fmt.Fprintf(o.Out, "%s ", t.Type)
+		}
 		urlStr, _ := url.PathUnescape(u.String())
-		fmt.Fprintf(o.Out, "%s%s\n", hookType, urlStr)
+		fmt.Fprintf(o.Out, "%s\n", urlStr)
 	}
 	return nil
 }
@@ -965,7 +958,7 @@ func WaitForBuildComplete(c buildv1client.BuildInterface, name string) error {
 					return nil
 				}
 				if name != e.Name || isFailed(e) {
-					return fmt.Errorf("The build %s/%s status is %q", e.Namespace, name, e.Status.Phase)
+					return fmt.Errorf("the build %s/%s status is %q", e.Namespace, name, e.Status.Phase)
 				}
 			}
 		}
