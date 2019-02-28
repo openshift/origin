@@ -158,15 +158,9 @@ func (cmt *commit) process(body string) error {
 		})
 	}
 
-	cmd := exec.Command("git", "interpret-trailers", "--parse")
-	cmd.Stdin = bytes.NewBufferString(body)
-	glog.V(5).Infof("Executing git: %v (on %s)\n", cmd.Args, cmt.Hash)
-	output, err := cmd.Output()
-	if err != nil {
-		return err
-	}
-
-	for _, line := range strings.Split(string(output), "\n") {
+	paragraphs := strings.Split(body, "\n\n")
+	trailerBlock := paragraphs[len(paragraphs)-1] // TODO: ugly assumption
+	for _, line := range strings.Split(trailerBlock, "\n") {
 		if len(line) == 0 {
 			continue
 		}
