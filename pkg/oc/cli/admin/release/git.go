@@ -52,7 +52,7 @@ func (g *git) streamExec(out, errOut io.Writer, command ...string) error {
 func (g *git) ChangeContext(path string) (*git, error) {
 	location := &git{path: path}
 	if errOut, err := location.exec("rev-parse", "--git-dir"); err != nil {
-		if strings.Contains(errOut, "not a git repository") {
+		if strings.Contains(strings.ToLower(errOut), "not a git repository") {
 			return location, noSuchRepo
 		}
 		return location, err

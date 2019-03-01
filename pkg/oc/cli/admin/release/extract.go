@@ -255,6 +255,7 @@ func ensureCloneForRepo(dir string, repo string, out, errOut io.Writer) (*git, e
 	if err != nil {
 		return nil, err
 	}
+	glog.V(4).Infof("Ensure repo is cloned at %s pointing to %s", basePath, repo)
 	fi, err := os.Stat(basePath)
 	if err != nil {
 		if !os.IsNotExist(err) {
