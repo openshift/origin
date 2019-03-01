@@ -61,6 +61,9 @@ func ConvertJSONSchemaProps(in *apiextensions.JSONSchemaProps, out *spec.Schema)
 	out.Description = in.Description
 	if in.Type != "" {
 		out.Type = spec.StringOrArray([]string{in.Type})
+		if in.Nullable {
+			out.Type = append(out.Type, "null")
+		}
 	}
 	out.Format = in.Format
 	out.Title = in.Title
