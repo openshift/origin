@@ -74,6 +74,7 @@ func NewDiscoveryController(crdInformer informers.CustomResourceDefinitionInform
 }
 
 func (c *DiscoveryController) sync(version schema.GroupVersion) error {
+
 	apiVersionsForDiscovery := []metav1.GroupVersionForDiscovery{}
 	apiResourcesForDiscovery := []metav1.APIResource{}
 	versionsForDiscoveryMap := map[metav1.GroupVersion]bool{}
@@ -129,8 +130,6 @@ func (c *DiscoveryController) sync(version schema.GroupVersion) error {
 			Name:         crd.Status.AcceptedNames.Plural,
 			SingularName: crd.Status.AcceptedNames.Singular,
 			Namespaced:   crd.Spec.Scope == apiextensions.NamespaceScoped,
-			Group:        crd.Spec.Group,
-			Version:      version.Version,
 			Kind:         crd.Status.AcceptedNames.Kind,
 			Verbs:        verbs,
 			ShortNames:   crd.Status.AcceptedNames.ShortNames,
@@ -139,29 +138,21 @@ func (c *DiscoveryController) sync(version schema.GroupVersion) error {
 
 		if crd.Spec.Subresources != nil && crd.Spec.Subresources.Status != nil {
 			apiResourcesForDiscovery = append(apiResourcesForDiscovery, metav1.APIResource{
-				Name:         crd.Status.AcceptedNames.Plural + "/status",
-				SingularName: "",
-				Namespaced:   crd.Spec.Scope == apiextensions.NamespaceScoped,
-				Group:        crd.Spec.Group,
-				Version:      version.Version,
-				Kind:         crd.Status.AcceptedNames.Kind,
-				Verbs:        metav1.Verbs([]string{"get", "patch", "update"}),
-				ShortNames:   nil,
-				Categories:   nil,
+				Name:       crd.Status.AcceptedNames.Plural + "/status",
+				Namespaced: crd.Spec.Scope == apiextensions.NamespaceScoped,
+				Kind:       crd.Status.AcceptedNames.Kind,
+				Verbs:      metav1.Verbs([]string{"get", "patch", "update"}),
 			})
 		}
 
 		if crd.Spec.Subresources != nil && crd.Spec.Subresources.Scale != nil {
 			apiResourcesForDiscovery = append(apiResourcesForDiscovery, metav1.APIResource{
-				Name:         crd.Status.AcceptedNames.Plural + "/scale",
-				SingularName: "",
-				Namespaced:   crd.Spec.Scope == apiextensions.NamespaceScoped,
-				Group:        autoscaling.GroupName,
-				Version:      "v1",
-				Kind:         "Scale",
-				Verbs:        metav1.Verbs([]string{"get", "patch", "update"}),
-				ShortNames:   nil,
-				Categories:   nil,
+				Group:      autoscaling.GroupName,
+				Version:    "v1",
+				Kind:       "Scale",
+				Name:       crd.Status.AcceptedNames.Plural + "/scale",
+				Namespaced: crd.Spec.Scope == apiextensions.NamespaceScoped,
+				Verbs:      metav1.Verbs([]string{"get", "patch", "update"}),
 			})
 		}
 	}
