@@ -1,7 +1,6 @@
 package openshift_integrated_oauth_server
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -85,13 +84,7 @@ func (o *OsinServer) RunOsinServer(stopCh <-chan struct{}) error {
 	codecs := serializer.NewCodecFactory(scheme)
 	obj, err := runtime.Decode(codecs.UniversalDecoder(osinv1.GroupVersion, configv1.GroupVersion), configContent)
 	if err != nil {
-		// TODO drop this code once we remove the hypershift path
-		obj = &osinv1.OsinServerConfig{}
-		if jsonErr := json.Unmarshal(configContent, obj); jsonErr != nil {
-			glog.Errorf("osin config parse error: %v", jsonErr)
-			return err
-		}
-		// return err
+		return err
 	}
 
 	config, ok := obj.(*osinv1.OsinServerConfig)
