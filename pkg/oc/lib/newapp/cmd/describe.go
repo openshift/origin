@@ -181,20 +181,20 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 
 		if noSource {
 			// if we have no source, the user must always provide the source from the local dir(binary build)
-			fmt.Fprintf(out, "      * A binary build was created, use 'start-build --from-dir' to trigger a new build\n")
+			fmt.Fprintf(out, "      * A binary build was created, use 'oc start-build --from-dir' to trigger a new build\n")
 		} else {
 			if len(trackedImage) > 0 {
 				// if we have a trackedImage/ICT and we have source, the build will be triggered automatically.
 				fmt.Fprintf(out, "      * Every time %q changes a new build will be triggered\n", trackedImage)
 			} else {
 				// if we have source (but not a tracked image), the user must manually trigger a build.
-				fmt.Fprintf(out, "      * Use 'start-build' to trigger a new build\n")
+				fmt.Fprintf(out, "      * Use 'oc start-build' to trigger a new build\n")
 			}
 		}
 
 		if pipeline.Build.Source.RequiresAuth {
 			fmt.Fprintf(out, "      * WARNING: this source repository may require credentials.\n"+
-				"                 Create a secret with your git credentials and use 'set build-secret' to assign it to the build config.\n")
+				"                 Create a secret with your git credentials and use 'oc set build-secret' to assign it to the build config.\n")
 		}
 	}
 	if pipeline.Deployment != nil {
@@ -229,7 +229,7 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 			switch len(filteredPorts) {
 			case 0:
 				fmt.Fprintf(out, "    * The image does not expose any ports - if you want to load balance or send traffic to this component\n")
-				fmt.Fprintf(out, "      you will need to create a service with 'expose dc/%s --port=[port]' later\n", pipeline.Deployment.Name)
+				fmt.Fprintf(out, "      you will need to create a service with 'oc expose dc/%s --port=[port]' later\n", pipeline.Deployment.Name)
 			default:
 				filteredPortsString := make([]string, len(filteredPorts))
 				for i, dp := range filteredPorts {
@@ -244,7 +244,7 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 			}
 			if hasEmptyDir(match.DockerImage) {
 				fmt.Fprintf(out, "    * This image declares volumes and will default to use non-persistent, host-local storage.\n")
-				fmt.Fprintf(out, "      You can add persistent volumes later by running 'volume dc/%s --add ...'\n", pipeline.Deployment.Name)
+				fmt.Fprintf(out, "      You can add persistent volumes later by running 'oc set volume dc/%s --add ...'\n", pipeline.Deployment.Name)
 			}
 			if hasRootUser(match.DockerImage) {
 				fmt.Fprintf(out, "    * WARNING: Image %q runs as the 'root' user which may not be permitted by your cluster administrator\n", match.Name)
