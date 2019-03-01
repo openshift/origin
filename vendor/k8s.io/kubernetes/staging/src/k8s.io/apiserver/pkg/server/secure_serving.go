@@ -50,7 +50,6 @@ func (s *SecureServingInfo) Serve(handler http.Handler, shutdownTimeout time.Dur
 		Handler:        handler,
 		MaxHeaderBytes: 1 << 20,
 		TLSConfig: &tls.Config{
-			NameToCertificate: s.SNICerts,
 			// Can't use SSLv3 because of POODLE and BEAST
 			// Can't use TLSv1.0 because of POODLE and BEAST using CBC cipher
 			// Can't use TLSv1.1 because of RC4 cipher usage
@@ -67,16 +66,16 @@ func (s *SecureServingInfo) Serve(handler http.Handler, shutdownTimeout time.Dur
 		secureServer.TLSConfig.CipherSuites = s.CipherSuites
 	}
 
-	if s.Cert != nil {
-		secureServer.TLSConfig.Certificates = []tls.Certificate{*s.Cert}
-	}
-
-	// append all named certs. Otherwise, the go tls stack will think no SNI processing
-	// is necessary because there is only one cert anyway.
-	// Moreover, if ServerCert.CertFile/ServerCert.KeyFile are not set, the first SNI
-	// cert will become the default cert. That's what we expect anyway.
-	for _, c := range s.SNICerts {
-		secureServer.TLSConfig.Certificates = append(secureServer.TLSConfig.Certificates, *c)
+	// this option overrides the provided certs
+	// TODO this should be mutually exclusive, but I'm not sure what that will do today
+	if s.DynamicCertificates != nil {
+		secureServer.TLSConfig.Certificates = nil
+		// need to load the certs at least once
+		if err := s.DynamicCertificates.CheckCerts(); err != nil {
+			return err
+		}
+		go s.DynamicCertificates.Run(stopCh)
+		secureServer.TLSConfig.GetCertificate = s.DynamicCertificates.GetCertificate
 	}
 
 	if s.ClientCA != nil {
@@ -163,6 +162,10 @@ func RunServer(
 }
 
 type NamedTLSCert struct {
+	// OriginalFileName is an optional string that can be used to provide the original backing files in the GetNamedCertificateMap
+	// return value
+	OriginalFileName *CertKeyFileReference
+
 	TLSCert tls.Certificate
 
 	// names is a list of domain patterns: fully qualified domain names, possibly prefixed with
@@ -173,9 +176,10 @@ type NamedTLSCert struct {
 // getNamedCertificateMap returns a map of *tls.Certificate by name. It's is
 // suitable for use in tls.Config#NamedCertificates. Returns an error if any of the certs
 // cannot be loaded. Returns nil if len(certs) == 0
-func GetNamedCertificateMap(certs []NamedTLSCert) (map[string]*tls.Certificate, error) {
+func GetNamedCertificateMap(certs []NamedTLSCert) (map[string]*tls.Certificate, map[string]*CertKeyFileReference, error) {
 	// register certs with implicit names first, reverse order such that earlier trump over the later
 	byName := map[string]*tls.Certificate{}
+	fileByName := map[string]*CertKeyFileReference{}
 	for i := len(certs) - 1; i >= 0; i-- {
 		if len(certs[i].Names) > 0 {
 			continue
@@ -184,18 +188,20 @@ func GetNamedCertificateMap(certs []NamedTLSCert) (map[string]*tls.Certificate, 
 
 		// read names from certificate common names and DNS names
 		if len(cert.Certificate) == 0 {
-			return nil, fmt.Errorf("empty SNI certificate, skipping")
+			return nil, nil, fmt.Errorf("empty SNI certificate, skipping")
 		}
 		x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
 		if err != nil {
-			return nil, fmt.Errorf("parse error for SNI certificate: %v", err)
+			return nil, nil, fmt.Errorf("parse error for SNI certificate: %v", err)
 		}
 		cn := x509Cert.Subject.CommonName
 		if cn == "*" || len(validation.IsDNS1123Subdomain(strings.TrimPrefix(cn, "*."))) == 0 {
 			byName[cn] = cert
+			fileByName[cn] = certs[i].OriginalFileName
 		}
 		for _, san := range x509Cert.DNSNames {
 			byName[san] = cert
+			fileByName[san] = certs[i].OriginalFileName
 		}
 		// intentionally all IPs in the cert are ignored as SNI forbids passing IPs
 		// to select a cert. Before go 1.6 the tls happily passed IPs as SNI values.
@@ -207,10 +213,11 @@ func GetNamedCertificateMap(certs []NamedTLSCert) (map[string]*tls.Certificate, 
 		namedCert := &certs[i]
 		for _, name := range namedCert.Names {
 			byName[name] = &certs[i].TLSCert
+			fileByName[name] = certs[i].OriginalFileName
 		}
 	}
 
-	return byName, nil
+	return byName, fileByName, nil
 }
 
 // tcpKeepAliveListener sets TCP keep-alive timeouts on accepted

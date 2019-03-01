@@ -71,7 +71,9 @@ func (s *SecureServingOptionsWithLoopback) ApplyTo(secureServingInfo **server.Se
 
 	default:
 		*loopbackClientConfig = secureLoopbackClientConfig
-		(*secureServingInfo).SNICerts[server.LoopbackClientServerNameOverride] = &tlsCert
+		if (*secureServingInfo).DynamicCertificates != nil {
+			(*secureServingInfo).DynamicCertificates.LoopbackCert = &tlsCert
+		}
 	}
 
 	return nil

@@ -211,14 +211,14 @@ func (s *SecureServingOptions) ApplyTo(config **server.SecureServingInfo) error 
 	}
 	c := *config
 
-	serverCertFile, serverKeyFile := s.ServerCert.CertKey.CertFile, s.ServerCert.CertKey.KeyFile
-	// load main cert
-	if len(serverCertFile) != 0 || len(serverKeyFile) != 0 {
-		tlsCert, err := tls.LoadX509KeyPair(serverCertFile, serverKeyFile)
-		if err != nil {
-			return fmt.Errorf("unable to load server certificate: %v", err)
-		}
-		c.Cert = &tlsCert
+	c.DynamicCertificates = &server.DynamicCertificateConfig{
+		CertificateReferences: server.DynamicCertificateReferences{
+			DefaultCertificate: server.CertKeyFileReference{
+				Cert: s.ServerCert.CertKey.CertFile,
+				Key:  s.ServerCert.CertKey.KeyFile,
+			},
+			NameToCertificate: map[string]*server.CertKeyFileReference{},
+		},
 	}
 
 	if len(s.CipherSuites) != 0 {
@@ -236,10 +236,16 @@ func (s *SecureServingOptions) ApplyTo(config **server.SecureServingInfo) error 
 	}
 
 	// load SNI certs
+	// holds the original filenames of the certificates.  Because allow implicit specification of names, we have to read
+	// everything to get this to be able to drive the dynamicCertificateConfig
 	namedTLSCerts := make([]server.NamedTLSCert, 0, len(s.SNICertKeys))
 	for _, nck := range s.SNICertKeys {
 		tlsCert, err := tls.LoadX509KeyPair(nck.CertFile, nck.KeyFile)
 		namedTLSCerts = append(namedTLSCerts, server.NamedTLSCert{
+			OriginalFileName: &server.CertKeyFileReference{
+				Cert: nck.CertFile,
+				Key:  nck.KeyFile,
+			},
 			TLSCert: tlsCert,
 			Names:   nck.Names,
 		})
@@ -247,7 +253,7 @@ func (s *SecureServingOptions) ApplyTo(config **server.SecureServingInfo) error 
 			return fmt.Errorf("failed to load SNI cert and key: %v", err)
 		}
 	}
-	c.SNICerts, err = server.GetNamedCertificateMap(namedTLSCerts)
+	_, c.DynamicCertificates.CertificateReferences.NameToCertificate, err = server.GetNamedCertificateMap(namedTLSCerts)
 	if err != nil {
 		return err
 	}

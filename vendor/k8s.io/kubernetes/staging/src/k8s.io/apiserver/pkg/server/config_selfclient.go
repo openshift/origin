@@ -28,7 +28,7 @@ import (
 const LoopbackClientServerNameOverride = "apiserver-loopback-client"
 
 func (s *SecureServingInfo) NewClientConfig(caCert []byte) (*restclient.Config, error) {
-	if s == nil || (s.Cert == nil && len(s.SNICerts) == 0) {
+	if s == nil || (s.DynamicCertificates == nil) {
 		return nil, nil
 	}
 
