@@ -1,5 +1,5 @@
 {{- range . -}}
-{{- if .Lines}}<details{{if .Open}} open{{end}}><summary>{{else}}<div style="margin-left:13px;">{{end -}}
+{{- if .Lines}}<details><summary>{{else}}<div style="margin-left:13px;">{{end -}}
 {{.Prefix}}<span title="{{.Tooltip | html}}">{{.Name | html}}</span>:
 {{if .Lines}}</summary>{{end -}}
 {{template "objectschema.adoc" .Lines}}
