@@ -190,7 +190,11 @@ func NewTransformFromImageStreamFile(path string, input *imageapi.ImageStream, a
 		if _, ok := references[tag.Name]; !ok {
 			continue
 		}
-		value := tag.Annotations[annotationBuildVersions]
+		value, ok := tag.Annotations[annotationBuildVersions]
+		if !ok {
+			continue
+		}
+		glog.V(4).Infof("Found build versions from %s: %s", tag.Name, value)
 		items, err := parseComponentVersionsLabel(value)
 		if err != nil {
 			return nil, fmt.Errorf("input image stream has an invalid version annotation for tag %q: %v", tag.Name, value)
@@ -203,6 +207,7 @@ func NewTransformFromImageStreamFile(path string, input *imageapi.ImageStream, a
 				}
 			} else {
 				versions[k] = v
+				glog.V(4).Infof("Found version %s=%s from %s", k, v, tag.Name)
 			}
 			tagsByName[k] = append(tagsByName[k], tag.Name)
 		}

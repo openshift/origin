@@ -743,19 +743,6 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 		fmt.Fprintf(o.ErrOut, "info: Manifests will be extracted to %s\n", dir)
 	}
 
-	if len(is.Spec.Tags) > 0 {
-		if err := os.MkdirAll(dir, 0770); err != nil {
-			return err
-		}
-		data, err := json.MarshalIndent(is, "", "  ")
-		if err != nil {
-			return err
-		}
-		if err := ioutil.WriteFile(filepath.Join(dir, "image-references"), data, 0640); err != nil {
-			return err
-		}
-	}
-
 	var lock sync.Mutex
 	opts := extract.NewOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
 	opts.RegistryConfig = o.RegistryConfig
@@ -847,7 +834,22 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 		})
 	}
 	glog.V(4).Infof("Manifests will be extracted from:\n%#v", opts.Mappings)
-	return opts.Run()
+	if err := opts.Run(); err != nil {
+		return err
+	}
+	if len(is.Spec.Tags) > 0 {
+		if err := os.MkdirAll(dir, 0770); err != nil {
+			return err
+		}
+		data, err := json.MarshalIndent(is, "", "  ")
+		if err != nil {
+			return err
+		}
+		if err := ioutil.WriteFile(filepath.Join(dir, "image-references"), data, 0640); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (o *NewOptions) mirrorImages(is *imageapi.ImageStream, payload *Payload) error {
