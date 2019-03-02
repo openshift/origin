@@ -58,6 +58,10 @@ var (
 	  # Open a shell session on the first container in pod 'foo'
 	  %[1]s foo
 
+	  # Open a shell session on the first container in pod 'foo' and namespace 'bar'
+	  # (Note that oc client specific arguments must come before the resource name and its arguments)
+	  %[1]s -n bar foo
+
 	  # Run the command 'cat /etc/resolv.conf' inside pod 'foo'
 	  %[1]s foo cat /etc/resolv.conf
 
@@ -65,7 +69,7 @@ var (
 	  %[1]s dc/docker-registry cat config.yml
 
 	  # Open a shell session on the container named 'index' inside a pod of your job
-	  # %[1]s -c index job/sheduled`)
+	  %[1]s -c index job/sheduled`)
 )
 
 // RshOptions declare the arguments accepted by the Rsh command
