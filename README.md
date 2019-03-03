@@ -32,7 +32,7 @@ OKD: The Origin Community Distribution of Kubernetes
 
 * **[Public Documentation](https://docs.okd.io/latest/welcome/)**
   * **[API Documentation](https://docs.okd.io/latest/rest_api/index.html)**
-* Our **[Trello Roadmap](https://ci.openshift.redhat.com/roadmap_overview.html)** covers the epics and stories being worked on (click through to individual items)
+* Our **[Roadmap](https://ci.openshift.redhat.com/roadmap_overview.html)** covers the epics and stories being worked on (click through to individual items)
 
 For questions or feedback, reach us on [IRC on #openshift-dev](https://botbot.me/freenode/openshift-dev/) on Freenode or post to our [mailing list](https://lists.openshift.redhat.com/openshiftmm/listinfo/dev).
 
