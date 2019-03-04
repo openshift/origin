@@ -28,6 +28,7 @@ import (
 
 	"github.com/golang/glog"
 	"golang.org/x/net/http2"
+	servercerts "k8s.io/apiserver/pkg/server/certs"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -68,14 +69,21 @@ func (s *SecureServingInfo) Serve(handler http.Handler, shutdownTimeout time.Dur
 
 	// this option overrides the provided certs
 	// TODO this should be mutually exclusive, but I'm not sure what that will do today
-	if s.DynamicCertificates != nil {
+	if s.NameToCertificate != nil || len(s.DefaultCertificate.Key) != 0 || len(s.DefaultCertificate.Cert) != 0 {
 		secureServer.TLSConfig.Certificates = nil
+
+		loader := servercerts.DynamicLoader{
+			DefaultCertificate: s.DefaultCertificate,
+			NameToCertificate:  s.NameToCertificate,
+			LoopbackCert:       s.LoopbackCert,
+		}
+
 		// need to load the certs at least once
-		if err := s.DynamicCertificates.CheckCerts(); err != nil {
+		if err := loader.CheckCerts(); err != nil {
 			return err
 		}
-		go s.DynamicCertificates.Run(stopCh)
-		secureServer.TLSConfig.GetCertificate = s.DynamicCertificates.GetCertificate
+		go loader.Run(stopCh)
+		secureServer.TLSConfig.GetCertificate = loader.GetCertificate
 	}
 
 	if s.ClientCA != nil {
@@ -164,7 +172,7 @@ func RunServer(
 type NamedTLSCert struct {
 	// OriginalFileName is an optional string that can be used to provide the original backing files in the GetNamedCertificateMap
 	// return value
-	OriginalFileName *CertKeyFileReference
+	OriginalFileName *servercerts.CertKeyFileReference
 
 	TLSCert tls.Certificate
 
@@ -176,10 +184,10 @@ type NamedTLSCert struct {
 // getNamedCertificateMap returns a map of *tls.Certificate by name. It's is
 // suitable for use in tls.Config#NamedCertificates. Returns an error if any of the certs
 // cannot be loaded. Returns nil if len(certs) == 0
-func GetNamedCertificateMap(certs []NamedTLSCert) (map[string]*tls.Certificate, map[string]*CertKeyFileReference, error) {
+func GetNamedCertificateMap(certs []NamedTLSCert) (map[string]*tls.Certificate, map[string]*servercerts.CertKeyFileReference, error) {
 	// register certs with implicit names first, reverse order such that earlier trump over the later
 	byName := map[string]*tls.Certificate{}
-	fileByName := map[string]*CertKeyFileReference{}
+	fileByName := map[string]*servercerts.CertKeyFileReference{}
 	for i := len(certs) - 1; i >= 0; i-- {
 		if len(certs[i].Names) > 0 {
 			continue

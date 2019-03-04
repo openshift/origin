@@ -27,6 +27,8 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apiserver/pkg/server/certs"
+
 	"k8s.io/apiserver/pkg/server/servingcerttesting"
 
 	"github.com/stretchr/testify/assert"
@@ -347,7 +349,7 @@ func TestServerRunWithSNI(t *testing.T) {
 		},
 		"loopback: LoopbackClientServerNameOverride on server cert": {
 			Cert: servingcerttesting.TestCertSpec{
-				Host: server.LoopbackClientServerNameOverride,
+				Host: certs.LoopbackClientServerNameOverride,
 			},
 			SNICerts: []NamedTestCertSpec{
 				{
@@ -365,7 +367,7 @@ func TestServerRunWithSNI(t *testing.T) {
 			SNICerts: []NamedTestCertSpec{
 				{
 					TestCertSpec: servingcerttesting.TestCertSpec{
-						Host: server.LoopbackClientServerNameOverride,
+						Host: certs.LoopbackClientServerNameOverride,
 					},
 				},
 			},
