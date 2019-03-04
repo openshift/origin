@@ -10,7 +10,6 @@ import (
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 type Pruner interface {
@@ -111,19 +110,6 @@ func NewDeploymentDeleter(deployments corev1client.ReplicationControllersGetter,
 
 func (p *deploymentDeleter) DeleteDeployment(deployment *corev1.ReplicationController) error {
 	glog.V(4).Infof("Deleting deployment %q", deployment.Name)
-	// If the deployment is failed we need to remove its deployer pods, too.
-	if appsutil.IsFailedDeployment(deployment) {
-		dpSelector := appsutil.DeployerPodSelector(deployment.Name)
-		deployers, err := p.pods.Pods(deployment.Namespace).List(metav1.ListOptions{LabelSelector: dpSelector.String()})
-		if err != nil {
-			glog.Warningf("Cannot list deployer pods for %q: %v\n", deployment.Name, err)
-		} else {
-			for _, pod := range deployers.Items {
-				if err := p.pods.Pods(pod.Namespace).Delete(pod.Name, nil); err != nil {
-					glog.Warningf("Cannot remove deployer pod %q: %v\n", pod.Name, err)
-				}
-			}
-		}
-	}
-	return p.deployments.ReplicationControllers(deployment.Namespace).Delete(deployment.Name, nil)
+	policy := metav1.DeletePropagationBackground
+	return p.deployments.ReplicationControllers(deployment.Namespace).Delete(deployment.Name, &metav1.DeleteOptions{PropagationPolicy: &policy})
 }
