@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/pborman/uuid"
+	"k8s.io/apiserver/pkg/server/certs"
 
 	"k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/rest"
@@ -51,7 +52,7 @@ func (s *SecureServingOptionsWithLoopback) ApplyTo(secureServingInfo **server.Se
 
 	// create self-signed cert+key with the fake server.LoopbackClientServerNameOverride and
 	// let the server return it when the loopback client connects.
-	certPem, keyPem, err := certutil.GenerateSelfSignedCertKey(server.LoopbackClientServerNameOverride, nil, nil)
+	certPem, keyPem, err := certutil.GenerateSelfSignedCertKey(certs.LoopbackClientServerNameOverride, nil, nil)
 	if err != nil {
 		return fmt.Errorf("failed to generate self-signed certificate for loopback connection: %v", err)
 	}
@@ -71,9 +72,7 @@ func (s *SecureServingOptionsWithLoopback) ApplyTo(secureServingInfo **server.Se
 
 	default:
 		*loopbackClientConfig = secureLoopbackClientConfig
-		if (*secureServingInfo).DynamicCertificates != nil {
-			(*secureServingInfo).DynamicCertificates.LoopbackCert = &tlsCert
-		}
+		(*secureServingInfo).LoopbackCert = &tlsCert
 	}
 
 	return nil

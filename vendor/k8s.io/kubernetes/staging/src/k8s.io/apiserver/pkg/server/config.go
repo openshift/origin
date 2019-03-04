@@ -17,6 +17,7 @@ limitations under the License.
 package server
 
 import (
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"net"
@@ -31,6 +32,7 @@ import (
 	"github.com/go-openapi/spec"
 	"github.com/golang/glog"
 	"github.com/pborman/uuid"
+	"k8s.io/apiserver/pkg/server/certs"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -208,9 +210,11 @@ type SecureServingInfo struct {
 	// ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates
 	ClientCA *x509.CertPool
 
-	// DynamicCertificates is an alternative to Cert and SNICerts that is limited to files, but those file will
-	// be monitored for changes every minute and allows the certificates to be updated dynamically.
-	DynamicCertificates *DynamicCertificateConfig
+	DefaultCertificate certs.CertKeyFileReference
+	NameToCertificate  map[string]*certs.CertKeyFileReference
+
+	// LoopbackCert holds the special certificate that we create for loopback connections
+	LoopbackCert *tls.Certificate
 
 	// MinTLSVersion optionally overrides the minimum TLS version supported.
 	// Values are from tls package constants (https://golang.org/pkg/crypto/tls/#pkg-constants).
