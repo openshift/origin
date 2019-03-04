@@ -22,6 +22,7 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 	)
 
 	g.Context("", func() {
+		g.Skip("TODO: disabled due to https://bugzilla.redhat.com/show_bug.cgi?id=1685185")
 
 		g.BeforeEach(func() {
 			exutil.PreTestDump()
