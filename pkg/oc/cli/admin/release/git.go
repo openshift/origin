@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -116,16 +117,18 @@ func sourceLocationAsRelativePath(dir, location string) (string, error) {
 	return basePath, nil
 }
 
-type MergeCommit struct {
-	CommitDate time.Time
+type commit struct {
+	// Merkle graph information
+	Hash    string
+	Parents []string
 
-	Commit        string
-	ParentCommits []string
+	// Local Merkle-graph node information
+	Subject       string
+	CommitterDate time.Time
 
+	// Extracted metadata
 	PullRequest int
-	Bug         int
-
-	Subject string
+	Issues      []*issue
 }
 
 func gitOutputToError(err error, out string) error {
@@ -139,7 +142,7 @@ func gitOutputToError(err error, out string) error {
 	return fmt.Errorf(out)
 }
 
-func mergeLogForRepo(g *git, from, to string) ([]MergeCommit, error) {
+func mergeLogForRepo(g *git, from, to string) ([]*commit, error) {
 	if from == to {
 		return nil, nil
 	}
@@ -148,7 +151,7 @@ func mergeLogForRepo(g *git, from, to string) ([]MergeCommit, error) {
 	if err != nil {
 		return nil, err
 	}
-	reBug, err := regexp.Compile(`^Bug (\d+)\s*(-|:)\s*`)
+	reBug, err := regexp.Compile(`^Bug\s([0-9,\s]*)\s*(-|:)\s*`)
 	if err != nil {
 		return nil, err
 	}
@@ -179,55 +182,70 @@ func mergeLogForRepo(g *git, from, to string) ([]MergeCommit, error) {
 		glog.Infof("Got commit info:\n%s", strconv.Quote(out))
 	}
 
-	var commits []MergeCommit
 	if len(out) == 0 {
 		return nil, nil
 	}
+
+	commits := []*commit{}
 	for _, entry := range strings.Split(out, "\x00") {
+		if entry == "" {
+			continue
+		}
+
 		records := strings.Split(entry, "\x1e")
 		if len(records) != 4 {
 			return nil, fmt.Errorf("unexpected git log output width %d columns", len(records))
 		}
+
+		commitHashes := strings.Split(records[0], " ")
 		unixTS, err := strconv.ParseInt(records[1], 10, 64)
 		if err != nil {
 			return nil, fmt.Errorf("unexpected timestamp: %v", err)
 		}
-		commitValues := strings.Split(records[0], " ")
 
-		mergeCommit := MergeCommit{
-			CommitDate:    time.Unix(unixTS, 0).UTC(),
-			Commit:        commitValues[0],
-			ParentCommits: commitValues[1:],
+		cmt := &commit{
+			CommitterDate: time.Unix(unixTS, 0).UTC(),
+			Hash:          commitHashes[0],
+			Parents:       commitHashes[1:],
+			Subject:       records[2],
 		}
 
-		msg := records[3]
-		if m := reBug.FindStringSubmatch(msg); m != nil {
-			mergeCommit.Subject = msg[len(m[0]):]
-			mergeCommit.Bug, err = strconv.Atoi(m[1])
+		body := records[3]
+		if m := rePR.FindStringSubmatch(cmt.Subject); m != nil {
+			cmt.PullRequest, err = strconv.Atoi(m[1])
 			if err != nil {
-				return nil, fmt.Errorf("could not extract bug number from %q: %v", msg, err)
+				return nil, fmt.Errorf("could not extract PR number from %q: %v", cmt.Subject, err)
 			}
-		} else {
-			mergeCommit.Subject = msg
-		}
-		mergeCommit.Subject = strings.TrimSpace(mergeCommit.Subject)
-		mergeCommit.Subject = strings.SplitN(mergeCommit.Subject, "\n", 2)[0]
-
-		mergeMsg := records[2]
-		if m := rePR.FindStringSubmatch(mergeMsg); m != nil {
-			mergeCommit.PullRequest, err = strconv.Atoi(m[1])
-			if err != nil {
-				return nil, fmt.Errorf("could not extract PR number from %q: %v", mergeMsg, err)
-			}
-		} else {
-			glog.V(2).Infof("Omitted commit %s which has no pull-request", mergeCommit.Commit)
-			continue
-		}
-		if len(mergeCommit.Subject) == 0 {
-			mergeCommit.Subject = "Merge"
 		}
 
-		commits = append(commits, mergeCommit)
+		cmt.Subject = strings.SplitN(strings.TrimSpace(body), "\n", 2)[0]
+
+		if m := reBug.FindStringSubmatch(cmt.Subject); m != nil {
+			for _, idString := range strings.Split(m[1], ",") {
+				bugID, err := strconv.Atoi(strings.Trim(idString, " \t"))
+				if err != nil {
+					return nil, fmt.Errorf("could not extract bug number from %q: %v", cmt.Subject, err)
+				}
+
+				cmt.Issues = append(cmt.Issues, &issue{
+					ID:  bugID,
+					URI: fmt.Sprintf("https://bugzilla.redhat.com/show_bug.cgi?id=%d", bugID),
+				})
+			}
+			cmt.Subject = cmt.Subject[len(m[0]):]
+		}
+
+		commits = append(commits, cmt)
+	}
+
+	for _, cmt := range commits {
+		sort.Slice(cmt.Issues, func(i, j int) bool {
+			if cmt.Issues[i].ID != cmt.Issues[j].ID {
+				return cmt.Issues[i].ID < cmt.Issues[j].ID
+			}
+
+			return cmt.Issues[i].URI < cmt.Issues[j].URI
+		})
 	}
 
 	return commits, nil

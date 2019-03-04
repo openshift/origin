@@ -1052,32 +1052,30 @@ func describeChangelog(out, errOut io.Writer, diff *ReleaseDiff, dir string) err
 				fmt.Fprintf(out, "### %s\n\n", strings.Join(change.ImagesAffected, ", "))
 			}
 			for _, commit := range commits {
-				var suffix string
+				entries := []string{}
+
+				if len(commit.Subject) > 0 {
+					entries = append(entries, commit.Subject)
+				}
+
 				switch {
 				case commit.PullRequest > 0:
-					suffix = fmt.Sprintf("[#%d](%s)", commit.PullRequest, fmt.Sprintf("https://%s%s/pull/%d", u.Host, u.Path, commit.PullRequest))
+					entries = append(entries, fmt.Sprintf("[#%d](%s)", commit.PullRequest, fmt.Sprintf("https://%s%s/pull/%d", u.Host, u.Path, commit.PullRequest)))
 				case u.Host == "github.com":
-					commit := commit.Commit[:8]
-					suffix = fmt.Sprintf("[%s](%s)", commit, fmt.Sprintf("https://%s%s/commit/%s", u.Host, u.Path, commit))
+					commit := commit.Hash[:8]
+					entries = append(entries, fmt.Sprintf("[%s](%s)", commit, fmt.Sprintf("https://%s%s/commit/%s", u.Host, u.Path, commit)))
 				default:
-					suffix = commit.Commit[:8]
+					entries = append(entries, commit.Hash[:8])
 				}
-				switch {
-				case commit.Bug > 0:
-					fmt.Fprintf(out,
-						"* [Bug %d](%s): %s %s\n",
-						commit.Bug,
-						fmt.Sprintf("https://bugzilla.redhat.com/show_bug.cgi?id=%d", commit.Bug),
-						commit.Subject,
-						suffix,
-					)
-				default:
-					fmt.Fprintf(out,
-						"* %s %s\n",
-						commit.Subject,
-						suffix,
-					)
+
+				for _, issue := range commit.Issues {
+					entries = append(entries, issue.Markdown())
 				}
+
+				fmt.Fprintf(out,
+					"* %s\n",
+					strings.Join(entries, " "),
+				)
 			}
 			if u.Host == "github.com" {
 				fmt.Fprintf(out, "* [Full changelog](%s)\n\n", fmt.Sprintf("https://%s%s/compare/%s...%s", u.Host, u.Path, change.From, change.To))
@@ -1110,10 +1108,9 @@ func describeBugs(out, errOut io.Writer, diff *ReleaseDiff, dir string, format s
 			continue
 		}
 		for _, commit := range commits {
-			if commit.Bug == 0 {
-				continue
+			for _, issue := range commit.Issues {
+				bugIDs.Insert(issue.ID)
 			}
-			bugIDs.Insert(commit.Bug)
 		}
 	}
 
@@ -1249,7 +1246,7 @@ func (c CodeChange) ToShort() string {
 	return c.To
 }
 
-func commitsForRepo(dir string, change CodeChange, out, errOut io.Writer) (*url.URL, []MergeCommit, error) {
+func commitsForRepo(dir string, change CodeChange, out, errOut io.Writer) (*url.URL, []*commit, error) {
 	u, err := sourceLocationAsURL(change.Repo)
 	if err != nil {
 		return nil, nil, fmt.Errorf("The source repository cannot be parsed %s: %v", change.Repo, err)
