@@ -17,7 +17,6 @@ limitations under the License.
 package server
 
 import (
-	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"net"
@@ -206,15 +205,12 @@ type SecureServingInfo struct {
 	// Listener is the secure server network listener.
 	Listener net.Listener
 
-	// Cert is the main server cert which is used if SNI does not match. Cert must be non-nil and is
-	// allowed to be in SNICerts.
-	Cert *tls.Certificate
-
-	// SNICerts are the TLS certificates by name used for SNI.
-	SNICerts map[string]*tls.Certificate
-
 	// ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates
 	ClientCA *x509.CertPool
+
+	// DynamicCertificates is an alternative to Cert and SNICerts that is limited to files, but those file will
+	// be monitored for changes every minute and allows the certificates to be updated dynamically.
+	DynamicCertificates *DynamicCertificateConfig
 
 	// MinTLSVersion optionally overrides the minimum TLS version supported.
 	// Values are from tls package constants (https://golang.org/pkg/crypto/tls/#pkg-constants).
