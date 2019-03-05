@@ -74,6 +74,9 @@ func (c *DynamicCA) CheckCerts() error {
 	if err != nil {
 		return err
 	}
+	if len(certBytes) == 0 {
+		return fmt.Errorf("not updating to an empty ca bundle from %q", c.caFile.Cert)
+	}
 	newContent := caFileContent{Cert: certBytes}
 
 	if newContent.Equals(&c.currentContent) {
@@ -82,7 +85,7 @@ func (c *DynamicCA) CheckCerts() error {
 
 	certs, err := cert.ParseCertsPEM(newContent.Cert)
 	if err != nil {
-		return fmt.Errorf("unable to load client CA file %s: %v", c.caFile.Cert, err)
+		return fmt.Errorf("unable to load client CA file %q: %v", c.caFile.Cert, err)
 	}
 	pool := x509.NewCertPool()
 	for _, cert := range certs {
