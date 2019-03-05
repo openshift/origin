@@ -18,7 +18,6 @@ package server
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"net"
 	"net/http"
@@ -63,7 +62,6 @@ import (
 	"k8s.io/apiserver/pkg/util/logs"
 	"k8s.io/client-go/informers"
 	restclient "k8s.io/client-go/rest"
-	certutil "k8s.io/client-go/util/cert"
 	openapicommon "k8s.io/kube-openapi/pkg/common"
 
 	// install apis
@@ -208,7 +206,7 @@ type SecureServingInfo struct {
 	Listener net.Listener
 
 	// ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates
-	ClientCA *x509.CertPool
+	ClientCA certs.CABundleFileReferences
 
 	DefaultCertificate certs.CertKeyFileReference
 	NameToCertificate  map[string]*certs.CertKeyFileReference
@@ -317,16 +315,7 @@ func DefaultSwaggerConfig() *swagger.Config {
 func (c *AuthenticationInfo) ApplyClientCert(clientCAFile string, servingInfo *SecureServingInfo) error {
 	if servingInfo != nil {
 		if len(clientCAFile) > 0 {
-			clientCAs, err := certutil.CertsFromFile(clientCAFile)
-			if err != nil {
-				return fmt.Errorf("unable to load client CA file: %v", err)
-			}
-			if servingInfo.ClientCA == nil {
-				servingInfo.ClientCA = x509.NewCertPool()
-			}
-			for _, cert := range clientCAs {
-				servingInfo.ClientCA.AddCert(cert)
-			}
+			servingInfo.ClientCA.CABundles = append(servingInfo.ClientCA.CABundles, clientCAFile)
 		}
 	}
 

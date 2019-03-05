@@ -50,48 +50,50 @@ func (s *SecureServingInfo) Serve(handler http.Handler, shutdownTimeout time.Dur
 		Addr:           s.Listener.Addr().String(),
 		Handler:        handler,
 		MaxHeaderBytes: 1 << 20,
-		TLSConfig: &tls.Config{
-			// Can't use SSLv3 because of POODLE and BEAST
-			// Can't use TLSv1.0 because of POODLE and BEAST using CBC cipher
-			// Can't use TLSv1.1 because of RC4 cipher usage
-			MinVersion: tls.VersionTLS12,
-			// enable HTTP2 for go's 1.7 HTTP Server
-			NextProtos: []string{"h2", "http/1.1"},
-		},
+	}
+
+	baseTLSConfig := tls.Config{
+		// Can't use SSLv3 because of POODLE and BEAST
+		// Can't use TLSv1.0 because of POODLE and BEAST using CBC cipher
+		// Can't use TLSv1.1 because of RC4 cipher usage
+		MinVersion: tls.VersionTLS12,
+		// enable HTTP2 for go's 1.7 HTTP Server
+		NextProtos: []string{"h2", "http/1.1"},
 	}
 
 	if s.MinTLSVersion > 0 {
-		secureServer.TLSConfig.MinVersion = s.MinTLSVersion
+		baseTLSConfig.MinVersion = s.MinTLSVersion
 	}
 	if len(s.CipherSuites) > 0 {
-		secureServer.TLSConfig.CipherSuites = s.CipherSuites
+		baseTLSConfig.CipherSuites = s.CipherSuites
+	}
+	if len(s.ClientCA.CABundles) > 0 {
+		// Populate PeerCertificates in requests, but don't reject connections without certificates
+		// This allows certificates to be validated by authenticators, while still allowing other auth types
+		baseTLSConfig.ClientAuth = tls.RequestClientCert
 	}
 
 	// this option overrides the provided certs
 	// TODO this should be mutually exclusive, but I'm not sure what that will do today
-	if s.NameToCertificate != nil || len(s.DefaultCertificate.Key) != 0 || len(s.DefaultCertificate.Cert) != 0 {
-		secureServer.TLSConfig.Certificates = nil
-
-		loader := servercerts.DynamicLoader{
+	if len(s.ClientCA.CABundles) > 0 || s.LoopbackCert != nil || s.NameToCertificate != nil || len(s.DefaultCertificate.Key) != 0 || len(s.DefaultCertificate.Cert) != 0 {
+		loader := servercerts.DynamicServingLoader{
+			ClientCA:           s.ClientCA,
 			DefaultCertificate: s.DefaultCertificate,
 			NameToCertificate:  s.NameToCertificate,
 			LoopbackCert:       s.LoopbackCert,
 		}
+		loader.BaseTLSConfig = baseTLSConfig // set a copy so that further changes don't get reflected
 
 		// need to load the certs at least once
 		if err := loader.CheckCerts(); err != nil {
 			return err
 		}
 		go loader.Run(stopCh)
-		secureServer.TLSConfig.GetCertificate = loader.GetCertificate
-	}
 
-	if s.ClientCA != nil {
-		// Populate PeerCertificates in requests, but don't reject connections without certificates
-		// This allows certificates to be validated by authenticators, while still allowing other auth types
-		secureServer.TLSConfig.ClientAuth = tls.RequestClientCert
-		// Specify allowed CAs for client certificates
-		secureServer.TLSConfig.ClientCAs = s.ClientCA
+		// now wire the server for certificates
+		secureServer.TLSConfig = &tls.Config{
+			GetConfigForClient: loader.GetConfigForClient,
+		}
 	}
 
 	// At least 99% of serialized resources in surveyed clusters were smaller than 256kb.

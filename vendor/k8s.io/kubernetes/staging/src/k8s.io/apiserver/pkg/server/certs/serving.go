@@ -2,11 +2,11 @@ package certs
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"reflect"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -15,6 +15,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/util/cert"
 )
 
 // LoopbackClientServerNameOverride is passed to the apiserver from the loopback client in order to
@@ -26,17 +27,25 @@ type CertKeyFileReference struct {
 	Key  string
 }
 
+type CABundleFileReferences struct {
+	CABundles []string
+}
+
 // DynamicLoader dynamically loads certificates and provides a golang tls compatible dynamic GetCertificate func.
-type DynamicLoader struct {
+type DynamicServingLoader struct {
+	BaseTLSConfig tls.Config
+
+	ClientCA           CABundleFileReferences
 	DefaultCertificate CertKeyFileReference
 	NameToCertificate  map[string]*CertKeyFileReference
-	LoopbackCert *tls.Certificate
+	LoopbackCert       *tls.Certificate
 
 	currentContent dynamicCertificateContent
 	currentValue   atomic.Value
 }
 
 type dynamicCertificateContent struct {
+	ClientCA           certKeyFileContent
 	DefaultCertificate certKeyFileContent
 	NameToCertificate  map[string]*certKeyFileContent
 }
@@ -47,11 +56,10 @@ type certKeyFileContent struct {
 }
 
 type runtimeDynamicLoader struct {
-	Certificates      []tls.Certificate
-	NameToCertificate map[string]*tls.Certificate
+	tlsConfig tls.Config
 }
 
-func (c *DynamicLoader) GetCertificate(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+func (c *DynamicServingLoader) GetConfigForClient(clientHello *tls.ClientHelloInfo) (*tls.Config, error) {
 	uncastObj := c.currentValue.Load()
 	if uncastObj == nil {
 		return nil, errors.New("tls: configuration not ready")
@@ -60,10 +68,10 @@ func (c *DynamicLoader) GetCertificate(clientHello *tls.ClientHelloInfo) (*tls.C
 	if !ok {
 		return nil, errors.New("tls: unexpected config type")
 	}
-	return runtimeConfig.GetCertificate(clientHello)
+	return runtimeConfig.GetConfigForClient(clientHello)
 }
 
-func (c *DynamicLoader) Run(stopCh <-chan struct{}) {
+func (c *DynamicServingLoader) Run(stopCh <-chan struct{}) {
 	glog.Infof("Starting DynamicLoader")
 	defer glog.Infof("Shutting down DynamicLoader")
 
@@ -77,20 +85,40 @@ func (c *DynamicLoader) Run(stopCh <-chan struct{}) {
 	<-stopCh
 }
 
-func (c *DynamicLoader) CheckCerts() error {
+func (c *DynamicServingLoader) CheckCerts() error {
 	newContent := dynamicCertificateContent{
 		NameToCertificate: map[string]*certKeyFileContent{},
 	}
 
-	certBytes, err := ioutil.ReadFile(c.DefaultCertificate.Cert)
+	servingCertBytes, err := ioutil.ReadFile(c.DefaultCertificate.Cert)
 	if err != nil {
 		return err
 	}
-	keyBytes, err := ioutil.ReadFile(c.DefaultCertificate.Key)
+	servingKeyBytes, err := ioutil.ReadFile(c.DefaultCertificate.Key)
 	if err != nil {
 		return err
 	}
-	newContent.DefaultCertificate = certKeyFileContent{Cert: certBytes, Key: keyBytes}
+	newContent.DefaultCertificate = certKeyFileContent{Cert: servingCertBytes, Key: servingKeyBytes}
+
+	caBundle := []byte{}
+	for _, caFile := range c.ClientCA.CABundles {
+		clientCABytes, err := ioutil.ReadFile(caFile)
+		if err != nil {
+			return err
+		}
+		caBundle = append(caBundle, clientCABytes...)
+	}
+	newContent.ClientCA = certKeyFileContent{Cert: caBundle}
+	clientCAPool := x509.NewCertPool()
+	if len(newContent.ClientCA.Cert) > 0 {
+		clientCAs, err := cert.ParseCertsPEM(newContent.ClientCA.Cert)
+		if err != nil {
+			return fmt.Errorf("unable to load client CA file: %v", err)
+		}
+		for _, cert := range clientCAs {
+			clientCAPool.AddCert(cert)
+		}
+	}
 
 	for key, currRef := range c.NameToCertificate {
 		certBytes, err := ioutil.ReadFile(currRef.Cert)
@@ -108,13 +136,40 @@ func (c *DynamicLoader) CheckCerts() error {
 		return nil
 	}
 
-	newRuntimeConfig, err := newContent.ToRuntimeConfig()
-	if err != nil {
-		return err
+	tlsConfigCopy := c.BaseTLSConfig
+	tlsConfigCopy.ClientCAs = clientCAPool
+	tlsConfigCopy.NameToCertificate = map[string]*tls.Certificate{}
+
+	// load main cert
+	if len(newContent.DefaultCertificate.Cert) != 0 || len(newContent.DefaultCertificate.Key) != 0 {
+		tlsCert, err := tls.X509KeyPair(newContent.DefaultCertificate.Cert, newContent.DefaultCertificate.Key)
+		if err != nil {
+			return fmt.Errorf("unable to load server certificate: %v", err)
+		}
+		tlsConfigCopy.Certificates = []tls.Certificate{tlsCert}
+		tlsConfigCopy.Certificates = append(tlsConfigCopy.Certificates, tlsCert)
+	}
+
+	// append all named certs. Otherwise, the go tls stack will think no SNI processing
+	// is necessary because there is only one cert anyway.
+	// Moreover, if ServerCert.CertFile/ServerCert.KeyFile are not set, the first SNI
+	// cert will become the default cert. That's what we expect anyway.
+	// load SNI certs
+	for name, nck := range newContent.NameToCertificate {
+		tlsCert, err := tls.X509KeyPair(nck.Cert, nck.Key)
+		if err != nil {
+			return fmt.Errorf("failed to load SNI cert and key: %v", err)
+		}
+		tlsConfigCopy.NameToCertificate[name] = &tlsCert
 	}
 	if c.LoopbackCert != nil {
-		newRuntimeConfig.NameToCertificate[LoopbackClientServerNameOverride] = c.LoopbackCert
+		tlsConfigCopy.NameToCertificate[LoopbackClientServerNameOverride] = c.LoopbackCert
+		tlsConfigCopy.Certificates = append(tlsConfigCopy.Certificates, *c.LoopbackCert)
 	}
+	newRuntimeConfig := &runtimeDynamicLoader{
+		tlsConfig: tlsConfigCopy,
+	}
+
 	c.currentValue.Store(newRuntimeConfig)
 	c.currentContent = newContent // this is single threaded, so we have no locking issue
 
@@ -140,6 +195,9 @@ func (c *dynamicCertificateContent) Equals(rhs *dynamicCertificateContent) bool 
 	if !c.DefaultCertificate.Equals(&rhs.DefaultCertificate) {
 		return false
 	}
+	if !c.ClientCA.Equals(&rhs.ClientCA) {
+		return false
+	}
 	for _, key := range cKeys.UnsortedList() {
 		if !c.NameToCertificate[key].Equals(rhs.NameToCertificate[key]) {
 			return false
@@ -147,32 +205,6 @@ func (c *dynamicCertificateContent) Equals(rhs *dynamicCertificateContent) bool 
 	}
 
 	return true
-}
-
-func (c *dynamicCertificateContent) ToRuntimeConfig() (*runtimeDynamicLoader, error) {
-	ret := &runtimeDynamicLoader{
-		NameToCertificate: map[string]*tls.Certificate{},
-	}
-
-	// load main cert
-	if len(c.DefaultCertificate.Cert) != 0 || len(c.DefaultCertificate.Key) != 0 {
-		tlsCert, err := tls.X509KeyPair(c.DefaultCertificate.Cert, c.DefaultCertificate.Key)
-		if err != nil {
-			return nil, fmt.Errorf("unable to load server certificate: %v", err)
-		}
-		ret.Certificates = []tls.Certificate{tlsCert}
-	}
-
-	// load SNI certs
-	for name, nck := range c.NameToCertificate {
-		tlsCert, err := tls.X509KeyPair(nck.Cert, nck.Key)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load SNI cert and key: %v", err)
-		}
-		ret.NameToCertificate[name] = &tlsCert
-	}
-
-	return ret, nil
 }
 
 func (c *certKeyFileContent) Equals(rhs *certKeyFileContent) bool {
@@ -188,37 +220,8 @@ func (c *certKeyFileContent) Equals(rhs *certKeyFileContent) bool {
 	return reflect.DeepEqual(c.Key, rhs.Key) && reflect.DeepEqual(c.Cert, rhs.Cert)
 }
 
-// GetCertificate copied from tls.getCertificate
-func (c *runtimeDynamicLoader) GetCertificate(clientHello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-	if len(c.Certificates) == 0 {
-		return nil, errors.New("tls: no certificates configured")
-	}
-
-	if c.NameToCertificate == nil {
-		// There's only one choice, so no point doing any work.
-		return &c.Certificates[0], nil
-	}
-
-	name := strings.ToLower(clientHello.ServerName)
-	for len(name) > 0 && name[len(name)-1] == '.' {
-		name = name[:len(name)-1]
-	}
-
-	if cert, ok := c.NameToCertificate[name]; ok {
-		return cert, nil
-	}
-
-	// try replacing labels in the name with wildcards until we get a
-	// match.
-	labels := strings.Split(name, ".")
-	for i := range labels {
-		labels[i] = "*"
-		candidate := strings.Join(labels, ".")
-		if cert, ok := c.NameToCertificate[candidate]; ok {
-			return cert, nil
-		}
-	}
-
-	// If nothing matches, return the first certificate.
-	return &c.Certificates[0], nil
+// GetConfigForClient copied from tls.getCertificate
+func (c *runtimeDynamicLoader) GetConfigForClient(*tls.ClientHelloInfo) (*tls.Config, error) {
+	tlsConfigCopy := c.tlsConfig
+	return &tlsConfigCopy, nil
 }

@@ -27,10 +27,6 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/apiserver/pkg/server/certs"
-
-	"k8s.io/apiserver/pkg/server/servingcerttesting"
-
 	"github.com/stretchr/testify/assert"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -38,6 +34,8 @@ import (
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/apiserver/pkg/server"
 	. "k8s.io/apiserver/pkg/server"
+	"k8s.io/apiserver/pkg/server/certs"
+	servingcerttesting "k8s.io/apiserver/pkg/server/options/testing"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/client-go/discovery"
 	restclient "k8s.io/client-go/rest"
@@ -552,6 +550,7 @@ func TestServerRunWithSNI(t *testing.T) {
 			if expected := &v; !reflect.DeepEqual(got, expected) {
 				t.Errorf("loopback client didn't get correct version info: expected=%v got=%v", expected, got)
 			}
+
 		})
 	}
 }
