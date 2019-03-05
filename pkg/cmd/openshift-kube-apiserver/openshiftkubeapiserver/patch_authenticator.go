@@ -1,9 +1,10 @@
 package openshiftkubeapiserver
 
 import (
-	"crypto/x509"
 	"fmt"
 	"time"
+
+	"k8s.io/apiserver/pkg/server/certs"
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/group"
@@ -33,7 +34,6 @@ import (
 	userinformer "github.com/openshift/client-go/user/informers/externalversions/user/v1"
 	"github.com/openshift/origin/pkg/apiserver/authentication/oauth"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/request/paramtoken"
@@ -65,10 +65,6 @@ func NewAuthenticator(
 	// this is safe because the server does a quorum read and we're hitting a "magic" authorizer to get permissions based on system:masters
 	// once the cache is added, we won't be paying a double hop cost to etcd on each request, so the simplification will help.
 	serviceAccountTokenGetter := sacontroller.NewGetterFromClient(kubeExternalClient)
-	apiClientCAs, err := cmdutil.CertPoolFromFile(servingInfo.ClientCA)
-	if err != nil {
-		return nil, nil, err
-	}
 
 	return newAuthenticator(
 		serviceAccountPublicKeyFiles,
@@ -78,7 +74,7 @@ func NewAuthenticator(
 		oauthClientLister,
 		serviceAccountTokenGetter,
 		userClient.User().Users(),
-		apiClientCAs,
+		servingInfo.ClientCA,
 		usercache.NewGroupCache(groupInformer),
 		bootstrap.NewBootstrapUserDataGetter(kubeExternalClient.CoreV1(), kubeExternalClient.CoreV1()),
 	)
@@ -92,7 +88,7 @@ func newAuthenticator(
 	oauthClientLister oauthclientlister.OAuthClientLister,
 	tokenGetter serviceaccount.ServiceAccountTokenGetter,
 	userGetter usertypedclient.UserInterface,
-	apiClientCAs *x509.CertPool,
+	apiClientCABundle string,
 	groupMapper oauth.UserToGroupMapper,
 	bootstrapUserDataGetter bootstrap.BootstrapUserDataGetter,
 ) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
@@ -184,9 +180,15 @@ func newAuthenticator(
 	// build cert authenticator
 	// TODO: add "system:" prefix in authenticator, limit cert to username
 	// TODO: add "system:" prefix to groups in authenticator, limit cert to group name
-	opts := x509request.DefaultVerifyOptions()
-	opts.Roots = apiClientCAs
-	certauth := x509request.New(opts, x509request.CommonNameUserConversion)
+	dynamicCA := certs.NewDynamicCA(apiClientCABundle)
+	if err := dynamicCA.CheckCerts(); err != nil {
+		return nil, nil, err
+	}
+	certauth := x509request.NewDynamic(dynamicCA.GetVerifier, x509request.CommonNameUserConversion)
+	postStartHooks["openshift.io-clientCA-reload"] = func(context genericapiserver.PostStartHookContext) error {
+		go dynamicCA.Run(context.StopCh)
+		return nil
+	}
 	authenticators = append(authenticators, certauth)
 
 	resultingAuthenticator := union.NewFailOnError(authenticators...)
@@ -194,7 +196,7 @@ func newAuthenticator(
 	topLevelAuthenticators := []authenticator.Request{}
 	// if we have a front proxy providing authentication configuration, wire it up and it should come first
 	if authConfig.RequestHeader != nil {
-		requestHeaderAuthenticator, err := headerrequest.NewSecure(
+		requestHeaderAuthenticator, dynamicReloadFn, err := headerrequest.NewSecure(
 			authConfig.RequestHeader.ClientCA,
 			authConfig.RequestHeader.ClientCommonNames,
 			authConfig.RequestHeader.UsernameHeaders,
@@ -203,6 +205,10 @@ func newAuthenticator(
 		)
 		if err != nil {
 			return nil, nil, fmt.Errorf("Error building front proxy auth config: %v", err)
+		}
+		postStartHooks["openshift.io-requestheader-reload"] = func(context genericapiserver.PostStartHookContext) error {
+			go dynamicReloadFn(context.StopCh)
+			return nil
 		}
 		topLevelAuthenticators = append(topLevelAuthenticators, union.New(requestHeaderAuthenticator, resultingAuthenticator))
 

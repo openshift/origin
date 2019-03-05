@@ -17,9 +17,7 @@ limitations under the License.
 package headerrequest
 
 import (
-	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -28,7 +26,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	x509request "k8s.io/apiserver/pkg/authentication/request/x509"
 	"k8s.io/apiserver/pkg/authentication/user"
-	utilcert "k8s.io/client-go/util/cert"
+	"k8s.io/apiserver/pkg/server/certs"
 )
 
 type requestHeaderAuthRequestHandler struct {
@@ -77,32 +75,25 @@ func trimHeaders(headerNames ...string) ([]string, error) {
 	return ret, nil
 }
 
-func NewSecure(clientCA string, proxyClientNames []string, nameHeaders []string, groupHeaders []string, extraHeaderPrefixes []string) (authenticator.Request, error) {
+type DynamicReloadFunc func(stopCh <-chan struct{})
+
+func NewSecure(clientCA string, proxyClientNames []string, nameHeaders []string, groupHeaders []string, extraHeaderPrefixes []string) (authenticator.Request, DynamicReloadFunc, error) {
 	headerAuthenticator, err := New(nameHeaders, groupHeaders, extraHeaderPrefixes)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if len(clientCA) == 0 {
-		return nil, fmt.Errorf("missing clientCA file")
+		return nil, nil, fmt.Errorf("missing clientCA file")
 	}
 
 	// Wrap with an x509 verifier
-	caData, err := ioutil.ReadFile(clientCA)
-	if err != nil {
-		return nil, fmt.Errorf("error reading %s: %v", clientCA, err)
-	}
-	opts := x509request.DefaultVerifyOptions()
-	opts.Roots = x509.NewCertPool()
-	certs, err := utilcert.ParseCertsPEM(caData)
-	if err != nil {
-		return nil, fmt.Errorf("error loading certs from  %s: %v", clientCA, err)
-	}
-	for _, cert := range certs {
-		opts.Roots.AddCert(cert)
+	dynamicVerifier := certs.NewDynamicCA(clientCA)
+	if err := dynamicVerifier.CheckCerts(); err != nil {
+		return nil, nil, fmt.Errorf("error reading %s: %v", clientCA, err)
 	}
 
-	return x509request.NewVerifier(opts, headerAuthenticator, sets.NewString(proxyClientNames...)), nil
+	return x509request.NewDynamicVerifier(dynamicVerifier.GetVerifier, headerAuthenticator, sets.NewString(proxyClientNames...)), dynamicVerifier.Run, nil
 }
 
 func (a *requestHeaderAuthRequestHandler) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {

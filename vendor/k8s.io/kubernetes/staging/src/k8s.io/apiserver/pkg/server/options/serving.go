@@ -26,6 +26,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
+	"k8s.io/apiserver/pkg/server/certs"
 
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apiserver/pkg/server"
@@ -211,14 +212,10 @@ func (s *SecureServingOptions) ApplyTo(config **server.SecureServingInfo) error 
 	}
 	c := *config
 
-	c.DynamicCertificates = &server.DynamicCertificateConfig{
-		CertificateReferences: server.DynamicCertificateReferences{
-			DefaultCertificate: server.CertKeyFileReference{
-				Cert: s.ServerCert.CertKey.CertFile,
-				Key:  s.ServerCert.CertKey.KeyFile,
-			},
-			NameToCertificate: map[string]*server.CertKeyFileReference{},
-		},
+	c.NameToCertificate = map[string]*certs.CertKeyFileReference{}
+	c.DefaultCertificate = certs.CertKeyFileReference{
+		Cert: s.ServerCert.CertKey.CertFile,
+		Key:  s.ServerCert.CertKey.KeyFile,
 	}
 
 	if len(s.CipherSuites) != 0 {
@@ -242,7 +239,7 @@ func (s *SecureServingOptions) ApplyTo(config **server.SecureServingInfo) error 
 	for _, nck := range s.SNICertKeys {
 		tlsCert, err := tls.LoadX509KeyPair(nck.CertFile, nck.KeyFile)
 		namedTLSCerts = append(namedTLSCerts, server.NamedTLSCert{
-			OriginalFileName: &server.CertKeyFileReference{
+			OriginalFileName: &certs.CertKeyFileReference{
 				Cert: nck.CertFile,
 				Key:  nck.KeyFile,
 			},
@@ -253,7 +250,7 @@ func (s *SecureServingOptions) ApplyTo(config **server.SecureServingInfo) error 
 			return fmt.Errorf("failed to load SNI cert and key: %v", err)
 		}
 	}
-	_, c.DynamicCertificates.CertificateReferences.NameToCertificate, err = server.GetNamedCertificateMap(namedTLSCerts)
+	_, c.NameToCertificate, err = server.GetNamedCertificateMap(namedTLSCerts)
 	if err != nil {
 		return err
 	}
