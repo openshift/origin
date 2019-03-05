@@ -9,7 +9,6 @@ var ControllerInitializers = map[string]InitFunc{
 
 	"openshift.io/serviceaccount-pull-secrets": RunServiceAccountPullSecretsController,
 	"openshift.io/origin-namespace":            RunOriginNamespaceController,
-	"openshift.io/service-serving-cert":        RunServiceServingCertsController,
 
 	"openshift.io/build":               RunBuildController,
 	"openshift.io/build-config-change": RunBuildConfigChangeController,
