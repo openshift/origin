@@ -27,14 +27,13 @@ import (
 	"sync"
 	"time"
 
-	gcfg "gopkg.in/gcfg.v1"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/ec2metadata"
+	"github.com/aws/aws-sdk-go/aws/endpoints"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
@@ -44,6 +43,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/golang/glog"
+	"gopkg.in/gcfg.v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 
@@ -563,6 +563,91 @@ type CloudConfig struct {
 		//issue body.
 		DisableStrictZoneCheck bool
 	}
+	// [ServiceOverride "1"]
+	//  Service = s3
+	//  Region = region1
+	//  URL = https://s3.foo.bar
+	//  SigningRegion = signing_region
+	//  SigningMethod = signing_method
+	//
+	//  [ServiceOverride "2"]
+	//     Service = ec2
+	//     Region = region2
+	//     URL = https://ec2.foo.bar
+	//     SigningRegion = signing_region
+	//     SigningMethod = signing_method
+	ServiceOverride map[string]*struct {
+		Service       string
+		Region        string
+		URL           string
+		SigningRegion string
+		SigningMethod string
+		SigningName   string
+	}
+}
+
+func (cfg *CloudConfig) validateOverrides() error {
+	if len(cfg.ServiceOverride) == 0 {
+		return nil
+	}
+	set := make(map[string]bool)
+	for onum, ovrd := range cfg.ServiceOverride {
+		// Note: gcfg does not space trim, so we have to when comparing to empty string ""
+		name := strings.TrimSpace(ovrd.Service)
+		if name == "" {
+			return fmt.Errorf("service name is missing [Service is \"\"] in override %s", onum)
+		}
+		// insure the map service name is space trimmed
+		ovrd.Service = name
+
+		region := strings.TrimSpace(ovrd.Region)
+		if region == "" {
+			return fmt.Errorf("service region is missing [Region is \"\"] in override %s", onum)
+		}
+		// insure the map region is space trimmed
+		ovrd.Region = region
+
+		url := strings.TrimSpace(ovrd.URL)
+		if url == "" {
+			return fmt.Errorf("url is missing [URL is \"\"] in override %s", onum)
+		}
+		signingRegion := strings.TrimSpace(ovrd.SigningRegion)
+		if signingRegion == "" {
+			return fmt.Errorf("signingRegion is missing [SigningRegion is \"\"] in override %s", onum)
+		}
+		signature := name + "_" + region
+		if set[signature] {
+			return fmt.Errorf("duplicate entry found for service override [%s] (%s in %s)", onum, name, region)
+		}
+		set[signature] = true
+	}
+	return nil
+}
+
+func (cfg *CloudConfig) getResolver() endpoints.ResolverFunc {
+	defaultResolver := endpoints.DefaultResolver()
+	defaultResolverFn := func(service, region string,
+		optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
+		return defaultResolver.EndpointFor(service, region, optFns...)
+	}
+	if len(cfg.ServiceOverride) == 0 {
+		return defaultResolverFn
+	}
+
+	return func(service, region string,
+		optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
+		for _, override := range cfg.ServiceOverride {
+			if override.Service == service && override.Region == region {
+				return endpoints.ResolvedEndpoint{
+					URL:           override.URL,
+					SigningRegion: override.SigningRegion,
+					SigningMethod: override.SigningMethod,
+					SigningName:   override.SigningName,
+				}, nil
+			}
+		}
+		return defaultResolver.EndpointFor(service, region, optFns...)
+	}
 }
 
 // awsSdkEC2 is an implementation of the EC2 interface, backed by aws-sdk-go
@@ -570,16 +655,23 @@ type awsSdkEC2 struct {
 	ec2 *ec2.EC2
 }
 
+// Interface to make the CloudConfig immutable for awsSDKProvider
+type awsCloudConfigProvider interface {
+	getResolver() endpoints.ResolverFunc
+}
+
 type awsSDKProvider struct {
 	creds *credentials.Credentials
+	cfg   awsCloudConfigProvider
 
 	mutex          sync.Mutex
 	regionDelayers map[string]*CrossRequestRetryDelay
 }
 
-func newAWSSDKProvider(creds *credentials.Credentials) *awsSDKProvider {
+func newAWSSDKProvider(creds *credentials.Credentials, cfg *CloudConfig) *awsSDKProvider {
 	return &awsSDKProvider{
 		creds:          creds,
+		cfg:            cfg,
 		regionDelayers: make(map[string]*CrossRequestRetryDelay),
 	}
 }
@@ -644,7 +736,8 @@ func (p *awsSDKProvider) Compute(regionName string) (EC2, error) {
 		Region:      &regionName,
 		Credentials: p.creds,
 	}
-	awsConfig = awsConfig.WithCredentialsChainVerboseErrors(true)
+	awsConfig = awsConfig.WithCredentialsChainVerboseErrors(true).
+		WithEndpointResolver(p.cfg.getResolver())
 
 	sess, err := session.NewSession(awsConfig)
 	if err != nil {
@@ -665,7 +758,8 @@ func (p *awsSDKProvider) LoadBalancing(regionName string) (ELB, error) {
 		Region:      &regionName,
 		Credentials: p.creds,
 	}
-	awsConfig = awsConfig.WithCredentialsChainVerboseErrors(true)
+	awsConfig = awsConfig.WithCredentialsChainVerboseErrors(true).
+		WithEndpointResolver(p.cfg.getResolver())
 
 	sess, err := session.NewSession(awsConfig)
 	if err != nil {
@@ -682,7 +776,8 @@ func (p *awsSDKProvider) LoadBalancingV2(regionName string) (ELBV2, error) {
 		Region:      &regionName,
 		Credentials: p.creds,
 	}
-	awsConfig = awsConfig.WithCredentialsChainVerboseErrors(true)
+	awsConfig = awsConfig.WithCredentialsChainVerboseErrors(true).
+		WithEndpointResolver(p.cfg.getResolver())
 
 	sess, err := session.NewSession(awsConfig)
 	if err != nil {
@@ -700,7 +795,8 @@ func (p *awsSDKProvider) Autoscaling(regionName string) (ASG, error) {
 		Region:      &regionName,
 		Credentials: p.creds,
 	}
-	awsConfig = awsConfig.WithCredentialsChainVerboseErrors(true)
+	awsConfig = awsConfig.WithCredentialsChainVerboseErrors(true).
+		WithEndpointResolver(p.cfg.getResolver())
 
 	sess, err := session.NewSession(awsConfig)
 	if err != nil {
@@ -714,7 +810,9 @@ func (p *awsSDKProvider) Autoscaling(regionName string) (ASG, error) {
 }
 
 func (p *awsSDKProvider) Metadata() (EC2Metadata, error) {
-	sess, err := session.NewSession(&aws.Config{})
+	sess, err := session.NewSession(&aws.Config{
+		EndpointResolver: p.cfg.getResolver(),
+        })
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize AWS session: %v", err)
 	}
@@ -728,7 +826,8 @@ func (p *awsSDKProvider) KeyManagement(regionName string) (KMS, error) {
 		Region:      &regionName,
 		Credentials: p.creds,
 	}
-	awsConfig = awsConfig.WithCredentialsChainVerboseErrors(true)
+	awsConfig = awsConfig.WithCredentialsChainVerboseErrors(true).
+		WithEndpointResolver(p.cfg.getResolver())
 
 	sess, err := session.NewSession(awsConfig)
 	if err != nil {
@@ -953,6 +1052,10 @@ func init() {
 			return nil, fmt.Errorf("unable to read AWS cloud provider config file: %v", err)
 		}
 
+		if err = cfg.validateOverrides(); err != nil {
+			return nil, fmt.Errorf("unable to validate custom endpoint overrides: %v", err)
+		}
+
 		sess, err := session.NewSession(&aws.Config{})
 		if err != nil {
 			return nil, fmt.Errorf("unable to initialize AWS session: %v", err)
@@ -978,7 +1081,7 @@ func init() {
 				&credentials.SharedCredentialsProvider{},
 			})
 
-		aws := newAWSSDKProvider(creds)
+		aws := newAWSSDKProvider(creds, cfg)
 		return newAWSCloud(*cfg, aws)
 	})
 }
