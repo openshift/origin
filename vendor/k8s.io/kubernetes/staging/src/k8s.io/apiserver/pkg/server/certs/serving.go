@@ -33,6 +33,8 @@ type CABundleFileReferences struct {
 
 // DynamicLoader dynamically loads certificates and provides a golang tls compatible dynamic GetCertificate func.
 type DynamicServingLoader struct {
+	// BaseTLSConfig is the static portion of the tlsConfig for serving to clients.  It is copied and the copy is mutated
+	// based on the dynamic cert state.
 	BaseTLSConfig tls.Config
 
 	ClientCA           CABundleFileReferences

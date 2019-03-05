@@ -21,7 +21,6 @@ package app
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"sync"
@@ -91,27 +90,14 @@ func createAggregatorConfig(
 		return nil, err
 	}
 
-	var err error
-	var certBytes, keyBytes []byte
-	if len(commandOptions.ProxyClientCertFile) > 0 && len(commandOptions.ProxyClientKeyFile) > 0 {
-		certBytes, err = ioutil.ReadFile(commandOptions.ProxyClientCertFile)
-		if err != nil {
-			return nil, err
-		}
-		keyBytes, err = ioutil.ReadFile(commandOptions.ProxyClientKeyFile)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	aggregatorConfig := &aggregatorapiserver.Config{
 		GenericConfig: &genericapiserver.RecommendedConfig{
 			Config:                genericConfig,
 			SharedInformerFactory: externalInformers,
 		},
 		ExtraConfig: aggregatorapiserver.ExtraConfig{
-			ProxyClientCert: certBytes,
-			ProxyClientKey:  keyBytes,
+			ProxyClientCert: commandOptions.ProxyClientCertFile,
+			ProxyClientKey:  commandOptions.ProxyClientKeyFile,
 			ServiceResolver: serviceResolver,
 			ProxyTransport:  proxyTransport,
 		},

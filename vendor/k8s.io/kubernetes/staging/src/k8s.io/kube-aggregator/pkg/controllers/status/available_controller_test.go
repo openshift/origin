@@ -194,6 +194,8 @@ func TestSync(t *testing.T) {
 			apiServiceLister: listers.NewAPIServiceLister(apiServiceIndexer),
 			serviceLister:    v1listers.NewServiceLister(serviceIndexer),
 			endpointsLister:  v1listers.NewEndpointsLister(endpointsIndexer),
+			proxyClientCert:  emptyCert,
+			proxyClientKey:   emptyCert,
 		}
 		c.sync(tc.apiServiceName)
 
@@ -227,4 +229,8 @@ func TestSync(t *testing.T) {
 			t.Errorf("%v expected %v, got %#v", tc.name, e, condition)
 		}
 	}
+}
+
+func emptyCert() []byte {
+	return []byte{}
 }

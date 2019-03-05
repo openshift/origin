@@ -235,6 +235,8 @@ type AuthenticationInfo struct {
 	// TODO(roberthbailey): Remove once the server no longer supports http basic auth.
 	SupportsBasicAuth bool
 
+	// DynamicReloadFns are post-start hooks used to dynamically refresh authentication information.
+	// Only the authencation builder knows how to wire them and only this level of code knows how apply them.
 	DynamicReloadFns map[string]PostStartHookFunc
 }
 

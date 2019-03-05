@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/apimachinery/pkg/labels"
+
 	"github.com/golang/glog"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -164,4 +166,16 @@ func (c *APIServiceRegistrationController) deleteAPIService(obj interface{}) {
 	}
 	glog.V(4).Infof("Deleting %q", castObj.Name)
 	c.enqueue(castObj)
+}
+
+// resyncAll queues all apiservices to be rehandled.
+func (c *APIServiceRegistrationController) resyncAll() {
+	apiServices, err := c.apiServiceLister.List(labels.Everything())
+	if err != nil {
+		utilruntime.HandleError(err)
+		return
+	}
+	for _, apiService := range apiServices {
+		c.addAPIService(apiService)
+	}
 }
