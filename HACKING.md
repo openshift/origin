@@ -445,21 +445,15 @@ command is run. You can also specify a commit range directly with:
 
 All upstream commits should have a commit message where the first line is:
 
-    UPSTREAM: <PR number|drop|carry>: <short description>
+    UPSTREAM: <PR number|drop|carry|00000>: <short description>
 
 `drop` indicates the commit should be removed during the next
 rebase. `carry` means that the change cannot go into upstream, and we
 should continue to use it during the next rebase. `PR number` means
 that the commit will be dropped during a rebase, as long as that
-rebase includes the given PR number.
-
-You can also target repositories other than Kube by setting `UPSTREAM_REPO` and
-`UPSTREAM_PACKAGE` env vars.  `UPSTREAM_REPO` should be the full name of the Git
-repo as Go sees it, i.e. `github.com/coreos/etcd`, and `UPSTREAM_PACKAGE` must be
-a package inside that repo that is currently part of the Godeps.json file.  Example:
-
-    $ UPSTREAM_REPO=github.com/coreos/etcd UPSTREAM_PACKAGE=store
-hack/cherry-pick.sh <pr_number>
+rebase includes the given PR number. `00000` means that the master team
+has opted into carrying the debt until the next rebase when we will attempt
+to gather them and create upstream patches.
 
 By default `hack/cherry-pick.sh` uses git remote named `origin` to fetch
 kubernetes repository, if your git configuration is different, you can pass the git
