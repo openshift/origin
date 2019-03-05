@@ -160,5 +160,7 @@ func (o *OpenShiftAPIServer) RunAPIServer(stopCh <-chan struct{}) error {
 		return err
 	}
 
+	configdefault.SetRecommendedOpenShiftAPIServerConfigDefaults(openshiftAPIServerConfig)
+
 	return RunOpenShiftAPIServer(openshiftAPIServerConfig, stopCh)
 }
