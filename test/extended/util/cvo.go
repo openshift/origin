@@ -13,16 +13,14 @@ import (
 )
 
 // WaitForClusterProgression waits for a cluster-level configuration change to propagate across all operators.
-// This polls all ClusterVersion objects and waits until the following states are stable:
+// This polls all ClusterOperator objects and waits until the following states are stable:
 //
 // 1. Available = true
 // 2. Progressing = false
 // 3. Failing = false
-//
-// If a ClusterVersion reports it is failing, this will abort with an error.
-func WaitForClusterProgression(cv configclientv1.ClusterOperatorsGetter) error {
+func WaitForClusterProgression(cv configclientv1.ClusterOperatorsGetter, timeout time.Duration) error {
 	success := 0
-	return wait.Poll(10*time.Second, 10*time.Minute, func() (bool, error) {
+	return wait.Poll(10*time.Second, timeout, func() (bool, error) {
 		clusterOperators, err := cv.ClusterOperators().List(metav1.ListOptions{})
 		if err != nil {
 			success = 0
