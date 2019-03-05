@@ -89,6 +89,10 @@ func (c *fakeStaticPodOperatorClient) GetStaticPodOperatorState() (*operatorv1.S
 	return c.fakeStaticPodOperatorSpec, c.fakeStaticPodOperatorStatus, c.resourceVersion, nil
 }
 
+func (c *fakeStaticPodOperatorClient) GetStaticPodOperatorStateWithQuorum() (*operatorv1.StaticPodOperatorSpec, *operatorv1.StaticPodOperatorStatus, string, error) {
+	return c.fakeStaticPodOperatorSpec, c.fakeStaticPodOperatorStatus, c.resourceVersion, nil
+}
+
 func (c *fakeStaticPodOperatorClient) UpdateStaticPodOperatorStatus(resourceVersion string, status *operatorv1.StaticPodOperatorStatus) (*operatorv1.StaticPodOperatorStatus, error) {
 	if c.resourceVersion != resourceVersion {
 		return nil, errors.NewConflict(schema.GroupResource{Group: operatorv1.GroupName, Resource: "TestOperatorConfig"}, "instance", fmt.Errorf("invalid resourceVersion"))

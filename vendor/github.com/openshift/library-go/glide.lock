@@ -1,5 +1,5 @@
-hash: 6dba1fdcbca5b8cd27ff1f69ce80ee41c2c60087cbf3407dc847ac49e4878614
-updated: 2019-02-18T14:37:18.970240624-05:00
+hash: 6e3dd6e97450bd5d8ccc18bc54c85ad9b17c2c197af85087b55fce1ad9c6e4b8
+updated: 2019-02-27T13:12:07.496411527-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -131,6 +131,8 @@ imports:
   version: 1de3e0542de65ad8d75452a595886fdd0befb363
 - name: github.com/go-openapi/swag
   version: f3f9494671f93fcff853e3c6e9e948b3eb71e590
+- name: github.com/gobuffalo/envy
+  version: 13a24527269481fcebc4b0220527ccd138048a0e
 - name: github.com/gogo/protobuf
   version: c0656edd0d9eab7c66d1eb0c568f9039345796f7
   subpackages:
@@ -145,11 +147,13 @@ imports:
 - name: github.com/golang/protobuf
   version: b4deda0973fb4c70b50d226b1af49f3da59f5265
   subpackages:
+  - jsonpb
   - proto
   - protoc-gen-go/descriptor
   - ptypes
   - ptypes/any
   - ptypes/duration
+  - ptypes/struct
   - ptypes/timestamp
 - name: github.com/gonum/blas
   version: f22b278b28ac9805aadd613a754a60c35b24ae69
@@ -210,6 +214,8 @@ imports:
   version: 9316a62528ac99aaecb4e47eadd6dc8aa6533d58
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/joho/godotenv
+  version: 5c0e6c6ab1a0a9ef0a8822cba3a05d62f7dad941
 - name: github.com/json-iterator/go
   version: f2b4162afba35581b6d4a50d3b8f34e33c144682
 - name: github.com/jteeuwen/go-bindata
@@ -220,6 +226,8 @@ imports:
   - buffer
   - jlexer
   - jwriter
+- name: github.com/markbates/inflect
+  version: d582c680dc4d29c2279628ae00e743005bfcd4fe
 - name: github.com/matttproud/golang_protobuf_extensions
   version: c12348ce28de40eed0136aa2b644d0ee0650e56c
   subpackages:
@@ -231,7 +239,7 @@ imports:
 - name: github.com/NYTimes/gziphandler
   version: 56545f4a5d46df9a6648819d1664c3a03a13ffdb
 - name: github.com/openshift/api
-  version: af79befc50a8223c8122e9e654f65763dd17a87e
+  version: c58918e29f89383d2e1467bad7156e2b0c49497f
   subpackages:
   - apps
   - apps/v1
@@ -284,6 +292,7 @@ imports:
   - config/clientset/versioned/scheme
   - config/clientset/versioned/typed/config/v1
   - config/clientset/versioned/typed/config/v1/fake
+  - config/listers/config/v1
 - name: github.com/pborman/uuid
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
 - name: github.com/peterbourgon/diskv
@@ -314,10 +323,20 @@ imports:
   version: 8a290539e2e8629dbc4e6bad948158f790ec31f4
 - name: github.com/PuerkitoBio/urlesc
   version: 5bd2802263f21d8788851d5305584c82a5c75d7e
+- name: github.com/rogpeppe/go-internal
+  version: 184c5dfc7a1dc73deb0f651dcde70139e8eab2a6
+  subpackages:
+  - modfile
+  - module
+  - semver
 - name: github.com/sigma/go-inotify
   version: c87b6cf5033d2c6486046f045eeebdc3d910fd38
 - name: github.com/sirupsen/logrus
   version: 89742aefa4b206dcf400792f3bd35b542998eb3b
+- name: github.com/spf13/afero
+  version: f4711e4db9e9a1d3887343acb72b2bbfc2f686f5
+  subpackages:
+  - mem
 - name: github.com/spf13/cobra
   version: c439c4fa093711d42e1b01acb1235b52004753c1
 - name: github.com/spf13/pflag
@@ -329,13 +348,13 @@ imports:
 - name: golang.org/x/crypto
   version: de0752318171da717af4ce24d0a2e8626afaeb11
   subpackages:
+  - bcrypt
+  - blowfish
   - ssh/terminal
 - name: golang.org/x/net
   version: 0ed95abb35c445290478a5348a7b38bb154135fd
   subpackages:
   - context
-  - html
-  - html/atom
   - http2
   - http2/hpack
   - idna
@@ -346,10 +365,7 @@ imports:
 - name: golang.org/x/oauth2
   version: a6bd8cefa1811bd24b86f8902872e4e8225f74c4
   subpackages:
-  - google
   - internal
-  - jws
-  - jwt
 - name: golang.org/x/sys
   version: 95c6576299259db960f6c5b9b69ea52422860fce
   subpackages:
@@ -374,9 +390,11 @@ imports:
   subpackages:
   - rate
 - name: golang.org/x/tools
-  version: 8dcb7bc8c7fe0a895995c76c721cef79419ac98a
+  version: 2382e3994d48b1d22acc2c86bcad0a2aff028e32
   subpackages:
   - container/intsets
+  - go/ast/astutil
+  - imports
 - name: google.golang.org/appengine
   version: 54a98f90d1c46b7731eb8fb305d2a321c30ef610
   subpackages:
@@ -417,7 +435,7 @@ imports:
 - name: gopkg.in/natefinch/lumberjack.v2
   version: 20b71e5b60d756d3d2f80def009790325acc2b23
 - name: gopkg.in/yaml.v2
-  version: 670d4cfef0544295bc27a114dbac37980d83185a
+  version: 51d6538a90f86fe93ac480b35f37b2be17fef232
 - name: k8s.io/api
   version: 6db15a15d2d3874a6c3ddb2140ac9f3bc7058428
   subpackages:
@@ -782,6 +800,14 @@ imports:
   - util/integer
   - util/retry
   - util/workqueue
+- name: k8s.io/gengo
+  version: 4242d8e6c5dba56827bb7bcf14ad11cda38f3991
+  subpackages:
+  - args
+  - generator
+  - namer
+  - parser
+  - types
 - name: k8s.io/kube-aggregator
   version: 4764f3a1991175f477682bbba516e97fab77b19f
   subpackages:
@@ -798,6 +824,16 @@ imports:
   - pkg/handler
   - pkg/util
   - pkg/util/proto
+- name: sigs.k8s.io/controller-tools
+  version: 43466124052c1a1aa7d8fd33624b00bc111fb7cf
+  repo: https://github.com/openshift/kubernetes-sigs-controller-tools.git
+  subpackages:
+  - pkg/crd/generator
+  - pkg/crd/util
+  - pkg/internal/codegen
+  - pkg/internal/codegen/parse
+  - pkg/internal/general
+  - pkg/util
 testImports:
 - name: vbom.ml/util
   version: efcd4e0f97874370259c7d93e12aad57911dea81

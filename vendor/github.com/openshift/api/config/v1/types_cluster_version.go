@@ -16,9 +16,11 @@ type ClusterVersion struct {
 
 	// spec is the desired state of the cluster version - the operator will work
 	// to ensure that the desired version is applied to the cluster.
+	// +required
 	Spec ClusterVersionSpec `json:"spec"`
 	// status contains information about the available updates and any in-progress
 	// updates.
+	// +optional
 	Status ClusterVersionStatus `json:"status"`
 }
 
@@ -46,19 +48,19 @@ type ClusterVersionSpec struct {
 	// rollbacks will succeed.
 	//
 	// +optional
-	DesiredUpdate *Update `json:"desiredUpdate"`
+	DesiredUpdate *Update `json:"desiredUpdate,omitempty"`
 
 	// upstream may be used to specify the preferred update server. By default
 	// it will use the appropriate update server for the cluster and region.
 	//
 	// +optional
-	Upstream URL `json:"upstream"`
+	Upstream URL `json:"upstream,omitempty"`
 	// channel is an identifier for explicitly requesting that a non-default
 	// set of updates be applied to this cluster. The default channel will be
 	// contain stable updates that are appropriate for production clusters.
 	//
 	// +optional
-	Channel string `json:"channel"`
+	Channel string `json:"channel,omitempty"`
 
 	// overrides is list of overides for components that are managed by
 	// cluster version operator. Marking a component unmanaged will prevent
@@ -86,7 +88,8 @@ type ClusterVersionStatus struct {
 	// Completed if the rollout completed - if an update was failing or halfway
 	// applied the state will be Partial. Only a limited amount of update history
 	// is preserved.
-	History []UpdateHistory `json:"history"`
+	// +optional
+	History []UpdateHistory `json:"history,omitempty"`
 
 	// observedGeneration reports which version of the spec is being synced.
 	// If this value is not equal to metadata.generation, then the desired
@@ -105,12 +108,14 @@ type ClusterVersionStatus struct {
 	// by a temporary or permanent error. Conditions are only valid for the
 	// current desiredUpdate when metadata.generation is equal to
 	// status.generation.
-	Conditions []ClusterOperatorStatusCondition `json:"conditions"`
+	// +optional
+	Conditions []ClusterOperatorStatusCondition `json:"conditions,omitempty"`
 
 	// availableUpdates contains the list of updates that are appropriate
 	// for this cluster. This list may be empty if no updates are recommended,
 	// if the update service is unavailable, or if an invalid channel has
 	// been specified.
+	// +nullable
 	AvailableUpdates []Update `json:"availableUpdates"`
 }
 
@@ -141,6 +146,7 @@ type UpdateHistory struct {
 	// that is currently being applied will have a null completion time.
 	// Completion time will always be set for entries that are not the current
 	// update (usually to the started time of the next update).
+	// +nullable
 	CompletionTime *metav1.Time `json:"completionTime"`
 
 	// version is a semantic versioning identifying the update version. If the

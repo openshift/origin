@@ -13,7 +13,9 @@ type KubeScheduler struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 
+	// +required
 	Spec   KubeSchedulerSpec   `json:"spec"`
+	// +optional
 	Status KubeSchedulerStatus `json:"status"`
 }
 
@@ -36,7 +38,7 @@ type KubeSchedulerStatus struct {
 type KubeSchedulerList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 	// Items contains the items
 	Items []KubeScheduler `json:"items"`
 }

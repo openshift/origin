@@ -49,8 +49,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Config().V1().ClusterVersions().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("consoles"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Config().V1().Consoles().Informer()}, nil
-	case v1.SchemeGroupVersion.WithResource("dnss"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Config().V1().DNSs().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("dnses"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Config().V1().DNSes().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("features"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Config().V1().Features().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("images"):
@@ -67,8 +67,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Config().V1().Projects().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("proxies"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Config().V1().Proxies().Informer()}, nil
-	case v1.SchemeGroupVersion.WithResource("schedulings"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Config().V1().Schedulings().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("schedulers"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Config().V1().Schedulers().Informer()}, nil
 
 	}
 

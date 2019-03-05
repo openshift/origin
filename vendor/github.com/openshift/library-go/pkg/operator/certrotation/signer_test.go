@@ -75,7 +75,8 @@ func TestEnsureSigningCertKeyPair(t *testing.T) {
 			initialSecret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Namespace: "ns", Name: "signer",
 					Annotations: map[string]string{
-						"auth.openshift.io/certificate-expiry-date": "2108-09-08T22:47:31-07:00",
+						"auth.openshift.io/certificate-not-after":  "2108-09-08T22:47:31-07:00",
+						"auth.openshift.io/certificate-not-before": "2108-09-08T20:47:31-07:00",
 					}},
 			},
 			verifyActions: func(t *testing.T, client *kubefake.Clientset) {
@@ -100,13 +101,13 @@ func TestEnsureSigningCertKeyPair(t *testing.T) {
 			}
 
 			c := &SigningRotation{
-				Namespace:         "ns",
-				Name:              "signer",
-				Validity:          24 * time.Hour,
-				RefreshPercentage: .50,
-				Client:            client.CoreV1(),
-				Lister:            corev1listers.NewSecretLister(indexer),
-				EventRecorder:     events.NewInMemoryRecorder("test"),
+				Namespace:     "ns",
+				Name:          "signer",
+				Validity:      24 * time.Hour,
+				Refresh:       12 * time.Hour,
+				Client:        client.CoreV1(),
+				Lister:        corev1listers.NewSecretLister(indexer),
+				EventRecorder: events.NewInMemoryRecorder("test"),
 			}
 
 			_, err := c.ensureSigningCertKeyPair()

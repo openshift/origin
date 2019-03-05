@@ -10,7 +10,7 @@ import (
 
 type Observer interface {
 	Run(stopChan <-chan struct{})
-	AddReactor(reaction reactorFn, files ...string) Observer
+	AddReactor(reaction reactorFn, startingFileContent map[string][]byte, files ...string) Observer
 }
 
 // ActionType define a type of action observed on the file

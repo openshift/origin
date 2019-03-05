@@ -141,6 +141,15 @@ func New(fs fs.FileSystem) Tar {
 	}
 }
 
+// NewWithTimeout creates a new Tar with the provided timeout extracting files.
+func NewWithTimeout(fs fs.FileSystem, timeout time.Duration) Tar {
+	return &stiTar{
+		FileSystem: fs,
+		exclude:    DefaultExclusionPattern,
+		timeout:    timeout,
+	}
+}
+
 // NewParanoid creates a new Tar that has restrictions
 // on what it can do while extracting files.
 func NewParanoid(fs fs.FileSystem) Tar {
@@ -148,6 +157,19 @@ func NewParanoid(fs fs.FileSystem) Tar {
 		FileSystem:           fs,
 		exclude:              DefaultExclusionPattern,
 		timeout:              defaultTimeout,
+		disallowOverwrite:    true,
+		disallowOutsidePaths: true,
+		disallowSpecialFiles: true,
+	}
+}
+
+// NewParanoidWithTimeout creates a new Tar with the provided timeout extracting files.
+// It has restrictions on what it can do while extracting files.
+func NewParanoidWithTimeout(fs fs.FileSystem, timeout time.Duration) Tar {
+	return &stiTar{
+		FileSystem:           fs,
+		exclude:              DefaultExclusionPattern,
+		timeout:              timeout,
 		disallowOverwrite:    true,
 		disallowOutsidePaths: true,
 		disallowSpecialFiles: true,
@@ -308,6 +330,9 @@ func (t *stiTar) writeTarHeader(tarWriter Writer, dir string, path string, info 
 	}
 	header.Name = filepath.ToSlash(fileName)
 	header.Linkname = filepath.ToSlash(header.Linkname)
+	// Force the header format to PAX to support UTF-8 filenames
+	// and use the same format throughout the entire tar file.
+	header.Format = tar.FormatPAX
 	logFile(logger, header.Name)
 	glog.V(5).Infof("Adding to tar: %s as %s", path, header.Name)
 	return tarWriter.WriteHeader(header)

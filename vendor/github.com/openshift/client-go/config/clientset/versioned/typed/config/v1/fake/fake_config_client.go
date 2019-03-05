@@ -36,8 +36,8 @@ func (c *FakeConfigV1) Consoles() v1.ConsoleInterface {
 	return &FakeConsoles{c}
 }
 
-func (c *FakeConfigV1) DNSs() v1.DNSInterface {
-	return &FakeDNSs{c}
+func (c *FakeConfigV1) DNSes() v1.DNSInterface {
+	return &FakeDNSes{c}
 }
 
 func (c *FakeConfigV1) Features() v1.FeaturesInterface {
@@ -72,8 +72,8 @@ func (c *FakeConfigV1) Proxies() v1.ProxyInterface {
 	return &FakeProxies{c}
 }
 
-func (c *FakeConfigV1) Schedulings() v1.SchedulingInterface {
-	return &FakeSchedulings{c}
+func (c *FakeConfigV1) Schedulers() v1.SchedulerInterface {
+	return &FakeSchedulers{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

@@ -173,6 +173,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.DelegatedAuthorization":                                                   schema_openshift_api_config_v1_DelegatedAuthorization(ref),
 		"github.com/openshift/api/config/v1.EtcdConnectionInfo":                                                       schema_openshift_api_config_v1_EtcdConnectionInfo(ref),
 		"github.com/openshift/api/config/v1.EtcdStorageConfig":                                                        schema_openshift_api_config_v1_EtcdStorageConfig(ref),
+		"github.com/openshift/api/config/v1.FeatureEnabledDisabled":                                                   schema_openshift_api_config_v1_FeatureEnabledDisabled(ref),
 		"github.com/openshift/api/config/v1.Features":                                                                 schema_openshift_api_config_v1_Features(ref),
 		"github.com/openshift/api/config/v1.FeaturesList":                                                             schema_openshift_api_config_v1_FeaturesList(ref),
 		"github.com/openshift/api/config/v1.FeaturesSpec":                                                             schema_openshift_api_config_v1_FeaturesSpec(ref),
@@ -231,10 +232,10 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.RegistrySources":                                                          schema_openshift_api_config_v1_RegistrySources(ref),
 		"github.com/openshift/api/config/v1.RemoteConnectionInfo":                                                     schema_openshift_api_config_v1_RemoteConnectionInfo(ref),
 		"github.com/openshift/api/config/v1.RequestHeaderIdentityProvider":                                            schema_openshift_api_config_v1_RequestHeaderIdentityProvider(ref),
-		"github.com/openshift/api/config/v1.Scheduling":                                                               schema_openshift_api_config_v1_Scheduling(ref),
-		"github.com/openshift/api/config/v1.SchedulingList":                                                           schema_openshift_api_config_v1_SchedulingList(ref),
-		"github.com/openshift/api/config/v1.SchedulingSpec":                                                           schema_openshift_api_config_v1_SchedulingSpec(ref),
-		"github.com/openshift/api/config/v1.SchedulingStatus":                                                         schema_openshift_api_config_v1_SchedulingStatus(ref),
+		"github.com/openshift/api/config/v1.Scheduler":                                                                schema_openshift_api_config_v1_Scheduler(ref),
+		"github.com/openshift/api/config/v1.SchedulerList":                                                            schema_openshift_api_config_v1_SchedulerList(ref),
+		"github.com/openshift/api/config/v1.SchedulerSpec":                                                            schema_openshift_api_config_v1_SchedulerSpec(ref),
+		"github.com/openshift/api/config/v1.SchedulerStatus":                                                          schema_openshift_api_config_v1_SchedulerStatus(ref),
 		"github.com/openshift/api/config/v1.SecretNameReference":                                                      schema_openshift_api_config_v1_SecretNameReference(ref),
 		"github.com/openshift/api/config/v1.ServingInfo":                                                              schema_openshift_api_config_v1_ServingInfo(ref),
 		"github.com/openshift/api/config/v1.StringSource":                                                             schema_openshift_api_config_v1_StringSource(ref),
@@ -6926,7 +6927,7 @@ func schema_openshift_api_config_v1_APIServer(ref common.ReferenceCallback) comm
 						},
 					},
 				},
-				Required: []string{"spec", "status"},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -6972,7 +6973,7 @@ func schema_openshift_api_config_v1_APIServerList(ref common.ReferenceCallback) 
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -7133,7 +7134,6 @@ func schema_openshift_api_config_v1_AdmissionConfig(ref common.ReferenceCallback
 						},
 					},
 				},
-				Required: []string{"pluginConfig", "enabledPlugins", "disabledPlugins"},
 			},
 		},
 		Dependencies: []string{
@@ -7295,7 +7295,7 @@ func schema_openshift_api_config_v1_Authentication(ref common.ReferenceCallback)
 						},
 					},
 				},
-				Required: []string{"spec", "status"},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -7342,7 +7342,7 @@ func schema_openshift_api_config_v1_AuthenticationList(ref common.ReferenceCallb
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -7486,6 +7486,7 @@ func schema_openshift_api_config_v1_Build(ref common.ReferenceCallback) common.O
 						},
 					},
 				},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -7590,7 +7591,7 @@ func schema_openshift_api_config_v1_BuildList(ref common.ReferenceCallback) comm
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -7821,7 +7822,7 @@ func schema_openshift_api_config_v1_ClusterOperator(ref common.ReferenceCallback
 						},
 					},
 				},
-				Required: []string{"metadata", "spec", "status"},
+				Required: []string{"metadata", "spec"},
 			},
 		},
 		Dependencies: []string{
@@ -7946,7 +7947,6 @@ func schema_openshift_api_config_v1_ClusterOperatorStatus(ref common.ReferenceCa
 						},
 					},
 				},
-				Required: []string{"conditions", "versions", "relatedObjects"},
 			},
 		},
 		Dependencies: []string{
@@ -8043,7 +8043,7 @@ func schema_openshift_api_config_v1_ClusterVersion(ref common.ReferenceCallback)
 						},
 					},
 				},
-				Required: []string{"spec", "status"},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -8221,7 +8221,7 @@ func schema_openshift_api_config_v1_ClusterVersionStatus(ref common.ReferenceCal
 						},
 					},
 				},
-				Required: []string{"desired", "history", "observedGeneration", "versionHash", "conditions", "availableUpdates"},
+				Required: []string{"desired", "observedGeneration", "versionHash", "availableUpdates"},
 			},
 		},
 		Dependencies: []string{
@@ -8366,7 +8366,7 @@ func schema_openshift_api_config_v1_Console(ref common.ReferenceCallback) common
 						},
 					},
 				},
-				Required: []string{"spec", "status"},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -8432,7 +8432,7 @@ func schema_openshift_api_config_v1_ConsoleList(ref common.ReferenceCallback) co
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -8465,15 +8465,15 @@ func schema_openshift_api_config_v1_ConsoleStatus(ref common.ReferenceCallback) 
 			SchemaProps: spec.SchemaProps{
 				Type: []string{"object"},
 				Properties: map[string]spec.Schema{
-					"publicHostname": {
+					"consoleURL": {
 						SchemaProps: spec.SchemaProps{
-							Description: "The hostname for the console. This will match the host for the route that is created for the console.",
+							Description: "The URL for the console. This will be derived from the host for the route that is created for the console.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
-				Required: []string{"publicHostname"},
+				Required: []string{"consoleURL"},
 			},
 		},
 	}
@@ -8519,7 +8519,7 @@ func schema_openshift_api_config_v1_DNS(ref common.ReferenceCallback) common.Ope
 						},
 					},
 				},
-				Required: []string{"spec", "status"},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -8566,7 +8566,7 @@ func schema_openshift_api_config_v1_DNSList(ref common.ReferenceCallback) common
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -8736,7 +8736,7 @@ func schema_openshift_api_config_v1_EtcdConnectionInfo(ref common.ReferenceCallb
 						},
 					},
 				},
-				Required: []string{"urls", "ca", "certFile", "keyFile"},
+				Required: []string{"ca", "certFile", "keyFile"},
 			},
 		},
 	}
@@ -8791,7 +8791,46 @@ func schema_openshift_api_config_v1_EtcdStorageConfig(ref common.ReferenceCallba
 						},
 					},
 				},
-				Required: []string{"urls", "ca", "certFile", "keyFile", "storagePrefix"},
+				Required: []string{"ca", "certFile", "keyFile", "storagePrefix"},
+			},
+		},
+	}
+}
+
+func schema_openshift_api_config_v1_FeatureEnabledDisabled(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"Enabled": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"Disabled": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"Enabled", "Disabled"},
 			},
 		},
 	}
@@ -8837,7 +8876,7 @@ func schema_openshift_api_config_v1_Features(ref common.ReferenceCallback) commo
 						},
 					},
 				},
-				Required: []string{"spec", "status"},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -8884,7 +8923,7 @@ func schema_openshift_api_config_v1_FeaturesList(ref common.ReferenceCallback) c
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -8985,7 +9024,7 @@ func schema_openshift_api_config_v1_GenericAPIServerConfig(ref common.ReferenceC
 						},
 					},
 				},
-				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admission", "admissionPluginConfig", "kubeClientConfig"},
+				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admission", "kubeClientConfig"},
 			},
 		},
 		Dependencies: []string{
@@ -9025,6 +9064,7 @@ func schema_openshift_api_config_v1_GenericControllerConfig(ref common.Reference
 						},
 					},
 				},
+				Required: []string{"servingInfo", "leaderElection", "authentication", "authorization"},
 			},
 		},
 		Dependencies: []string{
@@ -9293,7 +9333,7 @@ func schema_openshift_api_config_v1_HTTPServingInfo(ref common.ReferenceCallback
 						},
 					},
 				},
-				Required: []string{"bindAddress", "bindNetwork", "certFile", "keyFile", "clientCA", "namedCertificates", "maxRequestsInFlight", "requestTimeoutSeconds"},
+				Required: []string{"bindAddress", "bindNetwork", "certFile", "keyFile", "maxRequestsInFlight", "requestTimeoutSeconds"},
 			},
 		},
 		Dependencies: []string{
@@ -9523,7 +9563,7 @@ func schema_openshift_api_config_v1_Image(ref common.ReferenceCallback) common.O
 						},
 					},
 				},
-				Required: []string{"spec", "status"},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -9597,7 +9637,7 @@ func schema_openshift_api_config_v1_ImageList(ref common.ReferenceCallback) comm
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -9731,7 +9771,7 @@ func schema_openshift_api_config_v1_Infrastructure(ref common.ReferenceCallback)
 						},
 					},
 				},
-				Required: []string{"spec", "status"},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -9779,7 +9819,7 @@ func schema_openshift_api_config_v1_InfrastructureList(ref common.ReferenceCallb
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -9873,7 +9913,7 @@ func schema_openshift_api_config_v1_Ingress(ref common.ReferenceCallback) common
 						},
 					},
 				},
-				Required: []string{"spec", "status"},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -9920,7 +9960,7 @@ func schema_openshift_api_config_v1_IngressList(ref common.ReferenceCallback) co
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -10206,6 +10246,7 @@ func schema_openshift_api_config_v1_LeaderElection(ref common.ReferenceCallback)
 						},
 					},
 				},
+				Required: []string{"leaseDuration", "renewDeadline", "retryPeriod"},
 			},
 		},
 		Dependencies: []string{
@@ -10249,7 +10290,7 @@ func schema_openshift_api_config_v1_NamedCertificate(ref common.ReferenceCallbac
 						},
 					},
 				},
-				Required: []string{"names", "certFile", "keyFile"},
+				Required: []string{"certFile", "keyFile"},
 			},
 		},
 	}
@@ -10295,7 +10336,7 @@ func schema_openshift_api_config_v1_Network(ref common.ReferenceCallback) common
 						},
 					},
 				},
-				Required: []string{"spec", "status"},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -10342,7 +10383,7 @@ func schema_openshift_api_config_v1_NetworkList(ref common.ReferenceCallback) co
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -10494,7 +10535,7 @@ func schema_openshift_api_config_v1_OAuth(ref common.ReferenceCallback) common.O
 						},
 					},
 				},
-				Required: []string{"metadata", "spec", "status"},
+				Required: []string{"metadata", "spec"},
 			},
 		},
 		Dependencies: []string{
@@ -10540,7 +10581,7 @@ func schema_openshift_api_config_v1_OAuthList(ref common.ReferenceCallback) comm
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -10949,7 +10990,7 @@ func schema_openshift_api_config_v1_Project(ref common.ReferenceCallback) common
 						},
 					},
 				},
-				Required: []string{"spec", "status"},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -10996,7 +11037,7 @@ func schema_openshift_api_config_v1_ProjectList(ref common.ReferenceCallback) co
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -11123,7 +11164,7 @@ func schema_openshift_api_config_v1_ProxyList(ref common.ReferenceCallback) comm
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -11395,11 +11436,11 @@ func schema_openshift_api_config_v1_RequestHeaderIdentityProvider(ref common.Ref
 	}
 }
 
-func schema_openshift_api_config_v1_Scheduling(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_openshift_api_config_v1_Scheduler(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "Scheduling holds cluster-wide information about Scheduling.  The canonical name is `cluster`",
+				Description: "Scheduler holds cluster-wide information about Scheduler.  The canonical name is `cluster`",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -11425,25 +11466,25 @@ func schema_openshift_api_config_v1_Scheduling(ref common.ReferenceCallback) com
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Description: "spec holds user settable values for configuration",
-							Ref:         ref("github.com/openshift/api/config/v1.SchedulingSpec"),
+							Ref:         ref("github.com/openshift/api/config/v1.SchedulerSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Description: "status holds observed values from the cluster. They may not be overridden.",
-							Ref:         ref("github.com/openshift/api/config/v1.SchedulingStatus"),
+							Ref:         ref("github.com/openshift/api/config/v1.SchedulerStatus"),
 						},
 					},
 				},
-				Required: []string{"spec", "status"},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.SchedulingSpec", "github.com/openshift/api/config/v1.SchedulingStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/openshift/api/config/v1.SchedulerSpec", "github.com/openshift/api/config/v1.SchedulerStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_openshift_api_config_v1_SchedulingList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_openshift_api_config_v1_SchedulerList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -11475,22 +11516,22 @@ func schema_openshift_api_config_v1_SchedulingList(ref common.ReferenceCallback)
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/config/v1.Scheduling"),
+										Ref: ref("github.com/openshift/api/config/v1.Scheduler"),
 									},
 								},
 							},
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.Scheduling", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+			"github.com/openshift/api/config/v1.Scheduler", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
-func schema_openshift_api_config_v1_SchedulingSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_openshift_api_config_v1_SchedulerSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -11510,7 +11551,7 @@ func schema_openshift_api_config_v1_SchedulingSpec(ref common.ReferenceCallback)
 	}
 }
 
-func schema_openshift_api_config_v1_SchedulingStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_openshift_api_config_v1_SchedulerStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -11618,7 +11659,7 @@ func schema_openshift_api_config_v1_ServingInfo(ref common.ReferenceCallback) co
 						},
 					},
 				},
-				Required: []string{"bindAddress", "bindNetwork", "certFile", "keyFile", "clientCA", "namedCertificates"},
+				Required: []string{"bindAddress", "bindNetwork", "certFile", "keyFile"},
 			},
 		},
 		Dependencies: []string{
@@ -13698,7 +13739,7 @@ func schema_openshift_api_kubecontrolplane_v1_KubeAPIServerConfig(ref common.Ref
 						},
 					},
 				},
-				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admission", "admissionPluginConfig", "kubeClientConfig", "authConfig", "aggregatorConfig", "kubeletClientInfo", "servicesSubnet", "servicesNodePortRange", "consolePublicURL", "userAgentMatchingConfig", "imagePolicyConfig", "projectConfig", "serviceAccountPublicKeyFiles", "oauthConfig", "apiServerArguments"},
+				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admission", "kubeClientConfig", "authConfig", "aggregatorConfig", "kubeletClientInfo", "servicesSubnet", "servicesNodePortRange", "consolePublicURL", "userAgentMatchingConfig", "imagePolicyConfig", "projectConfig", "serviceAccountPublicKeyFiles", "oauthConfig", "apiServerArguments"},
 			},
 		},
 		Dependencies: []string{
@@ -20698,7 +20739,7 @@ func schema_openshift_api_openshiftcontrolplane_v1_OpenShiftAPIServerConfig(ref 
 						},
 					},
 				},
-				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admission", "admissionPluginConfig", "kubeClientConfig", "aggregatorConfig", "imagePolicyConfig", "projectConfig", "routingConfig", "serviceAccountOAuthGrantMethod", "jenkinsPipelineConfig", "cloudProviderFile", "apiServerArguments"},
+				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admission", "kubeClientConfig", "aggregatorConfig", "imagePolicyConfig", "projectConfig", "routingConfig", "serviceAccountOAuthGrantMethod", "jenkinsPipelineConfig", "cloudProviderFile", "apiServerArguments"},
 			},
 		},
 		Dependencies: []string{
@@ -21117,7 +21158,7 @@ func schema_openshift_api_operator_v1_AuthenticationList(ref common.ReferenceCal
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -21171,7 +21212,6 @@ func schema_openshift_api_operator_v1_AuthenticationSpec(ref common.ReferenceCal
 						},
 					},
 				},
-				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig"},
 			},
 		},
 		Dependencies: []string{
@@ -21348,7 +21388,7 @@ func schema_openshift_api_operator_v1_ConsoleList(ref common.ReferenceCallback) 
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -21408,7 +21448,6 @@ func schema_openshift_api_operator_v1_ConsoleSpec(ref common.ReferenceCallback) 
 						},
 					},
 				},
-				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig"},
 			},
 		},
 		Dependencies: []string{
@@ -21515,7 +21554,7 @@ func schema_openshift_api_operator_v1_Etcd(ref common.ReferenceCallback) common.
 						},
 					},
 				},
-				Required: []string{"metadata", "spec", "status"},
+				Required: []string{"metadata", "spec"},
 			},
 		},
 		Dependencies: []string{
@@ -21564,7 +21603,7 @@ func schema_openshift_api_operator_v1_EtcdList(ref common.ReferenceCallback) com
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -21639,7 +21678,7 @@ func schema_openshift_api_operator_v1_EtcdSpec(ref common.ReferenceCallback) com
 						},
 					},
 				},
-				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig", "forceRedeploymentReason"},
+				Required: []string{"forceRedeploymentReason"},
 			},
 		},
 		Dependencies: []string{
@@ -21721,7 +21760,7 @@ func schema_openshift_api_operator_v1_EtcdStatus(ref common.ReferenceCallback) c
 						},
 					},
 				},
-				Required: []string{"version", "readyReplicas", "generations", "latestAvailableRevision", "nodeStatuses"},
+				Required: []string{"version", "readyReplicas", "generations", "latestAvailableRevision"},
 			},
 		},
 		Dependencies: []string{
@@ -21822,7 +21861,7 @@ func schema_openshift_api_operator_v1_KubeAPIServer(ref common.ReferenceCallback
 						},
 					},
 				},
-				Required: []string{"metadata", "spec", "status"},
+				Required: []string{"metadata", "spec"},
 			},
 		},
 		Dependencies: []string{
@@ -21871,7 +21910,7 @@ func schema_openshift_api_operator_v1_KubeAPIServerList(ref common.ReferenceCall
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -21946,7 +21985,7 @@ func schema_openshift_api_operator_v1_KubeAPIServerSpec(ref common.ReferenceCall
 						},
 					},
 				},
-				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig", "forceRedeploymentReason"},
+				Required: []string{"forceRedeploymentReason"},
 			},
 		},
 		Dependencies: []string{
@@ -22028,7 +22067,7 @@ func schema_openshift_api_operator_v1_KubeAPIServerStatus(ref common.ReferenceCa
 						},
 					},
 				},
-				Required: []string{"version", "readyReplicas", "generations", "latestAvailableRevision", "nodeStatuses"},
+				Required: []string{"version", "readyReplicas", "generations", "latestAvailableRevision"},
 			},
 		},
 		Dependencies: []string{
@@ -22073,7 +22112,7 @@ func schema_openshift_api_operator_v1_KubeControllerManager(ref common.Reference
 						},
 					},
 				},
-				Required: []string{"metadata", "spec", "status"},
+				Required: []string{"metadata", "spec"},
 			},
 		},
 		Dependencies: []string{
@@ -22122,7 +22161,7 @@ func schema_openshift_api_operator_v1_KubeControllerManagerList(ref common.Refer
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -22197,7 +22236,7 @@ func schema_openshift_api_operator_v1_KubeControllerManagerSpec(ref common.Refer
 						},
 					},
 				},
-				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig", "forceRedeploymentReason"},
+				Required: []string{"forceRedeploymentReason"},
 			},
 		},
 		Dependencies: []string{
@@ -22279,7 +22318,7 @@ func schema_openshift_api_operator_v1_KubeControllerManagerStatus(ref common.Ref
 						},
 					},
 				},
-				Required: []string{"version", "readyReplicas", "generations", "latestAvailableRevision", "nodeStatuses"},
+				Required: []string{"version", "readyReplicas", "generations", "latestAvailableRevision"},
 			},
 		},
 		Dependencies: []string{
@@ -22324,7 +22363,7 @@ func schema_openshift_api_operator_v1_KubeScheduler(ref common.ReferenceCallback
 						},
 					},
 				},
-				Required: []string{"metadata", "spec", "status"},
+				Required: []string{"metadata", "spec"},
 			},
 		},
 		Dependencies: []string{
@@ -22373,7 +22412,7 @@ func schema_openshift_api_operator_v1_KubeSchedulerList(ref common.ReferenceCall
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -22448,7 +22487,7 @@ func schema_openshift_api_operator_v1_KubeSchedulerSpec(ref common.ReferenceCall
 						},
 					},
 				},
-				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig", "forceRedeploymentReason"},
+				Required: []string{"forceRedeploymentReason"},
 			},
 		},
 		Dependencies: []string{
@@ -22530,7 +22569,7 @@ func schema_openshift_api_operator_v1_KubeSchedulerStatus(ref common.ReferenceCa
 						},
 					},
 				},
-				Required: []string{"version", "readyReplicas", "generations", "latestAvailableRevision", "nodeStatuses"},
+				Required: []string{"version", "readyReplicas", "generations", "latestAvailableRevision"},
 			},
 		},
 		Dependencies: []string{
@@ -22629,7 +22668,6 @@ func schema_openshift_api_operator_v1_MyOperatorResourceSpec(ref common.Referenc
 						},
 					},
 				},
-				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig"},
 			},
 		},
 		Dependencies: []string{
@@ -22749,7 +22787,7 @@ func schema_openshift_api_operator_v1_NodeStatus(ref common.ReferenceCallback) c
 						},
 					},
 				},
-				Required: []string{"nodeName", "currentRevision", "targetRevision", "lastFailedRevision", "lastFailedRevisionErrors"},
+				Required: []string{"nodeName", "currentRevision"},
 			},
 		},
 	}
@@ -22792,7 +22830,7 @@ func schema_openshift_api_operator_v1_OpenShiftAPIServer(ref common.ReferenceCal
 						},
 					},
 				},
-				Required: []string{"metadata", "spec", "status"},
+				Required: []string{"metadata", "spec"},
 			},
 		},
 		Dependencies: []string{
@@ -22841,7 +22879,7 @@ func schema_openshift_api_operator_v1_OpenShiftAPIServerList(ref common.Referenc
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -22895,7 +22933,6 @@ func schema_openshift_api_operator_v1_OpenShiftAPIServerSpec(ref common.Referenc
 						},
 					},
 				},
-				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig"},
 			},
 		},
 		Dependencies: []string{
@@ -23002,7 +23039,7 @@ func schema_openshift_api_operator_v1_OpenShiftControllerManager(ref common.Refe
 						},
 					},
 				},
-				Required: []string{"metadata", "spec", "status"},
+				Required: []string{"metadata", "spec"},
 			},
 		},
 		Dependencies: []string{
@@ -23051,7 +23088,7 @@ func schema_openshift_api_operator_v1_OpenShiftControllerManagerList(ref common.
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -23105,7 +23142,6 @@ func schema_openshift_api_operator_v1_OpenShiftControllerManagerSpec(ref common.
 						},
 					},
 				},
-				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig"},
 			},
 		},
 		Dependencies: []string{
@@ -23244,7 +23280,7 @@ func schema_openshift_api_operator_v1_OperandSpec(ref common.ReferenceCallback) 
 						},
 					},
 				},
-				Required: []string{"name", "operandContainerSpecs", "unsupportedResourcePatches"},
+				Required: []string{"name"},
 			},
 		},
 		Dependencies: []string{
@@ -23344,7 +23380,6 @@ func schema_openshift_api_operator_v1_OperatorSpec(ref common.ReferenceCallback)
 						},
 					},
 				},
-				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig"},
 			},
 		},
 		Dependencies: []string{
@@ -23479,7 +23514,7 @@ func schema_openshift_api_operator_v1_ServiceCA(ref common.ReferenceCallback) co
 						},
 					},
 				},
-				Required: []string{"metadata", "spec", "status"},
+				Required: []string{"metadata", "spec"},
 			},
 		},
 		Dependencies: []string{
@@ -23528,7 +23563,7 @@ func schema_openshift_api_operator_v1_ServiceCAList(ref common.ReferenceCallback
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -23582,7 +23617,6 @@ func schema_openshift_api_operator_v1_ServiceCASpec(ref common.ReferenceCallback
 						},
 					},
 				},
-				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig"},
 			},
 		},
 		Dependencies: []string{
@@ -23689,6 +23723,7 @@ func schema_openshift_api_operator_v1_ServiceCatalogAPIServer(ref common.Referen
 						},
 					},
 				},
+				Required: []string{"spec"},
 			},
 		},
 		Dependencies: []string{
@@ -23737,7 +23772,7 @@ func schema_openshift_api_operator_v1_ServiceCatalogAPIServerList(ref common.Ref
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -23791,7 +23826,6 @@ func schema_openshift_api_operator_v1_ServiceCatalogAPIServerSpec(ref common.Ref
 						},
 					},
 				},
-				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig"},
 			},
 		},
 		Dependencies: []string{
@@ -23898,6 +23932,7 @@ func schema_openshift_api_operator_v1_ServiceCatalogControllerManager(ref common
 						},
 					},
 				},
+				Required: []string{"metadata", "spec"},
 			},
 		},
 		Dependencies: []string{
@@ -23946,7 +23981,7 @@ func schema_openshift_api_operator_v1_ServiceCatalogControllerManagerList(ref co
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -24000,7 +24035,6 @@ func schema_openshift_api_operator_v1_ServiceCatalogControllerManagerSpec(ref co
 						},
 					},
 				},
-				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig"},
 			},
 		},
 		Dependencies: []string{
@@ -24131,7 +24165,6 @@ func schema_openshift_api_operator_v1_StaticPodOperatorSpec(ref common.Reference
 						},
 					},
 				},
-				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig"},
 			},
 		},
 		Dependencies: []string{
@@ -24214,7 +24247,7 @@ func schema_openshift_api_operator_v1_StaticPodOperatorStatus(ref common.Referen
 						},
 					},
 				},
-				Required: []string{"version", "readyReplicas", "generations", "latestAvailableRevision", "nodeStatuses"},
+				Required: []string{"version", "readyReplicas", "generations", "latestAvailableRevision"},
 			},
 		},
 		Dependencies: []string{
@@ -25791,7 +25824,7 @@ func schema_openshift_api_osin_v1_OsinServerConfig(ref common.ReferenceCallback)
 						},
 					},
 				},
-				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admission", "admissionPluginConfig", "kubeClientConfig", "oauthConfig"},
+				Required: []string{"servingInfo", "corsAllowedOrigins", "auditConfig", "storageConfig", "admission", "kubeClientConfig", "oauthConfig"},
 			},
 		},
 		Dependencies: []string{
@@ -27933,7 +27966,7 @@ func schema_openshift_api_servicecertsigner_v1alpha1_APIServiceCABundleInjectorC
 						},
 					},
 				},
-				Required: []string{"caBundleFile"},
+				Required: []string{"servingInfo", "leaderElection", "authentication", "authorization", "caBundleFile"},
 			},
 		},
 		Dependencies: []string{
@@ -27994,7 +28027,7 @@ func schema_openshift_api_servicecertsigner_v1alpha1_ConfigMapCABundleInjectorCo
 						},
 					},
 				},
-				Required: []string{"caBundleFile"},
+				Required: []string{"servingInfo", "leaderElection", "authentication", "authorization", "caBundleFile"},
 			},
 		},
 		Dependencies: []string{
@@ -28160,7 +28193,7 @@ func schema_openshift_api_servicecertsigner_v1alpha1_ServiceCertSignerOperatorCo
 						},
 					},
 				},
-				Required: []string{"managementState", "logLevel", "operandSpecs", "unsupportedConfigOverrides", "observedConfig", "serviceServingCertSignerConfig", "apiServiceCABundleInjectorConfig", "configMapCABundleInjectorConfig"},
+				Required: []string{"serviceServingCertSignerConfig", "apiServiceCABundleInjectorConfig", "configMapCABundleInjectorConfig"},
 			},
 		},
 		Dependencies: []string{
@@ -28282,7 +28315,7 @@ func schema_openshift_api_servicecertsigner_v1alpha1_ServiceServingCertSignerCon
 						},
 					},
 				},
-				Required: []string{"signer"},
+				Required: []string{"servingInfo", "leaderElection", "authentication", "authorization", "signer"},
 			},
 		},
 		Dependencies: []string{

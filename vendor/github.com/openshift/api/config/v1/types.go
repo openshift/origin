@@ -49,9 +49,10 @@ type ServingInfo struct {
 	// this is anonymous so that we can inline it for serialization
 	CertInfo `json:",inline"`
 	// ClientCA is the certificate bundle for all the signers that you'll recognize for incoming client certificates
-	ClientCA string `json:"clientCA"`
+	// +optional
+	ClientCA string `json:"clientCA,omitempty"`
 	// NamedCertificates is a list of certificates to use to secure requests to specific hostnames
-	NamedCertificates []NamedCertificate `json:"namedCertificates"`
+	NamedCertificates []NamedCertificate `json:"namedCertificates,omitempty"`
 	// MinTLSVersion is the minimum TLS version supported.
 	// Values must match version names from https://golang.org/pkg/crypto/tls/#pkg-constants
 	MinTLSVersion string `json:"minTLSVersion,omitempty"`
@@ -72,7 +73,7 @@ type CertInfo struct {
 type NamedCertificate struct {
 	// Names is a list of DNS names this certificate should be used to secure
 	// A name can be a normal DNS name, or can contain leading wildcard segments.
-	Names []string `json:"names"`
+	Names []string `json:"names,omitempty"`
 	// CertInfo is the TLS cert info for serving secure traffic
 	CertInfo `json:",inline"`
 }
@@ -92,16 +93,19 @@ type LeaderElection struct {
 	// maximum duration that a leader can be stopped before it is replaced
 	// by another candidate. This is only applicable if leader election is
 	// enabled.
-	LeaseDuration metav1.Duration `json:"leaseDuration,omitempty"`
+	// +nullable
+	LeaseDuration metav1.Duration `json:"leaseDuration"`
 	// renewDeadline is the interval between attempts by the acting master to
 	// renew a leadership slot before it stops leading. This must be less
 	// than or equal to the lease duration. This is only applicable if leader
 	// election is enabled.
-	RenewDeadline metav1.Duration `json:"renewDeadline,omitempty"`
+	// +nullable
+	RenewDeadline metav1.Duration `json:"renewDeadline"`
 	// retryPeriod is the duration the clients should wait between attempting
 	// acquisition and renewal of a leadership. This is only applicable if
 	// leader election is enabled.
-	RetryPeriod metav1.Duration `json:"retryPeriod,omitempty"`
+	// +nullable
+	RetryPeriod metav1.Duration `json:"retryPeriod"`
 }
 
 // StringSource allows specifying a string inline, or externally via env var or file.
@@ -138,16 +142,16 @@ type RemoteConnectionInfo struct {
 }
 
 type AdmissionConfig struct {
-	PluginConfig map[string]AdmissionPluginConfig `json:"pluginConfig"`
+	PluginConfig map[string]AdmissionPluginConfig `json:"pluginConfig,omitempty"`
 
 	// enabledPlugins is a list of admission plugins that must be on in addition to the default list.
 	// Some admission plugins are disabled by default, but certain configurations require them.  This is fairly uncommon
 	// and can result in performance penalties and unexpected behavior.
-	EnabledAdmissionPlugins []string `json:"enabledPlugins"`
+	EnabledAdmissionPlugins []string `json:"enabledPlugins,omitempty"`
 
 	// disabledPlugins is a list of admission plugins that must be off.  Putting something in this list
 	// is almost always a mistake and likely to result in cluster instability.
-	DisabledAdmissionPlugins []string `json:"disabledPlugins"`
+	DisabledAdmissionPlugins []string `json:"disabledPlugins,omitempty"`
 }
 
 // AdmissionPluginConfig holds the necessary configuration options for admission plugins
@@ -158,6 +162,7 @@ type AdmissionPluginConfig struct {
 
 	// Configuration is an embedded configuration object to be used as the plugin's
 	// configuration. If present, it will be used instead of the path to the configuration file.
+	// +nullable
 	Configuration runtime.RawExtension `json:"configuration"`
 }
 
@@ -200,6 +205,7 @@ type AuditConfig struct {
 	// PolicyConfiguration is an embedded policy configuration object to be used
 	// as the audit policy configuration. If present, it will be used instead of
 	// the path to the policy file.
+	// +nullable
 	PolicyConfiguration runtime.RawExtension `json:"policyConfiguration"`
 
 	// Format of saved audits (legacy or json).
@@ -214,7 +220,7 @@ type AuditConfig struct {
 // EtcdConnectionInfo holds information necessary for connecting to an etcd server
 type EtcdConnectionInfo struct {
 	// URLs are the URLs for etcd
-	URLs []string `json:"urls"`
+	URLs []string `json:"urls,omitempty"`
 	// CA is a file containing trusted roots for the etcd server certificates
 	CA string `json:"ca"`
 	// CertInfo is the TLS client cert information for securing communication to etcd
@@ -249,7 +255,7 @@ type GenericAPIServerConfig struct {
 	AdmissionConfig AdmissionConfig `json:"admission"`
 
 	// TODO remove this.  We need a cut-over or we'll have a gap.
-	AdmissionPluginConfig map[string]AdmissionPluginConfig `json:"admissionPluginConfig"`
+	AdmissionPluginConfig map[string]AdmissionPluginConfig `json:"admissionPluginConfig,omitempty"`
 
 	KubeClientConfig KubeClientConfig `json:"kubeClientConfig"`
 }
@@ -279,15 +285,15 @@ type ClientConnectionOverrides struct {
 // GenericControllerConfig provides information to configure a controller
 type GenericControllerConfig struct {
 	// ServingInfo is the HTTP serving information for the controller's endpoints
-	ServingInfo HTTPServingInfo `json:"servingInfo,omitempty"`
+	ServingInfo HTTPServingInfo `json:"servingInfo"`
 
 	// leaderElection provides information to elect a leader. Only override this if you have a specific need
-	LeaderElection LeaderElection `json:"leaderElection,omitempty"`
+	LeaderElection LeaderElection `json:"leaderElection"`
 
 	// authentication allows configuration of authentication for the endpoints
-	Authentication DelegatedAuthentication `json:"authentication,omitempty"`
+	Authentication DelegatedAuthentication `json:"authentication"`
 	// authorization allows configuration of authentication for the endpoints
-	Authorization DelegatedAuthorization `json:"authorization,omitempty"`
+	Authorization DelegatedAuthorization `json:"authorization"`
 }
 
 // DelegatedAuthentication allows authentication to be disabled.

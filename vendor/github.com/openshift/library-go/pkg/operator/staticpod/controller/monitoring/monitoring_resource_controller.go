@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/openshift/library-go/pkg/operator/management"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 
 	"github.com/golang/glog"
@@ -98,11 +99,7 @@ func (c MonitoringResourceController) sync() error {
 		return err
 	}
 
-	switch operatorSpec.ManagementState {
-	case operatorv1.Unmanaged:
-		return nil
-	case operatorv1.Removed:
-		// TODO: Should we try to actively remove the resources created by this controller here?
+	if !management.IsOperatorManaged(operatorSpec.ManagementState) {
 		return nil
 	}
 

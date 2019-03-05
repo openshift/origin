@@ -14,8 +14,8 @@ type Build struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// Spec holds user-settable values for the build controller configuration
-	// +optional
-	Spec BuildSpec `json:"spec,omitempty"`
+	// +required
+	Spec BuildSpec `json:"spec"`
 }
 
 type BuildSpec struct {
@@ -23,13 +23,13 @@ type BuildSpec struct {
 	// should be trusted for image pushes and pulls during builds.
 	// The namespace for this config map is openshift-config.
 	// +optional
-	AdditionalTrustedCA ConfigMapNameReference `json:"additionalTrustedCA,omitempty"`
+	AdditionalTrustedCA ConfigMapNameReference `json:"additionalTrustedCA"`
 	// BuildDefaults controls the default information for Builds
 	// +optional
-	BuildDefaults BuildDefaults `json:"buildDefaults,omitempty"`
+	BuildDefaults BuildDefaults `json:"buildDefaults"`
 	// BuildOverrides controls override settings for builds
 	// +optional
-	BuildOverrides BuildOverrides `json:"buildOverrides,omitempty"`
+	BuildOverrides BuildOverrides `json:"buildOverrides"`
 }
 
 type BuildDefaults struct {
@@ -61,7 +61,7 @@ type BuildDefaults struct {
 
 	// Resources defines resource requirements to execute the build.
 	// +optional
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+	Resources corev1.ResourceRequirements `json:"resources"`
 }
 
 type ImageLabel struct {
@@ -95,6 +95,6 @@ type BuildOverrides struct {
 type BuildList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 	Items           []Build `json:"items"`
 }

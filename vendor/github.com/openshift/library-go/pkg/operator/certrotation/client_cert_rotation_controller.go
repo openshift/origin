@@ -15,10 +15,14 @@ import (
 )
 
 const (
-	// CertificateExpiryAnnotation contains the certificate expiration date in RFC3339 format.
-	CertificateExpiryAnnotation = "auth.openshift.io/certificate-expiry-date"
-	// CertificateSignedBy contains the common name of the certificate that signed another certificate.
-	CertificateSignedBy = "auth.openshift.io/certificate-signed-by"
+	// CertificateNotBeforeAnnotation contains the certificate expiration date in RFC3339 format.
+	CertificateNotBeforeAnnotation = "auth.openshift.io/certificate-not-before"
+	// CertificateNotAfterAnnotation contains the certificate expiration date in RFC3339 format.
+	CertificateNotAfterAnnotation = "auth.openshift.io/certificate-not-after"
+	// CertificateIssuer contains the common name of the certificate that signed another certificate.
+	CertificateIssuer = "auth.openshift.io/certificate-issuer"
+	// CertificateHostnames contains the hostnames used by a signer.
+	CertificateHostnames = "auth.openshift.io/certificate-hostnames"
 )
 
 const workQueueKey = "key"
@@ -52,11 +56,9 @@ func NewCertRotationController(
 	targetRotation TargetRotation,
 	operatorClient v1helpers.StaticPodOperatorClient,
 ) (*CertRotationController, error) {
-	if !isOverlapSufficient(signingRotation, targetRotation) {
-		return nil, fmt.Errorf("insufficient overlap between signer and target")
-	}
-
 	ret := &CertRotationController{
+		name: name,
+
 		SigningRotation:  signingRotation,
 		CABundleRotation: caBundleRotation,
 		TargetRotation:   targetRotation,
@@ -76,16 +78,6 @@ func NewCertRotationController(
 	targetRotation.Informer.Informer().AddEventHandler(ret.eventHandler())
 
 	return ret, nil
-}
-
-func isOverlapSufficient(signingRotation SigningRotation, targetRotation TargetRotation) bool {
-	targetRefreshOverlap := float32(targetRotation.Validity) * (1 - targetRotation.RefreshPercentage)
-	requiredSignerAge := targetRefreshOverlap / 10
-	signerRefreshOverlap := float32(signingRotation.Validity) * (signingRotation.RefreshPercentage)
-	if signerRefreshOverlap < requiredSignerAge*2 {
-		return false
-	}
-	return true
 }
 
 func (c CertRotationController) sync() error {
@@ -156,6 +148,22 @@ func (c *CertRotationController) Run(workers int, stopCh <-chan struct{}) {
 
 	}, time.Minute, stopCh)
 
+	// if we have a need to force rechecking the cert, use this channel to do it.
+	if refresher, ok := c.TargetRotation.CertCreator.(TargetCertRechecker); ok {
+		targetRefresh := refresher.RecheckChannel()
+		go wait.Until(func() {
+			for {
+				select {
+				case <-targetRefresh:
+					c.queue.Add(workQueueKey)
+				case <-stopCh:
+					return
+				}
+			}
+
+		}, time.Minute, stopCh)
+	}
+
 	<-stopCh
 }
 
@@ -177,7 +185,7 @@ func (c *CertRotationController) processNextWorkItem() bool {
 		return true
 	}
 
-	utilruntime.HandleError(fmt.Errorf("%v failed with : %v", dsKey, err))
+	utilruntime.HandleError(fmt.Errorf("%v: %v failed with: %v", c.name, dsKey, err))
 	c.queue.AddRateLimited(dsKey)
 
 	return true

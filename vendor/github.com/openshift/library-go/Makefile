@@ -2,7 +2,7 @@ all: build
 .PHONY: all
 
 # All the go packages (e.g. for verfy)
-GO_PACKAGES :=./pkg/...
+GO_PACKAGES :=./pkg/... ./cmd/...
 # Packages to be compiled
 GO_BUILD_PACKAGES :=$(GO_PACKAGES)
 # Do not auto-expand packages for libraries or it would compile them separately

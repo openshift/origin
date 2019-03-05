@@ -11,10 +11,10 @@ import (
 	rest "k8s.io/client-go/rest"
 )
 
-// DNSsGetter has a method to return a DNSInterface.
+// DNSesGetter has a method to return a DNSInterface.
 // A group's client should implement this interface.
-type DNSsGetter interface {
-	DNSs() DNSInterface
+type DNSesGetter interface {
+	DNSes() DNSInterface
 }
 
 // DNSInterface has methods to work with DNS resources.
@@ -31,23 +31,23 @@ type DNSInterface interface {
 	DNSExpansion
 }
 
-// dNSs implements DNSInterface
-type dNSs struct {
+// dNSes implements DNSInterface
+type dNSes struct {
 	client rest.Interface
 }
 
-// newDNSs returns a DNSs
-func newDNSs(c *ConfigV1Client) *dNSs {
-	return &dNSs{
+// newDNSes returns a DNSes
+func newDNSes(c *ConfigV1Client) *dNSes {
+	return &dNSes{
 		client: c.RESTClient(),
 	}
 }
 
 // Get takes name of the dNS, and returns the corresponding dNS object, and an error if there is any.
-func (c *dNSs) Get(name string, options meta_v1.GetOptions) (result *v1.DNS, err error) {
+func (c *dNSes) Get(name string, options meta_v1.GetOptions) (result *v1.DNS, err error) {
 	result = &v1.DNS{}
 	err = c.client.Get().
-		Resource("dnss").
+		Resource("dnses").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
 		Do().
@@ -55,31 +55,31 @@ func (c *dNSs) Get(name string, options meta_v1.GetOptions) (result *v1.DNS, err
 	return
 }
 
-// List takes label and field selectors, and returns the list of DNSs that match those selectors.
-func (c *dNSs) List(opts meta_v1.ListOptions) (result *v1.DNSList, err error) {
+// List takes label and field selectors, and returns the list of DNSes that match those selectors.
+func (c *dNSes) List(opts meta_v1.ListOptions) (result *v1.DNSList, err error) {
 	result = &v1.DNSList{}
 	err = c.client.Get().
-		Resource("dnss").
+		Resource("dnses").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return
 }
 
-// Watch returns a watch.Interface that watches the requested dNSs.
-func (c *dNSs) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+// Watch returns a watch.Interface that watches the requested dNSes.
+func (c *dNSes) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
-		Resource("dnss").
+		Resource("dnses").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
 }
 
 // Create takes the representation of a dNS and creates it.  Returns the server's representation of the dNS, and an error, if there is any.
-func (c *dNSs) Create(dNS *v1.DNS) (result *v1.DNS, err error) {
+func (c *dNSes) Create(dNS *v1.DNS) (result *v1.DNS, err error) {
 	result = &v1.DNS{}
 	err = c.client.Post().
-		Resource("dnss").
+		Resource("dnses").
 		Body(dNS).
 		Do().
 		Into(result)
@@ -87,10 +87,10 @@ func (c *dNSs) Create(dNS *v1.DNS) (result *v1.DNS, err error) {
 }
 
 // Update takes the representation of a dNS and updates it. Returns the server's representation of the dNS, and an error, if there is any.
-func (c *dNSs) Update(dNS *v1.DNS) (result *v1.DNS, err error) {
+func (c *dNSes) Update(dNS *v1.DNS) (result *v1.DNS, err error) {
 	result = &v1.DNS{}
 	err = c.client.Put().
-		Resource("dnss").
+		Resource("dnses").
 		Name(dNS.Name).
 		Body(dNS).
 		Do().
@@ -101,10 +101,10 @@ func (c *dNSs) Update(dNS *v1.DNS) (result *v1.DNS, err error) {
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 
-func (c *dNSs) UpdateStatus(dNS *v1.DNS) (result *v1.DNS, err error) {
+func (c *dNSes) UpdateStatus(dNS *v1.DNS) (result *v1.DNS, err error) {
 	result = &v1.DNS{}
 	err = c.client.Put().
-		Resource("dnss").
+		Resource("dnses").
 		Name(dNS.Name).
 		SubResource("status").
 		Body(dNS).
@@ -114,9 +114,9 @@ func (c *dNSs) UpdateStatus(dNS *v1.DNS) (result *v1.DNS, err error) {
 }
 
 // Delete takes name of the dNS and deletes it. Returns an error if one occurs.
-func (c *dNSs) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *dNSes) Delete(name string, options *meta_v1.DeleteOptions) error {
 	return c.client.Delete().
-		Resource("dnss").
+		Resource("dnses").
 		Name(name).
 		Body(options).
 		Do().
@@ -124,9 +124,9 @@ func (c *dNSs) Delete(name string, options *meta_v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *dNSs) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *dNSes) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	return c.client.Delete().
-		Resource("dnss").
+		Resource("dnses").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
 		Do().
@@ -134,10 +134,10 @@ func (c *dNSs) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta
 }
 
 // Patch applies the patch and returns the patched dNS.
-func (c *dNSs) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.DNS, err error) {
+func (c *dNSes) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.DNS, err error) {
 	result = &v1.DNS{}
 	err = c.client.Patch(pt).
-		Resource("dnss").
+		Resource("dnses").
 		SubResource(subresources...).
 		Name(name).
 		Body(data).

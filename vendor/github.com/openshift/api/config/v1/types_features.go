@@ -13,14 +13,19 @@ type Features struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
+	// +required
 	Spec FeaturesSpec `json:"spec"`
 	// status holds observed values from the cluster. They may not be overridden.
+	// +optional
 	Status FeaturesStatus `json:"status"`
 }
 
 type FeatureSet string
 
 var (
+	// Default feature set that allows upgrades.
+	Default FeatureSet = ""
+
 	// TechPreviewNoUpgrade turns on tech preview features that are not part of the normal supported platform. Turning
 	// this feature set on CANNOT BE UNDONE and PREVENTS UPGRADES.
 	TechPreviewNoUpgrade FeatureSet = "TechPreviewNoUpgrade"
@@ -40,26 +45,32 @@ type FeaturesStatus struct {
 type FeaturesList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 	Items           []Features `json:"items"`
 }
 
-var (
-	// TechPreviewEnabledKubeFeatures  is a list of features to turn on when TechPreviewNoUpgrade is turned on.  Only the exceptions
-	// are listed here.  The feature gates left in their default state not listed.
-	TechPreviewEnabledKubeFeatures = []string{}
+type FeatureEnabledDisabled struct {
+	Enabled  []string
+	Disabled []string
+}
 
-	// TechPreviewDisabledKubeFeatures is a list of features to turn on when TechPreviewNoUpgrade is turned on.  Only the exceptions
-	// are listed here.  The feature gates left in their default state not listed.
-	TechPreviewDisabledKubeFeatures = []string{}
-
-	// DefaultEnabledKubeFeatures is a list of features to turn on when the default featureset is turned on.  Only the exceptions
-	// are listed here.  The feature gates left in their default state not listed.
-	DefaultEnabledKubeFeatures = []string{}
-
-	// DefaultDisabledKubeFeatures is a list of features to turn off when the default featureset is turned on.  Only the exceptions
-	// are listed here.  The feature gates left in their default state not listed.
-	DefaultDisabledKubeFeatures = []string{
-		"PersistentLocalVolumes", // disable local volumes for 4.0, owned by sig-storage/hekumar@redhat.com
-	}
-)
+// FeatureSets Contains a map of Feature names to Enabled/Disabled Features.
+//
+// NOTE: The caller needs to make sure to check for the existence of the value
+// using golang's existence field. A possible scenario is an upgrade where new
+// FeatureSets are added and a controller has not been upgraded with a newer
+// version of this file. In this upgrade scenario the map could return nil.
+//
+// example:
+//   if featureSet, ok := FeaturesSets["SomeNewFeature"]; ok { }
+//
+var FeatureSets = map[FeatureSet]*FeatureEnabledDisabled{
+	Default: &FeatureEnabledDisabled{
+		Enabled:  []string{},
+		Disabled: []string{"PersistentLocalVolumes"},
+	},
+	TechPreviewNoUpgrade: &FeatureEnabledDisabled{
+		Enabled:  []string{},
+		Disabled: []string{},
+	},
+}

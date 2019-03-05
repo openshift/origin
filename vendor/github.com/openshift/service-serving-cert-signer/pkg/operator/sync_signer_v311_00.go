@@ -111,7 +111,7 @@ func manageSigningSecret_v311_00_to_latest(client coreclientv1.SecretsGetter) (*
 		return existing, false, err
 	}
 
-	ca, err := crypto.MakeCAConfig(serviceServingCertSignerName(), 10)
+	ca, err := crypto.MakeCAConfig(serviceServingCertSignerName(), 365)
 	if err != nil {
 		return existing, false, err
 	}

@@ -13,7 +13,9 @@ type Authentication struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +required
 	Spec   AuthenticationSpec   `json:"spec,omitempty"`
+	// +optional
 	Status AuthenticationStatus `json:"status,omitempty"`
 }
 
@@ -30,7 +32,7 @@ type AuthenticationStatus struct {
 // AuthenticationList is a collection of items
 type AuthenticationList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 
 	Items []Authentication `json:"items"`
 }

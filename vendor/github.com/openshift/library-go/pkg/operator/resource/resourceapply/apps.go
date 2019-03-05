@@ -16,6 +16,10 @@ import (
 // ApplyDeployment merges objectmeta and requires matching generation. It returns the final Object, whether any change as made, and an error
 func ApplyDeployment(client appsclientv1.DeploymentsGetter, recorder events.Recorder, required *appsv1.Deployment, expectedGeneration int64,
 	forceRollout bool) (*appsv1.Deployment, bool, error) {
+	if required.Annotations == nil {
+		required.Annotations = map[string]string{}
+	}
+	required.Annotations["operator.openshift.io/pull-spec"] = required.Spec.Template.Spec.Containers[0].Image
 	existing, err := client.Deployments(required.Namespace).Get(required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		actual, err := client.Deployments(required.Namespace).Create(required)
@@ -62,6 +66,10 @@ func ApplyDeployment(client appsclientv1.DeploymentsGetter, recorder events.Reco
 
 // ApplyDaemonSet merges objectmeta and requires matching generation. It returns the final Object, whether any change as made, and an error
 func ApplyDaemonSet(client appsclientv1.DaemonSetsGetter, recorder events.Recorder, required *appsv1.DaemonSet, expectedGeneration int64, forceRollout bool) (*appsv1.DaemonSet, bool, error) {
+	if required.Annotations == nil {
+		required.Annotations = map[string]string{}
+	}
+	required.Annotations["operator.openshift.io/pull-spec"] = required.Spec.Template.Spec.Containers[0].Image
 	existing, err := client.DaemonSets(required.Namespace).Get(required.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		actual, err := client.DaemonSets(required.Namespace).Create(required)

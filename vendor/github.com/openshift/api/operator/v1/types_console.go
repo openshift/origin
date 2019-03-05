@@ -10,7 +10,9 @@ type Console struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +required
 	Spec   ConsoleSpec   `json:"spec,omitempty"`
+	// +optional
 	Status ConsoleStatus `json:"status,omitempty"`
 }
 
@@ -18,7 +20,8 @@ type ConsoleSpec struct {
 	OperatorSpec `json:",inline"`
 	// customization is used to optionally provide a small set of
 	// customization options to the web console.
-	Customization ConsoleCustomization `json:"customization,omitempty"`
+	// +optional
+	Customization ConsoleCustomization `json:"customization"`
 }
 
 type ConsoleStatus struct {
@@ -58,7 +61,7 @@ const (
 
 type ConsoleList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 
 	Items []Console `json:"items"`
 }

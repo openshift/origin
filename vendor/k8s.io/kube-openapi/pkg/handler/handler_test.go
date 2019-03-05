@@ -2,14 +2,12 @@ package handler
 
 import (
 	"io/ioutil"
-	"math"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"sort"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/go-openapi/spec"
 	json "github.com/json-iterator/go"
 	yaml "gopkg.in/yaml.v2"
@@ -100,13 +98,6 @@ func TestRegisterOpenAPIVersionedService(t *testing.T) {
 }
 
 func TestJsonToYAML(t *testing.T) {
-	intOrInt64 := func(i64 int64) interface{} {
-		if i := int(i64); i64 == int64(i) {
-			return i
-		}
-		return i64
-	}
-
 	tests := []struct {
 		name     string
 		input    map[string]interface{}
@@ -117,28 +108,20 @@ func TestJsonToYAML(t *testing.T) {
 		{
 			"values",
 			map[string]interface{}{
-				"bool":         true,
-				"float64":      float64(42.1),
-				"fractionless": float64(42),
-				"int":          int(42),
-				"int64":        int64(42),
-				"int64 big":    float64(math.Pow(2, 62)),
-				"map":          map[string]interface{}{"foo": "bar"},
-				"slice":        []interface{}{"foo", "bar"},
-				"string":       string("foo"),
-				"uint64 big":   float64(math.Pow(2, 63)),
+				"int64":   int64(42),
+				"float64": float64(42.0),
+				"string":  string("foo"),
+				"bool":    true,
+				"slice":   []interface{}{"foo", "bar"},
+				"map":     map[string]interface{}{"foo": "bar"},
 			},
 			yaml.MapSlice{
-				{"bool", true},
-				{"float64", float64(42.1)},
-				{"fractionless", int(42)},
-				{"int", int(42)},
-				{"int64", int(42)},
-				{"int64 big", intOrInt64(int64(1) << 62)},
-				{"map", yaml.MapSlice{{"foo", "bar"}}},
-				{"slice", []interface{}{"foo", "bar"}},
+				{"int64", int64(42)},
+				{"float64", float64(42.0)},
 				{"string", string("foo")},
-				{"uint64 big", uint64(1) << 63},
+				{"bool", true},
+				{"slice", []interface{}{"foo", "bar"}},
+				{"map", yaml.MapSlice{{"foo", "bar"}}},
 			},
 		},
 	}
@@ -148,7 +131,7 @@ func TestJsonToYAML(t *testing.T) {
 			sortMapSlicesInPlace(tt.expected)
 			sortMapSlicesInPlace(got)
 			if !reflect.DeepEqual(got, tt.expected) {
-				t.Errorf("jsonToYAML() = %v, want %v", spew.Sdump(got), spew.Sdump(tt.expected))
+				t.Errorf("jsonToYAML() = %v, want %v", got, tt.expected)
 			}
 		})
 	}
