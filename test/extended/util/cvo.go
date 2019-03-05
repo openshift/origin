@@ -21,9 +21,11 @@ import (
 //
 // If a ClusterVersion reports it is failing, this will abort with an error.
 func WaitForClusterProgression(cv configclientv1.ClusterOperatorsGetter) error {
-	return wait.Poll(6*time.Second, 10*time.Minute, func() (bool, error) {
+	success := 0
+	return wait.Poll(10*time.Second, 10*time.Minute, func() (bool, error) {
 		clusterOperators, err := cv.ClusterOperators().List(metav1.ListOptions{})
 		if err != nil {
+			success = 0
 			// Wait if underlying service is unavailable - indicates apiserver churn
 			if errors.IsServiceUnavailable(err) {
 				return false, nil
@@ -36,22 +38,26 @@ func WaitForClusterProgression(cv configclientv1.ClusterOperatorsGetter) error {
 				case configv1.OperatorFailing:
 					if status.Status == configv1.ConditionTrue {
 						// Operator is failing - abort with error
+						success = 0
 						return false, fmt.Errorf("operator %s is failing due to %s: %s", op.Name, status.Reason, status.Message)
 					}
 				case configv1.OperatorAvailable:
 					if status.Status == configv1.ConditionFalse {
 						// Operator is not available - not ready
+						success = 0
 						return false, nil
 					}
 				case configv1.OperatorProgressing:
 					if status.Status == configv1.ConditionTrue {
 						// Operator is progressing - not ready
+						success = 0
 						return false, nil
 					}
 				}
 			}
 		}
-		return true, nil
+		success++
+		return success > 2, nil
 	})
 
 }
