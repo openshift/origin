@@ -22,6 +22,8 @@ import (
 	"net/url"
 	"time"
 
+	"k8s.io/client-go/transport"
+
 	"github.com/golang/glog"
 
 	"k8s.io/api/core/v1"
@@ -37,7 +39,6 @@ import (
 	v1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/transport"
 	"k8s.io/client-go/util/workqueue"
 
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
@@ -46,6 +47,8 @@ import (
 	listers "k8s.io/kube-aggregator/pkg/client/listers/apiregistration/internalversion"
 	"k8s.io/kube-aggregator/pkg/controllers"
 )
+
+type certFunc func() []byte
 
 type ServiceResolver interface {
 	ResolveEndpoint(namespace, name string) (*url.URL, error)
@@ -64,7 +67,9 @@ type AvailableConditionController struct {
 	endpointsLister v1listers.EndpointsLister
 	endpointsSynced cache.InformerSynced
 
-	discoveryClient *http.Client
+	proxyTransport  *http.Transport
+	proxyClientCert certFunc
+	proxyClientKey  certFunc
 	serviceResolver ServiceResolver
 
 	// To allow injection for testing.
@@ -79,8 +84,8 @@ func NewAvailableConditionController(
 	endpointsInformer v1informers.EndpointsInformer,
 	apiServiceClient apiregistrationclient.APIServicesGetter,
 	proxyTransport *http.Transport,
-	proxyClientCert []byte,
-	proxyClientKey []byte,
+	proxyClientCert certFunc,
+	proxyClientKey certFunc,
 	serviceResolver ServiceResolver,
 ) *AvailableConditionController {
 	c := &AvailableConditionController{
@@ -98,30 +103,10 @@ func NewAvailableConditionController(
 			// the maximum disruption time to a minimum, but it does prevent hot loops.
 			workqueue.NewItemExponentialFailureRateLimiter(5*time.Millisecond, 30*time.Second),
 			"AvailableConditionController"),
+		proxyTransport:  proxyTransport,
+		proxyClientCert: proxyClientCert,
+		proxyClientKey:  proxyClientKey,
 	}
-
-	// construct an http client that will ignore TLS verification (if someone owns the network and messes with your status
-	// that's not so bad) and sets a very short timeout.
-	restConfig := &rest.Config{
-		TLSClientConfig: rest.TLSClientConfig{
-			Insecure: true,
-			CertData: proxyClientCert,
-			KeyData:  proxyClientKey,
-		},
-	}
-	transport, err := rest.TransportFor(restConfig)
-	if err != nil {
-		panic(err)
-	}
-	discoveryClient := &http.Client{
-		Transport: transport,
-		// the request should happen quickly.
-		Timeout: 5 * time.Second,
-	}
-	if proxyTransport != nil {
-		discoveryClient.Transport = proxyTransport
-	}
-	c.discoveryClient = discoveryClient
 
 	// resync on this one because it is low cardinality and rechecking the actual discovery
 	// allows us to detect health in a more timely fashion when network connectivity to
@@ -159,6 +144,28 @@ func (c *AvailableConditionController) sync(key string) error {
 	}
 	if err != nil {
 		return err
+	}
+
+	// construct an http client that will ignore TLS verification (if someone owns the network and messes with your status
+	// that's not so bad) and sets a very short timeout.
+	restConfig := &rest.Config{
+		TLSClientConfig: rest.TLSClientConfig{
+			Insecure: true,
+			CertData: c.proxyClientCert(),
+			KeyData:  c.proxyClientKey(),
+		},
+	}
+	restTransport, err := rest.TransportFor(restConfig)
+	if err != nil {
+		panic(err)
+	}
+	discoveryClient := &http.Client{
+		Transport: restTransport,
+		// the request should happen quickly.
+		Timeout: 5 * time.Second,
+	}
+	if c.proxyTransport != nil {
+		discoveryClient.Transport = c.proxyTransport
 	}
 
 	apiService := originalAPIService.DeepCopy()
@@ -263,7 +270,7 @@ func (c *AvailableConditionController) sync(key string) error {
 					}
 
 					transport.SetAuthProxyHeaders(newReq, "system:kube-aggregator", []string{"system:masters"}, nil)
-					resp, err := c.discoveryClient.Do(newReq)
+					resp, err := discoveryClient.Do(newReq)
 					if resp != nil {
 						resp.Body.Close()
 						if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
