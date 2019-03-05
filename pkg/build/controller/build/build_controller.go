@@ -319,8 +319,8 @@ func (bc *BuildController) Run(workers int, stopCh <-chan struct{}) {
 	}
 
 	// Sync build controller config on start up.
-	if err := bc.handleControllerConfig(); err != nil {
-		utilruntime.HandleError(fmt.Errorf("error syncing build controller config: %v", err))
+	if errs := bc.handleControllerConfig(); len(errs) > 0 {
+		utilruntime.HandleError(fmt.Errorf("errors syncing build controller config: %v", errs))
 	}
 
 	glog.Infof("Starting build controller")
