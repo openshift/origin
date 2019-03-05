@@ -11,7 +11,7 @@ import (
 
 // e2e tests of the build controller configuration.
 // These are tagged [Serial] because each test modifies the cluster-wide build controller config.
-var _ = g.Describe("[Feature:Builds][Serial][Slow] alter builds via cluster configuration", func() {
+var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via cluster configuration", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildFixture           = exutil.FixturePath("testdata", "builds", "test-build.yaml")
@@ -49,6 +49,7 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow] alter builds via cluster conf
 		g.Context("registries config context", func() {
 
 			g.It("should default registry search to docker.io for image pulls", func() {
+				g.Skip("TODO: disabled due to https://bugzilla.redhat.com/show_bug.cgi?id=1685185")
 				g.By("apply default cluster configuration")
 				err := oc.AsAdmin().Run("apply").Args("-f", defaultConfigFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -66,6 +67,7 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow] alter builds via cluster conf
 			})
 
 			g.It("should allow registries to be blacklisted", func() {
+				g.Skip("TODO: disabled due to https://bugzilla.redhat.com/show_bug.cgi?id=1685185")
 				g.By("apply blacklist cluster configuration")
 				err := oc.AsAdmin().Run("apply").Args("-f", blacklistConfigFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -82,6 +84,7 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow] alter builds via cluster conf
 			})
 
 			g.It("should allow registries to be whitelisted", func() {
+				g.Skip("TODO: disabled due to https://bugzilla.redhat.com/show_bug.cgi?id=1685185")
 				g.By("apply whitelist cluster configuration")
 				err := oc.AsAdmin().Run("apply").Args("-f", whitelistConfigFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
