@@ -968,11 +968,13 @@ func describeChangelog(out, errOut io.Writer, diff *ReleaseDiff, dir string) err
 		# %s
 
 		Created: %s
+
 		Image Digest: %s
+
 	`, diff.To.PreferredName(), diff.To.References.CreationTimestamp.UTC(), "`"+diff.To.Digest+"`"))
 
 	if release, ok := diff.To.References.Annotations[annotationReleaseFromRelease]; ok {
-		fmt.Fprintf(out, "Promoted from %s\n", release)
+		fmt.Fprintf(out, "Promoted from %s\n\n", release)
 	}
 	fmt.Fprintln(out)
 	fmt.Fprintf(out, "## Changes from %s\n\n", diff.From.PreferredName())
