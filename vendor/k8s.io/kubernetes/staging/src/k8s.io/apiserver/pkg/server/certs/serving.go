@@ -101,12 +101,21 @@ func (c *DynamicServingLoader) CheckCerts() error {
 		return err
 	}
 	newContent.DefaultCertificate = certKeyFileContent{Cert: servingCertBytes, Key: servingKeyBytes}
+	if len(c.DefaultCertificate.Cert) > 0 && len(newContent.DefaultCertificate.Cert) == 0 {
+		return fmt.Errorf("not loading an empty default cert from %q", c.DefaultCertificate.Cert)
+	}
+	if len(c.DefaultCertificate.Key) > 0 && len(newContent.DefaultCertificate.Key) == 0 {
+		return fmt.Errorf("not loading an empty default key from %q", c.DefaultCertificate.Key)
+	}
 
 	caBundle := []byte{}
 	for _, caFile := range c.ClientCA.CABundles {
 		clientCABytes, err := ioutil.ReadFile(caFile)
 		if err != nil {
 			return err
+		}
+		if len(clientCABytes) == 0 {
+			return fmt.Errorf("not loading an empty client ca bundle from %q", caFile)
 		}
 		caBundle = append(caBundle, clientCABytes...)
 	}
@@ -130,6 +139,12 @@ func (c *DynamicServingLoader) CheckCerts() error {
 		keyBytes, err := ioutil.ReadFile(currRef.Key)
 		if err != nil {
 			return err
+		}
+		if len(currRef.Cert) > 0 && len(certBytes) == 0 {
+			return fmt.Errorf("not loading an empty cert from %q for %v", currRef.Cert, key)
+		}
+		if len(currRef.Key) > 0 && len(keyBytes) == 0 {
+			return fmt.Errorf("not loading an empty key from %q for %v", currRef.Key, key)
 		}
 		newContent.NameToCertificate[key] = &certKeyFileContent{Cert: certBytes, Key: keyBytes}
 	}

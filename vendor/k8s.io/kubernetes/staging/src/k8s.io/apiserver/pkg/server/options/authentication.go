@@ -192,6 +192,7 @@ func (s *DelegatingAuthenticationOptions) ApplyTo(c *server.AuthenticationInfo, 
 	}
 
 	// configure AuthenticationInfo config
+	cfg.ClientCAFile = s.ClientCert.ClientCA
 	if err = c.ApplyClientCert(s.ClientCert.ClientCA, servingInfo); err != nil {
 		return fmt.Errorf("unable to load client CA file: %v", err)
 	}
