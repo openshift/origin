@@ -1017,13 +1017,13 @@ func (d *ProjectDescriber) Describe(namespace, name string, settings kprinters.D
 			for i := range limitRangeList.Items {
 				limitRange := &limitRangeList.Items[i]
 				fmt.Fprintf(out, "\tName:\t%s\n", limitRange.Name)
-				fmt.Fprintf(out, "\tType\tResource\tMin\tMax\tDefault\tLimit\tLimit/Request\n")
-				fmt.Fprintf(out, "\t----\t--------\t---\t---\t---\t-----\t-------------\n")
+				fmt.Fprintf(out, "\tType\tResource\tMin\tMax\tDefault Request\tDefault Limit\tMax Limit/Request Ratio\n")
+				fmt.Fprintf(out, "\t----\t--------\t---\t---\t---------------\t-------------\t-----------------------\n")
 				for i := range limitRange.Spec.Limits {
 					item := limitRange.Spec.Limits[i]
 					maxResources := item.Max
 					minResources := item.Min
-					defaultResources := item.Default
+					defaultLimitResources := item.Default
 					defaultRequestResources := item.DefaultRequest
 					ratio := item.MaxLimitRequestRatio
 
@@ -1034,7 +1034,7 @@ func (d *ProjectDescriber) Describe(namespace, name string, settings kprinters.D
 					for k := range minResources {
 						set[k] = true
 					}
-					for k := range defaultResources {
+					for k := range defaultLimitResources {
 						set[k] = true
 					}
 					for k := range defaultRequestResources {
@@ -1048,8 +1048,8 @@ func (d *ProjectDescriber) Describe(namespace, name string, settings kprinters.D
 						// if no value is set, we output -
 						maxValue := "-"
 						minValue := "-"
-						defaultValue := "-"
 						defaultLimitValue := "-"
+						defaultRequestValue := "-"
 						ratioValue := "-"
 
 						maxQuantity, maxQuantityFound := maxResources[k]
@@ -1062,14 +1062,14 @@ func (d *ProjectDescriber) Describe(namespace, name string, settings kprinters.D
 							minValue = minQuantity.String()
 						}
 
-						defaultQuantity, defaultQuantityFound := defaultResources[k]
-						if defaultQuantityFound {
-							defaultValue = defaultQuantity.String()
-						}
-
-						defaultLimitQuantity, defaultLimitQuantityFound := defaultResources[k]
+						defaultLimitQuantity, defaultLimitQuantityFound := defaultLimitResources[k]
 						if defaultLimitQuantityFound {
 							defaultLimitValue = defaultLimitQuantity.String()
+						}
+
+						defaultRequestQuantity, defaultRequestQuantityFound := defaultRequestResources[k]
+						if defaultRequestQuantityFound {
+							defaultRequestValue = defaultRequestQuantity.String()
 						}
 
 						ratioQuantity, ratioQuantityFound := ratio[k]
@@ -1078,7 +1078,7 @@ func (d *ProjectDescriber) Describe(namespace, name string, settings kprinters.D
 						}
 
 						msg := "\t%v\t%v\t%v\t%v\t%v\t%v\t%v\n"
-						fmt.Fprintf(out, msg, item.Type, k, minValue, maxValue, defaultValue, defaultLimitValue, ratioValue)
+						fmt.Fprintf(out, msg, item.Type, k, minValue, maxValue, defaultRequestValue, defaultLimitValue, ratioValue)
 					}
 				}
 			}
