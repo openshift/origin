@@ -234,6 +234,8 @@ type AuthenticationInfo struct {
 	// If this is true, a basic auth challenge is returned on authentication failure
 	// TODO(roberthbailey): Remove once the server no longer supports http basic auth.
 	SupportsBasicAuth bool
+
+	DynamicReloadFns map[string]PostStartHookFunc
 }
 
 type AuthorizationInfo struct {
@@ -488,6 +490,16 @@ func (c completedConfig) New(name string, delegationTarget DelegationTarget) (*G
 		})
 		if err != nil {
 			return nil, err
+		}
+	}
+
+	// often, authentication config is passed through multiple delegated apiservers.  If the authentication
+	// dynamic reloads themselves conflict, we only need to register the first one because there is only one authentication
+	// chain.  In any case where you may need more than one, you should always deconflict the names as we have
+	// in kube-apiserver's authentication chain versus the generic delegated one
+	for name, dynamicReloadFn := range c.Authentication.DynamicReloadFns {
+		if !s.isPostStartHookRegistered(name) {
+			s.AddPostStartHookOrDie(name, dynamicReloadFn)
 		}
 	}
 
