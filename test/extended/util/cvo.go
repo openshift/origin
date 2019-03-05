@@ -20,9 +20,9 @@ import (
 // 3. Failing = false
 //
 // If a ClusterVersion reports it is failing, this will abort with an error.
-func WaitForClusterProgression(cv configclientv1.ClusterVersionsGetter) error {
+func WaitForClusterProgression(cv configclientv1.ClusterOperatorsGetter) error {
 	return wait.Poll(6*time.Second, 10*time.Minute, func() (bool, error) {
-		clusterVersions, err := cv.ClusterVersions().List(metav1.ListOptions{})
+		clusterOperators, err := cv.ClusterOperators().List(metav1.ListOptions{})
 		if err != nil {
 			// Wait if underlying service is unavailable - indicates apiserver churn
 			if errors.IsServiceUnavailable(err) {
@@ -30,7 +30,7 @@ func WaitForClusterProgression(cv configclientv1.ClusterVersionsGetter) error {
 			}
 			return false, err
 		}
-		for _, op := range clusterVersions.Items {
+		for _, op := range clusterOperators.Items {
 			for _, status := range op.Status.Conditions {
 				switch status.Type {
 				case configv1.OperatorFailing:
