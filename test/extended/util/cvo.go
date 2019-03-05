@@ -26,8 +26,12 @@ func WaitForClusterProgression(cv configclientv1.ClusterOperatorsGetter) error {
 		clusterOperators, err := cv.ClusterOperators().List(metav1.ListOptions{})
 		if err != nil {
 			success = 0
-			// Wait if underlying service is unavailable - indicates apiserver churn
-			if errors.IsServiceUnavailable(err) {
+			// Transient client-side timeout
+			if errors.IsTimeout(err) {
+				return false, nil
+			}
+			// Wait if underlying service is unavailable or times out on server side - indicates apiserver churn
+			if errors.IsServiceUnavailable(err) || errors.IsServerTimeout(err) {
 				return false, nil
 			}
 			return false, err
