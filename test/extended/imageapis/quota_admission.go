@@ -29,15 +29,6 @@ var _ = g.Describe("[Feature:ImageQuota][registry] Image resource quota", func()
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("resourcequota-admission", exutil.KubeConfigPath())
 
-	g.BeforeEach(func() {
-		g.By("waiting for default service account")
-		err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-		o.Expect(err).NotTo(o.HaveOccurred())
-		g.By("waiting for builder service account")
-		err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-		o.Expect(err).NotTo(o.HaveOccurred())
-	})
-
 	g.It(fmt.Sprintf("should deny a push of built image exceeding %s quota", imageapi.ResourceImageStreams), func() {
 		g.Skip("TODO: determine why this test is not skipped/fails on 4.0 clusters")
 		quota := kapi.ResourceList{

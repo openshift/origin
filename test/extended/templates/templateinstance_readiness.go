@@ -101,14 +101,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
-			g.By("waiting for default service account")
-			err := exutil.WaitForServiceAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			err = cli.Run("create").Args("-f", templatefixture).Execute()
+			err := cli.Run("create").Args("-f", templatefixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			template, err = cli.TemplateClient().TemplateV1().Templates(cli.Namespace()).Get("simple-example", metav1.GetOptions{})

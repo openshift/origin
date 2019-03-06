@@ -109,15 +109,6 @@ var _ = g.Describe("[Feature:Builds] forcePull should affect pulling builder ima
 			}
 		})
 
-		g.JustBeforeEach(func() {
-			g.By("waiting for default service account")
-			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-
 		g.It("ForcePull test case execution s2i", func() {
 			g.Skip("TODO: force pull is moot until/unless we go back to sharing the image filesystem")
 			g.By("when s2i force pull is true")

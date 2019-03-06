@@ -23,15 +23,9 @@ var _ = g.Describe("[Feature:Builds][Slow] completed builds should have digest o
 
 		g.BeforeEach(func() {
 			exutil.PreTestDump()
-			g.By("waiting for default service account")
-			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating test imagestream")
-			err = oc.Run("create").Args("-f", imageStreamFixture).Execute()
+			err := oc.Run("create").Args("-f", imageStreamFixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 

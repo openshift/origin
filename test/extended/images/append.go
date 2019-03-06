@@ -15,8 +15,6 @@ import (
 )
 
 func cliPodWithPullSecret(cli *exutil.CLI, shell string) *kapiv1.Pod {
-	err := exutil.WaitForServiceAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()), "builder")
-	o.Expect(err).NotTo(o.HaveOccurred())
 	sa, err := cli.KubeClient().Core().ServiceAccounts(cli.Namespace()).Get("builder", metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
 	o.Expect(sa.ImagePullSecrets).NotTo(o.BeEmpty())

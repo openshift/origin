@@ -168,15 +168,8 @@ func runQueries(metricTests map[string][]metricTest, oc *exutil.CLI, ns, execPod
 }
 
 func startOpenShiftBuild(oc *exutil.CLI, appTemplate string) *exutil.BuildResult {
-	g.By("waiting for default service account")
-	err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-	o.Expect(err).NotTo(o.HaveOccurred())
-	g.By("waiting for builder service account")
-	err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-	o.Expect(err).NotTo(o.HaveOccurred())
-
 	g.By(fmt.Sprintf("calling oc create -f %s ", appTemplate))
-	err = oc.Run("create").Args("-f", appTemplate).Execute()
+	err := oc.Run("create").Args("-f", appTemplate).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred())
 	g.By("start build")
 	br, err := exutil.StartBuildResult(oc, "myphp")

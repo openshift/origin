@@ -51,15 +51,6 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 			}
 		})
 
-		g.JustBeforeEach(func() {
-			g.By("waiting for default service account")
-			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-
 		testGitAuth := func(routeName, gitServerYaml, urlTemplate string, secretFunc func() string) {
 
 			err := oc.Run("new-app").Args("-f", gitServerYaml).Execute()

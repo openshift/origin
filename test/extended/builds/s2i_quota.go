@@ -28,15 +28,6 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a quota", func(
 			exutil.PreTestDump()
 		})
 
-		g.JustBeforeEach(func() {
-			g.By("waiting for default service account")
-			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "default")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("waiting for builder service account")
-			err = exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)

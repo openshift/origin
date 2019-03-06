@@ -21,12 +21,6 @@ var _ = g.Describe("[Feature:Builds][Slow] using pull secrets in a build", func(
 			exutil.PreTestDump()
 		})
 
-		g.JustBeforeEach(func() {
-			g.By("waiting for builder service account")
-			err := exutil.WaitForServiceAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()), "builder")
-			o.Expect(err).NotTo(o.HaveOccurred())
-		})
-
 		g.Context("start-build test context", func() {
 			g.AfterEach(func() {
 				if g.CurrentGinkgoTestDescription().Failed {
