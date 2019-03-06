@@ -87,11 +87,6 @@ func (q *clusterQuotaAdmission) Validate(a admission.Attributes) (err error) {
 	if len(a.GetNamespace()) == 0 {
 		return nil
 	}
-	// skip default namespace until we no longer require SCC in that namespace and we can simply exclude all openshift admission
-	// from that namespace
-	if a.GetNamespace() == "default" {
-		return nil
-	}
 
 	if !q.waitForSyncedStore(time.After(timeToWaitForCacheSync)) {
 		return admission.NewForbidden(a, errors.New("caches not synchronized"))
