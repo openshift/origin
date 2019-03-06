@@ -40,6 +40,7 @@
 // test/extended/testdata/builds/build-timing/test-docker-build.json
 // test/extended/testdata/builds/build-timing/test-is.json
 // test/extended/testdata/builds/build-timing/test-s2i-build.json
+// test/extended/testdata/builds/cluster-config/blacklist-build.yaml
 // test/extended/testdata/builds/cluster-config/registry-blacklist.yaml
 // test/extended/testdata/builds/cluster-config/registry-whitelist.yaml
 // test/extended/testdata/builds/cluster-config.yaml
@@ -1788,6 +1789,40 @@ func testExtendedTestdataBuildsBuildTimingTestS2iBuildJson() (*asset, error) {
 	return a, nil
 }
 
+var _testExtendedTestdataBuildsClusterConfigBlacklistBuildYaml = []byte(`
+kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: blacklist-build
+spec:
+  source:
+    type: Dockerfile
+    dockerfile: |-
+      FROM busybox:latest
+      RUN echo "Hello world!"
+  strategy:
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: DockerImage
+        name: docker.io/busybox:latest
+  `)
+
+func testExtendedTestdataBuildsClusterConfigBlacklistBuildYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsClusterConfigBlacklistBuildYaml, nil
+}
+
+func testExtendedTestdataBuildsClusterConfigBlacklistBuildYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsClusterConfigBlacklistBuildYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/cluster-config/blacklist-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml = []byte(`kind: Image
 apiVersion: config.openshift.io/v1
 metadata:
@@ -1796,7 +1831,6 @@ spec:
   registrySources:
       blockedRegistries:
       - docker.io
-      - quay.io
 `)
 
 func testExtendedTestdataBuildsClusterConfigRegistryBlacklistYamlBytes() ([]byte, error) {
@@ -1822,6 +1856,8 @@ spec:
   registrySources:
       allowedRegistries:
       - quay.io
+      - registry.redhat.io
+      - registry.access.redhat.com
 `)
 
 func testExtendedTestdataBuildsClusterConfigRegistryWhitelistYamlBytes() ([]byte, error) {
@@ -32642,6 +32678,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/build-timing/test-docker-build.json": testExtendedTestdataBuildsBuildTimingTestDockerBuildJson,
 	"test/extended/testdata/builds/build-timing/test-is.json": testExtendedTestdataBuildsBuildTimingTestIsJson,
 	"test/extended/testdata/builds/build-timing/test-s2i-build.json": testExtendedTestdataBuildsBuildTimingTestS2iBuildJson,
+	"test/extended/testdata/builds/cluster-config/blacklist-build.yaml": testExtendedTestdataBuildsClusterConfigBlacklistBuildYaml,
 	"test/extended/testdata/builds/cluster-config/registry-blacklist.yaml": testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml,
 	"test/extended/testdata/builds/cluster-config/registry-whitelist.yaml": testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml,
 	"test/extended/testdata/builds/cluster-config.yaml": testExtendedTestdataBuildsClusterConfigYaml,
@@ -33060,6 +33097,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"test-s2i-build.json": &bintree{testExtendedTestdataBuildsBuildTimingTestS2iBuildJson, map[string]*bintree{}},
 					}},
 					"cluster-config": &bintree{nil, map[string]*bintree{
+						"blacklist-build.yaml": &bintree{testExtendedTestdataBuildsClusterConfigBlacklistBuildYaml, map[string]*bintree{}},
 						"registry-blacklist.yaml": &bintree{testExtendedTestdataBuildsClusterConfigRegistryBlacklistYaml, map[string]*bintree{}},
 						"registry-whitelist.yaml": &bintree{testExtendedTestdataBuildsClusterConfigRegistryWhitelistYaml, map[string]*bintree{}},
 					}},

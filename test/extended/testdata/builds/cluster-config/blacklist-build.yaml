@@ -1,0 +1,18 @@
+
+kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: blacklist-build
+spec:
+  source:
+    type: Dockerfile
+    dockerfile: |-
+      FROM busybox:latest
+      RUN echo "Hello world!"
+  strategy:
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: DockerImage
+        name: docker.io/busybox:latest
+  

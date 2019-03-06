@@ -6,4 +6,3 @@ spec:
   registrySources:
       blockedRegistries:
       - docker.io
-      - quay.io

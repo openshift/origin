@@ -15,6 +15,7 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 	defer g.GinkgoRecover()
 	var (
 		buildFixture           = exutil.FixturePath("testdata", "builds", "test-build.yaml")
+		blacklistBuildFixture  = exutil.FixturePath("testdata", "builds", "cluster-config", "blacklist-build.yaml")
 		defaultConfigFixture   = exutil.FixturePath("testdata", "builds", "cluster-config.yaml")
 		blacklistConfigFixture = exutil.FixturePath("testdata", "builds", "cluster-config", "registry-blacklist.yaml")
 		whitelistConfigFixture = exutil.FixturePath("testdata", "builds", "cluster-config", "registry-whitelist.yaml")
@@ -50,7 +51,6 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 		g.Context("registries config context", func() {
 
 			g.It("should default registry search to docker.io for image pulls", func() {
-				// g.Skip("TODO: disabled due to https://bugzilla.redhat.com/show_bug.cgi?id=1685185")
 				g.By("apply default cluster configuration")
 				err := oc.AsAdmin().Run("apply").Args("-f", defaultConfigFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
@@ -69,15 +69,17 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 			})
 
 			g.It("should allow registries to be blacklisted", func() {
-				// g.Skip("TODO: disabled due to https://bugzilla.redhat.com/show_bug.cgi?id=1685185")
+				g.By("creating blacklist build config")
+				err := oc.Run("apply").Args("-f", blacklistBuildFixture).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
 				g.By("apply blacklist cluster configuration")
-				err := oc.AsAdmin().Run("apply").Args("-f", blacklistConfigFixture).Execute()
+				err = oc.AsAdmin().Run("apply").Args("-f", blacklistConfigFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				g.By("waiting up to 15m for cluster image configuration to propagate")
 				err = exutil.WaitForClusterProgression(oc.AdminConfigClient().Config(), 15*time.Minute)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				g.By("starting build sample-build-docker-args-preset and waiting for failure")
-				br, err := exutil.StartBuildAndWait(oc, "sample-build-docker-args-preset")
+				g.By("starting build blacklist-build and waiting for failure")
+				br, err := exutil.StartBuildAndWait(oc, "blacklist-build")
 				o.Expect(err).NotTo(o.HaveOccurred())
 				br.AssertFailure()
 				g.By("expecting the build logs to indicate the image was rejected")
@@ -87,7 +89,7 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 			})
 
 			g.It("should allow registries to be whitelisted", func() {
-				// g.Skip("TODO: disabled due to https://bugzilla.redhat.com/show_bug.cgi?id=1685185")
+				g.Skip("TODO: add release payload repo and internal registry hostname to whitelist")
 				g.By("apply whitelist cluster configuration")
 				err := oc.AsAdmin().Run("apply").Args("-f", whitelistConfigFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())

@@ -6,3 +6,5 @@ spec:
   registrySources:
       allowedRegistries:
       - quay.io
+      - registry.redhat.io
+      - registry.access.redhat.com
