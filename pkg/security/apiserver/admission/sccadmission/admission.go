@@ -122,8 +122,8 @@ func (c *constraint) Validate(a admission.Attributes) error {
 	}
 
 	// we didn't validate against any provider, reject the pod and give the errors for each attempt
-	glog.V(4).Infof("unable to validate pod %s (generate: %s) in namespace %s against any pod security policy: %v", pod.Name, pod.GenerateName, a.GetNamespace(), validationErrs)
-	return admission.NewForbidden(a, fmt.Errorf("unable to validate against any pod security policy: %v", validationErrs))
+	glog.V(4).Infof("unable to validate pod %s (generate: %s) in namespace %s against any security context constraint: %v", pod.Name, pod.GenerateName, a.GetNamespace(), validationErrs)
+	return admission.NewForbidden(a, fmt.Errorf("unable to validate against any security context constraint: %v", validationErrs))
 }
 
 func (c *constraint) computeSecurityContext(a admission.Attributes, pod *kapi.Pod, specMutationAllowed bool, validatedSCCHint string) (*kapi.Pod, string, field.ErrorList, error) {
