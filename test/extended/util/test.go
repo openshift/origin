@@ -70,9 +70,6 @@ func InitTest() {
 	TestContext.VerifyServiceAccount = true
 	TestContext.RepoRoot = os.Getenv("KUBE_REPO_ROOT")
 	TestContext.KubeVolumeDir = os.Getenv("VOLUME_DIR")
-	if len(TestContext.KubeVolumeDir) == 0 {
-		TestContext.KubeVolumeDir = "/var/lib/origin/volumes"
-	}
 	TestContext.KubectlPath = "kubectl"
 	TestContext.KubeConfig = KubeConfigPath()
 	os.Setenv("KUBECONFIG", TestContext.KubeConfig)
