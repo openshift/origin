@@ -252,8 +252,8 @@ func stripPathShortcuts(p string) string {
 		trimmed = strings.TrimPrefix(newPath, "../")
 	}
 
-	// trim leftover ".."
-	if newPath == ".." {
+	// trim leftover {".", ".."}
+	if newPath == "." || newPath == ".." {
 		newPath = ""
 	}
 
@@ -355,7 +355,6 @@ func untarAll(reader io.Reader, destDir, prefix string) error {
 			}
 			break
 		}
-
 		// All the files will start with the prefix, which is the directory where
 		// they were located on the pod, we need to strip down that prefix, but
 		// if the prefix is missing it means the tar was tempered with.
