@@ -52,7 +52,7 @@ import (
 
 	apps "k8s.io/api/apps/v1"
 	batch "k8s.io/api/batch/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1283,6 +1283,7 @@ func hasRemainingContent(c clientset.Interface, dynamicClient dynamic.Interface,
 	if err != nil {
 		return false, err
 	}
+	resources = discovery.FilteredBy(discovery.SupportsAllVerbs{Verbs: []string{"list", "delete"}}, resources)
 	groupVersionResources, err := discovery.GroupVersionResources(resources)
 	if err != nil {
 		return false, err
