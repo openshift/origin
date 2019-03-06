@@ -44,7 +44,7 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 				exutil.DumpConfigMapStates(oc)
 			}
 			oc.AsAdmin().Run("apply").Args("-f", defaultConfigFixture).Execute()
-			exutil.WaitForClusterProgression(oc.AdminConfigClient().Config(), 30*time.Minute)
+			exutil.WaitForClusterProgression(oc.AdminConfigClient().Config(), 15*time.Minute)
 		})
 
 		g.Context("registries config context", func() {
@@ -54,8 +54,8 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 				g.By("apply default cluster configuration")
 				err := oc.AsAdmin().Run("apply").Args("-f", defaultConfigFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				g.By("waiting up to 30m for cluster image configuration to propagate")
-				err = exutil.WaitForClusterProgression(oc.AdminConfigClient().Config(), 30*time.Minute)
+				g.By("waiting up to 15m for cluster image configuration to propagate")
+				err = exutil.WaitForClusterProgression(oc.AdminConfigClient().Config(), 15*time.Minute)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				g.By("starting build sample-build and waiting for success")
 				// Image used by sample-build (centos/ruby-22-centos7) is only available on docker.io
@@ -73,8 +73,8 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 				g.By("apply blacklist cluster configuration")
 				err := oc.AsAdmin().Run("apply").Args("-f", blacklistConfigFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				g.By("waiting up to 30m for cluster image configuration to propagate")
-				err = exutil.WaitForClusterProgression(oc.AdminConfigClient().Config(), 30*time.Minute)
+				g.By("waiting up to 15m for cluster image configuration to propagate")
+				err = exutil.WaitForClusterProgression(oc.AdminConfigClient().Config(), 15*time.Minute)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				g.By("starting build sample-build-docker-args-preset and waiting for failure")
 				br, err := exutil.StartBuildAndWait(oc, "sample-build-docker-args-preset")
@@ -91,8 +91,8 @@ var _ = g.Describe("[Feature:Builds][Serial][Slow][Disruptive] alter builds via 
 				g.By("apply whitelist cluster configuration")
 				err := oc.AsAdmin().Run("apply").Args("-f", whitelistConfigFixture).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				g.By("waiting up to 30m for cluster image configuration to propagate")
-				err = exutil.WaitForClusterProgression(oc.AdminConfigClient().Config(), 30*time.Minute)
+				g.By("waiting up to 15m for cluster image configuration to propagate")
+				err = exutil.WaitForClusterProgression(oc.AdminConfigClient().Config(), 15*time.Minute)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				g.By("starting build sample-build-docker-args-preset and waiting for failure")
 				br, err := exutil.StartBuildAndWait(oc, "sample-build-docker-args-preset")
