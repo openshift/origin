@@ -34,7 +34,6 @@ import (
 
 	"github.com/containernetworking/cni/pkg/invoke"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
-	cni020 "github.com/containernetworking/cni/pkg/types/020"
 	"github.com/containernetworking/plugins/pkg/ns"
 
 	"github.com/vishvananda/netlink"
@@ -151,8 +150,7 @@ func getIPAMConfig(clusterNetworks []common.ClusterNetwork, localSubnet string) 
 	}
 
 	return json.Marshal(&cniNetworkConfig{
-		// TODO: update to 0.3.0 spec
-		CNIVersion: "0.2.0",
+		CNIVersion: "0.3.1",
 		Name:       "openshift-sdn",
 		Type:       "openshift-sdn",
 		IPAM: &hostLocalIPAM{
@@ -433,21 +431,16 @@ func (m *podManager) ipamAdd(netnsPath string, id string) (*current.Result, net.
 		return nil, nil, fmt.Errorf("failed to run CNI IPAM ADD: %v", err)
 	}
 
-	// We gave the IPAM plugin 0.2.0 config, so the plugin must return a 0.2.0 result
-	result, err := cni020.GetResult(r)
+	// We gave the IPAM plugin 0.3.1 config, so the plugin must return a 0.3.1 result
+	result, err := current.GetResult(r)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse CNI IPAM ADD result: %v", err)
 	}
-	if result.IP4 == nil {
+	if len(result.IPs) == 0 {
 		return nil, nil, fmt.Errorf("failed to obtain IP address from CNI IPAM")
 	}
 
-	newResult, err := current.NewResultFromResult(result)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to convert CNI IPAM ADD result from 0.2.0 to current version: %v", err)
-	}
-
-	return newResult, result.IP4.IP.IP, nil
+	return result, result.IPs[0].Address.IP, nil
 }
 
 // Run CNI IPAM release for the container
