@@ -106,7 +106,7 @@ func (w *Watcher) Start() error {
 				//TODO: Handle errors by taking corrective measures
 
 				w.wg.Add(1)
-				go func() {
+				func() {
 					defer w.wg.Done()
 
 					if event.Op&fsnotify.Create == fsnotify.Create {
