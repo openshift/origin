@@ -46,7 +46,6 @@ var (
 		"autoscaling.openshift.io/ClusterResourceOverride",
 		"autoscaling.openshift.io/RunOnceDuration",
 		imagepolicyapiv1.PluginName, // "image.openshift.io/ImagePolicy"
-		"project.openshift.io/ProjectRequestLimit",
 		"quota.openshift.io/ClusterResourceQuota",
 		"scheduling.openshift.io/OriginPodNodeEnvironment",
 		"security.openshift.io/SecurityContextConstraint",
