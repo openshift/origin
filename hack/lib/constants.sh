@@ -112,7 +112,10 @@ function os::build::ldflags() {
 
   local buildDate="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 
-  declare -a ldflags=()
+  declare -a ldflags=(
+    "-s"
+    "-w"
+  )
 
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/oc/clusterup.defaultImageStreams" "${OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/cmd/util/variable.DefaultImagePrefix" "${OS_BUILD_LDFLAGS_IMAGE_PREFIX}"))
