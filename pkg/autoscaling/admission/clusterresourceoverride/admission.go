@@ -10,19 +10,20 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission/initializer"
+	"k8s.io/client-go/informers"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	internalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 
 	api "github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride"
 	"github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride/validation"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated"
-	"github.com/openshift/origin/pkg/project/cache"
 )
 
 const (
@@ -58,12 +59,12 @@ type internalConfig struct {
 type clusterResourceOverridePlugin struct {
 	*admission.Handler
 	config            *internalConfig
-	ProjectCache      *cache.ProjectCache
+	nsLister          corev1listers.NamespaceLister
 	LimitRanger       admission.Interface
 	limitRangesLister internalversion.LimitRangeLister
 }
 
-var _ = oadmission.WantsProjectCache(&clusterResourceOverridePlugin{})
+var _ = initializer.WantsExternalKubeInformerFactory(&clusterResourceOverridePlugin{})
 var _ = kadmission.WantsInternalKubeInformerFactory(&clusterResourceOverridePlugin{})
 var _ = kadmission.WantsInternalKubeClientSet(&clusterResourceOverridePlugin{})
 var _ = admission.MutationInterface(&clusterResourceOverridePlugin{})
@@ -94,7 +95,7 @@ func newClusterResourceOverride(config *api.ClusterResourceOverrideConfig) (admi
 	}, nil
 }
 
-func (d *clusterResourceOverridePlugin) SetInternalKubeInformerFactory(i informers.SharedInformerFactory) {
+func (d *clusterResourceOverridePlugin) SetInternalKubeInformerFactory(i internalinformers.SharedInformerFactory) {
 	d.LimitRanger.(kadmission.WantsInternalKubeInformerFactory).SetInternalKubeInformerFactory(i)
 	d.limitRangesLister = i.Core().InternalVersion().LimitRanges().Lister()
 }
@@ -103,8 +104,8 @@ func (d *clusterResourceOverridePlugin) SetInternalKubeClientSet(c kclientset.In
 	d.LimitRanger.(kadmission.WantsInternalKubeClientSet).SetInternalKubeClientSet(c)
 }
 
-func (a *clusterResourceOverridePlugin) SetProjectCache(projectCache *cache.ProjectCache) {
-	a.ProjectCache = projectCache
+func (d *clusterResourceOverridePlugin) SetExternalKubeInformerFactory(kubeInformers informers.SharedInformerFactory) {
+	d.nsLister = kubeInformers.Core().V1().Namespaces().Lister()
 }
 
 func ReadConfig(configFile io.Reader) (*api.ClusterResourceOverrideConfig, error) {
@@ -129,8 +130,8 @@ func ReadConfig(configFile io.Reader) (*api.ClusterResourceOverrideConfig, error
 }
 
 func (a *clusterResourceOverridePlugin) ValidateInitialization() error {
-	if a.ProjectCache == nil {
-		return fmt.Errorf("%s did not get a project cache", api.PluginName)
+	if a.nsLister == nil {
+		return fmt.Errorf("%s did not get a namespace lister", api.PluginName)
 	}
 	v, ok := a.LimitRanger.(admission.InitializationValidator)
 	if !ok {
@@ -174,7 +175,7 @@ func (a *clusterResourceOverridePlugin) admit(attr admission.Attributes, mutatio
 	glog.V(5).Infof("%s is looking at creating pod %s in project %s", api.PluginName, pod.Name, attr.GetNamespace())
 
 	// allow annotations on project to override
-	ns, err := a.ProjectCache.GetNamespace(attr.GetNamespace())
+	ns, err := a.nsLister.Get(attr.GetNamespace())
 	if err != nil {
 		glog.Warningf("%s got an error retrieving namespace: %v", api.PluginName, err)
 		return admission.NewForbidden(attr, err) // this should not happen though
