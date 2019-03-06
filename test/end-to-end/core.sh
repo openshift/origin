@@ -375,7 +375,7 @@ DOCKER_CONFIG_FILE="${ARTIFACT_DIR}/dockerAppConfig.json"
 CUSTOM_CONFIG_FILE="${ARTIFACT_DIR}/customAppConfig.json"
 os::cmd::expect_success "oc process -n test -f examples/sample-app/application-template-stibuild.json > '${STI_CONFIG_FILE}'"
 os::cmd::expect_success "oc process -n docker -f examples/sample-app/application-template-dockerbuild.json > '${DOCKER_CONFIG_FILE}'"
-os::cmd::expect_success "oc process -n custom -f examples/sample-app/application-template-custombuild.json > '${CUSTOM_CONFIG_FILE}'"
+os::cmd::expect_success "oc process -n custom -f test/extended/testdata/builds/application-template-custombuild.json > '${CUSTOM_CONFIG_FILE}'"
 
 os::log::info "Back to 'test' context with 'e2e-user' user"
 os::cmd::expect_success 'oc login -u e2e-user'

@@ -78,7 +78,6 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"github-webhook-example":             nil, // Skip.
 			"application-template-stibuild":      &templateapi.Template{},
 			"application-template-dockerbuild":   &templateapi.Template{},
-			"application-template-custombuild":   &templateapi.Template{},
 			"application-template-pullspecbuild": &templateapi.Template{},
 		},
 		"../examples/jenkins": {

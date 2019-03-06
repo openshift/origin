@@ -10,7 +10,7 @@ os::cmd::expect_success_and_text 'oc get all' 'imagestream.image.openshift.io/te
 os::cmd::expect_success_and_not_text 'oc get is' 'imagestream.image.openshift.io/test1'
 
 # Test that resource printer includes namespaces for buildconfigs with custom strategies
-os::cmd::expect_success 'oc create -f examples/sample-app/application-template-custombuild.json'
+os::cmd::expect_success 'oc create -f test/extended/testdata/builds/application-template-custombuild.json'
 os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample' 'deploymentconfig.apps.openshift.io "frontend" created'
 os::cmd::expect_success_and_text 'oc get all --all-namespaces' 'cmd-printer[\ ]+buildconfig.build.openshift.io\/ruby\-sample\-build'
 
