@@ -5,6 +5,7 @@ package node
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/containernetworking/cni/pkg/types/current"
 	"net"
 	"strconv"
 	"sync"
@@ -421,7 +422,7 @@ func createIPAMArgs(netnsPath, cniBinPath string, action cniserver.CNICommand, i
 }
 
 // Run CNI IPAM allocation for the container and return the allocated IP address
-func (m *podManager) ipamAdd(netnsPath string, id string) (*cni020.Result, net.IP, error) {
+func (m *podManager) ipamAdd(netnsPath string, id string) (*current.Result, net.IP, error) {
 	if netnsPath == "" {
 		return nil, nil, fmt.Errorf("netns required for CNI_ADD")
 	}
@@ -441,7 +442,12 @@ func (m *podManager) ipamAdd(netnsPath string, id string) (*cni020.Result, net.I
 		return nil, nil, fmt.Errorf("failed to obtain IP address from CNI IPAM")
 	}
 
-	return result, result.IP4.IP.IP, nil
+	newResult, err := current.NewResultFromResult(result)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to convert CNI IPAM ADD result from 0.2.0 to current version: %v", err)
+	}
+
+	return newResult, result.IP4.IP.IP, nil
 }
 
 // Run CNI IPAM release for the container

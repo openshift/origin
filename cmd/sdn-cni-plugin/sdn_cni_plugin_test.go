@@ -22,12 +22,12 @@ import (
 	utiltesting "k8s.io/client-go/util/testing"
 )
 
-var expectedResult cnitypes.Result
+var resultFromServer cnitypes.Result
 var generateError bool
 
 func serverHandleCNI(request *cniserver.PodRequest) ([]byte, error) {
 	if request.Command == cniserver.CNI_ADD {
-		return json.Marshal(&expectedResult)
+		return json.Marshal(&resultFromServer)
 	} else if request.Command == cniserver.CNI_DEL {
 		return nil, nil
 	}
@@ -93,21 +93,25 @@ func TestOpenshiftSdnCNIPlugin(t *testing.T) {
 
 	expectedIP, expectedNet, _ := net.ParseCIDR("10.0.0.2/24")
 	expectedGateway := net.ParseIP("10.0.0.1")
-	expectedResult = &cni020.Result{
-		CNIVersion: "0.2.0",
-		IP4: &cni020.IPConfig{
-			IP: net.IPNet{
-				IP:   expectedIP,
-				Mask: expectedNet.Mask,
-			},
-			Gateway: expectedGateway,
-			Routes: []cnitypes.Route{
-				{
-					Dst: net.IPNet{
-						IP:   expectedIP,
-						Mask: expectedNet.Mask,
-					},
+	resultFromServer = &cni030.Result{
+		CNIVersion: "0.3.1",
+		IPs: []*cni030.IPConfig{
+			{
+				Version: "4",
+				Address: net.IPNet{
+					IP:   expectedIP,
+					Mask: expectedNet.Mask,
 				},
+				Gateway: expectedGateway,
+			},
+		},
+		Routes: []*cnitypes.Route{
+			{
+				Dst: net.IPNet{
+					IP:   expectedIP,
+					Mask: expectedNet.Mask,
+				},
+				GW: nil,
 			},
 		},
 	}
@@ -133,7 +137,24 @@ func TestOpenshiftSdnCNIPlugin(t *testing.T) {
 				Path:        "/some/path",
 				StdinData:   []byte("{\"cniVersion\": \"0.1.0\",\"name\": \"openshift-sdn\",\"type\": \"openshift-sdn\"}"),
 			},
-			result: expectedResult,
+			result: &cni020.Result{
+				CNIVersion: "0.2.0",
+				IP4: &cni020.IPConfig{
+					IP: net.IPNet{
+						IP:   expectedIP,
+						Mask: expectedNet.Mask,
+					},
+					Gateway: expectedGateway,
+					Routes: []cnitypes.Route{
+						{
+							Dst: net.IPNet{
+								IP:   expectedIP,
+								Mask: expectedNet.Mask,
+							},
+						},
+					},
+				},
+			},
 		},
 		// ADD request using cniVersion 0.3.0
 		{
