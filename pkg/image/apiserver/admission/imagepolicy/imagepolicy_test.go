@@ -18,7 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/admission"
-	fakev1 "k8s.io/client-go/kubernetes/fake"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	clientgotesting "k8s.io/client-go/testing"
 	kcache "k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
@@ -33,7 +33,6 @@ import (
 	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/validation"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/rules"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
-	"github.com/openshift/origin/pkg/project/cache"
 )
 
 const (
@@ -52,10 +51,9 @@ func (fn resolveFunc) ResolveObjectReference(ref *kapi.ObjectReference, defaultN
 }
 
 func setDefaultCache(p *imagePolicyPlugin) kcache.Indexer {
-	kclient := fakev1.NewSimpleClientset()
-	store := cache.NewCacheStore(kcache.MetaNamespaceKeyFunc)
-	p.SetProjectCache(cache.NewFake(kclient.CoreV1().Namespaces(), store, ""))
-	return store
+	indexer := kcache.NewIndexer(kcache.MetaNamespaceKeyFunc, kcache.Indexers{})
+	p.nsLister = corev1listers.NewNamespaceLister(indexer)
+	return indexer
 }
 
 func TestDefaultPolicy(t *testing.T) {
