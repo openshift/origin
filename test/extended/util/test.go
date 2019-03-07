@@ -69,7 +69,6 @@ func InitTest() {
 	TestContext.DeleteNamespace = os.Getenv("DELETE_NAMESPACE") != "false"
 	TestContext.VerifyServiceAccount = true
 	TestContext.RepoRoot = os.Getenv("KUBE_REPO_ROOT")
-	TestContext.KubeVolumeDir = os.Getenv("VOLUME_DIR")
 	TestContext.KubectlPath = "kubectl"
 	TestContext.KubeConfig = KubeConfigPath()
 	os.Setenv("KUBECONFIG", TestContext.KubeConfig)
