@@ -19,10 +19,10 @@ import (
 // SigningRotation rotates a self-signed signing CA stored in a secret. It creates a new one when <RefreshPercentage>
 // of the lifetime of the old CA has passed.
 type SigningRotation struct {
-	Namespace         string
-	Name              string
-	Validity          time.Duration
-	RefreshPercentage float32
+	Namespace string
+	Name      string
+	Validity  time.Duration
+	Refresh   time.Duration
 
 	Informer      corev1informers.SecretInformer
 	Lister        corev1listers.SecretLister
@@ -42,7 +42,7 @@ func (c SigningRotation) ensureSigningCertKeyPair() (*crypto.CA, error) {
 	}
 	signingCertKeyPairSecret.Type = corev1.SecretTypeTLS
 
-	if reason := needNewSigningCertKeyPair(signingCertKeyPairSecret.Annotations, c.Validity, c.RefreshPercentage); len(reason) > 0 {
+	if reason := needNewSigningCertKeyPair(signingCertKeyPairSecret.Annotations, c.Refresh); len(reason) > 0 {
 		c.EventRecorder.Eventf("SignerUpdateRequired", "%q in %q requires a new signing cert/key pair: %v", c.Name, c.Namespace, reason)
 		if err := setSigningCertKeyPairSecret(signingCertKeyPairSecret, c.Validity); err != nil {
 			return nil, err
@@ -63,23 +63,45 @@ func (c SigningRotation) ensureSigningCertKeyPair() (*crypto.CA, error) {
 	return signingCertKeyPair, nil
 }
 
-func needNewSigningCertKeyPair(annotations map[string]string, validity time.Duration, renewalPercentage float32) string {
-	signingCertKeyPairExpiry := annotations[CertificateExpiryAnnotation]
-	if len(signingCertKeyPairExpiry) == 0 {
-		return "missing target expiry"
+func needNewSigningCertKeyPair(annotations map[string]string, refresh time.Duration) string {
+	notBefore, notAfter, reason := getValidityFromAnnotations(annotations)
+	if len(reason) > 0 {
+		return reason
 	}
-	certExpiry, err := time.Parse(time.RFC3339, signingCertKeyPairExpiry)
+
+	maxWait := notAfter.Sub(notBefore) / 5
+	latestTime := notAfter.Add(-maxWait)
+	if time.Now().After(latestTime) {
+		return fmt.Sprintf("past its latest possible time %v", latestTime)
+	}
+
+	refreshTime := notBefore.Add(refresh)
+	if time.Now().After(refreshTime) {
+		return fmt.Sprintf("past its refresh time %v", refreshTime)
+	}
+
+	return ""
+}
+
+func getValidityFromAnnotations(annotations map[string]string) (notBefore time.Time, notAfter time.Time, reason string) {
+	notAfterString := annotations[CertificateNotAfterAnnotation]
+	if len(notAfterString) == 0 {
+		return notBefore, notAfter, "missing notAfter"
+	}
+	notAfter, err := time.Parse(time.RFC3339, notAfterString)
 	if err != nil {
-		return fmt.Sprintf("bad expiry: %q", signingCertKeyPairExpiry)
+		return notBefore, notAfter, fmt.Sprintf("bad expiry: %q", notAfterString)
+	}
+	notBeforeString := annotations[CertificateNotBeforeAnnotation]
+	if len(notAfterString) == 0 {
+		return notBefore, notAfter, "missing notBefore"
+	}
+	notBefore, err = time.Parse(time.RFC3339, notBeforeString)
+	if err != nil {
+		return notBefore, notAfter, fmt.Sprintf("bad expiry: %q", notBeforeString)
 	}
 
-	// If Certificate is not-expired, skip this iteration.
-	renewalDuration := -1 * float32(validity) * (1 - renewalPercentage)
-	if certExpiry.Add(time.Duration(renewalDuration)).After(time.Now()) {
-		return ""
-	}
-
-	return fmt.Sprintf("past its renewal time %v, versus %v", certExpiry, certExpiry.Add(time.Duration(renewalDuration)))
+	return notBefore, notAfter, ""
 }
 
 // setSigningCertKeyPairSecret creates a new signing cert/key pair and sets them in the secret
@@ -104,7 +126,9 @@ func setSigningCertKeyPairSecret(signingCertKeyPairSecret *corev1.Secret, validi
 	}
 	signingCertKeyPairSecret.Data["tls.crt"] = certBytes.Bytes()
 	signingCertKeyPairSecret.Data["tls.key"] = keyBytes.Bytes()
-	signingCertKeyPairSecret.Annotations[CertificateExpiryAnnotation] = ca.Certs[0].NotAfter.Format(time.RFC3339)
+	signingCertKeyPairSecret.Annotations[CertificateNotAfterAnnotation] = ca.Certs[0].NotAfter.Format(time.RFC3339)
+	signingCertKeyPairSecret.Annotations[CertificateNotBeforeAnnotation] = ca.Certs[0].NotBefore.Format(time.RFC3339)
+	signingCertKeyPairSecret.Annotations[CertificateIssuer] = ca.Certs[0].Issuer.CommonName
 
 	return nil
 }

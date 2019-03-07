@@ -32,4 +32,4 @@ type ProjectExpansion interface{}
 
 type ProxyExpansion interface{}
 
-type SchedulingExpansion interface{}
+type SchedulerExpansion interface{}

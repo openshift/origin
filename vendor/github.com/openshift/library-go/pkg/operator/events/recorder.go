@@ -19,6 +19,18 @@ type Recorder interface {
 	Eventf(reason, messageFmt string, args ...interface{})
 	Warning(reason, message string)
 	Warningf(reason, messageFmt string, args ...interface{})
+
+	// ForComponent allows to fiddle the component name before sending the event to sink.
+	// Making more unique components will prevent the spam filter in upstream event sink from dropping
+	// events.
+	ForComponent(componentName string) Recorder
+
+	// WithComponentSuffix is similar to ForComponent except it just suffix the current component name instead of overriding.
+	WithComponentSuffix(componentNameSuffix string) Recorder
+
+	// ComponentName returns the current source component name for the event.
+	// This allows to suffix the original component name with 'sub-component'.
+	ComponentName() string
 }
 
 // podNameEnv is a name of environment variable inside container that specifies the name of the current replica set.
@@ -119,6 +131,20 @@ type recorder struct {
 	eventClient       corev1client.EventInterface
 	involvedObjectRef *corev1.ObjectReference
 	sourceComponent   string
+}
+
+func (r *recorder) ComponentName() string {
+	return r.sourceComponent
+}
+
+func (r *recorder) ForComponent(componentName string) Recorder {
+	newRecorderForComponent := *r
+	newRecorderForComponent.sourceComponent = componentName
+	return &newRecorderForComponent
+}
+
+func (r *recorder) WithComponentSuffix(suffix string) Recorder {
+	return r.ForComponent(fmt.Sprintf("%s-%s", r.ComponentName(), suffix))
 }
 
 // Event emits the normal type event and allow formatting of message.

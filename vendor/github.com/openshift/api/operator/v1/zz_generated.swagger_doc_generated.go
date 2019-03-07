@@ -188,6 +188,69 @@ func (EtcdSpec) SwaggerDoc() map[string]string {
 	return map_EtcdSpec
 }
 
+var map_EndpointPublishingStrategy = map[string]string{
+	"":     "EndpointPublishingStrategy is a way to publish the endpoints of an IngressController, and represents the type and any additional configuration for a specific type.",
+	"type": "type is the publishing strategy to use. Valid values are:\n\n* LoadBalancerService\n\nPublishes the ingress controller using a Kubernetes LoadBalancer Service.\n\nIn this configuration, the ingress controller deployment uses container networking. A LoadBalancer Service is created to publish the deployment.\n\nSee: https://kubernetes.io/docs/concepts/services-networking/#loadbalancer\n\nIf domain is set, a wildcard DNS record will be managed to point at the LoadBalancer Service's external name. DNS records are managed only in DNS zones defined by dns.config.openshift.io/cluster .spec.publicZone and .spec.privateZone.\n\nWildcard DNS management is currently supported only on the AWS platform.\n\n* HostNetwork\n\nPublishes the ingress controller on node ports where the ingress controller is deployed.\n\nIn this configuration, the ingress controller deployment uses host networking, bound to node ports 80 and 443. The user is responsible for configuring an external load balancer to publish the ingress controller via the node ports.\n\n* Private\n\nDoes not publish the ingress controller.\n\nIn this configuration, the ingress controller deployment uses container networking, and is not explicitly published. The user must manually publish the ingress controller.",
+}
+
+func (EndpointPublishingStrategy) SwaggerDoc() map[string]string {
+	return map_EndpointPublishingStrategy
+}
+
+var map_IngressController = map[string]string{
+	"":       "IngressController describes a managed ingress controller for the cluster. The controller can service OpenShift Route and Kubernetes Ingress resources.\n\nWhen an IngressController is created, a new ingress controller deployment is created to allow external traffic to reach the services that expose Ingress or Route resources. Updating this resource may lead to disruption for public facing network connections as a new ingress controller revision may be rolled out.\n\nhttps://kubernetes.io/docs/concepts/services-networking/ingress-controllers\n\nWhenever possible, sensible defaults for the platform are used. See each field for more details.",
+	"spec":   "spec is the specification of the desired behavior of the IngressController.",
+	"status": "status is the most recently observed status of the IngressController.",
+}
+
+func (IngressController) SwaggerDoc() map[string]string {
+	return map_IngressController
+}
+
+var map_IngressControllerList = map[string]string{
+	"": "IngressControllerList contains a list of IngressControllers.",
+}
+
+func (IngressControllerList) SwaggerDoc() map[string]string {
+	return map_IngressControllerList
+}
+
+var map_IngressControllerSpec = map[string]string{
+	"":                           "IngressControllerSpec is the specification of the desired behavior of the IngressController.",
+	"domain":                     "domain is a DNS name serviced by the ingress controller and is used to configure multiple features:\n\n* For the LoadBalancerService endpoint publishing strategy, domain is\n  used to configure DNS records. See endpointPublishingStrategy.\n\n* When using a generated default certificate, the certificate will be valid\n  for domain and its subdomains. See defaultCertificate.\n\n* The value is published to individual Route statuses so that end-users\n  know where to target external DNS records.\n\ndomain must be unique among all IngressControllers, and cannot be updated.\n\nIf empty, defaults to ingress.config.openshift.io/cluster .spec.domain.",
+	"replicas":                   "replicas is the desired number of ingress controller replicas. If unset, defaults to 2.",
+	"endpointPublishingStrategy": "endpointPublishingStrategy is used to publish the ingress controller endpoints to other networks, enable load balancer integrations, etc.\n\nIf empty, the default is based on infrastructure.config.openshift.io/cluster .status.platform:\n\n  AWS: LoadBalancerService\n  All other platform types: Private\n\nendpointPublishingStrategy cannot be updated.",
+	"defaultCertificate":         "defaultCertificate is a reference to a secret containing the default certificate served by the ingress controller. When Routes don't specify their own certificate, defaultCertificate is used.\n\nThe secret must contain the following keys and data:\n\n  tls.crt: certificate file contents\n  tls.key: key file contents\n\nIf unset, a wildcard certificate is automatically generated and used. The certificate is valid for the ingress controller domain (and subdomains) and the generated certificate's CA will be automatically integrated with the cluster's trust store.\n\nThe in-use certificate (whether generated or user-specified) will be automatically integrated with OpenShift's built-in OAuth server.",
+	"namespaceSelector":          "namespaceSelector is used to filter the set of namespaces serviced by the ingress controller. This is useful for implementing shards.\n\nIf unset, the default is no filtering.",
+	"routeSelector":              "routeSelector is used to filter the set of Routes serviced by the ingress controller. This is useful for implementing shards.\n\nIf unset, the default is no filtering.",
+	"nodePlacement":              "nodePlacement enables explicit control over the scheduling of the ingress controller.\n\nIf unset, defaults are used. See NodePlacement for more details.",
+}
+
+func (IngressControllerSpec) SwaggerDoc() map[string]string {
+	return map_IngressControllerSpec
+}
+
+var map_IngressControllerStatus = map[string]string{
+	"":                           "IngressControllerStatus defines the observed status of the IngressController.",
+	"availableReplicas":          "availableReplicas is number of observed available replicas according to the ingress controller deployment.",
+	"selector":                   "selector is a label selector, in string format, for ingress controller pods corresponding to the IngressController. The number of matching pods should equal the value of availableReplicas.",
+	"domain":                     "domain is the actual domain in use.",
+	"endpointPublishingStrategy": "endpointPublishingStrategy is the actual strategy in use.",
+}
+
+func (IngressControllerStatus) SwaggerDoc() map[string]string {
+	return map_IngressControllerStatus
+}
+
+var map_NodePlacement = map[string]string{
+	"":             "NodePlacement describes node scheduling configuration for an ingress controller.",
+	"nodeSelector": "nodeSelector is the node selector applied to ingress controller deployments.\n\nIf unset, the default is:\n\n  beta.kubernetes.io/os: linux\n  node-role.kubernetes.io/worker: ''\n\nIf set, the specified selector is used and replaces the default.",
+}
+
+func (NodePlacement) SwaggerDoc() map[string]string {
+	return map_NodePlacement
+}
+
 var map_KubeAPIServer = map[string]string{
 	"": "KubeAPIServer provides information to configure an operator to manage kube-apiserver.",
 }

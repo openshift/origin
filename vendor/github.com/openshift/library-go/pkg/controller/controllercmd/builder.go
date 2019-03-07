@@ -86,7 +86,7 @@ func NewController(componentName string, startFunc StartFunc) *ControllerBuilder
 
 // WithRestartOnChange will enable a file observer controller loop that observes changes into specified files. If a change to a file is detected,
 // the specified channel will be closed (allowing to graceful shutdown for other channels).
-func (b *ControllerBuilder) WithRestartOnChange(stopCh chan<- struct{}, files ...string) *ControllerBuilder {
+func (b *ControllerBuilder) WithRestartOnChange(stopCh chan<- struct{}, startingFileContent map[string][]byte, files ...string) *ControllerBuilder {
 	if len(files) == 0 {
 		return b
 	}
@@ -107,7 +107,7 @@ func (b *ControllerBuilder) WithRestartOnChange(stopCh chan<- struct{}, files ..
 		return nil
 	}
 
-	b.fileObserver.AddReactor(b.fileObserverReactorFn, files...)
+	b.fileObserver.AddReactor(b.fileObserverReactorFn, startingFileContent, files...)
 	return b
 }
 

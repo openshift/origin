@@ -564,7 +564,7 @@ func (ConsoleList) SwaggerDoc() map[string]string {
 }
 
 var map_ConsoleStatus = map[string]string{
-	"publicHostname": "The hostname for the console. This will match the host for the route that is created for the console.",
+	"consoleURL": "The URL for the console. This will be derived from the host for the route that is created for the console.",
 }
 
 func (ConsoleStatus) SwaggerDoc() map[string]string {
@@ -1112,31 +1112,31 @@ func (ProxySpec) SwaggerDoc() map[string]string {
 	return map_ProxySpec
 }
 
-var map_Scheduling = map[string]string{
-	"":         "Scheduling holds cluster-wide information about Scheduling.  The canonical name is `cluster`",
+var map_Scheduler = map[string]string{
+	"":         "Scheduler holds cluster-wide information about Scheduler.  The canonical name is `cluster`",
 	"metadata": "Standard object's metadata.",
 	"spec":     "spec holds user settable values for configuration",
 	"status":   "status holds observed values from the cluster. They may not be overridden.",
 }
 
-func (Scheduling) SwaggerDoc() map[string]string {
-	return map_Scheduling
+func (Scheduler) SwaggerDoc() map[string]string {
+	return map_Scheduler
 }
 
-var map_SchedulingList = map[string]string{
+var map_SchedulerList = map[string]string{
 	"metadata": "Standard object's metadata.",
 }
 
-func (SchedulingList) SwaggerDoc() map[string]string {
-	return map_SchedulingList
+func (SchedulerList) SwaggerDoc() map[string]string {
+	return map_SchedulerList
 }
 
-var map_SchedulingSpec = map[string]string{
+var map_SchedulerSpec = map[string]string{
 	"policy": "policy is a reference to a ConfigMap containing scheduler policy which has user specified predicates and priorities. If this ConfigMap is not available scheduler will default to use DefaultAlgorithmProvider. The namespace for this configmap is openshift-config.",
 }
 
-func (SchedulingSpec) SwaggerDoc() map[string]string {
-	return map_SchedulingSpec
+func (SchedulerSpec) SwaggerDoc() map[string]string {
+	return map_SchedulerSpec
 }
 
 // AUTO-GENERATED FUNCTIONS END HERE

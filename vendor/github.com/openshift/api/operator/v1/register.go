@@ -54,6 +54,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ServiceCatalogAPIServerList{},
 		&ServiceCatalogControllerManager{},
 		&ServiceCatalogControllerManagerList{},
+		&IngressController{},
+		&IngressControllerList{},
 	)
 
 	return nil

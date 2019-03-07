@@ -44,7 +44,7 @@ func NewNodeController(
 ) *NodeController {
 	c := &NodeController{
 		operatorConfigClient: operatorConfigClient,
-		eventRecorder:        eventRecorder,
+		eventRecorder:        eventRecorder.WithComponentSuffix("node-controller"),
 		nodeListerSynced:     kubeInformersClusterScoped.Core().V1().Nodes().Informer().HasSynced,
 		nodeLister:           kubeInformersClusterScoped.Core().V1().Nodes().Lister(),
 

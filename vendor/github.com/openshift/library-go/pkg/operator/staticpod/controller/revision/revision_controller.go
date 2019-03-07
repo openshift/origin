@@ -2,6 +2,7 @@ package revision
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -19,6 +20,7 @@ import (
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/management"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
@@ -71,7 +73,7 @@ func NewRevisionController(
 		operatorConfigClient: operatorConfigClient,
 		configMapGetter:      configMapGetter,
 		secretGetter:         secretGetter,
-		eventRecorder:        eventRecorder,
+		eventRecorder:        eventRecorder.WithComponentSuffix("revision-controller"),
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "RevisionController"),
 	}
@@ -117,6 +119,10 @@ func (c RevisionController) createRevisionIfNeeded(operatorSpec *operatorv1.Stat
 		Status: operatorv1.ConditionFalse,
 	}
 	if _, updated, updateError := v1helpers.UpdateStaticPodStatus(c.operatorConfigClient, v1helpers.UpdateStaticPodConditionFn(cond), func(operatorStatus *operatorv1.StaticPodOperatorStatus) error {
+		if operatorStatus.LatestAvailableRevision == nextRevision {
+			glog.Warningf("revision %d is unexpectedly already the latest available revision. This is a possible race!", nextRevision)
+			return fmt.Errorf("conflicting latestAvailableRevision %d", operatorStatus.LatestAvailableRevision)
+		}
 		operatorStatus.LatestAvailableRevision = nextRevision
 		return nil
 	}); updateError != nil {
@@ -134,6 +140,7 @@ func nameFor(name string, revision int32) string {
 
 // isLatestRevisionCurrent returns whether the latest revision is up to date and an optional reason
 func (c RevisionController) isLatestRevisionCurrent(revision int32) (bool, string) {
+	configChanges := []string{}
 	for _, cm := range c.configMaps {
 		requiredData := map[string]string{}
 		existingData := map[string]string{}
@@ -153,9 +160,14 @@ func (c RevisionController) isLatestRevisionCurrent(revision int32) (bool, strin
 			existingData = existing.Data
 		}
 		if !equality.Semantic.DeepEqual(existingData, requiredData) {
-			return false, fmt.Sprintf("configmap/%s has changed", cm.Name)
+			if glog.V(4) {
+				glog.Infof("configmap %q changes for revision %d: %s", cm.Name, revision, resourceapply.JSONPatch(existing, required))
+			}
+			configChanges = append(configChanges, fmt.Sprintf("configmap/%s has changed", cm.Name))
 		}
 	}
+
+	secretChanges := []string{}
 	for _, s := range c.secrets {
 		requiredData := map[string][]byte{}
 		existingData := map[string][]byte{}
@@ -175,8 +187,15 @@ func (c RevisionController) isLatestRevisionCurrent(revision int32) (bool, strin
 			existingData = existing.Data
 		}
 		if !equality.Semantic.DeepEqual(existingData, requiredData) {
-			return false, fmt.Sprintf("secret/%s has changed", s.Name)
+			if glog.V(4) {
+				glog.Infof("secret %q changes for revision %d: %s", s.Name, revision, resourceapply.JSONPatch(existing, required))
+			}
+			secretChanges = append(secretChanges, fmt.Sprintf("secret/%s has changed", s.Name))
 		}
+	}
+
+	if len(secretChanges) > 0 || len(configChanges) > 0 {
+		return false, strings.Join(append(secretChanges, configChanges...), ",")
 	}
 
 	return true, ""
@@ -227,17 +246,13 @@ func (c RevisionController) createNewRevision(revision int32) error {
 }
 
 func (c RevisionController) sync() error {
-	operatorSpec, originalOperatorStatus, resourceVersion, err := c.operatorConfigClient.GetStaticPodOperatorState()
+	operatorSpec, originalOperatorStatus, resourceVersion, err := c.operatorConfigClient.GetStaticPodOperatorStateWithQuorum()
 	if err != nil {
 		return err
 	}
 	operatorStatus := originalOperatorStatus.DeepCopy()
 
-	switch operatorSpec.ManagementState {
-	case operatorv1.Unmanaged:
-		return nil
-	case operatorv1.Removed:
-		// TODO probably just fail.  Static pod managers can't be removed.
+	if !management.IsOperatorManaged(operatorSpec.ManagementState) {
 		return nil
 	}
 

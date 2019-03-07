@@ -17,7 +17,7 @@ type ConfigV1Interface interface {
 	ClusterOperatorsGetter
 	ClusterVersionsGetter
 	ConsolesGetter
-	DNSsGetter
+	DNSesGetter
 	FeaturesGetter
 	ImagesGetter
 	InfrastructuresGetter
@@ -26,7 +26,7 @@ type ConfigV1Interface interface {
 	OAuthsGetter
 	ProjectsGetter
 	ProxiesGetter
-	SchedulingsGetter
+	SchedulersGetter
 }
 
 // ConfigV1Client is used to interact with features provided by the config.openshift.io group.
@@ -58,8 +58,8 @@ func (c *ConfigV1Client) Consoles() ConsoleInterface {
 	return newConsoles(c)
 }
 
-func (c *ConfigV1Client) DNSs() DNSInterface {
-	return newDNSs(c)
+func (c *ConfigV1Client) DNSes() DNSInterface {
+	return newDNSes(c)
 }
 
 func (c *ConfigV1Client) Features() FeaturesInterface {
@@ -94,8 +94,8 @@ func (c *ConfigV1Client) Proxies() ProxyInterface {
 	return newProxies(c)
 }
 
-func (c *ConfigV1Client) Schedulings() SchedulingInterface {
-	return newSchedulings(c)
+func (c *ConfigV1Client) Schedulers() SchedulerInterface {
+	return newSchedulers(c)
 }
 
 // NewForConfig creates a new ConfigV1Client for the given config.

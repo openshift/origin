@@ -9,8 +9,10 @@ import (
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	appsclientv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -29,7 +31,8 @@ import (
 const targetNamespaceName = "openshift-service-cert-signer"
 
 type serviceCertSignerOperator struct {
-	operatorConfigClient scsclientv1alpha1.ServiceCertSignerOperatorConfigsGetter
+	operatorConfigClient          scsclientv1alpha1.ServiceCertSignerOperatorConfigsGetter
+	serviceCAOperatorConfigClient dynamic.ResourceInterface
 
 	appsv1Client appsclientv1.AppsV1Interface
 	corev1Client coreclientv1.CoreV1Interface
@@ -40,12 +43,14 @@ func NewServiceCertSignerOperator(
 	serviceCertSignerConfigInformer scsinformerv1alpha1.ServiceCertSignerOperatorConfigInformer,
 	namespacedKubeInformers informers.SharedInformerFactory,
 	operatorConfigClient scsclientv1alpha1.ServiceCertSignerOperatorConfigsGetter,
+	serviceCAOperatorConfigClient dynamic.ResourceInterface,
 	appsv1Client appsclientv1.AppsV1Interface,
 	corev1Client coreclientv1.CoreV1Interface,
 	rbacv1Client rbacclientv1.RbacV1Interface,
 ) operator.Runner {
 	c := &serviceCertSignerOperator{
-		operatorConfigClient: operatorConfigClient,
+		operatorConfigClient:          operatorConfigClient,
+		serviceCAOperatorConfigClient: serviceCAOperatorConfigClient,
 
 		appsv1Client: appsv1Client,
 		corev1Client: corev1Client,
@@ -89,6 +94,9 @@ func (c serviceCertSignerOperator) Key() (metav1.Object, error) {
 }
 
 func (c serviceCertSignerOperator) Sync(obj metav1.Object) error {
+    if true {
+        return nil
+    }
 	operatorConfig := obj.(*scsv1alpha1.ServiceCertSignerOperatorConfig)
 
 	switch operatorConfig.Spec.ManagementState {
@@ -112,6 +120,11 @@ func (c serviceCertSignerOperator) Sync(obj metav1.Object) error {
 		if _, err := c.operatorConfigClient.ServiceCertSignerOperatorConfigs().Update(operatorConfig); err != nil {
 			return err
 		}
+		return nil
+	}
+
+	// don't do anything if ServiceCA operator is running, it's the superior operator
+	if isServiceCARunning(c.serviceCAOperatorConfigClient) {
 		return nil
 	}
 
@@ -193,4 +206,19 @@ func (c serviceCertSignerOperator) Sync(obj metav1.Object) error {
 	}
 
 	return utilerrors.NewAggregate(errors)
+}
+
+func isServiceCARunning(serviceCAConfigClient dynamic.ResourceInterface) bool {
+	serviceCAConfig, err := serviceCAConfigClient.Get("cluster", metav1.GetOptions{})
+	if err != nil {
+		return false
+	}
+
+	// discard errors parsing the obtained status
+	servicaCAStatus, found, err := unstructured.NestedString(serviceCAConfig.Object, "spec", "managementState")
+	if err == nil && found && servicaCAStatus == string(operatorsv1alpha1.Managed) {
+		return true
+	}
+
+	return false
 }

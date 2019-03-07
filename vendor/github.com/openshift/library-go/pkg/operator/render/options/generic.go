@@ -82,15 +82,15 @@ func (o *GenericOptions) Validate() error {
 }
 
 // ApplyTo applies the options ot the given config struct using the provides text/template data.
-func (o *GenericOptions) ApplyTo(cfg *FileConfig, defaultConfig, bootstrapOverrides, postBootstrapOverrides Template, templateData interface{}) error {
+func (o *GenericOptions) ApplyTo(cfg *FileConfig, defaultConfig, bootstrapOverrides, postBootstrapOverrides Template, templateData interface{}, specialCases map[string]resourcemerge.MergeFunc) error {
 	var err error
 
-	cfg.BootstrapConfig, err = o.configFromDefaultsPlusOverride(defaultConfig, bootstrapOverrides, templateData)
+	cfg.BootstrapConfig, err = o.configFromDefaultsPlusOverride(defaultConfig, bootstrapOverrides, templateData, specialCases)
 	if err != nil {
 		return fmt.Errorf("failed to generate bootstrap config (phase 1): %v", err)
 	}
 
-	if cfg.PostBootstrapConfig, err = o.configFromDefaultsPlusOverride(defaultConfig, postBootstrapOverrides, templateData); err != nil {
+	if cfg.PostBootstrapConfig, err = o.configFromDefaultsPlusOverride(defaultConfig, postBootstrapOverrides, templateData, specialCases); err != nil {
 		return fmt.Errorf("failed to generate post-bootstrap config (phase 2): %v", err)
 	}
 
@@ -102,7 +102,7 @@ func (o *GenericOptions) ApplyTo(cfg *FileConfig, defaultConfig, bootstrapOverri
 	return nil
 }
 
-func (o *GenericOptions) configFromDefaultsPlusOverride(defaultConfig, overrides Template, templateData interface{}) ([]byte, error) {
+func (o *GenericOptions) configFromDefaultsPlusOverride(defaultConfig, overrides Template, templateData interface{}, specialCases map[string]resourcemerge.MergeFunc) ([]byte, error) {
 	defaultConfigContent, err := renderTemplate(defaultConfig, templateData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to render default config file %q as text/template: %v", defaultConfig.FileName, err)
@@ -125,7 +125,7 @@ func (o *GenericOptions) configFromDefaultsPlusOverride(defaultConfig, overrides
 
 		configs = append(configs, overrides)
 	}
-	mergedConfig, err := resourcemerge.MergeProcessConfig(nil, configs...)
+	mergedConfig, err := resourcemerge.MergeProcessConfig(specialCases, configs...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to merge configs: %v", err)
 	}

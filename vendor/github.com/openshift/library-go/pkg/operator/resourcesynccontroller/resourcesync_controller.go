@@ -19,6 +19,7 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/management"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
@@ -65,7 +66,7 @@ func NewResourceSyncController(
 ) *ResourceSyncController {
 	c := &ResourceSyncController{
 		operatorConfigClient: operatorConfigClient,
-		eventRecorder:        eventRecorder,
+		eventRecorder:        eventRecorder.WithComponentSuffix("resource-sync-controller"),
 
 		configMapSyncRules:         map[ResourceLocation]ResourceLocation{},
 		secretSyncRules:            map[ResourceLocation]ResourceLocation{},
@@ -134,11 +135,7 @@ func (c *ResourceSyncController) sync() error {
 		return err
 	}
 
-	switch operatorSpec.ManagementState {
-	case operatorv1.Unmanaged:
-		return nil
-	case operatorv1.Removed:
-		// TODO: Should we try to actively remove the resources created by this controller here?
+	if !management.IsOperatorManaged(operatorSpec.ManagementState) {
 		return nil
 	}
 
