@@ -31,7 +31,7 @@ var (
 
 	example = templates.Examples(`
 # Display information about the integrated registry
-%[1]s		
+%[1]s
 `)
 )
 
@@ -61,7 +61,7 @@ func NewRegistryInfoCmd(name string, f kcmdutil.Factory, streams genericclioptio
 		Use:     "info ",
 		Short:   "Print info about the integrated registry",
 		Long:    desc,
-		Example: fmt.Sprintf(example, name+" login"),
+		Example: fmt.Sprintf(example, name+" info"),
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, args))
 			kcmdutil.CheckErr(o.Validate())
