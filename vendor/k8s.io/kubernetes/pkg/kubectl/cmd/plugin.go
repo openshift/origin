@@ -103,15 +103,11 @@ func (o *PluginListOptions) Complete(cmd *cobra.Command) error {
 }
 
 func (o *PluginListOptions) Run() error {
-	path := "PATH"
-	if runtime.GOOS == "windows" {
-		path = "path"
-	}
-
 	pluginsFound := false
 	isFirstFile := true
 	pluginWarnings := 0
-	paths := sets.NewString(filepath.SplitList(os.Getenv(path))...)
+	paths := sets.NewString(filepath.SplitList(os.Getenv("PATH"))...)
+
 	for _, dir := range paths.List() {
 		files, err := ioutil.ReadDir(dir)
 		if err != nil {
@@ -219,7 +215,10 @@ func isExecutable(fullPath string) (bool, error) {
 	}
 
 	if runtime.GOOS == "windows" {
-		if strings.HasSuffix(info.Name(), ".exe") {
+		fileExt := strings.ToLower(filepath.Ext(fullPath))
+
+		switch fileExt {
+		case ".bat", ".cmd", ".com", ".exe", ".ps1":
 			return true, nil
 		}
 		return false, nil
