@@ -27,23 +27,11 @@ readonly OS_OUTPUT_RPMPATH="${OS_OUTPUT_RELEASEPATH}/rpms"
 readonly OS_OUTPUT_BINPATH="${OS_OUTPUT}/bin"
 readonly OS_OUTPUT_PKGDIR="${OS_OUTPUT}/pkgdir"
 
-readonly OS_SDN_COMPILE_TARGETS_LINUX=(
-  cmd/sdn-cni-plugin
-  vendor/github.com/containernetworking/plugins/plugins/ipam/host-local
-  vendor/github.com/containernetworking/plugins/plugins/main/loopback
-)
 readonly OS_IMAGE_COMPILE_TARGETS_LINUX=(
-  "${OS_SDN_COMPILE_TARGETS_LINUX[@]}"
-  cmd/hypershift
-  cmd/template-service-broker
-  cmd/openshift-sdn
-  cmd/openshift-tests
-  cmd/openshift
-  cmd/openshift-integrated-oauth-server
   vendor/k8s.io/kubernetes/cmd/hyperkube
 )
 readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX=(
-  images/pod
+  ""
 )
 readonly OS_IMAGE_COMPILE_BINARIES=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX[@]##*/}" "${OS_IMAGE_COMPILE_TARGETS_LINUX[@]##*/}")
 
@@ -57,10 +45,10 @@ readonly OS_GOVET_BLACKLIST=(
 
 #If you update this list, be sure to get the images/origin/Dockerfile
 readonly OPENSHIFT_BINARY_SYMLINKS=(
+  ""
 )
 readonly OC_BINARY_SYMLINKS=(
-  openshift-deploy
-  openshift-recycle
+  ""
 )
 readonly OC_BINARY_COPY=(
   kubectl
@@ -303,19 +291,12 @@ readonly -f os::build::clean_windows_versioninfo
 
 # OS_ALL_IMAGES is the list of images built by os::build::images.
 readonly OS_ALL_IMAGES=(
-  origin-pod
-  origin-base
   origin-cli
   origin-hypershift
   origin-hyperkube
-  origin-control-plane
-  origin-node
+  origin-sdn
   origin-deployer
   origin-docker-builder
-  origin-keepalived-ipfailover
-  origin-egress-router
-  origin-egress-http-proxy
-  origin-egress-dns-proxy
   origin-recycler
   origin-template-service-broker
   origin-tests
@@ -374,28 +355,18 @@ function os::build::images() {
   tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 
   # images that depend on "${tag_prefix}-source" or "${tag_prefix}-base"
-  ( os::build::image "${tag_prefix}-pod"                     images/pod ) &
   ( os::build::image "${tag_prefix}-template-service-broker" images/template-service-broker ) &
   ( os::build::image "${tag_prefix}-cli"                     images/cli ) &
   ( os::build::image "${tag_prefix}-hyperkube"               images/hyperkube ) &
   ( os::build::image "${tag_prefix}-hypershift"              images/hypershift ) &
-  ( os::build::image "${tag_prefix}-egress-router"           images/egress/router ) &
-  ( os::build::image "${tag_prefix}-egress-http-proxy"       images/egress/http-proxy ) &
-  ( os::build::image "${tag_prefix}-egress-dns-proxy"        images/egress/dns-proxy ) &
-  ( os::build::image "${tag_prefix}-keepalived-ipfailover"   images/ipfailover/keepalived ) &
+  ( os::build::image "${tag_prefix}-sdn"                     images/sdn ) &
 
   for i in `jobs -p`; do wait $i; done
 
-  # images that depend on "${tag_prefix}-cli"
+  # images that depend on "${tag_prefix}-cli" or hyperkube
   ( os::build::image "${tag_prefix}-tests"          images/tests ) &
-  ( os::build::image "${tag_prefix}-control-plane"  images/origin ) &
   ( os::build::image "${tag_prefix}-deployer"       images/deployer ) &
   ( os::build::image "${tag_prefix}-recycler"       images/recycler ) &
-
-  for i in `jobs -p`; do wait $i; done
-
-  # images that depend on "${tag_prefix}-control-plane"
-  ( os::build::image "${tag_prefix}-node"           images/node ) &
 
   for i in `jobs -p`; do wait $i; done
 }
