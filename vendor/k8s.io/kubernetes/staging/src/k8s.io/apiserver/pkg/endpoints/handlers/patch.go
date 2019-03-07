@@ -85,7 +85,7 @@ func PatchResource(r rest.Patcher, scope RequestScope, admit admission.Interface
 			return
 		}
 
-		patchJS, err := readBody(req)
+	        patchJS, err := limitedReadBody(req, scope.MaxReq
 		if err != nil {
 			scope.err(err, w, req)
 			return
