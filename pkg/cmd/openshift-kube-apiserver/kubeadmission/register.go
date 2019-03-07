@@ -46,7 +46,6 @@ var (
 		imagepolicyapiv1.PluginName, // "image.openshift.io/ImagePolicy"
 		"project.openshift.io/ProjectRequestLimit",
 		"quota.openshift.io/ClusterResourceQuota",
-		"scheduling.openshift.io/OriginPodNodeEnvironment",
 		"security.openshift.io/SecurityContextConstraint",
 		"security.openshift.io/SCCExecRestrictions",
 	)

@@ -1,17 +1,21 @@
 package nodeenv
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission/initializer"
+	"k8s.io/client-go/informers"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/util/labelselector"
 )
 
@@ -23,17 +27,23 @@ func Register(plugins *admission.Plugins) {
 }
 
 const (
-	KubeProjectNodeSelector = "scheduler.alpha.kubernetes.io/node-selector"
+	timeToWaitForCacheSync       = 10 * time.Second
+	kubeProjectNodeSelector      = "scheduler.alpha.kubernetes.io/node-selector"
+	openShiftProjectNodeSelector = "openshift.io/node-selector"
 )
 
 // podNodeEnvironment is an implementation of admission.MutationInterface.
 type podNodeEnvironment struct {
 	*admission.Handler
-	client kclientset.Interface
-	cache  *cache.ProjectCache
+	client         kclientset.Interface
+	nsLister       corev1listers.NamespaceLister
+	nsListerSynced func() bool
+	// TODO this should become a piece of config passed to the admission plugin
+	defaultNodeSelector string
 }
 
-var _ = oadmission.WantsProjectCache(&podNodeEnvironment{})
+var _ = initializer.WantsExternalKubeInformerFactory(&podNodeEnvironment{})
+var _ = oadmission.WantsDefaultNodeSelector(&podNodeEnvironment{})
 var _ = kadmission.WantsInternalKubeClientSet(&podNodeEnvironment{})
 var _ = admission.ValidationInterface(&podNodeEnvironment{})
 var _ = admission.MutationInterface(&podNodeEnvironment{})
@@ -57,23 +67,25 @@ func (p *podNodeEnvironment) admit(a admission.Attributes, mutationAllowed bool)
 
 	name := pod.Name
 
-	if !p.cache.Running() {
-		return err
+	if !p.waitForSyncedStore(time.After(timeToWaitForCacheSync)) {
+		return admission.NewForbidden(a, errors.New("scheduling.openshift.io/OriginPodNodeEnvironment: caches not synchronized"))
 	}
-	namespace, err := p.cache.GetNamespace(a.GetNamespace())
+	namespace, err := p.nsLister.Get(a.GetNamespace())
 	if err != nil {
 		return apierrors.NewForbidden(resource, name, err)
 	}
 
 	// If scheduler.alpha.kubernetes.io/node-selector is set on the pod,
 	// do not process the pod further.
-	if len(namespace.ObjectMeta.Annotations) > 0 {
-		if _, ok := namespace.ObjectMeta.Annotations[KubeProjectNodeSelector]; ok {
-			return nil
-		}
+	if _, ok := namespace.ObjectMeta.Annotations[kubeProjectNodeSelector]; ok {
+		return nil
 	}
 
-	projectNodeSelector, err := p.cache.GetNodeSelectorMap(namespace)
+	selector := p.defaultNodeSelector
+	if projectNodeSelector, ok := namespace.ObjectMeta.Annotations[openShiftProjectNodeSelector]; ok {
+		selector = projectNodeSelector
+	}
+	projectNodeSelector, err := labelselector.Parse(selector)
 	if err != nil {
 		return err
 	}
@@ -101,17 +113,37 @@ func (p *podNodeEnvironment) Validate(a admission.Attributes) (err error) {
 	return p.admit(a, false)
 }
 
-func (p *podNodeEnvironment) SetProjectCache(c *cache.ProjectCache) {
-	p.cache = c
+func (p *podNodeEnvironment) SetDefaultNodeSelector(in string) {
+	p.defaultNodeSelector = in
+}
+
+func (p *podNodeEnvironment) SetExternalKubeInformerFactory(kubeInformers informers.SharedInformerFactory) {
+	p.nsLister = kubeInformers.Core().V1().Namespaces().Lister()
+	p.nsListerSynced = kubeInformers.Core().V1().Namespaces().Informer().HasSynced
 }
 
 func (q *podNodeEnvironment) SetInternalKubeClientSet(c kclientset.Interface) {
 	q.client = c
 }
 
+func (p *podNodeEnvironment) waitForSyncedStore(timeout <-chan time.Time) bool {
+	for !p.nsListerSynced() {
+		select {
+		case <-time.After(100 * time.Millisecond):
+		case <-timeout:
+			return p.nsListerSynced()
+		}
+	}
+
+	return true
+}
+
 func (p *podNodeEnvironment) ValidateInitialization() error {
-	if p.cache == nil {
-		return fmt.Errorf("project node environment plugin needs a project cache")
+	if p.nsLister == nil {
+		return fmt.Errorf("project node environment plugin needs a namespace lister")
+	}
+	if p.nsListerSynced == nil {
+		return fmt.Errorf("project node environment plugin needs a namespace lister synced")
 	}
 	return nil
 }

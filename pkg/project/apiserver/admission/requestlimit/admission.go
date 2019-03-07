@@ -1,8 +1,10 @@
 package requestlimit
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/golang/glog"
 
@@ -11,7 +13,10 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
+	"k8s.io/client-go/informers"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
 
 	"github.com/openshift/api/project"
@@ -22,13 +27,14 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	requestlimitapi "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit"
 	requestlimitapivalidation "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit/validation"
-	projectcache "github.com/openshift/origin/pkg/project/cache"
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
 // allowedTerminatingProjects is the number of projects that are owned by a user, are in terminating state,
 // and do not count towards the user's limit.
 const allowedTerminatingProjects = 2
+
+const timeToWaitForCacheSync = 10 * time.Second
 
 func Register(plugins *admission.Plugins) {
 	plugins.Register("project.openshift.io/ProjectRequestLimit",
@@ -66,13 +72,14 @@ func readConfig(reader io.Reader) (*requestlimitapi.ProjectRequestLimitConfig, e
 
 type projectRequestLimit struct {
 	*admission.Handler
-	userClient usertypedclient.UsersGetter
-	config     *requestlimitapi.ProjectRequestLimitConfig
-	cache      *projectcache.ProjectCache
+	userClient     usertypedclient.UsersGetter
+	config         *requestlimitapi.ProjectRequestLimitConfig
+	nsLister       corev1listers.NamespaceLister
+	nsListerSynced func() bool
 }
 
 // ensure that the required Openshift admission interfaces are implemented
-var _ = oadmission.WantsProjectCache(&projectRequestLimit{})
+var _ = initializer.WantsExternalKubeInformerFactory(&projectRequestLimit{})
 var _ = oadmission.WantsRESTClientConfig(&projectRequestLimit{})
 var _ = admission.ValidationInterface(&projectRequestLimit{})
 
@@ -89,6 +96,11 @@ func (o *projectRequestLimit) Validate(a admission.Attributes) (err error) {
 	if _, isProjectRequest := a.GetObject().(*projectapi.ProjectRequest); !isProjectRequest {
 		return nil
 	}
+
+	if !o.waitForSyncedStore(time.After(timeToWaitForCacheSync)) {
+		return admission.NewForbidden(a, errors.New("project.openshift.io/ProjectRequestLimit: caches not synchronized"))
+	}
+
 	userName := a.GetUserInfo().GetName()
 	projectCount, err := o.projectCountByRequester(userName)
 	if err != nil {
@@ -149,17 +161,22 @@ func (o *projectRequestLimit) maxProjectsByRequester(userName string) (int, bool
 }
 
 func (o *projectRequestLimit) projectCountByRequester(userName string) (int, error) {
-	namespaces, err := o.cache.Store.ByIndex("requester", userName)
+	// our biggest clusters have less than 10k namespaces.  project requests are infrequent.  This is iterating on an
+	// in memory set of pointers.  I can live with all this to avoid a secondary cache.
+	allNamespaces, err := o.nsLister.List(labels.Everything())
 	if err != nil {
 		return 0, err
 	}
+	namespaces := []*corev1.Namespace{}
+	for i := range allNamespaces {
+		ns := allNamespaces[i]
+		if ns.Annotations[projectapi.ProjectRequester] == userName {
+			namespaces = append(namespaces, ns)
+		}
+	}
 
 	terminatingCount := 0
-	for _, obj := range namespaces {
-		ns, ok := obj.(*corev1.Namespace)
-		if !ok {
-			return 0, fmt.Errorf("object in cache is not a namespace: %#v", obj)
-		}
+	for _, ns := range namespaces {
 		if ns.Status.Phase == corev1.NamespaceTerminating {
 			terminatingCount++
 		}
@@ -182,16 +199,32 @@ func (o *projectRequestLimit) SetRESTClientConfig(restClientConfig rest.Config) 
 	}
 }
 
-func (o *projectRequestLimit) SetProjectCache(cache *projectcache.ProjectCache) {
-	o.cache = cache
+func (o *projectRequestLimit) SetExternalKubeInformerFactory(kubeInformers informers.SharedInformerFactory) {
+	o.nsLister = kubeInformers.Core().V1().Namespaces().Lister()
+	o.nsListerSynced = kubeInformers.Core().V1().Namespaces().Informer().HasSynced
+}
+
+func (o *projectRequestLimit) waitForSyncedStore(timeout <-chan time.Time) bool {
+	for !o.nsListerSynced() {
+		select {
+		case <-time.After(100 * time.Millisecond):
+		case <-timeout:
+			return o.nsListerSynced()
+		}
+	}
+
+	return true
 }
 
 func (o *projectRequestLimit) ValidateInitialization() error {
 	if o.userClient == nil {
 		return fmt.Errorf("project.openshift.io/ProjectRequestLimit plugin requires an Openshift client")
 	}
-	if o.cache == nil {
-		return fmt.Errorf("project.openshift.io/ProjectRequestLimit plugin requires a project cache")
+	if o.nsLister == nil {
+		return fmt.Errorf("project.openshift.io/ProjectRequestLimit plugin needs a namespace lister")
+	}
+	if o.nsListerSynced == nil {
+		return fmt.Errorf("project.openshift.io/ProjectRequestLimit plugin needs a namespace lister synced")
 	}
 	return nil
 }

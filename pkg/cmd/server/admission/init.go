@@ -15,6 +15,7 @@ import (
 
 type PluginInitializer struct {
 	ProjectCache                 *cache.ProjectCache
+	DefaultNodeSelector          string
 	OriginQuotaRegistry          quota.Registry
 	RESTClientConfig             restclient.Config
 	ClusterResourceQuotaInformer quotainformer.ClusterResourceQuotaInformer
@@ -29,6 +30,9 @@ type PluginInitializer struct {
 func (i *PluginInitializer) Initialize(plugin admission.Interface) {
 	if wantsProjectCache, ok := plugin.(WantsProjectCache); ok {
 		wantsProjectCache.SetProjectCache(i.ProjectCache)
+	}
+	if castObj, ok := plugin.(WantsDefaultNodeSelector); ok {
+		castObj.SetDefaultNodeSelector(i.DefaultNodeSelector)
 	}
 	if wantsOriginQuotaRegistry, ok := plugin.(WantsOriginQuotaRegistry); ok {
 		wantsOriginQuotaRegistry.SetOriginQuotaRegistry(i.OriginQuotaRegistry)

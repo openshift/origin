@@ -19,6 +19,11 @@ type WantsProjectCache interface {
 	admission.InitializationValidator
 }
 
+type WantsDefaultNodeSelector interface {
+	SetDefaultNodeSelector(string)
+	admission.InitializationValidator
+}
+
 // WantsQuotaRegistry should be implemented by admission plugins that need a quota registry
 type WantsOriginQuotaRegistry interface {
 	SetOriginQuotaRegistry(quota.Registry)
