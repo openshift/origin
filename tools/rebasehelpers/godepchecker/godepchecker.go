@@ -86,7 +86,6 @@ func main() {
 	// Check `ours` for different levels
 	openshiftForks := sets.NewString(
 		"github.com/docker/distribution",
-		"github.com/skynetservices/skydns",
 		"github.com/coreos/etcd",
 		"github.com/emicklei/go-restful",
 		"github.com/golang/glog",
