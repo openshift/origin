@@ -44,7 +44,6 @@ var (
 	SkipRunLevelOnePlugins = sets.NewString(
 		"authorization.openshift.io/RestrictSubjectBindings",
 		imagepolicyapiv1.PluginName, // "image.openshift.io/ImagePolicy"
-		"project.openshift.io/ProjectRequestLimit",
 		"quota.openshift.io/ClusterResourceQuota",
 		"security.openshift.io/SecurityContextConstraint",
 		"security.openshift.io/SCCExecRestrictions",
