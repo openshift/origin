@@ -10,8 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ghodss/yaml"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	dto "github.com/prometheus/client_model/go"
@@ -361,16 +359,16 @@ func locatePrometheus(oc *exutil.CLI) (url, bearerToken string, ok bool) {
 }
 
 func hasPullSecret(client clientset.Interface, name string) bool {
-	cm, err := client.CoreV1().ConfigMaps("kube-system").Get("cluster-config-v1", metav1.GetOptions{})
+	scrt, err := client.CoreV1().Secrets("kube-system").Get("coreos-pull-secret", metav1.GetOptions{})
 	if err != nil {
 		if kapierrs.IsNotFound(err) {
 			return false
 		}
-		e2e.Failf("could not retrieve cluster-config-v1: %v", err)
+		e2e.Failf("could not retrieve coreos-pull-secret: %v", err)
 	}
-	ic := make(map[string]interface{})
-	if err := yaml.Unmarshal([]byte(cm.Data["install-config"]), &ic); err != nil {
-		e2e.Failf("could not parse cluster-config-v1 install-config: %v", err)
+
+	if scrt.Type != v1.SecretTypeDockerConfigJson {
+		e2e.Failf("error expecting secret type %s got %s", v1.SecretTypeDockerConfigJson, scrt.Type)
 	}
 
 	ps := struct {
@@ -378,11 +376,9 @@ func hasPullSecret(client clientset.Interface, name string) bool {
 			Auth string `json:"auth"`
 		} `json:"auths"`
 	}{}
-	if _, ok := ic["pullSecret"].(string); !ok {
-		e2e.Failf("could not get pullSecret from cluster-config-v1: %v", err)
-	}
-	if err := json.Unmarshal([]byte(ic["pullSecret"].(string)), &ps); err != nil {
-		e2e.Failf("could not unmashal pullSecret from cluster-config-v1: %v", err)
+
+	if err := json.Unmarshal(scrt.Data[v1.DockerConfigJsonKey], &ps); err != nil {
+		e2e.Failf("could not unmarshal pullSecret from coreos-pull-secret: %v", err)
 	}
 	return len(ps.Auths[name].Auth) > 0
 }
