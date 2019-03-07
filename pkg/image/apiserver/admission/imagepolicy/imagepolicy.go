@@ -8,6 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/client-go/informers"
+
+	"k8s.io/apiserver/pkg/admission/initializer"
+
 	"github.com/golang/glog"
 	lru "github.com/hashicorp/golang-lru"
 
@@ -21,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/admission"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	internalimagereferencemutators "github.com/openshift/origin/pkg/api/imagereferencemutators/internalversion"
@@ -30,7 +35,6 @@ import (
 	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/validation"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/rules"
 	imageinternalclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
-	"github.com/openshift/origin/pkg/project/cache"
 	"k8s.io/client-go/rest"
 )
 
@@ -70,10 +74,11 @@ type imagePolicyPlugin struct {
 
 	integratedRegistryMatcher integratedRegistryMatcher
 
-	projectCache *cache.ProjectCache
-	resolver     imageResolver
+	nsLister corev1listers.NamespaceLister
+	resolver imageResolver
 }
 
+var _ = initializer.WantsExternalKubeInformerFactory(&imagePolicyPlugin{})
 var _ = oadmission.WantsRESTClientConfig(&imagePolicyPlugin{})
 var _ = oadmission.WantsDefaultRegistryFunc(&imagePolicyPlugin{})
 var _ = admission.ValidationInterface(&imagePolicyPlugin{})
@@ -132,8 +137,8 @@ func (a *imagePolicyPlugin) SetRESTClientConfig(restClientConfig rest.Config) {
 	}
 }
 
-func (a *imagePolicyPlugin) SetProjectCache(c *cache.ProjectCache) {
-	a.projectCache = c
+func (a *imagePolicyPlugin) SetExternalKubeInformerFactory(kubeInformers informers.SharedInformerFactory) {
+	a.nsLister = kubeInformers.Core().V1().Namespaces().Lister()
 }
 
 // Validate ensures that all required interfaces have been provided, or returns an error.
@@ -141,8 +146,8 @@ func (a *imagePolicyPlugin) ValidateInitialization() error {
 	if a.client == nil {
 		return fmt.Errorf("%s needs an Openshift client", imagepolicy.PluginName)
 	}
-	if a.projectCache == nil {
-		return fmt.Errorf("%s needs a project cache", imagepolicy.PluginName)
+	if a.nsLister == nil {
+		return fmt.Errorf("%s needs a namespace lister", imagepolicy.PluginName)
 	}
 	imageResolver, err := newImageResolutionCache(a.client, a.integratedRegistryMatcher)
 	if err != nil {
@@ -259,7 +264,7 @@ func (a *imagePolicyPlugin) admit(attr admission.Attributes, mutationAllowed boo
 	// load exclusion rules from the namespace cache
 	var excluded sets.String
 	if ns := attr.GetNamespace(); len(ns) > 0 {
-		if ns, err := a.projectCache.GetNamespace(ns); err == nil {
+		if ns, err := a.nsLister.Get(ns); err == nil {
 			if value := ns.Annotations[imagepolicy.IgnorePolicyRulesAnnotation]; len(value) > 0 {
 				excluded = sets.NewString(strings.Split(value, ",")...)
 			}

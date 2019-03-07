@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
-	"k8s.io/client-go/kubernetes/fake"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/listers/core/internalversion"
@@ -22,7 +22,6 @@ import (
 	"github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride"
 	"github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride/validation"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	projectcache "github.com/openshift/origin/pkg/project/cache"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -332,7 +331,7 @@ func TestLimitRequestAdmission(t *testing.T) {
 					limits: test.namespaceLimits,
 				},
 			}
-			c.(*clusterResourceOverridePlugin).SetProjectCache(fakeProjectCache(test.namespace))
+			c.(*clusterResourceOverridePlugin).nsLister = fakeNamespaceLister(test.namespace)
 			attrs := admission.NewAttributesRecord(test.pod, nil, schema.GroupVersionKind{}, test.namespace.Name, "name", kapi.Resource("pods").WithVersion("version"), "", admission.Create, false, fakeUser())
 			clone := test.pod.DeepCopy()
 			if err = c.(admission.MutationInterface).Admit(attrs); err != nil {
@@ -448,10 +447,10 @@ func fakeNamespace(pluginEnabled bool) *corev1.Namespace {
 	return ns
 }
 
-func fakeProjectCache(ns *corev1.Namespace) *projectcache.ProjectCache {
-	store := projectcache.NewCacheStore(cache.MetaNamespaceKeyFunc)
-	store.Add(ns)
-	return projectcache.NewFake((&fake.Clientset{}).CoreV1().Namespaces(), store, "")
+func fakeNamespaceLister(ns *corev1.Namespace) corev1listers.NamespaceLister {
+	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
+	indexer.Add(ns)
+	return corev1listers.NewNamespaceLister(indexer)
 }
 
 func testConfig(lc2mr int64, cr2lr int64, mr2lr int64) *clusterresourceoverride.ClusterResourceOverrideConfig {

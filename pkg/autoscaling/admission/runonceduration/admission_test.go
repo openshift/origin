@@ -6,25 +6,22 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiserver/pkg/admission"
-	"k8s.io/client-go/kubernetes/fake"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	projectcache "github.com/openshift/origin/pkg/project/cache"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 
-func testCache(projectAnnotations map[string]string) *projectcache.ProjectCache {
-	kclient := &fake.Clientset{}
-	pCache := projectcache.NewFake(kclient.CoreV1().Namespaces(), projectcache.NewCacheStore(cache.MetaNamespaceKeyFunc), "")
+func fakeNamespaceLister(projectAnnotations map[string]string) corev1listers.NamespaceLister {
+	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
 	ns := &corev1.Namespace{}
 	ns.Name = "default"
 	ns.Annotations = projectAnnotations
-	pCache.Store.Add(ns)
-	return pCache
+	indexer.Add(ns)
+	return corev1listers.NewNamespaceLister(indexer)
 }
 
 func testConfig(n *int64) *runonceduration.RunOnceDurationConfig {
@@ -135,11 +132,11 @@ func TestRunOnceDurationAdmit(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		runOnceDuration := NewRunOnceDuration(tc.config)
-		runOnceDuration.(oadmission.WantsProjectCache).SetProjectCache(testCache(tc.projectAnnotations))
+		admissionPlugin := NewRunOnceDuration(tc.config)
+		admissionPlugin.(*runOnceDuration).nsLister = fakeNamespaceLister(tc.projectAnnotations)
 		pod := tc.pod
 		attrs := admission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), "default", "test", kapi.Resource("pods").WithVersion("version"), "", admission.Create, false, nil)
-		if err := runOnceDuration.(admission.MutationInterface).Admit(attrs); err != nil {
+		if err := admissionPlugin.(admission.MutationInterface).Admit(attrs); err != nil {
 			t.Errorf("%s: unexpected mutating admission error: %v", tc.name, err)
 			continue
 		}

@@ -10,17 +10,15 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/storage/names"
-	"k8s.io/client-go/kubernetes/fake"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openshift/api/project"
 	userapi "github.com/openshift/api/user/v1"
 	fakeuserclient "github.com/openshift/client-go/user/clientset/versioned/fake"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	requestlimitapi "github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit"
-	projectcache "github.com/openshift/origin/pkg/project/cache"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	// install all APIs
@@ -179,13 +177,14 @@ func TestMaxProjectByRequester(t *testing.T) {
 }
 
 func TestProjectCountByRequester(t *testing.T) {
-	pCache := fakeProjectCache(map[string]projectCount{
+	nsLister := fakeNamespaceLister(map[string]projectCount{
 		"user1": {1, 5}, // total 6, expect 4
 		"user2": {5, 1}, // total 6, expect 5
 		"user3": {1, 0}, // total 1, expect 1
 	})
 	reqLimit := &projectRequestLimit{
-		cache: pCache,
+		nsLister:       nsLister,
+		nsListerSynced: func() bool { return true },
 	}
 	tests := []struct {
 		user   string
@@ -261,7 +260,7 @@ func TestAdmit(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		pCache := fakeProjectCache(map[string]projectCount{
+		nsLister := fakeNamespaceLister(map[string]projectCount{
 			"user1": {0, 1},
 			"user2": {2, 2},
 			"user3": {5, 3},
@@ -279,7 +278,8 @@ func TestAdmit(t *testing.T) {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 		reqLimit.(*projectRequestLimit).userClient = client.UserV1()
-		reqLimit.(oadmission.WantsProjectCache).SetProjectCache(pCache)
+		reqLimit.(*projectRequestLimit).nsLister = nsLister
+		reqLimit.(*projectRequestLimit).nsListerSynced = func() bool { return true }
 		if err = reqLimit.(admission.InitializationValidator).ValidateInitialization(); err != nil {
 			t.Fatalf("validation error: %v", err)
 		}
@@ -366,18 +366,17 @@ type projectCount struct {
 	terminating int
 }
 
-func fakeProjectCache(requesters map[string]projectCount) *projectcache.ProjectCache {
-	kclientset := &fake.Clientset{}
-	pCache := projectcache.NewFake(kclientset.CoreV1().Namespaces(), projectcache.NewCacheStore(cache.MetaNamespaceKeyFunc), "")
+func fakeNamespaceLister(requesters map[string]projectCount) corev1listers.NamespaceLister {
+	indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
 	for requester, count := range requesters {
 		for i := 0; i < count.active; i++ {
-			pCache.Store.Add(fakeNs(requester, false))
+			indexer.Add(fakeNs(requester, false))
 		}
 		for i := 0; i < count.terminating; i++ {
-			pCache.Store.Add(fakeNs(requester, true))
+			indexer.Add(fakeNs(requester, true))
 		}
 	}
-	return pCache
+	return corev1listers.NewNamespaceLister(indexer)
 }
 
 func userFn(usersAndLabels map[string]labels.Set) clientgotesting.ReactionFunc {

@@ -81,10 +81,6 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 		genericConfig.LongRunningFunc = configprocessing.IsLongRunningRequest
 
 		// ADMISSION
-		projectCache, err := openshiftapiserver.NewProjectCache(kubeAPIServerInformers.KubernetesInformers.Core().V1().Namespaces(), genericConfig.LoopbackClientConfig, kubeAPIServerConfig.ProjectConfig.DefaultNodeSelector)
-		if err != nil {
-			return nil, err
-		}
 		clusterQuotaMappingController := openshiftapiserver.NewClusterQuotaMappingController(kubeAPIServerInformers.KubernetesInformers.Core().V1().Namespaces(), kubeAPIServerInformers.InternalOpenshiftQuotaInformers.Quota().InternalVersion().ClusterResourceQuotas())
 		patchContext.postStartHooks["quota.openshift.io-clusterquotamapping"] = func(context genericapiserver.PostStartHookContext) error {
 			go clusterQuotaMappingController.Run(5, context.StopCh)
@@ -106,7 +102,7 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 		// TODO make a union registry
 		quotaRegistry := generic.NewRegistry(install.NewQuotaConfigurationForAdmission().Evaluators())
 		openshiftPluginInitializer := &oadmission.PluginInitializer{
-			ProjectCache:                 projectCache,
+			DefaultNodeSelector:          kubeAPIServerConfig.ProjectConfig.DefaultNodeSelector,
 			OriginQuotaRegistry:          quotaRegistry,
 			RESTClientConfig:             *genericConfig.LoopbackClientConfig,
 			ClusterResourceQuotaInformer: kubeAPIServerInformers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),

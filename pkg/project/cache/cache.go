@@ -13,7 +13,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	"github.com/openshift/origin/pkg/util/labelselector"
 )
 
 // NewProjectCache returns a non-initialized ProjectCache. The cache needs to be run to begin functioning
@@ -72,30 +71,6 @@ func (p *ProjectCache) GetNamespace(name string) (*corev1.Namespace, error) {
 		glog.V(4).Infof("found %s via storage lookup", name)
 	}
 	return namespace, nil
-}
-
-func (p *ProjectCache) GetNodeSelector(namespace *corev1.Namespace) string {
-	selector := ""
-	found := false
-	if len(namespace.ObjectMeta.Annotations) > 0 {
-		if ns, ok := namespace.ObjectMeta.Annotations[projectapi.ProjectNodeSelector]; ok {
-			selector = ns
-			found = true
-		}
-	}
-	if !found {
-		selector = p.DefaultNodeSelector
-	}
-	return selector
-}
-
-func (p *ProjectCache) GetNodeSelectorMap(namespace *corev1.Namespace) (map[string]string, error) {
-	selector := p.GetNodeSelector(namespace)
-	labelsMap, err := labelselector.Parse(selector)
-	if err != nil {
-		return map[string]string{}, err
-	}
-	return labelsMap, nil
 }
 
 // Run waits until the cache has synced.

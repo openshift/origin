@@ -7,27 +7,23 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/admission"
-	fakev1 "k8s.io/client-go/kubernetes/fake"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/util/labelselector"
 )
 
 // TestPodAdmission verifies various scenarios involving pod/project/global node label selectors
 func TestPodAdmission(t *testing.T) {
-	project := &corev1.Namespace{
+	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testProject",
 			Namespace: "",
 		},
 	}
-	projectStore := projectcache.NewCacheStore(cache.IndexFuncToKeyFuncAdapter(cache.MetaNamespaceIndexFunc))
-	projectStore.Add(project)
 
-	externalMockClientset := fakev1.NewSimpleClientset()
 	mockClientset := fake.NewSimpleClientset()
 	handler := &podNodeEnvironment{client: mockClientset}
 	pod := &kapi.Pod{
@@ -109,14 +105,18 @@ func TestPodAdmission(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		cache := projectcache.NewFake(externalMockClientset.CoreV1().Namespaces(), projectStore, test.defaultNodeSelector)
-		handler.SetProjectCache(cache)
+		indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
+		indexer.Add(namespace)
+		handler.nsLister = corev1listers.NewNamespaceLister(indexer)
+		handler.nsListerSynced = func() bool { return true }
+		handler.defaultNodeSelector = test.defaultNodeSelector
+
 		if !test.ignoreProjectNodeSelector {
-			project.ObjectMeta.Annotations = map[string]string{"openshift.io/node-selector": test.projectNodeSelector}
+			namespace.ObjectMeta.Annotations = map[string]string{"openshift.io/node-selector": test.projectNodeSelector}
 		}
 		pod.Spec = kapi.PodSpec{NodeSelector: test.podNodeSelector}
 
-		attrs := admission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), "namespace", project.ObjectMeta.Name, kapi.Resource("pods").WithVersion("version"), "", admission.Create, false, nil)
+		attrs := admission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), "testProject", namespace.ObjectMeta.Name, kapi.Resource("pods").WithVersion("version"), "", admission.Create, false, nil)
 		err := handler.Admit(attrs)
 		if test.admit && err != nil {
 			t.Errorf("Test: %s, expected no error but got: %s", test.testName, err)
