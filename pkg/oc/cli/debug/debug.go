@@ -430,7 +430,7 @@ func (o *DebugOptions) RunDebug() error {
 			fmt.Fprintf(o.ErrOut, "Starting pod/%s ...\n", pod.Name)
 		}
 		if o.IsNode {
-			fmt.Fprintf(o.ErrOut, "To directly access the host PATH, try `chroot /host /bin/bash`\n")
+			fmt.Fprintf(o.ErrOut, "To use host binaries, run `chroot /host`\n")
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), o.Timeout)
