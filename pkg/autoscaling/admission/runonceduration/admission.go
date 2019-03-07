@@ -9,14 +9,15 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission/initializer"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/util/integer"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration"
 	"github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration/validation"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	projectcache "github.com/openshift/origin/pkg/project/cache"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -63,11 +64,11 @@ func NewRunOnceDuration(config *runonceduration.RunOnceDurationConfig) admission
 
 type runOnceDuration struct {
 	*admission.Handler
-	config *runonceduration.RunOnceDurationConfig
-	cache  *projectcache.ProjectCache
+	config   *runonceduration.RunOnceDurationConfig
+	nsLister corev1listers.NamespaceLister
 }
 
-var _ = oadmission.WantsProjectCache(&runOnceDuration{})
+var _ = initializer.WantsExternalKubeInformerFactory(&runOnceDuration{})
 
 func (a *runOnceDuration) Admit(attributes admission.Attributes) error {
 	switch {
@@ -101,19 +102,19 @@ func (a *runOnceDuration) Admit(attributes admission.Attributes) error {
 	return nil
 }
 
-func (a *runOnceDuration) SetProjectCache(cache *projectcache.ProjectCache) {
-	a.cache = cache
+func (a *runOnceDuration) SetExternalKubeInformerFactory(kubeInformers informers.SharedInformerFactory) {
+	a.nsLister = kubeInformers.Core().V1().Namespaces().Lister()
 }
 
 func (a *runOnceDuration) ValidateInitialization() error {
-	if a.cache == nil {
-		return errors.New("autoscaling.openshift.io/RunOnceDuration plugin requires a project cache")
+	if a.nsLister == nil {
+		return errors.New("autoscaling.openshift.io/RunOnceDuration plugin requires a namespace listers")
 	}
 	return nil
 }
 
 func (a *runOnceDuration) applyProjectAnnotationLimit(namespace string, pod *kapi.Pod) (bool, error) {
-	ns, err := a.cache.GetNamespace(namespace)
+	ns, err := a.nsLister.Get(namespace)
 	if err != nil {
 		return false, fmt.Errorf("error looking up pod namespace: %v", err)
 	}
