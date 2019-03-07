@@ -741,7 +741,7 @@ func urlForRepoAndCommit(repo, commit string) string {
 func urlForRepoAndCommitRange(repo, from, to string) string {
 	if strings.HasPrefix(repo, urlGithubPrefix) {
 		if u, err := url.Parse(repo); err == nil {
-			u.Path = path.Join(u.Path, "changes", fmt.Sprintf("%s...%s", from, to))
+			u.Path = path.Join(u.Path, "compare", fmt.Sprintf("%s...%s", from, to))
 			return u.String()
 		}
 	}
