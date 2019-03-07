@@ -154,9 +154,9 @@ import:
 # pinned to the level that kubernetes uses.  Not sure why glide isn't matching this
 - package: github.com/sirupsen/logrus
   version: 89742aefa4b206dcf400792f3bd35b542998eb3b
-# pinned to a level that includes two fixes we need to avoid crashes
+# pinned to a level that kubernetes uses.
 - package: github.com/evanphx/json-patch
-  version: 36442dbdb585210f8d5a1b45e67aa323c197d5c4
+  version: 5858425f75500d40c52783dce87d085a483ce135
 # pinned to a level that kubernetes 1.12 use
 - package: github.com/gorilla/mux
   version: 08e7f807d38d6a870193019bb439056118661505
