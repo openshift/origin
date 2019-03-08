@@ -1,2 +1,0 @@
-Of 2 tests executed in 0.160s, 2 succeeded, 0 failed, and 0 were skipped.
-
