@@ -26,6 +26,7 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 
 	"github.com/openshift/library-go/pkg/operator/events"
+	"github.com/openshift/library-go/pkg/operator/management"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceread"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/installer/bindata"
@@ -59,6 +60,11 @@ type InstallerController struct {
 	// command is the string to use for the installer pod command
 	command []string
 
+	// these are copied separately at the beginning to a fixed location
+	certConfigMaps []revision.RevisionResource
+	certSecrets    []revision.RevisionResource
+	certDir        string
+
 	operatorConfigClient v1helpers.StaticPodOperatorClient
 
 	configMapsGetter corev1client.ConfigMapsGetter
@@ -82,6 +88,13 @@ type InstallerPodMutationFunc func(pod *corev1.Pod, nodeName string, operatorSpe
 
 func (o *InstallerController) WithInstallerPodMutationFn(installerPodMutationFn InstallerPodMutationFunc) *InstallerController {
 	o.installerPodMutationFns = append(o.installerPodMutationFns, installerPodMutationFn)
+	return o
+}
+
+func (o *InstallerController) WithCerts(certDir string, certConfigMaps, certSecrets []revision.RevisionResource) *InstallerController {
+	o.certDir = certDir
+	o.certConfigMaps = certConfigMaps
+	o.certSecrets = certSecrets
 	return o
 }
 
@@ -119,7 +132,7 @@ func NewInstallerController(
 		operatorConfigClient: operatorConfigClient,
 		configMapsGetter:     configMapsGetter,
 		podsGetter:           podsGetter,
-		eventRecorder:        eventRecorder,
+		eventRecorder:        eventRecorder.WithComponentSuffix("installer-controller"),
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "InstallerController"),
 
@@ -629,6 +642,24 @@ func (c *InstallerController) ensureInstallerPod(nodeName string, operatorSpec *
 			args = append(args, fmt.Sprintf("--secrets=%s", s.Name))
 		}
 	}
+	if len(c.certDir) > 0 {
+		args = append(args, fmt.Sprintf("--cert-dir=%s", filepath.Join(hostResourceDirDir, c.certDir)))
+		for _, cm := range c.certConfigMaps {
+			if cm.Optional {
+				args = append(args, fmt.Sprintf("--optional-cert-configmaps=%s", cm.Name))
+			} else {
+				args = append(args, fmt.Sprintf("--cert-configmaps=%s", cm.Name))
+			}
+		}
+		for _, s := range c.certSecrets {
+			if s.Optional {
+				args = append(args, fmt.Sprintf("--optional-cert-secrets=%s", s.Name))
+			} else {
+				args = append(args, fmt.Sprintf("--cert-secrets=%s", s.Name))
+			}
+		}
+	}
+
 	pod.Spec.Containers[0].Args = args
 
 	// Some owners need to change aspects of the pod.  Things like arguments for instance
@@ -667,13 +698,10 @@ func (c InstallerController) sync() error {
 	}
 	operatorStatus := originalOperatorStatus.DeepCopy()
 
-	switch operatorSpec.ManagementState {
-	case operatorv1.Unmanaged:
-		return nil
-	case operatorv1.Removed:
-		// TODO probably just fail.  Static pod managers can't be removed.
+	if !management.IsOperatorManaged(operatorSpec.ManagementState) {
 		return nil
 	}
+
 	requeue, syncErr := c.manageInstallationPods(operatorSpec, operatorStatus, resourceVersion)
 	if requeue && syncErr == nil {
 		return fmt.Errorf("synthetic requeue request")

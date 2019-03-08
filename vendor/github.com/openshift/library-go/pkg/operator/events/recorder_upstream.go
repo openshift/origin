@@ -13,21 +13,40 @@ import (
 
 // NewKubeRecorder returns new event recorder.
 func NewKubeRecorder(client corev1client.EventInterface, sourceComponentName string, involvedObjectRef *corev1.ObjectReference) Recorder {
-	broadcaster := record.NewBroadcaster()
-	broadcaster.StartLogging(glog.Infof)
-	broadcaster.StartRecordingToSink(&corev1client.EventSinkImpl{Interface: client})
-	eventRecorder := broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: sourceComponentName})
-
-	return &upstreamRecorder{
-		eventRecorder:     eventRecorder,
+	return (&upstreamRecorder{
+		client:            client,
+		component:         sourceComponentName,
 		involvedObjectRef: involvedObjectRef,
-	}
+	}).ForComponent(sourceComponentName)
 }
 
 // upstreamRecorder is an implementation of Recorder interface.
 type upstreamRecorder struct {
+	client            corev1client.EventInterface
+	component         string
+	broadcaster       record.EventBroadcaster
 	eventRecorder     record.EventRecorder
 	involvedObjectRef *corev1.ObjectReference
+}
+
+func (r *upstreamRecorder) ForComponent(componentName string) Recorder {
+	newRecorderForComponent := *r
+	broadcaster := record.NewBroadcaster()
+	broadcaster.StartLogging(glog.Infof)
+	broadcaster.StartRecordingToSink(&corev1client.EventSinkImpl{Interface: newRecorderForComponent.client})
+
+	newRecorderForComponent.eventRecorder = broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: componentName})
+	newRecorderForComponent.component = componentName
+
+	return &newRecorderForComponent
+}
+
+func (r *upstreamRecorder) WithComponentSuffix(suffix string) Recorder {
+	return r.ForComponent(fmt.Sprintf("%s-%s", r.ComponentName(), suffix))
+}
+
+func (r *upstreamRecorder) ComponentName() string {
+	return r.component
 }
 
 // Eventf emits the normal type event and allow formatting of message.

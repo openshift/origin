@@ -229,6 +229,7 @@ func TestCreateTar(t *testing.T) {
 		{"dir01/test2.git", modificationDate, 0660, "Test2 file content", false, ""},
 		{"dir01/dir03/test3.txt", modificationDate, 0444, "Test3 file content", false, ""},
 		{"dir01/.git/hello.txt", modificationDate, 0600, "Ignore file content", true, ""},
+		{"dir01/dir03/tëst3.txt", modificationDate, 0444, "Test utf-8 file header content", false, ""},
 	}
 	testLinks := []linkDesc{
 		{"link/okfilelink", "../dir01/dir02/test1.txt"},
@@ -403,7 +404,16 @@ func isSymLink(mode os.FileMode) bool {
 	return mode&os.ModeSymlink == os.ModeSymlink
 }
 
-func verifyDirectory(t *testing.T, dir string, files []fileDesc) {
+func verifyDirectory(t *testing.T, dir string, dirs []dirDesc, files []fileDesc, links []linkDesc) {
+	if dirs == nil {
+		dirs = []dirDesc{}
+	}
+	if files == nil {
+		files = []fileDesc{}
+	}
+	if links == nil {
+		links = []linkDesc{}
+	}
 	if runtime.GOOS == "windows" {
 		for i := range files {
 			files[i].name = filepath.FromSlash(files[i].name)
@@ -427,17 +437,60 @@ func verifyDirectory(t *testing.T, dir string, files []fileDesc) {
 			}
 			files[i].target = filepath.FromSlash(files[i].target)
 		}
+		for j := range dirs {
+			dirs[j].name = filepath.FromSlash(dirs[j].name)
+			if dirs[j].mode&0200 == 0200 {
+				// if the file is user writable make it writable for everyone
+				dirs[j].mode |= 0666
+			} else {
+				// if the file is only readable, make it readable for everyone
+				// first clear the r/w permission bits
+				dirs[j].mode &^= 0666
+				// then set r permission for all
+				dirs[j].mode |= 0444
+			}
+			if dirs[j].mode.IsDir() {
+				// if the file is a directory, make it executable for everyone
+				dirs[j].mode |= 0111
+			} else {
+				// if it's not a directory, clear the executable bits as they are
+				// irrelevant on windows.
+				dirs[j].mode &^= 0111
+			}
+
+		}
+		for k := range links {
+			links[k].fileName = filepath.FromSlash(links[k].fileName)
+			links[k].linkName = filepath.FromSlash(links[k].linkName)
+		}
+	}
+	dirsToVerify := make(map[string]dirDesc)
+	for _, dd := range dirs {
+		dirsToVerify[dd.name] = dd
 	}
 	pathsToVerify := make(map[string]fileDesc)
 	for _, fd := range files {
 		pathsToVerify[fd.name] = fd
+	}
+	linksToVerify := make(map[string]linkDesc)
+	for _, ld := range links {
+		linksToVerify[ld.linkName] = ld
 	}
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if path == dir {
 			return nil
 		}
 		relpath := path[len(dir)+1:]
-		if fd, ok := pathsToVerify[relpath]; ok {
+		if dd, ok := dirsToVerify[relpath]; ok {
+			if !info.IsDir() {
+				t.Errorf("Incorrect dir %q", info.Name())
+			}
+			if info.Mode().Perm() != dd.mode {
+				t.Errorf("Dir %q does not match expected mode. Expected: %v, actual: %v",
+					info.Name(), dd.mode, info.Mode().Perm())
+			}
+			// Do not test directories - mod time will be time directory was created on filesystem
+		} else if fd, ok := pathsToVerify[relpath]; ok {
 			if info.Mode() != fd.mode {
 				t.Errorf("File mode is not equal for %q. Expected: %v, Actual: %v",
 					relpath, fd.mode, info.Mode())
@@ -470,6 +523,19 @@ func verifyDirectory(t *testing.T, dir string, files []fileDesc) {
 					t.Errorf(msg, fd.name, fd.target, target)
 				}
 			}
+		} else if ld, ok := linksToVerify[relpath]; ok {
+			if isSymLink(info.Mode()) {
+				target, err := os.Readlink(path)
+				if err != nil {
+					t.Errorf("Error reading symlink %q: %v", path, err)
+					return err
+				}
+				if target != ld.fileName {
+					t.Errorf("Incorrect link location. Expected: %q, Actual %q", ld.fileName, target)
+				}
+			} else {
+				t.Errorf("Expected file %q to be a symlink", path)
+			}
 		} else {
 			t.Errorf("Unexpected file found: %q", relpath)
 		}
@@ -496,6 +562,7 @@ func TestExtractTarStream(t *testing.T) {
 		{"dir01/test2.git", modificationDate, 0660, "Test2 file content", false, ""},
 		{"dir01/dir03/test3.txt", modificationDate, 0444, "Test3 file content", false, ""},
 		{"dir01/symlink", modificationDate, os.ModeSymlink | symLinkMode, "Test3 file content", false, "../dir01/dir03/test3.txt"},
+		{"dir01/dir03/tëst3.txt", modificationDate, 0444, "utf-8 header file content", false, ""},
 	}
 	reader, writer := io.Pipe()
 	destDir, err := ioutil.TempDir("", "testExtract")
@@ -513,7 +580,7 @@ func TestExtractTarStream(t *testing.T) {
 		writer.CloseWithError(err)
 	}()
 	th.ExtractTarStream(destDir, reader)
-	verifyDirectory(t, destDir, testFiles)
+	verifyDirectory(t, destDir, nil, testFiles, nil)
 }
 
 func TestExtractTarStreamTimeout(t *testing.T) {
@@ -530,4 +597,58 @@ func TestExtractTarStreamTimeout(t *testing.T) {
 	if e, ok := err.(s2ierr.Error); err == nil || (ok && e.ErrorCode != s2ierr.TarTimeoutError) {
 		t.Errorf("Did not get the expected timeout error. err = %v", err)
 	}
+}
+
+func TestRoundTripTar(t *testing.T) {
+	tarWriter := New(fs.NewFileSystem())
+	tarReader := New(fs.NewFileSystem())
+	tempDir, err := ioutil.TempDir("", "testtar")
+	defer os.RemoveAll(tempDir)
+	if err != nil {
+		t.Fatalf("Cannot create temp input directory for test: %v", err)
+	}
+	destDir, err := ioutil.TempDir("", "testExtract")
+	defer os.RemoveAll(destDir)
+	if err != nil {
+		t.Fatalf("Cannot create temp extract directory for test: %v", err)
+	}
+	modificationDate := time.Date(2011, time.March, 5, 23, 30, 1, 0, time.UTC)
+	testDirs := []dirDesc{
+		{"dir01", modificationDate, 0700},
+		{"dir01/.git", modificationDate, 0755},
+		{"dir01/dir02", modificationDate, 0755},
+		{"dir01/dir03", modificationDate, 0775},
+		{"link", modificationDate, 0775},
+	}
+	testFiles := []fileDesc{
+		{"dir01/dir02/test1.txt", modificationDate, 0700, "Test1 file content", false, ""},
+		{"dir01/test2.git", modificationDate, 0660, "Test2 file content", false, ""},
+		{"dir01/dir03/test3.txt", modificationDate, 0444, "Test3 file content", false, ""},
+		{"dir01/.git/hello.txt", modificationDate, 0600, "Ignore file content", true, ""},
+		{"dir01/dir03/tëst3.txt", modificationDate, 0444, "Test utf-8 file header content", false, ""},
+	}
+	testLinks := []linkDesc{
+		{"link/okfilelink", "../dir01/dir02/test1.txt"},
+		{"link/errfilelink", "../dir01/missing.target"},
+		{"link/okdirlink", "../dir01/dir02"},
+		{"link/okdirlink2", "../dir01/.git"},
+	}
+	if err = createTestFiles(tempDir, testDirs, testFiles, testLinks); err != nil {
+		t.Fatalf("Cannot create test files: %v", err)
+	}
+
+	r, w := io.Pipe()
+	go func() {
+		writeErr := tarWriter.CreateTarStream(tempDir, false, w)
+		if writeErr != nil {
+			t.Errorf("Unable to create tar stream: %v", err)
+		}
+		w.CloseWithError(writeErr)
+	}()
+
+	err = tarReader.ExtractTarStream(destDir, r)
+	if err != nil {
+		t.Errorf("error extracting tar stream: %v", err)
+	}
+	verifyDirectory(t, destDir, testDirs, testFiles, testLinks)
 }

@@ -1,6 +1,7 @@
 package fileobserver
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -22,7 +23,7 @@ type pollingObserver struct {
 }
 
 // AddReactor will add new reactor to this observer.
-func (o *pollingObserver) AddReactor(reaction reactorFn, files ...string) Observer {
+func (o *pollingObserver) AddReactor(reaction reactorFn, startingFileContent map[string][]byte, files ...string) Observer {
 	o.reactorsMutex.Lock()
 	defer o.reactorsMutex.Unlock()
 	for _, f := range files {
@@ -34,10 +35,19 @@ func (o *pollingObserver) AddReactor(reaction reactorFn, files ...string) Observ
 			continue
 		}
 		var err error
-		glog.V(3).Infof("Adding reactor for file %q", f)
-		o.files[f], err = calculateFileHash(f)
-		if err != nil {
-			panic(fmt.Sprintf("unexpected error while adding reactor for %#v: %v", files, err))
+
+		if startingContent, ok := startingFileContent[f]; ok {
+			glog.V(3).Infof("Starting from specified content for file %q", f)
+			o.files[f], err = calculateHash(bytes.NewBuffer(startingContent))
+			if err != nil {
+				panic(fmt.Sprintf("unexpected error while adding reactor for %#v: %v", files, err))
+			}
+		} else {
+			glog.V(3).Infof("Adding reactor for file %q", f)
+			o.files[f], err = calculateFileHash(f)
+			if err != nil {
+				panic(fmt.Sprintf("unexpected error while adding reactor for %#v: %v", files, err))
+			}
 		}
 		o.reactors[f] = append(o.reactors[f], reaction)
 	}
@@ -118,8 +128,12 @@ func calculateFileHash(path string) (string, error) {
 		return "", err
 	}
 	defer f.Close()
+	return calculateHash(f)
+}
+
+func calculateHash(content io.Reader) (string, error) {
 	hasher := sha256.New()
-	if _, err := io.Copy(hasher, f); err != nil {
+	if _, err := io.Copy(hasher, content); err != nil {
 		return "", err
 	}
 	return hex.EncodeToString(hasher.Sum(nil)), nil

@@ -33,6 +33,18 @@ func NewInMemoryRecorder(sourceComponent string) InMemoryRecorder {
 	return &inMemoryEventRecorder{events: []*corev1.Event{}, source: sourceComponent}
 }
 
+func (r *inMemoryEventRecorder) ComponentName() string {
+	return r.source
+}
+
+func (r *inMemoryEventRecorder) ForComponent(component string) Recorder {
+	return &inMemoryEventRecorder{events: []*corev1.Event{}, source: component}
+}
+
+func (r *inMemoryEventRecorder) WithComponentSuffix(suffix string) Recorder {
+	return r.ForComponent(fmt.Sprintf("%s-%s", r.ComponentName(), suffix))
+}
+
 // Events returns list of recorded events
 func (r *inMemoryEventRecorder) Events() []*corev1.Event {
 	return r.events

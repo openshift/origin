@@ -77,7 +77,7 @@ func NewPruneController(
 		configMapGetter: configMapGetter,
 		secretGetter:    secretGetter,
 		podGetter:       podGetter,
-		eventRecorder:   eventRecorder,
+		eventRecorder:   eventRecorder.WithComponentSuffix("prune-controller"),
 
 		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "PruneController"),
 		prunerPodImageFn: getPrunerPodImageFromEnv,
@@ -102,7 +102,7 @@ func getRevisionLimits(operatorSpec *operatorv1.StaticPodOperatorSpec) (int32, i
 }
 
 func (c *PruneController) excludedRevisionHistory(operatorStatus *operatorv1.StaticPodOperatorStatus, failedRevisionLimit, succeededRevisionLimit int32) ([]int, error) {
-	var succeededRevisionIDs, failedRevisionIDs, inProgressRevisionIDs, unknownStatusRevisionIDs []int
+	var succeededRevisions, failedRevisions, inProgressRevisions, unknownStatusRevisions []int
 
 	configMaps, err := c.configMapGetter.ConfigMaps(c.targetNamespace).List(metav1.ListOptions{})
 	if err != nil {
@@ -114,64 +114,66 @@ func (c *PruneController) excludedRevisionHistory(operatorStatus *operatorv1.Sta
 		}
 
 		if revision, ok := configMap.Data["revision"]; ok {
-			revisionID, err := strconv.Atoi(revision)
+			revisionNumber, err := strconv.Atoi(revision)
 			if err != nil {
 				return []int{}, err
 			}
 			switch configMap.Data["status"] {
 			case string(corev1.PodSucceeded):
-				succeededRevisionIDs = append(succeededRevisionIDs, revisionID)
+				succeededRevisions = append(succeededRevisions, revisionNumber)
 			case string(corev1.PodFailed):
-				failedRevisionIDs = append(failedRevisionIDs, revisionID)
+				failedRevisions = append(failedRevisions, revisionNumber)
 
 			case "InProgress":
 				// we always protect inprogress
-				inProgressRevisionIDs = append(inProgressRevisionIDs, revisionID)
+				inProgressRevisions = append(inProgressRevisions, revisionNumber)
 
 			default:
 				// protect things you don't understand
-				unknownStatusRevisionIDs = append(unknownStatusRevisionIDs, revisionID)
-				c.eventRecorder.Event("UnknownRevisionStatus", fmt.Sprintf("unknown status for revision %d: %v", revisionID, configMap.Data["status"]))
+				unknownStatusRevisions = append(unknownStatusRevisions, revisionNumber)
+				c.eventRecorder.Event("UnknownRevisionStatus", fmt.Sprintf("unknown status for revision %d: %v", revisionNumber, configMap.Data["status"]))
 			}
 		}
 	}
 
 	// Return early if nothing to prune
-	if len(succeededRevisionIDs)+len(failedRevisionIDs) == 0 {
+	if len(succeededRevisions)+len(failedRevisions) == 0 {
 		glog.V(2).Info("no revision IDs currently eligible to prune")
 		return []int{}, nil
 	}
 
 	// Get list of protected IDs
-	protectedSucceededRevisionIDs := protectedIDs(succeededRevisionIDs, int(succeededRevisionLimit))
-	protectedFailedRevisionIDs := protectedIDs(failedRevisionIDs, int(failedRevisionLimit))
+	protectedSucceededRevisions := protectedRevisions(succeededRevisions, int(succeededRevisionLimit))
+	protectedFailedRevisions := protectedRevisions(failedRevisions, int(failedRevisionLimit))
 
-	excludedIDs := make([]int, 0, len(protectedSucceededRevisionIDs)+len(protectedFailedRevisionIDs)+len(inProgressRevisionIDs)+len(unknownStatusRevisionIDs))
-	excludedIDs = append(excludedIDs, protectedSucceededRevisionIDs...)
-	excludedIDs = append(excludedIDs, protectedFailedRevisionIDs...)
-	excludedIDs = append(excludedIDs, inProgressRevisionIDs...)
-	excludedIDs = append(excludedIDs, unknownStatusRevisionIDs...)
-	sort.Ints(excludedIDs)
+	excludedRevisions := make([]int, 0, len(protectedSucceededRevisions)+len(protectedFailedRevisions)+len(inProgressRevisions)+len(unknownStatusRevisions))
+	excludedRevisions = append(excludedRevisions, protectedSucceededRevisions...)
+	excludedRevisions = append(excludedRevisions, protectedFailedRevisions...)
+	excludedRevisions = append(excludedRevisions, inProgressRevisions...)
+	excludedRevisions = append(excludedRevisions, unknownStatusRevisions...)
+	sort.Ints(excludedRevisions)
 
 	// There should always be at least 1 excluded ID, otherwise we'll delete the current revision
-	if len(excludedIDs) == 0 {
+	if len(excludedRevisions) == 0 {
 		return []int{}, fmt.Errorf("need at least 1 excluded ID for revision pruning")
 	}
-	return excludedIDs, nil
+	return excludedRevisions, nil
 }
 
-func (c *PruneController) pruneDiskResources(operatorStatus *operatorv1.StaticPodOperatorStatus, excludedIDs []int, maxEligibleRevisionID int) error {
+func (c *PruneController) pruneDiskResources(operatorStatus *operatorv1.StaticPodOperatorStatus, excludedRevisions []int, maxEligibleRevision int) error {
 	// Run pruning pod on each node and pin it to that node
 	for _, nodeStatus := range operatorStatus.NodeStatuses {
-		if err := c.ensurePrunePod(nodeStatus.NodeName, maxEligibleRevisionID, excludedIDs, nodeStatus.TargetRevision); err != nil {
+		// Use the highest value between CurrentRevision and LastFailedRevision
+		// Because CurrentRevision only updates on successful installs and we still prune on an unsuccessful install
+		if err := c.ensurePrunePod(nodeStatus.NodeName, maxEligibleRevision, excludedRevisions, max(nodeStatus.LastFailedRevision, nodeStatus.CurrentRevision)); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *PruneController) pruneAPIResources(excludedIDs []int, maxEligibleRevisionID int) error {
-	protectedIDs := sets.NewInt(excludedIDs...)
+func (c *PruneController) pruneAPIResources(excludedRevisions []int, maxEligibleRevision int) error {
+	protectedRevisions := sets.NewInt(excludedRevisions...)
 	statusConfigMaps, err := c.configMapGetter.ConfigMaps(c.targetNamespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -186,10 +188,10 @@ func (c *PruneController) pruneAPIResources(excludedIDs []int, maxEligibleRevisi
 			return fmt.Errorf("unexpected error converting revision to int: %+v", err)
 		}
 
-		if protectedIDs.Has(revision) {
+		if protectedRevisions.Has(revision) {
 			continue
 		}
-		if revision > maxEligibleRevisionID {
+		if revision > maxEligibleRevision {
 			continue
 		}
 		if err := c.configMapGetter.ConfigMaps(c.targetNamespace).Delete(cm.Name, &metav1.DeleteOptions{}); err != nil {
@@ -199,17 +201,17 @@ func (c *PruneController) pruneAPIResources(excludedIDs []int, maxEligibleRevisi
 	return nil
 }
 
-func protectedIDs(revisionIDs []int, revisionLimit int) []int {
-	sort.Ints(revisionIDs)
-	if len(revisionIDs) == 0 {
-		return revisionIDs
+func protectedRevisions(revisions []int, revisionLimit int) []int {
+	sort.Ints(revisions)
+	if len(revisions) == 0 {
+		return revisions
 	}
 	startKey := 0
 	// We use -1 = unlimited revisions, so protect all. Limit shouldn't ever be literally 0 either
-	if revisionLimit > 0 && len(revisionIDs) > revisionLimit {
-		startKey = len(revisionIDs) - revisionLimit
+	if revisionLimit > 0 && len(revisions) > revisionLimit {
+		startKey = len(revisions) - revisionLimit
 	}
-	return revisionIDs[startKey:]
+	return revisions[startKey:]
 }
 
 func (c *PruneController) ensurePrunePod(nodeName string, maxEligibleRevision int, protectedRevisions []int, revision int32) error {
@@ -222,8 +224,8 @@ func (c *PruneController) ensurePrunePod(nodeName string, maxEligibleRevision in
 	pod.Spec.Containers[0].Command = c.command
 	pod.Spec.Containers[0].Args = append(pod.Spec.Containers[0].Args,
 		fmt.Sprintf("-v=%d", 4),
-		fmt.Sprintf("--max-eligible-id=%d", maxEligibleRevision),
-		fmt.Sprintf("--protected-ids=%s", revisionsToString(protectedRevisions)),
+		fmt.Sprintf("--max-eligible-revision=%d", maxEligibleRevision),
+		fmt.Sprintf("--protected-revisions=%s", revisionsToString(protectedRevisions)),
 		fmt.Sprintf("--resource-dir=%s", "/etc/kubernetes/static-pod-resources"),
 		fmt.Sprintf("--static-pod-name=%s", c.podResourcePrefix),
 	)
@@ -307,26 +309,28 @@ func (c *PruneController) processNextWorkItem() bool {
 }
 
 func (c *PruneController) sync() error {
+	glog.V(5).Info("Syncing revision pruner")
 	operatorSpec, operatorStatus, _, err := c.operatorConfigClient.GetStaticPodOperatorState()
 	if err != nil {
 		return err
 	}
 	failedLimit, succeededLimit := getRevisionLimits(operatorSpec)
 
-	excludedIDs, err := c.excludedRevisionHistory(operatorStatus, failedLimit, succeededLimit)
+	excludedRevisions, err := c.excludedRevisionHistory(operatorStatus, failedLimit, succeededLimit)
 	if err != nil {
 		return err
 	}
 	// if no IDs are excluded, then there is nothing to prune
-	if len(excludedIDs) == 0 {
+	if len(excludedRevisions) == 0 {
+		glog.Info("No excluded revisions to prune, skipping")
 		return nil
 	}
 
 	errs := []error{}
-	if diskErr := c.pruneDiskResources(operatorStatus, excludedIDs, excludedIDs[len(excludedIDs)-1]); diskErr != nil {
+	if diskErr := c.pruneDiskResources(operatorStatus, excludedRevisions, excludedRevisions[len(excludedRevisions)-1]); diskErr != nil {
 		errs = append(errs, diskErr)
 	}
-	if apiErr := c.pruneAPIResources(excludedIDs, excludedIDs[len(excludedIDs)-1]); apiErr != nil {
+	if apiErr := c.pruneAPIResources(excludedRevisions, excludedRevisions[len(excludedRevisions)-1]); apiErr != nil {
 		errs = append(errs, apiErr)
 	}
 	return v1helpers.NewMultiLineAggregate(errs)
@@ -339,4 +343,11 @@ func (c *PruneController) eventHandler() cache.ResourceEventHandler {
 		UpdateFunc: func(old, new interface{}) { c.queue.Add(pruneControllerWorkQueueKey) },
 		DeleteFunc: func(obj interface{}) { c.queue.Add(pruneControllerWorkQueueKey) },
 	}
+}
+
+func max(a, b int32) int32 {
+	if a > b {
+		return a
+	}
+	return b
 }

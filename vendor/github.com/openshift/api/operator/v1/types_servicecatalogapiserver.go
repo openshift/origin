@@ -13,8 +13,10 @@ type ServiceCatalogAPIServer struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ServiceCatalogAPIServerSpec   `json:"spec,omitempty"`
-	Status ServiceCatalogAPIServerStatus `json:"status,omitempty"`
+	// +required
+	Spec   ServiceCatalogAPIServerSpec   `json:"spec"`
+	// +optional
+	Status ServiceCatalogAPIServerStatus `json:"status"`
 }
 
 type ServiceCatalogAPIServerSpec struct {
@@ -31,7 +33,7 @@ type ServiceCatalogAPIServerStatus struct {
 type ServiceCatalogAPIServerList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 	// Items contains the items
 	Items []ServiceCatalogAPIServer `json:"items"`
 }

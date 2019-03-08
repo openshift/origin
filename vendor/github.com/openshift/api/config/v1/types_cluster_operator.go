@@ -17,10 +17,12 @@ type ClusterOperator struct {
 	metav1.ObjectMeta `json:"metadata"`
 
 	// spec hold the intent of how this operator should behave.
+	// +required
 	Spec ClusterOperatorSpec `json:"spec"`
 
 	// status holds the information about the state of an operator.  It is consistent with status information across
 	// the kube ecosystem.
+	// +optional
 	Status ClusterOperatorStatus `json:"status"`
 }
 
@@ -34,22 +36,27 @@ type ClusterOperatorStatus struct {
 	// conditions describes the state of the operator's reconciliation functionality.
 	// +patchMergeKey=type
 	// +patchStrategy=merge
-	Conditions []ClusterOperatorStatusCondition `json:"conditions"  patchStrategy:"merge" patchMergeKey:"type"`
+	// +optional
+	Conditions []ClusterOperatorStatusCondition `json:"conditions,omitempty"  patchStrategy:"merge" patchMergeKey:"type"`
 
 	// versions is a slice of operand version tuples.  Operators which manage multiple operands will have multiple
 	// entries in the array.  If an operator is Available, it must have at least one entry.  You must report the version of
 	// the operator itself with the name "operator".
-	Versions []OperandVersion `json:"versions"`
+	// +optional
+	Versions []OperandVersion `json:"versions,omitempty"`
 
 	// relatedObjects is a list of objects that are "interesting" or related to this operator.  Common uses are:
 	// 1. the detailed resource driving the operator
 	// 2. operator namespaces
 	// 3. operand namespaces
-	RelatedObjects []ObjectReference `json:"relatedObjects"`
+	// +optional
+	RelatedObjects []ObjectReference `json:"relatedObjects,omitempty"`
 
 	// extension contains any additional status information specific to the
 	// operator which owns this status object.
-	Extension runtime.RawExtension `json:"extension,omitempty"`
+	// +nullable
+	// +optional
+	Extension runtime.RawExtension `json:"extension"`
 }
 
 type OperandVersion struct {

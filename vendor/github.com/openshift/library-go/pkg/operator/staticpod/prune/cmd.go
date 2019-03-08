@@ -17,8 +17,8 @@ import (
 )
 
 type PruneOptions struct {
-	MaxEligibleRevisionID int
-	ProtectedRevisionIDs  []int
+	MaxEligibleRevision int
+	ProtectedRevisions  []int
 
 	ResourceDir   string
 	StaticPodName string
@@ -53,8 +53,8 @@ func NewPrune() *cobra.Command {
 }
 
 func (o *PruneOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.IntVar(&o.MaxEligibleRevisionID, "max-eligible-id", o.MaxEligibleRevisionID, "highest revision ID to be eligible for pruning")
-	fs.IntSliceVar(&o.ProtectedRevisionIDs, "protected-ids", o.ProtectedRevisionIDs, "list of revision IDs to preserve (not delete)")
+	fs.IntVar(&o.MaxEligibleRevision, "max-eligible-revision", o.MaxEligibleRevision, "highest revision ID to be eligible for pruning")
+	fs.IntSliceVar(&o.ProtectedRevisions, "protected-revisions", o.ProtectedRevisions, "list of revision IDs to preserve (not delete)")
 	fs.StringVar(&o.ResourceDir, "resource-dir", o.ResourceDir, "directory for all files supporting the static pod manifest")
 	fs.StringVar(&o.StaticPodName, "static-pod-name", o.StaticPodName, "name of the static pod")
 }
@@ -63,7 +63,7 @@ func (o *PruneOptions) Validate() error {
 	if len(o.ResourceDir) == 0 {
 		return fmt.Errorf("--resource-dir is required")
 	}
-	if o.MaxEligibleRevisionID == 0 {
+	if o.MaxEligibleRevision == 0 {
 		return fmt.Errorf("--max-eligible-id is required")
 	}
 	if len(o.StaticPodName) == 0 {
@@ -74,7 +74,7 @@ func (o *PruneOptions) Validate() error {
 }
 
 func (o *PruneOptions) Run() error {
-	protectedIDs := sets.NewInt(o.ProtectedRevisionIDs...)
+	protectedIDs := sets.NewInt(o.ProtectedRevisions...)
 
 	files, err := ioutil.ReadDir(o.ResourceDir)
 	if err != nil {
@@ -103,7 +103,7 @@ func (o *PruneOptions) Run() error {
 			continue
 		}
 		// And is less than or equal to the maxEligibleRevisionID
-		if revisionID > o.MaxEligibleRevisionID {
+		if revisionID > o.MaxEligibleRevision {
 			continue
 		}
 

@@ -14,8 +14,10 @@ type Network struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration.
+	// +required
 	Spec NetworkSpec `json:"spec"`
 	// status holds observed values from the cluster. They may not be overridden.
+	// +optional
 	Status NetworkStatus `json:"status"`
 }
 
@@ -42,17 +44,17 @@ type NetworkSpec struct {
 // NetworkStatus is the current network configuration.
 type NetworkStatus struct {
 	// IP address pool to use for pod IPs.
-	ClusterNetwork []ClusterNetworkEntry `json:"clusterNetwork"`
+	ClusterNetwork []ClusterNetworkEntry `json:"clusterNetwork,omitempty"`
 
 	// IP address pool for services.
 	// Currently, we only support a single entry here.
-	ServiceNetwork []string `json:"serviceNetwork"`
+	ServiceNetwork []string `json:"serviceNetwork,omitempty"`
 
 	// NetworkType is the plugin that is deployed (e.g. OpenShiftSDN).
-	NetworkType string `json:"networkType"`
+	NetworkType string `json:"networkType,omitempty"`
 
 	// ClusterNetworkMTU is the MTU for inter-pod networking.
-	ClusterNetworkMTU int `json:"clusterNetworkMTU"`
+	ClusterNetworkMTU int `json:"clusterNetworkMTU,omitempty"`
 }
 
 // ClusterNetworkEntry is a contiguous block of IP addresses from which pod IPs
@@ -70,6 +72,6 @@ type ClusterNetworkEntry struct {
 type NetworkList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 	Items           []Network `json:"items"`
 }

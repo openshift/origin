@@ -1,6 +1,7 @@
 package controllercmd
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -87,7 +88,7 @@ func hasServiceServingCerts(certDir string) bool {
 
 // StartController runs the controller
 func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
-	unstructuredConfig, err := c.basicFlags.ToConfigObj()
+	configContent, unstructuredConfig, err := c.basicFlags.ToConfigObj()
 	if err != nil {
 		return err
 	}
@@ -111,6 +112,12 @@ func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
 		// NOTE: We are not observing the temporary, self-signed certificates.
 		filepath.Join(certDir, "tls.crt"),
 		filepath.Join(certDir, "tls.key"),
+	}
+	// startingFileContent holds hardcoded starting content.  If we generate our own certificates, then we want to specify empty
+	// content to avoid a starting race.  When we consume them, the race is really about as good as we can do since we don't know
+	// what's actually been read.
+	startingFileContent := map[string][]byte{
+		c.basicFlags.ConfigFile: configContent,
 	}
 
 	// if we don't have any serving cert/key pairs specified and the defaults are not present, generate a self-signed set
@@ -146,10 +153,23 @@ func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
 			config.ServingInfo.CertFile = filepath.Join(certDir, "tls.crt")
 			config.ServingInfo.KeyFile = filepath.Join(certDir, "tls.key")
 			// nothing can trust this, so we don't really care about hostnames
-			_, err = ca.MakeAndWriteServerCert(config.ServingInfo.CertFile, config.ServingInfo.KeyFile, sets.NewString("localhost"), 30)
+			servingCert, err := ca.MakeServerCert(sets.NewString("localhost"), 30)
 			if err != nil {
 				return err
 			}
+			if err := servingCert.WriteCertConfigFile(config.ServingInfo.CertFile, config.ServingInfo.KeyFile); err != nil {
+				return err
+			}
+			crtContent := &bytes.Buffer{}
+			keyContent := &bytes.Buffer{}
+			if err := servingCert.WriteCertConfig(crtContent, keyContent); err != nil {
+				return err
+			}
+
+			// If we generate our own certificates, then we want to specify empty content to avoid a starting race.  This way,
+			// if any change comes in, we will properly restart
+			startingFileContent[filepath.Join(certDir, "tls.crt")] = crtContent.Bytes()
+			startingFileContent[filepath.Join(certDir, "tls.key")] = keyContent.Bytes()
 		}
 	}
 
@@ -169,6 +189,6 @@ func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
 		WithKubeConfigFile(c.basicFlags.KubeConfigFile, nil).
 		WithLeaderElection(config.LeaderElection, "", c.componentName+"-lock").
 		WithServer(config.ServingInfo, config.Authentication, config.Authorization).
-		WithRestartOnChange(exitOnChangeReactorCh, observedFiles...).
+		WithRestartOnChange(exitOnChangeReactorCh, startingFileContent, observedFiles...).
 		Run(unstructuredConfig, ctx2)
 }

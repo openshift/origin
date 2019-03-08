@@ -16,7 +16,7 @@ import (
 )
 
 // DNSInformer provides access to a shared informer and lister for
-// DNSs.
+// DNSes.
 type DNSInformer interface {
 	Informer() cache.SharedIndexInformer
 	Lister() v1.DNSLister
@@ -44,13 +44,13 @@ func NewFilteredDNSInformer(client versioned.Interface, resyncPeriod time.Durati
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ConfigV1().DNSs().List(options)
+				return client.ConfigV1().DNSes().List(options)
 			},
 			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ConfigV1().DNSs().Watch(options)
+				return client.ConfigV1().DNSes().Watch(options)
 			},
 		},
 		&config_v1.DNS{},
