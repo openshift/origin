@@ -30,6 +30,8 @@ API rule violation: names_match,github.com/openshift/api/config/v1,AdmissionConf
 API rule violation: names_match,github.com/openshift/api/config/v1,AdmissionConfig,EnabledAdmissionPlugins
 API rule violation: names_match,github.com/openshift/api/config/v1,AuthenticationSpec,OAuthMetadata
 API rule violation: names_match,github.com/openshift/api/config/v1,EtcdConnectionInfo,URLs
+API rule violation: names_match,github.com/openshift/api/config/v1,FeatureEnabledDisabled,Disabled
+API rule violation: names_match,github.com/openshift/api/config/v1,FeatureEnabledDisabled,Enabled
 API rule violation: names_match,github.com/openshift/api/config/v1,GenericAPIServerConfig,AdmissionConfig
 API rule violation: names_match,github.com/openshift/api/config/v1,IdentityProvider,UseAsChallenger
 API rule violation: names_match,github.com/openshift/api/config/v1,IdentityProvider,UseAsLogin
