@@ -37,8 +37,10 @@ import (
 func NameSystems() namer.NameSystems {
 	pluralExceptions := map[string]string{
 		"DNS":                        "DNSes",
+		"DNSList":                    "DNSList",
 		"Endpoints":                  "Endpoints",
 		"Features":                   "Features",
+		"FeaturesList":               "FeaturesList",
 		"SecurityContextConstraints": "SecurityContextConstraints",
 	}
 	return namer.NameSystems{
@@ -323,9 +325,9 @@ func versionPackage(basePackage string, groupPkgName string, gv clientgentypes.G
 				DefaultGen: generator.DefaultGen{
 					OptionalName: "interface",
 				},
-				outputPackage: packagePath,
-				imports:       generator.NewImportTracker(),
-				types:         typesToGenerate,
+				outputPackage:             packagePath,
+				imports:                   generator.NewImportTracker(),
+				types:                     typesToGenerate,
 				internalInterfacesPackage: packageForInternalInterfaces(basePackage),
 			})
 
