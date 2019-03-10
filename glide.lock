@@ -1,5 +1,5 @@
-hash: eea852160ba0c46d092d99456cb22ba520fa9788c4ef95e3627a429c0ae0d248
-updated: 2019-03-07T22:43:56.000514891+01:00
+hash: 178d5bb0aa72040b6c081cd9d8d6f6f0a392b7a485cdfe76a9ae4c9af4058b2f
+updated: 2019-03-08T16:40:10.642597021-05:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -884,7 +884,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 600a5519d1ec56e02c20f42b43888db560bdcb7e
+  version: fe0c0ad070ce15d30b0a6dd20adb0ef883efe11a
   subpackages:
   - apps
   - apps/v1
@@ -1059,7 +1059,6 @@ imports:
   - pkg/config/configdefaults
   - pkg/config/helpers
   - pkg/config/leaderelection
-  - pkg/controller
   - pkg/crypto
   - pkg/git
   - pkg/image/internal/digest
@@ -1070,13 +1069,6 @@ imports:
   - pkg/operator/resource/resourceapply
   - pkg/operator/resource/resourcemerge
   - pkg/serviceability
-- name: github.com/openshift/service-serving-cert-signer
-  version: 365659e2c02dccfc8eec541d9aff6927193e508f
-  subpackages:
-  - pkg/boilerplate/controller
-  - pkg/controller/api
-  - pkg/controller/servingcert/controller
-  - pkg/controller/servingcert/cryptoextensions
 - name: github.com/openshift/source-to-image
   version: ff97a646334bca626f7950dce881acd7c27f2702
   subpackages:
@@ -1563,7 +1555,7 @@ imports:
   - pkg/registry/customresourcedefinition
   - test/integration/fixtures
 - name: k8s.io/apimachinery
-  version: a86a798d1cebbc89d0ab74c63ad7dee3191e5251
+  version: 9fdc0b79e8fc9fa93648c5d98b49089026122bb6
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/apitesting
@@ -1633,7 +1625,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: e287325a591914d2df40201799b2ac5867076196
+  version: 377a9fd4c500fdc04567f7feeb44e28bc952dc95
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -2047,7 +2039,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 80f2017b3c759c5625bda97644a524300fb1f9a3
+  version: de991a22fa8b3fb4d68abc87a064377cc793135a
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config

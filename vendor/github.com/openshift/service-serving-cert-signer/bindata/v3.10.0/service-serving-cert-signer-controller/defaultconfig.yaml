@@ -1,5 +1,0 @@
-apiVersion: servicecertsigner.config.openshift.io/v1alpha1
-kind: ServiceServingCertSignerConfig
-signer:
-  certFile: /var/run/secrets/signing-key/tls.crt
-  keyFile: /var/run/secrets/signing-key/tls.key

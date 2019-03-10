@@ -64,7 +64,7 @@ type IngressControllerSpec struct {
 	// endpointPublishingStrategy is used to publish the ingress controller
 	// endpoints to other networks, enable load balancer integrations, etc.
 	//
-	// If empty, the default is based on
+	// If unset, the default is based on
 	// infrastructure.config.openshift.io/cluster .status.platform:
 	//
 	//   AWS: LoadBalancerService
@@ -73,7 +73,7 @@ type IngressControllerSpec struct {
 	// endpointPublishingStrategy cannot be updated.
 	//
 	// +optional
-	EndpointPublishingStrategy EndpointPublishingStrategy `json:"endpointPublishingStrategy,omitempty"`
+	EndpointPublishingStrategy *EndpointPublishingStrategy `json:"endpointPublishingStrategy,omitempty"`
 
 	// defaultCertificate is a reference to a secret containing the default
 	// certificate served by the ingress controller. When Routes don't specify
@@ -210,7 +210,7 @@ type IngressControllerStatus struct {
 	Domain string `json:"domain"`
 
 	// endpointPublishingStrategy is the actual strategy in use.
-	EndpointPublishingStrategy EndpointPublishingStrategy `json:"endpointPublishingStrategy"`
+	EndpointPublishingStrategy *EndpointPublishingStrategy `json:"endpointPublishingStrategy,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
