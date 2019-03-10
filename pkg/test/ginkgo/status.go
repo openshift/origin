@@ -77,7 +77,8 @@ func (s *testStatus) Run(ctx context.Context, test *testCase) {
 		case test.failed:
 			s.out.Write(test.out)
 			fmt.Fprintln(s.out)
-			if s.monitor != nil {
+			// only write the monitor output for a test if there is more than two tests being run (otherwise it's redundant)
+			if s.monitor != nil && s.total > 2 {
 				events := s.monitor.Events(test.start, test.end)
 				if len(events) > 0 {
 					for _, event := range events {
