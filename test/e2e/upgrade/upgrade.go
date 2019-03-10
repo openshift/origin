@@ -1,6 +1,7 @@
 package upgrade
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"os"
@@ -314,11 +315,13 @@ func clusterUpgrade(c configv1client.Interface, version upgrades.VersionContext)
 		return err
 	}
 
-	if err := wait.PollImmediate(5*time.Second, 1*time.Minute, func() (bool, error) {
+	var lastCV *configv1.ClusterVersion
+	if err := wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
 		cv, err := c.ConfigV1().ClusterVersions().Get("version", metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
+		lastCV = cv
 		if cv.Status.ObservedGeneration > updated.Generation {
 			if cv.Spec.DesiredUpdate == nil || desired != *cv.Spec.DesiredUpdate {
 				return false, fmt.Errorf("desired cluster version was changed by someone else: %v", cv.Spec.DesiredUpdate)
@@ -326,12 +329,16 @@ func clusterUpgrade(c configv1client.Interface, version upgrades.VersionContext)
 		}
 		return cv.Status.ObservedGeneration == updated.Generation, nil
 	}); err != nil {
+		if lastCV != nil {
+			data, _ := json.MarshalIndent(lastCV, "", "  ")
+			framework.Logf("Current cluster version:\n%s", data)
+		}
 		return fmt.Errorf("Cluster did not acknowledge request to upgrade in a reasonable time: %v", err)
 	}
 
 	framework.Logf("Cluster version operator acknowledged upgrade request")
 
-	if err := wait.PollImmediate(5*time.Second, 15*time.Minute, func() (bool, error) {
+	if err := wait.PollImmediate(5*time.Second, 30*time.Minute, func() (bool, error) {
 		cv, err := c.ConfigV1().ClusterVersions().Get("version", metav1.GetOptions{})
 		if err != nil {
 			framework.Logf("unable to retrieve cluster version during upgrade: %v", err)
