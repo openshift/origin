@@ -139,7 +139,7 @@ func gitOutputToError(err error, out string) error {
 	return fmt.Errorf(out)
 }
 
-func mergeLogForRepo(g *git, from, to string) ([]MergeCommit, error) {
+func mergeLogForRepo(g *git, repo, from, to string) ([]MergeCommit, error) {
 	if from == to {
 		return nil, nil
 	}
@@ -160,9 +160,11 @@ func mergeLogForRepo(g *git, from, to string) ([]MergeCommit, error) {
 		if !strings.Contains(out, "Invalid revision range") {
 			return nil, gitOutputToError(err, out)
 		}
-		if _, err := g.exec("fetch", "--all"); err != nil {
+		// fetch by repo so we at least guarantee we get our target
+		if _, err := g.exec("fetch", repo); err != nil {
 			return nil, gitOutputToError(err, out)
 		}
+		// TODO: fetch other remotes as well?
 		if _, err := g.exec("cat-file", "-e", from+"^{commit}"); err != nil {
 			return nil, fmt.Errorf("from commit %s does not exist", from)
 		}

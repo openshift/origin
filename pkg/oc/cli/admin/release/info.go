@@ -1260,7 +1260,7 @@ func commitsForRepo(dir string, change CodeChange, out, errOut io.Writer) (*url.
 	if err != nil {
 		return nil, nil, err
 	}
-	commits, err := mergeLogForRepo(g, change.From, change.To)
+	commits, err := mergeLogForRepo(g, change.Repo, change.From, change.To)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Could not load commits for %s: %v", change.Repo, err)
 	}
