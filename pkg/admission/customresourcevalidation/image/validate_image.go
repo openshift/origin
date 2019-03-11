@@ -49,19 +49,18 @@ func toImageV1(uncastObj runtime.Object) (*configv1.Image, field.ErrorList) {
 type imageV1 struct {
 }
 
-func (imageV1) ValidateCreate(uncastObj runtime.Object) field.ErrorList {
+func (i imageV1) ValidateCreate(uncastObj runtime.Object) field.ErrorList {
 	obj, errs := toImageV1(uncastObj)
 	if len(errs) > 0 {
 		return errs
 	}
 
-	// TODO validate the obj
 	errs = append(errs, validation.ValidateObjectMeta(&obj.ObjectMeta, false, customresourcevalidation.RequireNameCluster, field.NewPath("metadata"))...)
-
+	errs = append(errs, i.validateImageSpec(&obj.Spec, field.NewPath("spec"))...)
 	return errs
 }
 
-func (imageV1) ValidateUpdate(uncastObj runtime.Object, uncastOldObj runtime.Object) field.ErrorList {
+func (i imageV1) ValidateUpdate(uncastObj runtime.Object, uncastOldObj runtime.Object) field.ErrorList {
 	obj, errs := toImageV1(uncastObj)
 	if len(errs) > 0 {
 		return errs
@@ -71,9 +70,8 @@ func (imageV1) ValidateUpdate(uncastObj runtime.Object, uncastOldObj runtime.Obj
 		return errs
 	}
 
-	// TODO validate the obj
 	errs = append(errs, validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &oldObj.ObjectMeta, field.NewPath("metadata"))...)
-
+	errs = append(errs, i.validateImageSpec(&obj.Spec, field.NewPath("spec"))...)
 	return errs
 }
 
@@ -91,4 +89,18 @@ func (imageV1) ValidateStatusUpdate(uncastObj runtime.Object, uncastOldObj runti
 	errs = append(errs, validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &oldObj.ObjectMeta, field.NewPath("metadata"))...)
 
 	return errs
+}
+
+func (i imageV1) validateImageSpec(spec *configv1.ImageSpec, path *field.Path) field.ErrorList {
+	errs := i.validateRegistrySources(spec.RegistrySources, path.Child("registrySources"))
+	return errs
+}
+
+func (imageV1) validateRegistrySources(reg configv1.RegistrySources, path *field.Path) field.ErrorList {
+	errs := field.ErrorList{}
+	if len(reg.AllowedRegistries) > 0 && len(reg.BlockedRegistries) > 0 {
+		errs = append(errs, field.Invalid(path, reg, "only one of allowedRegistries or blockedRegistries may be set"))
+	}
+	return errs
+
 }
