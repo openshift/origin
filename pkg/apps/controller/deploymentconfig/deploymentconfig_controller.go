@@ -496,8 +496,12 @@ func (c *DeploymentConfigController) handleErr(err error, key interface{}) {
 		return
 	}
 
+	verbosity := glog.Level(2)
 	if c.queue.NumRequeues(key) < maxRetryCount {
-		glog.V(2).Infof("Error syncing deployment config %v: %v", key, err)
+		if kapierrors.IsConflict(err) {
+			verbosity = glog.Level(4)
+		}
+		glog.V(verbosity).Infof("Error syncing deployment config %v: %v", key, err)
 		c.queue.AddRateLimited(key)
 		return
 	}
