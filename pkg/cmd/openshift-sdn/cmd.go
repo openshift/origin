@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -235,14 +236,41 @@ func injectKubeAPIEnv(kcPath string) error {
 
 // watchForChanges closes stopCh if the configuration file changed.
 func watchForChanges(configPath string, stopCh chan struct{}) error {
+	configPath, err := filepath.Abs(configPath)
+	if err != nil {
+		return err
+	}
+
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return err
 	}
 
-	if err := watcher.Add(configPath); err != nil {
-		return err
+	// Watch all symlinks for changes
+	p := configPath
+	maxdepth := 100
+	for depth := 0; depth < maxdepth; depth++ {
+		if err := watcher.Add(p); err != nil {
+			return err
+		}
+		glog.V(2).Infof("Watching config file %s for changes", p)
+
+		stat, err := os.Lstat(p)
+		if err != nil {
+			return err
+		}
+
+		// configmaps are usually symlinks
+		if stat.Mode()&os.ModeSymlink > 0 {
+			p, err = filepath.EvalSymlinks(p)
+			if err != nil {
+				return err
+			}
+		} else {
+			break
+		}
 	}
+
 	go func() {
 		for {
 			select {
@@ -251,11 +279,9 @@ func watchForChanges(configPath string, stopCh chan struct{}) error {
 				if !ok {
 					return
 				}
-				if event.Op&(fsnotify.Write|fsnotify.Rename) > 0 {
-					glog.V(2).Infof("Configuration file %s changed, exiting...", configPath)
-					close(stopCh)
-					return
-				}
+				glog.V(2).Infof("Configuration file %s changed, exiting...", event.Name)
+				close(stopCh)
+				return
 			case err, ok := <-watcher.Errors:
 				if !ok {
 					return
