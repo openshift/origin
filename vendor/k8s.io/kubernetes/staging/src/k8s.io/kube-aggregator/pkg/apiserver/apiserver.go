@@ -312,7 +312,13 @@ func (s *APIAggregator) AddAPIService(apiService *apiregistration.APIService) er
 	}()
 	s.GenericAPIServer.Handler.NonGoRestfulMux.Handle(proxyPath, proxyHandler)
 	s.GenericAPIServer.Handler.NonGoRestfulMux.UnlistedHandlePrefix(proxyPath+"/", proxyHandler)
-
+	
+	// register prefixes we always want to delegate
+	for _, alwaysDelegatePath := range alwaysDelegatePathPrefixes.List() {
+		s.GenericAPIServer.Handler.NonGoRestfulMux.Handle(alwaysDelegatePath, proxyHandler.localDelegate)
+		s.GenericAPIServer.Handler.NonGoRestfulMux.UnlistedHandlePrefix(alwaysDelegatePath+"/", proxyHandler.localDelegate)
+	}
+	
 	// if we're dealing with the legacy group, we're done here
 	if apiService.Name == legacyAPIServiceName {
 		return nil
