@@ -115,11 +115,7 @@ func (p *cniPlugin) testCmdAdd(args *skel.CmdArgs) (types.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	convertedResult, err := convertToRequestedVersion(args.StdinData, result)
-	if err != nil {
-		return nil, err
-	}
-	return convertedResult, nil
+	return convertToRequestedVersion(args.StdinData, result)
 }
 
 func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
@@ -235,10 +231,6 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 	if err != nil {
 		return err
 	}
-
-	result.Interfaces = nil
-	result.IPs[0].Interface = nil
-	result.IPs[0].Gateway = defaultGW
 
 	convertedResult, err := convertToRequestedVersion(req.Config, result)
 	if err != nil {
