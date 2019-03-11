@@ -36,6 +36,27 @@ func MakeUsername(namespace, name string) string {
 	return ServiceAccountUsernamePrefix + namespace + ServiceAccountUsernameSeparator + name
 }
 
+// MatchesUsername checks whether the provided username matches the namespace and name without
+// allocating. Use this when checking a service account namespace and name against a known string.
+func MatchesUsername(namespace, name string, username string) bool {
+	if !strings.HasPrefix(username, ServiceAccountUsernamePrefix) {
+		return false
+	}
+	username = strings.TrimPrefix(username, ServiceAccountUsernamePrefix)
+
+	if !strings.HasSuffix(username, name) {
+		return false
+	}
+	username = strings.TrimSuffix(username, name)
+
+	if !strings.HasPrefix(username, namespace) {
+		return false
+	}
+	username = strings.TrimPrefix(username, namespace)
+
+	return username == ServiceAccountUsernameSeparator
+}
+
 var invalidUsernameErr = fmt.Errorf("Username must be in the form %s", MakeUsername("namespace", "name"))
 
 // SplitUsername returns the namespace and ServiceAccount name embedded in the given username,
