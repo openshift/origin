@@ -1168,15 +1168,6 @@ imports:
   version: 10ef21a441db47d8b13ebcc5fd2310f636973c77
 - name: github.com/sirupsen/logrus
   version: 89742aefa4b206dcf400792f3bd35b542998eb3b
-- name: github.com/skynetservices/skydns
-  version: 775ef406696380ce92b76e72421e86b6868905d8
-  repo: https://github.com/openshift/skynetservices-skydns
-  subpackages:
-  - cache
-  - metrics
-  - msg
-  - server
-  - singleflight
 - name: github.com/spf13/afero
   version: b28a7effac979219c2a2ed6205a4d70e4b1bcd02
   subpackages:

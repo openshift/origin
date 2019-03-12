@@ -81,10 +81,6 @@ import:
   repo:    https://github.com/openshift/emicklei-go-restful-swagger12
   version: release-1.0.1
 # master
-- package: github.com/skynetservices/skydns
-  repo:    https://github.com/openshift/skynetservices-skydns
-  version: release-2.5.3a
-# master
 - package: github.com/onsi/ginkgo
   repo:    https://github.com/openshift/onsi-ginkgo.git
   version: release-v1.2.0
