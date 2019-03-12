@@ -43,6 +43,14 @@ all build:
 	hack/build-go.sh $(WHAT) $(GOFLAGS)
 .PHONY: all build
 
+# Build all binaries.
+#
+# Example:
+#   make build-all
+build-all:
+	hack/build-go.sh cmd/hypershift vendor/k8s.io/kubernetes/cmd/hyperkube cmd/oc cmd/openshift-sdn cmd/openshift-tests
+.PHONY: build-all
+
 # Build the test binaries.
 #
 # Example:
