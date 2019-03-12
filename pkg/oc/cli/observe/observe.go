@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -158,7 +159,10 @@ var (
 	  %[1]s observe services
 
 	  # Observe changes to services, including the clusterIP and invoke a script for each
-	  %[1]s observe services -a '{ .spec.clusterIP }' -- register_dns.sh`)
+	  %[1]s observe services -a '{ .spec.clusterIP }' -- register_dns.sh
+
+	  # Observe changes to services filtered by a label selector
+	  %[1]s observe namespaces -l regist-dns=true -a '{ .spec.clusterIP }' -- register_dns.sh`)
 )
 
 type ObserveOptions struct {
@@ -172,6 +176,7 @@ type ObserveOptions struct {
 	// which resources to select
 	namespace     string
 	allNamespaces bool
+	selector      string
 
 	// additional debugging information
 	listenAddr string
@@ -247,6 +252,7 @@ func NewCmdObserve(fullName string, f kcmdutil.Factory, streams genericclioption
 
 	// flags controlling what to select
 	cmd.Flags().BoolVarP(&o.allNamespaces, "all-namespaces", "A", o.allNamespaces, "If true, list the requested object(s) across all projects. Project in current context is ignored.")
+	cmd.Flags().StringVarP(&o.selector, "selector", "l", o.selector, "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)")
 
 	// to perform deletion synchronization
 	cmd.Flags().VarP(&o.deleteCommand, "delete", "d", "A command to run when resources are deleted. Specify multiple times to add arguments.")
@@ -395,6 +401,11 @@ func (o *ObserveOptions) Validate(args []string) error {
 	if len(o.nameSyncCommand) > 0 && len(o.deleteCommand) == 0 {
 		return fmt.Errorf("--delete and --names must both be specified")
 	}
+
+	if _, err := labels.Parse(o.selector); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -405,7 +416,10 @@ func (o *ObserveOptions) Run() error {
 
 	// watch the given resource for changes
 	store := cache.NewDeltaFIFO(objectArgumentsKeyFunc, o.knownObjects)
-	lw := restListWatcher{Helper: resource.NewHelper(o.client, o.mapping)}
+	lw := restListWatcher{
+		Helper:   resource.NewHelper(o.client, o.mapping),
+		selector: o.selector,
+	}
 	if !o.allNamespaces {
 		lw.namespace = o.namespace
 	}
@@ -807,13 +821,16 @@ func printCommandLine(cmd string, args ...string) string {
 type restListWatcher struct {
 	*resource.Helper
 	namespace string
+	selector  string
 }
 
 func (lw restListWatcher) List(opt metav1.ListOptions) (runtime.Object, error) {
+	opt.LabelSelector = lw.selector
 	return lw.Helper.List(lw.namespace, "", false, &opt)
 }
 
 func (lw restListWatcher) Watch(opt metav1.ListOptions) (watch.Interface, error) {
+	opt.LabelSelector = lw.selector
 	return lw.Helper.Watch(lw.namespace, opt.ResourceVersion, &opt)
 }
 
