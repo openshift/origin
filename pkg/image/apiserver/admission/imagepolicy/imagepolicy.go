@@ -13,12 +13,11 @@ import (
 	"k8s.io/apiserver/pkg/admission/initializer"
 
 	"github.com/golang/glog"
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/diff"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -157,62 +156,6 @@ func (a *imagePolicyPlugin) ValidateInitialization() error {
 	return nil
 }
 
-// mutateAttributesToLegacyResources mutates the admission attributes in a way where the
-// Origin API groups are converted to "legacy" or "core" group.
-// This provides a backward compatibility with existing configurations and also closes the
-// hole where clients might bypass the admission by using API group endpoint and API group
-// resource instead of legacy one.
-func mutateAttributesToLegacyResources(attr admission.Attributes) admission.Attributes {
-	resource := attr.GetResource()
-	if len(resource.Group) > 0 && isOriginAPIGroup(resource.Group) {
-		resource.Group = ""
-	}
-	kind := attr.GetKind()
-	if len(kind.Group) > 0 && isOriginAPIGroup(kind.Group) {
-		kind.Group = ""
-	}
-	attrs := admission.NewAttributesRecord(
-		attr.GetObject(),
-		attr.GetOldObject(),
-		kind,
-		attr.GetNamespace(),
-		attr.GetName(),
-		resource,
-		attr.GetSubresource(),
-		attr.GetOperation(),
-		false,
-		attr.GetUserInfo(),
-	)
-	return attrs
-}
-
-// originVersions is the list of versions that are reflected in the ungroupified oapi
-var originVersions = []schema.GroupVersion{
-	{Group: "authorization.openshift.io", Version: "v1"},
-	{Group: "build.openshift.io", Version: "v1"},
-	{Group: "apps.openshift.io", Version: "v1"},
-	{Group: "template.openshift.io", Version: "v1"},
-	{Group: "image.openshift.io", Version: "v1"},
-	{Group: "project.openshift.io", Version: "v1"},
-	{Group: "user.openshift.io", Version: "v1"},
-	{Group: "oauth.openshift.io", Version: "v1"},
-	{Group: "network.openshift.io", Version: "v1"},
-	{Group: "route.openshift.io", Version: "v1"},
-	{Group: "quota.openshift.io", Version: "v1"},
-	{Group: "security.openshift.io", Version: "v1"},
-	{Group: "", Version: "v1"},
-}
-
-// isOriginAPIGroup returns true if the provided group name belongs to Origin API.
-func isOriginAPIGroup(groupName string) bool {
-	for _, v := range originVersions {
-		if v.Group == groupName {
-			return true
-		}
-	}
-	return false
-}
-
 // Admit attempts to apply the image policy to the incoming resource.
 func (a *imagePolicyPlugin) Admit(attr admission.Attributes) error {
 	return a.admit(attr, true)
@@ -236,11 +179,6 @@ func (a *imagePolicyPlugin) admit(attr admission.Attributes, mutationAllowed boo
 		return nil
 	}
 
-	// This will convert any non-legacy Origin resource to a legacy resource, so specifying
-	// a 'builds.build.openshift.io' is converted to 'builds'.
-	// TODO: denormalize this at config time, or write a migration for user's config
-	attr = mutateAttributesToLegacyResources(attr)
-
 	policy := resolutionConfig{a.config}
 
 	schemagr := attr.GetResource().GroupResource()
@@ -249,6 +187,7 @@ func (a *imagePolicyPlugin) admit(attr admission.Attributes, mutationAllowed boo
 	if !a.accepter.Covers(apigr) && !policy.Covers(apigr) {
 		return nil
 	}
+
 	glog.V(5).Infof("running image policy admission for %s:%s/%s", attr.GetKind(), attr.GetNamespace(), attr.GetName())
 	m, err := internalimagereferencemutators.GetImageReferenceMutator(attr.GetObject(), attr.GetOldObject())
 	if err != nil {
@@ -441,7 +380,7 @@ func (c *imageResolutionCache) resolveImageStreamTag(namespace, name, tag string
 	}
 	ref, err := imageapi.ParseDockerImageReference(resolved.Image.DockerImageReference)
 	if err != nil {
-		return attrs, fmt.Errorf("Image reference %s could not be parsed: %v", resolved.Image.DockerImageReference, err)
+		return attrs, fmt.Errorf("image reference %s could not be parsed: %v", resolved.Image.DockerImageReference, err)
 	}
 	ref.Tag = ""
 	ref.ID = resolved.Image.Name
@@ -487,7 +426,7 @@ func isImageStreamTagNotFound(err error) bool {
 	if details == nil {
 		return false
 	}
-	return details.Kind == "imagestreamtags" && (details.Group == "" || details.Group == "image.openshift.io")
+	return details.Kind == "imagestreamtags" && details.Group == "image.openshift.io"
 }
 
 // resolutionConfig translates an ImagePolicyConfig into imageResolutionPolicy
@@ -527,7 +466,6 @@ var skipImageRewriteOnUpdate = map[metav1.GroupResource]struct{}{
 	// Job template specs are immutable, they cannot be updated.
 	{Group: "batch", Resource: "jobs"}: {},
 	// Build specs are immutable, they cannot be updated.
-	{Group: "", Resource: "builds"}:                   {},
 	{Group: "build.openshift.io", Resource: "builds"}: {},
 	// TODO: remove when statefulsets allow spec.template updates in 3.7
 	{Group: "apps", Resource: "statefulsets"}: {},

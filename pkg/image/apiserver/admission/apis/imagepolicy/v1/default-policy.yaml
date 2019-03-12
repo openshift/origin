@@ -12,6 +12,7 @@ executionRules:
   onResources:
   - resource: pods
   - resource: builds
+    group: build.openshift.io
   reject: true
   matchImageAnnotations:
   - key: images.openshift.io/deny-execution
