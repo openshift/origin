@@ -330,8 +330,7 @@ func InClusterConfig() (*Config, error) {
 
 	ts := newCachedPathTokenSource(tokenFile)
 
-	tok, err := ts.Token()
-	if err != nil {
+	if _, err := ts.Token(); err != nil {
 		return nil, err
 	}
 
@@ -345,10 +344,7 @@ func InClusterConfig() (*Config, error) {
 
 	return &Config{
 		// TODO: switch to using cluster DNS.
-		Host: "https://" + net.JoinHostPort(host, port),
-		// TODO: This is a fix for #69234, caused by #67359
-		// It looks like we will need to be careful on rotation.
-		BearerToken:     tok.AccessToken,
+		Host:            "https://" + net.JoinHostPort(host, port),
 		TLSClientConfig: tlsClientConfig,
 		WrapTransport:   TokenSourceWrapTransport(ts),
 	}, nil
