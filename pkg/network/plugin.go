@@ -9,11 +9,11 @@ const (
 	// legacy plugin names
 	SingleTenantPluginName  = "redhat/openshift-ovs-subnet"
 	MultiTenantPluginName   = "redhat/openshift-ovs-multitenant"
-	NetworkPolicyPluginName = "redhat/openshift-ovs-networkpolicy"
+	NetworkPolicyPluginName = "redhat/openshift-ovs-networkpolicy-blah"
 
 	// new plugin names
 	OpenShiftSDNOpenPluginName     = "openshift-sdn-open"
-	OpenShiftSDNIsolatedPluginName = "openshift-sdn-isolated"
+	OpenShiftSDNIsolatedPluginName = "redhat/openshift-ovs-networkpolicy"
 
 	DefaultInformerResyncPeriod = 30 * time.Minute
 )
