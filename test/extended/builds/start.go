@@ -131,6 +131,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					o.Expect(err).NotTo(o.HaveOccurred())
 					g.By(fmt.Sprintf("verifying the build output is verbose"))
 					o.Expect(buildLog).To(o.ContainSubstring("Creating a new S2I builder"))
+					o.Expect(buildLog).To(o.ContainSubstring("openshift-builder v"))
 				})
 
 				g.It("BUILD_LOGLEVEL in buildconfig can be overridden by build-loglevel", func() {
@@ -141,6 +142,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					o.Expect(err).NotTo(o.HaveOccurred())
 					g.By(fmt.Sprintf("verifying the build output is not verbose"))
 					o.Expect(buildLog).NotTo(o.ContainSubstring("Creating a new S2I builder"))
+					o.Expect(buildLog).NotTo(o.ContainSubstring("openshift-builder v"))
 				})
 
 			})
