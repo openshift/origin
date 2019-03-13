@@ -21,41 +21,58 @@ const (
 )
 
 type endpointDetails struct {
-	publicMasterURL   string
-	originOAuthClient *osincli.Client
+	publicMasterURL string
+	// osinOAuthClientGetter is used to initialize osinOAuthClient.
+	// Since it can return an error, it may be called multiple times.
+	osinOAuthClientGetter func() (*osincli.Client, error)
 }
 
 type Endpoints interface {
 	Install(mux login.Mux, paths ...string)
 }
 
-func NewEndpoints(publicMasterURL string, originOAuthClient *osincli.Client) Endpoints {
-	return &endpointDetails{publicMasterURL, originOAuthClient}
+func NewEndpoints(publicMasterURL string, osinOAuthClientGetter func() (*osincli.Client, error)) Endpoints {
+	return &endpointDetails{
+		publicMasterURL:       publicMasterURL,
+		osinOAuthClientGetter: osinOAuthClientGetter,
+	}
 }
 
 // Install registers the request token endpoints into a mux. It is expected that the
 // provided prefix will serve all operations
 func (endpoints *endpointDetails) Install(mux login.Mux, paths ...string) {
 	for _, prefix := range paths {
-		mux.HandleFunc(path.Join(prefix, RequestTokenEndpoint), endpoints.requestToken)
-		mux.HandleFunc(path.Join(prefix, DisplayTokenEndpoint), endpoints.displayToken)
+		mux.HandleFunc(path.Join(prefix, RequestTokenEndpoint), endpoints.oauthClientHandler(endpoints.requestToken))
+		mux.HandleFunc(path.Join(prefix, DisplayTokenEndpoint), endpoints.oauthClientHandler(endpoints.displayToken))
 		mux.HandleFunc(path.Join(prefix, ImplicitTokenEndpoint), endpoints.implicitToken)
 	}
 }
 
+func (endpoints *endpointDetails) oauthClientHandler(delegate func(*osincli.Client, http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, h *http.Request) {
+		osinOAuthClient, err := endpoints.osinOAuthClientGetter()
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("failed to get Osin OAuth client for token endpoint: %v", err))
+			http.Error(w, "OAuth token endpoint is not ready", http.StatusInternalServerError)
+			return
+		}
+		delegate(osinOAuthClient, w, h)
+	}
+}
+
 // requestToken works for getting a token in your browser and seeing what your token is
-func (endpoints *endpointDetails) requestToken(w http.ResponseWriter, req *http.Request) {
-	authReq := endpoints.originOAuthClient.NewAuthorizeRequest(osincli.CODE)
-	oauthURL := authReq.GetAuthorizeUrlWithParams("")
+func (endpoints *endpointDetails) requestToken(osinOAuthClient *osincli.Client, w http.ResponseWriter, req *http.Request) {
+	authReq := osinOAuthClient.NewAuthorizeRequest(osincli.CODE)
+	oauthURL := authReq.GetAuthorizeUrl()
 
 	http.Redirect(w, req, oauthURL.String(), http.StatusFound)
 }
 
-func (endpoints *endpointDetails) displayToken(w http.ResponseWriter, req *http.Request) {
+func (endpoints *endpointDetails) displayToken(osinOAuthClient *osincli.Client, w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	data := tokenData{RequestURL: "request", PublicMasterURL: endpoints.publicMasterURL}
 
-	authorizeReq := endpoints.originOAuthClient.NewAuthorizeRequest(osincli.CODE)
+	authorizeReq := osinOAuthClient.NewAuthorizeRequest(osincli.CODE)
 	authorizeData, err := authorizeReq.HandleRequest(req)
 	if err != nil {
 		data.Error = fmt.Sprintf("Error handling auth request: %v", err)
@@ -64,7 +81,7 @@ func (endpoints *endpointDetails) displayToken(w http.ResponseWriter, req *http.
 		return
 	}
 
-	accessReq := endpoints.originOAuthClient.NewAccessRequest(osincli.AUTHORIZATION_CODE, authorizeData)
+	accessReq := osinOAuthClient.NewAccessRequest(osincli.AUTHORIZATION_CODE, authorizeData)
 	accessData, err := accessReq.GetToken()
 	if err != nil {
 		data.Error = fmt.Sprintf("Error getting token: %v", err)

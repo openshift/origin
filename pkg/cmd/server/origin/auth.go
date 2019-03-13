@@ -160,26 +160,8 @@ func (c *AuthConfig) WithOAuth(handler http.Handler) (http.Handler, error) {
 	if err := CreateOrUpdateDefaultOAuthClients(c.Options.MasterPublicURL, c.AssetPublicAddresses, clientRegistry); err != nil {
 		glog.Fatal(err)
 	}
-	browserClient, err := clientRegistry.GetClient(apirequest.NewContext(), OpenShiftBrowserClientID, &metav1.GetOptions{})
-	if err != nil {
-		glog.Fatal(err)
-	}
-	osOAuthClientConfig := c.NewOpenShiftOAuthClientConfig(browserClient)
-	osOAuthClientConfig.RedirectUrl = c.Options.MasterPublicURL + path.Join(oauthutil.OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)
 
-	osOAuthClient, _ := osincli.NewClient(osOAuthClientConfig)
-	if len(*c.Options.MasterCA) > 0 {
-		rootCAs, err := cmdutil.CertPoolFromFile(*c.Options.MasterCA)
-		if err != nil {
-			glog.Fatal(err)
-		}
-
-		osOAuthClient.Transport = knet.SetTransportDefaults(&http.Transport{
-			TLSClientConfig: &tls.Config{RootCAs: rootCAs},
-		})
-	}
-
-	tokenRequestEndpoints := tokenrequest.NewEndpoints(c.Options.MasterPublicURL, osOAuthClient)
+	tokenRequestEndpoints := tokenrequest.NewEndpoints(c.Options.MasterPublicURL, c.getOsinOAuthClient)
 	tokenRequestEndpoints.Install(mux, oauthutil.OpenShiftOAuthAPIPrefix)
 
 	// glog.Infof("oauth server configured as: %#v", server)
@@ -189,6 +171,35 @@ func (c *AuthConfig) WithOAuth(handler http.Handler) (http.Handler, error) {
 	// glog.Infof("grant handler: %#v", grantHandler)
 
 	return baseMux, nil
+}
+
+func (c *AuthConfig) getOsinOAuthClient() (*osincli.Client, error) {
+	clientStorage, err := clientetcd.NewREST(c.RESTOptionsGetter)
+	if err != nil {
+		return nil, err
+	}
+	clientRegistry := clientregistry.NewRegistry(clientStorage)
+
+	browserClient, err := clientRegistry.GetClient(apirequest.NewContext(), OpenShiftBrowserClientID, &metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	osOAuthClientConfig := c.NewOpenShiftOAuthClientConfig(browserClient)
+	osOAuthClientConfig.RedirectUrl = c.Options.MasterPublicURL + path.Join(oauthutil.OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)
+
+	osOAuthClient, _ := osincli.NewClient(osOAuthClientConfig)
+	if len(*c.Options.MasterCA) > 0 {
+		rootCAs, err := cmdutil.CertPoolFromFile(*c.Options.MasterCA)
+		if err != nil {
+			return nil, err
+		}
+
+		osOAuthClient.Transport = knet.SetTransportDefaults(&http.Transport{
+			TLSClientConfig: &tls.Config{RootCAs: rootCAs},
+		})
+	}
+
+	return osOAuthClient, nil
 }
 
 func (c *AuthConfig) possiblyWrapMux(mux cmdutil.Mux) cmdutil.Mux {
