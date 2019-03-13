@@ -10,6 +10,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
@@ -22,13 +23,11 @@ type multiTenantPlugin struct {
 	vnids *nodeVNIDMap
 
 	vnidInUseLock sync.Mutex
-	vnidInUse     map[uint32]bool
+	vnidInUse     sets.Int
 }
 
 func NewMultiTenantPlugin() osdnPolicy {
-	return &multiTenantPlugin{
-		vnidInUse: make(map[uint32]bool),
-	}
+	return &multiTenantPlugin{}
 }
 
 func (mp *multiTenantPlugin) Name() string {
@@ -41,6 +40,8 @@ func (mp *multiTenantPlugin) SupportsVNIDs() bool {
 
 func (mp *multiTenantPlugin) Start(node *OsdnNode) error {
 	mp.node = node
+	mp.vnidInUse = node.oc.FindPolicyVNIDs()
+
 	mp.vnids = newNodeVNIDMap(mp, node.networkClient)
 	if err := mp.vnids.Start(node.networkInformers); err != nil {
 		return err
@@ -132,10 +133,10 @@ func (mp *multiTenantPlugin) EnsureVNIDRules(vnid uint32) {
 
 	mp.vnidInUseLock.Lock()
 	defer mp.vnidInUseLock.Unlock()
-	if mp.vnidInUse[vnid] {
+	if mp.vnidInUse.Has(int(vnid)) {
 		return
 	}
-	mp.vnidInUse[vnid] = true
+	mp.vnidInUse.Insert(int(vnid))
 
 	glog.V(5).Infof("EnsureVNIDRules %d - adding rules", vnid)
 
@@ -155,7 +156,7 @@ func (mp *multiTenantPlugin) SyncVNIDRules() {
 
 	otx := mp.node.oc.NewTransaction()
 	for _, vnid := range unused {
-		mp.vnidInUse[uint32(vnid)] = false
+		mp.vnidInUse.Delete(int(vnid))
 		otx.DeleteFlows("table=80, reg1=%d", vnid)
 	}
 	if err := otx.Commit(); err != nil {

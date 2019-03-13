@@ -613,28 +613,39 @@ func (oc *ovsController) UpdateVXLANMulticastFlows(remoteIPs []string) error {
 	return otx.Commit()
 }
 
-// FindUnusedVNIDs returns a list of VNIDs for which there are table 80 "check" rules,
+// FindPolicyVNIDs returns the set of VNIDs for which there are currently "policy" rules
+// in OVS. (This is used to reinitialize the osdnPolicy after a restart.)
+func (oc *ovsController) FindPolicyVNIDs() sets.Int {
+	_, policyVNIDs := oc.findInUseAndPolicyVNIDs()
+	return policyVNIDs
+}
+
+// FindUnusedVNIDs returns a list of VNIDs for which there are table 80 "policy" rules,
 // but no table 60/70 "load" rules (meaning that there are no longer any pods or services
 // on this node with that VNID). There is no locking with respect to other ovsController
 // actions, but as long the "add a pod" and "add a service" codepaths add the
 // pod/service-specific rules before they call policy.EnsureVNIDRules(), then there is no
 // race condition.
 func (oc *ovsController) FindUnusedVNIDs() []int {
+	inUseVNIDs, policyVNIDs := oc.findInUseAndPolicyVNIDs()
+	return policyVNIDs.Difference(inUseVNIDs).UnsortedList()
+}
+
+func (oc *ovsController) findInUseAndPolicyVNIDs() (sets.Int, sets.Int) {
+	// VNID 0 is always in use, even if there aren't any explicit flows for it
+	inUseVNIDs := sets.NewInt(0)
+	policyVNIDs := sets.NewInt()
+
 	flows, err := oc.ovs.DumpFlows("")
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("FindUnusedVNIDs: could not DumpFlows: %v", err))
-		return nil
+		utilruntime.HandleError(fmt.Errorf("findInUseAndPolicyVNIDs: could not DumpFlows: %v", err))
+		return inUseVNIDs, policyVNIDs
 	}
 
-	// inUseVNIDs is the set of VNIDs in use by pods or services on this node.
-	// policyVNIDs is the set of VNIDs that we have rules for delivering to.
-	// VNID 0 is always assumed to be in both sets.
-	inUseVNIDs := sets.NewInt(0)
-	policyVNIDs := sets.NewInt(0)
 	for _, flow := range flows {
 		parsed, err := ovs.ParseFlow(ovs.ParseForDump, flow)
 		if err != nil {
-			glog.Warningf("FindUnusedVNIDs: could not parse flow %q: %v", flow, err)
+			glog.Warningf("findInUseAndPolicyVNIDs: could not parse flow %q: %v", flow, err)
 			continue
 		}
 
@@ -652,7 +663,7 @@ func (oc *ovsController) FindUnusedVNIDs() []int {
 				}
 				vnid, err := strconv.ParseInt(action.Value[:vnidEnd], 0, 32)
 				if err != nil {
-					glog.Warningf("FindUnusedVNIDs: could not parse VNID in 'load:%s': %v", action.Value, err)
+					glog.Warningf("findInUseAndPolicyVNIDs: could not parse VNID in 'load:%s': %v", action.Value, err)
 					continue
 				}
 				inUseVNIDs.Insert(int(vnid))
@@ -665,7 +676,7 @@ func (oc *ovsController) FindUnusedVNIDs() []int {
 			if field, exists := parsed.FindField("reg1"); exists {
 				vnid, err := strconv.ParseInt(field.Value, 0, 32)
 				if err != nil {
-					glog.Warningf("FindUnusedVNIDs: could not parse VNID in 'reg1=%s': %v", field.Value, err)
+					glog.Warningf("findInUseAndPolicyVNIDs: could not parse VNID in 'reg1=%s': %v", field.Value, err)
 					continue
 				}
 				policyVNIDs.Insert(int(vnid))
@@ -673,7 +684,7 @@ func (oc *ovsController) FindUnusedVNIDs() []int {
 		}
 	}
 
-	return policyVNIDs.Difference(inUseVNIDs).UnsortedList()
+	return inUseVNIDs, policyVNIDs
 }
 
 func (oc *ovsController) ensureTunMAC() error {
