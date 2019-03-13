@@ -19,7 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
 )
 
-type endpointDetails struct {
+type tokenRequest struct {
 	publicMasterURL string
 	// osinOAuthClient is the private OAuth client used by this endpoint.
 	// It starts out nil and is lazily initialized when this endpoint is called.
@@ -38,13 +38,8 @@ type endpointDetails struct {
 	openShiftLogoutPrefix string
 }
 
-// TODO this interface needs to be moved
-type Endpoints interface {
-	Install(mux oauthserver.Mux, paths ...string)
-}
-
-func NewEndpoints(publicMasterURL, openShiftLogoutPrefix string, osinOAuthClientGetter func() (*osincli.Client, error), tokens v1.OAuthAccessTokenInterface) Endpoints {
-	return &endpointDetails{
+func NewTokenRequest(publicMasterURL, openShiftLogoutPrefix string, osinOAuthClientGetter func() (*osincli.Client, error), tokens v1.OAuthAccessTokenInterface) oauthserver.Endpoints {
+	return &tokenRequest{
 		publicMasterURL:       publicMasterURL,
 		osinOAuthClientGetter: osinOAuthClientGetter,
 		ready:                 make(chan struct{}),
@@ -53,23 +48,19 @@ func NewEndpoints(publicMasterURL, openShiftLogoutPrefix string, osinOAuthClient
 	}
 }
 
-// Install registers the request token endpoints into a mux. It is expected that the
-// provided prefix will serve all operations
-func (e *endpointDetails) Install(mux oauthserver.Mux, paths ...string) {
-	for _, prefix := range paths {
-		mux.HandleFunc(path.Join(prefix, urls.RequestTokenEndpoint), e.readyHandler(e.requestToken))
-		mux.HandleFunc(path.Join(prefix, urls.DisplayTokenEndpoint), e.readyHandler(e.displayToken))
-		mux.HandleFunc(path.Join(prefix, urls.ImplicitTokenEndpoint), e.implicitToken)
-	}
+func (t *tokenRequest) Install(mux oauthserver.Mux, prefix string) {
+	mux.HandleFunc(path.Join(prefix, urls.RequestTokenEndpoint), t.readyHandler(t.requestToken))
+	mux.HandleFunc(path.Join(prefix, urls.DisplayTokenEndpoint), t.readyHandler(t.displayToken))
+	mux.HandleFunc(path.Join(prefix, urls.ImplicitTokenEndpoint), t.implicitToken)
 }
 
 // TODO we may want to start doing live lookups for this endpoint
-func (e *endpointDetails) readyHandler(delegate func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+func (t *tokenRequest) readyHandler(delegate func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, h *http.Request) {
 		select {
-		case <-e.ready:
+		case <-t.ready:
 		default:
-			if err := e.safeInitOsinOAuthClientOnce(); err != nil {
+			if err := t.safeInitOsinOAuthClientOnce(); err != nil {
 				utilruntime.HandleError(fmt.Errorf("failed to get Osin OAuth client for token endpoint: %v", err))
 				http.Error(w, "OAuth token endpoint is not ready", http.StatusInternalServerError)
 				return
@@ -81,36 +72,36 @@ func (e *endpointDetails) readyHandler(delegate func(http.ResponseWriter, *http.
 
 // safeInitOsinOAuthClientOnce initializes osinOAuthClient exactly once using osinOAuthClientGetter.
 // It is goroutine safe, reentrant and can be safely called multiple times.
-func (e *endpointDetails) safeInitOsinOAuthClientOnce() error {
+func (t *tokenRequest) safeInitOsinOAuthClientOnce() error {
 	// Use a lock and nil check to make sure we never close endpoints.ready more than once
 	// and that we only try to fetch osinOAuthClient until the first time we are successful
-	e.initLock.Lock()
-	defer e.initLock.Unlock()
-	if e.osinOAuthClient == nil {
-		osinOAuthClient, err := e.osinOAuthClientGetter()
+	t.initLock.Lock()
+	defer t.initLock.Unlock()
+	if t.osinOAuthClient == nil {
+		osinOAuthClient, err := t.osinOAuthClientGetter()
 		if err != nil {
 			return err
 		}
-		e.osinOAuthClient = osinOAuthClient
-		close(e.ready)
+		t.osinOAuthClient = osinOAuthClient
+		close(t.ready)
 	}
 	return nil
 }
 
 // requestToken works for getting a token in your browser and seeing what your token is
-func (e *endpointDetails) requestToken(w http.ResponseWriter, req *http.Request) {
-	authReq := e.osinOAuthClient.NewAuthorizeRequest(osincli.CODE)
+func (t *tokenRequest) requestToken(w http.ResponseWriter, req *http.Request) {
+	authReq := t.osinOAuthClient.NewAuthorizeRequest(osincli.CODE)
 	oauthURL := authReq.GetAuthorizeUrl()
 
 	http.Redirect(w, req, oauthURL.String(), http.StatusFound)
 }
 
-func (e *endpointDetails) displayToken(w http.ResponseWriter, req *http.Request) {
+func (t *tokenRequest) displayToken(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	requestURL := urls.OpenShiftOAuthTokenRequestURL("") // relative url to token request endpoint
-	data := tokenData{RequestURL: requestURL, PublicMasterURL: e.publicMasterURL}
+	data := tokenData{RequestURL: requestURL, PublicMasterURL: t.publicMasterURL}
 
-	authorizeReq := e.osinOAuthClient.NewAuthorizeRequest(osincli.CODE)
+	authorizeReq := t.osinOAuthClient.NewAuthorizeRequest(osincli.CODE)
 	authorizeData, err := authorizeReq.HandleRequest(req)
 	if err != nil {
 		data.Error = fmt.Sprintf("Error handling auth request: %v", err)
@@ -119,7 +110,7 @@ func (e *endpointDetails) displayToken(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	accessReq := e.osinOAuthClient.NewAccessRequest(osincli.AUTHORIZATION_CODE, authorizeData)
+	accessReq := t.osinOAuthClient.NewAccessRequest(osincli.AUTHORIZATION_CODE, authorizeData)
 	accessData, err := accessReq.GetToken()
 	if err != nil {
 		data.Error = fmt.Sprintf("Error getting token: %v", err)
@@ -128,7 +119,7 @@ func (e *endpointDetails) displayToken(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	token, err := e.tokens.Get(accessData.AccessToken, metav1.GetOptions{})
+	token, err := t.tokens.Get(accessData.AccessToken, metav1.GetOptions{})
 	if err != nil {
 		data.Error = "Error checking token" // do not leak error to user, do not log error
 		w.WriteHeader(http.StatusInternalServerError)
@@ -138,7 +129,7 @@ func (e *endpointDetails) displayToken(w http.ResponseWriter, req *http.Request)
 
 	if token.UserName == bootstrap.BootstrapUser {
 		// only the bootstrap user has a session we maintain for one more than OAuth flow
-		data.LogoutURL = e.openShiftLogoutPrefix
+		data.LogoutURL = t.openShiftLogoutPrefix
 	}
 
 	data.AccessToken = accessData.AccessToken
@@ -204,7 +195,7 @@ var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(`
 {{ end }}
 `))
 
-func (e *endpointDetails) implicitToken(w http.ResponseWriter, req *http.Request) {
+func (t *tokenRequest) implicitToken(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	_, _ = w.Write([]byte(`
 You have reached this page by following a redirect Location header from an OAuth authorize request.
