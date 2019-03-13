@@ -3,6 +3,7 @@ package customresourcevalidation
 import (
 	"fmt"
 
+	"github.com/golang/glog"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -26,6 +27,7 @@ type validateCustomResource struct {
 }
 
 func NewValidator(resources map[schema.GroupResource]bool, validators map[schema.GroupVersionKind]ObjectValidator) (admission.Interface, error) {
+	glog.Infof("DEBUG: ADMISSION: adding validator for %#v", resources)
 	return &validateCustomResource{
 		Handler:    admission.NewHandler(admission.Create, admission.Update),
 		resources:  resources,
@@ -39,6 +41,8 @@ var _ admission.ValidationInterface = &validateCustomResource{}
 // that are of type unstructured.
 func (a *validateCustomResource) Validate(uncastAttributes admission.Attributes) error {
 	attributes := &unstructuredUnpackingAttributes{Attributes: uncastAttributes}
+
+	glog.Infof("DEBUG: ADMISSION: kind: %v", attributes.GetKind())
 	if a.shouldIgnore(attributes) {
 		return nil
 	}
@@ -51,12 +55,16 @@ func (a *validateCustomResource) Validate(uncastAttributes admission.Attributes)
 	case admission.Create:
 		// creating subresources isn't something we understand, but we can be pretty sure we don't need to validate it
 		if len(attributes.GetSubresource()) > 0 {
+			glog.Infof("DEBUG: ADMISSION: got subresource?: %v", attributes.GetSubresource())
 			return nil
 		}
+		glog.Infof("DEBUG: ADMISSION: validating: %v", attributes.GetObject().GetObjectKind())
 		errors := validator.ValidateCreate(attributes.GetObject())
 		if len(errors) == 0 {
+			glog.Infof("DEBUG: ADMISSION: validating: %v - no errors", attributes.GetObject().GetObjectKind())
 			return nil
 		}
+		glog.Infof("DEBUG: ADMISSION: validating: %v - errors!", attributes.GetObject().GetObjectKind(), errors)
 		return apierrors.NewInvalid(attributes.GetKind().GroupKind(), attributes.GetName(), errors)
 
 	case admission.Update:
@@ -86,10 +94,12 @@ func (a *validateCustomResource) Validate(uncastAttributes admission.Attributes)
 
 func (a *validateCustomResource) shouldIgnore(attributes admission.Attributes) bool {
 	if !a.resources[attributes.GetResource().GroupResource()] {
+		glog.Infof("DEBUG: ADMISSION: resource: %v", attributes.GetResource().GroupResource())
 		return true
 	}
 	// if a subresource is specified and it isn't status, skip it
 	if len(attributes.GetSubresource()) > 0 && attributes.GetSubresource() != "status" {
+		glog.Infof("DEBUG: ADMISSION: is subresource: %q", attributes.GetSubresource())
 		return true
 	}
 

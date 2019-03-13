@@ -15,14 +15,14 @@ import (
 	"github.com/openshift/origin/pkg/admission/customresourcevalidation"
 )
 
-const PluginName = "config.openshift.io/ValidateProject"
+const PluginName = "config.openshift.io/ValidateProjectDebug"
 
 // Register registers a plugin
 func Register(plugins *admission.Plugins) {
 	plugins.Register(PluginName, func(config io.Reader) (admission.Interface, error) {
 		return customresourcevalidation.NewValidator(
 			map[schema.GroupResource]bool{
-				configv1.Resource("projects"): true,
+				configv1.GroupVersion.WithResource("projects").GroupResource(): true,
 			},
 			map[schema.GroupVersionKind]customresourcevalidation.ObjectValidator{
 				configv1.GroupVersion.WithKind("Project"): projectV1{},
