@@ -2,6 +2,8 @@ package oauthserver
 
 import (
 	"net/http"
+
+	"github.com/openshift/origin/pkg/oauthserver"
 )
 
 type handlerWrapper interface {
@@ -10,11 +12,11 @@ type handlerWrapper interface {
 
 // handlerWrapperMux wraps all handlers before registering them in the contained mux
 type handlerWrapperMux struct {
-	mux     mux
+	mux     oauthserver.Mux
 	wrapper handlerWrapper
 }
 
-var _ = mux(&handlerWrapperMux{})
+var _ = oauthserver.Mux(&handlerWrapperMux{})
 
 func (m *handlerWrapperMux) Handle(pattern string, handler http.Handler) {
 	m.mux.Handle(pattern, m.wrapper.Wrap(handler))

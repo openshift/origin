@@ -31,6 +31,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	"github.com/openshift/origin/pkg/oauth/urls"
+	"github.com/openshift/origin/pkg/oauthserver"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/challenger/passwordchallenger"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/challenger/placeholderchallenger"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/allowanypassword"
@@ -138,7 +139,7 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler, requestContextMapper
 	)
 	server.Install(mux, urls.OpenShiftOAuthAPIPrefix)
 
-	tokenRequestEndpoints := tokenrequest.NewEndpoints(c.ExtraOAuthConfig.Options.MasterPublicURL, c.getOsinOAuthClient)
+	tokenRequestEndpoints := tokenrequest.NewTokenRequest(c.ExtraOAuthConfig.Options.MasterPublicURL, c.getOsinOAuthClient)
 	tokenRequestEndpoints.Install(mux, urls.OpenShiftOAuthAPIPrefix)
 
 	// glog.Infof("oauth server configured as: %#v", server)
@@ -178,7 +179,7 @@ func (c *OAuthServerConfig) getOsinOAuthClient() (*osincli.Client, error) {
 	return osOAuthClient, nil
 }
 
-func (c *OAuthServerConfig) possiblyWrapMux(mux mux) mux {
+func (c *OAuthServerConfig) possiblyWrapMux(mux oauthserver.Mux) oauthserver.Mux {
 	// Register directly into the given mux
 	if c.ExtraOAuthConfig.HandlerWrapper == nil {
 		return mux
@@ -269,7 +270,7 @@ func (c *OAuthServerConfig) getCSRF() csrf.CSRF {
 	return csrf.NewCookieCSRF("csrf", "/", "", secure, true)
 }
 
-func (c *OAuthServerConfig) getAuthorizeAuthenticationHandlers(mux mux, errorHandler handlers.AuthenticationErrorHandler, requestContextMapper request.RequestContextMapper) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler, error) {
+func (c *OAuthServerConfig) getAuthorizeAuthenticationHandlers(mux oauthserver.Mux, errorHandler handlers.AuthenticationErrorHandler, requestContextMapper request.RequestContextMapper) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler, error) {
 	authRequestHandler, err := c.getAuthenticationRequestHandler()
 	if err != nil {
 		return nil, nil, nil, err
@@ -284,7 +285,7 @@ func (c *OAuthServerConfig) getAuthorizeAuthenticationHandlers(mux mux, errorHan
 }
 
 // getGrantHandler returns the object that handles approving or rejecting grant requests
-func (c *OAuthServerConfig) getGrantHandler(mux mux, auth authenticator.Request, clientregistry clientregistry.Getter, authregistry oauthclient.OAuthClientAuthorizationInterface) handlers.GrantHandler {
+func (c *OAuthServerConfig) getGrantHandler(mux oauthserver.Mux, auth authenticator.Request, clientregistry clientregistry.Getter, authregistry oauthclient.OAuthClientAuthorizationInterface) handlers.GrantHandler {
 	// check that the global default strategy is something we honor
 	if !configapi.ValidGrantHandlerTypes.Has(string(c.ExtraOAuthConfig.Options.GrantConfig.Method)) {
 		glog.Fatalf("No grant handler found that matches %v.  The OAuth server cannot start!", c.ExtraOAuthConfig.Options.GrantConfig.Method)
@@ -318,7 +319,7 @@ func (c *OAuthServerConfig) getAuthenticationFinalizer() osinserver.AuthorizeHan
 	})
 }
 
-func (c *OAuthServerConfig) getAuthenticationHandler(mux mux, errorHandler handlers.AuthenticationErrorHandler, requestContextMapper request.RequestContextMapper) (handlers.AuthenticationHandler, error) {
+func (c *OAuthServerConfig) getAuthenticationHandler(mux oauthserver.Mux, errorHandler handlers.AuthenticationErrorHandler, requestContextMapper request.RequestContextMapper) (handlers.AuthenticationHandler, error) {
 	// TODO: make this ordered once we can have more than one
 	challengers := map[string]handlers.AuthenticationChallenger{}
 
