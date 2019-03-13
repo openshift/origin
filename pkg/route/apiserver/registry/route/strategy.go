@@ -113,7 +113,7 @@ func (s routeStrategy) allocateHost(ctx context.Context, route *routeapi.Route) 
 		return nil
 	}
 
-	if len(route.Spec.Host) == 0 && s.RouteAllocator != nil {
+	if len(route.Spec.Subdomain) == 0 && len(route.Spec.Host) == 0 && s.RouteAllocator != nil {
 		// TODO: this does not belong here, and should be removed
 		shard, err := s.RouteAllocator.AllocateRouterShard(route)
 		if err != nil {
@@ -184,8 +184,9 @@ func certificateChangeRequiresAuth(route, older *routeapi.Route) bool {
 
 func (s routeStrategy) validateHostUpdate(ctx context.Context, route, older *routeapi.Route) field.ErrorList {
 	hostChanged := route.Spec.Host != older.Spec.Host
+	subdomainChanged := route.Spec.Subdomain != older.Spec.Subdomain
 	certChanged := certificateChangeRequiresAuth(route, older)
-	if !hostChanged && !certChanged {
+	if !hostChanged && !certChanged && !subdomainChanged {
 		return nil
 	}
 	user, ok := apirequest.UserFrom(ctx)
@@ -209,11 +210,17 @@ func (s routeStrategy) validateHostUpdate(ctx context.Context, route, older *rou
 		),
 	)
 	if err != nil {
+		if subdomainChanged {
+			return field.ErrorList{field.InternalError(field.NewPath("spec", "subdomain"), err)}
+		}
 		return field.ErrorList{field.InternalError(field.NewPath("spec", "host"), err)}
 	}
 	if !res.Status.Allowed {
 		if hostChanged {
 			return kvalidation.ValidateImmutableField(route.Spec.Host, older.Spec.Host, field.NewPath("spec", "host"))
+		}
+		if subdomainChanged {
+			return kvalidation.ValidateImmutableField(route.Spec.Subdomain, older.Spec.Subdomain, field.NewPath("spec", "subdomain"))
 		}
 
 		// if tls is being updated without host being updated, we check if 'create' permission exists on custom-host subresource

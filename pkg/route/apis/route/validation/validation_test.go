@@ -100,6 +100,34 @@ func TestValidateRoute(t *testing.T) {
 			expectedErrors: 1,
 		},
 		{
+			name: "Valid subdomain",
+			route: &routeapi.Route{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "name",
+					Namespace: "foo",
+				},
+				Spec: routeapi.RouteSpec{
+					Subdomain: "api.ci",
+					To:        createRouteSpecTo("serviceName", "Service"),
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "Invalid DNS 952 subdomain",
+			route: &routeapi.Route{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "name",
+					Namespace: "foo",
+				},
+				Spec: routeapi.RouteSpec{
+					Subdomain: "**",
+					To:        createRouteSpecTo("serviceName", "Service"),
+				},
+			},
+			expectedErrors: 1,
+		},
+		{
 			name: "No service name",
 			route: &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{

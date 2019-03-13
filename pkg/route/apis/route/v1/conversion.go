@@ -19,6 +19,7 @@ func routeFieldSelectorKeyConversionFunc(label, value string) (internalLabel, in
 	switch label {
 	case "spec.path",
 		"spec.host",
+		"spec.subdomain",
 		"spec.to.name":
 		return label, value, nil
 	default:

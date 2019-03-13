@@ -68,6 +68,35 @@ func TestEmptyHostDefaulting(t *testing.T) {
 	}
 }
 
+func TestEmptyHostDefaultingWhenSubdomainSet(t *testing.T) {
+	ctx := apirequest.NewContext()
+	strategy := NewStrategy(testAllocator{}, &testSAR{allow: true})
+
+	hostlessCreatedRoute := &routeapi.Route{}
+	strategy.Validate(ctx, hostlessCreatedRoute)
+	if hostlessCreatedRoute.Spec.Host != "mygeneratedhost.com" {
+		t.Fatalf("Expected host to be allocated, got %s", hostlessCreatedRoute.Spec.Host)
+	}
+
+	persistedRoute := &routeapi.Route{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:       "foo",
+			Name:            "myroute",
+			UID:             types.UID("abc"),
+			ResourceVersion: "1",
+		},
+		Spec: routeapi.RouteSpec{
+			Subdomain: "myhost",
+		},
+	}
+	hostlessUpdatedRoute := persistedRoute.DeepCopy()
+	hostlessUpdatedRoute.Spec.Host = ""
+	strategy.PrepareForUpdate(ctx, hostlessUpdatedRoute, persistedRoute)
+	if hostlessUpdatedRoute.Spec.Host != "" {
+		t.Fatalf("expected empty spec.host to remain unset, got %s", hostlessUpdatedRoute.Spec.Host)
+	}
+}
+
 func TestEmptyDefaultCACertificate(t *testing.T) {
 	testCases := []struct {
 		route *routeapi.Route
@@ -114,13 +143,19 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 	ctx = apirequest.WithUser(ctx, &user.DefaultInfo{Name: "bob"})
 
 	tests := []struct {
-		name           string
-		host, oldHost  string
+		name          string
+		host, oldHost string
+
+		subdomain, oldSubdomain string
+
 		wildcardPolicy routeapi.WildcardPolicyType
 		tls, oldTLS    *routeapi.TLSConfig
-		expected       string
-		errs           int
-		allow          bool
+
+		expected          string
+		expectedSubdomain string
+
+		errs  int
+		allow bool
 	}{
 		{
 			name:     "no-host-empty-policy",
@@ -219,6 +254,24 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 			wildcardPolicy: routeapi.WildcardPolicyNone,
 			allow:          true,
 			errs:           0,
+		},
+		{
+			name:              "update-changed-subdomain-denied",
+			subdomain:         "new.host",
+			expectedSubdomain: "new.host",
+			oldSubdomain:      "original.host",
+			wildcardPolicy:    routeapi.WildcardPolicyNone,
+			allow:             false,
+			errs:              1,
+		},
+		{
+			name:              "update-changed-subdomain-allowed",
+			subdomain:         "new.host",
+			expectedSubdomain: "new.host",
+			oldSubdomain:      "original.host",
+			wildcardPolicy:    routeapi.WildcardPolicyNone,
+			allow:             true,
+			errs:              0,
 		},
 		{
 			name:           "key-unchanged",
@@ -377,30 +430,11 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		sar := &testSAR{allow: tc.allow}
-		strategy := NewStrategy(testAllocator{}, sar)
+		t.Run(tc.name, func(t *testing.T) {
+			sar := &testSAR{allow: tc.allow}
+			strategy := NewStrategy(testAllocator{}, sar)
 
-		route := &routeapi.Route{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:       "wildcard",
-				Name:            tc.name,
-				UID:             types.UID("wild"),
-				ResourceVersion: "1",
-			},
-			Spec: routeapi.RouteSpec{
-				Host:           tc.host,
-				WildcardPolicy: tc.wildcardPolicy,
-				TLS:            tc.tls,
-				To: routeapi.RouteTargetReference{
-					Name: "test",
-					Kind: "Service",
-				},
-			},
-		}
-
-		var errs field.ErrorList
-		if len(tc.oldHost) > 0 {
-			oldRoute := &routeapi.Route{
+			route := &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace:       "wildcard",
 					Name:            tc.name,
@@ -408,26 +442,51 @@ func TestHostWithWildcardPolicies(t *testing.T) {
 					ResourceVersion: "1",
 				},
 				Spec: routeapi.RouteSpec{
-					Host:           tc.oldHost,
+					Host:           tc.host,
+					Subdomain:      tc.subdomain,
 					WildcardPolicy: tc.wildcardPolicy,
-					TLS:            tc.oldTLS,
+					TLS:            tc.tls,
 					To: routeapi.RouteTargetReference{
 						Name: "test",
 						Kind: "Service",
 					},
 				},
 			}
-			errs = strategy.ValidateUpdate(ctx, route, oldRoute)
-		} else {
-			errs = strategy.Validate(ctx, route)
-		}
 
-		if route.Spec.Host != tc.expected {
-			t.Errorf("test case %s expected host %s, got %s", tc.name, tc.expected, route.Spec.Host)
-			continue
-		}
-		if len(errs) != tc.errs {
-			t.Errorf("test case %s unexpected errors: %v %#v", tc.name, errs, sar)
-		}
+			var errs field.ErrorList
+			if len(tc.oldHost) > 0 || len(tc.oldSubdomain) > 0 || tc.oldTLS != nil {
+				oldRoute := &routeapi.Route{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace:       "wildcard",
+						Name:            tc.name,
+						UID:             types.UID("wild"),
+						ResourceVersion: "1",
+					},
+					Spec: routeapi.RouteSpec{
+						Host:           tc.oldHost,
+						Subdomain:      tc.oldSubdomain,
+						WildcardPolicy: tc.wildcardPolicy,
+						TLS:            tc.oldTLS,
+						To: routeapi.RouteTargetReference{
+							Name: "test",
+							Kind: "Service",
+						},
+					},
+				}
+				errs = strategy.ValidateUpdate(ctx, route, oldRoute)
+			} else {
+				errs = strategy.Validate(ctx, route)
+			}
+
+			if route.Spec.Host != tc.expected {
+				t.Fatalf("expected host %s, got %s", tc.expected, route.Spec.Host)
+			}
+			if route.Spec.Subdomain != tc.expectedSubdomain {
+				t.Fatalf("expected subdomain %s, got %s", tc.expectedSubdomain, route.Spec.Subdomain)
+			}
+			if len(errs) != tc.errs {
+				t.Fatalf("unexpected errors: %v %#v", errs, sar)
+			}
+		})
 	}
 }

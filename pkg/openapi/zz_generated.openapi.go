@@ -27027,9 +27027,16 @@ func schema_openshift_api_route_v1_RouteSpec(ref common.ReferenceCallback) commo
 							Format:      "",
 						},
 					},
+					"subdomain": {
+						SchemaProps: spec.SchemaProps{
+							Description: "subdomain is a DNS subdomain that is requested within the ingress controller's domain (as a subdomain). If host is set this field is ignored. An ingress controller may choose to ignore this suggested name, in which case the controller will report the assigned name in the status.ingress array or refuse to admit the route. If this value is set and the server does not support this field host will be populated automatically. Otherwise host is left empty. The field may have multiple parts separated by a dot, but not all ingress controllers may honor the request. This field may not be changed after creation except by a user with the update routes/custom-host permission.\n\nExample: subdomain `frontend` automatically receives the router subdomain `apps.mycluster.com` to have a full hostname `frontend.apps.mycluster.com`.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"path": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Path that the router watches for, to route traffic for to the service. Optional",
+							Description: "path that the router watches for, to route traffic for to the service. Optional",
 							Type:        []string{"string"},
 							Format:      "",
 						},
