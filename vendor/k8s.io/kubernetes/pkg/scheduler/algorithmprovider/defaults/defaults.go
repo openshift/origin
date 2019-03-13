@@ -76,6 +76,13 @@ func init() {
 	factory.RegisterFitPredicate(predicates.HostNamePred, predicates.PodFitsHost)
 	// Fit is determined by node selector query.
 	factory.RegisterFitPredicate(predicates.MatchNodeSelectorPred, predicates.PodMatchNodeSelector)
+	// Fit is determined by whether or not there would be too many Cinder Disk volumes attached to the node
+	factory.RegisterFitPredicateFactory(
+		predicates.MaxCinderVolumeCountPred,
+		func(args factory.PluginFactoryArgs) algorithm.FitPredicate {
+			return predicates.NewMaxPDVolumeCountPredicate(predicates.CinderVolumeFilterType, args.PVInfo, args.PVCInfo)
+		},
+	)
 
 	// ServiceSpreadingPriority is a priority config factory that spreads pods by minimizing
 	// the number of pods (belonging to the same service) on the same node.

@@ -85,6 +85,8 @@ const (
 	MaxGCEPDVolumeCountPred = "MaxGCEPDVolumeCount"
 	// MaxAzureDiskVolumeCountPred defines the name of predicate MaxAzureDiskVolumeCount.
 	MaxAzureDiskVolumeCountPred = "MaxAzureDiskVolumeCount"
+	// MaxCinderVolumeCountPred defines the name of predicate MaxCinderDiskVolumeCount.
+	MaxCinderVolumeCountPred = "MaxCinderVolumeCount"
 	// NoVolumeZoneConflictPred defines the name of predicate NoVolumeZoneConflict.
 	NoVolumeZoneConflictPred = "NoVolumeZoneConflict"
 	// CheckNodeMemoryPressurePred defines the name of predicate CheckNodeMemoryPressure.
@@ -117,6 +119,8 @@ const (
 	GCEPDVolumeFilterType = "GCE"
 	// AzureDiskVolumeFilterType defines the filter name for AzureDiskVolumeFilter.
 	AzureDiskVolumeFilterType = "AzureDisk"
+	// CinderVolumeFilterType defines the filter name for CinderVolumeFilter.
+	CinderVolumeFilterType = "Cinder"
 )
 
 // IMPORTANT NOTE for predicate developers:
@@ -138,7 +142,7 @@ var (
 		MatchNodeSelectorPred, PodFitsResourcesPred, NoDiskConflictPred,
 		PodToleratesNodeTaintsPred, PodToleratesNodeNoExecuteTaintsPred, CheckNodeLabelPresencePred,
 		CheckServiceAffinityPred, MaxEBSVolumeCountPred, MaxGCEPDVolumeCountPred,
-		MaxAzureDiskVolumeCountPred, CheckVolumeBindingPred, NoVolumeZoneConflictPred,
+		MaxAzureDiskVolumeCountPred, MaxCinderVolumeCountPred, CheckVolumeBindingPred, NoVolumeZoneConflictPred,
 		CheckNodeMemoryPressurePred, CheckNodePIDPressurePred, CheckNodeDiskPressurePred, MatchInterPodAffinityPred}
 )
 
@@ -333,6 +337,9 @@ func NewMaxPDVolumeCountPredicate(
 	case AzureDiskVolumeFilterType:
 		filter = AzureDiskVolumeFilter
 		volumeLimitKey = v1.ResourceName(volumeutil.AzureVolumeLimitKey)
+	case CinderVolumeFilterType:
+		filter = CinderVolumeFilter
+		volumeLimitKey = v1.ResourceName(volumeutil.CinderVolumeLimitKey)
 	default:
 		glog.Fatalf("Wrong filterName, Only Support %v %v %v ", EBSVolumeFilterType,
 			GCEPDVolumeFilterType, AzureDiskVolumeFilterType)
@@ -371,6 +378,8 @@ func getMaxVolumeFunc(filterName string) func(node *v1.Node) int {
 			return DefaultMaxGCEPDVolumes
 		case AzureDiskVolumeFilterType:
 			return DefaultMaxAzureDiskVolumes
+		case CinderVolumeFilterType:
+			return volumeutil.DefaultMaxCinderVolumes
 		default:
 			return -1
 		}
@@ -554,6 +563,24 @@ var AzureDiskVolumeFilter = VolumeFilter{
 	FilterPersistentVolume: func(pv *v1.PersistentVolume) (string, bool) {
 		if pv.Spec.AzureDisk != nil {
 			return pv.Spec.AzureDisk.DiskName, true
+		}
+		return "", false
+	},
+}
+
+// CinderVolumeFilter is a VolumeFilter for filtering Cinder Volumes
+// It will be deprecated once Openstack cloudprovider has been removed from in-tree.
+var CinderVolumeFilter = VolumeFilter{
+	FilterVolume: func(vol *v1.Volume) (string, bool) {
+		if vol.Cinder != nil {
+			return vol.Cinder.VolumeID, true
+		}
+		return "", false
+	},
+
+	FilterPersistentVolume: func(pv *v1.PersistentVolume) (string, bool) {
+		if pv.Spec.Cinder != nil {
+			return pv.Spec.Cinder.VolumeID, true
 		}
 		return "", false
 	},
