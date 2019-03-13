@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"strings"
 
 	"github.com/golang/glog"
 
@@ -98,13 +97,8 @@ func NewGrant(csrf csrf.CSRF, auth authenticator.Request, render FormRenderer, c
 	}
 }
 
-// Install registers the grant handler into a mux. It is expected that the
-// provided prefix will serve all operations. Path MUST NOT end in a slash.
-func (l *Grant) Install(mux oauthserver.Mux, paths ...string) {
-	for _, path := range paths {
-		path = strings.TrimRight(path, "/")
-		mux.HandleFunc(path, l.ServeHTTP)
-	}
+func (l *Grant) Install(mux oauthserver.Mux, prefix string) {
+	mux.Handle(prefix, l)
 }
 
 func (l *Grant) ServeHTTP(w http.ResponseWriter, req *http.Request) {
