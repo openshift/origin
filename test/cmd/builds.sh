@@ -92,9 +92,13 @@ os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "$
 os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "Webhook GitHub"
 os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "${url}/apis/build.openshift.io/v1/namespaces/${project}/buildconfigs/ruby-sample-build/webhooks/<secret>/generic"
 os::cmd::expect_success_and_text 'oc describe buildConfigs ruby-sample-build' "Webhook Generic"
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-sample-build --from-gitlab' "triggers updated"
+os::cmd::expect_success_and_text 'oc set triggers bc/ruby-sample-build --from-bitbucket' "triggers updated"
 os::cmd::expect_success 'oc start-build --list-webhooks=all ruby-sample-build'
 os::cmd::expect_success_and_text 'oc start-build --list-webhooks=all bc/ruby-sample-build' 'generic'
 os::cmd::expect_success_and_text 'oc start-build --list-webhooks=all ruby-sample-build' 'github'
+os::cmd::expect_success_and_text 'oc start-build --list-webhooks=all ruby-sample-build' 'gitlab'
+os::cmd::expect_success_and_text 'oc start-build --list-webhooks=all ruby-sample-build' 'bitbucket'
 os::cmd::expect_success_and_text 'oc start-build --list-webhooks=github ruby-sample-build' '<secret>'
 os::cmd::expect_failure 'oc start-build --list-webhooks=blah'
 hook=$(oc start-build --list-webhooks='generic' ruby-sample-build | head -n 1)
@@ -123,9 +127,9 @@ started="$(basename $(oc start-build -o=name ruby-sample-build-invalidtag))"
 os::cmd::expect_success_and_text "oc describe build ${started}" 'centos/ruby-22-centos7$'
 frombuild="$(basename $(oc start-build -o=name --from-build="${started}"))"
 os::cmd::expect_success_and_text "oc describe build ${frombuild}" 'centos/ruby-22-centos7$'
-os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-dir=. --from-build=${started}" "Cannot use '--from-build' flag with binary builds"
-os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-file=. --from-build=${started}" "Cannot use '--from-build' flag with binary builds"
-os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-repo=. --from-build=${started}" "Cannot use '--from-build' flag with binary builds"
+os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-dir=. --from-build=${started}" "cannot use '--from-build' flag with binary builds"
+os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-file=. --from-build=${started}" "cannot use '--from-build' flag with binary builds"
+os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-repo=. --from-build=${started}" "cannot use '--from-build' flag with binary builds"
 # --incremental flag should override Spec.Strategy.SourceStrategy.Incremental
 os::cmd::expect_success 'oc create -f test/extended/testdata/builds/test-s2i-build.json'
 build_name="$(oc start-build -o=name test)"
