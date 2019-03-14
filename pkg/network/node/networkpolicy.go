@@ -121,15 +121,6 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 	np.lock.Lock()
 	defer np.lock.Unlock()
 
-	pods, err := np.node.GetLocalPods(metav1.NamespaceAll)
-	if err != nil {
-		return err
-	}
-	inUseNamespaces := sets.NewString()
-	for _, pod := range pods {
-		inUseNamespaces.Insert(pod.Namespace)
-	}
-
 	namespaces, err := np.node.kClient.Core().Namespaces().List(metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -141,7 +132,7 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 			np.namespaces[vnid] = &npNamespace{
 				name:     ns.Name,
 				vnid:     vnid,
-				inUse:    inUseNamespaces.Has(ns.Name),
+				inUse:    false,
 				policies: make(map[ktypes.UID]*npPolicy),
 			}
 		}
@@ -195,15 +186,7 @@ func (np *networkPolicyPlugin) DeleteNetNamespace(netns *networkapi.NetNamespace
 	np.lock.Lock()
 	defer np.lock.Unlock()
 
-	if npns, exists := np.namespaces[netns.NetID]; exists {
-		if npns.inUse {
-			npns.inUse = false
-			// We call syncNamespaceFlows() not syncNamespace() because it
-			// needs to happen before we forget about the namespace.
-			np.syncNamespaceFlows(npns)
-		}
-		delete(np.namespaces, netns.NetID)
-	}
+	delete(np.namespaces, netns.NetID)
 }
 
 func (np *networkPolicyPlugin) GetVNID(namespace string) (uint32, error) {
