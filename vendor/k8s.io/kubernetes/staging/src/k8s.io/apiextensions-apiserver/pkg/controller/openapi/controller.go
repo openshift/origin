@@ -26,6 +26,7 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
@@ -90,6 +91,30 @@ func (c *Controller) Run(staticSpec *spec.Swagger, openAPIService *handler.OpenA
 		return
 	}
 
+	// create initial spec to avoid merging once per CRD on startup
+	crds, err := c.crdLister.List(labels.Everything())
+	if err != nil && !errors.IsNotFound(err) {
+		utilruntime.HandleError(fmt.Errorf("failed to initially list all CRDs: %v", err))
+		return
+	}
+	for _, crd := range crds {
+		if !apiextensions.IsCRDConditionTrue(crd, apiextensions.Established) {
+			continue
+		}
+		newSpecs, changed, err := buildVersionSpecs(crd, nil)
+		if err != nil {
+			glog.Warningf("failed to build OpenAPI spec of CRD %s: %v", crd.Name, err)
+		}
+		if !changed {
+			continue
+		}
+		c.crdSpecs[crd.Name] = newSpecs
+	}
+	if err := c.updateSpec(); err != nil {
+		utilruntime.HandleError(fmt.Errorf("failed to initially create OpenAPI spec for CRDs: %v", err))
+		return
+	}
+
 	// only start one worker thread since its a slow moving API
 	go wait.Until(c.runWorker, time.Second, stopCh)
 
@@ -148,6 +173,20 @@ func (c *Controller) sync(name string) error {
 
 	// compute CRD spec and see whether it changed
 	oldSpecs := c.crdSpecs[crd.Name]
+	newSpecs, changed, err := buildVersionSpecs(crd, oldSpecs)
+	if err != nil {
+		return err
+	}
+	if !changed {
+		return nil
+	}
+
+	// update specs of this CRD
+	c.crdSpecs[crd.Name] = newSpecs
+	return c.updateSpec()
+}
+
+func buildVersionSpecs(crd *apiextensions.CustomResourceDefinition, oldSpecs map[string]*spec.Swagger) (map[string]*spec.Swagger, bool, error) {
 	newSpecs := map[string]*spec.Swagger{}
 	anyChanged := false
 	for _, v := range crd.Spec.Versions {
@@ -156,7 +195,7 @@ func (c *Controller) sync(name string) error {
 		}
 		spec, err := BuildSwagger(crd, v.Name)
 		if err != nil {
-			return err
+			return nil, false, err
 		}
 		newSpecs[v.Name] = spec
 		if oldSpecs[v.Name] != nil && !reflect.DeepEqual(oldSpecs[v.Name], spec) {
@@ -164,12 +203,10 @@ func (c *Controller) sync(name string) error {
 		}
 	}
 	if !anyChanged && len(oldSpecs) == len(newSpecs) {
-		return nil
+		return newSpecs, false, nil
 	}
 
-	// update specs of this CRD
-	c.crdSpecs[crd.Name] = newSpecs
-	return c.updateSpec()
+	return newSpecs, true, nil
 }
 
 func (c *Controller) updateSpec() error {
