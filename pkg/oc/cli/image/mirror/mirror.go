@@ -8,13 +8,13 @@ import (
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/manifestlist"
+	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/client"
 
 	units "github.com/docker/go-units"
 	"github.com/golang/glog"
-	digest "github.com/opencontainers/go-digest"
 	godigest "github.com/opencontainers/go-digest"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/rest"
@@ -472,6 +472,7 @@ func (o *MirrorImageOptions) plan() (*plan, error) {
 								for _, srcManifest := range srcManifests {
 									switch srcManifest.(type) {
 									case *schema2.DeserializedManifest:
+									case *schema1.SignedManifest:
 									case *manifestlist.DeserializedManifestList:
 										// we do not need to upload layers in a manifestlist
 										continue
@@ -623,7 +624,7 @@ func copyBlob(ctx context.Context, plan *workPlan, c *repositoryBlobCopy, blob d
 func copyManifestToTags(
 	ctx context.Context,
 	ref reference.Named,
-	srcDigest digest.Digest,
+	srcDigest godigest.Digest,
 	tags []string,
 	plan *repositoryManifestPlan,
 	out io.Writer,
@@ -656,7 +657,7 @@ func copyManifestToTags(
 func copyManifest(
 	ctx context.Context,
 	ref reference.Named,
-	srcDigest digest.Digest,
+	srcDigest godigest.Digest,
 	plan *repositoryManifestPlan,
 	out io.Writer,
 ) error {
