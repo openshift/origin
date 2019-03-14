@@ -95,6 +95,7 @@ func NewDefaultOffPluginsFunc(kubeDefaultOffAdmission sets.String) func() sets.S
 		kubeOff := sets.NewString(kubeDefaultOffAdmission.UnsortedList()...)
 		kubeOff.Delete(additionalDefaultOnPlugins.List()...)
 		kubeOff.Delete(openshiftAdmissionPluginsForKube...)
+		kubeOff.Delete(customresourcevalidationregistration.AllCustomResourceValidators...)
 		return kubeOff
 	}
 }
