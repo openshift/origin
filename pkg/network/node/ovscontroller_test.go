@@ -819,9 +819,10 @@ func TestAlreadySetUp(t *testing.T) {
 	}
 }
 
-func TestSyncVNIDRules(t *testing.T) {
+func TestFindUnusedVNIDs(t *testing.T) {
 	testcases := []struct {
 		flows  []string
+		policy []int
 		unused []int
 	}{
 		{
@@ -848,6 +849,7 @@ func TestSyncVNIDRules(t *testing.T) {
 				"table=80,priority=100,reg0=0xcb81e9,reg1=0xcb81e9 actions=output:NXM_NX_REG2[]",
 				"table=80,priority=0 actions=drop",
 			},
+			policy: []int{0x0, 0x55fac, 0xcb81e9},
 			unused: []int{},
 		},
 		{
@@ -871,6 +873,7 @@ func TestSyncVNIDRules(t *testing.T) {
 				"table=80,priority=100,reg0=0xcb81e9,reg1=0xcb81e9 actions=output:NXM_NX_REG2[]",
 				"table=80,priority=0 actions=drop",
 			},
+			policy: []int{0x0, 0x55fac, 0xcb81e9},
 			unused: []int{},
 		},
 		{
@@ -894,6 +897,7 @@ func TestSyncVNIDRules(t *testing.T) {
 				"table=80,priority=100,reg0=0xcb81e9,reg1=0xcb81e9 actions=output:NXM_NX_REG2[]",
 				"table=80,priority=0 actions=drop",
 			},
+			policy: []int{0x0, 0x55fac, 0xcb81e9},
 			unused: []int{0xcb81e9},
 		},
 		{
@@ -913,7 +917,31 @@ func TestSyncVNIDRules(t *testing.T) {
 				"table=80,priority=100,reg0=0xcb81e9,reg1=0xcb81e9 actions=output:NXM_NX_REG2[]",
 				"table=80,priority=0 actions=drop",
 			},
+			policy: []int{0x0, 0x55fac, 0xcb81e9},
 			unused: []int{0x55fac, 0xcb81e9},
+		},
+		{
+			/* Invalid state; we lost the 0x55fac policy rules somehow. But we should still notice that 0xcb81e9 is unused. */
+			flows: []string{
+				"table=60,priority=200,reg0=0 actions=output:2",
+				"table=60,priority=100,ip,nw_dst=172.30.0.1,nw_frag=later actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,ip,nw_dst=172.30.76.192,nw_frag=later actions=load:0x55fac->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.0.1,tp_dst=443 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,udp,nw_dst=172.30.0.1,tp_dst=53 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.0.1,tp_dst=53 actions=load:0->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.76.192,tp_dst=5454 actions=load:0x55fac->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=100,tcp,nw_dst=172.30.76.192,tp_dst=5455 actions=load:0x55fac->NXM_NX_REG1[],load:0x2->NXM_NX_REG2[],goto_table:80",
+				"table=60,priority=0 actions=drop",
+				"table=70,priority=100,ip,nw_dst=10.129.0.2 actions=load:0x55fac->NXM_NX_REG1[],load:0x3->NXM_NX_REG2[],goto_table:80",
+				"table=70,priority=0 actions=drop",
+				"table=80,priority=300,ip,nw_src=10.129.0.1 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=200,reg0=0 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=200,reg1=0 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=100,reg0=0xcb81e9,reg1=0xcb81e9 actions=output:NXM_NX_REG2[]",
+				"table=80,priority=0 actions=drop",
+			},
+			policy: []int{0x0, 0xcb81e9},
+			unused: []int{0xcb81e9},
 		},
 	}
 
@@ -928,10 +956,14 @@ func TestSyncVNIDRules(t *testing.T) {
 			t.Fatalf("(%d) unexpected error from AddFlow: %v", i, err)
 		}
 
+		policy := oc.FindPolicyVNIDs()
+		if !reflect.DeepEqual(policy.List(), tc.policy) {
+			t.Fatalf("(%d) wrong result for policy, expected %v, got %v", i, tc.policy, policy.List())
+		}
 		unused := oc.FindUnusedVNIDs()
 		sort.Ints(unused)
 		if !reflect.DeepEqual(unused, tc.unused) {
-			t.Fatalf("(%d) wrong result, expected %v, got %v", i, tc.unused, unused)
+			t.Fatalf("(%d) wrong result for unused, expected %v, got %v", i, tc.unused, unused)
 		}
 	}
 }
