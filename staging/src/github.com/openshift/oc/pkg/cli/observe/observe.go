@@ -97,7 +97,7 @@ var (
 
 		    $ cat set_owner.sh
 		    #!/bin/sh
-		    if [[ "$(%[1]s get namespace "$1" --template='{{ .metadata.annotations.owner }}')" == "" ]]; then
+		    if [[ "$(%[1]s get namespace "$1" -o 'jsonpath={ .metadata.annotations.owner }')" == "" ]]; then
 		      %[1]s annotate namespace "$1" owner=bob
 		    fi
 
