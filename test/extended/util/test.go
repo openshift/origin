@@ -18,7 +18,8 @@ import (
 	"github.com/onsi/gomega"
 
 	kapiv1 "k8s.io/api/core/v1"
-	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	rbacv1 "k8s.io/api/rbac/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -31,7 +32,6 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
-	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	"github.com/openshift/origin/pkg/version"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -265,28 +265,25 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 		if err != nil {
 			return ns, err
 		}
-		securityClient, err := securityclient.NewForConfig(clientConfig)
+
+		rbacClient, err := rbacv1client.NewForConfig(clientConfig)
 		if err != nil {
 			return ns, err
 		}
 		e2e.Logf("About to run a Kube e2e test, ensuring namespace is privileged")
 		// add the "privileged" scc to ensure pods that explicitly
 		// request extra capabilities are not rejected
-		addE2EServiceAccountsToSCC(securityClient, []kapiv1.Namespace{*ns}, "privileged")
+		addE2EServiceAccountsToSCC(rbacClient, []kapiv1.Namespace{*ns}, "privileged")
 		// add the "anyuid" scc to ensure pods that don't specify a
 		// uid don't get forced into a range (mimics upstream
 		// behavior)
-		addE2EServiceAccountsToSCC(securityClient, []kapiv1.Namespace{*ns}, "anyuid")
+		addE2EServiceAccountsToSCC(rbacClient, []kapiv1.Namespace{*ns}, "anyuid")
 		// add the "hostmount-anyuid" scc to ensure pods using hostPath
 		// can execute tests
-		addE2EServiceAccountsToSCC(securityClient, []kapiv1.Namespace{*ns}, "hostmount-anyuid")
+		addE2EServiceAccountsToSCC(rbacClient, []kapiv1.Namespace{*ns}, "hostmount-anyuid")
 
 		// The intra-pod test requires that the service account have
 		// permission to retrieve service endpoints.
-		rbacClient, err := rbacv1client.NewForConfig(clientConfig)
-		if err != nil {
-			return ns, err
-		}
 		addRoleToE2EServiceAccounts(rbacClient, []kapiv1.Namespace{*ns}, bootstrappolicy.ViewRoleName)
 
 		// in practice too many kube tests ignore scheduling constraints
@@ -496,25 +493,47 @@ func allowAllNodeScheduling(c kclientset.Interface, namespace string) {
 	}
 }
 
-func addE2EServiceAccountsToSCC(securityClient securityclient.Interface, namespaces []kapiv1.Namespace, sccName string) {
+func addE2EServiceAccountsToSCC(rbacClient rbacv1client.RbacV1Interface, namespaces []kapiv1.Namespace, sccName string) {
 	// Because updates can race, we need to set the backoff retries to be > than the number of possible
 	// parallel jobs starting at once. Set very high to allow future high parallelism.
 	err := retry.RetryOnConflict(longRetry, func() error {
-		scc, err := securityClient.Security().SecurityContextConstraints().Get(sccName, metav1.GetOptions{})
-		if err != nil {
-			if apierrs.IsNotFound(err) {
-				return nil
-			}
-			return err
-		}
-
 		for _, ns := range namespaces {
-			if strings.HasPrefix(ns.Name, "e2e-") {
-				scc.Groups = append(scc.Groups, fmt.Sprintf("system:serviceaccounts:%s", ns.Name))
+			if strings.HasPrefix(ns.Name, "e2e-") && ns.Status.Phase != kapiv1.NamespaceTerminating {
+				// first, create the role allowing the use of the SCC
+				roleName := fmt.Sprintf("%s-user", sccName)
+				_, err := rbacClient.ClusterRoles().Get(roleName, metav1.GetOptions{})
+				if kerrors.IsNotFound(err) {
+					_, err := rbacClient.ClusterRoles().Create(&rbacv1.ClusterRole{
+						ObjectMeta: metav1.ObjectMeta{Name: roleName},
+						Rules: []rbacv1.PolicyRule{
+							{
+								APIGroups:     []string{"security.openshift.io"},
+								Resources:     []string{"securitycontextconstraints"},
+								ResourceNames: []string{sccName},
+								Verbs:         []string{"use"},
+							},
+						},
+					})
+
+					if err != nil {
+						e2e.Logf("Warning: Failed to create a role to use SCC '%s': %v", sccName, err)
+					}
+				}
+
+				// create a rolebinding to that role
+				addRole := &policy.RoleModificationOptions{
+					RoleBindingNamespace: ns.Name,
+					RoleKind:             "ClusterRole",
+					RoleName:             roleName,
+					RbacClient:           rbacClient,
+					Groups:               []string{fmt.Sprintf("system:serviceaccounts:%s", ns.Name)},
+					PrintFlags:           genericclioptions.NewPrintFlags(""),
+					ToPrinter:            func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
+				}
+				if err := addRole.AddRole(); err != nil {
+					e2e.Logf("Warning: Failed to add role to e2e service account: %v", err)
+				}
 			}
-		}
-		if _, err := securityClient.Security().SecurityContextConstraints().Update(scc); err != nil {
-			return err
 		}
 		return nil
 	})

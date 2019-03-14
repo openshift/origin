@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -38,7 +39,6 @@ func saSCC() *securityv1.SecurityContextConstraints {
 		SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
 			Type: securityv1.SupplementalGroupsStrategyMustRunAs,
 		},
-		Groups: []string{"system:serviceaccounts"},
 	}
 }
 
@@ -119,8 +119,8 @@ func TestAllowed(t *testing.T) {
 						SchedulerName:      coreapi.DefaultSchedulerName,
 					},
 				},
-				User:   "foo",
-				Groups: []string{"bar", "baz"},
+				User:   "foo",                  // ignored by scc admission
+				Groups: []string{"bar", "baz"}, // ignored by scc admission
 			},
 		}
 		if testcase.patch != nil {
@@ -137,7 +137,7 @@ func TestAllowed(t *testing.T) {
 		}
 
 		csf := fake.NewSimpleClientset(namespace, serviceAccount)
-		storage := REST{oscc.NewDefaultSCCMatcher(sccCache, &noopTestAuthorizer{}), csf}
+		storage := REST{oscc.NewDefaultSCCMatcher(sccCache, &allowUsersTestAuthorizer{users: sets.NewString(reviewRequest.Spec.User)}), csf}
 		ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
 		obj, err := storage.Create(ctx, reviewRequest, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 		if err != nil {
@@ -264,7 +264,7 @@ func TestRequests(t *testing.T) {
 			}
 		}
 		csf := fake.NewSimpleClientset(namespace, serviceAccount)
-		storage := REST{oscc.NewDefaultSCCMatcher(sccCache, &noopTestAuthorizer{}), csf}
+		storage := REST{oscc.NewDefaultSCCMatcher(sccCache, &allowUsersTestAuthorizer{}), csf}
 		ctx := apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll)
 		_, err := storage.Create(ctx, testcase.request, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 		switch {
@@ -280,8 +280,12 @@ func TestRequests(t *testing.T) {
 
 }
 
-type noopTestAuthorizer struct{}
+type allowUsersTestAuthorizer struct{ users sets.String }
 
-func (s *noopTestAuthorizer) Authorize(a authorizer.Attributes) (authorizer.Decision, string, error) {
+func (s *allowUsersTestAuthorizer) Authorize(a authorizer.Attributes) (authorizer.Decision, string, error) {
+	if s.users.Has(a.GetUser().GetName()) {
+		return authorizer.DecisionAllow, "", nil
+	}
+
 	return authorizer.DecisionNoOpinion, "", nil
 }

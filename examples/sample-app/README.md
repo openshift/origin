@@ -322,8 +322,8 @@ the ip address shown below with the correct one for your environment.
 
     Give the following permissions to your router service account. It needs to be able to use host network and host ports, and it also needs to be able to list endpoints in all namespaces, that's why you need to grant it the `system:router` cluster role.
 
-
-        $ oc adm policy add-scc-to-user hostnetwork -z router
+        $ oc create clusterrole hostnetworkSCCUser --verb=use --resource=securitycontextcontraints.security.openshift.io --resourcename=hostnetwork'
+        $ oc adm policy add-cluster-role-to-user hostnetworkSCCUser -z router
         $ oc adm policy add-cluster-role-to-user system:router system:serviceaccount:default:router
 
 

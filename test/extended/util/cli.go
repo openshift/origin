@@ -19,12 +19,16 @@ import (
 
 	authorizationapiv1 "k8s.io/api/authorization/v1"
 	kapiv1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/storage/names"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	"k8s.io/client-go/discovery/cached"
 	kclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
@@ -45,6 +49,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageclientset "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	"github.com/openshift/origin/pkg/oc/lib/kubeconfig"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
@@ -262,6 +267,44 @@ func (c *CLI) SetupProject() {
 	}
 
 	e2e.Logf("Project %q has been fully provisioned.", newNamespace)
+}
+
+func (c *CLI) AllowUserUseSCC(namespace, username, sccName string) error {
+	rbacClient := c.AdminKubeClient().RbacV1()
+
+	roleName := fmt.Sprintf("%s-users", sccName)
+	_, err := rbacClient.ClusterRoles().Get(roleName, metav1.GetOptions{})
+	if kerrors.IsNotFound(err) {
+		_, err := rbacClient.ClusterRoles().Create(&rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{Name: roleName},
+			Rules: []rbacv1.PolicyRule{
+				{
+					APIGroups:     []string{"security.openshift.io"},
+					Resources:     []string{"securitycontextconstraints"},
+					ResourceNames: []string{sccName},
+					Verbs:         []string{"use"},
+				},
+			},
+		})
+
+		if err != nil {
+			return err
+		}
+	}
+
+	addRole := &policy.RoleModificationOptions{
+		RoleBindingNamespace: namespace,
+		RoleKind:             "ClusterRole",
+		RoleName:             roleName,
+		RbacClient:           rbacClient,
+		Users:                []string{username},
+		PrintFlags:           genericclioptions.NewPrintFlags(""),
+		ToPrinter:            func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
+	}
+	if err := addRole.AddRole(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // SetupProject creates a new project and assign a random user to the project.

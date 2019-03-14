@@ -409,6 +409,17 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
+				Name: BasicSCCUserRoleName,
+				Annotations: map[string]string{
+					oapi.OpenShiftDescription: "A user that can use the restricted SCC.",
+				},
+			},
+			Rules: []rbacv1.PolicyRule{
+				rbacv1helpers.NewRule("use").Groups(securityGroup).Resources("securitycontextconstraints").Names("restricted").RuleOrDie(),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: SelfAccessReviewerRoleName,
 			},
 			Rules: []rbacv1.PolicyRule{
@@ -766,6 +777,9 @@ func GetOpenshiftBootstrapClusterRoleBindings() []rbacv1.ClusterRoleBinding {
 			Groups(ClusterReaderGroup).
 			BindingOrDie(),
 		newOriginClusterBinding(BasicUserRoleBindingName, BasicUserRoleName).
+			Groups(AuthenticatedGroup).
+			BindingOrDie(),
+		rbacv1helpers.NewClusterBinding(BasicSCCUserRoleName).
 			Groups(AuthenticatedGroup).
 			BindingOrDie(),
 		newOriginClusterBinding(SelfAccessReviewerRoleBindingName, SelfAccessReviewerRoleName).

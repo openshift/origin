@@ -3,7 +3,6 @@ package bootstrappolicy
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	securityapiv1 "github.com/openshift/api/security/v1"
@@ -56,8 +55,8 @@ func init() {
 
 // GetBootstrapSecurityContextConstraints returns the slice of default SecurityContextConstraints
 // for system bootstrapping.  This method takes additional users and groups that should be added
-// to the strategies.  Use GetBoostrapSCCAccess to produce the default set of mappings.
-func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string][]string, sccNameToAdditionalUsers map[string][]string) []*securityapi.SecurityContextConstraints {
+// to the strategies.
+func GetBootstrapSecurityContextConstraints() []*securityapi.SecurityContextConstraints {
 	// define priorities here and reference them below so it is easy to see, at a glance
 	// what we're setting
 	var (
@@ -296,30 +295,6 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 			panic(err)
 		}
 		constraints[i] = constraint
-
-		if usersToAdd, ok := sccNameToAdditionalUsers[constraint.Name]; ok {
-			constraints[i].Users = append(constraints[i].Users, usersToAdd...)
-		}
-		if groupsToAdd, ok := sccNameToAdditionalGroups[constraint.Name]; ok {
-			constraints[i].Groups = append(constraints[i].Groups, groupsToAdd...)
-		}
 	}
 	return constraints
-}
-
-// GetBoostrapSCCAccess provides the default set of access that should be passed to GetBootstrapSecurityContextConstraints.
-func GetBoostrapSCCAccess(infraNamespace string) (map[string][]string, map[string][]string) {
-	groups := map[string][]string{
-		SecurityContextConstraintPrivileged: {ClusterAdminGroup, NodesGroup, MastersGroup},
-		SecurityContextConstraintsAnyUID:    {ClusterAdminGroup},
-		SecurityContextConstraintRestricted: {AuthenticatedGroup},
-	}
-
-	buildControllerUsername := serviceaccount.MakeUsername(infraNamespace, InfraBuildControllerServiceAccountName)
-	pvRecyclerControllerUsername := serviceaccount.MakeUsername(infraNamespace, InfraPersistentVolumeRecyclerControllerServiceAccountName)
-	users := map[string][]string{
-		SecurityContextConstraintPrivileged:         {SystemAdminUsername, buildControllerUsername},
-		SecurityContextConstraintHostMountAndAnyUID: {pvRecyclerControllerUsername},
-	}
-	return groups, users
 }

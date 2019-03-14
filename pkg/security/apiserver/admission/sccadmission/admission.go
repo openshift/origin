@@ -172,12 +172,10 @@ loop:
 	for _, provider := range providers {
 		// Get the SCC attributes required to decide whether the SCC applies for current user/SA
 		sccName := provider.GetSCCName()
-		sccUsers := provider.GetSCCUsers()
-		sccGroups := provider.GetSCCGroups()
 
 		// continue to the next provider if the current SCC one does not apply to either the user or the serviceaccount
-		if !scc.ConstraintAppliesTo(sccName, sccUsers, sccGroups, userInfo, a.GetNamespace(), c.authorizer) &&
-			!(saUserInfo != nil && scc.ConstraintAppliesTo(sccName, sccUsers, sccGroups, saUserInfo, a.GetNamespace(), c.authorizer)) {
+		if !scc.ConstraintAppliesTo(sccName, userInfo, a.GetNamespace(), c.authorizer) &&
+			!(saUserInfo != nil && scc.ConstraintAppliesTo(sccName, saUserInfo, a.GetNamespace(), c.authorizer)) {
 			continue
 		}
 

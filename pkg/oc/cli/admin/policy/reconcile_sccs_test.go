@@ -358,6 +358,8 @@ func TestComputeMetadata(t *testing.T) {
 }
 
 func TestComputeUnioningUsersAndGroups(t *testing.T) {
+	// Users and Groups fields are deprecated, make sure no needsUpdate is ever
+	// generated if either is changed by the user
 	missingGroup := goodSCC()
 	missingGroup.Groups = []string{"foo"}
 
@@ -365,57 +367,40 @@ func TestComputeUnioningUsersAndGroups(t *testing.T) {
 	missingUser.Users = []string{"foo"}
 
 	tests := map[string]struct {
-		expected       securityv1.SecurityContextConstraints
-		actual         securityv1.SecurityContextConstraints
-		expectedGroups []string
-		expectedUsers  []string
-		needsUpdate    bool
-		union          bool
+		expected    securityv1.SecurityContextConstraints
+		actual      securityv1.SecurityContextConstraints
+		needsUpdate bool
+		union       bool
 	}{
-		"missing group grants": {
-			expected:       goodSCC(),
-			actual:         missingGroup,
-			expectedGroups: append(missingGroup.Groups, goodSCC().Groups...),
-			expectedUsers:  goodSCC().Users,
-			needsUpdate:    true,
-			union:          true,
+		"missing group is ignored": {
+			expected: goodSCC(),
+			actual:   missingGroup,
+			union:    true,
 		},
-		"missing user grants": {
-			expected:       goodSCC(),
-			actual:         missingUser,
-			expectedGroups: goodSCC().Groups,
-			expectedUsers:  append(missingUser.Users, goodSCC().Users...),
-			needsUpdate:    true,
-			union:          true,
+		"missing user is ignored": {
+			expected: goodSCC(),
+			actual:   missingUser,
+			union:    true,
 		},
 		"no diff union": {
-			expected:       goodSCC(),
-			actual:         goodSCC(),
-			expectedGroups: goodSCC().Groups,
-			expectedUsers:  goodSCC().Users,
-			needsUpdate:    false,
-			union:          true,
+			expected: goodSCC(),
+			actual:   goodSCC(),
+			union:    true,
 		},
 		"non-unioning user": {
-			// non-union tc will use the values in expected to compare, no need to set here
-			expected:    goodSCC(),
-			actual:      missingUser,
-			needsUpdate: true,
-			union:       false,
+			expected: goodSCC(),
+			actual:   missingUser,
+			union:    false,
 		},
 		"non-unioning group": {
-			// non-union tc will use the values in expected to compare, no need to set here
-			expected:    goodSCC(),
-			actual:      missingGroup,
-			needsUpdate: true,
-			union:       false,
+			expected: goodSCC(),
+			actual:   missingGroup,
+			union:    false,
 		},
 		"no diff non-union": {
-			// non-union tc will use the values in expected to compare, no need to set here
-			expected:    goodSCC(),
-			actual:      goodSCC(),
-			needsUpdate: false,
-			union:       false,
+			expected: goodSCC(),
+			actual:   goodSCC(),
+			union:    false,
 		},
 	}
 
@@ -425,30 +410,19 @@ func TestComputeUnioningUsersAndGroups(t *testing.T) {
 
 		computedSCC, needsUpdate := cmd.computeUpdatedSCC(v.expected, v.actual)
 		// ensure we got an update
-		if needsUpdate != v.needsUpdate {
+		if needsUpdate != false {
 			t.Errorf("%s expected to need an update but did not trigger one", k)
 		}
 
-		toCompareGroups := v.expectedGroups
-		toCompareUsers := v.expectedUsers
-		// if not unioning then we should be reset to the expected groups/users
-		if !v.union {
-			toCompareGroups = v.expected.Groups
-			toCompareUsers = v.expected.Users
-		}
+		toCompareGroups := v.actual.Groups
+		toCompareUsers := v.actual.Users
+
 		// ensure that we ended up with the union we expected
 		if !reflect.DeepEqual(computedSCC.Groups, toCompareGroups) {
 			t.Errorf("%s had unexpected groups wanted: %v, got: %v", k, toCompareGroups, computedSCC.Groups)
 		}
 		if !reflect.DeepEqual(computedSCC.Users, toCompareUsers) {
 			t.Errorf("%s had unexpected users wanted: %v, got: %v", k, toCompareUsers, computedSCC.Users)
-		}
-
-		// ensure the computed scc doesn't trigger additional updates
-		if v.needsUpdate {
-			if _, doubleUpdate := cmd.computeUpdatedSCC(v.expected, *computedSCC); doubleUpdate {
-				t.Errorf("%s resulted in an SCC that needed update even after computing", k)
-			}
 		}
 	}
 }

@@ -582,9 +582,6 @@ func (c *completedConfig) startProjectAuthorizationCache(context genericapiserve
 }
 
 func (c *completedConfig) bootstrapSCC(context genericapiserver.PostStartHookContext) error {
-	ns := bootstrappolicy.DefaultOpenShiftInfraNamespace
-	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess(ns)
-
 	var securityClient securityclient.Interface
 	err := wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
 		var err error
@@ -600,7 +597,7 @@ func (c *completedConfig) bootstrapSCC(context genericapiserver.PostStartHookCon
 		return err
 	}
 
-	for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers) {
+	for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints() {
 		_, err := securityClient.Security().SecurityContextConstraints().Create(scc)
 		if kapierror.IsAlreadyExists(err) {
 			continue

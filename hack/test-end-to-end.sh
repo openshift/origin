@@ -48,7 +48,8 @@ if [[ -n "${USE_IMAGES:-}" ]]; then
 else
     os::cmd::expect_success "oc adm registry"
 fi
-os::cmd::expect_success 'oc adm policy add-scc-to-user hostnetwork -z router'
+oc::cmd::expect_success 'oc create role hostnetworkSCCUser --verb=use --resource=securitycontextcontraints.security.openshift.io --resourcename=hostnetwork'
+os::cmd::expect_success 'oc adm policy add-role-to-user hostnetworkSCCUser -z router'
 os::cmd::expect_success 'oc adm router'
 os::test::junit::declare_suite_end
 

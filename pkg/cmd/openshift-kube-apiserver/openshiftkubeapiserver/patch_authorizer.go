@@ -6,6 +6,7 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
 	authorizerunion "k8s.io/apiserver/pkg/authorization/union"
 	"k8s.io/client-go/informers"
+	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/node"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
@@ -35,7 +36,13 @@ func NewAuthorizer(versionedInformers informers.SharedInformerFactory) authorize
 		versionedInformers.Core().V1().PersistentVolumes(),
 		versionedInformers.Storage().V1beta1().VolumeAttachments(),
 	)
-	nodeAuthorizer := node.NewAuthorizer(graph, nodeidentifier.NewDefaultNodeIdentifier(), kbootstrappolicy.NodeRules())
+
+	nodePolicyRules := append(
+		kbootstrappolicy.NodeRules(),
+		// Allow the node authorizer run any pod
+		rbacv1helpers.NewRule("use").Groups("security.openshift.io").Resources("securitycontextconstraints").Names("privileged").RuleOrDie(),
+	)
+	nodeAuthorizer := node.NewAuthorizer(graph, nodeidentifier.NewDefaultNodeIdentifier(), nodePolicyRules)
 
 	openshiftAuthorizer := authorizerunion.New(
 		// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately.

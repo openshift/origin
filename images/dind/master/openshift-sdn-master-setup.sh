@@ -29,9 +29,8 @@ function openshift-sdn-setup() {
     /usr/local/bin/oc --config="${kube_config}" create serviceaccount openshift-sdn
     /usr/local/bin/oc --config="${kube_config}" adm policy add-cluster-role-to-user cluster-admin -z openshift-sdn
 
-    # rhbz#1383707: need to add openshift-sdn SA to anyuid SCC to allow pod annotation updates
+    # rhbz#1383707: openshift-sdn is a cluster admin = has access to all SCCs, wait for anyuid to appear
     os::util::wait-for-anyuid "${kube_config}"
-    /usr/local/bin/oc --config="${kube_config}" adm policy add-scc-to-user anyuid -z openshift-sdn
   fi
 
   /usr/local/bin/oc --config="${kube_config}" create namespace openshift-sdn

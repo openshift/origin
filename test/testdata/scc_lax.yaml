@@ -10,5 +10,17 @@ fsGroup:
   type: RunAsAny
 supplementalGroups:
   type: RunAsAny
-groups:
-- system:serviceaccounts
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: laxsccuser
+rules:
+- apiGroups:
+  - security.openshift.io
+  resources:
+  - securitycontextconstraints
+  resourceNames:
+  - lax
+  verbs:
+  - use

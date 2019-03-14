@@ -13,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	corev1typedclient "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -104,7 +103,7 @@ func NewCmdReconcileSCC(name, fullName string, f kcmdutil.Factory, streams gener
 	}
 
 	cmd.Flags().BoolVar(&o.Confirmed, "confirm", o.Confirmed, "If true, specify that cluster SCCs should be modified. Defaults to false, displaying what would be replaced but not actually replacing anything.")
-	cmd.Flags().BoolVar(&o.Union, "additive-only", o.Union, "If true, preserves extra users, groups, labels and annotations in the SCC as well as existing priorities.")
+	cmd.Flags().BoolVar(&o.Union, "additive-only", o.Union, "If true, preserves extra labels and annotations in the SCC as well as existing priorities.")
 	cmd.Flags().StringVar(&o.InfraNamespace, "infrastructure-namespace", o.InfraNamespace, "Name of the infrastructure namespace.")
 
 	o.PrintFlags.AddFlags(cmd)
@@ -211,8 +210,7 @@ func (o *ReconcileSCCOptions) ChangedSCCs() (
 	toUpdateSCCs := []*securityv1.SecurityContextConstraints{}
 	toCreateSCCs := []*securityv1.SecurityContextConstraints{}
 
-	groups, users := bootstrappolicy.GetBoostrapSCCAccess(o.InfraNamespace)
-	bootstrapSCCs := bootstrappolicy.GetBootstrapSecurityContextConstraints(groups, users)
+	bootstrapSCCs := bootstrappolicy.GetBootstrapSecurityContextConstraints()
 
 	for _, expectedSCC := range bootstrapSCCs {
 		expectedSCCExternal := &securityv1.SecurityContextConstraints{}
@@ -267,17 +265,8 @@ func (o *ReconcileSCCOptions) ReplaceChangedSCCs(newSCCs, changedSCCs []*securit
 func (o *ReconcileSCCOptions) computeUpdatedSCC(expected securityv1.SecurityContextConstraints, actual securityv1.SecurityContextConstraints) (*securityv1.SecurityContextConstraints, bool) {
 	needsUpdate := false
 
-	// if unioning old and new groups/users then make the expected contain all
-	// also preserve and set priorities
+	// preserve and set priorities, labels and annotations
 	if o.Union {
-		groupSet := sets.NewString(actual.Groups...)
-		groupSet.Insert(expected.Groups...)
-		expected.Groups = groupSet.List()
-
-		userSet := sets.NewString(actual.Users...)
-		userSet.Insert(expected.Users...)
-		expected.Users = userSet.List()
-
 		if actual.Priority != nil {
 			expected.Priority = actual.Priority
 		}
@@ -291,12 +280,6 @@ func (o *ReconcileSCCOptions) computeUpdatedSCC(expected securityv1.SecurityCont
 	sortVolumes(&expected)
 	sortVolumes(&actual)
 
-	// sort users and groups to remove any variants in order when diffing
-	sort.StringSlice(actual.Groups).Sort()
-	sort.StringSlice(actual.Users).Sort()
-	sort.StringSlice(expected.Groups).Sort()
-	sort.StringSlice(expected.Users).Sort()
-
 	// compute the updated scc as follows:
 	// 1. start with the expected scc
 	// 2. take the objectmeta from the actual scc (preserves the resource version and uid)
@@ -305,6 +288,8 @@ func (o *ReconcileSCCOptions) computeUpdatedSCC(expected securityv1.SecurityCont
 	updated.ObjectMeta = actual.ObjectMeta
 	updated.ObjectMeta.Labels = expected.Labels
 	updated.ObjectMeta.Annotations = expected.Annotations
+	updated.Users = actual.Users   // Users are deprecated, make sure no diff is generated
+	updated.Groups = actual.Groups // Groups are deprecated, make sure no diff is generated
 
 	if !kapihelper.Semantic.DeepEqual(updated, actual) {
 		needsUpdate = true

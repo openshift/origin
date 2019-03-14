@@ -63,8 +63,9 @@ os::log::info "Running Kubernetes conformance suite for ${version}"
 
 # Execute OpenShift prerequisites
 # Disable container security
-oc adm policy add-scc-to-group privileged system:authenticated system:serviceaccounts
-oc adm policy remove-scc-from-group restricted system:authenticated
+oc create clusterrole privilegedSCCUser --verb=use --resource=securitycontextconstraints.security.openshift.io --resource-name=privileged
+oc adm policy add-cluster-role-to-group privilegedSCCUser system:authenticated system:serviceaccounts
+oc adm policy remove-cluster-role-from-group basic-scc-user system:authenticated
 # Mark the master nodes as unschedulable so tests ignore them
 oc get nodes -o name -l 'node-role.kubernetes.io/master' | xargs -L1 oc adm cordon
 unschedulable="$( ( oc get nodes -o name -l 'node-role.kubernetes.io/master'; ) | wc -l )"

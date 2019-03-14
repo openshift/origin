@@ -1,11 +1,13 @@
 package podsecuritypolicyreview
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -43,13 +45,13 @@ func TestNoErrors(t *testing.T) {
 									TerminationMessagePolicy: coreapi.TerminationMessageReadFile,
 								},
 							},
-							RestartPolicy:      coreapi.RestartPolicyAlways,
-							SecurityContext:    &coreapi.PodSecurityContext{},
-							DNSPolicy:          coreapi.DNSClusterFirst,
-							ServiceAccountName: "default",
-							SchedulerName:      coreapi.DefaultSchedulerName,
+							RestartPolicy:   coreapi.RestartPolicyAlways,
+							SecurityContext: &coreapi.PodSecurityContext{},
+							DNSPolicy:       coreapi.DNSClusterFirst,
+							SchedulerName:   coreapi.DefaultSchedulerName,
 						},
 					},
+					ServiceAccountNames: []string{"default"},
 				},
 			},
 			sccs: []*securityv1.SecurityContextConstraints{
@@ -70,7 +72,6 @@ func TestNoErrors(t *testing.T) {
 					SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
 						Type: securityv1.SupplementalGroupsStrategyMustRunAs,
 					},
-					Groups: []string{"system:serviceaccounts"},
 				},
 			},
 			allowedSAs: []string{"default"},
@@ -130,7 +131,6 @@ func TestNoErrors(t *testing.T) {
 							{Min: 999, Max: 999},
 						},
 					},
-					Groups: []string{"system:serviceaccounts"},
 				},
 			},
 			allowedSAs: nil,
@@ -152,7 +152,13 @@ func TestNoErrors(t *testing.T) {
 		serviceAccount.Namespace = namespace.Name
 		saIndexer.Add(serviceAccount)
 		csf := fake.NewSimpleClientset(namespace)
-		storage := REST{scc.NewDefaultSCCMatcher(sccCache, &noopTestAuthorizer{}), saCache, csf}
+
+		saNames := sets.NewString()
+		for _, sa := range testcase.allowedSAs {
+			saNames.Insert(fmt.Sprintf("system:serviceaccount:%s:%s", namespace.Name, sa))
+		}
+
+		storage := REST{scc.NewDefaultSCCMatcher(sccCache, &allowSAsAuthorizer{saNames: saNames}), saCache, csf}
 		ctx := apirequest.WithNamespace(apirequest.NewContext(), namespace.Name)
 		obj, err := storage.Create(ctx, testcase.request, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 		if err != nil {
@@ -249,7 +255,7 @@ func TestErrors(t *testing.T) {
 		}
 		csf := fake.NewSimpleClientset(namespace)
 
-		storage := REST{scc.NewDefaultSCCMatcher(sccCache, &noopTestAuthorizer{}), saCache, csf}
+		storage := REST{scc.NewDefaultSCCMatcher(sccCache, &allowSAsAuthorizer{}), saCache, csf}
 		ctx := apirequest.WithNamespace(apirequest.NewContext(), namespace.Name)
 		_, err := storage.Create(ctx, testcase.request, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 		if err == nil {
@@ -310,7 +316,6 @@ func TestSpecificSAs(t *testing.T) {
 					SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
 						Type: securityv1.SupplementalGroupsStrategyMustRunAs,
 					},
-					Groups: []string{"system:serviceaccounts"},
 				},
 			},
 			serviceAccounts: []*corev1.ServiceAccount{
@@ -376,7 +381,6 @@ func TestSpecificSAs(t *testing.T) {
 					SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
 						Type: securityv1.SupplementalGroupsStrategyMustRunAs,
 					},
-					Groups: []string{"system:serviceaccounts"},
 				},
 			},
 			serviceAccounts: []*corev1.ServiceAccount{
@@ -406,7 +410,12 @@ func TestSpecificSAs(t *testing.T) {
 			saIndexer.Add(testcase.serviceAccounts[i])
 		}
 		csf := fake.NewSimpleClientset(namespace)
-		storage := REST{scc.NewDefaultSCCMatcher(sccCache, &noopTestAuthorizer{}), saCache, csf}
+
+		saNames := sets.NewString()
+		for _, sa := range testcase.serviceAccounts {
+			saNames.Insert(sa.GetName())
+		}
+		storage := REST{scc.NewDefaultSCCMatcher(sccCache, &allowSAsAuthorizer{saNames: saNames}), saCache, csf}
 		ctx := apirequest.WithNamespace(apirequest.NewContext(), namespace.Name)
 		_, err := storage.Create(ctx, testcase.request, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 		switch {
@@ -421,8 +430,12 @@ func TestSpecificSAs(t *testing.T) {
 	}
 }
 
-type noopTestAuthorizer struct{}
+type allowSAsAuthorizer struct{ saNames sets.String }
 
-func (s *noopTestAuthorizer) Authorize(a authorizer.Attributes) (authorizer.Decision, string, error) {
+func (s *allowSAsAuthorizer) Authorize(a authorizer.Attributes) (authorizer.Decision, string, error) {
+
+	if s.saNames.Has(a.GetUser().GetName()) {
+		return authorizer.DecisionAllow, "", nil
+	}
 	return authorizer.DecisionNoOpinion, "", nil
 }

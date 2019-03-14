@@ -13,7 +13,11 @@ import (
 // SetupK8SNFSServerAndVolume sets up an nfs server pod with count number of persistent volumes
 func SetupK8SNFSServerAndVolume(oc *CLI, count int) (*kapiv1.Pod, []*kapiv1.PersistentVolume, error) {
 	e2e.Logf("Adding privileged scc from system:serviceaccount:%s:default", oc.Namespace())
-	_, err := oc.AsAdmin().Run("adm").Args("policy", "add-scc-to-user", "privileged", fmt.Sprintf("system:serviceaccount:%s:default", oc.Namespace())).Output()
+	err := oc.AllowUserUseSCC(
+		oc.Namespace(),
+		fmt.Sprintf("system:serviceaccount:%s:default", oc.Namespace()),
+		"privileged",
+	)
 	if err != nil {
 		return nil, nil, err
 	}

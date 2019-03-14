@@ -1268,6 +1268,23 @@ items:
   kind: ClusterRole
   metadata:
     annotations:
+      openshift.io/description: A user that can use the restricted SCC.
+      rbac.authorization.kubernetes.io/autoupdate: "true"
+    creationTimestamp: null
+    name: basic-scc-user
+  rules:
+  - apiGroups:
+    - security.openshift.io
+    resourceNames:
+    - restricted
+    resources:
+    - securitycontextconstraints
+    verbs:
+    - use
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    annotations:
       rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: self-access-reviewer
@@ -2293,6 +2310,14 @@ items:
     - get
     - list
   - apiGroups:
+    - security.openshift.io
+    resourceNames:
+    - privileged
+    resources:
+    - securitycontextconstraints
+    verbs:
+    - use
+  - apiGroups:
     - ""
     resources:
     - events
@@ -3066,6 +3091,14 @@ items:
     - get
     - list
     - watch
+  - apiGroups:
+    - security.openshift.io
+    resourceNames:
+    - hostmount-anyuid
+    resources:
+    - securitycontextconstraints
+    verbs:
+    - use
   - apiGroups:
     - ""
     resources:

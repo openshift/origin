@@ -79,7 +79,8 @@ os::log::info "Pre-pulling and pushing ruby-22-centos7"
 os::cmd::expect_success 'docker pull centos/ruby-22-centos7:latest'
 os::log::info "Pulled ruby-22-centos7"
 
-os::cmd::expect_success "oc adm policy add-scc-to-user privileged -z ipfailover"
+os::cmd::expect_success "oc create role privilegedSCCUser --verb=use --resource=securitycontextcontraints.security.openshift.io --resourcename=privileged"
+os::cmd::expect_success "oc adm policy add-role-to-user privilegedSCCUser -z ipfailover"
 os::cmd::expect_success "oc adm ipfailover --images='${USE_IMAGES}' --virtual-ips='1.2.3.4' --service-account=ipfailover"
 
 os::log::info "Waiting for Docker registry pod to start"

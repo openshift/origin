@@ -37,7 +37,7 @@ var _ = g.Describe("[security] supplemental groups", func() {
 			supGroup := int64(2222)
 
 			err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				_, err := oc.AsAdmin().Run("adm").Args("policy", "add-scc-to-user", "anyuid", oc.Username()).Output()
+				err := oc.AllowUserUseSCC(oc.Namespace(), oc.Username(), "anyuid")
 				if exitErr, ok := err.(*exutil.ExitError); ok {
 					if strings.HasPrefix(exitErr.StdErr, "Error from server (Conflict):") {
 						// the retry.RetryOnConflict expects "conflict" error, let's provide it with one

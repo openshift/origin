@@ -1,6 +1,7 @@
 package sccadmission
 
 import (
+	"fmt"
 	"reflect"
 	"sort"
 	"strings"
@@ -9,6 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
@@ -25,6 +27,8 @@ import (
 	oscc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
 	sccsort "github.com/openshift/origin/pkg/security/securitycontextconstraints/util/sort"
 )
+
+const AllSCCAccess = "*"
 
 func newTestAdmission(lister securityv1listers.SecurityContextConstraintsLister, kclient kubernetes.Interface, authorizer authorizer.Authorizer) admission.Interface {
 	return &constraint{
@@ -165,7 +169,7 @@ func testSCCAdmit(testCaseName string, sccs []*securityv1.SecurityContextConstra
 	t.Helper()
 	tc := setupClientSet()
 	lister := createSCCLister(t, sccs)
-	testAuthorizer := &sccTestAuthorizer{t: t}
+	testAuthorizer := &sccTestAuthorizer{t: t, user: "system:serviceaccount:default:default", sccs: sets.NewString(AllSCCAccess)}
 	plugin := newTestAdmission(lister, tc, testAuthorizer)
 
 	attrs := admission.NewAttributesRecord(pod, nil, coreapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, coreapi.Resource("pods").WithVersion("version"), "", admission.Create, false, &user.DefaultInfo{})
@@ -212,7 +216,12 @@ func TestAdmitSuccess(t *testing.T) {
 		saSCC,
 	})
 
-	testAuthorizer := &sccTestAuthorizer{t: t}
+	testAuthorizer := &sccTestAuthorizer{
+		t:         t,
+		user:      fmt.Sprintf("system:serviceaccount:%s:%s", serviceAccount.Namespace, serviceAccount.Name),
+		namespace: serviceAccount.Namespace,
+		sccs:      sets.NewString(saSCC.Name, saExactSCC.Name),
+	}
 
 	// create the admission plugin
 	p := newTestAdmission(lister, tc, testAuthorizer)
@@ -321,7 +330,12 @@ func TestAdmitFailure(t *testing.T) {
 		saSCC,
 	})
 
-	testAuthorizer := &sccTestAuthorizer{t: t}
+	testAuthorizer := &sccTestAuthorizer{
+		t:         t,
+		user:      fmt.Sprintf("system:serviceaccount:%s:%s", "default", "default"),
+		namespace: "default",
+		sccs:      sets.NewString(saSCC.Name, saExactSCC.Name),
+	}
 
 	// create the admission plugin
 	p := newTestAdmission(lister, tc, testAuthorizer)
@@ -419,6 +433,7 @@ func TestAdmitFailure(t *testing.T) {
 	adminSCC := laxSCC()
 	adminSCC.Name = "scc-admin"
 	indexer.Add(adminSCC)
+	testAuthorizer.sccs.Insert(adminSCC.Name)
 
 	for i := 0; i < 2; i++ {
 		for k, v := range testCases {
@@ -685,13 +700,16 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "match group",
 			},
-			Groups: []string{"group"},
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "match user",
 			},
-			Users: []string{"user"},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "match none",
+			},
 		},
 	}
 
@@ -704,35 +722,12 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 		namespace   string
 		expectedSCC string
 	}{
-		"find none": {
-			userInfo: &user.DefaultInfo{
-				Name:   "foo",
-				Groups: []string{"bar"},
-			},
-			authorizer: &sccTestAuthorizer{t: t},
-		},
-		"find user": {
-			userInfo: &user.DefaultInfo{
-				Name:   "user",
-				Groups: []string{"bar"},
-			},
-			authorizer:  &sccTestAuthorizer{t: t},
-			expectedSCC: "match user",
-		},
-		"find group": {
-			userInfo: &user.DefaultInfo{
-				Name:   "foo",
-				Groups: []string{"group"},
-			},
-			authorizer:  &sccTestAuthorizer{t: t},
-			expectedSCC: "match group",
-		},
 		"not find user via authz": {
 			userInfo: &user.DefaultInfo{
 				Name:   "foo",
 				Groups: []string{"bar"},
 			},
-			authorizer: &sccTestAuthorizer{t: t, user: "not-foo", scc: "match user"},
+			authorizer: &sccTestAuthorizer{t: t, user: "user", sccs: sets.NewString("match user")},
 			namespace:  "fancy",
 		},
 		"find user via authz cluster wide": {
@@ -740,7 +735,7 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 				Name:   "foo",
 				Groups: []string{"bar"},
 			},
-			authorizer:  &sccTestAuthorizer{t: t, user: "foo", scc: "match user"},
+			authorizer:  &sccTestAuthorizer{t: t, user: "foo", sccs: sets.NewString("match user")},
 			namespace:   "fancy",
 			expectedSCC: "match user",
 		},
@@ -749,7 +744,7 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 				Name:   "foo",
 				Groups: []string{"bar"},
 			},
-			authorizer:  &sccTestAuthorizer{t: t, user: "foo", namespace: "room", scc: "match group"},
+			authorizer:  &sccTestAuthorizer{t: t, user: "foo", namespace: "room", sccs: sets.NewString("match group")},
 			namespace:   "room",
 			expectedSCC: "match group",
 		},
@@ -783,15 +778,15 @@ func TestMatchingSecurityContextConstraints(t *testing.T) {
 		Name:   "user",
 		Groups: []string{"group"},
 	}
-	testAuthorizer := &sccTestAuthorizer{t: t}
 	namespace := "does-not-matter"
+	testAuthorizer := &sccTestAuthorizer{t: t, user: "user", namespace: "does-not-matter", sccs: sets.NewString("match group", "match user")}
 	sccMatcher := oscc.NewDefaultSCCMatcher(lister, testAuthorizer)
 	sccs2, err := sccMatcher.FindApplicableSCCs(namespace, userInfo)
 	if err != nil {
 		t.Fatalf("matching many sccs returned error %v", err)
 	}
 	if len(sccs2) != 2 {
-		t.Errorf("matching many sccs expected to match 2 sccs but found %d: %#v", len(sccs), sccs)
+		t.Errorf("matching many sccs expected to match 2 sccs but found %d: %#v", len(sccs2), sccs2)
 	}
 }
 
@@ -861,7 +856,7 @@ func TestAdmitWithPrioritizedSCC(t *testing.T) {
 
 	tc := setupClientSet()
 	lister := createSCCLister(t, sccsToSort)
-	testAuthorizer := &sccTestAuthorizer{t: t}
+	testAuthorizer := &sccTestAuthorizer{t: t, user: "system:serviceaccount:default:default", namespace: "default", sccs: sets.NewString(AllSCCAccess)}
 
 	// create the admission plugin
 	plugin := newTestAdmission(lister, tc, testAuthorizer)
@@ -1041,7 +1036,7 @@ func TestAdmitPreferNonmutatingWhenPossible(t *testing.T) {
 
 		tc := setupClientSet()
 		lister := createSCCLister(t, testCase.sccs)
-		testAuthorizer := &sccTestAuthorizer{t: t}
+		testAuthorizer := &sccTestAuthorizer{t: t, user: "system:serviceaccount:default:default", namespace: "default", sccs: sets.NewString(AllSCCAccess)}
 		plugin := newTestAdmission(lister, tc, testAuthorizer)
 
 		attrs := admission.NewAttributesRecord(testCase.newPod, testCase.oldPod, coreapi.Kind("Pod").WithVersion("version"), testCase.newPod.Namespace, testCase.newPod.Name, coreapi.Resource("pods").WithVersion("version"), "", testCase.operation, false, &user.DefaultInfo{})
@@ -1113,7 +1108,6 @@ func laxSCC() *securityv1.SecurityContextConstraints {
 		SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
 			Type: securityv1.SupplementalGroupsStrategyRunAsAny,
 		},
-		Groups: []string{"system:serviceaccounts"},
 	}
 }
 
@@ -1145,7 +1139,6 @@ func restrictiveSCC() *securityv1.SecurityContextConstraints {
 				{Min: 999, Max: 999},
 			},
 		},
-		Groups: []string{"system:serviceaccounts"},
 	}
 }
 
@@ -1166,7 +1159,6 @@ func saSCC() *securityv1.SecurityContextConstraints {
 		SupplementalGroups: securityv1.SupplementalGroupsStrategyOptions{
 			Type: securityv1.SupplementalGroupsStrategyMustRunAs,
 		},
-		Groups: []string{"system:serviceaccounts"},
 	}
 }
 
@@ -1198,7 +1190,6 @@ func saExactSCC() *securityv1.SecurityContextConstraints {
 				{Min: 999, Max: 999},
 			},
 		},
-		Groups: []string{"system:serviceaccounts"},
 	}
 }
 
@@ -1277,7 +1268,7 @@ type sccTestAuthorizer struct {
 	// this user, in this namespace, can use this SCC
 	user      string
 	namespace string
-	scc       string
+	sccs      sets.String
 }
 
 func (s *sccTestAuthorizer) Authorize(a authorizer.Attributes) (authorizer.Decision, string, error) {
@@ -1288,7 +1279,7 @@ func (s *sccTestAuthorizer) Authorize(a authorizer.Attributes) (authorizer.Decis
 	}
 
 	allowedNamespace := len(s.namespace) == 0 || s.namespace == a.GetNamespace()
-	if s.user == a.GetUser().GetName() && allowedNamespace && s.scc == a.GetName() {
+	if s.user == a.GetUser().GetName() && allowedNamespace && (s.sccs.Has(AllSCCAccess) || s.sccs.Has(a.GetName())) {
 		return authorizer.DecisionAllow, "", nil
 	}
 

@@ -24,22 +24,31 @@ import (
 
 func TestPodSecurityPolicySelfSubjectReview(t *testing.T) {
 	testcases := map[string]struct {
-		sccs  []*securityv1.SecurityContextConstraints
-		check func(p *securityapi.PodSecurityPolicySelfSubjectReview) (bool, string)
+		allowedUser string
+		allowedSCC  string
+		issuingUser string
+		sccs        []*securityv1.SecurityContextConstraints
+		check       func(p *securityapi.PodSecurityPolicySelfSubjectReview) (bool, string)
 	}{
-		"user foo": {
+		"user troll": {
+			allowedUser: "troll",
+			allowedSCC:  "bar",
+			issuingUser: "troll",
 			sccs: []*securityv1.SecurityContextConstraints{
 				admissionttesting.UserScc("bar"),
 				admissionttesting.UserScc("foo"),
 			},
 			check: func(p *securityapi.PodSecurityPolicySelfSubjectReview) (bool, string) {
 				fmt.Printf("-> Is %q", p.Status.AllowedBy.Name)
-				return p.Status.AllowedBy.Name == "foo", "SCC should be foo"
+				return p.Status.AllowedBy.Name == "bar", "SCC should be bar"
 			},
 		},
-		"user bar ": {
+		"user foo": { // `user` field is deprecated and should be ignored in admission
+			allowedUser: "troll",
+			allowedSCC:  "bar",
+			issuingUser: "foo",
 			sccs: []*securityv1.SecurityContextConstraints{
-				admissionttesting.UserScc("bar"),
+				admissionttesting.UserScc("foo"),
 			},
 			check: func(p *securityapi.PodSecurityPolicySelfSubjectReview) (bool, string) {
 				return p.Status.AllowedBy == nil, "Allowed by should be nil"
@@ -81,8 +90,8 @@ func TestPodSecurityPolicySelfSubjectReview(t *testing.T) {
 		}
 
 		csf := fake.NewSimpleClientset(namespace, serviceAccount)
-		storage := REST{oscc.NewDefaultSCCMatcher(sccCache, &noopTestAuthorizer{}), csf}
-		ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll), &user.DefaultInfo{Name: "foo", Groups: []string{"bar", "baz"}})
+		storage := REST{oscc.NewDefaultSCCMatcher(sccCache, &allowUserTestAuthorizer{user: testcase.allowedUser, sccName: testcase.allowedSCC}), csf}
+		ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), metav1.NamespaceAll), &user.DefaultInfo{Name: testcase.issuingUser, Groups: []string{"bar", "baz"}})
 		obj, err := storage.Create(ctx, reviewRequest, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 		if err != nil {
 			t.Errorf("%s - Unexpected error", testName)
@@ -98,8 +107,14 @@ func TestPodSecurityPolicySelfSubjectReview(t *testing.T) {
 	}
 }
 
-type noopTestAuthorizer struct{}
+type allowUserTestAuthorizer struct {
+	user    string
+	sccName string
+}
 
-func (s *noopTestAuthorizer) Authorize(a authorizer.Attributes) (authorizer.Decision, string, error) {
+func (s *allowUserTestAuthorizer) Authorize(a authorizer.Attributes) (authorizer.Decision, string, error) {
+	if a.GetUser().GetName() == s.user && a.GetVerb() == "use" && a.GetName() == s.sccName {
+		return authorizer.DecisionAllow, "", nil
+	}
 	return authorizer.DecisionNoOpinion, "", nil
 }

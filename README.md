@@ -112,7 +112,8 @@ Many Docker containers expect to run as root (and therefore edit all the content
 If you are running your own cluster and want to run a container as root, you can grant that permission to the containers in your current project with the following command:
 
     # Gives the default service account in the current project access to run as UID 0 (root)
-    oc adm add-scc-to-user anyuid -z default
+    oc create clusterrole anyuidSCCUser --verb=use --resource=securitycontextcontraints.security.openshift.io --resourcename=anyuid
+    oc adm policy add-cluster-role-to-user anyuidSCCUsers -z default
 
 See the [security documentation](https://docs.okd.io/latest/admin_guide/manage_scc.html) more on confining applications.
 

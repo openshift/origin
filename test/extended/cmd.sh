@@ -147,7 +147,8 @@ os::test::junit::declare_suite_start "extended/cmd/service-signer"
 # check to make sure that service serving cert signing works correctly
 # nginx currently needs to run as root
 os::cmd::expect_success "oc login -u system:admin -n default"
-os::cmd::expect_success "oc adm policy add-scc-to-user anyuid system:serviceaccount:service-serving-cert-generation:default"
+oc::cmd::expect_success 'oc create role anyuidSCCUser --verb=use --resource=securitycontextcontraints.security.openshift.io --resourcename=anyuid'
+os::cmd::expect_success "oc adm policy add-role-to-user anyuidSCCUser system:serviceaccount:service-serving-cert-generation:default"
 
 os::cmd::expect_success "oc login -u serving-cert -p asdf"
 VERBOSE=true os::cmd::expect_success "oc new-project service-serving-cert-generation"

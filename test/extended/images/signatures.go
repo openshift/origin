@@ -54,7 +54,7 @@ var _ = g.Describe("[registry][Serial][Suite:openshift/registry/serial] Image si
 		// container after it starts. This SCC could be avoided in the future when /dev/random
 		// issue is fixed in Docker.
 		g.By("granting the anyuid scc to test user")
-		_, err = oc.AsAdmin().Run("adm").Args("policy", "add-scc-to-user", "anyuid", oc.Username()).Output()
+		err = oc.AllowUserUseSCC(oc.Namespace(), oc.Username(), "anyuid")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("preparing the image stream where the signed image will be pushed")

@@ -131,7 +131,8 @@ The provisioner is installed from OpenShift template that's available at https:/
    HostPath volumes and run with any SELinux context:
    ```bash
    oc create serviceaccount local-storage-admin
-   oc adm policy add-scc-to-user privileged -z local-storage-admin
+   oc create clusterrole privilegedSCCUser --verb=use --resource=securitycontextcontraints.security.openshift.io --resourcename=privileged
+   oc adm policy add-cluster-role-to-user privilegedSCCUser -z local-storage-admin
    ```
    Root privileges and any SELinux context are necessary for the provisioner
    pod so it can delete any content on the local volumes. HostPath is necessary

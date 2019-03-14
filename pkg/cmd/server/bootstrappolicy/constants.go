@@ -65,6 +65,7 @@ const (
 	AggregatedClusterReaderRoleName = "system:openshift:aggregate-to-cluster-reader"
 	SelfProvisionerRoleName         = "self-provisioner"
 	BasicUserRoleName               = "basic-user"
+	BasicSCCUserRoleName            = "basic-scc-user"
 	StatusCheckerRoleName           = "cluster-status"
 	SelfAccessReviewerRoleName      = "self-access-reviewer"
 

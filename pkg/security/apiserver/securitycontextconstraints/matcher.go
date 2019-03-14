@@ -55,7 +55,7 @@ func (d *defaultSCCMatcher) FindApplicableSCCs(namespace string, users ...user.I
 	} else {
 		for _, constraint := range constraints {
 			for _, user := range users {
-				if ConstraintAppliesTo(constraint.Name, constraint.Users, constraint.Groups, user, namespace, d.authorizer) {
+				if ConstraintAppliesTo(constraint.Name, user, namespace, d.authorizer) {
 					matchedConstraints = append(matchedConstraints, constraint)
 					break
 				}
@@ -97,24 +97,12 @@ func authorizedForSCC(sccName string, info user.Info, namespace string, a author
 	return decision == authorizer.DecisionAllow
 }
 
-// ConstraintAppliesTo inspects the constraint's users and groups against the userInfo to determine
-// if it is usable by the userInfo.
-// Anything we do here needs to work with a deny authorizer so the choices are limited to SAR / Authorizer
-func ConstraintAppliesTo(sccName string, sccUsers, sccGroups []string, userInfo user.Info, namespace string, a authorizer.Authorizer) bool {
-	for _, user := range sccUsers {
-		if userInfo.GetName() == user {
-			return true
-		}
+// ConstraintAppliesTo uses the authorizer to decide the constraint's admission using SAR
+func ConstraintAppliesTo(sccName string, userInfo user.Info, namespace string, a authorizer.Authorizer) bool {
+	if a == nil {
+		return false
 	}
-	for _, userGroup := range userInfo.GetGroups() {
-		if constraintSupportsGroup(userGroup, sccGroups) {
-			return true
-		}
-	}
-	if a != nil {
-		return authorizedForSCC(sccName, userInfo, namespace, a)
-	}
-	return false
+	return authorizedForSCC(sccName, userInfo, namespace, a)
 }
 
 // AssignSecurityContext creates a security context for each container in the pod
@@ -157,16 +145,6 @@ func AssignSecurityContext(provider SecurityContextConstraintsProvider, pod *kap
 	}
 
 	return nil
-}
-
-// constraintSupportsGroup checks that group is in constraintGroups.
-func constraintSupportsGroup(group string, constraintGroups []string) bool {
-	for _, g := range constraintGroups {
-		if g == group {
-			return true
-		}
-	}
-	return false
 }
 
 // getNamespaceByName retrieves a namespace only if ns is nil.
