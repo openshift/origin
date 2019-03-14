@@ -72,11 +72,11 @@ func NewOperationGenerator(kubeClient clientset.Interface,
 	blkUtil volumepathhandler.BlockVolumePathHandler) OperationGenerator {
 
 	return &operationGenerator{
-		kubeClient:      kubeClient,
-		volumePluginMgr: volumePluginMgr,
-		recorder:        recorder,
+		kubeClient:                       kubeClient,
+		volumePluginMgr:                  volumePluginMgr,
+		recorder:                         recorder,
 		checkNodeCapabilitiesBeforeMount: checkNodeCapabilitiesBeforeMount,
-		blkUtil: blkUtil,
+		blkUtil:                          blkUtil,
 	}
 }
 
@@ -592,6 +592,7 @@ func (og *operationGenerator) GenerateMountVolumeFunc(
 	}
 
 	return volumetypes.GeneratedOperations{
+		OperationName:     "volume_mount",
 		OperationFunc:     mountVolumeFunc,
 		EventRecorderFunc: eventRecorderFunc,
 		CompleteFunc:      util.OperationCompleteHook(volumePlugin.GetPluginName(), "volume_mount"),
@@ -717,6 +718,7 @@ func (og *operationGenerator) GenerateUnmountVolumeFunc(
 	}
 
 	return volumetypes.GeneratedOperations{
+		OperationName:     "volume_unmount",
 		OperationFunc:     unmountVolumeFunc,
 		CompleteFunc:      util.OperationCompleteHook(volumePlugin.GetPluginName(), "volume_unmount"),
 		EventRecorderFunc: nil, // nil because we do not want to generate event on error
@@ -794,6 +796,7 @@ func (og *operationGenerator) GenerateUnmountDeviceFunc(
 	}
 
 	return volumetypes.GeneratedOperations{
+		OperationName:     "unmount_device",
 		OperationFunc:     unmountDeviceFunc,
 		CompleteFunc:      util.OperationCompleteHook(deviceMountableVolumePlugin.GetPluginName(), "unmount_device"),
 		EventRecorderFunc: nil, // nil because we do not want to generate event on error
