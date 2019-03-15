@@ -164,12 +164,16 @@ func mergeLogForRepo(g *git, repo, from, to string) ([]MergeCommit, error) {
 		if _, err := g.exec("fetch", repo); err != nil {
 			return nil, gitOutputToError(err, out)
 		}
-		// TODO: fetch other remotes as well?
 		if _, err := g.exec("cat-file", "-e", from+"^{commit}"); err != nil {
 			return nil, fmt.Errorf("from commit %s does not exist", from)
 		}
 		if _, err := g.exec("cat-file", "-e", to+"^{commit}"); err != nil {
-			return nil, fmt.Errorf("to commit %s does not exist", to)
+			if _, err := g.exec("fetch", "--all"); err != nil {
+				return nil, fmt.Errorf("to commit %s does not exist", to)
+			}
+			if _, err := g.exec("cat-file", "-e", to+"^{commit}"); err != nil {
+				return nil, fmt.Errorf("to commit %s does not exist", to)
+			}
 		}
 		out, err = g.exec(args...)
 		if err != nil {
