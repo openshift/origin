@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/golang/glog"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,11 +15,12 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/client-go/kubernetes"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/util/retry"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/core/helper"
 
 	"github.com/openshift/api/apps"
 	appsv1 "github.com/openshift/api/apps/v1"
@@ -33,7 +33,7 @@ import (
 )
 
 // NewREST provides new REST storage for the apps API group.
-func NewREST(store registry.Store, imagesclient imageclientinternal.Interface, kc kclientset.Interface, admission admission.Interface) *REST {
+func NewREST(store registry.Store, imagesclient imageclientinternal.Interface, kc kubernetes.Interface, admission admission.Interface) *REST {
 	store.UpdateStrategy = Strategy
 	return &REST{store: &store, is: imagesclient.Image(), rn: kc.Core(), admit: admission}
 }
@@ -44,7 +44,7 @@ var _ = rest.Creater(&REST{})
 type REST struct {
 	store *registry.Store
 	is    images.ImageStreamsGetter
-	rn    kcoreclient.ReplicationControllersGetter
+	rn    corev1client.ReplicationControllersGetter
 	admit admission.Interface
 }
 
@@ -221,7 +221,7 @@ func containsTriggerType(types []appsapi.DeploymentTriggerType, triggerType apps
 // canTrigger determines if we can trigger a new deployment for config based on the various deployment triggers.
 func canTrigger(
 	config *appsapi.DeploymentConfig,
-	rn kcoreclient.ReplicationControllersGetter,
+	rn corev1client.ReplicationControllersGetter,
 	force bool,
 ) (bool, []appsapi.DeploymentCause, error) {
 
@@ -267,7 +267,7 @@ func canTrigger(
 		causes = append(causes, appsapi.DeploymentCause{
 			Type: appsapi.DeploymentTriggerOnImageChange,
 			ImageTrigger: &appsapi.DeploymentCauseImageTrigger{
-				From: kapi.ObjectReference{
+				From: core.ObjectReference{
 					Name:      t.ImageChangeParams.From.Name,
 					Namespace: t.ImageChangeParams.From.Namespace,
 					Kind:      "ImageStreamTag",
@@ -293,7 +293,7 @@ func canTrigger(
 	if appsutil.HasChangeTrigger(externalConfig) && // Our deployment config has a config change trigger
 		len(causes) == 0 && // and no other trigger has triggered.
 		(config.Status.LatestVersion == 0 || // Either it's the initial deployment
-			!kapihelper.Semantic.DeepEqual(config.Spec.Template, decoded.Spec.Template)) /* or a config change happened so we need to trigger */ {
+			!helper.Semantic.DeepEqual(config.Spec.Template, decoded.Spec.Template)) /* or a config change happened so we need to trigger */ {
 
 		canTriggerByConfigChange = true
 		causes = []appsapi.DeploymentCause{{Type: appsapi.DeploymentTriggerOnConfigChange}}
@@ -305,7 +305,7 @@ func canTrigger(
 // decodeFromLatestDeployment will try to return the decoded version of the current deploymentconfig
 // found in the annotations of its latest deployment. If there is no previous deploymentconfig (ie.
 // latestVersion == 0), the returned deploymentconfig will be the same.
-func decodeFromLatestDeployment(config *appsapi.DeploymentConfig, rn kcoreclient.ReplicationControllersGetter) (*appsapi.DeploymentConfig, error) {
+func decodeFromLatestDeployment(config *appsapi.DeploymentConfig, rn corev1client.ReplicationControllersGetter) (*appsapi.DeploymentConfig, error) {
 	if config.Status.LatestVersion == 0 {
 		return config, nil
 	}

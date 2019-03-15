@@ -9,7 +9,6 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
@@ -106,10 +105,6 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	if err != nil {
 		return nil, err
 	}
-	kubeInternalClient, err := kclientsetinternal.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
-	if err != nil {
-		return nil, err
-	}
 	kubeClient, err := kubernetes.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
@@ -122,10 +117,10 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	dcInstantiateStorage := deployconfiginstantiate.NewREST(
 		*deployConfigStorage.Store,
 		openshiftInternalImageClient,
-		kubeInternalClient,
+		kubeClient,
 		c.GenericConfig.AdmissionControl,
 	)
-	deployConfigRollbackStorage := deployrollback.NewREST(openshiftAppsClient, kubeInternalClient)
+	deployConfigRollbackStorage := deployrollback.NewREST(openshiftAppsClient, kubeClient)
 
 	v1Storage := map[string]rest.Storage{}
 	v1Storage["deploymentConfigs"] = deployConfigStorage

@@ -4,15 +4,15 @@ import (
 	"context"
 	"fmt"
 
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/client-go/kubernetes"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	"github.com/openshift/api/apps"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
@@ -26,13 +26,13 @@ import (
 type REST struct {
 	generator RollbackGenerator
 	dn        appsclienttyped.DeploymentConfigsGetter
-	rn        kcoreclient.ReplicationControllersGetter
+	rn        corev1client.ReplicationControllersGetter
 }
 
 var _ rest.Creater = &REST{}
 
 // NewREST safely creates a new REST.
-func NewREST(appsclient appsclient.Interface, kc kclientset.Interface) *REST {
+func NewREST(appsclient appsclient.Interface, kc kubernetes.Interface) *REST {
 	return &REST{
 		generator: NewRollbackGenerator(),
 		dn:        appsclient.AppsV1(),
@@ -49,15 +49,15 @@ func (r *REST) New() runtime.Object {
 func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
 	namespace, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
-		return nil, kerrors.NewBadRequest("namespace parameter required.")
+		return nil, apierrors.NewBadRequest("namespace parameter required.")
 	}
 	rollback, ok := obj.(*appsapi.DeploymentConfigRollback)
 	if !ok {
-		return nil, kerrors.NewBadRequest(fmt.Sprintf("not a rollback spec: %#v", obj))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("not a rollback spec: %#v", obj))
 	}
 
 	if errs := validation.ValidateDeploymentConfigRollback(rollback); len(errs) > 0 {
-		return nil, kerrors.NewInvalid(apps.Kind("DeploymentConfigRollback"), rollback.Name, errs)
+		return nil, apierrors.NewInvalid(apps.Kind("DeploymentConfigRollback"), rollback.Name, errs)
 	}
 	if err := createValidation(obj); err != nil {
 		return nil, err
@@ -96,7 +96,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 
 	toInternal := &appsapi.DeploymentConfig{}
 	if err := legacyscheme.Scheme.Convert(to, toInternal, nil); err != nil {
-		return nil, kerrors.NewInternalError(err)
+		return nil, apierrors.NewInternalError(err)
 	}
 
 	if from.Annotations == nil && len(rollback.UpdatedAnnotations) > 0 {
@@ -108,7 +108,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 
 	fromInternal := &appsapi.DeploymentConfig{}
 	if err := legacyscheme.Scheme.Convert(from, fromInternal, nil); err != nil {
-		return nil, kerrors.NewInternalError(err)
+		return nil, apierrors.NewInternalError(err)
 	}
 
 	return r.generator.GenerateRollback(fromInternal, toInternal, &rollback.Spec)
@@ -116,5 +116,5 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 
 func newInvalidError(rollback *appsapi.DeploymentConfigRollback, reason string) error {
 	err := field.Invalid(field.NewPath("name"), rollback.Name, reason)
-	return kerrors.NewInvalid(apps.Kind("DeploymentConfigRollback"), rollback.Name, field.ErrorList{err})
+	return apierrors.NewInvalid(apps.Kind("DeploymentConfigRollback"), rollback.Name, field.ErrorList{err})
 }

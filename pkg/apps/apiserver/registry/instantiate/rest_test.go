@@ -3,18 +3,22 @@ package instantiate
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/api/image"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
 	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 )
@@ -703,7 +707,7 @@ func TestCanTrigger(t *testing.T) {
 				config = test.config
 			}
 			config = appstest.RoundTripConfig(t, config)
-			deployment, _ := appstest.MakeTestOnlyInternalDeployment(config)
+			deployment, _ := makeDeployment(config)
 			return true, deployment, nil
 		})
 
@@ -725,4 +729,12 @@ func TestCanTrigger(t *testing.T) {
 			t.Errorf("expected causes:\n%#v\ngot:\n%#v", test.expectedCauses, gotCauses)
 		}
 	}
+}
+
+func makeDeployment(config *appsapi.DeploymentConfig) (*corev1.ReplicationController, error) {
+	configExternal := &appsv1.DeploymentConfig{}
+	if err := legacyscheme.Scheme.Convert(config, configExternal, nil); err != nil {
+		return nil, err
+	}
+	return appsutil.MakeDeployment(configExternal)
 }
