@@ -404,10 +404,20 @@ func (node *OsdnNode) Start() error {
 }
 `), 0644)
 	if err != nil {
+		glog.V(2).Infof("openshift-sdn error writing readiness file: %v", err)
 		return err
 	}
 
 	glog.V(2).Infof("openshift-sdn network plugin ready")
+
+	_, err = ioutil.ReadFile(filepath.Join(node.cniDirPath, openshiftCNIFile))
+	if err != nil {
+		glog.V(2).Infof("openshift-sdn error reading readiness file: %v", err)
+		return err
+	}
+
+	glog.V(2).Infof("openshift-sdn network plugin found readiness file at %s", filepath.Join(node.cniDirPath, openshiftCNIFile))
+
 	return nil
 }
 
