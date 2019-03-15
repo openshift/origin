@@ -9,8 +9,8 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	etcd "k8s.io/apiserver/pkg/storage/etcd"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	utilquota "k8s.io/kubernetes/pkg/quota"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
@@ -21,7 +21,7 @@ import (
 
 type clusterQuotaAccessor struct {
 	clusterQuotaLister quotalister.ClusterResourceQuotaLister
-	namespaceLister    kcorelisters.NamespaceLister
+	namespaceLister    corev1listers.NamespaceLister
 	clusterQuotaClient quotatypedclient.ClusterResourceQuotasGetter
 
 	clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper
@@ -35,7 +35,7 @@ type clusterQuotaAccessor struct {
 // newQuotaAccessor creates an object that conforms to the QuotaAccessor interface to be used to retrieve quota objects.
 func newQuotaAccessor(
 	clusterQuotaLister quotalister.ClusterResourceQuotaLister,
-	namespaceLister kcorelisters.NamespaceLister,
+	namespaceLister corev1listers.NamespaceLister,
 	clusterQuotaClient quotatypedclient.ClusterResourceQuotasGetter,
 	clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper,
 ) *clusterQuotaAccessor {

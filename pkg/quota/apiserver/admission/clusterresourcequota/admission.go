@@ -11,11 +11,12 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
-	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
-	kubeapiserveradmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
+	"k8s.io/client-go/informers"
+	corev1listers "k8s.io/client-go/listers/core/v1"
+	"k8s.io/client-go/rest"
+	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/install"
 	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
@@ -26,7 +27,6 @@ import (
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
 	quotatypedclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/typed/quota/internalversion"
 	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
-	"k8s.io/client-go/rest"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -42,7 +42,7 @@ type clusterQuotaAdmission struct {
 
 	// these are used to create the accessor
 	clusterQuotaLister quotalister.ClusterResourceQuotaLister
-	namespaceLister    kcorelisters.NamespaceLister
+	namespaceLister    corev1listers.NamespaceLister
 	clusterQuotaSynced func() bool
 	namespaceSynced    func() bool
 	clusterQuotaClient quotatypedclient.ClusterResourceQuotasGetter
@@ -57,7 +57,7 @@ type clusterQuotaAdmission struct {
 	evaluator resourcequota.Evaluator
 }
 
-var _ kubeapiserveradmission.WantsInternalKubeInformerFactory = &clusterQuotaAdmission{}
+var _ initializer.WantsExternalKubeInformerFactory = &clusterQuotaAdmission{}
 var _ oadmission.WantsRESTClientConfig = &clusterQuotaAdmission{}
 var _ oadmission.WantsClusterQuota = &clusterQuotaAdmission{}
 var _ admission.ValidationInterface = &clusterQuotaAdmission{}
@@ -100,7 +100,7 @@ func (q *clusterQuotaAdmission) Validate(a admission.Attributes) (err error) {
 	return q.evaluator.Evaluate(a)
 }
 
-func (q *clusterQuotaAdmission) lockAquisition(quotas []kapi.ResourceQuota) func() {
+func (q *clusterQuotaAdmission) lockAquisition(quotas []coreapi.ResourceQuota) func() {
 	locks := []sync.Locker{}
 
 	// acquire the locks in alphabetical order because I'm too lazy to think of something clever
@@ -134,9 +134,9 @@ func (q *clusterQuotaAdmission) SetOriginQuotaRegistry(registry quota.Registry) 
 	q.registry = registry
 }
 
-func (q *clusterQuotaAdmission) SetInternalKubeInformerFactory(informers kinternalinformers.SharedInformerFactory) {
-	q.namespaceLister = informers.Core().InternalVersion().Namespaces().Lister()
-	q.namespaceSynced = informers.Core().InternalVersion().Namespaces().Informer().HasSynced
+func (q *clusterQuotaAdmission) SetExternalKubeInformerFactory(informers informers.SharedInformerFactory) {
+	q.namespaceLister = informers.Core().V1().Namespaces().Lister()
+	q.namespaceSynced = informers.Core().V1().Namespaces().Informer().HasSynced
 }
 
 func (q *clusterQuotaAdmission) SetRESTClientConfig(restClientConfig rest.Config) {
@@ -174,7 +174,7 @@ func (q *clusterQuotaAdmission) ValidateInitialization() error {
 	return nil
 }
 
-type ByName []kapi.ResourceQuota
+type ByName []coreapi.ResourceQuota
 
 func (v ByName) Len() int           { return len(v) }
 func (v ByName) Swap(i, j int)      { v[i], v[j] = v[j], v[i] }

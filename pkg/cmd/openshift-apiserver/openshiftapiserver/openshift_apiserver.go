@@ -329,7 +329,6 @@ func (c *completedConfig) withQuotaAPIServer(delegateAPIServer genericapiserver.
 		ExtraConfig: quotaapiserver.ExtraConfig{
 			ClusterQuotaMappingController: c.ExtraConfig.ClusterQuotaMappingController,
 			QuotaInformers:                c.ExtraConfig.QuotaInformers,
-			KubeInternalInformers:         c.ExtraConfig.KubeInternalInformers,
 			Codecs:                        legacyscheme.Codecs,
 			Scheme:                        legacyscheme.Scheme,
 		},

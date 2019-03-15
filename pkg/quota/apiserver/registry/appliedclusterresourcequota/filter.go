@@ -13,7 +13,6 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
-	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
@@ -26,18 +25,16 @@ import (
 )
 
 type AppliedClusterResourceQuotaREST struct {
-	quotaMapper     clusterquotamapping.ClusterQuotaMapper
-	quotaLister     quotalister.ClusterResourceQuotaLister
-	namespaceLister kcorelisters.NamespaceLister
+	quotaMapper clusterquotamapping.ClusterQuotaMapper
+	quotaLister quotalister.ClusterResourceQuotaLister
 	rest.TableConvertor
 }
 
-func NewREST(quotaMapper clusterquotamapping.ClusterQuotaMapper, quotaLister quotalister.ClusterResourceQuotaLister, namespaceLister kcorelisters.NamespaceLister) *AppliedClusterResourceQuotaREST {
+func NewREST(quotaMapper clusterquotamapping.ClusterQuotaMapper, quotaLister quotalister.ClusterResourceQuotaLister) *AppliedClusterResourceQuotaREST {
 	return &AppliedClusterResourceQuotaREST{
-		quotaMapper:     quotaMapper,
-		quotaLister:     quotaLister,
-		namespaceLister: namespaceLister,
-		TableConvertor:  printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
+		quotaMapper:    quotaMapper,
+		quotaLister:    quotaLister,
+		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 	}
 }
 
