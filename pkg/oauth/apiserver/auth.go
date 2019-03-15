@@ -134,7 +134,7 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler, requestContextMapper
 	)
 	server.Install(mux, oauthutil.OpenShiftOAuthAPIPrefix)
 
-	tokenRequestEndpoints := tokenrequest.NewEndpoints(c.Options.MasterPublicURL, c.getOsinOAuthClient)
+	tokenRequestEndpoints := tokenrequest.NewEndpoints(c.Options.MasterPublicURL, c.getOsinOAuthClient, c.getCSRF())
 	tokenRequestEndpoints.Install(mux, oauthutil.OpenShiftOAuthAPIPrefix)
 
 	// glog.Infof("oauth server configured as: %#v", server)

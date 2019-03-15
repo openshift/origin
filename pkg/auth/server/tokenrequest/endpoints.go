@@ -5,36 +5,39 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
 
 	"github.com/RangelReale/osincli"
+	"github.com/golang/glog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
+	"github.com/openshift/origin/pkg/auth/server/csrf"
 	"github.com/openshift/origin/pkg/auth/server/login"
+	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 )
 
-const (
-	RequestTokenEndpoint  = "/token/request"
-	DisplayTokenEndpoint  = "/token/display"
-	ImplicitTokenEndpoint = "/token/implicit"
-)
+const csrfParam = "csrf"
 
 type endpointDetails struct {
 	publicMasterURL string
 	// osinOAuthClientGetter is used to initialize osinOAuthClient.
 	// Since it can return an error, it may be called multiple times.
 	osinOAuthClientGetter func() (*osincli.Client, error)
+
+	csrf csrf.CSRF
 }
 
 type Endpoints interface {
 	Install(mux login.Mux, paths ...string)
 }
 
-func NewEndpoints(publicMasterURL string, osinOAuthClientGetter func() (*osincli.Client, error)) Endpoints {
+func NewEndpoints(publicMasterURL string, osinOAuthClientGetter func() (*osincli.Client, error), csrf csrf.CSRF) Endpoints {
 	return &endpointDetails{
 		publicMasterURL:       publicMasterURL,
 		osinOAuthClientGetter: osinOAuthClientGetter,
+		csrf:                  csrf,
 	}
 }
 
@@ -42,9 +45,9 @@ func NewEndpoints(publicMasterURL string, osinOAuthClientGetter func() (*osincli
 // provided prefix will serve all operations
 func (endpoints *endpointDetails) Install(mux login.Mux, paths ...string) {
 	for _, prefix := range paths {
-		mux.HandleFunc(path.Join(prefix, RequestTokenEndpoint), endpoints.oauthClientHandler(endpoints.requestToken))
-		mux.HandleFunc(path.Join(prefix, DisplayTokenEndpoint), endpoints.oauthClientHandler(endpoints.displayToken))
-		mux.HandleFunc(path.Join(prefix, ImplicitTokenEndpoint), endpoints.implicitToken)
+		mux.HandleFunc(path.Join(prefix, oauthutil.RequestTokenEndpoint), endpoints.oauthClientHandler(endpoints.requestToken))
+		mux.HandleFunc(path.Join(prefix, oauthutil.DisplayTokenEndpoint), endpoints.oauthClientHandler(endpoints.displayToken))
+		mux.HandleFunc(path.Join(prefix, oauthutil.ImplicitTokenEndpoint), endpoints.implicitToken)
 	}
 }
 
@@ -69,14 +72,53 @@ func (endpoints *endpointDetails) requestToken(osinOAuthClient *osincli.Client, 
 }
 
 func (endpoints *endpointDetails) displayToken(osinOAuthClient *osincli.Client, w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
-	data := tokenData{RequestURL: "request", PublicMasterURL: endpoints.publicMasterURL}
+	switch req.Method {
+	case http.MethodGet:
+		endpoints.displayTokenGet(osinOAuthClient, w, req)
+	case http.MethodPost:
+		endpoints.displayTokenPost(osinOAuthClient, w, req)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
 
-	authorizeReq := osinOAuthClient.NewAuthorizeRequest(osincli.CODE)
-	authorizeData, err := authorizeReq.HandleRequest(req)
+func (endpoints *endpointDetails) displayTokenGet(osinOAuthClient *osincli.Client, w http.ResponseWriter, req *http.Request) {
+	data := formData{}
+	authorizeData, ok := displayTokenStart(osinOAuthClient, w, req, &data.sharedData)
+	if !ok {
+		renderForm(w, data)
+		return
+	}
+
+	uri, err := getBaseURL(req)
 	if err != nil {
-		data.Error = fmt.Sprintf("Error handling auth request: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		utilruntime.HandleError(fmt.Errorf("unable to generate base URL: %v", err))
+		http.Error(w, "Unable to determine URL", http.StatusInternalServerError)
+		return
+	}
+
+	data.Action = uri.String()
+	data.Code = authorizeData.Code
+	data.CSRF, err = endpoints.csrf.Generate(w, req)
+	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("unable to generate csrf token: %v", err))
+		http.Error(w, "Unable to generate csrf token", http.StatusInternalServerError)
+		return
+	}
+
+	renderForm(w, data)
+}
+
+func (endpoints *endpointDetails) displayTokenPost(osinOAuthClient *osincli.Client, w http.ResponseWriter, req *http.Request) {
+	if ok, _ := endpoints.csrf.Check(req, req.FormValue(csrfParam)); !ok {
+		glog.V(4).Infof("Invalid CSRF token: %s", req.FormValue(csrfParam))
+		http.Error(w, "Could not check CSRF token. Please try again.", http.StatusBadRequest)
+		return
+	}
+
+	data := tokenData{PublicMasterURL: endpoints.publicMasterURL}
+	authorizeData, ok := displayTokenStart(osinOAuthClient, w, req, &data.sharedData)
+	if !ok {
 		renderToken(w, data)
 		return
 	}
@@ -94,21 +136,65 @@ func (endpoints *endpointDetails) displayToken(osinOAuthClient *osincli.Client, 
 	renderToken(w, data)
 }
 
+func displayTokenStart(osinOAuthClient *osincli.Client, w http.ResponseWriter, req *http.Request, data *sharedData) (*osincli.AuthorizeData, bool) {
+	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+
+	requestURL := oauthutil.OpenShiftOAuthTokenRequestURL("") // relative url to token request endpoint
+	data.RequestURL = requestURL                              // always set this field even on error cases
+
+	authorizeReq := osinOAuthClient.NewAuthorizeRequest(osincli.CODE)
+	authorizeData, err := authorizeReq.HandleRequest(req)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		data.Error = fmt.Sprintf("Error handling auth request: %v", err)
+		return nil, false
+	}
+
+	return authorizeData, true
+}
+
 func renderToken(w io.Writer, data tokenData) {
 	if err := tokenTemplate.Execute(w, data); err != nil {
 		utilruntime.HandleError(fmt.Errorf("unable to render token template: %v", err))
 	}
 }
 
+type sharedData struct {
+	Error      string
+	RequestURL string
+}
+
 type tokenData struct {
-	Error           string
+	sharedData
+
 	AccessToken     string
-	RequestURL      string
 	PublicMasterURL string
 }
 
-// TODO: allow template to be read from an external file
-var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(`
+func getBaseURL(req *http.Request) (*url.URL, error) {
+	uri, err := url.Parse(req.RequestURI)
+	if err != nil {
+		return nil, err
+	}
+	uri.Scheme, uri.Host, uri.RawQuery, uri.Fragment = req.URL.Scheme, req.URL.Host, "", ""
+	return uri, nil
+}
+
+type formData struct {
+	sharedData
+
+	Action string
+	Code   string
+	CSRF   string
+}
+
+func renderForm(w io.Writer, data formData) {
+	if err := formTemplate.Execute(w, data); err != nil {
+		utilruntime.HandleError(fmt.Errorf("unable to render form template: %v", err))
+	}
+}
+
+const cssStyle = `
 <style>
 	body     { font-family: sans-serif; font-size: 14px; margin: 2em 2%; background-color: #F9F9F9; }
 	h2       { font-size: 1.4em;}
@@ -122,7 +208,10 @@ var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(`
 		.nowrap { white-space: nowrap; }
 	}
 </style>
+`
 
+var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(
+	cssStyle + `
 {{ if .Error }}
   {{ .Error }}
 {{ else }}
@@ -138,6 +227,23 @@ var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(`
 
 <br><br>
 <a href="{{.RequestURL}}">Request another token</a>
+`))
+
+var formTemplate = template.Must(template.New("formTemplate").Parse(
+	cssStyle + `
+{{ if .Error }}
+  {{ .Error }}
+  <br><br>
+  <a href="{{.RequestURL}}">Request another token</a>
+{{ else }}
+  <form method="post" action="{{.Action}}">
+    <input type="hidden" name="code" value="{{.Code}}">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <button type="submit">
+      Display Token
+    </button>
+  </form>
+{{ end }}
 `))
 
 func (endpoints *endpointDetails) implicitToken(w http.ResponseWriter, req *http.Request) {
