@@ -281,6 +281,9 @@ func (o *NewOptions) Run() error {
 			return fmt.Errorf("must specify image mappings")
 		}
 	}
+	if len(o.Mirror) > 0 && o.ReferenceMode != "" && o.ReferenceMode != "public" {
+		return fmt.Errorf("--reference-mode must be public or empty when using --mirror")
+	}
 
 	extraComponentVersions, err := parseComponentVersionsLabel(o.ExtraComponentVersions)
 	if err != nil {
@@ -583,7 +586,7 @@ func (o *NewOptions) Run() error {
 		if err != nil {
 			return err
 		}
-		if _, err := payload.Rewrite(true, targetFn); err != nil {
+		if err := payload.Rewrite(true, targetFn); err != nil {
 			return fmt.Errorf("failed to update contents for input mappings: %v", err)
 		}
 	}
@@ -866,18 +869,14 @@ func (o *NewOptions) mirrorImages(is *imageapi.ImageStream, payload *Payload) er
 		return err
 	}
 
-	if payload == nil {
-		return nil
-	}
-
-	glog.V(4).Infof("Rewriting payload to point to mirror")
 	targetFn, err := ComponentReferencesForImageStream(copied)
 	if err != nil {
 		return err
 	}
-	replacements, err := payload.Rewrite(false, targetFn)
+
+	replacements, err := ReplacementsForImageStream(is, false, targetFn)
 	if err != nil {
-		return fmt.Errorf("failed to update contents after mirroring: %v", err)
+		return err
 	}
 	for i := range is.Spec.Tags {
 		tag := &is.Spec.Tags[i]
@@ -891,6 +890,15 @@ func (o *NewOptions) mirrorImages(is *imageapi.ImageStream, payload *Payload) er
 	if glog.V(4) {
 		data, _ := json.MarshalIndent(is, "", "  ")
 		glog.Infof("Image references updated to:\n%s", string(data))
+	}
+
+	if payload == nil {
+		return nil
+	}
+
+	glog.V(4).Infof("Rewriting payload to point to mirror")
+	if err := payload.Rewrite(false, targetFn); err != nil {
+		return fmt.Errorf("failed to update contents after mirroring: %v", err)
 	}
 	return nil
 }
