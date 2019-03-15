@@ -133,7 +133,16 @@ func (c *DeploymentConfigController) Handle(config *appsv1.DeploymentConfig) err
 		return c.updateStatus(config, existingDeployments, true)
 	}
 
+	configCopy := config.DeepCopy()
+
 	latestExists, latestDeployment := appsutil.LatestDeploymentInfo(config, existingDeployments)
+	candidateVersion := appsutil.DeploymentVersionFor(latestDeployment)
+	if candidateVersion > config.Status.LatestVersion {
+		// FIXME: update LatestVersion to candidateVersion directly when validation allows it in all supported skews
+		configCopy.Status.LatestVersion++
+		_, err := c.appsClient.DeploymentConfigs(configCopy.Namespace).UpdateStatus(configCopy)
+		return err
+	}
 
 	if !latestExists {
 		if err := c.cancelRunningRollouts(config, existingDeployments, cm); err != nil {
@@ -149,7 +158,6 @@ func (c *DeploymentConfigController) Handle(config *appsv1.DeploymentConfig) err
 		}
 	}
 
-	configCopy := config.DeepCopy()
 	// Process triggers and start an initial rollouts
 	shouldTrigger, shouldSkip, err := triggerActivated(configCopy, latestExists, latestDeployment)
 	if err != nil {
@@ -186,30 +194,29 @@ func (c *DeploymentConfigController) Handle(config *appsv1.DeploymentConfig) err
 	}
 	created, err := c.kubeClient.ReplicationControllers(config.Namespace).Create(deployment)
 	if err != nil {
-		// We need to find out if our controller owns that deployment and report error if not
 		if kapierrors.IsAlreadyExists(err) {
-			rc, err := c.rcLister.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
+			rc, err := c.kubeClient.ReplicationControllers(deployment.Namespace).Get(deployment.Name, metav1.GetOptions{})
 			if err != nil {
-				return fmt.Errorf("error while deploymentConfigController getting the replication controller %s/%s: %v", deployment.Namespace, deployment.Name, err)
+				return fmt.Errorf("error while getting replication controller %s/%s: %v", deployment.Namespace, deployment.Name, err)
 			}
-			// We need to make sure we own that RC or adopt it if possible
 			isOurs, err := cm.ClaimReplicationController(rc)
-			if err != nil {
-				return fmt.Errorf("error while deploymentConfigController claiming the replication controller: %v", err)
-			}
-			if isOurs {
-				// If the deployment was already created, just move on. The cache could be
-				// stale, or another process could have already handled this update.
-				return c.updateStatus(config, existingDeployments, true)
+			if err == nil {
+				if isOurs {
+					// Caches are stalled, wait for them to sync (errors cause requeue)
+					return fmt.Errorf("caches for RC %s/%s are stale, waiting to catch up", deployment.Namespace, deployment.Name)
+				} else {
+					err = fmt.Errorf("deployment %s/%s already exists and it couldn't be adopted",
+						deployment.Namespace, deployment.Name)
+				}
 			} else {
-				err = fmt.Errorf("replication controller %s already exists and deployment config is not allowed to claim it", deployment.Name)
-				c.recorder.Eventf(config, v1.EventTypeWarning, "DeploymentCreationFailed", "Couldn't deploy version %d: %v", config.Status.LatestVersion, err)
-				return c.updateStatus(config, existingDeployments, true)
+				err = fmt.Errorf("deployment %s/%s already exists and it couldn't be adopted: %v",
+					deployment.Namespace, deployment.Name, err)
 			}
 		}
+
 		c.recorder.Eventf(config, v1.EventTypeWarning, "DeploymentCreationFailed", "Couldn't deploy version %d: %s", config.Status.LatestVersion, err)
-		// We don't care about this error since we need to report the create failure.
 		cond := appsutil.NewDeploymentCondition(appsv1.DeploymentProgressing, v1.ConditionFalse, appsutil.FailedRcCreateReason, err.Error())
+		// We don't care about this error since we need to report the create failure.
 		_ = c.updateStatus(config, existingDeployments, true, *cond)
 		return fmt.Errorf("couldn't create deployment for deployment config %s: %v", appsutil.LabelForDeploymentConfig(config), err)
 	}
