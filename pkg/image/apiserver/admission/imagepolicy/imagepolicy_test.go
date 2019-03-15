@@ -40,6 +40,14 @@ const (
 	badSHA  = "sha256:503c75e8121369581e5e5abe57b5a3f12db859052b217a8ea16eb86f4b5561a1"
 )
 
+var (
+	buildGroupVersionResource = schema.GroupVersionResource{Group: "build.openshift.io", Version: "v1", Resource: "builds"}
+	buildGroupVersionKind     = schema.GroupVersionKind{Group: "build.openshift.io", Version: "v1", Kind: "Build"}
+
+	buildConfigGroupVersionResource = schema.GroupVersionResource{Group: "build.openshift.io", Version: "v1", Resource: "buildconfigs"}
+	buildConfigGroupVersionKind     = schema.GroupVersionKind{Group: "build.openshift.io", Version: "v1", Kind: "BuildConfig"}
+)
+
 func init() {
 	configinstall.InstallLegacyInternal(configapi.Scheme)
 }
@@ -262,8 +270,8 @@ func TestDefaultPolicy(t *testing.T) {
 		&buildapi.Build{Spec: buildapi.BuildSpec{CommonSpec: buildapi.CommonSpec{Source: buildapi.BuildSource{Images: []buildapi.ImageSource{
 			{From: kapi.ObjectReference{Kind: "DockerImage", Name: "index.docker.io/mysql@" + badSHA}},
 		}}}}},
-		nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
-		"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
+		nil, buildGroupVersionKind,
+		"default", "build1", buildGroupVersionResource,
 		"", admission.Create, false, nil,
 	)
 	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
@@ -276,8 +284,8 @@ func TestDefaultPolicy(t *testing.T) {
 		&buildapi.Build{Spec: buildapi.BuildSpec{CommonSpec: buildapi.CommonSpec{Strategy: buildapi.BuildStrategy{DockerStrategy: &buildapi.DockerBuildStrategy{
 			From: &kapi.ObjectReference{Kind: "DockerImage", Name: "index.docker.io/mysql@" + badSHA},
 		}}}}},
-		nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
-		"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
+		nil, buildGroupVersionKind,
+		"default", "build1", buildGroupVersionResource,
 		"", admission.Create, false, nil,
 	)
 	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
@@ -290,8 +298,8 @@ func TestDefaultPolicy(t *testing.T) {
 		&buildapi.Build{Spec: buildapi.BuildSpec{CommonSpec: buildapi.CommonSpec{Strategy: buildapi.BuildStrategy{SourceStrategy: &buildapi.SourceBuildStrategy{
 			From: kapi.ObjectReference{Kind: "DockerImage", Name: "index.docker.io/mysql@" + badSHA},
 		}}}}},
-		nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
-		"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
+		nil, buildGroupVersionKind,
+		"default", "build1", buildGroupVersionResource,
 		"", admission.Create, false, nil,
 	)
 	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
@@ -304,8 +312,8 @@ func TestDefaultPolicy(t *testing.T) {
 		&buildapi.Build{Spec: buildapi.BuildSpec{CommonSpec: buildapi.CommonSpec{Strategy: buildapi.BuildStrategy{CustomStrategy: &buildapi.CustomBuildStrategy{
 			From: kapi.ObjectReference{Kind: "DockerImage", Name: "index.docker.io/mysql@" + badSHA},
 		}}}}},
-		nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
-		"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
+		nil, buildGroupVersionKind,
+		"default", "build1", buildGroupVersionResource,
 		"", admission.Create, false, nil,
 	)
 	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
@@ -321,8 +329,8 @@ func TestDefaultPolicy(t *testing.T) {
 		&buildapi.BuildConfig{Spec: buildapi.BuildConfigSpec{CommonSpec: buildapi.CommonSpec{Source: buildapi.BuildSource{Images: []buildapi.ImageSource{
 			{From: kapi.ObjectReference{Kind: "DockerImage", Name: "index.docker.io/mysql@" + badSHA}},
 		}}}}},
-		nil, schema.GroupVersionKind{Version: "v1", Kind: "BuildConfig"},
-		"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "buildconfigs"},
+		nil, buildConfigGroupVersionKind,
+		"default", "build1", buildConfigGroupVersionResource,
 		"", admission.Create, false, nil,
 	)
 	if err := plugin.Admit(attrs); err != nil {
@@ -628,8 +636,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 							},
 						},
 					},
-				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
-				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
+				}, nil, buildGroupVersionKind,
+				"default", "build1", buildGroupVersionResource,
 				"", admission.Create, false, nil,
 			),
 			admit: true,
@@ -665,8 +673,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 							},
 						},
 					},
-				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
-				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
+				}, nil, buildGroupVersionKind,
+				"default", "build1", buildGroupVersionResource,
 				"", admission.Create, false, nil,
 			),
 			admit: true,
@@ -714,8 +722,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 						},
 					},
 				},
-				schema.GroupVersionKind{Version: "v1", Kind: "Build"},
-				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
+				buildGroupVersionKind,
+				"default", "build1", buildGroupVersionResource,
 				"", admission.Create, false, nil,
 			),
 			admit: true,
@@ -748,8 +756,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 							},
 						},
 					},
-				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
-				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
+				}, nil, buildGroupVersionKind,
+				"default", "build1", buildGroupVersionResource,
 				"", admission.Create, false, nil,
 			),
 			admit: true,
@@ -770,7 +778,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 			config: &imagepolicy.ImagePolicyConfig{
 				ResolveImages: imagepolicy.RequiredRewrite,
 				ResolutionRules: []imagepolicy.ImageResolutionPolicyRule{
-					{TargetResource: metav1.GroupResource{Group: "", Resource: "builds"}},
+					{TargetResource: metav1.GroupResource{Group: "build.openshift.io", Resource: "builds"}},
 				},
 			},
 			client: imageclient.NewSimpleClientset(
@@ -790,8 +798,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 							},
 						},
 					},
-				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
-				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
+				}, nil, buildGroupVersionKind,
+				"default", "build1", buildGroupVersionResource,
 				"", admission.Create, false, nil,
 			),
 			admit: true,
@@ -812,7 +820,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 			config: &imagepolicy.ImagePolicyConfig{
 				ResolveImages: imagepolicy.RequiredRewrite,
 				ResolutionRules: []imagepolicy.ImageResolutionPolicyRule{
-					{TargetResource: metav1.GroupResource{Group: "", Resource: "builds"}, Policy: imagepolicy.Attempt},
+					{TargetResource: metav1.GroupResource{Group: "build.openshift.io", Resource: "builds"}, Policy: imagepolicy.Attempt},
 				},
 			},
 			client: imageclient.NewSimpleClientset(
@@ -832,8 +840,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 							},
 						},
 					},
-				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
-				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
+				}, nil, buildGroupVersionKind,
+				"default", "build1", buildGroupVersionResource,
 				"", admission.Create, false, nil,
 			),
 			admit: true,
@@ -854,7 +862,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 			config: &imagepolicy.ImagePolicyConfig{
 				ResolveImages: imagepolicy.DoNotAttempt,
 				ResolutionRules: []imagepolicy.ImageResolutionPolicyRule{
-					{TargetResource: metav1.GroupResource{Group: "", Resource: "builds"}, Policy: imagepolicy.AttemptRewrite},
+					{TargetResource: metav1.GroupResource{Group: "build.openshift.io", Resource: "builds"}, Policy: imagepolicy.AttemptRewrite},
 				},
 			},
 			client: imageclient.NewSimpleClientset(
@@ -874,8 +882,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 							},
 						},
 					},
-				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
-				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
+				}, nil, buildGroupVersionKind,
+				"default", "build1", buildGroupVersionResource,
 				"", admission.Create, false, nil,
 			),
 			admit: true,
@@ -911,8 +919,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 							},
 						},
 					},
-				}, nil, schema.GroupVersionKind{Group: "build.openshift.io", Version: "v1", Kind: "Build"},
-				"default", "build1", schema.GroupVersionResource{Group: "build.openshift.io", Version: "v1", Resource: "builds"},
+				}, nil, buildGroupVersionKind,
+				"default", "build1", buildGroupVersionResource,
 				"", admission.Create, false, nil,
 			),
 			admit: true,
@@ -948,8 +956,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 							},
 						},
 					},
-				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
-				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
+				}, nil, buildGroupVersionKind,
+				"default", "build1", buildGroupVersionResource,
 				"", admission.Create, false, nil,
 			),
 			admit: true,
@@ -986,8 +994,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 							},
 						},
 					},
-				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
-				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
+				}, nil, buildGroupVersionKind,
+				"default", "build1", buildGroupVersionResource,
 				"", admission.Create, false, nil,
 			),
 			admit: true,
@@ -1154,7 +1162,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 			client: (func() *imageclient.Clientset {
 				fake := &imageclient.Clientset{}
 				fake.AddReactor("get", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-					return true, nil, kerrors.NewNotFound(schema.GroupResource{Resource: "imagestreamtags"}, "test:other")
+					return true, nil, kerrors.NewNotFound(schema.GroupResource{Group: "image.openshift.io", Resource: "imagestreamtags"}, "test:other")
 				})
 				fake.AddReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 					return true, &imageapi.ImageStream{
@@ -1298,7 +1306,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 	}
 	for i, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
-			onResources := []metav1.GroupResource{{Resource: "builds"}, {Resource: "pods"}}
+			onResources := []metav1.GroupResource{{Group: "build.openshift.io", Resource: "builds"}, {Resource: "pods"}}
 			config := test.config
 			if config == nil {
 				// old style config

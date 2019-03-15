@@ -25,8 +25,6 @@ func SetDefaults_ImagePolicyConfig(obj *ImagePolicyConfig) {
 		obj.ResolutionRules = []ImageResolutionPolicyRule{
 			{TargetResource: metav1.GroupResource{Resource: "pods"}, LocalNames: true},
 			{TargetResource: metav1.GroupResource{Group: "build.openshift.io", Resource: "builds"}, LocalNames: true},
-			// TODO remove this when https://bugzilla.redhat.com/show_bug.cgi?id=1679602 is resolved.
-			{TargetResource: metav1.GroupResource{Group: "", Resource: "builds"}, LocalNames: true},
 			{TargetResource: metav1.GroupResource{Group: "batch", Resource: "jobs"}, LocalNames: true},
 			{TargetResource: metav1.GroupResource{Group: "extensions", Resource: "replicasets"}, LocalNames: true},
 			{TargetResource: metav1.GroupResource{Resource: "replicationcontrollers"}, LocalNames: true},
