@@ -5870,7 +5870,7 @@ spec:
         name: test
         command:
         - /bin/sleep
-        - "100"
+        - "infinity"
   test: false
   triggers:
   - imageChangeParams:
