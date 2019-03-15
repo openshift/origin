@@ -713,7 +713,6 @@ func TestValidateDeploymentConfigUpdate(t *testing.T) {
 		newLatestVersion int64
 	}{
 		{5, 3},
-		{5, 7},
 		{0, -1},
 	}
 
