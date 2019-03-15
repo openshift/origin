@@ -122,7 +122,7 @@ func (sdn *OpenShiftSDN) initProxy() error {
 	sdn.OsdnProxy, err = sdnproxy.New(
 		sdn.NodeConfig.NetworkConfig.NetworkPluginName,
 		sdn.informers.NetworkClient,
-		sdn.informers.InternalClient,
+		sdn.informers.KubeClient,
 		sdn.informers.NetworkInformers)
 	return err
 }

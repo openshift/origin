@@ -3,8 +3,6 @@ package openshift_sdn
 import (
 	kinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
 	networkinformers "github.com/openshift/client-go/network/informers/externalversions"
@@ -14,14 +12,11 @@ import (
 
 // informers is a small bag of data that holds our informers
 type informers struct {
-	KubeClient     kubernetes.Interface
-	NetworkClient  networkclient.Interface
-	InternalClient kclientsetinternal.Interface
+	KubeClient    kubernetes.Interface
+	NetworkClient networkclient.Interface
 
 	// External kubernetes shared informer factory.
 	KubeInformers kinformers.SharedInformerFactory
-	// Internal kubernetes shared informer factory.
-	InternalKubeInformers kinternalinformers.SharedInformerFactory
 	// Network shared informer factory.
 	NetworkInformers networkinformers.SharedInformerFactory
 }
@@ -36,27 +31,20 @@ func (sdn *OpenShiftSDN) buildInformers() error {
 	if err != nil {
 		return err
 	}
-	internalClient, err := kclientsetinternal.NewForConfig(kubeConfig)
-	if err != nil {
-		return err
-	}
 	networkClient, err := networkclient.NewForConfig(kubeConfig)
 	if err != nil {
 		return err
 	}
 
 	kubeInformers := kinformers.NewSharedInformerFactory(kubeClient, sdn.ProxyConfig.IPTables.SyncPeriod.Duration)
-	internalKubeInformers := kinternalinformers.NewSharedInformerFactory(internalClient, sdn.ProxyConfig.IPTables.SyncPeriod.Duration)
 	networkInformers := networkinformers.NewSharedInformerFactory(networkClient, network.DefaultInformerResyncPeriod)
 
 	sdn.informers = &informers{
-		KubeClient:     kubeClient,
-		NetworkClient:  networkClient,
-		InternalClient: internalClient,
+		KubeClient:    kubeClient,
+		NetworkClient: networkClient,
 
-		KubeInformers:         kubeInformers,
-		InternalKubeInformers: internalKubeInformers,
-		NetworkInformers:      networkInformers,
+		KubeInformers:    kubeInformers,
+		NetworkInformers: networkInformers,
 	}
 	return nil
 }
@@ -64,6 +52,5 @@ func (sdn *OpenShiftSDN) buildInformers() error {
 // start starts the informers.
 func (i *informers) start(stopCh <-chan struct{}) {
 	i.KubeInformers.Start(stopCh)
-	i.InternalKubeInformers.Start(stopCh)
 	i.NetworkInformers.Start(stopCh)
 }

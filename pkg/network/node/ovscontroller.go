@@ -16,10 +16,10 @@ import (
 	"github.com/openshift/origin/pkg/network/common"
 	"github.com/openshift/origin/pkg/util/ovs"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 )
 
 type ovsController struct {
@@ -569,7 +569,7 @@ func (oc *ovsController) DeleteHostSubnetRules(subnet *networkapi.HostSubnet) er
 	return otx.Commit()
 }
 
-func (oc *ovsController) AddServiceRules(service *kapi.Service, netID uint32) error {
+func (oc *ovsController) AddServiceRules(service *corev1.Service, netID uint32) error {
 	otx := oc.ovs.NewTransaction()
 
 	action := fmt.Sprintf(", priority=100, actions=load:%d->NXM_NX_REG1[], load:2->NXM_NX_REG2[], goto_table:80", netID)
@@ -588,7 +588,7 @@ func (oc *ovsController) AddServiceRules(service *kapi.Service, netID uint32) er
 	return otx.Commit()
 }
 
-func (oc *ovsController) DeleteServiceRules(service *kapi.Service) error {
+func (oc *ovsController) DeleteServiceRules(service *corev1.Service) error {
 	otx := oc.ovs.NewTransaction()
 	otx.DeleteFlows(generateBaseServiceRule(service.Spec.ClusterIP))
 	return otx.Commit()
@@ -598,11 +598,11 @@ func generateBaseServiceRule(IP string) string {
 	return fmt.Sprintf("table=60, ip, nw_dst=%s", IP)
 }
 
-func generateBaseAddServiceRule(IP string, protocol kapi.Protocol, port int) (string, error) {
+func generateBaseAddServiceRule(IP string, protocol corev1.Protocol, port int) (string, error) {
 	var dst string
-	if protocol == kapi.ProtocolUDP {
+	if protocol == corev1.ProtocolUDP {
 		dst = fmt.Sprintf(", udp, udp_dst=%d", port)
-	} else if protocol == kapi.ProtocolTCP {
+	} else if protocol == corev1.ProtocolTCP {
 		dst = fmt.Sprintf(", tcp, tcp_dst=%d", port)
 	} else {
 		return "", fmt.Errorf("unhandled protocol %v", protocol)

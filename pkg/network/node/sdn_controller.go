@@ -12,9 +12,9 @@ import (
 
 	"github.com/openshift/origin/pkg/util/netutils"
 
+	corev1 "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/util/sysctl"
 
 	"github.com/vishvananda/netlink"
@@ -208,14 +208,14 @@ func (plugin *OsdnNode) updateEgressNetworkPolicyRules(vnid uint32) {
 	}
 }
 
-func (plugin *OsdnNode) AddServiceRules(service *kapi.Service, netID uint32) {
+func (plugin *OsdnNode) AddServiceRules(service *corev1.Service, netID uint32) {
 	glog.V(5).Infof("AddServiceRules for %v", service)
 	if err := plugin.oc.AddServiceRules(service, netID); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error adding OVS flows for service %v, netid %d: %v", service, netID, err))
 	}
 }
 
-func (plugin *OsdnNode) DeleteServiceRules(service *kapi.Service) {
+func (plugin *OsdnNode) DeleteServiceRules(service *corev1.Service) {
 	glog.V(5).Infof("DeleteServiceRules for %v", service)
 	if err := plugin.oc.DeleteServiceRules(service); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error deleting OVS flows for service %v: %v", service, err))

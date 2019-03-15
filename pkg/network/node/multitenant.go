@@ -6,15 +6,16 @@ import (
 	"fmt"
 	"sync"
 
+	"k8s.io/kubernetes/pkg/apis/core/v1/helper"
+
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
-	networkapi "github.com/openshift/api/network/v1"
+	networkv1 "github.com/openshift/api/network/v1"
 	"github.com/openshift/origin/pkg/network"
 )
 
@@ -69,7 +70,7 @@ func (mp *multiTenantPlugin) updatePodNetwork(namespace string, oldNetID, netID 
 	services, err := mp.node.kClient.Core().Services(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Could not get list of services in namespace %q: %v", namespace, err))
-		services = &kapi.ServiceList{}
+		services = &corev1.ServiceList{}
 	}
 
 	if oldNetID != netID {
@@ -83,7 +84,7 @@ func (mp *multiTenantPlugin) updatePodNetwork(namespace string, oldNetID, netID 
 
 		// Update OF rules for the old services in the namespace
 		for _, svc := range services.Items {
-			if !kapihelper.IsServiceIPSet(&svc) {
+			if !helper.IsServiceIPSet(&svc) {
 				continue
 			}
 
@@ -102,15 +103,15 @@ func (mp *multiTenantPlugin) updatePodNetwork(namespace string, oldNetID, netID 
 	mp.node.podManager.UpdateLocalMulticastRules(netID)
 }
 
-func (mp *multiTenantPlugin) AddNetNamespace(netns *networkapi.NetNamespace) {
+func (mp *multiTenantPlugin) AddNetNamespace(netns *networkv1.NetNamespace) {
 	mp.updatePodNetwork(netns.Name, 0, netns.NetID)
 }
 
-func (mp *multiTenantPlugin) UpdateNetNamespace(netns *networkapi.NetNamespace, oldNetID uint32) {
+func (mp *multiTenantPlugin) UpdateNetNamespace(netns *networkv1.NetNamespace, oldNetID uint32) {
 	mp.updatePodNetwork(netns.Name, oldNetID, netns.NetID)
 }
 
-func (mp *multiTenantPlugin) DeleteNetNamespace(netns *networkapi.NetNamespace) {
+func (mp *multiTenantPlugin) DeleteNetNamespace(netns *networkv1.NetNamespace) {
 	mp.updatePodNetwork(netns.Name, netns.NetID, 0)
 }
 
