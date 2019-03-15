@@ -70,6 +70,11 @@ type Config struct {
 	// TODO: demonstrate an OAuth2 compatible client.
 	BearerToken string
 
+	// Path to a file containing a BearerToken.
+	// If set, the contents are periodically read.
+	// The last successfully read value takes precedence over BearerToken.
+	BearerTokenFile string
+
 	// Impersonate is the configuration that RESTClient will use for impersonation.
 	Impersonate ImpersonationConfig
 
@@ -328,9 +333,7 @@ func InClusterConfig() (*Config, error) {
 		return nil, ErrNotInCluster
 	}
 
-	ts := newCachedPathTokenSource(tokenFile)
-
-	tok, err := ts.Token()
+	token, err := ioutil.ReadFile(tokenFile)
 	if err != nil {
 		return nil, err
 	}
@@ -345,12 +348,10 @@ func InClusterConfig() (*Config, error) {
 
 	return &Config{
 		// TODO: switch to using cluster DNS.
-		Host: "https://" + net.JoinHostPort(host, port),
-		// TODO: This is a fix for #69234, caused by #67359
-		// It looks like we will need to be careful on rotation.
-		BearerToken:     tok.AccessToken,
+		Host:            "https://" + net.JoinHostPort(host, port),
 		TLSClientConfig: tlsClientConfig,
-		WrapTransport:   TokenSourceWrapTransport(ts),
+		BearerToken:     string(token),
+		BearerTokenFile: tokenFile,
 	}, nil
 }
 
@@ -440,12 +441,13 @@ func AnonymousClientConfig(config *Config) *Config {
 // CopyConfig returns a copy of the given config
 func CopyConfig(config *Config) *Config {
 	return &Config{
-		Host:          config.Host,
-		APIPath:       config.APIPath,
-		ContentConfig: config.ContentConfig,
-		Username:      config.Username,
-		Password:      config.Password,
-		BearerToken:   config.BearerToken,
+		Host:            config.Host,
+		APIPath:         config.APIPath,
+		ContentConfig:   config.ContentConfig,
+		Username:        config.Username,
+		Password:        config.Password,
+		BearerToken:     config.BearerToken,
+		BearerTokenFile: config.BearerTokenFile,
 		Impersonate: ImpersonationConfig{
 			Groups:   config.Impersonate.Groups,
 			Extra:    config.Impersonate.Extra,
