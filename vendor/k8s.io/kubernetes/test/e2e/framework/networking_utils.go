@@ -29,7 +29,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -755,8 +755,6 @@ func TestReachableHTTPWithContentTimeoutWithRetriableErrorCodes(ip string, port 
 		Failf("Got port==0 for reachability check (%s)", url)
 		return false, nil
 	}
-
-	Logf("Testing HTTP reachability of %v", url)
 
 	resp, err := httpGetNoConnectionPoolTimeout(url, timeout)
 	if err != nil {
