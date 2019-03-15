@@ -6,14 +6,13 @@ import (
 	"io"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/client-go/informers"
 	corev1listers "k8s.io/client-go/listers/core/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
+	coreapi "k8s.io/kubernetes/pkg/apis/core"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/util/labelselector"
@@ -35,7 +34,6 @@ const (
 // podNodeEnvironment is an implementation of admission.MutationInterface.
 type podNodeEnvironment struct {
 	*admission.Handler
-	client         kclientset.Interface
 	nsLister       corev1listers.NamespaceLister
 	nsListerSynced func() bool
 	// TODO this should become a piece of config passed to the admission plugin
@@ -44,14 +42,13 @@ type podNodeEnvironment struct {
 
 var _ = initializer.WantsExternalKubeInformerFactory(&podNodeEnvironment{})
 var _ = oadmission.WantsDefaultNodeSelector(&podNodeEnvironment{})
-var _ = kadmission.WantsInternalKubeClientSet(&podNodeEnvironment{})
 var _ = admission.ValidationInterface(&podNodeEnvironment{})
 var _ = admission.MutationInterface(&podNodeEnvironment{})
 
 // Admit enforces that pod and its project node label selectors matches at least a node in the cluster.
 func (p *podNodeEnvironment) admit(a admission.Attributes, mutationAllowed bool) (err error) {
 	resource := a.GetResource().GroupResource()
-	if resource != kapi.Resource("pods") {
+	if resource != corev1.Resource("pods") {
 		return nil
 	}
 	if a.GetSubresource() != "" {
@@ -60,7 +57,7 @@ func (p *podNodeEnvironment) admit(a admission.Attributes, mutationAllowed bool)
 	}
 
 	obj := a.GetObject()
-	pod, ok := obj.(*kapi.Pod)
+	pod, ok := obj.(*coreapi.Pod)
 	if !ok {
 		return nil
 	}
@@ -120,10 +117,6 @@ func (p *podNodeEnvironment) SetDefaultNodeSelector(in string) {
 func (p *podNodeEnvironment) SetExternalKubeInformerFactory(kubeInformers informers.SharedInformerFactory) {
 	p.nsLister = kubeInformers.Core().V1().Namespaces().Lister()
 	p.nsListerSynced = kubeInformers.Core().V1().Namespaces().Informer().HasSynced
-}
-
-func (q *podNodeEnvironment) SetInternalKubeClientSet(c kclientset.Interface) {
-	q.client = c
 }
 
 func (p *podNodeEnvironment) waitForSyncedStore(timeout <-chan time.Time) bool {

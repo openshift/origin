@@ -10,7 +10,6 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	"github.com/openshift/origin/pkg/util/labelselector"
 )
@@ -24,8 +23,7 @@ func TestPodAdmission(t *testing.T) {
 		},
 	}
 
-	mockClientset := fake.NewSimpleClientset()
-	handler := &podNodeEnvironment{client: mockClientset}
+	handler := &podNodeEnvironment{}
 	pod := &kapi.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: "testPod"},
 	}
