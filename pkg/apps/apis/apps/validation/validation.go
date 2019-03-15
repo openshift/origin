@@ -161,8 +161,6 @@ func ValidateDeploymentConfigStatusUpdate(newConfig *appsapi.DeploymentConfig, o
 	statusPath := field.NewPath("status")
 	if newConfig.Status.LatestVersion < oldConfig.Status.LatestVersion {
 		allErrs = append(allErrs, field.Invalid(statusPath.Child("latestVersion"), newConfig.Status.LatestVersion, "latestVersion cannot be decremented"))
-	} else if newConfig.Status.LatestVersion > (oldConfig.Status.LatestVersion + 1) {
-		allErrs = append(allErrs, field.Invalid(statusPath.Child("latestVersion"), newConfig.Status.LatestVersion, "latestVersion can only be incremented by 1"))
 	}
 	if newConfig.Status.ObservedGeneration < oldConfig.Status.ObservedGeneration {
 		allErrs = append(allErrs, field.Invalid(statusPath.Child("observedGeneration"), newConfig.Status.ObservedGeneration, "observedGeneration cannot be decremented"))
