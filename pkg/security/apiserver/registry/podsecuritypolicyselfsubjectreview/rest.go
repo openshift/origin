@@ -4,14 +4,15 @@ import (
 	"context"
 	"fmt"
 
-	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/client-go/kubernetes"
+	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	"github.com/golang/glog"
@@ -24,14 +25,14 @@ import (
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
 	sccMatcher scc.SCCMatcher
-	client     clientset.Interface
+	client     kubernetes.Interface
 }
 
 var _ rest.Creater = &REST{}
 var _ rest.Scoper = &REST{}
 
 // NewREST creates a new REST for policies..
-func NewREST(m scc.SCCMatcher, c clientset.Interface) *REST {
+func NewREST(m scc.SCCMatcher, c kubernetes.Interface) *REST {
 	return &REST{sccMatcher: m, client: c}
 }
 
@@ -48,18 +49,18 @@ func (s *REST) NamespaceScoped() bool {
 func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
 	pspssr, ok := obj.(*securityapi.PodSecurityPolicySelfSubjectReview)
 	if !ok {
-		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a PodSecurityPolicySelfSubjectReview: %#v", obj))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("not a PodSecurityPolicySelfSubjectReview: %#v", obj))
 	}
 	if errs := securityvalidation.ValidatePodSecurityPolicySelfSubjectReview(pspssr); len(errs) > 0 {
-		return nil, kapierrors.NewInvalid(kapi.Kind("PodSecurityPolicySelfSubjectReview"), "", errs)
+		return nil, apierrors.NewInvalid(coreapi.Kind("PodSecurityPolicySelfSubjectReview"), "", errs)
 	}
 	userInfo, ok := apirequest.UserFrom(ctx)
 	if !ok {
-		return nil, kapierrors.NewBadRequest(fmt.Sprintf("no user data associated with context"))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("no user data associated with context"))
 	}
 	ns, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
-		return nil, kapierrors.NewBadRequest("namespace parameter required.")
+		return nil, apierrors.NewBadRequest("namespace parameter required.")
 	}
 
 	users := []user.Info{userInfo}
@@ -70,10 +71,10 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 
 	matchedConstraints, err := r.sccMatcher.FindApplicableSCCs(ns, users...)
 	if err != nil {
-		return nil, kapierrors.NewBadRequest(fmt.Sprintf("unable to find SecurityContextConstraints: %v", err))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("unable to find SecurityContextConstraints: %v", err))
 	}
 
-	var namespace *kapi.Namespace
+	var namespace *corev1.Namespace
 	for _, constraint := range matchedConstraints {
 		var (
 			provider scc.SecurityContextConstraintsProvider

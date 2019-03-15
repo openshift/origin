@@ -9,9 +9,9 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	securityapiv1 "github.com/openshift/api/security/v1"
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
@@ -26,7 +26,7 @@ import (
 type ExtraConfig struct {
 	KubeAPIServerClientConfig *restclient.Config
 	SecurityInformers         securityv1informer.SharedInformerFactory
-	KubeInternalInformers     kinternalinformers.SharedInformerFactory
+	KubeInformers             informers.SharedInformerFactory
 	Authorizer                authorizer.Authorizer
 
 	// TODO these should all become local eventually
@@ -101,7 +101,7 @@ func (c *completedConfig) V1RESTStorage() (map[string]rest.Storage, error) {
 }
 
 func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
-	kubeInternalClient, err := kclientsetinternal.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
+	kubeClient, err := kubernetes.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -110,16 +110,16 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	sccMatcher := oscc.NewDefaultSCCMatcher(c.ExtraConfig.SecurityInformers.Security().V1().SecurityContextConstraints().Lister(), c.ExtraConfig.Authorizer)
 	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(
 		sccMatcher,
-		c.ExtraConfig.KubeInternalInformers.Core().InternalVersion().ServiceAccounts().Lister(),
-		kubeInternalClient,
+		c.ExtraConfig.KubeInformers.Core().V1().ServiceAccounts().Lister(),
+		kubeClient,
 	)
 	podSecurityPolicySubjectStorage := podsecuritypolicysubjectreview.NewREST(
 		sccMatcher,
-		kubeInternalClient,
+		kubeClient,
 	)
 	podSecurityPolicySelfSubjectReviewStorage := podsecuritypolicyselfsubjectreview.NewREST(
 		sccMatcher,
-		kubeInternalClient,
+		kubeClient,
 	)
 	uidRangeStorage := rangeallocations.NewREST(c.GenericConfig.RESTOptionsGetter)
 

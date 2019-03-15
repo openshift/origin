@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -13,10 +14,10 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapiref "k8s.io/kubernetes/pkg/api/ref"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
@@ -27,14 +28,14 @@ import (
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
 	sccMatcher scc.SCCMatcher
-	client     clientset.Interface
+	client     kubernetes.Interface
 }
 
 var _ rest.Creater = &REST{}
 var _ rest.Scoper = &REST{}
 
 // NewREST creates a new REST for policies..
-func NewREST(m scc.SCCMatcher, c clientset.Interface) *REST {
+func NewREST(m scc.SCCMatcher, c kubernetes.Interface) *REST {
 	return &REST{sccMatcher: m, client: c}
 }
 
@@ -60,7 +61,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 	}
 
 	if errs := securityvalidation.ValidatePodSecurityPolicySubjectReview(pspsr); len(errs) > 0 {
-		return nil, kapierrors.NewInvalid(kapi.Kind("PodSecurityPolicySubjectReview"), "", errs)
+		return nil, kapierrors.NewInvalid(coreapi.Kind("PodSecurityPolicySubjectReview"), "", errs)
 	}
 
 	userInfo := &user.DefaultInfo{Name: pspsr.Spec.User, Groups: pspsr.Spec.Groups}
@@ -76,7 +77,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("unable to find SecurityContextConstraints: %v", err))
 	}
 
-	var namespace *kapi.Namespace
+	var namespace *corev1.Namespace
 	for _, constraint := range matchedConstraints {
 		var (
 			provider scc.SecurityContextConstraintsProvider
@@ -99,8 +100,8 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 }
 
 // FillPodSecurityPolicySubjectReviewStatus fills PodSecurityPolicySubjectReviewStatus assigning SecurityContectConstraint to the PodSpec
-func FillPodSecurityPolicySubjectReviewStatus(s *securityapi.PodSecurityPolicySubjectReviewStatus, provider scc.SecurityContextConstraintsProvider, spec kapi.PodSpec, constraint *securityapi.SecurityContextConstraints) (bool, error) {
-	pod := &kapi.Pod{
+func FillPodSecurityPolicySubjectReviewStatus(s *securityapi.PodSecurityPolicySubjectReviewStatus, provider scc.SecurityContextConstraintsProvider, spec coreapi.PodSpec, constraint *securityapi.SecurityContextConstraints) (bool, error) {
+	pod := &coreapi.Pod{
 		Spec: spec,
 	}
 	if errs := scc.AssignSecurityContext(provider, pod, field.NewPath(fmt.Sprintf("provider %s: ", provider.GetSCCName()))); len(errs) > 0 {

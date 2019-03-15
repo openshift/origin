@@ -3,6 +3,7 @@ package securitycontextconstraints
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
@@ -351,8 +352,8 @@ func hasBlock(block uid.Block, blocks []uid.Block) bool {
 }
 
 func TestGetPreallocatedFSGroup(t *testing.T) {
-	ns := func() *kapi.Namespace {
-		return &kapi.Namespace{
+	ns := func() *corev1.Namespace {
+		return &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{},
 			},
@@ -372,7 +373,7 @@ func TestGetPreallocatedFSGroup(t *testing.T) {
 	goodNS.Annotations[allocator.SupplementalGroupsAnnotation] = "1/5"
 
 	tests := map[string]struct {
-		ns         *kapi.Namespace
+		ns         *corev1.Namespace
 		expected   []securityapi.IDRange
 		shouldFail bool
 	}{
@@ -427,8 +428,8 @@ func TestGetPreallocatedFSGroup(t *testing.T) {
 }
 
 func TestGetPreallocatedSupplementalGroups(t *testing.T) {
-	ns := func() *kapi.Namespace {
-		return &kapi.Namespace{
+	ns := func() *corev1.Namespace {
+		return &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{},
 			},
@@ -448,7 +449,7 @@ func TestGetPreallocatedSupplementalGroups(t *testing.T) {
 	goodNS.Annotations[allocator.SupplementalGroupsAnnotation] = "1/5"
 
 	tests := map[string]struct {
-		ns         *kapi.Namespace
+		ns         *corev1.Namespace
 		expected   []securityapi.IDRange
 		shouldFail bool
 	}{

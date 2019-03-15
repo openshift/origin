@@ -3,14 +3,15 @@ package sccadmission
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kadmission "k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	coreapi "k8s.io/kubernetes/pkg/apis/core"
 
 	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
 )
@@ -18,16 +19,16 @@ import (
 // scc exec is a pass through to *constraint, so we only need to test that
 // it correctly limits its actions to certain conditions
 func TestExecAdmit(t *testing.T) {
-	goodPod := func() *kapi.Pod {
-		return &kapi.Pod{
+	goodPod := func() *corev1.Pod {
+		return &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
 			},
-			Spec: kapi.PodSpec{
+			Spec: corev1.PodSpec{
 				ServiceAccountName: "default",
-				Containers: []kapi.Container{
+				Containers: []corev1.Container{
 					{
-						SecurityContext: &kapi.SecurityContext{},
+						SecurityContext: &corev1.SecurityContext{},
 					},
 				},
 			},
@@ -35,49 +36,49 @@ func TestExecAdmit(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
-		operation   kadmission.Operation
+		operation   admission.Operation
 		resource    string
 		subresource string
 
-		pod, oldPod            *kapi.Pod
+		pod                    *corev1.Pod
 		shouldAdmit            bool
 		shouldHaveClientAction bool
 	}{
 		"unchecked operation": {
-			operation:              kadmission.Create,
-			resource:               string(kapi.ResourcePods),
+			operation:              admission.Create,
+			resource:               string(coreapi.ResourcePods),
 			subresource:            "exec",
 			pod:                    goodPod(),
 			shouldAdmit:            true,
 			shouldHaveClientAction: false,
 		},
 		"unchecked resource": {
-			operation:              kadmission.Connect,
-			resource:               string(kapi.ResourceSecrets),
+			operation:              admission.Connect,
+			resource:               string(coreapi.ResourceSecrets),
 			subresource:            "exec",
 			pod:                    goodPod(),
 			shouldAdmit:            true,
 			shouldHaveClientAction: false,
 		},
 		"unchecked subresource": {
-			operation:              kadmission.Connect,
-			resource:               string(kapi.ResourcePods),
+			operation:              admission.Connect,
+			resource:               string(coreapi.ResourcePods),
 			subresource:            "not-exec",
 			pod:                    goodPod(),
 			shouldAdmit:            true,
 			shouldHaveClientAction: false,
 		},
 		"attach check": {
-			operation:              kadmission.Connect,
-			resource:               string(kapi.ResourcePods),
+			operation:              admission.Connect,
+			resource:               string(coreapi.ResourcePods),
 			subresource:            "attach",
 			pod:                    goodPod(),
 			shouldAdmit:            false,
 			shouldHaveClientAction: true,
 		},
 		"exec check": {
-			operation:              kadmission.Connect,
-			resource:               string(kapi.ResourcePods),
+			operation:              admission.Connect,
+			resource:               string(coreapi.ResourcePods),
 			subresource:            "exec",
 			pod:                    goodPod(),
 			shouldAdmit:            false,
@@ -86,7 +87,7 @@ func TestExecAdmit(t *testing.T) {
 	}
 
 	for k, v := range testCases {
-		tc := clientsetfake.NewSimpleClientset(v.pod)
+		tc := fake.NewSimpleClientset(v.pod)
 		tc.PrependReactor("get", "pods", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, v.pod, nil
 		})
@@ -96,9 +97,9 @@ func TestExecAdmit(t *testing.T) {
 		indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 		cache := securityv1listers.NewSecurityContextConstraintsLister(indexer)
 		p.constraintAdmission.sccLister = cache
-		p.SetInternalKubeClientSet(tc)
+		p.SetExternalKubeClientSet(tc)
 
-		attrs := kadmission.NewAttributesRecord(v.pod, v.oldPod, kapi.Kind("Pod").WithVersion("version"), "namespace", "pod-name", kapi.Resource(v.resource).WithVersion("version"), v.subresource, v.operation, false, &user.DefaultInfo{})
+		attrs := admission.NewAttributesRecord(nil, nil, coreapi.Kind("Pod").WithVersion("version"), "namespace", "pod-name", coreapi.Resource(v.resource).WithVersion("version"), v.subresource, v.operation, false, &user.DefaultInfo{})
 		err := p.Validate(attrs)
 
 		if v.shouldAdmit && err != nil {

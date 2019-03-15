@@ -1,16 +1,16 @@
 package testing
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	securityv1 "github.com/openshift/api/security/v1"
 	allocator "github.com/openshift/origin/pkg/security"
 )
 
 // CreateSAForTest Build and Initializes a ServiceAccount for tests
-func CreateSAForTest() *kapi.ServiceAccount {
-	return &kapi.ServiceAccount{
+func CreateSAForTest() *corev1.ServiceAccount {
+	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "default",
 			Namespace: "default",
@@ -19,8 +19,8 @@ func CreateSAForTest() *kapi.ServiceAccount {
 }
 
 // CreateNamespaceForTest builds and initializes a Namespaces for tests
-func CreateNamespaceForTest() *kapi.Namespace {
-	return &kapi.Namespace{
+func CreateNamespaceForTest() *corev1.Namespace {
+	return &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "default",
 			Annotations: map[string]string{
