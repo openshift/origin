@@ -5,14 +5,15 @@ import (
 	"strconv"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
-	informersexternal "k8s.io/client-go/informers"
-	fakeexternal "k8s.io/client-go/kubernetes/fake"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes/fake"
+	corev1listers "k8s.io/client-go/listers/core/v1"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/controller"
 )
 
@@ -76,7 +77,7 @@ func (mr *mockReviewer) Review(name string) (Review, error) {
 }
 
 func validateList(t *testing.T, lister Lister, user user.Info, expectedSet sets.String) {
-	namespaceList, err := lister.List(user)
+	namespaceList, err := lister.List(user, labels.Everything())
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
 	}
@@ -90,8 +91,8 @@ func validateList(t *testing.T, lister Lister, user user.Info, expectedSet sets.
 }
 
 func TestSyncNamespace(t *testing.T) {
-	namespaceList := kapi.NamespaceList{
-		Items: []kapi.Namespace{
+	namespaceList := corev1.NamespaceList{
+		Items: []corev1.Namespace{
 			{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo", ResourceVersion: "1"},
 			},
@@ -123,16 +124,18 @@ func TestSyncNamespace(t *testing.T) {
 	}
 
 	informers := informers.NewSharedInformerFactory(mockKubeClient, controller.NoResyncPeriodFunc())
-	externalInformers := informersexternal.NewSharedInformerFactory(fakeexternal.NewSimpleClientset(), controller.NoResyncPeriodFunc())
+	nsIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
+	nsLister := corev1listers.NewNamespaceLister(nsIndexer)
 
 	authorizationCache := NewAuthorizationCache(
-		informers.Core().InternalVersion().Namespaces().Informer(),
+		nsLister,
+		informers.Core().V1().Namespaces().Informer(),
 		reviewer,
-		externalInformers.Rbac().V1(),
+		informers.Rbac().V1(),
 	)
 	// we prime the data we need here since we are not running reflectors
 	for i := range namespaceList.Items {
-		authorizationCache.namespaceStore.Add(&namespaceList.Items[i])
+		nsIndexer.Add(&namespaceList.Items[i])
 	}
 
 	// synchronize the cache
@@ -160,7 +163,7 @@ func TestSyncNamespace(t *testing.T) {
 		}
 		newVersion := strconv.Itoa(oldVersion + 1)
 		namespace.ResourceVersion = newVersion
-		authorizationCache.namespaceStore.Add(&namespace)
+		nsIndexer.Add(&namespace)
 	}
 
 	// now refresh the cache (which is resource version aware)

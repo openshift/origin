@@ -5,7 +5,6 @@ import (
 	rbacinformers "k8s.io/client-go/informers/rbac/v1"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/cache"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
 	projectauth "github.com/openshift/origin/pkg/project/auth"
@@ -30,9 +29,10 @@ func NewProjectCache(nsInformer corev1informers.NamespaceInformer, privilegedLoo
 		nil
 }
 
-func NewProjectAuthorizationCache(subjectLocator rbacauthorizer.SubjectLocator, namespaces cache.SharedIndexInformer, rbacInformers rbacinformers.Interface) *projectauth.AuthorizationCache {
+func NewProjectAuthorizationCache(subjectLocator rbacauthorizer.SubjectLocator, namespaces corev1informers.NamespaceInformer, rbacInformers rbacinformers.Interface) *projectauth.AuthorizationCache {
 	return projectauth.NewAuthorizationCache(
-		namespaces,
+		namespaces.Lister(),
+		namespaces.Informer(),
 		projectauth.NewAuthorizerReviewer(subjectLocator),
 		rbacInformers,
 	)

@@ -16,7 +16,6 @@ import (
 	"k8s.io/apiserver/pkg/storage"
 	informersv1 "k8s.io/client-go/informers"
 	fakev1 "k8s.io/client-go/kubernetes/fake"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/controller"
 
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
@@ -46,7 +45,7 @@ func newTestWatcher(username string, groups []string, predicate storage.Selectio
 }
 
 type fakeAuthCache struct {
-	namespaces []*kapi.Namespace
+	namespaces []*corev1.Namespace
 
 	removed []CacheWatcher
 }
@@ -55,8 +54,8 @@ func (w *fakeAuthCache) RemoveWatcher(watcher CacheWatcher) {
 	w.removed = append(w.removed, watcher)
 }
 
-func (w *fakeAuthCache) List(userInfo user.Info) (*kapi.NamespaceList, error) {
-	ret := &kapi.NamespaceList{}
+func (w *fakeAuthCache) List(userInfo user.Info, selector labels.Selector) (*corev1.NamespaceList, error) {
+	ret := &corev1.NamespaceList{}
 	if w.namespaces != nil {
 		for i := range w.namespaces {
 			ret.Items = append(ret.Items, *w.namespaces[i])

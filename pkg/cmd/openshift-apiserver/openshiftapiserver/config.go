@@ -203,7 +203,7 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 	subjectLocator := NewSubjectLocator(informers.GetKubernetesInformers().Rbac().V1())
 	projectAuthorizationCache := NewProjectAuthorizationCache(
 		subjectLocator,
-		informers.GetInternalKubernetesInformers().Core().InternalVersion().Namespaces().Informer(),
+		informers.GetKubernetesInformers().Core().V1().Namespaces(),
 		informers.GetKubernetesInformers().Rbac().V1(),
 	)
 

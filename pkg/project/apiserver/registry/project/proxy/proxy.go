@@ -5,19 +5,15 @@ import (
 	"fmt"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kstorage "k8s.io/apiserver/pkg/storage"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
-	nsregistry "k8s.io/kubernetes/pkg/registry/core/namespace"
 
 	"github.com/openshift/api/project"
 	"github.com/openshift/origin/pkg/api/apihelpers"
@@ -33,7 +29,7 @@ import (
 
 type REST struct {
 	// client can modify Kubernetes namespaces
-	client kcoreclient.NamespaceInterface
+	client corev1client.NamespaceInterface
 	// lister can enumerate project lists that enforce policy
 	lister projectauth.Lister
 	// Allows extended behavior during creation, required
@@ -54,7 +50,7 @@ var _ rest.Watcher = &REST{}
 var _ rest.Scoper = &REST{}
 
 // NewREST returns a RESTStorage object that will work against Project resources
-func NewREST(client kcoreclient.NamespaceInterface, lister projectauth.Lister, authCache *projectauth.AuthorizationCache, projectCache *projectcache.ProjectCache) *REST {
+func NewREST(client corev1client.NamespaceInterface, lister projectauth.Lister, authCache *projectauth.AuthorizationCache, projectCache *projectcache.ProjectCache) *REST {
 	return &REST{
 		client:         client,
 		lister:         lister,
@@ -89,16 +85,12 @@ func (s *REST) List(ctx context.Context, options *metainternal.ListOptions) (run
 	if !ok {
 		return nil, kerrors.NewForbidden(project.Resource("project"), "", fmt.Errorf("unable to list projects without a user on the context"))
 	}
-	namespaceList, err := s.lister.List(user)
+	labelSelector, _ := apihelpers.InternalListOptionsToSelectors(options)
+	namespaceList, err := s.lister.List(user, labelSelector)
 	if err != nil {
 		return nil, err
 	}
-	m := nsregistry.MatchNamespace(apihelpers.InternalListOptionsToSelectors(options))
-	list, err := filterList(namespaceList, m, nil)
-	if err != nil {
-		return nil, err
-	}
-	return projectutil.ConvertNamespaceList(list.(*kapi.NamespaceList)), nil
+	return projectutil.ConvertNamespaceList(namespaceList), nil
 }
 
 func (s *REST) Watch(ctx context.Context, options *metainternal.ListOptions) (watch.Interface, error) {
@@ -137,7 +129,7 @@ func (s *REST) Get(ctx context.Context, name string, options *metav1.GetOptions)
 	if err != nil {
 		return nil, err
 	}
-	return projectutil.ConvertNamespace(namespace), nil
+	return projectutil.ConvertNamespaceFromExternal(namespace), nil
 }
 
 var _ = rest.Creater(&REST{})
@@ -157,11 +149,11 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, creationValidatio
 		return nil, err
 	}
 
-	namespace, err := s.client.Create(projectutil.ConvertProject(projectObj))
+	namespace, err := s.client.Create(projectutil.ConvertProjectToExternal(projectObj))
 	if err != nil {
 		return nil, err
 	}
-	return projectutil.ConvertNamespace(namespace), nil
+	return projectutil.ConvertNamespaceFromExternal(namespace), nil
 }
 
 var _ = rest.Updater(&REST{})
@@ -190,12 +182,12 @@ func (s *REST) Update(ctx context.Context, name string, objInfo rest.UpdatedObje
 		return nil, false, err
 	}
 
-	namespace, err := s.client.Update(projectutil.ConvertProject(projectObj))
+	namespace, err := s.client.Update(projectutil.ConvertProjectToExternal(projectObj))
 	if err != nil {
 		return nil, false, err
 	}
 
-	return projectutil.ConvertNamespace(namespace), false, nil
+	return projectutil.ConvertNamespaceFromExternal(namespace), false, nil
 }
 
 var _ = rest.GracefulDeleter(&REST{})
@@ -203,39 +195,4 @@ var _ = rest.GracefulDeleter(&REST{})
 // Delete deletes a Project specified by its name
 func (s *REST) Delete(ctx context.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
 	return &metav1.Status{Status: metav1.StatusSuccess}, false, s.client.Delete(name, nil)
-}
-
-// decoratorFunc can mutate the provided object prior to being returned.
-type decoratorFunc func(obj runtime.Object) error
-
-// filterList filters any list object that conforms to the api conventions,
-// provided that 'm' works with the concrete type of list. d is an optional
-// decorator for the returned functions. Only matching items are decorated.
-func filterList(list runtime.Object, m kstorage.SelectionPredicate, d decoratorFunc) (filtered runtime.Object, err error) {
-	// TODO: push a matcher down into tools.etcdHelper to avoid all this
-	// nonsense. This is a lot of unnecessary copies.
-	items, err := meta.ExtractList(list)
-	if err != nil {
-		return nil, err
-	}
-	var filteredItems []runtime.Object
-	for _, obj := range items {
-		match, err := m.Matches(obj)
-		if err != nil {
-			return nil, err
-		}
-		if match {
-			if d != nil {
-				if err := d(obj); err != nil {
-					return nil, err
-				}
-			}
-			filteredItems = append(filteredItems, obj)
-		}
-	}
-	err = meta.SetList(list, filteredItems)
-	if err != nil {
-		return nil, err
-	}
-	return list, nil
 }

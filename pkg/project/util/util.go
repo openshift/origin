@@ -15,24 +15,11 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 )
 
-// ConvertNamespace transforms a Namespace into a Project
-func ConvertNamespace(namespace *kapi.Namespace) *projectapi.Project {
-	return &projectapi.Project{
-		ObjectMeta: namespace.ObjectMeta,
-		Spec: projectapi.ProjectSpec{
-			Finalizers: namespace.Spec.Finalizers,
-		},
-		Status: projectapi.ProjectStatus{
-			Phase: namespace.Status.Phase,
-		},
-	}
-}
-
 // ConvertNamespaceFromExternal transforms a versioned Namespace into a Project
 func ConvertNamespaceFromExternal(namespace *corev1.Namespace) *projectapi.Project {
 	internalFinalizers := []kapi.FinalizerName{}
 	for _, externalFinalizer := range namespace.Spec.Finalizers {
-		internalFinalizers = append(internalFinalizers, kapi.FinalizerName(string(externalFinalizer)))
+		internalFinalizers = append(internalFinalizers, kapi.FinalizerName(externalFinalizer))
 	}
 
 	return &projectapi.Project{
@@ -41,20 +28,24 @@ func ConvertNamespaceFromExternal(namespace *corev1.Namespace) *projectapi.Proje
 			Finalizers: internalFinalizers,
 		},
 		Status: projectapi.ProjectStatus{
-			Phase: kapi.NamespacePhase(string(namespace.Status.Phase)),
+			Phase: kapi.NamespacePhase(namespace.Status.Phase),
 		},
 	}
 }
 
-// convertProject transforms a Project into a Namespace
-func ConvertProject(project *projectapi.Project) *kapi.Namespace {
-	namespace := &kapi.Namespace{
+func ConvertProjectToExternal(project *projectapi.Project) *corev1.Namespace {
+	externalFinalizers := []corev1.FinalizerName{}
+	for _, internalFinalizer := range project.Spec.Finalizers {
+		externalFinalizers = append(externalFinalizers, corev1.FinalizerName(internalFinalizer))
+	}
+
+	namespace := &corev1.Namespace{
 		ObjectMeta: project.ObjectMeta,
-		Spec: kapi.NamespaceSpec{
-			Finalizers: project.Spec.Finalizers,
+		Spec: corev1.NamespaceSpec{
+			Finalizers: externalFinalizers,
 		},
-		Status: kapi.NamespaceStatus{
-			Phase: project.Status.Phase,
+		Status: corev1.NamespaceStatus{
+			Phase: corev1.NamespacePhase(project.Status.Phase),
 		},
 	}
 	if namespace.Annotations == nil {
@@ -65,10 +56,10 @@ func ConvertProject(project *projectapi.Project) *kapi.Namespace {
 }
 
 // ConvertNamespaceList transforms a NamespaceList into a ProjectList
-func ConvertNamespaceList(namespaceList *kapi.NamespaceList) *projectapi.ProjectList {
+func ConvertNamespaceList(namespaceList *corev1.NamespaceList) *projectapi.ProjectList {
 	projects := &projectapi.ProjectList{}
 	for _, n := range namespaceList.Items {
-		projects.Items = append(projects.Items, *ConvertNamespace(&n))
+		projects.Items = append(projects.Items, *ConvertNamespaceFromExternal(&n))
 	}
 	return projects
 }
