@@ -166,6 +166,9 @@ func (p *Parser) lookahead() (Token, string) {
 // consume returns current token and string. Increments the the position
 func (p *Parser) consume() (Token, string) {
 	p.position++
+	if p.position > len(p.scannedItems) {
+		return EndOfStringToken, ""
+	}
 	tok, lit := p.scannedItems[p.position-1].tok, p.scannedItems[p.position-1].literal
 	return tok, lit
 }
@@ -264,7 +267,7 @@ func (p *Parser) parseOperator() (op string, err error) {
 // parseExactValue parses the only value for exact match style
 func (p *Parser) parseExactValue() (string, error) {
 	tok, lit := p.consume()
-	if tok != IdentifierToken {
+	if tok != IdentifierToken && tok != EndOfStringToken {
 		return "", fmt.Errorf("found '%s', expected: identifier", lit)
 	}
 	if err := validateLabelValue(lit); err != nil {

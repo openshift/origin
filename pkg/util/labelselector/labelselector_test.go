@@ -90,6 +90,11 @@ func TestLabelSelectorParse(t *testing.T) {
 			labels:   map[string]string{},
 			valid:    false,
 		},
+		{
+			selector: "node-role.kubernetes.io/infra=",
+			labels:   map[string]string{"node-role.kubernetes.io/infra": ""},
+			valid:    true,
+		},
 	}
 	for _, test := range tests {
 		labels, err := Parse(test.selector)
