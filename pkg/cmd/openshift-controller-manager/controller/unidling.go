@@ -22,7 +22,7 @@ func RunUnidlingController(ctx *ControllerContext) (bool, error) {
 	scaleNamespacer := appsv1client.NewDelegatingScaleNamespacer(appsClient,
 		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraUnidlingControllerServiceAccountName).ExtensionsV1beta1())
 
-	coreClient := ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraUnidlingControllerServiceAccountName).Core()
+	coreClient := ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraUnidlingControllerServiceAccountName).Core()
 	controller := unidlingcontroller.NewUnidlingController(
 		scaleNamespacer,
 		coreClient,
