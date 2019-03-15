@@ -604,6 +604,20 @@ func (o *NewOptions) Run() error {
 					}
 					return fmt.Errorf("%s: invalid YAML/JSON: %s", filename, msg)
 				}
+				s := string(data)
+				if len(s) > 30 {
+					s = s[:30] + "..."
+				}
+				m, ok := obj.(map[string]interface{})
+				if !ok {
+					return fmt.Errorf("%s: not a valid YAML/JSON object, got: %s", filename, s)
+				}
+				if s, ok := m["kind"].(string); !ok || s == "" {
+					return fmt.Errorf("%s: manifests must contain Kubernetes API objects with 'kind' and 'apiVersion' set: %s", filename, s)
+				}
+				if s, ok := m["apiVersion"].(string); !ok || s == "" {
+					return fmt.Errorf("%s: manifests must contain Kubernetes API objects with 'kind' and 'apiVersion' set: %s", filename, s)
+				}
 				break
 			}
 			return nil
