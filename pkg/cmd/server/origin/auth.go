@@ -161,7 +161,7 @@ func (c *AuthConfig) WithOAuth(handler http.Handler) (http.Handler, error) {
 		glog.Fatal(err)
 	}
 
-	tokenRequestEndpoints := tokenrequest.NewEndpoints(c.Options.MasterPublicURL, c.getOsinOAuthClient)
+	tokenRequestEndpoints := tokenrequest.NewEndpoints(c.Options.MasterPublicURL, c.getOsinOAuthClient, c.getCSRF())
 	tokenRequestEndpoints.Install(mux, oauthutil.OpenShiftOAuthAPIPrefix)
 
 	// glog.Infof("oauth server configured as: %#v", server)
@@ -185,7 +185,7 @@ func (c *AuthConfig) getOsinOAuthClient() (*osincli.Client, error) {
 		return nil, err
 	}
 	osOAuthClientConfig := c.NewOpenShiftOAuthClientConfig(browserClient)
-	osOAuthClientConfig.RedirectUrl = c.Options.MasterPublicURL + path.Join(oauthutil.OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)
+	osOAuthClientConfig.RedirectUrl = c.Options.MasterPublicURL + path.Join(oauthutil.OpenShiftOAuthAPIPrefix, oauthutil.DisplayTokenEndpoint)
 
 	osOAuthClient, _ := osincli.NewClient(osOAuthClientConfig)
 	if len(*c.Options.MasterCA) > 0 {
@@ -307,7 +307,7 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 			ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftBrowserClientID},
 			Secret:                uuid.New(),
 			RespondWithChallenges: false,
-			RedirectURIs:          []string{masterPublicAddr + path.Join(oauthutil.OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)},
+			RedirectURIs:          []string{masterPublicAddr + path.Join(oauthutil.OpenShiftOAuthAPIPrefix, oauthutil.DisplayTokenEndpoint)},
 			GrantMethod:           oauthapi.GrantHandlerAuto,
 		}
 		if err := ensureOAuthClient(browserClient, clientRegistry, true, true); err != nil {
@@ -320,7 +320,7 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 			ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftCLIClientID},
 			Secret:                "",
 			RespondWithChallenges: true,
-			RedirectURIs:          []string{masterPublicAddr + path.Join(oauthutil.OpenShiftOAuthAPIPrefix, tokenrequest.ImplicitTokenEndpoint)},
+			RedirectURIs:          []string{masterPublicAddr + path.Join(oauthutil.OpenShiftOAuthAPIPrefix, oauthutil.ImplicitTokenEndpoint)},
 			GrantMethod:           oauthapi.GrantHandlerAuto,
 		}
 		if err := ensureOAuthClient(cliClient, clientRegistry, false, false); err != nil {
