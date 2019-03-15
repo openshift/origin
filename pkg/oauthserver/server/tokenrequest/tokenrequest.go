@@ -5,18 +5,23 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
 
 	"github.com/RangelReale/osincli"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/klog"
 
 	"github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	"github.com/openshift/origin/pkg/oauth/urls"
 	"github.com/openshift/origin/pkg/oauthserver"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
+	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
 )
+
+const csrfParam = "csrf"
 
 type tokenRequest struct {
 	publicMasterURL string
@@ -27,14 +32,17 @@ type tokenRequest struct {
 	// to check if we need the logout link for the bootstrap user
 	tokens                v1.OAuthAccessTokenInterface
 	openShiftLogoutPrefix string
+
+	csrf csrf.CSRF
 }
 
-func NewTokenRequest(publicMasterURL, openShiftLogoutPrefix string, osinOAuthClientGetter func() (*osincli.Client, error), tokens v1.OAuthAccessTokenInterface) oauthserver.Endpoints {
+func NewTokenRequest(publicMasterURL, openShiftLogoutPrefix string, osinOAuthClientGetter func() (*osincli.Client, error), tokens v1.OAuthAccessTokenInterface, csrf csrf.CSRF) oauthserver.Endpoints {
 	return &tokenRequest{
 		publicMasterURL:       publicMasterURL,
 		osinOAuthClientGetter: osinOAuthClientGetter,
 		tokens:                tokens,
 		openShiftLogoutPrefix: openShiftLogoutPrefix,
+		csrf:                  csrf,
 	}
 }
 
@@ -65,15 +73,47 @@ func (t *tokenRequest) requestToken(osinOAuthClient *osincli.Client, w http.Resp
 }
 
 func (t *tokenRequest) displayToken(osinOAuthClient *osincli.Client, w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
-	requestURL := urls.OpenShiftOAuthTokenRequestURL("") // relative url to token request endpoint
-	data := tokenData{RequestURL: requestURL, PublicMasterURL: t.publicMasterURL}
+	switch req.Method {
+	case http.MethodGet:
+		t.displayTokenGet(osinOAuthClient, w, req)
+	case http.MethodPost:
+		t.displayTokenPost(osinOAuthClient, w, req)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
 
-	authorizeReq := osinOAuthClient.NewAuthorizeRequest(osincli.CODE)
-	authorizeData, err := authorizeReq.HandleRequest(req)
+func (t *tokenRequest) displayTokenGet(osinOAuthClient *osincli.Client, w http.ResponseWriter, req *http.Request) {
+	data := formData{}
+	authorizeData, ok := displayTokenStart(osinOAuthClient, w, req, &data.sharedData)
+	if !ok {
+		renderForm(w, data)
+		return
+	}
+
+	uri, err := getBaseURL(req)
 	if err != nil {
-		data.Error = fmt.Sprintf("Error handling auth request: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		utilruntime.HandleError(fmt.Errorf("unable to generate base URL: %v", err))
+		http.Error(w, "Unable to determine URL", http.StatusInternalServerError)
+		return
+	}
+
+	data.Action = uri.String()
+	data.Code = authorizeData.Code
+	data.CSRF = t.csrf.Generate(w, req)
+	renderForm(w, data)
+}
+
+func (t *tokenRequest) displayTokenPost(osinOAuthClient *osincli.Client, w http.ResponseWriter, req *http.Request) {
+	if ok := t.csrf.Check(req, req.FormValue(csrfParam)); !ok {
+		klog.V(4).Infof("Invalid CSRF token: %s", req.FormValue(csrfParam))
+		http.Error(w, "Could not check CSRF token. Please try again.", http.StatusBadRequest)
+		return
+	}
+
+	data := tokenData{PublicMasterURL: t.publicMasterURL}
+	authorizeData, ok := displayTokenStart(osinOAuthClient, w, req, &data.sharedData)
+	if !ok {
 		renderToken(w, data)
 		return
 	}
@@ -104,22 +144,66 @@ func (t *tokenRequest) displayToken(osinOAuthClient *osincli.Client, w http.Resp
 	renderToken(w, data)
 }
 
+func displayTokenStart(osinOAuthClient *osincli.Client, w http.ResponseWriter, req *http.Request, data *sharedData) (*osincli.AuthorizeData, bool) {
+	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+
+	requestURL := urls.OpenShiftOAuthTokenRequestURL("") // relative url to token request endpoint
+	data.RequestURL = requestURL                         // always set this field even on error cases
+
+	authorizeReq := osinOAuthClient.NewAuthorizeRequest(osincli.CODE)
+	authorizeData, err := authorizeReq.HandleRequest(req)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		data.Error = fmt.Sprintf("Error handling auth request: %v", err)
+		return nil, false
+	}
+
+	return authorizeData, true
+}
+
 func renderToken(w io.Writer, data tokenData) {
 	if err := tokenTemplate.Execute(w, data); err != nil {
 		utilruntime.HandleError(fmt.Errorf("unable to render token template: %v", err))
 	}
 }
 
+type sharedData struct {
+	Error      string
+	RequestURL string
+}
+
 type tokenData struct {
-	Error           string
+	sharedData
+
 	AccessToken     string
-	RequestURL      string
 	PublicMasterURL string
 	LogoutURL       string
 }
 
-// TODO: allow template to be read from an external file
-var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(`
+func getBaseURL(req *http.Request) (*url.URL, error) {
+	uri, err := url.Parse(req.RequestURI)
+	if err != nil {
+		return nil, err
+	}
+	uri.Scheme, uri.Host, uri.RawQuery, uri.Fragment = req.URL.Scheme, req.URL.Host, "", ""
+	return uri, nil
+}
+
+type formData struct {
+	sharedData
+
+	Action string
+	Code   string
+	CSRF   string
+}
+
+func renderForm(w io.Writer, data formData) {
+	if err := formTemplate.Execute(w, data); err != nil {
+		utilruntime.HandleError(fmt.Errorf("unable to render form template: %v", err))
+	}
+}
+
+const cssStyle = `
 <style>
 	body     { font-family: sans-serif; font-size: 14px; margin: 2em 2%; background-color: #F9F9F9; }
 	h2       { font-size: 1.4em;}
@@ -135,7 +219,10 @@ var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(`
 		.nowrap { white-space: nowrap; }
 	}
 </style>
+`
 
+var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(
+	cssStyle + `
 {{ if .Error }}
   {{ .Error }}
 {{ else }}
@@ -158,6 +245,23 @@ var tokenTemplate = template.Must(template.New("tokenTemplate").Parse(`
     <input type="hidden" name="then" value="{{.RequestURL}}">
     <button type="submit">
       Logout
+    </button>
+  </form>
+{{ end }}
+`))
+
+var formTemplate = template.Must(template.New("formTemplate").Parse(
+	cssStyle + `
+{{ if .Error }}
+  {{ .Error }}
+  <br><br>
+  <a href="{{.RequestURL}}">Request another token</a>
+{{ else }}
+  <form method="post" action="{{.Action}}">
+    <input type="hidden" name="code" value="{{.Code}}">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <button type="submit">
+      Display Token
     </button>
   </form>
 {{ end }}

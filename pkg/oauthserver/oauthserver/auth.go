@@ -149,7 +149,7 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error
 		loginURL = c.ExtraOAuthConfig.Options.MasterPublicURL
 	}
 
-	tokenRequestEndpoints := tokenrequest.NewTokenRequest(loginURL, openShiftLogoutPrefix, c.getOsinOAuthClient, c.ExtraOAuthConfig.OAuthAccessTokenClient)
+	tokenRequestEndpoints := tokenrequest.NewTokenRequest(loginURL, openShiftLogoutPrefix, c.getOsinOAuthClient, c.ExtraOAuthConfig.OAuthAccessTokenClient, c.getCSRF())
 	tokenRequestEndpoints.Install(mux, urls.OpenShiftOAuthAPIPrefix)
 
 	if session := c.ExtraOAuthConfig.SessionAuth; session != nil {
