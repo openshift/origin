@@ -1,6 +1,7 @@
 package upgrade
 
 import (
+	"bytes"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"sync"
+	"text/tabwriter"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -294,6 +296,9 @@ func getUpgradeContext(c configv1client.Interface, upgradeTarget, upgradeImage s
 }
 
 func clusterUpgrade(c configv1client.Interface, version upgrades.VersionContext) error {
+	fmt.Fprintf(os.Stderr, "\n\n\n")
+	defer func() { fmt.Fprintf(os.Stderr, "\n\n\n") }()
+
 	if version.NodeImage == "[pause]" {
 		framework.Logf("Running a dry-run upgrade test")
 		time.Sleep(2 * time.Minute)
@@ -338,12 +343,13 @@ func clusterUpgrade(c configv1client.Interface, version upgrades.VersionContext)
 
 	framework.Logf("Cluster version operator acknowledged upgrade request")
 
-	if err := wait.PollImmediate(5*time.Second, 50*time.Minute, func() (bool, error) {
+	if err := wait.PollImmediate(5*time.Second, 45*time.Minute, func() (bool, error) {
 		cv, err := c.ConfigV1().ClusterVersions().Get("version", metav1.GetOptions{})
 		if err != nil {
 			framework.Logf("unable to retrieve cluster version during upgrade: %v", err)
 			return false, nil
 		}
+		lastCV = cv
 		if cv.Status.ObservedGeneration > updated.Generation {
 			if cv.Spec.DesiredUpdate == nil || desired != *cv.Spec.DesiredUpdate {
 				return false, fmt.Errorf("desired cluster version was changed by someone else: %v", cv.Spec.DesiredUpdate)
@@ -378,11 +384,54 @@ func clusterUpgrade(c configv1client.Interface, version upgrades.VersionContext)
 
 		return true, nil
 	}); err != nil {
-		return fmt.Errorf("Cluster did not acknowledge request to upgrade: %v", err)
+		if lastCV != nil {
+			data, _ := json.MarshalIndent(lastCV, "", "  ")
+			framework.Logf("Cluster version:\n%s", data)
+		}
+		if coList, err := c.ConfigV1().ClusterOperators().List(metav1.ListOptions{}); err == nil {
+			buf := &bytes.Buffer{}
+			tw := tabwriter.NewWriter(buf, 0, 2, 1, ' ', 0)
+			fmt.Fprintf(tw, "NAME\tA F P\tMESSAGE\n")
+			for _, item := range coList.Items {
+				fmt.Fprintf(tw,
+					"%s\t%s %s %s\t%s\n",
+					item.Name,
+					findConditionShortStatus(item.Status.Conditions, configv1.OperatorAvailable),
+					findConditionShortStatus(item.Status.Conditions, configv1.OperatorFailing),
+					findConditionShortStatus(item.Status.Conditions, configv1.OperatorProgressing),
+					findConditionMessage(item.Status.Conditions, configv1.OperatorProgressing),
+				)
+			}
+			tw.Flush()
+			framework.Logf("Cluster operators:\n%s", buf.String())
+		}
+
+		return fmt.Errorf("Cluster did not complete upgrade: %v", err)
 	}
 
 	framework.Logf("Completed upgrade to %s", versionString(desired))
 	return nil
+}
+
+func findConditionShortStatus(conditions []configv1.ClusterOperatorStatusCondition, name configv1.ClusterStatusConditionType) string {
+	if c := findCondition(conditions, name); c != nil {
+		switch c.Status {
+		case configv1.ConditionTrue:
+			return "T"
+		case configv1.ConditionFalse:
+			return "F"
+		default:
+			return "U"
+		}
+	}
+	return " "
+}
+
+func findConditionMessage(conditions []configv1.ClusterOperatorStatusCondition, name configv1.ClusterStatusConditionType) string {
+	if c := findCondition(conditions, name); c != nil {
+		return c.Message
+	}
+	return ""
 }
 
 func findCondition(conditions []configv1.ClusterOperatorStatusCondition, name configv1.ClusterStatusConditionType) *configv1.ClusterOperatorStatusCondition {
