@@ -46,7 +46,7 @@ func NewNewOptions(streams genericclioptions.IOStreams) *NewOptions {
 		// TODO: only cluster-version-operator and maybe CLI should be in this list,
 		//   the others should always be referenced by the cluster-bootstrap or
 		//   another operator.
-		AlwaysInclude:  []string{"cluster-version-operator", "cli", "installer"},
+		AlwaysInclude:  []string{"cluster-version-operator", "cli", "installer", "kube-etcd-signer-server"},
 		ToImageBaseTag: "cluster-version-operator",
 		// We strongly control the set of allowed component versions to prevent confusion
 		// about what component versions may be used for. Changing this list requires
