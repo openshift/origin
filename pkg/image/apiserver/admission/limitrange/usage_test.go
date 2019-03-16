@@ -183,7 +183,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 		},
 	} {
 
-		res, err := GetImageReferenceForObjectReference(tc.namespace, &tc.objRef)
+		res, err := getImageReferenceForObjectReference(tc.namespace, &tc.objRef)
 		if tc.expectedError && err == nil {
 			t.Errorf("[%s] got unexpected non-error", tc.name)
 		}
