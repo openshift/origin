@@ -8,6 +8,8 @@ import (
 
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -15,10 +17,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
-	rbacinformers "k8s.io/client-go/informers/rbac/v1"
-	rbaclisters "k8s.io/client-go/listers/rbac/v1"
+	rbacv1informers "k8s.io/client-go/informers/rbac/v1"
+	corev1listers "k8s.io/client-go/listers/core/v1"
+	rbacv1listers "k8s.io/client-go/listers/rbac/v1"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
@@ -27,7 +29,7 @@ import (
 // Lister enforces ability to enumerate a resource based on role
 type Lister interface {
 	// List returns the list of Namespace items that the user can access
-	List(user user.Info) (*kapi.NamespaceList, error)
+	List(user user.Info, selector labels.Selector) (*corev1.NamespaceList, error)
 }
 
 // subjectRecord is a cache record for the set of namespaces a subject can access
@@ -112,25 +114,25 @@ func (s *neverSkipSynchronizer) SkipSynchronize(prevState string, versionedObjec
 }
 
 type SyncedClusterRoleLister interface {
-	rbaclisters.ClusterRoleLister
+	rbacv1listers.ClusterRoleLister
 	LastSyncResourceVersioner
 }
 
 type SyncedClusterRoleBindingLister interface {
-	rbaclisters.ClusterRoleBindingLister
+	rbacv1listers.ClusterRoleBindingLister
 	LastSyncResourceVersioner
 }
 type SyncedRoleLister interface {
-	rbaclisters.RoleLister
+	rbacv1listers.RoleLister
 	LastSyncResourceVersioner
 }
 type SyncedRoleBindingLister interface {
-	rbaclisters.RoleBindingLister
+	rbacv1listers.RoleBindingLister
 	LastSyncResourceVersioner
 }
 
 type syncedRoleLister struct {
-	rbaclisters.RoleLister
+	rbacv1listers.RoleLister
 	versioner LastSyncResourceVersioner
 }
 
@@ -139,7 +141,7 @@ func (l syncedRoleLister) LastSyncResourceVersion() string {
 }
 
 type syncedClusterRoleLister struct {
-	rbaclisters.ClusterRoleLister
+	rbacv1listers.ClusterRoleLister
 	versioner LastSyncResourceVersioner
 }
 
@@ -148,7 +150,7 @@ func (l syncedClusterRoleLister) LastSyncResourceVersion() string {
 }
 
 type syncedRoleBindingLister struct {
-	rbaclisters.RoleBindingLister
+	rbacv1listers.RoleBindingLister
 	versioner LastSyncResourceVersioner
 }
 
@@ -157,7 +159,7 @@ func (l syncedRoleBindingLister) LastSyncResourceVersion() string {
 }
 
 type syncedClusterRoleBindingLister struct {
-	rbaclisters.ClusterRoleBindingLister
+	rbacv1listers.ClusterRoleBindingLister
 	versioner LastSyncResourceVersioner
 }
 
@@ -170,7 +172,7 @@ type AuthorizationCache struct {
 	// allKnownNamespaces we track all the known namespaces, so we can detect deletes.
 	// TODO remove this in favor of a list/watch mechanism for projects
 	allKnownNamespaces        sets.String
-	namespaceStore            cache.Store
+	namespaceLister           corev1listers.NamespaceLister
 	lastSyncResourceVersioner LastSyncResourceVersioner
 
 	clusterRoleLister             SyncedClusterRoleLister
@@ -199,9 +201,10 @@ type AuthorizationCache struct {
 
 // NewAuthorizationCache creates a new AuthorizationCache
 func NewAuthorizationCache(
-	namespaces cache.SharedIndexInformer,
+	namespaceLister corev1listers.NamespaceLister,
+	namespaceLastSyncResourceVersioner LastSyncResourceVersioner,
 	reviewer Reviewer,
-	informers rbacinformers.Interface,
+	informers rbacv1informers.Interface,
 ) *AuthorizationCache {
 	scrLister := syncedClusterRoleLister{
 		informers.ClusterRoles().Lister(),
@@ -221,7 +224,7 @@ func NewAuthorizationCache(
 	}
 	ac := &AuthorizationCache{
 		allKnownNamespaces: sets.String{},
-		namespaceStore:     namespaces.GetStore(),
+		namespaceLister:    namespaceLister,
 
 		clusterRoleResourceVersions:    sets.NewString(),
 		clusterBindingResourceVersions: sets.NewString(),
@@ -241,7 +244,7 @@ func NewAuthorizationCache(
 
 		watchers: []CacheWatcher{},
 	}
-	ac.lastSyncResourceVersioner = namespaces.(LastSyncResourceVersioner)
+	ac.lastSyncResourceVersioner = namespaceLastSyncResourceVersioner
 	ac.syncHandler = ac.syncRequest
 	return ac
 }
@@ -284,9 +287,13 @@ func (ac *AuthorizationCache) GetClusterRoleLister() SyncedClusterRoleLister {
 // synchronizeNamespaces synchronizes access over each namespace and returns a set of namespace names that were looked at in last sync
 func (ac *AuthorizationCache) synchronizeNamespaces(userSubjectRecordStore cache.Store, groupSubjectRecordStore cache.Store, reviewRecordStore cache.Store) sets.String {
 	namespaceSet := sets.NewString()
-	items := ac.namespaceStore.List()
-	for i := range items {
-		namespace := items[i].(*kapi.Namespace)
+	namespaces, err := ac.namespaceLister.List(labels.Everything())
+	if err != nil {
+		// should never happen
+		panic(err)
+	}
+	for i := range namespaces {
+		namespace := namespaces[i]
 		namespaceSet.Insert(namespace.Name)
 		reviewRequest := &reviewRequest{
 			namespace:                namespace.Name,
@@ -468,7 +475,7 @@ func (ac *AuthorizationCache) syncRequest(request *reviewRequest, userSubjectRec
 }
 
 // List returns the set of namespace names the user has access to view
-func (ac *AuthorizationCache) List(userInfo user.Info) (*kapi.NamespaceList, error) {
+func (ac *AuthorizationCache) List(userInfo user.Info, selector labels.Selector) (*corev1.NamespaceList, error) {
 	keys := sets.String{}
 	user := userInfo.GetName()
 	groups := userInfo.GetGroups()
@@ -492,17 +499,21 @@ func (ac *AuthorizationCache) List(userInfo user.Info) (*kapi.NamespaceList, err
 		return nil, err
 	}
 
-	namespaceList := &kapi.NamespaceList{}
+	namespaceList := &corev1.NamespaceList{}
 	for _, key := range keys.List() {
-		namespaceObj, exists, err := ac.namespaceStore.GetByKey(key)
+		namespace, err := ac.namespaceLister.Get(key)
+		if apierrors.IsNotFound(err) {
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}
-		if exists {
-			namespace := *namespaceObj.(*kapi.Namespace)
-			if allowedNamespaces.Has("*") || allowedNamespaces.Has(namespace.Name) {
-				namespaceList.Items = append(namespaceList.Items, namespace)
-			}
+		// only match selected labels
+		if !selector.Matches(labels.Set(namespace.Labels)) {
+			continue
+		}
+		if allowedNamespaces.Has("*") || allowedNamespaces.Has(namespace.Name) {
+			namespaceList.Items = append(namespaceList.Items, *namespace)
 		}
 	}
 	return namespaceList, nil

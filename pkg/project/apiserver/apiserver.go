@@ -6,6 +6,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -14,7 +15,6 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	restclient "k8s.io/client-go/rest"
-	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	projectapiv1 "github.com/openshift/api/project/v1"
@@ -109,7 +109,7 @@ func (c *completedConfig) V1RESTStorage() (map[string]rest.Storage, error) {
 }
 
 func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
-	kubeInternalClient, err := kclientsetinternal.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
+	kubeClient, err := kubernetes.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +130,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		return nil, err
 	}
 
-	projectStorage := projectproxy.NewREST(kubeInternalClient.Core().Namespaces(), c.ExtraConfig.ProjectAuthorizationCache, c.ExtraConfig.ProjectAuthorizationCache, c.ExtraConfig.ProjectCache)
+	projectStorage := projectproxy.NewREST(kubeClient.CoreV1().Namespaces(), c.ExtraConfig.ProjectAuthorizationCache, c.ExtraConfig.ProjectAuthorizationCache, c.ExtraConfig.ProjectCache)
 
 	namespace, templateName, err := configapi.ParseNamespaceAndName(c.ExtraConfig.ProjectRequestTemplate)
 	if err != nil {
