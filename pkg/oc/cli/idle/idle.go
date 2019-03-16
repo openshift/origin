@@ -12,7 +12,7 @@ import (
 
 	utilerrors "github.com/openshift/origin/pkg/util/errors"
 	corev1 "k8s.io/api/core/v1"
-	extensions "k8s.io/api/extensions/v1beta1"
+	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -21,11 +21,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
-	clientset "k8s.io/client-go/kubernetes"
-	kextensionsclient "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
+	"k8s.io/client-go/kubernetes"
+	extensionsv1beta1client "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
@@ -66,11 +65,8 @@ type IdleOptions struct {
 
 	ClientForMappingFn func(*meta.RESTMapping) (resource.RESTClient, error)
 	ClientConfig       *rest.Config
-	ClientSet          clientset.Interface
+	ClientSet          kubernetes.Interface
 	Mapper             meta.RESTMapper
-
-	// TODO(juanvallejo): remove this once we switch unidling helpers to use external versions
-	InternalClientset kinternalclientset.Interface
 
 	Builder   func() *resource.Builder
 	Namespace string
@@ -132,17 +128,12 @@ func (o *IdleOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []st
 		return err
 	}
 
-	o.ClientSet, err = clientset.NewForConfig(o.ClientConfig)
+	o.ClientSet, err = kubernetes.NewForConfig(o.ClientConfig)
 	if err != nil {
 		return err
 	}
 
 	o.Mapper, err = f.ToRESTMapper()
-	if err != nil {
-		return err
-	}
-
-	o.InternalClientset, err = kinternalclientset.NewForConfig(o.ClientConfig)
 	if err != nil {
 		return err
 	}
@@ -526,7 +517,7 @@ func patchObj(obj runtime.Object, metadata metav1.Object, oldData []byte, mappin
 
 type scaleInfo struct {
 	namespace string
-	scale     *extensions.Scale
+	scale     *extensionsv1beta1.Scale
 	obj       runtime.Object
 }
 
@@ -587,9 +578,9 @@ func (o *IdleOptions) RunIdle() error {
 		return err
 	}
 
-	externalKubeExtensionClient := kextensionsclient.New(o.ClientSet.Extensions().RESTClient())
+	externalKubeExtensionClient := extensionsv1beta1client.New(o.ClientSet.Extensions().RESTClient())
 	delegScaleGetter := appsmanualclient.NewDelegatingScaleNamespacer(appsV1Client, externalKubeExtensionClient)
-	scaleAnnotater := utilunidling.NewScaleAnnotater(delegScaleGetter, appClient.Apps(), o.InternalClientset.Core(), func(currentReplicas int32, annotations map[string]string) {
+	scaleAnnotater := utilunidling.NewScaleAnnotater(delegScaleGetter, appClient.Apps(), o.ClientSet.CoreV1(), func(currentReplicas int32, annotations map[string]string) {
 		annotations[unidlingapi.IdledAtAnnotation] = nowTime.UTC().Format(time.RFC3339)
 		annotations[unidlingapi.PreviousScaleAnnotation] = fmt.Sprintf("%v", currentReplicas)
 	})
@@ -692,7 +683,7 @@ func (o *IdleOptions) RunIdle() error {
 	for scaleRef, info := range toScale {
 		if !o.dryRun {
 			info.scale.Spec.Replicas = 0
-			scaleUpdater := utilunidling.NewScaleUpdater(kcmdutil.InternalVersionJSONEncoder(), info.namespace, appClient.Apps(), o.InternalClientset.Core())
+			scaleUpdater := utilunidling.NewScaleUpdater(kcmdutil.InternalVersionJSONEncoder(), info.namespace, appClient.Apps(), o.ClientSet.CoreV1())
 			if err := scaleAnnotater.UpdateObjectScale(scaleUpdater, info.namespace, scaleRef.CrossGroupObjectReference, info.obj, info.scale); err != nil {
 				fmt.Fprintf(o.ErrOut, "error: unable to scale %s %s/%s to 0, but still listed as target for unidling: %v\n", scaleRef.Kind, info.namespace, scaleRef.Name, err)
 				hadError = true
