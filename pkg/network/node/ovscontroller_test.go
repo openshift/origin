@@ -13,8 +13,8 @@ import (
 	networkapi "github.com/openshift/api/network/v1"
 	"github.com/openshift/origin/pkg/util/ovs"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/containernetworking/plugins/pkg/utils/hwaddr"
 )
@@ -106,18 +106,18 @@ func assertFlowChanges(origFlows, newFlows []string, changes ...flowChange) erro
 func TestOVSService(t *testing.T) {
 	ovsif, oc, origFlows := setupOVSController(t)
 
-	svc := kapi.Service{
+	svc := corev1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Service",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "service",
 		},
-		Spec: kapi.ServiceSpec{
+		Spec: corev1.ServiceSpec{
 			ClusterIP: "172.30.99.99",
-			Ports: []kapi.ServicePort{
-				{Protocol: kapi.ProtocolTCP, Port: 80},
-				{Protocol: kapi.ProtocolTCP, Port: 443},
+			Ports: []corev1.ServicePort{
+				{Protocol: corev1.ProtocolTCP, Port: 80},
+				{Protocol: corev1.ProtocolTCP, Port: 443},
 			},
 		},
 	}

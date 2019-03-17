@@ -12,10 +12,12 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/kubernetes/pkg/apis/core/v1/helper"
+
 	"github.com/golang/glog"
 	"github.com/vishvananda/netlink"
 
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -25,11 +27,10 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kubeletapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
 	kruntimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	ktypes "k8s.io/kubernetes/pkg/kubelet/types"
@@ -79,10 +80,10 @@ type OsdnNodeConfig struct {
 	CNIConfDir      string
 
 	NetworkClient networkclient.Interface
-	KClient       kclientset.Interface
+	KClient       kubernetes.Interface
 	Recorder      record.EventRecorder
 
-	KubeInformers    kinternalinformers.SharedInformerFactory
+	KubeInformers    informers.SharedInformerFactory
 	NetworkInformers networkinformers.SharedInformerFactory
 
 	IPTablesSyncPeriod time.Duration
@@ -92,7 +93,7 @@ type OsdnNodeConfig struct {
 
 type OsdnNode struct {
 	policy             osdnPolicy
-	kClient            kclientset.Interface
+	kClient            kubernetes.Interface
 	networkClient      networkclient.Interface
 	recorder           record.EventRecorder
 	oc                 *ovsController
@@ -111,7 +112,7 @@ type OsdnNode struct {
 	egressPolicies     map[uint32][]networkapi.EgressNetworkPolicy
 	egressDNS          *common.EgressDNS
 
-	kubeInformers    kinternalinformers.SharedInformerFactory
+	kubeInformers    informers.SharedInformerFactory
 	networkInformers networkinformers.SharedInformerFactory
 
 	// Holds runtime endpoint shim to make SDN <-> runtime communication
@@ -349,7 +350,7 @@ func (node *OsdnNode) Start() error {
 	glog.V(2).Infof("openshift-sdn network plugin registering startup")
 
 	// Make an event that openshift-sdn started
-	node.recorder.Eventf(&v1.ObjectReference{Kind: "Node", Name: node.hostName}, v1.EventTypeNormal, "Starting", "Starting openshift-sdn.")
+	node.recorder.Eventf(&corev1.ObjectReference{Kind: "Node", Name: node.hostName}, corev1.EventTypeNormal, "Starting", "Starting openshift-sdn.")
 
 	// Write our CNI config file out to disk to signal to kubelet that
 	// our network plugin is ready
@@ -403,8 +404,8 @@ func (node *OsdnNode) reattachPods(existingPods map[string]podNetworkInfo) error
 	// Kill pods we couldn't recover; they will get restarted and then
 	// we'll be able to set them up correctly
 	for _, sandbox := range failed {
-		podRef := &v1.ObjectReference{Kind: "Pod", Name: sandbox.Metadata.Name, Namespace: sandbox.Metadata.Namespace, UID: types.UID(sandbox.Metadata.Uid)}
-		node.recorder.Eventf(podRef, v1.EventTypeWarning, "NetworkFailed", "The pod's network interface has been lost and the pod will be stopped.")
+		podRef := &corev1.ObjectReference{Kind: "Pod", Name: sandbox.Metadata.Name, Namespace: sandbox.Metadata.Namespace, UID: types.UID(sandbox.Metadata.Uid)}
+		node.recorder.Eventf(podRef, corev1.EventTypeWarning, "NetworkFailed", "The pod's network interface has been lost and the pod will be stopped.")
 
 		glog.V(5).Infof("Killing pod '%s/%s' sandbox due to failed restart", podRef.Namespace, podRef.Name)
 		if err := node.runtimeService.StopPodSandbox(sandbox.Id); err != nil {
@@ -417,7 +418,7 @@ func (node *OsdnNode) reattachPods(existingPods map[string]podNetworkInfo) error
 
 // FIXME: this should eventually go into kubelet via a CNI UPDATE/CHANGE action
 // See https://github.com/containernetworking/cni/issues/89
-func (node *OsdnNode) UpdatePod(pod kapi.Pod) error {
+func (node *OsdnNode) UpdatePod(pod corev1.Pod) error {
 	filter := &kruntimeapi.PodSandboxFilter{
 		LabelSelector: map[string]string{ktypes.KubernetesPodUIDLabel: string(pod.UID)},
 	}
@@ -439,7 +440,7 @@ func (node *OsdnNode) UpdatePod(pod kapi.Pod) error {
 	return err
 }
 
-func (node *OsdnNode) GetLocalPods(namespace string) ([]kapi.Pod, error) {
+func (node *OsdnNode) GetLocalPods(namespace string) ([]corev1.Pod, error) {
 	fieldSelector := fields.Set{"spec.nodeName": node.hostName}.AsSelector()
 	opts := metav1.ListOptions{
 		LabelSelector: labels.Everything().String(),
@@ -451,16 +452,16 @@ func (node *OsdnNode) GetLocalPods(namespace string) ([]kapi.Pod, error) {
 	}
 
 	// Filter running pods
-	pods := make([]kapi.Pod, 0, len(podList.Items))
+	pods := make([]corev1.Pod, 0, len(podList.Items))
 	for _, pod := range podList.Items {
-		if pod.Status.Phase == kapi.PodRunning {
+		if pod.Status.Phase == corev1.PodRunning {
 			pods = append(pods, pod)
 		}
 	}
 	return pods, nil
 }
 
-func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
+func isServiceChanged(oldsvc, newsvc *corev1.Service) bool {
 	if len(oldsvc.Spec.Ports) == len(newsvc.Spec.Ports) {
 		for i := range oldsvc.Spec.Ports {
 			if oldsvc.Spec.Ports[i].Protocol != newsvc.Spec.Ports[i].Protocol ||
@@ -475,18 +476,18 @@ func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
 
 func (node *OsdnNode) watchServices() {
 	funcs := common.InformerFuncs(&kapi.Service{}, node.handleAddOrUpdateService, node.handleDeleteService)
-	node.kubeInformers.Core().InternalVersion().Services().Informer().AddEventHandler(funcs)
+	node.kubeInformers.Core().V1().Services().Informer().AddEventHandler(funcs)
 }
 
 func (node *OsdnNode) handleAddOrUpdateService(obj, oldObj interface{}, eventType watch.EventType) {
-	serv := obj.(*kapi.Service)
+	serv := obj.(*corev1.Service)
 	// Ignore headless/external services
-	if !kapihelper.IsServiceIPSet(serv) {
+	if !helper.IsServiceIPSet(serv) {
 		return
 	}
 
 	glog.V(5).Infof("Watch %s event for Service %q", eventType, serv.Name)
-	oldServ, exists := oldObj.(*kapi.Service)
+	oldServ, exists := oldObj.(*corev1.Service)
 	if exists {
 		if !isServiceChanged(oldServ, serv) {
 			return
@@ -505,9 +506,9 @@ func (node *OsdnNode) handleAddOrUpdateService(obj, oldObj interface{}, eventTyp
 }
 
 func (node *OsdnNode) handleDeleteService(obj interface{}) {
-	serv := obj.(*kapi.Service)
+	serv := obj.(*corev1.Service)
 	// Ignore headless/external services
-	if !kapihelper.IsServiceIPSet(serv) {
+	if !helper.IsServiceIPSet(serv) {
 		return
 	}
 
