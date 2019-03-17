@@ -10,9 +10,12 @@ import (
 
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/client-go/kubernetes"
+	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -22,10 +25,6 @@ import (
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	allocator "github.com/openshift/origin/pkg/security"
 	scc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
-	admission "k8s.io/apiserver/pkg/admission"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 )
 
 const PluginName = "security.openshift.io/SecurityContextConstraint"
@@ -39,15 +38,15 @@ func Register(plugins *admission.Plugins) {
 
 type constraint struct {
 	*admission.Handler
-	client     kclientset.Interface
+	client     kubernetes.Interface
 	sccLister  securityv1listers.SecurityContextConstraintsLister
 	authorizer authorizer.Authorizer
 }
 
 var (
 	_ = initializer.WantsAuthorizer(&constraint{})
+	_ = initializer.WantsExternalKubeClientSet(&constraint{})
 	_ = oadmission.WantsSecurityInformer(&constraint{})
-	_ = kadmission.WantsInternalKubeClientSet(&constraint{})
 	_ = admission.ValidationInterface(&constraint{})
 	_ = admission.MutationInterface(&constraint{})
 )
@@ -78,7 +77,7 @@ func (c *constraint) Admit(a admission.Attributes) error {
 	} else if ignore {
 		return nil
 	}
-	pod := a.GetObject().(*kapi.Pod)
+	pod := a.GetObject().(*coreapi.Pod)
 
 	// TODO(liggitt): allow spec mutation during initializing updates?
 	specMutationAllowed := a.GetOperation() == admission.Create
@@ -110,7 +109,7 @@ func (c *constraint) Validate(a admission.Attributes) error {
 	} else if ignore {
 		return nil
 	}
-	pod := a.GetObject().(*kapi.Pod)
+	pod := a.GetObject().(*coreapi.Pod)
 
 	// compute the context. Mutation is not allowed. ValidatedSCCAnnotation is used as a hint to gain same speed-up.
 	allowedPod, _, validationErrs, err := c.computeSecurityContext(a, pod, false, pod.ObjectMeta.Annotations[allocator.ValidatedSCCAnnotation])
@@ -126,7 +125,7 @@ func (c *constraint) Validate(a admission.Attributes) error {
 	return admission.NewForbidden(a, fmt.Errorf("unable to validate against any security context constraint: %v", validationErrs))
 }
 
-func (c *constraint) computeSecurityContext(a admission.Attributes, pod *kapi.Pod, specMutationAllowed bool, validatedSCCHint string) (*kapi.Pod, string, field.ErrorList, error) {
+func (c *constraint) computeSecurityContext(a admission.Attributes, pod *coreapi.Pod, specMutationAllowed bool, validatedSCCHint string) (*coreapi.Pod, string, field.ErrorList, error) {
 	// get all constraints that are usable by the user
 	glog.V(4).Infof("getting security context constraints for pod %s (generate: %s) in namespace %s with user info %v", pod.Name, pod.GenerateName, a.GetNamespace(), a.GetUserInfo())
 
@@ -158,7 +157,7 @@ func (c *constraint) computeSecurityContext(a admission.Attributes, pod *kapi.Po
 
 	// all containers in a single pod must validate under a single provider or we will reject the request
 	var (
-		allowedPod       *kapi.Pod
+		allowedPod       *coreapi.Pod
 		allowingProvider scc.SecurityContextConstraintsProvider
 		validationErrs   field.ErrorList
 		saUserInfo       user.Info
@@ -216,14 +215,14 @@ loop:
 }
 
 func shouldIgnore(a admission.Attributes) (bool, error) {
-	if a.GetResource().GroupResource() != kapi.Resource("pods") {
+	if a.GetResource().GroupResource() != coreapi.Resource("pods") {
 		return true, nil
 	}
 	if len(a.GetSubresource()) != 0 {
 		return true, nil
 	}
 
-	_, ok := a.GetObject().(*kapi.Pod)
+	_, ok := a.GetObject().(*coreapi.Pod)
 	// if we can't convert then fail closed since we've already checked that this is supposed to be a pod object.
 	// this shouldn't normally happen during admission but could happen if an integrator passes a versioned
 	// pod object rather than an internal object.
@@ -246,7 +245,7 @@ func (c *constraint) SetSecurityInformers(informers securityv1informer.SharedInf
 	c.sccLister = informers.Security().V1().SecurityContextConstraints().Lister()
 }
 
-func (c *constraint) SetInternalKubeClientSet(client kclientset.Interface) {
+func (c *constraint) SetExternalKubeClientSet(client kubernetes.Interface) {
 	c.client = client
 }
 
@@ -270,7 +269,7 @@ func (c *constraint) ValidateInitialization() error {
 
 // logProviders logs what providers were found for the pod as well as any errors that were encountered
 // while creating providers.
-func logProviders(pod *kapi.Pod, providers []scc.SecurityContextConstraintsProvider, providerCreationErrs []error) {
+func logProviders(pod *coreapi.Pod, providers []scc.SecurityContextConstraintsProvider, providerCreationErrs []error) {
 	names := make([]string, len(providers))
 	for i, p := range providers {
 		names[i] = p.GetSCCName()

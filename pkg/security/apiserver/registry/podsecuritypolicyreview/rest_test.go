@@ -9,10 +9,10 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/client-go/kubernetes/fake"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	"k8s.io/kubernetes/pkg/client/listers/core/internalversion"
+	coreapi "k8s.io/kubernetes/pkg/apis/core"
 
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
@@ -33,21 +33,21 @@ func TestNoErrors(t *testing.T) {
 		"default in pod": {
 			request: &securityapi.PodSecurityPolicyReview{
 				Spec: securityapi.PodSecurityPolicyReviewSpec{
-					Template: kapi.PodTemplateSpec{
-						Spec: kapi.PodSpec{
-							Containers: []kapi.Container{
+					Template: coreapi.PodTemplateSpec{
+						Spec: coreapi.PodSpec{
+							Containers: []coreapi.Container{
 								{
 									Name:                     "ctr",
 									Image:                    "image",
 									ImagePullPolicy:          "IfNotPresent",
-									TerminationMessagePolicy: kapi.TerminationMessageReadFile,
+									TerminationMessagePolicy: coreapi.TerminationMessageReadFile,
 								},
 							},
-							RestartPolicy:      kapi.RestartPolicyAlways,
-							SecurityContext:    &kapi.PodSecurityContext{},
-							DNSPolicy:          kapi.DNSClusterFirst,
+							RestartPolicy:      coreapi.RestartPolicyAlways,
+							SecurityContext:    &coreapi.PodSecurityContext{},
+							DNSPolicy:          coreapi.DNSClusterFirst,
 							ServiceAccountName: "default",
-							SchedulerName:      kapi.DefaultSchedulerName,
+							SchedulerName:      coreapi.DefaultSchedulerName,
 						},
 					},
 				},
@@ -78,26 +78,26 @@ func TestNoErrors(t *testing.T) {
 		"failure creating provider": {
 			request: &securityapi.PodSecurityPolicyReview{
 				Spec: securityapi.PodSecurityPolicyReviewSpec{
-					Template: kapi.PodTemplateSpec{
-						Spec: kapi.PodSpec{
-							Containers: []kapi.Container{
+					Template: coreapi.PodTemplateSpec{
+						Spec: coreapi.PodSpec{
+							Containers: []coreapi.Container{
 								{
 									Name:            "ctr",
 									Image:           "image",
 									ImagePullPolicy: "IfNotPresent",
-									SecurityContext: &kapi.SecurityContext{
-										Capabilities: &kapi.Capabilities{
-											Add: []kapi.Capability{"foo"},
+									SecurityContext: &coreapi.SecurityContext{
+										Capabilities: &coreapi.Capabilities{
+											Add: []coreapi.Capability{"foo"},
 										},
 									},
-									TerminationMessagePolicy: kapi.TerminationMessageReadFile,
+									TerminationMessagePolicy: coreapi.TerminationMessageReadFile,
 								},
 							},
-							RestartPolicy:      kapi.RestartPolicyAlways,
-							SecurityContext:    &kapi.PodSecurityContext{},
-							DNSPolicy:          kapi.DNSClusterFirst,
+							RestartPolicy:      coreapi.RestartPolicyAlways,
+							SecurityContext:    &coreapi.PodSecurityContext{},
+							DNSPolicy:          coreapi.DNSClusterFirst,
 							ServiceAccountName: "default",
-							SchedulerName:      kapi.DefaultSchedulerName,
+							SchedulerName:      coreapi.DefaultSchedulerName,
 						},
 					},
 				},
@@ -146,12 +146,12 @@ func TestNoErrors(t *testing.T) {
 			}
 		}
 		saIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-		saCache := internalversion.NewServiceAccountLister(saIndexer)
+		saCache := corev1listers.NewServiceAccountLister(saIndexer)
 		namespace := admissionttesting.CreateNamespaceForTest()
 		serviceAccount := admissionttesting.CreateSAForTest()
 		serviceAccount.Namespace = namespace.Name
 		saIndexer.Add(serviceAccount)
-		csf := clientsetfake.NewSimpleClientset(namespace)
+		csf := fake.NewSimpleClientset(namespace)
 		storage := REST{scc.NewDefaultSCCMatcher(sccCache, &noopTestAuthorizer{}), saCache, csf}
 		ctx := apirequest.WithNamespace(apirequest.NewContext(), namespace.Name)
 		obj, err := storage.Create(ctx, testcase.request, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
@@ -178,27 +178,27 @@ func TestErrors(t *testing.T) {
 	testcases := map[string]struct {
 		request        *securityapi.PodSecurityPolicyReview
 		sccs           []*securityv1.SecurityContextConstraints
-		serviceAccount *kapi.ServiceAccount
+		serviceAccount *corev1.ServiceAccount
 		errorMessage   string
 	}{
 		"invalid PSPR": {
 			request: &securityapi.PodSecurityPolicyReview{
 				Spec: securityapi.PodSecurityPolicyReviewSpec{
-					Template: kapi.PodTemplateSpec{
-						Spec: kapi.PodSpec{
-							Containers: []kapi.Container{
+					Template: coreapi.PodTemplateSpec{
+						Spec: coreapi.PodSpec{
+							Containers: []coreapi.Container{
 								{
 									Name:                     "ctr",
 									Image:                    "image",
 									ImagePullPolicy:          "IfNotPresent",
-									TerminationMessagePolicy: kapi.TerminationMessageReadFile,
+									TerminationMessagePolicy: coreapi.TerminationMessageReadFile,
 								},
 							},
-							RestartPolicy:      kapi.RestartPolicyAlways,
-							SecurityContext:    &kapi.PodSecurityContext{},
-							DNSPolicy:          kapi.DNSClusterFirst,
+							RestartPolicy:      coreapi.RestartPolicyAlways,
+							SecurityContext:    &coreapi.PodSecurityContext{},
+							DNSPolicy:          coreapi.DNSClusterFirst,
 							ServiceAccountName: "A.B.C.D.E",
-							SchedulerName:      kapi.DefaultSchedulerName,
+							SchedulerName:      coreapi.DefaultSchedulerName,
 						},
 					},
 				},
@@ -209,21 +209,21 @@ func TestErrors(t *testing.T) {
 		"no SA": {
 			request: &securityapi.PodSecurityPolicyReview{
 				Spec: securityapi.PodSecurityPolicyReviewSpec{
-					Template: kapi.PodTemplateSpec{
-						Spec: kapi.PodSpec{
-							Containers: []kapi.Container{
+					Template: coreapi.PodTemplateSpec{
+						Spec: coreapi.PodSpec{
+							Containers: []coreapi.Container{
 								{
 									Name:                     "ctr",
 									Image:                    "image",
 									ImagePullPolicy:          "IfNotPresent",
-									TerminationMessagePolicy: kapi.TerminationMessageReadFile,
+									TerminationMessagePolicy: coreapi.TerminationMessageReadFile,
 								},
 							},
-							RestartPolicy:      kapi.RestartPolicyAlways,
-							SecurityContext:    &kapi.PodSecurityContext{},
-							DNSPolicy:          kapi.DNSClusterFirst,
+							RestartPolicy:      coreapi.RestartPolicyAlways,
+							SecurityContext:    &coreapi.PodSecurityContext{},
+							DNSPolicy:          coreapi.DNSClusterFirst,
 							ServiceAccountName: "default",
-							SchedulerName:      kapi.DefaultSchedulerName,
+							SchedulerName:      coreapi.DefaultSchedulerName,
 						},
 					},
 				},
@@ -240,14 +240,14 @@ func TestErrors(t *testing.T) {
 			}
 		}
 		saIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-		saCache := internalversion.NewServiceAccountLister(saIndexer)
+		saCache := corev1listers.NewServiceAccountLister(saIndexer)
 		namespace := admissionttesting.CreateNamespaceForTest()
 		serviceAccount := admissionttesting.CreateSAForTest()
 		if testcase.serviceAccount != nil {
 			serviceAccount.Namespace = namespace.Name
 			saIndexer.Add(serviceAccount)
 		}
-		csf := clientsetfake.NewSimpleClientset(namespace)
+		csf := fake.NewSimpleClientset(namespace)
 
 		storage := REST{scc.NewDefaultSCCMatcher(sccCache, &noopTestAuthorizer{}), saCache, csf}
 		ctx := apirequest.WithNamespace(apirequest.NewContext(), namespace.Name)
@@ -267,26 +267,26 @@ func TestSpecificSAs(t *testing.T) {
 		request         *securityapi.PodSecurityPolicyReview
 		sccs            []*securityv1.SecurityContextConstraints
 		errorMessage    string
-		serviceAccounts []*kapi.ServiceAccount
+		serviceAccounts []*corev1.ServiceAccount
 	}{
 		"SAs in PSPR": {
 			request: &securityapi.PodSecurityPolicyReview{
 				Spec: securityapi.PodSecurityPolicyReviewSpec{
-					Template: kapi.PodTemplateSpec{
-						Spec: kapi.PodSpec{
-							Containers: []kapi.Container{
+					Template: coreapi.PodTemplateSpec{
+						Spec: coreapi.PodSpec{
+							Containers: []coreapi.Container{
 								{
 									Name:                     "ctr",
 									Image:                    "image",
 									ImagePullPolicy:          "IfNotPresent",
-									TerminationMessagePolicy: kapi.TerminationMessageReadFile,
+									TerminationMessagePolicy: coreapi.TerminationMessageReadFile,
 								},
 							},
-							RestartPolicy:      kapi.RestartPolicyAlways,
-							SecurityContext:    &kapi.PodSecurityContext{},
-							DNSPolicy:          kapi.DNSClusterFirst,
+							RestartPolicy:      coreapi.RestartPolicyAlways,
+							SecurityContext:    &coreapi.PodSecurityContext{},
+							DNSPolicy:          coreapi.DNSClusterFirst,
 							ServiceAccountName: "default",
-							SchedulerName:      kapi.DefaultSchedulerName,
+							SchedulerName:      coreapi.DefaultSchedulerName,
 						},
 					},
 					ServiceAccountNames: []string{"my-sa", "yours-sa"},
@@ -313,7 +313,7 @@ func TestSpecificSAs(t *testing.T) {
 					Groups: []string{"system:serviceaccounts"},
 				},
 			},
-			serviceAccounts: []*kapi.ServiceAccount{
+			serviceAccounts: []*corev1.ServiceAccount{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "my-sa",
@@ -338,21 +338,21 @@ func TestSpecificSAs(t *testing.T) {
 		"bad SAs in PSPR": {
 			request: &securityapi.PodSecurityPolicyReview{
 				Spec: securityapi.PodSecurityPolicyReviewSpec{
-					Template: kapi.PodTemplateSpec{
-						Spec: kapi.PodSpec{
-							Containers: []kapi.Container{
+					Template: coreapi.PodTemplateSpec{
+						Spec: coreapi.PodSpec{
+							Containers: []coreapi.Container{
 								{
 									Name:                     "ctr",
 									Image:                    "image",
 									ImagePullPolicy:          "IfNotPresent",
-									TerminationMessagePolicy: kapi.TerminationMessageReadFile,
+									TerminationMessagePolicy: coreapi.TerminationMessageReadFile,
 								},
 							},
-							RestartPolicy:      kapi.RestartPolicyAlways,
-							SecurityContext:    &kapi.PodSecurityContext{},
-							DNSPolicy:          kapi.DNSClusterFirst,
+							RestartPolicy:      coreapi.RestartPolicyAlways,
+							SecurityContext:    &coreapi.PodSecurityContext{},
+							DNSPolicy:          coreapi.DNSClusterFirst,
 							ServiceAccountName: "default",
-							SchedulerName:      kapi.DefaultSchedulerName,
+							SchedulerName:      coreapi.DefaultSchedulerName,
 						},
 					},
 					ServiceAccountNames: []string{"bad-sa"},
@@ -379,7 +379,7 @@ func TestSpecificSAs(t *testing.T) {
 					Groups: []string{"system:serviceaccounts"},
 				},
 			},
-			serviceAccounts: []*kapi.ServiceAccount{
+			serviceAccounts: []*corev1.ServiceAccount{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "my-sa",
@@ -401,11 +401,11 @@ func TestSpecificSAs(t *testing.T) {
 		}
 		namespace := admissionttesting.CreateNamespaceForTest()
 		saIndexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-		saCache := internalversion.NewServiceAccountLister(saIndexer)
+		saCache := corev1listers.NewServiceAccountLister(saIndexer)
 		for i := range testcase.serviceAccounts {
 			saIndexer.Add(testcase.serviceAccounts[i])
 		}
-		csf := clientsetfake.NewSimpleClientset(namespace)
+		csf := fake.NewSimpleClientset(namespace)
 		storage := REST{scc.NewDefaultSCCMatcher(sccCache, &noopTestAuthorizer{}), saCache, csf}
 		ctx := apirequest.WithNamespace(apirequest.NewContext(), namespace.Name)
 		_, err := storage.Create(ctx, testcase.request, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})

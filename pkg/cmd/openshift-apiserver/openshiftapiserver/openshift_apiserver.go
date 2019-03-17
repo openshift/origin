@@ -370,7 +370,7 @@ func (c *completedConfig) withSecurityAPIServer(delegateAPIServer genericapiserv
 		ExtraConfig: securityapiserver.ExtraConfig{
 			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
 			SecurityInformers:         c.ExtraConfig.SecurityInformers,
-			KubeInternalInformers:     c.ExtraConfig.KubeInternalInformers,
+			KubeInformers:             c.ExtraConfig.KubeInformers,
 			Authorizer:                c.GenericConfig.Authorization.Authorizer,
 			Codecs:                    legacyscheme.Codecs,
 			Scheme:                    legacyscheme.Scheme,

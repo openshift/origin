@@ -7,13 +7,14 @@ import (
 
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/client-go/kubernetes"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/api/security"
 	securityv1 "github.com/openshift/api/security/v1"
@@ -169,19 +170,19 @@ func constraintSupportsGroup(group string, constraintGroups []string) bool {
 }
 
 // getNamespaceByName retrieves a namespace only if ns is nil.
-func getNamespaceByName(name string, ns *kapi.Namespace, client clientset.Interface) (*kapi.Namespace, error) {
+func getNamespaceByName(name string, ns *corev1.Namespace, client kubernetes.Interface) (*corev1.Namespace, error) {
 	if ns != nil && name == ns.Name {
 		return ns, nil
 	}
-	return client.Core().Namespaces().Get(name, metav1.GetOptions{})
+	return client.CoreV1().Namespaces().Get(name, metav1.GetOptions{})
 }
 
 // CreateProvidersFromConstraints creates providers from the constraints supplied, including
 // looking up pre-allocated values if necessary using the pod's namespace.
-func CreateProvidersFromConstraints(ns string, sccs []*securityapi.SecurityContextConstraints, client clientset.Interface) ([]SecurityContextConstraintsProvider, []error) {
+func CreateProvidersFromConstraints(ns string, sccs []*securityapi.SecurityContextConstraints, client kubernetes.Interface) ([]SecurityContextConstraintsProvider, []error) {
 	var (
 		// namespace is declared here for reuse but we will not fetch it unless required by the matched constraints
-		namespace *kapi.Namespace
+		namespace *corev1.Namespace
 		// collected providers
 		providers []SecurityContextConstraintsProvider
 		// collected errors to return
@@ -205,7 +206,7 @@ func CreateProvidersFromConstraints(ns string, sccs []*securityapi.SecurityConte
 }
 
 // CreateProviderFromConstraint creates a SecurityContextConstraintProvider from a SecurityContextConstraint
-func CreateProviderFromConstraint(ns string, namespace *kapi.Namespace, constraint *securityapi.SecurityContextConstraints, client clientset.Interface) (SecurityContextConstraintsProvider, *kapi.Namespace, error) {
+func CreateProviderFromConstraint(ns string, namespace *corev1.Namespace, constraint *securityapi.SecurityContextConstraints, client kubernetes.Interface) (SecurityContextConstraintsProvider, *corev1.Namespace, error) {
 	var err error
 	resolveUIDRange := requiresPreAllocatedUIDRange(constraint)
 	resolveSELinuxLevel := requiresPreAllocatedSELinuxLevel(constraint)
@@ -273,7 +274,7 @@ func CreateProviderFromConstraint(ns string, namespace *kapi.Namespace, constrai
 
 // getPreallocatedUIDRange retrieves the annotated value from the namespace, splits it to make
 // the min/max and formats the data into the necessary types for the strategy options.
-func getPreallocatedUIDRange(ns *kapi.Namespace) (*int64, *int64, error) {
+func getPreallocatedUIDRange(ns *corev1.Namespace) (*int64, *int64, error) {
 	annotationVal, ok := ns.Annotations[allocator.UIDRangeAnnotation]
 	if !ok {
 		return nil, nil, fmt.Errorf("unable to find annotation %s", allocator.UIDRangeAnnotation)
@@ -293,7 +294,7 @@ func getPreallocatedUIDRange(ns *kapi.Namespace) (*int64, *int64, error) {
 }
 
 // getPreallocatedLevel gets the annotated value from the namespace.
-func getPreallocatedLevel(ns *kapi.Namespace) (string, error) {
+func getPreallocatedLevel(ns *corev1.Namespace) (string, error) {
 	level, ok := ns.Annotations[allocator.MCSAnnotation]
 	if !ok {
 		return "", fmt.Errorf("unable to find annotation %s", allocator.MCSAnnotation)
@@ -308,7 +309,7 @@ func getPreallocatedLevel(ns *kapi.Namespace) (string, error) {
 // getSupplementalGroupsAnnotation provides a backwards compatible way to get supplemental groups
 // annotations from a namespace by looking for SupplementalGroupsAnnotation and falling back to
 // UIDRangeAnnotation if it is not found.
-func getSupplementalGroupsAnnotation(ns *kapi.Namespace) (string, error) {
+func getSupplementalGroupsAnnotation(ns *corev1.Namespace) (string, error) {
 	groups, ok := ns.Annotations[allocator.SupplementalGroupsAnnotation]
 	if !ok {
 		glog.V(4).Infof("unable to find supplemental group annotation %s falling back to %s", allocator.SupplementalGroupsAnnotation, allocator.UIDRangeAnnotation)
@@ -326,7 +327,7 @@ func getSupplementalGroupsAnnotation(ns *kapi.Namespace) (string, error) {
 }
 
 // getPreallocatedFSGroup gets the annotated value from the namespace.
-func getPreallocatedFSGroup(ns *kapi.Namespace) ([]securityapi.IDRange, error) {
+func getPreallocatedFSGroup(ns *corev1.Namespace) ([]securityapi.IDRange, error) {
 	groups, err := getSupplementalGroupsAnnotation(ns)
 	if err != nil {
 		return nil, err
@@ -346,7 +347,7 @@ func getPreallocatedFSGroup(ns *kapi.Namespace) ([]securityapi.IDRange, error) {
 }
 
 // getPreallocatedSupplementalGroups gets the annotated value from the namespace.
-func getPreallocatedSupplementalGroups(ns *kapi.Namespace) ([]securityapi.IDRange, error) {
+func getPreallocatedSupplementalGroups(ns *corev1.Namespace) ([]securityapi.IDRange, error) {
 	groups, err := getSupplementalGroupsAnnotation(ns)
 	if err != nil {
 		return nil, err
