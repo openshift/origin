@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/kubernetes/pkg/apis/rbac"
-	rbaclisters "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
+	rbacv1listers "k8s.io/client-go/listers/rbac/v1"
 
 	"github.com/go-openapi/errors"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -19,7 +19,7 @@ func TestDelegatedWait(t *testing.T) {
 	storage := &REST{roleBindings: cache}
 
 	cache.namespacelister = &testRoleBindingNamespaceLister{}
-	cache.namespacelister.bindings = map[string]*rbac.RoleBinding{}
+	cache.namespacelister.bindings = map[string]*rbacv1.RoleBinding{}
 	cache.namespacelister.bindings["anything"] = nil
 
 	waitReturnedCh := waitForResultChannel(storage)
@@ -51,15 +51,15 @@ func waitForResultChannel(storage *REST) chan struct{} {
 }
 
 type testRoleBindingNamespaceLister struct {
-	bindings map[string]*rbac.RoleBinding
+	bindings map[string]*rbacv1.RoleBinding
 	lock     sync.Mutex
 }
 
-func (t *testRoleBindingNamespaceLister) List(selector labels.Selector) (ret []*rbac.RoleBinding, err error) {
+func (t *testRoleBindingNamespaceLister) List(selector labels.Selector) (ret []*rbacv1.RoleBinding, err error) {
 	return ret, nil
 }
 
-func (t *testRoleBindingNamespaceLister) Get(name string) (*rbac.RoleBinding, error) {
+func (t *testRoleBindingNamespaceLister) Get(name string) (*rbacv1.RoleBinding, error) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 	if t.bindings[bootstrappolicy.AdminRoleName] != nil {
@@ -72,18 +72,18 @@ type testRoleBindingLister struct {
 	namespacelister *testRoleBindingNamespaceLister
 }
 
-func (t *testRoleBindingLister) RoleBindings(namespace string) rbaclisters.RoleBindingNamespaceLister {
+func (t *testRoleBindingLister) RoleBindings(namespace string) rbacv1listers.RoleBindingNamespaceLister {
 	return t.namespacelister
 }
 
-func (t *testRoleBindingLister) List(selector labels.Selector) ([]*rbac.RoleBinding, error) {
+func (t *testRoleBindingLister) List(selector labels.Selector) ([]*rbacv1.RoleBinding, error) {
 	return nil, nil
 }
 
 func (t *testRoleBindingLister) addAdminRolebinding() {
 	t.namespacelister.lock.Lock()
 	defer t.namespacelister.lock.Unlock()
-	t.namespacelister.bindings[bootstrappolicy.AdminRoleName] = &rbac.RoleBinding{
+	t.namespacelister.bindings[bootstrappolicy.AdminRoleName] = &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{Name: bootstrappolicy.AdminRoleName},
 	}
 }

@@ -297,7 +297,6 @@ func (c *completedConfig) withProjectAPIServer(delegateAPIServer genericapiserve
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config, SharedInformerFactory: c.GenericConfig.SharedInformerFactory},
 		ExtraConfig: projectapiserver.ExtraConfig{
 			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
-			KubeInternalInformers:     c.ExtraConfig.KubeInternalInformers,
 			ProjectAuthorizationCache: c.ExtraConfig.ProjectAuthorizationCache,
 			ProjectCache:              c.ExtraConfig.ProjectCache,
 			ProjectRequestTemplate:    c.ExtraConfig.ProjectRequestTemplate,
