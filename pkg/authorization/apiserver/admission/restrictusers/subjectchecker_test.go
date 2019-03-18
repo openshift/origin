@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/kubernetes/pkg/apis/rbac"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	authorizationapi "github.com/openshift/api/authorization/v1"
 	userapi "github.com/openshift/api/user/v1"
@@ -64,7 +64,7 @@ func TestSubjectCheckers(t *testing.T) {
 			&group,
 		}
 		kubeObjects = []runtime.Object{
-			&kapi.ServiceAccount{
+			&corev1.ServiceAccount{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "namespace",
 					Name:      "serviceaccount",
@@ -328,7 +328,7 @@ func TestSubjectCheckers(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	ctx, err := NewRoleBindingRestrictionContext("namespace",
+	ctx, err := newRoleBindingRestrictionContext("namespace",
 		kclient, fakeUserClient.User(), groupCache)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
