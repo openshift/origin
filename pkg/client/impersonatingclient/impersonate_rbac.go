@@ -5,14 +5,14 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apiserver/pkg/endpoints/request"
+	rbacv1 "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
-	rbacinternalversion "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 )
 
-func NewImpersonatingRBACFromContext(ctx context.Context, restclient rest.Interface) (rbacinternalversion.RbacInterface, error) {
+func NewImpersonatingRBACFromContext(ctx context.Context, restclient rest.Interface) (rbacv1.RbacV1Interface, error) {
 	user, ok := request.UserFrom(ctx)
 	if !ok {
 		return nil, apierrors.NewBadRequest("user missing from context")
 	}
-	return rbacinternalversion.New(NewImpersonatingRESTClient(user, restclient)), nil
+	return rbacv1.New(NewImpersonatingRESTClient(user, restclient)), nil
 }

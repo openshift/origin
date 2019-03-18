@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/admission"
 	restclient "k8s.io/client-go/rest"
@@ -69,7 +70,7 @@ func (si *secretInjector) admit(attr admission.Attributes, mutationAllowed bool)
 		return nil
 	}
 
-	secrets, err := client.Core().Secrets(namespace).List(metav1.ListOptions{})
+	secrets, err := client.CoreV1().Secrets(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		glog.V(2).Infof("secretinjector: failed to list Secrets: %v", err)
 		return nil
@@ -77,8 +78,8 @@ func (si *secretInjector) admit(attr admission.Attributes, mutationAllowed bool)
 
 	patterns := []*urlpattern.URLPattern{}
 	for _, secret := range secrets.Items {
-		if secret.Type == api.SecretTypeBasicAuth && url.Scheme == "ssh" ||
-			secret.Type == api.SecretTypeSSHAuth && url.Scheme != "ssh" {
+		if secret.Type == corev1.SecretTypeBasicAuth && url.Scheme == "ssh" ||
+			secret.Type == corev1.SecretTypeSSHAuth && url.Scheme != "ssh" {
 			continue
 		}
 
