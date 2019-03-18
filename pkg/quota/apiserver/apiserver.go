@@ -9,7 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	quotaapiv1 "github.com/openshift/api/quota/v1"
 	appliedclusterresourcequotaregistry "github.com/openshift/origin/pkg/quota/apiserver/registry/appliedclusterresourcequota"
@@ -21,7 +20,6 @@ import (
 type ExtraConfig struct {
 	ClusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController
 	QuotaInformers                quotainformer.SharedInformerFactory
-	KubeInternalInformers         kinternalinformers.SharedInformerFactory
 
 	// TODO these should all become local eventually
 	Scheme *runtime.Scheme
@@ -106,7 +104,6 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	v1Storage["appliedClusterResourceQuotas"] = appliedclusterresourcequotaregistry.NewREST(
 		c.ExtraConfig.ClusterQuotaMappingController.GetClusterQuotaMapper(),
 		c.ExtraConfig.QuotaInformers.Quota().InternalVersion().ClusterResourceQuotas().Lister(),
-		c.ExtraConfig.KubeInternalInformers.Core().InternalVersion().Namespaces().Lister(),
 	)
 	return v1Storage, nil
 }
