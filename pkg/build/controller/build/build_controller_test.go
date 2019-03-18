@@ -2086,3 +2086,169 @@ func mockBuildSystemConfigMap(build *buildv1.Build, pod *corev1.Pod) *corev1.Con
 	}
 	return cm
 }
+
+func TestPodStatusReporting(t *testing.T) {
+	cases := []struct {
+		name        string
+		pod         *corev1.Pod
+		isOOMKilled bool
+		isEvicted   bool
+	}{
+		{
+			name: "running",
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "running-pod",
+					Namespace: "default",
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "test",
+							Image: "quay.io/coreos/coreos:latest",
+						},
+					},
+				},
+				Status: corev1.PodStatus{
+					Phase:   corev1.PodRunning,
+					Reason:  "Running",
+					Message: "Running...",
+				},
+			},
+		},
+		{
+			name: "oomkilled-pod",
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "oom-pod",
+					Namespace: "default",
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "test",
+							Image: "quay.io/coreos/coreos:latest",
+						},
+					},
+				},
+				Status: corev1.PodStatus{
+					Phase:   corev1.PodFailed,
+					Reason:  "OOMKilled",
+					Message: "OOMKilled...",
+				},
+			},
+			isOOMKilled: true,
+		},
+		{
+			name: "oomkilled-init",
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "oom-pod",
+					Namespace: "default",
+				},
+				Spec: corev1.PodSpec{
+					InitContainers: []corev1.Container{
+						{
+							Name:  "init-1",
+							Image: "quay.io/coreos/coreos:latest",
+						},
+					},
+					Containers: []corev1.Container{
+						{
+							Name:  "test",
+							Image: "quay.io/coreos/coreos:latest",
+						},
+					},
+				},
+				Status: corev1.PodStatus{
+					Phase:   corev1.PodPending,
+					Reason:  "Pending",
+					Message: "Waiting on init containers...",
+					InitContainerStatuses: []corev1.ContainerStatus{
+						{
+							Name: "init-1",
+							State: corev1.ContainerState{
+								Terminated: &corev1.ContainerStateTerminated{
+									ExitCode: 123,
+									Signal:   9,
+									Reason:   "OOMKilled",
+								},
+							},
+						},
+					},
+				},
+			},
+			isOOMKilled: true,
+		},
+		{
+			name: "oomkilled-container",
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "oom-pod",
+					Namespace: "default",
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "test",
+							Image: "quay.io/coreos/coreos:latest",
+						},
+					},
+				},
+				Status: corev1.PodStatus{
+					Phase:   corev1.PodFailed,
+					Reason:  "Failed",
+					Message: "Failed due to OOMKill...",
+					ContainerStatuses: []corev1.ContainerStatus{
+						{
+							Name: "test",
+							State: corev1.ContainerState{
+								Terminated: &corev1.ContainerStateTerminated{
+									ExitCode: 123,
+									Signal:   9,
+									Reason:   "OOMKilled",
+								},
+							},
+						},
+					},
+				},
+			},
+			isOOMKilled: true,
+		},
+		{
+			name: "pod-evicted",
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "evicted-pod",
+					Namespace: "default",
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "test",
+							Image: "quay.io/coreos/coreos:latest",
+						},
+					},
+				},
+				Status: corev1.PodStatus{
+					Phase:   corev1.PodFailed,
+					Reason:  "Evicted",
+					Message: "The pod was evicted due to no memory available.",
+				},
+			},
+			isEvicted: true,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			isOOM := isOOMKilled(tc.pod)
+			if isOOM != tc.isOOMKilled {
+				t.Errorf("expected OOMKilled to be %v, got %v", tc.isOOMKilled, isOOM)
+			}
+			evicted := isPodEvicted(tc.pod)
+			if evicted != tc.isEvicted {
+				t.Errorf("expected Evicted to be %v, got %v", tc.isEvicted, evicted)
+			}
+		})
+	}
+}
