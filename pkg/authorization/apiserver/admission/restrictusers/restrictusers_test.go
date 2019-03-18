@@ -5,18 +5,19 @@ import (
 	"strings"
 	"testing"
 
-	authorizationapi "github.com/openshift/api/authorization/v1"
-	userapi "github.com/openshift/api/user/v1"
-	fakeauthorizationclient "github.com/openshift/client-go/authorization/clientset/versioned/fake"
-	fakeuserclient "github.com/openshift/client-go/user/clientset/versioned/fake"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/kubernetes/pkg/apis/rbac"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+
+	authorizationapi "github.com/openshift/api/authorization/v1"
+	userapi "github.com/openshift/api/user/v1"
+	fakeauthorizationclient "github.com/openshift/client-go/authorization/clientset/versioned/fake"
+	fakeuserclient "github.com/openshift/client-go/user/clientset/versioned/fake"
 )
 
 func TestAdmission(t *testing.T) {
@@ -53,7 +54,7 @@ func TestAdmission(t *testing.T) {
 			Name: "group",
 		}
 
-		serviceaccount = kapi.ServiceAccount{
+		serviceaccount = corev1.ServiceAccount{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "namespace",
 				Name:      "serviceaccount",
@@ -102,7 +103,7 @@ func TestAdmission(t *testing.T) {
 			namespace:   "namespace",
 			subresource: "subresource",
 			kubeObjects: []runtime.Object{
-				&kapi.Namespace{
+				&corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "namespace",
 					},
@@ -131,7 +132,7 @@ func TestAdmission(t *testing.T) {
 			namespace:   "",
 			subresource: "",
 			kubeObjects: []runtime.Object{
-				&kapi.Namespace{
+				&corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "namespace",
 					},
@@ -166,7 +167,7 @@ func TestAdmission(t *testing.T) {
 			namespace:   "namespace",
 			subresource: "",
 			kubeObjects: []runtime.Object{
-				&kapi.Namespace{
+				&corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "namespace",
 					},
@@ -204,7 +205,7 @@ func TestAdmission(t *testing.T) {
 			namespace:   "namespace",
 			subresource: "",
 			kubeObjects: []runtime.Object{
-				&kapi.Namespace{
+				&corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "namespace",
 					},
@@ -249,7 +250,7 @@ func TestAdmission(t *testing.T) {
 			namespace:   "namespace",
 			subresource: "",
 			kubeObjects: []runtime.Object{
-				&kapi.Namespace{
+				&corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "namespace",
 					},
@@ -323,7 +324,7 @@ func TestAdmission(t *testing.T) {
 			namespace:   "namespace",
 			subresource: "",
 			kubeObjects: []runtime.Object{
-				&kapi.Namespace{
+				&corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "namespace",
 					},
@@ -362,7 +363,7 @@ func TestAdmission(t *testing.T) {
 			t.Errorf("unexpected error initializing admission plugin: %v", err)
 		}
 
-		plugin.(*restrictUsersAdmission).kclient = kclientset
+		plugin.(*restrictUsersAdmission).kubeClient = kclientset
 		plugin.(*restrictUsersAdmission).roleBindingRestrictionsGetter = fakeAuthorizationClient.AuthorizationV1()
 		plugin.(*restrictUsersAdmission).userClient = fakeUserClient
 		plugin.(*restrictUsersAdmission).groupCache = fakeGroupCache{}

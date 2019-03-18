@@ -6,8 +6,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/apis/rbac"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	authorizationapi "github.com/openshift/api/authorization/v1"
 	userapi "github.com/openshift/api/user/v1"
@@ -48,7 +48,7 @@ func (checkers UnionSubjectChecker) Allowed(subject rbac.Subject, ctx *RoleBindi
 // whether a RoleBindingRestriction allows rolebindings on a particular subject.
 type RoleBindingRestrictionContext struct {
 	userClient userclient.UserV1Interface
-	kclient    kclientset.Interface
+	kclient    kubernetes.Interface
 
 	// groupCache maps user name to groups.
 	groupCache GroupCache
@@ -66,7 +66,7 @@ type RoleBindingRestrictionContext struct {
 
 // NewRoleBindingRestrictionContext returns a new RoleBindingRestrictionContext
 // object.
-func NewRoleBindingRestrictionContext(ns string, kc kclientset.Interface, userClient userclient.UserV1Interface, groupCache GroupCache) (*RoleBindingRestrictionContext, error) {
+func newRoleBindingRestrictionContext(ns string, kc kubernetes.Interface, userClient userclient.UserV1Interface, groupCache GroupCache) (*RoleBindingRestrictionContext, error) {
 	return &RoleBindingRestrictionContext{
 		namespace:       ns,
 		kclient:         kc,

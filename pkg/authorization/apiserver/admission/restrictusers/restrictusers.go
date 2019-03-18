@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"io"
 
+	"k8s.io/client-go/kubernetes"
+
+	"k8s.io/apiserver/pkg/admission/initializer"
+
 	"k8s.io/client-go/rest"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,7 +17,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/kubernetes/pkg/apis/rbac"
-	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	userapi "github.com/openshift/api/user/v1"
 	authorizationtypedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
@@ -43,13 +45,13 @@ type restrictUsersAdmission struct {
 
 	roleBindingRestrictionsGetter authorizationtypedclient.RoleBindingRestrictionsGetter
 	userClient                    userclient.Interface
-	kclient                       kclientset.Interface
+	kubeClient                    kubernetes.Interface
 	groupCache                    GroupCache
 }
 
 var _ = oadmission.WantsRESTClientConfig(&restrictUsersAdmission{})
 var _ = oadmission.WantsUserInformer(&restrictUsersAdmission{})
-var _ = kadmission.WantsInternalKubeClientSet(&restrictUsersAdmission{})
+var _ = initializer.WantsExternalKubeClientSet(&restrictUsersAdmission{})
 var _ = admission.ValidationInterface(&restrictUsersAdmission{})
 
 // NewRestrictUsersAdmission configures an admission plugin that enforces
@@ -60,8 +62,8 @@ func NewRestrictUsersAdmission() (admission.Interface, error) {
 	}, nil
 }
 
-func (q *restrictUsersAdmission) SetInternalKubeClientSet(c kclientset.Interface) {
-	q.kclient = c
+func (q *restrictUsersAdmission) SetExternalKubeClientSet(c kubernetes.Interface) {
+	q.kubeClient = c
 }
 
 func (q *restrictUsersAdmission) SetRESTClientConfig(restClientConfig rest.Config) {
@@ -178,8 +180,8 @@ func (q *restrictUsersAdmission) Validate(a admission.Attributes) (err error) {
 		checkers = append(checkers, checker)
 	}
 
-	roleBindingRestrictionContext, err := NewRoleBindingRestrictionContext(ns,
-		q.kclient, q.userClient.User(), q.groupCache)
+	roleBindingRestrictionContext, err := newRoleBindingRestrictionContext(ns,
+		q.kubeClient, q.userClient.User(), q.groupCache)
 	if err != nil {
 		return admission.NewForbidden(a, err)
 	}
@@ -208,7 +210,7 @@ func (q *restrictUsersAdmission) Validate(a admission.Attributes) (err error) {
 }
 
 func (q *restrictUsersAdmission) ValidateInitialization() error {
-	if q.kclient == nil {
+	if q.kubeClient == nil {
 		return errors.New("RestrictUsersAdmission plugin requires a Kubernetes client")
 	}
 	if q.roleBindingRestrictionsGetter == nil {
