@@ -5,12 +5,14 @@ import (
 
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -36,7 +38,7 @@ type InternalImageReferenceHandler func(imageReference string, inSpec, inStatus 
 // returns a number of unique image references found in the image stream spec not contained in
 // processedSpecRefs and a number of unique image hashes contained in iS status not contained in
 // processedStatusRefs. Given sets will be updated with new references found.
-func GetImageStreamUsage(is *imageapi.ImageStream) kapi.ResourceList {
+func GetImageStreamUsage(is *imageapi.ImageStream) corev1.ResourceList {
 	specRefs := resource.NewQuantity(0, resource.DecimalSI)
 	statusRefs := resource.NewQuantity(0, resource.DecimalSI)
 
@@ -49,9 +51,9 @@ func GetImageStreamUsage(is *imageapi.ImageStream) kapi.ResourceList {
 		}
 	})
 
-	return kapi.ResourceList{
-		imageapi.ResourceImageStreamTags:   *specRefs,
-		imageapi.ResourceImageStreamImages: *statusRefs,
+	return corev1.ResourceList{
+		imagev1.ResourceImageStreamTags:   *specRefs,
+		imagev1.ResourceImageStreamImages: *statusRefs,
 	}
 }
 

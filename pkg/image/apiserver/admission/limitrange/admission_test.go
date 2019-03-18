@@ -5,17 +5,17 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	kadmission "k8s.io/apiserver/pkg/admission"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
-	kubeadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
+	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openshift/api/image"
+	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/util/testutil"
@@ -24,31 +24,31 @@ import (
 func TestAdmitImageStreamMapping(t *testing.T) {
 	tests := map[string]struct {
 		imageStreamMapping *imageapi.ImageStreamMapping
-		limitRange         *kapi.LimitRange
+		limitRange         *corev1.LimitRange
 		shouldAdmit        bool
-		operation          kadmission.Operation
+		operation          admission.Operation
 	}{
 		"new ism, no limit range": {
 			imageStreamMapping: getImageStreamMapping(),
-			operation:          kadmission.Create,
+			operation:          admission.Create,
 			shouldAdmit:        true,
 		},
 		"new ism, under limit range": {
 			imageStreamMapping: getImageStreamMapping(),
 			limitRange:         getLimitRange("1Ki"),
-			operation:          kadmission.Create,
+			operation:          admission.Create,
 			shouldAdmit:        true,
 		},
 		"new ism, over limit range": {
 			imageStreamMapping: getImageStreamMapping(),
 			limitRange:         getLimitRange("0Ki"),
-			operation:          kadmission.Create,
+			operation:          admission.Create,
 			shouldAdmit:        false,
 		},
 	}
 
 	for k, v := range tests {
-		var fakeKubeClient kclientset.Interface
+		var fakeKubeClient kubernetes.Interface
 		if v.limitRange != nil {
 			fakeKubeClient = fake.NewSimpleClientset(v.limitRange)
 		} else {
@@ -61,7 +61,7 @@ func TestAdmitImageStreamMapping(t *testing.T) {
 		}
 		informerFactory.Start(wait.NeverStop)
 
-		attrs := kadmission.NewAttributesRecord(v.imageStreamMapping, nil,
+		attrs := admission.NewAttributesRecord(v.imageStreamMapping, nil,
 			image.Kind("ImageStreamMapping").WithVersion("version"),
 			v.imageStreamMapping.Namespace,
 			v.imageStreamMapping.Name,
@@ -71,7 +71,7 @@ func TestAdmitImageStreamMapping(t *testing.T) {
 			false,
 			nil)
 
-		err = plugin.(kadmission.MutationInterface).Admit(attrs)
+		err = plugin.(admission.MutationInterface).Admit(attrs)
 		if v.shouldAdmit && err != nil {
 			t.Errorf("%s expected to be admitted but received error %v", k, err)
 		}
@@ -86,7 +86,7 @@ func TestAdmitImage(t *testing.T) {
 		size           resource.Quantity
 		limitSize      resource.Quantity
 		shouldAdmit    bool
-		limitRangeItem *kapi.LimitRangeItem
+		limitRangeItem *corev1.LimitRangeItem
 	}{
 		"under size": {
 			size:        resource.MustParse("50Mi"),
@@ -105,8 +105,8 @@ func TestAdmitImage(t *testing.T) {
 		},
 		"non-applicable limit range item": {
 			size: resource.MustParse("100Mi"),
-			limitRangeItem: &kapi.LimitRangeItem{
-				Type: kapi.LimitTypeContainer,
+			limitRangeItem: &corev1.LimitRangeItem{
+				Type: corev1.LimitTypeContainer,
 			},
 			shouldAdmit: true,
 		},
@@ -115,10 +115,10 @@ func TestAdmitImage(t *testing.T) {
 	for k, v := range tests {
 		limitRangeItem := v.limitRangeItem
 		if limitRangeItem == nil {
-			limitRangeItem = &kapi.LimitRangeItem{
-				Type: imageapi.LimitTypeImage,
-				Max: kapi.ResourceList{
-					kapi.ResourceStorage: v.limitSize,
+			limitRangeItem = &corev1.LimitRangeItem{
+				Type: imagev1.LimitTypeImage,
+				Max: corev1.ResourceList{
+					corev1.ResourceStorage: v.limitSize,
 				},
 			}
 		}
@@ -136,15 +136,15 @@ func TestAdmitImage(t *testing.T) {
 
 func TestLimitAppliestoImages(t *testing.T) {
 	tests := map[string]struct {
-		limitRange  *kapi.LimitRange
+		limitRange  *corev1.LimitRange
 		shouldApply bool
 	}{
 		"good limit range": {
-			limitRange: &kapi.LimitRange{
-				Spec: kapi.LimitRangeSpec{
-					Limits: []kapi.LimitRangeItem{
+			limitRange: &corev1.LimitRange{
+				Spec: corev1.LimitRangeSpec{
+					Limits: []corev1.LimitRangeItem{
 						{
-							Type: imageapi.LimitTypeImage,
+							Type: imagev1.LimitTypeImage,
 						},
 					},
 				},
@@ -152,11 +152,11 @@ func TestLimitAppliestoImages(t *testing.T) {
 			shouldApply: true,
 		},
 		"bad limit range": {
-			limitRange: &kapi.LimitRange{
-				Spec: kapi.LimitRangeSpec{
-					Limits: []kapi.LimitRangeItem{
+			limitRange: &corev1.LimitRange{
+				Spec: corev1.LimitRangeSpec{
+					Limits: []corev1.LimitRangeItem{
 						{
-							Type: kapi.LimitTypeContainer,
+							Type: corev1.LimitTypeContainer,
 						},
 					},
 				},
@@ -164,15 +164,15 @@ func TestLimitAppliestoImages(t *testing.T) {
 			shouldApply: false,
 		},
 		"malformed range with no type": {
-			limitRange: &kapi.LimitRange{
-				Spec: kapi.LimitRangeSpec{
-					Limits: []kapi.LimitRangeItem{},
+			limitRange: &corev1.LimitRange{
+				Spec: corev1.LimitRangeSpec{
+					Limits: []corev1.LimitRangeItem{},
 				},
 			},
 			shouldApply: false,
 		},
 		"malformed range with no limits": {
-			limitRange:  &kapi.LimitRange{},
+			limitRange:  &corev1.LimitRange{},
 			shouldApply: false,
 		},
 	}
@@ -199,16 +199,16 @@ func TestHandles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating plugin: %v", err)
 	}
-	if !plugin.Handles(kadmission.Create) {
+	if !plugin.Handles(admission.Create) {
 		t.Errorf("plugin is expected to handle create")
 	}
-	if plugin.Handles(kadmission.Update) {
+	if plugin.Handles(admission.Update) {
 		t.Errorf("plugin is not expected to handle update")
 	}
-	if plugin.Handles(kadmission.Delete) {
+	if plugin.Handles(admission.Delete) {
 		t.Errorf("plugin is not expected to handle delete")
 	}
-	if plugin.Handles(kadmission.Connect) {
+	if plugin.Handles(admission.Connect) {
 		t.Errorf("plugin is expected to handle connect")
 	}
 }
@@ -221,7 +221,7 @@ func TestSupports(t *testing.T) {
 	}
 	ilr := plugin.(*imageLimitRangerPlugin)
 	for _, r := range resources {
-		attr := kadmission.NewAttributesRecord(nil, nil, legacy.Kind("ImageStreamMapping").WithVersion(""), "ns", "name", legacy.Resource(r).WithVersion("version"), "", kadmission.Create, false, nil)
+		attr := admission.NewAttributesRecord(nil, nil, legacy.Kind("ImageStreamMapping").WithVersion(""), "ns", "name", legacy.Resource(r).WithVersion("version"), "", admission.Create, false, nil)
 		if !ilr.SupportsAttributes(attr) {
 			t.Errorf("plugin is expected to support %#v", r)
 		}
@@ -229,7 +229,7 @@ func TestSupports(t *testing.T) {
 
 	badKinds := []string{"ImageStream", "Image", "Pod", "foo"}
 	for _, k := range badKinds {
-		attr := kadmission.NewAttributesRecord(nil, nil, legacy.Kind(k).WithVersion(""), "ns", "name", image.Resource("bar").WithVersion("version"), "", kadmission.Create, false, nil)
+		attr := admission.NewAttributesRecord(nil, nil, legacy.Kind(k).WithVersion(""), "ns", "name", image.Resource("bar").WithVersion("version"), "", admission.Create, false, nil)
 		if ilr.SupportsAttributes(attr) {
 			t.Errorf("plugin is not expected to support %s", k)
 		}
@@ -247,18 +247,18 @@ func getBaseImageWith1Layer() imageapi.Image {
 	}
 }
 
-func getLimitRange(limit string) *kapi.LimitRange {
-	return &kapi.LimitRange{
+func getLimitRange(limit string) *corev1.LimitRange {
+	return &corev1.LimitRange{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-limit",
 			Namespace: "test",
 		},
-		Spec: kapi.LimitRangeSpec{
-			Limits: []kapi.LimitRangeItem{
+		Spec: corev1.LimitRangeSpec{
+			Limits: []corev1.LimitRangeItem{
 				{
-					Type: imageapi.LimitTypeImage,
-					Max: kapi.ResourceList{
-						kapi.ResourceStorage: resource.MustParse(limit),
+					Type: imagev1.LimitTypeImage,
+					Max: corev1.ResourceList{
+						corev1.ResourceStorage: resource.MustParse(limit),
 					},
 				},
 			},
@@ -276,14 +276,15 @@ func getImageStreamMapping() *imageapi.ImageStreamMapping {
 	}
 }
 
-func newHandlerForTest(c kclientset.Interface) (kadmission.Interface, informers.SharedInformerFactory, error) {
+func newHandlerForTest(c kubernetes.Interface) (admission.Interface, informers.SharedInformerFactory, error) {
 	plugin, err := NewImageLimitRangerPlugin(nil)
 	if err != nil {
 		return nil, nil, err
 	}
 	f := informers.NewSharedInformerFactory(c, 5*time.Minute)
-	pluginInitializer := kubeadmission.NewPluginInitializer(c, f, nil, nil, nil)
-	pluginInitializer.Initialize(plugin)
-	err = kadmission.ValidateInitialization(plugin)
+	castPlugin := plugin.(*imageLimitRangerPlugin)
+	castPlugin.SetExternalKubeInformerFactory(f)
+	castPlugin.SetExternalKubeClientSet(c)
+	err = admission.ValidateInitialization(plugin)
 	return plugin, f, err
 }

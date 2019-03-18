@@ -55,7 +55,7 @@ func newStorage(t *testing.T) (*REST, *StatusREST, *InternalREST, *etcdtesting.E
 	etcdStorage.Codec = legacyscheme.Codecs.LegacyCodec(schema.GroupVersion{Group: "image.openshift.io", Version: "v1"})
 	imagestreamRESTOptions := generic.RESTOptions{StorageConfig: etcdStorage, Decorator: generic.UndecoratedStorage, DeleteCollectionWorkers: 1, ResourcePrefix: "imagestreams"}
 	registry := registryhostname.TestingRegistryHostnameRetriever(noDefaultRegistry, "", "")
-	imageStorage, _, statusStorage, internalStorage, err := NewREST(
+	imageStorage, _, statusStorage, internalStorage, err := NewRESTWithLimitVerifier(
 		imagestreamRESTOptions,
 		registry,
 		&fakeSubjectAccessReviewRegistry{},

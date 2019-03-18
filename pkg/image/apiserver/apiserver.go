@@ -28,7 +28,6 @@ import (
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	imageclientv1 "github.com/openshift/client-go/image/clientset/versioned"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
-	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/image"
 	imageetcd "github.com/openshift/origin/pkg/image/apiserver/registry/image/etcd"
 	"github.com/openshift/origin/pkg/image/apiserver/registry/imagesecret"
@@ -48,7 +47,6 @@ import (
 
 type ExtraConfig struct {
 	KubeAPIServerClientConfig          *restclient.Config
-	LimitVerifier                      imageadmission.LimitVerifier
 	RegistryHostnameRetriever          registryhostname.RegistryHostnameRetriever
 	AllowedRegistriesForImport         openshiftcontrolplanev1.AllowedRegistries
 	MaxImagesBulkImportedPerRepository int
@@ -233,7 +231,14 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageSignatureStorage := imagesignature.NewREST(imageClient.Image())
 	imageStreamSecretsStorage := imagesecret.NewREST(coreClient)
-	imageStreamStorage, imageStreamLayersStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.ExtraConfig.RegistryHostnameRetriever, authorizationClient.SubjectAccessReviews(), c.ExtraConfig.LimitVerifier, whitelister, imageLayerIndex)
+	imageStreamStorage, imageStreamLayersStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(
+		c.GenericConfig.RESTOptionsGetter,
+		c.ExtraConfig.RegistryHostnameRetriever,
+		authorizationClient.SubjectAccessReviews(),
+		c.GenericConfig.SharedInformerFactory.Core().V1().LimitRanges(),
+		whitelister,
+		imageLayerIndex,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}

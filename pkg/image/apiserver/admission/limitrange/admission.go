@@ -6,16 +6,17 @@ import (
 
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	admission "k8s.io/apiserver/pkg/admission"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
-	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
+	"k8s.io/apiserver/pkg/admission/initializer"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 
 	"github.com/openshift/api/image"
+	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/util"
@@ -25,7 +26,7 @@ const (
 	PluginName = "image.openshift.io/ImageLimitRange"
 )
 
-func newLimitExceededError(limitType kapi.LimitType, resourceName kapi.ResourceName, requested, limit *resource.Quantity) error {
+func newLimitExceededError(limitType corev1.LimitType, resourceName corev1.ResourceName, requested, limit *resource.Quantity) error {
 	return fmt.Errorf("requested usage of %s exceeds the maximum limit per %s (%s > %s)", resourceName, limitType, requested.String(), limit.String())
 }
 
@@ -43,13 +44,13 @@ func Register(plugins *admission.Plugins) {
 // imageLimitRangerPlugin is the admission plugin.
 type imageLimitRangerPlugin struct {
 	*admission.Handler
-	limitRanger admission.Interface
+	limitRanger *limitranger.LimitRanger
 }
 
 // imageLimitRangerPlugin implements the LimitRangerActions interface.
 var _ limitranger.LimitRangerActions = &imageLimitRangerPlugin{}
-var _ kadmission.WantsInternalKubeInformerFactory = &imageLimitRangerPlugin{}
-var _ kadmission.WantsInternalKubeClientSet = &imageLimitRangerPlugin{}
+var _ initializer.WantsExternalKubeInformerFactory = &imageLimitRangerPlugin{}
+var _ initializer.WantsExternalKubeClientSet = &imageLimitRangerPlugin{}
 var _ admission.ValidationInterface = &imageLimitRangerPlugin{}
 var _ admission.MutationInterface = &imageLimitRangerPlugin{}
 
@@ -66,20 +67,16 @@ func NewImageLimitRangerPlugin(config io.Reader) (admission.Interface, error) {
 	return plugin, nil
 }
 
-func (q *imageLimitRangerPlugin) SetInternalKubeClientSet(c kclientset.Interface) {
-	q.limitRanger.(kadmission.WantsInternalKubeClientSet).SetInternalKubeClientSet(c)
+func (a *imageLimitRangerPlugin) SetExternalKubeClientSet(c kubernetes.Interface) {
+	a.limitRanger.SetExternalKubeClientSet(c)
 }
 
-func (a *imageLimitRangerPlugin) SetInternalKubeInformerFactory(f informers.SharedInformerFactory) {
-	a.limitRanger.(kadmission.WantsInternalKubeInformerFactory).SetInternalKubeInformerFactory(f)
+func (a *imageLimitRangerPlugin) SetExternalKubeInformerFactory(f informers.SharedInformerFactory) {
+	a.limitRanger.SetExternalKubeInformerFactory(f)
 }
 
 func (a *imageLimitRangerPlugin) ValidateInitialization() error {
-	v, ok := a.limitRanger.(admission.InitializationValidator)
-	if !ok {
-		return fmt.Errorf("limitRanger does not implement kadmission.Validator")
-	}
-	return v.ValidateInitialization()
+	return a.limitRanger.ValidateInitialization()
 }
 
 // Admit invokes the admission logic for checking against LimitRanges.
@@ -88,11 +85,11 @@ func (a *imageLimitRangerPlugin) Admit(attr admission.Attributes) error {
 		return nil // not applicable
 	}
 
-	err := a.limitRanger.(admission.MutationInterface).Admit(attr)
+	err := a.limitRanger.Admit(attr)
 	if err != nil {
 		return err
 	}
-	return a.limitRanger.(admission.ValidationInterface).Validate(attr)
+	return a.limitRanger.Validate(attr)
 }
 
 func (a *imageLimitRangerPlugin) Validate(attr admission.Attributes) error {
@@ -100,7 +97,7 @@ func (a *imageLimitRangerPlugin) Validate(attr admission.Attributes) error {
 		return nil // not applicable
 	}
 
-	return a.limitRanger.(admission.ValidationInterface).Validate(attr)
+	return a.limitRanger.Validate(attr)
 }
 
 // SupportsAttributes is a helper that returns true if the resource is supported by the plugin.
@@ -115,13 +112,13 @@ func (a *imageLimitRangerPlugin) SupportsAttributes(attr admission.Attributes) b
 
 // SupportsLimit provides a check to see if the limitRange is applicable to image objects.
 // Implements the LimitRangerActions interface.
-func (a *imageLimitRangerPlugin) SupportsLimit(limitRange *kapi.LimitRange) bool {
+func (a *imageLimitRangerPlugin) SupportsLimit(limitRange *corev1.LimitRange) bool {
 	if limitRange == nil {
 		return false
 	}
 
 	for _, limit := range limitRange.Spec.Limits {
-		if limit.Type == imageapi.LimitTypeImage {
+		if limit.Type == imagev1.LimitTypeImage {
 			return true
 		}
 	}
@@ -129,12 +126,12 @@ func (a *imageLimitRangerPlugin) SupportsLimit(limitRange *kapi.LimitRange) bool
 }
 
 // MutateLimit is a pluggable function to set limits on the object.
-func (a *imageLimitRangerPlugin) MutateLimit(limitRange *kapi.LimitRange, kind string, obj runtime.Object) error {
+func (a *imageLimitRangerPlugin) MutateLimit(limitRange *corev1.LimitRange, kind string, obj runtime.Object) error {
 	return nil
 }
 
 // ValidateLimits is a pluggable function to enforce limits on the object.
-func (a *imageLimitRangerPlugin) ValidateLimit(limitRange *kapi.LimitRange, kind string, obj runtime.Object) error {
+func (a *imageLimitRangerPlugin) ValidateLimit(limitRange *corev1.LimitRange, kind string, obj runtime.Object) error {
 	isObj, ok := obj.(*imageapi.ImageStreamMapping)
 	if !ok {
 		glog.V(5).Infof("%s: received object other than ImageStreamMapping (%T)", PluginName, obj)
@@ -156,12 +153,12 @@ func (a *imageLimitRangerPlugin) ValidateLimit(limitRange *kapi.LimitRange, kind
 }
 
 // admitImage checks if the size is greater than the limit range.  Abstracted for reuse in the registry.
-func admitImage(size int64, limit kapi.LimitRangeItem) error {
-	if limit.Type != imageapi.LimitTypeImage {
+func admitImage(size int64, limit corev1.LimitRangeItem) error {
+	if limit.Type != imagev1.LimitTypeImage {
 		return nil
 	}
 
-	limitQuantity, ok := limit.Max[kapi.ResourceStorage]
+	limitQuantity, ok := limit.Max[corev1.ResourceStorage]
 	if !ok {
 		return nil
 	}
@@ -169,7 +166,7 @@ func admitImage(size int64, limit kapi.LimitRangeItem) error {
 	imageQuantity := resource.NewQuantity(size, resource.BinarySI)
 	if limitQuantity.Cmp(*imageQuantity) < 0 {
 		// image size is larger than the permitted limit range max size, image is forbidden
-		return newLimitExceededError(imageapi.LimitTypeImage, kapi.ResourceStorage, imageQuantity, &limitQuantity)
+		return newLimitExceededError(imagev1.LimitTypeImage, corev1.ResourceStorage, imageQuantity, &limitQuantity)
 	}
 	return nil
 }
