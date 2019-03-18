@@ -117,7 +117,7 @@ func (o *MirrorOptions) Run() error {
 		format := strings.Replace(dst, "${component}", replaceComponentMarker, -1)
 		dstRef, err := imagereference.Parse(format)
 		if err != nil {
-			return fmt.Errorf("--to must be a valid image reference: %v", err)
+			return fmt.Errorf("release target must be a valid image reference: %v", err)
 		}
 		targetFn = func(name string) imagereference.DockerImageReference {
 			value := strings.Replace(dst, "${component}", name, -1)
@@ -133,10 +133,10 @@ func (o *MirrorOptions) Run() error {
 	} else {
 		ref, err := imagereference.Parse(dst)
 		if err != nil {
-			return fmt.Errorf("--to must be a valid image repository: %v", err)
+			return fmt.Errorf("release target must be a valid image repository: %v", err)
 		}
 		if len(ref.ID) > 0 || len(ref.Tag) > 0 {
-			return fmt.Errorf("--to must be to an image repository and may not contain a tag or digest")
+			return fmt.Errorf("release target must be to an image repository and may not contain a tag or digest")
 		}
 		targetFn = func(name string) imagereference.DockerImageReference {
 			copied := ref
