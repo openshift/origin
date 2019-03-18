@@ -23,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/kubernetes/pkg/apis/networking"
 	"k8s.io/kubernetes/pkg/util/async"
 
 	networkv1 "github.com/openshift/api/network/v1"
@@ -523,7 +522,7 @@ func (np *networkPolicyPlugin) handleAddOrUpdateNetworkPolicy(obj, _ interface{}
 }
 
 func (np *networkPolicyPlugin) handleDeleteNetworkPolicy(obj interface{}) {
-	policy := obj.(*networking.NetworkPolicy)
+	policy := obj.(*networkingv1.NetworkPolicy)
 	glog.V(5).Infof("Watch %s event for NetworkPolicy %s/%s", watch.Deleted, policy.Namespace, policy.Name)
 
 	vnid, err := np.vnids.WaitAndGetVNID(policy.Namespace)
