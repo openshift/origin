@@ -88,8 +88,9 @@ func (c *DynamicCA) CheckCerts() error {
 		return fmt.Errorf("unable to load client CA file %q: %v", c.caFile.Cert, err)
 	}
 	pool := x509.NewCertPool()
-	for _, cert := range certs {
-		pool.AddCert(cert)
+	for i, crt := range certs {
+		pool.AddCert(crt)
+		glog.V(2).Infof("[%d] %q client-ca certificate: %s", i, c.caFile.Cert, getCertDetail(crt))
 	}
 
 	verifyOpts := kubex509.DefaultVerifyOptions()

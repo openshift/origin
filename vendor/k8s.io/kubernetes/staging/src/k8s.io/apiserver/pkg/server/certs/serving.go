@@ -187,6 +187,14 @@ func (c *DynamicServingLoader) CheckCerts() error {
 		tlsConfig: tlsConfigCopy,
 	}
 
+	certs, err := cert.ParseCertsPEM(servingCertBytes)
+	if err != nil {
+		return err
+	}
+	for i, crt := range certs {
+		glog.V(2).Infof("[%d] %q serving certificate: %s", i, c.DefaultCertificate.Cert, getCertDetail(crt))
+	}
+
 	c.currentValue.Store(newRuntimeConfig)
 	c.currentContent = newContent // this is single threaded, so we have no locking issue
 
