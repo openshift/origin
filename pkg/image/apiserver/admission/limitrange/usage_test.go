@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	coreapi "k8s.io/kubernetes/pkg/apis/core"
 
+	imagev1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagetest "github.com/openshift/origin/pkg/image/util/testutil"
 )
@@ -16,13 +18,13 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 	for _, tc := range []struct {
 		name           string
 		namespace      string
-		objRef         kapi.ObjectReference
+		objRef         coreapi.ObjectReference
 		expectedString string
 		expectedError  bool
 	}{
 		{
 			name: "isimage without namespace",
-			objRef: kapi.ObjectReference{
+			objRef: coreapi.ObjectReference{
 				Kind: "ImageStreamImage",
 				Name: imageapi.JoinImageStreamImage("is", imagetest.BaseImageWith1LayerDigest),
 			},
@@ -32,7 +34,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 		{
 			name:      "isimage with a fallback namespace",
 			namespace: "fallback",
-			objRef: kapi.ObjectReference{
+			objRef: coreapi.ObjectReference{
 				Kind: "ImageStreamImage",
 				Name: imageapi.JoinImageStreamImage("is", imagetest.BaseImageWith1LayerDigest),
 			},
@@ -42,7 +44,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 		{
 			name:      "isimage with namespace set",
 			namespace: "fallback",
-			objRef: kapi.ObjectReference{
+			objRef: coreapi.ObjectReference{
 				Kind:      "ImageStreamImage",
 				Namespace: "ns",
 				Name:      imageapi.JoinImageStreamImage("is", imagetest.BaseImageWith1LayerDigest),
@@ -52,7 +54,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 
 		{
 			name: "isimage missing id",
-			objRef: kapi.ObjectReference{
+			objRef: coreapi.ObjectReference{
 				Kind: "ImageStreamImage",
 				Name: imagetest.InternalRegistryURL + "/is",
 			},
@@ -61,7 +63,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 
 		{
 			name: "isimage with a tag",
-			objRef: kapi.ObjectReference{
+			objRef: coreapi.ObjectReference{
 				Kind: "ImageStreamImage",
 				Name: imagetest.InternalRegistryURL + "/is:latest",
 			},
@@ -70,7 +72,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 
 		{
 			name: "istag without namespace",
-			objRef: kapi.ObjectReference{
+			objRef: coreapi.ObjectReference{
 				Kind: "ImageStreamTag",
 				Name: "is:latest",
 			},
@@ -80,7 +82,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 		{
 			name:      "istag with fallback namespace",
 			namespace: "fallback",
-			objRef: kapi.ObjectReference{
+			objRef: coreapi.ObjectReference{
 				Kind: "ImageStreamTag",
 				Name: "is:latest",
 			},
@@ -90,7 +92,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 		{
 			name:      "istag with namespace set",
 			namespace: "fallback",
-			objRef: kapi.ObjectReference{
+			objRef: coreapi.ObjectReference{
 				Kind:      "ImageStreamTag",
 				Namespace: "ns",
 				Name:      "is:latest",
@@ -100,7 +102,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 
 		{
 			name: "istag with missing tag",
-			objRef: kapi.ObjectReference{
+			objRef: coreapi.ObjectReference{
 				Kind: "ImageStreamTag",
 				Name: "is",
 			},
@@ -109,7 +111,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 
 		{
 			name: "istag with image ID",
-			objRef: kapi.ObjectReference{
+			objRef: coreapi.ObjectReference{
 				Kind: "ImageStreamTag",
 				Name: "is@" + imagetest.BaseImageWith1LayerDigest,
 			},
@@ -118,7 +120,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 
 		{
 			name: "dockerimage without registry url",
-			objRef: kapi.ObjectReference{
+			objRef: coreapi.ObjectReference{
 				Kind:      "DockerImage",
 				Namespace: "ns",
 				Name:      "repo@" + imagetest.BaseImageWith1LayerDigest,
@@ -128,7 +130,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 
 		{
 			name: "dockerimage with a default tag",
-			objRef: kapi.ObjectReference{
+			objRef: coreapi.ObjectReference{
 				Kind:      "DockerImage",
 				Namespace: "ns",
 				Name:      "library/repo:latest",
@@ -138,7 +140,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 
 		{
 			name: "dockerimage with a non-default tag",
-			objRef: kapi.ObjectReference{
+			objRef: coreapi.ObjectReference{
 				Kind:      "DockerImage",
 				Namespace: "ns",
 				Name:      "repo:tag",
@@ -148,7 +150,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 
 		{
 			name: "dockerimage referencing docker image",
-			objRef: kapi.ObjectReference{
+			objRef: coreapi.ObjectReference{
 				Kind: "DockerImage",
 				Name: "index.docker.io/repo@" + imagetest.BaseImageWith1LayerDigest,
 			},
@@ -157,7 +159,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 
 		{
 			name: "dockerimage without tag or id",
-			objRef: kapi.ObjectReference{
+			objRef: coreapi.ObjectReference{
 				Kind: "DockerImage",
 				Name: "index.docker.io/user/repo",
 			},
@@ -166,7 +168,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 
 		{
 			name: "dockerimage with internal registry",
-			objRef: kapi.ObjectReference{
+			objRef: coreapi.ObjectReference{
 				Kind: "DockerImage",
 				Name: imagetest.MakeDockerImageReference("test", "is", imagetest.BaseImageWith1LayerDigest),
 			},
@@ -175,7 +177,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 
 		{
 			name: "bad king",
-			objRef: kapi.ObjectReference{
+			objRef: coreapi.ObjectReference{
 				Kind: "dockerImage",
 				Name: imagetest.MakeDockerImageReference("test", "is", imagetest.BaseImageWith1LayerDigest),
 			},
@@ -183,7 +185,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 		},
 	} {
 
-		res, err := GetImageReferenceForObjectReference(tc.namespace, &tc.objRef)
+		res, err := getImageReferenceForObjectReference(tc.namespace, &tc.objRef)
 		if tc.expectedError && err == nil {
 			t.Errorf("[%s] got unexpected non-error", tc.name)
 		}
@@ -216,7 +218,7 @@ func TestGetImageStreamUsage(t *testing.T) {
 					Tags: map[string]imageapi.TagReference{
 						"latest": {
 							Name: "latest",
-							From: &kapi.ObjectReference{
+							From: &coreapi.ObjectReference{
 								Kind: "DockerImage",
 								Name: "openshift/base:v1",
 							},
@@ -253,7 +255,7 @@ func TestGetImageStreamUsage(t *testing.T) {
 					Tags: map[string]imageapi.TagReference{
 						"new": {
 							Name: "new",
-							From: &kapi.ObjectReference{
+							From: &coreapi.ObjectReference{
 								Kind:      "ImageStreamImage",
 								Namespace: "shared",
 								Name:      fmt.Sprintf("is@%s", imagetest.MiscImageDigest),
@@ -362,14 +364,14 @@ func TestGetImageStreamUsage(t *testing.T) {
 					Tags: map[string]imageapi.TagReference{
 						"new": {
 							Name: "new",
-							From: &kapi.ObjectReference{
+							From: &coreapi.ObjectReference{
 								Kind: "DockerImage",
 								Name: "repo:latest",
 							},
 						},
 						"same": {
 							Name: "same",
-							From: &kapi.ObjectReference{
+							From: &coreapi.ObjectReference{
 								Kind: "DockerImage",
 								Name: "index.docker.io/repo",
 							},
@@ -404,7 +406,7 @@ func TestGetImageStreamUsage(t *testing.T) {
 					Tags: map[string]imageapi.TagReference{
 						"new": {
 							Name: "new",
-							From: &kapi.ObjectReference{
+							From: &coreapi.ObjectReference{
 								Kind: "DockerImage",
 								Name: imagetest.MakeDockerImageReference("test", "noshared", imagetest.ChildImageWith2LayersDigest),
 							},
@@ -435,7 +437,7 @@ func TestGetImageStreamUsage(t *testing.T) {
 					Tags: map[string]imageapi.TagReference{
 						"ist": {
 							Name: "ist",
-							From: &kapi.ObjectReference{
+							From: &coreapi.ObjectReference{
 								Kind:      "ImageStreamTag",
 								Namespace: "shared",
 								Name:      "is:latest",
@@ -443,7 +445,7 @@ func TestGetImageStreamUsage(t *testing.T) {
 						},
 						"dockerimage": {
 							Name: "dockerimage",
-							From: &kapi.ObjectReference{
+							From: &coreapi.ObjectReference{
 								Kind:      "DockerImage",
 								Namespace: "shared",
 								Name:      fmt.Sprintf("is:latest"),
@@ -462,7 +464,7 @@ func TestGetImageStreamUsage(t *testing.T) {
 					Tags: map[string]imageapi.TagReference{
 						"dockerimage": {
 							Name: "dockerimage",
-							From: &kapi.ObjectReference{
+							From: &coreapi.ObjectReference{
 								Kind: "DockerImage",
 								Name: imagetest.MakeDockerImageReference("test", "is", imagetest.BaseImageWith1LayerDigest),
 							},
@@ -493,14 +495,14 @@ func TestGetImageStreamUsage(t *testing.T) {
 					Tags: map[string]imageapi.TagReference{
 						"badkind": {
 							Name: "badkind",
-							From: &kapi.ObjectReference{
+							From: &coreapi.ObjectReference{
 								Kind: "unknown",
 								Name: imagetest.MakeDockerImageReference("test", "is", imagetest.BaseImageWith1LayerDigest),
 							},
 						},
 						"badistag": {
 							Name: "badistag",
-							From: &kapi.ObjectReference{
+							From: &coreapi.ObjectReference{
 								Kind:      "ImageStreamTag",
 								Namespace: "shared",
 								Name:      "is",
@@ -508,7 +510,7 @@ func TestGetImageStreamUsage(t *testing.T) {
 						},
 						"badisimage": {
 							Name: "badistag",
-							From: &kapi.ObjectReference{
+							From: &coreapi.ObjectReference{
 								Kind:      "ImageStreamImage",
 								Namespace: "shared",
 								Name:      "is:tag",
@@ -516,7 +518,7 @@ func TestGetImageStreamUsage(t *testing.T) {
 						},
 						"good": {
 							Name: "good",
-							From: &kapi.ObjectReference{
+							From: &coreapi.ObjectReference{
 								Kind: "DockerImage",
 								Name: imagetest.MakeDockerImageReference("test", "is", imagetest.BaseImageWith1LayerDigest),
 							},
@@ -538,7 +540,7 @@ func TestGetImageStreamUsage(t *testing.T) {
 					Tags: map[string]imageapi.TagReference{
 						"havingnamespace": {
 							Name: "havingnamespace",
-							From: &kapi.ObjectReference{
+							From: &coreapi.ObjectReference{
 								Kind:      "ImageStreamTag",
 								Namespace: "fallback",
 								Name:      "other:tag",
@@ -546,7 +548,7 @@ func TestGetImageStreamUsage(t *testing.T) {
 						},
 						"lackingnamespace": {
 							Name: "lackingnamespace",
-							From: &kapi.ObjectReference{
+							From: &coreapi.ObjectReference{
 								Kind: "ImageStreamTag",
 								Name: "other:tag",
 							},
@@ -564,7 +566,7 @@ func TestGetImageStreamUsage(t *testing.T) {
 					Tags: map[string]imageapi.TagReference{
 						"havingnamespace": {
 							Name: "havingnamespace",
-							From: &kapi.ObjectReference{
+							From: &coreapi.ObjectReference{
 								Kind:      "ImageStreamTag",
 								Namespace: "ns",
 								Name:      "other:tag",
@@ -572,7 +574,7 @@ func TestGetImageStreamUsage(t *testing.T) {
 						},
 						"lackingnamespace": {
 							Name: "lackingnamespace",
-							From: &kapi.ObjectReference{
+							From: &coreapi.ObjectReference{
 								Kind: "ImageStreamTag",
 								Name: "other:tag",
 							},
@@ -584,9 +586,9 @@ func TestGetImageStreamUsage(t *testing.T) {
 		},
 	} {
 		usage := GetImageStreamUsage(&tc.is)
-		expectedUsage := kapi.ResourceList{
-			imageapi.ResourceImageStreamTags:   *resource.NewQuantity(tc.expectedTags, resource.DecimalSI),
-			imageapi.ResourceImageStreamImages: *resource.NewQuantity(tc.expectedImages, resource.DecimalSI),
+		expectedUsage := corev1.ResourceList{
+			imagev1.ResourceImageStreamTags:   *resource.NewQuantity(tc.expectedTags, resource.DecimalSI),
+			imagev1.ResourceImageStreamImages: *resource.NewQuantity(tc.expectedImages, resource.DecimalSI),
 		}
 
 		if len(usage) != len(expectedUsage) {

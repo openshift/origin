@@ -17,7 +17,6 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	"github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride"
 	"github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride/validation"
@@ -132,7 +131,7 @@ func TestLimitRequestAdmission(t *testing.T) {
 		expectedCpuLimit   resource.Quantity
 		expectedCpuRequest resource.Quantity
 		namespace          *corev1.Namespace
-		namespaceLimits    []*kapi.LimitRange
+		namespaceLimits    []*corev1.LimitRange
 	}{
 		{
 			name:               "ignore pods that have no memory limit specified",
@@ -151,7 +150,7 @@ func TestLimitRequestAdmission(t *testing.T) {
 			expectedCpuLimit:   resource.MustParse("0"),
 			expectedCpuRequest: resource.MustParse("0"),
 			namespace:          fakeNamespace(true),
-			namespaceLimits: []*kapi.LimitRange{
+			namespaceLimits: []*corev1.LimitRange{
 				fakeMinCPULimitRange("567m"),
 				fakeMinCPULimitRange("678m"),
 				fakeMinMemoryLimitRange("700Gi"),
@@ -175,7 +174,7 @@ func TestLimitRequestAdmission(t *testing.T) {
 			expectedCpuLimit:   resource.MustParse("567m"),
 			expectedCpuRequest: resource.MustParse("567m"),
 			namespace:          fakeNamespace(true),
-			namespaceLimits: []*kapi.LimitRange{
+			namespaceLimits: []*corev1.LimitRange{
 				fakeMinCPULimitRange("567m"),
 				fakeMinCPULimitRange("678m"),
 				fakeMinMemoryLimitRange("700Gi"),
@@ -199,7 +198,7 @@ func TestLimitRequestAdmission(t *testing.T) {
 			expectedCpuLimit:   resource.MustParse("1"),
 			expectedCpuRequest: resource.MustParse("1"),
 			namespace:          fakeNamespace(true),
-			namespaceLimits: []*kapi.LimitRange{
+			namespaceLimits: []*corev1.LimitRange{
 				fakeMinCPULimitRange("567m"),
 				fakeMinCPULimitRange("678m"),
 				fakeMinMemoryLimitRange("700Gi"),
@@ -223,7 +222,7 @@ func TestLimitRequestAdmission(t *testing.T) {
 			expectedCpuLimit:   resource.MustParse("10567m"),
 			expectedCpuRequest: resource.MustParse("10567m"),
 			namespace:          fakeNamespace(true),
-			namespaceLimits: []*kapi.LimitRange{
+			namespaceLimits: []*corev1.LimitRange{
 				fakeMinCPULimitRange("10567m"),
 				fakeMinCPULimitRange("20678m"),
 				fakeMinMemoryLimitRange("700Gi"),
@@ -247,7 +246,7 @@ func TestLimitRequestAdmission(t *testing.T) {
 			expectedCpuLimit:   resource.MustParse("50m"),
 			expectedCpuRequest: resource.MustParse("10567m"),
 			namespace:          fakeNamespace(true),
-			namespaceLimits: []*kapi.LimitRange{
+			namespaceLimits: []*corev1.LimitRange{
 				fakeMinCPULimitRange("10567m"),
 				fakeMinCPULimitRange("20678m"),
 				fakeMinMemoryLimitRange("700Gi"),
@@ -271,7 +270,7 @@ func TestLimitRequestAdmission(t *testing.T) {
 			expectedCpuLimit:   resource.MustParse("50m"),
 			expectedCpuRequest: resource.MustParse("0"),
 			namespace:          fakeNamespace(false),
-			namespaceLimits: []*kapi.LimitRange{
+			namespaceLimits: []*corev1.LimitRange{
 				fakeMinCPULimitRange("10567m"),
 				fakeMinCPULimitRange("20678m"),
 				fakeMinMemoryLimitRange("700Gi"),
@@ -313,7 +312,7 @@ func TestLimitRequestAdmission(t *testing.T) {
 			expectedCpuLimit:   resource.MustParse("1"),
 			expectedCpuRequest: resource.MustParse("500m"),
 			namespace:          fakeNamespace(true),
-			namespaceLimits: []*kapi.LimitRange{
+			namespaceLimits: []*corev1.LimitRange{
 				fakeMinStorageLimitRange("1567Mi"),
 			},
 		},
@@ -461,14 +460,14 @@ func testConfig(lc2mr int64, cr2lr int64, mr2lr int64) *clusterresourceoverride.
 	}
 }
 
-func fakeMinLimitRange(limitType kapi.LimitType, resourceType kapi.ResourceName, limits ...string) *kapi.LimitRange {
-	r := &kapi.LimitRange{}
+func fakeMinLimitRange(limitType corev1.LimitType, resourceType corev1.ResourceName, limits ...string) *corev1.LimitRange {
+	r := &corev1.LimitRange{}
 
 	for i := range limits {
-		rl := kapi.ResourceList{}
+		rl := corev1.ResourceList{}
 		rl[resourceType] = resource.MustParse(limits[i])
 		r.Spec.Limits = append(r.Spec.Limits,
-			kapi.LimitRangeItem{
+			corev1.LimitRangeItem{
 				Type: limitType,
 				Min:  rl,
 			},
@@ -478,32 +477,32 @@ func fakeMinLimitRange(limitType kapi.LimitType, resourceType kapi.ResourceName,
 	return r
 }
 
-func fakeMinMemoryLimitRange(limits ...string) *kapi.LimitRange {
-	return fakeMinLimitRange(kapi.LimitTypeContainer, kapi.ResourceMemory, limits...)
+func fakeMinMemoryLimitRange(limits ...string) *corev1.LimitRange {
+	return fakeMinLimitRange(corev1.LimitTypeContainer, corev1.ResourceMemory, limits...)
 }
 
-func fakeMinCPULimitRange(limits ...string) *kapi.LimitRange {
-	return fakeMinLimitRange(kapi.LimitTypeContainer, kapi.ResourceCPU, limits...)
+func fakeMinCPULimitRange(limits ...string) *corev1.LimitRange {
+	return fakeMinLimitRange(corev1.LimitTypeContainer, corev1.ResourceCPU, limits...)
 }
 
-func fakeMinStorageLimitRange(limits ...string) *kapi.LimitRange {
-	return fakeMinLimitRange(kapi.LimitTypePersistentVolumeClaim, kapi.ResourceStorage, limits...)
+func fakeMinStorageLimitRange(limits ...string) *corev1.LimitRange {
+	return fakeMinLimitRange(corev1.LimitTypePersistentVolumeClaim, corev1.ResourceStorage, limits...)
 }
 
 type fakeLimitRangeLister struct {
-	internalversion.LimitRangeLister
+	corev1listers.LimitRangeLister
 	namespaceLister fakeLimitRangeNamespaceLister
 }
 
 type fakeLimitRangeNamespaceLister struct {
-	internalversion.LimitRangeNamespaceLister
-	limits []*kapi.LimitRange
+	corev1listers.LimitRangeNamespaceLister
+	limits []*corev1.LimitRange
 }
 
-func (f fakeLimitRangeLister) LimitRanges(namespace string) internalversion.LimitRangeNamespaceLister {
+func (f fakeLimitRangeLister) LimitRanges(namespace string) corev1listers.LimitRangeNamespaceLister {
 	return f.namespaceLister
 }
 
-func (f fakeLimitRangeNamespaceLister) List(selector labels.Selector) ([]*kapi.LimitRange, error) {
+func (f fakeLimitRangeNamespaceLister) List(selector labels.Selector) ([]*corev1.LimitRange, error) {
 	return f.limits, nil
 }

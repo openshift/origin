@@ -188,7 +188,6 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 	if err != nil {
 		return nil, err
 	}
-	imageLimitVerifier := ImageLimitVerifier(informers.internalKubernetesInformers.Core().InternalVersion().LimitRanges())
 
 	var caData []byte
 	if len(config.ImagePolicyConfig.AdditionalTrustedCA) != 0 {
@@ -225,7 +224,6 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 			SecurityInformers:                  informers.securityInformers,
 			RuleResolver:                       ruleResolver,
 			SubjectLocator:                     subjectLocator,
-			LimitVerifier:                      imageLimitVerifier,
 			RegistryHostnameRetriever:          registryHostnameRetriever,
 			AllowedRegistriesForImport:         config.ImagePolicyConfig.AllowedRegistriesForImport,
 			MaxImagesBulkImportedPerRepository: config.ImagePolicyConfig.MaxImagesBulkImportedPerRepository,

@@ -1,24 +1,24 @@
-package openshiftapiserver
+package etcd
 
 import (
 	"fmt"
 
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	coreinternalinformer "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
+	corev1informers "k8s.io/client-go/informers/core/v1"
 
 	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
 )
 
-func ImageLimitVerifier(limitRangeInformer coreinternalinformer.LimitRangeInformer) imageadmission.LimitVerifier {
+func ImageLimitVerifier(limitRangeInformer corev1informers.LimitRangeInformer) imageadmission.LimitVerifier {
 	// this call just forces the informer to be registered
 	limitRangeInformer.Informer()
 
-	return imageadmission.NewLimitVerifier(imageadmission.LimitRangesForNamespaceFunc(func(ns string) ([]*kapi.LimitRange, error) {
+	return imageadmission.NewLimitVerifier(imageadmission.LimitRangesForNamespaceFunc(func(ns string) ([]*corev1.LimitRange, error) {
 		list, err := limitRangeInformer.Lister().LimitRanges(ns).List(labels.Everything())
 		if err != nil {
 			return nil, err

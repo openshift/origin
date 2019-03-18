@@ -18,7 +18,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	coreapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/apis/core/v1"
 	kquota "k8s.io/kubernetes/pkg/quota"
 
 	"github.com/openshift/api/image"
@@ -204,7 +205,7 @@ func TestTagVerifier(t *testing.T) {
 		"old nil, all tags are new": {
 			newTags: map[string]imageapi.TagReference{
 				imageapi.DefaultImageTag: {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
 						Name:      "otherstream:latest",
@@ -217,7 +218,7 @@ func TestTagVerifier(t *testing.T) {
 		"nil from": {
 			newTags: map[string]imageapi.TagReference{
 				imageapi.DefaultImageTag: {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "registry/old/stream:latest",
 					},
@@ -228,7 +229,7 @@ func TestTagVerifier(t *testing.T) {
 		"same namespace": {
 			newTags: map[string]imageapi.TagReference{
 				"other": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "namespace",
 						Name:      "otherstream:latest",
@@ -239,7 +240,7 @@ func TestTagVerifier(t *testing.T) {
 		"ref unchanged": {
 			oldTags: map[string]imageapi.TagReference{
 				imageapi.DefaultImageTag: {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
 						Name:      "otherstream:latest",
@@ -248,7 +249,7 @@ func TestTagVerifier(t *testing.T) {
 			},
 			newTags: map[string]imageapi.TagReference{
 				imageapi.DefaultImageTag: {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
 						Name:      "otherstream:latest",
@@ -260,7 +261,7 @@ func TestTagVerifier(t *testing.T) {
 		"invalid from name": {
 			newTags: map[string]imageapi.TagReference{
 				imageapi.DefaultImageTag: {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
 						Name:      "a:b:c",
@@ -274,7 +275,7 @@ func TestTagVerifier(t *testing.T) {
 		"sar error": {
 			newTags: map[string]imageapi.TagReference{
 				imageapi.DefaultImageTag: {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
 						Name:      "otherstream:latest",
@@ -290,7 +291,7 @@ func TestTagVerifier(t *testing.T) {
 		"sar denied": {
 			newTags: map[string]imageapi.TagReference{
 				imageapi.DefaultImageTag: {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
 						Name:      "otherstream:latest",
@@ -306,7 +307,7 @@ func TestTagVerifier(t *testing.T) {
 		"ref changed": {
 			oldTags: map[string]imageapi.TagReference{
 				imageapi.DefaultImageTag: {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
 						Name:      "otherstream:foo",
@@ -315,7 +316,7 @@ func TestTagVerifier(t *testing.T) {
 			},
 			newTags: map[string]imageapi.TagReference{
 				imageapi.DefaultImageTag: {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind:      "ImageStreamTag",
 						Namespace: "otherns",
 						Name:      "otherstream:latest",
@@ -387,7 +388,7 @@ func TestTagVerifier(t *testing.T) {
 }
 
 func TestLimitVerifier(t *testing.T) {
-	makeISForbiddenError := func(isName string, exceeded []kapi.ResourceName) error {
+	makeISForbiddenError := func(isName string, exceeded []coreapi.ResourceName) error {
 		if len(exceeded) == 0 {
 			return nil
 		}
@@ -405,12 +406,16 @@ func TestLimitVerifier(t *testing.T) {
 
 	makeISEvaluator := func(maxImages, maxImageTags int64) func(string, *imageapi.ImageStream) error {
 		return func(ns string, is *imageapi.ImageStream) error {
-			limit := kapi.ResourceList{
+			limit := coreapi.ResourceList{
 				imageapi.ResourceImageStreamImages: *resource.NewQuantity(maxImages, resource.DecimalSI),
 				imageapi.ResourceImageStreamTags:   *resource.NewQuantity(maxImageTags, resource.DecimalSI),
 			}
-			usage := limitrange.GetImageStreamUsage(is)
-			if less, exceeded := kquota.LessThanOrEqual(usage, limit); !less {
+			externalUsage := limitrange.GetImageStreamUsage(is)
+			internalUsage := &coreapi.ResourceList{}
+			if err := v1.Convert_v1_ResourceList_To_core_ResourceList(&externalUsage, internalUsage, nil); err != nil {
+				t.Fatal(err)
+			}
+			if less, exceeded := kquota.LessThanOrEqual(*internalUsage, limit); !less {
 				return makeISForbiddenError(is.Name, exceeded)
 			}
 			return nil
@@ -497,7 +502,7 @@ func TestLimitVerifier(t *testing.T) {
 				},
 			},
 			isEvaluator: makeISEvaluator(1, 0),
-			expected:    field.ErrorList{field.InternalError(field.NewPath(""), makeISForbiddenError("is", []kapi.ResourceName{imageapi.ResourceImageStreamImages}))},
+			expected:    field.ErrorList{field.InternalError(field.NewPath(""), makeISForbiddenError("is", []coreapi.ResourceName{imageapi.ResourceImageStreamImages}))},
 		},
 
 		{
@@ -511,7 +516,7 @@ func TestLimitVerifier(t *testing.T) {
 					Tags: map[string]imageapi.TagReference{
 						"new": {
 							Name: "new",
-							From: &kapi.ObjectReference{
+							From: &coreapi.ObjectReference{
 								Kind: "DockerImage",
 								Name: testutil.MakeDockerImageReference("test", "is", testutil.ChildImageWith2LayersDigest),
 							},
@@ -523,7 +528,7 @@ func TestLimitVerifier(t *testing.T) {
 				},
 			},
 			isEvaluator: makeISEvaluator(0, 0),
-			expected:    field.ErrorList{field.InternalError(field.NewPath(""), makeISForbiddenError("is", []kapi.ResourceName{imageapi.ResourceImageStreamTags}))},
+			expected:    field.ErrorList{field.InternalError(field.NewPath(""), makeISForbiddenError("is", []coreapi.ResourceName{imageapi.ResourceImageStreamTags}))},
 		},
 
 		{
@@ -537,7 +542,7 @@ func TestLimitVerifier(t *testing.T) {
 					Tags: map[string]imageapi.TagReference{
 						"new": {
 							Name: "new",
-							From: &kapi.ObjectReference{
+							From: &coreapi.ObjectReference{
 								Kind: "DockerImage",
 								Name: testutil.MakeDockerImageReference("test", "other", testutil.BaseImageWith1LayerDigest),
 							},
@@ -561,7 +566,7 @@ func TestLimitVerifier(t *testing.T) {
 				},
 			},
 			isEvaluator: makeISEvaluator(0, 0),
-			expected:    field.ErrorList{field.InternalError(field.NewPath(""), makeISForbiddenError("is", []kapi.ResourceName{imageapi.ResourceImageStreamImages, imageapi.ResourceImageStreamTags}))},
+			expected:    field.ErrorList{field.InternalError(field.NewPath(""), makeISForbiddenError("is", []coreapi.ResourceName{imageapi.ResourceImageStreamImages, imageapi.ResourceImageStreamTags}))},
 		},
 	}
 
@@ -630,7 +635,7 @@ func TestTagsChanged(t *testing.T) {
 			previous: map[string]imageapi.TagReference{},
 			tags: map[string]imageapi.TagReference{
 				"t1": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "registry:5000/ns/stream:t1",
 					},
@@ -670,7 +675,7 @@ func TestTagsChanged(t *testing.T) {
 			stream: "registry:5000/ns/stream",
 			tags: map[string]imageapi.TagReference{
 				"t1": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "t2",
 					},
@@ -683,14 +688,14 @@ func TestTagsChanged(t *testing.T) {
 			stream: "registry:5000/ns/stream",
 			tags: map[string]imageapi.TagReference{
 				"t1": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "registry:5000/ns/stream:t1",
 					},
 					Reference: true,
 				},
 				"t2": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "registry:5000/ns/stream@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 					},
@@ -716,13 +721,13 @@ func TestTagsChanged(t *testing.T) {
 			stream: "registry:5000/ns/stream",
 			previous: map[string]imageapi.TagReference{
 				"t1": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "v1image1",
 					},
 				},
 				"t2": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 					},
@@ -730,13 +735,13 @@ func TestTagsChanged(t *testing.T) {
 			},
 			tags: map[string]imageapi.TagReference{
 				"t1": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "v1image1",
 					},
 				},
 				"t2": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 					},
@@ -775,13 +780,13 @@ func TestTagsChanged(t *testing.T) {
 			stream: "registry:5000/ns/stream",
 			previous: map[string]imageapi.TagReference{
 				"t1": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "t1",
 					},
 				},
 				"t3": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 					},
@@ -789,21 +794,21 @@ func TestTagsChanged(t *testing.T) {
 			},
 			tags: map[string]imageapi.TagReference{
 				"t1": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "registry:5000/ns/stream:v1image1",
 					},
 					Reference: true,
 				},
 				"t2": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "registry:5000/ns/stream:v1image1",
 					},
 					Reference: true,
 				},
 				"t3": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "DockerImage",
 						Name: "@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 					},
@@ -851,7 +856,7 @@ func TestTagsChanged(t *testing.T) {
 			stream: "registry:5000/ns/stream",
 			tags: map[string]imageapi.TagReference{
 				"t1": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "ImageStreamTag",
 						Name: "stream:other",
 					},
@@ -890,13 +895,13 @@ func TestTagsChanged(t *testing.T) {
 			stream: "registry:5000/ns/stream",
 			previous: map[string]imageapi.TagReference{
 				"t1": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "ImageStreamTag",
 						Name: "stream:other",
 					},
 				},
 				"t2": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "ImageStreamTag",
 						Name: "stream:t1",
 					},
@@ -904,13 +909,13 @@ func TestTagsChanged(t *testing.T) {
 			},
 			tags: map[string]imageapi.TagReference{
 				"t1": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "ImageStreamImage",
 						Name: "stream@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 					},
 				},
 				"t2": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "ImageStreamTag",
 						Name: "stream:t1",
 					},
@@ -989,7 +994,7 @@ func TestTagsChanged(t *testing.T) {
 			stream: "internalregistry:5000/ns/stream",
 			tags: map[string]imageapi.TagReference{
 				"t1": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "ImageStreamImage",
 						Name: "stream@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 					},
@@ -1028,7 +1033,7 @@ func TestTagsChanged(t *testing.T) {
 			stream: "internalregistry:5000/ns/stream",
 			tags: map[string]imageapi.TagReference{
 				"t1": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "ImageStreamImage",
 						Name: "stream@12345",
 					},
@@ -1067,7 +1072,7 @@ func TestTagsChanged(t *testing.T) {
 			stream: "registry:5000/ns/stream",
 			tags: map[string]imageapi.TagReference{
 				"t1": {
-					From: &kapi.ObjectReference{
+					From: &coreapi.ObjectReference{
 						Kind: "ImageStreamTag",
 						Name: "other:other",
 					},
@@ -1189,26 +1194,26 @@ func TestTagRefChanged(t *testing.T) {
 			expected: false,
 		},
 		"same ref": {
-			old:      imageapi.TagReference{From: &kapi.ObjectReference{Kind: "DockerImage", Name: "foo"}},
-			next:     imageapi.TagReference{From: &kapi.ObjectReference{Kind: "DockerImage", Name: "foo"}},
+			old:      imageapi.TagReference{From: &coreapi.ObjectReference{Kind: "DockerImage", Name: "foo"}},
+			next:     imageapi.TagReference{From: &coreapi.ObjectReference{Kind: "DockerImage", Name: "foo"}},
 			expected: false,
 		},
 		"different ref": {
-			old:      imageapi.TagReference{From: &kapi.ObjectReference{Kind: "DockerImage", Name: "foo"}},
-			next:     imageapi.TagReference{From: &kapi.ObjectReference{Kind: "DockerImage", Name: "bar"}},
+			old:      imageapi.TagReference{From: &coreapi.ObjectReference{Kind: "DockerImage", Name: "foo"}},
+			next:     imageapi.TagReference{From: &coreapi.ObjectReference{Kind: "DockerImage", Name: "bar"}},
 			expected: true,
 		},
 		"no kind, no name": {
 			old: imageapi.TagReference{},
 			next: imageapi.TagReference{
-				From: &kapi.ObjectReference{},
+				From: &coreapi.ObjectReference{},
 			},
 			expected: false,
 		},
 		"old from nil": {
 			old: imageapi.TagReference{},
 			next: imageapi.TagReference{
-				From: &kapi.ObjectReference{
+				From: &coreapi.ObjectReference{
 					Namespace: "another",
 					Name:      "other:latest",
 				},
@@ -1217,12 +1222,12 @@ func TestTagRefChanged(t *testing.T) {
 		},
 		"different namespace - old implicit": {
 			old: imageapi.TagReference{
-				From: &kapi.ObjectReference{
+				From: &coreapi.ObjectReference{
 					Name: "other:latest",
 				},
 			},
 			next: imageapi.TagReference{
-				From: &kapi.ObjectReference{
+				From: &coreapi.ObjectReference{
 					Namespace: "another",
 					Name:      "other:latest",
 				},
@@ -1231,13 +1236,13 @@ func TestTagRefChanged(t *testing.T) {
 		},
 		"different namespace - old explicit": {
 			old: imageapi.TagReference{
-				From: &kapi.ObjectReference{
+				From: &coreapi.ObjectReference{
 					Namespace: "something",
 					Name:      "other:latest",
 				},
 			},
 			next: imageapi.TagReference{
-				From: &kapi.ObjectReference{
+				From: &coreapi.ObjectReference{
 					Namespace: "another",
 					Name:      "other:latest",
 				},
@@ -1246,13 +1251,13 @@ func TestTagRefChanged(t *testing.T) {
 		},
 		"different namespace - next implicit": {
 			old: imageapi.TagReference{
-				From: &kapi.ObjectReference{
+				From: &coreapi.ObjectReference{
 					Namespace: "something",
 					Name:      "other:latest",
 				},
 			},
 			next: imageapi.TagReference{
-				From: &kapi.ObjectReference{
+				From: &coreapi.ObjectReference{
 					Name: "other:latest",
 				},
 			},
@@ -1260,12 +1265,12 @@ func TestTagRefChanged(t *testing.T) {
 		},
 		"different name - old namespace implicit": {
 			old: imageapi.TagReference{
-				From: &kapi.ObjectReference{
+				From: &coreapi.ObjectReference{
 					Name: "other:latest",
 				},
 			},
 			next: imageapi.TagReference{
-				From: &kapi.ObjectReference{
+				From: &coreapi.ObjectReference{
 					Namespace: "streamnamespace",
 					Name:      "other:other",
 				},
@@ -1274,13 +1279,13 @@ func TestTagRefChanged(t *testing.T) {
 		},
 		"different name - old namespace explicit": {
 			old: imageapi.TagReference{
-				From: &kapi.ObjectReference{
+				From: &coreapi.ObjectReference{
 					Namespace: "streamnamespace",
 					Name:      "other:latest",
 				},
 			},
 			next: imageapi.TagReference{
-				From: &kapi.ObjectReference{
+				From: &coreapi.ObjectReference{
 					Namespace: "streamnamespace",
 					Name:      "other:other",
 				},
@@ -1289,13 +1294,13 @@ func TestTagRefChanged(t *testing.T) {
 		},
 		"different name - new namespace implicit": {
 			old: imageapi.TagReference{
-				From: &kapi.ObjectReference{
+				From: &coreapi.ObjectReference{
 					Namespace: "streamnamespace",
 					Name:      "other:latest",
 				},
 			},
 			next: imageapi.TagReference{
-				From: &kapi.ObjectReference{
+				From: &coreapi.ObjectReference{
 					Name: "other:other",
 				},
 			},
@@ -1303,12 +1308,12 @@ func TestTagRefChanged(t *testing.T) {
 		},
 		"same name - old namespace implicit": {
 			old: imageapi.TagReference{
-				From: &kapi.ObjectReference{
+				From: &coreapi.ObjectReference{
 					Name: "other:latest",
 				},
 			},
 			next: imageapi.TagReference{
-				From: &kapi.ObjectReference{
+				From: &coreapi.ObjectReference{
 					Namespace: "streamnamespace",
 					Name:      "other:latest",
 				},
@@ -1317,13 +1322,13 @@ func TestTagRefChanged(t *testing.T) {
 		},
 		"same name - old namespace explicit": {
 			old: imageapi.TagReference{
-				From: &kapi.ObjectReference{
+				From: &coreapi.ObjectReference{
 					Namespace: "streamnamespace",
 					Name:      "other:latest",
 				},
 			},
 			next: imageapi.TagReference{
-				From: &kapi.ObjectReference{
+				From: &coreapi.ObjectReference{
 					Namespace: "streamnamespace",
 					Name:      "other:latest",
 				},
@@ -1332,12 +1337,12 @@ func TestTagRefChanged(t *testing.T) {
 		},
 		"same name - both namespaces implicit": {
 			old: imageapi.TagReference{
-				From: &kapi.ObjectReference{
+				From: &coreapi.ObjectReference{
 					Name: "other:latest",
 				},
 			},
 			next: imageapi.TagReference{
-				From: &kapi.ObjectReference{
+				From: &coreapi.ObjectReference{
 					Name: "other:latest",
 				},
 			},

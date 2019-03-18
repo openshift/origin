@@ -13,6 +13,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
+	corev1informers "k8s.io/client-go/informers/core/v1"
 	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
@@ -45,8 +46,26 @@ func (r *REST) ShortNames() []string {
 	return []string{"is"}
 }
 
-// NewREST returns a new REST.
 func NewREST(
+	optsGetter generic.RESTOptionsGetter,
+	registryHostname registryhostname.RegistryHostnameRetriever,
+	subjectAccessReviewRegistry authorizationclient.SubjectAccessReviewInterface,
+	limitRangeInformer corev1informers.LimitRangeInformer,
+	registryWhitelister whitelist.RegistryWhitelister,
+	imageLayerIndex ImageLayerIndex,
+) (*REST, *LayersREST, *StatusREST, *InternalREST, error) {
+	return NewRESTWithLimitVerifier(
+		optsGetter,
+		registryHostname,
+		subjectAccessReviewRegistry,
+		ImageLimitVerifier(limitRangeInformer),
+		registryWhitelister,
+		imageLayerIndex,
+	)
+}
+
+// NewRESTWithLimitVerifier is exposed for unfortunate cross package unit tests
+func NewRESTWithLimitVerifier(
 	optsGetter generic.RESTOptionsGetter,
 	registryHostname registryhostname.RegistryHostnameRetriever,
 	subjectAccessReviewRegistry authorizationclient.SubjectAccessReviewInterface,

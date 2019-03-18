@@ -78,7 +78,7 @@ func setup(t *testing.T) (etcd.KV, *etcdtesting.EtcdTestServer, *REST) {
 		t.Fatal(err)
 	}
 	registry := registryhostname.TestingRegistryHostnameRetriever(testDefaultRegistry, "", "")
-	imageStreamStorage, _, imageStreamStatus, internalStorage, err := imagestreametcd.NewREST(
+	imageStreamStorage, _, imageStreamStatus, internalStorage, err := imagestreametcd.NewRESTWithLimitVerifier(
 		imagestreamRESTOptions,
 		registry,
 		&fakeSubjectAccessReviewRegistry{},
