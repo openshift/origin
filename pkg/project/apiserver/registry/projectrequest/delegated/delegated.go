@@ -8,8 +8,10 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	authorizationapi "k8s.io/api/authorization/v1"
-	kapierror "k8s.io/apimachinery/pkg/api/errors"
+
+	authorizationv1 "k8s.io/api/authorization/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	apierror "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,10 +25,9 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/client-go/dynamic"
 	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
+	rbacv1listers "k8s.io/client-go/listers/rbac/v1"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/apis/rbac"
-	rbaclisters "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
 
 	"github.com/openshift/api/project"
 	projectapiv1 "github.com/openshift/api/project/v1"
@@ -55,7 +56,7 @@ type REST struct {
 
 	// policyBindings is an auth cache that is shared with the authorizer for the API server.
 	// we use this cache to detect when the authorizer has observed the change for the auth rules
-	roleBindings rbaclisters.RoleBindingLister
+	roleBindings rbacv1listers.RoleBindingLister
 }
 
 var _ rest.Lister = &REST{}
@@ -68,7 +69,7 @@ func NewREST(message, templateNamespace, templateName string,
 	sarClient authorizationclient.SubjectAccessReviewInterface,
 	client dynamic.Interface,
 	restMapper meta.RESTMapper,
-	roleBindings rbaclisters.RoleBindingLister) *REST {
+	roleBindings rbacv1listers.RoleBindingLister) *REST {
 	return &REST{
 		message:           message,
 		templateNamespace: templateNamespace,
@@ -101,7 +102,7 @@ var (
 	ForbiddenPrefixes = []string{"openshift-", "kubernetes-", "kube-"}
 
 	defaultRoleBindingNames = bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindingNames()
-	roleBindingGroups       = sets.NewString(legacy.GroupName, osauthorizationapi.GroupName, rbac.GroupName)
+	roleBindingGroups       = sets.NewString(legacy.GroupName, osauthorizationapi.GroupName, rbacv1.GroupName)
 	roleBindingKind         = "RoleBinding"
 )
 
@@ -116,17 +117,17 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 	projectRequest := obj.(*projectapi.ProjectRequest)
 	for _, s := range ForbiddenNames {
 		if projectRequest.Name == s {
-			return nil, kapierror.NewForbidden(project.Resource("project"), projectRequest.Name, fmt.Errorf("cannot request a project with the name %q", s))
+			return nil, apierror.NewForbidden(project.Resource("project"), projectRequest.Name, fmt.Errorf("cannot request a project with the name %q", s))
 		}
 	}
 	for _, s := range ForbiddenPrefixes {
 		if strings.HasPrefix(projectRequest.Name, s) {
-			return nil, kapierror.NewForbidden(project.Resource("project"), projectRequest.Name, fmt.Errorf("cannot request a project starting with %q", s))
+			return nil, apierror.NewForbidden(project.Resource("project"), projectRequest.Name, fmt.Errorf("cannot request a project starting with %q", s))
 		}
 	}
 
 	if _, err := r.projectGetter.Projects().Get(projectRequest.Name, metav1.GetOptions{}); err == nil {
-		return nil, kapierror.NewAlreadyExists(project.Resource("project"), projectRequest.Name)
+		return nil, apierror.NewAlreadyExists(project.Resource("project"), projectRequest.Name)
 	}
 
 	projectName := projectRequest.Name
@@ -171,7 +172,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		switch item.GroupVersionKind().GroupKind() {
 		case schema.GroupKind{Group: "project.openshift.io", Kind: "Project"}:
 			if projectFromTemplate != nil {
-				return nil, kapierror.NewInternalError(fmt.Errorf("the project template (%s/%s) is not correctly configured: must contain only one project resource", r.templateNamespace, r.templateName))
+				return nil, apierror.NewInternalError(fmt.Errorf("the project template (%s/%s) is not correctly configured: must contain only one project resource", r.templateNamespace, r.templateName))
 			}
 			externalProjectFromTemplate := &projectapiv1.Project{}
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, externalProjectFromTemplate)
@@ -195,14 +196,14 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		objectsToCreate = append(objectsToCreate, &item)
 	}
 	if projectFromTemplate == nil {
-		return nil, kapierror.NewInternalError(fmt.Errorf("the project template (%s/%s) is not correctly configured: must contain a project resource", r.templateNamespace, r.templateName))
+		return nil, apierror.NewInternalError(fmt.Errorf("the project template (%s/%s) is not correctly configured: must contain a project resource", r.templateNamespace, r.templateName))
 	}
 
 	// we split out project creation separately so that in a case of racers for the same project, only one will win and create the rest of their template objects
 	createdProject, err := r.projectGetter.Projects().Create(projectFromTemplate)
 	if err != nil {
 		// log errors other than AlreadyExists and Forbidden
-		if !kapierror.IsAlreadyExists(err) && !kapierror.IsForbidden(err) {
+		if !apierror.IsAlreadyExists(err) && !apierror.IsForbidden(err) {
 			utilruntime.HandleError(fmt.Errorf("error creating requested project %#v: %v", projectFromTemplate, err))
 		}
 		return nil, err
@@ -226,17 +227,17 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 			if deleteErr := r.projectGetter.Projects().Delete(createdProject.Name, &metav1.DeleteOptions{}); deleteErr != nil {
 				utilruntime.HandleError(fmt.Errorf("error cleaning up requested project %q: %v", createdProject.Name, deleteErr))
 			}
-			return nil, kapierror.NewInternalError(mappingErr)
+			return nil, apierror.NewInternalError(mappingErr)
 		}
 
 		_, createErr := r.client.Resource(restMapping.Resource).Namespace(createdProject.Name).Create(toCreate, metav1.CreateOptions{})
 		// if a default role binding already exists, we're probably racing the controller.  Don't die
-		if gvk := restMapping.GroupVersionKind; kapierror.IsAlreadyExists(createErr) &&
+		if gvk := restMapping.GroupVersionKind; apierror.IsAlreadyExists(createErr) &&
 			gvk.Kind == roleBindingKind && roleBindingGroups.Has(gvk.Group) && defaultRoleBindingNames.Has(toCreate.GetName()) {
 			continue
 		}
 		// it is safe to ignore all such errors since stopOnErr will only let these through for the default role bindings
-		if kapierror.IsAlreadyExists(createErr) {
+		if apierror.IsAlreadyExists(createErr) {
 			continue
 		}
 		if createErr != nil {
@@ -245,7 +246,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 			if deleteErr := r.projectGetter.Projects().Delete(createdProject.Name, &metav1.DeleteOptions{}); deleteErr != nil {
 				utilruntime.HandleError(fmt.Errorf("error cleaning up requested project %q: %v", createdProject.Name, deleteErr))
 			}
-			return nil, kapierror.NewInternalError(createErr)
+			return nil, apierror.NewInternalError(createErr)
 		}
 	}
 
@@ -291,9 +292,9 @@ func (r *REST) List(ctx context.Context, options *metainternal.ListOptions) (run
 
 	// the caller might not have permission to run a subject access review (he has it by default, but it could have been removed).
 	// So we'll escalate for the subject access review to determine rights
-	accessReview := authorizationutil.AddUserToSAR(userInfo, &authorizationapi.SubjectAccessReview{
-		Spec: authorizationapi.SubjectAccessReviewSpec{
-			ResourceAttributes: &authorizationapi.ResourceAttributes{
+	accessReview := authorizationutil.AddUserToSAR(userInfo, &authorizationv1.SubjectAccessReview{
+		Spec: authorizationv1.SubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationv1.ResourceAttributes{
 				Verb:     "create",
 				Group:    projectapi.GroupName,
 				Resource: "projectrequests",
@@ -308,7 +309,7 @@ func (r *REST) List(ctx context.Context, options *metainternal.ListOptions) (run
 		return &metav1.Status{Status: metav1.StatusSuccess}, nil
 	}
 
-	forbiddenError := kapierror.NewForbidden(project.Resource("projectrequest"), "", errors.New("you may not request a new project via this API."))
+	forbiddenError := apierror.NewForbidden(project.Resource("projectrequest"), "", errors.New("you may not request a new project via this API."))
 	if len(r.message) > 0 {
 		forbiddenError.ErrStatus.Message = r.message
 		forbiddenError.ErrStatus.Details = &metav1.StatusDetails{

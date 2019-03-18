@@ -4,18 +4,17 @@ import (
 	"sync"
 
 	"github.com/golang/glog"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	restclient "k8s.io/client-go/rest"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	projectapiv1 "github.com/openshift/api/project/v1"
 	templateclient "github.com/openshift/client-go/template/clientset/versioned"
@@ -29,7 +28,6 @@ import (
 
 type ExtraConfig struct {
 	KubeAPIServerClientConfig *restclient.Config
-	KubeInternalInformers     kinternalinformers.SharedInformerFactory
 	ProjectAuthorizationCache *projectauth.AuthorizationCache
 	ProjectCache              *projectcache.ProjectCache
 	ProjectRequestTemplate    string
@@ -146,7 +144,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		authorizationClient.SubjectAccessReviews(),
 		dynamicClient,
 		c.ExtraConfig.RESTMapper,
-		c.ExtraConfig.KubeInternalInformers.Rbac().InternalVersion().RoleBindings().Lister(),
+		c.GenericConfig.SharedInformerFactory.Rbac().V1().RoleBindings().Lister(),
 	)
 
 	v1Storage := map[string]rest.Storage{}
