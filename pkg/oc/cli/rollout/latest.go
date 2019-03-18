@@ -14,7 +14,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
@@ -55,7 +55,7 @@ type RolloutLatestOptions struct {
 	again  bool
 
 	appsClient appsclient.DeploymentConfigsGetter
-	kubeClient kclientset.Interface
+	kubeClient kubernetes.Interface
 
 	Printer printers.ResourcePrinter
 
@@ -124,7 +124,7 @@ func (o *RolloutLatestOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, 
 	if err != nil {
 		return err
 	}
-	o.kubeClient, err = kclientset.NewForConfig(clientConfig)
+	o.kubeClient, err = kubernetes.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func (o *RolloutLatestOptions) RunRolloutLatest() error {
 	}
 
 	deploymentName := appsutil.LatestDeploymentNameForConfigAndVersion(config.Name, config.Status.LatestVersion)
-	deployment, err := o.kubeClient.Core().ReplicationControllers(config.Namespace).Get(deploymentName, metav1.GetOptions{})
+	deployment, err := o.kubeClient.CoreV1().ReplicationControllers(config.Namespace).Get(deploymentName, metav1.GetOptions{})
 	switch {
 	case err == nil:
 		// Reject attempts to start a concurrent deployment.

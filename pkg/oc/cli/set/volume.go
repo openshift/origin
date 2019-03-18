@@ -25,8 +25,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
@@ -103,7 +102,7 @@ type VolumeOptions struct {
 	DefaultNamespace       string
 	ExplicitNamespace      bool
 	Mapper                 meta.RESTMapper
-	Client                 kcoreclient.CoreInterface
+	Client                 kubernetes.Interface
 	UpdatePodSpecForObject polymorphichelpers.UpdatePodSpecForObjectFunc
 	Encoder                runtime.Encoder
 	Builder                func() *resource.Builder
@@ -300,7 +299,7 @@ func (a *AddVolumeOptions) Validate() error {
 			return errors.New("must provide only one volume for --source")
 		}
 
-		var vs kapi.VolumeSource
+		var vs corev1.VolumeSource
 		err = json.Unmarshal([]byte(a.Source), &vs)
 		if err != nil {
 			return err
@@ -323,7 +322,7 @@ func (o *VolumeOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []
 	if err != nil {
 		return err
 	}
-	o.Client, err = kcoreclient.NewForConfig(config)
+	o.Client, err = kubernetes.NewForConfig(config)
 	if err != nil {
 		return err
 	}
@@ -426,12 +425,12 @@ func (a *AddVolumeOptions) Complete() error {
 		a.ClaimSize = q.String()
 	}
 	switch strings.ToLower(a.ClaimMode) {
-	case strings.ToLower(string(kapi.ReadOnlyMany)), "rom":
-		a.ClaimMode = string(kapi.ReadOnlyMany)
-	case strings.ToLower(string(kapi.ReadWriteOnce)), "rwo":
-		a.ClaimMode = string(kapi.ReadWriteOnce)
-	case strings.ToLower(string(kapi.ReadWriteMany)), "rwm":
-		a.ClaimMode = string(kapi.ReadWriteMany)
+	case strings.ToLower(string(corev1.ReadOnlyMany)), "rom":
+		a.ClaimMode = string(corev1.ReadOnlyMany)
+	case strings.ToLower(string(corev1.ReadWriteOnce)), "rwo":
+		a.ClaimMode = string(corev1.ReadWriteOnce)
+	case strings.ToLower(string(corev1.ReadWriteMany)), "rwm":
+		a.ClaimMode = string(corev1.ReadWriteMany)
 	case "":
 	default:
 		return errors.New("--claim-mode must be one of ReadWriteOnce (rwo), ReadWriteMany (rwm), or ReadOnlyMany (rom)")
@@ -472,13 +471,13 @@ func (o *VolumeOptions) RunVolume() error {
 	// if a claim should be created, generate the info we'll add to the flow
 	if o.Add && o.AddOpts.CreateClaim {
 		claim := o.AddOpts.createClaim()
-		m, err := o.Mapper.RESTMapping(kapi.Kind("PersistentVolumeClaim"))
+		m, err := o.Mapper.RESTMapping(corev1.SchemeGroupVersion.WithKind("PersistentVolumeClaim").GroupKind())
 		if err != nil {
 			return err
 		}
 		info := &resource.Info{
 			Mapping:   m,
-			Client:    o.Client.RESTClient(),
+			Client:    o.Client.CoreV1().RESTClient(),
 			Namespace: o.DefaultNamespace,
 			Object:    claim,
 		}
@@ -875,16 +874,16 @@ func sourceAccessMode(readOnly bool) string {
 	return ""
 }
 
-func describePersistentVolumeClaim(claim *kapi.PersistentVolumeClaim) string {
+func describePersistentVolumeClaim(claim *corev1.PersistentVolumeClaim) string {
 	if len(claim.Spec.VolumeName) == 0 {
 		// TODO: check for other dimensions of request - IOPs, etc
-		if val, ok := claim.Spec.Resources.Requests[kapi.ResourceStorage]; ok {
+		if val, ok := claim.Spec.Resources.Requests[corev1.ResourceStorage]; ok {
 			return fmt.Sprintf("waiting for %sB allocation", val.String())
 		}
 		return "waiting to allocate"
 	}
 	// TODO: check for other dimensions of capacity?
-	if val, ok := claim.Status.Capacity[kapi.ResourceStorage]; ok {
+	if val, ok := claim.Status.Capacity[corev1.ResourceStorage]; ok {
 		return fmt.Sprintf("allocated %sB", val.String())
 	}
 	return "allocated unknown size"
@@ -943,7 +942,7 @@ func (o *VolumeOptions) listVolumeForSpec(spec *corev1.PodSpec, info *resource.I
 		refInfo := ""
 		if vol.VolumeSource.PersistentVolumeClaim != nil {
 			claimName := vol.VolumeSource.PersistentVolumeClaim.ClaimName
-			claim, err := o.Client.PersistentVolumeClaims(info.Namespace).Get(claimName, metav1.GetOptions{})
+			claim, err := o.Client.CoreV1().PersistentVolumeClaims(info.Namespace).Get(claimName, metav1.GetOptions{})
 			switch {
 			case err == nil:
 				refInfo = fmt.Sprintf("(%s)", describePersistentVolumeClaim(claim))
