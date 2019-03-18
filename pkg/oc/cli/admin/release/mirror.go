@@ -5,18 +5,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/golang/glog"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/spf13/cobra"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	imageapi "github.com/openshift/api/image/v1"
+	imagev1 "github.com/openshift/api/image/v1"
+	imageclient "github.com/openshift/client-go/image/clientset/versioned"
 	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 	"github.com/openshift/origin/pkg/oc/cli/image/extract"
@@ -54,12 +61,14 @@ func NewMirror(f kcmdutil.Factory, parentName string, streams genericclioptions.
 			The common use for this command is to mirror a specific OpenShift release version to
 			a private registry for use in a disconnected or offline context. The command copies all
 			images that are part of a release into the target repository and then prints the
-			correct information to give to OpenShift to use that content offline.
+			correct information to give to OpenShift to use that content offline. An alternate mode
+			is to specify --to-image-stream, which imports the images directly into an OpenShift
+			image stream.
 
 			Experimental: This command is under active development and may change without notice.
 		`),
 		Run: func(cmd *cobra.Command, args []string) {
-			kcmdutil.CheckErr(o.Complete(cmd, args))
+			kcmdutil.CheckErr(o.Complete(cmd, f, args))
 			kcmdutil.CheckErr(o.Run())
 		},
 	}
@@ -67,6 +76,7 @@ func NewMirror(f kcmdutil.Factory, parentName string, streams genericclioptions.
 	flags.StringVarP(&o.RegistryConfig, "registry-config", "a", o.RegistryConfig, "Path to your registry credentials (defaults to ~/.docker/config.json)")
 	flags.StringVar(&o.From, "from", o.From, "Image containing the release payload.")
 	flags.StringVar(&o.To, "to", o.To, "An image repository to push to.")
+	flags.StringVar(&o.ToImageStream, "to-image-stream", o.ToImageStream, "An image stream to tag images into.")
 	flags.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Display information about the mirror without actually executing it.")
 
 	flags.BoolVar(&o.SkipRelease, "skip-release-image", o.SkipRelease, "Do not push the release image.")
@@ -79,18 +89,47 @@ type MirrorOptions struct {
 
 	From string
 
-	To          string
+	To            string
+	ToImageStream string
+
 	ToRelease   string
 	SkipRelease bool
 
 	RegistryConfig string
 	DryRun         bool
 
-	ImageStream *imageapi.ImageStream
+	ClientFn func() (imageclient.Interface, string, error)
+
+	ImageStream *imagev1.ImageStream
 	TargetFn    func(component string) imagereference.DockerImageReference
 }
 
-func (o *MirrorOptions) Complete(cmd *cobra.Command, args []string) error {
+func (o *MirrorOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []string) error {
+	switch {
+	case len(args) == 0 && len(o.From) == 0:
+		return fmt.Errorf("must specify a release image with --from")
+	case len(args) == 1 && len(o.From) == 0:
+		o.From = args[0]
+	case len(args) == 1 && len(o.From) > 0:
+		return fmt.Errorf("you may not specify an argument and --from")
+	case len(args) > 1:
+		return fmt.Errorf("only one argument is accepted")
+	}
+	o.ClientFn = func() (imageclient.Interface, string, error) {
+		cfg, err := f.ToRESTConfig()
+		if err != nil {
+			return nil, "", err
+		}
+		client, err := imageclient.NewForConfig(cfg)
+		if err != nil {
+			return nil, "", err
+		}
+		ns, _, err := f.ToRawKubeConfigLoader().Namespace()
+		if err != nil {
+			return nil, "", err
+		}
+		return client, ns, nil
+	}
 	return nil
 }
 
@@ -98,11 +137,11 @@ const replaceComponentMarker = "X-X-X-X-X-X-X"
 
 func (o *MirrorOptions) Run() error {
 	if len(o.From) == 0 && o.ImageStream == nil {
-		return fmt.Errorf("must specify an image containing a release payload with --from")
+		return fmt.Errorf("must specify a release image with --from")
 	}
 
-	if len(o.To) == 0 {
-		return fmt.Errorf("must specify an image repository to mirror the release to")
+	if (len(o.To) == 0) == (len(o.ToImageStream) == 0) {
+		return fmt.Errorf("must specify an image repository or image stream to mirror the release to")
 	}
 
 	if o.SkipRelease && len(o.ToRelease) > 0 {
@@ -112,7 +151,17 @@ func (o *MirrorOptions) Run() error {
 	var recreateRequired bool
 	var hasPrefix bool
 	var targetFn func(name string) imagereference.DockerImageReference
-	dst := o.To
+	var dst string
+	if len(o.ToImageStream) > 0 {
+		dst = imagereference.DockerImageReference{
+			Registry:  "example.com",
+			Namespace: "somenamespace",
+			Name:      "mirror",
+		}.Exact()
+	} else {
+		dst = o.To
+	}
+
 	if strings.Contains(dst, "${component}") {
 		format := strings.Replace(dst, "${component}", replaceComponentMarker, -1)
 		dstRef, err := imagereference.Parse(format)
@@ -154,7 +203,7 @@ func (o *MirrorOptions) Run() error {
 
 	is := o.ImageStream
 	if is == nil {
-		o.ImageStream = &imageapi.ImageStream{}
+		o.ImageStream = &imagev1.ImageStream{}
 		is = o.ImageStream
 		// load image references
 		buf := &bytes.Buffer{}
@@ -190,12 +239,14 @@ func (o *MirrorOptions) Run() error {
 				Type:        mirror.DestinationRegistry,
 				Source:      srcRef,
 				Destination: dstRef,
+				Name:        o.ToRelease,
 			})
 		} else if !o.SkipRelease {
 			mappings = append(mappings, mirror.Mapping{
 				Type:        mirror.DestinationRegistry,
 				Source:      srcRef,
 				Destination: targetFn("release"),
+				Name:        "release",
 			})
 		}
 	}
@@ -218,6 +269,7 @@ func (o *MirrorOptions) Run() error {
 			Type:        mirror.DestinationRegistry,
 			Source:      from,
 			Destination: targetFn(tag.Name),
+			Name:        tag.Name,
 		})
 		glog.V(2).Infof("Mapping %#v", mappings[len(mappings)-1])
 
@@ -229,6 +281,101 @@ func (o *MirrorOptions) Run() error {
 
 	if len(mappings) == 0 {
 		fmt.Fprintf(o.ErrOut, "warning: Release image contains no image references - is this a valid release?\n")
+	}
+
+	if len(o.ToImageStream) > 0 {
+		remaining := make(map[string]mirror.Mapping)
+		for _, mapping := range mappings {
+			remaining[mapping.Name] = mapping
+		}
+		client, ns, err := o.ClientFn()
+		if err != nil {
+			return err
+		}
+		hasErrors := make(map[string]error)
+		maxPerIteration := 12
+
+		for retries := 4; (len(remaining) > 0 || len(hasErrors) > 0) && retries > 0; {
+			if len(remaining) == 0 {
+				for _, mapping := range mappings {
+					if _, ok := hasErrors[mapping.Name]; ok {
+						remaining[mapping.Name] = mapping
+						delete(hasErrors, mapping.Name)
+					}
+				}
+				retries--
+			}
+			err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+				isi := &imagev1.ImageStreamImport{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: o.ToImageStream,
+					},
+					Spec: imagev1.ImageStreamImportSpec{
+						Import: !o.DryRun,
+					},
+				}
+				for _, mapping := range remaining {
+					isi.Spec.Images = append(isi.Spec.Images, imagev1.ImageImportSpec{
+						From: corev1.ObjectReference{
+							Kind: "DockerImage",
+							Name: mapping.Source.Exact(),
+						},
+						To: &corev1.LocalObjectReference{
+							Name: mapping.Name,
+						},
+					})
+					if len(isi.Spec.Images) > maxPerIteration {
+						break
+					}
+				}
+
+				// use RESTClient directly here to be able to extend request timeout
+				result := &imagev1.ImageStreamImport{}
+				if err := client.ImageV1().RESTClient().Post().
+					Namespace(ns).
+					Resource(imagev1.Resource("imagestreamimports").Resource).
+					Body(isi).
+					// this instructs the api server to allow our request to take up to an hour - chosen as a high boundary
+					Timeout(3 * time.Minute).
+					Do().
+					Into(result); err != nil {
+					return err
+				}
+
+				for i, image := range result.Status.Images {
+					name := result.Spec.Images[i].To.Name
+					glog.V(4).Infof("Import result for %s: %#v", name, image.Status)
+					if image.Status.Status == metav1.StatusSuccess {
+						delete(remaining, name)
+						delete(hasErrors, name)
+					} else {
+						delete(remaining, name)
+						err := errors.FromObject(&image.Status)
+						hasErrors[name] = err
+						glog.V(2).Infof("Failed to import %s as tag %s: %v", remaining[name].Source, name, err)
+					}
+				}
+				return nil
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		if len(hasErrors) > 0 {
+			var messages []string
+			for k, v := range hasErrors {
+				messages = append(messages, fmt.Sprintf("%s: %v", k, v))
+			}
+			sort.Strings(messages)
+			if len(messages) == 1 {
+				return fmt.Errorf("unable to import a release image: %s", messages[0])
+			}
+			return fmt.Errorf("unable to import some release images:\n* %s", strings.Join(messages, "\n* "))
+		}
+
+		fmt.Fprintf(os.Stderr, "Mirrored %d images to %s/%s\n", len(mappings), ns, o.ToImageStream)
+		return nil
 	}
 
 	fmt.Fprintf(os.Stderr, "info: Mirroring %d images to %s ...\n", len(mappings), dst)
@@ -278,7 +425,7 @@ func (o *MirrorOptions) Run() error {
 	return nil
 }
 
-func sourceImageRef(is *imageapi.ImageStream, name string) (string, bool) {
+func sourceImageRef(is *imagev1.ImageStream, name string) (string, bool) {
 	for _, tag := range is.Spec.Tags {
 		if tag.Name != name {
 			continue
