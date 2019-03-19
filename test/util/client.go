@@ -20,7 +20,8 @@ import (
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	coreapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/kubernetes/pkg/quota"
 	quota "k8s.io/kubernetes/pkg/quota/v1"
 	sautil "k8s.io/kubernetes/pkg/serviceaccount"
 
@@ -165,9 +166,9 @@ func GetClientForServiceAccount(adminClient kubernetes.Interface, clientConfig r
 		return nil, nil, err
 	}
 
-	sa, err := adminClient.Core().ServiceAccounts(namespace).Create(&corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: name}})
+	sa, err := adminClient.CoreV1().ServiceAccounts(namespace).Create(&corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: name}})
 	if kerrs.IsAlreadyExists(err) {
-		sa, err = adminClient.Core().ServiceAccounts(namespace).Get(name, metav1.GetOptions{})
+		sa, err = adminClient.CoreV1().ServiceAccounts(namespace).Get(name, metav1.GetOptions{})
 	}
 	if err != nil {
 		return nil, nil, err
@@ -175,7 +176,7 @@ func GetClientForServiceAccount(adminClient kubernetes.Interface, clientConfig r
 
 	token := ""
 	err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
-		selector := fields.OneTermEqualSelector(kapi.SecretTypeField, string(corev1.SecretTypeServiceAccountToken))
+		selector := fields.OneTermEqualSelector(coreapi.SecretTypeField, string(corev1.SecretTypeServiceAccountToken))
 		secrets, err := adminClient.CoreV1().Secrets(namespace).List(metav1.ListOptions{FieldSelector: selector.String()})
 		if err != nil {
 			return false, err
