@@ -20,9 +20,13 @@ import (
 	"errors"
 	"net/http"
 
+	"k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	utilwaitgroup "k8s.io/apimachinery/pkg/util/waitgroup"
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/client-go/kubernetes/scheme"
 )
 
 // WithWaitGroup adds all non long-running requests to wait group, which is used for graceful shutdown.
@@ -38,8 +42,10 @@ func WithWaitGroup(handler http.Handler, longRunning apirequest.LongRunningReque
 
 		if !longRunning(req, requestInfo) {
 			if err := wg.Add(1); err != nil {
+				// When apiserver is shutting down, signal clients to retry
 				w.Header().Add("Retry-After", "1")
-				http.Error(w, "apiserver is shutting down.", http.StatusInternalServerError)
+				statusErr := apierrors.NewServiceUnavailable("apiserver is shutting down").Status()
+				http.Error(w, runtime.EncodeOrDie(scheme.Codecs.LegacyCodec(v1.SchemeGroupVersion), &statusErr), int(statusErr.Code))
 				return
 			}
 			defer wg.Done()
