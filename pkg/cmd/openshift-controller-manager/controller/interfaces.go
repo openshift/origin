@@ -11,13 +11,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	cacheddiscovery "k8s.io/client-go/discovery/cached"
-	kexternalinformers "k8s.io/client-go/informers"
-	kubeinformers "k8s.io/client-go/informers"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	controllerapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
-	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/controller"
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
@@ -114,8 +112,8 @@ func NewControllerContext(
 				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
 			},
 		},
-		KubernetesInformers:                kexternalinformers.NewSharedInformerFactory(kubeClient, defaultInformerResyncPeriod),
-		OpenshiftConfigKubernetesInformers: kexternalinformers.NewSharedInformerFactoryWithOptions(kubeClient, defaultInformerResyncPeriod, kexternalinformers.WithNamespace("openshift-config")),
+		KubernetesInformers:                informers.NewSharedInformerFactory(kubeClient, defaultInformerResyncPeriod),
+		OpenshiftConfigKubernetesInformers: informers.NewSharedInformerFactoryWithOptions(kubeClient, defaultInformerResyncPeriod, informers.WithNamespace("openshift-config")),
 		AppsInformers:                      appsinformer.NewSharedInformerFactory(appsClient, defaultInformerResyncPeriod),
 		BuildInformers:                     buildinformer.NewSharedInformerFactory(buildClient, defaultInformerResyncPeriod),
 		ConfigInformers:                    configinformer.NewSharedInformerFactory(configClient, defaultInformerResyncPeriod),
@@ -137,28 +135,28 @@ func (c *ControllerContext) ToGenericInformer() genericinformers.GenericResource
 	return genericinformers.NewGenericInformers(
 		c.StartInformers,
 		c.KubernetesInformers,
-		genericinformers.GenericResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
+		genericinformers.GenericResourceInformerFunc(func(resource schema.GroupVersionResource) (informers.GenericInformer, error) {
 			return c.AppsInformers.ForResource(resource)
 		}),
-		genericinformers.GenericResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
+		genericinformers.GenericResourceInformerFunc(func(resource schema.GroupVersionResource) (informers.GenericInformer, error) {
 			return c.BuildInformers.ForResource(resource)
 		}),
-		genericinformers.GenericResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
+		genericinformers.GenericResourceInformerFunc(func(resource schema.GroupVersionResource) (informers.GenericInformer, error) {
 			return c.ConfigInformers.ForResource(resource)
 		}),
-		genericinformers.GenericResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
+		genericinformers.GenericResourceInformerFunc(func(resource schema.GroupVersionResource) (informers.GenericInformer, error) {
 			return c.ImageInformers.ForResource(resource)
 		}),
-		genericinformers.GenericResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
+		genericinformers.GenericResourceInformerFunc(func(resource schema.GroupVersionResource) (informers.GenericInformer, error) {
 			return c.NetworkInformers.ForResource(resource)
 		}),
-		genericinformers.GenericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
+		genericinformers.GenericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (informers.GenericInformer, error) {
 			return c.InternalQuotaInformers.ForResource(resource)
 		}),
-		genericinformers.GenericResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
+		genericinformers.GenericResourceInformerFunc(func(resource schema.GroupVersionResource) (informers.GenericInformer, error) {
 			return c.InternalRouteInformers.ForResource(resource)
 		}),
-		genericinformers.GenericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
+		genericinformers.GenericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (informers.GenericInformer, error) {
 			return c.InternalTemplateInformers.ForResource(resource)
 		}),
 	)
@@ -170,8 +168,8 @@ type ControllerContext struct {
 	// ClientBuilder will provide a client for this controller to use
 	ClientBuilder ControllerClientBuilder
 
-	KubernetesInformers                kubeinformers.SharedInformerFactory
-	OpenshiftConfigKubernetesInformers kubeinformers.SharedInformerFactory
+	KubernetesInformers                informers.SharedInformerFactory
+	OpenshiftConfigKubernetesInformers informers.SharedInformerFactory
 
 	InternalTemplateInformers templateinformer.SharedInformerFactory
 	InternalQuotaInformers    quotainformer.SharedInformerFactory
@@ -224,8 +222,6 @@ func (c *ControllerContext) IsControllerEnabled(name string) bool {
 
 type ControllerClientBuilder interface {
 	controller.ControllerClientBuilder
-	KubeInternalClient(name string) (kclientsetinternal.Interface, error)
-	KubeInternalClientOrDie(name string) kclientsetinternal.Interface
 
 	OpenshiftAppsClient(name string) (appsclient.Interface, error)
 	OpenshiftAppsClientOrDie(name string) appsclient.Interface
@@ -260,22 +256,6 @@ type InitFunc func(ctx *ControllerContext) (bool, error)
 
 type OpenshiftControllerClientBuilder struct {
 	controller.ControllerClientBuilder
-}
-
-func (b OpenshiftControllerClientBuilder) KubeInternalClient(name string) (kclientsetinternal.Interface, error) {
-	clientConfig, err := b.Config(name)
-	if err != nil {
-		return nil, err
-	}
-	return kclientsetinternal.NewForConfig(clientConfig)
-}
-
-func (b OpenshiftControllerClientBuilder) KubeInternalClientOrDie(name string) kclientsetinternal.Interface {
-	client, err := b.KubeInternalClient(name)
-	if err != nil {
-		glog.Fatal(err)
-	}
-	return client
 }
 
 // OpenshiftInternalTemplateClient provides a REST client for the template API.
