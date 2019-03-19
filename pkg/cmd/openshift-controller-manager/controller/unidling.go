@@ -3,8 +3,10 @@ package controller
 import (
 	"time"
 
-	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
-	appsv1client "github.com/openshift/origin/pkg/apps/client/v1"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/scale"
+
+	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	unidlingcontroller "github.com/openshift/origin/pkg/unidling/controller"
 )
@@ -14,20 +16,26 @@ func RunUnidlingController(ctx *ControllerContext) (bool, error) {
 	resyncPeriod := 2 * time.Hour
 
 	clientConfig := ctx.ClientBuilder.ConfigOrDie(bootstrappolicy.InfraUnidlingControllerServiceAccountName)
-	appsClient, err := appstypedclient.NewForConfig(clientConfig)
+	appsClient, err := appsclient.NewForConfig(clientConfig)
 	if err != nil {
 		return false, err
 	}
 
-	scaleNamespacer := appsv1client.NewDelegatingScaleNamespacer(appsClient,
-		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraUnidlingControllerServiceAccountName).ExtensionsV1beta1())
+	// we don't use cached discovery because DiscoveryScaleKindResolver does its own caching,
+	// so we want to re-fetch every time when we actually ask for it
+	scaleKindResolver := scale.NewDiscoveryScaleKindResolver(appsClient.Discovery())
+	scaleClient, err := scale.NewForConfig(clientConfig, ctx.RestMapper, dynamic.LegacyAPIPathResolverFunc, scaleKindResolver)
+	if err != nil {
+		return false, err
+	}
 
 	coreClient := ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraUnidlingControllerServiceAccountName).Core()
 	controller := unidlingcontroller.NewUnidlingController(
-		scaleNamespacer,
+		scaleClient,
+		ctx.RestMapper,
 		coreClient,
 		coreClient,
-		appsClient,
+		appsClient.AppsV1(),
 		coreClient,
 		resyncPeriod,
 	)

@@ -5,15 +5,13 @@ import (
 	"fmt"
 	"testing"
 
+	oappsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ktypes "k8s.io/apimachinery/pkg/types"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-
-	oappsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -28,13 +26,13 @@ func makePod(name string, rc metav1.Object, namespace string, t *testing.T) core
 		},
 	}
 	pod.OwnerReferences = append(pod.OwnerReferences,
-		*metav1.NewControllerRef(rc, kapi.SchemeGroupVersion.WithKind("ReplicationController")))
+		*metav1.NewControllerRef(rc, corev1.SchemeGroupVersion.WithKind("ReplicationController")))
 
 	return pod
 }
 
-func makeRC(name string, dc metav1.Object, namespace string, t *testing.T) *kapi.ReplicationController {
-	rc := kapi.ReplicationController{
+func makeRC(name string, dc metav1.Object, namespace string, t *testing.T) *corev1.ReplicationController {
+	rc := corev1.ReplicationController{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
 			Namespace:   namespace,
@@ -60,7 +58,7 @@ func makePodRef(name, namespace string) *corev1.ObjectReference {
 
 func makeRCRef(name string) *metav1.OwnerReference {
 	return metav1.NewControllerRef(&metav1.ObjectMeta{Name: name},
-		kapi.SchemeGroupVersion.WithKind("ReplicationController"))
+		corev1.SchemeGroupVersion.WithKind("ReplicationController"))
 }
 
 func TestFindIdlablesForEndpoints(t *testing.T) {
@@ -133,7 +131,7 @@ func TestFindIdlablesForEndpoints(t *testing.T) {
 		if pod, ok := pods[ref]; ok {
 			return &pod, nil
 		}
-		return nil, kerrors.NewNotFound(schema.GroupResource{Group: kapi.GroupName, Resource: "Pod"}, ref.Name)
+		return nil, kerrors.NewNotFound(schema.GroupResource{Group: corev1.GroupName, Resource: "Pod"}, ref.Name)
 	}
 
 	getController := func(ref namespacedOwnerReference) (metav1.Object, error) {
@@ -143,7 +141,7 @@ func TestFindIdlablesForEndpoints(t *testing.T) {
 
 		// NB: this GroupResource declaration plays fast and loose with various distinctions
 		// but is good enough for being an error in a test
-		return nil, kerrors.NewNotFound(schema.GroupResource{Group: kapi.GroupName, Resource: ref.Kind}, ref.Name)
+		return nil, kerrors.NewNotFound(schema.GroupResource{Group: corev1.GroupName, Resource: ref.Kind}, ref.Name)
 
 	}
 
@@ -174,7 +172,7 @@ func TestFindIdlablesForEndpoints(t *testing.T) {
 			CrossGroupObjectReference: unidlingapi.CrossGroupObjectReference{
 				Kind:  "ReplicationController",
 				Name:  "somerc2",
-				Group: kapi.GroupName,
+				Group: corev1.GroupName,
 			},
 			namespace: "somens1",
 		},
@@ -182,7 +180,7 @@ func TestFindIdlablesForEndpoints(t *testing.T) {
 			CrossGroupObjectReference: unidlingapi.CrossGroupObjectReference{
 				Kind:  "ReplicationController",
 				Name:  "somerc2",
-				Group: kapi.GroupName,
+				Group: corev1.GroupName,
 			},
 			namespace: "somens2",
 		},
