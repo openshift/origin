@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,16 +13,15 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imagev1 "github.com/openshift/api/image/v1"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 // InternalRegistryURL is an url of internal docker registry for testing purposes.
 const InternalRegistryURL = "172.30.12.34:5000"
 
 // ExpectedResourceListFor creates a resource list with for image stream quota with given values.
-func ExpectedResourceListFor(expectedISCount int64) kapi.ResourceList {
-	return kapi.ResourceList{
-		imageapi.ResourceImageStreams: *resource.NewQuantity(expectedISCount, resource.DecimalSI),
+func ExpectedResourceListFor(expectedISCount int64) corev1.ResourceList {
+	return corev1.ResourceList{
+		imagev1.ResourceImageStreams: *resource.NewQuantity(expectedISCount, resource.DecimalSI),
 	}
 }
 
@@ -29,32 +29,6 @@ func ExpectedResourceListFor(expectedISCount int64) kapi.ResourceList {
 // registry.
 func MakeDockerImageReference(ns, isName, imageID string) string {
 	return fmt.Sprintf("%s/%s/%s@%s", InternalRegistryURL, ns, isName, imageID)
-}
-
-// GetFakeImageStreamListHandler creates a test handler that lists given image streams matching requested
-// namespace. Additionally, a shared image stream will be listed if the requested namespace is "shared".
-func GetFakeImageStreamListHandler(t *testing.T, iss ...imagev1.ImageStream) clientgotesting.ReactionFunc {
-	sharedISs := []imagev1.ImageStream{*GetSharedImageStream("shared", "is")}
-	allISs := append(sharedISs, iss...)
-
-	return func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		switch a := action.(type) {
-		case clientgotesting.ListAction:
-			res := &imagev1.ImageStreamList{
-				Items: []imagev1.ImageStream{},
-			}
-			for _, is := range allISs {
-				if is.Namespace == a.GetNamespace() {
-					res.Items = append(res.Items, is)
-				}
-			}
-
-			t.Logf("imagestream list handler: returning %d image streams from namespace %s", len(res.Items), a.GetNamespace())
-
-			return true, res, nil
-		}
-		return false, nil, nil
-	}
 }
 
 // GetFakeImageStreamGetHandler creates a test handler to be used as a reactor with  core.Fake client

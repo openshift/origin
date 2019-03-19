@@ -14,14 +14,15 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/cmd/kube-apiserver/app"
-	internalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/master"
-	"k8s.io/kubernetes/pkg/quota/generic"
-	"k8s.io/kubernetes/pkg/quota/install"
+	"k8s.io/kubernetes/pkg/quota/v1/generic"
+	"k8s.io/kubernetes/pkg/quota/v1/install"
 
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned"
 	oauthinformer "github.com/openshift/client-go/oauth/informers/externalversions"
+	quotaclient "github.com/openshift/client-go/quota/clientset/versioned"
+	quotainformer "github.com/openshift/client-go/quota/informers/externalversions"
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
@@ -32,8 +33,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/kubeadmission"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
-	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
-	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
@@ -48,7 +47,7 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 	patchContext := &KubeAPIServerServerPatchContext{
 		postStartHooks: map[string]genericapiserver.PostStartHookFunc{},
 	}
-	return func(genericConfig *genericapiserver.Config, internalInformers internalinformers.SharedInformerFactory, kubeInformers clientgoinformers.SharedInformerFactory, pluginInitializers *[]admission.PluginInitializer) (genericapiserver.DelegationTarget, error) {
+	return func(genericConfig *genericapiserver.Config, kubeInformers clientgoinformers.SharedInformerFactory, pluginInitializers *[]admission.PluginInitializer) (genericapiserver.DelegationTarget, error) {
 		kubeAPIServerInformers, err := NewInformers(kubeInformers, genericConfig.LoopbackClientConfig)
 		if err != nil {
 			return nil, err
@@ -81,7 +80,7 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 		genericConfig.LongRunningFunc = configprocessing.IsLongRunningRequest
 
 		// ADMISSION
-		clusterQuotaMappingController := openshiftapiserver.NewClusterQuotaMappingController(kubeAPIServerInformers.KubernetesInformers.Core().V1().Namespaces(), kubeAPIServerInformers.InternalOpenshiftQuotaInformers.Quota().InternalVersion().ClusterResourceQuotas())
+		clusterQuotaMappingController := openshiftapiserver.NewClusterQuotaMappingController(kubeAPIServerInformers.KubernetesInformers.Core().V1().Namespaces(), kubeAPIServerInformers.InternalOpenshiftQuotaInformers.Quota().V1().ClusterResourceQuotas())
 		patchContext.postStartHooks["quota.openshift.io-clusterquotamapping"] = func(context genericapiserver.PostStartHookContext) error {
 			go clusterQuotaMappingController.Run(5, context.StopCh)
 			return nil
@@ -105,7 +104,7 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 			DefaultNodeSelector:          kubeAPIServerConfig.ProjectConfig.DefaultNodeSelector,
 			OriginQuotaRegistry:          quotaRegistry,
 			RESTClientConfig:             *genericConfig.LoopbackClientConfig,
-			ClusterResourceQuotaInformer: kubeAPIServerInformers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
+			ClusterResourceQuotaInformer: kubeAPIServerInformers.GetOpenshiftQuotaInformers().Quota().V1().ClusterResourceQuotas(),
 			ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
 			RegistryHostnameRetriever:    registryHostnameRetriever,
 			SecurityInformers:            kubeAPIServerInformers.GetOpenshiftSecurityInformers(),
@@ -148,7 +147,7 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 		}
 		// END CONSTRUCT DELEGATE
 
-		patchContext.informerStartFuncs = append(patchContext.informerStartFuncs, kubeAPIServerInformers.Start, internalInformers.Start)
+		patchContext.informerStartFuncs = append(patchContext.informerStartFuncs, kubeAPIServerInformers.Start)
 		patchContext.initialized = true
 
 		return openshiftNonAPIServer.GenericAPIServer, nil
@@ -223,7 +222,7 @@ type KubeAPIServerInformers struct {
 func (i *KubeAPIServerInformers) GetKubernetesInformers() kexternalinformers.SharedInformerFactory {
 	return i.KubernetesInformers
 }
-func (i *KubeAPIServerInformers) GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory {
+func (i *KubeAPIServerInformers) GetOpenshiftQuotaInformers() quotainformer.SharedInformerFactory {
 	return i.InternalOpenshiftQuotaInformers
 }
 func (i *KubeAPIServerInformers) GetOpenshiftSecurityInformers() securityv1informer.SharedInformerFactory {

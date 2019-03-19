@@ -27,12 +27,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
-	kbatchclient "k8s.io/client-go/kubernetes/typed/batch/v1"
-	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
+	batchv1client "k8s.io/client-go/kubernetes/typed/batch/v1"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/kubernetes/pkg/apis/authorization"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kinternalcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/quota"
+	quota "k8s.io/kubernetes/pkg/quota/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	appsv1 "github.com/openshift/api/apps/v1"
@@ -752,7 +750,7 @@ func CheckBuildCancelled(b *buildv1.Build) bool {
 
 // WaitForServiceAccount waits until the named service account gets fully
 // provisioned
-func WaitForServiceAccount(c kcoreclient.ServiceAccountInterface, name string) error {
+func WaitForServiceAccount(c corev1client.ServiceAccountInterface, name string) error {
 	waitFn := func() (bool, error) {
 		sc, err := c.Get(name, metav1.GetOptions{})
 		if err != nil {
@@ -944,7 +942,7 @@ func WaitForDeploymentConfig(kc kubernetes.Interface, dcClient appsv1clienttyped
 	return nil
 }
 
-func isUsageSynced(received, expected kapi.ResourceList, expectedIsUpperLimit bool) bool {
+func isUsageSynced(received, expected corev1.ResourceList, expectedIsUpperLimit bool) bool {
 	resourceNames := quota.ResourceNames(expected)
 	masked := quota.Mask(received, resourceNames)
 	if len(masked) != len(expected) {
@@ -968,12 +966,12 @@ func isUsageSynced(received, expected kapi.ResourceList, expectedIsUpperLimit bo
 // or equal to quota's usage, which is useful for expected usage increment. Otherwise expected usage must
 // compare lower or equal to quota's usage, which is useful for expected usage decrement.
 func WaitForResourceQuotaSync(
-	client kinternalcoreclient.ResourceQuotaInterface,
+	client corev1client.ResourceQuotaInterface,
 	name string,
-	expectedUsage kapi.ResourceList,
+	expectedUsage corev1.ResourceList,
 	expectedIsUpperLimit bool,
 	timeout time.Duration,
-) (kapi.ResourceList, error) {
+) (corev1.ResourceList, error) {
 
 	startTime := time.Now()
 	endTime := startTime.Add(timeout)
@@ -1006,7 +1004,7 @@ func WaitForResourceQuotaSync(
 				// reget and re-watch
 				continue
 			}
-			if rq, ok := val.Object.(*kapi.ResourceQuota); ok {
+			if rq, ok := val.Object.(*corev1.ResourceQuota); ok {
 				used := quota.Mask(rq.Status.Used, expectedResourceNames)
 				if isUsageSynced(used, expectedUsage, expectedIsUpperLimit) {
 					return used, nil
@@ -1020,7 +1018,7 @@ func WaitForResourceQuotaSync(
 }
 
 // GetPodNamesByFilter looks up pods that satisfy the predicate and returns their names.
-func GetPodNamesByFilter(c kcoreclient.PodInterface, label labels.Selector, predicate func(kapiv1.Pod) bool) (podNames []string, err error) {
+func GetPodNamesByFilter(c corev1client.PodInterface, label labels.Selector, predicate func(kapiv1.Pod) bool) (podNames []string, err error) {
 	podList, err := c.List(metav1.ListOptions{LabelSelector: label.String()})
 	if err != nil {
 		return nil, err
@@ -1033,7 +1031,7 @@ func GetPodNamesByFilter(c kcoreclient.PodInterface, label labels.Selector, pred
 	return podNames, nil
 }
 
-func WaitForAJob(c kbatchclient.JobInterface, name string, timeout time.Duration) error {
+func WaitForAJob(c batchv1client.JobInterface, name string, timeout time.Duration) error {
 	return wait.Poll(1*time.Second, timeout, func() (bool, error) {
 		j, e := c.Get(name, metav1.GetOptions{})
 		if e != nil {
@@ -1052,7 +1050,7 @@ func WaitForAJob(c kbatchclient.JobInterface, name string, timeout time.Duration
 
 // WaitForPods waits until given number of pods that match the label selector and
 // satisfy the predicate are found
-func WaitForPods(c kcoreclient.PodInterface, label labels.Selector, predicate func(kapiv1.Pod) bool, count int, timeout time.Duration) ([]string, error) {
+func WaitForPods(c corev1client.PodInterface, label labels.Selector, predicate func(kapiv1.Pod) bool, count int, timeout time.Duration) ([]string, error) {
 	var podNames []string
 	err := wait.Poll(1*time.Second, timeout, func() (bool, error) {
 		p, e := GetPodNamesByFilter(c, label, predicate)
@@ -1098,7 +1096,7 @@ func CheckPodNoOp(pod kapiv1.Pod) bool {
 }
 
 // WaitUntilPodIsGone waits until the named Pod will disappear
-func WaitUntilPodIsGone(c kcoreclient.PodInterface, podName string, timeout time.Duration) error {
+func WaitUntilPodIsGone(c corev1client.PodInterface, podName string, timeout time.Duration) error {
 	return wait.Poll(1*time.Second, timeout, func() (bool, error) {
 		_, err := c.Get(podName, metav1.GetOptions{})
 		if err != nil {
@@ -1294,7 +1292,7 @@ func GetEndpointAddress(oc *CLI, name string) (string, error) {
 // vessel for kubectl exec commands.
 // Returns the name of the created pod.
 // TODO: expose upstream
-func CreateExecPodOrFail(client kcoreclient.CoreV1Interface, ns, name string) string {
+func CreateExecPodOrFail(client corev1client.CoreV1Interface, ns, name string) string {
 	e2e.Logf("Creating new exec pod")
 	execPod := e2e.NewHostExecPodSpec(ns, name)
 	created, err := client.Pods(ns).Create(execPod)
@@ -1312,7 +1310,7 @@ func CreateExecPodOrFail(client kcoreclient.CoreV1Interface, ns, name string) st
 
 // CheckForBuildEvent will poll a build for up to 1 minute looking for an event with
 // the specified reason and message template.
-func CheckForBuildEvent(client kcoreclient.CoreV1Interface, build *buildv1.Build, reason, message string) {
+func CheckForBuildEvent(client corev1client.CoreV1Interface, build *buildv1.Build, reason, message string) {
 	var expectedEvent *kapiv1.Event
 	err := wait.PollImmediate(e2e.Poll, 1*time.Minute, func() (bool, error) {
 		events, err := client.Events(build.Namespace).Search(legacyscheme.Scheme, build)

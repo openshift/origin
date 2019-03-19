@@ -39,7 +39,6 @@ import (
 	_ "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	_ "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	_ "github.com/openshift/origin/pkg/project/generated/internalclientset"
-	_ "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	_ "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	_ "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	_ "github.com/openshift/origin/pkg/user/generated/internalclientset"

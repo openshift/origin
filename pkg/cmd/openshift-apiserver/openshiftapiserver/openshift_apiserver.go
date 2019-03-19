@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
-
 	restful "github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 
@@ -20,20 +18,22 @@ import (
 	genericmux "k8s.io/apiserver/pkg/server/mux"
 	kubeinformers "k8s.io/client-go/informers"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	openapicontroller "k8s.io/kube-aggregator/pkg/controllers/openapi"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	rbacrest "k8s.io/kubernetes/pkg/registry/rbac/rest"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
+	quotainformer "github.com/openshift/client-go/quota/informers/externalversions"
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
 	oappsapiserver "github.com/openshift/origin/pkg/apps/apiserver"
 	authorizationapiserver "github.com/openshift/origin/pkg/authorization/apiserver"
 	buildapiserver "github.com/openshift/origin/pkg/build/apiserver"
+	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapiserver "github.com/openshift/origin/pkg/image/apiserver"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
@@ -44,7 +44,6 @@ import (
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	quotaapiserver "github.com/openshift/origin/pkg/quota/apiserver"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
-	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	routeapiserver "github.com/openshift/origin/pkg/route/apiserver"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	securityapiserver "github.com/openshift/origin/pkg/security/apiserver"
@@ -55,7 +54,6 @@ import (
 
 	// register api groups
 	_ "github.com/openshift/origin/pkg/api/install"
-	"k8s.io/client-go/restmapper"
 )
 
 type OpenshiftAPIExtraConfig struct {
@@ -63,7 +61,6 @@ type OpenshiftAPIExtraConfig struct {
 	InformerStart func(stopCh <-chan struct{})
 
 	KubeAPIServerClientConfig *restclient.Config
-	KubeInternalInformers     kinternalinformers.SharedInformerFactory
 	KubeInformers             kubeinformers.SharedInformerFactory
 
 	QuotaInformers    quotainformer.SharedInformerFactory
@@ -99,9 +96,6 @@ type OpenshiftAPIExtraConfig struct {
 func (c *OpenshiftAPIExtraConfig) Validate() error {
 	ret := []error{}
 
-	if c.KubeInternalInformers == nil {
-		ret = append(ret, fmt.Errorf("KubeInternalInformers is required"))
-	}
 	if c.KubeInformers == nil {
 		ret = append(ret, fmt.Errorf("KubeInformers is required"))
 	}
