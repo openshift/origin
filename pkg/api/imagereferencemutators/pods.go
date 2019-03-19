@@ -17,7 +17,6 @@ import (
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/extensions"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	securityv1 "github.com/openshift/api/security/v1"
@@ -64,11 +63,11 @@ func GetPodSpec(obj runtime.Object) (*kapi.PodSpec, *field.Path, error) {
 		if r.Spec.Template != nil {
 			return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
 		}
-	case *extensions.DaemonSet:
+	case *apps.DaemonSet:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
-	case *extensions.Deployment:
+	case *apps.Deployment:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
-	case *extensions.ReplicaSet:
+	case *apps.ReplicaSet:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
 	case *batch.Job:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
@@ -188,7 +187,7 @@ func GetTemplateMetaObject(obj runtime.Object) (metav1.Object, bool) {
 			return &r.Spec.Template.ObjectMeta, true
 		}
 
-	case *extensions.DaemonSet:
+	case *apps.DaemonSet:
 		return &r.Spec.Template.ObjectMeta, true
 	case *extensionsv1beta1.DaemonSet:
 		return &r.Spec.Template.ObjectMeta, true
@@ -197,7 +196,7 @@ func GetTemplateMetaObject(obj runtime.Object) (metav1.Object, bool) {
 	case *kappsv1beta2.DaemonSet:
 		return &r.Spec.Template.ObjectMeta, true
 
-	case *extensions.Deployment:
+	case *apps.Deployment:
 		return &r.Spec.Template.ObjectMeta, true
 	case *extensionsv1beta1.Deployment:
 		return &r.Spec.Template.ObjectMeta, true
@@ -208,7 +207,7 @@ func GetTemplateMetaObject(obj runtime.Object) (metav1.Object, bool) {
 	case *kappsv1beta2.Deployment:
 		return &r.Spec.Template.ObjectMeta, true
 
-	case *extensions.ReplicaSet:
+	case *apps.ReplicaSet:
 		return &r.Spec.Template.ObjectMeta, true
 	case *extensionsv1beta1.ReplicaSet:
 		return &r.Spec.Template.ObjectMeta, true

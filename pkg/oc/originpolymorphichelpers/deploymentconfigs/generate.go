@@ -6,16 +6,17 @@ import (
 
 	kapi "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/kubectl/generate"
+	"k8s.io/kubernetes/pkg/kubectl/generate/versioned"
 
 	appsapi "github.com/openshift/api/apps/v1"
 )
 
-var basic = kubectl.BasicReplicationController{}
+var basic = versioned.BasicReplicationController{}
 
 type BasicDeploymentConfigController struct{}
 
-func (BasicDeploymentConfigController) ParamNames() []kubectl.GeneratorParam {
+func (BasicDeploymentConfigController) ParamNames() []generate.GeneratorParam {
 	return basic.ParamNames()
 }
 
