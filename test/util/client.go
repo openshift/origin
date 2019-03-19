@@ -21,7 +21,6 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/quota"
 	quota "k8s.io/kubernetes/pkg/quota/v1"
 	sautil "k8s.io/kubernetes/pkg/serviceaccount"
 

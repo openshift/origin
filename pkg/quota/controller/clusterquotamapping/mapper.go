@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
+	quotav1 "github.com/openshift/api/quota/v1"
 )
 
 type ClusterQuotaMapper interface {
@@ -17,7 +17,7 @@ type ClusterQuotaMapper interface {
 	GetClusterQuotasFor(namespaceName string) ([]string, SelectionFields)
 	// GetNamespacesFor returns the list of namespace names that this cluster quota matches.  It also
 	// returns the selector associated with the clusterquota for the check so that callers can determine staleness
-	GetNamespacesFor(quotaName string) ([]string, quotaapi.ClusterResourceQuotaSelector)
+	GetNamespacesFor(quotaName string) ([]string, quotav1.ClusterResourceQuotaSelector)
 
 	AddListener(listener MappingChangeListener)
 }
@@ -41,11 +41,11 @@ type clusterQuotaMapper struct {
 	lock sync.RWMutex
 
 	// requiredQuotaToSelector indicates the latest label selector this controller has observed for a quota
-	requiredQuotaToSelector map[string]quotaapi.ClusterResourceQuotaSelector
+	requiredQuotaToSelector map[string]quotav1.ClusterResourceQuotaSelector
 	// requiredNamespaceToLabels indicates the latest selectionFields this controller has observed for a namespace
 	requiredNamespaceToLabels map[string]SelectionFields
 	// completedQuotaToSelector indicates the latest label selector this controller has scanned against namespaces
-	completedQuotaToSelector map[string]quotaapi.ClusterResourceQuotaSelector
+	completedQuotaToSelector map[string]quotav1.ClusterResourceQuotaSelector
 	// completedNamespaceToLabels indicates the latest selectionFields this controller has scanned against cluster quotas
 	completedNamespaceToLabels map[string]SelectionFields
 
@@ -57,9 +57,9 @@ type clusterQuotaMapper struct {
 
 func NewClusterQuotaMapper() *clusterQuotaMapper {
 	return &clusterQuotaMapper{
-		requiredQuotaToSelector:    map[string]quotaapi.ClusterResourceQuotaSelector{},
+		requiredQuotaToSelector:    map[string]quotav1.ClusterResourceQuotaSelector{},
 		requiredNamespaceToLabels:  map[string]SelectionFields{},
-		completedQuotaToSelector:   map[string]quotaapi.ClusterResourceQuotaSelector{},
+		completedQuotaToSelector:   map[string]quotav1.ClusterResourceQuotaSelector{},
 		completedNamespaceToLabels: map[string]SelectionFields{},
 
 		quotaToNamespaces: map[string]sets.String{},
@@ -78,7 +78,7 @@ func (m *clusterQuotaMapper) GetClusterQuotasFor(namespaceName string) ([]string
 	return quotas.List(), m.completedNamespaceToLabels[namespaceName]
 }
 
-func (m *clusterQuotaMapper) GetNamespacesFor(quotaName string) ([]string, quotaapi.ClusterResourceQuotaSelector) {
+func (m *clusterQuotaMapper) GetNamespacesFor(quotaName string) ([]string, quotav1.ClusterResourceQuotaSelector) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 
@@ -98,7 +98,7 @@ func (m *clusterQuotaMapper) AddListener(listener MappingChangeListener) {
 
 // requireQuota updates the selector requirements for the given quota.  This prevents stale updates to the mapping itself.
 // returns true if a modification was made
-func (m *clusterQuotaMapper) requireQuota(quota *quotaapi.ClusterResourceQuota) bool {
+func (m *clusterQuotaMapper) requireQuota(quota *quotav1.ClusterResourceQuota) bool {
 	m.lock.RLock()
 	selector, exists := m.requiredQuotaToSelector[quota.Name]
 	m.lock.RUnlock()
@@ -120,7 +120,7 @@ func (m *clusterQuotaMapper) requireQuota(quota *quotaapi.ClusterResourceQuota) 
 
 // completeQuota updates the latest selector used to generate the mappings for this quota.  The value is returned
 // by the Get methods for the mapping so that callers can determine staleness
-func (m *clusterQuotaMapper) completeQuota(quota *quotaapi.ClusterResourceQuota) {
+func (m *clusterQuotaMapper) completeQuota(quota *quotav1.ClusterResourceQuota) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	m.completedQuotaToSelector[quota.Name] = quota.Spec.Selector
@@ -192,7 +192,7 @@ func (m *clusterQuotaMapper) removeNamespace(namespaceName string) {
 	}
 }
 
-func selectorMatches(selector quotaapi.ClusterResourceQuotaSelector, exists bool, quota *quotaapi.ClusterResourceQuota) bool {
+func selectorMatches(selector quotav1.ClusterResourceQuotaSelector, exists bool, quota *quotav1.ClusterResourceQuota) bool {
 	return exists && equality.Semantic.DeepEqual(selector, quota.Spec.Selector)
 }
 func selectionFieldsMatch(selectionFields SelectionFields, exists bool, namespace metav1.Object) bool {
@@ -202,7 +202,7 @@ func selectionFieldsMatch(selectionFields SelectionFields, exists bool, namespac
 // setMapping maps (or removes a mapping) between a clusterquota and a namespace
 // It returns whether the action worked, whether the quota is out of date, whether the namespace is out of date
 // This allows callers to decide whether to pull new information from the cache or simply skip execution
-func (m *clusterQuotaMapper) setMapping(quota *quotaapi.ClusterResourceQuota, namespace metav1.Object, remove bool) (bool /*added*/, bool /*quota matches*/, bool /*namespace matches*/) {
+func (m *clusterQuotaMapper) setMapping(quota *quotav1.ClusterResourceQuota, namespace metav1.Object, remove bool) (bool /*added*/, bool /*quota matches*/, bool /*namespace matches*/) {
 	m.lock.RLock()
 	selector, selectorExists := m.requiredQuotaToSelector[quota.Name]
 	selectionFields, selectionFieldsExist := m.requiredNamespaceToLabels[namespace.GetName()]

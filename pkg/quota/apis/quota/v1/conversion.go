@@ -49,3 +49,11 @@ func AddConversionFuncs(scheme *runtime.Scheme) error {
 		Convert_v1_ResourceQuotasStatusByNamespace_To_quota_ResourceQuotasStatusByNamespace,
 	)
 }
+
+func ConvertV1ClusterResourceQuotaToInternalAppliedClusterResourceQuota(in *v1.ClusterResourceQuota) (*internal.AppliedClusterResourceQuota, error) {
+	appliedExternal := internal.ConvertV1ClusterResourceQuotaToV1AppliedClusterResourceQuota(in)
+	appliedInternal := &internal.AppliedClusterResourceQuota{}
+	err := Convert_v1_AppliedClusterResourceQuota_To_quota_AppliedClusterResourceQuota(appliedExternal, appliedInternal, nil)
+
+	return appliedInternal, err
+}

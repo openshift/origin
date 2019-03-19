@@ -16,29 +16,26 @@ import (
 	"k8s.io/client-go/rest"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
-	"k8s.io/kubernetes/pkg/quota/generic"
-	"k8s.io/kubernetes/pkg/quota/install"
+	"k8s.io/kubernetes/pkg/quota/v1/generic"
+	"k8s.io/kubernetes/pkg/quota/v1/install"
 
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
+	quotainformer "github.com/openshift/client-go/quota/informers/externalversions"
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
 	userv1informer "github.com/openshift/client-go/user/informers/externalversions"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
-	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/quota/image"
 )
 
 type InformerAccess interface {
-	GetInternalKubernetesInformers() kinternalinformers.SharedInformerFactory
 	GetKubernetesInformers() kexternalinformers.SharedInformerFactory
 	GetOpenshiftImageInformers() imagev1informer.SharedInformerFactory
-	GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory
+	GetOpenshiftQuotaInformers() quotainformer.SharedInformerFactory
 	GetOpenshiftSecurityInformers() securityv1informer.SharedInformerFactory
 	GetOpenshiftUserInformers() userv1informer.SharedInformerFactory
 }
@@ -54,10 +51,6 @@ func NewPluginInitializer(
 	restMapper meta.RESTMapper,
 	clusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController,
 ) (admission.PluginInitializer, error) {
-	kubeInternalClient, err := kclientsetinternal.NewForConfig(privilegedLoopbackConfig)
-	if err != nil {
-		return nil, err
-	}
 	kubeClient, err := kubeclientgoclient.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
 		return nil, err
@@ -102,8 +95,6 @@ func NewPluginInitializer(
 		legacyscheme.Scheme,
 	)
 	kubePluginInitializer := kadmission.NewPluginInitializer(
-		kubeInternalClient,
-		informers.GetInternalKubernetesInformers(),
 		cloudConfig,
 		restMapper,
 		generic.NewConfiguration(quotaRegistry.List(), map[schema.GroupResource]struct{}{}))
@@ -134,7 +125,7 @@ func NewPluginInitializer(
 		ProjectCache:                 projectCache,
 		OriginQuotaRegistry:          quotaRegistry,
 		RESTClientConfig:             *privilegedLoopbackConfig,
-		ClusterResourceQuotaInformer: informers.GetInternalOpenshiftQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
+		ClusterResourceQuotaInformer: informers.GetOpenshiftQuotaInformers().Quota().V1().ClusterResourceQuotas(),
 		ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
 		RegistryHostnameRetriever:    registryHostnameRetriever,
 		SecurityInformers:            informers.GetOpenshiftSecurityInformers(),
