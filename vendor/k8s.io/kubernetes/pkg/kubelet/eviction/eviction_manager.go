@@ -57,6 +57,8 @@ type managerImpl struct {
 	config Config
 	// the function to invoke to kill a pod
 	killPodFunc KillPodFunc
+	// the function to get the mirror pod by a given statid pod
+	mirrorPodFunc MirrorPodFunc
 	// the interface that knows how to do image gc
 	imageGC ImageGC
 	// the interface that knows how to do container gc
@@ -99,6 +101,7 @@ func NewManager(
 	summaryProvider stats.SummaryProvider,
 	config Config,
 	killPodFunc KillPodFunc,
+	mirrorPodFunc MirrorPodFunc,
 	imageGC ImageGC,
 	containerGC ContainerGC,
 	recorder record.EventRecorder,
@@ -108,6 +111,7 @@ func NewManager(
 	manager := &managerImpl{
 		clock:           clock,
 		killPodFunc:     killPodFunc,
+		mirrorPodFunc:   mirrorPodFunc,
 		imageGC:         imageGC,
 		containerGC:     containerGC,
 		config:          config,
