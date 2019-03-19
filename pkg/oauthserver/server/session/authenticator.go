@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 )
 
@@ -27,7 +28,7 @@ func NewAuthenticator(store Store, maxAge time.Duration) SessionAuthenticator {
 	}
 }
 
-func (a *sessionAuthenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
+func (a *sessionAuthenticator) AuthenticateRequest(req *http.Request) (*authenticator.Response, bool, error) {
 	values := a.store.Get(req)
 
 	expires, ok := values.GetInt64(expKey)
@@ -49,9 +50,11 @@ func (a *sessionAuthenticator) AuthenticateRequest(req *http.Request) (user.Info
 		return nil, false, nil
 	}
 
-	return &user.DefaultInfo{
-		Name: name,
-		UID:  uid,
+	return &authenticator.Response{
+		User: &user.DefaultInfo{
+			Name: name,
+			UID:  uid,
+		},
 	}, true, nil
 }
 

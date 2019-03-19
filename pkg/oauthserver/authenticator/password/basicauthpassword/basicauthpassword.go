@@ -1,6 +1,7 @@
 package basicauthpassword
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,7 +10,6 @@ import (
 	"strings"
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
-	"k8s.io/apiserver/pkg/authentication/user"
 
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/identitymapper"
@@ -72,7 +72,7 @@ func New(providerName string, url string, transport http.RoundTripper, mapper au
 	return &Authenticator{providerName, url, client, mapper}
 }
 
-func (a *Authenticator) AuthenticatePassword(username, password string) (user.Info, bool, error) {
+func (a *Authenticator) AuthenticatePassword(ctx context.Context, username, password string) (*authenticator.Response, bool, error) {
 	req, err := http.NewRequest("GET", a.url, nil)
 	if err != nil {
 		return nil, false, err
@@ -133,5 +133,7 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 		identity.Extra[authapi.IdentityEmailKey] = remoteUserData.Email
 	}
 
-	return identitymapper.UserFor(a.mapper, identity)
+	user, ok, err := identitymapper.UserFor(a.mapper, identity)
+	return &authenticator.Response{User: user}, ok, err
+
 }

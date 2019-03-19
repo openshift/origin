@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http/httptest"
 	"testing"
 
@@ -37,7 +38,7 @@ func TestAuthenticator(t *testing.T) {
 }
 
 func TestDenyPassword(t *testing.T) {
-	user, ok, err := deny.AuthenticatePassword("", "")
+	user, ok, err := deny.AuthenticatePassword(context.TODO(), "", "")
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err)
 	}

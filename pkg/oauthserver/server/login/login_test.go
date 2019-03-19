@@ -1,6 +1,7 @@
 package login
 
 import (
+	"context"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 
 	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
@@ -25,10 +27,10 @@ type testAuth struct {
 	Called   bool
 }
 
-func (t *testAuth) AuthenticatePassword(user, password string) (user.Info, bool, error) {
+func (t *testAuth) AuthenticatePassword(ctx context.Context, user, password string) (*authenticator.Response, bool, error) {
 	t.Username = user
 	t.Password = password
-	return t.User, t.Success, t.Err
+	return &authenticator.Response{User: t.User}, t.Success, t.Err
 }
 
 func (t *testAuth) AuthenticationSucceeded(user user.Info, then string, w http.ResponseWriter, req *http.Request) (bool, error) {

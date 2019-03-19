@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	knet "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 	clienttesting "k8s.io/client-go/testing"
 
@@ -28,8 +29,8 @@ type testAuth struct {
 	Err     error
 }
 
-func (t *testAuth) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
-	return t.User, t.Success, t.Err
+func (t *testAuth) AuthenticateRequest(req *http.Request) (*authenticator.Response, bool, error) {
+	return &authenticator.Response{User: t.User}, t.Success, t.Err
 }
 
 func goodAuth(username string) *testAuth {

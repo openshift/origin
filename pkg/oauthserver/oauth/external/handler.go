@@ -1,6 +1,7 @@
 package external
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -111,7 +112,7 @@ func NewOAuthPasswordAuthenticator(provider Provider, mapper authapi.UserIdentit
 	}, nil
 }
 
-func (h *Handler) AuthenticatePassword(username, password string) (user.Info, bool, error) {
+func (h *Handler) AuthenticatePassword(ctx context.Context, username, password string) (*authenticator.Response, bool, error) {
 	// Exchange password for a token
 	accessReq := h.client.NewAccessRequest(osincli.PASSWORD, &osincli.AuthorizeData{Username: username, Password: password})
 	accessData, err := accessReq.GetToken()
@@ -137,7 +138,8 @@ func (h *Handler) AuthenticatePassword(username, password string) (user.Info, bo
 		return nil, false, err
 	}
 
-	return identitymapper.UserFor(h.mapper, identity)
+	user, ok, err := identitymapper.UserFor(h.mapper, identity)
+	return &authenticator.Response{User: user}, ok, err
 }
 
 // ServeHTTP handles the callback request in response to an external oauth flow

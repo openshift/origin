@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/identitymapper"
@@ -31,7 +31,7 @@ func NewAuthenticator(providerName string, config *Config, mapper authapi.UserId
 	return &Authenticator{providerName, config, mapper}
 }
 
-func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
+func (a *Authenticator) AuthenticateRequest(req *http.Request) (*authenticator.Response, bool, error) {
 	id := headerValue(req.Header, a.config.IDHeaders)
 	if len(id) == 0 {
 		return nil, false, nil
@@ -49,7 +49,8 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool,
 		identity.Extra[authapi.IdentityPreferredUsernameKey] = preferredUsername
 	}
 
-	return identitymapper.UserFor(a.mapper, identity)
+	user, ok, err := identitymapper.UserFor(a.mapper, identity)
+	return &authenticator.Response{User: user}, ok, err
 }
 
 func headerValue(h http.Header, headerNames []string) string {

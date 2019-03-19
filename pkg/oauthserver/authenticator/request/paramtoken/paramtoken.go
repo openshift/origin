@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
-	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/util/wsstream"
 )
 
@@ -26,7 +25,7 @@ func New(param string, auth authenticator.Token, removeParam bool) *Authenticato
 	return &Authenticator{param, auth, removeParam}
 }
 
-func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
+func (a *Authenticator) AuthenticateRequest(req *http.Request) (*authenticator.Response, bool, error) {
 	// Only accept query param auth for websocket connections
 	if !wsstream.IsWebSocketRequest(req) {
 		return nil, false, nil
@@ -37,10 +36,10 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool,
 	if token == "" {
 		return nil, false, nil
 	}
-	user, ok, err := a.auth.AuthenticateToken(token)
+	authResponse, ok, err := a.auth.AuthenticateToken(req.Context(), token)
 	if ok && a.removeParam {
 		q.Del(a.param)
 		req.URL.RawQuery = q.Encode()
 	}
-	return user, ok, err
+	return authResponse, ok, err
 }

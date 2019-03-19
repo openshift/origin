@@ -10,6 +10,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 
 	oauthv1 "github.com/openshift/api/oauth/v1"
@@ -63,8 +64,8 @@ func (h *testHandlers) AuthenticationError(err error, w http.ResponseWriter, req
 	return true, nil
 }
 
-func (h *testHandlers) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
-	return h.User, h.Authenticate, h.Err
+func (h *testHandlers) AuthenticateRequest(req *http.Request) (*authenticator.Response, bool, error) {
+	return &authenticator.Response{User: h.User}, h.Authenticate, h.Err
 }
 
 func (h *testHandlers) GrantNeeded(user user.Info, grant *api.Grant, w http.ResponseWriter, req *http.Request) (bool, bool, error) {

@@ -111,16 +111,16 @@ func (l *Grant) Install(mux oauthserver.Mux, paths ...string) {
 func (l *Grant) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	headers.SetStandardHeaders(w)
 
-	user, ok, err := l.auth.AuthenticateRequest(req)
+	authResponse, ok, err := l.auth.AuthenticateRequest(req)
 	if err != nil || !ok {
 		l.redirect("You must reauthenticate before continuing", w, req)
 		return
 	}
 	switch req.Method {
 	case "GET":
-		l.handleForm(user, w, req)
+		l.handleForm(authResponse.User, w, req)
 	case "POST":
-		l.handleGrant(user, w, req)
+		l.handleGrant(authResponse.User, w, req)
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}

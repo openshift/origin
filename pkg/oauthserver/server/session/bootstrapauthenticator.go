@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
@@ -23,10 +24,10 @@ type bootstrapAuthenticator struct {
 	store    Store
 }
 
-func (b *bootstrapAuthenticator) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
-	u, ok, err := b.delegate.AuthenticateRequest(req)
-	if err != nil || !ok || u.GetName() != bootstrap.BootstrapUser {
-		return u, ok, err
+func (b *bootstrapAuthenticator) AuthenticateRequest(req *http.Request) (*authenticator.Response, bool, error) {
+	authResponse, ok, err := b.delegate.AuthenticateRequest(req)
+	if err != nil || !ok || authResponse.User.GetName() != bootstrap.BootstrapUser {
+		return authResponse, ok, err
 	}
 
 	// make sure that the password has not changed since this cookie was issued
@@ -36,11 +37,11 @@ func (b *bootstrapAuthenticator) AuthenticateRequest(req *http.Request) (user.In
 	if err != nil || !ok {
 		return nil, ok, err
 	}
-	if data.UID != u.GetUID() {
+	if data.UID != authResponse.User.GetUID() {
 		return nil, false, nil
 	}
 
-	return u, true, nil
+	return authResponse, true, nil
 }
 
 func (b *bootstrapAuthenticator) AuthenticationSucceeded(user user.Info, state string, w http.ResponseWriter, req *http.Request) (bool, error) {

@@ -2,6 +2,7 @@ package login
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"html/template"
@@ -173,7 +174,7 @@ func (l *Login) handleLogin(w http.ResponseWriter, req *http.Request) {
 	defer func() {
 		metrics.RecordFormPasswordAuth(result)
 	}()
-	user, ok, err := l.auth.AuthenticatePassword(username, password)
+	authResponse, ok, err := l.auth.AuthenticatePassword(context.TODO(), username, password)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf(`Error authenticating %q with provider %q: %v`, username, l.provider, err))
 		failed(errorpage.AuthenticationErrorCode(err), w, req)
@@ -186,8 +187,8 @@ func (l *Login) handleLogin(w http.ResponseWriter, req *http.Request) {
 		result = metrics.FailResult
 		return
 	}
-	glog.V(4).Infof(`Login with provider %q succeeded for %q: %#v`, l.provider, username, user)
-	l.auth.AuthenticationSucceeded(user, then, w, req)
+	glog.V(4).Infof(`Login with provider %q succeeded for %q: %#v`, l.provider, username, authResponse.User)
+	l.auth.AuthenticationSucceeded(authResponse.User, then, w, req)
 }
 
 // NewLoginFormRenderer creates a login form renderer that takes in an optional custom template to

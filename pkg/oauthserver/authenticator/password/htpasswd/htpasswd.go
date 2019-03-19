@@ -2,6 +2,7 @@ package htpasswd
 
 import (
 	"bufio"
+	"context"
 	"crypto/sha1"
 	"encoding/base64"
 	"errors"
@@ -12,7 +13,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
-	"k8s.io/apiserver/pkg/authentication/user"
 
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/identitymapper"
@@ -40,7 +40,7 @@ func New(providerName string, file string, mapper authapi.UserIdentityMapper) (a
 	return auth, nil
 }
 
-func (a *Authenticator) AuthenticatePassword(username, password string) (user.Info, bool, error) {
+func (a *Authenticator) AuthenticatePassword(ctx context.Context, username, password string) (*authenticator.Response, bool, error) {
 	if err := a.loadIfNeeded(); err != nil {
 		return nil, false, err
 	}
@@ -61,7 +61,8 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 
 	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, username)
 
-	return identitymapper.UserFor(a.mapper, identity)
+	user, ok, err := identitymapper.UserFor(a.mapper, identity)
+	return &authenticator.Response{User: user}, ok, err
 }
 
 func (a *Authenticator) load() error {

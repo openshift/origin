@@ -1,6 +1,7 @@
 package keystonepassword
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -96,22 +97,22 @@ func TestKeystoneLogin(t *testing.T) {
 	keystoneAuth := New("keystone_auth", th.Endpoint(), http.DefaultTransport, "default", &mapperClaim, true)
 
 	// 1. User authenticates for the first time, new identity is created
-	_, ok, err := keystoneAuth.AuthenticatePassword("testuser", "testpw")
+	_, ok, err := keystoneAuth.AuthenticatePassword(context.TODO(), "testuser", "testpw")
 	th.AssertNoErr(t, err)
 	th.CheckEquals(t, true, ok)
 	th.CheckEquals(t, "keystone_auth:initial_keystone_id", mapperClaim.idnts["testuser"])
 
 	// 2. Authentication with wrong or empty password fails
-	_, ok, err = keystoneAuth.AuthenticatePassword("testuser", "badpw")
+	_, ok, err = keystoneAuth.AuthenticatePassword(context.TODO(), "testuser", "badpw")
 	th.AssertNoErr(t, err)
 	th.CheckEquals(t, false, ok)
-	_, ok, err = keystoneAuth.AuthenticatePassword("testuser", "")
+	_, ok, err = keystoneAuth.AuthenticatePassword(context.TODO(), "testuser", "")
 	th.AssertNoErr(t, err)
 	th.CheckEquals(t, false, ok)
 
 	// 3. Id of "testuser" has changed, authentication will fail
 	keystoneID = "new_keystone_id"
-	_, ok, err = keystoneAuth.AuthenticatePassword("testuser", "testpw")
+	_, ok, err = keystoneAuth.AuthenticatePassword(context.TODO(), "testuser", "testpw")
 	th.CheckEquals(t, false, ok)
 	th.CheckEquals(t, "Ooops", err.Error())
 
@@ -121,22 +122,22 @@ func TestKeystoneLogin(t *testing.T) {
 	keystoneAuth = New("keystone_auth", th.Endpoint(), http.DefaultTransport, "default", &mapperClaim, false)
 
 	// 1. User authenticates for the first time, new identity is created
-	_, ok, err = keystoneAuth.AuthenticatePassword("testuser", "testpw")
+	_, ok, err = keystoneAuth.AuthenticatePassword(context.TODO(), "testuser", "testpw")
 	th.AssertNoErr(t, err)
 	th.CheckEquals(t, true, ok)
 	th.CheckEquals(t, "keystone_auth:testuser", mapperClaim.idnts["testuser"])
 
 	// 2. Authentication with wrong or empty password fails
-	_, ok, err = keystoneAuth.AuthenticatePassword("testuser", "badpw")
+	_, ok, err = keystoneAuth.AuthenticatePassword(context.TODO(), "testuser", "badpw")
 	th.AssertNoErr(t, err)
 	th.CheckEquals(t, false, ok)
-	_, ok, err = keystoneAuth.AuthenticatePassword("testuser", "")
+	_, ok, err = keystoneAuth.AuthenticatePassword(context.TODO(), "testuser", "")
 	th.AssertNoErr(t, err)
 	th.CheckEquals(t, false, ok)
 
 	// 3. Id of "testuser" has changed, authentication will work as before
 	keystoneID = "new_keystone_id"
-	_, ok, err = keystoneAuth.AuthenticatePassword("testuser", "testpw")
+	_, ok, err = keystoneAuth.AuthenticatePassword(context.TODO(), "testuser", "testpw")
 	th.CheckEquals(t, true, ok)
 	th.AssertNoErr(t, err)
 }
