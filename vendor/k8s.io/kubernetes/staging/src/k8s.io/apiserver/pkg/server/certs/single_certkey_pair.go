@@ -9,6 +9,7 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/util/cert"
 )
 
 // ReactionFunc is a func that can be called on a cert change
@@ -76,7 +77,6 @@ func (c *DynamicCertKeyPairLoader) Run(stopCh <-chan struct{}) {
 }
 
 func (c *DynamicCertKeyPairLoader) CheckCerts() error {
-
 	servingCertBytes, err := ioutil.ReadFile(c.fileReference.Cert)
 	if err != nil {
 		return err
@@ -96,6 +96,14 @@ func (c *DynamicCertKeyPairLoader) CheckCerts() error {
 	}
 	c.currentValue.Store(newRuntimeConfig)
 	c.currentContent = newContent // this is single threaded, so we have no locking issue
+
+	certs, err := cert.ParseCertsPEM(newContent.Cert)
+	if err != nil {
+		return err
+	}
+	for i, crt := range certs {
+		glog.V(2).Infof("[%d] %q certificate: %s", i, c.fileReference.Cert, getCertDetail(crt))
+	}
 
 	if c.certChangeCallback != nil {
 		c.certChangeCallback()
