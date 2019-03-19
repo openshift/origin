@@ -15,8 +15,8 @@ import (
 	"k8s.io/client-go/util/certificate"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	kubeproxy "k8s.io/kubernetes/pkg/proxy"
 	"k8s.io/kubernetes/pkg/proxy/apis/kubeproxyconfig"
-	proxyconfig "k8s.io/kubernetes/pkg/proxy/config"
 
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
 	networkinformers "github.com/openshift/client-go/network/informers/externalversions"
@@ -53,9 +53,9 @@ type NetworkConfig struct {
 }
 
 type ProxyInterface interface {
-	proxyconfig.EndpointsHandler
+	kubeproxy.ProxyProvider
 
-	Start(proxyconfig.EndpointsHandler) error
+	Start(kubeproxy.ProxyProvider) error
 }
 
 type NodeInterface interface {

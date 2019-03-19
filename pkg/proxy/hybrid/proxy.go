@@ -12,7 +12,6 @@ import (
 	api "k8s.io/kubernetes/pkg/apis/core"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	"k8s.io/kubernetes/pkg/proxy"
-	proxyconfig "k8s.io/kubernetes/pkg/proxy/config"
 
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 )
@@ -21,10 +20,6 @@ import (
 // delegating idled services to the unidling proxy and other services to the
 // primary proxy.
 type HybridProxier struct {
-	unidlingServiceHandler   proxyconfig.ServiceHandler
-	unidlingEndpointsHandler proxyconfig.EndpointsHandler
-	mainEndpointsHandler     proxyconfig.EndpointsHandler
-	mainServicesHandler      proxyconfig.ServiceHandler
 	mainProxy                proxy.ProxyProvider
 	unidlingProxy            proxy.ProxyProvider
 	syncPeriod               time.Duration
@@ -47,20 +42,12 @@ type HybridProxier struct {
 }
 
 func NewHybridProxier(
-	unidlingEndpointsHandler proxyconfig.EndpointsHandler,
-	unidlingServiceHandler proxyconfig.ServiceHandler,
-	mainEndpointsHandler proxyconfig.EndpointsHandler,
-	mainServicesHandler proxyconfig.ServiceHandler,
 	mainProxy proxy.ProxyProvider,
 	unidlingProxy proxy.ProxyProvider,
 	syncPeriod time.Duration,
 	serviceLister kcorelisters.ServiceLister,
 ) (*HybridProxier, error) {
 	return &HybridProxier{
-		unidlingEndpointsHandler: unidlingEndpointsHandler,
-		unidlingServiceHandler:   unidlingServiceHandler,
-		mainEndpointsHandler:     mainEndpointsHandler,
-		mainServicesHandler:      mainServicesHandler,
 		mainProxy:                mainProxy,
 		unidlingProxy:            unidlingProxy,
 		syncPeriod:               syncPeriod,
@@ -84,10 +71,10 @@ func (p *HybridProxier) OnServiceAdd(service *api.Service) {
 	// proxy, so don't bother trying to remove like on an update
 	if isUsingUserspace, ok := p.usingUserspace[svcName]; ok && isUsingUserspace {
 		glog.V(6).Infof("hybrid proxy: add svc %s/%s in unidling proxy", service.Namespace, service.Name)
-		p.unidlingServiceHandler.OnServiceAdd(service)
+		p.unidlingProxy.OnServiceAdd(service)
 	} else {
 		glog.V(6).Infof("hybrid proxy: add svc %s/%s in main proxy", service.Namespace, service.Name)
-		p.mainServicesHandler.OnServiceAdd(service)
+		p.mainProxy.OnServiceAdd(service)
 	}
 }
 
@@ -104,10 +91,10 @@ func (p *HybridProxier) OnServiceUpdate(oldService, service *api.Service) {
 	// so that should deal with calling OnServiceDelete on switches
 	if isUsingUserspace, ok := p.usingUserspace[svcName]; ok && isUsingUserspace {
 		glog.V(6).Infof("hybrid proxy: update svc %s/%s in unidling proxy", service.Namespace, service.Name)
-		p.unidlingServiceHandler.OnServiceUpdate(oldService, service)
+		p.unidlingProxy.OnServiceUpdate(oldService, service)
 	} else {
 		glog.V(6).Infof("hybrid proxy: update svc %s/%s in main proxy", service.Namespace, service.Name)
-		p.mainServicesHandler.OnServiceUpdate(oldService, service)
+		p.mainProxy.OnServiceUpdate(oldService, service)
 	}
 }
 
@@ -126,18 +113,18 @@ func (p *HybridProxier) OnServiceDelete(service *api.Service) {
 
 	if isUsingUserspace, ok := p.usingUserspace[svcName]; ok && isUsingUserspace {
 		glog.V(6).Infof("hybrid proxy: del svc %s/%s in unidling proxy", service.Namespace, service.Name)
-		p.unidlingServiceHandler.OnServiceDelete(service)
+		p.unidlingProxy.OnServiceDelete(service)
 	} else {
 		glog.V(6).Infof("hybrid proxy: del svc %s/%s in main proxy", service.Namespace, service.Name)
-		p.mainServicesHandler.OnServiceDelete(service)
+		p.mainProxy.OnServiceDelete(service)
 	}
 
 	delete(p.switchedToUserspace, svcName)
 }
 
 func (p *HybridProxier) OnServiceSynced() {
-	p.unidlingServiceHandler.OnServiceSynced()
-	p.mainServicesHandler.OnServiceSynced()
+	p.unidlingProxy.OnServiceSynced()
+	p.mainProxy.OnServiceSynced()
 	glog.V(6).Infof("hybrid proxy: services synced")
 }
 
@@ -184,12 +171,12 @@ func (p *HybridProxier) switchService(name types.NamespacedName) {
 
 	if p.usingUserspace[name] {
 		glog.V(6).Infof("hybrid proxy: switching svc %s/%s to unidling proxy", svc.Namespace, svc.Name)
-		p.unidlingServiceHandler.OnServiceAdd(svc)
-		p.mainServicesHandler.OnServiceDelete(svc)
+		p.unidlingProxy.OnServiceAdd(svc)
+		p.mainProxy.OnServiceDelete(svc)
 	} else {
 		glog.V(6).Infof("hybrid proxy: switching svc %s/%s to main proxy", svc.Namespace, svc.Name)
-		p.mainServicesHandler.OnServiceAdd(svc)
-		p.unidlingServiceHandler.OnServiceDelete(svc)
+		p.mainProxy.OnServiceAdd(svc)
+		p.unidlingProxy.OnServiceDelete(svc)
 	}
 
 	p.switchedToUserspace[name] = p.usingUserspace[name]
@@ -199,7 +186,7 @@ func (p *HybridProxier) OnEndpointsAdd(endpoints *api.Endpoints) {
 	// we track all endpoints in the unidling endpoints handler so that we can succesfully
 	// detect when a service become unidling
 	glog.V(6).Infof("hybrid proxy: (always) add ep %s/%s in unidling proxy", endpoints.Namespace, endpoints.Name)
-	p.unidlingEndpointsHandler.OnEndpointsAdd(endpoints)
+	p.unidlingProxy.OnEndpointsAdd(endpoints)
 
 	p.usingUserspaceLock.Lock()
 	defer p.usingUserspaceLock.Unlock()
@@ -214,7 +201,7 @@ func (p *HybridProxier) OnEndpointsAdd(endpoints *api.Endpoints) {
 
 	if !p.usingUserspace[svcName] {
 		glog.V(6).Infof("hybrid proxy: add ep %s/%s in main proxy", endpoints.Namespace, endpoints.Name)
-		p.mainEndpointsHandler.OnEndpointsAdd(endpoints)
+		p.mainProxy.OnEndpointsAdd(endpoints)
 	}
 
 	// a service could appear before endpoints, so we have to treat this as a potential
@@ -228,7 +215,7 @@ func (p *HybridProxier) OnEndpointsUpdate(oldEndpoints, endpoints *api.Endpoints
 	// we track all endpoints in the unidling endpoints handler so that we can succesfully
 	// detect when a service become unidling
 	glog.V(6).Infof("hybrid proxy: (always) update ep %s/%s in unidling proxy", endpoints.Namespace, endpoints.Name)
-	p.unidlingEndpointsHandler.OnEndpointsUpdate(oldEndpoints, endpoints)
+	p.unidlingProxy.OnEndpointsUpdate(oldEndpoints, endpoints)
 
 	p.usingUserspaceLock.Lock()
 	defer p.usingUserspaceLock.Unlock()
@@ -250,16 +237,16 @@ func (p *HybridProxier) OnEndpointsUpdate(oldEndpoints, endpoints *api.Endpoints
 
 	if !isSwitch && !p.usingUserspace[svcName] {
 		glog.V(6).Infof("hybrid proxy: update ep %s/%s in main proxy", endpoints.Namespace, endpoints.Name)
-		p.mainEndpointsHandler.OnEndpointsUpdate(oldEndpoints, endpoints)
+		p.mainProxy.OnEndpointsUpdate(oldEndpoints, endpoints)
 		return
 	}
 
 	if p.usingUserspace[svcName] {
 		glog.V(6).Infof("hybrid proxy: del ep %s/%s in main proxy", endpoints.Namespace, endpoints.Name)
-		p.mainEndpointsHandler.OnEndpointsDelete(oldEndpoints)
+		p.mainProxy.OnEndpointsDelete(oldEndpoints)
 	} else {
 		glog.V(6).Infof("hybrid proxy: add ep %s/%s in main proxy", endpoints.Namespace, endpoints.Name)
-		p.mainEndpointsHandler.OnEndpointsAdd(endpoints)
+		p.mainProxy.OnEndpointsAdd(endpoints)
 	}
 
 	p.switchService(svcName)
@@ -269,7 +256,7 @@ func (p *HybridProxier) OnEndpointsDelete(endpoints *api.Endpoints) {
 	// we track all endpoints in the unidling endpoints handler so that we can succesfully
 	// detect when a service become unidling
 	glog.V(6).Infof("hybrid proxy: (always) del ep %s/%s in unidling proxy", endpoints.Namespace, endpoints.Name)
-	p.unidlingEndpointsHandler.OnEndpointsDelete(endpoints)
+	p.unidlingProxy.OnEndpointsDelete(endpoints)
 
 	// Careful - there is the potential for deadlocks here,
 	// except that we always get usingUserspaceLock first, then
@@ -291,15 +278,15 @@ func (p *HybridProxier) OnEndpointsDelete(endpoints *api.Endpoints) {
 
 	if !usingUserspace {
 		glog.V(6).Infof("hybrid proxy: del ep %s/%s in main proxy", endpoints.Namespace, endpoints.Name)
-		p.mainEndpointsHandler.OnEndpointsDelete(endpoints)
+		p.mainProxy.OnEndpointsDelete(endpoints)
 	}
 
 	delete(p.usingUserspace, svcName)
 }
 
 func (p *HybridProxier) OnEndpointsSynced() {
-	p.unidlingEndpointsHandler.OnEndpointsSynced()
-	p.mainEndpointsHandler.OnEndpointsSynced()
+	p.unidlingProxy.OnEndpointsSynced()
+	p.mainProxy.OnEndpointsSynced()
 	glog.V(6).Infof("hybrid proxy: endpoints synced")
 }
 

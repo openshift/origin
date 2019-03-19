@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	pconfig "k8s.io/kubernetes/pkg/proxy/config"
+	kubeproxy "k8s.io/kubernetes/pkg/proxy"
 
 	networkapi "github.com/openshift/api/network/v1"
 	networkclient "github.com/openshift/client-go/network/clientset/versioned"
@@ -49,12 +49,12 @@ type proxyEndpoints struct {
 }
 
 type OsdnProxy struct {
-	kClient              kclientset.Interface
-	networkClient        networkclient.Interface
-	networkInformers     networkinformers.SharedInformerFactory
-	networkInfo          *common.NetworkInfo
-	egressDNS            *common.EgressDNS
-	baseEndpointsHandler pconfig.EndpointsHandler
+	kClient          kclientset.Interface
+	networkClient    networkclient.Interface
+	networkInformers networkinformers.SharedInformerFactory
+	networkInfo      *common.NetworkInfo
+	egressDNS        *common.EgressDNS
+	baseProxy        kubeproxy.ProxyProvider
 
 	lock         sync.Mutex
 	firewall     map[string]*proxyFirewallItem
@@ -78,7 +78,7 @@ func New(pluginName string, networkClient networkclient.Interface, kClient kclie
 	}, nil
 }
 
-func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsHandler) error {
+func (proxy *OsdnProxy) Start(proxier kubeproxy.ProxyProvider) error {
 	glog.Infof("Starting multitenant SDN proxy endpoint filter")
 
 	var err error
@@ -86,7 +86,7 @@ func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsHandler) error {
 	if err != nil {
 		return fmt.Errorf("could not get network info: %s", err)
 	}
-	proxy.baseEndpointsHandler = baseHandler
+	proxy.baseProxy = proxier
 
 	policies, err := proxy.networkClient.Network().EgressNetworkPolicies(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
@@ -247,9 +247,9 @@ func (proxy *OsdnProxy) updateEgressNetworkPolicy(policy networkapi.EgressNetwor
 		pep.blocked = proxy.endpointsBlocked(pep.endpoints)
 		switch {
 		case wasBlocked && !pep.blocked:
-			proxy.baseEndpointsHandler.OnEndpointsAdd(pep.endpoints)
+			proxy.baseProxy.OnEndpointsAdd(pep.endpoints)
 		case !wasBlocked && pep.blocked:
-			proxy.baseEndpointsHandler.OnEndpointsDelete(pep.endpoints)
+			proxy.baseProxy.OnEndpointsDelete(pep.endpoints)
 		}
 	}
 }
@@ -293,7 +293,7 @@ func (proxy *OsdnProxy) OnEndpointsAdd(ep *kapi.Endpoints) {
 	pep := &proxyEndpoints{ep, proxy.endpointsBlocked(ep)}
 	proxy.allEndpoints[ep.UID] = pep
 	if !pep.blocked {
-		proxy.baseEndpointsHandler.OnEndpointsAdd(ep)
+		proxy.baseProxy.OnEndpointsAdd(ep)
 	}
 }
 
@@ -313,11 +313,11 @@ func (proxy *OsdnProxy) OnEndpointsUpdate(old, ep *kapi.Endpoints) {
 
 	switch {
 	case wasBlocked && !pep.blocked:
-		proxy.baseEndpointsHandler.OnEndpointsAdd(ep)
+		proxy.baseProxy.OnEndpointsAdd(ep)
 	case !wasBlocked && !pep.blocked:
-		proxy.baseEndpointsHandler.OnEndpointsUpdate(old, ep)
+		proxy.baseProxy.OnEndpointsUpdate(old, ep)
 	case !wasBlocked && pep.blocked:
-		proxy.baseEndpointsHandler.OnEndpointsDelete(ep)
+		proxy.baseProxy.OnEndpointsDelete(ep)
 	}
 }
 
@@ -332,12 +332,37 @@ func (proxy *OsdnProxy) OnEndpointsDelete(ep *kapi.Endpoints) {
 	}
 	delete(proxy.allEndpoints, ep.UID)
 	if !pep.blocked {
-		proxy.baseEndpointsHandler.OnEndpointsDelete(ep)
+		proxy.baseProxy.OnEndpointsDelete(ep)
 	}
 }
 
 func (proxy *OsdnProxy) OnEndpointsSynced() {
-	proxy.baseEndpointsHandler.OnEndpointsSynced()
+	proxy.baseProxy.OnEndpointsSynced()
+}
+
+func (proxy *OsdnProxy) OnServiceAdd(service *kapi.Service) {
+	glog.V(2).Infof("sdn proxy: add svc %s/%s: %v", service.Namespace, service.Name, service)
+	proxy.baseProxy.OnServiceAdd(service)
+}
+
+func (proxy *OsdnProxy) OnServiceUpdate(oldService, service *kapi.Service) {
+	proxy.baseProxy.OnServiceUpdate(oldService, service)
+}
+
+func (proxy *OsdnProxy) OnServiceDelete(service *kapi.Service) {
+	proxy.baseProxy.OnServiceDelete(service)
+}
+
+func (proxy *OsdnProxy) OnServiceSynced() {
+	proxy.baseProxy.OnServiceSynced()
+}
+
+func (proxy *OsdnProxy) Sync() {
+	proxy.baseProxy.Sync()
+}
+
+func (proxy *OsdnProxy) SyncLoop() {
+	proxy.baseProxy.SyncLoop()
 }
 
 func (proxy *OsdnProxy) syncEgressDNSProxyFirewall() {
