@@ -45,7 +45,7 @@ func RegisterOpenshiftAdmissionPlugins(plugins *admission.Plugins) {
 var (
 	// OpenShiftAdmissionPlugins gives the in-order default admission chain for openshift resources.
 	OpenShiftAdmissionPlugins = []string{
-		// these are from the kbue chain
+		// these are from the kube chain
 		"NamespaceLifecycle",
 		"OwnerReferencesPermissionEnforcement",
 
