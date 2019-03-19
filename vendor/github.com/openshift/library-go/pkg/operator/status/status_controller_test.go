@@ -12,7 +12,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/client-go/config/clientset/versioned/fake"
-
+	configv1listers "github.com/openshift/client-go/config/listers/config/v1"
 	"github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
 	"github.com/openshift/library-go/pkg/operator/events"
 )
@@ -91,9 +91,13 @@ func TestFailing(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			clusterOperatorClient := fake.NewSimpleClientset(&configv1.ClusterOperator{
+			clusteroperator := &configv1.ClusterOperator{
 				ObjectMeta: metav1.ObjectMeta{Name: "OPERATOR_NAME", ResourceVersion: "12"},
-			})
+			}
+			clusterOperatorClient := fake.NewSimpleClientset(clusteroperator)
+
+			indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+			indexer.Add(clusteroperator)
 
 			statusClient := &statusClient{
 				t: t,
@@ -104,6 +108,7 @@ func TestFailing(t *testing.T) {
 			controller := &StatusSyncer{
 				clusterOperatorName:   "OPERATOR_NAME",
 				clusterOperatorClient: clusterOperatorClient.ConfigV1(),
+				clusterOperatorLister: configv1listers.NewClusterOperatorLister(indexer),
 				operatorClient:        statusClient,
 				eventRecorder:         events.NewInMemoryRecorder("status"),
 				versionGetter:         NewVersionGetter(),

@@ -27,6 +27,27 @@ type SchedulerSpec struct {
 	// The namespace for this configmap is openshift-config.
 	// +optional
 	Policy ConfigMapNameReference `json:"policy"`
+	// defaultNodeSelector helps set the cluster-wide default node selector to 
+	// restrict pod placement to specific nodes. This is applied to the pods 
+	// created in all namespaces without a specified nodeSelector value.
+	// For example,
+	// defaultNodeSelector: "type=user-node,region=east" would set nodeSelector
+	// field in pod spec to "type=user-node,region=east" to all pods created
+	// in all namespaces. Namespaces having project-wide node selectors won't be 
+	// impacted even if this field is set. This adds an annotation section to 
+	// the namespace. 
+	// For example, if a new namespace is created with 
+	// node-selector='type=user-node,region=east',
+	// the annotation openshift.io/node-selector: type=user-node,region=east
+	// gets added to the project. When the openshift.io/node-selector annotation
+	// is set on the project the value is used in preference to the value we are setting
+	// for defaultNodeSelector field. 
+	// For instance,
+	// openshift.io/node-selector: "type=user-node,region=west" means 
+	// that the default of "type=user-node,region=east" set in defaultNodeSelector 
+	// would not be applied.
+	// +optional
+	DefaultNodeSelector string `json:"defaultNodeSelector,omitempty"`
 }
 
 type SchedulerStatus struct {

@@ -129,16 +129,19 @@ type OperatorStatus struct {
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// conditions is a list of conditions and their status
+	// +optional
 	Conditions []OperatorCondition `json:"conditions,omitempty"`
 
 	// version is the level this availability applies to
-	Version string `json:"version"`
+	// +optional
+	Version string `json:"version,omitempty"`
 
 	// readyReplicas indicates how many replicas are ready and at the desired state
 	ReadyReplicas int32 `json:"readyReplicas"`
 
 	// generations are used to determine when an item needs to be reconciled or has changed in a way that needs a reaction.
-	Generations []GenerationStatus `json:"generations"`
+	// +optional
+	Generations []GenerationStatus `json:"generations,omitempty"`
 }
 
 // GenerationStatus keeps track of the generation for a given resource so that decisions about forced updates can be made.
@@ -206,9 +209,11 @@ type StaticPodOperatorStatus struct {
 	OperatorStatus `json:",inline"`
 
 	// latestAvailableRevision is the deploymentID of the most recent deployment
-	LatestAvailableRevision int32 `json:"latestAvailableRevision"`
+	// +optional
+	LatestAvailableRevision int32 `json:"latestAvailableRevision,omitEmpty"`
 
 	// nodeStatuses track the deployment values and errors across individual nodes
+	// +optional
 	NodeStatuses []NodeStatus `json:"nodeStatuses,omitempty"`
 }
 

@@ -67,7 +67,7 @@ func Run() error {
 		return err
 	}
 
-	// generate kubebuilder NamedYaml manifests into temp dir
+	// generate kubebuilder KindGroupYaml manifests into temp dir
 	g := crdgenerator.Generator{
 		RootPath:          tmpDir,
 		Domain:            "openshift.io",
@@ -100,13 +100,13 @@ func Run() error {
 
 	existingFileNames := map[string]string{}
 	for fn, crd := range existing {
-		existingFileNames[crd.Name] = fn
+		existingFileNames[crd.KindGroup] = fn
 	}
 
 	// update existing manifests with validations of kubebuilder output
 	dirty := false
 	for fn, withValidation := range fromKubebuilder {
-		existingFileName, ok := existingFileNames[withValidation.Name]
+		existingFileName, ok := existingFileNames[withValidation.KindGroup]
 		if !ok {
 			continue
 		}
@@ -171,7 +171,7 @@ func Run() error {
 			return fmt.Errorf("failed to set spec.validation in %s: %v", existingFileName, err)
 		}
 		if reflect.DeepEqual(updated, crd.Yaml) {
-			fmt.Printf("Validation of %s in %s did not change.\n", crd.Name, existingFileName)
+			fmt.Printf("Validation of %s in %s did not change.\n", crd.KindGroup, existingFileName)
 			continue
 		}
 
@@ -185,7 +185,7 @@ func Run() error {
 		if *verifyOnly {
 			newFn = filepath.Join(tmpDir, filepath.Base(existingFileName))
 		} else {
-			fmt.Printf("Updating validation of %s in %s.\n", crd.Name, existingFileName)
+			fmt.Printf("Updating validation of %s in %s.\n", crd.KindGroup, existingFileName)
 		}
 		if err := ioutil.WriteFile(newFn, bs, 0644); err != nil {
 			return err
@@ -305,14 +305,14 @@ func onlyHasNoneOr(x interface{}, pth ...string) bool {
 	}
 }
 
-type NamedYaml struct {
-	Name string
-	Yaml interface{}
+type KindGroupYaml struct {
+	KindGroup string
+	Yaml      interface{}
 }
 
 // crdsFromDirectory returns CRDs by file path
-func crdsFromDirectory(dir string) (map[string]NamedYaml, error) {
-	ret := map[string]NamedYaml{}
+func crdsFromDirectory(dir string) (map[string]KindGroupYaml, error) {
+	ret := map[string]KindGroupYaml{}
 	infos, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return nil, err
@@ -343,7 +343,8 @@ func crdsFromDirectory(dir string) (map[string]NamedYaml, error) {
 			fmt.Printf("Warning: failed to unmarshal %q, skipping\n", info.Name())
 			continue
 		}
-		ret[filepath.Join(dir, info.Name())] = NamedYaml{crd.Name, y}
+		key := crd.Spec.Names.Kind + "." + crd.Spec.Group
+		ret[filepath.Join(dir, info.Name())] = KindGroupYaml{key, y}
 	}
 	if err != nil {
 		return nil, err

@@ -22,8 +22,8 @@ type Interface interface {
 	Consoles() ConsoleInformer
 	// DNSes returns a DNSInformer.
 	DNSes() DNSInformer
-	// Features returns a FeaturesInformer.
-	Features() FeaturesInformer
+	// FeatureGates returns a FeatureGateInformer.
+	FeatureGates() FeatureGateInformer
 	// Images returns a ImageInformer.
 	Images() ImageInformer
 	// Infrastructures returns a InfrastructureInformer.
@@ -88,9 +88,9 @@ func (v *version) DNSes() DNSInformer {
 	return &dNSInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// Features returns a FeaturesInformer.
-func (v *version) Features() FeaturesInformer {
-	return &featuresInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+// FeatureGates returns a FeatureGateInformer.
+func (v *version) FeatureGates() FeatureGateInformer {
+	return &featureGateInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // Images returns a ImageInformer.
