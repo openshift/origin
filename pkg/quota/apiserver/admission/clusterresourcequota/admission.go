@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
@@ -16,17 +17,16 @@ import (
 	"k8s.io/client-go/informers"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
-	coreapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/quota"
-	"k8s.io/kubernetes/pkg/quota/install"
+	quota "k8s.io/kubernetes/pkg/quota/v1"
+	"k8s.io/kubernetes/pkg/quota/v1/install"
 	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
 	resourcequotaapi "k8s.io/kubernetes/plugin/pkg/admission/resourcequota/apis/resourcequota"
 
+	quotatypedclient "github.com/openshift/client-go/quota/clientset/versioned/typed/quota/v1"
+	quotainformer "github.com/openshift/client-go/quota/informers/externalversions/quota/v1"
+	quotalister "github.com/openshift/client-go/quota/listers/quota/v1"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
-	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
-	quotatypedclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/typed/quota/internalversion"
-	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -100,7 +100,7 @@ func (q *clusterQuotaAdmission) Validate(a admission.Attributes) (err error) {
 	return q.evaluator.Evaluate(a)
 }
 
-func (q *clusterQuotaAdmission) lockAquisition(quotas []coreapi.ResourceQuota) func() {
+func (q *clusterQuotaAdmission) lockAquisition(quotas []corev1.ResourceQuota) func() {
 	locks := []sync.Locker{}
 
 	// acquire the locks in alphabetical order because I'm too lazy to think of something clever
@@ -174,7 +174,7 @@ func (q *clusterQuotaAdmission) ValidateInitialization() error {
 	return nil
 }
 
-type ByName []coreapi.ResourceQuota
+type ByName []corev1.ResourceQuota
 
 func (v ByName) Len() int           { return len(v) }
 func (v ByName) Swap(i, j int)      { v[i], v[j] = v[j], v[i] }
