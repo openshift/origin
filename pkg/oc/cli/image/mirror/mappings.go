@@ -21,6 +21,8 @@ type Mapping struct {
 	Source      reference.DockerImageReference
 	Destination reference.DockerImageReference
 	Type        DestinationType
+	// Name is an optional field for identifying uniqueness within the mappings
+	Name string
 }
 
 func parseSource(ref string) (reference.DockerImageReference, error) {
