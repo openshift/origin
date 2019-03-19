@@ -31,17 +31,17 @@ func Register(plugins *admission.Plugins) {
 	})
 }
 
-func toFeatureV1(uncastObj runtime.Object) (*configv1.Features, field.ErrorList) {
+func toFeatureGateV1(uncastObj runtime.Object) (*configv1.FeatureGate, field.ErrorList) {
 	if uncastObj == nil {
 		return nil, nil
 	}
 
 	allErrs := field.ErrorList{}
 
-	obj, ok := uncastObj.(*configv1.Features)
+	obj, ok := uncastObj.(*configv1.FeatureGate)
 	if !ok {
 		return nil, append(allErrs,
-			field.NotSupported(field.NewPath("kind"), fmt.Sprintf("%T", uncastObj), []string{"Features"}),
+			field.NotSupported(field.NewPath("kind"), fmt.Sprintf("%T", uncastObj), []string{"FeatureGate"}),
 			field.NotSupported(field.NewPath("apiVersion"), fmt.Sprintf("%T", uncastObj), []string{"config.openshift.io/v1"}))
 	}
 
@@ -53,7 +53,7 @@ type featuresV1 struct {
 
 var knownFeatureSets = sets.NewString("", string(configv1.TechPreviewNoUpgrade))
 
-func validateFeatureSpecCreate(spec configv1.FeaturesSpec) field.ErrorList {
+func validateFeatureGateSpecCreate(spec configv1.FeatureGateSpec) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	// on create, we only allow values that we are aware of
@@ -64,7 +64,7 @@ func validateFeatureSpecCreate(spec configv1.FeaturesSpec) field.ErrorList {
 	return allErrs
 }
 
-func validateFeatureSpecUpdate(spec, oldSpec configv1.FeaturesSpec) field.ErrorList {
+func validateFeatureGateSpecUpdate(spec, oldSpec configv1.FeatureGateSpec) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	// on update, we don't fail validation on a field we don't recognize as long as it is not changing
@@ -81,39 +81,39 @@ func validateFeatureSpecUpdate(spec, oldSpec configv1.FeaturesSpec) field.ErrorL
 }
 
 func (featuresV1) ValidateCreate(uncastObj runtime.Object) field.ErrorList {
-	obj, allErrs := toFeatureV1(uncastObj)
+	obj, allErrs := toFeatureGateV1(uncastObj)
 	if len(allErrs) > 0 {
 		return allErrs
 	}
 
 	allErrs = append(allErrs, validation.ValidateObjectMeta(&obj.ObjectMeta, false, customresourcevalidation.RequireNameCluster, field.NewPath("metadata"))...)
-	allErrs = append(allErrs, validateFeatureSpecCreate(obj.Spec)...)
+	allErrs = append(allErrs, validateFeatureGateSpecCreate(obj.Spec)...)
 
 	return allErrs
 }
 
 func (featuresV1) ValidateUpdate(uncastObj runtime.Object, uncastOldObj runtime.Object) field.ErrorList {
-	obj, allErrs := toFeatureV1(uncastObj)
+	obj, allErrs := toFeatureGateV1(uncastObj)
 	if len(allErrs) > 0 {
 		return allErrs
 	}
-	oldObj, allErrs := toFeatureV1(uncastOldObj)
+	oldObj, allErrs := toFeatureGateV1(uncastOldObj)
 	if len(allErrs) > 0 {
 		return allErrs
 	}
 
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &oldObj.ObjectMeta, field.NewPath("metadata"))...)
-	allErrs = append(allErrs, validateFeatureSpecUpdate(obj.Spec, oldObj.Spec)...)
+	allErrs = append(allErrs, validateFeatureGateSpecUpdate(obj.Spec, oldObj.Spec)...)
 
 	return allErrs
 }
 
 func (featuresV1) ValidateStatusUpdate(uncastObj runtime.Object, uncastOldObj runtime.Object) field.ErrorList {
-	obj, errs := toFeatureV1(uncastObj)
+	obj, errs := toFeatureGateV1(uncastObj)
 	if len(errs) > 0 {
 		return errs
 	}
-	oldObj, errs := toFeatureV1(uncastOldObj)
+	oldObj, errs := toFeatureGateV1(uncastOldObj)
 	if len(errs) > 0 {
 		return errs
 	}
