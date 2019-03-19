@@ -112,7 +112,6 @@ func init() {
 			rbacv1helpers.NewRule("get", "list").Groups(kapiGroup).Resources("serviceaccounts").RuleOrDie(),
 			rbacv1helpers.NewRule("create").Groups(securityGroup, legacySecurityGroup).Resources("podsecuritypolicysubjectreviews").RuleOrDie(),
 			rbacv1helpers.NewRule("get", "list").Groups(configGroup).Resources("builds").RuleOrDie(),
-			rbacv1helpers.NewRule("use").Groups(securityGroup).Resources("securitycontextconstraints").Names("privileged").RuleOrDie(),
 			eventsRule(),
 		},
 	})
@@ -335,7 +334,6 @@ func init() {
 			rbacv1helpers.NewRule("get", "update", "list", "watch").Groups(kapiGroup).Resources("persistentvolumeclaims").RuleOrDie(),
 			rbacv1helpers.NewRule("update").Groups(kapiGroup).Resources("persistentvolumeclaims/status").RuleOrDie(),
 			rbacv1helpers.NewRule("get", "create", "delete", "list", "watch").Groups(kapiGroup).Resources("pods").RuleOrDie(),
-			rbacv1helpers.NewRule("use").Groups(securityGroup).Resources("securitycontextconstraints").Names("hostmount-anyuid").RuleOrDie(),
 			eventsRule(),
 		},
 	})

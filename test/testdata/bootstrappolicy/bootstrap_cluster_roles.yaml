@@ -2310,14 +2310,6 @@ items:
     - get
     - list
   - apiGroups:
-    - security.openshift.io
-    resourceNames:
-    - privileged
-    resources:
-    - securitycontextconstraints
-    verbs:
-    - use
-  - apiGroups:
     - ""
     resources:
     - events
@@ -3091,14 +3083,6 @@ items:
     - get
     - list
     - watch
-  - apiGroups:
-    - security.openshift.io
-    resourceNames:
-    - hostmount-anyuid
-    resources:
-    - securitycontextconstraints
-    verbs:
-    - use
   - apiGroups:
     - ""
     resources:
