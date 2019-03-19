@@ -192,7 +192,7 @@ func (o *RollbackOptions) Validate() error {
 // Run performs a rollback.
 func (o *RollbackOptions) Run() error {
 	// Get the resource referenced in the command args.
-	obj, mapping, err := o.findResource(o.TargetName)
+	obj, _, err := o.findResource(o.TargetName)
 	if err != nil {
 		return err
 	}
@@ -258,7 +258,7 @@ func (o *RollbackOptions) Run() error {
 		if err != nil {
 			return err
 		}
-		return printer.PrintObj(kcmdutil.AsDefaultVersionedOrOriginal(newConfig, mapping), o.Out)
+		return printer.PrintObj(newConfig, o.Out)
 	}
 
 	// Perform a real rollback.
@@ -285,7 +285,7 @@ func (o *RollbackOptions) Run() error {
 		return err
 	}
 
-	return printer.PrintObj(kcmdutil.AsDefaultVersionedOrOriginal(rolledback, mapping), o.Out)
+	return printer.PrintObj(rolledback, o.Out)
 }
 
 // findResource tries to find a deployment or deploymentconfig named

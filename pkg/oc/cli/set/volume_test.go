@@ -11,7 +11,6 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
-	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/openshift/origin/pkg/oc/originpolymorphichelpers"
 )
@@ -122,7 +121,6 @@ func getFakeInfo(podInfo *corev1.Pod) ([]*resource.Info, *VolumeOptions) {
 	infos := []*resource.Info{info}
 	vOptions := &VolumeOptions{}
 	vOptions.Name = "fake-mount"
-	vOptions.Encoder = scheme.DefaultJSONEncoder()
 	vOptions.Containers = "*"
 	// we need to manually set this the way it is set in pkg/oc/cli/shim_kubectl.go
 	vOptions.UpdatePodSpecForObject = originpolymorphichelpers.NewUpdatePodSpecForObjectFn(polymorphichelpers.UpdatePodSpecForObjectFn)

@@ -12,7 +12,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -36,7 +35,6 @@ type CancelOptions struct {
 	Namespace         string
 	NamespaceExplicit bool
 	Mapper            meta.RESTMapper
-	Encoder           runtime.Encoder
 	Resources         []string
 	KubeClient        kubernetes.Interface
 
@@ -100,7 +98,6 @@ func (o *CancelOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []
 	if err != nil {
 		return err
 	}
-	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
 
 	o.Namespace, o.NamespaceExplicit, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {

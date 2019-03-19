@@ -10,7 +10,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -33,7 +32,6 @@ type RetryOptions struct {
 	Resources         []string
 	Builder           func() *resource.Builder
 	Mapper            meta.RESTMapper
-	Encoder           runtime.Encoder
 	Clientset         kexternalclientset.Interface
 	Namespace         string
 	ExplicitNamespace bool
@@ -100,7 +98,6 @@ func (o *RetryOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []s
 	if err != nil {
 		return err
 	}
-	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
 
 	o.Namespace, o.ExplicitNamespace, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
