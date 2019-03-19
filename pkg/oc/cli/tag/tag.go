@@ -34,6 +34,7 @@ type TagOptions struct {
 	insecureTag  bool
 	referenceTag bool
 	namespace    string
+	annotations  []string
 
 	referencePolicy string
 
@@ -110,6 +111,7 @@ func NewCmdTag(fullName string, f kcmdutil.Factory, streams genericclioptions.IO
 	cmd.Flags().BoolVar(&o.scheduleTag, "scheduled", o.scheduleTag, "Set a Docker image to be periodically imported from a remote repository. Defaults to false.")
 	cmd.Flags().BoolVar(&o.insecureTag, "insecure", o.insecureTag, "Set to true if importing the specified Docker image requires HTTP or has a self-signed certificate. Defaults to false.")
 	cmd.Flags().StringVar(&o.referencePolicy, "reference-policy", SourceReferencePolicy, "Allow to request pullthrough for external image when set to 'local'. Defaults to 'source'.")
+	cmd.Flags().StringSliceVarP(&o.annotations, "annotate", "a", o.annotations, "Set an annotation with KEY=VALUE or ensure it is removed with KEY-")
 
 	return cmd
 }
@@ -310,6 +312,14 @@ func (o TagOptions) Validate() error {
 		return errors.New("reference policy must be set to 'source' or 'local'")
 	}
 
+	if o.deleteTag && len(o.annotations) > 0 {
+		return errors.New("--delete may not be specified with --annotate")
+	}
+	_, _, err := kcmdutil.ParsePairs(o.annotations, "annotation", true)
+	if err != nil {
+		return err
+	}
+
 	// Validate source tag based on --delete usage.
 	if o.deleteTag {
 		if len(o.sourceKind) > 0 {
@@ -358,6 +368,11 @@ func (o TagOptions) Validate() error {
 
 // Run contains all the necessary functionality for the OpenShift cli tag command.
 func (o TagOptions) Run() error {
+	addAnnotations, removeAnnotations, err := kcmdutil.ParsePairs(o.annotations, "annotation", true)
+	if err != nil {
+		return err
+	}
+
 	var tagReferencePolicy imagev1.TagReferencePolicyType
 	switch o.referencePolicy {
 	case SourceReferencePolicy:
@@ -457,6 +472,16 @@ func (o TagOptions) Run() error {
 				if len(o.ref.Namespace) == 0 && o.destNamespace[i] != o.namespace {
 					istag.Tag.From.Namespace = o.namespace
 				}
+			}
+
+			for k, v := range addAnnotations {
+				if istag.Annotations == nil {
+					istag.Annotations = make(map[string]string)
+				}
+				istag.Annotations[k] = v
+			}
+			for _, k := range removeAnnotations {
+				delete(istag.Annotations, k)
 			}
 
 			msg := ""

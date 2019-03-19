@@ -283,6 +283,12 @@ os::cmd::expect_success_and_text "oc get is/tagtest1 --template='{{(index .spec.
 os::cmd::expect_success_and_text "oc get is/tagtest2 --template='{{(index .spec.tags 0).from.kind}}'" 'ImageStreamImage'
 os::cmd::expect_success 'oc delete is/tagtest1 is/tagtest2'
 os::cmd::expect_success_and_text 'oc tag mysql:latest tagtest:new1' 'Tag tagtest:new1 set to mysql@sha256:'
+os::cmd::expect_failure_and_text 'oc tag mysql:latest tagtest:new1 -a test --delete' 'delete may not be specified with --annotate'
+os::cmd::expect_failure_and_text 'oc tag tagtest:new1 tagtest:new2 -a foo'  'invalid annotation format'
+os::cmd::expect_success 'oc tag tagtest:new1 tagtest:new2 -a foo=bar'
+os::cmd::expect_success_and_text 'oc get istag tagtest:new2 -o jsonpath={.tag.annotations.foo}' 'bar'
+os::cmd::expect_success 'oc tag tagtest:new1 tagtest:new2 -a foo-'
+os::cmd::expect_success_and_text 'oc get istag tagtest:new2 -o jsonpath={.tag.annotations.foo}' ''
 
 # test deleting a spec tag using oc tag
 os::cmd::expect_success 'oc create -f test/testdata/test-stream.yaml'
