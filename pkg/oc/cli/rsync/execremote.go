@@ -9,7 +9,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
-	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
+	kexec "k8s.io/kubernetes/pkg/kubectl/cmd/exec"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
@@ -29,8 +29,8 @@ var _ executor = &remoteExecutor{}
 // Execute will run a command in a pod
 func (e *remoteExecutor) Execute(command []string, in io.Reader, out, errOut io.Writer) error {
 	glog.V(3).Infof("Remote executor running command: %s", strings.Join(command, " "))
-	execOptions := &kubecmd.ExecOptions{
-		StreamOptions: kubecmd.StreamOptions{
+	execOptions := &kexec.ExecOptions{
+		StreamOptions: kexec.StreamOptions{
 			Namespace:     e.Namespace,
 			PodName:       e.PodName,
 			ContainerName: e.ContainerName,
@@ -42,7 +42,7 @@ func (e *remoteExecutor) Execute(command []string, in io.Reader, out, errOut io.
 			Stdin: in != nil,
 		},
 		SuggestedCmdUsage: e.SuggestedCmdUsage,
-		Executor:          &kubecmd.DefaultRemoteExecutor{},
+		Executor:          &kexec.DefaultRemoteExecutor{},
 		PodClient:         e.Client.CoreV1(),
 		Config:            e.Config,
 		Command:           command,
