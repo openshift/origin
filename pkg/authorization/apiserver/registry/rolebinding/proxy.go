@@ -9,8 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	rbacv1 "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	restclient "k8s.io/client-go/rest"
-	rbacinternalversion "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
@@ -179,7 +179,7 @@ func (s *REST) Update(ctx context.Context, name string, objInfo rest.UpdatedObje
 	return role, false, err
 }
 
-func (s *REST) getImpersonatingClient(ctx context.Context) (rbacinternalversion.RoleBindingInterface, error) {
+func (s *REST) getImpersonatingClient(ctx context.Context) (rbacv1.RoleBindingInterface, error) {
 	namespace, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, apierrors.NewBadRequest("namespace parameter required")
