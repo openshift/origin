@@ -9,8 +9,8 @@ import (
 	kerrs "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"

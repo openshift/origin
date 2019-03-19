@@ -7,8 +7,8 @@ import (
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
-	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/templates"

@@ -21,8 +21,8 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/homedir"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	imageclient "github.com/openshift/client-go/image/clientset/versioned"
 	"github.com/openshift/library-go/pkg/image/reference"
