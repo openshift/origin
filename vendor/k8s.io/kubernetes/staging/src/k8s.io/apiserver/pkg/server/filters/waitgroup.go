@@ -38,6 +38,7 @@ func WithWaitGroup(handler http.Handler, longRunning apirequest.LongRunningReque
 
 		if !longRunning(req, requestInfo) {
 			if err := wg.Add(1); err != nil {
+				w.Header().Add("Retry-After", "1")
 				http.Error(w, "apiserver is shutting down.", http.StatusInternalServerError)
 				return
 			}
