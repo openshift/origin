@@ -9,7 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	authorizationapi "k8s.io/api/authorization/v1"
+	authorizationv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,10 +20,10 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/core/v1"
-	kquota "k8s.io/kubernetes/pkg/quota"
+	kquota "k8s.io/kubernetes/pkg/quota/v1"
 
 	"github.com/openshift/api/image"
+	imagev1 "github.com/openshift/api/image/v1"
 	oauthorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/fake"
@@ -66,15 +67,15 @@ func (f *fakeDefaultRegistry) DefaultRegistry() (string, bool) {
 type fakeSubjectAccessReviewRegistry struct {
 	err              error
 	allow            bool
-	request          *authorizationapi.SubjectAccessReview
+	request          *authorizationv1.SubjectAccessReview
 	requestNamespace string
 }
 
-func (f *fakeSubjectAccessReviewRegistry) Create(subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReview, error) {
+func (f *fakeSubjectAccessReviewRegistry) Create(subjectAccessReview *authorizationv1.SubjectAccessReview) (*authorizationv1.SubjectAccessReview, error) {
 	f.request = subjectAccessReview
 	f.requestNamespace = subjectAccessReview.Spec.ResourceAttributes.Namespace
-	return &authorizationapi.SubjectAccessReview{
-		Status: authorizationapi.SubjectAccessReviewStatus{
+	return &authorizationv1.SubjectAccessReview{
+		Status: authorizationv1.SubjectAccessReviewStatus{
 			Allowed: f.allow,
 		},
 	}, f.err
@@ -361,9 +362,9 @@ func TestTagVerifier(t *testing.T) {
 			if e, a := "otherns", sar.requestNamespace; e != a {
 				t.Errorf("%s: sar namespace: expected %v, got %v", name, e, a)
 			}
-			expectedSar := &authorizationapi.SubjectAccessReview{
-				Spec: authorizationapi.SubjectAccessReviewSpec{
-					ResourceAttributes: &authorizationapi.ResourceAttributes{
+			expectedSar := &authorizationv1.SubjectAccessReview{
+				Spec: authorizationv1.SubjectAccessReviewSpec{
+					ResourceAttributes: &authorizationv1.ResourceAttributes{
 						Namespace:   "otherns",
 						Verb:        "get",
 						Group:       "image.openshift.io",
@@ -373,7 +374,7 @@ func TestTagVerifier(t *testing.T) {
 					},
 					User:   "user",
 					Groups: []string{"group1"},
-					Extra:  map[string]authorizationapi.ExtraValue{oauthorizationapi.ScopesKey: {"a", "b"}},
+					Extra:  map[string]authorizationv1.ExtraValue{oauthorizationapi.ScopesKey: {"a", "b"}},
 				},
 			}
 			if e, a := expectedSar, sar.request; !reflect.DeepEqual(e, a) {
@@ -388,7 +389,7 @@ func TestTagVerifier(t *testing.T) {
 }
 
 func TestLimitVerifier(t *testing.T) {
-	makeISForbiddenError := func(isName string, exceeded []coreapi.ResourceName) error {
+	makeISForbiddenError := func(isName string, exceeded []corev1.ResourceName) error {
 		if len(exceeded) == 0 {
 			return nil
 		}
@@ -406,16 +407,12 @@ func TestLimitVerifier(t *testing.T) {
 
 	makeISEvaluator := func(maxImages, maxImageTags int64) func(string, *imageapi.ImageStream) error {
 		return func(ns string, is *imageapi.ImageStream) error {
-			limit := coreapi.ResourceList{
-				imageapi.ResourceImageStreamImages: *resource.NewQuantity(maxImages, resource.DecimalSI),
-				imageapi.ResourceImageStreamTags:   *resource.NewQuantity(maxImageTags, resource.DecimalSI),
+			limit := corev1.ResourceList{
+				imagev1.ResourceImageStreamImages: *resource.NewQuantity(maxImages, resource.DecimalSI),
+				imagev1.ResourceImageStreamTags:   *resource.NewQuantity(maxImageTags, resource.DecimalSI),
 			}
 			externalUsage := limitrange.GetImageStreamUsage(is)
-			internalUsage := &coreapi.ResourceList{}
-			if err := v1.Convert_v1_ResourceList_To_core_ResourceList(&externalUsage, internalUsage, nil); err != nil {
-				t.Fatal(err)
-			}
-			if less, exceeded := kquota.LessThanOrEqual(*internalUsage, limit); !less {
+			if less, exceeded := kquota.LessThanOrEqual(externalUsage, limit); !less {
 				return makeISForbiddenError(is.Name, exceeded)
 			}
 			return nil
@@ -502,7 +499,7 @@ func TestLimitVerifier(t *testing.T) {
 				},
 			},
 			isEvaluator: makeISEvaluator(1, 0),
-			expected:    field.ErrorList{field.InternalError(field.NewPath(""), makeISForbiddenError("is", []coreapi.ResourceName{imageapi.ResourceImageStreamImages}))},
+			expected:    field.ErrorList{field.InternalError(field.NewPath(""), makeISForbiddenError("is", []corev1.ResourceName{imagev1.ResourceImageStreamImages}))},
 		},
 
 		{
@@ -528,7 +525,7 @@ func TestLimitVerifier(t *testing.T) {
 				},
 			},
 			isEvaluator: makeISEvaluator(0, 0),
-			expected:    field.ErrorList{field.InternalError(field.NewPath(""), makeISForbiddenError("is", []coreapi.ResourceName{imageapi.ResourceImageStreamTags}))},
+			expected:    field.ErrorList{field.InternalError(field.NewPath(""), makeISForbiddenError("is", []corev1.ResourceName{imagev1.ResourceImageStreamTags}))},
 		},
 
 		{
@@ -566,7 +563,7 @@ func TestLimitVerifier(t *testing.T) {
 				},
 			},
 			isEvaluator: makeISEvaluator(0, 0),
-			expected:    field.ErrorList{field.InternalError(field.NewPath(""), makeISForbiddenError("is", []coreapi.ResourceName{imageapi.ResourceImageStreamImages, imageapi.ResourceImageStreamTags}))},
+			expected:    field.ErrorList{field.InternalError(field.NewPath(""), makeISForbiddenError("is", []corev1.ResourceName{imagev1.ResourceImageStreamImages, imagev1.ResourceImageStreamTags}))},
 		},
 	}
 

@@ -3,20 +3,19 @@
 package image
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/quota"
-	"k8s.io/kubernetes/pkg/quota/generic"
+	quota "k8s.io/kubernetes/pkg/quota/v1"
+	"k8s.io/kubernetes/pkg/quota/v1/generic"
 
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1typedclient "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions/image/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
-var legacyObjectCountAliases = map[schema.GroupVersionResource]kapi.ResourceName{
-	imagev1.GroupVersion.WithResource("imagestreams"): imageapi.ResourceImageStreams,
+var legacyObjectCountAliases = map[schema.GroupVersionResource]corev1.ResourceName{
+	imagev1.GroupVersion.WithResource("imagestreams"): imagev1.ResourceImageStreams,
 }
 
 // NewEvaluators returns the list of static evaluators that manage more than counts
@@ -62,7 +61,7 @@ func NewReplenishmentEvaluatorsForAdmission(isInformer imagev1informer.ImageStre
 		generic.NewObjectCountEvaluator(
 			legacy.Resource("imagestreams"),
 			generic.ListResourceUsingListerFunc(nil, imagev1.GroupVersion.WithResource("imagestreams")),
-			imageapi.ResourceImageStreams))
+			imagev1.ResourceImageStreams))
 
 	return result
 }
