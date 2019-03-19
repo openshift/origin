@@ -347,6 +347,9 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 				g.By("verify job is in jenkins")
 				_, err = j.WaitForContent("", 200, 30*time.Second, "job/%s/job/%s-sample-pipeline/", oc.Namespace(), oc.Namespace())
+				if err != nil {
+					exutil.DumpApplicationPodLogs("jenkins", oc)
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By(fmt.Sprintf("delete pipeline strategy bc %q", origPipelinePath))
@@ -355,6 +358,9 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 				g.By("verify job is not in jenkins")
 				_, err = j.WaitForContent("", 404, 30*time.Second, "job/%s/job/%s-sample-pipeline/", oc.Namespace(), oc.Namespace())
+				if err != nil {
+					exutil.DumpApplicationPodLogs("jenkins", oc)
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("verify bc is still deleted")
@@ -385,24 +391,36 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 				// NOTE, for the credential URL in Jenkins
 				// it returns rc 200 with no output if credential exists and a 404 if it does not exists
 				_, err = j.WaitForContent("", 200, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
+				if err != nil {
+					exutil.DumpApplicationPodLogs("jenkins", oc)
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("verify credential deleted when label removed")
 				err = oc.Run("label").Args("secret", secretName, secretCredentialSyncLabel+"-").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				_, err = j.WaitForContent("", 404, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
+				if err != nil {
+					exutil.DumpApplicationPodLogs("jenkins", oc)
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("verify credential added when label added")
 				err = oc.Run("label").Args("secret", secretName, secretCredentialSyncLabel+"=true").Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				_, err = j.WaitForContent("", 200, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
+				if err != nil {
+					exutil.DumpApplicationPodLogs("jenkins", oc)
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("verify credential deleted when secret deleted")
 				err = oc.Run("delete").Args("secret", secretName).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 				_, err = j.WaitForContent("", 404, 10*time.Second, "credentials/store/system/domain/_/credential/%s-%s/", oc.Namespace(), secretName)
+				if err != nil {
+					exutil.DumpApplicationPodLogs("jenkins", oc)
+				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				// no need to clean up, last operation above deleted the secret
