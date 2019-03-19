@@ -8,7 +8,7 @@ import (
 	"unicode"
 
 	"github.com/openshift/origin/pkg/cmd/util/term"
-	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"

@@ -13,8 +13,8 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
-	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 )

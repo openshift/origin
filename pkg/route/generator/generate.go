@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/kubectl/generate"
 
 	routeapi "github.com/openshift/api/route/v1"
 )
@@ -16,11 +16,11 @@ import (
 type RouteGenerator struct{}
 
 // RouteGenerator implements the kubectl.Generator interface for routes
-var _ kubectl.Generator = RouteGenerator{}
+var _ generate.Generator = RouteGenerator{}
 
 // ParamNames returns the parameters required for generating a route
-func (RouteGenerator) ParamNames() []kubectl.GeneratorParam {
-	return []kubectl.GeneratorParam{
+func (RouteGenerator) ParamNames() []generate.GeneratorParam {
+	return []generate.GeneratorParam{
 		{Name: "labels", Required: false},
 		{Name: "default-name", Required: true},
 		{Name: "port", Required: false},
@@ -49,7 +49,7 @@ func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Ob
 
 	labelString, found := params["labels"]
 	if found && len(labelString) > 0 {
-		labels, err = kubectl.ParseLabels(labelString)
+		labels, err = generate.ParseLabels(labelString)
 		if err != nil {
 			return nil, err
 		}

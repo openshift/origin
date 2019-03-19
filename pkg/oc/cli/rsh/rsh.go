@@ -18,10 +18,10 @@ import (
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/controller"
-	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/exec"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
+	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 	"k8s.io/kubernetes/pkg/kubectl/util/term"
 
 	oapps "github.com/openshift/api/apps"
@@ -74,7 +74,7 @@ type RshOptions struct {
 	DisableTTY bool
 	Executable string
 	Timeout    int
-	*kubecmd.ExecOptions
+	*exec.ExecOptions
 }
 
 func NewRshOptions(parent string, streams genericclioptions.IOStreams) *RshOptions {
@@ -82,15 +82,15 @@ func NewRshOptions(parent string, streams genericclioptions.IOStreams) *RshOptio
 		ForceTTY:   false,
 		DisableTTY: false,
 		Timeout:    10,
-		ExecOptions: &kubecmd.ExecOptions{
-			StreamOptions: kubecmd.StreamOptions{
+		ExecOptions: &exec.ExecOptions{
+			StreamOptions: exec.StreamOptions{
 				IOStreams: streams,
 				TTY:       true,
 				Stdin:     true,
 			},
 
 			FullCmdName: parent,
-			Executor:    &kubecmd.DefaultRemoteExecutor{},
+			Executor:    &exec.DefaultRemoteExecutor{},
 		},
 	}
 }

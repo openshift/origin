@@ -9,10 +9,10 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/expose"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
+	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/openshift/origin/pkg/oc/cli/create/route"
 )
@@ -77,7 +77,7 @@ func NewExposeOptions() *ExposeOptions {
 func NewCmdExpose(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewExposeOptions()
 
-	cmd := kcmd.NewCmdExposeService(f, streams)
+	cmd := expose.NewCmdExposeService(f, streams)
 	cmd.Short = "Expose a replicated application as a service or route"
 	cmd.Long = exposeLong
 	cmd.Example = fmt.Sprintf(exposeExample, fullName)

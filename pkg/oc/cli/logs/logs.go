@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"k8s.io/kubernetes/pkg/kubectl/cmd/logs"
+
 	"github.com/spf13/cobra"
 
 	corev1 "k8s.io/api/core/v1"
@@ -11,10 +13,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
-	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
+	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
@@ -64,7 +65,7 @@ type LogsOptions struct {
 	Options runtime.Object
 	// KubeLogOptions contains all the necessary options for
 	// running the upstream logs command.
-	KubeLogOptions *kcmd.LogsOptions
+	KubeLogOptions *logs.LogsOptions
 	// Client enables access to the Build object when processing
 	// build logs for Jenkins Pipeline Strategy builds
 	Client buildv1client.BuildV1Interface
@@ -82,7 +83,7 @@ type LogsOptions struct {
 
 func NewLogsOptions(streams genericclioptions.IOStreams) *LogsOptions {
 	return &LogsOptions{
-		KubeLogOptions: kcmd.NewLogsOptions(streams, false),
+		KubeLogOptions: logs.NewLogsOptions(streams, false),
 		IOStreams:      streams,
 	}
 }
@@ -90,7 +91,7 @@ func NewLogsOptions(streams genericclioptions.IOStreams) *LogsOptions {
 // NewCmdLogs creates a new logs command that supports OpenShift resources.
 func NewCmdLogs(name, baseName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewLogsOptions(streams)
-	cmd := kcmd.NewCmdLogs(f, streams)
+	cmd := logs.NewCmdLogs(f, streams)
 	cmd.Short = "Print the logs for a resource"
 	cmd.Long = logsLong
 	cmd.Example = fmt.Sprintf(logsExample, baseName, name)

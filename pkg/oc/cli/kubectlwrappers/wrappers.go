@@ -13,15 +13,36 @@ import (
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
-	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/annotate"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/apiresources"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/apply"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/attach"
 	kcmdauth "k8s.io/kubernetes/pkg/kubectl/cmd/auth"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/autoscale"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/clusterinfo"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/completion"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/config"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/convert"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/cp"
 	kcreate "k8s.io/kubernetes/pkg/kubectl/cmd/create"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/delete"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/describe"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/edit"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/exec"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/explain"
 	kget "k8s.io/kubernetes/pkg/kubectl/cmd/get"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/label"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/patch"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/plugin"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/portforward"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/proxy"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/replace"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/run"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/scale"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kwait "k8s.io/kubernetes/pkg/kubectl/cmd/wait"
 	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
+	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/create"
@@ -95,7 +116,7 @@ var (
 
 // NewCmdReplace is a wrapper for the Kubernetes cli replace command
 func NewCmdReplace(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdReplace(f, streams)
+	cmd := replace.NewCmdReplace(f, streams)
 	cmd.Long = replaceLong
 	cmd.Example = fmt.Sprintf(replaceExample, fullName)
 	return cmd
@@ -112,7 +133,7 @@ var (
 )
 
 func NewCmdClusterInfo(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdClusterInfo(f, streams)
+	cmd := clusterinfo.NewCmdClusterInfo(f, streams)
 	cmd.Long = clusterInfoLong
 	cmd.Example = fmt.Sprintf(clusterinfoExample, fullName)
 	return cmd
@@ -131,7 +152,7 @@ var (
 
 // NewCmdPatch is a wrapper for the Kubernetes cli patch command
 func NewCmdPatch(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdPatch(f, streams)
+	cmd := patch.NewCmdPatch(f, streams)
 	cmd.Long = patchLong
 	cmd.Example = fmt.Sprintf(patchExample, fullName)
 	return cmd
@@ -174,7 +195,7 @@ var (
 
 // NewCmdDelete is a wrapper for the Kubernetes cli delete command
 func NewCmdDelete(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdDelete(f, streams)
+	cmd := delete.NewCmdDelete(f, streams)
 	cmd.Long = deleteLong
 	cmd.Short = "Delete one or more resources"
 	cmd.Example = fmt.Sprintf(deleteExample, fullName)
@@ -254,7 +275,7 @@ func NewCmdCompletion(fullName string, streams genericclioptions.IOStreams) *cob
 		cmdHelpName = "openshift"
 	}
 
-	cmd := kcmd.NewCmdCompletion(streams.Out, "\n")
+	cmd := completion.NewCmdCompletion(streams.Out, "\n")
 	cmd.Long = fmt.Sprintf(completionLong, cmdHelpName)
 	cmd.Example = fmt.Sprintf(completionExample, cmdHelpName, cmdHelpName, cmdHelpName, cmdHelpName)
 	// mark all statically included flags as hidden to prevent them appearing in completions
@@ -298,7 +319,7 @@ var (
 
 // NewCmdExec is a wrapper for the Kubernetes cli exec command
 func NewCmdExec(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdExec(f, streams)
+	cmd := exec.NewCmdExec(f, streams)
 	cmd.Use = "exec [flags] POD [-c CONTAINER] -- COMMAND [args...]"
 	cmd.Long = execLong
 	cmd.Example = fmt.Sprintf(execExample, fullName)
@@ -325,7 +346,7 @@ var (
 
 // NewCmdPortForward is a wrapper for the Kubernetes cli port-forward command
 func NewCmdPortForward(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdPortForward(f, streams)
+	cmd := portforward.NewCmdPortForward(f, streams)
 	cmd.Long = portForwardLong
 	cmd.Example = fmt.Sprintf(portForwardExample, fullName)
 	return cmd
@@ -348,7 +369,7 @@ var (
 
 // NewCmdDescribe is a wrapper for the Kubernetes cli describe command
 func NewCmdDescribe(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdDescribe(fullName, f, streams)
+	cmd := describe.NewCmdDescribe(fullName, f, streams)
 	cmd.Long = describeLong
 	cmd.Example = fmt.Sprintf(describeExample, fullName)
 	return cmd
@@ -372,7 +393,7 @@ var (
 
 // NewCmdProxy is a wrapper for the Kubernetes cli proxy command
 func NewCmdProxy(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdProxy(f, streams)
+	cmd := proxy.NewCmdProxy(f, streams)
 	cmd.Long = proxyLong
 	cmd.Example = fmt.Sprintf(proxyExample, fullName)
 	return cmd
@@ -407,7 +428,7 @@ var (
 
 // NewCmdScale is a wrapper for the Kubernetes cli scale command
 func NewCmdScale(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdScale(f, streams)
+	cmd := scale.NewCmdScale(f, streams)
 	cmd.ValidArgs = append(cmd.ValidArgs, "deploymentconfig")
 	cmd.Short = "Change the number of pods in a deployment"
 	cmd.Long = fmt.Sprintf(scaleLong, cmd.ValidArgs)
@@ -435,7 +456,7 @@ var (
 
 // NewCmdAutoscale is a wrapper for the Kubernetes cli autoscale command
 func NewCmdAutoscale(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdAutoscale(f, streams)
+	cmd := autoscale.NewCmdAutoscale(f, streams)
 	cmd.Short = "Autoscale a deployment config, deployment, replication controller, or replica set"
 	cmd.Long = autoScaleLong
 	cmd.Example = fmt.Sprintf(autoScaleExample, fullName)
@@ -491,7 +512,7 @@ var (
 
 // NewCmdRun is a wrapper for the Kubernetes cli run command
 func NewCmdRun(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdRun(f, streams)
+	cmd := run.NewCmdRun(f, streams)
 	cmd.Long = runLong
 	cmd.Example = fmt.Sprintf(runExample, fullName)
 	cmd.Flags().Set("generator", "")
@@ -522,7 +543,7 @@ var (
 
 // NewCmdAttach is a wrapper for the Kubernetes cli attach command
 func NewCmdAttach(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdAttach(f, streams)
+	cmd := attach.NewCmdAttach(f, streams)
 	cmd.Long = attachLong
 	cmd.Example = fmt.Sprintf(attachExample, fullName)
 	return cmd
@@ -564,7 +585,7 @@ var (
 
 // NewCmdAnnotate is a wrapper for the Kubernetes cli annotate command
 func NewCmdAnnotate(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdAnnotate(fullName, f, streams)
+	cmd := annotate.NewCmdAnnotate(fullName, f, streams)
 	cmd.Long = fmt.Sprintf(annotateLong, fullName)
 	cmd.Example = fmt.Sprintf(annotateExample, fullName)
 	return cmd
@@ -600,7 +621,7 @@ var (
 
 // NewCmdLabel is a wrapper for the Kubernetes cli label command
 func NewCmdLabel(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdLabel(f, streams)
+	cmd := label.NewCmdLabel(f, streams)
 	cmd.Long = fmt.Sprintf(labelLong, kvalidation.LabelValueMaxLength)
 	cmd.Example = fmt.Sprintf(labelExample, fullName)
 	return cmd
@@ -622,7 +643,7 @@ var (
 
 // NewCmdApply is a wrapper for the Kubernetes cli apply command
 func NewCmdApply(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdApply(fullName, f, streams)
+	cmd := apply.NewCmdApply(fullName, f, streams)
 	cmd.Long = applyLong
 	cmd.Example = fmt.Sprintf(applyExample, fullName)
 	return cmd
@@ -647,7 +668,7 @@ var (
 
 // NewCmdExplain is a wrapper for the Kubernetes cli explain command
 func NewCmdExplain(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdExplain(fullName, f, streams)
+	cmd := explain.NewCmdExplain(fullName, f, streams)
 	cmd.Long = explainLong
 	cmd.Example = fmt.Sprintf(explainExample, fullName)
 	return cmd
@@ -679,7 +700,7 @@ var (
 
 // NewCmdConvert is a wrapper for the Kubernetes cli convert command
 func NewCmdConvert(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdConvert(f, streams)
+	cmd := convert.NewCmdConvert(f, streams)
 	cmd.Long = convertLong
 	cmd.Example = fmt.Sprintf(convertExample, fullName)
 	return cmd
@@ -723,7 +744,7 @@ var (
 
 // NewCmdEdit is a wrapper for the Kubernetes cli edit command
 func NewCmdEdit(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdEdit(f, streams)
+	cmd := edit.NewCmdEdit(f, streams)
 	cmd.Long = editLong
 	cmd.Example = fmt.Sprintf(editExample, fullName)
 	return cmd
@@ -792,7 +813,7 @@ var (
 
 // NewCmdCp is a wrapper for the Kubernetes cli cp command
 func NewCmdCp(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdCp(f, streams)
+	cmd := cp.NewCmdCp(f, streams)
 	cmd.Example = fmt.Sprintf(cpExample, fullName)
 	return cmd
 }
@@ -810,8 +831,8 @@ func NewCmdPlugin(fullName string, f kcmdutil.Factory, streams genericclioptions
 	// list of accepted plugin executable filename prefixes that we will look for
 	// when executing a plugin. Order matters here, we want to first see if a user
 	// has prefixed their plugin with "oc-", before defaulting to upstream behavior.
-	kcmd.ValidPluginFilenamePrefixes = []string{"oc", "kubectl"}
-	return kcmd.NewCmdPlugin(f, streams)
+	plugin.ValidPluginFilenamePrefixes = []string{"oc", "kubectl"}
+	return plugin.NewCmdPlugin(f, streams)
 }
 
 var (
@@ -833,7 +854,7 @@ var (
 )
 
 func NewCmdApiResources(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdApiResources(f, streams)
+	cmd := apiresources.NewCmdAPIResources(f, streams)
 	cmd.Example = fmt.Sprintf(apiresourcesExample, fullName)
 	return cmd
 }
@@ -845,7 +866,7 @@ var (
 )
 
 func NewCmdApiVersions(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcmd.NewCmdApiVersions(f, streams)
+	cmd := apiresources.NewCmdAPIVersions(f, streams)
 	cmd.Example = fmt.Sprintf(apiversionsExample, fullName)
 	return cmd
 }
