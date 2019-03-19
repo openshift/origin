@@ -3,36 +3,37 @@ package imagesecret
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	"k8s.io/client-go/kubernetes/fake"
+	coreapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func TestGetSecrets(t *testing.T) {
-	fake := fake.NewSimpleClientset(&kapi.SecretList{
-		Items: []kapi.Secret{
+	fake := fake.NewSimpleClientset(&corev1.SecretList{
+		Items: []corev1.Secret{
 			{
 				ObjectMeta: metav1.ObjectMeta{Name: "secret-1", Namespace: "default"},
-				Type:       kapi.SecretTypeDockercfg,
+				Type:       corev1.SecretTypeDockercfg,
 			},
 			{
 				ObjectMeta: metav1.ObjectMeta{Name: "secret-2", Annotations: map[string]string{imageapi.ExcludeImageSecretAnnotation: "true"}, Namespace: "default"},
-				Type:       kapi.SecretTypeDockercfg,
+				Type:       corev1.SecretTypeDockercfg,
 			},
 			{
 				ObjectMeta: metav1.ObjectMeta{Name: "secret-3", Namespace: "default"},
-				Type:       kapi.SecretTypeOpaque,
+				Type:       corev1.SecretTypeOpaque,
 			},
 			{
 				ObjectMeta: metav1.ObjectMeta{Name: "secret-4", Namespace: "default"},
-				Type:       kapi.SecretTypeServiceAccountToken,
+				Type:       corev1.SecretTypeServiceAccountToken,
 			},
 			{
 				ObjectMeta: metav1.ObjectMeta{Name: "secret-5", Namespace: "default"},
-				Type:       kapi.SecretTypeDockerConfigJson,
+				Type:       corev1.SecretTypeDockerConfigJson,
 			},
 		},
 	})
@@ -42,7 +43,7 @@ func TestGetSecrets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	list := obj.(*kapi.SecretList)
+	list := obj.(*coreapi.SecretList)
 	if len(list.Items) != 2 {
 		t.Fatal(list)
 	}

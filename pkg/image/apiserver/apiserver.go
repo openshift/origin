@@ -19,10 +19,10 @@ import (
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
+	"k8s.io/client-go/kubernetes"
+	authorizationv1client "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
-	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	imageapiv1 "github.com/openshift/api/image/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
@@ -190,11 +190,11 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		return nil, fmt.Errorf("unable to configure a default transport for importing: %v", err)
 	}
 
-	coreClient, err := coreclient.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
+	kubeClient, err := kubernetes.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
-	authorizationClient, err := authorizationclient.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
+	authorizationClient, err := authorizationv1client.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +230,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageSignatureStorage := imagesignature.NewREST(imageClient.Image())
-	imageStreamSecretsStorage := imagesecret.NewREST(coreClient)
+	imageStreamSecretsStorage := imagesecret.NewREST(kubeClient.CoreV1())
 	imageStreamStorage, imageStreamLayersStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(
 		c.GenericConfig.RESTOptionsGetter,
 		c.ExtraConfig.RegistryHostnameRetriever,
