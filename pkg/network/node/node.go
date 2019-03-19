@@ -286,7 +286,7 @@ func (node *OsdnNode) killUpdateFailedPods(pods []kapi.Pod) error {
 }
 
 func (node *OsdnNode) Start() error {
-	glog.V(2).Infof("Starting openshift-sdn network plugin")
+	glog.V(2).Infof("PHIL ----------- PHIL: Starting openshift-sdn network plugin")
 
 	if err := validateNetworkPluginName(node.networkClient, node.policy.Name()); err != nil {
 		return fmt.Errorf("failed to validate network configuration: %v", err)
@@ -345,7 +345,7 @@ func (node *OsdnNode) Start() error {
 		node.watchServices()
 	}
 
-	glog.V(2).Infof("Starting openshift-sdn pod manager")
+	glog.V(2).Infof("PHIL ----------- PHIL: Starting openshift-sdn pod manager")
 	if err := node.podManager.Start(cniserver.CNIServerRunDir, node.localSubnetCIDR,
 		node.networkInfo.ClusterNetworks, node.networkInfo.ServiceNetwork.String()); err != nil {
 		return err
@@ -389,7 +389,7 @@ func (node *OsdnNode) Start() error {
 		gatherPeriodicMetrics(node.oc.ovs)
 	}, time.Minute*2)
 
-	glog.V(2).Infof("openshift-sdn network plugin registering startup")
+	glog.V(2).Infof("PHIL ----------- PHIL: penshift-sdn network plugin registering startup")
 
 	// Make an event that openshift-sdn started
 	node.recorder.Eventf(&v1.ObjectReference{Kind: "Node", Name: node.hostName}, v1.EventTypeNormal, "Starting", "Starting openshift-sdn.")
@@ -404,10 +404,18 @@ func (node *OsdnNode) Start() error {
 }
 `), 0644)
 	if err != nil {
+		glog.V(2).Infof("PHIL ----------- PHIL: openshift-sdn error writing readiness file: %v", err)
 		return err
 	}
 
-	glog.V(2).Infof("openshift-sdn network plugin ready")
+	glog.V(2).Infof("PHIL ----------- PHIL: penshift-sdn network plugin ready")
+	_, err = ioutil.ReadFile(filepath.Join(node.cniDirPath, openshiftCNIFile))
+	if err != nil {
+		glog.V(2).Infof("PHIL ----------- PHIL: openshift-sdn error reading readiness file: %v", err)
+		return err
+	}
+
+	glog.V(2).Infof("PHIL ----------- PHIL: openshift-sdn network plugin found readiness file at %s", filepath.Join(node.cniDirPath, openshiftCNIFile))
 	return nil
 }
 

@@ -144,7 +144,7 @@ image_config = {
         }
     },
     "node": {
-        "tag": "latest",
+        "tag": "v3.11",
         "directory": "node",
         "binaries": {
             "openshift": "/usr/bin/openshift",
