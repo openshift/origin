@@ -44,6 +44,7 @@ func WithWaitGroup(handler http.Handler, longRunning apirequest.LongRunningReque
 			if err := wg.Add(1); err != nil {
 				// When apiserver is shutting down, signal clients to retry
 				w.Header().Add("Retry-After", "1")
+				w.Header().Add("Content-Type", runtime.ContentTypeJSON)
 				statusErr := apierrors.NewServiceUnavailable("apiserver is shutting down").Status()
 				http.Error(w, runtime.EncodeOrDie(scheme.Codecs.LegacyCodec(v1.SchemeGroupVersion), &statusErr), int(statusErr.Code))
 				return
