@@ -40,6 +40,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildv1.Build, additionalCA
 
 	containerEnv := []corev1.EnvVar{
 		{Name: "BUILD", Value: string(data)},
+		{Name: "LANG", Value: "en_US.utf8"},
 	}
 
 	addSourceEnvVars(build.Spec.Source, &containerEnv)

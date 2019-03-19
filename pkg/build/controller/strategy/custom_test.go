@@ -100,6 +100,7 @@ func TestCustomCreateBuildPod(t *testing.T) {
 	buildJSON, _ := runtime.Encode(customBuildEncodingCodecFactory.LegacyCodec(buildv1.GroupVersion), build)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
+		1: {"LANG", "en_US.utf8"},
 	}
 	standardEnv := []string{"SOURCE_REPOSITORY", "SOURCE_URI", "SOURCE_CONTEXT_DIR", "SOURCE_REF", "OUTPUT_IMAGE", "OUTPUT_REGISTRY"}
 	for index, exp := range errorCases {

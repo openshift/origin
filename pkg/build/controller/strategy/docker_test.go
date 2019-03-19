@@ -55,6 +55,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	}
 	expectedKeys := map[string]string{
 		"BUILD":                       "",
+		"LANG":                        "",
 		"SOURCE_REPOSITORY":           "",
 		"SOURCE_URI":                  "",
 		"SOURCE_CONTEXT_DIR":          "",
@@ -138,6 +139,7 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	buildJSON, _ := runtime.Encode(buildJSONCodec, build)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
+		1: {"LANG", "en_US.utf8"},
 	}
 	for index, exp := range errorCases {
 		if e := container.Env[index]; e.Name != exp[0] || e.Value != exp[1] {
