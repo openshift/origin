@@ -79,6 +79,11 @@ func (info *BaseServiceInfo) GetNodePort() int {
 	return info.NodePort
 }
 
+// ExternalIPStrings is part ofServicePort interface
+func (info *BaseServiceInfo) ExternalIPStrings() []string {
+	return info.ExternalIPs
+}
+
 func (sct *ServiceChangeTracker) newBaseServiceInfo(port *api.ServicePort, service *api.Service) *BaseServiceInfo {
 	onlyNodeLocalEndpoints := false
 	if apiservice.RequestsOnlyLocalTraffic(service) {

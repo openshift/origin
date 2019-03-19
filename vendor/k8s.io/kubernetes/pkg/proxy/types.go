@@ -50,6 +50,8 @@ type ServicePort interface {
 	String() string
 	// ClusterIPString returns service cluster IP in string format.
 	ClusterIPString() string
+	// ExternalIPStrings returns service ExternalIPs as a string array.
+	ExternalIPStrings() []string
 	// GetProtocol returns service protocol.
 	GetProtocol() api.Protocol
 	// GetHealthCheckNodePort returns service health check node port if present.  If return 0, it means not present.
