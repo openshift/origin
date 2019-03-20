@@ -138,8 +138,7 @@ func (h *Handler) AuthenticatePassword(ctx context.Context, username, password s
 		return nil, false, err
 	}
 
-	user, ok, err := identitymapper.UserFor(h.mapper, identity)
-	return &authenticator.Response{User: user}, ok, err
+	return identitymapper.ResponseFor(h.mapper, identity)
 }
 
 // ServeHTTP handles the callback request in response to an external oauth flow

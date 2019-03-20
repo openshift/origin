@@ -49,8 +49,7 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (*authenticator.R
 		identity.Extra[authapi.IdentityPreferredUsernameKey] = preferredUsername
 	}
 
-	user, ok, err := identitymapper.UserFor(a.mapper, identity)
-	return &authenticator.Response{User: user}, ok, err
+	return identitymapper.ResponseFor(a.mapper, identity)
 }
 
 func headerValue(h http.Header, headerNames []string) string {
