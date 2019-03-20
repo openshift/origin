@@ -8,9 +8,10 @@ import (
 
 	"github.com/golang/glog"
 
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
-	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -19,7 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-	extensionsv1beta1client "k8s.io/client-go/kubernetes/typed/extensions/v1beta1"
+	"k8s.io/client-go/scale"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -64,7 +65,8 @@ func (c *lastFiredCache) AddIfNewer(info types.NamespacedName, newLastFired time
 
 type UnidlingController struct {
 	controller          cache.Controller
-	scaleNamespacer     extensionsv1beta1client.ScalesGetter
+	scaleNamespacer     scale.ScalesGetter
+	mapper              meta.RESTMapper
 	endpointsNamespacer corev1client.EndpointsGetter
 	queue               workqueue.RateLimitingInterface
 	lastFiredCache      *lastFiredCache
@@ -74,7 +76,7 @@ type UnidlingController struct {
 	rcNamespacer corev1client.ReplicationControllersGetter
 }
 
-func NewUnidlingController(scaleNS extensionsv1beta1client.ScalesGetter, endptsNS corev1client.EndpointsGetter, evtNS corev1client.EventsGetter,
+func NewUnidlingController(scaleNS scale.ScalesGetter, mapper meta.RESTMapper, endptsNS corev1client.EndpointsGetter, evtNS corev1client.EventsGetter,
 	dcNamespacer appstypedclient.DeploymentConfigsGetter, rcNamespacer corev1client.ReplicationControllersGetter,
 	resyncPeriod time.Duration) *UnidlingController {
 	fieldSet := fields.Set{}
@@ -83,6 +85,7 @@ func NewUnidlingController(scaleNS extensionsv1beta1client.ScalesGetter, endptsN
 
 	unidlingController := &UnidlingController{
 		scaleNamespacer:     scaleNS,
+		mapper:              mapper,
 		endpointsNamespacer: endptsNS,
 		queue:               workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 		lastFiredCache: &lastFiredCache{
@@ -305,10 +308,10 @@ func (c *UnidlingController) handleRequest(info types.NamespacedName, lastFired 
 		delete(annotations, unidlingapi.PreviousScaleAnnotation)
 	}
 
-	scaleAnnotater := unidlingutil.NewScaleAnnotater(c.scaleNamespacer, c.dcNamespacer, c.rcNamespacer, deleteIdlingAnnotations)
+	scaleAnnotater := unidlingutil.NewScaleAnnotater(c.scaleNamespacer, c.mapper, c.dcNamespacer, c.rcNamespacer, deleteIdlingAnnotations)
 
 	for _, scalableRef := range targetScalables {
-		var scale *extensionsv1beta1.Scale
+		var scale *autoscalingv1.Scale
 		var obj runtime.Object
 
 		obj, scale, err = scaleAnnotater.GetObjectWithScale(info.Namespace, scalableRef.CrossGroupObjectReference)
