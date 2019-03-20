@@ -12,7 +12,9 @@ import (
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/plugin"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/version"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -102,7 +104,7 @@ func NewDefaultOcCommand(name, fullName string, in io.Reader, out, errout io.Wri
 	}
 
 	cmdPathPieces := os.Args[1:]
-	pluginHandler := kubecmd.NewDefaultPluginHandler(kubecmd.ValidPluginFilenamePrefixes)
+	pluginHandler := kubecmd.NewDefaultPluginHandler(plugin.ValidPluginFilenamePrefixes)
 
 	// only look for suitable extension executables if
 	// the specified command does not already exist
@@ -258,7 +260,7 @@ func NewOcCommand(name, fullName string, in io.Reader, out, errout io.Writer) *c
 	cmds.AddCommand(newExperimentalCommand("ex", name+" ex", f, ioStreams))
 
 	cmds.AddCommand(kubectlwrappers.NewCmdPlugin(fullName, f, ioStreams))
-	cmds.AddCommand(kubecmd.NewCmdVersion(f, ioStreams))
+	cmds.AddCommand(version.NewCmdVersion(f, ioStreams))
 	cmds.AddCommand(options.NewCmdOptions(ioStreams))
 
 	if cmds.Flag("namespace") != nil {
