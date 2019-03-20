@@ -18,7 +18,6 @@ import (
 
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
-	"github.com/containernetworking/cni/pkg/types/020"
 	"github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/cni/pkg/version"
 	"github.com/containernetworking/plugins/pkg/ip"
@@ -94,25 +93,29 @@ func (p *cniPlugin) doCNI(url string, req *cniserver.CNIRequest) ([]byte, error)
 
 // Send the ADD command environment and config to the CNI server, returning
 // the IPAM result to the caller
-func (p *cniPlugin) doCNIServerAdd(req *cniserver.CNIRequest, hostVeth string) (types.Result, error) {
+func (p *cniPlugin) doCNIServerAdd(req *cniserver.CNIRequest, hostVeth string) (*current.Result, error) {
 	req.HostVeth = hostVeth
 	body, err := p.doCNI("http://dummy/", req)
 	if err != nil {
 		return nil, err
 	}
 
-	// We currently expect CNI version 0.2.0 results, because that's the
+	// We currently expect CNI version 0.3.1 results, because that's the
 	// CNIVersion we pass in our config JSON
-	result, err := types020.NewResult(body)
+	result, err := current.NewResult(body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response '%s': %v", string(body), err)
 	}
 
-	return result, nil
+	return result.(*current.Result), nil
 }
 
 func (p *cniPlugin) testCmdAdd(args *skel.CmdArgs) (types.Result, error) {
-	return p.doCNIServerAdd(newCNIRequest(args), "dummy0")
+	result, err := p.doCNIServerAdd(newCNIRequest(args), "dummy0")
+	if err != nil {
+		return nil, err
+	}
+	return convertToRequestedVersion(args.StdinData, result)
 }
 
 func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
@@ -138,39 +141,34 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 		return err
 	}
 
-	// current.NewResultFromResult and ipam.ConfigureIface both think that
-	// a route with no gateway specified means to pass the default gateway
-	// as the next hop to ip.AddRoute, but that's not what we want; we want
-	// to pass nil as the next hop. So we need to clear the default gateway.
-	result020, err := types020.GetResult(result)
-	if err != nil {
-		return fmt.Errorf("failed to convert IPAM result: %v", err)
+	if err != nil || len(result.IPs) != 1 || result.IPs[0].Version != "4" {
+		return fmt.Errorf("Unexpected IPAM result: %v", err)
 	}
-	defaultGW := result020.IP4.Gateway
-	result020.IP4.Gateway = nil
 
-	result030, err := current.NewResultFromResult(result020)
-	if err != nil || len(result030.IPs) != 1 || result030.IPs[0].Version != "4" {
-		return fmt.Errorf("failed to convert IPAM result: %v", err)
-	}
+	// ipam.ConfigureIface thinks that a route with no gateway specified
+	// means to pass the default gateway as the next hop to ip.AddRoute,
+	// but that's not what we want; we want to pass nil as the next hop.
+	// So we need to clear the default gateway.
+	defaultGW := result.IPs[0].Gateway
+	result.IPs[0].Gateway = nil
 
 	// Add a sandbox interface record which ConfigureInterface expects.
 	// The only interface we report is the pod interface.
-	result030.Interfaces = []*current.Interface{
+	result.Interfaces = []*current.Interface{
 		{
 			Name:    args.IfName,
 			Mac:     contVeth.HardwareAddr.String(),
 			Sandbox: args.Netns,
 		},
 	}
-	result030.IPs[0].Interface = current.Int(0)
+	result.IPs[0].Interface = current.Int(0)
 
 	err = ns.WithNetNSPath(args.Netns, func(hostNS ns.NetNS) error {
 		// Set up eth0
-		if err := ip.SetHWAddrByIP(args.IfName, result030.IPs[0].Address.IP, nil); err != nil {
+		if err := ip.SetHWAddrByIP(args.IfName, result.IPs[0].Address.IP, nil); err != nil {
 			return fmt.Errorf("failed to set pod interface MAC address: %v", err)
 		}
-		if err := ipam.ConfigureIface(args.IfName, result030); err != nil {
+		if err := ipam.ConfigureIface(args.IfName, result); err != nil {
 			return fmt.Errorf("failed to configure container IPAM: %v", err)
 		}
 
@@ -234,7 +232,26 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 		return err
 	}
 
-	return result.Print()
+	convertedResult, err := convertToRequestedVersion(req.Config, result)
+	if err != nil {
+		return err
+	}
+	return convertedResult.Print()
+}
+
+func convertToRequestedVersion(stdinData []byte, result *current.Result) (types.Result, error) {
+	// Plugin must return result in same version as specified in netconf
+	versionDecoder := &version.ConfigDecoder{}
+	confVersion, err := versionDecoder.Decode(stdinData)
+	if err != nil {
+		return nil, err
+	}
+
+	newResult, err := result.GetAsVersion(confVersion)
+	if err != nil {
+		return nil, err
+	}
+	return newResult, nil
 }
 
 func (p *cniPlugin) CmdDel(args *skel.CmdArgs) error {
@@ -250,5 +267,5 @@ func main() {
 	}
 	defer hostNS.Close()
 	p := NewCNIPlugin(cniserver.CNIServerSocketPath, hostNS)
-	skel.PluginMain(p.CmdAdd, p.CmdDel, version.Legacy)
+	skel.PluginMain(p.CmdAdd, p.CmdDel, version.All)
 }
