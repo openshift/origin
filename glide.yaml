@@ -75,7 +75,7 @@ import:
 # origin-3.11-cadvisor-v0.30.1
 - package: github.com/google/cadvisor
   repo:    https://github.com/openshift/google-cadvisor.git
-  version: c38aa7d9fa62f6b32862471d35a8944f3718cbda
+  version: e7bafcb870aceaff6ae15189520febdede52b50f
 # cli
 - package: github.com/docker/distribution
   repo:    https://github.com/openshift/docker-distribution.git

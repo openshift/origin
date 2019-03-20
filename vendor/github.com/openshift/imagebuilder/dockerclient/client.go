@@ -316,13 +316,13 @@ func (e *ClientExecutor) Prepare(b *imagebuilder.Builder, node *parser.Node, fro
 				opts.Config.Entrypoint = nil
 			} else {
 				// TODO; replace me with a better default command
-				opts.Config.Cmd = []string{"sleep 86400"}
+				opts.Config.Cmd = []string{fmt.Sprintf("%s\nsleep 86400", "#(imagebuilder)")}
 				opts.Config.Entrypoint = append([]string{}, defaultShell...)
 			}
 		}
 
 		if len(opts.Config.Cmd) == 0 {
-			opts.Config.Entrypoint = append(append([]string{}, defaultShell...), "# NOP")
+			opts.Config.Entrypoint = append(append([]string{}, defaultShell...), "#(imagebuilder)")
 		}
 
 		// copy any source content into the temporary mount path

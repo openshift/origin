@@ -1,5 +1,5 @@
-hash: d94f6a446504a92159017cfee30d160dc38ad7bd513e83a9416a8cc2b9ed11a2
-updated: 2019-02-04T13:33:36.550515359Z
+hash: 079b9f1fdc9ed811bab54c891e0d0b03b68e23f6428be046b0f7d87148a908be
+updated: 2019-03-20T19:28:14.976609484Z
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -164,7 +164,7 @@ imports:
   - pkg/ns
   - pkg/utils/hwaddr
 - name: github.com/containers/image
-  version: 9dc3776eaea701cad0c09f04ec489c35a520e2b2
+  version: 4bc6d24282b115f8b61a6d08470ed42ac7c91392
   repo: https://github.com/openshift/containers-image.git
   subpackages:
   - docker
@@ -321,7 +321,7 @@ imports:
   - registry/storage/cache
   - registry/storage/cache/memory
 - name: github.com/docker/docker
-  version: fcdab531a6d9b133eaa3f2a3f6c11fd02a97de75
+  version: da810a85109d7bd7ccd8f2d622556cbcfc00386b
   repo: https://github.com/openshift/moby-moby.git
   subpackages:
   - api
@@ -513,7 +513,7 @@ imports:
 - name: github.com/google/btree
   version: 4030bb1f1f0c35b30ca7009e9ebd06849dd45306
 - name: github.com/google/cadvisor
-  version: c38aa7d9fa62f6b32862471d35a8944f3718cbda
+  version: e7bafcb870aceaff6ae15189520febdede52b50f
   repo: https://github.com/openshift/google-cadvisor.git
   subpackages:
   - accelerators
@@ -972,7 +972,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/imagebuilder
-  version: b0aa506a32c010487342d7dd54abb847fbf9da51
+  version: c0887bd82bb30c80ad4a0fd19a22b2520a8223c6
   subpackages:
   - dockerclient
   - imageprogress
@@ -1819,7 +1819,7 @@ imports:
   subpackages:
   - metrics/api/v1/types
 - name: k8s.io/kube-aggregator
-  version: 58b18a68bc127d7d1110e64230fb202252299ea3
+  version: cc081889587926b33190858514775486c407bbe7
   repo: https://github.com/openshift/kube-aggregator.git
   subpackages:
   - pkg/apis/apiregistration
@@ -1860,7 +1860,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: f9d4b56f819866e5955f02fd5b9233a56b85cec1
+  version: d8b46d72a413981e6ea99605dcef3b8ca3f2223f
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
