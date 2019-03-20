@@ -11,10 +11,10 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/api/image/docker10"
@@ -114,7 +114,7 @@ main:
 		}
 
 		gk := legacy.InternalGroupVersion.WithKind(apiType.Name()).GroupKind()
-		_, ok := DescriberFor(gk, &rest.Config{}, kfake.NewSimpleClientset(), "")
+		_, ok := DescriberFor(gk, &rest.Config{}, fake.NewSimpleClientset(), "")
 		if !ok {
 			t.Errorf("missing describer for %v.  Check pkg/cmd/cli/describe/describer.go", apiType)
 		}
