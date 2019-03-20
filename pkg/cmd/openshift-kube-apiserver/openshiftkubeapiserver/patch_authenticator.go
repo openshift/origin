@@ -14,6 +14,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/request/union"
 	"k8s.io/apiserver/pkg/authentication/request/websocket"
 	x509request "k8s.io/apiserver/pkg/authentication/request/x509"
+	"k8s.io/apiserver/pkg/authentication/token/cache"
 	tokencache "k8s.io/apiserver/pkg/authentication/token/cache"
 	tokenunion "k8s.io/apiserver/pkg/authentication/token/union"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -110,6 +111,7 @@ func newAuthenticator(
 		serviceAccountTokenAuthenticator := serviceaccount.JWTTokenAuthenticator(
 			serviceaccount.LegacyIssuer,
 			publicKeys,
+			nil, // TODO audiences
 			serviceaccount.NewLegacyValidator(true, tokenGetter),
 		)
 		tokenAuthenticators = append(tokenAuthenticators, serviceAccountTokenAuthenticator)
@@ -154,11 +156,13 @@ func newAuthenticator(
 		if err != nil {
 			return nil, nil, fmt.Errorf("Error parsing CacheTTL=%q: %v", wta.CacheTTL, err)
 		}
-		webhookTokenAuthenticator, err := webhooktoken.New(wta.ConfigFile, ttl)
+		// TODO audiences
+		webhookTokenAuthenticator, err := webhooktoken.New(wta.ConfigFile, nil)
 		if err != nil {
 			return nil, nil, fmt.Errorf("Failed to create webhook token authenticator for ConfigFile=%q: %v", wta.ConfigFile, err)
 		}
-		tokenAuthenticators = append(tokenAuthenticators, webhookTokenAuthenticator)
+		cachingTokenAuth := cache.New(webhookTokenAuthenticator, false, ttl, ttl)
+		tokenAuthenticators = append(tokenAuthenticators, cachingTokenAuth)
 	}
 
 	if len(tokenAuthenticators) > 0 {
@@ -168,7 +172,7 @@ func newAuthenticator(
 		// wrap with short cache on success.
 		// this means a revoked service account token or access token will be valid for up to 10 seconds.
 		// it also means group membership changes on users may take up to 10 seconds to become effective.
-		tokenAuth = tokencache.New(tokenAuth, 10*time.Second, 0)
+		tokenAuth = tokencache.New(tokenAuth, true, 10*time.Second, 0)
 
 		authenticators = append(authenticators,
 			bearertoken.New(tokenAuth),

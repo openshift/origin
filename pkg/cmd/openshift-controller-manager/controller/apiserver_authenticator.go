@@ -10,6 +10,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/request/bearertoken"
 	"k8s.io/apiserver/pkg/authentication/request/union"
 	x509request "k8s.io/apiserver/pkg/authentication/request/x509"
+	"k8s.io/apiserver/pkg/authentication/token/cache"
 	webhooktoken "k8s.io/apiserver/plugin/pkg/authenticator/token/webhook"
 	authenticationclient "k8s.io/client-go/kubernetes/typed/authentication/v1beta1"
 )
@@ -20,11 +21,13 @@ import (
 func newRemoteAuthenticator(tokenReview authenticationclient.TokenReviewInterface, clientCAs *x509.CertPool, cacheTTL time.Duration) (authenticator.Request, error) {
 	authenticators := []authenticator.Request{}
 
-	tokenAuthenticator, err := webhooktoken.NewFromInterface(tokenReview, cacheTTL)
+	// TODO audiences
+	tokenAuthenticator, err := webhooktoken.NewFromInterface(tokenReview, nil)
 	if err != nil {
 		return nil, err
 	}
-	authenticators = append(authenticators, bearertoken.New(tokenAuthenticator))
+	cachingTokenAuth := cache.New(tokenAuthenticator, false, cacheTTL, cacheTTL)
+	authenticators = append(authenticators, bearertoken.New(cachingTokenAuth))
 
 	// Client-cert auth
 	if clientCAs != nil {
