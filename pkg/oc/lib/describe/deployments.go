@@ -8,6 +8,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"k8s.io/kubernetes/pkg/kubectl/describe/versioned"
+
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -17,9 +19,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kprinters "k8s.io/kubernetes/pkg/printers"
-	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
+	"k8s.io/kubernetes/pkg/kubectl/describe"
 
 	"github.com/openshift/api/apps"
 	appsv1 "github.com/openshift/api/apps/v1"
@@ -63,7 +63,7 @@ func NewDeploymentConfigDescriber(client appstypedclient.AppsV1Interface, kclien
 }
 
 // Describe returns the description of a DeploymentConfig
-func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
+func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings describe.DescriberSettings) (string, error) {
 	var deploymentConfig *appsv1.DeploymentConfig
 	if d.config != nil {
 		// If a deployment config is already provided use that.
@@ -156,13 +156,8 @@ func (d *DeploymentConfigDescriber) Describe(namespace, name string, settings kp
 					latestDeploymentEvents.Items = append(latestDeploymentEvents.Items, events.Items[i-1])
 				}
 				fmt.Fprintln(out)
-				pw := kinternalprinters.NewPrefixWriter(out)
-				// TODO: Remove conversion when DescribeEvents use external types
-				latestInternalEvents := &kapi.EventList{}
-				if err := legacyscheme.Scheme.Convert(latestDeploymentEvents, latestInternalEvents, nil); err != nil {
-					return fmt.Errorf("conversion error: %v", err)
-				}
-				kinternalprinters.DescribeEvents(latestInternalEvents, pw)
+				pw := versioned.NewPrefixWriter(out)
+				versioned.DescribeEvents(latestDeploymentEvents, pw)
 			}
 		}
 		return nil
@@ -323,11 +318,7 @@ func printDeploymentConfigSpec(kc kubernetes.Interface, dc appsv1.DeploymentConf
 
 	// Pod template
 	fmt.Fprintf(w, "Template:\n")
-	internalSpecTemplate := &kapi.PodTemplateSpec{}
-	if err := legacyscheme.Scheme.Convert(spec.Template, internalSpecTemplate, nil); err != nil {
-		return err
-	}
-	kinternalprinters.DescribePodTemplate(internalSpecTemplate, kinternalprinters.NewPrefixWriter(w))
+	versioned.DescribePodTemplate(spec.Template, versioned.NewPrefixWriter(w))
 
 	return nil
 }

@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"fmt"
 
+	"k8s.io/kubernetes/pkg/kubectl/describe/versioned"
+
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl"
-	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
@@ -55,11 +54,7 @@ func (r *DeploymentConfigRollbacker) Rollback(obj runtime.Object, updatedAnnotat
 
 	if dryRun {
 		out := bytes.NewBuffer([]byte("\n"))
-		internalTemplate := &kapi.PodTemplateSpec{}
-		if err := legacyscheme.Scheme.Convert(rolledback.Spec.Template, internalTemplate, nil); err != nil {
-			return "", err
-		}
-		kinternalprinters.DescribePodTemplate(internalTemplate, kinternalprinters.NewPrefixWriter(out))
+		versioned.DescribePodTemplate(rolledback.Spec.Template, versioned.NewPrefixWriter(out))
 		return out.String(), nil
 	}
 
