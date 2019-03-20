@@ -162,7 +162,7 @@ var (
 	  %[1]s observe services -a '{ .spec.clusterIP }' -- register_dns.sh
 
 	  # Observe changes to services filtered by a label selector
-	  %[1]s observe namespaces -l regist-dns=true -a '{ .spec.clusterIP }' -- register_dns.sh`)
+	  %[1]s observe services -l regist-dns=true -a '{ .spec.clusterIP }' -- register_dns.sh`)
 )
 
 type ObserveOptions struct {
