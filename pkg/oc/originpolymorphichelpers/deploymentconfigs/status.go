@@ -9,18 +9,16 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
-func NewDeploymentConfigStatusViewer(client appstypedclient.AppsV1Interface) kubectl.StatusViewer {
-	return &DeploymentConfigStatusViewer{dn: client}
+func NewDeploymentConfigStatusViewer() kubectl.StatusViewer {
+	return &DeploymentConfigStatusViewer{}
 }
 
 // DeploymentConfigStatusViewer is an implementation of the kubectl StatusViewer interface
 // for deployment configs.
 type DeploymentConfigStatusViewer struct {
-	dn appstypedclient.DeploymentConfigsGetter
 }
 
 var _ kubectl.StatusViewer = &DeploymentConfigStatusViewer{}
