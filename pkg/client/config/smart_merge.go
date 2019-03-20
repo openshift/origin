@@ -26,12 +26,12 @@ func GetClusterNicknameFromURL(apiServerLocation string) (string, error) {
 }
 
 func GetUserNicknameFromCert(clusterNick string, chain ...*x509.Certificate) (string, error) {
-	userInfo, _, err := x509request.CommonNameUserConversion(chain)
+	authResponse, _, err := x509request.CommonNameUserConversion(chain)
 	if err != nil {
 		return "", err
 	}
 
-	return userInfo.GetName() + "/" + clusterNick, nil
+	return authResponse.User.GetName() + "/" + clusterNick, nil
 }
 
 func GetContextNickname(namespace, clusterNick, userNick string) string {

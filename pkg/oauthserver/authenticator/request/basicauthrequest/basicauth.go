@@ -9,7 +9,6 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
-	"k8s.io/apiserver/pkg/authentication/user"
 
 	"github.com/openshift/origin/pkg/oauthserver/prometheus"
 )
@@ -24,7 +23,7 @@ func NewBasicAuthAuthentication(provider string, passwordAuthenticator authentic
 	return &basicAuthRequestHandler{provider: provider, passwordAuthenticator: passwordAuthenticator, removeHeader: removeHeader}
 }
 
-func (authHandler *basicAuthRequestHandler) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
+func (authHandler *basicAuthRequestHandler) AuthenticateRequest(req *http.Request) (*authenticator.Response, bool, error) {
 	username, password, hasBasicAuth, err := getBasicAuthInfo(req)
 	if err != nil {
 		return nil, false, err
@@ -38,7 +37,7 @@ func (authHandler *basicAuthRequestHandler) AuthenticateRequest(req *http.Reques
 		metrics.RecordBasicPasswordAuth(result)
 	}()
 
-	user, ok, err := authHandler.passwordAuthenticator.AuthenticatePassword(username, password)
+	authResponse, ok, err := authHandler.passwordAuthenticator.AuthenticatePassword(req.Context(), username, password)
 	if ok && authHandler.removeHeader {
 		req.Header.Del("Authorization")
 	}
@@ -51,9 +50,9 @@ func (authHandler *basicAuthRequestHandler) AuthenticateRequest(req *http.Reques
 		glog.V(4).Infof(`Login with provider %q failed for login %q`, authHandler.provider, username)
 		result = metrics.FailResult
 	case ok:
-		glog.V(4).Infof(`Login with provider %q succeeded for login %q: %#v`, authHandler.provider, username, user)
+		glog.V(4).Infof(`Login with provider %q succeeded for login %q: %#v`, authHandler.provider, username, authResponse.User)
 	}
-	return user, ok, err
+	return authResponse, ok, err
 }
 
 // getBasicAuthInfo returns the username and password in the request's basic-auth Authorization header,

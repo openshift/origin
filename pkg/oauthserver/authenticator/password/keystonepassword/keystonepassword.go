@@ -1,6 +1,7 @@
 package keystonepassword
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"runtime/debug"
@@ -12,7 +13,6 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
-	"k8s.io/apiserver/pkg/authentication/user"
 
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/identitymapper"
@@ -62,7 +62,7 @@ func getUserIDv3(client *gophercloud.ProviderClient, options tokens3.AuthOptions
 }
 
 // AuthenticatePassword approves any login attempt which is successfully validated with Keystone
-func (a keystonePasswordAuthenticator) AuthenticatePassword(username, password string) (user.Info, bool, error) {
+func (a keystonePasswordAuthenticator) AuthenticatePassword(ctx context.Context, username, password string) (*authenticator.Response, bool, error) {
 	defer func() {
 		if e := recover(); e != nil {
 			utilruntime.HandleError(fmt.Errorf("Recovered panic: %v, %s", e, debug.Stack()))
@@ -108,5 +108,6 @@ func (a keystonePasswordAuthenticator) AuthenticatePassword(username, password s
 	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, providerUserID)
 	identity.Extra[authapi.IdentityPreferredUsernameKey] = username
 
-	return identitymapper.UserFor(a.identityMapper, identity)
+	user, ok, err := identitymapper.UserFor(a.identityMapper, identity)
+	return &authenticator.Response{User: user}, ok, err
 }

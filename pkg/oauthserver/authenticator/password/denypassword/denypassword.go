@@ -1,8 +1,9 @@
 package denypassword
 
 import (
+	"context"
+
 	"k8s.io/apiserver/pkg/authentication/authenticator"
-	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 // denyPasswordAuthenticator denies all password requests
@@ -15,6 +16,6 @@ func New() authenticator.Password {
 }
 
 // AuthenticatePassword denies any login attempt
-func (a denyPasswordAuthenticator) AuthenticatePassword(username, password string) (user.Info, bool, error) {
+func (a denyPasswordAuthenticator) AuthenticatePassword(ctx context.Context, username, password string) (*authenticator.Response, bool, error) {
 	return nil, false, nil
 }

@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"context"
 	"crypto/sha512"
 	"encoding/base64"
 	"fmt"
@@ -50,7 +51,7 @@ type bootstrapPassword struct {
 	names  sets.String
 }
 
-func (b *bootstrapPassword) AuthenticatePassword(username, password string) (user.Info, bool, error) {
+func (b *bootstrapPassword) AuthenticatePassword(ctx context.Context, username, password string) (*authenticator.Response, bool, error) {
 	if !b.names.Has(username) {
 		return nil, false, nil
 	}
@@ -75,9 +76,11 @@ func (b *bootstrapPassword) AuthenticatePassword(username, password string) (use
 	}
 
 	// do not set other fields, see identitymapper.userToInfo func
-	return &user.DefaultInfo{
-		Name: BootstrapUser,
-		UID:  data.UID, // uid ties this authentication to the current state of the secret
+	return &authenticator.Response{
+		User: &user.DefaultInfo{
+			Name: BootstrapUser,
+			UID:  data.UID, // uid ties this authentication to the current state of the secret
+		},
 	}, true, nil
 }
 

@@ -1,13 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/RangelReale/osin"
 	"github.com/golang/glog"
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
-	"k8s.io/apiserver/pkg/authentication/user"
 
 	"github.com/openshift/origin/pkg/oauthserver/api"
 	openshiftauthenticator "github.com/openshift/origin/pkg/oauthserver/authenticator"
@@ -52,8 +52,8 @@ func (h *authorizeAuthenticator) HandleAuthorize(ar *osin.AuthorizeRequest, resp
 	if !ok {
 		return h.handler.AuthenticationNeeded(ar.Client, w, ar.HttpRequest)
 	}
-	glog.V(4).Infof("OAuth authentication succeeded: %#v", info)
-	ar.UserData = info
+	glog.V(4).Infof("OAuth authentication succeeded: %#v", info.User)
+	ar.UserData = info.User
 	ar.Authorized = true
 
 	// If requesting a token directly, optionally override the expiration
@@ -78,7 +78,7 @@ type accessAuthenticator struct {
 // HandleAccess implements osinserver.AccessHandler
 func (h *accessAuthenticator) HandleAccess(ar *osin.AccessRequest, w http.ResponseWriter) error {
 	var (
-		info user.Info
+		info *authenticator.Response
 		ok   bool
 		err  error
 	)
@@ -88,7 +88,11 @@ func (h *accessAuthenticator) HandleAccess(ar *osin.AccessRequest, w http.Respon
 		// auth codes and refresh tokens are assumed allowed
 		ok = true
 	case osin.PASSWORD:
-		info, ok, err = h.password.AuthenticatePassword(ar.Username, ar.Password)
+		ctx := context.TODO()
+		if ar.HttpRequest != nil {
+			ctx = ar.HttpRequest.Context()
+		}
+		info, ok, err = h.password.AuthenticatePassword(ctx, ar.Username, ar.Password)
 	case osin.ASSERTION:
 		info, ok, err = h.assertion.AuthenticateAssertion(ar.AssertionType, ar.Assertion)
 	case osin.CLIENT_CREDENTIALS:
@@ -107,7 +111,8 @@ func (h *accessAuthenticator) HandleAccess(ar *osin.AccessRequest, w http.Respon
 		ar.GenerateRefresh = false
 		ar.Authorized = true
 		if info != nil {
-			ar.AccessData.UserData = info
+			// TODO something with audiences?
+			ar.AccessData.UserData = info.User
 		}
 
 		if e, ok := ar.Client.(TokenMaxAgeSeconds); ok {
@@ -132,16 +137,16 @@ var deny = &denyAuthenticator{}
 type denyAuthenticator struct{}
 
 // AuthenticatePassword implements authenticator.Password
-func (*denyAuthenticator) AuthenticatePassword(user, password string) (user.Info, bool, error) {
+func (*denyAuthenticator) AuthenticatePassword(ctx context.Context, user, password string) (*authenticator.Response, bool, error) {
 	return nil, false, nil
 }
 
 // AuthenticateAssertion implements authenticator.Assertion
-func (*denyAuthenticator) AuthenticateAssertion(assertionType, data string) (user.Info, bool, error) {
+func (*denyAuthenticator) AuthenticateAssertion(assertionType, data string) (*authenticator.Response, bool, error) {
 	return nil, false, nil
 }
 
 // AuthenticateClient implements authenticator.Client
-func (*denyAuthenticator) AuthenticateClient(client api.Client) (user.Info, bool, error) {
+func (*denyAuthenticator) AuthenticateClient(client api.Client) (*authenticator.Response, bool, error) {
 	return nil, false, nil
 }

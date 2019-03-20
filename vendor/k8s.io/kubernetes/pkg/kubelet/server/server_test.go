@@ -44,6 +44,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/apimachinery/pkg/util/httpstream/spdy"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/client-go/tools/remotecommand"
@@ -265,12 +266,12 @@ func (_ *fakeKubelet) GetCgroupStats(cgroupName string, updateStats bool) (*stat
 }
 
 type fakeAuth struct {
-	authenticateFunc func(*http.Request) (user.Info, bool, error)
+	authenticateFunc func(*http.Request) (*authenticator.Response, bool, error)
 	attributesFunc   func(user.Info, *http.Request) authorizer.Attributes
 	authorizeFunc    func(authorizer.Attributes) (authorized authorizer.Decision, reason string, err error)
 }
 
-func (f *fakeAuth) AuthenticateRequest(req *http.Request) (user.Info, bool, error) {
+func (f *fakeAuth) AuthenticateRequest(req *http.Request) (*authenticator.Response, bool, error) {
 	return f.authenticateFunc(req)
 }
 func (f *fakeAuth) GetRequestAttributes(u user.Info, req *http.Request) authorizer.Attributes {
@@ -313,8 +314,8 @@ func newServerTestWithDebug(enableDebugging, redirectContainerStreaming bool, st
 		streamingRuntime: streamingServer,
 	}
 	fw.fakeAuth = &fakeAuth{
-		authenticateFunc: func(req *http.Request) (user.Info, bool, error) {
-			return &user.DefaultInfo{Name: "test"}, true, nil
+		authenticateFunc: func(req *http.Request) (*authenticator.Response, bool, error) {
+			return &authenticator.Response{User: &user.DefaultInfo{Name: "test"}}, true, nil
 		},
 		attributesFunc: func(u user.Info, req *http.Request) authorizer.Attributes {
 			return &authorizer.AttributesRecord{User: u}
@@ -764,9 +765,9 @@ Otherwise, add it to the expected list of paths that map to the "proxy" subresou
 			calledAttributes   = false
 		)
 
-		fw.fakeAuth.authenticateFunc = func(req *http.Request) (user.Info, bool, error) {
+		fw.fakeAuth.authenticateFunc = func(req *http.Request) (*authenticator.Response, bool, error) {
 			calledAuthenticate = true
-			return expectedUser, true, nil
+			return &authenticator.Response{User: expectedUser}, true, nil
 		}
 		fw.fakeAuth.attributesFunc = func(u user.Info, req *http.Request) authorizer.Attributes {
 			calledAttributes = true
@@ -826,9 +827,9 @@ func TestAuthenticationError(t *testing.T) {
 
 	fw := newServerTest()
 	defer fw.testHTTPServer.Close()
-	fw.fakeAuth.authenticateFunc = func(req *http.Request) (user.Info, bool, error) {
+	fw.fakeAuth.authenticateFunc = func(req *http.Request) (*authenticator.Response, bool, error) {
 		calledAuthenticate = true
-		return expectedUser, true, nil
+		return &authenticator.Response{User: expectedUser}, true, nil
 	}
 	fw.fakeAuth.attributesFunc = func(u user.Info, req *http.Request) authorizer.Attributes {
 		calledAttributes = true
@@ -864,7 +865,7 @@ func TestAuthenticationFailure(t *testing.T) {
 
 	fw := newServerTest()
 	defer fw.testHTTPServer.Close()
-	fw.fakeAuth.authenticateFunc = func(req *http.Request) (user.Info, bool, error) {
+	fw.fakeAuth.authenticateFunc = func(req *http.Request) (*authenticator.Response, bool, error) {
 		calledAuthenticate = true
 		return nil, false, nil
 	}
@@ -902,9 +903,9 @@ func TestAuthorizationSuccess(t *testing.T) {
 
 	fw := newServerTest()
 	defer fw.testHTTPServer.Close()
-	fw.fakeAuth.authenticateFunc = func(req *http.Request) (user.Info, bool, error) {
+	fw.fakeAuth.authenticateFunc = func(req *http.Request) (*authenticator.Response, bool, error) {
 		calledAuthenticate = true
-		return expectedUser, true, nil
+		return &authenticator.Response{User: expectedUser}, true, nil
 	}
 	fw.fakeAuth.attributesFunc = func(u user.Info, req *http.Request) authorizer.Attributes {
 		calledAttributes = true

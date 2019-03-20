@@ -1,13 +1,13 @@
 package ldappassword
 
 import (
+	"context"
 	"fmt"
 	"runtime/debug"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
-	"k8s.io/apiserver/pkg/authentication/user"
 
 	"github.com/golang/glog"
 	"gopkg.in/ldap.v2"
@@ -55,7 +55,7 @@ func New(providerName string, options Options, mapper authapi.UserIdentityMapper
 }
 
 // AuthenticatePassword validates the given username and password against an LDAP server
-func (a *Authenticator) AuthenticatePassword(username, password string) (user.Info, bool, error) {
+func (a *Authenticator) AuthenticatePassword(ctx context.Context, username, password string) (*authenticator.Response, bool, error) {
 	identity, ok, err := a.getIdentity(username, password)
 	if err != nil {
 		return nil, false, err
@@ -64,7 +64,8 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 		return nil, false, nil
 	}
 
-	return identitymapper.UserFor(a.mapper, identity)
+	user, ok, err := identitymapper.UserFor(a.mapper, identity)
+	return &authenticator.Response{User: user}, ok, err
 }
 
 // getIdentity looks up a username in an LDAP server, and attempts to bind to the user's DN using the provided password

@@ -97,7 +97,7 @@ func TestRequestHeader(t *testing.T) {
 		auth := NewAuthenticator("testprovider", &testcase.Config, mapper)
 		req := &http.Request{Header: testcase.RequestHeaders}
 
-		user, ok, err := auth.AuthenticateRequest(req)
+		authResponse, ok, err := auth.AuthenticateRequest(req)
 		if testcase.ExpectedUsername == "" {
 			if ok {
 				t.Errorf("%s: Didn't expect user, authentication succeeded", k)
@@ -113,8 +113,8 @@ func TestRequestHeader(t *testing.T) {
 				t.Errorf("%s: Expected user, auth failed", k)
 				continue
 			}
-			if testcase.ExpectedUsername != user.GetName() {
-				t.Errorf("%s: Expected username %s, got %s", k, testcase.ExpectedUsername, user.GetName())
+			if testcase.ExpectedUsername != authResponse.User.GetName() {
+				t.Errorf("%s: Expected username %s, got %s", k, testcase.ExpectedUsername, authResponse.User.GetName())
 				continue
 			}
 		}

@@ -1,9 +1,11 @@
 package basicauthrequest
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 )
 
@@ -21,11 +23,11 @@ type mockPasswordAuthenticator struct {
 	passedPassword  string
 }
 
-func (mock *mockPasswordAuthenticator) AuthenticatePassword(username, password string) (user.Info, bool, error) {
+func (mock *mockPasswordAuthenticator) AuthenticatePassword(ctx context.Context, username, password string) (*authenticator.Response, bool, error) {
 	mock.passedUser = username
 	mock.passedPassword = password
 
-	return mock.returnUser, mock.isAuthenticated, mock.err
+	return &authenticator.Response{User: mock.returnUser}, mock.isAuthenticated, mock.err
 }
 
 func TestAuthenticateRequestValid(t *testing.T) {

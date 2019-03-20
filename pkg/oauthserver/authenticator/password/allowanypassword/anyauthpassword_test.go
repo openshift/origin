@@ -1,6 +1,7 @@
 package allowanypassword
 
 import (
+	"context"
 	"testing"
 
 	"github.com/openshift/origin/pkg/oauthserver/api"
@@ -59,7 +60,7 @@ func TestAnyAuthPassword(t *testing.T) {
 	}
 
 	for k, tc := range testcases {
-		user, ok, err := a.AuthenticatePassword(tc.Username, tc.Password)
+		response, ok, err := a.AuthenticatePassword(context.TODO(), tc.Username, tc.Password)
 		if tc.ExpectedErr != (err != nil) {
 			t.Errorf("%s: expected error=%v, got %v", k, tc.ExpectedErr, err)
 			continue
@@ -70,7 +71,7 @@ func TestAnyAuthPassword(t *testing.T) {
 		}
 		username := ""
 		if ok {
-			username = user.GetName()
+			username = response.User.GetName()
 		}
 		if tc.ExpectedUsername != username {
 			t.Errorf("%s: expected username=%v, got %v", k, tc.ExpectedUsername, username)

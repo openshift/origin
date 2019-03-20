@@ -1,6 +1,7 @@
 package oauth
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -32,7 +33,7 @@ func TestAuthenticateTokenInvalidUID(t *testing.T) {
 
 	tokenAuthenticator := NewTokenAuthenticator(fakeOAuthClient.Oauth().OAuthAccessTokens(), fakeUserClient.UserV1().Users(), NoopGroupMapper{}, NewUIDValidator())
 
-	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
+	userInfo, found, err := tokenAuthenticator.AuthenticateToken(context.TODO(), "token")
 	if found {
 		t.Error("Found token, but it should be missing!")
 	}
@@ -49,7 +50,7 @@ func TestAuthenticateTokenNotFoundSuppressed(t *testing.T) {
 	fakeUserClient := userfake.NewSimpleClientset()
 	tokenAuthenticator := NewTokenAuthenticator(fakeOAuthClient.Oauth().OAuthAccessTokens(), fakeUserClient.UserV1().Users(), NoopGroupMapper{})
 
-	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
+	userInfo, found, err := tokenAuthenticator.AuthenticateToken(context.TODO(), "token")
 	if found {
 		t.Error("Found token, but it should be missing!")
 	}
@@ -69,7 +70,7 @@ func TestAuthenticateTokenOtherGetErrorSuppressed(t *testing.T) {
 	fakeUserClient := userfake.NewSimpleClientset()
 	tokenAuthenticator := NewTokenAuthenticator(fakeOAuthClient.Oauth().OAuthAccessTokens(), fakeUserClient.UserV1().Users(), NoopGroupMapper{})
 
-	userInfo, found, err := tokenAuthenticator.AuthenticateToken("token")
+	userInfo, found, err := tokenAuthenticator.AuthenticateToken(context.TODO(), "token")
 	if found {
 		t.Error("Found token, but it should be missing!")
 	}
@@ -314,7 +315,7 @@ func (f fakeOAuthClientLister) List(selector labels.Selector) ([]*oauthv1.OAuthC
 
 func checkToken(t *testing.T, name string, authf authenticator.Token, tokens oauthclient.OAuthAccessTokenInterface, current clock.Clock, present bool) {
 	t.Helper()
-	userInfo, found, err := authf.AuthenticateToken(name)
+	userInfo, found, err := authf.AuthenticateToken(context.TODO(), name)
 	if present {
 		if !found {
 			t.Errorf("Did not find token %s!", name)
