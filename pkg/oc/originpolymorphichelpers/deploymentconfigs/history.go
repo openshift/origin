@@ -6,14 +6,13 @@ import (
 	"sort"
 	"text/tabwriter"
 
+	"k8s.io/kubernetes/pkg/kubectl/describe/versioned"
+
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl"
-	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
@@ -68,12 +67,7 @@ func (h *DeploymentConfigHistoryViewer) ViewHistory(namespace, name string, revi
 
 		buf := bytes.NewBuffer([]byte{})
 
-		// TODO: remove this once we have external describers
-		var internalDesired kapi.PodTemplateSpec
-		if legacyscheme.Scheme.Convert(desired, &internalDesired, nil); err != nil {
-			return "", fmt.Errorf("unable to convert pod template to internal pod template: %v", err)
-		}
-		kinternalprinters.DescribePodTemplate(&internalDesired, kinternalprinters.NewPrefixWriter(buf))
+		versioned.DescribePodTemplate(desired, versioned.NewPrefixWriter(buf))
 		return buf.String(), nil
 	}
 
