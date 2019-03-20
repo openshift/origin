@@ -3,10 +3,13 @@ package admin
 import (
 	"fmt"
 
+	"k8s.io/kubernetes/pkg/kubectl/cmd/certificates"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/taint"
+
 	"github.com/spf13/cobra"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/drain"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 
@@ -64,10 +67,10 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 		{
 			Message: "Node Management:",
 			Commands: []*cobra.Command{
-				cmdutil.ReplaceCommandName("kubectl", fullName, kubecmd.NewCmdDrain(f, streams)),
-				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(kubecmd.NewCmdCordon(f, streams))),
-				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(kubecmd.NewCmdUncordon(f, streams))),
-				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(kubecmd.NewCmdTaint(f, streams))),
+				cmdutil.ReplaceCommandName("kubectl", fullName, drain.NewCmdDrain(f, streams)),
+				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(drain.NewCmdCordon(f, streams))),
+				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(drain.NewCmdUncordon(f, streams))),
+				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(taint.NewCmdTaint(f, streams))),
 				node.NewCmdLogs(fullName, f, streams),
 			},
 		},
@@ -77,7 +80,7 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 				project.NewCmdNewProject(project.NewProjectRecommendedName, fullName+" "+project.NewProjectRecommendedName, f, streams),
 				policy.NewCmdPolicy(policy.PolicyRecommendedName, fullName+" "+policy.PolicyRecommendedName, f, streams),
 				groups.NewCmdGroups(groups.GroupsRecommendedName, fullName+" "+groups.GroupsRecommendedName, f, streams),
-				withShortDescription(kubecmd.NewCmdCertificate(f, streams), "Approve or reject certificate requests"),
+				withShortDescription(certificates.NewCmdCertificate(f, streams), "Approve or reject certificate requests"),
 				network.NewCmdPodNetwork(network.PodNetworkCommandName, fullName+" "+network.PodNetworkCommandName, f, streams),
 			},
 		},

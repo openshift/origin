@@ -22,7 +22,7 @@ func (t StatFunc) Has(dir string) (string, bool, error) {
 	return path, true, nil
 }
 
-func NewTester() generate.Tester {
+func NewTester() newapp.Tester {
 	return StatFunc(os.Stat)
 }
 

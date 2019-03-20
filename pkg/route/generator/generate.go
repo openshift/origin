@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/kubectl/generate"
 
-	routeapi "github.com/openshift/api/route/v1"
+	routev1 "github.com/openshift/api/route/v1"
 )
 
 // RouteGenerator generates routes from a given set of parameters
@@ -63,16 +63,16 @@ func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Ob
 		}
 	}
 
-	route := &routeapi.Route{
+	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
 			Labels: labels,
 		},
-		Spec: routeapi.RouteSpec{
+		Spec: routev1.RouteSpec{
 			Host:           params["hostname"],
-			WildcardPolicy: routeapi.WildcardPolicyType(params["wildcard-policy"]),
+			WildcardPolicy: routev1.WildcardPolicyType(params["wildcard-policy"]),
 			Path:           params["path"],
-			To: routeapi.RouteTargetReference{
+			To: routev1.RouteTargetReference{
 				Name: params["default-name"],
 			},
 		},
@@ -86,7 +86,7 @@ func (RouteGenerator) Generate(genericParams map[string]interface{}) (runtime.Ob
 		} else {
 			targetPort = intstr.FromString(portString)
 		}
-		route.Spec.Port = &routeapi.RoutePort{
+		route.Spec.Port = &routev1.RoutePort{
 			TargetPort: targetPort,
 		}
 	}
