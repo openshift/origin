@@ -45,7 +45,7 @@ import (
 	"github.com/openshift/library-go/pkg/git"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
-	"github.com/openshift/origin/pkg/oc/cli/newapp"
+	newappapp "github.com/openshift/origin/pkg/oc/cli/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	apptest "github.com/openshift/origin/pkg/oc/lib/newapp/app/test"
@@ -185,7 +185,7 @@ func TestNewAppResolve(t *testing.T) {
 			name: "Successful docker build",
 			cfg: cmd.AppConfig{
 				GenerationInputs: cmd.GenerationInputs{
-					Strategy: generate.StrategyDocker,
+					Strategy: newapp.StrategyDocker,
 				},
 			},
 			components: app.ComponentReferences{
@@ -377,7 +377,7 @@ func TestNewAppRunAll(t *testing.T) {
 					},
 				},
 				GenerationInputs: cmd.GenerationInputs{
-					Strategy: generate.StrategySource,
+					Strategy: newapp.StrategySource,
 				},
 				Typer:           legacyscheme.Scheme,
 				ImageClient:     okImageClient.ImageV1(),
@@ -421,7 +421,7 @@ func TestNewAppRunAll(t *testing.T) {
 				},
 
 				GenerationInputs: cmd.GenerationInputs{
-					Strategy: generate.StrategySource,
+					Strategy: newapp.StrategySource,
 					Labels:   map[string]string{"label1": "value1", "label2": "value2"},
 				},
 				Typer:           legacyscheme.Scheme,
@@ -465,7 +465,7 @@ func TestNewAppRunAll(t *testing.T) {
 					},
 				},
 				GenerationInputs: cmd.GenerationInputs{
-					Strategy: generate.StrategyDocker,
+					Strategy: newapp.StrategyDocker,
 				},
 				Typer:           legacyscheme.Scheme,
 				ImageClient:     okImageClient.ImageV1(),
@@ -576,7 +576,7 @@ func TestNewAppRunAll(t *testing.T) {
 					SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
 				},
 				GenerationInputs: cmd.GenerationInputs{
-					Strategy:         generate.StrategySource,
+					Strategy:         newapp.StrategySource,
 					InsecureRegistry: true,
 				},
 
@@ -1155,7 +1155,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 			config: &cmd.AppConfig{
 				GenerationInputs: cmd.GenerationInputs{
 					Dockerfile: "FROM openshift/origin-base\nUSER foo",
-					Strategy:   generate.StrategySource,
+					Strategy:   newapp.StrategySource,
 				},
 			},
 			expectedErr: func(err error) bool {
@@ -1167,7 +1167,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 			config: &cmd.AppConfig{
 				GenerationInputs: cmd.GenerationInputs{
 					Dockerfile: "USER foo",
-					Strategy:   generate.StrategyDocker,
+					Strategy:   newapp.StrategyDocker,
 				},
 			},
 			expectedErr: func(err error) bool {
@@ -1362,7 +1362,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 				},
 				GenerationInputs: cmd.GenerationInputs{
 					ContextDir: "openshift/pipeline",
-					Strategy:   generate.StrategyPipeline,
+					Strategy:   newapp.StrategyPipeline,
 				},
 			},
 			expected: map[string][]string{
@@ -1407,7 +1407,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 				},
 				GenerationInputs: cmd.GenerationInputs{
 					ContextDir: "openshift/pipeline",
-					Strategy:   generate.StrategyPipeline,
+					Strategy:   newapp.StrategyPipeline,
 				},
 			},
 			expected: map[string][]string{
@@ -1424,7 +1424,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 				},
 				GenerationInputs: cmd.GenerationInputs{
 					ContextDir: "openshift/pipeline",
-					Strategy:   generate.StrategyDocker,
+					Strategy:   newapp.StrategyDocker,
 				},
 			},
 			expectedErr: func(err error) bool {
@@ -1440,7 +1440,7 @@ func TestNewAppRunBuilds(t *testing.T) {
 					},
 				},
 				GenerationInputs: cmd.GenerationInputs{
-					Strategy: generate.StrategyPipeline,
+					Strategy: newapp.StrategyPipeline,
 				},
 			},
 			expectedErr: func(err error) bool {
@@ -1954,7 +1954,7 @@ func TestNewAppSourceAuthRequired(t *testing.T) {
 	for _, test := range tests {
 		url, tempRepoDir := setupLocalGitRepo(t, test.passwordProtected, test.useProxy)
 
-		sourceRepo, err := app.NewSourceRepository(url, generate.StrategySource)
+		sourceRepo, err := app.NewSourceRepository(url, newapp.StrategySource)
 		if err != nil {
 			t.Fatalf("%v", err)
 		}
@@ -1984,13 +1984,13 @@ func TestNewAppSourceAuthRequired(t *testing.T) {
 func TestNewAppListAndSearch(t *testing.T) {
 	tests := []struct {
 		name           string
-		options        newapp.AppOptions
+		options        newappapp.AppOptions
 		expectedOutput string
 	}{
 		{
 			name: "search, no oldversion",
-			options: newapp.AppOptions{
-				ObjectGeneratorOptions: &newapp.ObjectGeneratorOptions{
+			options: newappapp.AppOptions{
+				ObjectGeneratorOptions: &newappapp.ObjectGeneratorOptions{
 					Config: &cmd.AppConfig{
 						ComponentInputs: cmd.ComponentInputs{
 							ImageStreams: []string{"ruby"},
@@ -2002,8 +2002,8 @@ func TestNewAppListAndSearch(t *testing.T) {
 		},
 		{
 			name: "list, no oldversion",
-			options: newapp.AppOptions{
-				ObjectGeneratorOptions: &newapp.ObjectGeneratorOptions{
+			options: newappapp.AppOptions{
+				ObjectGeneratorOptions: &newappapp.ObjectGeneratorOptions{
 					Config: &cmd.AppConfig{
 						AsList: true,
 					}},
@@ -2313,7 +2313,7 @@ func MockSourceRepositories(t *testing.T, file string) []*app.SourceRepository {
 		"https://github.com/openshift/ruby-hello-world.git",
 		file,
 	} {
-		s, err := app.NewSourceRepository(location, generate.StrategySource)
+		s, err := app.NewSourceRepository(location, newapp.StrategySource)
 		if err != nil {
 			t.Fatal(err)
 		}

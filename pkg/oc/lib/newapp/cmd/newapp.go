@@ -72,7 +72,7 @@ type GenerationInputs struct {
 	IgnoreUnknownParameters bool
 	InsecureRegistry        bool
 
-	Strategy generate.Strategy
+	Strategy newapp.Strategy
 
 	Name     string
 	To       string
@@ -376,7 +376,7 @@ func (c *AppConfig) AddArguments(args []string) []string {
 // validateBuilders confirms that all images associated with components that are to be built,
 // are builders (or we're using a non-source strategy).
 func (c *AppConfig) validateBuilders(components app.ComponentReferences) error {
-	if c.Strategy != generate.StrategyUnspecified {
+	if c.Strategy != newapp.StrategyUnspecified {
 		return nil
 	}
 	errs := []error{}
@@ -385,7 +385,7 @@ func (c *AppConfig) validateBuilders(components app.ComponentReferences) error {
 		// if we're supposed to build this thing, and the image/imagestream we've matched it to did not come from an explicit CLI argument,
 		// and the image/imagestream we matched to is not explicitly an s2i builder, and we're doing a source-type build, warn the user
 		// that this probably won't work and force them to declare their intention explicitly.
-		if input.ExpectToBuild && input.ResolvedMatch != nil && !app.IsBuilderMatch(input.ResolvedMatch) && input.Uses != nil && input.Uses.GetStrategy() == generate.StrategySource {
+		if input.ExpectToBuild && input.ResolvedMatch != nil && !app.IsBuilderMatch(input.ResolvedMatch) && input.Uses != nil && input.Uses.GetStrategy() == newapp.StrategySource {
 			errs = append(errs, fmt.Errorf("the image match %q for source repository %q does not appear to be a source-to-image builder.\n\n- to attempt to use this image as a source builder, pass \"--strategy=source\"\n- to use it as a base image for a Docker build, pass \"--strategy=docker\"", input.ResolvedMatch.Name, input.Uses))
 			continue
 		}
@@ -449,7 +449,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 					return nil, fmt.Errorf("unable to add build configMaps %q: %v", strings.Join(c.Secrets, ","), err)
 				}
 
-				if refInput.Uses.GetStrategy() == generate.StrategyDocker {
+				if refInput.Uses.GetStrategy() == newapp.StrategyDocker {
 					numDockerBuilds++
 				}
 
@@ -462,7 +462,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 					if err != nil {
 						return nil, fmt.Errorf("can't build %q: %v", from, err)
 					}
-					if !inputImage.AsImageStream && from != "scratch" && (refInput.Uses == nil || refInput.Uses.GetStrategy() != generate.StrategyPipeline) {
+					if !inputImage.AsImageStream && from != "scratch" && (refInput.Uses == nil || refInput.Uses.GetStrategy() != newapp.StrategyPipeline) {
 						msg := "Could not find an image stream match for %q. Make sure that a Docker image with that tag is available on the node for the build to succeed."
 						glog.Warningf(msg, from)
 					}
@@ -496,7 +496,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 			if c.NoOutput {
 				pipeline.Build.Output = nil
 			}
-			if refInput.Uses != nil && refInput.Uses.GetStrategy() == generate.StrategyPipeline {
+			if refInput.Uses != nil && refInput.Uses.GetStrategy() == newapp.StrategyPipeline {
 				pipeline.Build.Output = nil
 				pipeline.Deployment = nil
 				pipeline.Image = nil
