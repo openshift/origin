@@ -1,6 +1,7 @@
 package support
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -8,7 +9,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -18,6 +19,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
+	watchtools "k8s.io/client-go/tools/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsv1 "github.com/openshift/api/apps/v1"
@@ -213,7 +215,7 @@ func (e *hookExecutor) executeExecNewPod(hook *appsv1.LifecycleHook, rc *corev1.
 	// Try to create the pod.
 	pod, err := e.pods.Pods(rc.Namespace).Create(podSpec)
 	if err != nil {
-		if !kerrors.IsAlreadyExists(err) {
+		if !apierrors.IsAlreadyExists(err) {
 			return fmt.Errorf("couldn't create lifecycle pod for %s: %v", rc.Name, err)
 		}
 		completed = true
@@ -224,58 +226,101 @@ func (e *hookExecutor) executeExecNewPod(hook *appsv1.LifecycleHook, rc *corev1.
 		fmt.Fprintf(e.out, "--> %s: Running hook pod ...\n", label)
 	}
 
-	stopChannel := make(chan struct{})
-	defer close(stopChannel)
-	nextPod := newPodWatch(e.pods.Pods(pod.Namespace), pod.Name, stopChannel)
-
-	// Wait for the hook pod to reach a terminal phase. Start reading logs as
-	// soon as the pod enters a usable phase.
 	var updatedPod *corev1.Pod
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
 	restarts := int32(0)
 	alreadyRead := false
-waitLoop:
-	for {
-		updatedPod = nextPod()
-		switch updatedPod.Status.Phase {
-		case corev1.PodRunning:
-			completed = false
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
 
-			// We should read only the first time or in any container restart when we want to retry.
-			canRetry, restartCount := canRetryReading(updatedPod, restarts)
-			if alreadyRead && !canRetry {
-				break
-			}
-			// The hook container has restarted; we need to notify that we are retrying in the logs.
-			// TODO: Maybe log the container id
-			if restarts != restartCount {
-				wg.Add(1)
-				restarts = restartCount
-				fmt.Fprintf(e.out, "--> %s: Retrying hook pod (retry #%d)\n", label, restartCount)
-			}
-			alreadyRead = true
-			go e.readPodLogs(pod, wg)
-
-		case corev1.PodSucceeded, corev1.PodFailed:
-			if completed {
-				if updatedPod.Status.Phase == corev1.PodSucceeded {
-					fmt.Fprintf(e.out, "--> %s: Hook pod already succeeded\n", label)
-				}
-				wg.Done()
-				break waitLoop
-			}
-			if !created {
-				fmt.Fprintf(e.out, "--> %s: Hook pod is already running ...\n", label)
-			}
-			if !alreadyRead {
-				go e.readPodLogs(pod, wg)
-			}
-			break waitLoop
-		default:
-			completed = false
-		}
+	listWatcher := &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+			options.FieldSelector = fields.OneTermEqualSelector("metadata.name", pod.Name).String()
+			return e.pods.Pods(pod.Namespace).List(options)
+		},
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			options.FieldSelector = fields.OneTermEqualSelector("metadata.name", pod.Name).String()
+			return e.pods.Pods(pod.Namespace).Watch(options)
+		},
 	}
+	// make sure that the pod exists and wasn't deleted early
+	preconditionFunc := func(store cache.Store) (bool, error) {
+		_, exists, err := store.Get(&metav1.ObjectMeta{Namespace: pod.Namespace, Name: pod.Name})
+		if err != nil {
+			return true, err
+		}
+		if !exists {
+			// We need to make sure we see the object in the cache before we start waiting for events
+			// or we would be waiting for the timeout if such object didn't exist.
+			return true, apierrors.NewNotFound(corev1.Resource("pods"), pod.Name)
+		}
+
+		return false, nil
+	}
+	// Wait for the hook pod to reach a terminal phase. Start reading logs as
+	// soon as the pod enters a usable phase.
+	_, err = watchtools.UntilWithSync(
+		context.TODO(),
+		listWatcher,
+		&corev1.Pod{},
+		preconditionFunc,
+		func(event watch.Event) (bool, error) {
+			switch event.Type {
+			case watch.Error:
+				return false, apierrors.FromObject(event.Object)
+			case watch.Added, watch.Modified:
+				updatedPod = event.Object.(*corev1.Pod)
+			case watch.Deleted:
+				err := fmt.Errorf("%s: pod/%s[%s] unexpectedly deleted", label, pod.Name, pod.Namespace)
+				fmt.Fprintf(e.out, "%v\n", err)
+				return false, err
+
+			}
+
+			switch updatedPod.Status.Phase {
+			case corev1.PodRunning:
+				completed = false
+
+				// We should read only the first time or in any container restart when we want to retry.
+				canRetry, restartCount := canRetryReading(updatedPod, restarts)
+				if alreadyRead && !canRetry {
+					break
+				}
+				// The hook container has restarted; we need to notify that we are retrying in the logs.
+				// TODO: Maybe log the container id
+				if restarts != restartCount {
+					wg.Add(1)
+					restarts = restartCount
+					fmt.Fprintf(e.out, "--> %s: Retrying hook pod (retry #%d)\n", label, restartCount)
+				}
+				alreadyRead = true
+				go e.readPodLogs(pod, wg)
+
+			case corev1.PodSucceeded, corev1.PodFailed:
+				if completed {
+					if updatedPod.Status.Phase == corev1.PodSucceeded {
+						fmt.Fprintf(e.out, "--> %s: Hook pod already succeeded\n", label)
+					}
+					wg.Done()
+					return true, nil
+				}
+				if !created {
+					fmt.Fprintf(e.out, "--> %s: Hook pod is already running ...\n", label)
+				}
+				if !alreadyRead {
+					go e.readPodLogs(pod, wg)
+				}
+				return true, nil
+			default:
+				completed = false
+			}
+
+			return false, nil
+		},
+	)
+	if err != nil {
+		return err
+	}
+
 	// The pod is finished, wait for all logs to be consumed before returning.
 	wg.Wait()
 	if updatedPod.Status.Phase == corev1.PodFailed {
@@ -439,30 +484,4 @@ func canRetryReading(pod *corev1.Pod, restarts int32) (bool, int32) {
 	}
 	restartCount := pod.Status.ContainerStatuses[0].RestartCount
 	return pod.Spec.RestartPolicy == corev1.RestartPolicyOnFailure && restartCount > restarts, restartCount
-}
-
-// newPodWatch creates a pod watching function which is backed by a
-// FIFO/reflector pair. This avoids managing watches directly.
-// A stop channel to close the watch's reflector is also returned.
-// It is the caller's responsibility to defer closing the stop channel to prevent leaking resources.
-func newPodWatch(client corev1client.PodInterface, name string, stopChannel chan struct{}) func() *corev1.Pod {
-	fieldSelector := fields.OneTermEqualSelector("metadata.name", name)
-	podLW := &cache.ListWatch{
-		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-			options.FieldSelector = fieldSelector.String()
-			return client.List(options)
-		},
-		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-			options.FieldSelector = fieldSelector.String()
-			return client.Watch(options)
-		},
-	}
-
-	queue := cache.NewResyncableFIFO(cache.MetaNamespaceKeyFunc)
-	go cache.NewReflector(podLW, &corev1.Pod{}, queue, 1*time.Minute).Run(stopChannel)
-
-	return func() *corev1.Pod {
-		obj := cache.Pop(queue)
-		return obj.(*corev1.Pod)
-	}
 }
