@@ -18,6 +18,9 @@ import (
 	"k8s.io/client-go/dynamic"
 	coreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+
+	configv1 "github.com/openshift/api/config/v1"
+	configclient "github.com/openshift/client-go/config/clientset/versioned"
 )
 
 const (
@@ -167,6 +170,39 @@ var _ = g.Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 	})
 })
 
+var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
+	defer g.GinkgoRecover()
+
+	g.It("have operators on the cluster version", func() {
+		cfg, err := e2e.LoadConfig()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		c := configclient.NewForConfigOrDie(cfg)
+		coreclient, err := e2e.LoadClientset()
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		// presence of the CVO namespace gates this test
+		g.By("checking for the cluster version operator")
+		skipUnlessCVO(coreclient.Core().Namespaces())
+
+		// we need to get the list of versions
+		cv, err := c.Config().ClusterVersions().Get("version", metav1.GetOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		coList, err := c.Config().ClusterOperators().List(metav1.ListOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+		o.Expect(coList.Items).NotTo(o.BeEmpty())
+
+		g.By("all cluster operators report an operator version in the first position equal to the cluster version")
+		for _, co := range coList.Items {
+			msg := fmt.Sprintf("unexpected operator status versions %s:\n%#v", co.Name, co.Status.Versions)
+			o.Expect(co.Status.Versions).NotTo(o.BeEmpty(), msg)
+			operator := findOperatorVersion(co.Status.Versions, "operator")
+			o.Expect(operator).NotTo(o.BeNil(), msg)
+			o.Expect(operator.Name).To(o.Equal("operator"), msg)
+			o.Expect(operator.Version).To(o.Equal(cv.Status.Desired.Version), msg)
+		}
+	})
+})
+
 func skipUnlessCVO(c coreclient.NamespaceInterface) {
 	err := wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
 		_, err := c.Get("openshift-cluster-version", metav1.GetOptions{})
@@ -180,6 +216,15 @@ func skipUnlessCVO(c coreclient.NamespaceInterface) {
 		return false, nil
 	})
 	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
+func findOperatorVersion(versions []configv1.OperandVersion, name string) *configv1.OperandVersion {
+	for i := range versions {
+		if versions[i].Name == name {
+			return &versions[i]
+		}
+	}
+	return nil
 }
 
 func contains(names []string, name string) bool {
