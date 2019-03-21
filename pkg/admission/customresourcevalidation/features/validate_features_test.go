@@ -32,7 +32,7 @@ func TestValidateCreateSpec(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := validateFeatureSpecCreate(configv1.FeaturesSpec{FeatureSet: configv1.FeatureSet(tc.featureSet)})
+			actual := validateFeatureGateSpecCreate(configv1.FeatureGateSpec{FeatureSet: configv1.FeatureSet(tc.featureSet)})
 			switch {
 			case len(actual) == 0 && len(tc.expectedErr) == 0:
 			case len(actual) == 0 && len(tc.expectedErr) != 0:
@@ -95,9 +95,9 @@ func TestValidateUpdateSpec(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := validateFeatureSpecUpdate(
-				configv1.FeaturesSpec{FeatureSet: configv1.FeatureSet(tc.featureSet)},
-				configv1.FeaturesSpec{FeatureSet: configv1.FeatureSet(tc.oldFeatureSet)},
+			actual := validateFeatureGateSpecUpdate(
+				configv1.FeatureGateSpec{FeatureSet: configv1.FeatureSet(tc.featureSet)},
+				configv1.FeatureGateSpec{FeatureSet: configv1.FeatureSet(tc.oldFeatureSet)},
 			)
 			switch {
 			case len(actual) == 0 && len(tc.expectedErr) == 0:
