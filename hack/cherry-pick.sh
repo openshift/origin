@@ -4,7 +4,6 @@
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 repo="${UPSTREAM_REPO:-k8s.io/kubernetes}"
-package="${UPSTREAM_PACKAGE:-pkg/api}"
 UPSTREAM_REPO_LOCATION="${UPSTREAM_REPO_LOCATION:-../../../${repo}}"
 
 if [[ "$#" -ne 1 ]]; then
@@ -26,16 +25,26 @@ if [[ ! -d "${UPSTREAM_REPO_LOCATION}" ]]; then
   exit 1
 fi
 
-lastrev="${NO_REBASE-}"
-if [[ -z "${NO_REBASE-}" ]]; then
-  lastrev="$(go run ${OS_ROOT}/tools/godepversion/godepversion.go ${OS_ROOT}/Godeps/Godeps.json ${repo}/${package})"
-fi
-
 pushd "${UPSTREAM_REPO_LOCATION}" > /dev/null
 os::build::require_clean_tree
 
 remote="${UPSTREAM_REMOTE:-origin}"
+downstream_remote="${DOWNSTREAM_REMOTE:-openshift}"
 git fetch ${remote}
+git fetch ${downstream_remote}
+
+lastrev="${NO_REBASE-}"
+if [[ -z "${NO_REBASE-}" ]]; then
+  lastrev=$(python -c 'import yaml,sys; x=[i["version"] for i in yaml.safe_load(sys.stdin)["import"] if i["package"] == "'"${repo}"'"]; print(x[0] if len(x) > 0 else "")' < ${OS_ROOT}/glide.yaml)
+  # resolve qualify branches from ${remote}
+  if [ -z "${lastrev}" ]; then
+    echo "Cannot find version of ${repo} in ${OS_ROOT}/glide.lock"
+    exit 1
+  fi
+  if git rev-parse --verify "${downstream_remote}/${lastrev}" &>/dev/null; then
+    lastrev=$(git rev-parse "${downstream_remote}/${lastrev}")
+  fi
+fi
 
 if [[ "${1}" == *".."* ]]; then
   selector=$1
