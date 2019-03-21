@@ -162,6 +162,56 @@ func (ConsoleSpec) SwaggerDoc() map[string]string {
 	return map_ConsoleSpec
 }
 
+var map_DNS = map[string]string{
+	"":       "DNS manages the CoreDNS component to provide a name resolution service for pods and services in the cluster.\n\nThis supports the DNS-based service discovery specification: https://github.com/kubernetes/dns/blob/master/docs/specification.md\n\nMore details: https://kubernetes.io/docs/tasks/administer-cluster/coredns",
+	"spec":   "spec is the specification of the desired behavior of the DNS.",
+	"status": "status is the most recently observed status of the DNS.",
+}
+
+func (DNS) SwaggerDoc() map[string]string {
+	return map_DNS
+}
+
+var map_DNSCondition = map[string]string{
+	"":                   "DNSCondition contains details for the current condition of this DNS.",
+	"type":               "type is the type of the condition.\n\nThese are the supported DNS condition types:\n\n  * Available\n  - True if the following conditions are met:\n    * DNS controller daemonset is available.\n  - False if any of those conditions are unsatisfied.",
+	"status":             "status is the status of the condition. Can be True, False, Unknown.",
+	"lastTransitionTime": "lastTransitionTime is the last time a condition status transitioned from one state to another.",
+	"reason":             "reason is a brief machine readable explanation for the condition's last transition.",
+	"message":            "message is a human readable description of the details of the last transition, complementing reason.",
+}
+
+func (DNSCondition) SwaggerDoc() map[string]string {
+	return map_DNSCondition
+}
+
+var map_DNSList = map[string]string{
+	"": "DNSList contains a list of DNS",
+}
+
+func (DNSList) SwaggerDoc() map[string]string {
+	return map_DNSList
+}
+
+var map_DNSSpec = map[string]string{
+	"": "DNSSpec is the specification of the desired behavior of the DNS.",
+}
+
+func (DNSSpec) SwaggerDoc() map[string]string {
+	return map_DNSSpec
+}
+
+var map_DNSStatus = map[string]string{
+	"":              "DNSStatus defines the observed status of the DNS.",
+	"clusterIP":     "clusterIP is the service IP through which this DNS is made available.\n\nIn the case of the default DNS, this will be a well known IP that is used as the default nameserver for pods that are using the default ClusterFirst DNS policy.\n\nIn general, this IP can be specified in a pod's spec.dnsConfig.nameservers list or used explicitly when performing name resolution from within the cluster. Example: dig foo.com @<service IP>\n\nMore info: https://kubernetes.io/docs/concepts/services-networking/service/#virtual-ips-and-service-proxies",
+	"clusterDomain": "clusterDomain is the local cluster DNS domain suffix for DNS services. This will be a subdomain as defined in RFC 1034, section 3.5: https://tools.ietf.org/html/rfc1034#section-3.5 Example: \"cluster.local\"\n\nMore info: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service",
+	"conditions":    "conditions represent the latest available observations of a DNS's current state.",
+}
+
+func (DNSStatus) SwaggerDoc() map[string]string {
+	return map_DNSStatus
+}
+
 var map_Etcd = map[string]string{
 	"": "Etcd provides information to configure an operator to manage kube-apiserver.",
 }
@@ -219,7 +269,7 @@ var map_IngressControllerSpec = map[string]string{
 	"":                           "IngressControllerSpec is the specification of the desired behavior of the IngressController.",
 	"domain":                     "domain is a DNS name serviced by the ingress controller and is used to configure multiple features:\n\n* For the LoadBalancerService endpoint publishing strategy, domain is\n  used to configure DNS records. See endpointPublishingStrategy.\n\n* When using a generated default certificate, the certificate will be valid\n  for domain and its subdomains. See defaultCertificate.\n\n* The value is published to individual Route statuses so that end-users\n  know where to target external DNS records.\n\ndomain must be unique among all IngressControllers, and cannot be updated.\n\nIf empty, defaults to ingress.config.openshift.io/cluster .spec.domain.",
 	"replicas":                   "replicas is the desired number of ingress controller replicas. If unset, defaults to 2.",
-	"endpointPublishingStrategy": "endpointPublishingStrategy is used to publish the ingress controller endpoints to other networks, enable load balancer integrations, etc.\n\nIf unset, the default is based on infrastructure.config.openshift.io/cluster .status.platform:\n\n  AWS: LoadBalancerService\n  All other platform types: Private\n\nendpointPublishingStrategy cannot be updated.",
+	"endpointPublishingStrategy": "endpointPublishingStrategy is used to publish the ingress controller endpoints to other networks, enable load balancer integrations, etc.\n\nIf unset, the default is based on infrastructure.config.openshift.io/cluster .status.platform:\n\n  AWS:      LoadBalancerService\n  Libvirt:  HostNetwork\n\nAny other platform types (including None) default to HostNetwork.\n\nendpointPublishingStrategy cannot be updated.",
 	"defaultCertificate":         "defaultCertificate is a reference to a secret containing the default certificate served by the ingress controller. When Routes don't specify their own certificate, defaultCertificate is used.\n\nThe secret must contain the following keys and data:\n\n  tls.crt: certificate file contents\n  tls.key: key file contents\n\nIf unset, a wildcard certificate is automatically generated and used. The certificate is valid for the ingress controller domain (and subdomains) and the generated certificate's CA will be automatically integrated with the cluster's trust store.\n\nThe in-use certificate (whether generated or user-specified) will be automatically integrated with OpenShift's built-in OAuth server.",
 	"namespaceSelector":          "namespaceSelector is used to filter the set of namespaces serviced by the ingress controller. This is useful for implementing shards.\n\nIf unset, the default is no filtering.",
 	"routeSelector":              "routeSelector is used to filter the set of Routes serviced by the ingress controller. This is useful for implementing shards.\n\nIf unset, the default is no filtering.",
@@ -236,6 +286,7 @@ var map_IngressControllerStatus = map[string]string{
 	"selector":                   "selector is a label selector, in string format, for ingress controller pods corresponding to the IngressController. The number of matching pods should equal the value of availableReplicas.",
 	"domain":                     "domain is the actual domain in use.",
 	"endpointPublishingStrategy": "endpointPublishingStrategy is the actual strategy in use.",
+	"conditions":                 "conditions is a list of conditions and their status.\n\nAvailable means the ingress controller deployment is available and servicing route and ingress resources (i.e, .status.availableReplicas equals .spec.replicas)\n\nThere are additional conditions which indicate the status of other ingress controller features and capabilities.\n\n  * LoadBalancerManaged\n  - True if the following conditions are met:\n    * The endpoint publishing strategy requires a service load balancer.\n  - False if any of those conditions are unsatisfied.\n\n  * LoadBalancerReady\n  - True if the following conditions are met:\n    * A load balancer is managed.\n    * The load balancer is ready.\n  - False if any of those conditions are unsatisfied.\n\n  * DNSManaged\n  - True if the following conditions are met:\n    * The endpoint publishing strategy and platform support DNS.\n    * The ingress controller domain is set.\n    * dns.config.openshift.io/cluster configures DNS zones.\n  - False if any of those conditions are unsatisfied.\n\n  * DNSReady\n  - True if the following conditions are met:\n    * DNS is managed.\n    * DNS records have been successfully created.\n  - False if any of those conditions are unsatisfied.",
 }
 
 func (IngressControllerStatus) SwaggerDoc() map[string]string {
@@ -301,6 +352,107 @@ var map_KubeControllerManagerSpec = map[string]string{
 
 func (KubeControllerManagerSpec) SwaggerDoc() map[string]string {
 	return map_KubeControllerManagerSpec
+}
+
+var map_AdditionalNetworkDefinition = map[string]string{
+	"":             "AdditionalNetworkDefinition configures an extra network that is available but not created by default. Instead, pods must request them by name. type must be specified, along with exactly one \"Config\" that matches the type.",
+	"type":         "type is the type of network The only supported value is NetworkTypeRaw",
+	"name":         "name is the name of the network. This will be populated in the resulting CRD This must be unique.",
+	"rawCNIConfig": "rawCNIConfig is the raw CNI configuration json to create in the NetworkAttachmentDefinition CRD",
+}
+
+func (AdditionalNetworkDefinition) SwaggerDoc() map[string]string {
+	return map_AdditionalNetworkDefinition
+}
+
+var map_ClusterNetworkEntry = map[string]string{
+	"": "ClusterNetworkEntry is a subnet from which to allocate PodIPs. A network of size HostPrefix (in CIDR notation) will be allocated when nodes join the cluster. Not all network providers support multiple ClusterNetworks",
+}
+
+func (ClusterNetworkEntry) SwaggerDoc() map[string]string {
+	return map_ClusterNetworkEntry
+}
+
+var map_DefaultNetworkDefinition = map[string]string{
+	"":                    "DefaultNetworkDefinition represents a single network plugin's configuration. type must be specified, along with exactly one \"Config\" that matches the type.",
+	"type":                "type is the type of network All NetworkTypes are supported except for NetworkTypeRaw",
+	"openshiftSDNConfig":  "openShiftSDNConfig configures the openshift-sdn plugin",
+	"ovnKubernetesConfig": "oVNKubernetesConfig configures the ovn-kubernetes plugin. This is currently not implemented.",
+}
+
+func (DefaultNetworkDefinition) SwaggerDoc() map[string]string {
+	return map_DefaultNetworkDefinition
+}
+
+var map_Network = map[string]string{
+	"": "Network describes the cluster's desired network configuration. It is consumed by the cluster-network-operator.",
+}
+
+func (Network) SwaggerDoc() map[string]string {
+	return map_Network
+}
+
+var map_NetworkList = map[string]string{
+	"": "NetworkList contains a list of Network configurations",
+}
+
+func (NetworkList) SwaggerDoc() map[string]string {
+	return map_NetworkList
+}
+
+var map_NetworkSpec = map[string]string{
+	"":                    "NetworkSpec is the top-level network configuration object.",
+	"clusterNetwork":      "clusterNetwork is the IP address pool to use for pod IPs. Some network providers, e.g. OpenShift SDN, support multiple ClusterNetworks. Others only support one. This is equivalent to the cluster-cidr.",
+	"serviceNetwork":      "serviceNetwork is the ip address pool to use for Service IPs Currently, all existing network providers only support a single value here, but this is an array to allow for growth.",
+	"defaultNetwork":      "defaultNetwork is the \"default\" network that all pods will receive",
+	"additionalNetworks":  "additionalNetworks is a list of extra networks to make available to pods when multiple networks are enabled.",
+	"disableMultiNetwork": "disableMultiNetwork specifies whether or not multiple pod network support should be disabled. If unset, this property defaults to 'false' and multiple network support is enabled.",
+	"deployKubeProxy":     "deployKubeProxy specifies whether or not a standalone kube-proxy should be deployed by the operator. Some network providers include kube-proxy or similar functionality. If unset, the plugin will attempt to select the correct value, which is false when OpenShift SDN and ovn-kubernetes are used and true otherwise.",
+	"kubeProxyConfig":     "kubeProxyConfig lets us configure desired proxy configuration. If not specified, sensible defaults will be chosen by OpenShift directly. Not consumed by all network providers - currently only openshift-sdn.",
+}
+
+func (NetworkSpec) SwaggerDoc() map[string]string {
+	return map_NetworkSpec
+}
+
+var map_NetworkStatus = map[string]string{
+	"": "NetworkStatus is currently unused. Instead, status is reported in the Network.config.openshift.io object.",
+}
+
+func (NetworkStatus) SwaggerDoc() map[string]string {
+	return map_NetworkStatus
+}
+
+var map_OVNKubernetesConfig = map[string]string{
+	"":    "ovnKubernetesConfig is the proposed configuration parameters for networks using the ovn-kubernetes network project",
+	"mtu": "mtu is the MTU to use for the tunnel interface. This must be 100 bytes smaller than the uplink mtu. Default is 1400",
+}
+
+func (OVNKubernetesConfig) SwaggerDoc() map[string]string {
+	return map_OVNKubernetesConfig
+}
+
+var map_OpenShiftSDNConfig = map[string]string{
+	"":          "OpenShiftSDNConfig configures the three openshift-sdn plugins",
+	"mode":      "mode is one of \"Multitenant\", \"Subnet\", or \"NetworkPolicy\"",
+	"vxlanPort": "vxlanPort is the port to use for all vxlan packets. The default is 4789.",
+	"mtu":       "mtu is the mtu to use for the tunnel interface. Defaults to 1450 if unset. This must be 50 bytes smaller than the machine's uplink.",
+	"useExternalOpenvswitch": "useExternalOpenvswitch tells the operator not to install openvswitch, because it will be provided separately. If set, you must provide it yourself.",
+}
+
+func (OpenShiftSDNConfig) SwaggerDoc() map[string]string {
+	return map_OpenShiftSDNConfig
+}
+
+var map_ProxyConfig = map[string]string{
+	"":                   "ProxyConfig defines the configuration knobs for kubeproxy All of these are optional and have sensible defaults",
+	"iptablesSyncPeriod": "The period that iptables rules are refreshed. Default: 30s",
+	"bindAddress":        "The address to \"bind\" on Defaults to 0.0.0.0",
+	"proxyArguments":     "Any additional arguments to pass to the kubeproxy process",
+}
+
+func (ProxyConfig) SwaggerDoc() map[string]string {
+	return map_ProxyConfig
 }
 
 var map_OpenShiftAPIServer = map[string]string{

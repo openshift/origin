@@ -342,22 +342,3 @@ func TestEncodeIdentifier(t *testing.T) {
 		}
 	}
 }
-
-func TestEncodeHighTag(t *testing.T) {
-	cases := []struct {
-		tag  Tag
-		want []byte
-	}{
-		{134, []byte{0x80 + 0x01, 0x06}},
-		{123456, []byte{0x80 + 0x07, 0x80 + 0x44, 0x40}},
-		{0xFF, []byte{0x81, 0x7F}},
-	}
-
-	for _, c := range cases {
-		got := encodeHighTag(c.tag)
-
-		if !bytes.Equal(c.want, got) {
-			t.Errorf("tag: %d want: %#v got: %#v", c.tag, c.want, got)
-		}
-	}
-}

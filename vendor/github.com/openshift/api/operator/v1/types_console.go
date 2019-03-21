@@ -48,13 +48,15 @@ const (
 	// Branding for OpenShift
 	BrandOpenShift Brand = "openshift"
 	// Branding for The Origin Community Distribution of Kubernetes
-	BrandOKD       Brand = "okd"
+	BrandOKD Brand = "okd"
 	// Branding for OpenShift Online
-	BrandOnline    Brand = "online"
+	BrandOnline Brand = "online"
 	// Branding for OpenShift Container Platform
-	BrandOCP       Brand = "ocp"
+	BrandOCP Brand = "ocp"
 	// Branding for OpenShift Dedicated
 	BrandDedicated Brand = "dedicated"
+	// Branding for Azure Red Hat OpenShift
+	BrandAzure Brand = "azure"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

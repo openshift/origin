@@ -40,8 +40,8 @@ func (c *FakeConfigV1) DNSes() v1.DNSInterface {
 	return &FakeDNSes{c}
 }
 
-func (c *FakeConfigV1) Features() v1.FeaturesInterface {
-	return &FakeFeatures{c}
+func (c *FakeConfigV1) FeatureGates() v1.FeatureGateInterface {
+	return &FakeFeatureGates{c}
 }
 
 func (c *FakeConfigV1) Images() v1.ImageInterface {

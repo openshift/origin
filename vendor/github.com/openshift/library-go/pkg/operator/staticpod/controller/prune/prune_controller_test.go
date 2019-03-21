@@ -194,7 +194,7 @@ func TestPruneAPIResources(t *testing.T) {
 				NodeStatuses: []operatorv1.NodeStatus{
 					{
 						NodeName:        "test-node-1",
-						CurrentRevision: 0,
+						CurrentRevision: 1,
 						TargetRevision:  0,
 					},
 				},
@@ -208,7 +208,7 @@ func TestPruneAPIResources(t *testing.T) {
 			NodeStatuses: []operatorv1.NodeStatus{
 				{
 					NodeName:        "test-node-1",
-					CurrentRevision: 0,
+					CurrentRevision: 1,
 					TargetRevision:  0,
 				},
 			},
@@ -410,7 +410,7 @@ func TestPruneDiskResources(t *testing.T) {
 					NodeStatuses: []operatorv1.NodeStatus{
 						{
 							NodeName:        "test-node-1",
-							CurrentRevision: 0,
+							CurrentRevision: 1,
 							TargetRevision:  0,
 						},
 					},
@@ -424,7 +424,7 @@ func TestPruneDiskResources(t *testing.T) {
 				NodeStatuses: []operatorv1.NodeStatus{
 					{
 						NodeName:        "test-node-1",
-						CurrentRevision: 0,
+						CurrentRevision: 1,
 						TargetRevision:  0,
 					},
 				},

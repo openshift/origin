@@ -2,10 +2,8 @@ package ber
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"io/ioutil"
-	"math"
 	"testing"
 )
 
@@ -80,18 +78,6 @@ var testcases = []struct {
 	{File: "tests/tc46.ber", Error: "indefinite length used with primitive type"},
 	{File: "tests/tc47.ber", Error: "eoc child not allowed with definite length"},
 	{File: "tests/tc48.ber", Error: "", IndefiniteEncoding: true}, // Error: "Using of more than 7 "unused bits" in BIT STRING with constrictive encoding form"
-	{File: "tests/tc49.ber", Error: ""},
-	{File: "tests/tc50.ber", Error: is64bit("length cannot be less than -1", "long-form length overflow")},
-	{File: "tests/tc51.ber", Error: is64bit(fmt.Sprintf("length 206966894640 greater than maximum %v", MaxPacketLengthBytes), "long-form length overflow")},
-}
-
-func is64bit(a, b string) string {
-	maxInt64 := int64(math.MaxInt64)
-	length := int(maxInt64)
-	if int64(length) != maxInt64 {
-		return b
-	}
-	return a
 }
 
 func TestSuiteDecodePacket(t *testing.T) {
@@ -128,7 +114,7 @@ func TestSuiteDecodePacket(t *testing.T) {
 			}
 		} else if !bytes.Equal(dataOut, dataIn) {
 			// Make sure the serialized data matches the source
-			t.Errorf("%s: data should be the same\nwant: %#v\ngot: %#v", file, dataIn, dataOut)
+			t.Errorf("%s: data should be the same", file)
 		}
 
 		packet, err = DecodePacketErr(dataOut)
@@ -140,7 +126,7 @@ func TestSuiteDecodePacket(t *testing.T) {
 		// Make sure the re-serialized data matches our original serialization
 		dataOut2 := packet.Bytes()
 		if !bytes.Equal(dataOut, dataOut2) {
-			t.Errorf("%s: data should be the same\nwant: %#v\ngot: %#v", file, dataOut, dataOut2)
+			t.Errorf("%s: data should be the same", file)
 		}
 	}
 }
@@ -178,7 +164,7 @@ func TestSuiteReadPacket(t *testing.T) {
 			}
 		} else if !bytes.Equal(dataOut, dataIn) {
 			// Make sure the serialized data matches the source
-			t.Errorf("%s: data should be the same\nwant: %#v\ngot: %#v", file, dataIn, dataOut)
+			t.Errorf("%s: data should be the same", file)
 		}
 
 		packet, err = DecodePacketErr(dataOut)
@@ -190,7 +176,7 @@ func TestSuiteReadPacket(t *testing.T) {
 		// Make sure the re-serialized data matches our original serialization
 		dataOut2 := packet.Bytes()
 		if !bytes.Equal(dataOut, dataOut2) {
-			t.Errorf("%s: data should be the same\nwant: %#v\ngot: %#v", file, dataOut, dataOut2)
+			t.Errorf("%s: data should be the same", file)
 		}
 	}
 }

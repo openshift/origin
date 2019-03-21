@@ -107,7 +107,7 @@ func (c *StaticPodStateController) sync() error {
 				// We will still reflect the container not ready state in error conditions, but we don't set the operator as failed.
 				errs = append(errs, fmt.Errorf("nodes/%s pods/%s container=%q is not ready", node.NodeName, pod.Name, containerStatus.Name))
 			}
-			if containerStatus.State.Waiting != nil {
+			if containerStatus.State.Waiting != nil && containerStatus.State.Waiting.Reason != "PodInitializing" {
 				errs = append(errs, fmt.Errorf("nodes/%s pods/%s container=%q is waiting: %q - %q", node.NodeName, pod.Name, containerStatus.Name, containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message))
 				failingErrorCount++
 			}

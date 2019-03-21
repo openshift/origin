@@ -254,9 +254,6 @@ type GenericAPIServerConfig struct {
 	// admissionConfig holds information about how to configure admission.
 	AdmissionConfig AdmissionConfig `json:"admission"`
 
-	// TODO remove this.  We need a cut-over or we'll have a gap.
-	AdmissionPluginConfig map[string]AdmissionPluginConfig `json:"admissionPluginConfig,omitempty"`
-
 	KubeClientConfig KubeClientConfig `json:"kubeClientConfig"`
 }
 
