@@ -27,4 +27,4 @@ RUN INSTALL_PKGS=" \
 LABEL io.k8s.display-name="OpenShift SDN" \
       io.k8s.description="This is a component of OpenShift and contains the networking tool stack for the default SDN implementation." \
       io.openshift.tags="openshift,sdn"
-ENTRYPOINT [ "/usr/local/bin/openshift-sdn" ]
+ENTRYPOINT [ "/usr/bin/openshift-sdn" ]
