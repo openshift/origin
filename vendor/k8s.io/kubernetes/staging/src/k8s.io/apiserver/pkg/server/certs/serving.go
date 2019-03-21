@@ -66,6 +66,7 @@ func (c *DynamicServingLoader) GetConfigForClient(clientHello *tls.ClientHelloIn
 	if uncastObj == nil {
 		return nil, errors.New("tls: configuration not ready")
 	}
+	glog.Infof("New connection from %s to %s: %v, %v", clientHello.Conn.RemoteAddr(), clientHello.Conn.LocalAddr(), clientHello.SupportedCurves, clientHello.CipherSuites)
 	runtimeConfig, ok := uncastObj.(*runtimeDynamicLoader)
 	if !ok {
 		return nil, errors.New("tls: unexpected config type")
