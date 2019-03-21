@@ -104,7 +104,6 @@ type VolumeOptions struct {
 	Mapper                 meta.RESTMapper
 	Client                 kubernetes.Interface
 	UpdatePodSpecForObject polymorphichelpers.UpdatePodSpecForObjectFunc
-	Encoder                runtime.Encoder
 	Builder                func() *resource.Builder
 
 	// Resource selection
@@ -356,7 +355,6 @@ func (o *VolumeOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []
 
 	o.Args = args
 	o.Builder = f.NewBuilder
-	o.Encoder = kcmdutil.InternalVersionJSONEncoder()
 	o.UpdatePodSpecForObject = polymorphichelpers.UpdatePodSpecForObjectFn
 
 	o.AddOpts.TypeChanged = cmd.Flag("type").Changed
@@ -547,7 +545,7 @@ func (o *VolumeOptions) RunVolume() error {
 
 func (o *VolumeOptions) getVolumeUpdatePatches(infos []*resource.Info, singleItemImplied bool) ([]*Patch, error) {
 	skipped := 0
-	patches := CalculatePatches(infos, o.Encoder, func(info *resource.Info) (bool, error) {
+	patches := CalculatePatches(infos, scheme.DefaultJSONEncoder(), func(info *resource.Info) (bool, error) {
 		transformed := false
 		ok, err := o.UpdatePodSpecForObject(info.Object, func(spec *corev1.PodSpec) error {
 			var e error

@@ -65,7 +65,7 @@ type RolloutLatestOptions struct {
 func NewRolloutLatestOptions(streams genericclioptions.IOStreams) *RolloutLatestOptions {
 	return &RolloutLatestOptions{
 		IOStreams:  streams,
-		PrintFlags: genericclioptions.NewPrintFlags("rolled out"),
+		PrintFlags: genericclioptions.NewPrintFlags("rolled out").WithTypeSetter(scheme.Scheme),
 	}
 }
 
@@ -112,7 +112,11 @@ func (o *RolloutLatestOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, 
 
 	if o.PrintFlags.OutputFormat != nil && *o.PrintFlags.OutputFormat == "revision" {
 		fmt.Fprintln(o.ErrOut, "--output=revision is deprecated. Use `--output=jsonpath={.status.latestVersion}` or `--output=go-template={{.status.latestVersion}}` instead")
-		o.Printer = &revisionPrinter{}
+		o.Printer, err = printers.NewTypeSetter(scheme.Scheme).
+			WrapToPrinter(&revisionPrinter{}, nil)
+		if err != nil {
+			return err
+		}
 	} else {
 		o.Printer, err = o.PrintFlags.ToPrinter()
 		if err != nil {
@@ -207,7 +211,7 @@ func (o *RolloutLatestOptions) RunRolloutLatest() error {
 		info.Refresh(dc, true)
 	}
 
-	return o.Printer.PrintObj(kcmdutil.AsDefaultVersionedOrOriginal(info.Object, info.Mapping), o.Out)
+	return o.Printer.PrintObj(info.Object, o.Out)
 }
 
 type revisionPrinter struct{}

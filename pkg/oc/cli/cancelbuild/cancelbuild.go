@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/kubernetes/pkg/kubectl/scheme"
+
 	"github.com/spf13/cobra"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -120,16 +122,27 @@ func (o *CancelBuildOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, ar
 		fmt.Fprintf(o.ErrOut, "error: %s\n", err.Error())
 	}
 
-	// FIXME: this double printers should not be necessary
-	o.PrinterCancel = &printers.NamePrinter{Operation: "cancelled"}
-	o.PrinterRestart = &printers.NamePrinter{Operation: "restarted"}
-	o.PrinterCancelInProgress = &printers.NamePrinter{Operation: "marked for cancellation, waiting to be cancelled"}
+	var err error
+	o.PrinterCancel, err = printers.NewTypeSetter(scheme.Scheme).
+		WrapToPrinter(&printers.NamePrinter{Operation: "cancelled"}, nil)
+	if err != nil {
+		return err
+	}
+	o.PrinterRestart, err = printers.NewTypeSetter(scheme.Scheme).
+		WrapToPrinter(&printers.NamePrinter{Operation: "restarted"}, nil)
+	if err != nil {
+		return err
+	}
+	o.PrinterCancelInProgress, err = printers.NewTypeSetter(scheme.Scheme).
+		WrapToPrinter(&printers.NamePrinter{Operation: "marked for cancellation, waiting to be cancelled"}, nil)
+	if err != nil {
+		return err
+	}
 
 	if o.timeout.Seconds() == 0 {
 		o.timeout = 30 * time.Second
 	}
 
-	var err error
 	o.Namespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
@@ -256,7 +269,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 			}
 
 			// ignore exit if error here; the phase verfication below is more important
-			o.PrinterCancelInProgress.PrintObj(kcmdutil.AsDefaultVersionedOrOriginal(build, nil), o.Out)
+			o.PrinterCancelInProgress.PrintObj(build, o.Out)
 
 			// Make sure the build phase is really cancelled.
 			timeout := o.timeout
@@ -278,7 +291,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 				return
 			}
 
-			if err := o.PrinterCancel.PrintObj(kcmdutil.AsDefaultVersionedOrOriginal(build, nil), o.Out); err != nil {
+			if err := o.PrinterCancel.PrintObj(build, o.Out); err != nil {
 				o.ReportError(fmt.Errorf("build %s/%s failed to print: %v", build.Namespace, build.Name, err))
 				return
 			}
@@ -294,7 +307,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 				o.ReportError(fmt.Errorf("build %s/%s failed to restart: %v", b.Namespace, b.Name, err))
 				continue
 			}
-			if err := o.PrinterRestart.PrintObj(kcmdutil.AsDefaultVersionedOrOriginal(b, nil), o.Out); err != nil {
+			if err := o.PrinterRestart.PrintObj(b, o.Out); err != nil {
 				o.ReportError(fmt.Errorf("build %s/%s failed to print: %v", build.Namespace, build.Name, err))
 				continue
 			}
