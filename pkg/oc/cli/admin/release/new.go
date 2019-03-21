@@ -339,7 +339,6 @@ func (o *NewOptions) Run() error {
 
 	metadata := make(map[string]imageData)
 	var ordered []string
-	var payload *Payload
 	var is *imageapi.ImageStream
 
 	switch {
@@ -561,7 +560,7 @@ func (o *NewOptions) Run() error {
 		return nil
 	}
 
-	if len(o.FromDirectory) == 0 && payload == nil {
+	if len(o.FromDirectory) == 0 {
 		if err := o.extractManifests(is, name, metadata); err != nil {
 			return err
 		}
@@ -576,19 +575,10 @@ func (o *NewOptions) Run() error {
 	}
 
 	if len(o.Mirror) > 0 {
-		if err := o.mirrorImages(is, payload); err != nil {
+		if err := o.mirrorImages(is); err != nil {
 			return err
 		}
 
-	} else if payload != nil && len(o.Mappings) > 0 {
-		glog.V(4).Infof("Rewriting payload for the input mappings")
-		targetFn, err := ComponentReferencesForImageStream(is)
-		if err != nil {
-			return err
-		}
-		if err := payload.Rewrite(true, targetFn); err != nil {
-			return fmt.Errorf("failed to update contents for input mappings: %v", err)
-		}
 	}
 
 	var verifiers []PayloadVerifier
@@ -613,21 +603,18 @@ func (o *NewOptions) Run() error {
 		})
 	}
 
-	if payload == nil {
-		if err := pruneUnreferencedImageStreams(o.ErrOut, is, metadata, o.AlwaysInclude); err != nil {
-			return err
-		}
+	if err := pruneUnreferencedImageStreams(o.ErrOut, is, metadata, o.AlwaysInclude); err != nil {
+		return err
 	}
+
+	// use a stable ordering for operators
+	sort.Strings(ordered)
 
 	var operators []string
 	pr, pw := io.Pipe()
 	go func() {
 		var err error
-		if payload != nil {
-			err = copyPayload(pw, now, is, cm, payload.Path(), verifiers)
-		} else {
-			operators, err = writePayload(pw, now, is, cm, ordered, metadata, o.AllowMissingImages, verifiers)
-		}
+		operators, err = writePayload(pw, is, cm, ordered, metadata, o.AllowMissingImages, verifiers)
 		pw.CloseWithError(err)
 	}()
 
@@ -855,7 +842,7 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 	return nil
 }
 
-func (o *NewOptions) mirrorImages(is *imageapi.ImageStream, payload *Payload) error {
+func (o *NewOptions) mirrorImages(is *imageapi.ImageStream) error {
 	glog.V(4).Infof("Mirroring release contents to %s", o.Mirror)
 	copied := is.DeepCopy()
 	opts := NewMirrorOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
@@ -892,14 +879,6 @@ func (o *NewOptions) mirrorImages(is *imageapi.ImageStream, payload *Payload) er
 		glog.Infof("Image references updated to:\n%s", string(data))
 	}
 
-	if payload == nil {
-		return nil
-	}
-
-	glog.V(4).Infof("Rewriting payload to point to mirror")
-	if err := payload.Rewrite(false, targetFn); err != nil {
-		return fmt.Errorf("failed to update contents after mirroring: %v", err)
-	}
 	return nil
 }
 
@@ -961,6 +940,11 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 		if err := w.Close(); err != nil {
 			return err
 		}
+		if o.ToFile != "-" {
+			if err := os.Chtimes(o.ToFile, is.CreationTimestamp.Time, is.CreationTimestamp.Time); err != nil {
+				glog.V(2).Infof("Unable to set timestamps on output file: %v", err)
+			}
+		}
 	case len(o.ToImage) > 0:
 		glog.V(4).Infof("Writing release contents to image %s", o.ToImage)
 		toRef, err := imagereference.Parse(o.ToImage)
@@ -1006,7 +990,7 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 			// explicitly set release info
 			config.Config.Labels["io.openshift.release"] = is.Name
 			config.History = []docker10.DockerConfigHistory{
-				{Comment: "Release image for OpenShift", Created: now},
+				{Comment: "Release image for OpenShift", Created: is.CreationTimestamp.Time},
 			}
 			if len(dgst) > 0 {
 				config.Config.Labels[annotationReleaseBaseImageDigest] = dgst.String()
@@ -1059,18 +1043,37 @@ func writeNestedTarHeader(tw *tar.Writer, parts []string, existing map[string]st
 	return nil
 }
 
-func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, cm *CincinnatiMetadata, ordered []string, metadata map[string]imageData, allowMissingImages bool, verifiers []PayloadVerifier) ([]string, error) {
+func writePayload(w io.Writer, is *imageapi.ImageStream, cm *CincinnatiMetadata, ordered []string, metadata map[string]imageData, allowMissingImages bool, verifiers []PayloadVerifier) ([]string, error) {
 	var operators []string
 	directories := make(map[string]struct{})
 	files := make(map[string]int)
 
+	parts := []string{"release-manifests"}
+
+	// find the newest content date in the input
+	var newest time.Time
+	if err := iterateExtractedManifests(ordered, metadata, func(contents []os.FileInfo, name string, image imageData) error {
+		for _, fi := range contents {
+			if fi.IsDir() {
+				continue
+			}
+			if fi.ModTime().After(newest) {
+				newest = fi.ModTime()
+			}
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	newest = newest.UTC().Truncate(time.Second)
+	is.CreationTimestamp.Time = newest
+	glog.V(4).Infof("Most recent content has date %s", newest.Format(time.RFC3339))
+
 	gw := gzip.NewWriter(w)
 	tw := tar.NewWriter(gw)
 
-	parts := []string{"release-manifests"}
-
 	// ensure the directory exists in the tar bundle
-	if err := writeNestedTarHeader(tw, parts, directories, tar.Header{Mode: 0777, ModTime: now, Typeflag: tar.TypeDir}); err != nil {
+	if err := writeNestedTarHeader(tw, parts, directories, tar.Header{Mode: 0777, ModTime: newest, Typeflag: tar.TypeDir}); err != nil {
 		return nil, err
 	}
 
@@ -1079,7 +1082,7 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, cm *Cinc
 	if err != nil {
 		return nil, err
 	}
-	if err := tw.WriteHeader(&tar.Header{Mode: 0444, ModTime: now, Typeflag: tar.TypeReg, Name: path.Join(append(append([]string{}, parts...), "image-references")...), Size: int64(len(data))}); err != nil {
+	if err := tw.WriteHeader(&tar.Header{Mode: 0444, ModTime: newest, Typeflag: tar.TypeReg, Name: path.Join(append(append([]string{}, parts...), "image-references")...), Size: int64(len(data))}); err != nil {
 		return nil, err
 	}
 	if _, err := tw.Write(data); err != nil {
@@ -1092,7 +1095,7 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, cm *Cinc
 		if err != nil {
 			return nil, err
 		}
-		if err := tw.WriteHeader(&tar.Header{Mode: 0444, ModTime: now, Typeflag: tar.TypeReg, Name: path.Join(append(append([]string{}, parts...), "release-metadata")...), Size: int64(len(data))}); err != nil {
+		if err := tw.WriteHeader(&tar.Header{Mode: 0444, ModTime: newest, Typeflag: tar.TypeReg, Name: path.Join(append(append([]string{}, parts...), "release-metadata")...), Size: int64(len(data))}); err != nil {
 			return nil, err
 		}
 		if _, err := tw.Write(data); err != nil {
@@ -1100,22 +1103,8 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, cm *Cinc
 		}
 	}
 
-	// we iterate over each input directory in order to ensure the output is stable
-	for _, name := range ordered {
-		image, ok := metadata[name]
-		if !ok {
-			return nil, fmt.Errorf("missing image data %s", name)
-		}
-
-		// process each manifest in the given directory
-		contents, err := ioutil.ReadDir(image.Directory)
-		if err != nil {
-			return nil, err
-		}
-		if len(contents) == 0 {
-			continue
-		}
-
+	// read each directory, processing the manifests in order and updating the contents into the tar output
+	if err := iterateExtractedManifests(ordered, metadata, func(contents []os.FileInfo, name string, image imageData) error {
 		transform := NopManifestMapper
 
 		if fi := takeFileByName(&contents, "image-references"); fi != nil {
@@ -1123,7 +1112,7 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, cm *Cinc
 			glog.V(2).Infof("Perform image replacement based on inclusion of %s", path)
 			transform, err = NewTransformFromImageStreamFile(path, is, allowMissingImages)
 			if err != nil {
-				return nil, fmt.Errorf("operator %q failed to map images: %s", name, err)
+				return fmt.Errorf("operator %q failed to map images: %s", name, err)
 			}
 		}
 
@@ -1153,28 +1142,31 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, cm *Cinc
 
 			data, err := ioutil.ReadFile(src)
 			if err != nil {
-				return nil, err
+				return err
 			}
 
 			for _, fn := range verifiers {
 				if err := fn(filepath.Join(filepath.Base(image.Directory), fi.Name()), data); err != nil {
-					return nil, err
+					return err
 				}
 			}
 
 			modified, err := transform(data)
 			if err != nil {
-				return nil, err
+				return err
 			}
-			if err := tw.WriteHeader(&tar.Header{Mode: 0444, ModTime: now, Typeflag: tar.TypeReg, Name: dst, Size: int64(len(modified))}); err != nil {
-				return nil, err
+			if err := tw.WriteHeader(&tar.Header{Mode: 0444, ModTime: fi.ModTime(), Typeflag: tar.TypeReg, Name: dst, Size: int64(len(modified))}); err != nil {
+				return err
 			}
 			glog.V(6).Infof("Writing payload to %s\n%s", dst, string(modified))
 			if _, err := tw.Write(modified); err != nil {
-				return nil, err
+				return err
 			}
 		}
 		operators = append(operators, name)
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	if err := tw.Close(); err != nil {
@@ -1186,86 +1178,25 @@ func writePayload(w io.Writer, now time.Time, is *imageapi.ImageStream, cm *Cinc
 	return operators, nil
 }
 
-func copyPayload(w io.Writer, now time.Time, is *imageapi.ImageStream, cm *CincinnatiMetadata, directory string, verifiers []PayloadVerifier) error {
-	directories := make(map[string]struct{})
+func iterateExtractedManifests(ordered []string, metadata map[string]imageData, fn func(contents []os.FileInfo, name string, image imageData) error) error {
+	for _, name := range ordered {
+		image, ok := metadata[name]
+		if !ok {
+			return fmt.Errorf("missing image data %s", name)
+		}
 
-	gw := gzip.NewWriter(w)
-	tw := tar.NewWriter(gw)
-
-	parts := []string{"release-manifests"}
-
-	// ensure the directory exists in the tar bundle
-	if err := writeNestedTarHeader(tw, parts, directories, tar.Header{Mode: 0777, ModTime: now, Typeflag: tar.TypeDir}); err != nil {
-		return err
-	}
-
-	// copy each manifest in the given directory
-	contents, err := ioutil.ReadDir(directory)
-	if err != nil {
-		return err
-	}
-
-	// write image metadata to release-manifests/image-references
-	takeFileByName(&contents, "image-references")
-	data, err := json.MarshalIndent(is, "", "  ")
-	if err != nil {
-		return err
-	}
-	if err := tw.WriteHeader(&tar.Header{Mode: 0444, ModTime: now, Typeflag: tar.TypeReg, Name: path.Join(append(append([]string{}, parts...), "image-references")...), Size: int64(len(data))}); err != nil {
-		return err
-	}
-	if _, err := tw.Write(data); err != nil {
-		return err
-	}
-
-	// write cincinnati if passed to us
-	takeFileByName(&contents, "release-metadata")
-	if cm != nil {
-		data, err := json.MarshalIndent(cm, "", "  ")
+		// process each manifest in the given directory
+		contents, err := ioutil.ReadDir(image.Directory)
 		if err != nil {
 			return err
 		}
-		if err := tw.WriteHeader(&tar.Header{Mode: 0444, ModTime: now, Typeflag: tar.TypeReg, Name: path.Join(append(append([]string{}, parts...), "release-metadata")...), Size: int64(len(data))}); err != nil {
-			return err
-		}
-		if _, err := tw.Write(data); err != nil {
-			return err
-		}
-	}
-
-	for _, fi := range contents {
-		if fi.IsDir() {
+		if len(contents) == 0 {
 			continue
 		}
-		filename := fi.Name()
-		src := filepath.Join(directory, filename)
-		dst := path.Join(append(append([]string{}, parts...), filename)...)
-		glog.V(4).Infof("Copying %s to %s", src, dst)
 
-		data, err := ioutil.ReadFile(src)
-		if err != nil {
+		if err := fn(contents, name, image); err != nil {
 			return err
 		}
-
-		for _, fn := range verifiers {
-			if err := fn(filename, data); err != nil {
-				return err
-			}
-		}
-
-		if err := tw.WriteHeader(&tar.Header{Mode: 0444, ModTime: now, Typeflag: tar.TypeReg, Name: dst, Size: int64(len(data))}); err != nil {
-			return err
-		}
-		if _, err := tw.Write(data); err != nil {
-			return err
-		}
-	}
-
-	if err := tw.Close(); err != nil {
-		return err
-	}
-	if err := gw.Close(); err != nil {
-		return err
 	}
 	return nil
 }
