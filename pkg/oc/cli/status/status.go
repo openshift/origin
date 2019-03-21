@@ -57,10 +57,9 @@ type StatusOptions struct {
 	describer     *describe.ProjectStatusDescriber
 	suggest       bool
 
-	logsCommandName             string
-	securityPolicyCommandFormat string
-	setProbeCommandName         string
-	patchCommandName            string
+	logsCommandName     string
+	setProbeCommandName string
+	patchCommandName    string
 
 	genericclioptions.IOStreams
 }
@@ -107,7 +106,6 @@ func (o *StatusOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, baseCLI
 	}
 
 	o.logsCommandName = fmt.Sprintf("%s logs", cmd.Parent().CommandPath())
-	o.securityPolicyCommandFormat = "oc adm policy add-scc-to-user anyuid -n %s -z %s"
 	o.setProbeCommandName = fmt.Sprintf("%s set probe", cmd.Parent().CommandPath())
 
 	clientConfig, err := f.ToRESTConfig()
@@ -188,9 +186,8 @@ func (o *StatusOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, baseCLI
 		CanRequestProjects: canRequestProjects,
 
 		// TODO: Remove these and reference them inside the markers using constants.
-		LogsCommandName:             o.logsCommandName,
-		SecurityPolicyCommandFormat: o.securityPolicyCommandFormat,
-		SetProbeCommandName:         o.setProbeCommandName,
+		LogsCommandName:     o.logsCommandName,
+		SetProbeCommandName: o.setProbeCommandName,
 	}
 
 	return nil
