@@ -31,6 +31,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/coreos/go-systemd/daemon"
@@ -38,9 +39,10 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -596,6 +598,10 @@ func run(s *options.KubeletServer, kubeDeps *kubelet.Dependencies, stopCh <-chan
 			return fmt.Errorf("failed to initialize kubelet heartbeat client: %v", err)
 		}
 
+		csiClientConfig := *clientConfig
+		// CSI client uses CRDs which don't correctly negotiate protobuf
+		csiClientConfig.ContentType = ""
+		csiClientConfig.AcceptContentTypes = ""
 		kubeDeps.CSIClient, err = csiclientset.NewForConfig(clientConfig)
 		if err != nil {
 			return fmt.Errorf("failed to initialize kubelet storage client: %v", err)
@@ -747,6 +753,12 @@ func buildKubeletClientConfig(s *options.KubeletServer, nodeName types.NodeName)
 		if err != nil {
 			return nil, nil, err
 		}
+
+		// Override both kubeconfig settings from flags - we do not alter the default cert QPS
+		setContentTypeForClient(certConfig, s.ContentType)
+		setContentTypeForClient(clientConfig, s.ContentType)
+		clientConfig.QPS = float32(s.KubeAPIQPS)
+		clientConfig.Burst = int(s.KubeAPIBurst)
 
 		newClientFn := func(current *tls.Certificate) (certificatesclient.CertificateSigningRequestInterface, error) {
 			// If we have a valid certificate, use that to fetch CSRs. Otherwise use the bootstrap
@@ -919,13 +931,28 @@ func createAPIServerClientConfig(s *options.KubeletServer) (*restclient.Config, 
 		return nil, err
 	}
 
-	clientConfig.ContentType = s.ContentType
+	setContentTypeForClient(clientConfig, s.ContentType)
 	// Override kubeconfig qps/burst settings from flags
 	clientConfig.QPS = float32(s.KubeAPIQPS)
 	clientConfig.Burst = int(s.KubeAPIBurst)
 
 	addChaosToClientConfig(s, clientConfig)
 	return clientConfig, nil
+}
+
+// setContentTypeForClient sets the appropritae content type into the rest config
+// and handles defaulting AcceptContentTypes based on that input.
+func setContentTypeForClient(cfg *restclient.Config, contentType string) {
+	if len(contentType) == 0 {
+		return
+	}
+	cfg.ContentType = contentType
+	switch contentType {
+	case runtime.ContentTypeProtobuf:
+		cfg.AcceptContentTypes = strings.Join([]string{runtime.ContentTypeProtobuf, runtime.ContentTypeJSON}, ",")
+	default:
+		// otherwise let the rest client perform defaulting
+	}
 }
 
 // addChaosToClientConfig injects random errors into client connections if configured.
