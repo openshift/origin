@@ -64,8 +64,7 @@ func (a *Authenticator) AuthenticatePassword(ctx context.Context, username, pass
 		return nil, false, nil
 	}
 
-	user, ok, err := identitymapper.UserFor(a.mapper, identity)
-	return &authenticator.Response{User: user}, ok, err
+	return identitymapper.ResponseFor(a.mapper, identity)
 }
 
 // getIdentity looks up a username in an LDAP server, and attempts to bind to the user's DN using the provided password

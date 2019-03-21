@@ -133,7 +133,5 @@ func (a *Authenticator) AuthenticatePassword(ctx context.Context, username, pass
 		identity.Extra[authapi.IdentityEmailKey] = remoteUserData.Email
 	}
 
-	user, ok, err := identitymapper.UserFor(a.mapper, identity)
-	return &authenticator.Response{User: user}, ok, err
-
+	return identitymapper.ResponseFor(a.mapper, identity)
 }

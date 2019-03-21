@@ -61,8 +61,7 @@ func (a *Authenticator) AuthenticatePassword(ctx context.Context, username, pass
 
 	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, username)
 
-	user, ok, err := identitymapper.UserFor(a.mapper, identity)
-	return &authenticator.Response{User: user}, ok, err
+	return identitymapper.ResponseFor(a.mapper, identity)
 }
 
 func (a *Authenticator) load() error {

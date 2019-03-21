@@ -33,6 +33,5 @@ func (a alwaysAcceptPasswordAuthenticator) AuthenticatePassword(ctx context.Cont
 
 	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, username)
 
-	user, ok, err := identitymapper.UserFor(a.identityMapper, identity)
-	return &authenticator.Response{User: user}, ok, err
+	return identitymapper.ResponseFor(a.identityMapper, identity)
 }

@@ -108,6 +108,5 @@ func (a keystonePasswordAuthenticator) AuthenticatePassword(ctx context.Context,
 	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, providerUserID)
 	identity.Extra[authapi.IdentityPreferredUsernameKey] = username
 
-	user, ok, err := identitymapper.UserFor(a.identityMapper, identity)
-	return &authenticator.Response{User: user}, ok, err
+	return identitymapper.ResponseFor(a.identityMapper, identity)
 }
