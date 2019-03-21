@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -63,12 +64,12 @@ func TestOwnerRefRestriction(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	actual, err := creatorClient.Core().Services("foo").Create(&kapi.Service{
+	actual, err := creatorClient.CoreV1().Services("foo").Create(&corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "my-service",
 		},
-		Spec: kapi.ServiceSpec{
-			Ports: []kapi.ServicePort{
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
 				{Port: 80},
 			},
 		},
@@ -82,7 +83,7 @@ func TestOwnerRefRestriction(t *testing.T) {
 		Name:       "baz",
 		UID:        types.UID("baq"),
 	}}
-	actual, err = creatorClient.Core().Services("foo").Update(actual)
+	actual, err = creatorClient.CoreV1().Services("foo").Update(actual)
 	if err == nil {
 		t.Fatalf("missing error")
 	}

@@ -39,7 +39,7 @@ func TestProjectRequestError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
 	}
-	kubeClientset, err := testutil.GetClusterAdminKubeInternalClient(kubeConfigFile)
+	kubeClientset, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting client: %v", err)
 	}

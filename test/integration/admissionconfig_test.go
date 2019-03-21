@@ -3,6 +3,7 @@ package integration
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	testutil "github.com/openshift/origin/test/util"
@@ -23,14 +24,14 @@ func TestAlwaysPullImagesOn(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
 	}
-	kubeClientset, err := testutil.GetClusterAdminKubeInternalClient(kubeConfigFile)
+	kubeClientset, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting client: %v", err)
 	}
 
-	ns := &kapi.Namespace{}
+	ns := &corev1.Namespace{}
 	ns.Name = testutil.Namespace()
-	_, err = kubeClientset.Core().Namespaces().Create(ns)
+	_, err = kubeClientset.CoreV1().Namespaces().Create(ns)
 	if err != nil {
 		t.Fatalf("error creating namespace: %v", err)
 	}
@@ -38,21 +39,21 @@ func TestAlwaysPullImagesOn(t *testing.T) {
 		t.Fatalf("error getting client config: %v", err)
 	}
 
-	testPod := &kapi.Pod{}
+	testPod := &corev1.Pod{}
 	testPod.GenerateName = "test"
-	testPod.Spec.Containers = []kapi.Container{
+	testPod.Spec.Containers = []corev1.Container{
 		{
 			Name:            "container",
 			Image:           "openshift/origin-pod:notlatest",
-			ImagePullPolicy: kapi.PullNever,
+			ImagePullPolicy: corev1.PullNever,
 		},
 	}
 
-	actualPod, err := kubeClientset.Core().Pods(testutil.Namespace()).Create(testPod)
+	actualPod, err := kubeClientset.CoreV1().Pods(testutil.Namespace()).Create(testPod)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if actualPod.Spec.Containers[0].ImagePullPolicy != kapi.PullAlways {
+	if actualPod.Spec.Containers[0].ImagePullPolicy != corev1.PullAlways {
 		t.Errorf("expected %v, got %v", kapi.PullAlways, actualPod.Spec.Containers[0].ImagePullPolicy)
 	}
 }
@@ -63,14 +64,14 @@ func TestAlwaysPullImagesOff(t *testing.T) {
 		t.Fatalf("error starting server: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	kubeClientset, err := testutil.GetClusterAdminKubeInternalClient(kubeConfigFile)
+	kubeClientset, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting client: %v", err)
 	}
 
-	ns := &kapi.Namespace{}
+	ns := &corev1.Namespace{}
 	ns.Name = testutil.Namespace()
-	_, err = kubeClientset.Core().Namespaces().Create(ns)
+	_, err = kubeClientset.CoreV1().Namespaces().Create(ns)
 	if err != nil {
 		t.Fatalf("error creating namespace: %v", err)
 	}
@@ -78,21 +79,21 @@ func TestAlwaysPullImagesOff(t *testing.T) {
 		t.Fatalf("error getting client config: %v", err)
 	}
 
-	testPod := &kapi.Pod{}
+	testPod := &corev1.Pod{}
 	testPod.GenerateName = "test"
-	testPod.Spec.Containers = []kapi.Container{
+	testPod.Spec.Containers = []corev1.Container{
 		{
 			Name:            "container",
 			Image:           "openshift/origin-pod:notlatest",
-			ImagePullPolicy: kapi.PullNever,
+			ImagePullPolicy: corev1.PullNever,
 		},
 	}
 
-	actualPod, err := kubeClientset.Core().Pods(testutil.Namespace()).Create(testPod)
+	actualPod, err := kubeClientset.CoreV1().Pods(testutil.Namespace()).Create(testPod)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if actualPod.Spec.Containers[0].ImagePullPolicy != kapi.PullNever {
-		t.Errorf("expected %v, got %v", kapi.PullNever, actualPod.Spec.Containers[0].ImagePullPolicy)
+	if actualPod.Spec.Containers[0].ImagePullPolicy != corev1.PullNever {
+		t.Errorf("expected %v, got %v", corev1.PullNever, actualPod.Spec.Containers[0].ImagePullPolicy)
 	}
 }

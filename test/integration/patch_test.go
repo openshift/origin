@@ -8,12 +8,12 @@ import (
 
 	"github.com/pborman/uuid"
 
+	corev1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	restclient "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	templatesapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
@@ -34,7 +34,7 @@ func TestPatchConflicts(t *testing.T) {
 	}
 	clusterAdminTemplateClient := templateclient.NewForConfigOrDie(clusterAdminClientConfig).Template()
 
-	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -42,10 +42,10 @@ func TestPatchConflicts(t *testing.T) {
 	objName := "myobj"
 	ns := "patch-namespace"
 
-	if _, err := clusterAdminKubeClientset.Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}}); err != nil {
+	if _, err := clusterAdminKubeClientset.CoreV1().Namespaces().Create(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}}); err != nil {
 		t.Fatalf("Error creating namespace:%v", err)
 	}
-	if _, err := clusterAdminKubeClientset.Core().Secrets(ns).Create(&kapi.Secret{ObjectMeta: metav1.ObjectMeta{Name: objName}}); err != nil {
+	if _, err := clusterAdminKubeClientset.CoreV1().Secrets(ns).Create(&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: objName}}); err != nil {
 		t.Fatalf("Error creating k8s resource:%v", err)
 	}
 	if _, err := clusterAdminTemplateClient.Templates(ns).Create(&templatesapi.Template{ObjectMeta: metav1.ObjectMeta{Name: objName}}); err != nil {
@@ -57,7 +57,7 @@ func TestPatchConflicts(t *testing.T) {
 		resource string
 	}{
 		{
-			client:   clusterAdminKubeClientset.Core().RESTClient(),
+			client:   clusterAdminKubeClientset.CoreV1().RESTClient(),
 			resource: "secrets",
 		},
 		{

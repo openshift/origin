@@ -6,13 +6,13 @@ import (
 	"strings"
 	"testing"
 
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
-	apiserveroptions "k8s.io/apiserver/pkg/server/options"
+	genericapiserveroptions "k8s.io/apiserver/pkg/server/options"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
-	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	testutil "github.com/openshift/origin/test/util"
@@ -25,7 +25,7 @@ func testWatchCacheWithConfig(t *testing.T, master *configapi.MasterConfig, expe
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	client, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	client, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -36,13 +36,13 @@ func testWatchCacheWithConfig(t *testing.T, master *configapi.MasterConfig, expe
 		t.Fatalf("unexpected error: %v", err)
 	}
 	config.Burst = expectedCacheSize
-	patchClient, err := coreclient.NewForConfig(config)
+	patchClient, err := corev1client.NewForConfig(config)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// modify labels of default namespace expectedCacheSize + 1 times
-	defaultNS, err := client.Core().Namespaces().Get("default", metav1.GetOptions{})
+	defaultNS, err := client.CoreV1().Namespaces().Get("default", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -54,7 +54,7 @@ func testWatchCacheWithConfig(t *testing.T, master *configapi.MasterConfig, expe
 		for r := 0; r < 10; r++ {
 			defaultNS, err = patchClient.Namespaces().Patch("default", types.StrategicMergePatchType,
 				[]byte(fmt.Sprintf(`{"metadata":{"labels":{"test":"%d"}}}`, i)))
-			if err != nil && !kerrors.IsConflict(err) {
+			if err != nil && !apierrors.IsConflict(err) {
 				t.Fatalf("unexpected patch error: %v", err)
 			}
 			if err == nil {
@@ -67,7 +67,7 @@ func testWatchCacheWithConfig(t *testing.T, master *configapi.MasterConfig, expe
 	}
 
 	// do a versioned GET because it force the cache to sync
-	_, err = client.Core().Namespaces().Get("default", metav1.GetOptions{ResourceVersion: defaultNS.ResourceVersion})
+	_, err = client.CoreV1().Namespaces().Get("default", metav1.GetOptions{ResourceVersion: defaultNS.ResourceVersion})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -80,7 +80,7 @@ func testWatchCacheWithConfig(t *testing.T, master *configapi.MasterConfig, expe
 	if err != nil {
 		t.Fatalf("unexpected error converting the resource version: %v", err)
 	}
-	w, err := client.Core().Namespaces().Watch(metav1.ListOptions{ResourceVersion: strconv.Itoa(lastVersion - (expectedCacheSize-counterExampleCacheSize)/2)})
+	w, err := client.CoreV1().Namespaces().Watch(metav1.ListOptions{ResourceVersion: strconv.Itoa(lastVersion - (expectedCacheSize-counterExampleCacheSize)/2)})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -91,7 +91,7 @@ func testWatchCacheWithConfig(t *testing.T, master *configapi.MasterConfig, expe
 	}
 
 	// try watch with an version that is too old
-	w, err = client.Core().Namespaces().Watch(metav1.ListOptions{ResourceVersion: strconv.Itoa(startVersion - 1)})
+	w, err = client.CoreV1().Namespaces().Watch(metav1.ListOptions{ResourceVersion: strconv.Itoa(startVersion - 1)})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -120,7 +120,7 @@ func TestDefaultWatchCacheSize(t *testing.T) {
 	defer testserver.CleanupMasterEtcd(t, master)
 
 	// test that the origin default really applies and that we don't fall back to kube's default
-	etcdOptions := apiserveroptions.NewEtcdOptions(&storagebackend.Config{})
+	etcdOptions := genericapiserveroptions.NewEtcdOptions(&storagebackend.Config{})
 	kubeDefaultCacheSize := etcdOptions.DefaultWatchCacheSize
 	if kubeDefaultCacheSize != 100 {
 		t.Fatalf("upstream DefaultWatchCacheSize changed to %d", kubeDefaultCacheSize)

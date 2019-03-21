@@ -7,14 +7,14 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	api "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/policy"
-	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -39,7 +39,7 @@ func TestNodeAuthorizer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	superuserClient, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	superuserClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,158 +64,161 @@ func TestNodeAuthorizer(t *testing.T) {
 	node2Client := makeNodeClientset(t, signer, certDir, "system:node:node2", clientConfig)
 
 	// Prep namespace
-	if _, err := superuserClient.Core().Namespaces().Create(&api.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "ns"}}); err != nil {
+	if _, err := superuserClient.CoreV1().Namespaces().Create(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "ns"}}); err != nil {
 		t.Fatal(err)
 	}
-	wait.Poll(time.Second, time.Minute, func() (bool, error) {
-		sa, err := superuserClient.Core().ServiceAccounts("ns").Get("default", metav1.GetOptions{})
+	err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
+		sa, err := superuserClient.CoreV1().ServiceAccounts("ns").Get("default", metav1.GetOptions{})
 		if err != nil || len(sa.Secrets) == 0 {
 			return false, nil
 		}
 		return true, nil
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// Create objects
-	if _, err := superuserClient.Core().Secrets("ns").Create(&api.Secret{ObjectMeta: metav1.ObjectMeta{Name: "mysecret"}}); err != nil {
+	if _, err := superuserClient.CoreV1().Secrets("ns").Create(&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "mysecret"}}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := superuserClient.Core().Secrets("ns").Create(&api.Secret{ObjectMeta: metav1.ObjectMeta{Name: "mypvsecret"}}); err != nil {
+	if _, err := superuserClient.CoreV1().Secrets("ns").Create(&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "mypvsecret"}}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := superuserClient.Core().ConfigMaps("ns").Create(&api.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "myconfigmap"}}); err != nil {
+	if _, err := superuserClient.CoreV1().ConfigMaps("ns").Create(&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "myconfigmap"}}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := superuserClient.Core().PersistentVolumeClaims("ns").Create(&api.PersistentVolumeClaim{
+	if _, err := superuserClient.CoreV1().PersistentVolumeClaims("ns").Create(&corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{Name: "mypvc"},
-		Spec: api.PersistentVolumeClaimSpec{
-			AccessModes: []api.PersistentVolumeAccessMode{api.ReadOnlyMany},
-			Resources:   api.ResourceRequirements{Requests: api.ResourceList{api.ResourceStorage: resource.MustParse("1")}},
+		Spec: corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadOnlyMany},
+			Resources:   corev1.ResourceRequirements{Requests: corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("1")}},
 		},
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := superuserClient.Core().PersistentVolumes().Create(&api.PersistentVolume{
+	if _, err := superuserClient.CoreV1().PersistentVolumes().Create(&corev1.PersistentVolume{
 		ObjectMeta: metav1.ObjectMeta{Name: "mypv"},
-		Spec: api.PersistentVolumeSpec{
-			AccessModes:            []api.PersistentVolumeAccessMode{api.ReadOnlyMany},
-			Capacity:               api.ResourceList{api.ResourceStorage: resource.MustParse("1")},
-			ClaimRef:               &api.ObjectReference{Namespace: "ns", Name: "mypvc"},
-			PersistentVolumeSource: api.PersistentVolumeSource{AzureFile: &api.AzureFilePersistentVolumeSource{ShareName: "default", SecretName: "mypvsecret"}},
+		Spec: corev1.PersistentVolumeSpec{
+			AccessModes:            []corev1.PersistentVolumeAccessMode{corev1.ReadOnlyMany},
+			Capacity:               corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("1")},
+			ClaimRef:               &corev1.ObjectReference{Namespace: "ns", Name: "mypvc"},
+			PersistentVolumeSource: corev1.PersistentVolumeSource{AzureFile: &corev1.AzureFilePersistentVolumeSource{ShareName: "default", SecretName: "mypvsecret"}},
 		},
 	}); err != nil {
 		t.Fatal(err)
 	}
 
-	getSecret := func(client clientset.Interface) func() error {
+	getSecret := func(client kubernetes.Interface) func() error {
 		return func() error {
-			_, err := client.Core().Secrets("ns").Get("mysecret", metav1.GetOptions{})
+			_, err := client.CoreV1().Secrets("ns").Get("mysecret", metav1.GetOptions{})
 			return err
 		}
 	}
-	getPVSecret := func(client clientset.Interface) func() error {
+	getPVSecret := func(client kubernetes.Interface) func() error {
 		return func() error {
-			_, err := client.Core().Secrets("ns").Get("mypvsecret", metav1.GetOptions{})
+			_, err := client.CoreV1().Secrets("ns").Get("mypvsecret", metav1.GetOptions{})
 			return err
 		}
 	}
-	getConfigMap := func(client clientset.Interface) func() error {
+	getConfigMap := func(client kubernetes.Interface) func() error {
 		return func() error {
-			_, err := client.Core().ConfigMaps("ns").Get("myconfigmap", metav1.GetOptions{})
+			_, err := client.CoreV1().ConfigMaps("ns").Get("myconfigmap", metav1.GetOptions{})
 			return err
 		}
 	}
-	getPVC := func(client clientset.Interface) func() error {
+	getPVC := func(client kubernetes.Interface) func() error {
 		return func() error {
-			_, err := client.Core().PersistentVolumeClaims("ns").Get("mypvc", metav1.GetOptions{})
+			_, err := client.CoreV1().PersistentVolumeClaims("ns").Get("mypvc", metav1.GetOptions{})
 			return err
 		}
 	}
-	getPV := func(client clientset.Interface) func() error {
+	getPV := func(client kubernetes.Interface) func() error {
 		return func() error {
-			_, err := client.Core().PersistentVolumes().Get("mypv", metav1.GetOptions{})
+			_, err := client.CoreV1().PersistentVolumes().Get("mypv", metav1.GetOptions{})
 			return err
 		}
 	}
 
-	createNode2NormalPod := func(client clientset.Interface) func() error {
+	createNode2NormalPod := func(client kubernetes.Interface) func() error {
 		return func() error {
-			_, err := client.Core().Pods("ns").Create(&api.Pod{
+			_, err := client.CoreV1().Pods("ns").Create(&corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{Name: "node2normalpod"},
-				Spec: api.PodSpec{
+				Spec: corev1.PodSpec{
 					NodeName:   "node2",
-					Containers: []api.Container{{Name: "image", Image: "busybox"}},
-					Volumes: []api.Volume{
-						{Name: "secret", VolumeSource: api.VolumeSource{Secret: &api.SecretVolumeSource{SecretName: "mysecret"}}},
-						{Name: "cm", VolumeSource: api.VolumeSource{ConfigMap: &api.ConfigMapVolumeSource{LocalObjectReference: api.LocalObjectReference{Name: "myconfigmap"}}}},
-						{Name: "pvc", VolumeSource: api.VolumeSource{PersistentVolumeClaim: &api.PersistentVolumeClaimVolumeSource{ClaimName: "mypvc"}}},
+					Containers: []corev1.Container{{Name: "image", Image: "busybox"}},
+					Volumes: []corev1.Volume{
+						{Name: "secret", VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{SecretName: "mysecret"}}},
+						{Name: "cm", VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: "myconfigmap"}}}},
+						{Name: "pvc", VolumeSource: corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "mypvc"}}},
 					},
 				},
 			})
 			return err
 		}
 	}
-	updateNode2NormalPodStatus := func(client clientset.Interface) func() error {
+	updateNode2NormalPodStatus := func(client kubernetes.Interface) func() error {
 		return func() error {
 			startTime := metav1.NewTime(time.Now())
-			_, err := client.Core().Pods("ns").UpdateStatus(&api.Pod{
+			_, err := client.CoreV1().Pods("ns").UpdateStatus(&corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{Name: "node2normalpod"},
-				Status:     api.PodStatus{StartTime: &startTime},
+				Status:     corev1.PodStatus{StartTime: &startTime},
 			})
 			return err
 		}
 	}
-	deleteNode2NormalPod := func(client clientset.Interface) func() error {
+	deleteNode2NormalPod := func(client kubernetes.Interface) func() error {
 		return func() error {
 			zero := int64(0)
-			return client.Core().Pods("ns").Delete("node2normalpod", &metav1.DeleteOptions{GracePeriodSeconds: &zero})
+			return client.CoreV1().Pods("ns").Delete("node2normalpod", &metav1.DeleteOptions{GracePeriodSeconds: &zero})
 		}
 	}
 
-	createNode2MirrorPod := func(client clientset.Interface) func() error {
+	createNode2MirrorPod := func(client kubernetes.Interface) func() error {
 		return func() error {
-			_, err := client.Core().Pods("ns").Create(&api.Pod{
+			_, err := client.CoreV1().Pods("ns").Create(&corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "node2mirrorpod",
-					Annotations: map[string]string{api.MirrorPodAnnotationKey: "true"},
+					Annotations: map[string]string{corev1.MirrorPodAnnotationKey: "true"},
 				},
-				Spec: api.PodSpec{
+				Spec: corev1.PodSpec{
 					NodeName:   "node2",
-					Containers: []api.Container{{Name: "image", Image: "busybox"}},
+					Containers: []corev1.Container{{Name: "image", Image: "busybox"}},
 				},
 			})
 			return err
 		}
 	}
-	deleteNode2MirrorPod := func(client clientset.Interface) func() error {
+	deleteNode2MirrorPod := func(client kubernetes.Interface) func() error {
 		return func() error {
 			zero := int64(0)
-			return client.Core().Pods("ns").Delete("node2mirrorpod", &metav1.DeleteOptions{GracePeriodSeconds: &zero})
+			return client.CoreV1().Pods("ns").Delete("node2mirrorpod", &metav1.DeleteOptions{GracePeriodSeconds: &zero})
 		}
 	}
 
-	createNode2 := func(client clientset.Interface) func() error {
+	createNode2 := func(client kubernetes.Interface) func() error {
 		return func() error {
-			_, err := client.Core().Nodes().Create(&api.Node{ObjectMeta: metav1.ObjectMeta{Name: "node2"}})
+			_, err := client.CoreV1().Nodes().Create(&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node2"}})
 			return err
 		}
 	}
-	updateNode2Status := func(client clientset.Interface) func() error {
+	updateNode2Status := func(client kubernetes.Interface) func() error {
 		return func() error {
-			_, err := client.Core().Nodes().UpdateStatus(&api.Node{
+			_, err := client.CoreV1().Nodes().UpdateStatus(&corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{Name: "node2"},
-				Status:     api.NodeStatus{},
+				Status:     corev1.NodeStatus{},
 			})
 			return err
 		}
 	}
-	deleteNode2 := func(client clientset.Interface) func() error {
+	deleteNode2 := func(client kubernetes.Interface) func() error {
 		return func() error {
-			return client.Core().Nodes().Delete("node2", nil)
+			return client.CoreV1().Nodes().Delete("node2", nil)
 		}
 	}
-	createNode2NormalPodEviction := func(client clientset.Interface) func() error {
+	createNode2NormalPodEviction := func(client kubernetes.Interface) func() error {
 		return func() error {
-			return client.Policy().Evictions("ns").Evict(&policy.Eviction{
+			return client.PolicyV1beta1().Evictions("ns").Evict(&policyv1beta1.Eviction{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "policy/v1beta1",
 					Kind:       "Eviction",
@@ -227,9 +230,9 @@ func TestNodeAuthorizer(t *testing.T) {
 			})
 		}
 	}
-	createNode2MirrorPodEviction := func(client clientset.Interface) func() error {
+	createNode2MirrorPodEviction := func(client kubernetes.Interface) func() error {
 		return func() error {
-			return client.Policy().Evictions("ns").Evict(&policy.Eviction{
+			return client.PolicyV1beta1().Evictions("ns").Evict(&policyv1beta1.Eviction{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: "policy/v1beta1",
 					Kind:       "Eviction",
@@ -338,7 +341,7 @@ func TestNodeAuthorizer(t *testing.T) {
 	expectAllowed(t, createNode2MirrorPodEviction(node2Client))
 }
 
-func makeNodeClientset(t *testing.T, signer *admin.SignerCertOptions, certDir string, username string, anonymousConfig *rest.Config) clientset.Interface {
+func makeNodeClientset(t *testing.T, signer *admin.SignerCertOptions, certDir string, username string, anonymousConfig *rest.Config) kubernetes.Interface {
 	clientCertOptions := &admin.CreateClientCertOptions{
 		SignerCertOptions: signer,
 		CertFile:          admin.DefaultCertFilename(certDir, username),
@@ -359,7 +362,7 @@ func makeNodeClientset(t *testing.T, signer *admin.SignerCertOptions, certDir st
 	configCopy.TLSClientConfig.CertFile = clientCertOptions.CertFile
 	configCopy.TLSClientConfig.KeyFile = clientCertOptions.KeyFile
 
-	c, err := clientset.NewForConfig(&configCopy)
+	c, err := kubernetes.NewForConfig(&configCopy)
 	if err != nil {
 		t.Fatal(err)
 	}

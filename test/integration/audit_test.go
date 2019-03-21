@@ -7,14 +7,14 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	auditv1beta1 "k8s.io/apiserver/pkg/apis/audit/v1beta1"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/client-go/kubernetes"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func setupAudit(t *testing.T, auditConfig configapi.AuditConfig) (kclientset.Interface, func()) {
+func setupAudit(t *testing.T, auditConfig configapi.AuditConfig) (kubernetes.Interface, func()) {
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
@@ -24,7 +24,7 @@ func setupAudit(t *testing.T, auditConfig configapi.AuditConfig) (kclientset.Int
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
 	}
-	kubeClient, err := testutil.GetClusterAdminKubeInternalClient(kubeConfigFile)
+	kubeClient, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting client: %v", err)
 	}
@@ -37,7 +37,7 @@ func TestBasicFunctionalityWithAudit(t *testing.T) {
 	kubeClient, fn := setupAudit(t, configapi.AuditConfig{Enabled: true})
 	defer fn()
 
-	if _, err := kubeClient.Core().Pods(metav1.NamespaceDefault).Watch(metav1.ListOptions{}); err != nil {
+	if _, err := kubeClient.CoreV1().Pods(metav1.NamespaceDefault).Watch(metav1.ListOptions{}); err != nil {
 		t.Errorf("Unexpected error watching pods: %v", err)
 	}
 
@@ -56,7 +56,7 @@ func TestAuditConfigEmbeded(t *testing.T) {
 	kubeClient, fn := setupAudit(t, auditConfig)
 	defer fn()
 
-	if _, err := kubeClient.Core().Pods(metav1.NamespaceDefault).Watch(metav1.ListOptions{}); err != nil {
+	if _, err := kubeClient.CoreV1().Pods(metav1.NamespaceDefault).Watch(metav1.ListOptions{}); err != nil {
 		t.Errorf("Unexpected error watching pods: %v", err)
 	}
 }
@@ -98,7 +98,7 @@ func testAuditConfigFile(t *testing.T, policy []byte) {
 	kubeClient, fn := setupAudit(t, auditConfig)
 	defer fn()
 
-	if _, err := kubeClient.Core().Pods(metav1.NamespaceDefault).Watch(metav1.ListOptions{}); err != nil {
+	if _, err := kubeClient.CoreV1().Pods(metav1.NamespaceDefault).Watch(metav1.ListOptions{}); err != nil {
 		t.Errorf("Unexpected error watching pods: %v", err)
 	}
 }

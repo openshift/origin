@@ -28,7 +28,7 @@ func TestOAuthDisabled(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	client, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	client, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

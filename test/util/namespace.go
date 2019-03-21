@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/kubernetes"
 	watchtools "k8s.io/client-go/tools/watch"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/cmd/util"
 )
@@ -30,24 +30,24 @@ func RandomNamespace(prefix string) string {
 // CreateNamespace creates a namespace with the specified name using the provided kubeconfig
 // DO NOT USE, use create project instead
 func CreateNamespace(clusterAdminKubeConfig, name string) (err error) {
-	clusterAdminKubeClient, err := GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	clusterAdminKubeClient, err := GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		return err
 	}
-	_, err = clusterAdminKubeClient.Core().Namespaces().Create(&kapi.Namespace{
+	_, err = clusterAdminKubeClient.CoreV1().Namespaces().Create(&corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
 	})
 	return err
 }
 
-func DeleteAndWaitForNamespaceTermination(c kclientset.Interface, name string) error {
-	w, err := c.Core().Namespaces().Watch(metav1.ListOptions{})
+func DeleteAndWaitForNamespaceTermination(c kubernetes.Interface, name string) error {
+	w, err := c.CoreV1().Namespaces().Watch(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	defer w.Stop()
 
-	if err := c.Core().Namespaces().Delete(name, nil); err != nil {
+	if err := c.CoreV1().Namespaces().Delete(name, nil); err != nil {
 		return err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -56,7 +56,7 @@ func DeleteAndWaitForNamespaceTermination(c kclientset.Interface, name string) e
 		if event.Type != watch.Deleted {
 			return false, nil
 		}
-		namespace, ok := event.Object.(*kapi.Namespace)
+		namespace, ok := event.Object.(*corev1.Namespace)
 		if !ok {
 			return false, nil
 		}

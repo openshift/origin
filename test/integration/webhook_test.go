@@ -10,8 +10,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	restclient "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
+	rest "k8s.io/client-go/rest"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
@@ -29,7 +28,7 @@ func TestWebhook(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	kubeClient, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	kubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unable to get kubeClient: %v", err)
 	}
@@ -39,7 +38,7 @@ func TestWebhook(t *testing.T) {
 	}
 	clusterAdminBuildClient := buildv1client.NewForConfigOrDie(clusterAdminClientConfig).Build()
 
-	kubeClient.Core().Namespaces().Create(&kapi.Namespace{
+	kubeClient.CoreV1().Namespaces().Create(&corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{Name: testutil.Namespace()},
 	})
 
@@ -155,7 +154,7 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -263,7 +262,7 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 	clusterAdminImageClient := imagev1client.NewForConfigOrDie(clusterAdminClientConfig).Image()
 	clusterAdminBuildClient := buildv1client.NewForConfigOrDie(clusterAdminClientConfig).Build()
 
-	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -358,7 +357,7 @@ func TestWebhookGitHubPing(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	kubeClient, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	kubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unable to get kubeClient: %v", err)
 	}
@@ -368,7 +367,7 @@ func TestWebhookGitHubPing(t *testing.T) {
 	}
 	clusterAdminBuildClient := buildv1client.NewForConfigOrDie(clusterAdminClientConfig).Build()
 
-	kubeClient.Core().Namespaces().Create(&kapi.Namespace{
+	kubeClient.CoreV1().Namespaces().Create(&corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{Name: testutil.Namespace()},
 	})
 
@@ -409,7 +408,7 @@ func TestWebhookGitHubPing(t *testing.T) {
 	}
 }
 
-func postFile(client restclient.Interface, headerFunc func(*http.Header), filename, url string, expStatusCode int, t *testing.T) []byte {
+func postFile(client rest.Interface, headerFunc func(*http.Header), filename, url string, expStatusCode int, t *testing.T) []byte {
 	data, err := ioutil.ReadFile("../../pkg/build/webhook/" + filename)
 	if err != nil {
 		t.Fatalf("Failed to open %s: %v", filename, err)
@@ -419,7 +418,7 @@ func postFile(client restclient.Interface, headerFunc func(*http.Header), filena
 		t.Fatalf("Error creating POST request: %v", err)
 	}
 	headerFunc(&req.Header)
-	resp, err := client.(*restclient.RESTClient).Client.Do(req)
+	resp, err := client.(*rest.RESTClient).Client.Do(req)
 	if err != nil {
 		t.Fatalf("Failed posting webhook: %v", err)
 	}

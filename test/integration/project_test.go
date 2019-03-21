@@ -50,16 +50,16 @@ func TestProjectIsNamespace(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	clusterAdminProjectClient := projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project()
-	kubeClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	kubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// create a namespace
-	namespace := &kapi.Namespace{
+	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{Name: "integration-test"},
 	}
-	namespaceResult, err := kubeClientset.Core().Namespaces().Create(namespace)
+	namespaceResult, err := kubeClientset.CoreV1().Namespaces().Create(namespace)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -89,7 +89,7 @@ func TestProjectIsNamespace(t *testing.T) {
 	}
 
 	// now get the namespace for that project
-	namespace, err = kubeClientset.Core().Namespaces().Get(projectResult.Name, metav1.GetOptions{})
+	namespace, err = kubeClientset.CoreV1().Namespaces().Get(projectResult.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -121,23 +121,23 @@ func TestProjectLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminBuildClient := buildv1client.NewForConfigOrDie(clusterAdminClientConfig).Build()
+	clusterAdminBuildClient := buildv1client.NewForConfigOrDie(clusterAdminClientConfig).BuildV1()
 
-	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	pod := &kapi.Pod{
+	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: "pod"},
-		Spec: kapi.PodSpec{
-			Containers:    []kapi.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
-			RestartPolicy: kapi.RestartPolicyAlways,
-			DNSPolicy:     kapi.DNSClusterFirst,
+		Spec: corev1.PodSpec{
+			Containers:    []corev1.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
+			RestartPolicy: corev1.RestartPolicyAlways,
+			DNSPolicy:     corev1.DNSClusterFirst,
 		},
 	}
 
-	_, err = clusterAdminKubeClientset.Core().Pods("test").Create(pod)
+	_, err = clusterAdminKubeClientset.CoreV1().Pods("test").Create(pod)
 	if err == nil {
 		t.Errorf("Expected an error on creation of a Kubernetes resource because namespace does not exist")
 	}
@@ -180,7 +180,7 @@ func TestProjectLifecycle(t *testing.T) {
 		t.Errorf("Expected an error on creation of a Origin resource because namespace does not exist")
 	}
 
-	_, err = clusterAdminKubeClientset.Core().Namespaces().Create(&kapi.Namespace{
+	_, err = clusterAdminKubeClientset.CoreV1().Namespaces().Create(&corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{Name: "test"},
 	})
 	if err != nil {
@@ -198,12 +198,12 @@ func TestProjectLifecycle(t *testing.T) {
 	}
 
 	// delete the project, which should finalize our stuff
-	if err := clusterAdminKubeClientset.Core().Namespaces().Delete("test", nil); err != nil {
+	if err := clusterAdminKubeClientset.CoreV1().Namespaces().Delete("test", nil); err != nil {
 		t.Fatal(err)
 	}
 	err = wait.PollImmediate(30*time.Millisecond, 30*time.Second, func() (bool, error) {
 		var err error
-		_, err = clusterAdminKubeClientset.Core().Namespaces().Get("test", metav1.GetOptions{})
+		_, err = clusterAdminKubeClientset.CoreV1().Namespaces().Get("test", metav1.GetOptions{})
 		if kapierrors.IsNotFound(err) {
 			return true, nil
 		}

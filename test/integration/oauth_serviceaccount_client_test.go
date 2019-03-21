@@ -23,8 +23,6 @@ import (
 	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	corev1conversions "k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
@@ -60,7 +58,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 	defer oauthServer.Close()
 	redirectURL := oauthServer.URL + "/oauthcallback"
 
-	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -91,7 +89,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 	}
 
 	// get the SA ready with redirect URIs and secret annotations
-	var defaultSA *kapi.ServiceAccount
+	var defaultSA *corev1.ServiceAccount
 
 	// retry this a couple times.  We seem to be flaking on update conflicts and missing secrets all together
 	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -110,12 +108,8 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	sav1 := &corev1.ServiceAccount{}
-	if err := corev1conversions.Convert_core_ServiceAccount_To_v1_ServiceAccount(defaultSA, sav1, nil); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
 
-	var oauthSecret *kapi.Secret
+	var oauthSecret *corev1.Secret
 	// retry this a couple times.  We seem to be flaking on update conflicts and missing secrets all together
 	err = wait.PollImmediate(30*time.Millisecond, 10*time.Second, func() (done bool, err error) {
 		allSecrets, err := clusterAdminKubeClientset.Core().Secrets(projectName).List(metav1.ListOptions{})
@@ -124,12 +118,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 		}
 		for i := range allSecrets.Items {
 			secret := &allSecrets.Items[i]
-			secretv1 := &corev1.Secret{}
-			err := corev1conversions.Convert_core_Secret_To_v1_Secret(secret, secretv1, nil)
-			if err != nil {
-				return false, err
-			}
-			if serviceaccount.IsServiceAccountToken(secretv1, sav1) {
+			if serviceaccount.IsServiceAccountToken(secret, defaultSA) {
 				oauthSecret = secret
 				return true, nil
 			}
@@ -270,7 +259,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 	{
 		oauthClientConfig := &osincli.ClientConfig{
 			ClientId:     apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
-			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
+			ClientSecret: string(oauthSecret.Data[corev1.ServiceAccountTokenKey]),
 			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
 			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
 			RedirectUrl:  redirectURL,
@@ -306,7 +295,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 	{
 		oauthClientConfig := &osincli.ClientConfig{
 			ClientId:     apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
-			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
+			ClientSecret: string(oauthSecret.Data[corev1.ServiceAccountTokenKey]),
 			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
 			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
 			RedirectUrl:  redirectURL,
@@ -328,7 +317,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 		t.Log("Testing invalid scopes")
 		oauthClientConfig := &osincli.ClientConfig{
 			ClientId:     apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
-			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
+			ClientSecret: string(oauthSecret.Data[corev1.ServiceAccountTokenKey]),
 			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
 			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
 			RedirectUrl:  redirectURL,
@@ -349,7 +338,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 		t.Log("Testing allowed scopes with failed API call")
 		oauthClientConfig := &osincli.ClientConfig{
 			ClientId:     apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
-			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
+			ClientSecret: string(oauthSecret.Data[corev1.ServiceAccountTokenKey]),
 			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
 			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
 			RedirectUrl:  redirectURL,
@@ -384,7 +373,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 	{
 		oauthClientConfig := &osincli.ClientConfig{
 			ClientId:     apiserverserviceaccount.MakeUsername(defaultSA.Namespace, defaultSA.Name),
-			ClientSecret: string(oauthSecret.Data[kapi.ServiceAccountTokenKey]),
+			ClientSecret: string(oauthSecret.Data[corev1.ServiceAccountTokenKey]),
 			AuthorizeUrl: clusterAdminClientConfig.Host + "/oauth/authorize",
 			TokenUrl:     clusterAdminClientConfig.Host + "/oauth/token",
 			RedirectUrl:  redirectURL,

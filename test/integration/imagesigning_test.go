@@ -5,13 +5,15 @@ import (
 	"reflect"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/client-go/kubernetes"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
+	"k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -19,8 +21,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
-	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
-	"k8s.io/client-go/rest"
 )
 
 const testUserName = "bob"
@@ -200,7 +200,7 @@ func TestImageRemoveSignature(t *testing.T) {
 	}
 }
 
-func testSetupImageSignatureTest(t *testing.T, userName string) (clusterAdminClientConfig *rest.Config, userKubeClient kclientset.Interface, clusterAdminImageClient, userClient imageclient.Interface, image *imageapi.Image, cleanup func()) {
+func testSetupImageSignatureTest(t *testing.T, userName string) (clusterAdminClientConfig *rest.Config, userKubeClient kubernetes.Interface, clusterAdminImageClient, userClient imageclient.Interface, image *imageapi.Image, cleanup func()) {
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -237,7 +237,7 @@ func testSetupImageSignatureTest(t *testing.T, userName string) (clusterAdminCli
 	}
 }
 
-func makeUserAnImageSigner(rbacClient rbacv1client.RbacV1Interface, userClient kclientset.Interface, userName string) error {
+func makeUserAnImageSigner(rbacClient rbacv1client.RbacV1Interface, userClient kubernetes.Interface, userName string) error {
 	// give bob permissions to update image signatures
 	addImageSignerRole := &policy.RoleModificationOptions{
 		RoleName:   bootstrappolicy.ImageSignerRoleName,
@@ -250,7 +250,7 @@ func makeUserAnImageSigner(rbacClient rbacv1client.RbacV1Interface, userClient k
 	if err := addImageSignerRole.AddRole(); err != nil {
 		return err
 	}
-	return testutil.WaitForClusterPolicyUpdate(userClient.Authorization(), "create", kapi.Resource("imagesignatures"), true)
+	return testutil.WaitForClusterPolicyUpdate(userClient.AuthorizationV1(), "create", corev1.Resource("imagesignatures"), true)
 }
 
 func compareSignatures(t *testing.T, a, b imageapi.ImageSignature) {

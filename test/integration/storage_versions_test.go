@@ -5,35 +5,21 @@ import (
 	"path"
 	"testing"
 
-	etcd "github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
-	"golang.org/x/net/context"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	batch_v1 "k8s.io/api/batch/v1"
+	"golang.org/x/net/context"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/apis/batch"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kbatchclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/batch/internalversion"
+	"k8s.io/client-go/kubernetes"
+	batchv1client "k8s.io/client-go/kubernetes/typed/batch/v1"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
-
-func getGVKFromEtcd(etcdClient etcd.Client, masterConfig *configapi.MasterConfig, prefix, ns, name string) (*schema.GroupVersionKind, error) {
-	keys := etcd.NewKeysAPI(etcdClient)
-	key := path.Join(masterConfig.EtcdStorageConfig.KubernetesStoragePrefix, prefix, ns, name)
-	resp, err := keys.Get(context.TODO(), key, nil)
-	if err != nil {
-		return nil, err
-	}
-	_, gvk, err := unstructured.UnstructuredJSONScheme.Decode([]byte(resp.Node.Value), nil, nil)
-	return gvk, err
-}
 
 func getGVKFromEtcd3(etcdClient *clientv3.Client, masterConfig *configapi.MasterConfig, prefix, ns, name string) (*schema.GroupVersionKind, error) {
 	key := path.Join("/", masterConfig.EtcdStorageConfig.KubernetesStoragePrefix, prefix, ns, name)
@@ -48,7 +34,7 @@ func getGVKFromEtcd3(etcdClient *clientv3.Client, masterConfig *configapi.Master
 	return gvk, err
 }
 
-func setupStorageTests(t *testing.T, ns string) (*configapi.MasterConfig, kclientset.Interface) {
+func setupStorageTests(t *testing.T, ns string) (*configapi.MasterConfig, kubernetes.Interface) {
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -77,7 +63,7 @@ func setupStorageTests(t *testing.T, ns string) (*configapi.MasterConfig, kclien
 
 func TestStorageVersions(t *testing.T) {
 	ns := "storageversions"
-	batchVersion := batch_v1.SchemeGroupVersion
+	batchVersion := batchv1.SchemeGroupVersion
 
 	masterConfig, kubeClient := setupStorageTests(t, ns)
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
@@ -87,18 +73,18 @@ func TestStorageVersions(t *testing.T) {
 	}
 
 	jobTestcases := map[string]struct {
-		creator kbatchclient.JobInterface
+		creator batchv1client.JobInterface
 	}{
-		"batch": {creator: kubeClient.Batch().Jobs(ns)},
+		"batch": {creator: kubeClient.BatchV1().Jobs(ns)},
 	}
 	for name, testcase := range jobTestcases {
-		job := batch.Job{
+		job := batchv1.Job{
 			ObjectMeta: metav1.ObjectMeta{Name: name + "-job"},
-			Spec: batch.JobSpec{
-				Template: kapi.PodTemplateSpec{
-					Spec: kapi.PodSpec{
-						RestartPolicy: kapi.RestartPolicyNever,
-						Containers:    []kapi.Container{{Name: "containername", Image: "containerimage"}},
+			Spec: batchv1.JobSpec{
+				Template: corev1.PodTemplateSpec{
+					Spec: corev1.PodSpec{
+						RestartPolicy: corev1.RestartPolicyNever,
+						Containers:    []corev1.Container{{Name: "containername", Image: "containerimage"}},
 					},
 				},
 			},
@@ -117,7 +103,7 @@ func TestStorageVersions(t *testing.T) {
 		}
 
 		// Ensure it is accessible from both APIs
-		if _, err := kubeClient.Batch().Jobs(ns).Get(job.Name, metav1.GetOptions{}); err != nil {
+		if _, err := kubeClient.BatchV1().Jobs(ns).Get(job.Name, metav1.GetOptions{}); err != nil {
 			t.Errorf("%s: Error reading Job from the batch client: %#v", name, err)
 		}
 	}

@@ -319,10 +319,6 @@ func setupBuildPodAdmissionTest(t *testing.T, pluginConfig map[string]*configapi
 	if err != nil {
 		t.Fatal(err)
 	}
-	internalClusterAdminKubeClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
 	clientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
@@ -341,7 +337,7 @@ func setupBuildPodAdmissionTest(t *testing.T, pluginConfig map[string]*configapi
 	}
 
 	err = testserver.WaitForServiceAccounts(
-		internalClusterAdminKubeClientset,
+		clusterAdminKubeClientset,
 		testutil.Namespace(),
 		[]string{
 			bootstrappolicy.BuilderServiceAccountName,

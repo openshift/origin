@@ -3,10 +3,10 @@ package integration
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/client-go/kubernetes"
 
 	overrideapi "github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -29,7 +29,7 @@ func TestClusterResourceOverridePluginWithNoLimits(t *testing.T) {
 	}
 	kubeClientset, fn := setupClusterResourceOverrideTest(t, config)
 	defer fn()
-	podHandler := kubeClientset.Core().Pods(testutil.Namespace())
+	podHandler := kubeClientset.CoreV1().Pods(testutil.Namespace())
 
 	// test with no limits object present
 
@@ -59,24 +59,24 @@ func TestClusterResourceOverridePluginWithLimits(t *testing.T) {
 	}
 	kubeClientset, fn := setupClusterResourceOverrideTest(t, config)
 	defer fn()
-	podHandler := kubeClientset.Core().Pods(testutil.Namespace())
-	limitHandler := kubeClientset.Core().LimitRanges(testutil.Namespace())
+	podHandler := kubeClientset.CoreV1().Pods(testutil.Namespace())
+	limitHandler := kubeClientset.CoreV1().LimitRanges(testutil.Namespace())
 
 	// test with limits object with defaults;
 	// I wanted to test with a limits object without defaults to see limits forbid an empty resource spec,
 	// but found that if defaults aren't set in the limit object, something still fills them in.
 	// note: defaults are only used when quantities are *missing*, not when they are 0
-	limitItem := kapi.LimitRangeItem{
-		Type:                 kapi.LimitTypeContainer,
+	limitItem := corev1.LimitRangeItem{
+		Type:                 corev1.LimitTypeContainer,
 		Max:                  testResourceList("2Gi", "2"),
 		Min:                  testResourceList("128Mi", "200m"),
 		Default:              testResourceList("512Mi", "500m"), // note: auto-filled from max if we set that;
 		DefaultRequest:       testResourceList("128Mi", "200m"), // filled from max if set, or min if that is set
-		MaxLimitRequestRatio: kapi.ResourceList{},
+		MaxLimitRequestRatio: corev1.ResourceList{},
 	}
-	limit := &kapi.LimitRange{
+	limit := &corev1.LimitRange{
 		ObjectMeta: metav1.ObjectMeta{Name: "limit"},
-		Spec:       kapi.LimitRangeSpec{Limits: []kapi.LimitRangeItem{limitItem}},
+		Spec:       corev1.LimitRangeSpec{Limits: []corev1.LimitRangeItem{limitItem}},
 	}
 	_, err := limitHandler.Create(limit)
 	if err != nil {
@@ -123,7 +123,7 @@ func TestClusterResourceOverridePluginWithLimits(t *testing.T) {
 	}
 }
 
-func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.ClusterResourceOverrideConfig) (kclientset.Interface, func()) {
+func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.ClusterResourceOverrideConfig) (kubernetes.Interface, func()) {
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatal(err)
@@ -141,7 +141,7 @@ func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.Cl
 	if err != nil {
 		t.Fatal(err)
 	}
-	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,26 +162,26 @@ func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.Cl
 	}
 }
 
-func testClusterResourceOverridePod(name string, memory string, cpu string) *kapi.Pod {
-	resources := kapi.ResourceRequirements{
+func testClusterResourceOverridePod(name string, memory string, cpu string) *corev1.Pod {
+	resources := corev1.ResourceRequirements{
 		Limits:   testResourceList(memory, cpu),
-		Requests: kapi.ResourceList{},
+		Requests: corev1.ResourceList{},
 	}
-	container := kapi.Container{Name: name, Image: "scratch", Resources: resources}
-	pod := &kapi.Pod{
+	container := corev1.Container{Name: name, Image: "scratch", Resources: resources}
+	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
-		Spec:       kapi.PodSpec{Containers: []kapi.Container{container}},
+		Spec:       corev1.PodSpec{Containers: []corev1.Container{container}},
 	}
 	return pod
 }
 
-func testResourceList(memory string, cpu string) kapi.ResourceList {
-	list := kapi.ResourceList{}
+func testResourceList(memory string, cpu string) corev1.ResourceList {
+	list := corev1.ResourceList{}
 	if memory != "" {
-		list[kapi.ResourceMemory] = resource.MustParse(memory)
+		list[corev1.ResourceMemory] = resource.MustParse(memory)
 	}
 	if cpu != "" {
-		list[kapi.ResourceCPU] = resource.MustParse(cpu)
+		list[corev1.ResourceCPU] = resource.MustParse(cpu)
 	}
 	return list
 }
