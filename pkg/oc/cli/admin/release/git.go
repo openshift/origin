@@ -2,10 +2,13 @@ package release
 
 import (
 	"bytes"
+	"crypto/md5"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
 	"net/url"
+	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
@@ -82,13 +85,14 @@ func (g *git) CheckoutCommit(repo, commit string) error {
 	}
 
 	// try to fetch by URL
-	if _, err := g.exec("fetch", repo); err == nil {
+	glog.V(4).Infof("failed to checkout: %v", err)
+	if err := ensureFetchedRemoteForRepo(g, repo); err == nil {
 		if _, err := g.exec("checkout", commit); err == nil {
 			return nil
 		}
+	} else {
+		glog.V(4).Infof("failed to fetch: %v", err)
 	}
-
-	// TODO: what if that transport URL does not exist?
 
 	return fmt.Errorf("could not locate commit %s", commit)
 }
@@ -139,7 +143,7 @@ func gitOutputToError(err error, out string) error {
 	return fmt.Errorf(out)
 }
 
-func mergeLogForRepo(g *git, repo, from, to string) ([]MergeCommit, error) {
+func mergeLogForRepo(g *git, repo string, from, to string) ([]MergeCommit, error) {
 	if from == to {
 		return nil, nil
 	}
@@ -160,11 +164,9 @@ func mergeLogForRepo(g *git, repo, from, to string) ([]MergeCommit, error) {
 		if !strings.Contains(out, "Invalid revision range") {
 			return nil, gitOutputToError(err, out)
 		}
-		// fetch by repo so we at least guarantee we get our target
-		if _, err := g.exec("fetch", repo); err != nil {
+		if _, err := g.exec("fetch", "--all"); err != nil {
 			return nil, gitOutputToError(err, out)
 		}
-		// TODO: fetch other remotes as well?
 		if _, err := g.exec("cat-file", "-e", from+"^{commit}"); err != nil {
 			return nil, fmt.Errorf("from commit %s does not exist", from)
 		}
@@ -233,4 +235,79 @@ func mergeLogForRepo(g *git, repo, from, to string) ([]MergeCommit, error) {
 	}
 
 	return commits, nil
+}
+
+// ensureCloneForRepo ensures that the repo exists on disk, is cloned, and has remotes for
+// both repo and alternateRepos defined. The remotes for alternateRepos will be file system
+// relative to avoid cloning repos twice.
+func ensureCloneForRepo(dir string, repo string, alternateRepos []string, out, errOut io.Writer) (*git, error) {
+	basePath, err := sourceLocationAsRelativePath(dir, repo)
+	if err != nil {
+		return nil, err
+	}
+	glog.V(4).Infof("Ensure repo is cloned at %s pointing to %s", basePath, repo)
+	fi, err := os.Stat(basePath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return nil, err
+		}
+		if err := os.MkdirAll(basePath, 0750); err != nil {
+			return nil, err
+		}
+	} else {
+		if !fi.IsDir() {
+			return nil, fmt.Errorf("repo path %s is not a directory", basePath)
+		}
+	}
+	cloner := &git{}
+	extractedRepo, err := cloner.ChangeContext(basePath)
+	if err != nil {
+		if err != noSuchRepo {
+			return nil, err
+		}
+		glog.V(2).Infof("Cloning %s ...", repo)
+		if err := extractedRepo.Clone(repo, out, errOut); err != nil {
+			return nil, err
+		}
+	} else {
+		if err := ensureRemoteForRepo(extractedRepo, repo); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, altRepo := range alternateRepos {
+		if altRepo == repo {
+			continue
+		}
+		if err := ensureRemoteForRepo(extractedRepo, altRepo); err != nil {
+			return nil, err
+		}
+	}
+
+	return extractedRepo, nil
+}
+
+func remoteNameForRepo(repo string) string {
+	sum := md5.Sum([]byte(repo))
+	repoName := fmt.Sprintf("up-%s", base64.RawURLEncoding.EncodeToString(sum[:])[:10])
+	return repoName
+}
+
+func ensureRemoteForRepo(g *git, repo string) error {
+	repoName := remoteNameForRepo(repo)
+	if out, err := g.exec("remote", "add", repoName, repo); err != nil && !strings.Contains(out, "already exists") {
+		return gitOutputToError(err, out)
+	}
+	return nil
+}
+
+func ensureFetchedRemoteForRepo(g *git, repo string) error {
+	repoName := remoteNameForRepo(repo)
+	if out, err := g.exec("remote", "add", repoName, repo); err != nil && !strings.Contains(out, "already exists") {
+		return gitOutputToError(err, out)
+	}
+	if out, err := g.exec("fetch", repoName); err != nil {
+		return gitOutputToError(err, out)
+	}
+	return nil
 }

@@ -230,7 +230,7 @@ func (o *ExtractOptions) extractGit(dir string) error {
 		}
 		alreadyExtracted[repo] = commit
 
-		extractedRepo, err := ensureCloneForRepo(dir, repo, o.Out, o.ErrOut)
+		extractedRepo, err := ensureCloneForRepo(dir, repo, nil, o.Out, o.ErrOut)
 		if err != nil {
 			hadErrors = true
 			fmt.Fprintf(o.ErrOut, "error: cloning %s: %v\n", repo, err)
@@ -248,37 +248,4 @@ func (o *ExtractOptions) extractGit(dir string) error {
 		return kcmdutil.ErrExit
 	}
 	return nil
-}
-
-func ensureCloneForRepo(dir string, repo string, out, errOut io.Writer) (*git, error) {
-	basePath, err := sourceLocationAsRelativePath(dir, repo)
-	if err != nil {
-		return nil, err
-	}
-	glog.V(4).Infof("Ensure repo is cloned at %s pointing to %s", basePath, repo)
-	fi, err := os.Stat(basePath)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return nil, err
-		}
-		if err := os.MkdirAll(basePath, 0750); err != nil {
-			return nil, err
-		}
-	} else {
-		if !fi.IsDir() {
-			return nil, fmt.Errorf("repo path %s is not a directory", basePath)
-		}
-	}
-	cloner := &git{}
-	extractedRepo, err := cloner.ChangeContext(basePath)
-	if err != nil {
-		if err != noSuchRepo {
-			return nil, err
-		}
-		glog.V(2).Infof("Cloning %s ...", repo)
-		if err := extractedRepo.Clone(repo, out, errOut); err != nil {
-			return nil, err
-		}
-	}
-	return extractedRepo, nil
 }

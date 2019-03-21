@@ -1238,6 +1238,8 @@ type CodeChange struct {
 	Repo     string
 	From, To string
 
+	AlternateRepos []string
+
 	ImagesAffected []string
 }
 
@@ -1260,7 +1262,7 @@ func commitsForRepo(dir string, change CodeChange, out, errOut io.Writer) (*url.
 	if err != nil {
 		return nil, nil, fmt.Errorf("The source repository cannot be parsed %s: %v", change.Repo, err)
 	}
-	g, err := ensureCloneForRepo(dir, change.Repo, errOut, errOut)
+	g, err := ensureCloneForRepo(dir, change.Repo, change.AlternateRepos, errOut, errOut)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1323,8 +1325,13 @@ func releaseDiffContentChanges(diff *ReleaseDiff) ([]CodeChange, []ImageChange, 
 	for _, key := range keys {
 		imageDiff := diff.ChangedImages[key]
 		from, to := imageDiff.From, imageDiff.To
-		_, newRepo := from.Annotations[annotationBuildSourceLocation], to.Annotations[annotationBuildSourceLocation]
+		oldRepo, newRepo := from.Annotations[annotationBuildSourceLocation], to.Annotations[annotationBuildSourceLocation]
 		oldCommit, newCommit := from.Annotations[annotationBuildSourceCommit], to.Annotations[annotationBuildSourceCommit]
+
+		var alternateRepos []string
+		if len(oldRepo) > 0 && oldRepo != newRepo {
+			alternateRepos = append(alternateRepos, oldRepo)
+		}
 
 		// only display a given chunk of changes once
 		commitRange := fmt.Sprintf("%s..%s", oldCommit, newCommit)
@@ -1339,6 +1346,7 @@ func releaseDiffContentChanges(diff *ReleaseDiff) ([]CodeChange, []ImageChange, 
 			Repo:           newRepo,
 			From:           oldCommit,
 			To:             newCommit,
+			AlternateRepos: alternateRepos,
 			ImagesAffected: allKeys,
 		})
 	}
