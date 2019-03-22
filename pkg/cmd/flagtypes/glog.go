@@ -3,7 +3,8 @@ package flagtypes
 import (
 	"flag"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
+
 	"github.com/spf13/pflag"
 )
 
@@ -11,7 +12,7 @@ import (
 func GLog(flags *pflag.FlagSet) {
 	from := flag.CommandLine
 	if flag := from.Lookup("v"); flag != nil {
-		level := flag.Value.(*glog.Level)
+		level := flag.Value.(*klog.Level)
 		levelPtr := (*int32)(level)
 		flags.Int32Var(levelPtr, "loglevel", 0, "Set the level of log output (0-10)")
 		if flags.Lookup("v") == nil {

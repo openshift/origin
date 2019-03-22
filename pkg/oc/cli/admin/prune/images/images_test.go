@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/klog"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
@@ -42,7 +44,9 @@ import (
 var logLevel = flag.Int("loglevel", 0, "")
 
 func TestImagePruneNamespaced(t *testing.T) {
-	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
+	var level klog.Level
+	level.Set(fmt.Sprint(*logLevel))
+
 	kFake := fakekubernetes.NewSimpleClientset()
 	imageFake := &fakeimagev1client.FakeImageV1{Fake: &(fakeimageclient.NewSimpleClientset().Fake)}
 	opts := &PruneImagesOptions{
@@ -80,7 +84,9 @@ func TestImagePruneNamespaced(t *testing.T) {
 }
 
 func TestImagePruneErrOnBadReference(t *testing.T) {
-	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
+	var level klog.Level
+	level.Set(fmt.Sprint(*logLevel))
+
 	podBad := testutil.Pod("foo", "pod1", corev1.PodRunning, "invalid image reference")
 	podGood := testutil.Pod("foo", "pod2", corev1.PodRunning, "example.com/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")
 	dep := testutil.Deployment("foo", "dep1", "do not blame me")

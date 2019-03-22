@@ -15,6 +15,8 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/klog"
+
 	"github.com/golang/glog"
 
 	kappsv1 "k8s.io/api/apps/v1"
@@ -44,7 +46,9 @@ import (
 var logLevel = flag.Int("loglevel", 0, "")
 
 func TestImagePruning(t *testing.T) {
-	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
+	var level klog.Level
+	level.Set(fmt.Sprint(*logLevel))
+
 	registryHost := "registry.io"
 	registryURL := "https://" + registryHost
 
@@ -1350,7 +1354,8 @@ func renderFailure(registryURL string, failure *Failure) string {
 }
 
 func TestImageDeleter(t *testing.T) {
-	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
+	var level klog.Level
+	level.Set(fmt.Sprint(*logLevel))
 
 	tests := map[string]struct {
 		imageDeletionError error
@@ -1387,7 +1392,8 @@ func TestImageDeleter(t *testing.T) {
 }
 
 func TestLayerDeleter(t *testing.T) {
-	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
+	var level klog.Level
+	level.Set(fmt.Sprint(*logLevel))
 
 	var actions []string
 	client := fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
@@ -1403,7 +1409,8 @@ func TestLayerDeleter(t *testing.T) {
 }
 
 func TestNotFoundLayerDeleter(t *testing.T) {
-	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
+	var level klog.Level
+	level.Set(fmt.Sprint(*logLevel))
 
 	var actions []string
 	client := fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
@@ -1419,7 +1426,8 @@ func TestNotFoundLayerDeleter(t *testing.T) {
 }
 
 func TestRegistryPruning(t *testing.T) {
-	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
+	var level klog.Level
+	level.Set(fmt.Sprint(*logLevel))
 
 	tests := []struct {
 		name                       string
@@ -1628,7 +1636,8 @@ func newBool(a bool) *bool {
 }
 
 func TestImageWithStrongAndWeakRefsIsNotPruned(t *testing.T) {
-	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
+	var level klog.Level
+	level.Set(fmt.Sprint(*logLevel))
 
 	images := testutil.ImageList(
 		testutil.AgedImage("0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", 1540),
@@ -1724,7 +1733,8 @@ func TestImageIsPrunable(t *testing.T) {
 }
 
 func TestPrunerGetNextJob(t *testing.T) {
-	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
+	var level klog.Level
+	level.Set(fmt.Sprint(*logLevel))
 
 	glog.V(2).Infof("debug")
 	algo := pruneAlgorithm{
@@ -1921,7 +1931,8 @@ func expectBlockedOrJob(
 
 func TestChangeImageStreamsWhilePruning(t *testing.T) {
 	t.Skip("failed after commenting out")
-	flag.Lookup("v").Value.Set(fmt.Sprint(*logLevel))
+	var level klog.Level
+	level.Set(fmt.Sprint(*logLevel))
 
 	images := testutil.ImageList(
 		testutil.AgedImage("sha256:0000000000000000000000000000000000000000000000000000000000000001", "registry1.io/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", 5),
