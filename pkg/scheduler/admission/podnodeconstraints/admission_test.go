@@ -12,6 +12,7 @@ import (
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
+	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
@@ -391,13 +392,13 @@ func replicationController(setNodeSelector bool) runtime.Object {
 }
 
 func deployment(setNodeSelector bool) runtime.Object {
-	d := &extensions.Deployment{}
+	d := &apps.Deployment{}
 	d.Spec.Template = *podTemplateSpec(setNodeSelector)
 	return d
 }
 
 func replicaSet(setNodeSelector bool) runtime.Object {
-	rs := &extensions.ReplicaSet{}
+	rs := &apps.ReplicaSet{}
 	rs.Spec.Template = *podTemplateSpec(setNodeSelector)
 	return rs
 }
