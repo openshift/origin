@@ -5,13 +5,22 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"time"
+
+	"k8s.io/apiserver/pkg/util/webhook"
+
+	"k8s.io/client-go/kubernetes"
+
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/rest"
 
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	genericoptions "k8s.io/apiserver/pkg/server/options"
+	genericapiserveroptions "k8s.io/apiserver/pkg/server/options"
+	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/template/servicebroker/apis/config"
@@ -21,11 +30,11 @@ import (
 
 type TemplateServiceBrokerServerOptions struct {
 	// we don't have any storage, so we shouldn't use the recommended options
-	SecureServing  *genericoptions.SecureServingOptionsWithLoopback
-	Authentication *genericoptions.DelegatingAuthenticationOptions
-	Authorization  *genericoptions.DelegatingAuthorizationOptions
-	Audit          *genericoptions.AuditOptions
-	Features       *genericoptions.FeatureOptions
+	SecureServing  *genericapiserveroptions.SecureServingOptionsWithLoopback
+	Authentication *genericapiserveroptions.DelegatingAuthenticationOptions
+	Authorization  *genericapiserveroptions.DelegatingAuthorizationOptions
+	Audit          *genericapiserveroptions.AuditOptions
+	Features       *genericapiserveroptions.FeatureOptions
 
 	StdOut io.Writer
 	StdErr io.Writer
@@ -35,11 +44,11 @@ type TemplateServiceBrokerServerOptions struct {
 
 func NewTemplateServiceBrokerServerOptions(out, errOut io.Writer) *TemplateServiceBrokerServerOptions {
 	o := &TemplateServiceBrokerServerOptions{
-		SecureServing:  genericoptions.NewSecureServingOptions().WithLoopback(),
-		Authentication: genericoptions.NewDelegatingAuthenticationOptions(),
-		Authorization:  genericoptions.NewDelegatingAuthorizationOptions(),
-		Audit:          genericoptions.NewAuditOptions(),
-		Features:       genericoptions.NewFeatureOptions(),
+		SecureServing:  genericapiserveroptions.NewSecureServingOptions().WithLoopback(),
+		Authentication: genericapiserveroptions.NewDelegatingAuthenticationOptions(),
+		Authorization:  genericapiserveroptions.NewDelegatingAuthorizationOptions(),
+		Audit:          genericapiserveroptions.NewAuditOptions(),
+		Features:       genericapiserveroptions.NewFeatureOptions(),
 
 		StdOut: out,
 		StdErr: errOut,
@@ -118,7 +127,17 @@ func (o TemplateServiceBrokerServerOptions) Config() (*server.TemplateServiceBro
 		return nil, fmt.Errorf("error creating self-signed certificates: %v", err)
 	}
 
-	serverConfig := genericapiserver.NewConfig(server.Codecs)
+	kubeClientConfig, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, err
+	}
+	kubeClient, err := kubernetes.NewForConfig(kubeClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	serverConfig := genericapiserver.NewRecommendedConfig(server.Codecs)
+	serverConfig.ClientConfig = kubeClientConfig
+	serverConfig.SharedInformerFactory = informers.NewSharedInformerFactory(kubeClient, 10*time.Hour)
 	if err := o.SecureServing.ApplyTo(&serverConfig.SecureServing, &serverConfig.LoopbackClientConfig); err != nil {
 		return nil, err
 	}
@@ -128,17 +147,30 @@ func (o TemplateServiceBrokerServerOptions) Config() (*server.TemplateServiceBro
 	if err := o.Authorization.ApplyTo(&serverConfig.Authorization); err != nil {
 		return nil, err
 	}
-	if err := o.Audit.ApplyTo(serverConfig); err != nil {
+
+	authInfoResolverWrapper := webhook.NewDefaultAuthenticationInfoResolverWrapper(nil, serverConfig.Config.LoopbackClientConfig)
+	if err := o.Audit.ApplyTo(
+		&serverConfig.Config,
+		serverConfig.Config.LoopbackClientConfig,
+		serverConfig.SharedInformerFactory,
+		genericapiserveroptions.NewProcessInfo("template-service-broker", "openshift-template-service-broker"),
+		&genericapiserveroptions.WebhookOptions{
+			AuthInfoResolverWrapper: authInfoResolverWrapper,
+			// the openshift-apiserver runs on cluster as a normal pod, accessed by a service, so it should always have access to the service network
+			ServiceResolver: aggregatorapiserver.NewClusterIPServiceResolver(serverConfig.SharedInformerFactory.Core().V1().Services().Lister()),
+		},
+	); err != nil {
 		return nil, err
 	}
-	if err := o.Features.ApplyTo(serverConfig); err != nil {
+
+	if err := o.Features.ApplyTo(&serverConfig.Config); err != nil {
 		return nil, err
 	}
 
 	serverConfig.EnableMetrics = true
 
 	config := &server.TemplateServiceBrokerConfig{
-		GenericConfig: &genericapiserver.RecommendedConfig{Config: *serverConfig},
+		GenericConfig: serverConfig,
 
 		ExtraConfig: server.ExtraConfig{TemplateNamespaces: o.TSBConfig.TemplateNamespaces},
 		// TODO add the code to set up the client and informers that you need here
