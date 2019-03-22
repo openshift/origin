@@ -20,14 +20,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapitesting "k8s.io/kubernetes/pkg/api/testing"
+	"k8s.io/kubernetes/pkg/apis/apps"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
-	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	apps "github.com/openshift/origin/pkg/apps/apis/apps"
+	oapps "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	build "github.com/openshift/origin/pkg/build/apis/build"
 	image "github.com/openshift/origin/pkg/image/apis/image"
@@ -144,7 +144,7 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 
 			objs := []runtime.Object{
 				&kapi.Pod{},
-				&extensions.Deployment{},
+				&apps.Deployment{},
 				&kapi.Service{},
 				&build.BuildConfig{},
 			}
@@ -154,7 +154,7 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 
 				var codec runtime.Codec
 				switch obj.(type) {
-				case *extensions.Deployment:
+				case *apps.Deployment:
 					codec = apitesting.TestCodec(legacyscheme.Codecs, extensionsv1beta1.SchemeGroupVersion)
 				case *build.BuildConfig:
 					codec = apitesting.TestCodec(legacyscheme.Codecs, buildv1.SchemeGroupVersion)
@@ -314,14 +314,14 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 				j.Termination = routeapi.TLSTerminationEdge
 			}
 		},
-		func(j *apps.DeploymentConfig, c fuzz.Continue) {
+		func(j *oapps.DeploymentConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 
 			if len(j.Spec.Selector) == 0 && j.Spec.Template != nil {
 				j.Spec.Selector = j.Spec.Template.Labels
 			}
 
-			j.Spec.Triggers = []apps.DeploymentTriggerPolicy{{Type: apps.DeploymentTriggerOnConfigChange}}
+			j.Spec.Triggers = []oapps.DeploymentTriggerPolicy{{Type: oapps.DeploymentTriggerOnConfigChange}}
 			if j.Spec.Template != nil && len(j.Spec.Template.Spec.Containers) == 1 {
 				containerName := j.Spec.Template.Spec.Containers[0].Name
 				if p := j.Spec.Strategy.RecreateParams; p != nil {
@@ -335,48 +335,48 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 				}
 			}
 		},
-		func(j *apps.DeploymentStrategy, c fuzz.Continue) {
+		func(j *oapps.DeploymentStrategy, c fuzz.Continue) {
 			randInt64 := func() *int64 {
 				p := int64(c.RandUint64())
 				return &p
 			}
 			c.FuzzNoCustom(j)
 			j.RecreateParams, j.RollingParams, j.CustomParams = nil, nil, nil
-			strategyTypes := []apps.DeploymentStrategyType{apps.DeploymentStrategyTypeRecreate, apps.DeploymentStrategyTypeRolling, apps.DeploymentStrategyTypeCustom}
+			strategyTypes := []oapps.DeploymentStrategyType{oapps.DeploymentStrategyTypeRecreate, oapps.DeploymentStrategyTypeRolling, oapps.DeploymentStrategyTypeCustom}
 			j.Type = strategyTypes[c.Rand.Intn(len(strategyTypes))]
 			j.ActiveDeadlineSeconds = randInt64()
 			switch j.Type {
-			case apps.DeploymentStrategyTypeRecreate:
-				params := &apps.RecreateDeploymentStrategyParams{}
+			case oapps.DeploymentStrategyTypeRecreate:
+				params := &oapps.RecreateDeploymentStrategyParams{}
 				c.Fuzz(params)
 				if params.TimeoutSeconds == nil {
 					s := int64(120)
 					params.TimeoutSeconds = &s
 				}
 				j.RecreateParams = params
-			case apps.DeploymentStrategyTypeRolling:
-				params := &apps.RollingDeploymentStrategyParams{}
+			case oapps.DeploymentStrategyTypeRolling:
+				params := &oapps.RollingDeploymentStrategyParams{}
 				params.TimeoutSeconds = randInt64()
 				params.IntervalSeconds = randInt64()
 				params.UpdatePeriodSeconds = randInt64()
 
-				policyTypes := []apps.LifecycleHookFailurePolicy{
-					apps.LifecycleHookFailurePolicyRetry,
-					apps.LifecycleHookFailurePolicyAbort,
-					apps.LifecycleHookFailurePolicyIgnore,
+				policyTypes := []oapps.LifecycleHookFailurePolicy{
+					oapps.LifecycleHookFailurePolicyRetry,
+					oapps.LifecycleHookFailurePolicyAbort,
+					oapps.LifecycleHookFailurePolicyIgnore,
 				}
 				if c.RandBool() {
-					params.Pre = &apps.LifecycleHook{
+					params.Pre = &oapps.LifecycleHook{
 						FailurePolicy: policyTypes[c.Rand.Intn(len(policyTypes))],
-						ExecNewPod: &apps.ExecNewPodHook{
+						ExecNewPod: &oapps.ExecNewPodHook{
 							ContainerName: c.RandString(),
 						},
 					}
 				}
 				if c.RandBool() {
-					params.Post = &apps.LifecycleHook{
+					params.Post = &oapps.LifecycleHook{
 						FailurePolicy: policyTypes[c.Rand.Intn(len(policyTypes))],
-						ExecNewPod: &apps.ExecNewPodHook{
+						ExecNewPod: &oapps.ExecNewPodHook{
 							ContainerName: c.RandString(),
 						},
 					}
@@ -391,7 +391,7 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 				j.RollingParams = params
 			}
 		},
-		func(j *apps.DeploymentCauseImageTrigger, c fuzz.Continue) {
+		func(j *oapps.DeploymentCauseImageTrigger, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			specs := []string{"", "a/b", "a/b/c", "a:5000/b/c", "a/b", "a/b"}
 			tags := []string{"stuff", "other"}
@@ -400,7 +400,7 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 				j.From.Name = image.JoinImageStreamTag(j.From.Name, tags[c.Intn(len(tags))])
 			}
 		},
-		func(j *apps.DeploymentTriggerImageChangeParams, c fuzz.Continue) {
+		func(j *oapps.DeploymentTriggerImageChangeParams, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			specs := []string{"a/b", "a/b/c", "a:5000/b/c", "a/b:latest", "a/b@test"}
 			j.From.Kind = "DockerImage"
@@ -507,7 +507,7 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 	return f
 }
 
-func defaultHookContainerName(hook *apps.LifecycleHook, containerName string) {
+func defaultHookContainerName(hook *oapps.LifecycleHook, containerName string) {
 	if hook == nil {
 		return
 	}
