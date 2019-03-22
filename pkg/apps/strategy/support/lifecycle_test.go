@@ -19,7 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes/fake"
 	clientgotesting "k8s.io/client-go/testing"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	appsv1 "github.com/openshift/api/apps/v1"
@@ -498,10 +497,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 	for _, test := range tests {
 		t.Logf("evaluating test: %s", test.name)
 		config, deployment := deployment("deployment", "test", test.strategyLabels, test.strategyAnnotations)
-		newStrategy := appsv1.DeploymentStrategy{}
-		if err := legacyscheme.Scheme.Convert(&config.Spec.Strategy, &newStrategy, nil); err != nil {
-			t.Fatalf("conversion error: %v", err)
-		}
+		newStrategy := config.Spec.Strategy
 		pod, err := createHookPodManifest(test.hook, deployment, &newStrategy, "hook", nowFunc().Time)
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
@@ -534,10 +530,7 @@ func TestHookExecutor_makeHookPodRestart(t *testing.T) {
 
 	config := appstest.OkDeploymentConfig(1)
 	deployment, _ := appsutil.MakeDeployment(config)
-	newStrategy := appsv1.DeploymentStrategy{}
-	if err := legacyscheme.Scheme.Convert(&config.Spec.Strategy, &newStrategy, nil); err != nil {
-		t.Fatalf("conversion error: %v", err)
-	}
+	newStrategy := config.Spec.Strategy
 	pod, err := createHookPodManifest(hook, deployment, &newStrategy, "hook", nowFunc().Time)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
