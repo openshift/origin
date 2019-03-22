@@ -215,8 +215,9 @@ func (s *DelegatingAuthenticationOptions) ApplyTo(c *server.AuthenticationInfo, 
 		c.DynamicReloadFns = map[string]server.PostStartHookFunc{}
 	}
 	for k, dynamicReloadFn := range dynamicReloadFuncs {
+		fnCopy := dynamicReloadFn
 		c.DynamicReloadFns[k] = func(context server.PostStartHookContext) error {
-			go dynamicReloadFn(context.StopCh)
+			go fnCopy(context.StopCh)
 			return nil
 		}
 	}
