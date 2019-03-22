@@ -4,12 +4,14 @@ import (
 	"strings"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/rbac"
+	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 
 	"github.com/openshift/origin/pkg/security/apis/security"
 	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
@@ -24,7 +26,7 @@ func TestPodUpdateSCCEnforcement(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -51,17 +53,17 @@ func TestPodUpdateSCCEnforcement(t *testing.T) {
 	// to update the privileged pods either, even if he lies about its privileged nature
 	privilegedPod := getPrivilegedPod("unsafe")
 
-	if _, err := haroldKubeClient.Core().Pods(projectName).Create(privilegedPod); !isForbiddenBySCC(err) {
+	if _, err := haroldKubeClient.CoreV1().Pods(projectName).Create(privilegedPod); !isForbiddenBySCC(err) {
 		t.Fatalf("missing forbidden: %v", err)
 	}
 
-	actualPod, err := clusterAdminKubeClientset.Core().Pods(projectName).Create(privilegedPod)
+	actualPod, err := clusterAdminKubeClientset.CoreV1().Pods(projectName).Create(privilegedPod)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	actualPod.Spec.Containers[0].Image = "something-nefarious"
-	if _, err := haroldKubeClient.Core().Pods(projectName).Update(actualPod); !isForbiddenBySCC(err) {
+	if _, err := haroldKubeClient.CoreV1().Pods(projectName).Update(actualPod); !isForbiddenBySCC(err) {
 		t.Fatalf("missing forbidden: %v", err)
 	}
 
@@ -84,8 +86,8 @@ func TestPodUpdateSCCEnforcement(t *testing.T) {
 	}
 
 	// try to lie about the privileged nature
-	actualPod.Spec.SecurityContext.HostPID = false
-	if _, err := haroldKubeClient.Core().Pods(projectName).Update(actualPod); err == nil {
+	actualPod.Spec.HostPID = false
+	if _, err := haroldKubeClient.CoreV1().Pods(projectName).Update(actualPod); err == nil {
 		t.Fatalf("missing error: %v", err)
 	}
 }
@@ -96,7 +98,7 @@ func TestAllowedSCCViaRBAC(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,13 +114,13 @@ func TestAllowedSCCViaRBAC(t *testing.T) {
 	user2 := "user2"
 
 	clusterRole := "all-scc"
-	rule := rbac.NewRule("use").Groups("security.openshift.io").Resources("securitycontextconstraints").RuleOrDie()
+	rule := rbacv1helpers.NewRule("use").Groups("security.openshift.io").Resources("securitycontextconstraints").RuleOrDie()
 
 	// set a up cluster role that allows access to all SCCs
-	if _, err := clusterAdminKubeClientset.Rbac().ClusterRoles().Create(
-		&rbac.ClusterRole{
+	if _, err := clusterAdminKubeClientset.RbacV1().ClusterRoles().Create(
+		&rbacv1.ClusterRole{
 			ObjectMeta: metav1.ObjectMeta{Name: clusterRole},
-			Rules:      []rbac.PolicyRule{rule},
+			Rules:      []rbacv1.PolicyRule{rule},
 		},
 	); err != nil {
 		t.Fatal(err)
@@ -149,80 +151,80 @@ func TestAllowedSCCViaRBAC(t *testing.T) {
 	}
 
 	// user1 cannot make a privileged pod
-	if _, err := user1Client.Core().Pods(project1).Create(getPrivilegedPod("test1")); !isForbiddenBySCC(err) {
+	if _, err := user1Client.CoreV1().Pods(project1).Create(getPrivilegedPod("test1")); !isForbiddenBySCC(err) {
 		t.Fatalf("missing forbidden for user1: %v", err)
 	}
 
 	// user2 cannot make a privileged pod
-	if _, err := user2Client.Core().Pods(project2).Create(getPrivilegedPod("test2")); !isForbiddenBySCC(err) {
+	if _, err := user2Client.CoreV1().Pods(project2).Create(getPrivilegedPod("test2")); !isForbiddenBySCC(err) {
 		t.Fatalf("missing forbidden for user2: %v", err)
 	}
 
 	// this should allow user1 to make a privileged pod in project1
-	rb := rbac.NewRoleBindingForClusterRole(clusterRole, project1).Users(user1).BindingOrDie()
-	if _, err := clusterAdminKubeClientset.Rbac().RoleBindings(project1).Create(&rb); err != nil {
+	rb := rbacv1helpers.NewRoleBindingForClusterRole(clusterRole, project1).Users(user1).BindingOrDie()
+	if _, err := clusterAdminKubeClientset.RbacV1().RoleBindings(project1).Create(&rb); err != nil {
 		t.Fatal(err)
 	}
 
 	// this should allow user1 to make pods in project2
-	rbEditUser1Project2 := rbac.NewRoleBindingForClusterRole("edit", project2).Users(user1).BindingOrDie()
-	if _, err := clusterAdminKubeClientset.Rbac().RoleBindings(project2).Create(&rbEditUser1Project2); err != nil {
+	rbEditUser1Project2 := rbacv1helpers.NewRoleBindingForClusterRole("edit", project2).Users(user1).BindingOrDie()
+	if _, err := clusterAdminKubeClientset.RbacV1().RoleBindings(project2).Create(&rbEditUser1Project2); err != nil {
 		t.Fatal(err)
 	}
 
 	// this should allow user2 to make pods in project1
-	rbEditUser2Project1 := rbac.NewRoleBindingForClusterRole("edit", project1).Users(user2).BindingOrDie()
-	if _, err := clusterAdminKubeClientset.Rbac().RoleBindings(project1).Create(&rbEditUser2Project1); err != nil {
+	rbEditUser2Project1 := rbacv1helpers.NewRoleBindingForClusterRole("edit", project1).Users(user2).BindingOrDie()
+	if _, err := clusterAdminKubeClientset.RbacV1().RoleBindings(project1).Create(&rbEditUser2Project1); err != nil {
 		t.Fatal(err)
 	}
 
 	// this should allow user2 to make a privileged pod in all projects
-	crb := rbac.NewClusterBinding(clusterRole).Users(user2).BindingOrDie()
-	if _, err := clusterAdminKubeClientset.Rbac().ClusterRoleBindings().Create(&crb); err != nil {
+	crb := rbacv1helpers.NewClusterBinding(clusterRole).Users(user2).BindingOrDie()
+	if _, err := clusterAdminKubeClientset.RbacV1().ClusterRoleBindings().Create(&crb); err != nil {
 		t.Fatal(err)
 	}
 
 	// wait for RBAC to catch up to user1 role binding for SCC
-	if err := testutil.WaitForPolicyUpdate(user1Client.Authorization(), project1, rule.Verbs[0],
+	if err := testutil.WaitForPolicyUpdate(user1Client.AuthorizationV1(), project1, rule.Verbs[0],
 		schema.GroupResource{Group: rule.APIGroups[0], Resource: rule.Resources[0]}, true); err != nil {
 		t.Fatal(err)
 	}
 
 	// wait for RBAC to catch up to user1 role binding for edit
-	if err := testutil.WaitForPolicyUpdate(user1Client.Authorization(), project2, "create",
+	if err := testutil.WaitForPolicyUpdate(user1Client.AuthorizationV1(), project2, "create",
 		schema.GroupResource{Resource: "pods"}, true); err != nil {
 		t.Fatal(err)
 	}
 
 	// wait for RBAC to catch up to user2 role binding
-	if err := testutil.WaitForPolicyUpdate(user2Client.Authorization(), project1, "create",
+	if err := testutil.WaitForPolicyUpdate(user2Client.AuthorizationV1(), project1, "create",
 		schema.GroupResource{Resource: "pods"}, true); err != nil {
 		t.Fatal(err)
 	}
 
 	// wait for RBAC to catch up to user2 cluster role binding
-	if err := testutil.WaitForClusterPolicyUpdate(user2Client.Authorization(), rule.Verbs[0],
+	if err := testutil.WaitForClusterPolicyUpdate(user2Client.AuthorizationV1(), rule.Verbs[0],
 		schema.GroupResource{Group: rule.APIGroups[0], Resource: rule.Resources[0]}, true); err != nil {
 		t.Fatal(err)
 	}
 
 	// user1 can make a privileged pod in project1
-	if _, err := user1Client.Core().Pods(project1).Create(getPrivilegedPod("test3")); err != nil {
+	if _, err := user1Client.CoreV1().Pods(project1).Create(getPrivilegedPod("test3")); err != nil {
 		t.Fatalf("user1 failed to create pod in project1 via local binding: %v", err)
 	}
 
 	// user1 cannot make a privileged pod in project2
-	if _, err := user1Client.Core().Pods(project2).Create(getPrivilegedPod("test4")); !isForbiddenBySCC(err) {
+	if _, err := user1Client.CoreV1().Pods(project2).Create(getPrivilegedPod("test4")); !isForbiddenBySCC(err) {
 		t.Fatalf("missing forbidden for user1 in project2: %v", err)
 	}
 
 	// user2 can make a privileged pod in project1
-	if _, err := user2Client.Core().Pods(project1).Create(getPrivilegedPod("test5")); err != nil {
+	if _, err := user2Client.CoreV1().Pods(project1).Create(getPrivilegedPod("test5")); err != nil {
 		t.Fatalf("user2 failed to create pod in project1 via cluster binding: %v", err)
 	}
 
 	// user2 can make a privileged pod in project2
-	if _, err := user2Client.Core().Pods(project2).Create(getPrivilegedPod("test6")); err != nil {
+	if _, err := user2Client.CoreV1().Pods(project2).Create(getPrivilegedPod("test6")); err != nil {
 		t.Fatalf("user2 failed to create pod in project2 via cluster binding: %v", err)
 	}
 
@@ -255,16 +257,14 @@ func isForbiddenBySCCExecRestrictions(err error) bool {
 	return kapierror.IsForbidden(err) && strings.Contains(err.Error(), "pod's security context exceeds your permissions")
 }
 
-func getPrivilegedPod(name string) *kapi.Pod {
-	return &kapi.Pod{
+func getPrivilegedPod(name string) *corev1.Pod {
+	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
-		Spec: kapi.PodSpec{
-			Containers: []kapi.Container{
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
 				{Name: "first", Image: "something-innocuous"},
 			},
-			SecurityContext: &kapi.PodSecurityContext{
-				HostPID: true,
-			},
+			HostPID: true,
 		},
 	}
 }

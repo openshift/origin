@@ -3,13 +3,12 @@ package integration
 import (
 	"testing"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/rbac"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/authorization/apis/authorization/rbacconversion"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -31,7 +30,7 @@ func TestRestrictUsers(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -135,11 +134,21 @@ func TestRestrictUsers(t *testing.T) {
 
 	// Creating a RBAC rolebinding when the subject is not already bound
 	// should also fail.
-	rbacRolebindingBob := &rbac.RoleBinding{}
-	if err := rbacconversion.Convert_authorization_RoleBinding_To_rbac_RoleBinding(rolebindingBob, rbacRolebindingBob, nil); err != nil {
-		t.Fatalf("failed to convert RoleBinding: %v", err)
+	rbacRolebindingBob := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "namespace",
+			Name:      "rolebinding3",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:      rbacv1.UserKind,
+				Namespace: "namespace",
+				Name:      "bob",
+			},
+		},
+		RoleRef: rbacv1.RoleRef{Kind: "Role", Name: "role"},
 	}
-	if _, err := clusterAdminKubeClient.Rbac().RoleBindings("namespace").Create(rbacRolebindingBob); !kapierrors.IsForbidden(err) {
+	if _, err := clusterAdminKubeClient.RbacV1().RoleBindings("namespace").Create(rbacRolebindingBob); !kapierrors.IsForbidden(err) {
 		t.Fatalf("expected forbidden, got %v", err)
 	}
 

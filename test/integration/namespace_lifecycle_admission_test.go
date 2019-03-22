@@ -7,12 +7,12 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/util/retry"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	projectv1 "github.com/openshift/api/project/v1"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
@@ -30,20 +30,20 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 		t.Fatal(err)
 	}
 	clusterAdminRouteClient := routeclient.NewForConfigOrDie(clusterAdminClientConfig).Route()
-	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	for _, ns := range []string{"default", "openshift-config", "openshift-cluster-version"} {
-		if err := clusterAdminKubeClientset.Core().Namespaces().Delete(ns, nil); err == nil {
+		if err := clusterAdminKubeClientset.CoreV1().Namespaces().Delete(ns, nil); err == nil {
 			t.Fatalf("expected error deleting %q namespace, got none", ns)
 		}
 	}
 
 	// Create a namespace directly (not via a project)
-	ns := &kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test"}}
-	ns, err = clusterAdminKubeClientset.Core().Namespaces().Create(ns)
+	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test"}}
+	ns, err = clusterAdminKubeClientset.CoreV1().Namespaces().Create(ns)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 	}
 	found := false
 	for _, f := range ns.Spec.Finalizers {
-		if f == projectapi.FinalizerOrigin {
+		if f == projectv1.FinalizerOrigin {
 			found = true
 			break
 		}
@@ -60,18 +60,18 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 	if found {
 		t.Fatalf("didn't expect origin finalizer to be present, got %#v", ns.Spec.Finalizers)
 	}
-	nsWatch, err := clusterAdminKubeClientset.Core().Namespaces().Watch(metav1.SingleObject(ns.ObjectMeta))
+	nsWatch, err := clusterAdminKubeClientset.CoreV1().Namespaces().Watch(metav1.SingleObject(ns.ObjectMeta))
 	if err != nil {
 		t.Fatal(err)
 	}
 	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		ns, err = clusterAdminKubeClientset.Core().Namespaces().Get("test", metav1.GetOptions{})
+		ns, err = clusterAdminKubeClientset.CoreV1().Namespaces().Get("test", metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
-		ns.Spec.Finalizers = append(ns.Spec.Finalizers, projectapi.FinalizerOrigin)
+		ns.Spec.Finalizers = append(ns.Spec.Finalizers, projectv1.FinalizerOrigin)
 		t.Log(spew.Sdump(ns))
-		afterUpdate, err := clusterAdminKubeClientset.Core().Namespaces().Finalize(ns)
+		afterUpdate, err := clusterAdminKubeClientset.CoreV1().Namespaces().Finalize(ns)
 		t.Log(spew.Sdump(afterUpdate))
 		return err
 	})
@@ -89,9 +89,9 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 			if event.Type != watch.Modified {
 				t.Fatal(spew.Sdump(event))
 			}
-			updatedNamespace := event.Object.(*kapi.Namespace)
+			updatedNamespace := event.Object.(*corev1.Namespace)
 			for _, curr := range updatedNamespace.Spec.Finalizers {
-				if curr == projectapi.FinalizerOrigin {
+				if curr == projectv1.FinalizerOrigin {
 					found = true
 				}
 			}
@@ -109,10 +109,10 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 		if obj.Type != watch.Modified {
 			t.Fatal(spew.Sdump(obj))
 		}
-		updatedNamespace := obj.Object.(*kapi.Namespace)
+		updatedNamespace := obj.Object.(*corev1.Namespace)
 		found := false
 		for _, curr := range updatedNamespace.Spec.Finalizers {
-			if curr == projectapi.FinalizerOrigin {
+			if curr == projectv1.FinalizerOrigin {
 				found = true
 			}
 		}
@@ -134,7 +134,7 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 	}
 
 	// Delete the namespace
-	err = clusterAdminKubeClientset.Core().Namespaces().Delete(ns.Name, nil)
+	err = clusterAdminKubeClientset.CoreV1().Namespaces().Delete(ns.Name, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

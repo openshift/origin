@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	kubeauthorizationv1 "k8s.io/api/authorization/v1"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,17 +18,14 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/kubernetes"
+	authorizationv1client "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	appsapi "k8s.io/kubernetes/pkg/apis/apps"
-	kubeauthorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	extensionsapi "k8s.io/kubernetes/pkg/apis/extensions"
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
-	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	oapps "github.com/openshift/api/apps"
 	"github.com/openshift/api/build"
@@ -140,19 +139,19 @@ func TestClusterReaderCoverage(t *testing.T) {
 		oauth.Resource("oauthaccesstokens"):     true,
 		oauth.Resource("oauthclients"):          true,
 		image.Resource("imagestreams/secrets"):  true,
-		kapi.Resource("secrets"):                true,
-		kapi.Resource("pods/exec"):              true,
-		kapi.Resource("pods/proxy"):             true,
-		kapi.Resource("pods/portforward"):       true,
-		kapi.Resource("nodes/proxy"):            true,
-		kapi.Resource("services/proxy"):         true,
+		corev1.Resource("secrets"):              true,
+		corev1.Resource("pods/exec"):            true,
+		corev1.Resource("pods/proxy"):           true,
+		corev1.Resource("pods/portforward"):     true,
+		corev1.Resource("nodes/proxy"):          true,
+		corev1.Resource("services/proxy"):       true,
 		legacy.Resource("oauthauthorizetokens"): true,
 		legacy.Resource("oauthaccesstokens"):    true,
 		legacy.Resource("oauthclients"):         true,
 		legacy.Resource("imagestreams/secrets"): true,
 	}
 
-	readerRole, err := rbacclient.NewForConfigOrDie(clusterAdminClientConfig).ClusterRoles().Get(bootstrappolicy.ClusterReaderRoleName, metav1.GetOptions{})
+	readerRole, err := rbacv1client.NewForConfigOrDie(clusterAdminClientConfig).ClusterRoles().Get(bootstrappolicy.ClusterReaderRoleName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -186,8 +185,8 @@ func TestClusterReaderCoverage(t *testing.T) {
 		image.Resource("imagestreammappings"),
 		extensionsapi.Resource("deployments/rollback"),
 		appsapi.Resource("deployments/rollback"),
-		kapi.Resource("pods/attach"),
-		kapi.Resource("namespaces/finalize"),
+		corev1.Resource("pods/attach"),
+		corev1.Resource("namespaces/finalize"),
 		{Group: "", Resource: "buildconfigs/instantiatebinary"},
 		{Group: "", Resource: "buildconfigs/instantiate"},
 		{Group: "", Resource: "builds/clone"},
@@ -230,12 +229,12 @@ func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = appsv1client.NewForConfigOrDie(haroldConfig).Apps().DeploymentConfigs("hammer-project").List(metav1.ListOptions{})
+	_, err = appsv1client.NewForConfigOrDie(haroldConfig).AppsV1().DeploymentConfigs("hammer-project").List(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = appsv1client.NewForConfigOrDie(markConfig).Apps().DeploymentConfigs("hammer-project").List(metav1.ListOptions{})
+	_, err = appsv1client.NewForConfigOrDie(markConfig).AppsV1().DeploymentConfigs("hammer-project").List(metav1.ListOptions{})
 	if (err == nil) || !kapierror.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -365,11 +364,11 @@ func TestAuthorizationResolution(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := buildClient.Build().Builds(metav1.NamespaceDefault).List(metav1.ListOptions{}); err != nil {
+	if _, err := buildClient.BuildV1().Builds(metav1.NamespaceDefault).List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := appsClient.Apps().DeploymentConfigs(metav1.NamespaceDefault).List(metav1.ListOptions{}); !kapierror.IsForbidden(err) {
+	if _, err := appsClient.AppsV1().DeploymentConfigs(metav1.NamespaceDefault).List(metav1.ListOptions{}); !kapierror.IsForbidden(err) {
 		t.Errorf("expected forbidden, got %v", err)
 	}
 
@@ -661,7 +660,7 @@ type subjectAccessReviewTest struct {
 	kubeNamespace     string
 	kubeErr           string
 	kubeSkip          bool
-	kubeAuthInterface internalversion.AuthorizationInterface
+	kubeAuthInterface authorizationv1client.AuthorizationV1Interface
 
 	response authorizationapi.SubjectAccessReviewResponse
 	err      string
@@ -735,21 +734,21 @@ func (test subjectAccessReviewTest) run(t *testing.T) {
 		failMessage := ""
 		err := wait.Poll(testutil.PolicyCachePollInterval, testutil.PolicyCachePollTimeout, func() (bool, error) {
 			var err error
-			var actualResponse kubeauthorizationapi.SubjectAccessReviewStatus
+			var actualResponse kubeauthorizationv1.SubjectAccessReviewStatus
 			if test.localReview != nil {
 				if len(test.localReview.User) == 0 && (test.localReview.Groups == nil || len(test.localReview.Groups.UnsortedList()) == 0) {
-					var tmp *kubeauthorizationapi.SelfSubjectAccessReview
+					var tmp *kubeauthorizationv1.SelfSubjectAccessReview
 					if tmp, err = test.kubeAuthInterface.SelfSubjectAccessReviews().Create(toKubeSelfSAR(testNS, test.localReview)); err == nil {
 						actualResponse = tmp.Status
 					}
 				} else {
-					var tmp *kubeauthorizationapi.LocalSubjectAccessReview
+					var tmp *kubeauthorizationv1.LocalSubjectAccessReview
 					if tmp, err = test.kubeAuthInterface.LocalSubjectAccessReviews(testNS).Create(toKubeLocalSAR(testNS, test.localReview)); err == nil {
 						actualResponse = tmp.Status
 					}
 				}
 			} else {
-				var tmp *kubeauthorizationapi.SubjectAccessReview
+				var tmp *kubeauthorizationv1.SubjectAccessReview
 				if tmp, err = test.kubeAuthInterface.SubjectAccessReviews().Create(toKubeClusterSAR(test.clusterReview)); err == nil {
 					actualResponse = tmp.Status
 				}
@@ -798,10 +797,10 @@ func (test subjectAccessReviewTest) run(t *testing.T) {
 }
 
 // TODO handle Subresource and NonResourceAttributes
-func toKubeSelfSAR(testNS string, sar *authorizationapi.LocalSubjectAccessReview) *kubeauthorizationapi.SelfSubjectAccessReview {
-	return &kubeauthorizationapi.SelfSubjectAccessReview{
-		Spec: kubeauthorizationapi.SelfSubjectAccessReviewSpec{
-			ResourceAttributes: &kubeauthorizationapi.ResourceAttributes{
+func toKubeSelfSAR(testNS string, sar *authorizationapi.LocalSubjectAccessReview) *kubeauthorizationv1.SelfSubjectAccessReview {
+	return &kubeauthorizationv1.SelfSubjectAccessReview{
+		Spec: kubeauthorizationv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
 				Namespace: testNS,
 				Verb:      sar.Verb,
 				Group:     sar.Group,
@@ -814,13 +813,13 @@ func toKubeSelfSAR(testNS string, sar *authorizationapi.LocalSubjectAccessReview
 }
 
 // TODO handle Extra/Scopes, Subresource and NonResourceAttributes
-func toKubeLocalSAR(testNS string, sar *authorizationapi.LocalSubjectAccessReview) *kubeauthorizationapi.LocalSubjectAccessReview {
-	return &kubeauthorizationapi.LocalSubjectAccessReview{
+func toKubeLocalSAR(testNS string, sar *authorizationapi.LocalSubjectAccessReview) *kubeauthorizationv1.LocalSubjectAccessReview {
+	return &kubeauthorizationv1.LocalSubjectAccessReview{
 		ObjectMeta: metav1.ObjectMeta{Namespace: testNS},
-		Spec: kubeauthorizationapi.SubjectAccessReviewSpec{
+		Spec: kubeauthorizationv1.SubjectAccessReviewSpec{
 			User:   sar.User,
 			Groups: sar.Groups.List(),
-			ResourceAttributes: &kubeauthorizationapi.ResourceAttributes{
+			ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
 				Namespace: testNS,
 				Verb:      sar.Verb,
 				Group:     sar.Group,
@@ -833,12 +832,12 @@ func toKubeLocalSAR(testNS string, sar *authorizationapi.LocalSubjectAccessRevie
 }
 
 // TODO handle Extra/Scopes, Subresource and NonResourceAttributes
-func toKubeClusterSAR(sar *authorizationapi.SubjectAccessReview) *kubeauthorizationapi.SubjectAccessReview {
-	return &kubeauthorizationapi.SubjectAccessReview{
-		Spec: kubeauthorizationapi.SubjectAccessReviewSpec{
+func toKubeClusterSAR(sar *authorizationapi.SubjectAccessReview) *kubeauthorizationv1.SubjectAccessReview {
+	return &kubeauthorizationv1.SubjectAccessReview{
+		Spec: kubeauthorizationv1.SubjectAccessReviewSpec{
 			User:   sar.User,
 			Groups: sar.Groups.List(),
-			ResourceAttributes: &kubeauthorizationapi.ResourceAttributes{
+			ResourceAttributes: &kubeauthorizationv1.ResourceAttributes{
 				Verb:     sar.Verb,
 				Group:    sar.Group,
 				Version:  sar.Version,
@@ -856,11 +855,11 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminSARGetter := clusterAdminKubeClient.Authorization()
+	clusterAdminSARGetter := clusterAdminKubeClient.AuthorizationV1()
 
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
@@ -909,7 +908,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 			User:   "harold",
 			Action: authorizationapi.Action{Verb: "get", Group: "foo", Resource: "horizontalpodautoscalers"},
 		},
-		kubeAuthInterface: clusterAdminKubeClient.Authorization(),
+		kubeAuthInterface: clusterAdminKubeClient.AuthorizationV1(),
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
 			Reason:    "",
@@ -993,11 +992,11 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminLocalSARGetter := clusterAdminKubeClient.Authorization()
+	clusterAdminLocalSARGetter := clusterAdminKubeClient.AuthorizationV1()
 
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
@@ -1014,7 +1013,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	haroldAuthorizationClient := authorizationclient.NewForConfigOrDie(haroldConfig).Authorization()
-	haroldSARGetter := haroldKubeClient.Authorization()
+	haroldSARGetter := haroldKubeClient.AuthorizationV1()
 
 	_, markConfig, err := testserver.CreateNewProject(clusterAdminClientConfig, "mallet-project", "mark")
 	if err != nil {
@@ -1025,22 +1024,22 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	markAuthorizationClient := authorizationclient.NewForConfigOrDie(markConfig).Authorization()
-	markSARGetter := markKubeClient.Authorization()
+	markSARGetter := markKubeClient.AuthorizationV1()
 
 	dannyKubeClient, dannyConfig, err := testutil.GetClientForUser(clusterAdminClientConfig, "danny")
 	if err != nil {
 		t.Fatalf("error requesting token: %v", err)
 	}
 	dannyAuthorizationClient := authorizationclient.NewForConfigOrDie(dannyConfig).Authorization()
-	dannySARGetter := dannyKubeClient.Authorization()
+	dannySARGetter := dannyKubeClient.AuthorizationV1()
 
 	anonymousConfig := rest.AnonymousClientConfig(clusterAdminClientConfig)
 	anonymousAuthorizationClient := authorizationclient.NewForConfigOrDie(anonymousConfig).Authorization()
-	anonymousKubeClient, err := kclientset.NewForConfig(anonymousConfig)
+	anonymousKubeClient, err := kubernetes.NewForConfig(anonymousConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	anonymousSARGetter := anonymousKubeClient.Authorization()
+	anonymousSARGetter := anonymousKubeClient.AuthorizationV1()
 
 	addAnonymous := &policy.RoleModificationOptions{
 		RoleBindingNamespace: "hammer-project",
@@ -1398,14 +1397,14 @@ func TestBrowserSafeAuthorizer(t *testing.T) {
 	}{
 		{
 			name:   "safe to proxy verb",
-			client: userClient.Core().RESTClient(),
+			client: userClient.CoreV1().RESTClient(),
 			path:   proxyVerb,
 
 			expectUnsafe: false,
 		},
 		{
 			name:   "safe to proxy subresource",
-			client: userClient.Core().RESTClient(),
+			client: userClient.CoreV1().RESTClient(),
 			path:   proxySubresource,
 
 			expectUnsafe: false,

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -184,11 +185,16 @@ func waitForResourceQuotaSync(oc *exutil.CLI, name string, expectedResources kap
 
 // waitForLimitSync waits until a usage of a quota reaches given limit with a short timeout
 func waitForLimitSync(oc *exutil.CLI, hardLimit kapi.ResourceList) error {
+	externalHardLimit := corev1.ResourceList{}
+	for k, v := range hardLimit {
+		externalHardLimit[corev1.ResourceName(k)] = v
+	}
+
 	g.By(fmt.Sprintf("waiting for resource quota %s to get updated", quotaName))
 	return testutil.WaitForResourceQuotaLimitSync(
-		oc.InternalKubeClient().Core().ResourceQuotas(oc.Namespace()),
+		oc.KubeClient().CoreV1().ResourceQuotas(oc.Namespace()),
 		quotaName,
-		hardLimit,
+		externalHardLimit,
 		waitTimeout)
 }
 

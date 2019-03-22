@@ -167,7 +167,7 @@ func TestApiGroupPreferredVersions(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	kclientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	kclientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -215,7 +215,7 @@ func TestApiGroups(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	kclientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	kclientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

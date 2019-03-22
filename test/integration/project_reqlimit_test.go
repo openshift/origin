@@ -3,13 +3,13 @@ package integration
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apiserver/pkg/storage/names"
-	restclient "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
@@ -21,7 +21,7 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func setupProjectRequestLimitTest(t *testing.T, pluginConfig *requestlimit.ProjectRequestLimitConfig) (kclientset.Interface, *restclient.Config, func()) {
+func setupProjectRequestLimitTest(t *testing.T, pluginConfig *requestlimit.ProjectRequestLimitConfig) (kubernetes.Interface, *rest.Config, func()) {
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
@@ -35,7 +35,7 @@ func setupProjectRequestLimitTest(t *testing.T, pluginConfig *requestlimit.Proje
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
 	}
-	kubeClient, err := testutil.GetClusterAdminKubeInternalClient(kubeConfigFile)
+	kubeClient, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting client: %v", err)
 	}
@@ -60,13 +60,13 @@ func setupProjectRequestLimitUsers(t *testing.T, client userclient.UserInterface
 	}
 }
 
-func setupProjectRequestLimitNamespaces(t *testing.T, kclient kclientset.Interface, namespacesByRequester map[string]int) {
+func setupProjectRequestLimitNamespaces(t *testing.T, kclient kubernetes.Interface, namespacesByRequester map[string]int) {
 	for requester, nsCount := range namespacesByRequester {
 		for i := 0; i < nsCount; i++ {
-			ns := &kapi.Namespace{}
+			ns := &corev1.Namespace{}
 			ns.GenerateName = "testns"
 			ns.Annotations = map[string]string{projectapi.ProjectRequester: requester}
-			_, err := kclient.Core().Namespaces().Create(ns)
+			_, err := kclient.CoreV1().Namespaces().Create(ns)
 			if err != nil {
 				t.Fatalf("Could not create namespace for requester %s: %v", requester, err)
 			}
@@ -189,7 +189,7 @@ func TestProjectRequestLimitAsSystemAdmin(t *testing.T) {
 	}
 }
 
-func testProjectRequestLimitAdmission(t *testing.T, errorPrefix string, clientConfig *restclient.Config, tests map[string]bool) {
+func testProjectRequestLimitAdmission(t *testing.T, errorPrefix string, clientConfig *rest.Config, tests map[string]bool) {
 	for user, expectSuccess := range tests {
 		_, clientConfig, err := testutil.GetClientForUser(clientConfig, user)
 		if err != nil {

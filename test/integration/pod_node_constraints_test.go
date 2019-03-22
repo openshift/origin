@@ -3,18 +3,17 @@ package integration
 import (
 	"testing"
 
+	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
+	"k8s.io/client-go/kubernetes"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
-	"k8s.io/kubernetes/pkg/apis/batch"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/extensions"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	appsv1 "github.com/openshift/api/apps/v1"
+	oappsv1 "github.com/openshift/api/apps/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -55,7 +54,7 @@ func TestPodNodeConstraintsAdmissionPluginSetNodeSelectorNonAdmin(t *testing.T) 
 	testPodNodeConstraintsObjectCreationWithPodTemplate(t, "set node selector, regular user", kclientset, oclient, "", map[string]string{"hostname": "foo"}, true)
 }
 
-func setupClusterAdminPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNodeConstraintsConfig) (appsclient.Interface, kclientset.Interface, func()) {
+func setupClusterAdminPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNodeConstraintsConfig) (appsclient.Interface, kubernetes.Interface, func()) {
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
@@ -71,7 +70,7 @@ func setupClusterAdminPodNodeConstraintsTest(t *testing.T, pluginConfig *plugina
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
 	}
-	kubeClientset, err := testutil.GetClusterAdminKubeInternalClient(kubeConfigFile)
+	kubeClientset, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting client: %v", err)
 	}
@@ -79,9 +78,9 @@ func setupClusterAdminPodNodeConstraintsTest(t *testing.T, pluginConfig *plugina
 	if err != nil {
 		t.Fatalf("error getting client: %v", err)
 	}
-	ns := &kapi.Namespace{}
+	ns := &corev1.Namespace{}
 	ns.Name = testutil.Namespace()
-	_, err = kubeClientset.Core().Namespaces().Create(ns)
+	_, err = kubeClientset.CoreV1().Namespaces().Create(ns)
 	if err != nil {
 		t.Fatalf("error creating namespace: %v", err)
 	}
@@ -93,7 +92,7 @@ func setupClusterAdminPodNodeConstraintsTest(t *testing.T, pluginConfig *plugina
 	}
 }
 
-func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNodeConstraintsConfig, user string) (appsclient.Interface, kclientset.Interface, func()) {
+func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNodeConstraintsConfig, user string) (appsclient.Interface, kubernetes.Interface, func()) {
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
@@ -116,13 +115,13 @@ func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNo
 	if err != nil {
 		t.Fatalf("error getting user/kube client: %v", err)
 	}
-	kubeClientset, err := testutil.GetClusterAdminKubeInternalClient(kubeConfigFile)
+	kubeClientset, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting kube client: %v", err)
 	}
-	ns := &kapi.Namespace{}
+	ns := &corev1.Namespace{}
 	ns.Name = testutil.Namespace()
-	_, err = kubeClientset.Core().Namespaces().Create(ns)
+	_, err = kubeClientset.CoreV1().Namespaces().Create(ns)
 	if err != nil {
 		t.Fatalf("error creating namespace: %v", err)
 	}
@@ -145,20 +144,6 @@ func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNo
 	}
 }
 
-func testInternalPodNodeConstraintsPodSpec(nodeName string, nodeSelector map[string]string) kapi.PodSpec {
-	spec := kapi.PodSpec{}
-	spec.RestartPolicy = kapi.RestartPolicyAlways
-	spec.NodeName = nodeName
-	spec.NodeSelector = nodeSelector
-	spec.Containers = []kapi.Container{
-		{
-			Name:  "container",
-			Image: "test/image",
-		},
-	}
-	return spec
-}
-
 func testPodNodeConstraintsPodSpec(nodeName string, nodeSelector map[string]string) corev1.PodSpec {
 	spec := corev1.PodSpec{}
 	spec.RestartPolicy = corev1.RestartPolicyAlways
@@ -173,62 +158,66 @@ func testPodNodeConstraintsPodSpec(nodeName string, nodeSelector map[string]stri
 	return spec
 }
 
-func testPodNodeConstraintsPod(nodeName string, nodeSelector map[string]string) *kapi.Pod {
-	pod := &kapi.Pod{}
+func testPodNodeConstraintsPod(nodeName string, nodeSelector map[string]string) *corev1.Pod {
+	pod := &corev1.Pod{}
 	pod.Name = "testpod"
-	pod.Spec = testInternalPodNodeConstraintsPodSpec(nodeName, nodeSelector)
+	pod.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)
 	return pod
 }
 
-func testPodNodeConstraintsReplicationController(nodeName string, nodeSelector map[string]string) *kapi.ReplicationController {
-	rc := &kapi.ReplicationController{}
+func testPodNodeConstraintsReplicationController(nodeName string, nodeSelector map[string]string) *corev1.ReplicationController {
+	rc := &corev1.ReplicationController{}
 	rc.Name = "testrc"
-	rc.Spec.Replicas = 1
+	rc.Spec.Replicas = int32Ptr(1)
 	rc.Spec.Selector = map[string]string{"foo": "bar"}
-	rc.Spec.Template = &kapi.PodTemplateSpec{}
+	rc.Spec.Template = &corev1.PodTemplateSpec{}
 	rc.Spec.Template.Labels = map[string]string{"foo": "bar"}
-	rc.Spec.Template.Spec = testInternalPodNodeConstraintsPodSpec(nodeName, nodeSelector)
+	rc.Spec.Template.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)
 	return rc
 }
 
-func testPodNodeConstraintsDeployment(nodeName string, nodeSelector map[string]string) *extensions.Deployment {
-	d := &extensions.Deployment{}
+func int32Ptr(in int32) *int32 {
+	return &in
+}
+
+func testPodNodeConstraintsDeployment(nodeName string, nodeSelector map[string]string) *appsv1.Deployment {
+	d := &appsv1.Deployment{}
 	d.Name = "testdeployment"
-	d.Spec.Replicas = 1
+	d.Spec.Replicas = int32Ptr(1)
 	d.Spec.Template.Labels = map[string]string{"foo": "bar"}
-	d.Spec.Template.Spec = testInternalPodNodeConstraintsPodSpec(nodeName, nodeSelector)
+	d.Spec.Template.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)
 	d.Spec.Selector = &metav1.LabelSelector{
 		MatchLabels: map[string]string{"foo": "bar"},
 	}
 	return d
 }
 
-func testPodNodeConstraintsReplicaSet(nodeName string, nodeSelector map[string]string) *extensions.ReplicaSet {
-	rs := &extensions.ReplicaSet{}
+func testPodNodeConstraintsReplicaSet(nodeName string, nodeSelector map[string]string) *appsv1.ReplicaSet {
+	rs := &appsv1.ReplicaSet{}
 	rs.Name = "testrs"
-	rs.Spec.Replicas = 1
-	rs.Spec.Template = kapi.PodTemplateSpec{}
+	rs.Spec.Replicas = int32Ptr(1)
+	rs.Spec.Template = corev1.PodTemplateSpec{}
 	rs.Spec.Template.Labels = map[string]string{"foo": "bar"}
-	rs.Spec.Template.Spec = testInternalPodNodeConstraintsPodSpec(nodeName, nodeSelector)
+	rs.Spec.Template.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)
 	rs.Spec.Selector = &metav1.LabelSelector{
 		MatchLabels: map[string]string{"foo": "bar"},
 	}
 	return rs
 }
 
-func testPodNodeConstraintsJob(nodeName string, nodeSelector map[string]string) *batch.Job {
-	job := &batch.Job{}
+func testPodNodeConstraintsJob(nodeName string, nodeSelector map[string]string) *batchv1.Job {
+	job := &batchv1.Job{}
 	job.Name = "testjob"
 	job.Spec.Template.Labels = map[string]string{"foo": "bar"}
-	job.Spec.Template.Spec = testInternalPodNodeConstraintsPodSpec(nodeName, nodeSelector)
-	job.Spec.Template.Spec.RestartPolicy = kapi.RestartPolicyNever
+	job.Spec.Template.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)
+	job.Spec.Template.Spec.RestartPolicy = corev1.RestartPolicyNever
 	// Matching selector is now generated automatically
 	// job.Spec.Selector = ...
 	return job
 }
 
-func testPodNodeConstraintsDeploymentConfig(nodeName string, nodeSelector map[string]string) *appsv1.DeploymentConfig {
-	dc := &appsv1.DeploymentConfig{}
+func testPodNodeConstraintsDeploymentConfig(nodeName string, nodeSelector map[string]string) *oappsv1.DeploymentConfig {
+	dc := &oappsv1.DeploymentConfig{}
 	dc.Name = "testdc"
 	dc.Spec.Replicas = 1
 	dc.Spec.Template = &corev1.PodTemplateSpec{}
@@ -240,7 +229,7 @@ func testPodNodeConstraintsDeploymentConfig(nodeName string, nodeSelector map[st
 
 // testPodNodeConstraintsObjectCreationWithPodTemplate attempts to create different object types that contain pod templates
 // using the passed in nodeName and nodeSelector. It will use the expectError flag to determine if an error should be returned or not
-func testPodNodeConstraintsObjectCreationWithPodTemplate(t *testing.T, name string, kclientset kclientset.Interface, appsClient appsclient.Interface, nodeName string, nodeSelector map[string]string, expectError bool) {
+func testPodNodeConstraintsObjectCreationWithPodTemplate(t *testing.T, name string, kclientset kubernetes.Interface, appsClient appsclient.Interface, nodeName string, nodeSelector map[string]string, expectError bool) {
 	checkForbiddenErr := func(objType string, err error) {
 		if err == nil && expectError {
 			t.Errorf("%s (%s): expected forbidden error but did not receive one", name, objType)
@@ -258,12 +247,12 @@ func testPodNodeConstraintsObjectCreationWithPodTemplate(t *testing.T, name stri
 
 	// Pod
 	pod := testPodNodeConstraintsPod(nodeName, nodeSelector)
-	_, err := kclientset.Core().Pods(testutil.Namespace()).Create(pod)
+	_, err := kclientset.CoreV1().Pods(testutil.Namespace()).Create(pod)
 	checkForbiddenErr("pod", err)
 
 	// ReplicationController
 	rc := testPodNodeConstraintsReplicationController(nodeName, nodeSelector)
-	_, err = kclientset.Core().ReplicationControllers(testutil.Namespace()).Create(rc)
+	_, err = kclientset.CoreV1().ReplicationControllers(testutil.Namespace()).Create(rc)
 	checkForbiddenErr("rc", err)
 
 	// TODO: Enable when the deployments endpoint is supported in Origin
@@ -274,12 +263,12 @@ func testPodNodeConstraintsObjectCreationWithPodTemplate(t *testing.T, name stri
 
 	// ReplicaSet
 	rs := testPodNodeConstraintsReplicaSet(nodeName, nodeSelector)
-	_, err = kclientset.Extensions().ReplicaSets(testutil.Namespace()).Create(rs)
+	_, err = kclientset.AppsV1().ReplicaSets(testutil.Namespace()).Create(rs)
 	checkForbiddenErr("replicaset", err)
 
 	// Job
 	job := testPodNodeConstraintsJob(nodeName, nodeSelector)
-	_, err = kclientset.Batch().Jobs(testutil.Namespace()).Create(job)
+	_, err = kclientset.BatchV1().Jobs(testutil.Namespace()).Create(job)
 	checkForbiddenErr("job", err)
 
 	// DeploymentConfig

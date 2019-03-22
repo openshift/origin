@@ -80,7 +80,7 @@ func TestAggregator(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	kubeClient, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
+	kubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func TestAggregator(t *testing.T) {
 
 	// Get resources
 	// Kube resource
-	if _, err := kubeClient.Core().Namespaces().Get("default", metav1.GetOptions{}); err != nil {
+	if _, err := kubeClient.CoreV1().Namespaces().Get("default", metav1.GetOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	// Legacy openshift resource

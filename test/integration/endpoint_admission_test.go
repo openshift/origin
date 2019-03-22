@@ -3,8 +3,8 @@ package integration
 import (
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	testutil "github.com/openshift/origin/test/util"
@@ -22,26 +22,26 @@ var exampleAddresses = map[string]string{
 	"external": "1.2.3.4",
 }
 
-func testOne(t *testing.T, client kclientset.Interface, namespace, addrType string, success bool) *kapi.Endpoints {
-	testEndpoint := &kapi.Endpoints{}
+func testOne(t *testing.T, client kubernetes.Interface, namespace, addrType string, success bool) *corev1.Endpoints {
+	testEndpoint := &corev1.Endpoints{}
 	testEndpoint.GenerateName = "test"
-	testEndpoint.Subsets = []kapi.EndpointSubset{
+	testEndpoint.Subsets = []corev1.EndpointSubset{
 		{
-			Addresses: []kapi.EndpointAddress{
+			Addresses: []corev1.EndpointAddress{
 				{
 					IP: exampleAddresses[addrType],
 				},
 			},
-			Ports: []kapi.EndpointPort{
+			Ports: []corev1.EndpointPort{
 				{
 					Port:     9999,
-					Protocol: kapi.ProtocolTCP,
+					Protocol: corev1.ProtocolTCP,
 				},
 			},
 		},
 	}
 
-	ep, err := client.Core().Endpoints(namespace).Create(testEndpoint)
+	ep, err := client.CoreV1().Endpoints(namespace).Create(testEndpoint)
 	if err != nil && success {
 		t.Fatalf("unexpected error creating %s network endpoint: %v", addrType, err)
 	} else if err == nil && !success {
@@ -68,7 +68,7 @@ func TestEndpointAdmission(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
 	}
-	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeInternalClient(kubeConfigFile)
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting kube client: %v", err)
 	}
@@ -108,12 +108,12 @@ func TestEndpointAdmission(t *testing.T) {
 	// User without restricted endpoint permission can't modify IPs but can still do other modifications
 	ep := testOne(t, clusterAdminKubeClient, "myproject", "cluster", true)
 	ep.Annotations = map[string]string{"foo": "bar"}
-	ep, err = projectAdminClient.Core().Endpoints("myproject").Update(ep)
+	ep, err = projectAdminClient.CoreV1().Endpoints("myproject").Update(ep)
 	if err != nil {
 		t.Fatalf("unexpected error updating endpoint annotation: %v", err)
 	}
 	ep.Subsets[0].Addresses[0].IP = exampleAddresses["service"]
-	ep, err = projectAdminClient.Core().Endpoints("myproject").Update(ep)
+	ep, err = projectAdminClient.CoreV1().Endpoints("myproject").Update(ep)
 	if err == nil {
 		t.Fatalf("unexpected success modifying endpoint")
 	}

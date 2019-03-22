@@ -103,6 +103,8 @@ var resourcesToCheck = map[schema.GroupResource]schema.GroupKind{
 	batch.Resource("cronjobs"):         batch.Kind("CronJob"),
 	extensions.Resource("deployments"): extensions.Kind("Deployment"),
 	extensions.Resource("replicasets"): extensions.Kind("ReplicaSet"),
+	apps.Resource("deployments"):       apps.Kind("Deployment"),
+	apps.Resource("replicasets"):       apps.Kind("ReplicaSet"),
 	apps.Resource("statefulsets"):      apps.Kind("StatefulSet"),
 
 	legacy.Resource("deploymentconfigs"):                   legacy.Kind("DeploymentConfig"),

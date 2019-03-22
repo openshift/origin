@@ -9,10 +9,10 @@ import (
 	watchapi "k8s.io/apimachinery/pkg/watch"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
+	"k8s.io/client-go/kubernetes"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	"k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
@@ -245,7 +245,7 @@ func mockImageStreamMapping(stream, image, tag, reference string) *imageapi.Imag
 	}
 }
 
-func setup(t *testing.T) (*rest.Config, kclientset.Interface, *rest.Config, func()) {
+func setup(t *testing.T) (*rest.Config, kubernetes.Interface, *rest.Config, func()) {
 	masterConfig, clusterAdminKubeConfigFile, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -267,7 +267,7 @@ func setup(t *testing.T) (*rest.Config, kclientset.Interface, *rest.Config, func
 }
 
 func runTest(t *testing.T, testname string, projectAdminClientConfig *rest.Config, imageStream *imageapi.ImageStream, imageStreamMapping *imageapi.ImageStreamMapping, config *buildv1.BuildConfig, tag string) {
-	projectAdminBuildClient := buildv1client.NewForConfigOrDie(projectAdminClientConfig).Build()
+	projectAdminBuildClient := buildv1client.NewForConfigOrDie(projectAdminClientConfig).BuildV1()
 	projectAdminImageClient := imageclient.NewForConfigOrDie(projectAdminClientConfig).Image()
 
 	created, err := projectAdminBuildClient.BuildConfigs(testutil.Namespace()).Create(config)
@@ -516,7 +516,7 @@ func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 			tag:          "tag3",
 		},
 	}
-	projectAdminBuildClient := buildv1client.NewForConfigOrDie(projectAdminConfig).Build()
+	projectAdminBuildClient := buildv1client.NewForConfigOrDie(projectAdminConfig).BuildV1()
 	projectAdminImageClient := imageclient.NewForConfigOrDie(projectAdminConfig).Image()
 
 	created, err := projectAdminBuildClient.BuildConfigs(testutil.Namespace()).Create(config)

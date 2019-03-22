@@ -90,18 +90,14 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildv1clie
 	if err != nil {
 		t.Fatal(err)
 	}
-	clusterAdminKubeInternalClientset, err := testutil.GetClusterAdminKubeInternalClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = clusterAdminKubeClientset.Core().Namespaces().Create(&corev1.Namespace{
+	_, err = clusterAdminKubeClientset.CoreV1().Namespaces().Create(&corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{Name: testutil.Namespace()},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if err := testserver.WaitForServiceAccounts(clusterAdminKubeInternalClientset, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
+	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClientset, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

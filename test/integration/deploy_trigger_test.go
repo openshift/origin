@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	watchapi "k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/util/retry"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
@@ -54,7 +54,7 @@ func TestTriggers_manual(t *testing.T) {
 		t.Fatalf("Couldn't create DeploymentConfig: %v %#v", err, config)
 	}
 
-	rcWatch, err := kc.Core().ReplicationControllers(namespace).Watch(metav1.ListOptions{ResourceVersion: dc.ResourceVersion})
+	rcWatch, err := kc.CoreV1().ReplicationControllers(namespace).Watch(metav1.ListOptions{ResourceVersion: dc.ResourceVersion})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments: %v", err)
 	}
@@ -90,7 +90,7 @@ func TestTriggers_manual(t *testing.T) {
 	if e, a := watchapi.Added, event.Type; e != a {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
-	deployment := event.Object.(*kapi.ReplicationController)
+	deployment := event.Object.(*corev1.ReplicationController)
 
 	if e, a := config.Name, appsutil.DeploymentConfigNameFor(deployment); e != a {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
@@ -574,7 +574,7 @@ func TestTriggers_configChange(t *testing.T) {
 	config.Namespace = namespace
 	config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{appstest.OkConfigChangeTrigger()}
 
-	rcWatch, err := kc.Core().ReplicationControllers(namespace).Watch(metav1.ListOptions{})
+	rcWatch, err := kc.CoreV1().ReplicationControllers(namespace).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to Deployments %v", err)
 	}
@@ -592,7 +592,7 @@ func TestTriggers_configChange(t *testing.T) {
 		t.Fatalf("expected watch event type %s, got %s", e, a)
 	}
 
-	deployment := event.Object.(*kapi.ReplicationController)
+	deployment := event.Object.(*corev1.ReplicationController)
 
 	if e, a := config.Name, appsutil.DeploymentConfigNameFor(deployment); e != a {
 		t.Fatalf("Expected deployment annotated with deploymentConfig '%s', got '%s'", e, a)
@@ -602,7 +602,7 @@ func TestTriggers_configChange(t *testing.T) {
 	// this is required to be done manually since the deployment and deployer pod controllers are not run in this test
 	// get this live or conflicts will never end up resolved
 	retryErr := retry.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
-		liveDeployment, err := kc.Core().ReplicationControllers(deployment.Namespace).Get(deployment.Name, metav1.GetOptions{})
+		liveDeployment, err := kc.CoreV1().ReplicationControllers(deployment.Namespace).Get(deployment.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -610,7 +610,7 @@ func TestTriggers_configChange(t *testing.T) {
 		liveDeployment.Annotations[appsv1.DeploymentStatusAnnotation] = string(appsv1.DeploymentStatusComplete)
 
 		// update the deployment
-		_, err = kc.Core().ReplicationControllers(namespace).Update(liveDeployment)
+		_, err = kc.CoreV1().ReplicationControllers(namespace).Update(liveDeployment)
 		return err
 	})
 	if retryErr != nil {
@@ -660,14 +660,14 @@ func TestTriggers_configChange(t *testing.T) {
 		t.Fatal(retryErr)
 	}
 
-	var newDeployment *kapi.ReplicationController
+	var newDeployment *corev1.ReplicationController
 	for {
 		event = <-rcWatch.ResultChan()
 		if event.Type != watchapi.Added {
 			// Discard modifications which could be applied to the original RC, etc.
 			continue
 		}
-		newDeployment = event.Object.(*kapi.ReplicationController)
+		newDeployment = event.Object.(*corev1.ReplicationController)
 		break
 	}
 
@@ -678,7 +678,7 @@ func TestTriggers_configChange(t *testing.T) {
 	}
 }
 
-func assertEnvVarEquals(name string, value string, deployment *kapi.ReplicationController, t *testing.T) {
+func assertEnvVarEquals(name string, value string, deployment *corev1.ReplicationController, t *testing.T) {
 	env := deployment.Spec.Template.Spec.Containers[0].Env
 
 	for _, e := range env {
@@ -688,22 +688,4 @@ func assertEnvVarEquals(name string, value string, deployment *kapi.ReplicationC
 	}
 
 	t.Fatalf("Expected env var with name %s and value %s", name, value)
-}
-
-func makeStream(name, tag, dir, image string) *imageapi.ImageStream {
-	return &imageapi.ImageStream{
-		ObjectMeta: metav1.ObjectMeta{Name: name},
-		Status: imageapi.ImageStreamStatus{
-			Tags: map[string]imageapi.TagEventList{
-				tag: {
-					Items: []imageapi.TagEvent{
-						{
-							DockerImageReference: dir,
-							Image:                image,
-						},
-					},
-				},
-			},
-		},
-	}
 }

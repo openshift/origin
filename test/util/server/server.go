@@ -33,8 +33,6 @@ import (
 	apiregistrationv1client "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
 	kube_controller_manager "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
@@ -779,7 +777,7 @@ func isServerPathHealthy(url url.URL, path string, code int) (bool, string, erro
 
 // serviceAccountSecretsExist checks whether the given service account has at least a token and a dockercfg
 // secret associated with it.
-func serviceAccountSecretsExist(clientset kclientset.Interface, namespace string, sa *kapi.ServiceAccount) bool {
+func serviceAccountSecretsExist(clientset kubernetes.Interface, namespace string, sa *corev1.ServiceAccount) bool {
 	foundTokenSecret := false
 	foundDockercfgSecret := false
 	for _, secret := range sa.Secrets {
@@ -790,9 +788,9 @@ func serviceAccountSecretsExist(clientset kclientset.Interface, namespace string
 		secret, err := clientset.Core().Secrets(ns).Get(secret.Name, metav1.GetOptions{})
 		if err == nil {
 			switch secret.Type {
-			case kapi.SecretTypeServiceAccountToken:
+			case corev1.SecretTypeServiceAccountToken:
 				foundTokenSecret = true
-			case kapi.SecretTypeDockercfg:
+			case corev1.SecretTypeDockercfg:
 				foundDockercfgSecret = true
 			}
 		}
@@ -803,14 +801,14 @@ func serviceAccountSecretsExist(clientset kclientset.Interface, namespace string
 // WaitForPodCreationServiceAccounts ensures that the service account needed for pod creation exists
 // and that the cache for the admission control that checks for pod tokens has caught up to allow
 // pod creation.
-func WaitForPodCreationServiceAccounts(clientset kclientset.Interface, namespace string) error {
+func WaitForPodCreationServiceAccounts(clientset kubernetes.Interface, namespace string) error {
 	if err := WaitForServiceAccounts(clientset, namespace, []string{bootstrappolicy.DefaultServiceAccountName}); err != nil {
 		return err
 	}
 
-	testPod := &kapi.Pod{}
+	testPod := &corev1.Pod{}
 	testPod.GenerateName = "test"
-	testPod.Spec.Containers = []kapi.Container{
+	testPod.Spec.Containers = []corev1.Container{
 		{
 			Name:  "container",
 			Image: "openshift/origin-pod:latest",
@@ -818,7 +816,7 @@ func WaitForPodCreationServiceAccounts(clientset kclientset.Interface, namespace
 	}
 
 	return wait.PollImmediate(time.Second, PodCreationWaitTimeout, func() (bool, error) {
-		pod, err := clientset.Core().Pods(namespace).Create(testPod)
+		pod, err := clientset.CoreV1().Pods(namespace).Create(testPod)
 		if err != nil {
 			glog.Warningf("Error attempting to create test pod: %v", err)
 			return false, nil
@@ -833,8 +831,8 @@ func WaitForPodCreationServiceAccounts(clientset kclientset.Interface, namespace
 
 // WaitForServiceAccounts ensures the service accounts needed by build pods exist in the namespace
 // The extra controllers tend to starve the service account controller
-func WaitForServiceAccounts(clientset kclientset.Interface, namespace string, accounts []string) error {
-	serviceAccounts := clientset.Core().ServiceAccounts(namespace)
+func WaitForServiceAccounts(clientset kubernetes.Interface, namespace string, accounts []string) error {
+	serviceAccounts := clientset.CoreV1().ServiceAccounts(namespace)
 	return wait.Poll(time.Second, ServiceAccountWaitTimeout, func() (bool, error) {
 		for _, account := range accounts {
 			sa, err := serviceAccounts.Get(account, metav1.GetOptions{})
@@ -851,7 +849,7 @@ func WaitForServiceAccounts(clientset kclientset.Interface, namespace string, ac
 
 // CreateNewProject creates a new project using the clusterAdminClient, then gets a token for the adminUser and returns
 // back a client for the admin user
-func CreateNewProject(clientConfig *restclient.Config, projectName, adminUser string) (kclientset.Interface, *restclient.Config, error) {
+func CreateNewProject(clientConfig *restclient.Config, projectName, adminUser string) (kubernetes.Interface, *restclient.Config, error) {
 	projectClient, err := projectv1typedclient.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, nil, err

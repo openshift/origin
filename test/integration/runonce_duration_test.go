@@ -3,8 +3,8 @@ package integration
 import (
 	"testing"
 
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 
 	pluginapi "github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
@@ -12,11 +12,11 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func testRunOnceDurationPod(activeDeadlineSeconds int64) *kapi.Pod {
-	pod := &kapi.Pod{}
+func testRunOnceDurationPod(activeDeadlineSeconds int64) *corev1.Pod {
+	pod := &corev1.Pod{}
 	pod.GenerateName = "testpod"
-	pod.Spec.RestartPolicy = kapi.RestartPolicyNever
-	pod.Spec.Containers = []kapi.Container{
+	pod.Spec.RestartPolicy = corev1.RestartPolicyNever
+	pod.Spec.Containers = []corev1.Container{
 		{
 			Name:  "container",
 			Image: "test/image",
@@ -28,9 +28,9 @@ func testRunOnceDurationPod(activeDeadlineSeconds int64) *kapi.Pod {
 	return pod
 }
 
-func testPodDuration(t *testing.T, name string, kclientset kclientset.Interface, pod *kapi.Pod, expected int64) {
+func testPodDuration(t *testing.T, name string, kclientset kubernetes.Interface, pod *corev1.Pod, expected int64) {
 	// Pod with no duration set
-	pod, err := kclientset.Core().Pods(testutil.Namespace()).Create(pod)
+	pod, err := kclientset.CoreV1().Pods(testutil.Namespace()).Create(pod)
 	if err != nil {
 		t.Fatalf("%s: unexpected: %v", name, err)
 	}
@@ -71,7 +71,7 @@ func TestRunOnceDurationAdmissionPluginProjectLimit(t *testing.T) {
 	testPodDuration(t, "project, smaller duration", kclientset, testRunOnceDurationPod(50), 50)
 }
 
-func setupRunOnceDurationTest(t *testing.T, pluginConfig *pluginapi.RunOnceDurationConfig, nsAnnotations map[string]string) (kclientset.Interface, func()) {
+func setupRunOnceDurationTest(t *testing.T, pluginConfig *pluginapi.RunOnceDurationConfig, nsAnnotations map[string]string) (kubernetes.Interface, func()) {
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
@@ -85,14 +85,14 @@ func setupRunOnceDurationTest(t *testing.T, pluginConfig *pluginapi.RunOnceDurat
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
 	}
-	kubeClientset, err := testutil.GetClusterAdminKubeInternalClient(kubeConfigFile)
+	kubeClientset, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting client: %v", err)
 	}
-	ns := &kapi.Namespace{}
+	ns := &corev1.Namespace{}
 	ns.Name = testutil.Namespace()
 	ns.Annotations = nsAnnotations
-	_, err = kubeClientset.Core().Namespaces().Create(ns)
+	_, err = kubeClientset.CoreV1().Namespaces().Create(ns)
 	if err != nil {
 		t.Fatalf("error creating namespace: %v", err)
 	}
