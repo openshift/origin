@@ -21,8 +21,8 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	clientgotesting "k8s.io/client-go/testing"
 	kcache "k8s.io/client-go/tools/cache"
+	"k8s.io/kubernetes/pkg/apis/apps"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kapiextensions "k8s.io/kubernetes/pkg/apis/extensions"
 
 	"github.com/openshift/api/image"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -1052,8 +1052,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			),
 			attrs: admission.NewAttributesRecord(
-				&kapiextensions.ReplicaSet{
-					Spec: kapiextensions.ReplicaSetSpec{
+				&apps.ReplicaSet{
+					Spec: apps.ReplicaSetSpec{
 						Template: kapi.PodTemplateSpec{
 							Spec: kapi.PodSpec{
 								Containers: []kapi.Container{
@@ -1067,8 +1067,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				"", admission.Create, false, nil,
 			),
 			admit: true,
-			expect: &kapiextensions.ReplicaSet{
-				Spec: kapiextensions.ReplicaSetSpec{
+			expect: &apps.ReplicaSet{
+				Spec: apps.ReplicaSetSpec{
 					Template: kapi.PodTemplateSpec{
 						Spec: kapi.PodSpec{
 							Containers: []kapi.Container{
@@ -1089,8 +1089,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			),
 			attrs: admission.NewAttributesRecord(
-				&kapiextensions.ReplicaSet{
-					Spec: kapiextensions.ReplicaSetSpec{
+				&apps.ReplicaSet{
+					Spec: apps.ReplicaSetSpec{
 						Template: kapi.PodTemplateSpec{
 							Spec: kapi.PodSpec{
 								Containers: []kapi.Container{
@@ -1104,8 +1104,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				"", admission.Create, false, nil,
 			),
 			admit: true,
-			expect: &kapiextensions.ReplicaSet{
-				Spec: kapiextensions.ReplicaSetSpec{
+			expect: &apps.ReplicaSet{
+				Spec: apps.ReplicaSetSpec{
 					Template: kapi.PodTemplateSpec{
 						Spec: kapi.PodSpec{
 							Containers: []kapi.Container{
@@ -1127,8 +1127,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			),
 			attrs: admission.NewAttributesRecord(
-				&kapiextensions.ReplicaSet{
-					Spec: kapiextensions.ReplicaSetSpec{
+				&apps.ReplicaSet{
+					Spec: apps.ReplicaSetSpec{
 						Template: kapi.PodTemplateSpec{
 							ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{imagepolicy.ResolveNamesAnnotation: "*"}},
 							Spec: kapi.PodSpec{
@@ -1143,8 +1143,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				"", admission.Create, false, nil,
 			),
 			admit: true,
-			expect: &kapiextensions.ReplicaSet{
-				Spec: kapiextensions.ReplicaSetSpec{
+			expect: &apps.ReplicaSet{
+				Spec: apps.ReplicaSetSpec{
 					Template: kapi.PodTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{imagepolicy.ResolveNamesAnnotation: "*"}},
 						Spec: kapi.PodSpec{
@@ -1178,8 +1178,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				return fake
 			})(),
 			attrs: admission.NewAttributesRecord(
-				&kapiextensions.ReplicaSet{
-					Spec: kapiextensions.ReplicaSetSpec{
+				&apps.ReplicaSet{
+					Spec: apps.ReplicaSetSpec{
 						Template: kapi.PodTemplateSpec{
 							Spec: kapi.PodSpec{
 								Containers: []kapi.Container{
@@ -1193,8 +1193,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				"", admission.Create, false, nil,
 			),
 			admit: true,
-			expect: &kapiextensions.ReplicaSet{
-				Spec: kapiextensions.ReplicaSetSpec{
+			expect: &apps.ReplicaSet{
+				Spec: apps.ReplicaSetSpec{
 					Template: kapi.PodTemplateSpec{
 						Spec: kapi.PodSpec{
 							Containers: []kapi.Container{
@@ -1227,8 +1227,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				return fake
 			})(),
 			attrs: admission.NewAttributesRecord(
-				&kapiextensions.ReplicaSet{
-					Spec: kapiextensions.ReplicaSetSpec{
+				&apps.ReplicaSet{
+					Spec: apps.ReplicaSetSpec{
 						Template: kapi.PodTemplateSpec{
 							Spec: kapi.PodSpec{
 								Containers: []kapi.Container{
@@ -1242,8 +1242,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				"", admission.Create, false, nil,
 			),
 			admit: true,
-			expect: &kapiextensions.ReplicaSet{
-				Spec: kapiextensions.ReplicaSetSpec{
+			expect: &apps.ReplicaSet{
+				Spec: apps.ReplicaSetSpec{
 					Template: kapi.PodTemplateSpec{
 						Spec: kapi.PodSpec{
 							Containers: []kapi.Container{
@@ -1276,8 +1276,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				return fake
 			})(),
 			attrs: admission.NewAttributesRecord(
-				&kapiextensions.ReplicaSet{
-					Spec: kapiextensions.ReplicaSetSpec{
+				&apps.ReplicaSet{
+					Spec: apps.ReplicaSetSpec{
 						Template: kapi.PodTemplateSpec{
 							Spec: kapi.PodSpec{
 								Containers: []kapi.Container{
@@ -1291,8 +1291,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				"", admission.Create, false, nil,
 			),
 			admit: true,
-			expect: &kapiextensions.ReplicaSet{
-				Spec: kapiextensions.ReplicaSetSpec{
+			expect: &apps.ReplicaSet{
+				Spec: apps.ReplicaSetSpec{
 					Template: kapi.PodTemplateSpec{
 						Spec: kapi.PodSpec{
 							Containers: []kapi.Container{
