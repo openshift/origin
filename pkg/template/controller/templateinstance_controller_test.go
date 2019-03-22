@@ -24,6 +24,10 @@ import (
 	templatev1 "github.com/openshift/api/template/v1"
 )
 
+func init() {
+	batchv1.AddToScheme(legacyscheme.Scheme)
+}
+
 type roundtripper func(*http.Request) (*http.Response, error)
 
 func (rt roundtripper) RoundTrip(r *http.Request) (*http.Response, error) {
