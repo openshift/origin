@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/completion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 
@@ -125,7 +125,7 @@ func NewCmdCompletion(fullName string, out io.Writer) *cobra.Command {
 		cmdHelpName = "openshift"
 	}
 
-	cmd := kcmd.NewCmdCompletion(out, "\n")
+	cmd := completion.NewCmdCompletion(out, "\n")
 	cmd.Long = fmt.Sprintf(completionLong, cmdHelpName)
 	cmd.Example = fmt.Sprintf(completionExample, cmdHelpName, cmdHelpName, cmdHelpName, cmdHelpName)
 	// mark all statically included flags as hidden to prevent them appearing in completions
