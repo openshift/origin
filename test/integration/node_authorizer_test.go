@@ -211,11 +211,6 @@ func TestNodeAuthorizer(t *testing.T) {
 			return err
 		}
 	}
-	deleteNode2 := func(client kubernetes.Interface) func() error {
-		return func() error {
-			return client.CoreV1().Nodes().Delete("node2", nil)
-		}
-	}
 	createNode2NormalPodEviction := func(client kubernetes.Interface) func() error {
 		return func() error {
 			return client.PolicyV1beta1().Evictions("ns").Evict(&policyv1beta1.Eviction{
@@ -262,7 +257,6 @@ func TestNodeAuthorizer(t *testing.T) {
 	expectForbidden(t, createNode2MirrorPodEviction(nodeanonClient))
 	expectForbidden(t, createNode2(nodeanonClient))
 	expectForbidden(t, updateNode2Status(nodeanonClient))
-	expectForbidden(t, deleteNode2(nodeanonClient))
 
 	expectForbidden(t, getSecret(node1Client))
 	expectForbidden(t, getPVSecret(node1Client))
@@ -275,7 +269,6 @@ func TestNodeAuthorizer(t *testing.T) {
 	expectNotFound(t, createNode2MirrorPodEviction(node1Client))
 	expectForbidden(t, createNode2(node1Client))
 	expectForbidden(t, updateNode2Status(node1Client))
-	expectForbidden(t, deleteNode2(node1Client))
 
 	// related object requests from node2 fail
 	expectForbidden(t, getSecret(node2Client))
@@ -291,7 +284,6 @@ func TestNodeAuthorizer(t *testing.T) {
 	expectAllowed(t, createNode2MirrorPodEviction(node2Client))
 	expectAllowed(t, createNode2(node2Client))
 	expectAllowed(t, updateNode2Status(node2Client))
-	expectAllowed(t, deleteNode2(node2Client))
 
 	// create a pod as an admin to add object references
 	expectAllowed(t, createNode2NormalPod(superuserClient))
