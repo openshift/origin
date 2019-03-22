@@ -57,7 +57,7 @@ func TestBuildConfigOutput(t *testing.T) {
 	for i, test := range tests {
 		output.AsImageStream = test.asImageStream
 		source := &SourceRef{URL: url}
-		strategy := &BuildStrategyRef{Strategy: generate.StrategySource, Base: base}
+		strategy := &BuildStrategyRef{Strategy: newapp.StrategySource, Base: base}
 		build := &BuildRef{Source: source, Output: output, Strategy: strategy}
 		config, err := build.BuildConfig()
 		if err != nil {

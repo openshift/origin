@@ -20,7 +20,7 @@ func TestResolveJenkinsfileAndDockerfile(t *testing.T) {
 	resolvers := Resolvers{}
 	componentrefs, err := AddMissingComponentsToRefBuilder(&app.ReferenceBuilder{}, repositories, resolvers.DockerfileResolver(), resolvers.SourceResolver(), resolvers.PipelineResolver(), &GenerationInputs{})
 
-	checkResolveResult(t, componentrefs, err, generate.StrategyPipeline)
+	checkResolveResult(t, componentrefs, err, newapp.StrategyPipeline)
 }
 
 // TestResolveJenkinsfileAndSource ensures that if a repo has a Jenkinsfile and
@@ -35,7 +35,7 @@ func TestResolveJenkinsfileAndSource(t *testing.T) {
 	resolvers := Resolvers{}
 	componentrefs, err := AddMissingComponentsToRefBuilder(&app.ReferenceBuilder{}, repositories, resolvers.DockerfileResolver(), resolvers.SourceResolver(), resolvers.PipelineResolver(), &GenerationInputs{})
 
-	checkResolveResult(t, componentrefs, err, generate.StrategyPipeline)
+	checkResolveResult(t, componentrefs, err, newapp.StrategyPipeline)
 }
 
 // TestResolveDockerfileAndSource ensures that if a repo has a Dockerfile and
@@ -51,7 +51,7 @@ func TestResolveDockerfileAndSource(t *testing.T) {
 	resolvers := Resolvers{}
 	componentrefs, err := AddMissingComponentsToRefBuilder(&app.ReferenceBuilder{}, repositories, resolvers.DockerfileResolver(), resolvers.SourceResolver(), resolvers.PipelineResolver(), &GenerationInputs{})
 
-	checkResolveResult(t, componentrefs, err, generate.StrategyDocker)
+	checkResolveResult(t, componentrefs, err, newapp.StrategyDocker)
 }
 
 func TestBinaryContentFlagGeneratesDummySource(t *testing.T) {
@@ -84,7 +84,7 @@ func TestBinaryContentFlagGeneratesDummySource(t *testing.T) {
 	}
 }
 
-func checkResolveResult(t *testing.T, componentrefs app.ComponentReferences, err error, strategy generate.Strategy) {
+func checkResolveResult(t *testing.T, componentrefs app.ComponentReferences, err error, strategy newapp.Strategy) {
 	if err != nil {
 		t.Fatal(err)
 	}
