@@ -12,7 +12,6 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 func NewDeploymentConfigRollbacker(appsClient appsclient.Interface) kubectl.Rollbacker {
@@ -30,7 +29,7 @@ var _ kubectl.Rollbacker = &DeploymentConfigRollbacker{}
 // Rollback the provided deployment config to a specific revision. If revision is zero, we will
 // rollback to the previous deployment.
 func (r *DeploymentConfigRollbacker) Rollback(obj runtime.Object, updatedAnnotations map[string]string, toRevision int64, dryRun bool) (string, error) {
-	config, ok := obj.(*appsapi.DeploymentConfig)
+	config, ok := obj.(*appsv1.DeploymentConfig)
 	if !ok {
 		return "", fmt.Errorf("passed object is not a deployment config: %#v", obj)
 	}
