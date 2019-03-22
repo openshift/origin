@@ -13,13 +13,11 @@ import (
 )
 
 const (
-	componentNameEs         = "es"
-	componentNameEsOps      = "es-ops"
-	componentNameKibana     = "kibana"
-	componentNameKibanaOps  = "kibana-ops"
-	componentNameCurator    = "curator"
-	componentNameCuratorOps = "curator-ops"
-	componentNameMux        = "mux"
+	componentNameEs        = "es"
+	componentNameEsOps     = "es-ops"
+	componentNameKibana    = "kibana"
+	componentNameKibanaOps = "kibana-ops"
+	componentNameMux       = "mux"
 )
 
 // loggingComponents are those 'managed' by rep controllers (e.g. fluentd is deployed with a DaemonSet)

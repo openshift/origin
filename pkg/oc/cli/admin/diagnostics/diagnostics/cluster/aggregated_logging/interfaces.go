@@ -2,6 +2,7 @@ package aggregated_logging
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kapibatch "k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/rbac"
@@ -29,6 +30,12 @@ type sccAdapter interface {
 
 type clusterRoleBindingsAdapter interface {
 	listClusterRoleBindings() (*rbac.ClusterRoleBindingList, error)
+}
+
+//cronJobAdapter is an abstraction to retrieve resource for validating cronJobs
+//for aggregated logging diagnostics
+type cronJobAdapter interface {
+	cronjobs(project string, options metav1.ListOptions) (*kapibatch.CronJobList, error)
 }
 
 //deploymentConfigAdapter is an abstraction to retrieve resource for validating dcs
