@@ -91,6 +91,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	// the values are allowed, so don't expect to see the filtered values in the result.
 	expectedKeys := map[string]string{
 		"BUILD":                       "",
+		"LANG":                        "",
 		"SOURCE_REPOSITORY":           "",
 		"SOURCE_URI":                  "",
 		"SOURCE_CONTEXT_DIR":          "",
@@ -197,6 +198,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	buildJSON, _ := runtime.Encode(buildJSONCodec, build)
 	errorCases := map[int][]string{
 		0: {"BUILD", string(buildJSON)},
+		1: {"LANG", "en_US.utf8"},
 	}
 	for index, exp := range errorCases {
 		if e := container.Env[index]; e.Name != exp[0] || e.Value != exp[1] {

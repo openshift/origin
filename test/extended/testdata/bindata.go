@@ -64,6 +64,7 @@
 // test/extended/testdata/builds/test-build-app/Dockerfile
 // test/extended/testdata/builds/test-build-app/Gemfile
 // test/extended/testdata/builds/test-build-app/config.ru
+// test/extended/testdata/builds/test-build-app/utf8_tést_app.rb
 // test/extended/testdata/builds/test-build-podsvc.json
 // test/extended/testdata/builds/test-build-proxy.yaml
 // test/extended/testdata/builds/test-build-revision.json
@@ -3092,6 +3093,30 @@ func testExtendedTestdataBuildsTestBuildAppConfigRu() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/builds/test-build-app/config.ru", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataBuildsTestBuildAppUtf8_tSt_appRb = []byte(`require 'rack'
+ 
+app = Proc.new do |env|
+    ['200', {'Content-Type' => 'text/html'}, ['Wë súpport UTF-8!']]
+end
+ 
+Rack::Handler::WEBrick.run app
+`)
+
+func testExtendedTestdataBuildsTestBuildAppUtf8_tSt_appRbBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsTestBuildAppUtf8_tSt_appRb, nil
+}
+
+func testExtendedTestdataBuildsTestBuildAppUtf8_tSt_appRb() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsTestBuildAppUtf8_tSt_appRbBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/builds/test-build-app/utf8_tést_app.rb", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -32666,6 +32691,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/test-build-app/Dockerfile": testExtendedTestdataBuildsTestBuildAppDockerfile,
 	"test/extended/testdata/builds/test-build-app/Gemfile": testExtendedTestdataBuildsTestBuildAppGemfile,
 	"test/extended/testdata/builds/test-build-app/config.ru": testExtendedTestdataBuildsTestBuildAppConfigRu,
+	"test/extended/testdata/builds/test-build-app/utf8_tést_app.rb": testExtendedTestdataBuildsTestBuildAppUtf8_tSt_appRb,
 	"test/extended/testdata/builds/test-build-podsvc.json": testExtendedTestdataBuildsTestBuildPodsvcJson,
 	"test/extended/testdata/builds/test-build-proxy.yaml": testExtendedTestdataBuildsTestBuildProxyYaml,
 	"test/extended/testdata/builds/test-build-revision.json": testExtendedTestdataBuildsTestBuildRevisionJson,
@@ -33095,6 +33121,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"Dockerfile": &bintree{testExtendedTestdataBuildsTestBuildAppDockerfile, map[string]*bintree{}},
 						"Gemfile": &bintree{testExtendedTestdataBuildsTestBuildAppGemfile, map[string]*bintree{}},
 						"config.ru": &bintree{testExtendedTestdataBuildsTestBuildAppConfigRu, map[string]*bintree{}},
+						"utf8_tést_app.rb": &bintree{testExtendedTestdataBuildsTestBuildAppUtf8_tSt_appRb, map[string]*bintree{}},
 					}},
 					"test-build-podsvc.json": &bintree{testExtendedTestdataBuildsTestBuildPodsvcJson, map[string]*bintree{}},
 					"test-build-proxy.yaml": &bintree{testExtendedTestdataBuildsTestBuildProxyYaml, map[string]*bintree{}},

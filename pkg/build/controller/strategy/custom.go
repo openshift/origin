@@ -57,7 +57,10 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildv1.Build, additionalCA
 		return nil, fmt.Errorf("failed to encode the build: %v", err)
 	}
 
-	containerEnv := []corev1.EnvVar{{Name: "BUILD", Value: string(data)}}
+	containerEnv := []corev1.EnvVar{
+		{Name: "BUILD", Value: string(data)},
+		{Name: "LANG", Value: "en_US.utf8"},
+	}
 
 	if build.Spec.Source.Git != nil {
 		addSourceEnvVars(build.Spec.Source, &containerEnv)
