@@ -181,7 +181,7 @@ func (g *Generator) Generate(body []byte) (*templatev1.Template, error) {
 		return nil, fmt.Errorf("app.json did not contain a repository URL and no local path was specified")
 	}
 
-	repo, err := app.NewSourceRepository(buildPath, generate.StrategyDocker)
+	repo, err := app.NewSourceRepository(buildPath, newapp.StrategyDocker)
 	if err != nil {
 		return nil, err
 	}
