@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"strings"
 
+	"k8s.io/kubernetes/pkg/kubectl/cmd/diff"
+
 	"github.com/spf13/cobra"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -223,6 +225,7 @@ func NewOcCommand(name, fullName string, in io.Reader, out, errout io.Writer) *c
 				kubectlwrappers.NewCmdApiVersions(fullName, f, ioStreams),
 				kubectlwrappers.NewCmdApiResources(fullName, f, ioStreams),
 				kubectlwrappers.NewCmdClusterInfo(fullName, f, ioStreams),
+				diff.NewCmdDiff(f, ioStreams),
 			},
 		},
 		{
