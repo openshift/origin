@@ -208,6 +208,7 @@ items:
     resources:
     - storageclasses
     - volumeattachments
+    - volumeattachments/status
     verbs:
     - get
     - list
