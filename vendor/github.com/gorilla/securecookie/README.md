@@ -1,9 +1,10 @@
-# securecookie
-
+securecookie
+============
 [![GoDoc](https://godoc.org/github.com/gorilla/securecookie?status.svg)](https://godoc.org/github.com/gorilla/securecookie) [![Build Status](https://travis-ci.org/gorilla/securecookie.png?branch=master)](https://travis-ci.org/gorilla/securecookie)
 [![Sourcegraph](https://sourcegraph.com/github.com/gorilla/securecookie/-/badge.svg)](https://sourcegraph.com/github.com/gorilla/securecookie?badge)
 
-securecookie encodes and decodes authenticated and optionally encrypted
+
+securecookie encodes and decodes authenticated and optionally encrypted 
 cookie values.
 
 Secure cookies can't be forged, because their values are validated using HMAC.
@@ -32,10 +33,7 @@ to not use encryption. If set, the length must correspond to the block size
 of the encryption algorithm. For AES, used by default, valid lengths are
 16, 24, or 32 bytes to select AES-128, AES-192, or AES-256.
 
-Strong keys can be created using the convenience function
-`GenerateRandomKey()`. Note that keys created using `GenerateRandomKey()` are not
-automatically persisted. New keys will be created when the application is
-restarted, and previously issued cookies will not be able to be decoded.
+Strong keys can be created using the convenience function GenerateRandomKey().
 
 Once a SecureCookie instance is set, use it to encode a cookie value:
 

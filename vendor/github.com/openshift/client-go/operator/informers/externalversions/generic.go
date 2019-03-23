@@ -43,12 +43,16 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Operator().V1().Consoles().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("etcds"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Operator().V1().Etcds().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("ingresscontrollers"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Operator().V1().IngressControllers().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("kubeapiservers"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Operator().V1().KubeAPIServers().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("kubecontrollermanagers"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Operator().V1().KubeControllerManagers().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("kubeschedulers"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Operator().V1().KubeSchedulers().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("networks"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Operator().V1().Networks().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("openshiftapiservers"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Operator().V1().OpenShiftAPIServers().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("openshiftcontrollermanagers"):

@@ -65,7 +65,7 @@ func (c *UnsupportedConfigOverridesController) sync() error {
 		return err
 	}
 
-	if management.IsOperatorManaged(operatorSpec.ManagementState) {
+	if !management.IsOperatorManaged(operatorSpec.ManagementState) {
 		return nil
 	}
 

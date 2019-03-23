@@ -52,5 +52,6 @@ type ConsoleAuthentication struct {
 	// provides the user the option to perform single logout (SLO) through the identity
 	// provider to destroy their single sign-on session.
 	// +optional
+	// +kubebuilder:validation:Pattern=^$|^((https):\/\/?)[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|\/?))$
 	LogoutRedirect string `json:"logoutRedirect,omitempty"`
 }

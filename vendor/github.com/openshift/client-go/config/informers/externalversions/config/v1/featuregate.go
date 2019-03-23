@@ -15,58 +15,58 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// FeaturesInformer provides access to a shared informer and lister for
-// Features.
-type FeaturesInformer interface {
+// FeatureGateInformer provides access to a shared informer and lister for
+// FeatureGates.
+type FeatureGateInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1.FeaturesLister
+	Lister() v1.FeatureGateLister
 }
 
-type featuresInformer struct {
+type featureGateInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
-// NewFeaturesInformer constructs a new informer for Features type.
+// NewFeatureGateInformer constructs a new informer for FeatureGate type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFeaturesInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredFeaturesInformer(client, resyncPeriod, indexers, nil)
+func NewFeatureGateInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredFeatureGateInformer(client, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredFeaturesInformer constructs a new informer for Features type.
+// NewFilteredFeatureGateInformer constructs a new informer for FeatureGate type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredFeaturesInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredFeatureGateInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ConfigV1().Features().List(options)
+				return client.ConfigV1().FeatureGates().List(options)
 			},
 			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ConfigV1().Features().Watch(options)
+				return client.ConfigV1().FeatureGates().Watch(options)
 			},
 		},
-		&config_v1.Features{},
+		&config_v1.FeatureGate{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *featuresInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredFeaturesInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *featureGateInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredFeatureGateInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *featuresInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&config_v1.Features{}, f.defaultInformer)
+func (f *featureGateInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&config_v1.FeatureGate{}, f.defaultInformer)
 }
 
-func (f *featuresInformer) Lister() v1.FeaturesLister {
-	return v1.NewFeaturesLister(f.Informer().GetIndexer())
+func (f *featureGateInformer) Lister() v1.FeatureGateLister {
+	return v1.NewFeatureGateLister(f.Informer().GetIndexer())
 }

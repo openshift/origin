@@ -67,8 +67,10 @@ type IngressControllerSpec struct {
 	// If unset, the default is based on
 	// infrastructure.config.openshift.io/cluster .status.platform:
 	//
-	//   AWS: LoadBalancerService
-	//   All other platform types: Private
+	//   AWS:      LoadBalancerService
+	//   Libvirt:  HostNetwork
+	//
+	// Any other platform types (including None) default to HostNetwork.
 	//
 	// endpointPublishingStrategy cannot be updated.
 	//
@@ -195,6 +197,23 @@ type EndpointPublishingStrategy struct {
 	Type EndpointPublishingStrategyType `json:"type"`
 }
 
+var (
+	// Available indicates the ingress controller deployment is available.
+	IngressControllerAvailableConditionType = "Available"
+	// LoadBalancerManaged indicates the management status of any load balancer
+	// service associated with an ingress controller.
+	LoadBalancerManagedIngressConditionType = "LoadBalancerManaged"
+	// LoadBalancerReady indicates the ready state of any load balancer service
+	// associated with an ingress controller.
+	LoadBalancerReadyIngressConditionType = "LoadBalancerReady"
+	// DNSManaged indicates the management status of any DNS records for the
+	// ingress controller.
+	DNSManagedIngressConditionType = "DNSManaged"
+	// DNSReady indicates the ready state of any DNS records for the ingress
+	// controller.
+	DNSReadyIngressConditionType = "DNSReady"
+)
+
 // IngressControllerStatus defines the observed status of the IngressController.
 type IngressControllerStatus struct {
 	// availableReplicas is number of observed available replicas according to the
@@ -211,6 +230,40 @@ type IngressControllerStatus struct {
 
 	// endpointPublishingStrategy is the actual strategy in use.
 	EndpointPublishingStrategy *EndpointPublishingStrategy `json:"endpointPublishingStrategy,omitempty"`
+
+	// conditions is a list of conditions and their status.
+	//
+	// Available means the ingress controller deployment is available and
+	// servicing route and ingress resources (i.e, .status.availableReplicas
+	// equals .spec.replicas)
+	//
+	// There are additional conditions which indicate the status of other
+	// ingress controller features and capabilities.
+	//
+	//   * LoadBalancerManaged
+	//   - True if the following conditions are met:
+	//     * The endpoint publishing strategy requires a service load balancer.
+	//   - False if any of those conditions are unsatisfied.
+	//
+	//   * LoadBalancerReady
+	//   - True if the following conditions are met:
+	//     * A load balancer is managed.
+	//     * The load balancer is ready.
+	//   - False if any of those conditions are unsatisfied.
+	//
+	//   * DNSManaged
+	//   - True if the following conditions are met:
+	//     * The endpoint publishing strategy and platform support DNS.
+	//     * The ingress controller domain is set.
+	//     * dns.config.openshift.io/cluster configures DNS zones.
+	//   - False if any of those conditions are unsatisfied.
+	//
+	//   * DNSReady
+	//   - True if the following conditions are met:
+	//     * DNS is managed.
+	//     * DNS records have been successfully created.
+	//   - False if any of those conditions are unsatisfied.
+	Conditions []OperatorCondition `json:"conditions,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -117,7 +117,9 @@ func (c ConfigObserver) sync() error {
 	if !equality.Semantic.DeepEqual(existingConfig, mergedObservedConfig) {
 		c.eventRecorder.Eventf("ObservedConfigChanged", "Writing updated observed config: %v", diff.ObjectDiff(existingConfig, mergedObservedConfig))
 		if _, _, err := v1helpers.UpdateSpec(c.operatorConfigClient, v1helpers.UpdateObservedConfigFn(mergedObservedConfig)); err != nil {
-			errs = append(errs, fmt.Errorf("error writing updated observed config: %v", err))
+			// At this point we failed to write the updated config. If we are permanently broken, do not pile the errors from observers
+			// but instead reset the errors and only report single error condition.
+			errs = []error{fmt.Errorf("error writing updated observed config: %v", err)}
 			c.eventRecorder.Warningf("ObservedConfigWriteError", "Failed to write observed config: %v", err)
 		}
 	}

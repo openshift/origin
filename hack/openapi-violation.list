@@ -30,8 +30,8 @@ API rule violation: names_match,github.com/openshift/api/config/v1,AdmissionConf
 API rule violation: names_match,github.com/openshift/api/config/v1,AdmissionConfig,EnabledAdmissionPlugins
 API rule violation: names_match,github.com/openshift/api/config/v1,AuthenticationSpec,OAuthMetadata
 API rule violation: names_match,github.com/openshift/api/config/v1,EtcdConnectionInfo,URLs
-API rule violation: names_match,github.com/openshift/api/config/v1,FeatureEnabledDisabled,Disabled
-API rule violation: names_match,github.com/openshift/api/config/v1,FeatureEnabledDisabled,Enabled
+API rule violation: names_match,github.com/openshift/api/config/v1,FeatureGateEnabledDisabled,Disabled
+API rule violation: names_match,github.com/openshift/api/config/v1,FeatureGateEnabledDisabled,Enabled
 API rule violation: names_match,github.com/openshift/api/config/v1,GenericAPIServerConfig,AdmissionConfig
 API rule violation: names_match,github.com/openshift/api/config/v1,IdentityProvider,UseAsChallenger
 API rule violation: names_match,github.com/openshift/api/config/v1,IdentityProvider,UseAsLogin
@@ -78,6 +78,7 @@ API rule violation: names_match,github.com/openshift/api/network/v1,ClusterNetwo
 API rule violation: names_match,github.com/openshift/api/network/v1,NetNamespace,NetID
 API rule violation: names_match,github.com/openshift/api/network/v1,NetNamespace,NetName
 API rule violation: names_match,github.com/openshift/api/oauth/v1,ScopeRestriction,ExactValues
+API rule violation: names_match,github.com/openshift/api/operator/v1,DefaultNetworkDefinition,OpenShiftSDNConfig
 API rule violation: names_match,github.com/openshift/api/operator/v1alpha1,OperatorStatus,CurrentAvailability
 API rule violation: names_match,github.com/openshift/api/operator/v1alpha1,OperatorStatus,TargetAvailability
 API rule violation: names_match,github.com/openshift/api/osin/v1,IdentityProvider,UseAsChallenger
@@ -261,3 +262,4 @@ API rule violation: names_match,k8s.io/kubernetes/cmd/cloud-controller-manager/a
 API rule violation: names_match,k8s.io/kubernetes/cmd/cloud-controller-manager/app/apis/config/v1alpha1,CloudControllerManagerConfiguration,ServiceController
 API rule violation: names_match,k8s.io/metrics/pkg/apis/custom_metrics/v1beta1,MetricValue,WindowSeconds
 API rule violation: names_match,k8s.io/metrics/pkg/apis/external_metrics/v1beta1,ExternalMetricValue,WindowSeconds
+API rule violation: omitempty_match_case,github.com/openshift/api/operator/v1,StaticPodOperatorStatus,LatestAvailableRevision

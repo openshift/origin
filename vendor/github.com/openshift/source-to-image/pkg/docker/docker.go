@@ -74,6 +74,8 @@ const containerNamePrefix = "s2i"
 // containerName creates names for Docker containers launched by S2I. It is
 // meant to resemble Kubernetes' pkg/kubelet/dockertools.BuildDockerName.
 func containerName(image string) string {
+	//Initialize seed
+	rand.Seed(time.Now().UnixNano())
 	uid := fmt.Sprintf("%08x", rand.Uint32())
 	// Replace invalid characters for container name with underscores.
 	image = strings.Map(func(r rune) rune {

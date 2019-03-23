@@ -23,8 +23,6 @@ const (
 	tokenTrue
 	tokenFalse
 	tokenFloat
-	tokenInf
-	tokenNan
 	tokenEqual
 	tokenLeftBracket
 	tokenRightBracket
@@ -57,8 +55,6 @@ var tokenTypeNames = []string{
 	"True",
 	"False",
 	"Float",
-	"Inf",
-	"NaN",
 	"=",
 	"[",
 	"]",

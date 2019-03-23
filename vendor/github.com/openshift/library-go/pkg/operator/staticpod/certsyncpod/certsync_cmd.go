@@ -1,6 +1,7 @@
 package certsyncpod
 
 import (
+	"io/ioutil"
 	"os"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/openshift/library-go/pkg/config/client"
+	"github.com/openshift/library-go/pkg/controller/fileobserver"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/staticpod/controller/revision"
 )
@@ -24,6 +26,8 @@ type CertSyncControllerOptions struct {
 
 	configMaps []revision.RevisionResource
 	secrets    []revision.RevisionResource
+
+	kubeClient kubernetes.Interface
 }
 
 func NewCertSyncControllerCommand(configmaps, secrets []revision.RevisionResource) *cobra.Command {
@@ -35,11 +39,12 @@ func NewCertSyncControllerCommand(configmaps, secrets []revision.RevisionResourc
 	cmd := &cobra.Command{
 		Use: "cert-syncer --kubeconfig=kubeconfigfile",
 		Run: func(cmd *cobra.Command, args []string) {
-			r, err := o.Complete()
-			if err != nil {
+			if err := o.Complete(); err != nil {
 				glog.Fatal(err)
 			}
-			r.Run(1, make(chan struct{}))
+			if err := o.Run(); err != nil {
+				glog.Fatal(err)
+			}
 		},
 	}
 
@@ -50,23 +55,23 @@ func NewCertSyncControllerCommand(configmaps, secrets []revision.RevisionResourc
 	return cmd
 }
 
-func (o *CertSyncControllerOptions) Complete() (*CertSyncController, error) {
-	kubeConfig, err := client.GetKubeConfigOrInClusterConfig(o.KubeConfigFile, nil)
+func (o *CertSyncControllerOptions) Run() error {
+	// When the kubeconfig content change, commit suicide to reload its content.
+	observer, err := fileobserver.NewObserver(500 * time.Millisecond)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	protoKubeConfig := rest.CopyConfig(kubeConfig)
-	protoKubeConfig.AcceptContentTypes = "application/vnd.kubernetes.protobuf,application/json"
-	protoKubeConfig.ContentType = "application/vnd.kubernetes.protobuf"
 
-	// This kube client use protobuf, do not use it for CR
-	kubeClient, err := kubernetes.NewForConfig(protoKubeConfig)
-	if err != nil {
-		return nil, err
-	}
-	kubeInformers := informers.NewSharedInformerFactoryWithOptions(kubeClient, 10*time.Minute, informers.WithNamespace(o.Namespace))
+	initialContent, _ := ioutil.ReadFile(o.KubeConfigFile)
+	observer.AddReactor(fileobserver.ExitOnChangeReactor, map[string][]byte{o.KubeConfigFile: initialContent}, o.KubeConfigFile)
 
-	eventRecorder := events.NewKubeRecorder(kubeClient.CoreV1().Events(o.Namespace), "cert-syncer",
+	stopCh := make(chan struct{})
+	go observer.Run(stopCh)
+
+	kubeInformers := informers.NewSharedInformerFactoryWithOptions(o.kubeClient, 10*time.Minute, informers.WithNamespace(o.Namespace))
+	go kubeInformers.Start(stopCh)
+
+	eventRecorder := events.NewKubeRecorder(o.kubeClient.CoreV1().Events(o.Namespace), "cert-syncer",
 		&corev1.ObjectReference{
 			APIVersion: "v1",
 			Kind:       "Pod",
@@ -74,7 +79,7 @@ func (o *CertSyncControllerOptions) Complete() (*CertSyncController, error) {
 			Name:       os.Getenv("POD_NAME"),
 		})
 
-	return NewCertSyncController(
+	controller, err := NewCertSyncController(
 		o.DestinationDir,
 		o.Namespace,
 		o.configMaps,
@@ -82,4 +87,33 @@ func (o *CertSyncControllerOptions) Complete() (*CertSyncController, error) {
 		kubeInformers,
 		eventRecorder,
 	)
+	if err != nil {
+		return err
+	}
+	go controller.Run(1, stopCh)
+
+	<-stopCh
+	glog.Infof("Shutting down certificate syncer")
+
+	return nil
+}
+
+func (o *CertSyncControllerOptions) Complete() error {
+	kubeConfig, err := client.GetKubeConfigOrInClusterConfig(o.KubeConfigFile, nil)
+	if err != nil {
+		return err
+	}
+
+	protoKubeConfig := rest.CopyConfig(kubeConfig)
+	protoKubeConfig.AcceptContentTypes = "application/vnd.kubernetes.protobuf,application/json"
+	protoKubeConfig.ContentType = "application/vnd.kubernetes.protobuf"
+
+	// This kube client use protobuf, do not use it for CR
+	kubeClient, err := kubernetes.NewForConfig(protoKubeConfig)
+	if err != nil {
+		return err
+	}
+	o.kubeClient = kubeClient
+
+	return nil
 }
