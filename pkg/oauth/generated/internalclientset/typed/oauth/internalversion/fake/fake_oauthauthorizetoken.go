@@ -96,7 +96,7 @@ func (c *FakeOAuthAuthorizeTokens) DeleteCollection(options *v1.DeleteOptions, l
 // Patch applies the patch and returns the patched oAuthAuthorizeToken.
 func (c *FakeOAuthAuthorizeTokens) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *oauth.OAuthAuthorizeToken, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(oauthauthorizetokensResource, name, data, subresources...), &oauth.OAuthAuthorizeToken{})
+		Invokes(testing.NewRootPatchSubresourceAction(oauthauthorizetokensResource, name, pt, data, subresources...), &oauth.OAuthAuthorizeToken{})
 	if obj == nil {
 		return nil, err
 	}

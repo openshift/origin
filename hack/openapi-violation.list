@@ -33,12 +33,9 @@ API rule violation: names_match,github.com/openshift/api/config/v1,EtcdConnectio
 API rule violation: names_match,github.com/openshift/api/config/v1,FeatureGateEnabledDisabled,Disabled
 API rule violation: names_match,github.com/openshift/api/config/v1,FeatureGateEnabledDisabled,Enabled
 API rule violation: names_match,github.com/openshift/api/config/v1,GenericAPIServerConfig,AdmissionConfig
-API rule violation: names_match,github.com/openshift/api/config/v1,IdentityProvider,UseAsChallenger
-API rule violation: names_match,github.com/openshift/api/config/v1,IdentityProvider,UseAsLogin
 API rule violation: names_match,github.com/openshift/api/config/v1,IdentityProviderConfig,GitHub
 API rule violation: names_match,github.com/openshift/api/config/v1,IdentityProviderConfig,GitLab
 API rule violation: names_match,github.com/openshift/api/config/v1,IdentityProviderConfig,HTPasswd
-API rule violation: names_match,github.com/openshift/api/config/v1,OpenIDIdentityProvider,URLs
 API rule violation: names_match,github.com/openshift/api/config/v1,RequestHeaderIdentityProvider,ClientCA
 API rule violation: names_match,github.com/openshift/api/image/v1,DockerImageReference,ID
 API rule violation: names_match,github.com/openshift/api/image/v1,DockerImageReference,Name
@@ -94,6 +91,7 @@ API rule violation: names_match,k8s.io/api/core/v1,ContainerStatus,LastTerminati
 API rule violation: names_match,k8s.io/api/core/v1,DaemonEndpoint,Port
 API rule violation: names_match,k8s.io/api/core/v1,Event,ReportingController
 API rule violation: names_match,k8s.io/api/core/v1,FCVolumeSource,WWIDs
+API rule violation: names_match,k8s.io/api/core/v1,GlusterfsPersistentVolumeSource,EndpointsName
 API rule violation: names_match,k8s.io/api/core/v1,GlusterfsVolumeSource,EndpointsName
 API rule violation: names_match,k8s.io/api/core/v1,ISCSIPersistentVolumeSource,DiscoveryCHAPAuth
 API rule violation: names_match,k8s.io/api/core/v1,ISCSIPersistentVolumeSource,SessionCHAPAuth
@@ -114,8 +112,6 @@ API rule violation: names_match,k8s.io/api/core/v1,RBDVolumeSource,RBDPool
 API rule violation: names_match,k8s.io/api/core/v1,RBDVolumeSource,RadosUser
 API rule violation: names_match,k8s.io/api/core/v1,VolumeSource,CephFS
 API rule violation: names_match,k8s.io/api/core/v1,VolumeSource,StorageOS
-API rule violation: names_match,k8s.io/api/extensions/v1beta1,CustomMetricCurrentStatus,CurrentValue
-API rule violation: names_match,k8s.io/api/extensions/v1beta1,CustomMetricTarget,TargetValue
 API rule violation: names_match,k8s.io/api/policy/v1beta1,PodDisruptionBudgetStatus,PodDisruptionsAllowed
 API rule violation: names_match,k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1,CustomResourceColumnDefinition,JSONPath
 API rule violation: names_match,k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1,JSON,Raw

@@ -107,7 +107,7 @@ func (c *FakeProjects) DeleteCollection(options *v1.DeleteOptions, listOptions v
 // Patch applies the patch and returns the patched projectResource.
 func (c *FakeProjects) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *project.Project, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(projectsResource, name, data, subresources...), &project.Project{})
+		Invokes(testing.NewRootPatchSubresourceAction(projectsResource, name, pt, data, subresources...), &project.Project{})
 	if obj == nil {
 		return nil, err
 	}
