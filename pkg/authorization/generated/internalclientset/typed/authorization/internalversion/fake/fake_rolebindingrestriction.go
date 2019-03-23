@@ -103,7 +103,7 @@ func (c *FakeRoleBindingRestrictions) DeleteCollection(options *v1.DeleteOptions
 // Patch applies the patch and returns the patched roleBindingRestriction.
 func (c *FakeRoleBindingRestrictions) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorization.RoleBindingRestriction, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(rolebindingrestrictionsResource, c.ns, name, data, subresources...), &authorization.RoleBindingRestriction{})
+		Invokes(testing.NewPatchSubresourceAction(rolebindingrestrictionsResource, c.ns, name, pt, data, subresources...), &authorization.RoleBindingRestriction{})
 
 	if obj == nil {
 		return nil, err

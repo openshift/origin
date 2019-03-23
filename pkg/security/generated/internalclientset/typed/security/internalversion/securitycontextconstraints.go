@@ -3,6 +3,8 @@
 package internalversion
 
 import (
+	"time"
+
 	security "github.com/openshift/origin/pkg/security/apis/security"
 	scheme "github.com/openshift/origin/pkg/security/generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,10 +58,15 @@ func (c *securityContextConstraints) Get(name string, options v1.GetOptions) (re
 
 // List takes label and field selectors, and returns the list of SecurityContextConstraints that match those selectors.
 func (c *securityContextConstraints) List(opts v1.ListOptions) (result *security.SecurityContextConstraintsList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &security.SecurityContextConstraintsList{}
 	err = c.client.Get().
 		Resource("securitycontextconstraints").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
@@ -67,10 +74,15 @@ func (c *securityContextConstraints) List(opts v1.ListOptions) (result *security
 
 // Watch returns a watch.Interface that watches the requested securityContextConstraints.
 func (c *securityContextConstraints) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Resource("securitycontextconstraints").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -109,9 +121,14 @@ func (c *securityContextConstraints) Delete(name string, options *v1.DeleteOptio
 
 // DeleteCollection deletes a collection of objects.
 func (c *securityContextConstraints) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Resource("securitycontextconstraints").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

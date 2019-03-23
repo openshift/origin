@@ -3,6 +3,8 @@
 package internalversion
 
 import (
+	"time"
+
 	template "github.com/openshift/origin/pkg/template/apis/template"
 	scheme "github.com/openshift/origin/pkg/template/generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -59,11 +61,16 @@ func (c *templates) Get(name string, options v1.GetOptions) (result *template.Te
 
 // List takes label and field selectors, and returns the list of Templates that match those selectors.
 func (c *templates) List(opts v1.ListOptions) (result *template.TemplateList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &template.TemplateList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("templates").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
@@ -71,11 +78,16 @@ func (c *templates) List(opts v1.ListOptions) (result *template.TemplateList, er
 
 // Watch returns a watch.Interface that watches the requested templates.
 func (c *templates) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
 		Resource("templates").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -117,10 +129,15 @@ func (c *templates) Delete(name string, options *v1.DeleteOptions) error {
 
 // DeleteCollection deletes a collection of objects.
 func (c *templates) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("templates").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()
