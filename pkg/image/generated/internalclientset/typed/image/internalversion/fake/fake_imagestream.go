@@ -116,7 +116,7 @@ func (c *FakeImageStreams) DeleteCollection(options *v1.DeleteOptions, listOptio
 // Patch applies the patch and returns the patched imageStream.
 func (c *FakeImageStreams) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *image.ImageStream, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(imagestreamsResource, c.ns, name, data, subresources...), &image.ImageStream{})
+		Invokes(testing.NewPatchSubresourceAction(imagestreamsResource, c.ns, name, pt, data, subresources...), &image.ImageStream{})
 
 	if obj == nil {
 		return nil, err

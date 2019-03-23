@@ -96,7 +96,7 @@ func (c *FakeOAuthClients) DeleteCollection(options *v1.DeleteOptions, listOptio
 // Patch applies the patch and returns the patched oAuthClient.
 func (c *FakeOAuthClients) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *oauth.OAuthClient, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(oauthclientsResource, name, data, subresources...), &oauth.OAuthClient{})
+		Invokes(testing.NewRootPatchSubresourceAction(oauthclientsResource, name, pt, data, subresources...), &oauth.OAuthClient{})
 	if obj == nil {
 		return nil, err
 	}

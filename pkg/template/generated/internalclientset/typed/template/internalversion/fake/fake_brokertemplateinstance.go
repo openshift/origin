@@ -96,7 +96,7 @@ func (c *FakeBrokerTemplateInstances) DeleteCollection(options *v1.DeleteOptions
 // Patch applies the patch and returns the patched brokerTemplateInstance.
 func (c *FakeBrokerTemplateInstances) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *template.BrokerTemplateInstance, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(brokertemplateinstancesResource, name, data, subresources...), &template.BrokerTemplateInstance{})
+		Invokes(testing.NewRootPatchSubresourceAction(brokertemplateinstancesResource, name, pt, data, subresources...), &template.BrokerTemplateInstance{})
 	if obj == nil {
 		return nil, err
 	}

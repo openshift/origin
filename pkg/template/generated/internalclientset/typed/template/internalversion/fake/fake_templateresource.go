@@ -103,7 +103,7 @@ func (c *FakeTemplates) DeleteCollection(options *v1.DeleteOptions, listOptions 
 // Patch applies the patch and returns the patched templateResource.
 func (c *FakeTemplates) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *template.Template, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(templatesResource, c.ns, name, data, subresources...), &template.Template{})
+		Invokes(testing.NewPatchSubresourceAction(templatesResource, c.ns, name, pt, data, subresources...), &template.Template{})
 
 	if obj == nil {
 		return nil, err
