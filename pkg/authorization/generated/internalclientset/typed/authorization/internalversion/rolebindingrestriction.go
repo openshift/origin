@@ -3,6 +3,8 @@
 package internalversion
 
 import (
+	"time"
+
 	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	scheme "github.com/openshift/origin/pkg/authorization/generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -59,11 +61,16 @@ func (c *roleBindingRestrictions) Get(name string, options v1.GetOptions) (resul
 
 // List takes label and field selectors, and returns the list of RoleBindingRestrictions that match those selectors.
 func (c *roleBindingRestrictions) List(opts v1.ListOptions) (result *authorization.RoleBindingRestrictionList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &authorization.RoleBindingRestrictionList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("rolebindingrestrictions").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
@@ -71,11 +78,16 @@ func (c *roleBindingRestrictions) List(opts v1.ListOptions) (result *authorizati
 
 // Watch returns a watch.Interface that watches the requested roleBindingRestrictions.
 func (c *roleBindingRestrictions) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
 		Resource("rolebindingrestrictions").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -117,10 +129,15 @@ func (c *roleBindingRestrictions) Delete(name string, options *v1.DeleteOptions)
 
 // DeleteCollection deletes a collection of objects.
 func (c *roleBindingRestrictions) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("rolebindingrestrictions").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

@@ -3,6 +3,8 @@
 package internalversion
 
 import (
+	"time"
+
 	oauth "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	scheme "github.com/openshift/origin/pkg/oauth/generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,10 +58,15 @@ func (c *oAuthClientAuthorizations) Get(name string, options v1.GetOptions) (res
 
 // List takes label and field selectors, and returns the list of OAuthClientAuthorizations that match those selectors.
 func (c *oAuthClientAuthorizations) List(opts v1.ListOptions) (result *oauth.OAuthClientAuthorizationList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &oauth.OAuthClientAuthorizationList{}
 	err = c.client.Get().
 		Resource("oauthclientauthorizations").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
@@ -67,10 +74,15 @@ func (c *oAuthClientAuthorizations) List(opts v1.ListOptions) (result *oauth.OAu
 
 // Watch returns a watch.Interface that watches the requested oAuthClientAuthorizations.
 func (c *oAuthClientAuthorizations) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Resource("oauthclientauthorizations").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -109,9 +121,14 @@ func (c *oAuthClientAuthorizations) Delete(name string, options *v1.DeleteOption
 
 // DeleteCollection deletes a collection of objects.
 func (c *oAuthClientAuthorizations) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Resource("oauthclientauthorizations").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

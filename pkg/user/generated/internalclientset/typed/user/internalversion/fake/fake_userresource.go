@@ -96,7 +96,7 @@ func (c *FakeUsers) DeleteCollection(options *v1.DeleteOptions, listOptions v1.L
 // Patch applies the patch and returns the patched userResource.
 func (c *FakeUsers) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *user.User, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(usersResource, name, data, subresources...), &user.User{})
+		Invokes(testing.NewRootPatchSubresourceAction(usersResource, name, pt, data, subresources...), &user.User{})
 	if obj == nil {
 		return nil, err
 	}

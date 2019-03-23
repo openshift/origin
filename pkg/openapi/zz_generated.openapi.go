@@ -219,7 +219,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/config/v1.ObjectReference":                                                          schema_openshift_api_config_v1_ObjectReference(ref),
 		"github.com/openshift/api/config/v1.OpenIDClaims":                                                             schema_openshift_api_config_v1_OpenIDClaims(ref),
 		"github.com/openshift/api/config/v1.OpenIDIdentityProvider":                                                   schema_openshift_api_config_v1_OpenIDIdentityProvider(ref),
-		"github.com/openshift/api/config/v1.OpenIDURLs":                                                               schema_openshift_api_config_v1_OpenIDURLs(ref),
 		"github.com/openshift/api/config/v1.OperandVersion":                                                           schema_openshift_api_config_v1_OperandVersion(ref),
 		"github.com/openshift/api/config/v1.Project":                                                                  schema_openshift_api_config_v1_Project(ref),
 		"github.com/openshift/api/config/v1.ProjectList":                                                              schema_openshift_api_config_v1_ProjectList(ref),
@@ -432,7 +431,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/operator/v1.ConsoleSpec":                                                            schema_openshift_api_operator_v1_ConsoleSpec(ref),
 		"github.com/openshift/api/operator/v1.ConsoleStatus":                                                          schema_openshift_api_operator_v1_ConsoleStatus(ref),
 		"github.com/openshift/api/operator/v1.DNS":                                                                    schema_openshift_api_operator_v1_DNS(ref),
-		"github.com/openshift/api/operator/v1.DNSCondition":                                                           schema_openshift_api_operator_v1_DNSCondition(ref),
 		"github.com/openshift/api/operator/v1.DNSList":                                                                schema_openshift_api_operator_v1_DNSList(ref),
 		"github.com/openshift/api/operator/v1.DNSSpec":                                                                schema_openshift_api_operator_v1_DNSSpec(ref),
 		"github.com/openshift/api/operator/v1.DNSStatus":                                                              schema_openshift_api_operator_v1_DNSStatus(ref),
@@ -697,6 +695,14 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/apps/v1beta2.StatefulSetSpec":                                                                     schema_k8sio_api_apps_v1beta2_StatefulSetSpec(ref),
 		"k8s.io/api/apps/v1beta2.StatefulSetStatus":                                                                   schema_k8sio_api_apps_v1beta2_StatefulSetStatus(ref),
 		"k8s.io/api/apps/v1beta2.StatefulSetUpdateStrategy":                                                           schema_k8sio_api_apps_v1beta2_StatefulSetUpdateStrategy(ref),
+		"k8s.io/api/auditregistration/v1alpha1.AuditSink":                                                             schema_k8sio_api_auditregistration_v1alpha1_AuditSink(ref),
+		"k8s.io/api/auditregistration/v1alpha1.AuditSinkList":                                                         schema_k8sio_api_auditregistration_v1alpha1_AuditSinkList(ref),
+		"k8s.io/api/auditregistration/v1alpha1.AuditSinkSpec":                                                         schema_k8sio_api_auditregistration_v1alpha1_AuditSinkSpec(ref),
+		"k8s.io/api/auditregistration/v1alpha1.Policy":                                                                schema_k8sio_api_auditregistration_v1alpha1_Policy(ref),
+		"k8s.io/api/auditregistration/v1alpha1.ServiceReference":                                                      schema_k8sio_api_auditregistration_v1alpha1_ServiceReference(ref),
+		"k8s.io/api/auditregistration/v1alpha1.Webhook":                                                               schema_k8sio_api_auditregistration_v1alpha1_Webhook(ref),
+		"k8s.io/api/auditregistration/v1alpha1.WebhookClientConfig":                                                   schema_k8sio_api_auditregistration_v1alpha1_WebhookClientConfig(ref),
+		"k8s.io/api/auditregistration/v1alpha1.WebhookThrottleConfig":                                                 schema_k8sio_api_auditregistration_v1alpha1_WebhookThrottleConfig(ref),
 		"k8s.io/api/authentication/v1.BoundObjectReference":                                                           schema_k8sio_api_authentication_v1_BoundObjectReference(ref),
 		"k8s.io/api/authentication/v1.TokenRequest":                                                                   schema_k8sio_api_authentication_v1_TokenRequest(ref),
 		"k8s.io/api/authentication/v1.TokenRequestSpec":                                                               schema_k8sio_api_authentication_v1_TokenRequestSpec(ref),
@@ -871,6 +877,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/core/v1.FlockerVolumeSource":                                                                      schema_k8sio_api_core_v1_FlockerVolumeSource(ref),
 		"k8s.io/api/core/v1.GCEPersistentDiskVolumeSource":                                                            schema_k8sio_api_core_v1_GCEPersistentDiskVolumeSource(ref),
 		"k8s.io/api/core/v1.GitRepoVolumeSource":                                                                      schema_k8sio_api_core_v1_GitRepoVolumeSource(ref),
+		"k8s.io/api/core/v1.GlusterfsPersistentVolumeSource":                                                          schema_k8sio_api_core_v1_GlusterfsPersistentVolumeSource(ref),
 		"k8s.io/api/core/v1.GlusterfsVolumeSource":                                                                    schema_k8sio_api_core_v1_GlusterfsVolumeSource(ref),
 		"k8s.io/api/core/v1.HTTPGetAction":                                                                            schema_k8sio_api_core_v1_HTTPGetAction(ref),
 		"k8s.io/api/core/v1.HTTPHeader":                                                                               schema_k8sio_api_core_v1_HTTPHeader(ref),
@@ -1013,10 +1020,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/events/v1beta1.EventSeries":                                                                       schema_k8sio_api_events_v1beta1_EventSeries(ref),
 		"k8s.io/api/extensions/v1beta1.AllowedFlexVolume":                                                             schema_k8sio_api_extensions_v1beta1_AllowedFlexVolume(ref),
 		"k8s.io/api/extensions/v1beta1.AllowedHostPath":                                                               schema_k8sio_api_extensions_v1beta1_AllowedHostPath(ref),
-		"k8s.io/api/extensions/v1beta1.CustomMetricCurrentStatus":                                                     schema_k8sio_api_extensions_v1beta1_CustomMetricCurrentStatus(ref),
-		"k8s.io/api/extensions/v1beta1.CustomMetricCurrentStatusList":                                                 schema_k8sio_api_extensions_v1beta1_CustomMetricCurrentStatusList(ref),
-		"k8s.io/api/extensions/v1beta1.CustomMetricTarget":                                                            schema_k8sio_api_extensions_v1beta1_CustomMetricTarget(ref),
-		"k8s.io/api/extensions/v1beta1.CustomMetricTargetList":                                                        schema_k8sio_api_extensions_v1beta1_CustomMetricTargetList(ref),
 		"k8s.io/api/extensions/v1beta1.DaemonSet":                                                                     schema_k8sio_api_extensions_v1beta1_DaemonSet(ref),
 		"k8s.io/api/extensions/v1beta1.DaemonSetCondition":                                                            schema_k8sio_api_extensions_v1beta1_DaemonSetCondition(ref),
 		"k8s.io/api/extensions/v1beta1.DaemonSetList":                                                                 schema_k8sio_api_extensions_v1beta1_DaemonSetList(ref),
@@ -1063,6 +1066,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/extensions/v1beta1.RollbackConfig":                                                                schema_k8sio_api_extensions_v1beta1_RollbackConfig(ref),
 		"k8s.io/api/extensions/v1beta1.RollingUpdateDaemonSet":                                                        schema_k8sio_api_extensions_v1beta1_RollingUpdateDaemonSet(ref),
 		"k8s.io/api/extensions/v1beta1.RollingUpdateDeployment":                                                       schema_k8sio_api_extensions_v1beta1_RollingUpdateDeployment(ref),
+		"k8s.io/api/extensions/v1beta1.RunAsGroupStrategyOptions":                                                     schema_k8sio_api_extensions_v1beta1_RunAsGroupStrategyOptions(ref),
 		"k8s.io/api/extensions/v1beta1.RunAsUserStrategyOptions":                                                      schema_k8sio_api_extensions_v1beta1_RunAsUserStrategyOptions(ref),
 		"k8s.io/api/extensions/v1beta1.SELinuxStrategyOptions":                                                        schema_k8sio_api_extensions_v1beta1_SELinuxStrategyOptions(ref),
 		"k8s.io/api/extensions/v1beta1.Scale":                                                                         schema_k8sio_api_extensions_v1beta1_Scale(ref),
@@ -1094,6 +1098,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/policy/v1beta1.PodSecurityPolicy":                                                                 schema_k8sio_api_policy_v1beta1_PodSecurityPolicy(ref),
 		"k8s.io/api/policy/v1beta1.PodSecurityPolicyList":                                                             schema_k8sio_api_policy_v1beta1_PodSecurityPolicyList(ref),
 		"k8s.io/api/policy/v1beta1.PodSecurityPolicySpec":                                                             schema_k8sio_api_policy_v1beta1_PodSecurityPolicySpec(ref),
+		"k8s.io/api/policy/v1beta1.RunAsGroupStrategyOptions":                                                         schema_k8sio_api_policy_v1beta1_RunAsGroupStrategyOptions(ref),
 		"k8s.io/api/policy/v1beta1.RunAsUserStrategyOptions":                                                          schema_k8sio_api_policy_v1beta1_RunAsUserStrategyOptions(ref),
 		"k8s.io/api/policy/v1beta1.SELinuxStrategyOptions":                                                            schema_k8sio_api_policy_v1beta1_SELinuxStrategyOptions(ref),
 		"k8s.io/api/policy/v1beta1.SupplementalGroupsStrategyOptions":                                                 schema_k8sio_api_policy_v1beta1_SupplementalGroupsStrategyOptions(ref),
@@ -1142,6 +1147,12 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/settings/v1alpha1.PodPresetSpec":                                                                  schema_k8sio_api_settings_v1alpha1_PodPresetSpec(ref),
 		"k8s.io/api/storage/v1.StorageClass":                                                                          schema_k8sio_api_storage_v1_StorageClass(ref),
 		"k8s.io/api/storage/v1.StorageClassList":                                                                      schema_k8sio_api_storage_v1_StorageClassList(ref),
+		"k8s.io/api/storage/v1.VolumeAttachment":                                                                      schema_k8sio_api_storage_v1_VolumeAttachment(ref),
+		"k8s.io/api/storage/v1.VolumeAttachmentList":                                                                  schema_k8sio_api_storage_v1_VolumeAttachmentList(ref),
+		"k8s.io/api/storage/v1.VolumeAttachmentSource":                                                                schema_k8sio_api_storage_v1_VolumeAttachmentSource(ref),
+		"k8s.io/api/storage/v1.VolumeAttachmentSpec":                                                                  schema_k8sio_api_storage_v1_VolumeAttachmentSpec(ref),
+		"k8s.io/api/storage/v1.VolumeAttachmentStatus":                                                                schema_k8sio_api_storage_v1_VolumeAttachmentStatus(ref),
+		"k8s.io/api/storage/v1.VolumeError":                                                                           schema_k8sio_api_storage_v1_VolumeError(ref),
 		"k8s.io/api/storage/v1alpha1.VolumeAttachment":                                                                schema_k8sio_api_storage_v1alpha1_VolumeAttachment(ref),
 		"k8s.io/api/storage/v1alpha1.VolumeAttachmentList":                                                            schema_k8sio_api_storage_v1alpha1_VolumeAttachmentList(ref),
 		"k8s.io/api/storage/v1alpha1.VolumeAttachmentSource":                                                          schema_k8sio_api_storage_v1alpha1_VolumeAttachmentSource(ref),
@@ -1156,7 +1167,11 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/api/storage/v1beta1.VolumeAttachmentSpec":                                                             schema_k8sio_api_storage_v1beta1_VolumeAttachmentSpec(ref),
 		"k8s.io/api/storage/v1beta1.VolumeAttachmentStatus":                                                           schema_k8sio_api_storage_v1beta1_VolumeAttachmentStatus(ref),
 		"k8s.io/api/storage/v1beta1.VolumeError":                                                                      schema_k8sio_api_storage_v1beta1_VolumeError(ref),
+		"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.ConversionRequest":                             schema_pkg_apis_apiextensions_v1beta1_ConversionRequest(ref),
+		"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.ConversionResponse":                            schema_pkg_apis_apiextensions_v1beta1_ConversionResponse(ref),
+		"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.ConversionReview":                              schema_pkg_apis_apiextensions_v1beta1_ConversionReview(ref),
 		"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceColumnDefinition":                schema_pkg_apis_apiextensions_v1beta1_CustomResourceColumnDefinition(ref),
+		"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceConversion":                      schema_pkg_apis_apiextensions_v1beta1_CustomResourceConversion(ref),
 		"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceDefinition":                      schema_pkg_apis_apiextensions_v1beta1_CustomResourceDefinition(ref),
 		"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceDefinitionCondition":             schema_pkg_apis_apiextensions_v1beta1_CustomResourceDefinitionCondition(ref),
 		"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceDefinitionList":                  schema_pkg_apis_apiextensions_v1beta1_CustomResourceDefinitionList(ref),
@@ -1174,6 +1189,8 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.JSONSchemaPropsOrArray":                        schema_pkg_apis_apiextensions_v1beta1_JSONSchemaPropsOrArray(ref),
 		"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.JSONSchemaPropsOrBool":                         schema_pkg_apis_apiextensions_v1beta1_JSONSchemaPropsOrBool(ref),
 		"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.JSONSchemaPropsOrStringArray":                  schema_pkg_apis_apiextensions_v1beta1_JSONSchemaPropsOrStringArray(ref),
+		"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.ServiceReference":                              schema_pkg_apis_apiextensions_v1beta1_ServiceReference(ref),
+		"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.WebhookClientConfig":                           schema_pkg_apis_apiextensions_v1beta1_WebhookClientConfig(ref),
 		"k8s.io/apimachinery/pkg/api/resource.Quantity":                                                               schema_apimachinery_pkg_api_resource_Quantity(ref),
 		"k8s.io/apimachinery/pkg/api/resource.int64Amount":                                                            schema_apimachinery_pkg_api_resource_int64Amount(ref),
 		"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup":                                                               schema_pkg_apis_meta_v1_APIGroup(ref),
@@ -1256,11 +1273,14 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/client-go/pkg/apis/clientauthentication/v1beta1.ExecCredentialSpec":                                   schema_pkg_apis_clientauthentication_v1beta1_ExecCredentialSpec(ref),
 		"k8s.io/client-go/pkg/apis/clientauthentication/v1beta1.ExecCredentialStatus":                                 schema_pkg_apis_clientauthentication_v1beta1_ExecCredentialStatus(ref),
 		"k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSIDriver":                                                              schema_pkg_apis_csi_v1alpha1_CSIDriver(ref),
-		"k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSIDriverInfo":                                                          schema_pkg_apis_csi_v1alpha1_CSIDriverInfo(ref),
+		"k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSIDriverInfoSpec":                                                      schema_pkg_apis_csi_v1alpha1_CSIDriverInfoSpec(ref),
+		"k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSIDriverInfoStatus":                                                    schema_pkg_apis_csi_v1alpha1_CSIDriverInfoStatus(ref),
 		"k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSIDriverList":                                                          schema_pkg_apis_csi_v1alpha1_CSIDriverList(ref),
 		"k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSIDriverSpec":                                                          schema_pkg_apis_csi_v1alpha1_CSIDriverSpec(ref),
 		"k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSINodeInfo":                                                            schema_pkg_apis_csi_v1alpha1_CSINodeInfo(ref),
 		"k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSINodeInfoList":                                                        schema_pkg_apis_csi_v1alpha1_CSINodeInfoList(ref),
+		"k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSINodeInfoSpec":                                                        schema_pkg_apis_csi_v1alpha1_CSINodeInfoSpec(ref),
+		"k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSINodeInfoStatus":                                                      schema_pkg_apis_csi_v1alpha1_CSINodeInfoStatus(ref),
 		"k8s.io/kube-aggregator/pkg/apis/apiregistration/v1.APIService":                                               schema_pkg_apis_apiregistration_v1_APIService(ref),
 		"k8s.io/kube-aggregator/pkg/apis/apiregistration/v1.APIServiceCondition":                                      schema_pkg_apis_apiregistration_v1_APIServiceCondition(ref),
 		"k8s.io/kube-aggregator/pkg/apis/apiregistration/v1.APIServiceList":                                           schema_pkg_apis_apiregistration_v1_APIServiceList(ref),
@@ -9363,20 +9383,6 @@ func schema_openshift_api_config_v1_IdentityProvider(ref common.ReferenceCallbac
 							Format:      "",
 						},
 					},
-					"challenge": {
-						SchemaProps: spec.SchemaProps{
-							Description: "challenge indicates whether to issue WWW-Authenticate challenges for this provider",
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
-					"login": {
-						SchemaProps: spec.SchemaProps{
-							Description: "login indicates whether to use this identity provider for unauthenticated browsers to login against",
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
 					"mappingMethod": {
 						SchemaProps: spec.SchemaProps{
 							Description: "mappingMethod determines how identities from this provider are mapped to users Defaults to \"claim\"",
@@ -9446,7 +9452,7 @@ func schema_openshift_api_config_v1_IdentityProvider(ref common.ReferenceCallbac
 						},
 					},
 				},
-				Required: []string{"name", "challenge", "login", "type"},
+				Required: []string{"name", "type"},
 			},
 		},
 		Dependencies: []string{
@@ -9841,8 +9847,18 @@ func schema_openshift_api_config_v1_InfrastructureSpec(ref common.ReferenceCallb
 			SchemaProps: spec.SchemaProps{
 				Description: "InfrastructureSpec contains settings that apply to the cluster infrastructure.",
 				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"cloudConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "cloudConfig is a reference to a ConfigMap containing the cloud provider configuration file. This configuration file is used to configure the Kubernetes cloud provider integration when using the built-in cloud provider integration or the external cloud controller manager. The namespace for this config map is openshift-config.",
+							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapFileReference"),
+						},
+					},
+				},
 			},
 		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.ConfigMapFileReference"},
 	}
 }
 
@@ -9853,6 +9869,13 @@ func schema_openshift_api_config_v1_InfrastructureStatus(ref common.ReferenceCal
 				Description: "InfrastructureStatus describes the infrastructure the cluster is leveraging.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
+					"infrastructureName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "infrastructureName uniquely identifies a cluster with a human friendly name. Once set it should not be changed. Must be of max length 27 and must have only alphanumeric or hyphen characters.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"platform": {
 						SchemaProps: spec.SchemaProps{
 							Description: "platform is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are \"AWS\", \"Azure\", \"GCP\", \"Libvirt\", \"OpenStack\", \"VSphere\", and \"None\". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform.",
@@ -9875,7 +9898,7 @@ func schema_openshift_api_config_v1_InfrastructureStatus(ref common.ReferenceCal
 						},
 					},
 				},
-				Required: []string{"etcdDiscoveryDomain", "apiServerURL"},
+				Required: []string{"infrastructureName", "etcdDiscoveryDomain", "apiServerURL"},
 			},
 		},
 	}
@@ -10874,10 +10897,11 @@ func schema_openshift_api_config_v1_OpenIDIdentityProvider(ref common.ReferenceC
 							},
 						},
 					},
-					"urls": {
+					"issuer": {
 						SchemaProps: spec.SchemaProps{
-							Description: "urls to use to authenticate",
-							Ref:         ref("github.com/openshift/api/config/v1.OpenIDURLs"),
+							Description: "issuer is the URL that the OpenID Provider asserts as its Issuer Identifier. It must use the https scheme with no query or fragment component.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"claims": {
@@ -10887,46 +10911,11 @@ func schema_openshift_api_config_v1_OpenIDIdentityProvider(ref common.ReferenceC
 						},
 					},
 				},
-				Required: []string{"clientID", "clientSecret", "urls", "claims"},
+				Required: []string{"clientID", "clientSecret", "issuer", "claims"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/config/v1.ConfigMapNameReference", "github.com/openshift/api/config/v1.OpenIDClaims", "github.com/openshift/api/config/v1.OpenIDURLs", "github.com/openshift/api/config/v1.SecretNameReference"},
-	}
-}
-
-func schema_openshift_api_config_v1_OpenIDURLs(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "OpenIDURLs are URLs to use when authenticating with an OpenID identity provider",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"authorize": {
-						SchemaProps: spec.SchemaProps{
-							Description: "authorize is the oauth authorization URL",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"token": {
-						SchemaProps: spec.SchemaProps{
-							Description: "token is the oauth token granting URL",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"userInfo": {
-						SchemaProps: spec.SchemaProps{
-							Description: "userInfo is the optional userinfo URL. If present, a granted access_token is used to request claims If empty, a granted id_token is parsed for claims",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"authorize", "token"},
-			},
-		},
+			"github.com/openshift/api/config/v1.ConfigMapNameReference", "github.com/openshift/api/config/v1.OpenIDClaims", "github.com/openshift/api/config/v1.SecretNameReference"},
 	}
 }
 
@@ -21614,56 +21603,6 @@ func schema_openshift_api_operator_v1_DNS(ref common.ReferenceCallback) common.O
 	}
 }
 
-func schema_openshift_api_operator_v1_DNSCondition(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "DNSCondition contains details for the current condition of this DNS.",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"type": {
-						SchemaProps: spec.SchemaProps{
-							Description: "type is the type of the condition.\n\nThese are the supported DNS condition types:\n\n  * Available\n  - True if the following conditions are met:\n    * DNS controller daemonset is available.\n  - False if any of those conditions are unsatisfied.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"status": {
-						SchemaProps: spec.SchemaProps{
-							Description: "status is the status of the condition. Can be True, False, Unknown.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"lastTransitionTime": {
-						SchemaProps: spec.SchemaProps{
-							Description: "lastTransitionTime is the last time a condition status transitioned from one state to another.",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
-						},
-					},
-					"reason": {
-						SchemaProps: spec.SchemaProps{
-							Description: "reason is a brief machine readable explanation for the condition's last transition.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"message": {
-						SchemaProps: spec.SchemaProps{
-							Description: "message is a human readable description of the details of the last transition, complementing reason.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"type", "status", "lastTransitionTime"},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
-	}
-}
-
 func schema_openshift_api_operator_v1_DNSList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -21751,12 +21690,12 @@ func schema_openshift_api_operator_v1_DNSStatus(ref common.ReferenceCallback) co
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions represent the latest available observations of a DNS's current state.",
+							Description: "conditions provide information about the state of the DNS on the cluster.\n\nThese are the supported DNS conditions:\n\n  * Available\n  - True if the following conditions are met:\n    * DNS controller daemonset is available.\n  - False if any of those conditions are unsatisfied.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/operator/v1.DNSCondition"),
+										Ref: ref("github.com/openshift/api/operator/v1.OperatorCondition"),
 									},
 								},
 							},
@@ -21767,7 +21706,7 @@ func schema_openshift_api_operator_v1_DNSStatus(ref common.ReferenceCallback) co
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.DNSCondition"},
+			"github.com/openshift/api/operator/v1.OperatorCondition"},
 	}
 }
 
@@ -27265,7 +27204,6 @@ func schema_openshift_api_quota_v1_ClusterResourceQuotaSelector(ref common.Refer
 						},
 					},
 				},
-				Required: []string{"labels", "annotations"},
 			},
 		},
 		Dependencies: []string{
@@ -27328,7 +27266,7 @@ func schema_openshift_api_quota_v1_ClusterResourceQuotaStatus(ref common.Referen
 						},
 					},
 				},
-				Required: []string{"total", "namespaces"},
+				Required: []string{"total"},
 			},
 		},
 		Dependencies: []string{
@@ -30998,7 +30936,7 @@ func schema_k8sio_api_admissionregistration_v1beta1_WebhookClientConfig(ref comm
 				Properties: map[string]spec.Schema{
 					"url": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`url` gives the location of the webhook, in standard URL form (`[scheme://]host:port/path`). Exactly one of `url` or `service` must be specified.\n\nThe `host` should not refer to a service running in the cluster; use the `service` field instead. The host might be resolved via external DNS in some apiservers (e.g., `kube-apiserver` cannot resolve in-cluster DNS as that would be a layering violation). `host` may also be an IP address.\n\nPlease note that using `localhost` or `127.0.0.1` as a `host` is risky unless you take great care to run this webhook on all hosts which run an apiserver which might need to make calls to this webhook. Such installs are likely to be non-portable, i.e., not easy to turn up in a new cluster.\n\nThe scheme must be \"https\"; the URL must begin with \"https://\".\n\nA path is optional, and if present may be any string permissible in a URL. You may use the path to pass an arbitrary string to the webhook, for example, a cluster identifier.\n\nAttempting to use a user or basic auth e.g. \"user:password@\" is not allowed. Fragments (\"#...\") and query parameters (\"?...\") are not allowed, either.",
+							Description: "`url` gives the location of the webhook, in standard URL form (`scheme://host:port/path`). Exactly one of `url` or `service` must be specified.\n\nThe `host` should not refer to a service running in the cluster; use the `service` field instead. The host might be resolved via external DNS in some apiservers (e.g., `kube-apiserver` cannot resolve in-cluster DNS as that would be a layering violation). `host` may also be an IP address.\n\nPlease note that using `localhost` or `127.0.0.1` as a `host` is risky unless you take great care to run this webhook on all hosts which run an apiserver which might need to make calls to this webhook. Such installs are likely to be non-portable, i.e., not easy to turn up in a new cluster.\n\nThe scheme must be \"https\"; the URL must begin with \"https://\".\n\nA path is optional, and if present may be any string permissible in a URL. You may use the path to pass an arbitrary string to the webhook, for example, a cluster identifier.\n\nAttempting to use a user or basic auth e.g. \"user:password@\" is not allowed. Fragments (\"#...\") and query parameters (\"?...\") are not allowed, either.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -31011,13 +30949,12 @@ func schema_k8sio_api_admissionregistration_v1beta1_WebhookClientConfig(ref comm
 					},
 					"caBundle": {
 						SchemaProps: spec.SchemaProps{
-							Description: "`caBundle` is a PEM encoded CA bundle which will be used to validate the webhook's server certificate. Required.",
+							Description: "`caBundle` is a PEM encoded CA bundle which will be used to validate the webhook's server certificate. If unspecified, system trust roots on the apiserver are used.",
 							Type:        []string{"string"},
 							Format:      "byte",
 						},
 					},
 				},
-				Required: []string{"caBundle"},
 			},
 		},
 		Dependencies: []string{
@@ -31622,6 +31559,11 @@ func schema_k8sio_api_apps_v1_DeploymentSpec(ref common.ReferenceCallback) commo
 						},
 					},
 					"strategy": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-patch-strategy": "retainKeys",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "The deployment strategy to use to replace existing pods with new ones.",
 							Ref:         ref("k8s.io/api/apps/v1.DeploymentStrategy"),
@@ -32773,6 +32715,11 @@ func schema_k8sio_api_apps_v1beta1_DeploymentSpec(ref common.ReferenceCallback) 
 						},
 					},
 					"strategy": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-patch-strategy": "retainKeys",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "The deployment strategy to use to replace existing pods with new ones.",
 							Ref:         ref("k8s.io/api/apps/v1beta1.DeploymentStrategy"),
@@ -34043,6 +33990,11 @@ func schema_k8sio_api_apps_v1beta2_DeploymentSpec(ref common.ReferenceCallback) 
 						},
 					},
 					"strategy": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-patch-strategy": "retainKeys",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "The deployment strategy to use to replace existing pods with new ones.",
 							Ref:         ref("k8s.io/api/apps/v1beta2.DeploymentStrategy"),
@@ -34969,6 +34921,282 @@ func schema_k8sio_api_apps_v1beta2_StatefulSetUpdateStrategy(ref common.Referenc
 	}
 }
 
+func schema_k8sio_api_auditregistration_v1alpha1_AuditSink(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AuditSink represents a cluster level audit sink",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Spec defines the audit configuration spec",
+							Ref:         ref("k8s.io/api/auditregistration/v1alpha1.AuditSinkSpec"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/auditregistration/v1alpha1.AuditSinkSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_k8sio_api_auditregistration_v1alpha1_AuditSinkList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AuditSinkList is a list of AuditSink items.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "List of audit configurations.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/api/auditregistration/v1alpha1.AuditSink"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/auditregistration/v1alpha1.AuditSink", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_k8sio_api_auditregistration_v1alpha1_AuditSinkSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AuditSinkSpec holds the spec for the audit sink",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"policy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Policy defines the policy for selecting which events should be sent to the webhook required",
+							Ref:         ref("k8s.io/api/auditregistration/v1alpha1.Policy"),
+						},
+					},
+					"webhook": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Webhook to send events required",
+							Ref:         ref("k8s.io/api/auditregistration/v1alpha1.Webhook"),
+						},
+					},
+				},
+				Required: []string{"policy", "webhook"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/auditregistration/v1alpha1.Policy", "k8s.io/api/auditregistration/v1alpha1.Webhook"},
+	}
+}
+
+func schema_k8sio_api_auditregistration_v1alpha1_Policy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Policy defines the configuration of how audit events are logged",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"level": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The Level that all requests are recorded at. available options: None, Metadata, Request, RequestResponse required",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"stages": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Stages is a list of stages for which events are created.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"level"},
+			},
+		},
+	}
+}
+
+func schema_k8sio_api_auditregistration_v1alpha1_ServiceReference(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ServiceReference holds a reference to Service.legacy.k8s.io",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`namespace` is the namespace of the service. Required",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`name` is the name of the service. Required",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"path": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`path` is an optional URL path which will be sent in any request to this service.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"namespace", "name"},
+			},
+		},
+	}
+}
+
+func schema_k8sio_api_auditregistration_v1alpha1_Webhook(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Webhook holds the configuration of the webhook",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"throttle": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Throttle holds the options for throttling the webhook",
+							Ref:         ref("k8s.io/api/auditregistration/v1alpha1.WebhookThrottleConfig"),
+						},
+					},
+					"clientConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ClientConfig holds the connection parameters for the webhook required",
+							Ref:         ref("k8s.io/api/auditregistration/v1alpha1.WebhookClientConfig"),
+						},
+					},
+				},
+				Required: []string{"clientConfig"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/auditregistration/v1alpha1.WebhookClientConfig", "k8s.io/api/auditregistration/v1alpha1.WebhookThrottleConfig"},
+	}
+}
+
+func schema_k8sio_api_auditregistration_v1alpha1_WebhookClientConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "WebhookClientConfig contains the information to make a connection with the webhook",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"url": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`url` gives the location of the webhook, in standard URL form (`scheme://host:port/path`). Exactly one of `url` or `service` must be specified.\n\nThe `host` should not refer to a service running in the cluster; use the `service` field instead. The host might be resolved via external DNS in some apiservers (e.g., `kube-apiserver` cannot resolve in-cluster DNS as that would be a layering violation). `host` may also be an IP address.\n\nPlease note that using `localhost` or `127.0.0.1` as a `host` is risky unless you take great care to run this webhook on all hosts which run an apiserver which might need to make calls to this webhook. Such installs are likely to be non-portable, i.e., not easy to turn up in a new cluster.\n\nThe scheme must be \"https\"; the URL must begin with \"https://\".\n\nA path is optional, and if present may be any string permissible in a URL. You may use the path to pass an arbitrary string to the webhook, for example, a cluster identifier.\n\nAttempting to use a user or basic auth e.g. \"user:password@\" is not allowed. Fragments (\"#...\") and query parameters (\"?...\") are not allowed, either.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"service": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`service` is a reference to the service for this webhook. Either `service` or `url` must be specified.\n\nIf the webhook is running within the cluster, then you should use `service`.\n\nPort 443 will be used if it is open, otherwise it is an error.",
+							Ref:         ref("k8s.io/api/auditregistration/v1alpha1.ServiceReference"),
+						},
+					},
+					"caBundle": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`caBundle` is a PEM encoded CA bundle which will be used to validate the webhook's server certificate. If unspecified, system trust roots on the apiserver are used.",
+							Type:        []string{"string"},
+							Format:      "byte",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/auditregistration/v1alpha1.ServiceReference"},
+	}
+}
+
+func schema_k8sio_api_auditregistration_v1alpha1_WebhookThrottleConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "WebhookThrottleConfig holds the configuration for throttling events",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"qps": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ThrottleQPS maximum number of batches per second default 10 QPS",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"burst": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ThrottleBurst is the maximum number of events sent at the same moment default 15 QPS",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func schema_k8sio_api_authentication_v1_BoundObjectReference(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -35188,6 +35416,20 @@ func schema_k8sio_api_authentication_v1_TokenReviewSpec(ref common.ReferenceCall
 							Format:      "",
 						},
 					},
+					"audiences": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Audiences is a list of the identifiers that the resource server presented with the token identifies as. Audience-aware token authenticators will verify that the token was intended for at least one of the audiences in this list. If no audiences are provided, the audience will default to the audience of the Kubernetes apiserver.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -35212,6 +35454,20 @@ func schema_k8sio_api_authentication_v1_TokenReviewStatus(ref common.ReferenceCa
 						SchemaProps: spec.SchemaProps{
 							Description: "User is the UserInfo associated with the provided token.",
 							Ref:         ref("k8s.io/api/authentication/v1.UserInfo"),
+						},
+					},
+					"audiences": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Audiences are audience identifiers chosen by the authenticator that are compatible with both the TokenReview and token. An identifier is any identifier in the intersection of the TokenReviewSpec audiences and the token's audiences. A client of the TokenReview API that sets the spec.audiences field should validate that a compatible audience identifier is returned in the status.audiences field to ensure that the TokenReview server is audience aware. If a TokenReview returns an empty status.audience field where status.authenticated is \"true\", the token is valid against the audience of the Kubernetes API server.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
 						},
 					},
 					"error": {
@@ -35353,6 +35609,20 @@ func schema_k8sio_api_authentication_v1beta1_TokenReviewSpec(ref common.Referenc
 							Format:      "",
 						},
 					},
+					"audiences": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Audiences is a list of the identifiers that the resource server presented with the token identifies as. Audience-aware token authenticators will verify that the token was intended for at least one of the audiences in this list. If no audiences are provided, the audience will default to the audience of the Kubernetes apiserver.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -35377,6 +35647,20 @@ func schema_k8sio_api_authentication_v1beta1_TokenReviewStatus(ref common.Refere
 						SchemaProps: spec.SchemaProps{
 							Description: "User is the UserInfo associated with the provided token.",
 							Ref:         ref("k8s.io/api/authentication/v1beta1.UserInfo"),
+						},
+					},
+					"audiences": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Audiences are audience identifiers chosen by the authenticator that are compatible with both the TokenReview and token. An identifier is any identifier in the intersection of the TokenReviewSpec audiences and the token's audiences. A client of the TokenReview API that sets the spec.audiences field should validate that a compatible audience identifier is returned in the status.audiences field to ensure that the TokenReview server is audience aware. If a TokenReview returns an empty status.audience field where status.authenticated is \"true\", the token is valid against the audience of the Kubernetes API server.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
 						},
 					},
 					"error": {
@@ -40465,19 +40749,19 @@ func schema_k8sio_api_core_v1_CSIPersistentVolumeSource(ref common.ReferenceCall
 					},
 					"controllerPublishSecretRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ControllerPublishSecretRef is a reference to the secret object containing sensitive information to pass to the CSI driver to complete the CSI ControllerPublishVolume and ControllerUnpublishVolume calls. This field is optional, and  may be empty if no secret is required. If the secret object contains more than one secret, all secrets are passed.",
+							Description: "ControllerPublishSecretRef is a reference to the secret object containing sensitive information to pass to the CSI driver to complete the CSI ControllerPublishVolume and ControllerUnpublishVolume calls. This field is optional, and may be empty if no secret is required. If the secret object contains more than one secret, all secrets are passed.",
 							Ref:         ref("k8s.io/api/core/v1.SecretReference"),
 						},
 					},
 					"nodeStageSecretRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "NodeStageSecretRef is a reference to the secret object containing sensitive information to pass to the CSI driver to complete the CSI NodeStageVolume and NodeStageVolume and NodeUnstageVolume calls. This field is optional, and  may be empty if no secret is required. If the secret object contains more than one secret, all secrets are passed.",
+							Description: "NodeStageSecretRef is a reference to the secret object containing sensitive information to pass to the CSI driver to complete the CSI NodeStageVolume and NodeStageVolume and NodeUnstageVolume calls. This field is optional, and may be empty if no secret is required. If the secret object contains more than one secret, all secrets are passed.",
 							Ref:         ref("k8s.io/api/core/v1.SecretReference"),
 						},
 					},
 					"nodePublishSecretRef": {
 						SchemaProps: spec.SchemaProps{
-							Description: "NodePublishSecretRef is a reference to the secret object containing sensitive information to pass to the CSI driver to complete the CSI NodePublishVolume and NodeUnpublishVolume calls. This field is optional, and  may be empty if no secret is required. If the secret object contains more than one secret, all secrets are passed.",
+							Description: "NodePublishSecretRef is a reference to the secret object containing sensitive information to pass to the CSI driver to complete the CSI NodePublishVolume and NodeUnpublishVolume calls. This field is optional, and may be empty if no secret is required. If the secret object contains more than one secret, all secrets are passed.",
 							Ref:         ref("k8s.io/api/core/v1.SecretReference"),
 						},
 					},
@@ -41285,6 +41569,11 @@ func schema_k8sio_api_core_v1_Container(ref common.ReferenceCallback) common.Ope
 					"ports": {
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"containerPort",
+									"protocol",
+								},
+								"x-kubernetes-list-type":       "map",
 								"x-kubernetes-patch-merge-key": "containerPort",
 								"x-kubernetes-patch-strategy":  "merge",
 							},
@@ -41366,7 +41655,7 @@ func schema_k8sio_api_core_v1_Container(ref common.ReferenceCallback) common.Ope
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "volumeDevices is the list of block devices to be used by the container. This is an alpha feature and may change in the future.",
+							Description: "volumeDevices is the list of block devices to be used by the container. This is a beta feature.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -42784,6 +43073,48 @@ func schema_k8sio_api_core_v1_GitRepoVolumeSource(ref common.ReferenceCallback) 
 					},
 				},
 				Required: []string{"repository"},
+			},
+		},
+	}
+}
+
+func schema_k8sio_api_core_v1_GlusterfsPersistentVolumeSource(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Represents a Glusterfs mount that lasts the lifetime of a pod. Glusterfs volumes do not support ownership management or SELinux relabeling.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"endpoints": {
+						SchemaProps: spec.SchemaProps{
+							Description: "EndpointsName is the endpoint name that details Glusterfs topology. More info: https://releases.k8s.io/HEAD/examples/volumes/glusterfs/README.md#create-a-pod",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"path": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Path is the Glusterfs volume path. More info: https://releases.k8s.io/HEAD/examples/volumes/glusterfs/README.md#create-a-pod",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"readOnly": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ReadOnly here will force the Glusterfs volume to be mounted with read-only permissions. Defaults to false. More info: https://releases.k8s.io/HEAD/examples/volumes/glusterfs/README.md#create-a-pod",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"endpointsNamespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "EndpointsNamespace is the namespace that contains Glusterfs endpoint. If this field is empty, the EndpointNamespace defaults to the same namespace as the bound PVC. More info: https://releases.k8s.io/HEAD/examples/volumes/glusterfs/README.md#create-a-pod",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"endpoints", "path"},
 			},
 		},
 	}
@@ -44904,7 +45235,7 @@ func schema_k8sio_api_core_v1_PersistentVolumeClaimSpec(ref common.ReferenceCall
 					},
 					"volumeMode": {
 						SchemaProps: spec.SchemaProps{
-							Description: "volumeMode defines what type of volume is required by the claim. Value of Filesystem is implied when not included in claim spec. This is an alpha feature and may change in the future.",
+							Description: "volumeMode defines what type of volume is required by the claim. Value of Filesystem is implied when not included in claim spec. This is a beta feature.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -45097,7 +45428,7 @@ func schema_k8sio_api_core_v1_PersistentVolumeSource(ref common.ReferenceCallbac
 					"glusterfs": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Glusterfs represents a Glusterfs volume that is attached to a host and exposed to the pod. Provisioned by an admin. More info: https://releases.k8s.io/HEAD/examples/volumes/glusterfs/README.md",
-							Ref:         ref("k8s.io/api/core/v1.GlusterfsVolumeSource"),
+							Ref:         ref("k8s.io/api/core/v1.GlusterfsPersistentVolumeSource"),
 						},
 					},
 					"nfs": {
@@ -45212,7 +45543,7 @@ func schema_k8sio_api_core_v1_PersistentVolumeSource(ref common.ReferenceCallbac
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource", "k8s.io/api/core/v1.AzureDiskVolumeSource", "k8s.io/api/core/v1.AzureFilePersistentVolumeSource", "k8s.io/api/core/v1.CSIPersistentVolumeSource", "k8s.io/api/core/v1.CephFSPersistentVolumeSource", "k8s.io/api/core/v1.CinderPersistentVolumeSource", "k8s.io/api/core/v1.FCVolumeSource", "k8s.io/api/core/v1.FlexPersistentVolumeSource", "k8s.io/api/core/v1.FlockerVolumeSource", "k8s.io/api/core/v1.GCEPersistentDiskVolumeSource", "k8s.io/api/core/v1.GlusterfsVolumeSource", "k8s.io/api/core/v1.HostPathVolumeSource", "k8s.io/api/core/v1.ISCSIPersistentVolumeSource", "k8s.io/api/core/v1.LocalVolumeSource", "k8s.io/api/core/v1.NFSVolumeSource", "k8s.io/api/core/v1.PhotonPersistentDiskVolumeSource", "k8s.io/api/core/v1.PortworxVolumeSource", "k8s.io/api/core/v1.QuobyteVolumeSource", "k8s.io/api/core/v1.RBDPersistentVolumeSource", "k8s.io/api/core/v1.ScaleIOPersistentVolumeSource", "k8s.io/api/core/v1.StorageOSPersistentVolumeSource", "k8s.io/api/core/v1.VsphereVirtualDiskVolumeSource"},
+			"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource", "k8s.io/api/core/v1.AzureDiskVolumeSource", "k8s.io/api/core/v1.AzureFilePersistentVolumeSource", "k8s.io/api/core/v1.CSIPersistentVolumeSource", "k8s.io/api/core/v1.CephFSPersistentVolumeSource", "k8s.io/api/core/v1.CinderPersistentVolumeSource", "k8s.io/api/core/v1.FCVolumeSource", "k8s.io/api/core/v1.FlexPersistentVolumeSource", "k8s.io/api/core/v1.FlockerVolumeSource", "k8s.io/api/core/v1.GCEPersistentDiskVolumeSource", "k8s.io/api/core/v1.GlusterfsPersistentVolumeSource", "k8s.io/api/core/v1.HostPathVolumeSource", "k8s.io/api/core/v1.ISCSIPersistentVolumeSource", "k8s.io/api/core/v1.LocalVolumeSource", "k8s.io/api/core/v1.NFSVolumeSource", "k8s.io/api/core/v1.PhotonPersistentDiskVolumeSource", "k8s.io/api/core/v1.PortworxVolumeSource", "k8s.io/api/core/v1.QuobyteVolumeSource", "k8s.io/api/core/v1.RBDPersistentVolumeSource", "k8s.io/api/core/v1.ScaleIOPersistentVolumeSource", "k8s.io/api/core/v1.StorageOSPersistentVolumeSource", "k8s.io/api/core/v1.VsphereVirtualDiskVolumeSource"},
 	}
 }
 
@@ -45258,7 +45589,7 @@ func schema_k8sio_api_core_v1_PersistentVolumeSpec(ref common.ReferenceCallback)
 					"glusterfs": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Glusterfs represents a Glusterfs volume that is attached to a host and exposed to the pod. Provisioned by an admin. More info: https://releases.k8s.io/HEAD/examples/volumes/glusterfs/README.md",
-							Ref:         ref("k8s.io/api/core/v1.GlusterfsVolumeSource"),
+							Ref:         ref("k8s.io/api/core/v1.GlusterfsPersistentVolumeSource"),
 						},
 					},
 					"nfs": {
@@ -45419,7 +45750,7 @@ func schema_k8sio_api_core_v1_PersistentVolumeSpec(ref common.ReferenceCallback)
 					},
 					"volumeMode": {
 						SchemaProps: spec.SchemaProps{
-							Description: "volumeMode defines if a volume is intended to be used with a formatted filesystem or to remain in raw block state. Value of Filesystem is implied when not included in spec. This is an alpha feature and may change in the future.",
+							Description: "volumeMode defines if a volume is intended to be used with a formatted filesystem or to remain in raw block state. Value of Filesystem is implied when not included in spec. This is a beta feature.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -45434,7 +45765,7 @@ func schema_k8sio_api_core_v1_PersistentVolumeSpec(ref common.ReferenceCallback)
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource", "k8s.io/api/core/v1.AzureDiskVolumeSource", "k8s.io/api/core/v1.AzureFilePersistentVolumeSource", "k8s.io/api/core/v1.CSIPersistentVolumeSource", "k8s.io/api/core/v1.CephFSPersistentVolumeSource", "k8s.io/api/core/v1.CinderPersistentVolumeSource", "k8s.io/api/core/v1.FCVolumeSource", "k8s.io/api/core/v1.FlexPersistentVolumeSource", "k8s.io/api/core/v1.FlockerVolumeSource", "k8s.io/api/core/v1.GCEPersistentDiskVolumeSource", "k8s.io/api/core/v1.GlusterfsVolumeSource", "k8s.io/api/core/v1.HostPathVolumeSource", "k8s.io/api/core/v1.ISCSIPersistentVolumeSource", "k8s.io/api/core/v1.LocalVolumeSource", "k8s.io/api/core/v1.NFSVolumeSource", "k8s.io/api/core/v1.ObjectReference", "k8s.io/api/core/v1.PhotonPersistentDiskVolumeSource", "k8s.io/api/core/v1.PortworxVolumeSource", "k8s.io/api/core/v1.QuobyteVolumeSource", "k8s.io/api/core/v1.RBDPersistentVolumeSource", "k8s.io/api/core/v1.ScaleIOPersistentVolumeSource", "k8s.io/api/core/v1.StorageOSPersistentVolumeSource", "k8s.io/api/core/v1.VolumeNodeAffinity", "k8s.io/api/core/v1.VsphereVirtualDiskVolumeSource", "k8s.io/apimachinery/pkg/api/resource.Quantity"},
+			"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource", "k8s.io/api/core/v1.AzureDiskVolumeSource", "k8s.io/api/core/v1.AzureFilePersistentVolumeSource", "k8s.io/api/core/v1.CSIPersistentVolumeSource", "k8s.io/api/core/v1.CephFSPersistentVolumeSource", "k8s.io/api/core/v1.CinderPersistentVolumeSource", "k8s.io/api/core/v1.FCVolumeSource", "k8s.io/api/core/v1.FlexPersistentVolumeSource", "k8s.io/api/core/v1.FlockerVolumeSource", "k8s.io/api/core/v1.GCEPersistentDiskVolumeSource", "k8s.io/api/core/v1.GlusterfsPersistentVolumeSource", "k8s.io/api/core/v1.HostPathVolumeSource", "k8s.io/api/core/v1.ISCSIPersistentVolumeSource", "k8s.io/api/core/v1.LocalVolumeSource", "k8s.io/api/core/v1.NFSVolumeSource", "k8s.io/api/core/v1.ObjectReference", "k8s.io/api/core/v1.PhotonPersistentDiskVolumeSource", "k8s.io/api/core/v1.PortworxVolumeSource", "k8s.io/api/core/v1.QuobyteVolumeSource", "k8s.io/api/core/v1.RBDPersistentVolumeSource", "k8s.io/api/core/v1.ScaleIOPersistentVolumeSource", "k8s.io/api/core/v1.StorageOSPersistentVolumeSource", "k8s.io/api/core/v1.VolumeNodeAffinity", "k8s.io/api/core/v1.VsphereVirtualDiskVolumeSource", "k8s.io/apimachinery/pkg/api/resource.Quantity"},
 	}
 }
 
@@ -46559,6 +46890,13 @@ func schema_k8sio_api_core_v1_PodSpec(ref common.ReferenceCallback) common.OpenA
 						SchemaProps: spec.SchemaProps{
 							Description: "RuntimeClassName refers to a RuntimeClass object in the node.k8s.io group, which should be used to run this pod.  If no RuntimeClass resource matches the named class, the pod will not be run. If unset or empty, the \"legacy\" RuntimeClass will be used, which is an implicit class with an empty definition that uses the default runtime handler. More info: https://github.com/kubernetes/community/blob/master/keps/sig-node/0014-runtime-class.md This is an alpha feature and may change in the future.",
 							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"enableServiceLinks": {
+						SchemaProps: spec.SchemaProps{
+							Description: "EnableServiceLinks indicates whether information about services should be injected into pod's environment variables, matching the syntax of Docker links. Optional: Defaults to true.",
+							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
@@ -50227,117 +50565,6 @@ func schema_k8sio_api_extensions_v1beta1_AllowedHostPath(ref common.ReferenceCal
 	}
 }
 
-func schema_k8sio_api_extensions_v1beta1_CustomMetricCurrentStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
-				Properties: map[string]spec.Schema{
-					"name": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Custom Metric name.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"value": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Custom Metric value (average).",
-							Ref:         ref("k8s.io/apimachinery/pkg/api/resource.Quantity"),
-						},
-					},
-				},
-				Required: []string{"name", "value"},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/api/resource.Quantity"},
-	}
-}
-
-func schema_k8sio_api_extensions_v1beta1_CustomMetricCurrentStatusList(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
-				Properties: map[string]spec.Schema{
-					"items": {
-						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("k8s.io/api/extensions/v1beta1.CustomMetricCurrentStatus"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"items"},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/api/extensions/v1beta1.CustomMetricCurrentStatus"},
-	}
-}
-
-func schema_k8sio_api_extensions_v1beta1_CustomMetricTarget(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "Alpha-level support for Custom Metrics in HPA (as annotations).",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"name": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Custom Metric name.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"value": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Custom Metric value (average).",
-							Ref:         ref("k8s.io/apimachinery/pkg/api/resource.Quantity"),
-						},
-					},
-				},
-				Required: []string{"name", "value"},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/api/resource.Quantity"},
-	}
-}
-
-func schema_k8sio_api_extensions_v1beta1_CustomMetricTargetList(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
-				Properties: map[string]spec.Schema{
-					"items": {
-						SchemaProps: spec.SchemaProps{
-							Type: []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("k8s.io/api/extensions/v1beta1.CustomMetricTarget"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"items"},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/api/extensions/v1beta1.CustomMetricTarget"},
-	}
-}
-
 func schema_k8sio_api_extensions_v1beta1_DaemonSet(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -50920,7 +51147,7 @@ func schema_k8sio_api_extensions_v1beta1_DeploymentSpec(ref common.ReferenceCall
 					},
 					"revisionHistoryLimit": {
 						SchemaProps: spec.SchemaProps{
-							Description: "The number of old ReplicaSets to retain to allow rollback. This is a pointer to distinguish between explicit zero and not specified.",
+							Description: "The number of old ReplicaSets to retain to allow rollback. This is a pointer to distinguish between explicit zero and not specified. This is set to the max value of int32 (i.e. 2147483647) by default, which means \"retaining all old RelicaSets\".",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -52024,6 +52251,12 @@ func schema_k8sio_api_extensions_v1beta1_PodSecurityPolicySpec(ref common.Refere
 							Ref:         ref("k8s.io/api/extensions/v1beta1.RunAsUserStrategyOptions"),
 						},
 					},
+					"runAsGroup": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RunAsGroup is the strategy that will dictate the allowable RunAsGroup values that may be set. If this field is omitted, the pod's RunAsGroup can take any value. This field requires the RunAsGroup feature gate to be enabled.",
+							Ref:         ref("k8s.io/api/extensions/v1beta1.RunAsGroupStrategyOptions"),
+						},
+					},
 					"supplementalGroups": {
 						SchemaProps: spec.SchemaProps{
 							Description: "supplementalGroups is the strategy that will dictate what supplemental groups are used by the SecurityContext.",
@@ -52130,7 +52363,7 @@ func schema_k8sio_api_extensions_v1beta1_PodSecurityPolicySpec(ref common.Refere
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/extensions/v1beta1.AllowedFlexVolume", "k8s.io/api/extensions/v1beta1.AllowedHostPath", "k8s.io/api/extensions/v1beta1.FSGroupStrategyOptions", "k8s.io/api/extensions/v1beta1.HostPortRange", "k8s.io/api/extensions/v1beta1.RunAsUserStrategyOptions", "k8s.io/api/extensions/v1beta1.SELinuxStrategyOptions", "k8s.io/api/extensions/v1beta1.SupplementalGroupsStrategyOptions"},
+			"k8s.io/api/extensions/v1beta1.AllowedFlexVolume", "k8s.io/api/extensions/v1beta1.AllowedHostPath", "k8s.io/api/extensions/v1beta1.FSGroupStrategyOptions", "k8s.io/api/extensions/v1beta1.HostPortRange", "k8s.io/api/extensions/v1beta1.RunAsGroupStrategyOptions", "k8s.io/api/extensions/v1beta1.RunAsUserStrategyOptions", "k8s.io/api/extensions/v1beta1.SELinuxStrategyOptions", "k8s.io/api/extensions/v1beta1.SupplementalGroupsStrategyOptions"},
 	}
 }
 
@@ -52483,6 +52716,42 @@ func schema_k8sio_api_extensions_v1beta1_RollingUpdateDeployment(ref common.Refe
 		},
 		Dependencies: []string{
 			"k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
+	}
+}
+
+func schema_k8sio_api_extensions_v1beta1_RunAsGroupStrategyOptions(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "RunAsGroupStrategyOptions defines the strategy type and any options used to create the strategy. Deprecated: use RunAsGroupStrategyOptions from policy API Group instead.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"rule": {
+						SchemaProps: spec.SchemaProps{
+							Description: "rule is the strategy that will dictate the allowable RunAsGroup values that may be set.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"ranges": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ranges are the allowed ranges of gids that may be used. If you would like to force a single gid then supply a single range with the same start and end. Required for MustRunAs.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/api/extensions/v1beta1.IDRange"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"rule"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/extensions/v1beta1.IDRange"},
 	}
 }
 
@@ -53763,6 +54032,12 @@ func schema_k8sio_api_policy_v1beta1_PodSecurityPolicySpec(ref common.ReferenceC
 							Ref:         ref("k8s.io/api/policy/v1beta1.RunAsUserStrategyOptions"),
 						},
 					},
+					"runAsGroup": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RunAsGroup is the strategy that will dictate the allowable RunAsGroup values that may be set. If this field is omitted, the pod's RunAsGroup can take any value. This field requires the RunAsGroup feature gate to be enabled.",
+							Ref:         ref("k8s.io/api/policy/v1beta1.RunAsGroupStrategyOptions"),
+						},
+					},
 					"supplementalGroups": {
 						SchemaProps: spec.SchemaProps{
 							Description: "supplementalGroups is the strategy that will dictate what supplemental groups are used by the SecurityContext.",
@@ -53869,7 +54144,43 @@ func schema_k8sio_api_policy_v1beta1_PodSecurityPolicySpec(ref common.ReferenceC
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/policy/v1beta1.AllowedFlexVolume", "k8s.io/api/policy/v1beta1.AllowedHostPath", "k8s.io/api/policy/v1beta1.FSGroupStrategyOptions", "k8s.io/api/policy/v1beta1.HostPortRange", "k8s.io/api/policy/v1beta1.RunAsUserStrategyOptions", "k8s.io/api/policy/v1beta1.SELinuxStrategyOptions", "k8s.io/api/policy/v1beta1.SupplementalGroupsStrategyOptions"},
+			"k8s.io/api/policy/v1beta1.AllowedFlexVolume", "k8s.io/api/policy/v1beta1.AllowedHostPath", "k8s.io/api/policy/v1beta1.FSGroupStrategyOptions", "k8s.io/api/policy/v1beta1.HostPortRange", "k8s.io/api/policy/v1beta1.RunAsGroupStrategyOptions", "k8s.io/api/policy/v1beta1.RunAsUserStrategyOptions", "k8s.io/api/policy/v1beta1.SELinuxStrategyOptions", "k8s.io/api/policy/v1beta1.SupplementalGroupsStrategyOptions"},
+	}
+}
+
+func schema_k8sio_api_policy_v1beta1_RunAsGroupStrategyOptions(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "RunAsGroupStrategyOptions defines the strategy type and any options used to create the strategy.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"rule": {
+						SchemaProps: spec.SchemaProps{
+							Description: "rule is the strategy that will dictate the allowable RunAsGroup values that may be set.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"ranges": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ranges are the allowed ranges of gids that may be used. If you would like to force a single gid then supply a single range with the same start and end. Required for MustRunAs.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/api/policy/v1beta1.IDRange"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"rule"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/policy/v1beta1.IDRange"},
 	}
 }
 
@@ -56298,6 +56609,237 @@ func schema_k8sio_api_storage_v1_StorageClassList(ref common.ReferenceCallback) 
 	}
 }
 
+func schema_k8sio_api_storage_v1_VolumeAttachment(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "VolumeAttachment captures the intent to attach or detach the specified volume to/from the specified node.\n\nVolumeAttachment objects are non-namespaced.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Specification of the desired attach/detach volume behavior. Populated by the Kubernetes system.",
+							Ref:         ref("k8s.io/api/storage/v1.VolumeAttachmentSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Status of the VolumeAttachment request. Populated by the entity completing the attach or detach operation, i.e. the external-attacher.",
+							Ref:         ref("k8s.io/api/storage/v1.VolumeAttachmentStatus"),
+						},
+					},
+				},
+				Required: []string{"spec"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/storage/v1.VolumeAttachmentSpec", "k8s.io/api/storage/v1.VolumeAttachmentStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_k8sio_api_storage_v1_VolumeAttachmentList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "VolumeAttachmentList is a collection of VolumeAttachment objects.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard list metadata More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Items is the list of VolumeAttachments",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/api/storage/v1.VolumeAttachment"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/storage/v1.VolumeAttachment", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_k8sio_api_storage_v1_VolumeAttachmentSource(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "VolumeAttachmentSource represents a volume that should be attached. Right now only PersistenVolumes can be attached via external attacher, in future we may allow also inline volumes in pods. Exactly one member can be set.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"persistentVolumeName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name of the persistent volume to attach.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_k8sio_api_storage_v1_VolumeAttachmentSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "VolumeAttachmentSpec is the specification of a VolumeAttachment request.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"attacher": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Attacher indicates the name of the volume driver that MUST handle this request. This is the name returned by GetPluginName().",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"source": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Source represents the volume that should be attached.",
+							Ref:         ref("k8s.io/api/storage/v1.VolumeAttachmentSource"),
+						},
+					},
+					"nodeName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The node that the volume should be attached to.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"attacher", "source", "nodeName"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/storage/v1.VolumeAttachmentSource"},
+	}
+}
+
+func schema_k8sio_api_storage_v1_VolumeAttachmentStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "VolumeAttachmentStatus is the status of a VolumeAttachment request.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"attached": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Indicates the volume is successfully attached. This field must only be set by the entity completing the attach operation, i.e. the external-attacher.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"attachmentMetadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Upon successful attach, this field is populated with any information returned by the attach operation that must be passed into subsequent WaitForAttach or Mount calls. This field must only be set by the entity completing the attach operation, i.e. the external-attacher.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"attachError": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The last error encountered during attach operation, if any. This field must only be set by the entity completing the attach operation, i.e. the external-attacher.",
+							Ref:         ref("k8s.io/api/storage/v1.VolumeError"),
+						},
+					},
+					"detachError": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The last error encountered during detach operation, if any. This field must only be set by the entity completing the detach operation, i.e. the external-attacher.",
+							Ref:         ref("k8s.io/api/storage/v1.VolumeError"),
+						},
+					},
+				},
+				Required: []string{"attached"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/storage/v1.VolumeError"},
+	}
+}
+
+func schema_k8sio_api_storage_v1_VolumeError(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "VolumeError captures an error encountered during a volume operation.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"time": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Time the error was encountered.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Description: "String detailing the error encountered during Attach or Detach operation. This string maybe logged, so it should not contain sensitive information.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+	}
+}
+
 func schema_k8sio_api_storage_v1alpha1_VolumeAttachment(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -56915,6 +57457,132 @@ func schema_k8sio_api_storage_v1beta1_VolumeError(ref common.ReferenceCallback) 
 	}
 }
 
+func schema_pkg_apis_apiextensions_v1beta1_ConversionRequest(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ConversionRequest describes the conversion request parameters.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"uid": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`uid` is an identifier for the individual request/response. It allows us to distinguish instances of requests which are otherwise identical (parallel requests, requests when earlier requests did not modify etc) The UID is meant to track the round trip (request/response) between the KAS and the WebHook, not the user request. It is suitable for correlating log entries between the webhook and apiserver, for either auditing or debugging.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"desiredAPIVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`desiredAPIVersion` is the version to convert given objects to. e.g. \"myapi.example.com/v1\"",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"objects": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`objects` is the list of CR objects to be converted.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"uid", "desiredAPIVersion", "objects"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/runtime.RawExtension"},
+	}
+}
+
+func schema_pkg_apis_apiextensions_v1beta1_ConversionResponse(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ConversionResponse describes a conversion response.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"uid": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`uid` is an identifier for the individual request/response. This should be copied over from the corresponding AdmissionRequest.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"convertedObjects": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`convertedObjects` is the list of converted version of `request.objects` if the `result` is successful otherwise empty. The webhook is expected to set apiVersion of these objects to the ConversionRequest.desiredAPIVersion. The list must also has the same size as input list with the same objects in the same order(i.e. equal UIDs and object meta)",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+									},
+								},
+							},
+						},
+					},
+					"result": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`result` contains the result of conversion with extra details if the conversion failed. `result.status` determines if the conversion failed or succeeded. The `result.status` field is required and represent the success or failure of the conversion. A successful conversion must set `result.status` to `Success`. A failed conversion must set `result.status` to `Failure` and provide more details in `result.message` and return http status 200. The `result.message` will be used to construct an error message for the end user.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Status"),
+						},
+					},
+				},
+				Required: []string{"uid", "convertedObjects", "result"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Status", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+	}
+}
+
+func schema_pkg_apis_apiextensions_v1beta1_ConversionReview(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ConversionReview describes a conversion request/response.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"request": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`request` describes the attributes for the conversion request.",
+							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.ConversionRequest"),
+						},
+					},
+					"response": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`response` describes the attributes for the conversion response.",
+							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.ConversionResponse"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.ConversionRequest", "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.ConversionResponse"},
+	}
+}
+
 func schema_pkg_apis_apiextensions_v1beta1_CustomResourceColumnDefinition(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -56968,6 +57636,35 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceColumnDefinition(ref co
 				Required: []string{"name", "type", "JSONPath"},
 			},
 		},
+	}
+}
+
+func schema_pkg_apis_apiextensions_v1beta1_CustomResourceConversion(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "CustomResourceConversion describes how to convert different versions of a CR.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"strategy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`strategy` specifies the conversion strategy. Allowed values are: - `None`: The converter only change the apiVersion and would not touch any other field in the CR. - `Webhook`: API Server will call to an external webhook to do the conversion. Additional information is needed for this option.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"webhookClientConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`webhookClientConfig` is the instructions for how to call the webhook if strategy is `Webhook`. This field is alpha-level and is only honored by servers that enable the CustomResourceWebhookConversion feature.",
+							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.WebhookClientConfig"),
+						},
+					},
+				},
+				Required: []string{"strategy"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.WebhookClientConfig"},
 	}
 }
 
@@ -57222,13 +57919,13 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceDefinitionSpec(ref comm
 					},
 					"validation": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Validation describes the validation methods for CustomResources",
+							Description: "Validation describes the validation methods for CustomResources Optional, the global validation schema for all versions. Top-level and per-version schemas are mutually exclusive.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceValidation"),
 						},
 					},
 					"subresources": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Subresources describes the subresources for CustomResources",
+							Description: "Subresources describes the subresources for CustomResource Optional, the global subresources for all versions. Top-level and per-version subresources are mutually exclusive.",
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceSubresources"),
 						},
 					},
@@ -57247,7 +57944,7 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceDefinitionSpec(ref comm
 					},
 					"additionalPrinterColumns": {
 						SchemaProps: spec.SchemaProps{
-							Description: "AdditionalPrinterColumns are additional columns shown e.g. in kubectl next to the name. Defaults to a created-at column.",
+							Description: "AdditionalPrinterColumns are additional columns shown e.g. in kubectl next to the name. Defaults to a created-at column. Optional, the global columns for all versions. Top-level and per-version columns are mutually exclusive.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -57258,12 +57955,18 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceDefinitionSpec(ref comm
 							},
 						},
 					},
+					"conversion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`conversion` defines conversion settings for the CRD.",
+							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceConversion"),
+						},
+					},
 				},
 				Required: []string{"group", "names", "scope"},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceColumnDefinition", "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceDefinitionNames", "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceDefinitionVersion", "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceSubresources", "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceValidation"},
+			"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceColumnDefinition", "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceConversion", "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceDefinitionNames", "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceDefinitionVersion", "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceSubresources", "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceValidation"},
 	}
 }
 
@@ -57320,7 +58023,8 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceDefinitionVersion(ref c
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
+				Description: "CustomResourceDefinitionVersion describes a version for CRD.",
+				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
@@ -57343,10 +58047,37 @@ func schema_pkg_apis_apiextensions_v1beta1_CustomResourceDefinitionVersion(ref c
 							Format:      "",
 						},
 					},
+					"schema": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Schema describes the schema for CustomResource used in validation, pruning, and defaulting. Top-level and per-version schemas are mutually exclusive. Per-version schemas must not all be set to identical values (top-level validation schema should be used instead) This field is alpha-level and is only honored by servers that enable the CustomResourceWebhookConversion feature.",
+							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceValidation"),
+						},
+					},
+					"subresources": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Subresources describes the subresources for CustomResource Top-level and per-version subresources are mutually exclusive. Per-version subresources must not all be set to identical values (top-level subresources should be used instead) This field is alpha-level and is only honored by servers that enable the CustomResourceWebhookConversion feature.",
+							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceSubresources"),
+						},
+					},
+					"additionalPrinterColumns": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AdditionalPrinterColumns are additional columns shown e.g. in kubectl next to the name. Defaults to a created-at column. Top-level and per-version columns are mutually exclusive. Per-version columns must not all be set to identical values (top-level columns should be used instead) This field is alpha-level and is only honored by servers that enable the CustomResourceWebhookConversion feature. NOTE: CRDs created prior to 1.13 populated the top-level additionalPrinterColumns field by default. To apply an update that changes to per-version additionalPrinterColumns, the top-level additionalPrinterColumns field must be explicitly set to null",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceColumnDefinition"),
+									},
+								},
+							},
+						},
+					},
 				},
 				Required: []string{"name", "served", "storage"},
 			},
 		},
+		Dependencies: []string{
+			"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceColumnDefinition", "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceSubresources", "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.CustomResourceValidation"},
 	}
 }
 
@@ -57756,12 +58487,6 @@ func schema_pkg_apis_apiextensions_v1beta1_JSONSchemaProps(ref common.ReferenceC
 							Ref: ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.JSON"),
 						},
 					},
-					"nullable": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"boolean"},
-							Format: "",
-						},
-					},
 				},
 			},
 		},
@@ -57803,6 +58528,76 @@ func schema_pkg_apis_apiextensions_v1beta1_JSONSchemaPropsOrStringArray(ref comm
 				Format:      v1beta1.JSONSchemaPropsOrStringArray{}.OpenAPISchemaFormat(),
 			},
 		},
+	}
+}
+
+func schema_pkg_apis_apiextensions_v1beta1_ServiceReference(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ServiceReference holds a reference to Service.legacy.k8s.io",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`namespace` is the namespace of the service. Required",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`name` is the name of the service. Required",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"path": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`path` is an optional URL path which will be sent in any request to this service.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"namespace", "name"},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_apiextensions_v1beta1_WebhookClientConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "WebhookClientConfig contains the information to make a TLS connection with the webhook. It has the same field as admissionregistration.v1beta1.WebhookClientConfig.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"url": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`url` gives the location of the webhook, in standard URL form (`scheme://host:port/path`). Exactly one of `url` or `service` must be specified.\n\nThe `host` should not refer to a service running in the cluster; use the `service` field instead. The host might be resolved via external DNS in some apiservers (e.g., `kube-apiserver` cannot resolve in-cluster DNS as that would be a layering violation). `host` may also be an IP address.\n\nPlease note that using `localhost` or `127.0.0.1` as a `host` is risky unless you take great care to run this webhook on all hosts which run an apiserver which might need to make calls to this webhook. Such installs are likely to be non-portable, i.e., not easy to turn up in a new cluster.\n\nThe scheme must be \"https\"; the URL must begin with \"https://\".\n\nA path is optional, and if present may be any string permissible in a URL. You may use the path to pass an arbitrary string to the webhook, for example, a cluster identifier.\n\nAttempting to use a user or basic auth e.g. \"user:password@\" is not allowed. Fragments (\"#...\") and query parameters (\"?...\") are not allowed, either.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"service": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`service` is a reference to the service for this webhook. Either `service` or `url` must be specified.\n\nIf the webhook is running within the cluster, then you should use `service`.\n\nPort 443 will be used if it is open, otherwise it is an error.",
+							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.ServiceReference"),
+						},
+					},
+					"caBundle": {
+						SchemaProps: spec.SchemaProps{
+							Description: "`caBundle` is a PEM encoded CA bundle which will be used to validate the webhook's server certificate. If unspecified, system trust roots on the apiserver are used.",
+							Type:        []string{"string"},
+							Format:      "byte",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1.ServiceReference"},
 	}
 }
 
@@ -59079,7 +59874,7 @@ func schema_pkg_apis_meta_v1_OwnerReference(ref common.ReferenceCallback) common
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "OwnerReference contains enough information to let you identify an owning object. Currently, an owning object must be in the same namespace, so there is no namespace field.",
+				Description: "OwnerReference contains enough information to let you identify an owning object. An owning object must be in the same namespace as the dependent, or be cluster-scoped, so there is no namespace field.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"apiVersion": {
@@ -61923,16 +62718,16 @@ func schema_pkg_apis_csi_v1alpha1_CSIDriver(ref common.ReferenceCallback) common
 	}
 }
 
-func schema_pkg_apis_csi_v1alpha1_CSIDriverInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_pkg_apis_csi_v1alpha1_CSIDriverInfoSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "CSIDriverInfo contains information about one CSI driver installed on a node.",
+				Description: "CSIDriverInfoSpec holds information about the specification of one CSI driver installed on a node",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
-					"driver": {
+					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "driver is the name of the CSI driver that this object refers to. This MUST be the same name returned by the CSI GetPluginName() call for that driver.",
+							Description: "name is the name of the CSI driver that this object refers to. This MUST be the same name returned by the CSI GetPluginName() call for that driver.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -61959,7 +62754,42 @@ func schema_pkg_apis_csi_v1alpha1_CSIDriverInfo(ref common.ReferenceCallback) co
 						},
 					},
 				},
-				Required: []string{"driver", "nodeID", "topologyKeys"},
+				Required: []string{"name", "nodeID", "topologyKeys"},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_csi_v1alpha1_CSIDriverInfoStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "CSIDriverInfoStatus holds information about the status of one CSI driver installed on a node",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name is the name of the CSI driver that this object refers to. This MUST be the same name returned by the CSI GetPluginName() call for that driver.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"available": {
+						SchemaProps: spec.SchemaProps{
+							Description: "available is a boolean representing whether the driver has been installed on this node or not.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"volumePluginMechanism": {
+						SchemaProps: spec.SchemaProps{
+							Description: "volumePluginMechanism announces what mechanism underlies volume plugins. It is set by Kubelet. It is used by the attach/detach controller, which needs to know how to perform attachments. The allowed values are: * \"in-tree\": the volume operation (e.g., attach/detach) ought to be\n  directly performed by the attach/detach controller.\n* \"csi-plugin\": the attach/detach controller ought to request\n  the csi plugin to perform the volume operation rather than perform it directly.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"name", "available", "volumePluginMechanism"},
 			},
 		},
 	}
@@ -62068,31 +62898,24 @@ func schema_pkg_apis_csi_v1alpha1_CSINodeInfo(ref common.ReferenceCallback) comm
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
 						},
 					},
-					"csiDrivers": {
-						VendorExtensible: spec.VendorExtensible{
-							Extensions: spec.Extensions{
-								"x-kubernetes-patch-merge-key": "driver",
-								"x-kubernetes-patch-strategy":  "merge",
-							},
-						},
+					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Description: "List of CSI drivers running on the node and their properties.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSIDriverInfo"),
-									},
-								},
-							},
+							Description: "spec is the specification of CSINodeInfo",
+							Ref:         ref("k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSINodeInfoSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "status is the current status of CSINodeInfo",
+							Ref:         ref("k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSINodeInfoStatus"),
 						},
 					},
 				},
-				Required: []string{"csiDrivers"},
+				Required: []string{"spec", "status"},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSIDriverInfo"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSINodeInfoSpec", "k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSINodeInfoStatus"},
 	}
 }
 
@@ -62142,6 +62965,76 @@ func schema_pkg_apis_csi_v1alpha1_CSINodeInfoList(ref common.ReferenceCallback) 
 		},
 		Dependencies: []string{
 			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSINodeInfo"},
+	}
+}
+
+func schema_pkg_apis_csi_v1alpha1_CSINodeInfoSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "CSINodeInfoSpec holds information about the specification of all CSI drivers installed on a node",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"drivers": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-patch-merge-key": "name",
+								"x-kubernetes-patch-strategy":  "merge",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "drivers is a list of specifications of CSIDriverInfo",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSIDriverInfoSpec"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"drivers"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSIDriverInfoSpec"},
+	}
+}
+
+func schema_pkg_apis_csi_v1alpha1_CSINodeInfoStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "CSINodeInfoStatus holds information about the status of all CSI drivers installed on a node",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"drivers": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-patch-merge-key": "name",
+								"x-kubernetes-patch-strategy":  "merge",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "drivers is a list of the statuses of CSIDriverInfo",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSIDriverInfoStatus"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"drivers"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/csi-api/pkg/apis/csi/v1alpha1.CSIDriverInfoStatus"},
 	}
 }
 
@@ -62323,7 +63216,7 @@ func schema_pkg_apis_apiregistration_v1_APIServiceSpec(ref common.ReferenceCallb
 					},
 					"caBundle": {
 						SchemaProps: spec.SchemaProps{
-							Description: "CABundle is a PEM encoded CA bundle which will be used to validate an API server's serving certificate.",
+							Description: "CABundle is a PEM encoded CA bundle which will be used to validate an API server's serving certificate. If unspecified, system trust roots on the apiserver are used.",
 							Type:        []string{"string"},
 							Format:      "byte",
 						},
@@ -62590,7 +63483,7 @@ func schema_pkg_apis_apiregistration_v1beta1_APIServiceSpec(ref common.Reference
 					},
 					"caBundle": {
 						SchemaProps: spec.SchemaProps{
-							Description: "CABundle is a PEM encoded CA bundle which will be used to validate an API server's serving certificate.",
+							Description: "CABundle is a PEM encoded CA bundle which will be used to validate an API server's serving certificate. If unspecified, system trust roots on the apiserver are used.",
 							Type:        []string{"string"},
 							Format:      "byte",
 						},
@@ -64713,7 +65606,13 @@ func schema_k8sio_kubelet_config_v1beta1_KubeletConfiguration(ref common.Referen
 					},
 					"nodeStatusUpdateFrequency": {
 						SchemaProps: spec.SchemaProps{
-							Description: "nodeStatusUpdateFrequency is the frequency that kubelet posts node status to master. Note: be cautious when changing the constant, it must work with nodeMonitorGracePeriod in nodecontroller. Dynamic Kubelet Config (beta): If dynamically updating this field, consider that it may impact node scalability, and also that the node controller's nodeMonitorGracePeriod must be set to N*NodeStatusUpdateFrequency, where N is the number of retries before the node controller marks the node unhealthy. Default: \"10s\"",
+							Description: "nodeStatusUpdateFrequency is the frequency that kubelet computes node status. If node lease feature is not enabled, it is also the frequency that kubelet posts node status to master. Note: When node lease feature is not enabled, be cautious when changing the constant, it must work with nodeMonitorGracePeriod in nodecontroller. Dynamic Kubelet Config (beta): If dynamically updating this field, consider that it may impact node scalability, and also that the node controller's nodeMonitorGracePeriod must be set to N*NodeStatusUpdateFrequency, where N is the number of retries before the node controller marks the node unhealthy. Default: \"10s\"",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+						},
+					},
+					"nodeStatusReportFrequency": {
+						SchemaProps: spec.SchemaProps{
+							Description: "nodeStatusReportFrequency is the frequency that kubelet posts node status to master if node status does not change. Kubelet will ignore this frequency and post node status immediately if any change is detected. It is only used when node lease feature is enabled. nodeStatusReportFrequency's default value is 1m. But if nodeStatusUpdateFrequency is set explicitly, nodeStatusReportFrequency's default value will be set to nodeStatusUpdateFrequency for backward compatibility. Default: \"1m\"",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
 						},
 					},

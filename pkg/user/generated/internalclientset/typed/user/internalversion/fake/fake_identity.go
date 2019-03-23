@@ -96,7 +96,7 @@ func (c *FakeIdentities) DeleteCollection(options *v1.DeleteOptions, listOptions
 // Patch applies the patch and returns the patched identity.
 func (c *FakeIdentities) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *user.Identity, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(identitiesResource, name, data, subresources...), &user.Identity{})
+		Invokes(testing.NewRootPatchSubresourceAction(identitiesResource, name, pt, data, subresources...), &user.Identity{})
 	if obj == nil {
 		return nil, err
 	}
