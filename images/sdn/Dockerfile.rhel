@@ -13,8 +13,10 @@ COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/
 COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/sdn-cni-plugin /opt/cni/bin/openshift-sdn
 COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/loopback /opt/cni/bin/
 COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/host-local /opt/cni/bin/
+COPY images/sdn/scripts/* /usr/sbin/
+
 RUN INSTALL_PKGS=" \
-      openvswitch2.11 container-selinux socat ethtool iptables nmap-ncat \
+      openvswitch2.11 container-selinux socat ethtool nmap-ncat \
       libmnl libnetfilter_conntrack conntrack-tools \
       libnfnetlink iproute bridge-utils procps-ng openssl \
       binutils xz sysvinit-tools dbus \
@@ -25,4 +27,4 @@ RUN INSTALL_PKGS=" \
 LABEL io.k8s.display-name="OpenShift SDN" \
       io.k8s.description="This is a component of OpenShift and contains the networking tool stack for the default SDN implementation." \
       io.openshift.tags="openshift,sdn"
-ENTRYPOINT [ "/usr/local/bin/openshift-sdn" ]
+ENTRYPOINT [ "/usr/bin/openshift-sdn" ]
