@@ -30,7 +30,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	operatorv1 "github.com/openshift/api/operator/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
+	operatorclient "github.com/openshift/client-go/operator/clientset/versioned"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	utilunidling "github.com/openshift/origin/pkg/unidling/util"
 )
@@ -65,6 +67,8 @@ type IdleOptions struct {
 	ClientForMappingFn func(*meta.RESTMapping) (resource.RESTClient, error)
 	ClientConfig       *rest.Config
 	ClientSet          kubernetes.Interface
+	AppClient          appsclient.Interface
+	OperatorClient     operatorclient.Interface
 	ScaleClient        scale.ScalesGetter
 	Mapper             meta.RESTMapper
 
@@ -139,6 +143,16 @@ func (o *IdleOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []st
 	}
 
 	o.Mapper, err = f.ToRESTMapper()
+	if err != nil {
+		return err
+	}
+
+	o.AppClient, err = appsclient.NewForConfig(o.ClientConfig)
+	if err != nil {
+		return err
+	}
+
+	o.OperatorClient, err = operatorclient.NewForConfig(o.ClientConfig)
 	if err != nil {
 		return err
 	}
@@ -545,6 +559,15 @@ type scaleInfo struct {
 // scalable resources to zero, and annotating the associated endpoints objects with the scalable resources to unidle
 // when they receive traffic.
 func (o *IdleOptions) RunIdle() error {
+	clusterNetwork, err := o.OperatorClient.OperatorV1().Networks().Get("cluster", metav1.GetOptions{})
+	if err == nil {
+		sdnType := clusterNetwork.Spec.DefaultNetwork.Type
+
+		if sdnType == operatorv1.NetworkTypeOpenShiftSDN {
+			fmt.Fprintln(o.ErrOut, "WARNING: idling when network policies are in place may cause connections to bypass network policy entirely")
+		}
+	}
+
 	b := o.Builder().
 		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		ContinueOnError().
@@ -589,12 +612,7 @@ func (o *IdleOptions) RunIdle() error {
 		fmt.Fprintf(o.ErrOut, "warning: continuing on for valid scalable resources, but an error occurred while finding scalable resources to idle: %v", err)
 	}
 
-	appClient, err := appsclient.NewForConfig(o.ClientConfig)
-	if err != nil {
-		return err
-	}
-
-	scaleAnnotater := utilunidling.NewScaleAnnotater(o.ScaleClient, o.Mapper, appClient.AppsV1(), o.ClientSet.CoreV1(), func(currentReplicas int32, annotations map[string]string) {
+	scaleAnnotater := utilunidling.NewScaleAnnotater(o.ScaleClient, o.Mapper, o.AppClient.AppsV1(), o.ClientSet.CoreV1(), func(currentReplicas int32, annotations map[string]string) {
 		annotations[unidlingapi.IdledAtAnnotation] = nowTime.UTC().Format(time.RFC3339)
 		annotations[unidlingapi.PreviousScaleAnnotation] = fmt.Sprintf("%v", currentReplicas)
 	})
@@ -690,7 +708,7 @@ func (o *IdleOptions) RunIdle() error {
 	for scaleRef, info := range toScale {
 		if !o.dryRun {
 			info.scale.Spec.Replicas = 0
-			scaleUpdater := utilunidling.NewScaleUpdater(scheme.DefaultJSONEncoder(), info.namespace, appClient.AppsV1(), o.ClientSet.CoreV1())
+			scaleUpdater := utilunidling.NewScaleUpdater(scheme.DefaultJSONEncoder(), info.namespace, o.AppClient.AppsV1(), o.ClientSet.CoreV1())
 			if err := scaleAnnotater.UpdateObjectScale(scaleUpdater, info.namespace, scaleRef.CrossGroupObjectReference, info.obj, info.scale); err != nil {
 				fmt.Fprintf(o.ErrOut, "error: unable to scale %s %s/%s to 0, but still listed as target for unidling: %v\n", scaleRef.Kind, info.namespace, scaleRef.Name, err)
 				hadError = true
