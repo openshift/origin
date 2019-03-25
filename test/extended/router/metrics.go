@@ -220,7 +220,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			o.Expect(results).To(o.ContainSubstring("# runtime.MemStats"))
 		})
 
-		g.It("[Flaky] should enable openshift-monitoring to pull metrics", func() {
+		g.It("should enable openshift-monitoring to pull metrics", func() {
 			prometheusURL, token, exists := locatePrometheus(oc)
 			if !exists {
 				g.Skip("prometheus not found on this cluster")
@@ -229,15 +229,22 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			execPodName := e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *corev1.Pod) { pod.Spec.Containers[0].Image = "centos:7" })
 			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
-			contents, err := getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("%s/api/v1/targets", prometheusURL), token)
-			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(wait.PollImmediate(10*time.Second, 5*time.Minute, func() (bool, error) {
+				contents, err := getBearerTokenURLViaPod(ns, execPodName, fmt.Sprintf("%s/api/v1/targets", prometheusURL), token)
+				o.Expect(err).NotTo(o.HaveOccurred())
 
-			targets := &promTargets{}
-			err = json.Unmarshal([]byte(contents), targets)
-			o.Expect(err).NotTo(o.HaveOccurred())
+				targets := &promTargets{}
+				err = json.Unmarshal([]byte(contents), targets)
+				o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = targets.Expect(promLabels{"job": "router-internal-default"}, "up", "^https://.*/metrics$")
-			o.Expect(err).NotTo(o.HaveOccurred())
+				g.By("verifying router-internal-default job has a working target")
+				err = targets.Expect(promLabels{"job": "router-internal-default"}, "up", "^https://.*/metrics$")
+				if err != nil {
+					e2e.Logf("missing router-internal-default target: %v", err)
+					return false, nil
+				}
+				return true, nil
+			})).NotTo(o.HaveOccurred())
 		})
 	})
 })
