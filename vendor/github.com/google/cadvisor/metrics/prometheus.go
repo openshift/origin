@@ -889,6 +889,9 @@ func (c *PrometheusCollector) collectContainersInfo(ch chan<- prometheus.Metric)
 		}
 
 		// Now for the actual metrics
+		if len(container.Stats) == 0 {
+			continue
+		}
 		stats := container.Stats[0]
 		for _, cm := range c.containerMetrics {
 			if cm.condition != nil && !cm.condition(container.Spec) {
