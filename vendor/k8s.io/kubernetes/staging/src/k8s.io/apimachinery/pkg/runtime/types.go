@@ -41,7 +41,8 @@ type TypeMeta struct {
 }
 
 const (
-	ContentTypeJSON string = "application/json"
+	ContentTypeJSON     string = "application/json"
+	ContentTypeProtobuf string = "application/vnd.kubernetes.protobuf"
 )
 
 // RawExtension is used to hold extensions in external versions.
