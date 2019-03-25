@@ -550,7 +550,6 @@ items:
     - /healthz
     - /openapi
     - /openapi/*
-    - /readyz
     - /swagger-2.0.0.pb-v1
     - /swagger.json
     - /swaggerapi
@@ -1054,6 +1053,20 @@ items:
     - create
     - patch
     - update
+- apiVersion: rbac.authorization.k8s.io/v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
+    creationTimestamp: null
+    labels:
+      kubernetes.io/bootstrapping: rbac-defaults
+    name: system:openshift:public-info-viewer
+  rules:
+  - nonResourceURLs:
+    - /readyz
+    verbs:
+    - get
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
