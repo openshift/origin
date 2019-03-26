@@ -2,21 +2,20 @@ package ber
 
 import (
 	"bytes"
-	"math"
-
 	"io"
+	"math"
 	"testing"
 )
 
 func TestEncodeDecodeInteger(t *testing.T) {
 	for _, v := range []int64{0, 10, 128, 1024, math.MaxInt64, -1, -100, -128, -1024, math.MinInt64} {
 		enc := encodeInteger(v)
-		dec, err := parseInt64(enc)
+		dec, err := ParseInt64(enc)
 		if err != nil {
 			t.Fatalf("Error decoding %d : %s", v, err)
 		}
 		if v != dec {
-			t.Error("TestEncodeDecodeInteger failed for %d (got %d)", v, dec)
+			t.Errorf("TestEncodeDecodeInteger failed for %d (got %d)", v, dec)
 		}
 
 	}
