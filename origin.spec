@@ -166,6 +166,7 @@ OS_ONLY_BUILD_PLATFORMS="${BUILD_PLATFORM}" %{os_git_vars} OS_BUILD_RELEASE_ARCH
 
 PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 install -d %{buildroot}%{_bindir}
+install -d %{buildroot}%{_sysconfdir}/systemd/system.conf.d
 
 # Install linux components
 for bin in oc hyperkube
@@ -184,6 +185,9 @@ install -p -m 755 _output/local/bin/darwin/amd64/kubectl %{buildroot}/%{_datadir
 install -p -m 755 _output/local/bin/windows/amd64/oc.exe %{buildroot}/%{_datadir}/%{name}/windows/oc.exe
 install -p -m 755 _output/local/bin/windows/amd64/kubectl.exe %{buildroot}/%{_datadir}/%{name}/windows/kubectl.exe
 %endif
+
+# Install systemd accounting file
+install -p -m 0644 contrib/systemd/origin-accounting.conf %{buildroot}%{_sysconfdir}/systemd/system.conf.d/origin-accounting.conf
 
 for cmd in \
     kubectl
@@ -215,6 +219,7 @@ done
 %{_bindir}/kubectl
 %{_sysconfdir}/bash_completion.d/oc
 %{_sysconfdir}/bash_completion.d/kubectl
+%{_sysconfdir}/systemd/system.conf.d/origin-accounting.conf
 %{_mandir}/man1/oc*
 
 %if 0%{?make_redistributable}
