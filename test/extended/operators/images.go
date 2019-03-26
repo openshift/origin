@@ -3,6 +3,8 @@ package operators
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -19,8 +21,31 @@ var _ = Describe("[Feature:Platform][Smoke] Managed cluster", func() {
 	oc := exutil.NewCLIWithoutNamespace("operators")
 
 	It("should ensure pods use images from our release image with proper ImagePullPolicy", func() {
-		// find out the current installed release info
-		out, err := oc.Run("adm", "release", "info").Args("--pullspecs", "-o", "json").Output()
+		// TODO this should probably be in openshift-config and have a name like "openshift-pull-secret"
+		// get the image pull secret and write it to a temporary location
+		imagePullSecret, err := oc.KubeFramework().ClientSet.CoreV1().Secrets("kube-system").Get("coreos-pull-secret", metav1.GetOptions{})
+		if err != nil {
+			e2e.Failf("unable to get pull secret for cluster: %v", err)
+		}
+
+		// cache file to local temp location
+		imagePullFile, err := ioutil.TempFile("", "image-pull-secret")
+		if err != nil {
+			e2e.Failf("unable to create a temporary file: %v", err)
+		}
+		defer os.Remove(imagePullFile.Name())
+
+		// write the content
+		imagePullSecretBytes := imagePullSecret.Data[".dockerconfigjson"]
+		if _, err := imagePullFile.Write(imagePullSecretBytes); err != nil {
+			e2e.Failf("unable to write pull secret to temp file: %v", err)
+		}
+		if err := imagePullFile.Close(); err != nil {
+			e2e.Failf("unable to close file: %v", err)
+		}
+
+		// find out the current installed release info using the temp file
+		out, err := oc.Run("adm", "release", "info").Args("--pullspecs", "-o", "json", "--registry-config", imagePullFile.Name()).Output()
 		if err != nil {
 			// TODO need to determine why release tests are not having access to read payload
 			e2e.Logf("unable to read release payload with error: %v", err)
