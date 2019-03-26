@@ -46,7 +46,7 @@ var (
 		Display one or many resources
 
 		Possible resources include builds, buildConfigs, services, pods, etc. To see
-		a list of common resources, use '%[1]s get'. Some resources may omit advanced
+		a complete list of resources, use '%[1]s api-resources'. Some resources may omit advanced
 		details that you can see with '-o wide'.  If you want an even more detailed
 		view, use '%[1]s describe'.`)
 
