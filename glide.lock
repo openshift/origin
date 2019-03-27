@@ -1,5 +1,5 @@
-hash: 079b9f1fdc9ed811bab54c891e0d0b03b68e23f6428be046b0f7d87148a908be
-updated: 2019-03-25T15:56:19.152737147-04:00
+hash: 945f51e438f803268042a183aee99a4dffc8faa4317cea60b73eb90c10971bec
+updated: 2019-04-03T12:37:50.529746636-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -511,9 +511,9 @@ imports:
   subpackages:
   - mat64
 - name: github.com/google/btree
-  version: bfb38958ad2298964492841280eea188b9c23e7b
+  version: 20236160a414454a9c64b6c8829381c6f4bddcaa
 - name: github.com/google/cadvisor
-  version: e7bafcb870aceaff6ae15189520febdede52b50f
+  version: a3dde969d81de5cfc9a906adef6b1dad3e36438d
   repo: https://github.com/openshift/google-cadvisor.git
   subpackages:
   - accelerators
@@ -1860,7 +1860,7 @@ imports:
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kubernetes
-  version: d8b46d72a413981e6ea99605dcef3b8ca3f2223f
+  version: 6112ef84c44b5db537e9fadffcafa06b70ef4e5b
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/controller-manager/app
