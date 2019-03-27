@@ -890,22 +890,15 @@ func doCleanSubPaths(mounter Interface, podDir string, volumeName string) error 
 
 		// scan /var/lib/kubelet/pods/<uid>/volume-subpaths/<volume>/<container name>/*
 		fullContainerDirPath := filepath.Join(subPathDir, containerDir.Name())
-		err = filepath.Walk(fullContainerDirPath, func(path string, info os.FileInfo, err error) error {
-			if path == fullContainerDirPath {
-				// Skip top level directory
-				return nil
-			}
-
-			// pass through errors and let doCleanSubPath handle them
-			if err = doCleanSubPath(mounter, fullContainerDirPath, filepath.Base(path)); err != nil {
+		subPaths, err := ioutil.ReadDir(fullContainerDirPath)
+		if err != nil {
+			return fmt.Errorf("error reading %s: %s", fullContainerDirPath, err)
+		}
+		for _, subPath := range subPaths {
+			if err = doCleanSubPath(mounter, fullContainerDirPath, subPath.Name()); err != nil {
 				return err
 			}
-			return nil
-		})
-		if err != nil {
-			return fmt.Errorf("error processing %s: %s", fullContainerDirPath, err)
 		}
-
 		// Whole container has been processed, remove its directory.
 		if err := os.Remove(fullContainerDirPath); err != nil {
 			return fmt.Errorf("error deleting %s: %s", fullContainerDirPath, err)
@@ -932,12 +925,22 @@ func doCleanSubPath(mounter Interface, fullContainerDirPath, subPathIndex string
 	// process /var/lib/kubelet/pods/<uid>/volume-subpaths/<volume>/<container name>/<subPathName>
 	glog.V(4).Infof("Cleaning up subpath mounts for subpath %v", subPathIndex)
 	fullSubPath := filepath.Join(fullContainerDirPath, subPathIndex)
-
-	if err := CleanupMountPoint(fullSubPath, mounter, true); err != nil {
-		return fmt.Errorf("error cleaning subpath mount %s: %s", fullSubPath, err)
- 	}
-
-	glog.V(4).Infof("Successfully cleaned subpath directory %s", fullSubPath)
+	notMnt, err := IsNotMountPoint(mounter, fullSubPath)
+	if err != nil {
+		return fmt.Errorf("error checking %s for mount: %s", fullSubPath, err)
+	}
+	// Unmount it
+	if !notMnt {
+		if err = mounter.Unmount(fullSubPath); err != nil {
+			return fmt.Errorf("error unmounting %s: %s", fullSubPath, err)
+		}
+		glog.V(5).Infof("Unmounted %s", fullSubPath)
+	}
+	// Remove it *non*-recursively, just in case there were some hiccups.
+	if err = os.Remove(fullSubPath); err != nil {
+		return fmt.Errorf("error deleting %s: %s", fullSubPath, err)
+	}
+	glog.V(5).Infof("Removed %s", fullSubPath)
 	return nil
 }
 
