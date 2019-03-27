@@ -85,7 +85,7 @@ func NewOptions() (*Options, error) {
 
 	o := &Options{
 		ComponentConfig: *cfg,
-		SecureServing:   nil, // TODO: enable with apiserveroptions.NewSecureServingOptions()
+		SecureServing:   apiserveroptions.NewSecureServingOptions(), // TODO: enable with apiserveroptions.NewSecureServingOptions()
 		CombinedInsecureServing: &CombinedInsecureServingOptions{
 			Healthz: &apiserveroptions.DeprecatedInsecureServingOptions{
 				BindNetwork: "tcp",
@@ -103,6 +103,7 @@ func NewOptions() (*Options, error) {
 			PolicyConfigMapNamespace: metav1.NamespaceSystem,
 		},
 	}
+	o.SecureServing.BindPort = 0
 
 	return o, nil
 }
