@@ -30,27 +30,27 @@ func TestSecurityMiddleware(t *testing.T) {
 	mw := newSecureAPI(context, http.HandlerFunc(terminator))
 
 	recorder := httptest.NewRecorder()
-	request, _ := http.NewRequest("GET", "/pets", nil)
+	request, _ := http.NewRequest("GET", "/api/pets", nil)
 
 	mw.ServeHTTP(recorder, request)
 	assert.Equal(t, 401, recorder.Code)
 
 	recorder = httptest.NewRecorder()
-	request, _ = http.NewRequest("GET", "/pets", nil)
+	request, _ = http.NewRequest("GET", "/api/pets", nil)
 	request.SetBasicAuth("admin", "wrong")
 
 	mw.ServeHTTP(recorder, request)
 	assert.Equal(t, 401, recorder.Code)
 
 	recorder = httptest.NewRecorder()
-	request, _ = http.NewRequest("GET", "/pets", nil)
+	request, _ = http.NewRequest("GET", "/api/pets", nil)
 	request.SetBasicAuth("admin", "admin")
 
 	mw.ServeHTTP(recorder, request)
 	assert.Equal(t, 200, recorder.Code)
 
 	recorder = httptest.NewRecorder()
-	request, _ = http.NewRequest("GET", "/pets/1", nil)
+	request, _ = http.NewRequest("GET", "//apipets/1", nil)
 
 	mw.ServeHTTP(recorder, request)
 	assert.Equal(t, 200, recorder.Code)

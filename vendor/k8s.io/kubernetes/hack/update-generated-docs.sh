@@ -33,7 +33,7 @@ BINS=(
 	cmd/genman
 	cmd/genyaml
 )
-make -C "${KUBE_ROOT}" WHAT="${BINS[*]}" GOFLAGS="-tags=kubernetes"
+make -C "${KUBE_ROOT}" WHAT="${BINS[*]}"
 
 kube::util::ensure-temp-dir
 

@@ -54,7 +54,9 @@ func (client ZonesClient) CreateOrUpdate(ctx context.Context, resourceGroupName 
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("dns.ZonesClient", "CreateOrUpdate", err.Error())
 	}
 
@@ -142,7 +144,9 @@ func (client ZonesClient) Delete(ctx context.Context, resourceGroupName string, 
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("dns.ZonesClient", "Delete", err.Error())
 	}
 
@@ -224,7 +228,9 @@ func (client ZonesClient) Get(ctx context.Context, resourceGroupName string, zon
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("dns.ZonesClient", "Get", err.Error())
 	}
 
@@ -294,6 +300,12 @@ func (client ZonesClient) GetResponder(resp *http.Response) (result Zone, err er
 // Parameters:
 // top - the maximum number of DNS zones to return. If not specified, returns up to 100 zones.
 func (client ZonesClient) List(ctx context.Context, top *int32) (result ZoneListResultPage, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("dns.ZonesClient", "List", err.Error())
+	}
+
 	result.fn = client.listNextResults
 	req, err := client.ListPreparer(ctx, top)
 	if err != nil {
@@ -394,7 +406,9 @@ func (client ZonesClient) ListByResourceGroup(ctx context.Context, resourceGroup
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
-				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}}}); err != nil {
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: client.SubscriptionID,
+			Constraints: []validation.Constraint{{Target: "client.SubscriptionID", Name: validation.MinLength, Rule: 1, Chain: nil}}}}); err != nil {
 		return result, validation.NewError("dns.ZonesClient", "ListByResourceGroup", err.Error())
 	}
 

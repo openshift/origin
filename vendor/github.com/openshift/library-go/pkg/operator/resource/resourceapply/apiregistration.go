@@ -1,7 +1,7 @@
 package resourceapply
 
 import (
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -37,8 +37,8 @@ func ApplyAPIService(client apiregistrationv1client.APIServicesGetter, required 
 
 	existingCopy.Spec = required.Spec
 
-	if glog.V(4) {
-		glog.Infof("APIService %q changes: %s", existing.Name, JSONPatch(existing, existingCopy))
+	if klog.V(4) {
+		klog.Infof("APIService %q changes: %s", existing.Name, JSONPatch(existing, existingCopy))
 	}
 	actual, err := client.APIServices().Update(existingCopy)
 	return actual, true, err

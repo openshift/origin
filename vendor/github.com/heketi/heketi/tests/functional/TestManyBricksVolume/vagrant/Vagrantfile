@@ -10,6 +10,14 @@ Vagrant.configure("2") do |config|
     config.ssh.insert_key = false
     config.vm.box = "centos/7"
     config.vm.synced_folder '.', '/home/vagrant/sync', disabled: true
+    # change cpu mode to passthrough as workaround, refer bugs:
+    #https://bugzilla.redhat.com/show_bug.cgi?id=1467599
+    #https://bugzilla.redhat.com/show_bug.cgi?id=1386223#c10
+    #vagrant-libvirt/vagrant-libvirt#667
+    config.vm.provider :libvirt do |v|
+        v.cpu_mode = 'host-passthrough'
+    end
+
 
     # Make the glusterfs cluster, each with DISKS number of drives
     (0..NODES-1).each do |i|

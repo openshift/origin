@@ -5,11 +5,11 @@ package v1
 import (
 	time "time"
 
-	authorization_v1 "github.com/openshift/api/authorization/v1"
+	authorizationv1 "github.com/openshift/api/authorization/v1"
 	versioned "github.com/openshift/client-go/authorization/clientset/versioned"
 	internalinterfaces "github.com/openshift/client-go/authorization/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/client-go/authorization/listers/authorization/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
@@ -41,20 +41,20 @@ func NewRoleInformer(client versioned.Interface, namespace string, resyncPeriod 
 func NewFilteredRoleInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.AuthorizationV1().Roles(namespace).List(options)
 			},
-			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.AuthorizationV1().Roles(namespace).Watch(options)
 			},
 		},
-		&authorization_v1.Role{},
+		&authorizationv1.Role{},
 		resyncPeriod,
 		indexers,
 	)
@@ -65,7 +65,7 @@ func (f *roleInformer) defaultInformer(client versioned.Interface, resyncPeriod 
 }
 
 func (f *roleInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&authorization_v1.Role{}, f.defaultInformer)
+	return f.factory.InformerFor(&authorizationv1.Role{}, f.defaultInformer)
 }
 
 func (f *roleInformer) Lister() v1.RoleLister {

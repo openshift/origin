@@ -64,6 +64,7 @@ func (p *GoTemplatePrinter) PrintObj(obj runtime.Object, w io.Writer) error {
 	if InternalObjectPreventer.IsForbidden(reflect.Indirect(reflect.ValueOf(obj)).Type().PkgPath()) {
 		return fmt.Errorf(InternalObjectPrinterErr)
 	}
+
 	if openshiftpatch.IsOAPI(obj.GetObjectKind().GroupVersionKind()) {
 		return fmt.Errorf("attempt to print an ungroupified object: %v", obj.GetObjectKind().GroupVersionKind())
 	}

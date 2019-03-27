@@ -21,7 +21,10 @@ package locks
 // Changes may cause incorrect behavior and will be lost if the code is regenerated.
 
 import (
+	"context"
 	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/azure"
+	"net/http"
 )
 
 const (
@@ -48,4 +51,90 @@ func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
 		BaseURI:        baseURI,
 		SubscriptionID: subscriptionID,
 	}
+}
+
+// ListOperations lists all of the available Microsoft.Authorization REST API operations.
+func (client BaseClient) ListOperations(ctx context.Context) (result OperationListResultPage, err error) {
+	result.fn = client.listOperationsNextResults
+	req, err := client.ListOperationsPreparer(ctx)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "locks.BaseClient", "ListOperations", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.ListOperationsSender(req)
+	if err != nil {
+		result.olr.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "locks.BaseClient", "ListOperations", resp, "Failure sending request")
+		return
+	}
+
+	result.olr, err = client.ListOperationsResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "locks.BaseClient", "ListOperations", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// ListOperationsPreparer prepares the ListOperations request.
+func (client BaseClient) ListOperationsPreparer(ctx context.Context) (*http.Request, error) {
+	const APIVersion = "2016-09-01"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsGet(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPath("/providers/Microsoft.Features/operations"),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// ListOperationsSender sends the ListOperations request. The method will close the
+// http.Response Body if it receives an error.
+func (client BaseClient) ListOperationsSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req,
+		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+}
+
+// ListOperationsResponder handles the response to the ListOperations request. The method always
+// closes the http.Response Body.
+func (client BaseClient) ListOperationsResponder(resp *http.Response) (result OperationListResult, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
+// listOperationsNextResults retrieves the next set of results, if any.
+func (client BaseClient) listOperationsNextResults(lastResults OperationListResult) (result OperationListResult, err error) {
+	req, err := lastResults.operationListResultPreparer()
+	if err != nil {
+		return result, autorest.NewErrorWithError(err, "locks.BaseClient", "listOperationsNextResults", nil, "Failure preparing next results request")
+	}
+	if req == nil {
+		return
+	}
+	resp, err := client.ListOperationsSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		return result, autorest.NewErrorWithError(err, "locks.BaseClient", "listOperationsNextResults", resp, "Failure sending next results request")
+	}
+	result, err = client.ListOperationsResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "locks.BaseClient", "listOperationsNextResults", resp, "Failure responding to next results request")
+	}
+	return
+}
+
+// ListOperationsComplete enumerates all values, automatically crossing page boundaries as required.
+func (client BaseClient) ListOperationsComplete(ctx context.Context) (result OperationListResultIterator, err error) {
+	result.page, err = client.ListOperations(ctx)
+	return
 }

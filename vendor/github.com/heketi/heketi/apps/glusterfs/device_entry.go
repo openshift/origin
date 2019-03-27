@@ -17,8 +17,10 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/heketi/heketi/executors"
+	wdb "github.com/heketi/heketi/pkg/db"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
-	"github.com/heketi/heketi/pkg/utils"
+	"github.com/heketi/heketi/pkg/idgen"
+	"github.com/heketi/heketi/pkg/sortedstrings"
 	"github.com/lpabon/godbc"
 )
 
@@ -59,9 +61,10 @@ func NewDeviceEntryFromRequest(req *api.DeviceAddRequest) *DeviceEntry {
 	godbc.Require(req != nil)
 
 	device := NewDeviceEntry()
-	device.Info.Id = utils.GenUUID()
+	device.Info.Id = idgen.GenUUID()
 	device.Info.Name = req.Name
 	device.NodeId = req.NodeId
+	device.Info.Tags = copyTags(req.Tags)
 
 	return device
 }
@@ -147,12 +150,11 @@ func (d *DeviceEntry) Save(tx *bolt.Tx) error {
 
 }
 
-func (d *DeviceEntry) IsDeleteOk() bool {
-	// Check if the nodes still has drives
+func (d *DeviceEntry) HasBricks() bool {
 	if len(d.Bricks) > 0 {
-		return false
+		return true
 	}
-	return true
+	return false
 }
 
 func (d *DeviceEntry) ConflictString() string {
@@ -162,52 +164,63 @@ func (d *DeviceEntry) ConflictString() string {
 func (d *DeviceEntry) Delete(tx *bolt.Tx) error {
 	godbc.Require(tx != nil)
 
-	// Check if the devices still has drives
-	if !d.IsDeleteOk() {
-		logger.Warning(d.ConflictString())
+	// Don't delete device unless it is in failed state
+	if d.State != api.EntryStateFailed {
+		return logger.LogError("device: %v is not in failed state", d.Info.Id)
+	}
+
+	// Check if the device still has bricks
+	// Ideally, if the device is in failed state it should have no bricks
+	// This is just for bricks with empty paths
+	if d.HasBricks() {
+		logger.LogError(d.ConflictString())
 		return ErrConflict
 	}
 
 	return EntryDelete(tx, d, d.Info.Id)
 }
 
-func (d *DeviceEntry) removeDeviceFromRing(tx *bolt.Tx,
-	a Allocator) error {
-
-	node, err := NewNodeEntryFromId(tx, d.NodeId)
-	if err != nil {
-		return err
-	}
-
-	cluster, err := NewClusterEntryFromId(tx, node.Info.ClusterId)
-	if err != nil {
-		return err
-	}
-
-	return a.RemoveDevice(cluster, node, d)
+func (d *DeviceEntry) modifyState(db wdb.DB, s api.EntryState) error {
+	return db.Update(func(tx *bolt.Tx) error {
+		// Save state
+		d.State = s
+		// Save new state
+		if err := d.Save(tx); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
-func (d *DeviceEntry) addDeviceToRing(tx *bolt.Tx,
-	a Allocator) error {
-
-	node, err := NewNodeEntryFromId(tx, d.NodeId)
-	if err != nil {
-		return err
-	}
-
-	cluster, err := NewClusterEntryFromId(tx, node.Info.ClusterId)
-	if err != nil {
-		return err
-	}
-
-	return a.AddDevice(cluster, node, d)
-}
-
-func (d *DeviceEntry) SetState(db *bolt.DB,
+func (d *DeviceEntry) SetState(db wdb.DB,
 	e executors.Executor,
-	a Allocator,
 	s api.EntryState) error {
 
+	if e := d.stateCheck(s); e != nil {
+		return e
+	}
+	if d.State == s {
+		return nil
+	}
+
+	switch s {
+	case api.EntryStateOffline, api.EntryStateOnline:
+		// simply update the state and move on
+		if err := d.modifyState(db, s); err != nil {
+			return err
+		}
+	case api.EntryStateFailed:
+		if err := d.Remove(db, e); err != nil {
+			if err == ErrNoReplacement {
+				return logger.LogError("Unable to delete device [%v] as no device was found to replace it", d.Id())
+			}
+			return err
+		}
+	}
+	return nil
+}
+
+func (d *DeviceEntry) stateCheck(s api.EntryState) error {
 	// Check current state
 	switch d.State {
 
@@ -219,7 +232,7 @@ func (d *DeviceEntry) SetState(db *bolt.DB,
 		case api.EntryStateOnline:
 			return fmt.Errorf("Cannot move a failed/removed device to online state")
 		case api.EntryStateOffline:
-			return fmt.Errorf("Cannot move a failed/removed device to offline state")
+			return nil
 		default:
 			return fmt.Errorf("Unknown state type: %v", s)
 		}
@@ -230,25 +243,7 @@ func (d *DeviceEntry) SetState(db *bolt.DB,
 		case api.EntryStateOnline:
 			return nil
 		case api.EntryStateOffline:
-			// Remove disk from Ring
-			err := db.Update(func(tx *bolt.Tx) error {
-				err := d.removeDeviceFromRing(tx, a)
-				if err != nil {
-					return err
-				}
-
-				// Save state
-				d.State = s
-				// Save new state
-				err = d.Save(tx)
-				if err != nil {
-					return err
-				}
-				return nil
-			})
-			if err != nil {
-				return err
-			}
+			return nil
 		case api.EntryStateFailed:
 			return fmt.Errorf("Device must be offline before remove operation is performed, device:%v", d.Id())
 		default:
@@ -261,31 +256,9 @@ func (d *DeviceEntry) SetState(db *bolt.DB,
 		case api.EntryStateOffline:
 			return nil
 		case api.EntryStateOnline:
-			// Add disk back
-			err := db.Update(func(tx *bolt.Tx) error {
-				err := d.addDeviceToRing(tx, a)
-				if err != nil {
-					return err
-				}
-				d.State = s
-				err = d.Save(tx)
-				if err != nil {
-					return err
-				}
-				return nil
-			})
-			if err != nil {
-				return err
-			}
+			return nil
 		case api.EntryStateFailed:
-
-			err := d.Remove(db, e, a)
-			if err != nil {
-				if err == ErrNoReplacement {
-					return logger.LogError("Unable to delete device [%v] as no device was found to replace it", d.Id())
-				}
-				return err
-			}
+			return nil
 		default:
 			return fmt.Errorf("Unknown state type: %v", s)
 		}
@@ -304,6 +277,7 @@ func (d *DeviceEntry) NewInfoResponse(tx *bolt.Tx) (*api.DeviceInfoResponse, err
 	info.Storage = d.Info.Storage
 	info.State = d.State
 	info.Bricks = make([]api.BrickInfo, 0)
+	info.Tags = copyTags(d.Info.Tags)
 
 	// Add each drive information
 	for _, id := range d.Bricks {
@@ -346,19 +320,22 @@ func (d *DeviceEntry) Unmarshal(buffer []byte) error {
 }
 
 func (d *DeviceEntry) BrickAdd(id string) {
-	godbc.Require(!utils.SortedStringHas(d.Bricks, id))
+	godbc.Require(!sortedstrings.Has(d.Bricks, id))
 
 	d.Bricks = append(d.Bricks, id)
 	d.Bricks.Sort()
 }
 
 func (d *DeviceEntry) BrickDelete(id string) {
-	d.Bricks = utils.SortedStringsDelete(d.Bricks, id)
+	d.Bricks = sortedstrings.Delete(d.Bricks, id)
 }
 
-func (d *DeviceEntry) StorageSet(amount uint64) {
-	d.Info.Storage.Free = amount
-	d.Info.Storage.Total = amount
+func (d *DeviceEntry) StorageSet(total uint64, free uint64, used uint64) {
+	godbc.Check(total == free+used)
+
+	d.Info.Storage.Total = total
+	d.Info.Storage.Free = free
+	d.Info.Storage.Used = used
 }
 
 func (d *DeviceEntry) StorageAllocate(amount uint64) {
@@ -381,12 +358,37 @@ func (d *DeviceEntry) SetExtentSize(amount uint64) {
 
 // Allocates a new brick if the space is available.  It will automatically reserve
 // the storage amount required from the device's used storage, but it will not add
-// the brick id to the brick list.  The caller is responsabile for adding the brick
+// the brick id to the brick list.  The caller is responsible for adding the brick
 // id to the list.
 func (d *DeviceEntry) NewBrickEntry(amount uint64, snapFactor float64, gid int64, volumeid string) *BrickEntry {
 
 	// :TODO: This needs unit test
 
+	sn := d.SpaceNeeded(amount, snapFactor)
+
+	logger.Debug("device %v[%v] > required size [%v] ?",
+		d.Id(),
+		d.Info.Storage.Free, sn.Total)
+	if !d.StorageCheck(sn.Total) {
+		return nil
+	}
+
+	// Allocate amount from disk
+	d.StorageAllocate(sn.Total)
+
+	// Create brick
+	return NewBrickEntry(amount, sn.TpSize, sn.PoolMetadataSize, d.Info.Id, d.NodeId, gid, volumeid)
+}
+
+type SpaceNeeded struct {
+	TpSize           uint64
+	PoolMetadataSize uint64
+	Total            uint64
+}
+
+// SpaceNeeded returns the (estimated) space needed to add a brick
+// of the given size amount and snapFactor to this device.
+func (d *DeviceEntry) SpaceNeeded(amount uint64, snapFactor float64) SpaceNeeded {
 	// Calculate thinpool size
 	tpsize := uint64(float64(amount) * snapFactor)
 
@@ -407,19 +409,9 @@ func (d *DeviceEntry) NewBrickEntry(amount uint64, snapFactor float64, gid int64
 
 	// Total required size
 	total := tpsize + metadataSize
-
-	logger.Debug("device %v[%v] > required size [%v] ?",
-		d.Id(),
-		d.Info.Storage.Free, total)
-	if !d.StorageCheck(total) {
-		return nil
-	}
-
-	// Allocate amount from disk
-	d.StorageAllocate(total)
-
-	// Create brick
-	return NewBrickEntry(amount, tpsize, metadataSize, d.Info.Id, d.NodeId, gid, volumeid)
+	logger.Debug("expected space needed for amount=%v snapFactor=%v : %v",
+		amount, snapFactor, total)
+	return SpaceNeeded{tpsize, metadataSize, total}
 }
 
 // Return poolmetadatasize in KB
@@ -435,25 +427,31 @@ func (d *DeviceEntry) poolMetadataSize(tpsize uint64) uint64 {
 }
 
 // Moves all the bricks from the device to one or more other devices
-func (d *DeviceEntry) Remove(db *bolt.DB,
-	executor executors.Executor,
-	allocator Allocator) (e error) {
+func (d *DeviceEntry) Remove(db wdb.DB,
+	executor executors.Executor) (e error) {
 
-	// If the device has no bricks, just change the state and we are done
-	if d.IsDeleteOk() {
-		d.State = api.EntryStateFailed
-		// Save new state
-		err := db.Update(func(tx *bolt.Tx) error {
-			err := d.Save(tx)
-			if err != nil {
-				return err
-			}
-			return nil
-		})
+	if e = RunOperation(
+		NewDeviceRemoveOperation(d.Info.Id, db),
+		executor); e != nil {
+		return e
+	}
+	// tests currently expect d to be updated to match db state
+	// this is another fairly ugly hack
+	return db.View(func(tx *bolt.Tx) error {
+		dbdev, err := NewDeviceEntryFromId(tx, d.Info.Id)
 		if err != nil {
 			return err
 		}
-	}
+		d.State = dbdev.State
+		return nil
+	})
+
+}
+
+func (d *DeviceEntry) removeBricksFromDevice(db wdb.DB,
+	executor executors.Executor) (e error) {
+
+	var errBrickWithEmptyPath error = fmt.Errorf("Brick has no path")
 
 	for _, brickId := range d.Bricks {
 		var brickEntry *BrickEntry
@@ -464,6 +462,11 @@ func (d *DeviceEntry) Remove(db *bolt.DB,
 			if err != nil {
 				return err
 			}
+			// Handle the special error case when brick has no path
+			// we skip the brick and continue
+			if brickEntry.Info.Path == "" {
+				return errBrickWithEmptyPath
+			}
 			volumeEntry, err = NewVolumeEntryFromId(tx, brickEntry.Info.VolumeId)
 			if err != nil {
 				return err
@@ -471,36 +474,152 @@ func (d *DeviceEntry) Remove(db *bolt.DB,
 			return nil
 		})
 		if err != nil {
+			if err == errBrickWithEmptyPath {
+				logger.Warning("Skipping brick with empty path, brickID: %v, volumeID: %v, error: %v", brickEntry.Info.Id, brickEntry.Info.VolumeId, err)
+				continue
+			}
 			return err
 		}
 		logger.Info("Replacing brick %v on device %v on node %v", brickEntry.Id(), d.Id(), d.NodeId)
-		err = volumeEntry.replaceBrickInVolume(db, executor, allocator, brickEntry.Id())
+		err = volumeEntry.replaceBrickInVolume(db, executor, brickEntry.Id())
 		if err != nil {
 			return logger.Err(fmt.Errorf("Failed to remove device, error: %v", err))
 		}
-	}
-
-	// Set device state to failed
-	// Get new entry for the device because db would have changed
-	// replaceBrickInVolume calls functions that change device state in db
-	err := db.Update(func(tx *bolt.Tx) error {
-		newDeviceEntry, err := NewDeviceEntryFromId(tx, d.Id())
-		if err != nil {
-			return err
-		}
-		newDeviceEntry.State = api.EntryStateFailed
-		err = newDeviceEntry.Save(tx)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return err
 	}
 	return nil
 }
 
 func DeviceEntryUpgrade(tx *bolt.Tx) error {
+	return nil
+}
+
+// PendingOperationsOnDevice returns true if there are any pending operations
+// whose bricks are linked to the given device. The error e will be non-nil
+// if any db errors were encountered.
+func PendingOperationsOnDevice(db wdb.RODB, deviceId string) (pdev bool, e error) {
+
+	e = db.View(func(tx *bolt.Tx) error {
+		pb, err := MapPendingBricks(tx)
+		if err != nil {
+			return err
+		}
+		for brickId, opId := range pb {
+			b, err := NewBrickEntryFromId(tx, brickId)
+			if err != nil {
+				return err
+			}
+			if b.Info.DeviceId == deviceId {
+				logger.Warning("Device %v used on pending brick %v in operation %v",
+					deviceId, brickId, opId)
+				pdev = true
+				return nil
+			}
+		}
+		pdr, err := MapPendingDeviceRemoves(tx)
+		if err != nil {
+			return err
+		}
+		if _, found := pdr[deviceId]; found {
+			logger.Warning(
+				"Device %v used in another pending device remove operation",
+				deviceId)
+			pdev = true
+		}
+		return nil
+	})
+	return
+}
+
+func (d *DeviceEntry) markFailed(db wdb.DB) error {
+	// this is done on the ID in order to force a full fetch-check
+	// inside one transaction
+	err := markEmptyDeviceFailed(db, d.Info.Id)
+	if err == nil {
+		// update the in-memory device state to match
+		// that in the db
+		d.State = api.EntryStateFailed
+	}
+	return err
+}
+
+// markEmptyDeviceFailed takes a device id and, in one single
+// transaction, checks if the device is valid for delete and
+// if so marks it failed. If the change was applied the function
+// returns nil. If ErrConflict is returned the device was not
+// empty. Any other error is a database failure.
+func markEmptyDeviceFailed(db wdb.DB, id string) error {
+	return markDeviceFailed(db, id, false)
+}
+
+// markDeviceFailed takes a device id and a force flag,
+// and in one transaction, checks the status of the device
+// and if ready or force is set, sets the failed flag.
+// If the change was applied the function
+// returns nil. If ErrConflict is returned the device was not
+// empty. Any other error is a database failure.
+func markDeviceFailed(db wdb.DB, id string, force bool) error {
+	return db.Update(func(tx *bolt.Tx) error {
+		d, err := NewDeviceEntryFromId(tx, id)
+		if err != nil {
+			return err
+		}
+		if !force && d.HasBricks() {
+			return ErrConflict
+		}
+		d.State = api.EntryStateFailed
+		return d.Save(tx)
+	})
+}
+
+func (d *DeviceEntry) DeleteBricksWithEmptyPath(tx *bolt.Tx) error {
+	godbc.Require(tx != nil)
+	var bricksToDelete []*BrickEntry
+
+	logger.Debug("Deleting bricks with empty path on device [%v].",
+		d.Info.Id)
+
+	for _, id := range d.Bricks {
+		brick, err := NewBrickEntryFromId(tx, id)
+		if err == ErrNotFound {
+			logger.Warning("Ignoring nonexistent brick [%v] on "+
+				"disk [%v].", id, d.Info.Id)
+			continue
+		}
+		if err != nil {
+			logger.LogError("Unable to fetch brick [%v] from db: %v",
+				id, err)
+			return err
+		}
+		if brick.Info.Path == "" {
+			bricksToDelete = append(bricksToDelete, brick)
+		}
+	}
+	for _, brick := range bricksToDelete {
+		logger.Debug("Deleting brick [%v] which has empty path.",
+			brick.Info.Id)
+		err := brick.Delete(tx)
+		if err != nil {
+			return logger.LogError("Unable to remove brick %v: %v", brick.Info.Id, err)
+		}
+		d.StorageFree(brick.TotalSize())
+		d.BrickDelete(brick.Info.Id)
+		err = d.Save(tx)
+		if err != nil {
+			logger.LogError("Unable to save device %v: %v", d.Info.Id, err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (d *DeviceEntry) AllTags() map[string]string {
+	if d.Info.Tags == nil {
+		return map[string]string{}
+	}
+	return d.Info.Tags
+}
+
+func (d *DeviceEntry) SetTags(t map[string]string) error {
+	d.Info.Tags = t
 	return nil
 }

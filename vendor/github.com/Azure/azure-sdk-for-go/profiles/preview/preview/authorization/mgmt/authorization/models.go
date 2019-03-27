@@ -19,7 +19,7 @@
 
 package authorization
 
-import original "github.com/Azure/azure-sdk-for-go/services/preview/authorization/mgmt/2018-01-01-preview/authorization"
+import original "github.com/Azure/azure-sdk-for-go/services/preview/authorization/mgmt/2018-09-01-preview/authorization"
 
 type ClassicAdministratorsClient = original.ClassicAdministratorsClient
 
@@ -28,15 +28,39 @@ const (
 )
 
 type BaseClient = original.BaseClient
+type DenyAssignmentsClient = original.DenyAssignmentsClient
+type PrincipalType = original.PrincipalType
+
+const (
+	Application            PrincipalType = original.Application
+	DirectoryObjectOrGroup PrincipalType = original.DirectoryObjectOrGroup
+	DirectoryRoleTemplate  PrincipalType = original.DirectoryRoleTemplate
+	Everyone               PrincipalType = original.Everyone
+	ForeignGroup           PrincipalType = original.ForeignGroup
+	Group                  PrincipalType = original.Group
+	MSI                    PrincipalType = original.MSI
+	ServicePrincipal       PrincipalType = original.ServicePrincipal
+	Unknown                PrincipalType = original.Unknown
+	User                   PrincipalType = original.User
+)
+
 type ClassicAdministrator = original.ClassicAdministrator
 type ClassicAdministratorListResult = original.ClassicAdministratorListResult
 type ClassicAdministratorListResultIterator = original.ClassicAdministratorListResultIterator
 type ClassicAdministratorListResultPage = original.ClassicAdministratorListResultPage
 type ClassicAdministratorProperties = original.ClassicAdministratorProperties
+type DenyAssignment = original.DenyAssignment
+type DenyAssignmentFilter = original.DenyAssignmentFilter
+type DenyAssignmentListResult = original.DenyAssignmentListResult
+type DenyAssignmentListResultIterator = original.DenyAssignmentListResultIterator
+type DenyAssignmentListResultPage = original.DenyAssignmentListResultPage
+type DenyAssignmentPermission = original.DenyAssignmentPermission
+type DenyAssignmentProperties = original.DenyAssignmentProperties
 type Permission = original.Permission
 type PermissionGetResult = original.PermissionGetResult
 type PermissionGetResultIterator = original.PermissionGetResultIterator
 type PermissionGetResultPage = original.PermissionGetResultPage
+type Principal = original.Principal
 type ProviderOperation = original.ProviderOperation
 type ProviderOperationsMetadata = original.ProviderOperationsMetadata
 type ProviderOperationsMetadataListResult = original.ProviderOperationsMetadataListResult
@@ -73,6 +97,15 @@ func New(subscriptionID string) BaseClient {
 }
 func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
 	return original.NewWithBaseURI(baseURI, subscriptionID)
+}
+func NewDenyAssignmentsClient(subscriptionID string) DenyAssignmentsClient {
+	return original.NewDenyAssignmentsClient(subscriptionID)
+}
+func NewDenyAssignmentsClientWithBaseURI(baseURI string, subscriptionID string) DenyAssignmentsClient {
+	return original.NewDenyAssignmentsClientWithBaseURI(baseURI, subscriptionID)
+}
+func PossiblePrincipalTypeValues() []PrincipalType {
+	return original.PossiblePrincipalTypeValues()
 }
 func NewPermissionsClient(subscriptionID string) PermissionsClient {
 	return original.NewPermissionsClient(subscriptionID)

@@ -12,7 +12,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='heketi',
-    version='3.0.0',
+    version='4.0.0',
     description='Python client library for Heketi',
     license='Apache License (2.0) or LGPLv3+',
     author='Luis Pabon',

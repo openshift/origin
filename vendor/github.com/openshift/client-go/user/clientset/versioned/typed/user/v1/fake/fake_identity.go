@@ -3,7 +3,7 @@
 package fake
 
 import (
-	user_v1 "github.com/openshift/api/user/v1"
+	userv1 "github.com/openshift/api/user/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -22,19 +22,19 @@ var identitiesResource = schema.GroupVersionResource{Group: "user.openshift.io",
 var identitiesKind = schema.GroupVersionKind{Group: "user.openshift.io", Version: "v1", Kind: "Identity"}
 
 // Get takes name of the identity, and returns the corresponding identity object, and an error if there is any.
-func (c *FakeIdentities) Get(name string, options v1.GetOptions) (result *user_v1.Identity, err error) {
+func (c *FakeIdentities) Get(name string, options v1.GetOptions) (result *userv1.Identity, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(identitiesResource, name), &user_v1.Identity{})
+		Invokes(testing.NewRootGetAction(identitiesResource, name), &userv1.Identity{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*user_v1.Identity), err
+	return obj.(*userv1.Identity), err
 }
 
 // List takes label and field selectors, and returns the list of Identities that match those selectors.
-func (c *FakeIdentities) List(opts v1.ListOptions) (result *user_v1.IdentityList, err error) {
+func (c *FakeIdentities) List(opts v1.ListOptions) (result *userv1.IdentityList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(identitiesResource, identitiesKind, opts), &user_v1.IdentityList{})
+		Invokes(testing.NewRootListAction(identitiesResource, identitiesKind, opts), &userv1.IdentityList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -43,8 +43,8 @@ func (c *FakeIdentities) List(opts v1.ListOptions) (result *user_v1.IdentityList
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &user_v1.IdentityList{ListMeta: obj.(*user_v1.IdentityList).ListMeta}
-	for _, item := range obj.(*user_v1.IdentityList).Items {
+	list := &userv1.IdentityList{ListMeta: obj.(*userv1.IdentityList).ListMeta}
+	for _, item := range obj.(*userv1.IdentityList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -59,29 +59,29 @@ func (c *FakeIdentities) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Create takes the representation of a identity and creates it.  Returns the server's representation of the identity, and an error, if there is any.
-func (c *FakeIdentities) Create(identity *user_v1.Identity) (result *user_v1.Identity, err error) {
+func (c *FakeIdentities) Create(identity *userv1.Identity) (result *userv1.Identity, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(identitiesResource, identity), &user_v1.Identity{})
+		Invokes(testing.NewRootCreateAction(identitiesResource, identity), &userv1.Identity{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*user_v1.Identity), err
+	return obj.(*userv1.Identity), err
 }
 
 // Update takes the representation of a identity and updates it. Returns the server's representation of the identity, and an error, if there is any.
-func (c *FakeIdentities) Update(identity *user_v1.Identity) (result *user_v1.Identity, err error) {
+func (c *FakeIdentities) Update(identity *userv1.Identity) (result *userv1.Identity, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(identitiesResource, identity), &user_v1.Identity{})
+		Invokes(testing.NewRootUpdateAction(identitiesResource, identity), &userv1.Identity{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*user_v1.Identity), err
+	return obj.(*userv1.Identity), err
 }
 
 // Delete takes name of the identity and deletes it. Returns an error if one occurs.
 func (c *FakeIdentities) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(identitiesResource, name), &user_v1.Identity{})
+		Invokes(testing.NewRootDeleteAction(identitiesResource, name), &userv1.Identity{})
 	return err
 }
 
@@ -89,16 +89,16 @@ func (c *FakeIdentities) Delete(name string, options *v1.DeleteOptions) error {
 func (c *FakeIdentities) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewRootDeleteCollectionAction(identitiesResource, listOptions)
 
-	_, err := c.Fake.Invokes(action, &user_v1.IdentityList{})
+	_, err := c.Fake.Invokes(action, &userv1.IdentityList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched identity.
-func (c *FakeIdentities) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *user_v1.Identity, err error) {
+func (c *FakeIdentities) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *userv1.Identity, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(identitiesResource, name, data, subresources...), &user_v1.Identity{})
+		Invokes(testing.NewRootPatchSubresourceAction(identitiesResource, name, pt, data, subresources...), &userv1.Identity{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*user_v1.Identity), err
+	return obj.(*userv1.Identity), err
 }

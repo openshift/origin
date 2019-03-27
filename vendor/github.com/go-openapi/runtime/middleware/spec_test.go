@@ -28,7 +28,7 @@ func TestServeSpecMiddleware(t *testing.T) {
 	spec, api := petstore.NewAPI(t)
 	ctx := NewContext(spec, api, nil)
 
-	handler := specMiddleware(ctx, nil)
+	handler := Spec("", ctx.spec.Raw(), nil)
 	// serves spec
 	request, _ := http.NewRequest("GET", "/swagger.json", nil)
 	request.Header.Add(runtime.HeaderContentType, runtime.JSONMime)
@@ -44,7 +44,7 @@ func TestServeSpecMiddleware(t *testing.T) {
 	assert.Equal(t, 404, recorder.Code)
 
 	// forwards to next handler for other url
-	handler = specMiddleware(ctx, http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+	handler = Spec("", ctx.spec.Raw(), http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusOK)
 	}))
 	request, _ = http.NewRequest("GET", "/api/pets", nil)

@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 
-	"github.com/openshift/library-go/pkg/certs"
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
@@ -96,7 +95,7 @@ func needNewTargetCertKeyPair(annotations map[string]string, signer *crypto.CA, 
 		}
 	}
 
-	return fmt.Sprintf("issuer %q, not in ca bundle:\n%s", signerCommonName, certs.CertificateBundleToString(caBundleCerts))
+	return fmt.Sprintf("issuer %q, not in ca bundle", signerCommonName)
 }
 
 // needNewTargetCertKeyPairForTime returns true when

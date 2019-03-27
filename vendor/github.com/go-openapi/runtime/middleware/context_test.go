@@ -25,7 +25,6 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/internal/testing/petstore"
 	"github.com/go-openapi/runtime/middleware/untyped"
-	"github.com/gorilla/context"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,13 +37,6 @@ func (s *stubOperationHandler) ParameterModel() interface{} {
 
 func (s *stubOperationHandler) Handle(params interface{}) (interface{}, error) {
 	return nil, nil
-}
-
-type testBinder struct {
-}
-
-func (t *testBinder) BindRequest(r *http.Request, m *MatchedRoute) error {
-	return nil
 }
 
 func init() {
@@ -92,44 +84,77 @@ func TestContextAuthorize(t *testing.T) {
 	ctx := NewContext(spec, api, nil)
 	ctx.router = DefaultRouter(spec, ctx.api)
 
-	request, _ := runtime.JSONRequest("GET", "/pets", nil)
+	request, _ := runtime.JSONRequest("GET", "/api/pets", nil)
 
-	v, ok := context.GetOk(request, ctxSecurityPrincipal)
-	assert.False(t, ok)
-	assert.Nil(t, v)
-
-	ri, ok := ctx.RouteInfo(request)
+	ri, reqWithCtx, ok := ctx.RouteInfo(request)
 	assert.True(t, ok)
-	p, err := ctx.Authorize(request, ri)
+	assert.NotNil(t, reqWithCtx)
+
+	request = reqWithCtx
+
+	p, reqWithCtx, err := ctx.Authorize(request, ri)
 	assert.Error(t, err)
 	assert.Nil(t, p)
+	assert.Nil(t, reqWithCtx)
 
-	v, ok = context.GetOk(request, ctxSecurityPrincipal)
-	assert.False(t, ok)
+	v := request.Context().Value(ctxSecurityPrincipal)
 	assert.Nil(t, v)
 
 	request.SetBasicAuth("wrong", "wrong")
-	p, err = ctx.Authorize(request, ri)
+	p, reqWithCtx, err = ctx.Authorize(request, ri)
 	assert.Error(t, err)
 	assert.Nil(t, p)
+	assert.Nil(t, reqWithCtx)
 
-	v, ok = context.GetOk(request, ctxSecurityPrincipal)
-	assert.False(t, ok)
+	v = request.Context().Value(ctxSecurityPrincipal)
 	assert.Nil(t, v)
 
 	request.SetBasicAuth("admin", "admin")
-	p, err = ctx.Authorize(request, ri)
+	p, reqWithCtx, err = ctx.Authorize(request, ri)
 	assert.NoError(t, err)
 	assert.Equal(t, "admin", p)
+	assert.NotNil(t, reqWithCtx)
 
-	v, ok = context.GetOk(request, ctxSecurityPrincipal)
+	// Assign the new returned request to follow with the test
+	request = reqWithCtx
+
+	v, ok = request.Context().Value(ctxSecurityPrincipal).(string)
 	assert.True(t, ok)
 	assert.Equal(t, "admin", v)
 
+	// Once the request context contains the principal the authentication
+	// isn't rechecked
 	request.SetBasicAuth("doesn't matter", "doesn't")
-	pp, rr := ctx.Authorize(request, ri)
+	pp, reqCtx, rr := ctx.Authorize(request, ri)
 	assert.Equal(t, p, pp)
 	assert.Equal(t, err, rr)
+	assert.Equal(t, request, reqCtx)
+}
+
+func TestContextAuthorize_WithAuthorizer(t *testing.T) {
+	spec, api := petstore.NewAPI(t)
+	ctx := NewContext(spec, api, nil)
+	ctx.router = DefaultRouter(spec, ctx.api)
+
+	request, _ := runtime.JSONRequest("POST", "/api/pets", nil)
+
+	ri, reqWithCtx, ok := ctx.RouteInfo(request)
+	assert.True(t, ok)
+	assert.NotNil(t, reqWithCtx)
+
+	request = reqWithCtx
+
+	request.SetBasicAuth("topuser", "topuser")
+	p, reqWithCtx, err := ctx.Authorize(request, ri)
+	assert.Error(t, err)
+	assert.Nil(t, p)
+	assert.Nil(t, reqWithCtx)
+
+	request.SetBasicAuth("admin", "admin")
+	p, reqWithCtx, err = ctx.Authorize(request, ri)
+	assert.NoError(t, err)
+	assert.Equal(t, "admin", p)
+	assert.NotNil(t, reqWithCtx)
 }
 
 func TestContextNegotiateContentType(t *testing.T) {
@@ -137,21 +162,17 @@ func TestContextNegotiateContentType(t *testing.T) {
 	ctx := NewContext(spec, api, nil)
 	ctx.router = DefaultRouter(spec, ctx.api)
 
-	request, _ := http.NewRequest("POST", "/pets", nil)
+	request, _ := http.NewRequest("POST", "/api/pets", nil)
 	// request.Header.Add("Accept", "*/*")
 	request.Header.Add("content-type", "text/html")
 
-	v, ok := context.GetOk(request, ctxBoundParams)
-	assert.False(t, ok)
+	v := request.Context().Value(ctxBoundParams)
 	assert.Nil(t, v)
 
-	ri, _ := ctx.RouteInfo(request)
+	ri, request, _ := ctx.RouteInfo(request)
 
-	res := NegotiateContentType(request, ri.Produces, "")
-	assert.Equal(t, "", res)
-
-	res2 := NegotiateContentType(request, ri.Produces, "text/plain")
-	assert.Equal(t, "text/plain", res2)
+	res := NegotiateContentType(request, ri.Produces, "text/plain")
+	assert.Equal(t, ri.Produces[0], res)
 }
 
 func TestContextBindAndValidate(t *testing.T) {
@@ -159,27 +180,27 @@ func TestContextBindAndValidate(t *testing.T) {
 	ctx := NewContext(spec, api, nil)
 	ctx.router = DefaultRouter(spec, ctx.api)
 
-	request, _ := http.NewRequest("POST", "/pets", nil)
+	request, _ := http.NewRequest("POST", "/api/pets", nil)
 	request.Header.Add("Accept", "*/*")
 	request.Header.Add("content-type", "text/html")
 	request.ContentLength = 1
 
-	v, ok := context.GetOk(request, ctxBoundParams)
-	assert.False(t, ok)
+	v := request.Context().Value(ctxBoundParams)
 	assert.Nil(t, v)
 
-	ri, _ := ctx.RouteInfo(request)
-	data, result := ctx.BindAndValidate(request, ri) // this requires a much more thorough test
+	ri, request, _ := ctx.RouteInfo(request)
+	data, request, result := ctx.BindAndValidate(request, ri) // this requires a much more thorough test
 	assert.NotNil(t, data)
 	assert.NotNil(t, result)
 
-	v, ok = context.GetOk(request, ctxBoundParams)
+	v, ok := request.Context().Value(ctxBoundParams).(*validation)
 	assert.True(t, ok)
 	assert.NotNil(t, v)
 
-	dd, rr := ctx.BindAndValidate(request, ri)
+	dd, rCtx, rr := ctx.BindAndValidate(request, ri)
 	assert.Equal(t, data, dd)
 	assert.Equal(t, result, rr)
+	assert.Equal(t, rCtx, request)
 }
 
 func TestContextRender(t *testing.T) {
@@ -191,9 +212,9 @@ func TestContextRender(t *testing.T) {
 	ctx := NewContext(spec, api, nil)
 	ctx.router = DefaultRouter(spec, ctx.api)
 
-	request, _ := http.NewRequest("GET", "pets", nil)
+	request, _ := http.NewRequest("GET", "/api/pets", nil)
 	request.Header.Set(runtime.HeaderAccept, ct)
-	ri, _ := ctx.RouteInfo(request)
+	ri, request, _ := ctx.RouteInfo(request)
 
 	recorder := httptest.NewRecorder()
 	ctx.Respond(recorder, request, []string{ct}, ri, map[string]interface{}{"name": "hello"})
@@ -204,16 +225,18 @@ func TestContextRender(t *testing.T) {
 	ctx.Respond(recorder, request, []string{ct}, ri, errors.New("this went wrong"))
 	assert.Equal(t, 500, recorder.Code)
 
-	recorder = httptest.NewRecorder()
-	assert.Panics(t, func() { ctx.Respond(recorder, request, []string{ct}, ri, map[int]interface{}{1: "hello"}) })
+	// recorder = httptest.NewRecorder()
+	// assert.Panics(t, func() { ctx.Respond(recorder, request, []string{ct}, ri, map[int]interface{}{1: "hello"}) })
 
+	// Panic when route is nil and there is not a producer for the requested response format
 	recorder = httptest.NewRecorder()
-	request, _ = http.NewRequest("GET", "pets", nil)
-	assert.Panics(t, func() { ctx.Respond(recorder, request, []string{}, ri, map[string]interface{}{"name": "hello"}) })
+	request, _ = http.NewRequest("GET", "/api/pets", nil)
+	request.Header.Set(runtime.HeaderAccept, "text/xml")
+	assert.Panics(t, func() { ctx.Respond(recorder, request, []string{}, nil, map[string]interface{}{"name": "hello"}) })
 
-	request, _ = http.NewRequest("GET", "/pets", nil)
+	request, _ = http.NewRequest("GET", "/api/pets", nil)
 	request.Header.Set(runtime.HeaderAccept, ct)
-	ri, _ = ctx.RouteInfo(request)
+	ri, request, _ = ctx.RouteInfo(request)
 
 	recorder = httptest.NewRecorder()
 	ctx.Respond(recorder, request, []string{ct}, ri, map[string]interface{}{"name": "hello"})
@@ -224,18 +247,19 @@ func TestContextRender(t *testing.T) {
 	ctx.Respond(recorder, request, []string{ct}, ri, errors.New("this went wrong"))
 	assert.Equal(t, 500, recorder.Code)
 
-	recorder = httptest.NewRecorder()
-	assert.Panics(t, func() { ctx.Respond(recorder, request, []string{ct}, ri, map[int]interface{}{1: "hello"}) })
+	// recorder = httptest.NewRecorder()
+	// assert.Panics(t, func() { ctx.Respond(recorder, request, []string{ct}, ri, map[int]interface{}{1: "hello"}) })
 
 	// recorder = httptest.NewRecorder()
 	// request, _ = http.NewRequest("GET", "/pets", nil)
 	// assert.Panics(t, func() { ctx.Respond(recorder, request, []string{}, ri, map[string]interface{}{"name": "hello"}) })
 
 	recorder = httptest.NewRecorder()
-	request, _ = http.NewRequest("DELETE", "/pets/1", nil)
-	ri, _ = ctx.RouteInfo(request)
+	request, _ = http.NewRequest("DELETE", "/api/pets/1", nil)
+	ri, request, _ = ctx.RouteInfo(request)
 	ctx.Respond(recorder, request, ri.Produces, ri, nil)
 	assert.Equal(t, 204, recorder.Code)
+
 }
 
 func TestContextValidResponseFormat(t *testing.T) {
@@ -248,21 +272,21 @@ func TestContextValidResponseFormat(t *testing.T) {
 	request.Header.Set(runtime.HeaderAccept, ct)
 
 	// check there's nothing there
-	cached, ok := context.GetOk(request, ctxResponseFormat)
+	cached, ok := request.Context().Value(ctxResponseFormat).(string)
 	assert.False(t, ok)
 	assert.Empty(t, cached)
 
 	// trigger the parse
-	mt := ctx.ResponseFormat(request, []string{ct})
+	mt, request := ctx.ResponseFormat(request, []string{ct})
 	assert.Equal(t, ct, mt)
 
 	// check it was cached
-	cached, ok = context.GetOk(request, ctxResponseFormat)
+	cached, ok = request.Context().Value(ctxResponseFormat).(string)
 	assert.True(t, ok)
 	assert.Equal(t, ct, cached)
 
 	// check if the cast works and fetch from cache too
-	mt = ctx.ResponseFormat(request, []string{ct})
+	mt, _ = ctx.ResponseFormat(request, []string{ct})
 	assert.Equal(t, ct, mt)
 }
 
@@ -277,22 +301,23 @@ func TestContextInvalidResponseFormat(t *testing.T) {
 	request.Header.Set(runtime.HeaderAccept, ct)
 
 	// check there's nothing there
-	cached, ok := context.GetOk(request, ctxResponseFormat)
+	cached, ok := request.Context().Value(ctxResponseFormat).(string)
 	assert.False(t, ok)
 	assert.Empty(t, cached)
 
 	// trigger the parse
-	mt := ctx.ResponseFormat(request, []string{other})
+	mt, request := ctx.ResponseFormat(request, []string{other})
 	assert.Empty(t, mt)
 
 	// check it was cached
-	cached, ok = context.GetOk(request, ctxResponseFormat)
+	cached, ok = request.Context().Value(ctxResponseFormat).(string)
 	assert.False(t, ok)
 	assert.Empty(t, cached)
 
 	// check if the cast works and fetch from cache too
-	mt = ctx.ResponseFormat(request, []string{other})
+	mt, rCtx := ctx.ResponseFormat(request, []string{other})
 	assert.Empty(t, mt)
+	assert.Equal(t, request, rCtx)
 }
 
 func TestContextValidRoute(t *testing.T) {
@@ -300,23 +325,28 @@ func TestContextValidRoute(t *testing.T) {
 	ctx := NewContext(spec, api, nil)
 	ctx.router = DefaultRouter(spec, ctx.api)
 
-	request, _ := http.NewRequest("GET", "/pets", nil)
+	request, _ := http.NewRequest("GET", "/api/pets", nil)
 
 	// check there's nothing there
-	_, ok := context.GetOk(request, ctxMatchedRoute)
-	assert.False(t, ok)
+	cached := request.Context().Value(ctxMatchedRoute)
+	assert.Nil(t, cached)
 
-	matched, ok := ctx.RouteInfo(request)
+	matched, rCtx, ok := ctx.RouteInfo(request)
 	assert.True(t, ok)
 	assert.NotNil(t, matched)
+	assert.NotNil(t, rCtx)
+	assert.NotEqual(t, request, rCtx)
+
+	request = rCtx
 
 	// check it was cached
-	_, ok = context.GetOk(request, ctxMatchedRoute)
+	_, ok = request.Context().Value(ctxMatchedRoute).(*MatchedRoute)
 	assert.True(t, ok)
 
-	matched, ok = ctx.RouteInfo(request)
+	matched, rCtx, ok = ctx.RouteInfo(request)
 	assert.True(t, ok)
 	assert.NotNil(t, matched)
+	assert.Equal(t, request, rCtx)
 }
 
 func TestContextInvalidRoute(t *testing.T) {
@@ -327,20 +357,22 @@ func TestContextInvalidRoute(t *testing.T) {
 	request, _ := http.NewRequest("DELETE", "pets", nil)
 
 	// check there's nothing there
-	_, ok := context.GetOk(request, ctxMatchedRoute)
-	assert.False(t, ok)
+	cached := request.Context().Value(ctxMatchedRoute)
+	assert.Nil(t, cached)
 
-	matched, ok := ctx.RouteInfo(request)
+	matched, rCtx, ok := ctx.RouteInfo(request)
 	assert.False(t, ok)
 	assert.Nil(t, matched)
+	assert.Nil(t, rCtx)
 
-	// check it was cached
-	_, ok = context.GetOk(request, ctxMatchedRoute)
-	assert.False(t, ok)
+	// check it was not cached
+	cached = request.Context().Value(ctxMatchedRoute)
+	assert.Nil(t, cached)
 
-	matched, ok = ctx.RouteInfo(request)
+	matched, rCtx, ok = ctx.RouteInfo(request)
 	assert.False(t, ok)
 	assert.Nil(t, matched)
+	assert.Nil(t, rCtx)
 }
 
 func TestContextValidContentType(t *testing.T) {
@@ -351,22 +383,27 @@ func TestContextValidContentType(t *testing.T) {
 	request.Header.Set(runtime.HeaderContentType, ct)
 
 	// check there's nothing there
-	_, ok := context.GetOk(request, ctxContentType)
-	assert.False(t, ok)
+	cached := request.Context().Value(ctxContentType)
+	assert.Nil(t, cached)
 
 	// trigger the parse
-	mt, _, err := ctx.ContentType(request)
+	mt, _, rCtx, err := ctx.ContentType(request)
 	assert.NoError(t, err)
 	assert.Equal(t, ct, mt)
+	assert.NotNil(t, rCtx)
+	assert.NotEqual(t, request, rCtx)
+
+	request = rCtx
 
 	// check it was cached
-	_, ok = context.GetOk(request, ctxContentType)
-	assert.True(t, ok)
+	cached = request.Context().Value(ctxContentType)
+	assert.NotNil(t, cached)
 
 	// check if the cast works and fetch from cache too
-	mt, _, err = ctx.ContentType(request)
+	mt, _, rCtx, err = ctx.ContentType(request)
 	assert.NoError(t, err)
 	assert.Equal(t, ct, mt)
+	assert.Equal(t, request, rCtx)
 }
 
 func TestContextInvalidContentType(t *testing.T) {
@@ -377,19 +414,21 @@ func TestContextInvalidContentType(t *testing.T) {
 	request.Header.Set(runtime.HeaderContentType, ct)
 
 	// check there's nothing there
-	_, ok := context.GetOk(request, ctxContentType)
-	assert.False(t, ok)
+	cached := request.Context().Value(ctxContentType)
+	assert.Nil(t, cached)
 
 	// trigger the parse
-	mt, _, err := ctx.ContentType(request)
+	mt, _, rCtx, err := ctx.ContentType(request)
 	assert.Error(t, err)
 	assert.Empty(t, mt)
+	assert.Nil(t, rCtx)
 
 	// check it was not cached
-	_, ok = context.GetOk(request, ctxContentType)
-	assert.False(t, ok)
+	cached = request.Context().Value(ctxContentType)
+	assert.Nil(t, cached)
 
 	// check if the failure continues
-	_, _, err = ctx.ContentType(request)
+	_, _, rCtx, err = ctx.ContentType(request)
 	assert.Error(t, err)
+	assert.Nil(t, rCtx)
 }

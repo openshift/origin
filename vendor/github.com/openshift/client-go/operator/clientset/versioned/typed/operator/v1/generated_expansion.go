@@ -6,6 +6,8 @@ type AuthenticationExpansion interface{}
 
 type ConsoleExpansion interface{}
 
+type DNSExpansion interface{}
+
 type EtcdExpansion interface{}
 
 type IngressControllerExpansion interface{}

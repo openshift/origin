@@ -831,7 +831,7 @@ type DataDisk struct {
 	Caching CachingTypes `json:"caching,omitempty"`
 	// CreateOption - Specifies how the virtual machine should be created.<br><br> Possible values are:<br><br> **Attach** \u2013 This value is used when you are using a specialized disk to create the virtual machine.<br><br> **FromImage** \u2013 This value is used when you are using an image to create the virtual machine. If you are using a platform image, you also use the imageReference element described above. If you are using a marketplace image, you  also use the plan element previously described. Possible values include: 'DiskCreateOptionTypesFromImage', 'DiskCreateOptionTypesEmpty', 'DiskCreateOptionTypesAttach'
 	CreateOption DiskCreateOptionTypes `json:"createOption,omitempty"`
-	// DiskSizeGB - Specifies the size of an empty data disk in gigabytes. This element can be used to overwrite the name of the disk in a virtual machine image. <br><br> This value cannot be larger than 1023 GB
+	// DiskSizeGB - Specifies the size of an empty data disk in gigabytes. This element can be used to overwrite the size of the disk in a virtual machine image. <br><br> This value cannot be larger than 1023 GB
 	DiskSizeGB *int32 `json:"diskSizeGB,omitempty"`
 	// ManagedDisk - The managed disk parameters.
 	ManagedDisk *ManagedDiskParameters `json:"managedDisk,omitempty"`
@@ -1964,7 +1964,7 @@ type OSDisk struct {
 	Caching CachingTypes `json:"caching,omitempty"`
 	// CreateOption - Specifies how the virtual machine should be created.<br><br> Possible values are:<br><br> **Attach** \u2013 This value is used when you are using a specialized disk to create the virtual machine.<br><br> **FromImage** \u2013 This value is used when you are using an image to create the virtual machine. If you are using a platform image, you also use the imageReference element described above. If you are using a marketplace image, you  also use the plan element previously described. Possible values include: 'DiskCreateOptionTypesFromImage', 'DiskCreateOptionTypesEmpty', 'DiskCreateOptionTypesAttach'
 	CreateOption DiskCreateOptionTypes `json:"createOption,omitempty"`
-	// DiskSizeGB - Specifies the size of an empty data disk in gigabytes. This element can be used to overwrite the name of the disk in a virtual machine image. <br><br> This value cannot be larger than 1023 GB
+	// DiskSizeGB - Specifies the size of an empty data disk in gigabytes. This element can be used to overwrite the size of the disk in a virtual machine image. <br><br> This value cannot be larger than 1023 GB
 	DiskSizeGB *int32 `json:"diskSizeGB,omitempty"`
 	// ManagedDisk - The managed disk parameters.
 	ManagedDisk *ManagedDiskParameters `json:"managedDisk,omitempty"`
@@ -3713,7 +3713,7 @@ type VirtualMachineScaleSetDataDisk struct {
 	Caching CachingTypes `json:"caching,omitempty"`
 	// CreateOption - The create option. Possible values include: 'DiskCreateOptionTypesFromImage', 'DiskCreateOptionTypesEmpty', 'DiskCreateOptionTypesAttach'
 	CreateOption DiskCreateOptionTypes `json:"createOption,omitempty"`
-	// DiskSizeGB - Specifies the size of an empty data disk in gigabytes. This element can be used to overwrite the name of the disk in a virtual machine image. <br><br> This value cannot be larger than 1023 GB
+	// DiskSizeGB - Specifies the size of an empty data disk in gigabytes. This element can be used to overwrite the size of the disk in a virtual machine image. <br><br> This value cannot be larger than 1023 GB
 	DiskSizeGB *int32 `json:"diskSizeGB,omitempty"`
 	// ManagedDisk - The managed disk parameters.
 	ManagedDisk *VirtualMachineScaleSetManagedDiskParameters `json:"managedDisk,omitempty"`

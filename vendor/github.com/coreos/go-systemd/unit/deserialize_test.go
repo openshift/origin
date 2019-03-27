@@ -267,7 +267,7 @@ Option=value
 			return fmt.Errorf("expected %d items, got %d", len(expect), len(output))
 		}
 
-		for i, _ := range expect {
+		for i := range expect {
 			if !reflect.DeepEqual(expect[i], output[i]) {
 				return fmt.Errorf("item %d: expected %v, got %v", i, expect[i], output[i])
 			}

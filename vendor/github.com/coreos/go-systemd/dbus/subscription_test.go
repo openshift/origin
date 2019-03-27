@@ -74,12 +74,6 @@ func TestSubscribeUnit(t *testing.T) {
 		t.Fatal("Couldn't start", target)
 	}
 
-	timeout := make(chan bool, 1)
-	go func() {
-		time.Sleep(3 * time.Second)
-		close(timeout)
-	}()
-
 	for {
 		select {
 		case changes := <-evChan:
@@ -95,11 +89,103 @@ func TestSubscribeUnit(t *testing.T) {
 			}
 		case err = <-errChan:
 			t.Fatal(err)
-		case <-timeout:
+		case <-time.After(10 * time.Second):
 			t.Fatal("Reached timeout")
 		}
 	}
 
 success:
 	return
+}
+
+// TestSubStateSubscription exercises the basics of sub-state event subscriptions
+func TestSubStateSubscription(t *testing.T) {
+	target := "subscribe-events.service"
+
+	conn, err := New()
+	defer conn.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	updateCh := make(chan *SubStateUpdate, 256)
+	errCh := make(chan error, 256)
+	conn.SetSubStateSubscriber(updateCh, errCh)
+
+	setupUnit(target, conn, t)
+	linkUnit(target, conn, t)
+
+	reschan := make(chan string)
+	_, err = conn.StartUnit(target, "replace", reschan)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	job := <-reschan
+	if job != "done" {
+		t.Fatal("Couldn't start", target)
+	}
+
+	for {
+		select {
+		case update := <-updateCh:
+			if update.UnitName == target && update.SubState == "running" {
+				return // success
+			}
+		case err := <-errCh:
+			t.Fatal(err)
+		case <-time.After(10 * time.Second):
+			t.Fatal("Reached timeout")
+		}
+	}
+}
+
+// TestPropertiesSubscription exercises the basics of property change event subscriptions
+func TestPropertiesSubscription(t *testing.T) {
+	target := "subscribe-events.service"
+
+	conn, err := New()
+	defer conn.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = conn.Subscribe()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	updateCh := make(chan *PropertiesUpdate, 256)
+	errCh := make(chan error, 256)
+	conn.SetPropertiesSubscriber(updateCh, errCh)
+
+	setupUnit(target, conn, t)
+	linkUnit(target, conn, t)
+
+	reschan := make(chan string)
+	_, err = conn.StartUnit(target, "replace", reschan)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	job := <-reschan
+	if job != "done" {
+		t.Fatal("Couldn't start", target)
+	}
+
+	for {
+		select {
+		case update := <-updateCh:
+			if update.UnitName == target {
+				subState, ok := update.Changed["SubState"].Value().(string)
+				if ok && subState == "running" {
+					return // success
+				}
+			}
+		case err := <-errCh:
+			t.Fatal(err)
+		case <-time.After(10 * time.Second):
+			t.Fatal("Reached timeout")
+		}
+	}
 }

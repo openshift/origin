@@ -10,6 +10,10 @@ type AuthenticationListerExpansion interface{}
 // ConsoleLister.
 type ConsoleListerExpansion interface{}
 
+// DNSListerExpansion allows custom methods to be added to
+// DNSLister.
+type DNSListerExpansion interface{}
+
 // EtcdListerExpansion allows custom methods to be added to
 // EtcdLister.
 type EtcdListerExpansion interface{}

@@ -5,7 +5,7 @@
 package v1
 
 import (
-	core_v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -101,7 +101,7 @@ func (in *ProjectSpec) DeepCopyInto(out *ProjectSpec) {
 	*out = *in
 	if in.Finalizers != nil {
 		in, out := &in.Finalizers, &out.Finalizers
-		*out = make([]core_v1.FinalizerName, len(*in))
+		*out = make([]corev1.FinalizerName, len(*in))
 		copy(*out, *in)
 	}
 	return

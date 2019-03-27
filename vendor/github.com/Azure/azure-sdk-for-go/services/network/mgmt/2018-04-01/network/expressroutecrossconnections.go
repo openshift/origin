@@ -93,10 +93,6 @@ func (client ExpressRouteCrossConnectionsClient) CreateOrUpdateSender(req *http.
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK))
-	if err != nil {
-		return
-	}
 	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
@@ -326,10 +322,6 @@ func (client ExpressRouteCrossConnectionsClient) ListArpTableSender(req *http.Re
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
-	if err != nil {
-		return
-	}
 	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
@@ -495,10 +487,6 @@ func (client ExpressRouteCrossConnectionsClient) ListRoutesTableSender(req *http
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
-	if err != nil {
-		return
-	}
 	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
@@ -571,10 +559,6 @@ func (client ExpressRouteCrossConnectionsClient) ListRoutesTableSummarySender(re
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
-	if err != nil {
-		return
-	}
 	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
@@ -642,10 +626,6 @@ func (client ExpressRouteCrossConnectionsClient) UpdateTagsSender(req *http.Requ
 	var resp *http.Response
 	resp, err = autorest.SendWithSender(client, req,
 		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK))
 	if err != nil {
 		return
 	}

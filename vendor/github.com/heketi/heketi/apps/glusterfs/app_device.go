@@ -28,6 +28,13 @@ func (a *App) DeviceAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = msg.Validate()
+	if err != nil {
+		http.Error(w, "validation failed: "+err.Error(), http.StatusBadRequest)
+		logger.LogError("validation failed: " + err.Error())
+		return
+	}
+
 	// Check the message has devices
 	if msg.Name == "" {
 		http.Error(w, "no devices added", http.StatusBadRequest)
@@ -85,13 +92,13 @@ func (a *App) DeviceAdd(w http.ResponseWriter, r *http.Request) {
 
 		// Setup device on node
 		info, err := a.executor.DeviceSetup(node.ManageHostName(),
-			device.Info.Name, device.Info.Id)
+			device.Info.Name, device.Info.Id, msg.DestroyData)
 		if err != nil {
 			return "", err
 		}
 
 		// Create an entry for the device and set the size
-		device.StorageSet(info.Size)
+		device.StorageSet(info.TotalSize, info.FreeSize, info.UsedSize)
 		device.SetExtentSize(info.ExtentSize)
 
 		// Setup garbage collector on error
@@ -114,11 +121,6 @@ func (a *App) DeviceAdd(w http.ResponseWriter, r *http.Request) {
 			// Add device to node
 			nodeEntry.DeviceAdd(device.Info.Id)
 
-			clusterEntry, err := NewClusterEntryFromId(tx, nodeEntry.Info.ClusterId)
-			if err != nil {
-				return err
-			}
-
 			// Commit
 			err = nodeEntry.Save(tx)
 			if err != nil {
@@ -127,12 +129,6 @@ func (a *App) DeviceAdd(w http.ResponseWriter, r *http.Request) {
 
 			// Save drive
 			err = device.Save(tx)
-			if err != nil {
-				return err
-			}
-
-			// Add to allocator
-			err = a.allocator.AddDevice(clusterEntry, nodeEntry, device)
 			if err != nil {
 				return err
 			}
@@ -198,11 +194,19 @@ func (a *App) DeviceDelete(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]
 
+	var opts api.DeviceDeleteOptions
+	if r.ContentLength > 0 {
+		err := utils.GetJsonFromRequest(r, &opts)
+		if err != nil {
+			http.Error(w, "request unable to be parsed", 422)
+			return
+		}
+	}
+
 	// Check request
 	var (
-		device  *DeviceEntry
-		node    *NodeEntry
-		cluster *ClusterEntry
+		device *DeviceEntry
+		node   *NodeEntry
 	)
 	err := a.db.View(func(tx *bolt.Tx) error {
 		var err error
@@ -217,7 +221,7 @@ func (a *App) DeviceDelete(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Check if we can delete the device
-		if !device.IsDeleteOk() {
+		if device.HasBricks() {
 			http.Error(w, device.ConflictString(), http.StatusConflict)
 			logger.LogError(device.ConflictString())
 			return ErrConflict
@@ -227,12 +231,6 @@ func (a *App) DeviceDelete(w http.ResponseWriter, r *http.Request) {
 		node, err = NewNodeEntryFromId(tx, device.NodeId)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return logger.Err(err)
-		}
-
-		// Save cluster to update allocator
-		cluster, err = NewClusterEntryFromId(tx, node.Info.ClusterId)
-		if err != nil {
 			return logger.Err(err)
 		}
 
@@ -247,14 +245,15 @@ func (a *App) DeviceDelete(w http.ResponseWriter, r *http.Request) {
 	a.asyncManager.AsyncHttpRedirectFunc(w, r, func() (string, error) {
 
 		// Teardown device
-		err := a.executor.DeviceTeardown(node.ManageHostName(),
-			device.Info.Name, device.Info.Id)
-		if err != nil {
-			return "", err
+		var err error
+		if opts.ForceForget {
+			logger.Info("Delete request set force-forget option")
+			err = a.executor.DeviceForget(node.ManageHostName(),
+				device.Info.Name, device.Info.Id)
+		} else {
+			err = a.executor.DeviceTeardown(node.ManageHostName(),
+				device.Info.Name, device.Info.Id)
 		}
-
-		// Remove device from allocator
-		err = a.allocator.RemoveDevice(cluster, node, device)
 		if err != nil {
 			return "", err
 		}
@@ -323,6 +322,12 @@ func (a *App) DeviceSetState(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "request unable to be parsed", 422)
 		return
 	}
+	err = msg.Validate()
+	if err != nil {
+		http.Error(w, "validation failed: "+err.Error(), http.StatusBadRequest)
+		logger.LogError("validation failed: " + err.Error())
+		return
+	}
 
 	// Check for valid id, return immediately if not valid
 	err = a.db.View(func(tx *bolt.Tx) error {
@@ -341,12 +346,165 @@ func (a *App) DeviceSetState(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Setting the state to failed can involve long running operations
+	// and thus needs to be checked for operations throttle
+	// However, we don't want to block "cheap" changes like setting
+	// the item offline
+	if msg.State == api.EntryStateFailed {
+		if a.opcounter.ThrottleOrInc() {
+			OperationHttpErrorf(w, ErrTooManyOperations, "")
+			return
+		}
+	}
+
 	// Set state
 	a.asyncManager.AsyncHttpRedirectFunc(w, r, func() (string, error) {
-		err = device.SetState(a.db, a.executor, a.allocator, msg.State)
+		defer func() {
+			if msg.State == api.EntryStateFailed {
+				a.opcounter.Dec()
+			}
+		}()
+		err = device.SetState(a.db, a.executor, msg.State)
 		if err != nil {
 			return "", err
 		}
 		return "", nil
 	})
+}
+
+func (a *App) DeviceResync(w http.ResponseWriter, r *http.Request) {
+
+	vars := mux.Vars(r)
+	deviceId := vars["id"]
+
+	var (
+		device        *DeviceEntry
+		node          *NodeEntry
+		brickSizesSum uint64
+	)
+
+	// Get device info from DB
+	err := a.db.View(func(tx *bolt.Tx) error {
+		var err error
+		device, err = NewDeviceEntryFromId(tx, deviceId)
+		if err != nil {
+			return err
+		}
+		node, err = NewNodeEntryFromId(tx, device.NodeId)
+		if err != nil {
+			return err
+		}
+		for _, brick := range device.Bricks {
+			brickEntry, err := NewBrickEntryFromId(tx, brick)
+			if err != nil {
+				return err
+			}
+			brickSizesSum += brickEntry.Info.Size
+		}
+		return nil
+	})
+	if err == ErrNotFound {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	} else if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		logger.Err(err)
+		return
+	}
+
+	logger.Info("Checking for device %v changes", deviceId)
+
+	// Check and update device in background
+	a.asyncManager.AsyncHttpRedirectFunc(w, r, func() (seeOtherUrl string, e error) {
+
+		// Get actual device info from manage host
+		info, err := a.executor.GetDeviceInfo(node.ManageHostName(), device.Info.Name, device.Info.Id)
+		if err != nil {
+			return "", err
+		}
+
+		err = a.db.Update(func(tx *bolt.Tx) error {
+
+			// Reload device in current transaction
+			device, err := NewDeviceEntryFromId(tx, deviceId)
+			if err != nil {
+				logger.Err(err)
+				return err
+			}
+
+			if brickSizesSum != info.UsedSize {
+				logger.Info("Sum of sizes of all bricks on the device:%v differs from used size from LVM:%v", brickSizesSum, info.UsedSize)
+				logger.Info("Database needs cleaning")
+			}
+
+			logger.Info("Updating device %v, total: %v -> %v, free: %v -> %v, used: %v -> %v", device.Info.Name,
+				device.Info.Storage.Total, info.TotalSize, device.Info.Storage.Free, info.FreeSize, device.Info.Storage.Used, info.UsedSize)
+
+			device.StorageSet(info.TotalSize, info.FreeSize, info.UsedSize)
+
+			// Save updated device
+			err = device.Save(tx)
+			if err != nil {
+				logger.Err(err)
+				return err
+			}
+
+			return nil
+		})
+		if err != nil {
+			return "", err
+		}
+
+		logger.Info("Updated device %v", deviceId)
+
+		return "", err
+	})
+}
+
+func (a *App) DeviceSetTags(w http.ResponseWriter, r *http.Request) {
+	// Get the id from the URL
+	vars := mux.Vars(r)
+	id := vars["id"]
+	var device *DeviceEntry
+
+	// Unmarshal JSON
+	var msg api.TagsChangeRequest
+	err := utils.GetJsonFromRequest(r, &msg)
+	if err != nil {
+		http.Error(w, "request unable to be parsed", 422)
+		return
+	}
+
+	err = msg.Validate()
+	if err != nil {
+		http.Error(w, "validation failed: "+err.Error(), http.StatusBadRequest)
+		logger.LogError("validation failed: " + err.Error())
+		return
+	}
+
+	err = a.db.Update(func(tx *bolt.Tx) error {
+		device, err = NewDeviceEntryFromId(tx, id)
+		if err == ErrNotFound {
+			http.Error(w, "Id not found", http.StatusNotFound)
+			return err
+		} else if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return err
+		}
+		ApplyTags(device, msg)
+		if err := device.Save(tx); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		logger.Err(err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(device.AllTags()); err != nil {
+		panic(err)
+	}
 }

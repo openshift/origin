@@ -16,6 +16,7 @@ import (
 	"os"
 
 	"github.com/boltdb/bolt"
+	wdb "github.com/heketi/heketi/pkg/db"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	restclient "k8s.io/client-go/rest"
@@ -32,7 +33,7 @@ var (
 	dbSecretName = "heketi-db-backup"
 )
 
-func KubeBackupDbToSecret(db *bolt.DB) error {
+func KubeBackupDbToSecret(db wdb.RODB) error {
 
 	// Check if we should use another name for the heketi backup secret
 	env := os.Getenv("HEKETI_KUBE_DB_SECRET_NAME")

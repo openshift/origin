@@ -5,7 +5,7 @@ package v1
 import (
 	v1 "github.com/openshift/api/user/v1"
 	scheme "github.com/openshift/client-go/user/clientset/versioned/scheme"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rest "k8s.io/client-go/rest"
 )
 
@@ -19,8 +19,8 @@ type UserIdentityMappingsGetter interface {
 type UserIdentityMappingInterface interface {
 	Create(*v1.UserIdentityMapping) (*v1.UserIdentityMapping, error)
 	Update(*v1.UserIdentityMapping) (*v1.UserIdentityMapping, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1.UserIdentityMapping, error)
+	Delete(name string, options *metav1.DeleteOptions) error
+	Get(name string, options metav1.GetOptions) (*v1.UserIdentityMapping, error)
 	UserIdentityMappingExpansion
 }
 
@@ -37,7 +37,7 @@ func newUserIdentityMappings(c *UserV1Client) *userIdentityMappings {
 }
 
 // Get takes name of the userIdentityMapping, and returns the corresponding userIdentityMapping object, and an error if there is any.
-func (c *userIdentityMappings) Get(name string, options meta_v1.GetOptions) (result *v1.UserIdentityMapping, err error) {
+func (c *userIdentityMappings) Get(name string, options metav1.GetOptions) (result *v1.UserIdentityMapping, err error) {
 	result = &v1.UserIdentityMapping{}
 	err = c.client.Get().
 		Resource("useridentitymappings").
@@ -72,7 +72,7 @@ func (c *userIdentityMappings) Update(userIdentityMapping *v1.UserIdentityMappin
 }
 
 // Delete takes name of the userIdentityMapping and deletes it. Returns an error if one occurs.
-func (c *userIdentityMappings) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *userIdentityMappings) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("useridentitymappings").
 		Name(name).

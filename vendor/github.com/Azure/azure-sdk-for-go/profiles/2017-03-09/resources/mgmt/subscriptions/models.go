@@ -49,12 +49,18 @@ type ListResultIterator = original.ListResultIterator
 type ListResultPage = original.ListResultPage
 type Location = original.Location
 type LocationListResult = original.LocationListResult
+type Operation = original.Operation
+type OperationDisplay = original.OperationDisplay
+type OperationListResult = original.OperationListResult
+type OperationListResultIterator = original.OperationListResultIterator
+type OperationListResultPage = original.OperationListResultPage
 type Policies = original.Policies
 type Subscription = original.Subscription
 type TenantIDDescription = original.TenantIDDescription
 type TenantListResult = original.TenantListResult
 type TenantListResultIterator = original.TenantListResultIterator
 type TenantListResultPage = original.TenantListResultPage
+type OperationsClient = original.OperationsClient
 type Client = original.Client
 type TenantsClient = original.TenantsClient
 
@@ -69,6 +75,12 @@ func PossibleSpendingLimitValues() []SpendingLimit {
 }
 func PossibleStateValues() []State {
 	return original.PossibleStateValues()
+}
+func NewOperationsClient() OperationsClient {
+	return original.NewOperationsClient()
+}
+func NewOperationsClientWithBaseURI(baseURI string) OperationsClient {
+	return original.NewOperationsClientWithBaseURI(baseURI)
 }
 func NewClient() Client {
 	return original.NewClient()

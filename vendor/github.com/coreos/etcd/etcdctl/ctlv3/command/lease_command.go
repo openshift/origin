@@ -15,12 +15,13 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	v3 "github.com/coreos/etcd/clientv3"
+
 	"github.com/spf13/cobra"
-	"golang.org/x/net/context"
 )
 
 // NewLeaseCommand returns the cobra command for "lease".
@@ -33,6 +34,7 @@ func NewLeaseCommand() *cobra.Command {
 	lc.AddCommand(NewLeaseGrantCommand())
 	lc.AddCommand(NewLeaseRevokeCommand())
 	lc.AddCommand(NewLeaseTimeToLiveCommand())
+	lc.AddCommand(NewLeaseListCommand())
 	lc.AddCommand(NewLeaseKeepAliveCommand())
 
 	return lc
@@ -129,14 +131,39 @@ func leaseTimeToLiveCommandFunc(cmd *cobra.Command, args []string) {
 	display.TimeToLive(*resp, timeToLiveKeys)
 }
 
+// NewLeaseListCommand returns the cobra command for "lease list".
+func NewLeaseListCommand() *cobra.Command {
+	lc := &cobra.Command{
+		Use:   "list",
+		Short: "List all active leases",
+		Run:   leaseListCommandFunc,
+	}
+	return lc
+}
+
+// leaseListCommandFunc executes the "lease list" command.
+func leaseListCommandFunc(cmd *cobra.Command, args []string) {
+	resp, rerr := mustClientFromCmd(cmd).Leases(context.TODO())
+	if rerr != nil {
+		ExitWithError(ExitBadConnection, rerr)
+	}
+	display.Leases(*resp)
+}
+
+var (
+	leaseKeepAliveOnce bool
+)
+
 // NewLeaseKeepAliveCommand returns the cobra command for "lease keep-alive".
 func NewLeaseKeepAliveCommand() *cobra.Command {
 	lc := &cobra.Command{
-		Use:   "keep-alive <leaseID>",
+		Use:   "keep-alive [options] <leaseID>",
 		Short: "Keeps leases alive (renew)",
 
 		Run: leaseKeepAliveCommandFunc,
 	}
+
+	lc.Flags().BoolVar(&leaseKeepAliveOnce, "once", false, "Resets the keep-alive time to its original value and exits immediately")
 
 	return lc
 }
@@ -148,11 +175,20 @@ func leaseKeepAliveCommandFunc(cmd *cobra.Command, args []string) {
 	}
 
 	id := leaseFromArgs(args[0])
+
+	if leaseKeepAliveOnce {
+		respc, kerr := mustClientFromCmd(cmd).KeepAliveOnce(context.TODO(), id)
+		if kerr != nil {
+			ExitWithError(ExitBadConnection, kerr)
+		}
+		display.KeepAlive(*respc)
+		return
+	}
+
 	respc, kerr := mustClientFromCmd(cmd).KeepAlive(context.TODO(), id)
 	if kerr != nil {
 		ExitWithError(ExitBadConnection, kerr)
 	}
-
 	for resp := range respc {
 		display.KeepAlive(*resp)
 	}

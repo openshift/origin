@@ -375,6 +375,12 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <li>
 <p><a href="#_v1_storageclasslist">v1.StorageClassList</a></p>
 </li>
+<li>
+<p><a href="#_v1_volumeattachment">v1.VolumeAttachment</a></p>
+</li>
+<li>
+<p><a href="#_v1_volumeattachmentlist">v1.VolumeAttachmentList</a></p>
+</li>
 </ul>
 </div>
 </div>
@@ -435,6 +441,535 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </tr>
 </tbody>
 </table>
+
+</div>
+<div class="sect2">
+<h3 id="_v1_volumeattachmentlist">v1.VolumeAttachmentList</h3>
+<div class="paragraph">
+<p>VolumeAttachmentList is a collection of VolumeAttachment objects.</p>
+</div>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kind</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds">https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">apiVersion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#resources">https://git.k8s.io/community/contributors/devel/api-conventions.md#resources</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">metadata</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Standard list metadata More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata">https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_listmeta">v1.ListMeta</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">items</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Items is the list of VolumeAttachments</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_volumeattachment">v1.VolumeAttachment</a> array</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect2">
+<h3 id="_v1_listmeta">v1.ListMeta</h3>
+<div class="paragraph">
+<p>ListMeta describes metadata that synthetic resources must have, including lists and various status objects. A resource may have only one of {ObjectMeta, ListMeta}.</p>
+</div>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">selfLink</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">selfLink is a URL representing this object. Populated by the system. Read-only.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">String that identifies the server&#8217;s internal version of this object that can be used by clients to determine when objects have changed. Value must be treated as opaque by clients and passed unmodified back to the server. Populated by the system. Read-only. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#concurrency-control-and-consistency">https://git.k8s.io/community/contributors/devel/api-conventions.md#concurrency-control-and-consistency</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">continue</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">continue may be set if the user set a limit on the number of items returned, and indicates that the server has more data available. The value is opaque and may be used to issue another request to the endpoint that served this list to retrieve the next set of available objects. Continuing a consistent list may not be possible if the server configuration has changed or more than a few minutes have passed. The resourceVersion field returned when using this continue value will be identical to the value in the first response, unless you have received this token from an error message.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect2">
+<h3 id="_v1_volumeattachmentsource">v1.VolumeAttachmentSource</h3>
+<div class="paragraph">
+<p>VolumeAttachmentSource represents a volume that should be attached. Right now only PersistenVolumes can be attached via external attacher, in future we may allow also inline volumes in pods. Exactly one member can be set.</p>
+</div>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">persistentVolumeName</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Name of the persistent volume to attach.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect2">
+<h3 id="_v1_initializers">v1.Initializers</h3>
+<div class="paragraph">
+<p>Initializers tracks the progress of initialization.</p>
+</div>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">pending</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Pending is a list of initializers that must execute in order before this object is visible. When the last pending initializer is removed, and no failing result is set, the initializers struct will be set to nil and the object is considered as initialized and visible to all clients.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_initializer">v1.Initializer</a> array</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">result</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If result is set with the Failure field, the object will be persisted to storage and then deleted, ensuring that other clients can observe the deletion.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_status">v1.Status</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect2">
+<h3 id="_v1_preconditions">v1.Preconditions</h3>
+<div class="paragraph">
+<p>Preconditions must be fulfilled before an operation (update, delete, etc.) is carried out.</p>
+</div>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">uid</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Specifies the target UID.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_types_uid">types.UID</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect2">
+<h3 id="_v1_status">v1.Status</h3>
+<div class="paragraph">
+<p>Status is a return value for calls that don&#8217;t return other objects.</p>
+</div>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kind</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds">https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">apiVersion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#resources">https://git.k8s.io/community/contributors/devel/api-conventions.md#resources</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">metadata</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Standard list metadata. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds">https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_listmeta">v1.ListMeta</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">status</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Status of the operation. One of: "Success" or "Failure". More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status">https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">message</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A human-readable description of the status of this operation.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">reason</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A machine-readable description of why this operation is in the "Failure" status. If this value is empty there is no information available. A Reason clarifies an HTTP status code but does not override it.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">details</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Extended data associated with the reason.  Each reason may define its own extended details. This field is optional and the data returned is not guaranteed to conform to any schema except that defined by the reason type.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_statusdetails">v1.StatusDetails</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">code</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Suggested HTTP return code for this status, 0 if not set.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect2">
+<h3 id="_v1_volumeerror">v1.VolumeError</h3>
+<div class="paragraph">
+<p>VolumeError captures an error encountered during a volume operation.</p>
+</div>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">time</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Time the error was encountered.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">message</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">String detailing the error encountered during Attach or Detach operation. This string maybe logged, so it should not contain sensitive information.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect2">
+<h3 id="_v1_watchevent">v1.WatchEvent</h3>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">type</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">object</p></td>
+<td class="tableblock halign-left valign-top"></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect2">
+<h3 id="_v1_volumeattachment">v1.VolumeAttachment</h3>
+<div class="paragraph">
+<p>VolumeAttachment captures the intent to attach or detach the specified volume to/from the specified node.</p>
+</div>
+<div class="paragraph">
+<p>VolumeAttachment objects are non-namespaced.</p>
+</div>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kind</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds">https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">apiVersion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#resources">https://git.k8s.io/community/contributors/devel/api-conventions.md#resources</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">metadata</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Standard object metadata. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata">https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_objectmeta">v1.ObjectMeta</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">spec</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Specification of the desired attach/detach volume behavior. Populated by the Kubernetes system.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_volumeattachmentspec">v1.VolumeAttachmentSpec</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">status</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Status of the VolumeAttachment request. Populated by the entity completing the attach or detach operation, i.e. the external-attacher.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_volumeattachmentstatus">v1.VolumeAttachmentStatus</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect2">
+<h3 id="_v1_persistentvolumereclaimpolicy">v1.PersistentVolumeReclaimPolicy</h3>
+
+</div>
+<div class="sect2">
+<h3 id="_v1_topologyselectorterm">v1.TopologySelectorTerm</h3>
+<div class="paragraph">
+<p>A topology selector term represents the result of label queries. A null or empty topology selector term matches no objects. The requirements of them are ANDed. It provides a subset of functionality as NodeSelectorTerm. This is an alpha feature and may change in the future.</p>
+</div>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;"> 
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">matchLabelExpressions</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">A list of topology selector requirements by labels.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_topologyselectorlabelrequirement">v1.TopologySelectorLabelRequirement</a> array</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect2">
+<h3 id="_v1_volumeattachmentspec">v1.VolumeAttachmentSpec</h3>
+<div class="paragraph">
+<p>VolumeAttachmentSpec is the specification of a VolumeAttachment request.</p>
+</div>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">attacher</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Attacher indicates the name of the volume driver that MUST handle this request. This is the name returned by GetPluginName().</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">source</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Source represents the volume that should be attached.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_volumeattachmentsource">v1.VolumeAttachmentSource</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">nodeName</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The node that the volume should be attached to.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect2">
+<h3 id="_v1_deletionpropagation">v1.DeletionPropagation</h3>
 
 </div>
 <div class="sect2">
@@ -520,95 +1055,6 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect2">
-<h3 id="_v1_listmeta">v1.ListMeta</h3>
-<div class="paragraph">
-<p>ListMeta describes metadata that synthetic resources must have, including lists and various status objects. A resource may have only one of {ObjectMeta, ListMeta}.</p>
-</div>
-<table class="tableblock frame-all grid-all" style="width:100%; ">
-<colgroup>
-<col style="width:20%;">
-<col style="width:20%;">
-<col style="width:20%;">
-<col style="width:20%;">
-<col style="width:20%;"> 
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Name</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Required</th>
-<th class="tableblock halign-left valign-top">Schema</th>
-<th class="tableblock halign-left valign-top">Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">selfLink</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">selfLink is a URL representing this object. Populated by the system. Read-only.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">resourceVersion</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">String that identifies the server&#8217;s internal version of this object that can be used by clients to determine when objects have changed. Value must be treated as opaque by clients and passed unmodified back to the server. Populated by the system. Read-only. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#concurrency-control-and-consistency">https://git.k8s.io/community/contributors/devel/api-conventions.md#concurrency-control-and-consistency</a></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">continue</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">continue may be set if the user set a limit on the number of items returned, and indicates that the server has more data available. The value is opaque and may be used to issue another request to the endpoint that served this list to retrieve the next set of available objects. Continuing a consistent list may not be possible if the server configuration has changed or more than a few minutes have passed. The resourceVersion field returned when using this continue value will be identical to the value in the first response, unless you have received this token from an error message.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-<div class="sect2">
-<h3 id="_v1_topologyselectorlabelrequirement">v1.TopologySelectorLabelRequirement</h3>
-<div class="paragraph">
-<p>A topology selector requirement is a selector that matches given label. This is an alpha feature and may change in the future.</p>
-</div>
-<table class="tableblock frame-all grid-all" style="width:100%; ">
-<colgroup>
-<col style="width:20%;">
-<col style="width:20%;">
-<col style="width:20%;">
-<col style="width:20%;">
-<col style="width:20%;"> 
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Name</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Required</th>
-<th class="tableblock halign-left valign-top">Schema</th>
-<th class="tableblock halign-left valign-top">Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">key</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">The label key that the selector applies to.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">values</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">An array of string values. One value must match the label to be selected. Each entry in Values is ORed.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string array</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-<div class="sect2">
 <h3 id="_v1_statusdetails">v1.StatusDetails</h3>
 <div class="paragraph">
 <p>StatusDetails is a set of additional properties that MAY be set by the server to provide additional information about a response. The Reason field of a Status object defines what attributes will be set. Clients must ignore fields that do not match the defined type of each attribute, and should assume that any attribute may be empty, invalid, or under defined.</p>
@@ -619,7 +1065,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <col style="width:20%;">
 <col style="width:20%;">
 <col style="width:20%;">
-<col style="width:20%;"> 
+<col style="width:20%;">
 </colgroup>
 <thead>
 <tr>
@@ -678,9 +1124,9 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect2">
-<h3 id="_v1_preconditions">v1.Preconditions</h3>
+<h3 id="_v1_topologyselectorlabelrequirement">v1.TopologySelectorLabelRequirement</h3>
 <div class="paragraph">
-<p>Preconditions must be fulfilled before an operation (update, delete, etc.) is carried out.</p>
+<p>A topology selector requirement is a selector that matches given label. This is an alpha feature and may change in the future.</p>
 </div>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
@@ -701,51 +1147,17 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </thead>
 <tbody>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">uid</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Specifies the target UID.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_types_uid">types.UID</a></p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-<div class="sect2">
-<h3 id="_v1_initializers">v1.Initializers</h3>
-<div class="paragraph">
-<p>Initializers tracks the progress of initialization.</p>
-</div>
-<table class="tableblock frame-all grid-all" style="width:100%; ">
-<colgroup>
-<col style="width:20%;">
-<col style="width:20%;">
-<col style="width:20%;">
-<col style="width:20%;">
-<col style="width:20%;"> 
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Name</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Required</th>
-<th class="tableblock halign-left valign-top">Schema</th>
-<th class="tableblock halign-left valign-top">Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">pending</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Pending is a list of initializers that must execute in order before this object is visible. When the last pending initializer is removed, and no failing result is set, the initializers struct will be set to nil and the object is considered as initialized and visible to all clients.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">key</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The label key that the selector applies to.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_initializer">v1.Initializer</a> array</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">result</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">If result is set with the Failure field, the object will be persisted to storage and then deleted, ensuring that other clients can observe the deletion.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_status">v1.Status</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">values</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">An array of string values. One value must match the label to be selected. Each entry in Values is ORed.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string array</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 </tbody>
@@ -763,7 +1175,7 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <col style="width:20%;">
 <col style="width:20%;">
 <col style="width:20%;">
-<col style="width:20%;"> 
+<col style="width:20%;">
 </colgroup>
 <thead>
 <tr>
@@ -778,127 +1190,6 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">name</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">name of the process that is responsible for initializing this object.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-<div class="sect2">
-<h3 id="_v1_status">v1.Status</h3>
-<div class="paragraph">
-<p>Status is a return value for calls that don&#8217;t return other objects.</p>
-</div>
-<table class="tableblock frame-all grid-all" style="width:100%; ">
-<colgroup>
-<col style="width:20%;">
-<col style="width:20%;">
-<col style="width:20%;">
-<col style="width:20%;">
-<col style="width:20%;"> 
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Name</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Required</th>
-<th class="tableblock halign-left valign-top">Schema</th>
-<th class="tableblock halign-left valign-top">Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">kind</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds">https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds</a></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">apiVersion</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#resources">https://git.k8s.io/community/contributors/devel/api-conventions.md#resources</a></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">metadata</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Standard list metadata. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds">https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds</a></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_listmeta">v1.ListMeta</a></p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">status</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Status of the operation. One of: "Success" or "Failure". More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status">https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status</a></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">message</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A human-readable description of the status of this operation.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">reason</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A machine-readable description of why this operation is in the "Failure" status. If this value is empty there is no information available. A Reason clarifies an HTTP status code but does not override it.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">details</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Extended data associated with the reason.  Each reason may define its own extended details. This field is optional and the data returned is not guaranteed to conform to any schema except that defined by the reason type.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_statusdetails">v1.StatusDetails</a></p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">code</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Suggested HTTP return code for this status, 0 if not set.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">integer (int32)</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-</tbody>
-</table>
-
-</div>
-<div class="sect2">
-<h3 id="_v1_watchevent">v1.WatchEvent</h3>
-<table class="tableblock frame-all grid-all" style="width:100%; ">
-<colgroup>
-<col style="width:20%;">
-<col style="width:20%;">
-<col style="width:20%;">
-<col style="width:20%;">
-<col style="width:20%;"> 
-</colgroup>
-<thead>
-<tr>
-<th class="tableblock halign-left valign-top">Name</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Required</th>
-<th class="tableblock halign-left valign-top">Schema</th>
-<th class="tableblock halign-left valign-top">Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">type</p></td>
-<td class="tableblock halign-left valign-top"></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">object</p></td>
-<td class="tableblock halign-left valign-top"></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
 <td class="tableblock halign-left valign-top"></td>
@@ -963,12 +1254,9 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 
 </div>
 <div class="sect2">
-<h3 id="_v1_storageclass">v1.StorageClass</h3>
+<h3 id="_v1_ownerreference">v1.OwnerReference</h3>
 <div class="paragraph">
-<p>StorageClass describes the parameters for a class of storage for which PersistentVolumes can be dynamically provisioned.</p>
-</div>
-<div class="paragraph">
-<p>StorageClasses are non-namespaced; the name of the storage class according to etcd is in ObjectMeta.Name.</p>
+<p>OwnerReference contains enough information to let you identify an owning object. An owning object must be in the same namespace as the dependent, or be cluster-scoped, so there is no namespace field.</p>
 </div>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
@@ -989,74 +1277,46 @@ span.icon > [class^="icon-"], span.icon > [class*=" icon-"] { cursor: default; }
 </thead>
 <tbody>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">kind</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds">https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds</a></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">apiVersion</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#resources">https://git.k8s.io/community/contributors/devel/api-conventions.md#resources</a></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">metadata</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Standard object&#8217;s metadata. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata">https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata</a></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_objectmeta">v1.ObjectMeta</a></p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">provisioner</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Provisioner indicates the type of the provisioner.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">API version of the referent.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">parameters</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Parameters holds the parameters for the provisioner that should create volumes of this storage class.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">object</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">kind</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kind of the referent. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds">https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">reclaimPolicy</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Dynamically provisioned PersistentVolumes of this storage class are created with this reclaimPolicy. Defaults to Delete.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_persistentvolumereclaimpolicy">v1.PersistentVolumeReclaimPolicy</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">name</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Name of the referent. More info: <a href="http://kubernetes.io/docs/user-guide/identifiers#names">http://kubernetes.io/docs/user-guide/identifiers#names</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">mountOptions</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Dynamically provisioned PersistentVolumes of this storage class are created with these mountOptions, e.g. ["ro", "soft"]. Not validated - mount of the PVs will simply fail if one is invalid.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string array</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">uid</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">UID of the referent. More info: <a href="http://kubernetes.io/docs/user-guide/identifiers#uids">http://kubernetes.io/docs/user-guide/identifiers#uids</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">allowVolumeExpansion</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">AllowVolumeExpansion shows whether the storage class allow volume expand</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">controller</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If true, this reference points to the managing controller.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">volumeBindingMode</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">VolumeBindingMode indicates how PersistentVolumeClaims should be provisioned and bound.  When unset, VolumeBindingImmediate is used. This field is only honored by servers that enable the VolumeScheduling feature.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">blockOwnerDeletion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">If true, AND if the owner has the "foregroundDeletion" finalizer, then the owner cannot be deleted from the key-value store until this reference is removed. Defaults to false. To set this field, a user needs "delete" permission of the owner, otherwise 422 (Unprocessable Entity) will be returned.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_volumebindingmode">v1.VolumeBindingMode</a></p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">allowedTopologies</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Restrict the node topologies where volumes can be dynamically provisioned. Each volume plugin defines its own supported topology specifications. An empty TopologySelectorTerm list means there is no topology restriction. This field is only honored by servers that enable the VolumeScheduling feature.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_topologyselectorterm">v1.TopologySelectorTerm</a> array</p></td>
-<td class="tableblock halign-left valign-top"></td>
 </tr>
 </tbody>
 </table>
@@ -1218,9 +1478,12 @@ When an object is created, the system will populate this list with the current s
 
 </div>
 <div class="sect2">
-<h3 id="_v1_ownerreference">v1.OwnerReference</h3>
+<h3 id="_v1_storageclass">v1.StorageClass</h3>
 <div class="paragraph">
-<p>OwnerReference contains enough information to let you identify an owning object. Currently, an owning object must be in the same namespace, so there is no namespace field.</p>
+<p>StorageClass describes the parameters for a class of storage for which PersistentVolumes can be dynamically provisioned.</p>
+</div>
+<div class="paragraph">
+<p>StorageClasses are non-namespaced; the name of the storage class according to etcd is in ObjectMeta.Name.</p>
 </div>
 <table class="tableblock frame-all grid-all" style="width:100%; ">
 <colgroup>
@@ -1240,88 +1503,78 @@ When an object is created, the system will populate this list with the current s
 </tr>
 </thead>
 <tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">apiVersion</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">API version of the referent.</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
-<td class="tableblock halign-left valign-top"></td>
-</tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">kind</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Kind of the referent. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds">https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds">https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">apiVersion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#resources">https://git.k8s.io/community/contributors/devel/api-conventions.md#resources</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">metadata</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Standard object&#8217;s metadata. More info: <a href="https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata">https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata</a></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_objectmeta">v1.ObjectMeta</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">provisioner</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Provisioner indicates the type of the provisioner.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">name</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Name of the referent. More info: <a href="http://kubernetes.io/docs/user-guide/identifiers#names">http://kubernetes.io/docs/user-guide/identifiers#names</a></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">parameters</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Parameters holds the parameters for the provisioner that should create volumes of this storage class.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">object</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">uid</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">UID of the referent. More info: <a href="http://kubernetes.io/docs/user-guide/identifiers#uids">http://kubernetes.io/docs/user-guide/identifiers#uids</a></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">string</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">reclaimPolicy</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Dynamically provisioned PersistentVolumes of this storage class are created with this reclaimPolicy. Defaults to Delete.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_persistentvolumereclaimpolicy">v1.PersistentVolumeReclaimPolicy</a></p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">controller</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">If true, this reference points to the managing controller.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">mountOptions</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Dynamically provisioned PersistentVolumes of this storage class are created with these mountOptions, e.g. ["ro", "soft"]. Not validated - mount of the PVs will simply fail if one is invalid.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">string array</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">allowVolumeExpansion</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">AllowVolumeExpansion shows whether the storage class allow volume expand</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">blockOwnerDeletion</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">If true, AND if the owner has the "foregroundDeletion" finalizer, then the owner cannot be deleted from the key-value store until this reference is removed. Defaults to false. To set this field, a user needs "delete" permission of the owner, otherwise 422 (Unprocessable Entity) will be returned.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">volumeBindingMode</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">VolumeBindingMode indicates how PersistentVolumeClaims should be provisioned and bound.  When unset, VolumeBindingImmediate is used. This field is only honored by servers that enable the VolumeScheduling feature.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_volumebindingmode">v1.VolumeBindingMode</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
 </tr>
-</tbody>
-</table>
-
-</div>
-<div class="sect2">
-<h3 id="_v1_topologyselectorterm">v1.TopologySelectorTerm</h3>
-<div class="paragraph">
-<p>A topology selector term represents the result of label queries. A null or empty topology selector term matches no objects. The requirements of them are ANDed. It provides a subset of functionality as NodeSelectorTerm. This is an alpha feature and may change in the future.</p>
-</div>
-<table class="tableblock frame-all grid-all" style="width:100%; ">
-<colgroup>
-<col style="width:20%;">
-<col style="width:20%;">
-<col style="width:20%;">
-<col style="width:20%;">
-<col style="width:20%;"> 
-</colgroup>
-<thead>
 <tr>
-<th class="tableblock halign-left valign-top">Name</th>
-<th class="tableblock halign-left valign-top">Description</th>
-<th class="tableblock halign-left valign-top">Required</th>
-<th class="tableblock halign-left valign-top">Schema</th>
-<th class="tableblock halign-left valign-top">Default</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">matchLabelExpressions</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">A list of topology selector requirements by labels.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">allowedTopologies</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Restrict the node topologies where volumes can be dynamically provisioned. Each volume plugin defines its own supported topology specifications. An empty TopologySelectorTerm list means there is no topology restriction. This field is only honored by servers that enable the VolumeScheduling feature.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_topologyselectorlabelrequirement">v1.TopologySelectorLabelRequirement</a> array</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_topologyselectorterm">v1.TopologySelectorTerm</a> array</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 </tbody>
 </table>
-
-</div>
-<div class="sect2">
-<h3 id="_v1_persistentvolumereclaimpolicy">v1.PersistentVolumeReclaimPolicy</h3>
 
 </div>
 <div class="sect2">
@@ -1415,6 +1668,61 @@ When an object is created, the system will populate this list with the current s
 
 </div>
 <div class="sect2">
+<h3 id="_v1_volumeattachmentstatus">v1.VolumeAttachmentStatus</h3>
+<div class="paragraph">
+<p>VolumeAttachmentStatus is the status of a VolumeAttachment request.</p>
+</div>
+<table class="tableblock frame-all grid-all" style="width:100%; ">
+<colgroup>
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+<col style="width:20%;">
+</colgroup>
+<thead>
+<tr>
+<th class="tableblock halign-left valign-top">Name</th>
+<th class="tableblock halign-left valign-top">Description</th>
+<th class="tableblock halign-left valign-top">Required</th>
+<th class="tableblock halign-left valign-top">Schema</th>
+<th class="tableblock halign-left valign-top">Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">attached</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Indicates the volume is successfully attached. This field must only be set by the entity completing the attach operation, i.e. the external-attacher.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">true</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">boolean</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">attachmentMetadata</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Upon successful attach, this field is populated with any information returned by the attach operation that must be passed into subsequent WaitForAttach or Mount calls. This field must only be set by the entity completing the attach operation, i.e. the external-attacher.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">object</p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">attachError</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The last error encountered during attach operation, if any. This field must only be set by the entity completing the attach operation, i.e. the external-attacher.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_volumeerror">v1.VolumeError</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock">detachError</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">The last error encountered during detach operation, if any. This field must only be set by the entity completing the detach operation, i.e. the external-attacher.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">false</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><a href="#_v1_volumeerror">v1.VolumeError</a></p></td>
+<td class="tableblock halign-left valign-top"></td>
+</tr>
+</tbody>
+</table>
+
+</div>
+<div class="sect2">
 <h3 id="_types_uid">types.UID</h3>
 
 </div>
@@ -1468,10 +1776,6 @@ Examples:<br>
 </tr>
 </tbody>
 </table>
-
-</div>
-<div class="sect2">
-<h3 id="_v1_deletionpropagation">v1.DeletionPropagation</h3>
 
 </div>
 <div class="sect2">

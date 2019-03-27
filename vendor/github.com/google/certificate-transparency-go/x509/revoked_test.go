@@ -111,28 +111,28 @@ func TestParseCertificateList(t *testing.T) {
 				ThisUpdate: time.Date(2017, 6, 29, 01, 0, 2, 0, time.UTC),
 				NextUpdate: time.Date(2017, 7, 9, 01, 0, 2, 0, time.UTC),
 				RevokedCertificates: []*RevokedCertificate{
-					&RevokedCertificate{
+					{
 						RevokedCertificate: pkix.RevokedCertificate{
 							SerialNumber:   big.NewInt(0x764bedd38afd51f7),
 							RevocationTime: time.Date(2017, 1, 13, 14, 18, 58, 0, time.UTC),
 						},
 						RevocationReason: AffiliationChanged,
 					},
-					&RevokedCertificate{
+					{
 						RevokedCertificate: pkix.RevokedCertificate{
 							SerialNumber:   big.NewInt(0x3b772e5f1202118e),
 							RevocationTime: time.Date(2017, 5, 10, 10, 55, 7, 0, time.UTC),
 						},
 						RevocationReason: KeyCompromise,
 					},
-					&RevokedCertificate{
+					{
 						RevokedCertificate: pkix.RevokedCertificate{
 							SerialNumber:   big.NewInt(0x0b54e3090079ad4b),
 							RevocationTime: time.Date(2017, 4, 12, 8, 53, 17, 0, time.UTC),
 						},
 						RevocationReason: KeyCompromise,
 					},
-					&RevokedCertificate{
+					{
 						RevokedCertificate: pkix.RevokedCertificate{
 							SerialNumber:   big.NewInt(0x31da3380182af9b2),
 							RevocationTime: time.Date(2016, 9, 15, 20, 22, 13, 0, time.UTC),

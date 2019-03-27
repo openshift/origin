@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -35,14 +35,14 @@ func NewPrune() *cobra.Command {
 		Use:   "prune",
 		Short: "Prune static pod installer revisions",
 		Run: func(cmd *cobra.Command, args []string) {
-			glog.V(1).Info(cmd.Flags())
-			glog.V(1).Info(spew.Sdump(o))
+			klog.V(1).Info(cmd.Flags())
+			klog.V(1).Info(spew.Sdump(o))
 
 			if err := o.Validate(); err != nil {
-				glog.Fatal(err)
+				klog.Fatal(err)
 			}
 			if err := o.Run(); err != nil {
-				glog.Fatal(err)
+				klog.Fatal(err)
 			}
 		},
 	}

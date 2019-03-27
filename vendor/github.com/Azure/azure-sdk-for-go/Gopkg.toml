@@ -22,7 +22,7 @@
 
 [[constraint]]
   name = "github.com/Azure/go-autorest"
-  version = "10.14.0"
+  version = "11.1.0"
 
 [[constraint]]
   branch = "master"

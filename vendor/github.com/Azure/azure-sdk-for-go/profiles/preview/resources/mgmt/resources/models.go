@@ -103,6 +103,11 @@ type MoveInfo = original.MoveInfo
 type MoveResourcesFuture = original.MoveResourcesFuture
 type OnErrorDeployment = original.OnErrorDeployment
 type OnErrorDeploymentExtended = original.OnErrorDeploymentExtended
+type Operation = original.Operation
+type OperationDisplay = original.OperationDisplay
+type OperationListResult = original.OperationListResult
+type OperationListResultIterator = original.OperationListResultIterator
+type OperationListResultPage = original.OperationListResultPage
 type ParametersLink = original.ParametersLink
 type Plan = original.Plan
 type Provider = original.Provider
@@ -125,6 +130,7 @@ type TemplateLink = original.TemplateLink
 type UpdateByIDFuture = original.UpdateByIDFuture
 type UpdateFuture = original.UpdateFuture
 type ValidateMoveResourcesFuture = original.ValidateMoveResourcesFuture
+type OperationsClient = original.OperationsClient
 type ProvidersClient = original.ProvidersClient
 type Client = original.Client
 type TagsClient = original.TagsClient
@@ -161,6 +167,12 @@ func PossibleOnErrorDeploymentTypeValues() []OnErrorDeploymentType {
 }
 func PossibleResourceIdentityTypeValues() []ResourceIdentityType {
 	return original.PossibleResourceIdentityTypeValues()
+}
+func NewOperationsClient(subscriptionID string) OperationsClient {
+	return original.NewOperationsClient(subscriptionID)
+}
+func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string) OperationsClient {
+	return original.NewOperationsClientWithBaseURI(baseURI, subscriptionID)
 }
 func NewProvidersClient(subscriptionID string) ProvidersClient {
 	return original.NewProvidersClient(subscriptionID)

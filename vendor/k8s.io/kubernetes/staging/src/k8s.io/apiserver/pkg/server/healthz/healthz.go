@@ -25,7 +25,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -77,7 +77,7 @@ func (l *log) Check(_ *http.Request) error {
 	l.startOnce.Do(func() {
 		l.lastVerified.Store(time.Now())
 		go wait.Forever(func() {
-			glog.Flush()
+			klog.Flush()
 			l.lastVerified.Store(time.Now())
 		}, time.Minute)
 	})
@@ -109,11 +109,11 @@ func InstallHandler(mux mux, checks ...HealthzChecker) {
 // result in a panic.
 func InstallPathHandler(mux mux, path string, checks ...HealthzChecker) {
 	if len(checks) == 0 {
-		glog.V(5).Info("No default health checks specified. Installing the ping handler.")
+		klog.V(5).Info("No default health checks specified. Installing the ping handler.")
 		checks = []HealthzChecker{PingHealthz}
 	}
 
-	glog.V(5).Info("Installing healthz checkers:", formatQuoted(checkerNames(checks...)...))
+	klog.V(5).Info("Installing healthz checkers:", formatQuoted(checkerNames(checks...)...))
 
 	mux.Handle(path, handleRootHealthz(checks...))
 	for _, check := range checks {
@@ -167,7 +167,7 @@ func handleRootHealthz(checks ...HealthzChecker) http.HandlerFunc {
 			if err := check.Check(r); err != nil {
 				// don't include the error since this endpoint is public.  If someone wants more detail
 				// they should have explicit permission to the detailed checks.
-				glog.V(6).Infof("healthz check %v failed: %v", check.Name(), err)
+				klog.V(6).Infof("healthz check %v failed: %v", check.Name(), err)
 				fmt.Fprintf(&verboseOut, "[-]%v failed: reason withheld\n", check.Name())
 				failed = true
 			} else {
@@ -176,12 +176,12 @@ func handleRootHealthz(checks ...HealthzChecker) http.HandlerFunc {
 		}
 		if excluded.Len() > 0 {
 			fmt.Fprintf(&verboseOut, "warn: some health checks cannot be excluded: no matches for %v\n", formatQuoted(excluded.List()...))
-			glog.Warningf("cannot exclude some health checks, no health checks are installed matching %v",
+			klog.Warningf("cannot exclude some health checks, no health checks are installed matching %v",
 				formatQuoted(excluded.List()...))
 		}
 		// always be verbose on failure
 		if failed {
-			glog.Warningf("%vhealthz check failed", verboseOut.String())
+			klog.V(2).Infof("%vhealthz check failed", verboseOut.String())
 			http.Error(w, fmt.Sprintf("%vhealthz check failed", verboseOut.String()), http.StatusInternalServerError)
 			return
 		}

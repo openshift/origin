@@ -38,7 +38,7 @@ import (
 	pkgauthenticationv1 "k8s.io/kubernetes/pkg/apis/authentication/v1"
 	pkgcorev1 "k8s.io/kubernetes/pkg/apis/core/v1"
 	"k8s.io/kubernetes/pkg/volume"
-	"k8s.io/kubernetes/pkg/volume/empty_dir"
+	"k8s.io/kubernetes/pkg/volume/emptydir"
 	volumetest "k8s.io/kubernetes/pkg/volume/testing"
 	"k8s.io/kubernetes/pkg/volume/util"
 )
@@ -794,7 +794,7 @@ func TestCollectDataWithServiceAccountToken(t *testing.T) {
 					sources: source.Sources,
 					podUID:  pod.UID,
 					plugin: &projectedPlugin{
-						host: host,
+						host:                   host,
 						getServiceAccountToken: host.GetServiceAccountTokenFunc(),
 					},
 				},
@@ -819,7 +819,7 @@ func newTestHost(t *testing.T, clientset clientset.Interface) (string, volume.Vo
 		t.Fatalf("can't make a temp rootdir: %v", err)
 	}
 
-	return tempDir, volumetest.NewFakeVolumeHost(tempDir, clientset, empty_dir.ProbeVolumePlugins())
+	return tempDir, volumetest.NewFakeVolumeHost(tempDir, clientset, emptydir.ProbeVolumePlugins())
 }
 
 func TestCanSupport(t *testing.T) {

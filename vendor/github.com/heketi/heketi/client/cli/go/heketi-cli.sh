@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # bash completion for heketi-cli                           -*- shell-script -*-
 
 __debug()
@@ -50,7 +52,7 @@ __handle_reply()
             else
                 allflags=("${flags[*]} ${two_word_flags[*]}")
             fi
-            COMPREPLY=( $(compgen -W "${allflags[*]}" -- "$cur") )
+            COMPREPLY=( "$(compgen -W "${allflags[*]}" -- "$cur")" )
             if [[ $(type -t compopt) = "builtin" ]]; then
                 [[ "${COMPREPLY[0]}" == *= ]] || compopt +o nospace
             fi
@@ -66,7 +68,6 @@ __handle_reply()
                 __index_of_word "${flag}" "${flags_with_completion[@]}"
                 if [[ ${index} -ge 0 ]]; then
                     COMPREPLY=()
-                    PREFIX=""
                     cur="${cur#*=}"
                     ${flags_completion[${index}]}
                     if [ -n "${ZSH_VERSION}" ]; then
@@ -100,10 +101,10 @@ __handle_reply()
     if [[ ${#must_have_one_flag[@]} -ne 0 ]]; then
         completions+=("${must_have_one_flag[@]}")
     fi
-    COMPREPLY=( $(compgen -W "${completions[*]}" -- "$cur") )
+    COMPREPLY=( "$(compgen -W "${completions[*]}" -- "$cur")" )
 
     if [[ ${#COMPREPLY[@]} -eq 0 && ${#noun_aliases[@]} -gt 0 && ${#must_have_one_noun[@]} -ne 0 ]]; then
-        COMPREPLY=( $(compgen -W "${noun_aliases[*]}" -- "$cur") )
+        COMPREPLY=( "$(compgen -W "${noun_aliases[*]}" -- "$cur")" )
     fi
 
     if [[ ${#COMPREPLY[@]} -eq 0 ]]; then
@@ -123,7 +124,7 @@ __handle_filename_extension_flag()
 __handle_subdirs_in_dir_flag()
 {
     local dir="$1"
-    pushd "${dir}" >/dev/null 2>&1 && _filedir -d && popd >/dev/null 2>&1
+    pushd "${dir}" >/dev/null 2>&1 && _filedir -d && popd >/dev/null 2>&1 || exit
 }
 
 __handle_flag()
@@ -201,7 +202,7 @@ __handle_command()
     fi
     c=$((c+1))
     __debug "${FUNCNAME[0]}: looking for ${next_command}"
-    declare -F $next_command >/dev/null && $next_command
+    declare -F "$next_command" >/dev/null && "$next_command"
 }
 
 __handle_word()
@@ -653,6 +654,10 @@ _heketi-cli_setup-openshift-heketi-storage()
 
     flags+=("--listfile=")
     local_nonpersistent_flags+=("--listfile=")
+    flags+=("--durability=")
+    local_nonpersistent_flags+=("--durability=")
+    flags+=("--replica=")
+    local_nonpersistent_flags+=("--replica=")
     flags+=("--json")
     flags+=("--log-flush-frequency=")
     flags+=("--secret=")
@@ -942,6 +947,9 @@ _heketi-cli()
 __start_heketi-cli()
 {
     local cur prev words cword
+    # TODO: What is the use of flaghash?
+    # It seems it's filled but never read?!
+    # shellcheck disable=SC2034
     declare -A flaghash 2>/dev/null || :
     if declare -F _init_completion >/dev/null 2>&1; then
         _init_completion -s || return

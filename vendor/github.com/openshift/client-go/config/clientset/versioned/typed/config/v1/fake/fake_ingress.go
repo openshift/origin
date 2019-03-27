@@ -3,7 +3,7 @@
 package fake
 
 import (
-	config_v1 "github.com/openshift/api/config/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -22,19 +22,19 @@ var ingressesResource = schema.GroupVersionResource{Group: "config.openshift.io"
 var ingressesKind = schema.GroupVersionKind{Group: "config.openshift.io", Version: "v1", Kind: "Ingress"}
 
 // Get takes name of the ingress, and returns the corresponding ingress object, and an error if there is any.
-func (c *FakeIngresses) Get(name string, options v1.GetOptions) (result *config_v1.Ingress, err error) {
+func (c *FakeIngresses) Get(name string, options v1.GetOptions) (result *configv1.Ingress, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(ingressesResource, name), &config_v1.Ingress{})
+		Invokes(testing.NewRootGetAction(ingressesResource, name), &configv1.Ingress{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.Ingress), err
+	return obj.(*configv1.Ingress), err
 }
 
 // List takes label and field selectors, and returns the list of Ingresses that match those selectors.
-func (c *FakeIngresses) List(opts v1.ListOptions) (result *config_v1.IngressList, err error) {
+func (c *FakeIngresses) List(opts v1.ListOptions) (result *configv1.IngressList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(ingressesResource, ingressesKind, opts), &config_v1.IngressList{})
+		Invokes(testing.NewRootListAction(ingressesResource, ingressesKind, opts), &configv1.IngressList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -43,8 +43,8 @@ func (c *FakeIngresses) List(opts v1.ListOptions) (result *config_v1.IngressList
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &config_v1.IngressList{ListMeta: obj.(*config_v1.IngressList).ListMeta}
-	for _, item := range obj.(*config_v1.IngressList).Items {
+	list := &configv1.IngressList{ListMeta: obj.(*configv1.IngressList).ListMeta}
+	for _, item := range obj.(*configv1.IngressList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -59,40 +59,40 @@ func (c *FakeIngresses) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Create takes the representation of a ingress and creates it.  Returns the server's representation of the ingress, and an error, if there is any.
-func (c *FakeIngresses) Create(ingress *config_v1.Ingress) (result *config_v1.Ingress, err error) {
+func (c *FakeIngresses) Create(ingress *configv1.Ingress) (result *configv1.Ingress, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(ingressesResource, ingress), &config_v1.Ingress{})
+		Invokes(testing.NewRootCreateAction(ingressesResource, ingress), &configv1.Ingress{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.Ingress), err
+	return obj.(*configv1.Ingress), err
 }
 
 // Update takes the representation of a ingress and updates it. Returns the server's representation of the ingress, and an error, if there is any.
-func (c *FakeIngresses) Update(ingress *config_v1.Ingress) (result *config_v1.Ingress, err error) {
+func (c *FakeIngresses) Update(ingress *configv1.Ingress) (result *configv1.Ingress, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(ingressesResource, ingress), &config_v1.Ingress{})
+		Invokes(testing.NewRootUpdateAction(ingressesResource, ingress), &configv1.Ingress{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.Ingress), err
+	return obj.(*configv1.Ingress), err
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeIngresses) UpdateStatus(ingress *config_v1.Ingress) (*config_v1.Ingress, error) {
+func (c *FakeIngresses) UpdateStatus(ingress *configv1.Ingress) (*configv1.Ingress, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateSubresourceAction(ingressesResource, "status", ingress), &config_v1.Ingress{})
+		Invokes(testing.NewRootUpdateSubresourceAction(ingressesResource, "status", ingress), &configv1.Ingress{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.Ingress), err
+	return obj.(*configv1.Ingress), err
 }
 
 // Delete takes name of the ingress and deletes it. Returns an error if one occurs.
 func (c *FakeIngresses) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(ingressesResource, name), &config_v1.Ingress{})
+		Invokes(testing.NewRootDeleteAction(ingressesResource, name), &configv1.Ingress{})
 	return err
 }
 
@@ -100,16 +100,16 @@ func (c *FakeIngresses) Delete(name string, options *v1.DeleteOptions) error {
 func (c *FakeIngresses) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewRootDeleteCollectionAction(ingressesResource, listOptions)
 
-	_, err := c.Fake.Invokes(action, &config_v1.IngressList{})
+	_, err := c.Fake.Invokes(action, &configv1.IngressList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched ingress.
-func (c *FakeIngresses) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *config_v1.Ingress, err error) {
+func (c *FakeIngresses) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *configv1.Ingress, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(ingressesResource, name, data, subresources...), &config_v1.Ingress{})
+		Invokes(testing.NewRootPatchSubresourceAction(ingressesResource, name, pt, data, subresources...), &configv1.Ingress{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.Ingress), err
+	return obj.(*configv1.Ingress), err
 }

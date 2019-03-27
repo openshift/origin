@@ -3,7 +3,8 @@
     {
       "SelectorRegexp": "k8s[.]io",
       "AllowedPrefixes": [
-        "k8s.io/gengo"
+        "k8s.io/gengo",
+        "k8s.io/klog"
       ]
     }
   ]

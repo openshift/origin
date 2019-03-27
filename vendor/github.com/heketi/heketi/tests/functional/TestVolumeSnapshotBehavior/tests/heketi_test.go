@@ -16,8 +16,9 @@ import (
 
 	client "github.com/heketi/heketi/client/api/go-client"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
+	"github.com/heketi/heketi/pkg/logging"
+	"github.com/heketi/heketi/pkg/remoteexec/ssh"
 	"github.com/heketi/heketi/pkg/utils"
-	"github.com/heketi/heketi/pkg/utils/ssh"
 	"github.com/heketi/tests"
 )
 
@@ -37,7 +38,7 @@ const (
 var (
 	// Heketi client
 	heketi = client.NewClient(heketiUrl, "admin", "adminkey")
-	logger = utils.NewLogger("[test]", utils.LEVEL_DEBUG)
+	logger = logging.NewLogger("[test]", logging.LEVEL_DEBUG)
 )
 
 func getdisks() []string {
@@ -71,7 +72,13 @@ func setupCluster(t *testing.T) {
 		go func(nodes_in_cluster []string) {
 			defer sg.Done()
 			// Create a cluster
-			cluster, err := heketi.ClusterCreate()
+			cluster_req := &api.ClusterCreateRequest{
+				ClusterFlags: api.ClusterFlags{
+					Block: true,
+					File:  true,
+				},
+			}
+			cluster, err := heketi.ClusterCreate(cluster_req)
 			if err != nil {
 				logger.Err(err)
 				sg.Err(err)
@@ -116,13 +123,13 @@ func setupCluster(t *testing.T) {
 
 	// Wait here for results
 	err := sg.Result()
-	tests.Assert(t, err == nil)
+	tests.Assert(t, err == nil, err)
 
 }
 
 func teardownCluster(t *testing.T) {
 	clusters, err := heketi.ClusterList()
-	tests.Assert(t, err == nil)
+	tests.Assert(t, err == nil, err)
 
 	sg := utils.NewStatusGroup()
 	for _, cluster := range clusters.Clusters {
@@ -166,7 +173,24 @@ func teardownCluster(t *testing.T) {
 					go func(id string) {
 						defer deviceSg.Done()
 
-						err := heketi.DeviceDelete(id)
+						stateReq := &api.StateRequest{}
+						stateReq.State = api.EntryStateOffline
+						err := heketi.DeviceState(id, stateReq)
+						if err != nil {
+							logger.Err(err)
+							deviceSg.Err(err)
+							return
+						}
+
+						stateReq.State = api.EntryStateFailed
+						err = heketi.DeviceState(id, stateReq)
+						if err != nil {
+							logger.Err(err)
+							deviceSg.Err(err)
+							return
+						}
+
+						err = heketi.DeviceDelete(id)
 						if err != nil {
 							logger.Err(err)
 							deviceSg.Err(err)
@@ -206,12 +230,12 @@ func teardownCluster(t *testing.T) {
 	}
 
 	err = sg.Result()
-	tests.Assert(t, err == nil)
+	tests.Assert(t, err == nil, err)
 }
 
 func TestConnection(t *testing.T) {
 	err := heketi.Hello()
-	tests.Assert(t, err == nil)
+	tests.Assert(t, err == nil, err)
 }
 
 func TestHeketiVolumeSnapshotBehavior(t *testing.T) {
@@ -230,7 +254,7 @@ func TestHeketiVolumeSnapshotBehavior(t *testing.T) {
 	volReq.Snapshot.Factor = 1.5
 
 	volInfo, err := heketi.VolumeCreate(volReq)
-	tests.Assert(t, err == nil)
+	tests.Assert(t, err == nil, err)
 
 	// SSH into system and execute gluster command to create a snapshot
 	exec := ssh.NewSshExecWithKeyFile(logger, "vagrant", "../config/insecure_private_key")

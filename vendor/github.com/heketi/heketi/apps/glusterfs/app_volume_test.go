@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"reflect"
 	"strings"
 	"testing"
@@ -29,14 +30,10 @@ import (
 	client "github.com/heketi/heketi/client/api/go-client"
 	"github.com/heketi/heketi/pkg/db"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
+	"github.com/heketi/heketi/pkg/sortedstrings"
 	"github.com/heketi/heketi/pkg/utils"
 	"github.com/heketi/tests"
 )
-
-func init() {
-	// turn off logging
-	logger.SetLevel(utils.LEVEL_NOLOG)
-}
 
 func TestVolumeCreateBadGid(t *testing.T) {
 	tmpfile := tests.Tempfile()
@@ -162,29 +159,25 @@ func TestVolumeCreateInvalidSize(t *testing.T) {
 	body, err := ioutil.ReadAll(io.LimitReader(r.Body, r.ContentLength))
 	tests.Assert(t, err == nil)
 	r.Body.Close()
-	tests.Assert(t, strings.Contains(string(body), "Invalid volume size"))
+	tests.Assert(t, strings.Contains(string(body), "size: cannot be blank"), string(body))
 }
 
 func TestVolumeCreateSmallSize(t *testing.T) {
 	tmpfile := tests.Tempfile()
 	defer os.Remove(tmpfile)
 
-	os.Setenv("HEKETI_EXECUTOR", "mock")
-	defer os.Unsetenv("HEKETI_EXECUTOR")
-
-	data := []byte(`{
-		"glusterfs" : {
-			"db" : "` + tmpfile + `",
-			"brick_min_size_gb" : 4
-		}
-	}`)
+	conf := &GlusterFSConfig{
+		Executor:     "mock",
+		DBfile:       tmpfile,
+		BrickMinSize: 4,
+	}
 
 	bmin := BrickMinSize
 	defer func() {
 		BrickMinSize = bmin
 	}()
 
-	app := NewApp(bytes.NewReader(data))
+	app := NewApp(conf)
 	defer app.Close()
 
 	router := mux.NewRouter()
@@ -648,7 +641,7 @@ func TestVolumeInfo(t *testing.T) {
 	req.Durability.Type = api.DurabilityEC
 	v := NewVolumeEntryFromRequest(req)
 	tests.Assert(t, v != nil)
-	err = v.Create(app.db, app.executor, app.allocator)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil)
 
 	// Now that we have some data in the database, we can
@@ -670,7 +663,7 @@ func TestVolumeInfo(t *testing.T) {
 	tests.Assert(t, reflect.DeepEqual(msg.Durability, v.Info.Durability))
 	tests.Assert(t, reflect.DeepEqual(msg.Snapshot, v.Info.Snapshot))
 	for _, brick := range msg.Bricks {
-		tests.Assert(t, utils.SortedStringHas(v.Bricks, brick.Id))
+		tests.Assert(t, sortedstrings.Has(v.Bricks, brick.Id))
 	}
 }
 
@@ -720,7 +713,7 @@ func TestVolumeList(t *testing.T) {
 	err := app.db.Update(func(tx *bolt.Tx) error {
 
 		for i := 0; i < numvolumes; i++ {
-			v := createSampleVolumeEntry(100)
+			v := createSampleReplicaVolumeEntry(100, 2)
 			err := v.Save(tx)
 			if err != nil {
 				return err
@@ -771,7 +764,7 @@ func TestVolumeListReadOnlyDb(t *testing.T) {
 	err := app.db.Update(func(tx *bolt.Tx) error {
 
 		for i := 0; i < numvolumes; i++ {
-			v := createSampleVolumeEntry(100)
+			v := createSampleReplicaVolumeEntry(100, 2)
 			err := v.Save(tx)
 			if err != nil {
 				return err
@@ -875,9 +868,9 @@ func TestVolumeDelete(t *testing.T) {
 	tests.Assert(t, err == nil)
 
 	// Create a volume
-	v := createSampleVolumeEntry(100)
+	v := createSampleReplicaVolumeEntry(100, 2)
 	tests.Assert(t, v != nil)
-	err = v.Create(app.db, app.executor, app.allocator)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil)
 
 	// Delete the volume
@@ -981,19 +974,86 @@ func TestVolumeExpandSizeTooSmall(t *testing.T) {
 	ts := httptest.NewServer(router)
 	defer ts.Close()
 
-	// VolumeCreate JSON Request
-	request := []byte(`{
-        "expand_size" : 0
-    }`)
+	// Create a cluster
+	err := setupSampleDbWithTopology(app,
+		1,    // clusters
+		10,   // nodes_per_cluster
+		10,   // devices_per_node,
+		5*TB, // disksize)
+	)
+	tests.Assert(t, err == nil)
+
+	// Create a volume
+	v := createSampleReplicaVolumeEntry(100, 2)
+	tests.Assert(t, v != nil)
+	err = v.Create(app.db, app.executor)
+	tests.Assert(t, err == nil)
+
+	// JSON Request
+	request := []byte(`{ "expand_size": 0 }`)
 
 	// Send request
-	r, err := http.Post(ts.URL+"/volumes", "application/json", bytes.NewBuffer(request))
+	r, err := http.Post(ts.URL+"/volumes/"+v.Info.Id+"/expand",
+		"application/json",
+		bytes.NewBuffer(request))
 	tests.Assert(t, err == nil)
-	tests.Assert(t, r.StatusCode == http.StatusBadRequest)
+	tests.Assert(t, r.StatusCode == http.StatusBadRequest,
+		"expected r.StatusCode == http.StatusUnprocessableEntity, got:", r.StatusCode)
 	body, err := ioutil.ReadAll(io.LimitReader(r.Body, r.ContentLength))
 	tests.Assert(t, err == nil)
 	r.Body.Close()
-	tests.Assert(t, strings.Contains(string(body), "Invalid volume size"))
+	tests.Assert(t,
+		strings.Contains(string(body), "expand_size: cannot be blank"),
+		`expected "expand_size: cannot be blank", got:`,
+		string(body))
+}
+
+func TestVolumeExpandSizeTooBig(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+	router := mux.NewRouter()
+	app.SetRoutes(router)
+
+	// Setup the server
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+
+	// Create a cluster
+	err := setupSampleDbWithTopology(app,
+		1,    // clusters
+		10,   // nodes_per_cluster
+		10,   // devices_per_node,
+		5*TB, // disksize)
+	)
+	tests.Assert(t, err == nil)
+
+	// Create a volume
+	v := createSampleReplicaVolumeEntry(100, 2)
+	tests.Assert(t, v != nil)
+	err = v.Create(app.db, app.executor)
+	tests.Assert(t, err == nil)
+
+	// JSON Request
+	request := []byte(`{ "expand_size": 100000000000000000000 }`)
+
+	// Send request
+	r, err := http.Post(ts.URL+"/volumes/"+v.Info.Id+"/expand",
+		"application/json",
+		bytes.NewBuffer(request))
+	tests.Assert(t, err == nil)
+	tests.Assert(t, r.StatusCode == http.StatusUnprocessableEntity,
+		"expected r.StatusCode == http.StatusUnprocessableEntity, got:", r.StatusCode)
+	body, err := ioutil.ReadAll(io.LimitReader(r.Body, r.ContentLength))
+	tests.Assert(t, err == nil)
+	r.Body.Close()
+	tests.Assert(t,
+		strings.Contains(string(body), "unable to be parsed"),
+		`expected "unable to be parsed", got:`,
+		string(body))
 }
 
 func TestVolumeExpand(t *testing.T) {
@@ -1020,9 +1080,9 @@ func TestVolumeExpand(t *testing.T) {
 	tests.Assert(t, err == nil)
 
 	// Create a volume
-	v := createSampleVolumeEntry(100)
+	v := createSampleReplicaVolumeEntry(100, 2)
 	tests.Assert(t, v != nil)
-	err = v.Create(app.db, app.executor, app.allocator)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil)
 
 	// Keep a copy
@@ -1087,15 +1147,15 @@ func TestVolumeClusterResizeByAddingDevices(t *testing.T) {
 	tests.Assert(t, err == nil)
 
 	// Create a volume which uses the entire storage
-	v := createSampleVolumeEntry(495)
+	v := createSampleReplicaVolumeEntry(495, 2)
 	tests.Assert(t, v != nil)
-	err = v.Create(app.db, app.executor, app.allocator)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil)
 
 	// Try to create another volume, but this should fail
-	v = createSampleVolumeEntry(495)
+	v = createSampleReplicaVolumeEntry(495, 2)
 	tests.Assert(t, v != nil)
-	err = v.Create(app.db, app.executor, app.allocator)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == ErrNoSpace)
 
 	// Create a client
@@ -1121,15 +1181,15 @@ func TestVolumeClusterResizeByAddingDevices(t *testing.T) {
 	}
 
 	// Now add a volume, and it should work
-	v = createSampleVolumeEntry(495)
+	v = createSampleReplicaVolumeEntry(495, 2)
 	tests.Assert(t, v != nil)
-	err = v.Create(app.db, app.executor, app.allocator)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == nil)
 
 	// Try to create another volume, but this should fail
-	v = createSampleVolumeEntry(495)
+	v = createSampleReplicaVolumeEntry(495, 2)
 	tests.Assert(t, v != nil)
-	err = v.Create(app.db, app.executor, app.allocator)
+	err = v.Create(app.db, app.executor)
 	tests.Assert(t, err == ErrNoSpace)
 }
 
@@ -1276,6 +1336,92 @@ func TestVolumeCreateWithOptions(t *testing.T) {
 	tests.Assert(t, info.Snapshot.Factor == 1)
 	tests.Assert(t, info.Durability.Type == api.DurabilityDistributeOnly)
 	// GlusterVolumeOption should have the "test-option"
-	tests.Assert(t, info.GlusterVolumeOptions[0] == "test-option")
+	tests.Assert(t, strings.Contains(strings.Join(info.GlusterVolumeOptions, ","), "test-option"))
 
+}
+
+func TestVolumeCreateWithVariousOptions(t *testing.T) {
+	value, exists := os.LookupEnv("HEKETI_PRE_REQUEST_VOLUME_OPTIONS")
+	if exists {
+		logger.Info("pre request volume options are %v", value)
+		tmpfile := tests.Tempfile()
+		defer os.Remove(tmpfile)
+
+		// Create the app
+		app := NewTestApp(tmpfile)
+		defer app.Close()
+		router := mux.NewRouter()
+		app.SetRoutes(router)
+
+		// Setup the server
+		ts := httptest.NewServer(router)
+		defer ts.Close()
+
+		// Setup database
+		err := setupSampleDbWithTopology(app,
+			1,    // clusters
+			10,   // nodes_per_cluster
+			10,   // devices_per_node,
+			5*TB, // disksize)
+		)
+		tests.Assert(t, err == nil)
+
+		// VolumeCreate using a test option called "test-option"
+		request := []byte(`{
+	        "size" : 100,
+		"glustervolumeoptions" : [
+			"test-option value"
+			]
+		}`)
+
+		// Send request
+		r, err := http.Post(ts.URL+"/volumes", "application/json", bytes.NewBuffer(request))
+		tests.Assert(t, err == nil)
+		tests.Assert(t, r.StatusCode == http.StatusAccepted)
+		location, err := r.Location()
+		tests.Assert(t, err == nil)
+
+		// Query queue until finished
+		var info api.VolumeInfoResponse
+		for {
+			r, err = http.Get(location.String())
+			tests.Assert(t, err == nil)
+			tests.Assert(t, r.StatusCode == http.StatusOK)
+			if r.ContentLength <= 0 {
+				time.Sleep(time.Millisecond * 10)
+				continue
+			} else {
+				// Should have node information here
+				tests.Assert(t, r.Header.Get("Content-Type") == "application/json; charset=UTF-8")
+				err = utils.GetJsonFromResponse(r, &info)
+				tests.Assert(t, err == nil)
+				break
+			}
+		}
+
+		tests.Assert(t, info.Id != "")
+		tests.Assert(t, info.Cluster != "")
+		tests.Assert(t, len(info.Bricks) == 1) // Only one 100GB brick needed
+		tests.Assert(t, info.Bricks[0].Size == 100*GB)
+		tests.Assert(t, info.Name == "vol_"+info.Id)
+		tests.Assert(t, info.Snapshot.Enable == false)
+		tests.Assert(t, info.Snapshot.Factor == 1)
+		tests.Assert(t, info.Durability.Type == api.DurabilityDistributeOnly)
+		// GlusterVolumeOption should have the "test-option"
+		tests.Assert(t, 0 == strings.Compare(strings.Join(info.GlusterVolumeOptions, ","), "user.heketi.pre-req-key1 value1,test-option value,user.heketi.post-req-key1 value1"), strings.Join(info.GlusterVolumeOptions, ","))
+		return
+	} else {
+		logger.Info("pre and post request volume options are not set")
+		cmd := exec.Command(os.Args[0], "-test.run=TestVolumeCreateWithVariousOptions")
+		cmd.Env = append(os.Environ(),
+			"HEKETI_PRE_REQUEST_VOLUME_OPTIONS=user.heketi.pre-req-key1 value1",
+			"HEKETI_POST_REQUEST_VOLUME_OPTIONS=user.heketi.post-req-key1 value1")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		err := cmd.Run()
+		if e, ok := err.(*exec.ExitError); ok && e.Success() {
+			return
+		}
+		tests.Assert(t, err == nil, err)
+	}
 }

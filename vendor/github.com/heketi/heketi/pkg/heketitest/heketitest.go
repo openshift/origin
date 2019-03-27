@@ -10,7 +10,6 @@
 package heketitest
 
 import (
-	"bytes"
 	"net/http/httptest"
 	"os"
 
@@ -79,14 +78,11 @@ func NewHeketiMockTestServer(
 	}
 
 	// Create simple configuration for unit tests
-	appConfig := bytes.NewBuffer([]byte(`{
-		"glusterfs" : { 
-			"executor" : "mock",
-			"allocator" : "simple",
-			"loglevel" : "` + loglevel + `",
-			"db" : "` + h.DbFile + `"
-		}
-	}`))
+	appConfig := &glusterfs.GlusterFSConfig{
+		Executor: "mock",
+		Loglevel: loglevel,
+		DBfile:   h.DbFile,
+	}
 	h.App = glusterfs.NewApp(appConfig)
 	if h.App == nil {
 		return nil

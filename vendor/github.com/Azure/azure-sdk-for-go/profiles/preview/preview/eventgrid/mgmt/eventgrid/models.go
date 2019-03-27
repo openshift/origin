@@ -19,14 +19,27 @@
 
 package eventgrid
 
-import original "github.com/Azure/azure-sdk-for-go/services/preview/eventgrid/mgmt/2018-05-01-preview/eventgrid"
+import original "github.com/Azure/azure-sdk-for-go/services/preview/eventgrid/mgmt/2018-09-15-preview/eventgrid"
 
 const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
 
 type BaseClient = original.BaseClient
+type DomainsClient = original.DomainsClient
+type DomainTopicsClient = original.DomainTopicsClient
 type EventSubscriptionsClient = original.EventSubscriptionsClient
+type DomainProvisioningState = original.DomainProvisioningState
+
+const (
+	Canceled  DomainProvisioningState = original.Canceled
+	Creating  DomainProvisioningState = original.Creating
+	Deleting  DomainProvisioningState = original.Deleting
+	Failed    DomainProvisioningState = original.Failed
+	Succeeded DomainProvisioningState = original.Succeeded
+	Updating  DomainProvisioningState = original.Updating
+)
+
 type EndpointType = original.EndpointType
 
 const (
@@ -48,20 +61,20 @@ type EventDeliverySchema = original.EventDeliverySchema
 
 const (
 	CloudEventV01Schema EventDeliverySchema = original.CloudEventV01Schema
+	CustomInputSchema   EventDeliverySchema = original.CustomInputSchema
 	EventGridSchema     EventDeliverySchema = original.EventGridSchema
-	InputEventSchema    EventDeliverySchema = original.InputEventSchema
 )
 
 type EventSubscriptionProvisioningState = original.EventSubscriptionProvisioningState
 
 const (
-	AwaitingManualAction EventSubscriptionProvisioningState = original.AwaitingManualAction
-	Canceled             EventSubscriptionProvisioningState = original.Canceled
-	Creating             EventSubscriptionProvisioningState = original.Creating
-	Deleting             EventSubscriptionProvisioningState = original.Deleting
-	Failed               EventSubscriptionProvisioningState = original.Failed
-	Succeeded            EventSubscriptionProvisioningState = original.Succeeded
-	Updating             EventSubscriptionProvisioningState = original.Updating
+	EventSubscriptionProvisioningStateAwaitingManualAction EventSubscriptionProvisioningState = original.EventSubscriptionProvisioningStateAwaitingManualAction
+	EventSubscriptionProvisioningStateCanceled             EventSubscriptionProvisioningState = original.EventSubscriptionProvisioningStateCanceled
+	EventSubscriptionProvisioningStateCreating             EventSubscriptionProvisioningState = original.EventSubscriptionProvisioningStateCreating
+	EventSubscriptionProvisioningStateDeleting             EventSubscriptionProvisioningState = original.EventSubscriptionProvisioningStateDeleting
+	EventSubscriptionProvisioningStateFailed               EventSubscriptionProvisioningState = original.EventSubscriptionProvisioningStateFailed
+	EventSubscriptionProvisioningStateSucceeded            EventSubscriptionProvisioningState = original.EventSubscriptionProvisioningStateSucceeded
+	EventSubscriptionProvisioningStateUpdating             EventSubscriptionProvisioningState = original.EventSubscriptionProvisioningStateUpdating
 )
 
 type InputSchema = original.InputSchema
@@ -77,6 +90,24 @@ type InputSchemaMappingType = original.InputSchemaMappingType
 const (
 	InputSchemaMappingTypeInputSchemaMapping InputSchemaMappingType = original.InputSchemaMappingTypeInputSchemaMapping
 	InputSchemaMappingTypeJSON               InputSchemaMappingType = original.InputSchemaMappingTypeJSON
+)
+
+type OperatorType = original.OperatorType
+
+const (
+	OperatorTypeAdvancedFilter            OperatorType = original.OperatorTypeAdvancedFilter
+	OperatorTypeBoolEquals                OperatorType = original.OperatorTypeBoolEquals
+	OperatorTypeNumberGreaterThan         OperatorType = original.OperatorTypeNumberGreaterThan
+	OperatorTypeNumberGreaterThanOrEquals OperatorType = original.OperatorTypeNumberGreaterThanOrEquals
+	OperatorTypeNumberIn                  OperatorType = original.OperatorTypeNumberIn
+	OperatorTypeNumberLessThan            OperatorType = original.OperatorTypeNumberLessThan
+	OperatorTypeNumberLessThanOrEquals    OperatorType = original.OperatorTypeNumberLessThanOrEquals
+	OperatorTypeNumberNotIn               OperatorType = original.OperatorTypeNumberNotIn
+	OperatorTypeStringBeginsWith          OperatorType = original.OperatorTypeStringBeginsWith
+	OperatorTypeStringContains            OperatorType = original.OperatorTypeStringContains
+	OperatorTypeStringEndsWith            OperatorType = original.OperatorTypeStringEndsWith
+	OperatorTypeStringIn                  OperatorType = original.OperatorTypeStringIn
+	OperatorTypeStringNotIn               OperatorType = original.OperatorTypeStringNotIn
 )
 
 type ResourceRegionType = original.ResourceRegionType
@@ -108,8 +139,22 @@ const (
 	TopicTypeProvisioningStateUpdating  TopicTypeProvisioningState = original.TopicTypeProvisioningStateUpdating
 )
 
+type BasicAdvancedFilter = original.BasicAdvancedFilter
+type AdvancedFilter = original.AdvancedFilter
+type BoolEqualsAdvancedFilter = original.BoolEqualsAdvancedFilter
 type BasicDeadLetterDestination = original.BasicDeadLetterDestination
 type DeadLetterDestination = original.DeadLetterDestination
+type Domain = original.Domain
+type DomainProperties = original.DomainProperties
+type DomainRegenerateKeyRequest = original.DomainRegenerateKeyRequest
+type DomainsCreateOrUpdateFuture = original.DomainsCreateOrUpdateFuture
+type DomainsDeleteFuture = original.DomainsDeleteFuture
+type DomainSharedAccessKeys = original.DomainSharedAccessKeys
+type DomainsListResult = original.DomainsListResult
+type DomainsUpdateFuture = original.DomainsUpdateFuture
+type DomainTopic = original.DomainTopic
+type DomainTopicsListResult = original.DomainTopicsListResult
+type DomainUpdateParameters = original.DomainUpdateParameters
 type EventHubEventSubscriptionDestination = original.EventHubEventSubscriptionDestination
 type EventHubEventSubscriptionDestinationProperties = original.EventHubEventSubscriptionDestinationProperties
 type EventSubscription = original.EventSubscription
@@ -134,6 +179,12 @@ type JSONField = original.JSONField
 type JSONFieldWithDefault = original.JSONFieldWithDefault
 type JSONInputSchemaMapping = original.JSONInputSchemaMapping
 type JSONInputSchemaMappingProperties = original.JSONInputSchemaMappingProperties
+type NumberGreaterThanAdvancedFilter = original.NumberGreaterThanAdvancedFilter
+type NumberGreaterThanOrEqualsAdvancedFilter = original.NumberGreaterThanOrEqualsAdvancedFilter
+type NumberInAdvancedFilter = original.NumberInAdvancedFilter
+type NumberLessThanAdvancedFilter = original.NumberLessThanAdvancedFilter
+type NumberLessThanOrEqualsAdvancedFilter = original.NumberLessThanOrEqualsAdvancedFilter
+type NumberNotInAdvancedFilter = original.NumberNotInAdvancedFilter
 type Operation = original.Operation
 type OperationInfo = original.OperationInfo
 type OperationsListResult = original.OperationsListResult
@@ -143,6 +194,11 @@ type StorageBlobDeadLetterDestination = original.StorageBlobDeadLetterDestinatio
 type StorageBlobDeadLetterDestinationProperties = original.StorageBlobDeadLetterDestinationProperties
 type StorageQueueEventSubscriptionDestination = original.StorageQueueEventSubscriptionDestination
 type StorageQueueEventSubscriptionDestinationProperties = original.StorageQueueEventSubscriptionDestinationProperties
+type StringBeginsWithAdvancedFilter = original.StringBeginsWithAdvancedFilter
+type StringContainsAdvancedFilter = original.StringContainsAdvancedFilter
+type StringEndsWithAdvancedFilter = original.StringEndsWithAdvancedFilter
+type StringInAdvancedFilter = original.StringInAdvancedFilter
+type StringNotInAdvancedFilter = original.StringNotInAdvancedFilter
 type Topic = original.Topic
 type TopicProperties = original.TopicProperties
 type TopicRegenerateKeyRequest = original.TopicRegenerateKeyRequest
@@ -168,11 +224,26 @@ func New(subscriptionID string) BaseClient {
 func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
 	return original.NewWithBaseURI(baseURI, subscriptionID)
 }
+func NewDomainsClient(subscriptionID string) DomainsClient {
+	return original.NewDomainsClient(subscriptionID)
+}
+func NewDomainsClientWithBaseURI(baseURI string, subscriptionID string) DomainsClient {
+	return original.NewDomainsClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewDomainTopicsClient(subscriptionID string) DomainTopicsClient {
+	return original.NewDomainTopicsClient(subscriptionID)
+}
+func NewDomainTopicsClientWithBaseURI(baseURI string, subscriptionID string) DomainTopicsClient {
+	return original.NewDomainTopicsClientWithBaseURI(baseURI, subscriptionID)
+}
 func NewEventSubscriptionsClient(subscriptionID string) EventSubscriptionsClient {
 	return original.NewEventSubscriptionsClient(subscriptionID)
 }
 func NewEventSubscriptionsClientWithBaseURI(baseURI string, subscriptionID string) EventSubscriptionsClient {
 	return original.NewEventSubscriptionsClientWithBaseURI(baseURI, subscriptionID)
+}
+func PossibleDomainProvisioningStateValues() []DomainProvisioningState {
+	return original.PossibleDomainProvisioningStateValues()
 }
 func PossibleEndpointTypeValues() []EndpointType {
 	return original.PossibleEndpointTypeValues()
@@ -191,6 +262,9 @@ func PossibleInputSchemaValues() []InputSchema {
 }
 func PossibleInputSchemaMappingTypeValues() []InputSchemaMappingType {
 	return original.PossibleInputSchemaMappingTypeValues()
+}
+func PossibleOperatorTypeValues() []OperatorType {
+	return original.PossibleOperatorTypeValues()
 }
 func PossibleResourceRegionTypeValues() []ResourceRegionType {
 	return original.PossibleResourceRegionTypeValues()

@@ -126,10 +126,7 @@ func (l *Logger) getRoots() (*x509.CertPool, error) {
 	ret := x509.NewCertPool()
 	for _, root := range roots {
 		r, err := x509.ParseCertificate(root.Data)
-		switch err.(type) {
-		case nil, x509.NonFatalErrors:
-			// ignore
-		default:
+		if x509.IsFatal(err) {
 			return nil, fmt.Errorf("can't parse certificate: %s %#v", err, root.Data)
 		}
 		ret.AddCert(r)

@@ -208,6 +208,7 @@ func TestDryRun(t *testing.T) {
 
 	master := etcd.StartRealMasterOrDie(t)
 	defer master.Cleanup()
+
 	if _, err := master.Client.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}); err != nil {
 		t.Fatal(err)
 	}
@@ -223,6 +224,7 @@ func TestDryRun(t *testing.T) {
 		data.Stub = stub
 		dryrunData[resource] = data
 	}
+
 	for _, resourceToTest := range master.Resources {
 		t.Run(resourceToTest.Mapping.Resource.String(), func(t *testing.T) {
 			mapping := resourceToTest.Mapping
@@ -244,6 +246,7 @@ func TestDryRun(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to unmarshal stub (%v): %v", testData.Stub, err)
 			}
+
 			name := obj.GetName()
 
 			DryRunCreateTest(t, rsc, obj, gvResource)

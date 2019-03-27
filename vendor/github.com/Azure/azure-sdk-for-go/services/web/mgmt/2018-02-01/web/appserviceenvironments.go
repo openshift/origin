@@ -1349,8 +1349,8 @@ func (client AppServiceEnvironmentsClient) ListMetricDefinitionsResponder(resp *
 // name - name of the App Service Environment.
 // details - specify <code>true</code> to include instance details. The default is <code>false</code>.
 // filter - return only usages/metrics specified in the filter. Filter conforms to odata syntax. Example:
-// $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z' and
-// endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
+// $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq 2014-01-01T00:00:00Z and
+// endTime eq 2014-12-31T23:59:59Z and timeGrain eq duration'[Hour|Minute|Day]'.
 func (client AppServiceEnvironmentsClient) ListMetrics(ctx context.Context, resourceGroupName string, name string, details *bool, filter string) (result ResourceMetricCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -1568,8 +1568,8 @@ func (client AppServiceEnvironmentsClient) ListMultiRoleMetricDefinitionsComplet
 // timeGrain - time granularity of the metrics query.
 // details - specify <code>true</code> to include instance details. The default is <code>false</code>.
 // filter - return only usages/metrics specified in the filter. Filter conforms to odata syntax. Example:
-// $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z' and
-// endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
+// $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq 2014-01-01T00:00:00Z and
+// endTime eq 2014-12-31T23:59:59Z and timeGrain eq duration'[Hour|Minute|Day]'.
 func (client AppServiceEnvironmentsClient) ListMultiRoleMetrics(ctx context.Context, resourceGroupName string, name string, startTime string, endTime string, timeGrain string, details *bool, filter string) (result ResourceMetricCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -2289,8 +2289,8 @@ func (client AppServiceEnvironmentsClient) ListOperationsResponder(resp *http.Re
 // resourceGroupName - name of the resource group to which the resource belongs.
 // name - name of the App Service Environment.
 // filter - return only usages/metrics specified in the filter. Filter conforms to odata syntax. Example:
-// $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z' and
-// endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
+// $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq 2014-01-01T00:00:00Z and
+// endTime eq 2014-12-31T23:59:59Z and timeGrain eq duration'[Hour|Minute|Day]'.
 func (client AppServiceEnvironmentsClient) ListUsages(ctx context.Context, resourceGroupName string, name string, filter string) (result CsmUsageQuotaCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -2687,8 +2687,8 @@ func (client AppServiceEnvironmentsClient) ListWebWorkerMetricDefinitionsComplet
 // workerPoolName - name of worker pool
 // details - specify <code>true</code> to include instance details. The default is <code>false</code>.
 // filter - return only usages/metrics specified in the filter. Filter conforms to odata syntax. Example:
-// $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z' and
-// endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
+// $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq 2014-01-01T00:00:00Z and
+// endTime eq 2014-12-31T23:59:59Z and timeGrain eq duration'[Hour|Minute|Day]'.
 func (client AppServiceEnvironmentsClient) ListWebWorkerMetrics(ctx context.Context, resourceGroupName string, name string, workerPoolName string, details *bool, filter string) (result ResourceMetricCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
@@ -3016,8 +3016,8 @@ func (client AppServiceEnvironmentsClient) ListWorkerPoolInstanceMetricDefinitio
 // instance - name of the instance in the worker pool.
 // details - specify <code>true</code> to include instance details. The default is <code>false</code>.
 // filter - return only usages/metrics specified in the filter. Filter conforms to odata syntax. Example:
-// $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq '2014-01-01T00:00:00Z' and
-// endTime eq '2014-12-31T23:59:59Z' and timeGrain eq duration'[Hour|Minute|Day]'.
+// $filter=(name.value eq 'Metric1' or name.value eq 'Metric2') and startTime eq 2014-01-01T00:00:00Z and
+// endTime eq 2014-12-31T23:59:59Z and timeGrain eq duration'[Hour|Minute|Day]'.
 func (client AppServiceEnvironmentsClient) ListWorkerPoolInstanceMetrics(ctx context.Context, resourceGroupName string, name string, workerPoolName string, instance string, details *bool, filter string) (result ResourceMetricCollectionPage, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,

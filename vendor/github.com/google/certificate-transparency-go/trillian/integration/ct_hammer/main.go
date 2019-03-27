@@ -48,7 +48,7 @@ var (
 	metricsEndpoint     = flag.String("metrics_endpoint", "", "Endpoint for serving metrics; if left empty, metrics will not be exposed")
 	seed                = flag.Int64("seed", -1, "Seed for random number generation")
 	logConfig           = flag.String("log_config", "", "File holding log config in JSON")
-	mmd                 = flag.Duration("mmd", 2*time.Minute, "MMD for logs")
+	mmd                 = flag.Duration("mmd", 2*time.Minute, "Default MMD for logs")
 	operations          = flag.Uint64("operations", ^uint64(0), "Number of operations to perform")
 	minGetEntries       = flag.Int("min_get_entries", 1, "Minimum get-entries request size")
 	maxGetEntries       = flag.Int("max_get_entries", 500, "Maximum get-entries request size")
@@ -194,10 +194,18 @@ func main() {
 		if err != nil {
 			glog.Exitf("Failed to create client pool: %v", err)
 		}
+
+		mmd := *mmd
+		// Note: Although the (usually lower than MMD) expected merge delay is not
+		// a guarantee, it should be OK for testing.
+		if emd := c.ExpectedMergeDelaySec; emd != 0 {
+			mmd = time.Second * time.Duration(emd)
+		}
+
 		cfg := integration.HammerConfig{
 			LogCfg:              c,
 			MetricFactory:       mf,
-			MMD:                 *mmd,
+			MMD:                 mmd,
 			LeafChain:           leafChain,
 			LeafCert:            leafCert,
 			CACert:              caCert,

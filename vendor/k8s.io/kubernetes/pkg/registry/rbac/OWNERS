@@ -1,4 +1,6 @@
+approvers:
+- sig-auth-authorizers-approvers
 reviewers:
-- deads2k
-- liggitt
-- enj
+- sig-auth-authorizers-reviewers
+labels:
+- sig/auth

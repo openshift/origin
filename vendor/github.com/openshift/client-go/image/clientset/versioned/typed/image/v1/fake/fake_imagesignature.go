@@ -4,7 +4,7 @@ package fake
 
 import (
 	v1 "github.com/openshift/api/image/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	testing "k8s.io/client-go/testing"
 )
@@ -29,7 +29,7 @@ func (c *FakeImageSignatures) Create(imageSignature *v1.ImageSignature) (result 
 }
 
 // Delete takes name of the imageSignature and deletes it. Returns an error if one occurs.
-func (c *FakeImageSignatures) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *FakeImageSignatures) Delete(name string, options *metav1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewRootDeleteAction(imagesignaturesResource, name), &v1.ImageSignature{})
 	return err

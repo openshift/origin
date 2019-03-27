@@ -5,11 +5,11 @@ package v1
 import (
 	time "time"
 
-	operator_v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	versioned "github.com/openshift/client-go/operator/clientset/versioned"
 	internalinterfaces "github.com/openshift/client-go/operator/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/client-go/operator/listers/operator/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
@@ -40,20 +40,20 @@ func NewServiceCAInformer(client versioned.Interface, resyncPeriod time.Duration
 func NewFilteredServiceCAInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.OperatorV1().ServiceCAs().List(options)
 			},
-			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.OperatorV1().ServiceCAs().Watch(options)
 			},
 		},
-		&operator_v1.ServiceCA{},
+		&operatorv1.ServiceCA{},
 		resyncPeriod,
 		indexers,
 	)
@@ -64,7 +64,7 @@ func (f *serviceCAInformer) defaultInformer(client versioned.Interface, resyncPe
 }
 
 func (f *serviceCAInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&operator_v1.ServiceCA{}, f.defaultInformer)
+	return f.factory.InformerFor(&operatorv1.ServiceCA{}, f.defaultInformer)
 }
 
 func (f *serviceCAInformer) Lister() v1.ServiceCALister {

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -107,7 +107,7 @@ func (c *StaticPodStateController) sync() error {
 				// We will still reflect the container not ready state in error conditions, but we don't set the operator as failed.
 				errs = append(errs, fmt.Errorf("nodes/%s pods/%s container=%q is not ready", node.NodeName, pod.Name, containerStatus.Name))
 			}
-			if containerStatus.State.Waiting != nil && containerStatus.State.Waiting.Reason != "PodInitializing" {
+			if containerStatus.State.Waiting != nil {
 				errs = append(errs, fmt.Errorf("nodes/%s pods/%s container=%q is waiting: %q - %q", node.NodeName, pod.Name, containerStatus.Name, containerStatus.State.Waiting.Reason, containerStatus.State.Waiting.Message))
 				failingErrorCount++
 			}
@@ -168,8 +168,8 @@ func (c *StaticPodStateController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	glog.Infof("Starting StaticPodStateController")
-	defer glog.Infof("Shutting down StaticPodStateController")
+	klog.Infof("Starting StaticPodStateController")
+	defer klog.Infof("Shutting down StaticPodStateController")
 
 	// doesn't matter what workers say, only start one.
 	go wait.Until(c.runWorker, time.Second, stopCh)

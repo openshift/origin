@@ -3,6 +3,8 @@
 package v1alpha1
 
 import (
+	"time"
+
 	v1alpha1 "github.com/openshift/api/servicecertsigner/v1alpha1"
 	scheme "github.com/openshift/client-go/servicecertsigner/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -57,10 +59,15 @@ func (c *serviceCertSignerOperatorConfigs) Get(name string, options v1.GetOption
 
 // List takes label and field selectors, and returns the list of ServiceCertSignerOperatorConfigs that match those selectors.
 func (c *serviceCertSignerOperatorConfigs) List(opts v1.ListOptions) (result *v1alpha1.ServiceCertSignerOperatorConfigList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1alpha1.ServiceCertSignerOperatorConfigList{}
 	err = c.client.Get().
 		Resource("servicecertsigneroperatorconfigs").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
@@ -68,10 +75,15 @@ func (c *serviceCertSignerOperatorConfigs) List(opts v1.ListOptions) (result *v1
 
 // Watch returns a watch.Interface that watches the requested serviceCertSignerOperatorConfigs.
 func (c *serviceCertSignerOperatorConfigs) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Resource("servicecertsigneroperatorconfigs").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -125,9 +137,14 @@ func (c *serviceCertSignerOperatorConfigs) Delete(name string, options *v1.Delet
 
 // DeleteCollection deletes a collection of objects.
 func (c *serviceCertSignerOperatorConfigs) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Resource("servicecertsigneroperatorconfigs").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

@@ -1,7 +1,7 @@
 package resourceapply
 
 import (
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -39,8 +39,8 @@ func ApplyStorageClass(client storageclientv1.StorageClassesGetter, recorder eve
 	existingCopy = required.DeepCopy()
 	existingCopy.ObjectMeta = *objectMeta
 
-	if glog.V(4) {
-		glog.Infof("StorageClass %q changes: %v", required.Name, JSONPatch(existing, existingCopy))
+	if klog.V(4) {
+		klog.Infof("StorageClass %q changes: %v", required.Name, JSONPatch(existing, existingCopy))
 	}
 
 	// TODO if provisioner, parameters, reclaimpolicy, or volumebindingmode are different, update will fail so delete and recreate

@@ -5,11 +5,11 @@ package v1
 import (
 	time "time"
 
-	oauth_v1 "github.com/openshift/api/oauth/v1"
+	oauthv1 "github.com/openshift/api/oauth/v1"
 	versioned "github.com/openshift/client-go/oauth/clientset/versioned"
 	internalinterfaces "github.com/openshift/client-go/oauth/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/client-go/oauth/listers/oauth/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
@@ -40,20 +40,20 @@ func NewOAuthAccessTokenInformer(client versioned.Interface, resyncPeriod time.D
 func NewFilteredOAuthAccessTokenInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.OauthV1().OAuthAccessTokens().List(options)
 			},
-			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.OauthV1().OAuthAccessTokens().Watch(options)
 			},
 		},
-		&oauth_v1.OAuthAccessToken{},
+		&oauthv1.OAuthAccessToken{},
 		resyncPeriod,
 		indexers,
 	)
@@ -64,7 +64,7 @@ func (f *oAuthAccessTokenInformer) defaultInformer(client versioned.Interface, r
 }
 
 func (f *oAuthAccessTokenInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&oauth_v1.OAuthAccessToken{}, f.defaultInformer)
+	return f.factory.InformerFor(&oauthv1.OAuthAccessToken{}, f.defaultInformer)
 }
 
 func (f *oAuthAccessTokenInformer) Lister() v1.OAuthAccessTokenLister {

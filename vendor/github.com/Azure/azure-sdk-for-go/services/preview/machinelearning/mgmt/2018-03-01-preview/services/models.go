@@ -36,13 +36,15 @@ const (
 	ComputeTypeBatchAI ComputeType = "BatchAI"
 	// ComputeTypeDataFactory ...
 	ComputeTypeDataFactory ComputeType = "DataFactory"
+	// ComputeTypeHDInsight ...
+	ComputeTypeHDInsight ComputeType = "HDInsight"
 	// ComputeTypeVirtualMachine ...
 	ComputeTypeVirtualMachine ComputeType = "VirtualMachine"
 )
 
 // PossibleComputeTypeValues returns an array of possible values for the ComputeType const type.
 func PossibleComputeTypeValues() []ComputeType {
-	return []ComputeType{ComputeTypeAKS, ComputeTypeBatchAI, ComputeTypeDataFactory, ComputeTypeVirtualMachine}
+	return []ComputeType{ComputeTypeAKS, ComputeTypeBatchAI, ComputeTypeDataFactory, ComputeTypeHDInsight, ComputeTypeVirtualMachine}
 }
 
 // ComputeTypeBasicCompute enumerates the values for compute type basic compute.
@@ -57,13 +59,15 @@ const (
 	ComputeTypeCompute ComputeTypeBasicCompute = "Compute"
 	// ComputeTypeDataFactory1 ...
 	ComputeTypeDataFactory1 ComputeTypeBasicCompute = "DataFactory"
+	// ComputeTypeHDInsight1 ...
+	ComputeTypeHDInsight1 ComputeTypeBasicCompute = "HDInsight"
 	// ComputeTypeVirtualMachine1 ...
 	ComputeTypeVirtualMachine1 ComputeTypeBasicCompute = "VirtualMachine"
 )
 
 // PossibleComputeTypeBasicComputeValues returns an array of possible values for the ComputeTypeBasicCompute const type.
 func PossibleComputeTypeBasicComputeValues() []ComputeTypeBasicCompute {
-	return []ComputeTypeBasicCompute{ComputeTypeAKS1, ComputeTypeBatchAI1, ComputeTypeCompute, ComputeTypeDataFactory1, ComputeTypeVirtualMachine1}
+	return []ComputeTypeBasicCompute{ComputeTypeAKS1, ComputeTypeBatchAI1, ComputeTypeCompute, ComputeTypeDataFactory1, ComputeTypeHDInsight1, ComputeTypeVirtualMachine1}
 }
 
 // ComputeTypeBasicComputeSecrets enumerates the values for compute type basic compute secrets.
@@ -140,6 +144,8 @@ func PossibleStatusValues() []Status {
 type AKS struct {
 	// Properties - AKS properties
 	Properties *AKSProperties `json:"properties,omitempty"`
+	// ComputeLocation - Location for the underlying compute
+	ComputeLocation *string `json:"computeLocation,omitempty"`
 	// ProvisioningState - The provision state of the cluster. Valid values are Unknown, Updating, Provisioning, Succeeded, and Failed. Possible values include: 'Unknown', 'Updating', 'Creating', 'Deleting', 'Succeeded', 'Failed', 'Canceled'
 	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
 	// Description - The description of the Machine Learning compute.
@@ -152,7 +158,7 @@ type AKS struct {
 	ResourceID *string `json:"resourceId,omitempty"`
 	// ProvisioningErrors - Errors during provisioning
 	ProvisioningErrors *[]MachineLearningServiceError `json:"provisioningErrors,omitempty"`
-	// ComputeType - Possible values include: 'ComputeTypeCompute', 'ComputeTypeAKS1', 'ComputeTypeBatchAI1', 'ComputeTypeVirtualMachine1', 'ComputeTypeDataFactory1'
+	// ComputeType - Possible values include: 'ComputeTypeCompute', 'ComputeTypeAKS1', 'ComputeTypeBatchAI1', 'ComputeTypeVirtualMachine1', 'ComputeTypeHDInsight1', 'ComputeTypeDataFactory1'
 	ComputeType ComputeTypeBasicCompute `json:"computeType,omitempty"`
 }
 
@@ -162,6 +168,9 @@ func (a AKS) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if a.Properties != nil {
 		objectMap["properties"] = a.Properties
+	}
+	if a.ComputeLocation != nil {
+		objectMap["computeLocation"] = a.ComputeLocation
 	}
 	if a.ProvisioningState != "" {
 		objectMap["provisioningState"] = a.ProvisioningState
@@ -199,6 +208,11 @@ func (a AKS) AsBatchAI() (*BatchAI, bool) {
 
 // AsVirtualMachine is the BasicCompute implementation for AKS.
 func (a AKS) AsVirtualMachine() (*VirtualMachine, bool) {
+	return nil, false
+}
+
+// AsHDInsight is the BasicCompute implementation for AKS.
+func (a AKS) AsHDInsight() (*HDInsight, bool) {
 	return nil, false
 }
 
@@ -286,6 +300,8 @@ type AKSProperties struct {
 type BatchAI struct {
 	// Properties - BatchAI properties
 	Properties *BatchAIProperties `json:"properties,omitempty"`
+	// ComputeLocation - Location for the underlying compute
+	ComputeLocation *string `json:"computeLocation,omitempty"`
 	// ProvisioningState - The provision state of the cluster. Valid values are Unknown, Updating, Provisioning, Succeeded, and Failed. Possible values include: 'Unknown', 'Updating', 'Creating', 'Deleting', 'Succeeded', 'Failed', 'Canceled'
 	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
 	// Description - The description of the Machine Learning compute.
@@ -298,7 +314,7 @@ type BatchAI struct {
 	ResourceID *string `json:"resourceId,omitempty"`
 	// ProvisioningErrors - Errors during provisioning
 	ProvisioningErrors *[]MachineLearningServiceError `json:"provisioningErrors,omitempty"`
-	// ComputeType - Possible values include: 'ComputeTypeCompute', 'ComputeTypeAKS1', 'ComputeTypeBatchAI1', 'ComputeTypeVirtualMachine1', 'ComputeTypeDataFactory1'
+	// ComputeType - Possible values include: 'ComputeTypeCompute', 'ComputeTypeAKS1', 'ComputeTypeBatchAI1', 'ComputeTypeVirtualMachine1', 'ComputeTypeHDInsight1', 'ComputeTypeDataFactory1'
 	ComputeType ComputeTypeBasicCompute `json:"computeType,omitempty"`
 }
 
@@ -308,6 +324,9 @@ func (ba BatchAI) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if ba.Properties != nil {
 		objectMap["properties"] = ba.Properties
+	}
+	if ba.ComputeLocation != nil {
+		objectMap["computeLocation"] = ba.ComputeLocation
 	}
 	if ba.ProvisioningState != "" {
 		objectMap["provisioningState"] = ba.ProvisioningState
@@ -348,6 +367,11 @@ func (ba BatchAI) AsVirtualMachine() (*VirtualMachine, bool) {
 	return nil, false
 }
 
+// AsHDInsight is the BasicCompute implementation for BatchAI.
+func (ba BatchAI) AsHDInsight() (*HDInsight, bool) {
+	return nil, false
+}
+
 // AsDataFactory is the BasicCompute implementation for BatchAI.
 func (ba BatchAI) AsDataFactory() (*DataFactory, bool) {
 	return nil, false
@@ -378,12 +402,15 @@ type BasicCompute interface {
 	AsAKS() (*AKS, bool)
 	AsBatchAI() (*BatchAI, bool)
 	AsVirtualMachine() (*VirtualMachine, bool)
+	AsHDInsight() (*HDInsight, bool)
 	AsDataFactory() (*DataFactory, bool)
 	AsCompute() (*Compute, bool)
 }
 
 // Compute machine Learning compute object.
 type Compute struct {
+	// ComputeLocation - Location for the underlying compute
+	ComputeLocation *string `json:"computeLocation,omitempty"`
 	// ProvisioningState - The provision state of the cluster. Valid values are Unknown, Updating, Provisioning, Succeeded, and Failed. Possible values include: 'Unknown', 'Updating', 'Creating', 'Deleting', 'Succeeded', 'Failed', 'Canceled'
 	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
 	// Description - The description of the Machine Learning compute.
@@ -396,7 +423,7 @@ type Compute struct {
 	ResourceID *string `json:"resourceId,omitempty"`
 	// ProvisioningErrors - Errors during provisioning
 	ProvisioningErrors *[]MachineLearningServiceError `json:"provisioningErrors,omitempty"`
-	// ComputeType - Possible values include: 'ComputeTypeCompute', 'ComputeTypeAKS1', 'ComputeTypeBatchAI1', 'ComputeTypeVirtualMachine1', 'ComputeTypeDataFactory1'
+	// ComputeType - Possible values include: 'ComputeTypeCompute', 'ComputeTypeAKS1', 'ComputeTypeBatchAI1', 'ComputeTypeVirtualMachine1', 'ComputeTypeHDInsight1', 'ComputeTypeDataFactory1'
 	ComputeType ComputeTypeBasicCompute `json:"computeType,omitempty"`
 }
 
@@ -420,6 +447,10 @@ func unmarshalBasicCompute(body []byte) (BasicCompute, error) {
 		var VM VirtualMachine
 		err := json.Unmarshal(body, &VM)
 		return VM, err
+	case string(ComputeTypeHDInsight1):
+		var hi HDInsight
+		err := json.Unmarshal(body, &hi)
+		return hi, err
 	case string(ComputeTypeDataFactory1):
 		var df DataFactory
 		err := json.Unmarshal(body, &df)
@@ -453,6 +484,9 @@ func unmarshalBasicComputeArray(body []byte) ([]BasicCompute, error) {
 func (c Compute) MarshalJSON() ([]byte, error) {
 	c.ComputeType = ComputeTypeCompute
 	objectMap := make(map[string]interface{})
+	if c.ComputeLocation != nil {
+		objectMap["computeLocation"] = c.ComputeLocation
+	}
 	if c.ProvisioningState != "" {
 		objectMap["provisioningState"] = c.ProvisioningState
 	}
@@ -489,6 +523,11 @@ func (c Compute) AsBatchAI() (*BatchAI, bool) {
 
 // AsVirtualMachine is the BasicCompute implementation for Compute.
 func (c Compute) AsVirtualMachine() (*VirtualMachine, bool) {
+	return nil, false
+}
+
+// AsHDInsight is the BasicCompute implementation for Compute.
+func (c Compute) AsHDInsight() (*HDInsight, bool) {
 	return nil, false
 }
 
@@ -732,6 +771,8 @@ func (csm *ComputeSecretsModel) UnmarshalJSON(body []byte) error {
 
 // DataFactory a DataFactory compute.
 type DataFactory struct {
+	// ComputeLocation - Location for the underlying compute
+	ComputeLocation *string `json:"computeLocation,omitempty"`
 	// ProvisioningState - The provision state of the cluster. Valid values are Unknown, Updating, Provisioning, Succeeded, and Failed. Possible values include: 'Unknown', 'Updating', 'Creating', 'Deleting', 'Succeeded', 'Failed', 'Canceled'
 	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
 	// Description - The description of the Machine Learning compute.
@@ -744,7 +785,7 @@ type DataFactory struct {
 	ResourceID *string `json:"resourceId,omitempty"`
 	// ProvisioningErrors - Errors during provisioning
 	ProvisioningErrors *[]MachineLearningServiceError `json:"provisioningErrors,omitempty"`
-	// ComputeType - Possible values include: 'ComputeTypeCompute', 'ComputeTypeAKS1', 'ComputeTypeBatchAI1', 'ComputeTypeVirtualMachine1', 'ComputeTypeDataFactory1'
+	// ComputeType - Possible values include: 'ComputeTypeCompute', 'ComputeTypeAKS1', 'ComputeTypeBatchAI1', 'ComputeTypeVirtualMachine1', 'ComputeTypeHDInsight1', 'ComputeTypeDataFactory1'
 	ComputeType ComputeTypeBasicCompute `json:"computeType,omitempty"`
 }
 
@@ -752,6 +793,9 @@ type DataFactory struct {
 func (df DataFactory) MarshalJSON() ([]byte, error) {
 	df.ComputeType = ComputeTypeDataFactory1
 	objectMap := make(map[string]interface{})
+	if df.ComputeLocation != nil {
+		objectMap["computeLocation"] = df.ComputeLocation
+	}
 	if df.ProvisioningState != "" {
 		objectMap["provisioningState"] = df.ProvisioningState
 	}
@@ -791,6 +835,11 @@ func (df DataFactory) AsVirtualMachine() (*VirtualMachine, bool) {
 	return nil, false
 }
 
+// AsHDInsight is the BasicCompute implementation for DataFactory.
+func (df DataFactory) AsHDInsight() (*HDInsight, bool) {
+	return nil, false
+}
+
 // AsDataFactory is the BasicCompute implementation for DataFactory.
 func (df DataFactory) AsDataFactory() (*DataFactory, bool) {
 	return &df, true
@@ -822,6 +871,106 @@ type ErrorResponse struct {
 	Message *string `json:"message,omitempty"`
 	// Details - An array of error detail objects.
 	Details *[]ErrorDetail `json:"details,omitempty"`
+}
+
+// HDInsight a HDInsight compute.
+type HDInsight struct {
+	Properties *HDInsightProperties `json:"properties,omitempty"`
+	// ComputeLocation - Location for the underlying compute
+	ComputeLocation *string `json:"computeLocation,omitempty"`
+	// ProvisioningState - The provision state of the cluster. Valid values are Unknown, Updating, Provisioning, Succeeded, and Failed. Possible values include: 'Unknown', 'Updating', 'Creating', 'Deleting', 'Succeeded', 'Failed', 'Canceled'
+	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
+	// Description - The description of the Machine Learning compute.
+	Description *string `json:"description,omitempty"`
+	// CreatedOn - The date and time when the compute was created.
+	CreatedOn *date.Time `json:"createdOn,omitempty"`
+	// ModifiedOn - The date and time when the compute was last modified.
+	ModifiedOn *date.Time `json:"modifiedOn,omitempty"`
+	// ResourceID - ARM resource id of the compute
+	ResourceID *string `json:"resourceId,omitempty"`
+	// ProvisioningErrors - Errors during provisioning
+	ProvisioningErrors *[]MachineLearningServiceError `json:"provisioningErrors,omitempty"`
+	// ComputeType - Possible values include: 'ComputeTypeCompute', 'ComputeTypeAKS1', 'ComputeTypeBatchAI1', 'ComputeTypeVirtualMachine1', 'ComputeTypeHDInsight1', 'ComputeTypeDataFactory1'
+	ComputeType ComputeTypeBasicCompute `json:"computeType,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for HDInsight.
+func (hi HDInsight) MarshalJSON() ([]byte, error) {
+	hi.ComputeType = ComputeTypeHDInsight1
+	objectMap := make(map[string]interface{})
+	if hi.Properties != nil {
+		objectMap["properties"] = hi.Properties
+	}
+	if hi.ComputeLocation != nil {
+		objectMap["computeLocation"] = hi.ComputeLocation
+	}
+	if hi.ProvisioningState != "" {
+		objectMap["provisioningState"] = hi.ProvisioningState
+	}
+	if hi.Description != nil {
+		objectMap["description"] = hi.Description
+	}
+	if hi.CreatedOn != nil {
+		objectMap["createdOn"] = hi.CreatedOn
+	}
+	if hi.ModifiedOn != nil {
+		objectMap["modifiedOn"] = hi.ModifiedOn
+	}
+	if hi.ResourceID != nil {
+		objectMap["resourceId"] = hi.ResourceID
+	}
+	if hi.ProvisioningErrors != nil {
+		objectMap["provisioningErrors"] = hi.ProvisioningErrors
+	}
+	if hi.ComputeType != "" {
+		objectMap["computeType"] = hi.ComputeType
+	}
+	return json.Marshal(objectMap)
+}
+
+// AsAKS is the BasicCompute implementation for HDInsight.
+func (hi HDInsight) AsAKS() (*AKS, bool) {
+	return nil, false
+}
+
+// AsBatchAI is the BasicCompute implementation for HDInsight.
+func (hi HDInsight) AsBatchAI() (*BatchAI, bool) {
+	return nil, false
+}
+
+// AsVirtualMachine is the BasicCompute implementation for HDInsight.
+func (hi HDInsight) AsVirtualMachine() (*VirtualMachine, bool) {
+	return nil, false
+}
+
+// AsHDInsight is the BasicCompute implementation for HDInsight.
+func (hi HDInsight) AsHDInsight() (*HDInsight, bool) {
+	return &hi, true
+}
+
+// AsDataFactory is the BasicCompute implementation for HDInsight.
+func (hi HDInsight) AsDataFactory() (*DataFactory, bool) {
+	return nil, false
+}
+
+// AsCompute is the BasicCompute implementation for HDInsight.
+func (hi HDInsight) AsCompute() (*Compute, bool) {
+	return nil, false
+}
+
+// AsBasicCompute is the BasicCompute implementation for HDInsight.
+func (hi HDInsight) AsBasicCompute() (BasicCompute, bool) {
+	return &hi, true
+}
+
+// HDInsightProperties ...
+type HDInsightProperties struct {
+	// SSHPort - Port open for ssh connections on the master node of the cluster.
+	SSHPort *int32 `json:"sshPort,omitempty"`
+	// Address - Public IP address of the master node of the cluster.
+	Address *string `json:"address,omitempty"`
+	// AdministratorAccount - Admin credentials for master node of the cluster
+	AdministratorAccount *VirtualMachineSSHCredentials `json:"administratorAccount,omitempty"`
 }
 
 // Identity identity for the resource.
@@ -889,6 +1038,29 @@ func (future *MachineLearningComputeDeleteFuture) Result(client MachineLearningC
 	}
 	if !done {
 		err = azure.NewAsyncOpIncompleteError("services.MachineLearningComputeDeleteFuture")
+		return
+	}
+	ar.Response = future.Response()
+	return
+}
+
+// MachineLearningComputeSystemUpdateFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
+type MachineLearningComputeSystemUpdateFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *MachineLearningComputeSystemUpdateFuture) Result(client MachineLearningComputeClient) (ar autorest.Response, err error) {
+	var done bool
+	done, err = future.Done(client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "services.MachineLearningComputeSystemUpdateFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("services.MachineLearningComputeSystemUpdateFuture")
 		return
 	}
 	ar.Response = future.Response()
@@ -1127,6 +1299,8 @@ type SystemService struct {
 // VirtualMachine a Machine Learning compute based on Azure Virtual Machines.
 type VirtualMachine struct {
 	Properties *VirtualMachineProperties `json:"properties,omitempty"`
+	// ComputeLocation - Location for the underlying compute
+	ComputeLocation *string `json:"computeLocation,omitempty"`
 	// ProvisioningState - The provision state of the cluster. Valid values are Unknown, Updating, Provisioning, Succeeded, and Failed. Possible values include: 'Unknown', 'Updating', 'Creating', 'Deleting', 'Succeeded', 'Failed', 'Canceled'
 	ProvisioningState ProvisioningState `json:"provisioningState,omitempty"`
 	// Description - The description of the Machine Learning compute.
@@ -1139,7 +1313,7 @@ type VirtualMachine struct {
 	ResourceID *string `json:"resourceId,omitempty"`
 	// ProvisioningErrors - Errors during provisioning
 	ProvisioningErrors *[]MachineLearningServiceError `json:"provisioningErrors,omitempty"`
-	// ComputeType - Possible values include: 'ComputeTypeCompute', 'ComputeTypeAKS1', 'ComputeTypeBatchAI1', 'ComputeTypeVirtualMachine1', 'ComputeTypeDataFactory1'
+	// ComputeType - Possible values include: 'ComputeTypeCompute', 'ComputeTypeAKS1', 'ComputeTypeBatchAI1', 'ComputeTypeVirtualMachine1', 'ComputeTypeHDInsight1', 'ComputeTypeDataFactory1'
 	ComputeType ComputeTypeBasicCompute `json:"computeType,omitempty"`
 }
 
@@ -1149,6 +1323,9 @@ func (VM VirtualMachine) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
 	if VM.Properties != nil {
 		objectMap["properties"] = VM.Properties
+	}
+	if VM.ComputeLocation != nil {
+		objectMap["computeLocation"] = VM.ComputeLocation
 	}
 	if VM.ProvisioningState != "" {
 		objectMap["provisioningState"] = VM.ProvisioningState
@@ -1189,6 +1366,11 @@ func (VM VirtualMachine) AsVirtualMachine() (*VirtualMachine, bool) {
 	return &VM, true
 }
 
+// AsHDInsight is the BasicCompute implementation for VirtualMachine.
+func (VM VirtualMachine) AsHDInsight() (*HDInsight, bool) {
+	return nil, false
+}
+
 // AsDataFactory is the BasicCompute implementation for VirtualMachine.
 func (VM VirtualMachine) AsDataFactory() (*DataFactory, bool) {
 	return nil, false
@@ -1208,6 +1390,10 @@ func (VM VirtualMachine) AsBasicCompute() (BasicCompute, bool) {
 type VirtualMachineProperties struct {
 	// VirtualMachineSize - Virtual Machine size
 	VirtualMachineSize *string `json:"virtualMachineSize,omitempty"`
+	// SSHPort - Port open for ssh connections.
+	SSHPort *int32 `json:"sshPort,omitempty"`
+	// Address - Public IP address of the virtual machine.
+	Address *string `json:"address,omitempty"`
 	// AdministratorAccount - Admin credentials for virtual machine
 	AdministratorAccount *VirtualMachineSSHCredentials `json:"administratorAccount,omitempty"`
 }
@@ -1501,6 +1687,8 @@ type WorkspaceProperties struct {
 	FriendlyName *string `json:"friendlyName,omitempty"`
 	// CreationTime - The creation time of the machine learning workspace in ISO8601 format.
 	CreationTime *date.Time `json:"creationTime,omitempty"`
+	// BatchaiWorkspace - ARM id of the Batch AI workspace associated with this workspace. This cannot be changed once the workspace has been created
+	BatchaiWorkspace *string `json:"batchaiWorkspace,omitempty"`
 	// KeyVault - ARM id of the key vault associated with this workspace. This cannot be changed once the workspace has been created
 	KeyVault *string `json:"keyVault,omitempty"`
 	// ApplicationInsights - ARM id of the application insights associated with this workspace. This cannot be changed once the workspace has been created

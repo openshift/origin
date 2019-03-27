@@ -3,9 +3,11 @@
 package v1
 
 import (
+	"time"
+
 	v1 "github.com/openshift/api/image/v1"
 	scheme "github.com/openshift/client-go/image/clientset/versioned/scheme"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rest "k8s.io/client-go/rest"
 )
 
@@ -19,9 +21,9 @@ type ImageStreamTagsGetter interface {
 type ImageStreamTagInterface interface {
 	Create(*v1.ImageStreamTag) (*v1.ImageStreamTag, error)
 	Update(*v1.ImageStreamTag) (*v1.ImageStreamTag, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1.ImageStreamTag, error)
-	List(opts meta_v1.ListOptions) (*v1.ImageStreamTagList, error)
+	Delete(name string, options *metav1.DeleteOptions) error
+	Get(name string, options metav1.GetOptions) (*v1.ImageStreamTag, error)
+	List(opts metav1.ListOptions) (*v1.ImageStreamTagList, error)
 	ImageStreamTagExpansion
 }
 
@@ -40,7 +42,7 @@ func newImageStreamTags(c *ImageV1Client, namespace string) *imageStreamTags {
 }
 
 // Get takes name of the imageStreamTag, and returns the corresponding imageStreamTag object, and an error if there is any.
-func (c *imageStreamTags) Get(name string, options meta_v1.GetOptions) (result *v1.ImageStreamTag, err error) {
+func (c *imageStreamTags) Get(name string, options metav1.GetOptions) (result *v1.ImageStreamTag, err error) {
 	result = &v1.ImageStreamTag{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -53,12 +55,17 @@ func (c *imageStreamTags) Get(name string, options meta_v1.GetOptions) (result *
 }
 
 // List takes label and field selectors, and returns the list of ImageStreamTags that match those selectors.
-func (c *imageStreamTags) List(opts meta_v1.ListOptions) (result *v1.ImageStreamTagList, err error) {
+func (c *imageStreamTags) List(opts metav1.ListOptions) (result *v1.ImageStreamTagList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1.ImageStreamTagList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("imagestreamtags").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
@@ -90,7 +97,7 @@ func (c *imageStreamTags) Update(imageStreamTag *v1.ImageStreamTag) (result *v1.
 }
 
 // Delete takes name of the imageStreamTag and deletes it. Returns an error if one occurs.
-func (c *imageStreamTags) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *imageStreamTags) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("imagestreamtags").

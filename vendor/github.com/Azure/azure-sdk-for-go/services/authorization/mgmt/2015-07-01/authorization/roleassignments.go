@@ -21,6 +21,7 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
+	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
@@ -52,6 +53,15 @@ func NewRoleAssignmentsClientWithBaseURI(baseURI string, subscriptionID string) 
 // roleAssignmentName - the name of the role assignment to create. It can be any valid GUID.
 // parameters - parameters for the role assignment.
 func (client RoleAssignmentsClient) Create(ctx context.Context, scope string, roleAssignmentName string, parameters RoleAssignmentCreateParameters) (result RoleAssignment, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: true,
+				Chain: []validation.Constraint{{Target: "parameters.Properties.RoleDefinitionID", Name: validation.Null, Rule: true, Chain: nil},
+					{Target: "parameters.Properties.PrincipalID", Name: validation.Null, Rule: true, Chain: nil},
+				}}}}}); err != nil {
+		return result, validation.NewError("authorization.RoleAssignmentsClient", "Create", err.Error())
+	}
+
 	req, err := client.CreatePreparer(ctx, scope, roleAssignmentName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authorization.RoleAssignmentsClient", "Create", nil, "Failure preparing request")
@@ -123,6 +133,15 @@ func (client RoleAssignmentsClient) CreateResponder(resp *http.Response) (result
 // /subscriptions/{subId}/resourcegroups/{rgname}//providers/Microsoft.Authorization/roleAssignments/{roleAssignmentName}.
 // parameters - parameters for the role assignment.
 func (client RoleAssignmentsClient) CreateByID(ctx context.Context, roleAssignmentID string, parameters RoleAssignmentCreateParameters) (result RoleAssignment, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: parameters,
+			Constraints: []validation.Constraint{{Target: "parameters.Properties", Name: validation.Null, Rule: true,
+				Chain: []validation.Constraint{{Target: "parameters.Properties.RoleDefinitionID", Name: validation.Null, Rule: true, Chain: nil},
+					{Target: "parameters.Properties.PrincipalID", Name: validation.Null, Rule: true, Chain: nil},
+				}}}}}); err != nil {
+		return result, validation.NewError("authorization.RoleAssignmentsClient", "CreateByID", err.Error())
+	}
+
 	req, err := client.CreateByIDPreparer(ctx, roleAssignmentID, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "authorization.RoleAssignmentsClient", "CreateByID", nil, "Failure preparing request")

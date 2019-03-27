@@ -22,11 +22,7 @@ import (
 	"net/url"
 	"time"
 
-	"k8s.io/client-go/transport"
-
-	"github.com/golang/glog"
-
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -39,8 +35,9 @@ import (
 	v1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/transport"
 	"k8s.io/client-go/util/workqueue"
-
+	"k8s.io/klog"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
 	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/internalclientset/typed/apiregistration/internalversion"
 	informers "k8s.io/kube-aggregator/pkg/client/informers/internalversion/apiregistration/internalversion"
@@ -87,7 +84,7 @@ func NewAvailableConditionController(
 	proxyClientCert certFunc,
 	proxyClientKey certFunc,
 	serviceResolver ServiceResolver,
-) *AvailableConditionController {
+) (*AvailableConditionController, error) {
 	c := &AvailableConditionController{
 		apiServiceClient: apiServiceClient,
 		apiServiceLister: apiServiceInformer.Lister(),
@@ -134,7 +131,7 @@ func NewAvailableConditionController(
 
 	c.syncFn = c.sync
 
-	return c
+	return c, nil
 }
 
 func (c *AvailableConditionController) sync(key string) error {
@@ -269,10 +266,12 @@ func (c *AvailableConditionController) sync(key string) error {
 						return
 					}
 
+					// setting the system-masters identity ensures that we will always have access rights
 					transport.SetAuthProxyHeaders(newReq, "system:kube-aggregator", []string{"system:masters"}, nil)
 					resp, err := discoveryClient.Do(newReq)
 					if resp != nil {
 						resp.Body.Close()
+						// we should always been in the 200s or 300s
 						if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
 							errCh <- fmt.Errorf("bad status from %v: %v", discoveryURL, resp.StatusCode)
 							return
@@ -365,8 +364,8 @@ func (c *AvailableConditionController) Run(threadiness int, stopCh <-chan struct
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	glog.Infof("Starting AvailableConditionController")
-	defer glog.Infof("Shutting down AvailableConditionController")
+	klog.Infof("Starting AvailableConditionController")
+	defer klog.Infof("Shutting down AvailableConditionController")
 
 	if !controllers.WaitForCacheSync("AvailableConditionController", stopCh, c.apiServiceSynced, c.servicesSynced, c.endpointsSynced) {
 		return
@@ -407,7 +406,7 @@ func (c *AvailableConditionController) processNextWorkItem() bool {
 func (c *AvailableConditionController) enqueue(obj *apiregistration.APIService) {
 	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 	if err != nil {
-		glog.Errorf("Couldn't get key for object %#v: %v", obj, err)
+		klog.Errorf("Couldn't get key for object %#v: %v", obj, err)
 		return
 	}
 
@@ -416,13 +415,13 @@ func (c *AvailableConditionController) enqueue(obj *apiregistration.APIService) 
 
 func (c *AvailableConditionController) addAPIService(obj interface{}) {
 	castObj := obj.(*apiregistration.APIService)
-	glog.V(4).Infof("Adding %s", castObj.Name)
+	klog.V(4).Infof("Adding %s", castObj.Name)
 	c.enqueue(castObj)
 }
 
 func (c *AvailableConditionController) updateAPIService(obj, _ interface{}) {
 	castObj := obj.(*apiregistration.APIService)
-	glog.V(4).Infof("Updating %s", castObj.Name)
+	klog.V(4).Infof("Updating %s", castObj.Name)
 	c.enqueue(castObj)
 }
 
@@ -431,16 +430,16 @@ func (c *AvailableConditionController) deleteAPIService(obj interface{}) {
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
-			glog.Errorf("Couldn't get object from tombstone %#v", obj)
+			klog.Errorf("Couldn't get object from tombstone %#v", obj)
 			return
 		}
 		castObj, ok = tombstone.Obj.(*apiregistration.APIService)
 		if !ok {
-			glog.Errorf("Tombstone contained object that is not expected %#v", obj)
+			klog.Errorf("Tombstone contained object that is not expected %#v", obj)
 			return
 		}
 	}
-	glog.V(4).Infof("Deleting %q", castObj.Name)
+	klog.V(4).Infof("Deleting %q", castObj.Name)
 	c.enqueue(castObj)
 }
 
@@ -485,12 +484,12 @@ func (c *AvailableConditionController) deleteService(obj interface{}) {
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
-			glog.Errorf("Couldn't get object from tombstone %#v", obj)
+			klog.Errorf("Couldn't get object from tombstone %#v", obj)
 			return
 		}
 		castObj, ok = tombstone.Obj.(*v1.Service)
 		if !ok {
-			glog.Errorf("Tombstone contained object that is not expected %#v", obj)
+			klog.Errorf("Tombstone contained object that is not expected %#v", obj)
 			return
 		}
 	}
@@ -516,12 +515,12 @@ func (c *AvailableConditionController) deleteEndpoints(obj interface{}) {
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
-			glog.Errorf("Couldn't get object from tombstone %#v", obj)
+			klog.Errorf("Couldn't get object from tombstone %#v", obj)
 			return
 		}
 		castObj, ok = tombstone.Obj.(*v1.Endpoints)
 		if !ok {
-			glog.Errorf("Tombstone contained object that is not expected %#v", obj)
+			klog.Errorf("Tombstone contained object that is not expected %#v", obj)
 			return
 		}
 	}

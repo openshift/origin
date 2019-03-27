@@ -12,6 +12,8 @@ type Interface interface {
 	Authentications() AuthenticationInformer
 	// Consoles returns a ConsoleInformer.
 	Consoles() ConsoleInformer
+	// DNSes returns a DNSInformer.
+	DNSes() DNSInformer
 	// Etcds returns a EtcdInformer.
 	Etcds() EtcdInformer
 	// IngressControllers returns a IngressControllerInformer.
@@ -55,6 +57,11 @@ func (v *version) Authentications() AuthenticationInformer {
 // Consoles returns a ConsoleInformer.
 func (v *version) Consoles() ConsoleInformer {
 	return &consoleInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// DNSes returns a DNSInformer.
+func (v *version) DNSes() DNSInformer {
+	return &dNSInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // Etcds returns a EtcdInformer.

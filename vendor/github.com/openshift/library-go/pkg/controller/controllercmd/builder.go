@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -101,7 +101,7 @@ func (b *ControllerBuilder) WithRestartOnChange(stopCh chan<- struct{}, starting
 
 	b.fileObserverReactorFn = func(filename string, action fileobserver.ActionType) error {
 		once.Do(func() {
-			glog.Warning(fmt.Sprintf("Restart triggered because of %s", action.String(filename)))
+			klog.Warning(fmt.Sprintf("Restart triggered because of %s", action.String(filename)))
 			close(stopCh)
 		})
 		return nil
@@ -204,9 +204,9 @@ func (b *ControllerBuilder) Run(config *unstructured.Unstructured, ctx context.C
 
 		go func() {
 			if err := server.PrepareRun().Run(ctx.Done()); err != nil {
-				glog.Error(err)
+				klog.Error(err)
 			}
-			glog.Fatal("server exited")
+			klog.Fatal("server exited")
 		}()
 	}
 
@@ -237,7 +237,7 @@ func (b *ControllerBuilder) Run(config *unstructured.Unstructured, ctx context.C
 	leaderElection.Callbacks.OnStartedLeading = func(ctx context.Context) {
 		controllerContext.stopChan = ctx.Done()
 		if err := b.startFunc(controllerContext); err != nil {
-			glog.Fatal(err)
+			klog.Fatal(err)
 		}
 	}
 	leaderelection.RunOrDie(ctx, leaderElection)

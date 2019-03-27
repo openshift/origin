@@ -5,11 +5,11 @@ package v1
 import (
 	time "time"
 
-	quota_v1 "github.com/openshift/api/quota/v1"
+	quotav1 "github.com/openshift/api/quota/v1"
 	versioned "github.com/openshift/client-go/quota/clientset/versioned"
 	internalinterfaces "github.com/openshift/client-go/quota/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/client-go/quota/listers/quota/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
@@ -40,20 +40,20 @@ func NewClusterResourceQuotaInformer(client versioned.Interface, resyncPeriod ti
 func NewFilteredClusterResourceQuotaInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.QuotaV1().ClusterResourceQuotas().List(options)
 			},
-			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.QuotaV1().ClusterResourceQuotas().Watch(options)
 			},
 		},
-		&quota_v1.ClusterResourceQuota{},
+		&quotav1.ClusterResourceQuota{},
 		resyncPeriod,
 		indexers,
 	)
@@ -64,7 +64,7 @@ func (f *clusterResourceQuotaInformer) defaultInformer(client versioned.Interfac
 }
 
 func (f *clusterResourceQuotaInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&quota_v1.ClusterResourceQuota{}, f.defaultInformer)
+	return f.factory.InformerFor(&quotav1.ClusterResourceQuota{}, f.defaultInformer)
 }
 
 func (f *clusterResourceQuotaInformer) Lister() v1.ClusterResourceQuotaLister {

@@ -17,15 +17,15 @@ package swag
 import (
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"path"
+	"path/filepath"
 	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func makeDirStructure(t *testing.T, tgt string) (string, string, error) {
+func makeDirStructure(tgt string) (string, string, error) {
 	if tgt == "" {
 		tgt = "pkgpaths"
 	}
@@ -66,7 +66,7 @@ func makeDirStructure(t *testing.T, tgt string) (string, string, error) {
 }
 
 func TestFindPackage(t *testing.T) {
-	pth, pth2, err := makeDirStructure(t, "")
+	pth, pth2, err := makeDirStructure("")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestFindPackage(t *testing.T) {
 		os.RemoveAll(pth2)
 	}()
 
-	searchPath := pth + string(filepath.ListSeparator)  + pth2
+	searchPath := pth + string(filepath.ListSeparator) + pth2
 	// finds package when real name mentioned
 	pkg := FindInSearchPath(searchPath, "foo/bar")
 	assert.NotEmpty(t, pkg)

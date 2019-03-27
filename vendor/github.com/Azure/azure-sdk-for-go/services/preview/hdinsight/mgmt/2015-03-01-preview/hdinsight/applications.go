@@ -45,7 +45,7 @@ func NewApplicationsClientWithBaseURI(baseURI string, subscriptionID string) App
 // clusterName - the name of the cluster.
 // applicationName - the constant value for the application name.
 // parameters - the application create request.
-func (client ApplicationsClient) Create(ctx context.Context, resourceGroupName string, clusterName string, applicationName string, parameters ApplicationProperties) (result ApplicationsCreateFuture, err error) {
+func (client ApplicationsClient) Create(ctx context.Context, resourceGroupName string, clusterName string, applicationName string, parameters Application) (result ApplicationsCreateFuture, err error) {
 	req, err := client.CreatePreparer(ctx, resourceGroupName, clusterName, applicationName, parameters)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "hdinsight.ApplicationsClient", "Create", nil, "Failure preparing request")
@@ -62,7 +62,7 @@ func (client ApplicationsClient) Create(ctx context.Context, resourceGroupName s
 }
 
 // CreatePreparer prepares the Create request.
-func (client ApplicationsClient) CreatePreparer(ctx context.Context, resourceGroupName string, clusterName string, applicationName string, parameters ApplicationProperties) (*http.Request, error) {
+func (client ApplicationsClient) CreatePreparer(ctx context.Context, resourceGroupName string, clusterName string, applicationName string, parameters Application) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
 		"applicationName":   autorest.Encode("path", applicationName),
 		"clusterName":       autorest.Encode("path", clusterName),

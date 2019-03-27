@@ -21,7 +21,6 @@ import (
 	"context"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure"
-	"github.com/Azure/go-autorest/autorest/validation"
 	"net/http"
 )
 
@@ -162,13 +161,7 @@ func NewCustomInstanceClientWithBaseURI(baseURI string) CustomInstanceClient {
 // formatting. For example, use <b> tags to highlight query terms in display strings. The default is Raw. For
 // display strings that contain escapable HTML characters such as <, >, and &, if textFormat is set to HTML,
 // Bing escapes the characters as appropriate (for example, < is escaped to &lt;).
-func (client CustomInstanceClient) Search(ctx context.Context, customConfig int64, query string, acceptLanguage string, userAgent string, clientID string, clientIP string, location string, countryCode string, count *int32, market string, offset *int32, safeSearch SafeSearch, setLang string, textDecorations *bool, textFormat TextFormat) (result SearchResponse, err error) {
-	if err := validation.Validate([]validation.Validation{
-		{TargetValue: customConfig,
-			Constraints: []validation.Constraint{{Target: "customConfig", Name: validation.InclusiveMinimum, Rule: 0, Chain: nil}}}}); err != nil {
-		return result, validation.NewError("customsearch.CustomInstanceClient", "Search", err.Error())
-	}
-
+func (client CustomInstanceClient) Search(ctx context.Context, customConfig string, query string, acceptLanguage string, userAgent string, clientID string, clientIP string, location string, countryCode string, count *int32, market string, offset *int32, safeSearch SafeSearch, setLang string, textDecorations *bool, textFormat TextFormat) (result SearchResponse, err error) {
 	req, err := client.SearchPreparer(ctx, customConfig, query, acceptLanguage, userAgent, clientID, clientIP, location, countryCode, count, market, offset, safeSearch, setLang, textDecorations, textFormat)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "customsearch.CustomInstanceClient", "Search", nil, "Failure preparing request")
@@ -191,7 +184,7 @@ func (client CustomInstanceClient) Search(ctx context.Context, customConfig int6
 }
 
 // SearchPreparer prepares the Search request.
-func (client CustomInstanceClient) SearchPreparer(ctx context.Context, customConfig int64, query string, acceptLanguage string, userAgent string, clientID string, clientIP string, location string, countryCode string, count *int32, market string, offset *int32, safeSearch SafeSearch, setLang string, textDecorations *bool, textFormat TextFormat) (*http.Request, error) {
+func (client CustomInstanceClient) SearchPreparer(ctx context.Context, customConfig string, query string, acceptLanguage string, userAgent string, clientID string, clientIP string, location string, countryCode string, count *int32, market string, offset *int32, safeSearch SafeSearch, setLang string, textDecorations *bool, textFormat TextFormat) (*http.Request, error) {
 	queryParameters := map[string]interface{}{
 		"customConfig": autorest.Encode("query", customConfig),
 		"q":            autorest.Encode("query", query),
