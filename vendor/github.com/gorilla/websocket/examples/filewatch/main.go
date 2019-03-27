@@ -6,12 +6,12 @@ package main
 
 import (
 	"flag"
+	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
-	"text/template"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -120,7 +120,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var lastMod time.Time
-	if n, err := strconv.ParseInt(r.FormValue("lastMod"), 16, 64); err != nil {
+	if n, err := strconv.ParseInt(r.FormValue("lastMod"), 16, 64); err == nil {
 		lastMod = time.Unix(0, n)
 	}
 

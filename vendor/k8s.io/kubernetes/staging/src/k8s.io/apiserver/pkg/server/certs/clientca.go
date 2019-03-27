@@ -9,8 +9,7 @@ import (
 	"time"
 
 	"k8s.io/client-go/util/cert"
-
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -56,8 +55,8 @@ func (c *DynamicCA) GetVerifier() x509.VerifyOptions {
 }
 
 func (c *DynamicCA) Run(stopCh <-chan struct{}) {
-	glog.Infof("Starting DynamicCA: %v", c.caFile.Cert)
-	defer glog.Infof("Shutting down DynamicCA: %v", c.caFile.Cert)
+	klog.Infof("Starting DynamicCA: %v", c.caFile.Cert)
+	defer klog.Infof("Shutting down DynamicCA: %v", c.caFile.Cert)
 
 	go wait.Until(func() {
 		err := c.CheckCerts()
@@ -90,7 +89,7 @@ func (c *DynamicCA) CheckCerts() error {
 	pool := x509.NewCertPool()
 	for i, crt := range certs {
 		pool.AddCert(crt)
-		glog.V(2).Infof("[%d] %q client-ca certificate: %s", i, c.caFile.Cert, getCertDetail(crt))
+		klog.V(2).Infof("[%d] %q client-ca certificate: %s", i, c.caFile.Cert, getCertDetail(crt))
 	}
 
 	verifyOpts := kubex509.DefaultVerifyOptions()

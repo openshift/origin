@@ -3,9 +3,11 @@
 package v1
 
 import (
+	"time"
+
 	v1 "github.com/openshift/api/image/v1"
 	scheme "github.com/openshift/client-go/image/clientset/versioned/scheme"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
@@ -21,11 +23,11 @@ type ImagesGetter interface {
 type ImageInterface interface {
 	Create(*v1.Image) (*v1.Image, error)
 	Update(*v1.Image) (*v1.Image, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
-	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1.Image, error)
-	List(opts meta_v1.ListOptions) (*v1.ImageList, error)
-	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Delete(name string, options *metav1.DeleteOptions) error
+	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
+	Get(name string, options metav1.GetOptions) (*v1.Image, error)
+	List(opts metav1.ListOptions) (*v1.ImageList, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.Image, err error)
 	ImageExpansion
 }
@@ -43,7 +45,7 @@ func newImages(c *ImageV1Client) *images {
 }
 
 // Get takes name of the image, and returns the corresponding image object, and an error if there is any.
-func (c *images) Get(name string, options meta_v1.GetOptions) (result *v1.Image, err error) {
+func (c *images) Get(name string, options metav1.GetOptions) (result *v1.Image, err error) {
 	result = &v1.Image{}
 	err = c.client.Get().
 		Resource("images").
@@ -55,22 +57,32 @@ func (c *images) Get(name string, options meta_v1.GetOptions) (result *v1.Image,
 }
 
 // List takes label and field selectors, and returns the list of Images that match those selectors.
-func (c *images) List(opts meta_v1.ListOptions) (result *v1.ImageList, err error) {
+func (c *images) List(opts metav1.ListOptions) (result *v1.ImageList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1.ImageList{}
 	err = c.client.Get().
 		Resource("images").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested images.
-func (c *images) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *images) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Resource("images").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -98,7 +110,7 @@ func (c *images) Update(image *v1.Image) (result *v1.Image, err error) {
 }
 
 // Delete takes name of the image and deletes it. Returns an error if one occurs.
-func (c *images) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *images) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("images").
 		Name(name).
@@ -108,10 +120,15 @@ func (c *images) Delete(name string, options *meta_v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *images) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *images) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Resource("images").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

@@ -15,23 +15,46 @@
 package e2e
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"path"
+	"strconv"
 	"testing"
 
 	epb "github.com/coreos/etcd/etcdserver/api/v3election/v3electionpb"
 	pb "github.com/coreos/etcd/etcdserver/etcdserverpb"
 	"github.com/coreos/etcd/pkg/testutil"
+	"github.com/coreos/etcd/version"
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 )
 
-func TestV3CurlPutGetNoTLS(t *testing.T)     { testCurlPutGetGRPCGateway(t, &configNoTLS) }
-func TestV3CurlPutGetAutoTLS(t *testing.T)   { testCurlPutGetGRPCGateway(t, &configAutoTLS) }
-func TestV3CurlPutGetAllTLS(t *testing.T)    { testCurlPutGetGRPCGateway(t, &configTLS) }
-func TestV3CurlPutGetPeerTLS(t *testing.T)   { testCurlPutGetGRPCGateway(t, &configPeerTLS) }
-func TestV3CurlPutGetClientTLS(t *testing.T) { testCurlPutGetGRPCGateway(t, &configClientTLS) }
-func testCurlPutGetGRPCGateway(t *testing.T, cfg *etcdProcessClusterConfig) {
+// TODO: remove /v3alpha tests in 3.4 release
+
+func TestV3CurlPutGetNoTLSAlpha(t *testing.T) { testCurlPutGetGRPCGateway(t, &configNoTLS, "/v3alpha") }
+func TestV3CurlPutGetNoTLSBeta(t *testing.T)  { testCurlPutGetGRPCGateway(t, &configNoTLS, "/v3beta") }
+func TestV3CurlPutGetAutoTLSAlpha(t *testing.T) {
+	testCurlPutGetGRPCGateway(t, &configAutoTLS, "/v3alpha")
+}
+func TestV3CurlPutGetAutoTLSBeta(t *testing.T) {
+	testCurlPutGetGRPCGateway(t, &configAutoTLS, "/v3beta")
+}
+func TestV3CurlPutGetAllTLSAlpha(t *testing.T) { testCurlPutGetGRPCGateway(t, &configTLS, "/v3alpha") }
+func TestV3CurlPutGetAllTLSBeta(t *testing.T)  { testCurlPutGetGRPCGateway(t, &configTLS, "/v3beta") }
+func TestV3CurlPutGetPeerTLSAlpha(t *testing.T) {
+	testCurlPutGetGRPCGateway(t, &configPeerTLS, "/v3alpha")
+}
+func TestV3CurlPutGetPeerTLSBeta(t *testing.T) {
+	testCurlPutGetGRPCGateway(t, &configPeerTLS, "/v3beta")
+}
+func TestV3CurlPutGetClientTLSAlpha(t *testing.T) {
+	testCurlPutGetGRPCGateway(t, &configClientTLS, "/v3alpha")
+}
+func TestV3CurlPutGetClientTLSBeta(t *testing.T) {
+	testCurlPutGetGRPCGateway(t, &configClientTLS, "/v3beta")
+}
+func testCurlPutGetGRPCGateway(t *testing.T, cfg *etcdProcessClusterConfig, pathPrefix string) {
 	defer testutil.AfterTest(t)
 
 	epc, err := newEtcdProcessCluster(cfg)
@@ -65,21 +88,23 @@ func testCurlPutGetGRPCGateway(t *testing.T, cfg *etcdProcessClusterConfig) {
 		t.Fatal(err)
 	}
 
-	if err := cURLPost(epc, cURLReq{endpoint: "/v3alpha/kv/put", value: string(putData), expected: expectPut}); err != nil {
+	if err := cURLPost(epc, cURLReq{endpoint: path.Join(pathPrefix, "/kv/put"), value: string(putData), expected: expectPut}); err != nil {
 		t.Fatalf("failed put with curl (%v)", err)
 	}
-	if err := cURLPost(epc, cURLReq{endpoint: "/v3alpha/kv/range", value: string(rangeData), expected: expectGet}); err != nil {
+	if err := cURLPost(epc, cURLReq{endpoint: path.Join(pathPrefix, "/kv/range"), value: string(rangeData), expected: expectGet}); err != nil {
 		t.Fatalf("failed get with curl (%v)", err)
 	}
 
 	if cfg.clientTLS == clientTLSAndNonTLS {
-		if err := cURLPost(epc, cURLReq{endpoint: "/v3alpha/kv/range", value: string(rangeData), expected: expectGet, isTLS: true}); err != nil {
+		if err := cURLPost(epc, cURLReq{endpoint: path.Join(pathPrefix, "/kv/range"), value: string(rangeData), expected: expectGet, isTLS: true}); err != nil {
 			t.Fatalf("failed get with curl (%v)", err)
 		}
 	}
 }
 
-func TestV3CurlWatch(t *testing.T) {
+func TestV3CurlWatchAlpha(t *testing.T) { testV3CurlWatch(t, "/v3alpha") }
+func TestV3CurlWatchBeta(t *testing.T)  { testV3CurlWatch(t, "/v3beta") }
+func testV3CurlWatch(t *testing.T, pathPrefix string) {
 	defer testutil.AfterTest(t)
 
 	epc, err := newEtcdProcessCluster(&configNoTLS)
@@ -97,7 +122,7 @@ func TestV3CurlWatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = cURLPost(epc, cURLReq{endpoint: "/v3alpha/kv/put", value: string(putreq), expected: "revision"}); err != nil {
+	if err = cURLPost(epc, cURLReq{endpoint: path.Join(pathPrefix, "/kv/put"), value: string(putreq), expected: "revision"}); err != nil {
 		t.Fatalf("failed put with curl (%v)", err)
 	}
 	// watch for first update to "foo"
@@ -111,12 +136,14 @@ func TestV3CurlWatch(t *testing.T) {
 	// but the gprc-gateway expects a different format..
 	wstr := `{"create_request" : ` + string(wreq) + "}"
 	// expects "bar", timeout after 2 seconds since stream waits forever
-	if err = cURLPost(epc, cURLReq{endpoint: "/v3alpha/watch", value: wstr, expected: `"YmFy"`, timeout: 2}); err != nil {
+	if err = cURLPost(epc, cURLReq{endpoint: path.Join(pathPrefix, "/watch"), value: wstr, expected: `"YmFy"`, timeout: 2}); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestV3CurlTxn(t *testing.T) {
+func TestV3CurlTxnAlpha(t *testing.T) { testV3CurlTxn(t, "/v3alpha") }
+func TestV3CurlTxnBeta(t *testing.T)  { testV3CurlTxn(t, "/v3beta") }
+func testV3CurlTxn(t *testing.T, pathPrefix string) {
 	defer testutil.AfterTest(t)
 	epc, err := newEtcdProcessCluster(&configNoTLS)
 	if err != nil {
@@ -154,18 +181,19 @@ func TestV3CurlTxn(t *testing.T) {
 		t.Fatal(jerr)
 	}
 	expected := `"succeeded":true,"responses":[{"response_put":{"header":{"revision":"2"}}}]`
-	if err = cURLPost(epc, cURLReq{endpoint: "/v3alpha/kv/txn", value: string(jsonDat), expected: expected}); err != nil {
+	if err = cURLPost(epc, cURLReq{endpoint: path.Join(pathPrefix, "/kv/txn"), value: string(jsonDat), expected: expected}); err != nil {
 		t.Fatalf("failed txn with curl (%v)", err)
 	}
 
 	// was crashing etcd server
 	malformed := `{"compare":[{"result":0,"target":1,"key":"Zm9v","TargetUnion":null}],"success":[{"Request":{"RequestPut":{"key":"Zm9v","value":"YmFy"}}}]}`
-	if err = cURLPost(epc, cURLReq{endpoint: "/v3alpha/kv/txn", value: malformed, expected: "error"}); err != nil {
+	if err = cURLPost(epc, cURLReq{endpoint: path.Join(pathPrefix, "/kv/txn"), value: malformed, expected: "error"}); err != nil {
 		t.Fatalf("failed put with curl (%v)", err)
 	}
 }
 
 func TestV3CurlAuthAlpha(t *testing.T) { testV3CurlAuth(t, "/v3alpha") }
+func TestV3CurlAuthBeta(t *testing.T)  { testV3CurlAuth(t, "/v3beta") }
 func testV3CurlAuth(t *testing.T, pathPrefix string) {
 	defer testutil.AfterTest(t)
 	epc, err := newEtcdProcessCluster(&configNoTLS)
@@ -221,8 +249,9 @@ func testV3CurlAuth(t *testing.T, pathPrefix string) {
 	testutil.AssertNil(t, err)
 
 	var (
-		cmdArgs  []string
-		lineFunc = func(txt string) bool { return true }
+		authHeader string
+		cmdArgs    []string
+		lineFunc   = func(txt string) bool { return true }
 	)
 
 	cmdArgs = cURLPrefixArgs(epc, "POST", cURLReq{endpoint: path.Join(pathPrefix, "/auth/authenticate"), value: string(authreq)})
@@ -234,6 +263,88 @@ func testV3CurlAuth(t *testing.T, pathPrefix string) {
 
 	authRes := make(map[string]interface{})
 	testutil.AssertNil(t, json.Unmarshal([]byte(cURLRes), &authRes))
+
+	token, ok := authRes["token"].(string)
+	if !ok {
+		t.Fatalf("failed invalid token in authenticate response with curl")
+	}
+
+	authHeader = "Authorization : " + token
+
+	// put with auth
+	if err = cURLPost(epc, cURLReq{endpoint: path.Join(pathPrefix, "/kv/put"), value: string(putreq), header: authHeader, expected: "revision"}); err != nil {
+		t.Fatalf("failed auth put with curl (%v)", err)
+	}
+}
+
+func TestV3CurlCampaignAlpha(t *testing.T) { testV3CurlCampaign(t, "/v3alpha") }
+func TestV3CurlCampaignBeta(t *testing.T)  { testV3CurlCampaign(t, "/v3beta") }
+func testV3CurlCampaign(t *testing.T, pathPrefix string) {
+	defer testutil.AfterTest(t)
+
+	epc, err := newEtcdProcessCluster(&configNoTLS)
+	if err != nil {
+		t.Fatalf("could not start etcd process cluster (%v)", err)
+	}
+	defer func() {
+		if cerr := epc.Close(); err != nil {
+			t.Fatalf("error closing etcd processes (%v)", cerr)
+		}
+	}()
+
+	cdata, err := json.Marshal(&epb.CampaignRequest{
+		Name:  []byte("/election-prefix"),
+		Value: []byte("v1"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cargs := cURLPrefixArgs(epc, "POST", cURLReq{
+		endpoint: path.Join(pathPrefix, "/election/campaign"),
+		value:    string(cdata),
+	})
+	lines, err := spawnWithExpectLines(cargs, `"leader":{"name":"`)
+	if err != nil {
+		t.Fatalf("failed post campaign request (%s) (%v)", pathPrefix, err)
+	}
+	if len(lines) != 1 {
+		t.Fatalf("len(lines) expected 1, got %+v", lines)
+	}
+
+	var cresp campaignResponse
+	if err = json.Unmarshal([]byte(lines[0]), &cresp); err != nil {
+		t.Fatalf("failed to unmarshal campaign response %v", err)
+	}
+	ndata, err := base64.StdEncoding.DecodeString(cresp.Leader.Name)
+	if err != nil {
+		t.Fatalf("failed to decode leader key %v", err)
+	}
+	kdata, err := base64.StdEncoding.DecodeString(cresp.Leader.Key)
+	if err != nil {
+		t.Fatalf("failed to decode leader key %v", err)
+	}
+
+	rev, _ := strconv.ParseInt(cresp.Leader.Rev, 10, 64)
+	lease, _ := strconv.ParseInt(cresp.Leader.Lease, 10, 64)
+	pdata, err := json.Marshal(&epb.ProclaimRequest{
+		Leader: &epb.LeaderKey{
+			Name:  ndata,
+			Key:   kdata,
+			Rev:   rev,
+			Lease: lease,
+		},
+		Value: []byte("v2"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = cURLPost(epc, cURLReq{
+		endpoint: path.Join(pathPrefix, "/election/proclaim"),
+		value:    string(pdata),
+		expected: `"revision":`,
+	}); err != nil {
+		t.Fatalf("failed post proclaim request (%s) (%v)", pathPrefix, err)
+	}
 }
 
 func TestV3CurlProclaimMissiongLeaderKeyNoTLS(t *testing.T) {
@@ -249,11 +360,11 @@ func testV3CurlProclaimMissiongLeaderKey(cx ctlCtx) {
 		cx.t.Fatal(err)
 	}
 	if err = cURLPost(cx.epc, cURLReq{
-		endpoint: path.Join("/v3alpha", "/election/proclaim"),
+		endpoint: path.Join("/v3beta", "/election/proclaim"),
 		value:    string(pdata),
 		expected: `{"error":"\"leader\" field must be provided","code":2}`,
 	}); err != nil {
-		cx.t.Fatalf("failed post proclaim request (%s) (%v)", "/v3alpha", err)
+		cx.t.Fatalf("failed post proclaim request (%s) (%v)", "/v3beta", err)
 	}
 }
 
@@ -263,11 +374,11 @@ func TestV3CurlResignMissiongLeaderKeyNoTLS(t *testing.T) {
 
 func testV3CurlResignMissiongLeaderKey(cx ctlCtx) {
 	if err := cURLPost(cx.epc, cURLReq{
-		endpoint: path.Join("/v3alpha", "/election/resign"),
+		endpoint: path.Join("/v3beta", "/election/resign"),
 		value:    `{}`,
 		expected: `{"error":"\"leader\" field must be provided","code":2}`,
 	}); err != nil {
-		cx.t.Fatalf("failed post resign request (%s) (%v)", "/v3alpha", err)
+		cx.t.Fatalf("failed post resign request (%s) (%v)", "/v3beta", err)
 	}
 }
 
@@ -280,4 +391,46 @@ type campaignResponse struct {
 		Rev   string `json:"rev,omitempty"`
 		Lease string `json:"lease,omitempty"`
 	} `json:"leader,omitempty"`
+}
+
+func TestV3CurlCipherSuitesValid(t *testing.T)    { testV3CurlCipherSuites(t, true) }
+func TestV3CurlCipherSuitesMismatch(t *testing.T) { testV3CurlCipherSuites(t, false) }
+func testV3CurlCipherSuites(t *testing.T, valid bool) {
+	cc := configClientTLS
+	cc.clusterSize = 1
+	cc.cipherSuites = []string{
+		"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+		"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+		"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305",
+		"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305",
+	}
+	testFunc := cipherSuiteTestValid
+	if !valid {
+		testFunc = cipherSuiteTestMismatch
+	}
+	testCtl(t, testFunc, withCfg(cc))
+}
+
+func cipherSuiteTestValid(cx ctlCtx) {
+	if err := cURLGet(cx.epc, cURLReq{
+		endpoint:         "/metrics",
+		expected:         fmt.Sprintf(`etcd_server_version{server_version="%s"} 1`, version.Version),
+		metricsURLScheme: cx.cfg.metricsURLScheme,
+		ciphers:          "ECDHE-RSA-AES128-GCM-SHA256", // TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+	}); err != nil {
+		cx.t.Logf("failed get with curl (%v)", err)
+	}
+}
+
+func cipherSuiteTestMismatch(cx ctlCtx) {
+	if err := cURLGet(cx.epc, cURLReq{
+		endpoint:         "/metrics",
+		expected:         "alert handshake failure",
+		metricsURLScheme: cx.cfg.metricsURLScheme,
+		ciphers:          "ECDHE-RSA-DES-CBC3-SHA", // TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
+	}); err != nil {
+		cx.t.Logf("failed get with curl (%v)", err)
+	}
 }

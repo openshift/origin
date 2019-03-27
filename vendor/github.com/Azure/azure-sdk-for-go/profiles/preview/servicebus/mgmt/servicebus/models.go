@@ -65,6 +65,13 @@ const (
 	FilterTypeSQLFilter         FilterType = original.FilterTypeSQLFilter
 )
 
+type IPAction = original.IPAction
+
+const (
+	Accept IPAction = original.Accept
+	Reject IPAction = original.Reject
+)
+
 type KeyType = original.KeyType
 
 const (
@@ -135,6 +142,11 @@ type EventHubListResult = original.EventHubListResult
 type EventHubListResultIterator = original.EventHubListResultIterator
 type EventHubListResultPage = original.EventHubListResultPage
 type EventhubProperties = original.EventhubProperties
+type IPFilterRule = original.IPFilterRule
+type IPFilterRuleListResult = original.IPFilterRuleListResult
+type IPFilterRuleListResultIterator = original.IPFilterRuleListResultIterator
+type IPFilterRuleListResultPage = original.IPFilterRuleListResultPage
+type IPFilterRuleProperties = original.IPFilterRuleProperties
 type MessageCountDetails = original.MessageCountDetails
 type MigrationConfigListResult = original.MigrationConfigListResult
 type MigrationConfigListResultIterator = original.MigrationConfigListResultIterator
@@ -192,6 +204,11 @@ type SBTopicProperties = original.SBTopicProperties
 type SQLFilter = original.SQLFilter
 type SQLRuleAction = original.SQLRuleAction
 type TrackedResource = original.TrackedResource
+type VirtualNetworkRule = original.VirtualNetworkRule
+type VirtualNetworkRuleListResult = original.VirtualNetworkRuleListResult
+type VirtualNetworkRuleListResultIterator = original.VirtualNetworkRuleListResultIterator
+type VirtualNetworkRuleListResultPage = original.VirtualNetworkRuleListResultPage
+type VirtualNetworkRuleProperties = original.VirtualNetworkRuleProperties
 type NamespacesClient = original.NamespacesClient
 type OperationsClient = original.OperationsClient
 type PremiumMessagingRegionsClient = original.PremiumMessagingRegionsClient
@@ -236,6 +253,9 @@ func PossibleEntityStatusValues() []EntityStatus {
 }
 func PossibleFilterTypeValues() []FilterType {
 	return original.PossibleFilterTypeValues()
+}
+func PossibleIPActionValues() []IPAction {
+	return original.PossibleIPActionValues()
 }
 func PossibleKeyTypeValues() []KeyType {
 	return original.PossibleKeyTypeValues()

@@ -23,14 +23,11 @@ import (
 	client "github.com/heketi/heketi/client/api/go-client"
 	"github.com/heketi/heketi/executors"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
+	"github.com/heketi/heketi/pkg/idgen"
+	"github.com/heketi/heketi/pkg/sortedstrings"
 	"github.com/heketi/heketi/pkg/utils"
 	"github.com/heketi/tests"
 )
-
-func init() {
-	// turn off logging
-	logger.SetLevel(utils.LEVEL_NOLOG)
-}
 
 func TestDeviceAddBadRequests(t *testing.T) {
 	tmpfile := tests.Tempfile()
@@ -58,7 +55,7 @@ func TestDeviceAddBadRequests(t *testing.T) {
 
 	// Make a request with no device
 	request = []byte(`{
-        "node" : "123"
+        "node" : "3071582c8575a06d824f6bfc125eb270"
     }`)
 
 	// Post bad JSON
@@ -68,14 +65,14 @@ func TestDeviceAddBadRequests(t *testing.T) {
 
 	// Make a request with unknown node
 	request = []byte(`{
-        "node" : "123",
+        "node" : "3071582c8575a06d824f6bfc125eb270",
         "name" : "/dev/fake"
     }`)
 
 	// Post unknown node
 	r, err = http.Post(ts.URL+"/devices", "application/json", bytes.NewBuffer(request))
 	tests.Assert(t, err == nil)
-	tests.Assert(t, r.StatusCode == http.StatusNotFound)
+	tests.Assert(t, r.StatusCode == http.StatusNotFound, r.StatusCode)
 
 }
 
@@ -95,7 +92,13 @@ func TestDeviceAddDelete(t *testing.T) {
 
 	// Add Cluster then a Node on the cluster
 	// node
-	cluster := NewClusterEntryFromRequest()
+	cluster_req := &api.ClusterCreateRequest{
+		ClusterFlags: api.ClusterFlags{
+			Block: true,
+			File:  true,
+		},
+	}
+	cluster := NewClusterEntryFromRequest(cluster_req)
 	nodereq := &api.NodeAddRequest{
 		ClusterId: cluster.Info.Id,
 		Hostnames: api.HostAddresses{
@@ -246,7 +249,7 @@ func TestDeviceAddDelete(t *testing.T) {
 		return nil
 	})
 	tests.Assert(t, err == nil)
-	tests.Assert(t, utils.SortedStringHas(node.Devices, fakeid))
+	tests.Assert(t, sortedstrings.Has(node.Devices, fakeid))
 
 	// Node delete bricks from the device
 	err = app.db.Update(func(tx *bolt.Tx) error {
@@ -260,6 +263,73 @@ func TestDeviceAddDelete(t *testing.T) {
 		return device.Save(tx)
 	})
 	tests.Assert(t, err == nil)
+
+	// Set offline
+	request = []byte(`{
+				"state" : "offline"
+				}`)
+	r, err = http.Post(ts.URL+"/devices/"+fakeid+"/state",
+		"application/json", bytes.NewBuffer(request))
+	tests.Assert(t, err == nil)
+	tests.Assert(t, r.StatusCode == http.StatusAccepted)
+
+	location, err = r.Location()
+	tests.Assert(t, err == nil)
+	// Query queue until finished
+	for {
+		r, err = http.Get(location.String())
+		tests.Assert(t, err == nil)
+		if r.Header.Get("X-Pending") == "true" {
+			tests.Assert(t, r.StatusCode == http.StatusOK)
+			time.Sleep(time.Millisecond * 10)
+		} else {
+			tests.Assert(t, r.StatusCode == http.StatusNoContent)
+			break
+		}
+	}
+	// Get Device Info
+	r, err = http.Get(ts.URL + "/devices/" + fakeid)
+	tests.Assert(t, err == nil)
+	tests.Assert(t, r.StatusCode == http.StatusOK)
+	tests.Assert(t, r.Header.Get("Content-Type") == "application/json; charset=UTF-8")
+
+	var info api.DeviceInfoResponse
+	err = utils.GetJsonFromResponse(r, &info)
+	tests.Assert(t, info.Id == fakeid)
+	tests.Assert(t, info.State == "offline")
+
+	// Set failed
+	request = []byte(`{
+				"state" : "failed"
+				}`)
+	r, err = http.Post(ts.URL+"/devices/"+fakeid+"/state",
+		"application/json", bytes.NewBuffer(request))
+	tests.Assert(t, err == nil)
+	tests.Assert(t, r.StatusCode == http.StatusAccepted)
+
+	location, err = r.Location()
+	tests.Assert(t, err == nil)
+	// Query queue until finished
+	for {
+		r, err = http.Get(location.String())
+		tests.Assert(t, err == nil)
+		if r.Header.Get("X-Pending") == "true" {
+			tests.Assert(t, r.StatusCode == http.StatusOK)
+			time.Sleep(time.Millisecond * 10)
+		} else {
+			tests.Assert(t, r.StatusCode == http.StatusNoContent)
+			break
+		}
+	}
+	// Get Device Info
+	r, err = http.Get(ts.URL + "/devices/" + fakeid)
+	tests.Assert(t, err == nil)
+	tests.Assert(t, r.StatusCode == http.StatusOK)
+	tests.Assert(t, r.Header.Get("Content-Type") == "application/json; charset=UTF-8")
+
+	err = utils.GetJsonFromResponse(r, &info)
+	tests.Assert(t, info.Id == fakeid)
+	tests.Assert(t, info.State == "failed")
 
 	// Delete device
 	req, err = http.NewRequest("DELETE", ts.URL+"/devices/"+fakeid, nil)
@@ -297,7 +367,7 @@ func TestDeviceAddDelete(t *testing.T) {
 		return err
 	})
 	tests.Assert(t, err == nil)
-	tests.Assert(t, !utils.SortedStringHas(node.Devices, fakeid))
+	tests.Assert(t, !sortedstrings.Has(node.Devices, fakeid))
 
 	// Check the registration of the device has been removed,
 	// and the device can be added again
@@ -341,7 +411,13 @@ func TestDeviceAddCleansUp(t *testing.T) {
 
 	// Add Cluster then a Node on the cluster
 	// node
-	cluster := NewClusterEntryFromRequest()
+	cluster_req := &api.ClusterCreateRequest{
+		ClusterFlags: api.ClusterFlags{
+			Block: true,
+			File:  true,
+		},
+	}
+	cluster := NewClusterEntryFromRequest(cluster_req)
 	nodereq := &api.NodeAddRequest{
 		ClusterId: cluster.Info.Id,
 		Hostnames: api.HostAddresses{
@@ -371,7 +447,7 @@ func TestDeviceAddCleansUp(t *testing.T) {
 	// Mock the device setup to return an error, which will
 	// cause the cleanup.
 	deviceSetupFn := app.xo.MockDeviceSetup
-	app.xo.MockDeviceSetup = func(host, device, vgid string) (*executors.DeviceInfo, error) {
+	app.xo.MockDeviceSetup = func(host, device, vgid string, destroy bool) (*executors.DeviceInfo, error) {
 		return nil, ErrDbAccess
 	}
 
@@ -466,7 +542,7 @@ func TestDeviceInfo(t *testing.T) {
 	device.Info.Id = "abc"
 	device.Info.Name = "/dev/fake1"
 	device.NodeId = "def"
-	device.StorageSet(10000)
+	device.StorageSet(10000, 10000, 0)
 	device.StorageAllocate(1000)
 
 	// Save device in the db
@@ -511,7 +587,7 @@ func TestDeviceDeleteErrors(t *testing.T) {
 	device.Info.Id = "abc"
 	device.Info.Name = "/dev/fake1"
 	device.NodeId = "def"
-	device.StorageSet(10000)
+	device.StorageSet(10000, 10000, 0)
 	device.StorageAllocate(1000)
 
 	// Save device in the db
@@ -550,16 +626,18 @@ func TestDeviceState(t *testing.T) {
 	ts := httptest.NewServer(router)
 	defer ts.Close()
 
-	// Create mock allocator
-	mockAllocator := NewMockAllocator(app.db)
-	app.allocator = mockAllocator
-
 	// Create a client
 	c := client.NewClientNoAuth(ts.URL)
 	tests.Assert(t, c != nil)
 
 	// Create Cluster
-	cluster, err := c.ClusterCreate()
+	cluster_req := &api.ClusterCreateRequest{
+		ClusterFlags: api.ClusterFlags{
+			Block: true,
+			File:  true,
+		},
+	}
+	cluster, err := c.ClusterCreate(cluster_req)
 	tests.Assert(t, err == nil)
 
 	// Create Node
@@ -594,10 +672,6 @@ func TestDeviceState(t *testing.T) {
 	tests.Assert(t, err == nil)
 	tests.Assert(t, deviceInfo.State == "online")
 
-	// Check that the device is in the ring
-	tests.Assert(t, len(mockAllocator.clustermap[cluster.Id]) == 1)
-	tests.Assert(t, mockAllocator.clustermap[cluster.Id][0] == device.Id)
-
 	// Set offline
 	request := []byte(`{
 				"state" : "offline"
@@ -622,8 +696,6 @@ func TestDeviceState(t *testing.T) {
 			break
 		}
 	}
-	// Check it was removed from the ring
-	tests.Assert(t, len(mockAllocator.clustermap[cluster.Id]) == 0)
 
 	// Get Device Info
 	r, err = http.Get(ts.URL + "/devices/" + device.Id)
@@ -633,6 +705,7 @@ func TestDeviceState(t *testing.T) {
 
 	var info api.DeviceInfoResponse
 	err = utils.GetJsonFromResponse(r, &info)
+	tests.Assert(t, err == nil)
 	tests.Assert(t, info.Id == device.Id)
 	tests.Assert(t, info.Name == device.Name)
 	tests.Assert(t, info.State == "offline")
@@ -664,10 +737,6 @@ func TestDeviceState(t *testing.T) {
 		}
 	}
 
-	// Check that the device is in the ring
-	tests.Assert(t, len(mockAllocator.clustermap[cluster.Id]) == 1)
-	tests.Assert(t, mockAllocator.clustermap[cluster.Id][0] == device.Id)
-
 	// Get Device Info
 	r, err = http.Get(ts.URL + "/devices/" + device.Id)
 	tests.Assert(t, err == nil)
@@ -675,6 +744,7 @@ func TestDeviceState(t *testing.T) {
 	tests.Assert(t, r.Header.Get("Content-Type") == "application/json; charset=UTF-8")
 
 	err = utils.GetJsonFromResponse(r, &info)
+	tests.Assert(t, err == nil)
 	tests.Assert(t, info.Id == device.Id)
 	tests.Assert(t, info.Name == device.Name)
 	tests.Assert(t, info.State == "online")
@@ -689,26 +759,7 @@ func TestDeviceState(t *testing.T) {
 	r, err = http.Post(ts.URL+"/devices/"+device.Id+"/state",
 		"application/json", bytes.NewBuffer(request))
 	tests.Assert(t, err == nil)
-	tests.Assert(t, r.StatusCode == http.StatusAccepted)
-	location, err = r.Location()
-	tests.Assert(t, err == nil)
-
-	// Query queue until finished
-	for {
-		r, err = http.Get(location.String())
-		tests.Assert(t, err == nil)
-		if r.Header.Get("X-Pending") == "true" {
-			tests.Assert(t, r.StatusCode == http.StatusOK)
-			time.Sleep(time.Millisecond * 10)
-		} else {
-			tests.Assert(t, r.StatusCode == http.StatusInternalServerError)
-			break
-		}
-	}
-
-	// Check that the device is still in the ring
-	tests.Assert(t, len(mockAllocator.clustermap[cluster.Id]) == 1)
-	tests.Assert(t, mockAllocator.clustermap[cluster.Id][0] == device.Id)
+	tests.Assert(t, r.StatusCode == http.StatusBadRequest, r.StatusCode)
 
 	// Make sure the state did not change
 	r, err = http.Get(ts.URL + "/devices/" + device.Id)
@@ -717,10 +768,242 @@ func TestDeviceState(t *testing.T) {
 	tests.Assert(t, r.Header.Get("Content-Type") == "application/json; charset=UTF-8")
 
 	err = utils.GetJsonFromResponse(r, &info)
+	tests.Assert(t, err == nil)
 	tests.Assert(t, info.Id == device.Id)
 	tests.Assert(t, info.Name == device.Name)
 	tests.Assert(t, info.State == "online")
 	tests.Assert(t, info.Storage.Free == device.Storage.Free)
 	tests.Assert(t, info.Storage.Used == device.Storage.Used)
 	tests.Assert(t, info.Storage.Total == device.Storage.Total)
+}
+
+func TestDeviceSync(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+	router := mux.NewRouter()
+	app.SetRoutes(router)
+
+	// Setup the server
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+
+	nodeId := idgen.GenUUID()
+	deviceId := idgen.GenUUID()
+
+	var total uint64 = 600 * 1024 * 1024
+	var used uint64 = 250 * 1024 * 1024
+	var free uint64 = 350 * 1024 * 1024
+
+	// Init test database
+	err := app.db.Update(func(tx *bolt.Tx) error {
+		cluster := NewClusterEntry()
+		cluster.Info.Id = idgen.GenUUID()
+		if err := cluster.Save(tx); err != nil {
+			return err
+		}
+
+		device := NewDeviceEntry()
+		device.Info.Id = deviceId
+		device.Info.Name = "/dev/abc"
+		device.NodeId = nodeId
+		device.StorageSet(total, total, 0)
+		device.StorageAllocate(100)
+
+		if err := device.Save(tx); err != nil {
+			return err
+		}
+
+		node := NewNodeEntry()
+		node.Info.Id = nodeId
+		node.Info.ClusterId = cluster.Info.Id
+		node.Info.Hostnames.Manage = sort.StringSlice{"manage.system"}
+		node.Info.Hostnames.Storage = sort.StringSlice{"storage.system"}
+		node.Info.Zone = 10
+
+		node.DeviceAdd(device.Info.Id)
+
+		if err := node.Save(tx); err != nil {
+			return err
+		}
+
+		return nil
+	})
+	tests.Assert(t, err == nil)
+
+	app.xo.MockGetDeviceInfo = func(host, device, vgid string) (*executors.DeviceInfo, error) {
+		d := &executors.DeviceInfo{}
+		d.TotalSize = total
+		d.FreeSize = free
+		d.UsedSize = used
+		d.ExtentSize = 4096
+		return d, nil
+	}
+	r, err := http.Get(ts.URL + "/devices/" + deviceId + "/resync")
+	tests.Assert(t, err == nil)
+	tests.Assert(t, r.StatusCode == http.StatusAccepted)
+
+	location, err := r.Location()
+	tests.Assert(t, err == nil)
+
+	for {
+		r, err := http.Get(location.String())
+		tests.Assert(t, err == nil)
+		if r.Header.Get("X-Pending") == "true" {
+			tests.Assert(t, r.StatusCode == http.StatusOK)
+			time.Sleep(time.Millisecond * 10)
+			continue
+		} else {
+			tests.Assert(t, r.StatusCode == http.StatusNoContent)
+			break
+		}
+	}
+
+	err = app.db.View(func(tx *bolt.Tx) error {
+		device, err := NewDeviceEntryFromId(tx, deviceId)
+		tests.Assert(t, err == nil)
+		tests.Assert(t, device.Info.Storage.Total == total, "expected:", total, "got:", device.Info.Storage.Total)
+		tests.Assert(t, device.Info.Storage.Free == free)
+		tests.Assert(t, device.Info.Storage.Used == used)
+		return nil
+	})
+	tests.Assert(t, err == nil)
+
+}
+
+func TestDeviceSyncIdNotFound(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+	router := mux.NewRouter()
+	app.SetRoutes(router)
+
+	// Setup the server
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+
+	deviceId := idgen.GenUUID()
+
+	// Get unknown node id
+	r, err := http.Get(ts.URL + "/devices/" + deviceId + "/resync")
+	tests.Assert(t, err == nil)
+	tests.Assert(t, r.StatusCode == http.StatusNotFound)
+}
+
+func TestDeviceSetTags(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+	router := mux.NewRouter()
+	app.SetRoutes(router)
+
+	// Setup the server
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+
+	deviceId := idgen.GenUUID()
+	// Create a device to save in the db
+	device := NewDeviceEntry()
+	device.Info.Id = deviceId
+	device.Info.Name = "/dev/fake1"
+	device.NodeId = "def"
+	device.StorageSet(10000, 10000, 0)
+	device.StorageAllocate(1000)
+	err := app.db.Update(func(tx *bolt.Tx) error {
+		return device.Save(tx)
+	})
+	tests.Assert(t, err == nil)
+
+	// set some tags
+	request := []byte(`{
+		"change_type": "set",
+		"tags": {"foo": "bar", "salad": "ceasar"}
+	}`)
+	r, err := http.Post(ts.URL+"/devices/"+deviceId+"/tags",
+		"application/json", bytes.NewBuffer(request))
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, r.StatusCode == http.StatusOK,
+		"expected r.StatusCode == http.StatusOK, got:", r.StatusCode)
+
+	r, err = http.Get(ts.URL + "/devices/" + deviceId)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, r.StatusCode == http.StatusOK,
+		"expected r.StatusCode == http.StatusOK, got:", r.StatusCode)
+
+	var info api.DeviceInfoResponse
+	err = utils.GetJsonFromResponse(r, &info)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, len(info.Tags) == 2,
+		"expected len(info.Tags) == 2, got:", len(info.Tags))
+
+	// add a new tag
+	request = []byte(`{
+		"change_type": "update",
+		"tags": {"color": "blue"}
+	}`)
+	r, err = http.Post(ts.URL+"/devices/"+deviceId+"/tags",
+		"application/json", bytes.NewBuffer(request))
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, r.StatusCode == http.StatusOK,
+		"expected r.StatusCode == http.StatusOK, got:", r.StatusCode)
+
+	r, err = http.Get(ts.URL + "/devices/" + deviceId)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, r.StatusCode == http.StatusOK,
+		"expected r.StatusCode == http.StatusOK, got:", r.StatusCode)
+
+	err = utils.GetJsonFromResponse(r, &info)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, len(info.Tags) == 3,
+		"expected len(info.Tags) == 3, got:", len(info.Tags))
+
+	// submit garbage body
+	request = []byte(`~~~~~`)
+	r, err = http.Post(ts.URL+"/devices/"+deviceId+"/tags",
+		"application/json", bytes.NewBuffer(request))
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, r.StatusCode == http.StatusUnprocessableEntity,
+		"expected r.StatusCode == http.StatusUnprocessableEntity, got:", r.StatusCode)
+
+	// valid json, but nonsense
+	request = []byte(`[{
+		"flavor": "Purple",
+		"doo_wop": 8888899
+	}]`)
+	r, err = http.Post(ts.URL+"/devices/"+deviceId+"/tags",
+		"application/json", bytes.NewBuffer(request))
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, r.StatusCode == http.StatusUnprocessableEntity,
+		"expected r.StatusCode == http.StatusUnprocessableEntity, got:", r.StatusCode)
+
+	// invalid params
+	request = []byte(`{
+		"change_type": "batman",
+		"tags": {"": ""}
+	}`)
+	r, err = http.Post(ts.URL+"/devices/"+deviceId+"/tags",
+		"application/json", bytes.NewBuffer(request))
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, r.StatusCode == http.StatusBadRequest,
+		"expected r.StatusCode == http.StatusBadRequest, got:", r.StatusCode)
+
+	// invalid device id
+	request = []byte(`{
+		"change_type": "update",
+		"tags": {"color": "blue"}
+	}`)
+	r, err = http.Post(ts.URL+"/devices/abc123/tags",
+		"application/json", bytes.NewBuffer(request))
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, r.StatusCode == http.StatusNotFound,
+		"expected r.StatusCode == http.StatusNotFound, got:", r.StatusCode)
 }

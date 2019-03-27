@@ -24,16 +24,10 @@ func newSwaggerService(config Config) *SwaggerService {
 		apiDeclarationMap: new(ApiDeclarationList)}
 
 	// Build all ApiDeclarations
-	sws.AddWebServices(config.WebServices)
-
-	return sws
-}
-
-func (sws SwaggerService) AddWebServices(webServices []*restful.WebService) {
-	for _, each := range webServices {
+	for _, each := range config.WebServices {
 		rootPath := each.RootPath()
 		// skip the api service itself
-		if rootPath != sws.config.ApiPath {
+		if rootPath != config.ApiPath {
 			if rootPath == "" || rootPath == "/" {
 				// use routes
 				for _, route := range each.Routes() {
@@ -48,6 +42,12 @@ func (sws SwaggerService) AddWebServices(webServices []*restful.WebService) {
 			}
 		}
 	}
+
+	// if specified then call the PostBuilderHandler
+	if config.PostBuildHandler != nil {
+		config.PostBuildHandler(sws.apiDeclarationMap)
+	}
+	return sws
 }
 
 // LogInfo is the function that is called when this package needs to log. It defaults to log.Printf
@@ -59,21 +59,13 @@ var LogInfo = func(format string, v ...interface{}) {
 // InstallSwaggerService add the WebService that provides the API documentation of all services
 // conform the Swagger documentation specifcation. (https://github.com/wordnik/swagger-core/wiki).
 func InstallSwaggerService(aSwaggerConfig Config) {
-	RegisterSwaggerService(aSwaggerConfig, nil, restful.DefaultContainer)
+	RegisterSwaggerService(aSwaggerConfig, restful.DefaultContainer)
 }
 
 // RegisterSwaggerService add the WebService that provides the API documentation of all services
 // conform the Swagger documentation specifcation. (https://github.com/wordnik/swagger-core/wiki).
-func RegisterSwaggerService(config Config, containers []*restful.Container, wsContainer *restful.Container) {
+func RegisterSwaggerService(config Config, wsContainer *restful.Container) {
 	sws := newSwaggerService(config)
-	for _, container := range containers {
-		sws.AddWebServices(container.RegisteredWebServices())
-	}
-	// if specified then call the PostBuilderHandler
-	if sws.config.PostBuildHandler != nil {
-		sws.config.PostBuildHandler(sws.apiDeclarationMap)
-	}
-
 	ws := new(restful.WebService)
 	ws.Path(config.ApiPath)
 	ws.Produces(restful.MIME_JSON)

@@ -40,7 +40,8 @@ func NewVirtualMachineSizesClientWithBaseURI(baseURI string, subscriptionID stri
 	return VirtualMachineSizesClient{NewWithBaseURI(baseURI, subscriptionID)}
 }
 
-// List lists all available virtual machine sizes for a subscription in a location.
+// List this API is deprecated. Use [Resources
+// Skus](https://docs.microsoft.com/en-us/rest/api/compute/resourceskus/list)
 // Parameters:
 // location - the location upon which virtual-machine-sizes is queried.
 func (client VirtualMachineSizesClient) List(ctx context.Context, location string) (result VirtualMachineSizeListResult, err error) {

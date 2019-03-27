@@ -5,11 +5,11 @@ package v1
 import (
 	time "time"
 
-	apps_v1 "github.com/openshift/api/apps/v1"
+	appsv1 "github.com/openshift/api/apps/v1"
 	versioned "github.com/openshift/client-go/apps/clientset/versioned"
 	internalinterfaces "github.com/openshift/client-go/apps/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/client-go/apps/listers/apps/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
@@ -41,20 +41,20 @@ func NewDeploymentConfigInformer(client versioned.Interface, namespace string, r
 func NewFilteredDeploymentConfigInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.AppsV1().DeploymentConfigs(namespace).List(options)
 			},
-			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.AppsV1().DeploymentConfigs(namespace).Watch(options)
 			},
 		},
-		&apps_v1.DeploymentConfig{},
+		&appsv1.DeploymentConfig{},
 		resyncPeriod,
 		indexers,
 	)
@@ -65,7 +65,7 @@ func (f *deploymentConfigInformer) defaultInformer(client versioned.Interface, r
 }
 
 func (f *deploymentConfigInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apps_v1.DeploymentConfig{}, f.defaultInformer)
+	return f.factory.InformerFor(&appsv1.DeploymentConfig{}, f.defaultInformer)
 }
 
 func (f *deploymentConfigInformer) Lister() v1.DeploymentConfigLister {

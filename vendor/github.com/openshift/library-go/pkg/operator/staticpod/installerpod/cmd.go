@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -73,20 +73,20 @@ func NewInstaller() *cobra.Command {
 		Use:   "installer",
 		Short: "Install static pod and related resources",
 		Run: func(cmd *cobra.Command, args []string) {
-			glog.V(1).Info(cmd.Flags())
-			glog.V(1).Info(spew.Sdump(o))
+			klog.V(1).Info(cmd.Flags())
+			klog.V(1).Info(spew.Sdump(o))
 
 			if err := o.Complete(); err != nil {
-				glog.Fatal(err)
+				klog.Fatal(err)
 			}
 			if err := o.Validate(); err != nil {
-				glog.Fatal(err)
+				klog.Fatal(err)
 			}
 
 			ctx, cancel := context.WithTimeout(context.TODO(), o.Timeout)
 			defer cancel()
 			if err := o.Run(ctx); err != nil {
-				glog.Fatal(err)
+				klog.Fatal(err)
 			}
 		},
 	}
@@ -168,7 +168,7 @@ func (o *InstallOptions) prefixFor(name string) string {
 
 func (o *InstallOptions) copySecretsAndConfigMaps(ctx context.Context, resourceDir string,
 	secretNames, optionalSecretNames, configNames, optionalConfigNames sets.String, prefixed bool) error {
-	glog.Infof("Creating target resource directory %q ...", resourceDir)
+	klog.Infof("Creating target resource directory %q ...", resourceDir)
 	if err := os.MkdirAll(resourceDir, 0755); err != nil && !os.IsExist(err) {
 		return err
 	}
@@ -176,7 +176,7 @@ func (o *InstallOptions) copySecretsAndConfigMaps(ctx context.Context, resourceD
 	// Gather secrets. If we get API server error, retry getting until we hit the timeout.
 	// Retrying will prevent temporary API server blips or networking issues.
 	// We return when all "required" secrets are gathered, optional secrets are not checked.
-	glog.Infof("Getting secrets ...")
+	klog.Infof("Getting secrets ...")
 	secrets := []*corev1.Secret{}
 	for _, name := range append(secretNames.List(), optionalSecretNames.List()...) {
 		secret, err := o.getSecretWithRetry(ctx, name, optionalSecretNames.Has(name))
@@ -189,7 +189,7 @@ func (o *InstallOptions) copySecretsAndConfigMaps(ctx context.Context, resourceD
 		}
 	}
 
-	glog.Infof("Getting config maps ...")
+	klog.Infof("Getting config maps ...")
 	configs := []*corev1.ConfigMap{}
 	for _, name := range append(configNames.List(), optionalConfigNames.List()...) {
 		config, err := o.getConfigMapWithRetry(ctx, name, optionalConfigNames.Has(name))
@@ -208,13 +208,13 @@ func (o *InstallOptions) copySecretsAndConfigMaps(ctx context.Context, resourceD
 			secretBaseName = o.prefixFor(secret.Name)
 		}
 		contentDir := path.Join(resourceDir, "secrets", secretBaseName)
-		glog.Infof("Creating directory %q ...", contentDir)
+		klog.Infof("Creating directory %q ...", contentDir)
 		if err := os.MkdirAll(contentDir, 0755); err != nil {
 			return err
 		}
 		for filename, content := range secret.Data {
 			// TODO fix permissions
-			glog.Infof("Writing secret manifest %q ...", path.Join(contentDir, filename))
+			klog.Infof("Writing secret manifest %q ...", path.Join(contentDir, filename))
 			if err := ioutil.WriteFile(path.Join(contentDir, filename), content, 0644); err != nil {
 				return err
 			}
@@ -226,12 +226,12 @@ func (o *InstallOptions) copySecretsAndConfigMaps(ctx context.Context, resourceD
 			configMapBaseName = o.prefixFor(configmap.Name)
 		}
 		contentDir := path.Join(resourceDir, "configmaps", configMapBaseName)
-		glog.Infof("Creating directory %q ...", contentDir)
+		klog.Infof("Creating directory %q ...", contentDir)
 		if err := os.MkdirAll(contentDir, 0755); err != nil {
 			return err
 		}
 		for filename, content := range configmap.Data {
-			glog.Infof("Writing config file %q ...", path.Join(contentDir, filename))
+			klog.Infof("Writing config file %q ...", path.Join(contentDir, filename))
 			if err := ioutil.WriteFile(path.Join(contentDir, filename), []byte(content), 0644); err != nil {
 				return err
 			}
@@ -243,7 +243,7 @@ func (o *InstallOptions) copySecretsAndConfigMaps(ctx context.Context, resourceD
 
 func (o *InstallOptions) copyContent(ctx context.Context) error {
 	resourceDir := path.Join(o.ResourceDir, o.nameFor(o.PodConfigMapNamePrefix))
-	glog.Infof("Creating target resource directory %q ...", resourceDir)
+	klog.Infof("Creating target resource directory %q ...", resourceDir)
 	if err := os.MkdirAll(resourceDir, 0755); err != nil && !os.IsExist(err) {
 		return err
 	}
@@ -285,7 +285,7 @@ func (o *InstallOptions) copyContent(ctx context.Context) error {
 	var podContent string
 
 	err := retry.RetryOnConnectionErrors(ctx, func(ctx context.Context) (bool, error) {
-		glog.Infof("Getting pod configmaps/%s -n %s", o.nameFor(o.PodConfigMapNamePrefix), o.Namespace)
+		klog.Infof("Getting pod configmaps/%s -n %s", o.nameFor(o.PodConfigMapNamePrefix), o.Namespace)
 		podConfigMap, err := o.KubeClient.CoreV1().ConfigMaps(o.Namespace).Get(o.nameFor(o.PodConfigMapNamePrefix), metav1.GetOptions{})
 		if err != nil {
 			return false, err
@@ -305,19 +305,19 @@ func (o *InstallOptions) copyContent(ctx context.Context) error {
 	// This does not need timeout, instead we should fail hard when we are not able to write.
 
 	podFileName := o.PodConfigMapNamePrefix + ".yaml"
-	glog.Infof("Writing pod manifest %q ...", path.Join(resourceDir, podFileName))
+	klog.Infof("Writing pod manifest %q ...", path.Join(resourceDir, podFileName))
 	if err := ioutil.WriteFile(path.Join(resourceDir, podFileName), []byte(podContent), 0644); err != nil {
 		return err
 	}
 
 	// copy static pod
-	glog.Infof("Creating directory for static pod manifest %q ...", o.PodManifestDir)
+	klog.Infof("Creating directory for static pod manifest %q ...", o.PodManifestDir)
 	if err := os.MkdirAll(o.PodManifestDir, 0755); err != nil {
 		return err
 	}
 
 	for _, fn := range o.PodMutationFns {
-		glog.V(2).Infof("Customizing static pod ...")
+		klog.V(2).Infof("Customizing static pod ...")
 		pod := resourceread.ReadPodV1OrDie([]byte(podContent))
 		if err := fn(pod); err != nil {
 			return err
@@ -325,7 +325,7 @@ func (o *InstallOptions) copyContent(ctx context.Context) error {
 		podContent = resourceread.WritePodV1OrDie(pod)
 	}
 
-	glog.Infof("Writing static pod manifest %q ...\n%s", path.Join(o.PodManifestDir, podFileName), podContent)
+	klog.Infof("Writing static pod manifest %q ...\n%s", path.Join(o.PodManifestDir, podFileName), podContent)
 	if err := ioutil.WriteFile(path.Join(o.PodManifestDir, podFileName), []byte(podContent), 0644); err != nil {
 		return err
 	}

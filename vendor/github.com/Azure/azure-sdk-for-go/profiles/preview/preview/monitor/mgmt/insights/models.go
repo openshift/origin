@@ -19,7 +19,7 @@
 
 package insights
 
-import original "github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2018-03-01/insights"
+import original "github.com/Azure/azure-sdk-for-go/services/preview/monitor/mgmt/2018-09-01/insights"
 
 type ActionGroupsClient = original.ActionGroupsClient
 type ActivityLogAlertsClient = original.ActivityLogAlertsClient
@@ -41,6 +41,7 @@ type MetricAlertsClient = original.MetricAlertsClient
 type MetricAlertsStatusClient = original.MetricAlertsStatusClient
 type MetricBaselineClient = original.MetricBaselineClient
 type MetricDefinitionsClient = original.MetricDefinitionsClient
+type MetricNamespacesClient = original.MetricNamespacesClient
 type MetricsClient = original.MetricsClient
 type AggregationType = original.AggregationType
 
@@ -98,6 +99,13 @@ const (
 	ConditionOperatorLessThanOrEqual    ConditionOperator = original.ConditionOperatorLessThanOrEqual
 )
 
+type CriterionType = original.CriterionType
+
+const (
+	CriterionTypeMultiMetricCriteria      CriterionType = original.CriterionTypeMultiMetricCriteria
+	CriterionTypeStaticThresholdCriterion CriterionType = original.CriterionTypeStaticThresholdCriterion
+)
+
 type Enabled = original.Enabled
 
 const (
@@ -142,15 +150,17 @@ const (
 type OdataTypeBasicAction = original.OdataTypeBasicAction
 
 const (
-	OdataTypeAction                                                                                                                                OdataTypeBasicAction = original.OdataTypeAction
-	OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesAlertingAction OdataTypeBasicAction = original.OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesAlertingAction
+	OdataTypeAction                                                                                                                                   OdataTypeBasicAction = original.OdataTypeAction
+	OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesAlertingAction    OdataTypeBasicAction = original.OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesAlertingAction
+	OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesLogToMetricAction OdataTypeBasicAction = original.OdataTypeMicrosoftWindowsAzureManagementMonitoringAlertsModelsMicrosoftAppInsightsNexusDataContractsResourcesScheduledQueryRulesLogToMetricAction
 )
 
 type OdataTypeBasicMetricAlertCriteria = original.OdataTypeBasicMetricAlertCriteria
 
 const (
-	OdataTypeMetricAlertCriteria                                       OdataTypeBasicMetricAlertCriteria = original.OdataTypeMetricAlertCriteria
-	OdataTypeMicrosoftAzureMonitorSingleResourceMultipleMetricCriteria OdataTypeBasicMetricAlertCriteria = original.OdataTypeMicrosoftAzureMonitorSingleResourceMultipleMetricCriteria
+	OdataTypeMetricAlertCriteria                                         OdataTypeBasicMetricAlertCriteria = original.OdataTypeMetricAlertCriteria
+	OdataTypeMicrosoftAzureMonitorMultipleResourceMultipleMetricCriteria OdataTypeBasicMetricAlertCriteria = original.OdataTypeMicrosoftAzureMonitorMultipleResourceMultipleMetricCriteria
+	OdataTypeMicrosoftAzureMonitorSingleResourceMultipleMetricCriteria   OdataTypeBasicMetricAlertCriteria = original.OdataTypeMicrosoftAzureMonitorSingleResourceMultipleMetricCriteria
 )
 
 type OdataTypeBasicRuleAction = original.OdataTypeBasicRuleAction
@@ -191,6 +201,19 @@ const (
 	ReceiverStatusDisabled     ReceiverStatus = original.ReceiverStatusDisabled
 	ReceiverStatusEnabled      ReceiverStatus = original.ReceiverStatusEnabled
 	ReceiverStatusNotSpecified ReceiverStatus = original.ReceiverStatusNotSpecified
+)
+
+type RecurrenceFrequency = original.RecurrenceFrequency
+
+const (
+	RecurrenceFrequencyDay    RecurrenceFrequency = original.RecurrenceFrequencyDay
+	RecurrenceFrequencyHour   RecurrenceFrequency = original.RecurrenceFrequencyHour
+	RecurrenceFrequencyMinute RecurrenceFrequency = original.RecurrenceFrequencyMinute
+	RecurrenceFrequencyMonth  RecurrenceFrequency = original.RecurrenceFrequencyMonth
+	RecurrenceFrequencyNone   RecurrenceFrequency = original.RecurrenceFrequencyNone
+	RecurrenceFrequencySecond RecurrenceFrequency = original.RecurrenceFrequencySecond
+	RecurrenceFrequencyWeek   RecurrenceFrequency = original.RecurrenceFrequencyWeek
+	RecurrenceFrequencyYear   RecurrenceFrequency = original.RecurrenceFrequencyYear
 )
 
 type ResultType = original.ResultType
@@ -239,6 +262,7 @@ type TimeAggregationType = original.TimeAggregationType
 const (
 	TimeAggregationTypeAverage TimeAggregationType = original.TimeAggregationTypeAverage
 	TimeAggregationTypeCount   TimeAggregationType = original.TimeAggregationTypeCount
+	TimeAggregationTypeLast    TimeAggregationType = original.TimeAggregationTypeLast
 	TimeAggregationTypeMaximum TimeAggregationType = original.TimeAggregationTypeMaximum
 	TimeAggregationTypeMinimum TimeAggregationType = original.TimeAggregationTypeMinimum
 	TimeAggregationTypeTotal   TimeAggregationType = original.TimeAggregationTypeTotal
@@ -296,12 +320,14 @@ type BaselineMetadataValue = original.BaselineMetadataValue
 type BaselineProperties = original.BaselineProperties
 type BaselineResponse = original.BaselineResponse
 type CalculateBaselineResponse = original.CalculateBaselineResponse
+type Criteria = original.Criteria
 type DiagnosticSettings = original.DiagnosticSettings
 type DiagnosticSettingsCategory = original.DiagnosticSettingsCategory
 type DiagnosticSettingsCategoryResource = original.DiagnosticSettingsCategoryResource
 type DiagnosticSettingsCategoryResourceCollection = original.DiagnosticSettingsCategoryResourceCollection
 type DiagnosticSettingsResource = original.DiagnosticSettingsResource
 type DiagnosticSettingsResourceCollection = original.DiagnosticSettingsResourceCollection
+type Dimension = original.Dimension
 type EmailNotification = original.EmailNotification
 type EmailReceiver = original.EmailReceiver
 type EnableRequest = original.EnableRequest
@@ -329,6 +355,7 @@ type LogSearchRuleResource = original.LogSearchRuleResource
 type LogSearchRuleResourceCollection = original.LogSearchRuleResourceCollection
 type LogSearchRuleResourcePatch = original.LogSearchRuleResourcePatch
 type LogSettings = original.LogSettings
+type LogToMetricAction = original.LogToMetricAction
 type ManagementEventAggregationCondition = original.ManagementEventAggregationCondition
 type ManagementEventRuleCondition = original.ManagementEventRuleCondition
 type MetadataValue = original.MetadataValue
@@ -336,6 +363,7 @@ type Metric = original.Metric
 type MetricAlertAction = original.MetricAlertAction
 type BasicMetricAlertCriteria = original.BasicMetricAlertCriteria
 type MetricAlertCriteria = original.MetricAlertCriteria
+type MetricAlertMultipleResourceMultipleMetricCriteria = original.MetricAlertMultipleResourceMultipleMetricCriteria
 type MetricAlertProperties = original.MetricAlertProperties
 type MetricAlertResource = original.MetricAlertResource
 type MetricAlertResourceCollection = original.MetricAlertResourceCollection
@@ -349,9 +377,14 @@ type MetricCriteria = original.MetricCriteria
 type MetricDefinition = original.MetricDefinition
 type MetricDefinitionCollection = original.MetricDefinitionCollection
 type MetricDimension = original.MetricDimension
+type MetricNamespace = original.MetricNamespace
+type MetricNamespaceCollection = original.MetricNamespaceCollection
+type MetricNamespaceName = original.MetricNamespaceName
 type MetricSettings = original.MetricSettings
 type MetricTrigger = original.MetricTrigger
 type MetricValue = original.MetricValue
+type BasicMultiMetricCriteria = original.BasicMultiMetricCriteria
+type MultiMetricCriteria = original.MultiMetricCriteria
 type Operation = original.Operation
 type OperationDisplay = original.OperationDisplay
 type OperationListResult = original.OperationListResult
@@ -481,6 +514,12 @@ func NewMetricDefinitionsClient(subscriptionID string) MetricDefinitionsClient {
 func NewMetricDefinitionsClientWithBaseURI(baseURI string, subscriptionID string) MetricDefinitionsClient {
 	return original.NewMetricDefinitionsClientWithBaseURI(baseURI, subscriptionID)
 }
+func NewMetricNamespacesClient(subscriptionID string) MetricNamespacesClient {
+	return original.NewMetricNamespacesClient(subscriptionID)
+}
+func NewMetricNamespacesClientWithBaseURI(baseURI string, subscriptionID string) MetricNamespacesClient {
+	return original.NewMetricNamespacesClientWithBaseURI(baseURI, subscriptionID)
+}
 func NewMetricsClient(subscriptionID string) MetricsClient {
 	return original.NewMetricsClient(subscriptionID)
 }
@@ -504,6 +543,9 @@ func PossibleConditionalOperatorValues() []ConditionalOperator {
 }
 func PossibleConditionOperatorValues() []ConditionOperator {
 	return original.PossibleConditionOperatorValues()
+}
+func PossibleCriterionTypeValues() []CriterionType {
+	return original.PossibleCriterionTypeValues()
 }
 func PossibleEnabledValues() []Enabled {
 	return original.PossibleEnabledValues()
@@ -540,6 +582,9 @@ func PossibleQueryTypeValues() []QueryType {
 }
 func PossibleReceiverStatusValues() []ReceiverStatus {
 	return original.PossibleReceiverStatusValues()
+}
+func PossibleRecurrenceFrequencyValues() []RecurrenceFrequency {
+	return original.PossibleRecurrenceFrequencyValues()
 }
 func PossibleResultTypeValues() []ResultType {
 	return original.PossibleResultTypeValues()

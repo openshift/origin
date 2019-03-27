@@ -19,7 +19,7 @@
 
 package botservice
 
-import original "github.com/Azure/azure-sdk-for-go/services/preview/botservice/mgmt/2017-12-01/botservices"
+import original "github.com/Azure/azure-sdk-for-go/services/preview/botservice/mgmt/2018-07-12/botservices"
 
 type BotConnectionClient = original.BotConnectionClient
 type BotsClient = original.BotsClient
@@ -30,6 +30,7 @@ const (
 )
 
 type BaseClient = original.BaseClient
+type EnterpriseChannelsClient = original.EnterpriseChannelsClient
 type ChannelName = original.ChannelName
 
 const (
@@ -59,6 +60,36 @@ const (
 	ChannelNameSmsChannel1        ChannelNameBasicChannel = original.ChannelNameSmsChannel1
 	ChannelNameTelegramChannel1   ChannelNameBasicChannel = original.ChannelNameTelegramChannel1
 	ChannelNameWebChatChannel1    ChannelNameBasicChannel = original.ChannelNameWebChatChannel1
+)
+
+type EnterpriseChannelNodeState = original.EnterpriseChannelNodeState
+
+const (
+	CreateFailed EnterpriseChannelNodeState = original.CreateFailed
+	Creating     EnterpriseChannelNodeState = original.Creating
+	DeleteFailed EnterpriseChannelNodeState = original.DeleteFailed
+	Deleting     EnterpriseChannelNodeState = original.Deleting
+	Started      EnterpriseChannelNodeState = original.Started
+	StartFailed  EnterpriseChannelNodeState = original.StartFailed
+	Starting     EnterpriseChannelNodeState = original.Starting
+	StopFailed   EnterpriseChannelNodeState = original.StopFailed
+	Stopped      EnterpriseChannelNodeState = original.Stopped
+	Stopping     EnterpriseChannelNodeState = original.Stopping
+)
+
+type EnterpriseChannelState = original.EnterpriseChannelState
+
+const (
+	EnterpriseChannelStateCreateFailed EnterpriseChannelState = original.EnterpriseChannelStateCreateFailed
+	EnterpriseChannelStateCreating     EnterpriseChannelState = original.EnterpriseChannelStateCreating
+	EnterpriseChannelStateDeleteFailed EnterpriseChannelState = original.EnterpriseChannelStateDeleteFailed
+	EnterpriseChannelStateDeleting     EnterpriseChannelState = original.EnterpriseChannelStateDeleting
+	EnterpriseChannelStateStarted      EnterpriseChannelState = original.EnterpriseChannelStateStarted
+	EnterpriseChannelStateStartFailed  EnterpriseChannelState = original.EnterpriseChannelStateStartFailed
+	EnterpriseChannelStateStarting     EnterpriseChannelState = original.EnterpriseChannelStateStarting
+	EnterpriseChannelStateStopFailed   EnterpriseChannelState = original.EnterpriseChannelStateStopFailed
+	EnterpriseChannelStateStopped      EnterpriseChannelState = original.EnterpriseChannelStateStopped
+	EnterpriseChannelStateStopping     EnterpriseChannelState = original.EnterpriseChannelStateStopping
 )
 
 type Kind = original.Kind
@@ -109,6 +140,17 @@ type DirectLineChannelProperties = original.DirectLineChannelProperties
 type DirectLineSite = original.DirectLineSite
 type EmailChannel = original.EmailChannel
 type EmailChannelProperties = original.EmailChannelProperties
+type EnterpriseChannel = original.EnterpriseChannel
+type EnterpriseChannelCheckNameAvailabilityRequest = original.EnterpriseChannelCheckNameAvailabilityRequest
+type EnterpriseChannelCheckNameAvailabilityResponse = original.EnterpriseChannelCheckNameAvailabilityResponse
+type EnterpriseChannelNode = original.EnterpriseChannelNode
+type EnterpriseChannelProperties = original.EnterpriseChannelProperties
+type EnterpriseChannelResponseList = original.EnterpriseChannelResponseList
+type EnterpriseChannelResponseListIterator = original.EnterpriseChannelResponseListIterator
+type EnterpriseChannelResponseListPage = original.EnterpriseChannelResponseListPage
+type EnterpriseChannelsCreateFuture = original.EnterpriseChannelsCreateFuture
+type EnterpriseChannelsDeleteFuture = original.EnterpriseChannelsDeleteFuture
+type EnterpriseChannelsUpdateFuture = original.EnterpriseChannelsUpdateFuture
 type Error = original.Error
 type ErrorBody = original.ErrorBody
 type FacebookChannel = original.FacebookChannel
@@ -166,11 +208,23 @@ func New(subscriptionID string) BaseClient {
 func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
 	return original.NewWithBaseURI(baseURI, subscriptionID)
 }
+func NewEnterpriseChannelsClient(subscriptionID string) EnterpriseChannelsClient {
+	return original.NewEnterpriseChannelsClient(subscriptionID)
+}
+func NewEnterpriseChannelsClientWithBaseURI(baseURI string, subscriptionID string) EnterpriseChannelsClient {
+	return original.NewEnterpriseChannelsClientWithBaseURI(baseURI, subscriptionID)
+}
 func PossibleChannelNameValues() []ChannelName {
 	return original.PossibleChannelNameValues()
 }
 func PossibleChannelNameBasicChannelValues() []ChannelNameBasicChannel {
 	return original.PossibleChannelNameBasicChannelValues()
+}
+func PossibleEnterpriseChannelNodeStateValues() []EnterpriseChannelNodeState {
+	return original.PossibleEnterpriseChannelNodeStateValues()
+}
+func PossibleEnterpriseChannelStateValues() []EnterpriseChannelState {
+	return original.PossibleEnterpriseChannelStateValues()
 }
 func PossibleKindValues() []Kind {
 	return original.PossibleKindValues()

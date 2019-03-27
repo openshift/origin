@@ -109,6 +109,10 @@
                     "value": "kubernetes"
                   },
                   {
+                    "name": "HEKETI_DB_PATH",
+                    "value": "/var/lib/heketi/heketi.db"
+                  },
+                  {
                     "name": "HEKETI_FSTAB",
                     "value": "/var/lib/heketi/fstab"
                   },

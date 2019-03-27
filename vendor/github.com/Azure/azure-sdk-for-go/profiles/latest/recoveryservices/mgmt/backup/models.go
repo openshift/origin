@@ -385,15 +385,6 @@ const (
 	ObjectTypeOperationResultInfoBase       ObjectType = original.ObjectTypeOperationResultInfoBase
 )
 
-type ObjectTypeBasicBackupRequest = original.ObjectTypeBasicBackupRequest
-
-const (
-	ObjectTypeAzureFileShareBackupRequest ObjectTypeBasicBackupRequest = original.ObjectTypeAzureFileShareBackupRequest
-	ObjectTypeAzureWorkloadBackupRequest  ObjectTypeBasicBackupRequest = original.ObjectTypeAzureWorkloadBackupRequest
-	ObjectTypeBackupRequest               ObjectTypeBasicBackupRequest = original.ObjectTypeBackupRequest
-	ObjectTypeIaasVMBackupRequest         ObjectTypeBasicBackupRequest = original.ObjectTypeIaasVMBackupRequest
-)
-
 type ObjectTypeBasicILRRequest = original.ObjectTypeBasicILRRequest
 
 const (
@@ -422,6 +413,15 @@ const (
 	ObjectTypeGenericRecoveryPoint                         ObjectTypeBasicRecoveryPoint = original.ObjectTypeGenericRecoveryPoint
 	ObjectTypeIaasVMRecoveryPoint                          ObjectTypeBasicRecoveryPoint = original.ObjectTypeIaasVMRecoveryPoint
 	ObjectTypeRecoveryPoint                                ObjectTypeBasicRecoveryPoint = original.ObjectTypeRecoveryPoint
+)
+
+type ObjectTypeBasicRequest = original.ObjectTypeBasicRequest
+
+const (
+	ObjectTypeAzureFileShareBackupRequest ObjectTypeBasicRequest = original.ObjectTypeAzureFileShareBackupRequest
+	ObjectTypeAzureWorkloadBackupRequest  ObjectTypeBasicRequest = original.ObjectTypeAzureWorkloadBackupRequest
+	ObjectTypeBackupRequest               ObjectTypeBasicRequest = original.ObjectTypeBackupRequest
+	ObjectTypeIaasVMBackupRequest         ObjectTypeBasicRequest = original.ObjectTypeIaasVMBackupRequest
 )
 
 type ObjectTypeBasicRestoreRequest = original.ObjectTypeBasicRestoreRequest
@@ -1232,9 +1232,6 @@ func PossibleMonthOfYearValues() []MonthOfYear {
 func PossibleObjectTypeValues() []ObjectType {
 	return original.PossibleObjectTypeValues()
 }
-func PossibleObjectTypeBasicBackupRequestValues() []ObjectTypeBasicBackupRequest {
-	return original.PossibleObjectTypeBasicBackupRequestValues()
-}
 func PossibleObjectTypeBasicILRRequestValues() []ObjectTypeBasicILRRequest {
 	return original.PossibleObjectTypeBasicILRRequestValues()
 }
@@ -1243,6 +1240,9 @@ func PossibleObjectTypeBasicOperationStatusExtendedInfoValues() []ObjectTypeBasi
 }
 func PossibleObjectTypeBasicRecoveryPointValues() []ObjectTypeBasicRecoveryPoint {
 	return original.PossibleObjectTypeBasicRecoveryPointValues()
+}
+func PossibleObjectTypeBasicRequestValues() []ObjectTypeBasicRequest {
+	return original.PossibleObjectTypeBasicRequestValues()
 }
 func PossibleObjectTypeBasicRestoreRequestValues() []ObjectTypeBasicRestoreRequest {
 	return original.PossibleObjectTypeBasicRestoreRequestValues()

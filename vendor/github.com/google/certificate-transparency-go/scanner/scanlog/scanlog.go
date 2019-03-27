@@ -31,6 +31,7 @@ import (
 	"github.com/google/certificate-transparency-go/client"
 	"github.com/google/certificate-transparency-go/jsonclient"
 	"github.com/google/certificate-transparency-go/scanner"
+	"github.com/google/certificate-transparency-go/x509"
 )
 
 const (
@@ -38,58 +39,58 @@ const (
 	matchesNothingRegex = "a^"
 )
 
-var logURI = flag.String("log_uri", "http://ct.googleapis.com/aviator", "CT log base URI")
-var matchSubjectRegex = flag.String("match_subject_regex", ".*", "Regex to match CN/SAN")
-var matchIssuerRegex = flag.String("match_issuer_regex", "", "Regex to match in issuer CN")
-var precertsOnly = flag.Bool("precerts_only", false, "Only match precerts")
-var serialNumber = flag.String("serial_number", "", "Serial number of certificate of interest")
-var parseErrors = flag.Bool("parse_errors", false, "Only match certificates with parse errors")
-var nfParseErrors = flag.Bool("non_fatal_errors", false, "Treat non-fatal parse errors as also matching (with --parse_errors)")
-var validateErrors = flag.Bool("validate_errors", false, "Only match certificates with validation errors")
-var batchSize = flag.Int("batch_size", 1000, "Max number of entries to request at per call to get-entries")
-var numWorkers = flag.Int("num_workers", 2, "Number of concurrent matchers")
-var parallelFetch = flag.Int("parallel_fetch", 2, "Number of concurrent GetEntries fetches")
-var startIndex = flag.Int64("start_index", 0, "Log index to start scanning at")
-var quiet = flag.Bool("quiet", false, "Don't print out extra logging messages, only matches.")
-var printChains = flag.Bool("print_chains", false, "If true prints the whole chain rather than a summary")
-var dumpDir = flag.String("dump_dir", "", "Directory to store matched certificates in")
+var (
+	logURI = flag.String("log_uri", "https://ct.googleapis.com/aviator", "CT log base URI")
 
-func dumpData(entry *ct.LogEntry) {
+	matchSubjectRegex = flag.String("match_subject_regex", ".*", "Regex to match CN/SAN")
+	matchIssuerRegex  = flag.String("match_issuer_regex", "", "Regex to match in issuer CN")
+	precertsOnly      = flag.Bool("precerts_only", false, "Only match precerts")
+	serialNumber      = flag.String("serial_number", "", "Serial number of certificate of interest")
+	sctTimestamp      = flag.Uint64("sct_timestamp_ms", 0, "Timestamp of logged SCT")
+
+	parseErrors    = flag.Bool("parse_errors", false, "Only match certificates with parse errors")
+	nfParseErrors  = flag.Bool("non_fatal_errors", false, "Treat non-fatal parse errors as also matching (with --parse_errors)")
+	validateErrors = flag.Bool("validate_errors", false, "Only match certificates with validation errors")
+
+	batchSize     = flag.Int("batch_size", 1000, "Max number of entries to request at per call to get-entries")
+	numWorkers    = flag.Int("num_workers", 2, "Number of concurrent matchers")
+	parallelFetch = flag.Int("parallel_fetch", 2, "Number of concurrent GetEntries fetches")
+	startIndex    = flag.Int64("start_index", 0, "Log index to start scanning at")
+	endIndex      = flag.Int64("end_index", 0, "Log index to end scanning at (non-inclusive, 0 = end of log)")
+
+	printChains = flag.Bool("print_chains", false, "If true prints the whole chain rather than a summary")
+	dumpDir     = flag.String("dump_dir", "", "Directory to store matched certificates in")
+)
+
+func dumpData(entry *ct.RawLogEntry) {
 	if *dumpDir == "" {
 		return
 	}
-	chainFrom := 0
 	prefix := "unknown"
-	if entry.Leaf.TimestampedEntry.EntryType == ct.X509LogEntryType {
+	suffix := "unknown"
+	switch eType := entry.Leaf.TimestampedEntry.EntryType; eType {
+	case ct.X509LogEntryType:
 		prefix = "cert"
-		name := fmt.Sprintf("%s-%014d-leaf.der", prefix, entry.Index)
-		filename := path.Join(*dumpDir, name)
-		err := ioutil.WriteFile(filename, entry.Leaf.TimestampedEntry.X509Entry.Data, 0644)
-		if err != nil {
-			log.Printf("Failed to dump data for %s at index %d: %v", prefix, entry.Index, err)
-		}
-	} else if entry.Leaf.TimestampedEntry.EntryType == ct.PrecertLogEntryType {
-		prefix = "pecert"
-		// For a pre-certificate the TimestampedEntry only holds the TBSCertificate, but
-		// the Chain data has the full pre-certificate as the first entry.
-		name := fmt.Sprintf("%s-%014d-precert.der", prefix, entry.Index)
-		filename := path.Join(*dumpDir, name)
-		if len(entry.Chain) == 0 {
-			log.Printf("Precert entry missing chain[0] at index %d", entry.Index)
-			return
-		}
-		if err := ioutil.WriteFile(filename, entry.Chain[0].Data, 0644); err != nil {
-			log.Printf("Failed to dump data for %s at index %d: %v", prefix, entry.Index, err)
-		}
-		chainFrom = 1
-	} else {
-		log.Printf("Unknown log entry type %d", entry.Leaf.TimestampedEntry.EntryType)
+		suffix = "leaf"
+	case ct.PrecertLogEntryType:
+		prefix = "precert"
+		suffix = "precert"
+	default:
+		log.Printf("Unknown log entry type %d", eType)
 	}
-	for ii := chainFrom; ii < len(entry.Chain); ii++ {
+
+	if len(entry.Cert.Data) > 0 {
+		name := fmt.Sprintf("%s-%014d-%s.der", prefix, entry.Index, suffix)
+		filename := path.Join(*dumpDir, name)
+		if err := ioutil.WriteFile(filename, entry.Cert.Data, 0644); err != nil {
+			log.Printf("Failed to dump data for %s at index %d: %v", prefix, entry.Index, err)
+		}
+	}
+
+	for ii := 0; ii < len(entry.Chain); ii++ {
 		name := fmt.Sprintf("%s-%014d-%02d.der", prefix, entry.Index, ii)
 		filename := path.Join(*dumpDir, name)
-		err := ioutil.WriteFile(filename, entry.Chain[ii].Data, 0644)
-		if err != nil {
+		if err := ioutil.WriteFile(filename, entry.Chain[ii].Data, 0644); err != nil {
 			log.Printf("Failed to dump data for CA at index %d: %v", entry.Index, err)
 		}
 	}
@@ -97,25 +98,26 @@ func dumpData(entry *ct.LogEntry) {
 
 // Prints out a short bit of info about |cert|, found at |index| in the
 // specified log
-func logCertInfo(entry *ct.LogEntry) {
-	if entry.X509Cert != nil {
-		log.Printf("Process cert at index %d: CN: '%s'", entry.Index, entry.X509Cert.Subject.CommonName)
-		dumpData(entry)
+func logCertInfo(entry *ct.RawLogEntry) {
+	parsedEntry, err := entry.ToLogEntry()
+	if x509.IsFatal(err) || parsedEntry.X509Cert == nil {
+		log.Printf("Process cert at index %d: <unparsed: %v>", entry.Index, err)
 	} else {
-		log.Printf("Process cert at index %d: <unparsed>", entry.Index)
+		log.Printf("Process cert at index %d: CN: '%s'", entry.Index, parsedEntry.X509Cert.Subject.CommonName)
 	}
+	dumpData(entry)
 }
 
 // Prints out a short bit of info about |precert|, found at |index| in the
 // specified log
-func logPrecertInfo(entry *ct.LogEntry) {
-	if entry.Precert != nil {
-		log.Printf("Process precert at index %d: CN: '%s' Issuer: %s", entry.Index,
-			entry.Precert.TBSCertificate.Subject.CommonName, entry.Precert.TBSCertificate.Issuer.CommonName)
-		dumpData(entry)
+func logPrecertInfo(entry *ct.RawLogEntry) {
+	parsedEntry, err := entry.ToLogEntry()
+	if x509.IsFatal(err) || parsedEntry.Precert == nil {
+		log.Printf("Process precert at index %d: <unparsed: %v>", entry.Index, err)
 	} else {
-		log.Printf("Process precert at index %d: <unparsed>", entry.Index)
+		log.Printf("Process precert at index %d: CN: '%s' Issuer: %s", entry.Index, parsedEntry.Precert.TBSCertificate.Subject.CommonName, parsedEntry.Precert.TBSCertificate.Issuer.CommonName)
 	}
+	dumpData(entry)
 }
 
 func chainToString(certs []ct.ASN1Cert) string {
@@ -128,7 +130,7 @@ func chainToString(certs []ct.ASN1Cert) string {
 	return base64.StdEncoding.EncodeToString(output)
 }
 
-func logFullChain(entry *ct.LogEntry) {
+func logFullChain(entry *ct.RawLogEntry) {
 	log.Printf("Index %d: Chain: %s", entry.Index, chainToString(entry.Chain))
 }
 
@@ -170,6 +172,10 @@ func createMatcherFromFlags(logClient *client.LogClient) (interface{}, error) {
 		}
 		return scanner.MatchSerialNumber{SerialNumber: sn}, nil
 	}
+	if *sctTimestamp != 0 {
+		log.Printf("Using SCT Timestamp matcher on %d (%v)", *sctTimestamp, time.Unix(0, int64(*sctTimestamp*1000000)))
+		return scanner.MatchSCTTimestamp{Timestamp: *sctTimestamp}, nil
+	}
 	certRegex, precertRegex := createRegexes(*matchSubjectRegex)
 	return scanner.MatchSubjectRegex{
 		CertificateSubjectRegex:    certRegex,
@@ -178,6 +184,7 @@ func createMatcherFromFlags(logClient *client.LogClient) (interface{}, error) {
 
 func main() {
 	flag.Parse()
+
 	logClient, err := client.New(*logURI, &http.Client{
 		Timeout: 10 * time.Second,
 		Transport: &http.Transport{
@@ -199,12 +206,14 @@ func main() {
 	}
 
 	opts := scanner.ScannerOptions{
-		Matcher:       matcher,
-		BatchSize:     *batchSize,
-		NumWorkers:    *numWorkers,
-		ParallelFetch: *parallelFetch,
-		StartIndex:    *startIndex,
-		Quiet:         *quiet,
+		FetcherOptions: scanner.FetcherOptions{
+			BatchSize:     *batchSize,
+			ParallelFetch: *parallelFetch,
+			StartIndex:    *startIndex,
+			EndIndex:      *endIndex,
+		},
+		Matcher:    matcher,
+		NumWorkers: *numWorkers,
 	}
 	scanner := scanner.NewScanner(logClient, opts)
 

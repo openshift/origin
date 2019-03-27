@@ -3,9 +3,11 @@
 package v1
 
 import (
+	"time"
+
 	v1 "github.com/openshift/api/config/v1"
 	scheme "github.com/openshift/client-go/config/clientset/versioned/scheme"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
@@ -22,11 +24,11 @@ type OAuthInterface interface {
 	Create(*v1.OAuth) (*v1.OAuth, error)
 	Update(*v1.OAuth) (*v1.OAuth, error)
 	UpdateStatus(*v1.OAuth) (*v1.OAuth, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
-	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1.OAuth, error)
-	List(opts meta_v1.ListOptions) (*v1.OAuthList, error)
-	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Delete(name string, options *metav1.DeleteOptions) error
+	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
+	Get(name string, options metav1.GetOptions) (*v1.OAuth, error)
+	List(opts metav1.ListOptions) (*v1.OAuthList, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.OAuth, err error)
 	OAuthExpansion
 }
@@ -44,7 +46,7 @@ func newOAuths(c *ConfigV1Client) *oAuths {
 }
 
 // Get takes name of the oAuth, and returns the corresponding oAuth object, and an error if there is any.
-func (c *oAuths) Get(name string, options meta_v1.GetOptions) (result *v1.OAuth, err error) {
+func (c *oAuths) Get(name string, options metav1.GetOptions) (result *v1.OAuth, err error) {
 	result = &v1.OAuth{}
 	err = c.client.Get().
 		Resource("oauths").
@@ -56,22 +58,32 @@ func (c *oAuths) Get(name string, options meta_v1.GetOptions) (result *v1.OAuth,
 }
 
 // List takes label and field selectors, and returns the list of OAuths that match those selectors.
-func (c *oAuths) List(opts meta_v1.ListOptions) (result *v1.OAuthList, err error) {
+func (c *oAuths) List(opts metav1.ListOptions) (result *v1.OAuthList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1.OAuthList{}
 	err = c.client.Get().
 		Resource("oauths").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested oAuths.
-func (c *oAuths) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *oAuths) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Resource("oauths").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -114,7 +126,7 @@ func (c *oAuths) UpdateStatus(oAuth *v1.OAuth) (result *v1.OAuth, err error) {
 }
 
 // Delete takes name of the oAuth and deletes it. Returns an error if one occurs.
-func (c *oAuths) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *oAuths) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("oauths").
 		Name(name).
@@ -124,10 +136,15 @@ func (c *oAuths) Delete(name string, options *meta_v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *oAuths) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *oAuths) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Resource("oauths").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

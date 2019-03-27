@@ -5,7 +5,7 @@ package v1alpha1
 import (
 	time "time"
 
-	servicecertsigner_v1alpha1 "github.com/openshift/api/servicecertsigner/v1alpha1"
+	servicecertsignerv1alpha1 "github.com/openshift/api/servicecertsigner/v1alpha1"
 	versioned "github.com/openshift/client-go/servicecertsigner/clientset/versioned"
 	internalinterfaces "github.com/openshift/client-go/servicecertsigner/informers/externalversions/internalinterfaces"
 	v1alpha1 "github.com/openshift/client-go/servicecertsigner/listers/servicecertsigner/v1alpha1"
@@ -53,7 +53,7 @@ func NewFilteredServiceCertSignerOperatorConfigInformer(client versioned.Interfa
 				return client.ServicecertsignerV1alpha1().ServiceCertSignerOperatorConfigs().Watch(options)
 			},
 		},
-		&servicecertsigner_v1alpha1.ServiceCertSignerOperatorConfig{},
+		&servicecertsignerv1alpha1.ServiceCertSignerOperatorConfig{},
 		resyncPeriod,
 		indexers,
 	)
@@ -64,7 +64,7 @@ func (f *serviceCertSignerOperatorConfigInformer) defaultInformer(client version
 }
 
 func (f *serviceCertSignerOperatorConfigInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&servicecertsigner_v1alpha1.ServiceCertSignerOperatorConfig{}, f.defaultInformer)
+	return f.factory.InformerFor(&servicecertsignerv1alpha1.ServiceCertSignerOperatorConfig{}, f.defaultInformer)
 }
 
 func (f *serviceCertSignerOperatorConfigInformer) Lister() v1alpha1.ServiceCertSignerOperatorConfigLister {

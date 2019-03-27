@@ -61,6 +61,7 @@ var allMetrics = container.MetricSet{
 	container.NetworkUsageMetrics:     struct{}{},
 	container.NetworkTcpUsageMetrics:  struct{}{},
 	container.NetworkUdpUsageMetrics:  struct{}{},
+	container.ProcessMetrics:          struct{}{},
 }
 
 func (p testSubcontainersInfoProvider) SubcontainersInfo(string, *info.ContainerInfoRequest) ([]*info.ContainerInfo, error) {
@@ -229,6 +230,10 @@ func (p testSubcontainersInfoProvider) SubcontainersInfo(string, *info.Container
 							MemoryUsed:  1020304050,
 							DutyCycle:   6,
 						},
+					},
+					Processes: info.ProcessStats{
+						ProcessCount: 1,
+						FdCount:      5,
 					},
 					TaskStats: info.LoadStats{
 						NrSleeping:        50,

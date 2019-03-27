@@ -469,8 +469,6 @@ type ApplicationPublishObject struct {
 	VersionID *string `json:"versionId,omitempty"`
 	// IsStaging - Indicates if the staging slot should be used, instead of the Production one.
 	IsStaging *bool `json:"isStaging,omitempty"`
-	// Region - The target region that the application is published to.
-	Region *string `json:"region,omitempty"`
 }
 
 // ApplicationSettings the application settings.
@@ -494,6 +492,14 @@ type ApplicationUpdateObject struct {
 	Name *string `json:"name,omitempty"`
 	// Description - The application's new description.
 	Description *string `json:"description,omitempty"`
+}
+
+// AppVersionSettingObject object model of an application version setting.
+type AppVersionSettingObject struct {
+	// Name - The application version setting name.
+	Name *string `json:"name,omitempty"`
+	// Value - The application version setting value.
+	Value *string `json:"value,omitempty"`
 }
 
 // AvailableCulture available culture for using in a new application.
@@ -770,6 +776,42 @@ func (er ErrorResponse) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
+// UnmarshalJSON is the custom unmarshaler for ErrorResponse struct.
+func (er *ErrorResponse) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		default:
+			if v != nil {
+				var additionalProperties interface{}
+				err = json.Unmarshal(*v, &additionalProperties)
+				if err != nil {
+					return err
+				}
+				if er.AdditionalProperties == nil {
+					er.AdditionalProperties = make(map[string]interface{})
+				}
+				er.AdditionalProperties[k] = additionalProperties
+			}
+		case "errorType":
+			if v != nil {
+				var errorType string
+				err = json.Unmarshal(*v, &errorType)
+				if err != nil {
+					return err
+				}
+				er.ErrorType = &errorType
+			}
+		}
+	}
+
+	return nil
+}
+
 // ExampleLabelObject a labeled example.
 type ExampleLabelObject struct {
 	// Text - The sample's utterance.
@@ -997,6 +1039,12 @@ type LabelTextObject struct {
 type ListApplicationInfoResponse struct {
 	autorest.Response `json:"-"`
 	Value             *[]ApplicationInfoResponse `json:"value,omitempty"`
+}
+
+// ListAppVersionSettingObject ...
+type ListAppVersionSettingObject struct {
+	autorest.Response `json:"-"`
+	Value             *[]AppVersionSettingObject `json:"value,omitempty"`
 }
 
 // ListAvailableCulture ...
@@ -1244,6 +1292,168 @@ func (la LuisApp) MarshalJSON() ([]byte, error) {
 		objectMap[k] = v
 	}
 	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for LuisApp struct.
+func (la *LuisApp) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		default:
+			if v != nil {
+				var additionalProperties interface{}
+				err = json.Unmarshal(*v, &additionalProperties)
+				if err != nil {
+					return err
+				}
+				if la.AdditionalProperties == nil {
+					la.AdditionalProperties = make(map[string]interface{})
+				}
+				la.AdditionalProperties[k] = additionalProperties
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				la.Name = &name
+			}
+		case "versionId":
+			if v != nil {
+				var versionID string
+				err = json.Unmarshal(*v, &versionID)
+				if err != nil {
+					return err
+				}
+				la.VersionID = &versionID
+			}
+		case "desc":
+			if v != nil {
+				var desc string
+				err = json.Unmarshal(*v, &desc)
+				if err != nil {
+					return err
+				}
+				la.Desc = &desc
+			}
+		case "culture":
+			if v != nil {
+				var culture string
+				err = json.Unmarshal(*v, &culture)
+				if err != nil {
+					return err
+				}
+				la.Culture = &culture
+			}
+		case "intents":
+			if v != nil {
+				var intents []HierarchicalModel
+				err = json.Unmarshal(*v, &intents)
+				if err != nil {
+					return err
+				}
+				la.Intents = &intents
+			}
+		case "entities":
+			if v != nil {
+				var entities []HierarchicalModel
+				err = json.Unmarshal(*v, &entities)
+				if err != nil {
+					return err
+				}
+				la.Entities = &entities
+			}
+		case "closedLists":
+			if v != nil {
+				var closedLists []ClosedList
+				err = json.Unmarshal(*v, &closedLists)
+				if err != nil {
+					return err
+				}
+				la.ClosedLists = &closedLists
+			}
+		case "composites":
+			if v != nil {
+				var composites []HierarchicalModel
+				err = json.Unmarshal(*v, &composites)
+				if err != nil {
+					return err
+				}
+				la.Composites = &composites
+			}
+		case "patternAnyEntities":
+			if v != nil {
+				var patternAnyEntities []PatternAny
+				err = json.Unmarshal(*v, &patternAnyEntities)
+				if err != nil {
+					return err
+				}
+				la.PatternAnyEntities = &patternAnyEntities
+			}
+		case "regex_entities":
+			if v != nil {
+				var regexEntities []RegexEntity
+				err = json.Unmarshal(*v, &regexEntities)
+				if err != nil {
+					return err
+				}
+				la.RegexEntities = &regexEntities
+			}
+		case "prebuiltEntities":
+			if v != nil {
+				var prebuiltEntities []PrebuiltEntity
+				err = json.Unmarshal(*v, &prebuiltEntities)
+				if err != nil {
+					return err
+				}
+				la.PrebuiltEntities = &prebuiltEntities
+			}
+		case "regex_features":
+			if v != nil {
+				var regexFeatures []JSONRegexFeature
+				err = json.Unmarshal(*v, &regexFeatures)
+				if err != nil {
+					return err
+				}
+				la.RegexFeatures = &regexFeatures
+			}
+		case "model_features":
+			if v != nil {
+				var modelFeatures []JSONModelFeature
+				err = json.Unmarshal(*v, &modelFeatures)
+				if err != nil {
+					return err
+				}
+				la.ModelFeatures = &modelFeatures
+			}
+		case "patterns":
+			if v != nil {
+				var patterns []PatternRule
+				err = json.Unmarshal(*v, &patterns)
+				if err != nil {
+					return err
+				}
+				la.Patterns = &patterns
+			}
+		case "utterances":
+			if v != nil {
+				var utterances []JSONUtterance
+				err = json.Unmarshal(*v, &utterances)
+				if err != nil {
+					return err
+				}
+				la.Utterances = &utterances
+			}
+		}
+	}
+
+	return nil
 }
 
 // ModelCreateObject object model for creating a new entity extractor.

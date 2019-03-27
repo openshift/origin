@@ -15,6 +15,7 @@
 package clientv3_test
 
 import (
+	"context"
 	"log"
 	"os"
 	"time"
@@ -22,7 +23,6 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/pkg/transport"
 
-	"golang.org/x/net/context"
 	"google.golang.org/grpc/grpclog"
 )
 

@@ -5,11 +5,11 @@ package v1
 import (
 	time "time"
 
-	security_v1 "github.com/openshift/api/security/v1"
+	securityv1 "github.com/openshift/api/security/v1"
 	versioned "github.com/openshift/client-go/security/clientset/versioned"
 	internalinterfaces "github.com/openshift/client-go/security/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/client-go/security/listers/security/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
@@ -40,20 +40,20 @@ func NewSecurityContextConstraintsInformer(client versioned.Interface, resyncPer
 func NewFilteredSecurityContextConstraintsInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.SecurityV1().SecurityContextConstraints().List(options)
 			},
-			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.SecurityV1().SecurityContextConstraints().Watch(options)
 			},
 		},
-		&security_v1.SecurityContextConstraints{},
+		&securityv1.SecurityContextConstraints{},
 		resyncPeriod,
 		indexers,
 	)
@@ -64,7 +64,7 @@ func (f *securityContextConstraintsInformer) defaultInformer(client versioned.In
 }
 
 func (f *securityContextConstraintsInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&security_v1.SecurityContextConstraints{}, f.defaultInformer)
+	return f.factory.InformerFor(&securityv1.SecurityContextConstraints{}, f.defaultInformer)
 }
 
 func (f *securityContextConstraintsInformer) Lister() v1.SecurityContextConstraintsLister {

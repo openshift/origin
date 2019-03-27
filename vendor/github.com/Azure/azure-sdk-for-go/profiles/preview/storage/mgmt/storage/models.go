@@ -19,7 +19,7 @@
 
 package storage
 
-import original "github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2018-02-01/storage"
+import original "github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2018-07-01/storage"
 
 type AccountsClient = original.AccountsClient
 type BlobContainersClient = original.BlobContainersClient
@@ -29,6 +29,7 @@ const (
 )
 
 type BaseClient = original.BaseClient
+type ManagementPoliciesClient = original.ManagementPoliciesClient
 type AccessTier = original.AccessTier
 
 const (
@@ -104,9 +105,11 @@ const (
 type Kind = original.Kind
 
 const (
-	BlobStorage Kind = original.BlobStorage
-	Storage     Kind = original.Storage
-	StorageV2   Kind = original.StorageV2
+	BlobStorage      Kind = original.BlobStorage
+	BlockBlobStorage Kind = original.BlockBlobStorage
+	FileStorage      Kind = original.FileStorage
+	Storage          Kind = original.Storage
+	StorageV2        Kind = original.StorageV2
 )
 
 type LeaseDuration = original.LeaseDuration
@@ -206,6 +209,7 @@ type SkuName = original.SkuName
 
 const (
 	PremiumLRS    SkuName = original.PremiumLRS
+	PremiumZRS    SkuName = original.PremiumZRS
 	StandardGRS   SkuName = original.StandardGRS
 	StandardLRS   SkuName = original.StandardLRS
 	StandardRAGRS SkuName = original.StandardRAGRS
@@ -246,6 +250,8 @@ type AccountCreateParameters = original.AccountCreateParameters
 type AccountKey = original.AccountKey
 type AccountListKeysResult = original.AccountListKeysResult
 type AccountListResult = original.AccountListResult
+type AccountManagementPolicies = original.AccountManagementPolicies
+type AccountManagementPoliciesRulesProperty = original.AccountManagementPoliciesRulesProperty
 type AccountProperties = original.AccountProperties
 type AccountPropertiesCreateParameters = original.AccountPropertiesCreateParameters
 type AccountPropertiesUpdateParameters = original.AccountPropertiesUpdateParameters
@@ -275,6 +281,8 @@ type ListAccountSasResponse = original.ListAccountSasResponse
 type ListContainerItem = original.ListContainerItem
 type ListContainerItems = original.ListContainerItems
 type ListServiceSasResponse = original.ListServiceSasResponse
+type ManagementPoliciesRules = original.ManagementPoliciesRules
+type ManagementPoliciesRulesSetParameter = original.ManagementPoliciesRulesSetParameter
 type MetricSpecification = original.MetricSpecification
 type NetworkRuleSet = original.NetworkRuleSet
 type Operation = original.Operation
@@ -298,7 +306,7 @@ type UsageName = original.UsageName
 type VirtualNetworkRule = original.VirtualNetworkRule
 type OperationsClient = original.OperationsClient
 type SkusClient = original.SkusClient
-type UsageClient = original.UsageClient
+type UsagesClient = original.UsagesClient
 
 func NewAccountsClient(subscriptionID string) AccountsClient {
 	return original.NewAccountsClient(subscriptionID)
@@ -317,6 +325,12 @@ func New(subscriptionID string) BaseClient {
 }
 func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
 	return original.NewWithBaseURI(baseURI, subscriptionID)
+}
+func NewManagementPoliciesClient(subscriptionID string) ManagementPoliciesClient {
+	return original.NewManagementPoliciesClient(subscriptionID)
+}
+func NewManagementPoliciesClientWithBaseURI(baseURI string, subscriptionID string) ManagementPoliciesClient {
+	return original.NewManagementPoliciesClientWithBaseURI(baseURI, subscriptionID)
 }
 func PossibleAccessTierValues() []AccessTier {
 	return original.PossibleAccessTierValues()
@@ -408,11 +422,11 @@ func NewSkusClient(subscriptionID string) SkusClient {
 func NewSkusClientWithBaseURI(baseURI string, subscriptionID string) SkusClient {
 	return original.NewSkusClientWithBaseURI(baseURI, subscriptionID)
 }
-func NewUsageClient(subscriptionID string) UsageClient {
-	return original.NewUsageClient(subscriptionID)
+func NewUsagesClient(subscriptionID string) UsagesClient {
+	return original.NewUsagesClient(subscriptionID)
 }
-func NewUsageClientWithBaseURI(baseURI string, subscriptionID string) UsageClient {
-	return original.NewUsageClientWithBaseURI(baseURI, subscriptionID)
+func NewUsagesClientWithBaseURI(baseURI string, subscriptionID string) UsagesClient {
+	return original.NewUsagesClientWithBaseURI(baseURI, subscriptionID)
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"

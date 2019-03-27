@@ -3623,7 +3623,7 @@ type GroupContractProperties struct {
 	BuiltIn *bool `json:"builtIn,omitempty"`
 	// Type - Group type. Possible values include: 'Custom', 'System', 'External'
 	Type GroupType `json:"type,omitempty"`
-	// ExternalID - For external groups, this property contains the id of the group from the external identity provider, e.g. for Azure Active Directory aad://<tenant>.onmicrosoft.com/groups/<group object id>; otherwise the value is null.
+	// ExternalID - For external groups, this property contains the id of the group from the external identity provider, e.g. for Azure Active Directory `aad://<tenant>.onmicrosoft.com/groups/<group object id>`; otherwise the value is null.
 	ExternalID *string `json:"externalId,omitempty"`
 }
 
@@ -3674,7 +3674,7 @@ type GroupCreateParametersProperties struct {
 	Description *string `json:"description,omitempty"`
 	// Type - Group type. Possible values include: 'Custom', 'System', 'External'
 	Type GroupType `json:"type,omitempty"`
-	// ExternalID - Identifier of the external groups, this property contains the id of the group from the external identity provider, e.g. for Azure Active Directory aad://<tenant>.onmicrosoft.com/groups/<group object id>; otherwise the value is null.
+	// ExternalID - Identifier of the external groups, this property contains the id of the group from the external identity provider, e.g. for Azure Active Directory `aad://<tenant>.onmicrosoft.com/groups/<group object id>`; otherwise the value is null.
 	ExternalID *string `json:"externalId,omitempty"`
 }
 
@@ -3725,7 +3725,7 @@ type GroupUpdateParametersProperties struct {
 	Description *string `json:"description,omitempty"`
 	// Type - Group type. Possible values include: 'Custom', 'System', 'External'
 	Type GroupType `json:"type,omitempty"`
-	// ExternalID - Identifier of the external groups, this property contains the id of the group from the external identity provider, e.g. for Azure Active Directory aad://<tenant>.onmicrosoft.com/groups/<group object id>; otherwise the value is null.
+	// ExternalID - Identifier of the external groups, this property contains the id of the group from the external identity provider, e.g. for Azure Active Directory `aad://<tenant>.onmicrosoft.com/groups/<group object id>`; otherwise the value is null.
 	ExternalID *string `json:"externalId,omitempty"`
 }
 

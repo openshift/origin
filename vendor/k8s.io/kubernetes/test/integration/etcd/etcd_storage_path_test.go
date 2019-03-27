@@ -61,23 +61,6 @@ func TestEtcdStoragePath(t *testing.T) {
 
 	etcdStorageData := GetEtcdStorageData()
 
-	client := &allClient{dynamicClient: dynamic.NewForConfigOrDie(clientConfig)}
-	kubeClient := clientset.NewForConfigOrDie(clientConfig)
-	if _, err := kubeClient.CoreV1().Namespaces().Create(&v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}); err != nil {
-		t.Fatal(err)
-	}
-
-	discoveryClient := cacheddiscovery.NewMemCacheClient(kubeClient.Discovery())
-	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
-	restMapper.Reset()
-
-	resourcesToPersist := []resourceToPersist{}
-	serverResources, err := kubeClient.Discovery().ServerResources()
-	if err != nil {
-		t.Fatal(err)
-	}
-	resourcesToPersist = append(resourcesToPersist, getResourcesToPersist(serverResources, false, t)...)
-
 	kindSeen := sets.NewString()
 	pathSeen := map[string][]schema.GroupVersionResource{}
 	etcdSeen := map[schema.GroupVersionResource]empty{}
@@ -291,7 +274,7 @@ func (c *allClient) create(stub, ns string, mapping *meta.RESTMapping, all *[]cl
 		return err
 	}
 
-	actual, err := resourceClient.Create(obj)
+	actual, err := resourceClient.Create(obj, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}

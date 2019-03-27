@@ -18,6 +18,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"net"
 	"net/url"
@@ -386,7 +387,7 @@ func TestMatchIP(t *testing.T) {
 func TestCertificateParse(t *testing.T) {
 	s, _ := hex.DecodeString(certBytes)
 	certs, err := ParseCertificates(s)
-	if err != nil {
+	if IsFatal(err) {
 		t.Error(err)
 	}
 	if len(certs) != 2 {
@@ -1085,7 +1086,8 @@ func TestRSAPSSSelfSigned(t *testing.T) {
 	}
 }
 
-const pemCertificate = `-----BEGIN CERTIFICATE-----
+const (
+	pemCertificate = `-----BEGIN CERTIFICATE-----
 MIIDATCCAemgAwIBAgIRAKQkkrFx1T/dgB/Go/xBM5swDQYJKoZIhvcNAQELBQAw
 EjEQMA4GA1UEChMHQWNtZSBDbzAeFw0xNjA4MTcyMDM2MDdaFw0xNzA4MTcyMDM2
 MDdaMBIxEDAOBgNVBAoTB0FjbWUgQ28wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAw
@@ -1104,6 +1106,64 @@ fnnktsblSUV4lRCit0ymC7Ojhe+gzCCwkgs5kDzVVag+tnl/0e2DloIjASwOhpbH
 KVcg7fBd484ht/sS+l0dsB4KDOSpd8JzVDMF8OZqlaydizoJO0yWr9GbCN1+OKq5
 EhLrEqU=
 -----END CERTIFICATE-----`
+	pemPrecertificate = `-----BEGIN CERTIFICATE-----
+MIIC3zCCAkigAwIBAgIBBzANBgkqhkiG9w0BAQUFADBVMQswCQYDVQQGEwJHQjEk
+MCIGA1UEChMbQ2VydGlmaWNhdGUgVHJhbnNwYXJlbmN5IENBMQ4wDAYDVQQIEwVX
+YWxlczEQMA4GA1UEBxMHRXJ3IFdlbjAeFw0xMjA2MDEwMDAwMDBaFw0yMjA2MDEw
+MDAwMDBaMFIxCzAJBgNVBAYTAkdCMSEwHwYDVQQKExhDZXJ0aWZpY2F0ZSBUcmFu
+c3BhcmVuY3kxDjAMBgNVBAgTBVdhbGVzMRAwDgYDVQQHEwdFcncgV2VuMIGfMA0G
+CSqGSIb3DQEBAQUAA4GNADCBiQKBgQC+75jnwmh3rjhfdTJaDB0ym+3xj6r015a/
+BH634c4VyVui+A7kWL19uG+KSyUhkaeb1wDDjpwDibRc1NyaEgqyHgy0HNDnKAWk
+EM2cW9tdSSdyba8XEPYBhzd+olsaHjnu0LiBGdwVTcaPfajjDK8VijPmyVCfSgWw
+FAn/Xdh+tQIDAQABo4HBMIG+MB0GA1UdDgQWBBQgMVQa8lwF/9hli2hDeU9ekDb3
+tDB9BgNVHSMEdjB0gBRfnYgNyHPmVNT4DdjmsMEktEfDVaFZpFcwVTELMAkGA1UE
+BhMCR0IxJDAiBgNVBAoTG0NlcnRpZmljYXRlIFRyYW5zcGFyZW5jeSBDQTEOMAwG
+A1UECBMFV2FsZXMxEDAOBgNVBAcTB0VydyBXZW6CAQAwCQYDVR0TBAIwADATBgor
+BgEEAdZ5AgQDAQH/BAIFADANBgkqhkiG9w0BAQUFAAOBgQACocOeAVr1Tf8CPDNg
+h1//NDdVLx8JAb3CVDFfM3K3I/sV+87MTfRxoM5NjFRlXYSHl/soHj36u0YtLGhL
+BW/qe2O0cP8WbjLURgY1s9K8bagkmyYw5x/DTwjyPdTuIo+PdPY9eGMR3QpYEUBf
+kGzKLC0+6/yBmWTr2M98CIY/vg==
+-----END CERTIFICATE-----`
+)
+
+func TestIsPrecertificate(t *testing.T) {
+	tests := []struct {
+		desc    string
+		certPEM string
+		want    bool
+	}{
+		{
+			desc:    "certificate",
+			certPEM: pemCertificate,
+			want:    false,
+		},
+		{
+			desc:    "precertificate",
+			certPEM: pemPrecertificate,
+			want:    true,
+		},
+		{
+			desc:    "nil",
+			certPEM: "",
+			want:    false,
+		},
+	}
+
+	for _, test := range tests {
+		var cert *Certificate
+		if test.certPEM != "" {
+			var err error
+			cert, err = certificateFromPEM(test.certPEM)
+			if err != nil {
+				t.Errorf("%s: error parsing certificate: %s", test.desc, err)
+				continue
+			}
+		}
+		if got := cert.IsPrecertificate(); got != test.want {
+			t.Errorf("%s: c.IsPrecertificate() = %t, want %t", test.desc, got, test.want)
+		}
+	}
+}
 
 func TestCRLCreation(t *testing.T) {
 	block, _ := pem.Decode([]byte(pemPrivateKey))
@@ -1230,6 +1290,26 @@ func TestNonFatalErrors(t *testing.T) {
 	}
 }
 
+func TestIsFatal(t *testing.T) {
+	tests := []struct {
+		err  error
+		want bool
+	}{
+		{err: errors.New("normal error"), want: true},
+		{err: NonFatalErrors{}, want: false},
+		{err: nil, want: false},
+		{err: &Errors{}, want: false},
+		{err: &Errors{Errs: []Error{{ID: 1, Summary: "test", Fatal: true}}}, want: true},
+		{err: &Errors{Errs: []Error{{ID: 1, Summary: "test", Fatal: false}}}, want: false},
+	}
+	for _, test := range tests {
+		got := IsFatal(test.err)
+		if got != test.want {
+			t.Errorf("IsFatal(%T %v)=%v, want %v", test.err, test.err, got, test.want)
+		}
+	}
+}
+
 const (
 	tbsNoPoison = "30820245a003020102020842822a5b866fbfeb300d06092a864886f70d01010b" +
 		"05003071310b3009060355040613024742310f300d060355040813064c6f6e64" +
@@ -1338,8 +1418,8 @@ func TestRemoveCTPoison(t *testing.T) {
 	}{
 		{name: "invalid-der", tbs: "01020304", errstr: "failed to parse"},
 		{name: "trailing-data", tbs: tbsPoisonMiddle + "01020304", errstr: "trailing data"},
-		{name: "no-poison-ext", tbs: tbsNoPoison, errstr: "no CT poison extension present"},
-		{name: "two-poison-exts", tbs: tbsPoisonTwice, errstr: "multiple CT poison extensions present"},
+		{name: "no-poison-ext", tbs: tbsNoPoison, errstr: "no extension of specified type present"},
+		{name: "two-poison-exts", tbs: tbsPoisonTwice, errstr: "multiple extensions of specified type present"},
 		{name: "poison-first", tbs: tbsPoisonFirst, want: tbsNoPoison},
 		{name: "poison-last", tbs: tbsPoisonLast, want: tbsNoPoison},
 		{name: "poison-middle", tbs: tbsPoisonMiddle, want: tbsNoPoison},
@@ -2085,7 +2165,7 @@ func TestPKIXNameString(t *testing.T) {
 		t.Fatal(err)
 	}
 	certs, err := ParseCertificates(pem)
-	if err != nil {
+	if IsFatal(err) {
 		t.Fatal(err)
 	}
 
@@ -2281,7 +2361,7 @@ func TestAdditionFieldsInGeneralSubtree(t *testing.T) {
 	// GeneralSubtree structure. This tests that such certificates can be
 	// parsed.
 	block, _ := pem.Decode([]byte(additionalGeneralSubtreePEM))
-	if _, err := ParseCertificate(block.Bytes); err != nil {
+	if _, err := ParseCertificate(block.Bytes); IsFatal(err) {
 		t.Fatalf("failed to parse certificate: %s", err)
 	}
 }
@@ -2366,5 +2446,34 @@ func TestMultipleURLsInCRLDP(t *testing.T) {
 	}
 	if got := cert.CRLDistributionPoints; !reflect.DeepEqual(got, want) {
 		t.Errorf("CRL distribution points = %#v, want #%v", got, want)
+	}
+}
+
+func TestParseCertificateFail(t *testing.T) {
+	var tests = []struct {
+		desc    string
+		in      string
+		wantErr string
+	}{
+		{desc: "SubjectInfoEmpty", in: "testdata/invalid/xf-ext-subject-info-empty.pem", wantErr: "empty SubjectInfoAccess"},
+		{desc: "RSAParamsNonNULL", in: "testdata/invalid/xf-pubkey-rsa-param-nonnull.pem", wantErr: "RSA key missing NULL parameters"},
+		{desc: "EmptyEKU", in: "testdata/invalid/xf-ext-extended-key-usage-empty.pem", wantErr: "empty ExtendedKeyUsage"},
+		{desc: "SECp192r1TooShort", in: "testdata/invalid/xf-pubkey-ecdsa-secp192r1.pem", wantErr: "insecure curve (secp192r1)"},
+	}
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			data, err := ioutil.ReadFile(test.in)
+			if err != nil {
+				t.Fatalf("failed to read test data: %v", err)
+			}
+			block, _ := pem.Decode(data)
+			got, err := ParseCertificate(block.Bytes)
+			if err == nil {
+				t.Fatalf("ParseCertificate()=%+v,nil; want nil, err containing %q", got, test.wantErr)
+			}
+			if !strings.Contains(err.Error(), test.wantErr) {
+				t.Fatalf("ParseCertificate()=_,%v; want nil, err containing %q", err, test.wantErr)
+			}
+		})
 	}
 }

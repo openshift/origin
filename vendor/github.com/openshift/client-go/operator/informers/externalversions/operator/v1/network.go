@@ -5,11 +5,11 @@ package v1
 import (
 	time "time"
 
-	operator_v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	versioned "github.com/openshift/client-go/operator/clientset/versioned"
 	internalinterfaces "github.com/openshift/client-go/operator/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/client-go/operator/listers/operator/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
@@ -40,20 +40,20 @@ func NewNetworkInformer(client versioned.Interface, resyncPeriod time.Duration, 
 func NewFilteredNetworkInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.OperatorV1().Networks().List(options)
 			},
-			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.OperatorV1().Networks().Watch(options)
 			},
 		},
-		&operator_v1.Network{},
+		&operatorv1.Network{},
 		resyncPeriod,
 		indexers,
 	)
@@ -64,7 +64,7 @@ func (f *networkInformer) defaultInformer(client versioned.Interface, resyncPeri
 }
 
 func (f *networkInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&operator_v1.Network{}, f.defaultInformer)
+	return f.factory.InformerFor(&operatorv1.Network{}, f.defaultInformer)
 }
 
 func (f *networkInformer) Lister() v1.NetworkLister {

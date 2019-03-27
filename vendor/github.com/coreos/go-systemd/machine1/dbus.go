@@ -18,8 +18,10 @@ limitations under the License.
 package machine1
 
 import (
+	"fmt"
 	"os"
 	"strconv"
+	"syscall"
 
 	"github.com/godbus/dbus"
 )
@@ -73,6 +75,64 @@ func (c *Conn) initConnection() error {
 	c.object = c.conn.Object("org.freedesktop.machine1", dbus.ObjectPath(dbusPath))
 
 	return nil
+}
+
+func (c *Conn) getPath(method string, args ...interface{}) (dbus.ObjectPath, error) {
+	result := c.object.Call(fmt.Sprintf("%s.%s", dbusInterface, method), 0, args...)
+	if result.Err != nil {
+		return "", result.Err
+	}
+
+	path, typeErr := result.Body[0].(dbus.ObjectPath)
+	if !typeErr {
+		return "", fmt.Errorf("unable to convert dbus response '%v' to dbus.ObjectPath", result.Body[0])
+	}
+
+	return path, nil
+}
+
+// GetMachine gets a specific container with systemd-machined
+func (c *Conn) GetMachine(name string) (dbus.ObjectPath, error) {
+	return c.getPath("GetMachine", name)
+}
+
+// GetImage gets a specific image with systemd-machined
+func (c *Conn) GetImage(name string) (dbus.ObjectPath, error) {
+	return c.getPath("GetImage", name)
+}
+
+// GetMachineByPID gets a machine specified by a PID from systemd-machined
+func (c *Conn) GetMachineByPID(pid uint) (dbus.ObjectPath, error) {
+	return c.getPath("GetMachineByPID", pid)
+}
+
+// DescribeMachine gets the properties of a machine
+func (c *Conn) DescribeMachine(name string) (machineProps map[string]interface{}, err error) {
+	var dbusProps map[string]dbus.Variant
+	path, pathErr := c.GetMachine(name)
+	if pathErr != nil {
+		return nil, pathErr
+	}
+	obj := c.conn.Object("org.freedesktop.machine1", path)
+	err = obj.Call("org.freedesktop.DBus.Properties.GetAll", 0, "").Store(&dbusProps)
+	if err != nil {
+		return nil, err
+	}
+	machineProps = make(map[string]interface{}, len(dbusProps))
+	for key, val := range dbusProps {
+		machineProps[key] = val.Value()
+	}
+	return
+}
+
+// KillMachine sends a signal to a machine
+func (c *Conn) KillMachine(name, who string, sig syscall.Signal) error {
+	return c.object.Call(dbusInterface+".KillMachine", 0, name, who, sig).Err
+}
+
+// TerminateMachine causes systemd-machined to terminate a machine, killing its processes
+func (c *Conn) TerminateMachine(name string) error {
+	return c.object.Call(dbusInterface+".TerminateMachine", 0, name).Err
 }
 
 // RegisterMachine registers the container with the systemd-machined

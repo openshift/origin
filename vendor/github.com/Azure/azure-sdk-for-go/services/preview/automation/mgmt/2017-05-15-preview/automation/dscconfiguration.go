@@ -287,7 +287,7 @@ func (client DscConfigurationClient) GetResponder(resp *http.Response) (result D
 // resourceGroupName - name of an Azure Resource group.
 // automationAccountName - the name of the automation account.
 // configurationName - the configuration name.
-func (client DscConfigurationClient) GetContent(ctx context.Context, resourceGroupName string, automationAccountName string, configurationName string) (result String, err error) {
+func (client DscConfigurationClient) GetContent(ctx context.Context, resourceGroupName string, automationAccountName string, configurationName string) (result ReadCloser, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: resourceGroupName,
 			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
@@ -348,13 +348,12 @@ func (client DscConfigurationClient) GetContentSender(req *http.Request) (*http.
 
 // GetContentResponder handles the response to the GetContent request. The method always
 // closes the http.Response Body.
-func (client DscConfigurationClient) GetContentResponder(resp *http.Response) (result String, err error) {
+func (client DscConfigurationClient) GetContentResponder(resp *http.Response) (result ReadCloser, err error) {
+	result.Value = &resp.Body
 	err = autorest.Respond(
 		resp,
 		client.ByInspecting(),
-		azure.WithErrorUnlessStatusCode(http.StatusOK),
-		autorest.ByUnmarshallingJSON(&result.Value),
-		autorest.ByClosing())
+		azure.WithErrorUnlessStatusCode(http.StatusOK))
 	result.Response = autorest.Response{Response: resp}
 	return
 }

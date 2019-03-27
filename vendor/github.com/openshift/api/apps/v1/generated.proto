@@ -67,7 +67,7 @@ message DeploymentCondition {
 // A single deployment configuration is usually analogous to a single micro-service. Can support many different
 // deployment patterns, including full restart, customizable rolling updates, and  fully custom behaviors, as
 // well as pre- and post- deployment hooks. Each individual deployment is represented as a replication controller.
-// 
+//
 // A deployment is "triggered" when its configuration is changed or a tag in an Image Stream is changed.
 // Triggers can be disabled to allow manual control over a deployment. The "strategy" determines how the deployment
 // is carried out and may be changed at any time. The `latestVersion` field is updated when a new deployment
@@ -421,9 +421,9 @@ message RollingDeploymentStrategyParams {
   // during the update. Value can be an absolute number (ex: 5) or a
   // percentage of total pods at the start of update (ex: 10%). Absolute
   // number is calculated from percentage by rounding down.
-  // 
+  //
   // This cannot be 0 if MaxSurge is 0. By default, 25% is used.
-  // 
+  //
   // Example: when this is set to 30%, the old RC can be scaled down by 30%
   // immediately when the rolling update starts. Once new pods are ready, old
   // RC can be scaled down further, followed by scaling up the new RC,
@@ -435,9 +435,9 @@ message RollingDeploymentStrategyParams {
   // original number of pods. Value can be an absolute number (ex: 5) or a
   // percentage of total pods at the start of the update (ex: 10%). Absolute
   // number is calculated from percentage by rounding up.
-  // 
+  //
   // This cannot be 0 if MaxUnavailable is 0. By default, 25% is used.
-  // 
+  //
   // Example: when this is set to 30%, the new RC can be scaled up by 30%
   // immediately when the rolling update starts. Once old pods have been
   // killed, new RC can be scaled up further, ensuring that total number of

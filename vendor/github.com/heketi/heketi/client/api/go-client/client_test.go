@@ -14,6 +14,7 @@ package client
 
 import (
 	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"reflect"
@@ -23,7 +24,9 @@ import (
 	"github.com/heketi/heketi/apps/glusterfs"
 	"github.com/heketi/heketi/middleware"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
+	"github.com/heketi/heketi/pkg/idgen"
 	"github.com/heketi/heketi/pkg/utils"
+	"github.com/heketi/heketi/server/admin"
 	"github.com/heketi/tests"
 	"github.com/urfave/negroni"
 )
@@ -32,7 +35,24 @@ const (
 	TEST_ADMIN_KEY = "adminkey"
 )
 
+type clientTestMiddleware struct {
+	intercept func(w http.ResponseWriter, r *http.Request) bool
+}
+
+func (cm *clientTestMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	if cm.intercept != nil && cm.intercept(w, r) {
+		return
+	}
+	next(w, r)
+}
+
 func setupHeketiServer(app *glusterfs.App) *httptest.Server {
+	return setupHeketiServerAndMiddleware(app, nil)
+}
+
+func setupHeketiServerAndMiddleware(
+	app *glusterfs.App, m negroni.Handler) *httptest.Server {
+
 	router := mux.NewRouter()
 	app.SetRoutes(router)
 	n := negroni.New()
@@ -41,8 +61,15 @@ func setupHeketiServer(app *glusterfs.App) *httptest.Server {
 	jwtconfig.Admin.PrivateKey = TEST_ADMIN_KEY
 	jwtconfig.User.PrivateKey = "userkey"
 
+	adminss := admin.New()
+	adminss.SetRoutes(router)
+
 	// Setup middleware
 	n.Use(middleware.NewJwtAuth(jwtconfig))
+	if m != nil {
+		n.Use(m)
+	}
+	n.Use(adminss)
 	n.UseFunc(app.Auth)
 	n.UseHandler(router)
 
@@ -68,8 +95,14 @@ func TestTopology(t *testing.T) {
 
 	//Create multiple clusters
 	clusteridlist := make([]api.ClusterInfoResponse, 0)
+	cluster_req := &api.ClusterCreateRequest{
+		ClusterFlags: api.ClusterFlags{
+			Block: true,
+			File:  true,
+		},
+	}
 	for m := 0; m < 4; m++ {
-		cluster, err := c.ClusterCreate()
+		cluster, err := c.ClusterCreate(cluster_req)
 		tests.Assert(t, err == nil)
 		tests.Assert(t, cluster.Id != "")
 		clusteridlist = append(clusteridlist, *cluster)
@@ -86,11 +119,18 @@ func TestTopology(t *testing.T) {
 	}
 
 	//Create a cluster and add multiple nodes,devices and volumes
-	cluster, err := c.ClusterCreate()
+	cluster_req = &api.ClusterCreateRequest{
+		ClusterFlags: api.ClusterFlags{
+			Block: true,
+			File:  true,
+		},
+	}
+	cluster, err := c.ClusterCreate(cluster_req)
 	tests.Assert(t, err == nil)
 	tests.Assert(t, cluster.Id != "")
 	tests.Assert(t, len(cluster.Nodes) == 0)
 	tests.Assert(t, len(cluster.Volumes) == 0)
+	tests.Assert(t, len(cluster.BlockVolumes) == 0)
 
 	// Get information about the client
 	clusterinfo, err := c.ClusterInfo(cluster.Id)
@@ -124,7 +164,7 @@ func TestTopology(t *testing.T) {
 				defer sg.Done()
 
 				deviceReq := &api.DeviceAddRequest{}
-				deviceReq.Name = "sd" + utils.GenUUID()[:8]
+				deviceReq.Name = "/sd" + idgen.GenUUID()
 				deviceReq.NodeId = node.Id
 
 				// Create device
@@ -189,8 +229,32 @@ func TestTopology(t *testing.T) {
 		}
 		tests.Assert(t, found == true)
 
-		// Delete all devices
+		// Change device state to offline
 		sg := utils.NewStatusGroup()
+		for index := range nodeInfo.DevicesInfo {
+			sg.Add(1)
+			go func(i int) {
+				defer sg.Done()
+				sg.Err(c.DeviceState(nodeInfo.DevicesInfo[i].Id, &api.StateRequest{State: api.EntryStateOffline}))
+			}(index)
+		}
+		err = sg.Result()
+		tests.Assert(t, err == nil, err)
+
+		// Change device state to failed
+		sg = utils.NewStatusGroup()
+		for index := range nodeInfo.DevicesInfo {
+			sg.Add(1)
+			go func(i int) {
+				defer sg.Done()
+				sg.Err(c.DeviceState(nodeInfo.DevicesInfo[i].Id, &api.StateRequest{State: api.EntryStateFailed}))
+			}(index)
+		}
+		err = sg.Result()
+		tests.Assert(t, err == nil, err)
+
+		// Delete all devices
+		sg = utils.NewStatusGroup()
 		for index := range nodeInfo.DevicesInfo {
 			sg.Add(1)
 			go func(i int) {
@@ -228,21 +292,27 @@ func TestClientCluster(t *testing.T) {
 	// Create cluster with unknown user
 	c := NewClient(ts.URL, "asdf", "")
 	tests.Assert(t, c != nil)
-	cluster, err := c.ClusterCreate()
+	cluster_req := &api.ClusterCreateRequest{
+		ClusterFlags: api.ClusterFlags{
+			Block: true,
+			File:  true,
+		},
+	}
+	cluster, err := c.ClusterCreate(cluster_req)
 	tests.Assert(t, err != nil)
 	tests.Assert(t, cluster == nil)
 
 	// Create cluster with bad password
 	c = NewClient(ts.URL, "admin", "badpassword")
 	tests.Assert(t, c != nil)
-	cluster, err = c.ClusterCreate()
+	cluster, err = c.ClusterCreate(cluster_req)
 	tests.Assert(t, err != nil)
 	tests.Assert(t, cluster == nil)
 
 	// Create cluster correctly
 	c = NewClient(ts.URL, "admin", TEST_ADMIN_KEY)
 	tests.Assert(t, c != nil)
-	cluster, err = c.ClusterCreate()
+	cluster, err = c.ClusterCreate(cluster_req)
 	tests.Assert(t, err == nil)
 	tests.Assert(t, cluster.Id != "")
 	tests.Assert(t, len(cluster.Nodes) == 0)
@@ -253,10 +323,26 @@ func TestClientCluster(t *testing.T) {
 	tests.Assert(t, err != nil)
 	tests.Assert(t, info == nil)
 
-	// Get information about the client
+	// Get information about the cluster
 	info, err = c.ClusterInfo(cluster.Id)
 	tests.Assert(t, err == nil)
 	tests.Assert(t, reflect.DeepEqual(info, cluster))
+
+	// Set flags on the cluster
+	cluster_setflags_req := &api.ClusterSetFlagsRequest{
+		ClusterFlags: api.ClusterFlags{
+			File:  true,
+			Block: false,
+		},
+	}
+	err = c.ClusterSetFlags(cluster.Id, cluster_setflags_req)
+	tests.Assert(t, err == nil, err)
+
+	// Check flags result
+	info, err = c.ClusterInfo(cluster.Id)
+	tests.Assert(t, err == nil)
+	tests.Assert(t, info.File == true)
+	tests.Assert(t, info.Block == false)
 
 	// Get a list of clusters
 	list, err := c.ClusterList()
@@ -288,7 +374,13 @@ func TestClientNode(t *testing.T) {
 	// Create cluster
 	c := NewClient(ts.URL, "admin", TEST_ADMIN_KEY)
 	tests.Assert(t, c != nil)
-	cluster, err := c.ClusterCreate()
+	cluster_req := &api.ClusterCreateRequest{
+		ClusterFlags: api.ClusterFlags{
+			Block: true,
+			File:  true,
+		},
+	}
+	cluster, err := c.ClusterCreate(cluster_req)
 	tests.Assert(t, err == nil)
 	tests.Assert(t, cluster.Id != "")
 	tests.Assert(t, len(cluster.Nodes) == 0)
@@ -374,7 +466,13 @@ func TestClientDevice(t *testing.T) {
 	// Create cluster
 	c := NewClient(ts.URL, "admin", TEST_ADMIN_KEY)
 	tests.Assert(t, c != nil)
-	cluster, err := c.ClusterCreate()
+	cluster_req := &api.ClusterCreateRequest{
+		ClusterFlags: api.ClusterFlags{
+			Block: true,
+			File:  true,
+		},
+	}
+	cluster, err := c.ClusterCreate(cluster_req)
 	tests.Assert(t, err == nil)
 
 	// Create node request packet
@@ -390,7 +488,7 @@ func TestClientDevice(t *testing.T) {
 
 	// Create a device request
 	deviceReq := &api.DeviceAddRequest{}
-	deviceReq.Name = "sda"
+	deviceReq.Name = "/sda"
 	deviceReq.NodeId = node.Id
 
 	// Create device
@@ -420,7 +518,7 @@ func TestClientDevice(t *testing.T) {
 	err = c.DeviceState(deviceId, &api.StateRequest{
 		State: api.EntryStateOffline,
 	})
-	tests.Assert(t, err == nil)
+	tests.Assert(t, err == nil, err)
 	deviceInfo, err = c.DeviceInfo(deviceId)
 	tests.Assert(t, err == nil)
 	tests.Assert(t, deviceInfo.State == api.EntryStateOffline)
@@ -434,6 +532,15 @@ func TestClientDevice(t *testing.T) {
 	tests.Assert(t, err == nil)
 	tests.Assert(t, deviceInfo.State == api.EntryStateOnline)
 
+	// Resync
+	err = c.DeviceResync(deviceId)
+	tests.Assert(t, err == nil)
+	deviceInfo, err = c.DeviceInfo(deviceId)
+	tests.Assert(t, err == nil)
+	tests.Assert(t, deviceInfo.Storage.Total == 500*1024*1024)
+	tests.Assert(t, deviceInfo.Storage.Free == 500*1024*1024)
+	tests.Assert(t, deviceInfo.Storage.Used == 0)
+
 	// Try to delete node, and will not until we delete the device
 	err = c.NodeDelete(node.Id)
 	tests.Assert(t, err != nil)
@@ -441,6 +548,13 @@ func TestClientDevice(t *testing.T) {
 	// Delete unknown device
 	err = c.DeviceDelete("badid")
 	tests.Assert(t, err != nil)
+
+	// Offline Device
+	err = c.DeviceState(deviceInfo.Id, &api.StateRequest{State: api.EntryStateOffline})
+	tests.Assert(t, err == nil)
+	// Fail Device
+	err = c.DeviceState(deviceInfo.Id, &api.StateRequest{State: api.EntryStateFailed})
+	tests.Assert(t, err == nil)
 
 	// Delete device
 	err = c.DeviceDelete(deviceInfo.Id)
@@ -471,7 +585,13 @@ func TestClientVolume(t *testing.T) {
 	// Create cluster
 	c := NewClient(ts.URL, "admin", TEST_ADMIN_KEY)
 	tests.Assert(t, c != nil)
-	cluster, err := c.ClusterCreate()
+	cluster_req := &api.ClusterCreateRequest{
+		ClusterFlags: api.ClusterFlags{
+			Block: true,
+			File:  true,
+		},
+	}
+	cluster, err := c.ClusterCreate(cluster_req)
 	tests.Assert(t, err == nil)
 
 	// Create node request packet
@@ -494,7 +614,7 @@ func TestClientVolume(t *testing.T) {
 				defer sg.Done()
 
 				deviceReq := &api.DeviceAddRequest{}
-				deviceReq.Name = "sd" + utils.GenUUID()[:8]
+				deviceReq.Name = "/dev/by-magic/id:" + idgen.GenUUID()
 				deviceReq.NodeId = node.Id
 
 				// Create device
@@ -503,7 +623,8 @@ func TestClientVolume(t *testing.T) {
 
 			}()
 		}
-		tests.Assert(t, sg.Result() == nil)
+		r := sg.Result()
+		tests.Assert(t, r == nil, r)
 	}
 
 	// Get list of volumes
@@ -559,8 +680,32 @@ func TestClientVolume(t *testing.T) {
 		nodeInfo, err := c.NodeInfo(nodeid)
 		tests.Assert(t, err == nil)
 
-		// Delete all devices
+		// Change device state to offline
 		sg := utils.NewStatusGroup()
+		for index := range nodeInfo.DevicesInfo {
+			sg.Add(1)
+			go func(i int) {
+				defer sg.Done()
+				sg.Err(c.DeviceState(nodeInfo.DevicesInfo[i].Id, &api.StateRequest{State: api.EntryStateOffline}))
+			}(index)
+		}
+		err = sg.Result()
+		tests.Assert(t, err == nil, err)
+
+		// Change device state to failed
+		sg = utils.NewStatusGroup()
+		for index := range nodeInfo.DevicesInfo {
+			sg.Add(1)
+			go func(i int) {
+				defer sg.Done()
+				sg.Err(c.DeviceState(nodeInfo.DevicesInfo[i].Id, &api.StateRequest{State: api.EntryStateFailed}))
+			}(index)
+		}
+		err = sg.Result()
+		tests.Assert(t, err == nil, err)
+
+		// Delete all devices
+		sg = utils.NewStatusGroup()
 		for index := range nodeInfo.DevicesInfo {
 			sg.Add(1)
 			go func(i int) {
@@ -581,4 +726,538 @@ func TestClientVolume(t *testing.T) {
 	err = c.ClusterDelete(cluster.Id)
 	tests.Assert(t, err == nil)
 
+}
+
+func TestLogLevel(t *testing.T) {
+	db := tests.Tempfile()
+	defer os.Remove(db)
+
+	// Create the app
+	app := glusterfs.NewTestApp(db)
+	defer app.Close()
+
+	// Setup the server
+	ts := setupHeketiServer(app)
+	defer ts.Close()
+
+	// Create cluster
+	c := NewClient(ts.URL, "admin", TEST_ADMIN_KEY)
+	tests.Assert(t, c != nil, "NewClient failed:", c)
+	llinfo, err := c.LogLevelGet()
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, llinfo.LogLevel["glusterfs"] == "info",
+		`expected llinfo.LogLevel["glusterfs"] == "info", get:`, llinfo.LogLevel)
+
+	llinfo.LogLevel["glusterfs"] = "debug"
+	err = c.LogLevelSet(llinfo)
+	tests.Assert(t, err == nil, "unexpected error running c.LogLevelSet:", err)
+
+	llinfo, err = c.LogLevelGet()
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, llinfo.LogLevel["glusterfs"] == "debug",
+		`expected llinfo.LogLevel["glusterfs"] == "debug", get:`, llinfo.LogLevel)
+
+	llinfo.LogLevel["glusterfs"] = "bingo"
+	err = c.LogLevelSet(llinfo)
+	tests.Assert(t, err != nil, "expected error running c.LogLevelSet:", err)
+
+	llinfo, err = c.LogLevelGet()
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, llinfo.LogLevel["glusterfs"] == "debug",
+		`expected llinfo.LogLevel["glusterfs"] == "debug", get:`, llinfo.LogLevel)
+
+	llinfo.LogLevel["glusterfs"] = "info"
+	err = c.LogLevelSet(llinfo)
+	tests.Assert(t, err == nil, "unexpected error running c.LogLevelSet:", err)
+
+	llinfo, err = c.LogLevelGet()
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, llinfo.LogLevel["glusterfs"] == "info",
+		`expected llinfo.LogLevel["glusterfs"] == "info", get:`, llinfo.LogLevel)
+	return
+}
+
+func TestDeviceTags(t *testing.T) {
+	db := tests.Tempfile()
+	defer os.Remove(db)
+
+	// Create the app
+	app := glusterfs.NewTestApp(db)
+	defer app.Close()
+
+	// Setup the server
+	ts := setupHeketiServer(app)
+	defer ts.Close()
+
+	// Create cluster
+	c := NewClient(ts.URL, "admin", TEST_ADMIN_KEY)
+	tests.Assert(t, c != nil)
+	cluster_req := &api.ClusterCreateRequest{
+		ClusterFlags: api.ClusterFlags{
+			Block: true,
+			File:  true,
+		},
+	}
+	cluster, err := c.ClusterCreate(cluster_req)
+	tests.Assert(t, err == nil)
+
+	// Create node request packet
+	nodeReq := &api.NodeAddRequest{}
+	nodeReq.ClusterId = cluster.Id
+	nodeReq.Hostnames.Manage = []string{"manage"}
+	nodeReq.Hostnames.Storage = []string{"storage"}
+	nodeReq.Zone = 10
+
+	// Create node
+	node, err := c.NodeAdd(nodeReq)
+	tests.Assert(t, err == nil)
+
+	// Create a device request
+	deviceReq := &api.DeviceAddRequest{}
+	deviceReq.Name = "/sda"
+	deviceReq.NodeId = node.Id
+	deviceReq.Tags = map[string]string{
+		"weight": "light",
+		"fish":   "cod",
+	}
+
+	// Create device
+	err = c.DeviceAdd(deviceReq)
+	tests.Assert(t, err == nil)
+
+	// Get node information
+	nodeInfo, err := c.NodeInfo(node.Id)
+	tests.Assert(t, err == nil)
+	tests.Assert(t, nodeInfo.DevicesInfo[0].Id != "")
+
+	devId := nodeInfo.DevicesInfo[0].Id
+	tests.Assert(t, len(devId) > 1)
+
+	deviceInfo, err := c.DeviceInfo(devId)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, len(deviceInfo.Tags) == 2,
+		"expected len(deviceInfo.Tags) == 2, got:", len(deviceInfo.Tags))
+	tests.Assert(t, deviceInfo.Tags["fish"] == "cod",
+		`expected deviceInfo.Tags["fish"] == "cod", got:`,
+		deviceInfo.Tags["fish"])
+
+	err = c.DeviceSetTags(devId, &api.TagsChangeRequest{
+		Change: api.UpdateTags,
+		Tags: map[string]string{
+			"metal": "iron",
+		},
+	})
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	deviceInfo, err = c.DeviceInfo(devId)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, len(deviceInfo.Tags) == 3,
+		"expected len(deviceInfo.Tags) == 3, got:", len(deviceInfo.Tags))
+	tests.Assert(t, deviceInfo.Tags["fish"] == "cod",
+		`expected deviceInfo.Tags["fish"] == "cod", got:`,
+		deviceInfo.Tags["fish"])
+	tests.Assert(t, deviceInfo.Tags["metal"] == "iron",
+		`expected deviceInfo.Tags["metal"] == "iron", got:`,
+		deviceInfo.Tags["metal"])
+
+	err = c.DeviceSetTags(devId, &api.TagsChangeRequest{
+		Change: api.UpdateTags,
+		Tags: map[string]string{
+			"metal": "nickel",
+		},
+	})
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	deviceInfo, err = c.DeviceInfo(devId)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, len(deviceInfo.Tags) == 3,
+		"expected len(deviceInfo.Tags) == 3, got:", len(deviceInfo.Tags))
+	tests.Assert(t, deviceInfo.Tags["fish"] == "cod",
+		`expected deviceInfo.Tags["fish"] == "cod", got:`,
+		deviceInfo.Tags["fish"])
+	tests.Assert(t, deviceInfo.Tags["metal"] == "nickel",
+		`expected deviceInfo.Tags["metal"] == "nickel", got:`,
+		deviceInfo.Tags["metal"])
+
+	err = c.DeviceSetTags(devId, &api.TagsChangeRequest{
+		Change: api.DeleteTags,
+		Tags: map[string]string{
+			"weight": "",
+		},
+	})
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	deviceInfo, err = c.DeviceInfo(devId)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, len(deviceInfo.Tags) == 2,
+		"expected len(deviceInfo.Tags) == 2, got:", len(deviceInfo.Tags))
+	tests.Assert(t, deviceInfo.Tags["fish"] == "cod",
+		`expected deviceInfo.Tags["fish"] == "cod", got:`,
+		deviceInfo.Tags["fish"])
+	tests.Assert(t, deviceInfo.Tags["metal"] == "nickel",
+		`expected deviceInfo.Tags["metal"] == "nickel", got:`,
+		deviceInfo.Tags["metal"])
+
+	err = c.DeviceSetTags(devId, &api.TagsChangeRequest{
+		Change: api.SetTags,
+		Tags: map[string]string{
+			"metal": "heavy",
+		},
+	})
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	deviceInfo, err = c.DeviceInfo(devId)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, len(deviceInfo.Tags) == 1,
+		"expected len(deviceInfo.Tags) == 1, got:", len(deviceInfo.Tags))
+	tests.Assert(t, deviceInfo.Tags["metal"] == "heavy",
+		`expected deviceInfo.Tags["metal"] == "heavy", got:`,
+		deviceInfo.Tags["metal"])
+
+	// Offline Device
+	err = c.DeviceState(devId, &api.StateRequest{State: api.EntryStateOffline})
+	tests.Assert(t, err == nil)
+	// Fail Device
+	err = c.DeviceState(devId, &api.StateRequest{State: api.EntryStateFailed})
+	tests.Assert(t, err == nil)
+
+	// Delete device
+	err = c.DeviceDelete(devId)
+	tests.Assert(t, err == nil)
+
+	// Delete node
+	err = c.NodeDelete(node.Id)
+	tests.Assert(t, err == nil)
+
+	// Delete cluster
+	err = c.ClusterDelete(cluster.Id)
+	tests.Assert(t, err == nil)
+}
+
+func TestNodeTags(t *testing.T) {
+	db := tests.Tempfile()
+	defer os.Remove(db)
+
+	// Create the app
+	app := glusterfs.NewTestApp(db)
+	defer app.Close()
+
+	// Setup the server
+	ts := setupHeketiServer(app)
+	defer ts.Close()
+
+	// Create cluster
+	c := NewClient(ts.URL, "admin", TEST_ADMIN_KEY)
+	tests.Assert(t, c != nil)
+	cluster_req := &api.ClusterCreateRequest{
+		ClusterFlags: api.ClusterFlags{
+			Block: true,
+			File:  true,
+		},
+	}
+	cluster, err := c.ClusterCreate(cluster_req)
+	tests.Assert(t, err == nil)
+
+	// Create node request packet
+	nodeReq := &api.NodeAddRequest{}
+	nodeReq.ClusterId = cluster.Id
+	nodeReq.Hostnames.Manage = []string{"manage"}
+	nodeReq.Hostnames.Storage = []string{"storage"}
+	nodeReq.Zone = 10
+	nodeReq.Tags = map[string]string{
+		"weight": "100tons",
+		"fish":   "cod",
+	}
+
+	// Create node
+	node, err := c.NodeAdd(nodeReq)
+	tests.Assert(t, err == nil)
+	nodeId := node.Id
+
+	// Get node information
+	nodeInfo, err := c.NodeInfo(nodeId)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, len(nodeInfo.Tags) == 2,
+		"expected len(nodeInfo.Tags) == 2, got:", len(nodeInfo.Tags))
+	tests.Assert(t, nodeInfo.Tags["fish"] == "cod",
+		`expected nodeInfo.Tags["fish"] == "cod", got:`,
+		nodeInfo.Tags["fish"])
+
+	err = c.NodeSetTags(nodeId, &api.TagsChangeRequest{
+		Change: api.UpdateTags,
+		Tags: map[string]string{
+			"metal": "iron",
+		},
+	})
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	nodeInfo, err = c.NodeInfo(nodeId)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, len(nodeInfo.Tags) == 3,
+		"expected len(nodeInfo.Tags) == 3, got:", len(nodeInfo.Tags))
+	tests.Assert(t, nodeInfo.Tags["fish"] == "cod",
+		`expected nodeInfo.Tags["fish"] == "cod", got:`,
+		nodeInfo.Tags["fish"])
+	tests.Assert(t, nodeInfo.Tags["metal"] == "iron",
+		`expected nodeInfo.Tags["metal"] == "iron", got:`,
+		nodeInfo.Tags["metal"])
+
+	err = c.NodeSetTags(nodeId, &api.TagsChangeRequest{
+		Change: api.UpdateTags,
+		Tags: map[string]string{
+			"metal": "nickel",
+		},
+	})
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	nodeInfo, err = c.NodeInfo(nodeId)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, len(nodeInfo.Tags) == 3,
+		"expected len(nodeInfo.Tags) == 3, got:", len(nodeInfo.Tags))
+	tests.Assert(t, nodeInfo.Tags["fish"] == "cod",
+		`expected nodeInfo.Tags["fish"] == "cod", got:`,
+		nodeInfo.Tags["fish"])
+	tests.Assert(t, nodeInfo.Tags["metal"] == "nickel",
+		`expected nodeInfo.Tags["metal"] == "nickel", got:`,
+		nodeInfo.Tags["metal"])
+
+	err = c.NodeSetTags(nodeId, &api.TagsChangeRequest{
+		Change: api.DeleteTags,
+		Tags: map[string]string{
+			"weight": "",
+		},
+	})
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	nodeInfo, err = c.NodeInfo(nodeId)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, len(nodeInfo.Tags) == 2,
+		"expected len(nodeInfo.Tags) == 2, got:", len(nodeInfo.Tags))
+	tests.Assert(t, nodeInfo.Tags["fish"] == "cod",
+		`expected nodeInfo.Tags["fish"] == "cod", got:`,
+		nodeInfo.Tags["fish"])
+	tests.Assert(t, nodeInfo.Tags["metal"] == "nickel",
+		`expected nodeInfo.Tags["metal"] == "nickel", got:`,
+		nodeInfo.Tags["metal"])
+
+	err = c.NodeSetTags(nodeId, &api.TagsChangeRequest{
+		Change: api.SetTags,
+		Tags: map[string]string{
+			"metal": "heavy",
+		},
+	})
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	nodeInfo, err = c.NodeInfo(nodeId)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, len(nodeInfo.Tags) == 1,
+		"expected len(nodeInfo.Tags) == 1, got:", len(nodeInfo.Tags))
+	tests.Assert(t, nodeInfo.Tags["metal"] == "heavy",
+		`expected nodeInfo.Tags["metal"] == "heavy", got:`,
+		nodeInfo.Tags["metal"])
+
+	// Delete node
+	err = c.NodeDelete(node.Id)
+	tests.Assert(t, err == nil)
+
+	// Delete cluster
+	err = c.ClusterDelete(cluster.Id)
+	tests.Assert(t, err == nil)
+
+}
+
+func TestRetryAfterThrottle(t *testing.T) {
+	db := tests.Tempfile()
+	defer os.Remove(db)
+
+	// Create the app
+	app := glusterfs.NewTestApp(db)
+	defer app.Close()
+
+	// Setup the server
+	m := &clientTestMiddleware{}
+	ts := setupHeketiServerAndMiddleware(app, m)
+	defer ts.Close()
+
+	c := NewClientWithOptions(ts.URL, "admin", TEST_ADMIN_KEY, ClientOptions{
+		RetryEnabled:  true,
+		RetryCount:    RETRY_COUNT,
+		RetryMinDelay: 1, // this is a test. we want short delays
+		RetryMaxDelay: 2,
+	})
+
+	cluster_req := &api.ClusterCreateRequest{
+		ClusterFlags: api.ClusterFlags{
+			Block: true,
+			File:  true,
+		},
+	}
+
+	cluster, err := c.ClusterCreate(cluster_req)
+	tests.Assert(t, err == nil)
+
+	ictr := 0
+	permitAfter := 2
+	retryAfterHeader := -1 // test with built in delay calculation
+	m.intercept = func(w http.ResponseWriter, r *http.Request) bool {
+		ictr++
+		if ictr >= permitAfter {
+			return false
+		}
+		if retryAfterHeader != -1 {
+			w.Header().Set("Retry-After", fmt.Sprintf("%v", retryAfterHeader))
+		}
+		http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
+		return true
+	}
+
+	nodeReq := &api.NodeAddRequest{}
+	nodeReq.ClusterId = cluster.Id
+	nodeReq.Hostnames.Manage = []string{"manage1"}
+	nodeReq.Hostnames.Storage = []string{"storage1"}
+	nodeReq.Zone = 1
+
+	// verify that the NodeAdd command had to retry a few times but succeeds
+	node, err := c.NodeAdd(nodeReq)
+	tests.Assert(t, err == nil, "expected err == nil, got", err)
+	tests.Assert(t, node != nil)
+	tests.Assert(t, ictr >= 2, "expected ictr >= 2, got", ictr)
+
+	// verify that the NodeAdd command fails after exhausting retries
+	ictr = 0
+	permitAfter = 200
+	retryAfterHeader = 0 // test with delay based on server header
+	nodeReq.Hostnames.Manage = []string{"manage2"}
+	nodeReq.Hostnames.Storage = []string{"storage2"}
+	_, err = c.NodeAdd(nodeReq)
+	tests.Assert(t, err != nil, "expected err != nil, got", err)
+	tests.Assert(t, err.Error() == "Too Many Requests", "expected err == 'Too Many Requests', got", err)
+	tests.Assert(t, ictr >= RETRY_COUNT, "expected ictr >= 2, got", ictr)
+
+	// disable internal retries
+	c = NewClientWithOptions(ts.URL, "admin", TEST_ADMIN_KEY, ClientOptions{
+		RetryEnabled:  false,
+		RetryCount:    RETRY_COUNT,
+		RetryMinDelay: 1, // this is a test. we want short delays
+		RetryMaxDelay: 2,
+	})
+
+	// verify that the NodeAdd command fails without doing retries
+	ictr = 0
+	permitAfter = 200
+	_, err = c.NodeAdd(nodeReq)
+	tests.Assert(t, err != nil, "expected err != nil, got", err)
+	tests.Assert(t, err.Error() == "Too Many Requests", "expected err == 'Too Many Requests', got", err)
+	tests.Assert(t, ictr == 1, "expected ictr == 1, got", ictr)
+}
+
+func TestAdminStatus(t *testing.T) {
+	db := tests.Tempfile()
+	defer os.Remove(db)
+
+	// Create the app
+	app := glusterfs.NewTestApp(db)
+	defer app.Close()
+
+	// Setup the server
+	ts := setupHeketiServer(app)
+	defer ts.Close()
+
+	c := NewClient(ts.URL, "admin", TEST_ADMIN_KEY)
+	tests.Assert(t, c != nil, "NewClient failed:", c)
+
+	as, err := c.AdminStatusGet()
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, as.State == api.AdminStateNormal,
+		"expected as.State == api.AdminStateNormal, got:", as.State)
+
+	as.State = api.AdminStateLocal
+	err = c.AdminStatusSet(as)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	as, err = c.AdminStatusGet()
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, as.State == api.AdminStateLocal,
+		"expected as.State == api.AdminStateNormal, got:", as.State)
+
+	as.State = api.AdminStateNormal
+	err = c.AdminStatusSet(as)
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+
+	as, err = c.AdminStatusGet()
+	tests.Assert(t, err == nil, "expected err == nil, got:", err)
+	tests.Assert(t, as.State == api.AdminStateNormal,
+		"expected as.State == api.AdminStateNormal, got:", as.State)
+}
+
+func TestVolumeSetBlockRestriction(t *testing.T) {
+	db := tests.Tempfile()
+	defer os.Remove(db)
+
+	// Create the app
+	app := glusterfs.NewTestApp(db)
+	defer app.Close()
+
+	// Setup the server
+	ts := setupHeketiServer(app)
+	defer ts.Close()
+
+	// Create cluster
+	c := NewClient(ts.URL, "admin", TEST_ADMIN_KEY)
+	tests.Assert(t, c != nil)
+	cluster_req := &api.ClusterCreateRequest{
+		ClusterFlags: api.ClusterFlags{
+			Block: true,
+			File:  true,
+		},
+	}
+	cluster, err := c.ClusterCreate(cluster_req)
+	tests.Assert(t, err == nil)
+
+	// Create node request packet
+	for n := 0; n < 4; n++ {
+		nodeReq := &api.NodeAddRequest{}
+		nodeReq.ClusterId = cluster.Id
+		nodeReq.Hostnames.Manage = []string{"manage" + fmt.Sprintf("%v", n)}
+		nodeReq.Hostnames.Storage = []string{"storage" + fmt.Sprintf("%v", n)}
+		nodeReq.Zone = n + 1
+
+		// Create node
+		node, err := c.NodeAdd(nodeReq)
+		tests.Assert(t, err == nil)
+
+		deviceReq := &api.DeviceAddRequest{}
+		deviceReq.Name = "/dev/by-magic/id:" + idgen.GenUUID()
+		deviceReq.NodeId = node.Id
+
+		// Create device
+		err = c.DeviceAdd(deviceReq)
+		tests.Assert(t, err == nil)
+	}
+
+	// Create a volume
+	volumeReq := &api.VolumeCreateRequest{}
+	volumeReq.Size = 10
+	volumeReq.Block = true
+	volume, err := c.VolumeCreate(volumeReq)
+	tests.Assert(t, err == nil)
+	tests.Assert(t, volume.Id != "")
+	tests.Assert(t, volume.Size == volumeReq.Size)
+
+	v2, err := c.VolumeSetBlockRestriction(
+		volume.Id,
+		&api.VolumeBlockRestrictionRequest{
+			Restriction: api.Locked,
+		})
+	tests.Assert(t, err == nil)
+	tests.Assert(t, v2.BlockInfo.Restriction == api.Locked)
+
+	v2, err = c.VolumeSetBlockRestriction(
+		volume.Id,
+		&api.VolumeBlockRestrictionRequest{
+			Restriction: api.Unrestricted,
+		})
+	tests.Assert(t, err == nil)
+	tests.Assert(t, v2.BlockInfo.Restriction == api.Unrestricted)
 }

@@ -22,15 +22,16 @@ import (
 	"runtime"
 	"testing"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	utiltesting "k8s.io/client-go/util/testing"
+	utilfeaturetesting "k8s.io/apiserver/pkg/util/feature/testing"
+
 	// util.go uses api.Codecs.LegacyCodec so import this package to do some
 	// resource initialization.
 	"hash/fnv"
 
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
-	"k8s.io/kubernetes/pkg/util/mount"
+	"k8s.io/kubernetes/pkg/features"
 
 	"reflect"
 	"strings"
@@ -44,7 +45,7 @@ import (
 	"k8s.io/kubernetes/pkg/volume"
 )
 
-var nodeLabels map[string]string = map[string]string{
+var nodeLabels = map[string]string{
 	"test-key1": "test-value1",
 	"test-key2": "test-value2",
 }
@@ -350,45 +351,6 @@ func TestZonesToSet(t *testing.T) {
 	for _, tt := range tests {
 		if got, err := ZonesToSet(tt.zones); err != nil || !got.Equal(tt.want) {
 			t.Errorf("%v(%v) returned (%v), want (%v)", functionUnderTest, tt.zones, got, tt.want)
-		}
-	}
-}
-
-func TestDoUnmountMountPoint(t *testing.T) {
-
-	tmpDir1, err1 := utiltesting.MkTmpdir("umount_test1")
-	if err1 != nil {
-		t.Fatalf("error creating temp dir: %v", err1)
-	}
-	defer os.RemoveAll(tmpDir1)
-
-	tmpDir2, err2 := utiltesting.MkTmpdir("umount_test2")
-	if err2 != nil {
-		t.Fatalf("error creating temp dir: %v", err2)
-	}
-	defer os.RemoveAll(tmpDir2)
-
-	// Second part: want no error
-	tests := []struct {
-		mountPath    string
-		corruptedMnt bool
-	}{
-		{
-			mountPath:    tmpDir1,
-			corruptedMnt: true,
-		},
-		{
-			mountPath:    tmpDir2,
-			corruptedMnt: false,
-		},
-	}
-
-	fake := &mount.FakeMounter{}
-
-	for _, tt := range tests {
-		err := doUnmountMountPoint(tt.mountPath, fake, false, tt.corruptedMnt)
-		if err != nil {
-			t.Errorf("err Expected nil, but got: %v", err)
 		}
 	}
 }
@@ -1426,59 +1388,54 @@ func TestSelectZoneForVolume(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		utilfeature.DefaultFeatureGate.Set("VolumeScheduling=false")
-		if test.VolumeScheduling {
-			utilfeature.DefaultFeatureGate.Set("VolumeScheduling=true")
-		}
+		t.Run(test.Name, func(t *testing.T) {
+			defer utilfeaturetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.VolumeScheduling, test.VolumeScheduling)()
 
-		var zonesParameter, zonesWithNodes sets.String
-		var err error
+			var zonesParameter, zonesWithNodes sets.String
+			var err error
 
-		if test.Zones != "" {
-			zonesParameter, err = ZonesToSet(test.Zones)
-			if err != nil {
-				t.Errorf("Could not convert Zones to a set: %s. This is a test error %s", test.Zones, test.Name)
-				continue
-			}
-		}
-
-		if test.ZonesWithNodes != "" {
-			zonesWithNodes, err = ZonesToSet(test.ZonesWithNodes)
-			if err != nil {
-				t.Errorf("Could not convert specified ZonesWithNodes to a set: %s. This is a test error %s", test.ZonesWithNodes, test.Name)
-				continue
-			}
-		}
-
-		zone, err := SelectZoneForVolume(test.ZonePresent, test.ZonesPresent, test.Zone, zonesParameter, zonesWithNodes, test.Node, test.AllowedTopologies, test.Name)
-
-		if test.Reject && err == nil {
-			t.Errorf("Unexpected zone from SelectZoneForVolume for %s", zone)
-			continue
-		}
-
-		if !test.Reject {
-			if err != nil {
-				t.Errorf("Unexpected error from SelectZoneForVolume for %s; Error: %v", test.Name, err)
-				continue
-			}
-
-			if test.ExpectSpecificZone == true {
-				if zone != test.ExpectedZone {
-					t.Errorf("Expected zone %v does not match obtained zone %v for %s", test.ExpectedZone, zone, test.Name)
+			if test.Zones != "" {
+				zonesParameter, err = ZonesToSet(test.Zones)
+				if err != nil {
+					t.Fatalf("Could not convert Zones to a set: %s. This is a test error %s", test.Zones, test.Name)
 				}
-				continue
 			}
 
-			expectedZones, err := ZonesToSet(test.ExpectedZones)
-			if err != nil {
-				t.Errorf("Could not convert ExpectedZones to a set: %s. This is a test error", test.ExpectedZones)
-				continue
+			if test.ZonesWithNodes != "" {
+				zonesWithNodes, err = ZonesToSet(test.ZonesWithNodes)
+				if err != nil {
+					t.Fatalf("Could not convert specified ZonesWithNodes to a set: %s. This is a test error %s", test.ZonesWithNodes, test.Name)
+				}
 			}
-			if !expectedZones.Has(zone) {
-				t.Errorf("Obtained zone %s not member of expectedZones %s", zone, expectedZones)
+
+			zone, err := SelectZoneForVolume(test.ZonePresent, test.ZonesPresent, test.Zone, zonesParameter, zonesWithNodes, test.Node, test.AllowedTopologies, test.Name)
+
+			if test.Reject && err == nil {
+				t.Errorf("Unexpected zone from SelectZoneForVolume for %s", zone)
 			}
-		}
+
+			if !test.Reject {
+				if err != nil {
+					t.Errorf("Unexpected error from SelectZoneForVolume for %s; Error: %v", test.Name, err)
+				}
+
+				if test.ExpectSpecificZone == true {
+					if zone != test.ExpectedZone {
+						t.Errorf("Expected zone %v does not match obtained zone %v for %s", test.ExpectedZone, zone, test.Name)
+					}
+				}
+
+				if test.ExpectedZones != "" {
+					expectedZones, err := ZonesToSet(test.ExpectedZones)
+					if err != nil {
+						t.Fatalf("Could not convert ExpectedZones to a set: %s. This is a test error", test.ExpectedZones)
+					}
+					if !expectedZones.Has(zone) {
+						t.Errorf("Obtained zone %s not member of expectedZones %s", zone, expectedZones)
+					}
+				}
+			}
+		})
 	}
 }
 
@@ -2369,6 +2326,148 @@ func TestGetWindowsPath(t *testing.T) {
 		result := GetWindowsPath(test.path)
 		if result != test.expectedPath {
 			t.Errorf("GetWindowsPath(%v) returned (%v), want (%v)", test.path, result, test.expectedPath)
+		}
+	}
+}
+
+func TestIsWindowsUNCPath(t *testing.T) {
+	tests := []struct {
+		goos      string
+		path      string
+		isUNCPath bool
+	}{
+		{
+			goos:      "linux",
+			path:      `/usr/bin`,
+			isUNCPath: false,
+		},
+		{
+			goos:      "linux",
+			path:      `\\.\pipe\foo`,
+			isUNCPath: false,
+		},
+		{
+			goos:      "windows",
+			path:      `C:\foo`,
+			isUNCPath: false,
+		},
+		{
+			goos:      "windows",
+			path:      `\\server\share\foo`,
+			isUNCPath: true,
+		},
+		{
+			goos:      "windows",
+			path:      `\\?\server\share`,
+			isUNCPath: true,
+		},
+		{
+			goos:      "windows",
+			path:      `\\?\c:\`,
+			isUNCPath: true,
+		},
+		{
+			goos:      "windows",
+			path:      `\\.\pipe\valid_pipe`,
+			isUNCPath: true,
+		},
+	}
+
+	for _, test := range tests {
+		result := IsWindowsUNCPath(test.goos, test.path)
+		if result != test.isUNCPath {
+			t.Errorf("IsWindowsUNCPath(%v) returned (%v), expected (%v)", test.path, result, test.isUNCPath)
+		}
+	}
+}
+
+func TestIsWindowsLocalPath(t *testing.T) {
+	tests := []struct {
+		goos               string
+		path               string
+		isWindowsLocalPath bool
+	}{
+		{
+			goos:               "linux",
+			path:               `/usr/bin`,
+			isWindowsLocalPath: false,
+		},
+		{
+			goos:               "linux",
+			path:               `\\.\pipe\foo`,
+			isWindowsLocalPath: false,
+		},
+		{
+			goos:               "windows",
+			path:               `C:\foo`,
+			isWindowsLocalPath: false,
+		},
+		{
+			goos:               "windows",
+			path:               `:\foo`,
+			isWindowsLocalPath: false,
+		},
+		{
+			goos:               "windows",
+			path:               `X:\foo`,
+			isWindowsLocalPath: false,
+		},
+		{
+			goos:               "windows",
+			path:               `\\server\share\foo`,
+			isWindowsLocalPath: false,
+		},
+		{
+			goos:               "windows",
+			path:               `\\?\server\share`,
+			isWindowsLocalPath: false,
+		},
+		{
+			goos:               "windows",
+			path:               `\\?\c:\`,
+			isWindowsLocalPath: false,
+		},
+		{
+			goos:               "windows",
+			path:               `\\.\pipe\valid_pipe`,
+			isWindowsLocalPath: false,
+		},
+		{
+			goos:               "windows",
+			path:               `foo`,
+			isWindowsLocalPath: false,
+		},
+		{
+			goos:               "windows",
+			path:               `:foo`,
+			isWindowsLocalPath: false,
+		},
+		{
+			goos:               "windows",
+			path:               `\foo`,
+			isWindowsLocalPath: true,
+		},
+		{
+			goos:               "windows",
+			path:               `\foo\bar`,
+			isWindowsLocalPath: true,
+		},
+		{
+			goos:               "windows",
+			path:               `/foo`,
+			isWindowsLocalPath: true,
+		},
+		{
+			goos:               "windows",
+			path:               `/foo/bar`,
+			isWindowsLocalPath: true,
+		},
+	}
+
+	for _, test := range tests {
+		result := IsWindowsLocalPath(test.goos, test.path)
+		if result != test.isWindowsLocalPath {
+			t.Errorf("isWindowsLocalPath(%v) returned (%v), expected (%v)", test.path, result, test.isWindowsLocalPath)
 		}
 	}
 }

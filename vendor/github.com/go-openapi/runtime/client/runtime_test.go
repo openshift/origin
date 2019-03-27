@@ -24,12 +24,17 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"testing"
 	"time"
+
+	"crypto/x509"
+	"encoding/pem"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // task This describes a task. Tasks require a content property to be set.
@@ -45,6 +50,108 @@ type task struct {
 	ID int64 `json:"id" xml:"id"`
 }
 
+func TestRuntime_TLSAuthConfig(t *testing.T) {
+	var opts TLSClientOptions
+	opts.CA = "../fixtures/certs/myCA.crt"
+	opts.Key = "../fixtures/certs/myclient.key"
+	opts.Certificate = "../fixtures/certs/myclient.crt"
+	opts.ServerName = "somewhere"
+
+	cfg, err := TLSClientAuth(opts)
+	if assert.NoError(t, err) {
+		if assert.NotNil(t, cfg) {
+			assert.Len(t, cfg.Certificates, 1)
+			assert.NotNil(t, cfg.RootCAs)
+			assert.Equal(t, "somewhere", cfg.ServerName)
+		}
+	}
+}
+
+func TestRuntime_TLSAuthConfigWithRSAKey(t *testing.T) {
+
+	keyPem, err := ioutil.ReadFile("../fixtures/certs/myclient.key")
+	require.NoError(t, err)
+
+	keyDer, _ := pem.Decode(keyPem)
+	require.NotNil(t, keyDer)
+
+	key, err := x509.ParsePKCS1PrivateKey(keyDer.Bytes)
+	require.NoError(t, err)
+
+	certPem, err := ioutil.ReadFile("../fixtures/certs/myclient.crt")
+	require.NoError(t, err)
+
+	certDer, _ := pem.Decode(certPem)
+	require.NotNil(t, certDer)
+
+	cert, err := x509.ParseCertificate(certDer.Bytes)
+
+	var opts TLSClientOptions
+	opts.LoadedKey = key
+	opts.LoadedCertificate = cert
+
+	cfg, err := TLSClientAuth(opts)
+	if assert.NoError(t, err) {
+		if assert.NotNil(t, cfg) {
+			assert.Len(t, cfg.Certificates, 1)
+		}
+	}
+}
+
+func TestRuntime_TLSAuthConfigWithECKey(t *testing.T) {
+
+	keyPem, err := ioutil.ReadFile("../fixtures/certs/myclient-ecc.key")
+	require.NoError(t, err)
+
+	_, remainder := pem.Decode(keyPem)
+	keyDer, _ := pem.Decode(remainder)
+	require.NotNil(t, keyDer)
+
+	key, err := x509.ParseECPrivateKey(keyDer.Bytes)
+	require.NoError(t, err)
+
+	certPem, err := ioutil.ReadFile("../fixtures/certs/myclient-ecc.crt")
+	require.NoError(t, err)
+
+	certDer, _ := pem.Decode(certPem)
+	require.NotNil(t, certDer)
+
+	cert, err := x509.ParseCertificate(certDer.Bytes)
+
+	var opts TLSClientOptions
+	opts.LoadedKey = key
+	opts.LoadedCertificate = cert
+
+	cfg, err := TLSClientAuth(opts)
+	if assert.NoError(t, err) {
+		if assert.NotNil(t, cfg) {
+			assert.Len(t, cfg.Certificates, 1)
+		}
+	}
+}
+
+func TestRuntime_TLSAuthConfigWithLoadedCA(t *testing.T) {
+
+	certPem, err := ioutil.ReadFile("../fixtures/certs/myCA.crt")
+	require.NoError(t, err)
+
+	block, _ := pem.Decode(certPem)
+	require.NotNil(t, block)
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	require.NoError(t, err)
+
+	var opts TLSClientOptions
+	opts.LoadedCA = cert
+
+	cfg, err := TLSClientAuth(opts)
+	if assert.NoError(t, err) {
+		if assert.NotNil(t, cfg) {
+			assert.NotNil(t, cfg.RootCAs)
+		}
+	}
+}
+
 func TestRuntime_Concurrent(t *testing.T) {
 	// test that it can make a simple request
 	// and get the response for it.
@@ -57,7 +164,7 @@ func TestRuntime_Concurrent(t *testing.T) {
 		rw.Header().Add(runtime.HeaderContentType, runtime.JSONMime)
 		rw.WriteHeader(http.StatusOK)
 		jsongen := json.NewEncoder(rw)
-		jsongen.Encode(result)
+		_ = jsongen.Encode(result)
 	}))
 	defer server.Close()
 
@@ -133,7 +240,7 @@ func TestRuntime_Canary(t *testing.T) {
 		rw.Header().Add(runtime.HeaderContentType, runtime.JSONMime)
 		rw.WriteHeader(http.StatusOK)
 		jsongen := json.NewEncoder(rw)
-		jsongen.Encode(result)
+		_ = jsongen.Encode(result)
 	}))
 	defer server.Close()
 
@@ -184,7 +291,7 @@ func TestRuntime_XMLCanary(t *testing.T) {
 		rw.Header().Add(runtime.HeaderContentType, runtime.XMLMime)
 		rw.WriteHeader(http.StatusOK)
 		xmlgen := xml.NewEncoder(rw)
-		xmlgen.Encode(result)
+		_ = xmlgen.Encode(result)
 	}))
 	defer server.Close()
 
@@ -225,7 +332,7 @@ func TestRuntime_TextCanary(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Add(runtime.HeaderContentType, runtime.TextMime)
 		rw.WriteHeader(http.StatusOK)
-		rw.Write([]byte(result))
+		_, _ = rw.Write([]byte(result))
 	}))
 	defer server.Close()
 
@@ -285,7 +392,7 @@ func TestRuntime_CustomTransport(t *testing.T) {
 		resp.Header.Set("content-type", "application/json")
 		buf := bytes.NewBuffer(nil)
 		enc := json.NewEncoder(buf)
-		enc.Encode(result)
+		_ = enc.Encode(result)
 		resp.Body = ioutil.NopCloser(buf)
 		return &resp, nil
 	})
@@ -334,7 +441,7 @@ func TestRuntime_CustomCookieJar(t *testing.T) {
 			rw.Header().Add(runtime.HeaderContentType, runtime.JSONMime)
 			rw.WriteHeader(http.StatusOK)
 			jsongen := json.NewEncoder(rw)
-			jsongen.Encode([]task{})
+			_ = jsongen.Encode([]task{})
 		} else {
 			rw.WriteHeader(http.StatusUnauthorized)
 		}
@@ -387,7 +494,7 @@ func TestRuntime_AuthCanary(t *testing.T) {
 		rw.Header().Add(runtime.HeaderContentType, runtime.JSONMime)
 		rw.WriteHeader(http.StatusOK)
 		jsongen := json.NewEncoder(rw)
-		jsongen.Encode(result)
+		_ = jsongen.Encode(result)
 	}))
 	defer server.Close()
 
@@ -435,13 +542,12 @@ func TestRuntime_PickConsumer(t *testing.T) {
 		rw.Header().Add(runtime.HeaderContentType, runtime.JSONMime+";charset=utf-8")
 		rw.WriteHeader(http.StatusOK)
 		jsongen := json.NewEncoder(rw)
-		jsongen.Encode(result)
+		_ = jsongen.Encode(result)
 	}))
 	defer server.Close()
 
 	rwrtr := runtime.ClientRequestWriterFunc(func(req runtime.ClientRequest, _ strfmt.Registry) error {
-		req.SetBodyParam(bytes.NewBufferString("hello"))
-		return nil
+		return req.SetBodyParam(bytes.NewBufferString("hello"))
 	})
 
 	hu, _ := url.Parse(server.URL)
@@ -489,7 +595,7 @@ func TestRuntime_ContentTypeCanary(t *testing.T) {
 		rw.Header().Add(runtime.HeaderContentType, runtime.JSONMime+";charset=utf-8")
 		rw.WriteHeader(http.StatusOK)
 		jsongen := json.NewEncoder(rw)
-		jsongen.Encode(result)
+		_ = jsongen.Encode(result)
 	}))
 	defer server.Close()
 
@@ -542,7 +648,7 @@ func TestRuntime_ChunkedResponse(t *testing.T) {
 		rw.Header().Add(runtime.HeaderContentType, runtime.JSONMime+";charset=utf-8")
 		rw.WriteHeader(http.StatusOK)
 		jsongen := json.NewEncoder(rw)
-		jsongen.Encode(result)
+		_ = jsongen.Encode(result)
 	}))
 	defer server.Close()
 
@@ -580,10 +686,84 @@ func TestRuntime_ChunkedResponse(t *testing.T) {
 	}
 }
 
+func TestRuntime_DebugValue(t *testing.T) {
+	original := os.Getenv("DEBUG")
+
+	// Emtpy DEBUG means Debug is False
+	_ = os.Setenv("DEBUG", "")
+	runtime := New("", "/", []string{"https"})
+	assert.False(t, runtime.Debug)
+
+	// Non-Empty Debug means Debug is True
+
+	_ = os.Setenv("DEBUG", "1")
+	runtime = New("", "/", []string{"https"})
+	assert.True(t, runtime.Debug)
+
+	_ = os.Setenv("DEBUG", "true")
+	runtime = New("", "/", []string{"https"})
+	assert.True(t, runtime.Debug)
+
+	_ = os.Setenv("DEBUG", "foo")
+	runtime = New("", "/", []string{"https"})
+	assert.True(t, runtime.Debug)
+
+	// Make sure DEBUG is initial value once again
+	_ = os.Setenv("DEBUG", original)
+}
+
 func TestRuntime_OverrideScheme(t *testing.T) {
 	runtime := New("", "/", []string{"https"})
 	sch := runtime.pickScheme([]string{"http"})
 	assert.Equal(t, "https", sch)
+}
+
+func TestRuntime_OverrideClient(t *testing.T) {
+	client := &http.Client{}
+	runtime := NewWithClient("", "/", []string{"https"}, client)
+	var i int
+	runtime.clientOnce.Do(func() { i++ })
+	assert.Equal(t, client, runtime.client)
+	assert.Equal(t, 0, i)
+}
+
+type overrideRoundTripper struct {
+	overriden bool
+}
+
+func (o *overrideRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	o.overriden = true
+	res := new(http.Response)
+	res.StatusCode = 200
+	res.Body = ioutil.NopCloser(bytes.NewBufferString("OK"))
+	return res, nil
+}
+
+func TestRuntime_OverrideClientOperation(t *testing.T) {
+	client := &http.Client{}
+	rt := NewWithClient("", "/", []string{"https"}, client)
+	var i int
+	rt.clientOnce.Do(func() { i++ })
+	assert.Equal(t, client, rt.client)
+	assert.Equal(t, 0, i)
+
+	client2 := new(http.Client)
+	var transport = &overrideRoundTripper{}
+	client2.Transport = transport
+	if assert.NotEqual(t, client, client2) {
+		_, err := rt.Submit(&runtime.ClientOperation{
+			Client: client2,
+			Params: runtime.ClientRequestWriterFunc(func(r runtime.ClientRequest, _ strfmt.Registry) error {
+				return nil
+			}),
+			Reader: runtime.ClientResponseReaderFunc(func(_ runtime.ClientResponse, _ runtime.Consumer) (interface{}, error) {
+				return nil, nil
+			}),
+		})
+		if assert.NoError(t, err) {
+			assert.True(t, transport.overriden)
+		}
+	}
 }
 
 func TestRuntime_PreserveTrailingSlash(t *testing.T) {
@@ -627,4 +807,72 @@ func TestRuntime_PreserveTrailingSlash(t *testing.T) {
 	})
 
 	assert.NoError(t, err)
+}
+
+func TestRuntime_FallbackConsumer(t *testing.T) {
+	result := `W3siY29tcGxldGVkIjpmYWxzZSwiY29udGVudCI6ImRHRnpheUF4SUdOdmJuUmxiblE9IiwiaWQiOjF9XQ==`
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.Header().Add(runtime.HeaderContentType, "application/x-task")
+		rw.WriteHeader(http.StatusOK)
+		_, _ = rw.Write([]byte(result))
+	}))
+	defer server.Close()
+
+	rwrtr := runtime.ClientRequestWriterFunc(func(req runtime.ClientRequest, _ strfmt.Registry) error {
+		return req.SetBodyParam(bytes.NewBufferString("hello"))
+	})
+
+	hu, _ := url.Parse(server.URL)
+	rt := New(hu.Host, "/", []string{"http"})
+
+	// without the fallback consumer
+	_, err := rt.Submit(&runtime.ClientOperation{
+		ID:                 "getTasks",
+		Method:             "POST",
+		PathPattern:        "/",
+		Schemes:            []string{"http"},
+		ConsumesMediaTypes: []string{"application/octet-stream"},
+		Params:             rwrtr,
+		Reader: runtime.ClientResponseReaderFunc(func(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+			if response.Code() == 200 {
+				var result []byte
+				if err := consumer.Consume(response.Body(), &result); err != nil {
+					return nil, err
+				}
+				return result, nil
+			}
+			return nil, errors.New("Generic error")
+		}),
+	})
+
+	if assert.Error(t, err) {
+		assert.Equal(t, `no consumer: "application/x-task"`, err.Error())
+	}
+
+	// add the fallback consumer
+	rt.Consumers["*/*"] = rt.Consumers[runtime.DefaultMime]
+	res, err := rt.Submit(&runtime.ClientOperation{
+		ID:                 "getTasks",
+		Method:             "POST",
+		PathPattern:        "/",
+		Schemes:            []string{"http"},
+		ConsumesMediaTypes: []string{"application/octet-stream"},
+		Params:             rwrtr,
+		Reader: runtime.ClientResponseReaderFunc(func(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+			if response.Code() == 200 {
+				var result []byte
+				if err := consumer.Consume(response.Body(), &result); err != nil {
+					return nil, err
+				}
+				return result, nil
+			}
+			return nil, errors.New("Generic error")
+		}),
+	})
+
+	if assert.NoError(t, err) {
+		assert.IsType(t, []byte{}, res)
+		actual := res.([]byte)
+		assert.EqualValues(t, result, actual)
+	}
 }

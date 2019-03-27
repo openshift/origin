@@ -1,19 +1,17 @@
-hash: 2bc7f2365f88b3af5dd5bc4bc234144b18e67928f8169661cd2fa2b48c389650
-updated: 2019-03-13T15:57:18.934454257-05:00
+hash: 9dc19286d9a6d0fca73ace9a9b72e7c9bac325a99f4d25620a16a1eac933dce4
+updated: 2019-03-25T08:15:29.17211017-04:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
   subpackages:
   - spew
-- name: github.com/ghodss/yaml
-  version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
+- name: github.com/evanphx/json-patch
+  version: 5858425f75500d40c52783dce87d085a483ce135
 - name: github.com/gogo/protobuf
-  version: c0656edd0d9eab7c66d1eb0c568f9039345796f7
+  version: 342cbe0a04158f6dcb03ca0079991a51a4248c02
   subpackages:
   - proto
   - sortkeys
-- name: github.com/golang/glog
-  version: 44145f04b68cf362d9c4df2182967c2275eaefed
 - name: github.com/golang/protobuf
   version: b4deda0973fb4c70b50d226b1af49f3da59f5265
   subpackages:
@@ -43,13 +41,13 @@ imports:
 - name: github.com/imdario/mergo
   version: 9316a62528ac99aaecb4e47eadd6dc8aa6533d58
 - name: github.com/json-iterator/go
-  version: f2b4162afba35581b6d4a50d3b8f34e33c144682
+  version: ab8a2e0c74be9d3be70b3184d9acc634935ded82
 - name: github.com/modern-go/concurrent
   version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
 - name: github.com/modern-go/reflect2
-  version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
+  version: 94122c33edd36123c84d5368cfb2b69df93a0ec8
 - name: github.com/openshift/api
-  version: 5e45fff0f89ec1edff19e0ee00a21ecbeb08d787
+  version: 09bf3c5b0f356043dd5e4af81f618942531bd156
   subpackages:
   - apps/v1
   - authorization/v1
@@ -115,7 +113,7 @@ imports:
   subpackages:
   - imports
 - name: google.golang.org/appengine
-  version: 54a98f90d1c46b7731eb8fb305d2a321c30ef610
+  version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
   subpackages:
   - internal
   - internal/base
@@ -127,15 +125,16 @@ imports:
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/yaml.v2
-  version: 670d4cfef0544295bc27a114dbac37980d83185a
+  version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
 - name: k8s.io/api
-  version: 6db15a15d2d3874a6c3ddb2140ac9f3bc7058428
+  version: 5cb15d34447165a97c76ed5a60e4e99c8a01ecfe
   subpackages:
   - admissionregistration/v1alpha1
   - admissionregistration/v1beta1
   - apps/v1
   - apps/v1beta1
   - apps/v1beta2
+  - auditregistration/v1alpha1
   - authentication/v1
   - authentication/v1beta1
   - authorization/v1
@@ -163,7 +162,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apimachinery
-  version: 49ce2735e5074ffc3f8190c8406cf51a96302dad
+  version: 86fb29eff6288413d76bd8506874fddd9fccdff0
   subpackages:
   - pkg/api/errors
   - pkg/api/meta
@@ -208,7 +207,7 @@ imports:
   - third_party/forked/golang/json
   - third_party/forked/golang/reflect
 - name: k8s.io/client-go
-  version: 701b913670036511e3d752318272c97f1a2a2edd
+  version: b40b2a5939e43f7ffe0028ad67586b7ce50bb675
   subpackages:
   - discovery
   - discovery/fake
@@ -238,13 +237,16 @@ imports:
   - util/integer
   - util/retry
 - name: k8s.io/code-generator
-  version: 13d81ee386d3d039027dd42e7b3d1d30d8d788f2
-  repo: https://github.com/openshift/kubernetes-code-generator.git
+  version: 2bf47b06188b89cc41d68422aa52509f2cbb4cc8
+  repo: git@github.com:openshift/kubernetes-code-generator
 - name: k8s.io/gengo
-  version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b
-  repo: https://github.com/openshift/kubernetes-gengo.git
+  version: 51747d6e00da1fc578d5a333a93bb2abcbce7a95
+- name: k8s.io/klog
+  version: 8139d8cb77af419532b33dfa7dd09fbc5f1d344f
 - name: k8s.io/kube-openapi
-  version: 0cf8f7e6ed1d2e3d47d02e3b6e559369af24d803
+  version: c59034cc13d587f5ef4e85ca0ade0c1866ae8e1d
   subpackages:
   - pkg/util/proto
+- name: sigs.k8s.io/yaml
+  version: fd68e9863619f6ec2fdd8625fe1f02e7c877e480
 testImports: []

@@ -199,6 +199,8 @@ func PossibleReservationTermValues() []ReservationTerm {
 type ReservedResourceType string
 
 const (
+	// CosmosDb ...
+	CosmosDb ReservedResourceType = "CosmosDb"
 	// SQLDatabases ...
 	SQLDatabases ReservedResourceType = "SqlDatabases"
 	// SuseLinux ...
@@ -209,7 +211,7 @@ const (
 
 // PossibleReservedResourceTypeValues returns an array of possible values for the ReservedResourceType const type.
 func PossibleReservedResourceTypeValues() []ReservedResourceType {
-	return []ReservedResourceType{SQLDatabases, SuseLinux, VirtualMachines}
+	return []ReservedResourceType{CosmosDb, SQLDatabases, SuseLinux, VirtualMachines}
 }
 
 // StatusCode enumerates the values for status code.
@@ -907,11 +909,13 @@ type PatchProperties struct {
 	AppliedScopes    *[]string        `json:"appliedScopes,omitempty"`
 	// InstanceFlexibility - Possible values include: 'On', 'Off', 'NotSupported'
 	InstanceFlexibility InstanceFlexibility `json:"instanceFlexibility,omitempty"`
+	// Name - Name of the Reservation
+	Name *string `json:"name,omitempty"`
 }
 
 // Properties ...
 type Properties struct {
-	// ReservedResourceType - Possible values include: 'VirtualMachines', 'SQLDatabases', 'SuseLinux'
+	// ReservedResourceType - Possible values include: 'VirtualMachines', 'SQLDatabases', 'SuseLinux', 'CosmosDb'
 	ReservedResourceType ReservedResourceType `json:"reservedResourceType,omitempty"`
 	// InstanceFlexibility - Possible values include: 'On', 'Off', 'NotSupported'
 	InstanceFlexibility InstanceFlexibility `json:"instanceFlexibility,omitempty"`

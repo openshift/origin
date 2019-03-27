@@ -4,7 +4,7 @@ package v1
 
 import (
 	v1 "github.com/openshift/api/image/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rest "k8s.io/client-go/rest"
 )
 
@@ -17,7 +17,7 @@ type ImageSignaturesGetter interface {
 // ImageSignatureInterface has methods to work with ImageSignature resources.
 type ImageSignatureInterface interface {
 	Create(*v1.ImageSignature) (*v1.ImageSignature, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
+	Delete(name string, options *metav1.DeleteOptions) error
 	ImageSignatureExpansion
 }
 
@@ -45,7 +45,7 @@ func (c *imageSignatures) Create(imageSignature *v1.ImageSignature) (result *v1.
 }
 
 // Delete takes name of the imageSignature and deletes it. Returns an error if one occurs.
-func (c *imageSignatures) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *imageSignatures) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("imagesignatures").
 		Name(name).

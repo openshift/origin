@@ -9,17 +9,13 @@
 
 package sshexec
 
-type CLICommandConfig struct {
-	Fstab         string `json:"fstab"`
-	Sudo          bool   `json:"sudo"`
-	SnapShotLimit int    `json:"snapshot_limit"`
-
-	// Experimental Settings
-	RebalanceOnExpansion bool `json:"rebalance_on_expansion"`
-}
+import (
+	"github.com/heketi/heketi/executors/cmdexec"
+)
 
 type SshConfig struct {
-	CLICommandConfig
+	cmdexec.CmdConfig
+
 	PrivateKeyFile string `json:"keyfile"`
 	User           string `json:"user"`
 	Port           string `json:"port"`

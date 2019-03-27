@@ -1,5 +1,76 @@
 # CHANGELOG
 
+## v11.1.0
+
+### New Features
+
+- Added `auth.NewAuthorizerFromCLI` to create an authorizer configured from the Azure 2.0 CLI.
+- Added `adal.NewOAuthConfigWithAPIVersion` to create an OAuthConfig with the specified API version.
+
+## v11.0.1
+
+### New Features
+
+- Added `x5c` header to client assertion for certificate Issuer+Subject Name authentication.
+
+## v11.0.0
+
+### Breaking Changes
+
+- To handle differences between ADFS and AAD the following fields have had their types changed from `string` to `json.Number`
+  - ExpiresIn
+  - ExpiresOn
+  - NotBefore
+
+### New Features
+
+- Added `auth.NewAuthorizerFromFileWithResource` to create an authorizer from the config file with the specified resource.
+- Setting a client's `PollingDuration` to zero will use the provided context to control a LRO's polling duration.
+
+## v10.15.5
+
+### Bug Fixes
+
+- In `DoRetryForStatusCodes`, if a request's context is cancelled return the last response.
+
+## v10.15.4
+
+### Bug Fixes
+
+- If a polling operation returns a failure status code return the associated error.
+
+## v10.15.3
+
+### Bug Fixes
+
+- Initialize the polling URL and method for an LRO tracker on each iteration, favoring the Azure-AsyncOperation header.
+
+## v10.15.2
+
+### Bug Fixes
+
+- Use fmt.Fprint when printing request/response so that any escape sequences aren't treated as format specifiers.
+
+## v10.15.1
+
+### Bug Fixes
+
+- If an LRO API returns a ```Failed``` provisioning state in the initial response return an error at that point so the caller doesn't have to poll.
+- For failed LROs without an OData v4 error include the response body in the error's ```AdditionalInfo``` field to aid in diagnosing the failure.
+
+## v10.15.0
+
+### New Features
+
+- Add initial support for request/response logging via setting environment variables.
+  Setting ```AZURE_GO_SDK_LOG_LEVEL``` to ```LogInfo``` will log request/response
+  without their bodies.  To include the bodies set the log level to ```LogDebug```.
+  By default the logger writes to strerr, however it can also write to stdout or a file
+  if specified in ```AZURE_GO_SDK_LOG_FILE```.  Note that if the specified file
+  already exists it will be truncated.
+  IMPORTANT: by default the logger will redact the Authorization and Ocp-Apim-Subscription-Key
+  headers.  Any other secrets will *not* be redacted.
+
 ## v10.14.0
 
 ### New Features

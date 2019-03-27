@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -101,14 +101,14 @@ func (c StatusSyncer) sync() error {
 
 	// ensure that we have a clusteroperator resource
 	if originalClusterOperatorObj == nil || apierrors.IsNotFound(err) {
-		glog.Infof("clusteroperator/%s not found", c.clusterOperatorName)
+		klog.Infof("clusteroperator/%s not found", c.clusterOperatorName)
 		var createErr error
 		originalClusterOperatorObj, createErr = c.clusterOperatorClient.ClusterOperators().Create(&configv1.ClusterOperator{
 			ObjectMeta: metav1.ObjectMeta{Name: c.clusterOperatorName},
 		})
 		if apierrors.IsNotFound(createErr) {
 			// this means that the API isn't present.  We did not fail.  Try again later
-			glog.Infof("ClusterOperator API not created")
+			klog.Infof("ClusterOperator API not created")
 			c.queue.AddRateLimited(workQueueKey)
 			return nil
 		}
@@ -153,7 +153,7 @@ func (c StatusSyncer) sync() error {
 	if equality.Semantic.DeepEqual(clusterOperatorObj, originalClusterOperatorObj) {
 		return nil
 	}
-	glog.V(2).Infof("clusteroperator/%s diff %v", c.clusterOperatorName, resourceapply.JSONPatch(originalClusterOperatorObj, clusterOperatorObj))
+	klog.V(2).Infof("clusteroperator/%s diff %v", c.clusterOperatorName, resourceapply.JSONPatch(originalClusterOperatorObj, clusterOperatorObj))
 
 	if _, updateErr := c.clusterOperatorClient.ClusterOperators().UpdateStatus(clusterOperatorObj); err != nil {
 		return updateErr
@@ -176,8 +176,8 @@ func (c *StatusSyncer) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	glog.Infof("Starting StatusSyncer-" + c.clusterOperatorName)
-	defer glog.Infof("Shutting down StatusSyncer-" + c.clusterOperatorName)
+	klog.Infof("Starting StatusSyncer-" + c.clusterOperatorName)
+	defer klog.Infof("Shutting down StatusSyncer-" + c.clusterOperatorName)
 
 	// start watching for version changes
 	go c.watchVersionGetter(stopCh)

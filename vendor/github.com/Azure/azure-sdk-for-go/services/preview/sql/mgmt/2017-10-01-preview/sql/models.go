@@ -358,6 +358,37 @@ func PossibleSampleNameValues() []SampleName {
 	return []SampleName{AdventureWorksLT, WideWorldImportersFull, WideWorldImportersStd}
 }
 
+// ServerKeyType enumerates the values for server key type.
+type ServerKeyType string
+
+const (
+	// AzureKeyVault ...
+	AzureKeyVault ServerKeyType = "AzureKeyVault"
+	// ServiceManaged ...
+	ServiceManaged ServerKeyType = "ServiceManaged"
+)
+
+// PossibleServerKeyTypeValues returns an array of possible values for the ServerKeyType const type.
+func PossibleServerKeyTypeValues() []ServerKeyType {
+	return []ServerKeyType{AzureKeyVault, ServiceManaged}
+}
+
+// VulnerabilityAssessmentPolicyBaselineName enumerates the values for vulnerability assessment policy baseline
+// name.
+type VulnerabilityAssessmentPolicyBaselineName string
+
+const (
+	// VulnerabilityAssessmentPolicyBaselineNameDefault ...
+	VulnerabilityAssessmentPolicyBaselineNameDefault VulnerabilityAssessmentPolicyBaselineName = "default"
+	// VulnerabilityAssessmentPolicyBaselineNameMaster ...
+	VulnerabilityAssessmentPolicyBaselineNameMaster VulnerabilityAssessmentPolicyBaselineName = "master"
+)
+
+// PossibleVulnerabilityAssessmentPolicyBaselineNameValues returns an array of possible values for the VulnerabilityAssessmentPolicyBaselineName const type.
+func PossibleVulnerabilityAssessmentPolicyBaselineNameValues() []VulnerabilityAssessmentPolicyBaselineName {
+	return []VulnerabilityAssessmentPolicyBaselineName{VulnerabilityAssessmentPolicyBaselineNameDefault, VulnerabilityAssessmentPolicyBaselineNameMaster}
+}
+
 // VulnerabilityAssessmentScanState enumerates the values for vulnerability assessment scan state.
 type VulnerabilityAssessmentScanState string
 
@@ -1409,6 +1440,7 @@ func (du *DatabaseUpdate) UnmarshalJSON(body []byte) error {
 
 // DatabaseVulnerabilityAssessment a database vulnerability assessment.
 type DatabaseVulnerabilityAssessment struct {
+	autorest.Response `json:"-"`
 	// DatabaseVulnerabilityAssessmentProperties - Resource properties.
 	*DatabaseVulnerabilityAssessmentProperties `json:"properties,omitempty"`
 	// ID - Resource ID.
@@ -1492,10 +1524,108 @@ func (dva *DatabaseVulnerabilityAssessment) UnmarshalJSON(body []byte) error {
 type DatabaseVulnerabilityAssessmentProperties struct {
 	// StorageContainerPath - A blob storage container path to hold the scan results (e.g. https://myStorage.blob.core.windows.net/VaScans/).
 	StorageContainerPath *string `json:"storageContainerPath,omitempty"`
-	// StorageContainerSasKey - A shared access signature (SAS Key) that has write access to the blob container specified in 'storageContainerPath' parameter.
+	// StorageContainerSasKey - A shared access signature (SAS Key) that has write access to the blob container specified in 'storageContainerPath' parameter. If 'storageAccountAccessKey' isn't specified, StorageContainerSasKey is required.
 	StorageContainerSasKey *string `json:"storageContainerSasKey,omitempty"`
+	// StorageAccountAccessKey - Specifies the identifier key of the vulnerability assessment storage account. If 'StorageContainerSasKey' isn't specified, storageAccountAccessKey is required.
+	StorageAccountAccessKey *string `json:"storageAccountAccessKey,omitempty"`
 	// RecurringScans - The recurring scans settings
 	RecurringScans *VulnerabilityAssessmentRecurringScansProperties `json:"recurringScans,omitempty"`
+}
+
+// DatabaseVulnerabilityAssessmentRuleBaseline a database vulnerability assessment rule baseline.
+type DatabaseVulnerabilityAssessmentRuleBaseline struct {
+	autorest.Response `json:"-"`
+	// DatabaseVulnerabilityAssessmentRuleBaselineProperties - Resource properties.
+	*DatabaseVulnerabilityAssessmentRuleBaselineProperties `json:"properties,omitempty"`
+	// ID - Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for DatabaseVulnerabilityAssessmentRuleBaseline.
+func (dvarb DatabaseVulnerabilityAssessmentRuleBaseline) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if dvarb.DatabaseVulnerabilityAssessmentRuleBaselineProperties != nil {
+		objectMap["properties"] = dvarb.DatabaseVulnerabilityAssessmentRuleBaselineProperties
+	}
+	if dvarb.ID != nil {
+		objectMap["id"] = dvarb.ID
+	}
+	if dvarb.Name != nil {
+		objectMap["name"] = dvarb.Name
+	}
+	if dvarb.Type != nil {
+		objectMap["type"] = dvarb.Type
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for DatabaseVulnerabilityAssessmentRuleBaseline struct.
+func (dvarb *DatabaseVulnerabilityAssessmentRuleBaseline) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var databaseVulnerabilityAssessmentRuleBaselineProperties DatabaseVulnerabilityAssessmentRuleBaselineProperties
+				err = json.Unmarshal(*v, &databaseVulnerabilityAssessmentRuleBaselineProperties)
+				if err != nil {
+					return err
+				}
+				dvarb.DatabaseVulnerabilityAssessmentRuleBaselineProperties = &databaseVulnerabilityAssessmentRuleBaselineProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				dvarb.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				dvarb.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				dvarb.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// DatabaseVulnerabilityAssessmentRuleBaselineItem properties for an Azure SQL Database Vulnerability Assessment
+// rule baseline's result.
+type DatabaseVulnerabilityAssessmentRuleBaselineItem struct {
+	// Result - The rule baseline result
+	Result *[]string `json:"result,omitempty"`
+}
+
+// DatabaseVulnerabilityAssessmentRuleBaselineProperties properties of a database Vulnerability Assessment rule
+// baseline.
+type DatabaseVulnerabilityAssessmentRuleBaselineProperties struct {
+	// BaselineResults - The rule baseline result
+	BaselineResults *[]DatabaseVulnerabilityAssessmentRuleBaselineItem `json:"baselineResults,omitempty"`
 }
 
 // DatabaseVulnerabilityAssessmentScanExportProperties properties of the export operation's result.
@@ -2679,6 +2809,29 @@ type LogSizeCapability struct {
 	Unit LogSizeUnit `json:"unit,omitempty"`
 }
 
+// ManagedDatabaseVulnerabilityAssessmentScansInitiateScanFuture an abstraction for monitoring and retrieving the
+// results of a long-running operation.
+type ManagedDatabaseVulnerabilityAssessmentScansInitiateScanFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *ManagedDatabaseVulnerabilityAssessmentScansInitiateScanFuture) Result(client ManagedDatabaseVulnerabilityAssessmentScansClient) (ar autorest.Response, err error) {
+	var done bool
+	done, err = future.Done(client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.ManagedDatabaseVulnerabilityAssessmentScansInitiateScanFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("sql.ManagedDatabaseVulnerabilityAssessmentScansInitiateScanFuture")
+		return
+	}
+	ar.Response = future.Response()
+	return
+}
+
 // ManagedInstanceEditionCapability the managed server capability
 type ManagedInstanceEditionCapability struct {
 	// Name - The managed server version name.
@@ -2689,6 +2842,246 @@ type ManagedInstanceEditionCapability struct {
 	Status CapabilityStatus `json:"status,omitempty"`
 	// Reason - The reason for the capability not being available.
 	Reason *string `json:"reason,omitempty"`
+}
+
+// ManagedInstanceEncryptionProtector the managed instance encryption protector.
+type ManagedInstanceEncryptionProtector struct {
+	autorest.Response `json:"-"`
+	// Kind - Kind of encryption protector. This is metadata used for the Azure portal experience.
+	Kind *string `json:"kind,omitempty"`
+	// ManagedInstanceEncryptionProtectorProperties - Resource properties.
+	*ManagedInstanceEncryptionProtectorProperties `json:"properties,omitempty"`
+	// ID - Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for ManagedInstanceEncryptionProtector.
+func (miep ManagedInstanceEncryptionProtector) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if miep.Kind != nil {
+		objectMap["kind"] = miep.Kind
+	}
+	if miep.ManagedInstanceEncryptionProtectorProperties != nil {
+		objectMap["properties"] = miep.ManagedInstanceEncryptionProtectorProperties
+	}
+	if miep.ID != nil {
+		objectMap["id"] = miep.ID
+	}
+	if miep.Name != nil {
+		objectMap["name"] = miep.Name
+	}
+	if miep.Type != nil {
+		objectMap["type"] = miep.Type
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for ManagedInstanceEncryptionProtector struct.
+func (miep *ManagedInstanceEncryptionProtector) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "kind":
+			if v != nil {
+				var kind string
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				miep.Kind = &kind
+			}
+		case "properties":
+			if v != nil {
+				var managedInstanceEncryptionProtectorProperties ManagedInstanceEncryptionProtectorProperties
+				err = json.Unmarshal(*v, &managedInstanceEncryptionProtectorProperties)
+				if err != nil {
+					return err
+				}
+				miep.ManagedInstanceEncryptionProtectorProperties = &managedInstanceEncryptionProtectorProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				miep.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				miep.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				miep.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// ManagedInstanceEncryptionProtectorListResult a list of managed instance encryption protectors.
+type ManagedInstanceEncryptionProtectorListResult struct {
+	autorest.Response `json:"-"`
+	// Value - Array of results.
+	Value *[]ManagedInstanceEncryptionProtector `json:"value,omitempty"`
+	// NextLink - Link to retrieve next page of results.
+	NextLink *string `json:"nextLink,omitempty"`
+}
+
+// ManagedInstanceEncryptionProtectorListResultIterator provides access to a complete listing of
+// ManagedInstanceEncryptionProtector values.
+type ManagedInstanceEncryptionProtectorListResultIterator struct {
+	i    int
+	page ManagedInstanceEncryptionProtectorListResultPage
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *ManagedInstanceEncryptionProtectorListResultIterator) Next() error {
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err := iter.page.Next()
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter ManagedInstanceEncryptionProtectorListResultIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter ManagedInstanceEncryptionProtectorListResultIterator) Response() ManagedInstanceEncryptionProtectorListResult {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter ManagedInstanceEncryptionProtectorListResultIterator) Value() ManagedInstanceEncryptionProtector {
+	if !iter.page.NotDone() {
+		return ManagedInstanceEncryptionProtector{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (mieplr ManagedInstanceEncryptionProtectorListResult) IsEmpty() bool {
+	return mieplr.Value == nil || len(*mieplr.Value) == 0
+}
+
+// managedInstanceEncryptionProtectorListResultPreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (mieplr ManagedInstanceEncryptionProtectorListResult) managedInstanceEncryptionProtectorListResultPreparer() (*http.Request, error) {
+	if mieplr.NextLink == nil || len(to.String(mieplr.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare(&http.Request{},
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(mieplr.NextLink)))
+}
+
+// ManagedInstanceEncryptionProtectorListResultPage contains a page of ManagedInstanceEncryptionProtector values.
+type ManagedInstanceEncryptionProtectorListResultPage struct {
+	fn     func(ManagedInstanceEncryptionProtectorListResult) (ManagedInstanceEncryptionProtectorListResult, error)
+	mieplr ManagedInstanceEncryptionProtectorListResult
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *ManagedInstanceEncryptionProtectorListResultPage) Next() error {
+	next, err := page.fn(page.mieplr)
+	if err != nil {
+		return err
+	}
+	page.mieplr = next
+	return nil
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page ManagedInstanceEncryptionProtectorListResultPage) NotDone() bool {
+	return !page.mieplr.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page ManagedInstanceEncryptionProtectorListResultPage) Response() ManagedInstanceEncryptionProtectorListResult {
+	return page.mieplr
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page ManagedInstanceEncryptionProtectorListResultPage) Values() []ManagedInstanceEncryptionProtector {
+	if page.mieplr.IsEmpty() {
+		return nil
+	}
+	return *page.mieplr.Value
+}
+
+// ManagedInstanceEncryptionProtectorProperties properties for an encryption protector execution.
+type ManagedInstanceEncryptionProtectorProperties struct {
+	// ServerKeyName - The name of the managed instance key.
+	ServerKeyName *string `json:"serverKeyName,omitempty"`
+	// ServerKeyType - The encryption protector type like 'ServiceManaged', 'AzureKeyVault'. Possible values include: 'ServiceManaged', 'AzureKeyVault'
+	ServerKeyType ServerKeyType `json:"serverKeyType,omitempty"`
+	// URI - The URI of the server key.
+	URI *string `json:"uri,omitempty"`
+	// Thumbprint - Thumbprint of the server key.
+	Thumbprint *string `json:"thumbprint,omitempty"`
+}
+
+// ManagedInstanceEncryptionProtectorsCreateOrUpdateFuture an abstraction for monitoring and retrieving the results
+// of a long-running operation.
+type ManagedInstanceEncryptionProtectorsCreateOrUpdateFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *ManagedInstanceEncryptionProtectorsCreateOrUpdateFuture) Result(client ManagedInstanceEncryptionProtectorsClient) (miep ManagedInstanceEncryptionProtector, err error) {
+	var done bool
+	done, err = future.Done(client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.ManagedInstanceEncryptionProtectorsCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("sql.ManagedInstanceEncryptionProtectorsCreateOrUpdateFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if miep.Response.Response, err = future.GetResult(sender); err == nil && miep.Response.Response.StatusCode != http.StatusNoContent {
+		miep, err = client.CreateOrUpdateResponder(miep.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "sql.ManagedInstanceEncryptionProtectorsCreateOrUpdateFuture", "Result", miep.Response.Response, "Failure responding to request")
+		}
+	}
+	return
 }
 
 // ManagedInstanceFamilyCapability the managed server family capability.
@@ -2709,6 +3102,268 @@ type ManagedInstanceFamilyCapability struct {
 	Status CapabilityStatus `json:"status,omitempty"`
 	// Reason - The reason for the capability not being available.
 	Reason *string `json:"reason,omitempty"`
+}
+
+// ManagedInstanceKey a managed instance key.
+type ManagedInstanceKey struct {
+	autorest.Response `json:"-"`
+	// Kind - Kind of encryption protector. This is metadata used for the Azure portal experience.
+	Kind *string `json:"kind,omitempty"`
+	// ManagedInstanceKeyProperties - Resource properties.
+	*ManagedInstanceKeyProperties `json:"properties,omitempty"`
+	// ID - Resource ID.
+	ID *string `json:"id,omitempty"`
+	// Name - Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for ManagedInstanceKey.
+func (mik ManagedInstanceKey) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if mik.Kind != nil {
+		objectMap["kind"] = mik.Kind
+	}
+	if mik.ManagedInstanceKeyProperties != nil {
+		objectMap["properties"] = mik.ManagedInstanceKeyProperties
+	}
+	if mik.ID != nil {
+		objectMap["id"] = mik.ID
+	}
+	if mik.Name != nil {
+		objectMap["name"] = mik.Name
+	}
+	if mik.Type != nil {
+		objectMap["type"] = mik.Type
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for ManagedInstanceKey struct.
+func (mik *ManagedInstanceKey) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "kind":
+			if v != nil {
+				var kind string
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				mik.Kind = &kind
+			}
+		case "properties":
+			if v != nil {
+				var managedInstanceKeyProperties ManagedInstanceKeyProperties
+				err = json.Unmarshal(*v, &managedInstanceKeyProperties)
+				if err != nil {
+					return err
+				}
+				mik.ManagedInstanceKeyProperties = &managedInstanceKeyProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				mik.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				mik.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				mik.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// ManagedInstanceKeyListResult a list of managed instance keys.
+type ManagedInstanceKeyListResult struct {
+	autorest.Response `json:"-"`
+	// Value - Array of results.
+	Value *[]ManagedInstanceKey `json:"value,omitempty"`
+	// NextLink - Link to retrieve next page of results.
+	NextLink *string `json:"nextLink,omitempty"`
+}
+
+// ManagedInstanceKeyListResultIterator provides access to a complete listing of ManagedInstanceKey values.
+type ManagedInstanceKeyListResultIterator struct {
+	i    int
+	page ManagedInstanceKeyListResultPage
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *ManagedInstanceKeyListResultIterator) Next() error {
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err := iter.page.Next()
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter ManagedInstanceKeyListResultIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter ManagedInstanceKeyListResultIterator) Response() ManagedInstanceKeyListResult {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter ManagedInstanceKeyListResultIterator) Value() ManagedInstanceKey {
+	if !iter.page.NotDone() {
+		return ManagedInstanceKey{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (miklr ManagedInstanceKeyListResult) IsEmpty() bool {
+	return miklr.Value == nil || len(*miklr.Value) == 0
+}
+
+// managedInstanceKeyListResultPreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (miklr ManagedInstanceKeyListResult) managedInstanceKeyListResultPreparer() (*http.Request, error) {
+	if miklr.NextLink == nil || len(to.String(miklr.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare(&http.Request{},
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(miklr.NextLink)))
+}
+
+// ManagedInstanceKeyListResultPage contains a page of ManagedInstanceKey values.
+type ManagedInstanceKeyListResultPage struct {
+	fn    func(ManagedInstanceKeyListResult) (ManagedInstanceKeyListResult, error)
+	miklr ManagedInstanceKeyListResult
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *ManagedInstanceKeyListResultPage) Next() error {
+	next, err := page.fn(page.miklr)
+	if err != nil {
+		return err
+	}
+	page.miklr = next
+	return nil
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page ManagedInstanceKeyListResultPage) NotDone() bool {
+	return !page.miklr.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page ManagedInstanceKeyListResultPage) Response() ManagedInstanceKeyListResult {
+	return page.miklr
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page ManagedInstanceKeyListResultPage) Values() []ManagedInstanceKey {
+	if page.miklr.IsEmpty() {
+		return nil
+	}
+	return *page.miklr.Value
+}
+
+// ManagedInstanceKeyProperties properties for a key execution.
+type ManagedInstanceKeyProperties struct {
+	// ServerKeyType - The key type like 'ServiceManaged', 'AzureKeyVault'. Possible values include: 'ServiceManaged', 'AzureKeyVault'
+	ServerKeyType ServerKeyType `json:"serverKeyType,omitempty"`
+	// URI - The URI of the key. If the ServerKeyType is AzureKeyVault, then the URI is required.
+	URI *string `json:"uri,omitempty"`
+	// Thumbprint - Thumbprint of the key.
+	Thumbprint *string `json:"thumbprint,omitempty"`
+	// CreationDate - The key creation date.
+	CreationDate *date.Time `json:"creationDate,omitempty"`
+}
+
+// ManagedInstanceKeysCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
+type ManagedInstanceKeysCreateOrUpdateFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *ManagedInstanceKeysCreateOrUpdateFuture) Result(client ManagedInstanceKeysClient) (mik ManagedInstanceKey, err error) {
+	var done bool
+	done, err = future.Done(client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.ManagedInstanceKeysCreateOrUpdateFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("sql.ManagedInstanceKeysCreateOrUpdateFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if mik.Response.Response, err = future.GetResult(sender); err == nil && mik.Response.Response.StatusCode != http.StatusNoContent {
+		mik, err = client.CreateOrUpdateResponder(mik.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "sql.ManagedInstanceKeysCreateOrUpdateFuture", "Result", mik.Response.Response, "Failure responding to request")
+		}
+	}
+	return
+}
+
+// ManagedInstanceKeysDeleteFuture an abstraction for monitoring and retrieving the results of a long-running
+// operation.
+type ManagedInstanceKeysDeleteFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *ManagedInstanceKeysDeleteFuture) Result(client ManagedInstanceKeysClient) (ar autorest.Response, err error) {
+	var done bool
+	done, err = future.Done(client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "sql.ManagedInstanceKeysDeleteFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("sql.ManagedInstanceKeysDeleteFuture")
+		return
+	}
+	ar.Response = future.Response()
+	return
 }
 
 // ManagedInstancePairInfo pairs of Managed Instances in the failover group.

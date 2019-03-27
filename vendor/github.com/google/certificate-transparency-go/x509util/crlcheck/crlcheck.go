@@ -153,7 +153,7 @@ func processCert(data []byte, caCerts []*x509.Certificate) error {
 	if err != nil {
 		return fmt.Errorf("certificate parse error: %v", err)
 	}
-	issuer, err := getIssuer(cert, client)
+	issuer, err := x509util.GetIssuer(cert, client)
 	if err != nil {
 		glog.Warningf("Failed to retrieve issuer for cert: %v", err)
 	}
@@ -197,26 +197,4 @@ func processCert(data []byte, caCerts []*x509.Certificate) error {
 	}
 
 	return nil
-}
-
-func getIssuer(cert *x509.Certificate, client *http.Client) (*x509.Certificate, error) {
-	if len(cert.IssuingCertificateURL) == 0 {
-		return nil, nil
-	}
-	issuerURL := cert.IssuingCertificateURL[0]
-	glog.Infof("Retrieving issuer from %q", issuerURL)
-	rsp, err := client.Get(issuerURL)
-	if err != nil || rsp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to get issuer from %q: %v", issuerURL, err)
-	}
-	defer rsp.Body.Close()
-	body, err := ioutil.ReadAll(rsp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read issuer from %q: %v", issuerURL, err)
-	}
-	issuers, err := x509.ParseCertificates(body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse issuer cert: %v", err)
-	}
-	return issuers[0], nil
 }

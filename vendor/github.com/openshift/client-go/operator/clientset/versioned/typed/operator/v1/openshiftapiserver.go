@@ -3,9 +3,11 @@
 package v1
 
 import (
+	"time"
+
 	v1 "github.com/openshift/api/operator/v1"
 	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
@@ -22,11 +24,11 @@ type OpenShiftAPIServerInterface interface {
 	Create(*v1.OpenShiftAPIServer) (*v1.OpenShiftAPIServer, error)
 	Update(*v1.OpenShiftAPIServer) (*v1.OpenShiftAPIServer, error)
 	UpdateStatus(*v1.OpenShiftAPIServer) (*v1.OpenShiftAPIServer, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
-	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1.OpenShiftAPIServer, error)
-	List(opts meta_v1.ListOptions) (*v1.OpenShiftAPIServerList, error)
-	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Delete(name string, options *metav1.DeleteOptions) error
+	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
+	Get(name string, options metav1.GetOptions) (*v1.OpenShiftAPIServer, error)
+	List(opts metav1.ListOptions) (*v1.OpenShiftAPIServerList, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.OpenShiftAPIServer, err error)
 	OpenShiftAPIServerExpansion
 }
@@ -44,7 +46,7 @@ func newOpenShiftAPIServers(c *OperatorV1Client) *openShiftAPIServers {
 }
 
 // Get takes name of the openShiftAPIServer, and returns the corresponding openShiftAPIServer object, and an error if there is any.
-func (c *openShiftAPIServers) Get(name string, options meta_v1.GetOptions) (result *v1.OpenShiftAPIServer, err error) {
+func (c *openShiftAPIServers) Get(name string, options metav1.GetOptions) (result *v1.OpenShiftAPIServer, err error) {
 	result = &v1.OpenShiftAPIServer{}
 	err = c.client.Get().
 		Resource("openshiftapiservers").
@@ -56,22 +58,32 @@ func (c *openShiftAPIServers) Get(name string, options meta_v1.GetOptions) (resu
 }
 
 // List takes label and field selectors, and returns the list of OpenShiftAPIServers that match those selectors.
-func (c *openShiftAPIServers) List(opts meta_v1.ListOptions) (result *v1.OpenShiftAPIServerList, err error) {
+func (c *openShiftAPIServers) List(opts metav1.ListOptions) (result *v1.OpenShiftAPIServerList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1.OpenShiftAPIServerList{}
 	err = c.client.Get().
 		Resource("openshiftapiservers").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested openShiftAPIServers.
-func (c *openShiftAPIServers) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *openShiftAPIServers) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Resource("openshiftapiservers").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -114,7 +126,7 @@ func (c *openShiftAPIServers) UpdateStatus(openShiftAPIServer *v1.OpenShiftAPISe
 }
 
 // Delete takes name of the openShiftAPIServer and deletes it. Returns an error if one occurs.
-func (c *openShiftAPIServers) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *openShiftAPIServers) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("openshiftapiservers").
 		Name(name).
@@ -124,10 +136,15 @@ func (c *openShiftAPIServers) Delete(name string, options *meta_v1.DeleteOptions
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *openShiftAPIServers) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *openShiftAPIServers) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Resource("openshiftapiservers").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

@@ -27,7 +27,7 @@ source "${KUBE_ROOT}/hack/lib/init.sh"
 
 kube::golang::setup_env
 
-make -C "${KUBE_ROOT}" WHAT=cmd/kube-apiserver GOFLAGS="-tags=kubernetes"
+make -C "${KUBE_ROOT}" WHAT=cmd/kube-apiserver
 
 function cleanup()
 {

@@ -1,16 +1,13 @@
-// +build !kubernetes
-
 package app
 
 import (
 	"time"
 
-	"github.com/golang/glog"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 
 	appclient "github.com/openshift/client-go/apps/clientset/versioned"
 	appinformer "github.com/openshift/client-go/apps/informers/externalversions"
@@ -89,7 +86,7 @@ func (i genericInformers) ForResource(resource schema.GroupVersionResource) (inf
 			firstErr = err
 		}
 	}
-	glog.V(4).Infof("Couldn't find informer for %v", resource)
+	klog.V(4).Infof("Couldn't find informer for %v", resource)
 	return nil, firstErr
 }
 

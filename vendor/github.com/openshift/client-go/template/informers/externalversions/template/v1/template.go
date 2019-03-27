@@ -5,11 +5,11 @@ package v1
 import (
 	time "time"
 
-	template_v1 "github.com/openshift/api/template/v1"
+	templatev1 "github.com/openshift/api/template/v1"
 	versioned "github.com/openshift/client-go/template/clientset/versioned"
 	internalinterfaces "github.com/openshift/client-go/template/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/client-go/template/listers/template/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
@@ -41,20 +41,20 @@ func NewTemplateInformer(client versioned.Interface, namespace string, resyncPer
 func NewFilteredTemplateInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.TemplateV1().Templates(namespace).List(options)
 			},
-			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.TemplateV1().Templates(namespace).Watch(options)
 			},
 		},
-		&template_v1.Template{},
+		&templatev1.Template{},
 		resyncPeriod,
 		indexers,
 	)
@@ -65,7 +65,7 @@ func (f *templateInformer) defaultInformer(client versioned.Interface, resyncPer
 }
 
 func (f *templateInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&template_v1.Template{}, f.defaultInformer)
+	return f.factory.InformerFor(&templatev1.Template{}, f.defaultInformer)
 }
 
 func (f *templateInformer) Lister() v1.TemplateLister {

@@ -19,6 +19,7 @@ package algorithm
 import (
 	apps "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
+	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	"k8s.io/apimachinery/pkg/labels"
 	schedulerapi "k8s.io/kubernetes/pkg/scheduler/api"
 	schedulercache "k8s.io/kubernetes/pkg/scheduler/cache"
@@ -27,7 +28,7 @@ import (
 // NodeFieldSelectorKeys is a map that: the key are node field selector keys; the values are
 // the functions to get the value of the node field.
 var NodeFieldSelectorKeys = map[string]func(*v1.Node) string{
-	NodeFieldSelectorKeyNodeName: func(n *v1.Node) string { return n.Name },
+	schedulerapi.NodeFieldSelectorKeyNodeName: func(n *v1.Node) string { return n.Name },
 }
 
 // FitPredicate is a function that indicates if a pod fits into an existing node.
@@ -90,6 +91,9 @@ type NodeLister interface {
 	List() ([]*v1.Node, error)
 }
 
+// PodFilter is a function to filter a pod. If pod passed return true else return false.
+type PodFilter func(*v1.Pod) bool
+
 // PodLister interface represents anything that can list pods for a scheduler.
 type PodLister interface {
 	// We explicitly return []*v1.Pod, instead of v1.PodList, to avoid
@@ -97,7 +101,7 @@ type PodLister interface {
 	List(labels.Selector) ([]*v1.Pod, error)
 	// This is similar to "List()", but the returned slice does not
 	// contain pods that don't pass `podFilter`.
-	FilteredList(podFilter schedulercache.PodFilter, selector labels.Selector) ([]*v1.Pod, error)
+	FilteredList(podFilter PodFilter, selector labels.Selector) ([]*v1.Pod, error)
 }
 
 // ServiceLister interface represents anything that can produce a list of services; the list is consumed by a scheduler.
@@ -120,6 +124,12 @@ type ControllerLister interface {
 type ReplicaSetLister interface {
 	// Gets the replicasets for the given pod
 	GetPodReplicaSets(*v1.Pod) ([]*apps.ReplicaSet, error)
+}
+
+// PDBLister interface represents anything that can list PodDisruptionBudget objects.
+type PDBLister interface {
+	// List() returns a list of PodDisruptionBudgets matching the selector.
+	List(labels.Selector) ([]*policyv1beta1.PodDisruptionBudget, error)
 }
 
 var _ ControllerLister = &EmptyControllerLister{}

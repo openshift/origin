@@ -27,8 +27,8 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/grpc/internal/leakcheck"
 	"google.golang.org/grpc/resolver"
-	"google.golang.org/grpc/test/leakcheck"
 )
 
 func TestMain(m *testing.M) {
@@ -150,9 +150,8 @@ func div(b []byte) []string {
 // resolver functionality, with scfs as the input and scs used for validation of
 // the output. For scfs[3], it corresponds to empty service config, since there
 // isn't a matched choice.
-var (
-	scfs = []string{
-		`[
+var scfs = []string{
+	`[
 	{
 		"clientLanguage": [
 			"CPP",
@@ -242,7 +241,7 @@ var (
 		}
 	}
 ]`,
-		`[
+	`[
 	{
 		"clientLanguage": [
 			"CPP",
@@ -335,7 +334,7 @@ var (
 		}
 	}
 ]`,
-		`[
+	`[
 	{
 		"clientLanguage": [
 			"CPP",
@@ -434,7 +433,7 @@ var (
 		}
 	}
 ]`,
-		`[
+	`[
 	{
 		"clientLanguage": [
 			"CPP",
@@ -489,13 +488,11 @@ var (
 		}
 	}
 ]`,
-	}
-)
+}
 
 // scs contains an array of service config string in JSON format.
-var (
-	scs = []string{
-		`{
+var scs = []string{
+	`{
 			"methodConfig": [
 				{
 					"name": [
@@ -508,7 +505,7 @@ var (
 				}
 			]
 		}`,
-		`{
+	`{
 			"methodConfig": [
 				{
 					"name": [
@@ -524,7 +521,7 @@ var (
 				}
 			]
 		}`,
-		`{
+	`{
 			"loadBalancingPolicy": "round_robin",
 			"methodConfig": [
 				{
@@ -546,8 +543,7 @@ var (
 				}
 			]
 		}`,
-	}
-)
+}
 
 // scLookupTbl is a set, which contains targets that have service config. Target
 // not in this set should not have service config.
@@ -894,5 +890,47 @@ func TestResolveFunc(t *testing.T) {
 		if !reflect.DeepEqual(err, v.want) {
 			t.Errorf("Build(%q, cc, resolver.BuildOption{}) = %v, want %v", v.addr, err, v.want)
 		}
+	}
+}
+
+func TestDisableServiceConfig(t *testing.T) {
+	defer leakcheck.Check(t)
+	tests := []struct {
+		target               string
+		scWant               string
+		disableServiceConfig bool
+	}{
+		{
+			"foo.bar.com",
+			generateSC("foo.bar.com"),
+			false,
+		},
+		{
+			"foo.bar.com",
+			"",
+			true,
+		},
+	}
+
+	for _, a := range tests {
+		b := NewBuilder()
+		cc := &testClientConn{target: a.target}
+		r, err := b.Build(resolver.Target{Endpoint: a.target}, cc, resolver.BuildOption{DisableServiceConfig: a.disableServiceConfig})
+		if err != nil {
+			t.Fatalf("%v\n", err)
+		}
+		var cnt int
+		var sc string
+		for {
+			sc, cnt = cc.getSc()
+			if cnt > 0 {
+				break
+			}
+			time.Sleep(time.Millisecond)
+		}
+		if !reflect.DeepEqual(a.scWant, sc) {
+			t.Errorf("Resolved service config of target: %q = %+v, want %+v\n", a.target, sc, a.scWant)
+		}
+		r.Close()
 	}
 }

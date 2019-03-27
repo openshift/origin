@@ -33,6 +33,7 @@ const (
 	ComputeTypeAKS            ComputeType = original.ComputeTypeAKS
 	ComputeTypeBatchAI        ComputeType = original.ComputeTypeBatchAI
 	ComputeTypeDataFactory    ComputeType = original.ComputeTypeDataFactory
+	ComputeTypeHDInsight      ComputeType = original.ComputeTypeHDInsight
 	ComputeTypeVirtualMachine ComputeType = original.ComputeTypeVirtualMachine
 )
 
@@ -43,6 +44,7 @@ const (
 	ComputeTypeBatchAI1        ComputeTypeBasicCompute = original.ComputeTypeBatchAI1
 	ComputeTypeCompute         ComputeTypeBasicCompute = original.ComputeTypeCompute
 	ComputeTypeDataFactory1    ComputeTypeBasicCompute = original.ComputeTypeDataFactory1
+	ComputeTypeHDInsight1      ComputeTypeBasicCompute = original.ComputeTypeHDInsight1
 	ComputeTypeVirtualMachine1 ComputeTypeBasicCompute = original.ComputeTypeVirtualMachine1
 )
 
@@ -93,10 +95,13 @@ type ComputeSecretsModel = original.ComputeSecretsModel
 type DataFactory = original.DataFactory
 type ErrorDetail = original.ErrorDetail
 type ErrorResponse = original.ErrorResponse
+type HDInsight = original.HDInsight
+type HDInsightProperties = original.HDInsightProperties
 type Identity = original.Identity
 type ListWorkspaceKeysResult = original.ListWorkspaceKeysResult
 type MachineLearningComputeCreateOrUpdateFuture = original.MachineLearningComputeCreateOrUpdateFuture
 type MachineLearningComputeDeleteFuture = original.MachineLearningComputeDeleteFuture
+type MachineLearningComputeSystemUpdateFuture = original.MachineLearningComputeSystemUpdateFuture
 type MachineLearningServiceError = original.MachineLearningServiceError
 type Operation = original.Operation
 type OperationDisplay = original.OperationDisplay

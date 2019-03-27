@@ -2,39 +2,50 @@
 # Based on http://chrismckenzie.io/post/deploying-with-golang/
 #
 
-.PHONY: version all run dist clean
-
 APP_NAME := heketi
 CLIENT_PKG_NAME := heketi-client
 SHA := $(shell git rev-parse --short HEAD)
 BRANCH := $(subst /,-,$(shell git rev-parse --abbrev-ref HEAD))
-VER := $(shell git describe)
-ARCH := $(shell go env GOARCH)
-GOOS := $(shell go env GOOS)
+VER := $(shell git describe --match='v[0-9].[0-9].[0-9]')
+TAG := $(shell git tag --points-at HEAD 'v[0-9].[0-9].[0-9]' | tail -n1)
+GO:=go
+GLIDE:=glide
+TESTBIN:=./test.sh
+GOARCH := $(shell $(GO) env GOARCH)
+GOOS := $(shell $(GO) env GOOS)
+GOHOSTARCH := $(shell $(GO) env GOHOSTARCH)
+GOHOSTOS := $(shell $(GO) env GOHOSTOS)
+GOBUILDFLAGS :=
 GLIDEPATH := $(shell command -v glide 2> /dev/null)
+HGPATH := $(shell command -v hg 2> /dev/null)
 DIR=.
 
-ifdef APP_SUFFIX
-  VERSION = $(VER)-$(subst /,-,$(APP_SUFFIX))
-else
-ifeq (master,$(BRANCH))
-  VERSION = $(VER)
-else
-  VERSION = $(VER)-$(BRANCH)
-endif
+# Specify CI=openshift to use a custom HOME dir
+# that prevents unhelpful behavior from glide and tox
+ifeq ($(CI),openshift)
+	HOME := /tmp/heketi_home/
+	GLIDE_HOME := /tmp/heketi_home/.glide
+	GLIDE := HOME=$(HOME) GLIDE_HOME=$(GLIDE_HOME) glide
 endif
 
-# Go setup
-GO=go
+ifeq (master,$(BRANCH))
+	VERSION = $(VER)
+else
+ifeq ($(VER),$(TAG))
+	VERSION = $(VER)
+else
+	VERSION = $(VER)-$(BRANCH)
+endif
+endif
 
 # Sources and Targets
 EXECUTABLES :=$(APP_NAME)
 # Build Binaries setting main.version and main.build vars
 LDFLAGS :=-ldflags "-X main.HEKETI_VERSION=$(VERSION) -extldflags '-z relro -z now'"
 # Package target
-PACKAGE :=$(DIR)/dist/$(APP_NAME)-$(VERSION).$(GOOS).$(ARCH).tar.gz
-CLIENT_PACKAGE :=$(DIR)/dist/$(APP_NAME)-client-$(VERSION).$(GOOS).$(ARCH).tar.gz
-GOFILES=$(shell go list ./... | grep -v vendor)
+PACKAGE :=$(DIR)/dist/$(APP_NAME)-$(VERSION).$(GOOS).$(GOARCH).tar.gz
+CLIENT_PACKAGE :=$(DIR)/dist/$(APP_NAME)-client-$(VERSION).$(GOOS).$(GOARCH).tar.gz
+DEPS_TARBALL :=$(DIR)/dist/$(APP_NAME)-deps-$(VERSION).tar.gz
 
 .DEFAULT: all
 
@@ -52,8 +63,8 @@ name:
 package:
 	@echo $(PACKAGE)
 
-heketi: glide.lock vendor
-	go build $(LDFLAGS) -o $(APP_NAME)
+heketi: vendor glide.lock
+	$(GO) build $(GOBUILDFLAGS) $(LDFLAGS) -o $(APP_NAME)
 
 server: heketi
 
@@ -65,30 +76,40 @@ ifndef GLIDEPATH
 	$(info )
 	$(error glide is required to continue)
 endif
+ifndef HGPATH
+	$(info Please install mercurial/hg.)
+	$(info glide needs to fetch pkgs from a mercurial repository.)
+	$(error mercurial/hg is required to continue)
+endif
 	echo "Installing vendor directory"
-	glide install -v
-
-	echo "Building dependencies to make builds faster"
-	go install github.com/heketi/heketi
+	if [ "$(GLIDE_HOME)" ]; then mkdir -p "$(GLIDE_HOME)"; fi
+	$(GLIDE) install -v
 
 glide.lock: glide.yaml
 	echo "Glide.yaml has changed, updating glide.lock"
-	glide update -v
+	if [ "$(GLIDE_HOME)" ]; then mkdir -p "$(GLIDE_HOME)"; fi
+	$(GLIDE) update -v
 
-client: glide.lock vendor
+client: vendor glide.lock
 	@$(MAKE) -C client/cli/go
 
 run: server
 	./$(APP_NAME)
 
-test: glide.lock vendor
-	go test $(GOFILES)
+test: vendor glide.lock
+	$(TESTBIN) $(TESTOPTIONS)
+
+test-functional: vendor glide.lock
+	$(MAKE) -C tests/functional test
 
 clean:
 	@echo Cleaning Workspace...
 	rm -rf $(APP_NAME)
-	rm -rf dist
+	rm -rf dist coverage packagecover.out
 	@$(MAKE) -C client/cli/go clean
+
+clean_vendor:
+	rm -rf vendor
 
 $(PACKAGE): all
 	@echo Packaging Binaries...
@@ -117,6 +138,13 @@ $(CLIENT_PACKAGE): all
 	@echo
 	@echo Package $@ saved in dist directory
 
+deps_tarball: $(DEPS_TARBALL)
+
+$(DEPS_TARBALL): clean clean_vendor vendor glide.lock
+	@echo Creating dependency tarball...
+	@mkdir -p $(DIR)/dist/
+	tar -czf $@ -C vendor .
+
 dist: $(PACKAGE) $(CLIENT_PACKAGE)
 
 linux_amd64_dist:
@@ -128,11 +156,12 @@ linux_arm_dist:
 linux_arm64_dist:
 	GOOS=linux GOARCH=arm64 $(MAKE) dist
 
-darwin_amd64_dist:
-	GOOS=darwin GOARCH=amd64 $(MAKE) dist
+# NOTE: You can build the binaries for darwin or any other platform
+# golang supports. Just run: make dist GOOS=myos GOARCH=myarch
 
-release: darwin_amd64_dist linux_arm64_dist linux_arm_dist linux_amd64_dist
+release: deps_tarball linux_arm64_dist linux_arm_dist linux_amd64_dist
 
 .PHONY: server client test clean name run version release \
-        darwin_amd64_dist linux_arm_dist linux_amd64_dist linux_arm64_dist \
-        heketi
+	linux_arm_dist linux_amd64_dist linux_arm64_dist \
+	heketi clean_vendor deps_tarball all dist \
+	test-functional

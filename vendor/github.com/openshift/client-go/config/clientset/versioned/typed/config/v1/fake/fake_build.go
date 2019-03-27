@@ -3,7 +3,7 @@
 package fake
 
 import (
-	config_v1 "github.com/openshift/api/config/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -22,19 +22,19 @@ var buildsResource = schema.GroupVersionResource{Group: "config.openshift.io", V
 var buildsKind = schema.GroupVersionKind{Group: "config.openshift.io", Version: "v1", Kind: "Build"}
 
 // Get takes name of the build, and returns the corresponding build object, and an error if there is any.
-func (c *FakeBuilds) Get(name string, options v1.GetOptions) (result *config_v1.Build, err error) {
+func (c *FakeBuilds) Get(name string, options v1.GetOptions) (result *configv1.Build, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(buildsResource, name), &config_v1.Build{})
+		Invokes(testing.NewRootGetAction(buildsResource, name), &configv1.Build{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.Build), err
+	return obj.(*configv1.Build), err
 }
 
 // List takes label and field selectors, and returns the list of Builds that match those selectors.
-func (c *FakeBuilds) List(opts v1.ListOptions) (result *config_v1.BuildList, err error) {
+func (c *FakeBuilds) List(opts v1.ListOptions) (result *configv1.BuildList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(buildsResource, buildsKind, opts), &config_v1.BuildList{})
+		Invokes(testing.NewRootListAction(buildsResource, buildsKind, opts), &configv1.BuildList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -43,8 +43,8 @@ func (c *FakeBuilds) List(opts v1.ListOptions) (result *config_v1.BuildList, err
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &config_v1.BuildList{ListMeta: obj.(*config_v1.BuildList).ListMeta}
-	for _, item := range obj.(*config_v1.BuildList).Items {
+	list := &configv1.BuildList{ListMeta: obj.(*configv1.BuildList).ListMeta}
+	for _, item := range obj.(*configv1.BuildList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -59,29 +59,29 @@ func (c *FakeBuilds) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Create takes the representation of a build and creates it.  Returns the server's representation of the build, and an error, if there is any.
-func (c *FakeBuilds) Create(build *config_v1.Build) (result *config_v1.Build, err error) {
+func (c *FakeBuilds) Create(build *configv1.Build) (result *configv1.Build, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(buildsResource, build), &config_v1.Build{})
+		Invokes(testing.NewRootCreateAction(buildsResource, build), &configv1.Build{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.Build), err
+	return obj.(*configv1.Build), err
 }
 
 // Update takes the representation of a build and updates it. Returns the server's representation of the build, and an error, if there is any.
-func (c *FakeBuilds) Update(build *config_v1.Build) (result *config_v1.Build, err error) {
+func (c *FakeBuilds) Update(build *configv1.Build) (result *configv1.Build, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(buildsResource, build), &config_v1.Build{})
+		Invokes(testing.NewRootUpdateAction(buildsResource, build), &configv1.Build{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.Build), err
+	return obj.(*configv1.Build), err
 }
 
 // Delete takes name of the build and deletes it. Returns an error if one occurs.
 func (c *FakeBuilds) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(buildsResource, name), &config_v1.Build{})
+		Invokes(testing.NewRootDeleteAction(buildsResource, name), &configv1.Build{})
 	return err
 }
 
@@ -89,16 +89,16 @@ func (c *FakeBuilds) Delete(name string, options *v1.DeleteOptions) error {
 func (c *FakeBuilds) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewRootDeleteCollectionAction(buildsResource, listOptions)
 
-	_, err := c.Fake.Invokes(action, &config_v1.BuildList{})
+	_, err := c.Fake.Invokes(action, &configv1.BuildList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched build.
-func (c *FakeBuilds) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *config_v1.Build, err error) {
+func (c *FakeBuilds) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *configv1.Build, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(buildsResource, name, data, subresources...), &config_v1.Build{})
+		Invokes(testing.NewRootPatchSubresourceAction(buildsResource, name, pt, data, subresources...), &configv1.Build{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.Build), err
+	return obj.(*configv1.Build), err
 }

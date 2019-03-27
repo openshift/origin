@@ -42,19 +42,19 @@ func main() {
 		panic("No files")
 	}
 
-	if os.Getenv("LISTEN_PID") == "" || os.Getenv("LISTEN_FDS") == "" {
+	if os.Getenv("LISTEN_PID") == "" || os.Getenv("LISTEN_FDS") == "" || os.Getenv("LISTEN_FDNAMES") == "" {
 		panic("Should not unset envs")
 	}
 
 	files = activation.Files(true)
 
-	if os.Getenv("LISTEN_PID") != "" || os.Getenv("LISTEN_FDS") != "" {
+	if os.Getenv("LISTEN_PID") != "" || os.Getenv("LISTEN_FDS") != "" || os.Getenv("LISTEN_FDNAMES") != "" {
 		panic("Can not unset envs")
 	}
 
 	// Write out the expected strings to the two pipes
-	files[0].Write([]byte("Hello world"))
-	files[1].Write([]byte("Goodbye world"))
+	files[0].Write([]byte("Hello world: " + files[0].Name()))
+	files[1].Write([]byte("Goodbye world: " + files[1].Name()))
 
 	return
 }
