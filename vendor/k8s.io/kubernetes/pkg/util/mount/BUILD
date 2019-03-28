@@ -9,7 +9,6 @@ go_library(
         "exec_mount_unsupported.go",
         "fake.go",
         "mount.go",
-        "mount_helper.go",
         "mount_linux.go",
         "mount_unsupported.go",
         "mount_windows.go",
@@ -68,7 +67,6 @@ go_test(
     name = "go_default_test",
     srcs = [
         "exec_mount_test.go",
-        "mount_helper_test.go",
         "mount_linux_test.go",
         "mount_windows_test.go",
         "nsenter_mount_test.go",
