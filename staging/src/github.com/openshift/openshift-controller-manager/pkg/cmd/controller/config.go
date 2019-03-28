@@ -41,7 +41,6 @@ const (
 	infraDeployerControllerServiceAccountName                    = "deployer-controller"
 	infraImageTriggerControllerServiceAccountName                = "image-trigger-controller"
 	infraImageImportControllerServiceAccountName                 = "image-import-controller"
-	infraSDNControllerServiceAccountName                         = "sdn-controller"
 	infraClusterQuotaReconciliationControllerServiceAccountName  = "cluster-quota-reconciliation-controller"
 	infraUnidlingControllerServiceAccountName                    = "unidling-controller"
 	infraServiceIngressIPControllerServiceAccountName            = "service-ingress-ip-controller"
