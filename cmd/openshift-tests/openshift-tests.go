@@ -117,6 +117,7 @@ func newRunCommand() *cobra.Command {
 					return err
 				}
 				os.Setenv("TEST_PROVIDER", opt.Provider)
+				e2e.AfterReadingAllFlags(exutil.TestContext)
 				return opt.Run(args)
 			})
 		},
@@ -165,6 +166,7 @@ func newRunUpgradeCommand() *cobra.Command {
 					return err
 				}
 				os.Setenv("TEST_PROVIDER", opt.Provider)
+				e2e.AfterReadingAllFlags(exutil.TestContext)
 				return opt.Run(args)
 			})
 		},
@@ -199,6 +201,7 @@ func newRunTestCommand() *cobra.Command {
 			if err := initUpgrade(os.Getenv("TEST_UPGRADE")); err != nil {
 				return err
 			}
+			e2e.AfterReadingAllFlags(exutil.TestContext)
 			return testOpt.Run(args)
 		},
 	}
