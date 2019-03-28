@@ -9,6 +9,7 @@ import (
 	osinv1 "github.com/openshift/api/osin/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
+	"github.com/openshift/origin/pkg/oauthserver/http2"
 	"github.com/openshift/origin/pkg/oauthserver/oauthserver"
 
 	// for metrics
@@ -42,6 +43,10 @@ func newOAuthServerConfig(osinConfig *osinv1.OsinServerConfig) (*oauthserver.OAu
 	if err != nil {
 		return nil, err
 	}
+
+	// explicitly override http2 max streams (HTTPServingInfo cannot configure this today)
+	servingOptions.HTTP2MaxStreamsPerConnection = http2.MaxStreamsPerConnection
+
 	if err := servingOptions.ApplyTo(&genericConfig.Config.SecureServing, &genericConfig.Config.LoopbackClientConfig); err != nil {
 		return nil, err
 	}
