@@ -863,91 +863,6 @@
             "kind": "ClusterRole",
             "apiVersion": "v1",
             "metadata": {
-                "name": "system:sdn-reader",
-                "creationTimestamp": null
-            },
-            "rules": [
-                {
-                    "verbs": [
-                        "get",
-                        "list",
-                        "watch"
-                    ],
-                    "attributeRestrictions": null,
-                    "resources": [
-                        "hostsubnets"
-                    ]
-                },
-                {
-                    "verbs": [
-                        "get",
-                        "list",
-                        "watch"
-                    ],
-                    "attributeRestrictions": null,
-                    "resources": [
-                        "nodes"
-                    ]
-                },
-                {
-                    "verbs": [
-                        "get"
-                    ],
-                    "attributeRestrictions": null,
-                    "resources": [
-                        "clusternetworks"
-                    ]
-                }
-            ]
-        },
-        {
-            "kind": "ClusterRole",
-            "apiVersion": "v1",
-            "metadata": {
-                "name": "system:sdn-manager",
-                "creationTimestamp": null
-            },
-            "rules": [
-                {
-                    "verbs": [
-                        "create",
-                        "delete",
-                        "get",
-                        "list",
-                        "watch"
-                    ],
-                    "attributeRestrictions": null,
-                    "resources": [
-                        "hostsubnets"
-                    ]
-                },
-                {
-                    "verbs": [
-                        "get",
-                        "list",
-                        "watch"
-                    ],
-                    "attributeRestrictions": null,
-                    "resources": [
-                        "nodes"
-                    ]
-                },
-                {
-                    "verbs": [
-                        "create",
-                        "get"
-                    ],
-                    "attributeRestrictions": null,
-                    "resources": [
-                        "clusternetworks"
-                    ]
-                }
-            ]
-        },
-        {
-            "kind": "ClusterRole",
-            "apiVersion": "v1",
-            "metadata": {
                 "name": "system:webhook",
                 "creationTimestamp": null
             },
@@ -1129,21 +1044,6 @@
             ],
             "roleRef": {
                 "name": "system:node-proxier"
-            }
-        },
-        {
-            "kind": "ClusterRoleBinding",
-            "apiVersion": "v1",
-            "metadata": {
-                "name": "system:sdn-readers",
-                "creationTimestamp": null
-            },
-            "userNames": [],
-            "groupNames": [
-                "system:nodes"
-            ],
-            "roleRef": {
-                "name": "system:sdn-reader"
             }
         },
         {

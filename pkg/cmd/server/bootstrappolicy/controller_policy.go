@@ -27,7 +27,6 @@ const (
 	InfraDeployerControllerServiceAccountName                    = "deployer-controller"
 	InfraImageTriggerControllerServiceAccountName                = "image-trigger-controller"
 	InfraImageImportControllerServiceAccountName                 = "image-import-controller"
-	InfraSDNControllerServiceAccountName                         = "sdn-controller"
 	InfraClusterQuotaReconciliationControllerServiceAccountName  = "cluster-quota-reconciliation-controller"
 	InfraUnidlingControllerServiceAccountName                    = "unidling-controller"
 	InfraServiceIngressIPControllerServiceAccountName            = "service-ingress-ip-controller"
@@ -257,23 +256,6 @@ func init() {
 			rbacv1helpers.NewRule("get", "list", "watch", "create", "update").Groups(imageGroup, legacyImageGroup).Resources("imagestreams").RuleOrDie(),
 			rbacv1helpers.NewRule("get", "list", "watch", "create", "update", "patch", "delete").Groups(imageGroup, legacyImageGroup).Resources("images").RuleOrDie(),
 			rbacv1helpers.NewRule("create").Groups(imageGroup, legacyImageGroup).Resources("imagestreamimports").RuleOrDie(),
-			eventsRule(),
-		},
-	})
-
-	// sdn-controller
-	addControllerRole(rbacv1.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraSDNControllerServiceAccountName},
-		Rules: []rbacv1.PolicyRule{
-			rbacv1helpers.NewRule("get", "create", "update").Groups(networkGroup, legacyNetworkGroup).Resources("clusternetworks").RuleOrDie(),
-			rbacv1helpers.NewRule("get", "list", "watch", "create", "update", "delete").Groups(networkGroup, legacyNetworkGroup).Resources("hostsubnets").RuleOrDie(),
-			rbacv1helpers.NewRule("get", "list", "watch", "create", "update", "delete").Groups(networkGroup, legacyNetworkGroup).Resources("netnamespaces").RuleOrDie(),
-			rbacv1helpers.NewRule("get", "list").Groups(kapiGroup).Resources("pods").RuleOrDie(),
-			rbacv1helpers.NewRule("get", "list", "watch").Groups(kapiGroup).Resources("services").RuleOrDie(),
-			rbacv1helpers.NewRule("get", "list", "watch").Groups(kapiGroup).Resources("namespaces").RuleOrDie(),
-			rbacv1helpers.NewRule("get", "list", "watch").Groups(kapiGroup).Resources("nodes").RuleOrDie(),
-			rbacv1helpers.NewRule("update").Groups(kapiGroup).Resources("nodes/status").RuleOrDie(),
-
 			eventsRule(),
 		},
 	})

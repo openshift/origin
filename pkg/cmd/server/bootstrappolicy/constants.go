@@ -89,8 +89,6 @@ const (
 	RouterRoleName            = "system:router"
 	RegistryRoleName          = "system:registry"
 	MasterRoleName            = "system:master"
-	SDNReaderRoleName         = "system:sdn-reader"
-	SDNManagerRoleName        = "system:sdn-manager"
 	OAuthTokenDeleterRoleName = "system:oauth-token-deleter"
 	WebHooksRoleName          = "system:webhook"
 	DiscoveryRoleName         = "system:openshift:discovery"
@@ -122,7 +120,6 @@ const (
 	MasterRoleBindingName             = MasterRoleName + "s"
 	NodeProxierRoleBindingName        = "system:node-proxier" + "s"
 	NodeAdminRoleBindingName          = NodeAdminRoleName + "s"
-	SDNReaderRoleBindingName          = SDNReaderRoleName + "s"
 	WebHooksRoleBindingName           = WebHooksRoleName + "s"
 
 	OpenshiftSharedResourceViewRoleBindingName = OpenshiftSharedResourceViewRoleName + "s"
