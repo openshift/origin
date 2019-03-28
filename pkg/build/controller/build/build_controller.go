@@ -1138,6 +1138,9 @@ func (bc *BuildController) handleActiveBuild(build *buildv1.Build, pod *corev1.P
 	case corev1.PodFailed:
 		if isOOMKilled(pod) {
 			update = transitionToPhase(buildv1.BuildPhaseFailed, buildv1.StatusReasonOutOfMemoryKilled, buildutil.StatusMessageOutOfMemoryKilled)
+		} else if isPodEvicted(pod) {
+			// Use the pod status message to report why the build pod was evicted.
+			update = transitionToPhase(buildv1.BuildPhaseFailed, buildv1.StatusReasonBuildPodEvicted, pod.Status.Message)
 		} else if build.Status.Phase != buildv1.BuildPhaseFailed {
 			// If a DeletionTimestamp has been set, it means that the pod will
 			// soon be deleted. The build should be transitioned to the Error phase.
@@ -1169,6 +1172,16 @@ func isOOMKilled(pod *corev1.Pod) bool {
 		if terminated != nil && terminated.Reason == "OOMKilled" {
 			return true
 		}
+	}
+	return false
+}
+
+func isPodEvicted(pod *corev1.Pod) bool {
+	if pod == nil {
+		return false
+	}
+	if pod.Status.Reason == "Evicted" {
+		return true
 	}
 	return false
 }
