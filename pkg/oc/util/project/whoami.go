@@ -11,6 +11,9 @@ import (
 
 func WhoAmI(clientConfig *restclient.Config) (*userv1.User, error) {
 	client, err := userv1typedclient.NewForConfig(clientConfig)
+	if err != nil {
+		return nil, err
+	}
 
 	me, err := client.Users().Get("~", metav1.GetOptions{})
 
