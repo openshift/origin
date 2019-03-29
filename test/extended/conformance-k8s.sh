@@ -65,7 +65,6 @@ os::log::info "Running Kubernetes conformance suite for ${version}"
 # Disable container security
 oc adm policy add-scc-to-group privileged system:authenticated system:serviceaccounts
 oc adm policy remove-scc-from-group restricted system:authenticated
-oc adm policy remove-scc-from-group anyuid system:cluster-admins
 # Mark the master nodes as unschedulable so tests ignore them
 oc get nodes -o name -l 'node-role.kubernetes.io/master' | xargs -L1 oc adm cordon
 unschedulable="$( ( oc get nodes -o name -l 'node-role.kubernetes.io/master'; ) | wc -l )"
