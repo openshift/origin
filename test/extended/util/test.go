@@ -28,6 +28,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/kubernetes/test/e2e/framework/testfiles"
+	"k8s.io/kubernetes/test/e2e/generated"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
@@ -68,7 +70,10 @@ func InitTest() {
 
 	TestContext.DeleteNamespace = os.Getenv("DELETE_NAMESPACE") != "false"
 	TestContext.VerifyServiceAccount = true
-	TestContext.RepoRoot = os.Getenv("KUBE_REPO_ROOT")
+	testfiles.AddFileSource(testfiles.BindataFileSource{
+		Asset:      generated.Asset,
+		AssetNames: generated.AssetNames,
+	})
 	TestContext.KubectlPath = "kubectl"
 	TestContext.KubeConfig = KubeConfigPath()
 	os.Setenv("KUBECONFIG", TestContext.KubeConfig)
