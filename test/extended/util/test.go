@@ -330,6 +330,7 @@ var (
 			`Kubernetes Dashboard`,            // Not installed by default (also probably slow image pull)
 			`\[Feature:ServiceLoadBalancer\]`, // Not enabled yet
 			`PersistentVolumes-local`,         // Disable local storage in 4.0 for now (sig-storage/hekumar@redhat.com)
+			`\[Feature:RuntimeClass\]`,        // disable runtimeclass tests in 4.1 (sig-pod/sjenning@redhat.com)
 
 			`NetworkPolicy between server and client should allow egress access on one named port`, // not yet implemented
 
