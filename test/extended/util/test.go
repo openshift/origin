@@ -394,7 +394,8 @@ var (
 
 			`should idle the service and DeploymentConfig properly`, // idling with a single service and DeploymentConfig [Conformance]
 
-			`\[Feature:Volumes\]`, // storage team to investigate it post-rebase
+			`\[Feature:Volumes\]`,    // storage team to investigate it post-rebase
+			`\[Driver: csi-hostpath`, // storage team to investigate it post-rebase. @hekumar
 
 			// TODO: the following list of tests is disabled temporarily due to the fact
 			// that we're running kubelet 1.11 and these require 1.12. We will remove them
