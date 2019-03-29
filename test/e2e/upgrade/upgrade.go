@@ -391,14 +391,15 @@ func clusterUpgrade(c configv1client.Interface, version upgrades.VersionContext)
 		if coList, err := c.ConfigV1().ClusterOperators().List(metav1.ListOptions{}); err == nil {
 			buf := &bytes.Buffer{}
 			tw := tabwriter.NewWriter(buf, 0, 2, 1, ' ', 0)
-			fmt.Fprintf(tw, "NAME\tA F P\tMESSAGE\n")
+			fmt.Fprintf(tw, "NAME\tA F P\tVERSION\tMESSAGE\n")
 			for _, item := range coList.Items {
 				fmt.Fprintf(tw,
-					"%s\t%s %s %s\t%s\n",
+					"%s\t%s %s %s\t%s\t%s\n",
 					item.Name,
 					findConditionShortStatus(item.Status.Conditions, configv1.OperatorAvailable),
 					findConditionShortStatus(item.Status.Conditions, configv1.OperatorFailing),
 					findConditionShortStatus(item.Status.Conditions, configv1.OperatorProgressing),
+					findOperatorVersion(item.Status.Versions),
 					findConditionMessage(item.Status.Conditions, configv1.OperatorProgressing),
 				)
 			}
@@ -413,6 +414,14 @@ func clusterUpgrade(c configv1client.Interface, version upgrades.VersionContext)
 	return nil
 }
 
+func findOperatorVersion(versions []configv1.OperandVersion) string {
+	for _, v := range versions {
+		if v.Name == "operator" {
+			return v.Version
+		}
+	}
+	return "No operator version reported"
+}
 func findConditionShortStatus(conditions []configv1.ClusterOperatorStatusCondition, name configv1.ClusterStatusConditionType) string {
 	if c := findCondition(conditions, name); c != nil {
 		switch c.Status {
