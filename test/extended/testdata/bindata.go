@@ -5324,8 +5324,9 @@ spec:
       - imagePullPolicy: Always
         name: test
         command:
-        - /bin/sleep
-        - "infinity"
+        - /bin/sh
+        - "-c"
+        - "while true; do sleep 42; done"
   test: false
   triggers:
   - imageChangeParams:
