@@ -19,10 +19,12 @@ import (
 
 	authorizationapiv1 "k8s.io/api/authorization/v1"
 	kapiv1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
+	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/discovery/cached"
@@ -34,6 +36,7 @@ import (
 	watchtools "k8s.io/client-go/tools/watch"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	ktestutils "k8s.io/kubernetes/test/utils"
 
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
@@ -136,26 +139,50 @@ func (c *CLI) AsAdmin() *CLI {
 
 // ChangeUser changes the user used by the current CLI session.
 func (c *CLI) ChangeUser(name string) *CLI {
-	adminClientConfig, err := testutil.GetClusterAdminClientConfig(c.adminConfigPath)
-	if err != nil {
-		FatalErr(err)
-	}
-	_, clientConfig, err := testutil.GetClientForUser(adminClientConfig, name)
-	if err != nil {
-		FatalErr(err)
-	}
+	err := kwait.PollImmediate(1*time.Second, 2*time.Minute, func() (bool, error) {
+		adminClientConfig, err := testutil.GetClusterAdminClientConfig(c.adminConfigPath)
+		if err != nil {
+			// if retryable, or if unauthorized, which *could* happen if openshift api
+			// server is momentarily unavailable during install/startup
+			if ktestutils.IsRetryableAPIError(err) || kerrors.IsUnauthorized(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		_, clientConfig, err := testutil.GetClientForUser(adminClientConfig, name)
+		if err != nil {
+			if ktestutils.IsRetryableAPIError(err) || kerrors.IsUnauthorized(err) {
+				return false, nil
+			}
+			return false, err
+		}
 
-	kubeConfig, err := kubeconfig.CreateConfig(c.Namespace(), clientConfig)
-	if err != nil {
-		FatalErr(err)
-	}
+		kubeConfig, err := kubeconfig.CreateConfig(c.Namespace(), clientConfig)
+		if err != nil {
+			if ktestutils.IsRetryableAPIError(err) || kerrors.IsUnauthorized(err) {
+				return false, nil
+			}
+			return false, err
+		}
 
-	f, err := ioutil.TempFile("", "configfile")
-	if err != nil {
-		FatalErr(err)
-	}
-	c.configPath = f.Name()
-	err = clientcmd.WriteToFile(*kubeConfig, c.configPath)
+		f, err := ioutil.TempFile("", "configfile")
+		if err != nil {
+			if ktestutils.IsRetryableAPIError(err) || kerrors.IsUnauthorized(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		c.configPath = f.Name()
+		err = clientcmd.WriteToFile(*kubeConfig, c.configPath)
+		if err != nil {
+			if ktestutils.IsRetryableAPIError(err) || kerrors.IsUnauthorized(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		return true, nil
+	})
+
 	if err != nil {
 		FatalErr(err)
 	}
