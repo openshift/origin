@@ -39,8 +39,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&BuildRequest{},
 		&BuildLogOptions{},
 		&BinaryBuildRequestOptions{},
-		// This is needed for webhooks
-		&corev1.PodProxyOptions{},
 	)
 	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil

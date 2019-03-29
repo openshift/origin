@@ -38,7 +38,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&DeploymentRequest{},
 		&DeploymentLog{},
 		&DeploymentLogOptions{},
-		&extensionsv1beta1.Scale{},
 	)
 	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil
