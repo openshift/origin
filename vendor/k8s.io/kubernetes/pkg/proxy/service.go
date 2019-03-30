@@ -25,7 +25,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/record"
@@ -77,6 +77,11 @@ func (info *BaseServiceInfo) GetHealthCheckNodePort() int {
 // GetNodePort is part of the ServicePort interface.
 func (info *BaseServiceInfo) GetNodePort() int {
 	return info.NodePort
+}
+
+// ExternalIPStrings is part of ServicePort interface.
+func (info *BaseServiceInfo) ExternalIPStrings() []string {
+	return info.ExternalIPs
 }
 
 func (sct *ServiceChangeTracker) newBaseServiceInfo(port *v1.ServicePort, service *v1.Service) *BaseServiceInfo {
