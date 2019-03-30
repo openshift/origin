@@ -8,10 +8,9 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-
+	digest "github.com/opencontainers/go-digest"
 	"github.com/spf13/cobra"
 
-	digest "github.com/opencontainers/go-digest"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -39,17 +38,20 @@ func NewExtract(f kcmdutil.Factory, parentName string, streams genericclioptions
 		Long: templates.LongDesc(`
 			Extract the contents of a release image to disk
 
-			Extracts the contents of an OpenShift update image to disk for inspection or
+			Extracts the contents of an OpenShift release image to disk for inspection or
 			debugging. Update images contain manifests and metadata about the operators that
 			must be installed on the cluster for a given version.
+
+			The --tools and --command flags allow you to extract the appropriate client binaries
+			for	your operating system to disk. --tools will create archive files containing the
+			current OS tools (or, if --command-os is set to '*', all OS versions). Specifying
+			--command for either 'oc' or 'openshift-install' will extract the binaries directly.
 
 			Instead of extracting the manifests, you can specify --git=DIR to perform a Git
 			checkout of the source code that comprises the release. A warning will be printed
 			if the component is not associated with source code. The command will not perform
 			any destructive actions on your behalf except for executing a 'git checkout' which
 			may change the current branch. Requires 'git' to be on your path.
-
-			Experimental: This command is under active development and may change without notice.
 		`),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
@@ -58,10 +60,16 @@ func NewExtract(f kcmdutil.Factory, parentName string, streams genericclioptions
 	}
 	flags := cmd.Flags()
 	flags.StringVarP(&o.RegistryConfig, "registry-config", "a", o.RegistryConfig, "Path to your registry credentials (defaults to ~/.docker/config.json)")
-	flags.StringVar(&o.GitExtractDir, "git", o.GitExtractDir, "Check out the sources that created this release into the provided dir. Repos will be created at <dir>/<host>/<path>. Requires 'git' on your path.")
+
 	flags.StringVar(&o.From, "from", o.From, "Image containing the release payload.")
 	flags.StringVar(&o.File, "file", o.File, "Extract a single file from the payload to standard output.")
 	flags.StringVar(&o.Directory, "to", o.Directory, "Directory to write release contents to, defaults to the current directory.")
+
+	flags.StringVar(&o.GitExtractDir, "git", o.GitExtractDir, "Check out the sources that created this release into the provided dir. Repos will be created at <dir>/<host>/<path>. Requires 'git' on your path.")
+	flags.BoolVar(&o.Tools, "tools", o.Tools, "Extract the tools archives from the release image. Implies --command=*")
+
+	flags.StringVar(&o.Command, "command", o.Command, "Specify 'oc' or 'openshift-install' to extract the client for your operating system.")
+	flags.StringVar(&o.CommandOperatingSystem, "command-os", o.CommandOperatingSystem, "Override which operating system command is extracted (mac, windows, linux). You map specify '*' to extract all tool archives.")
 	return cmd
 }
 
@@ -69,6 +77,10 @@ type ExtractOptions struct {
 	genericclioptions.IOStreams
 
 	From string
+
+	Tools                  bool
+	Command                string
+	CommandOperatingSystem string
 
 	// GitExtractDir is the path of a root directory to extract the source of a release to.
 	GitExtractDir string
@@ -118,19 +130,38 @@ func (o *ExtractOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args [
 }
 
 func (o *ExtractOptions) Run() error {
-	if len(o.From) == 0 {
-		return fmt.Errorf("must specify an image containing a release payload with --from")
+	sources := 0
+	if o.Tools {
+		sources++
 	}
-	if o.Directory != "." && len(o.File) > 0 {
-		return fmt.Errorf("only one of --to and --file may be set")
+	if len(o.File) > 0 {
+		sources++
+	}
+	if len(o.Command) > 0 {
+		sources++
+	}
+	if len(o.GitExtractDir) > 0 {
+		sources++
 	}
 
-	if len(o.GitExtractDir) > 0 {
+	switch {
+	case sources > 1:
+		return fmt.Errorf("only one of --tools, --command, --file, or --git may be specified")
+	case len(o.From) == 0:
+		return fmt.Errorf("must specify an image containing a release payload with --from")
+	case o.Directory != "." && len(o.File) > 0:
+		return fmt.Errorf("only one of --to and --file may be set")
+
+	case len(o.GitExtractDir) > 0:
 		return o.extractGit(o.GitExtractDir)
+	case o.Tools:
+		return o.extractTools()
+	case len(o.Command) > 0:
+		return o.extractCommand(o.Command)
 	}
 
 	dir := o.Directory
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0777); err != nil {
 		return err
 	}
 
@@ -200,7 +231,7 @@ func (o *ExtractOptions) Run() error {
 }
 
 func (o *ExtractOptions) extractGit(dir string) error {
-	if err := os.MkdirAll(dir, 0750); err != nil {
+	if err := os.MkdirAll(dir, 0777); err != nil {
 		return err
 	}
 
