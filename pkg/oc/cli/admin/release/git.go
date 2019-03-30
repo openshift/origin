@@ -251,7 +251,7 @@ func ensureCloneForRepo(dir string, repo string, alternateRepos []string, out, e
 		if !os.IsNotExist(err) {
 			return nil, err
 		}
-		if err := os.MkdirAll(basePath, 0750); err != nil {
+		if err := os.MkdirAll(basePath, 0777); err != nil {
 			return nil, err
 		}
 	} else {

@@ -932,7 +932,7 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 					glog.V(2).Infof("Image %s has no %s label, skipping", m.ImageRef, annotationReleaseOperator)
 					return false, nil
 				}
-				if err := os.MkdirAll(dstDir, 0770); err != nil {
+				if err := os.MkdirAll(dstDir, 0777); err != nil {
 					return false, err
 				}
 				if custom {
@@ -949,7 +949,7 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 		return err
 	}
 	if len(is.Spec.Tags) > 0 {
-		if err := os.MkdirAll(dir, 0770); err != nil {
+		if err := os.MkdirAll(dir, 0777); err != nil {
 			return err
 		}
 		data, err := json.MarshalIndent(is, "", "  ")
@@ -1007,7 +1007,7 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 	switch {
 	case len(o.ToDir) > 0:
 		glog.V(4).Infof("Writing release contents to directory %s", o.ToDir)
-		if err := os.MkdirAll(o.ToDir, 0755); err != nil {
+		if err := os.MkdirAll(o.ToDir, 0777); err != nil {
 			return err
 		}
 		r, err := archive.DecompressStream(r)
