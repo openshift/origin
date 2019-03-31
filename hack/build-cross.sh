@@ -41,7 +41,7 @@ fi
 if [[ -n "${OS_ONLY_BUILD_PLATFORMS-}" ]]; then
   filtered=( )
   for platform in ${platforms[@]}; do
-    if [[ "${platform}" =~ "${OS_ONLY_BUILD_PLATFORMS}" ]]; then
+    if [[ "${platform}" =~ ${OS_ONLY_BUILD_PLATFORMS} ]]; then
       filtered+=("${platform}")
     fi
   done
@@ -49,7 +49,7 @@ if [[ -n "${OS_ONLY_BUILD_PLATFORMS-}" ]]; then
 
   filtered=( )
   for platform in ${image_platforms[@]}; do
-    if [[ "${platform}" =~ "${OS_ONLY_BUILD_PLATFORMS}" ]]; then
+    if [[ "${platform}" =~ ${OS_ONLY_BUILD_PLATFORMS} ]]; then
       filtered+=("${platform}")
     fi
   done
@@ -57,7 +57,7 @@ if [[ -n "${OS_ONLY_BUILD_PLATFORMS-}" ]]; then
 
   filtered=( )
   for platform in ${test_platforms[@]}; do
-    if [[ "${platform}" =~ "${OS_ONLY_BUILD_PLATFORMS}" ]]; then
+    if [[ "${platform}" =~ ${OS_ONLY_BUILD_PLATFORMS} ]]; then
       filtered+=("${platform}")
     fi
   done
