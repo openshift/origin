@@ -29,6 +29,7 @@ import (
 	"strings"
 	"text/tabwriter"
 	"time"
+	"unicode"
 
 	"github.com/fatih/camelcase"
 
@@ -300,6 +301,14 @@ func printUnstructuredContent(w PrefixWriter, level int, content map[string]inte
 }
 
 func smartLabelFor(field string) string {
+	// skip creating smart label if field name contains
+	// special characters other than '-'
+	if strings.IndexFunc(field, func(r rune) bool {
+		return !unicode.IsLetter(r) && r != '-'
+	}) != -1 {
+		return field
+	}
+
 	commonAcronyms := []string{"API", "URL", "UID", "OSB", "GUID"}
 
 	parts := camelcase.Split(field)

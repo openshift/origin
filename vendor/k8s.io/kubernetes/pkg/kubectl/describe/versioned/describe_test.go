@@ -2396,7 +2396,11 @@ func TestDescribeUnstructuredContent(t *testing.T) {
 	}{
 		{
 			expected: `API Version:	v1
-Dummy 2:	present
+Dummy - Dummy:	present
+dummy-dummy@dummy:	present
+dummy/dummy:	present
+dummy2:	present
+Dummy Dummy:	present
 Items:
   Item Bool:	true
   Item Int:	42
@@ -2434,10 +2438,14 @@ URL:	http://localhost
 	w := NewPrefixWriter(out)
 	obj := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "Test",
-			"dummy1":     "present",
-			"dummy2":     "present",
+			"apiVersion":        "v1",
+			"kind":              "Test",
+			"dummyDummy":        "present",
+			"dummy/dummy":       "present",
+			"dummy-dummy@dummy": "present",
+			"dummy-dummy":       "present",
+			"dummy1":            "present",
+			"dummy2":            "present",
 			"metadata": map[string]interface{}{
 				"name":              "MyName",
 				"namespace":         "MyNamespace",
