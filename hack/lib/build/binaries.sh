@@ -335,12 +335,14 @@ function os::build::place_bins() {
       if [[ $platform == "windows/amd64" ]]; then
         suffix=".exe"
       fi
-      for linkname in "${OC_BINARY_COPY[@]}"; do
-        local src="${OS_OUTPUT_BINPATH}/${platform}/oc${suffix}"
-        if [[ -f "${src}" ]]; then
-          ln -f "$src" "${OS_OUTPUT_BINPATH}/${platform}/${linkname}${suffix}"
-        fi
-      done
+      if [[ "${OS_RELEASE_WITHOUT_LINKS-}" == "" ]]; then
+        for linkname in "${OC_BINARY_COPY[@]}"; do
+          local src="${OS_OUTPUT_BINPATH}/${platform}/oc${suffix}"
+          if [[ -f "${src}" ]]; then
+            ln -f "$src" "${OS_OUTPUT_BINPATH}/${platform}/${linkname}${suffix}"
+          fi
+        done
+      fi
 
       # If no release archive was requested, we're done.
       if [[ "${OS_RELEASE_ARCHIVE-}" == "" ]]; then
