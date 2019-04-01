@@ -743,7 +743,9 @@ func (d *deployerPodInvariantChecker) doChecking() {
 		select {
 		case <-d.ctx.Done():
 			return
-		case event := <-watcher.ResultChan():
+		case event, ok := <-watcher.ResultChan():
+			o.Expect(ok).To(o.BeEquivalentTo(true), "watch closed unexpectedly")
+
 			t := event.Type
 			if t != watch.Added && t != watch.Modified && t != watch.Deleted {
 				o.Expect(fmt.Errorf("unexpected event: %#v", event)).NotTo(o.HaveOccurred())
