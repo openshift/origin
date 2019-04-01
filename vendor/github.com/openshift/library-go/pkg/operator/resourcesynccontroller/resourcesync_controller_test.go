@@ -1,6 +1,8 @@
 package resourcesynccontroller
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -109,5 +111,40 @@ func TestSyncConfigMap(t *testing.T) {
 	}
 	if _, err := kubeClient.CoreV1().ConfigMaps("operator").Get("apple", metav1.GetOptions{}); !apierrors.IsNotFound(err) {
 		t.Error(err)
+	}
+}
+
+func TestServeHTTP(t *testing.T) {
+	c := &ResourceSyncController{
+		secretSyncRules: map[ResourceLocation]ResourceLocation{
+			{Namespace: "foo", Name: "cat"}:  {Namespace: "bar", Name: "cat"},
+			{Namespace: "test", Name: "dog"}: {Namespace: "othertest", Name: "dog"},
+			{Namespace: "foo", Name: "dog"}:  {Namespace: "bar", Name: "dog"},
+		},
+		configMapSyncRules: map[ResourceLocation]ResourceLocation{
+			{Namespace: "a", Name: "b"}:   {Namespace: "foo", Name: "bar"},
+			{Namespace: "a", Name: "c"}:   {Namespace: "foo", Name: "barc"},
+			{Namespace: "bar", Name: "b"}: {Namespace: "foo", Name: "baz"},
+		},
+	}
+
+	expected := `{"secrets":[` +
+		`{"source":{"namespace":"foo","name":"cat"},"destination":{"namespace":"bar","name":"cat"}},` +
+		`{"source":{"namespace":"foo","name":"dog"},"destination":{"namespace":"bar","name":"dog"}},` +
+		`{"source":{"namespace":"test","name":"dog"},"destination":{"namespace":"othertest","name":"dog"}}],` +
+		`"configs":[` +
+		`{"source":{"namespace":"a","name":"b"},"destination":{"namespace":"foo","name":"bar"}},` +
+		`{"source":{"namespace":"a","name":"c"},"destination":{"namespace":"foo","name":"barc"}},` +
+		`{"source":{"namespace":"bar","name":"b"},"destination":{"namespace":"foo","name":"baz"}}]}`
+
+	handler := NewDebugHandler(c)
+	writer := httptest.NewRecorder()
+	handler.ServeHTTP(writer, &http.Request{})
+	if writer.Body == nil {
+		t.Fatal("expected a body")
+	}
+	response := writer.Body.String()
+	if response != expected {
+		t.Errorf("Expected:%+v\n Got: %+v\n", expected, response)
 	}
 }

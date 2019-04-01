@@ -226,7 +226,7 @@ message ImageStreamImage {
 // from other container image registries into the server. Individual images or an entire image repository may
 // be imported, and users may choose to see the results of the import prior to tagging the resulting
 // images into the specified image stream.
-// 
+//
 // This API is intended for end-user tools that need to see the metadata of the image prior to import
 // (for instance, to generate an application from it). Clients that know the desired image can continue
 // to create spec.tags directly into their image streams.

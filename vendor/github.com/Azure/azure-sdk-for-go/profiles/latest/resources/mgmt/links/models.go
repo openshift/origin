@@ -32,12 +32,18 @@ const (
 	AtScope Filter = original.AtScope
 )
 
+type Operation = original.Operation
+type OperationDisplay = original.OperationDisplay
+type OperationListResult = original.OperationListResult
+type OperationListResultIterator = original.OperationListResultIterator
+type OperationListResultPage = original.OperationListResultPage
 type ResourceLink = original.ResourceLink
 type ResourceLinkFilter = original.ResourceLinkFilter
 type ResourceLinkProperties = original.ResourceLinkProperties
 type ResourceLinkResult = original.ResourceLinkResult
 type ResourceLinkResultIterator = original.ResourceLinkResultIterator
 type ResourceLinkResultPage = original.ResourceLinkResultPage
+type OperationsClient = original.OperationsClient
 type ResourceLinksClient = original.ResourceLinksClient
 
 func New(subscriptionID string) BaseClient {
@@ -48,6 +54,12 @@ func NewWithBaseURI(baseURI string, subscriptionID string) BaseClient {
 }
 func PossibleFilterValues() []Filter {
 	return original.PossibleFilterValues()
+}
+func NewOperationsClient(subscriptionID string) OperationsClient {
+	return original.NewOperationsClient(subscriptionID)
+}
+func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string) OperationsClient {
+	return original.NewOperationsClientWithBaseURI(baseURI, subscriptionID)
 }
 func NewResourceLinksClient(subscriptionID string) ResourceLinksClient {
 	return original.NewResourceLinksClient(subscriptionID)

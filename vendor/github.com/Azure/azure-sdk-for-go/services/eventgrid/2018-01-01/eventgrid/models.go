@@ -338,6 +338,87 @@ type MediaJobStateChangeEventData struct {
 	State JobState `json:"state,omitempty"`
 }
 
+// ResourceActionCancelData schema of the Data property of an EventGridEvent for an
+// Microsoft.Resources.ResourceActionCancel event. This is raised when a resource action operation is canceled.
+type ResourceActionCancelData struct {
+	// TenantID - The tenant ID of the resource.
+	TenantID *string `json:"tenantId,omitempty"`
+	// SubscriptionID - The subscription ID of the resource.
+	SubscriptionID *string `json:"subscriptionId,omitempty"`
+	// ResourceGroup - The resource group of the resource.
+	ResourceGroup *string `json:"resourceGroup,omitempty"`
+	// ResourceProvider - The resource provider performing the operation.
+	ResourceProvider *string `json:"resourceProvider,omitempty"`
+	// ResourceURI - The URI of the resource in the operation.
+	ResourceURI *string `json:"resourceUri,omitempty"`
+	// OperationName - The operation that was performed.
+	OperationName *string `json:"operationName,omitempty"`
+	// Status - The status of the operation.
+	Status *string `json:"status,omitempty"`
+	// Authorization - The requested authorization for the operation.
+	Authorization *string `json:"authorization,omitempty"`
+	// Claims - The properties of the claims.
+	Claims *string `json:"claims,omitempty"`
+	// CorrelationID - An operation ID used for troubleshooting.
+	CorrelationID *string `json:"correlationId,omitempty"`
+	// HTTPRequest - The details of the operation.
+	HTTPRequest *string `json:"httpRequest,omitempty"`
+}
+
+// ResourceActionFailureData schema of the Data property of an EventGridEvent for a
+// Microsoft.Resources.ResourceActionFailure event. This is raised when a resource action operation fails.
+type ResourceActionFailureData struct {
+	// TenantID - The tenant ID of the resource.
+	TenantID *string `json:"tenantId,omitempty"`
+	// SubscriptionID - The subscription ID of the resource.
+	SubscriptionID *string `json:"subscriptionId,omitempty"`
+	// ResourceGroup - The resource group of the resource.
+	ResourceGroup *string `json:"resourceGroup,omitempty"`
+	// ResourceProvider - The resource provider performing the operation.
+	ResourceProvider *string `json:"resourceProvider,omitempty"`
+	// ResourceURI - The URI of the resource in the operation.
+	ResourceURI *string `json:"resourceUri,omitempty"`
+	// OperationName - The operation that was performed.
+	OperationName *string `json:"operationName,omitempty"`
+	// Status - The status of the operation.
+	Status *string `json:"status,omitempty"`
+	// Authorization - The requested authorization for the operation.
+	Authorization *string `json:"authorization,omitempty"`
+	// Claims - The properties of the claims.
+	Claims *string `json:"claims,omitempty"`
+	// CorrelationID - An operation ID used for troubleshooting.
+	CorrelationID *string `json:"correlationId,omitempty"`
+	// HTTPRequest - The details of the operation.
+	HTTPRequest *string `json:"httpRequest,omitempty"`
+}
+
+// ResourceActionSuccessData schema of the Data property of an EventGridEvent for a
+// Microsoft.Resources.ResourceActionSuccess event. This is raised when a resource action operation succeeds.
+type ResourceActionSuccessData struct {
+	// TenantID - The tenant ID of the resource.
+	TenantID *string `json:"tenantId,omitempty"`
+	// SubscriptionID - The subscription ID of the resource.
+	SubscriptionID *string `json:"subscriptionId,omitempty"`
+	// ResourceGroup - The resource group of the resource.
+	ResourceGroup *string `json:"resourceGroup,omitempty"`
+	// ResourceProvider - The resource provider performing the operation.
+	ResourceProvider *string `json:"resourceProvider,omitempty"`
+	// ResourceURI - The URI of the resource in the operation.
+	ResourceURI *string `json:"resourceUri,omitempty"`
+	// OperationName - The operation that was performed.
+	OperationName *string `json:"operationName,omitempty"`
+	// Status - The status of the operation.
+	Status *string `json:"status,omitempty"`
+	// Authorization - The requested authorization for the operation.
+	Authorization *string `json:"authorization,omitempty"`
+	// Claims - The properties of the claims.
+	Claims *string `json:"claims,omitempty"`
+	// CorrelationID - An operation ID used for troubleshooting.
+	CorrelationID *string `json:"correlationId,omitempty"`
+	// HTTPRequest - The details of the operation.
+	HTTPRequest *string `json:"httpRequest,omitempty"`
+}
+
 // ResourceDeleteCancelData schema of the Data property of an EventGridEvent for an
 // Microsoft.Resources.ResourceDeleteCancel event. This is raised when a resource delete operation is canceled.
 type ResourceDeleteCancelData struct {

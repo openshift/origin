@@ -14,12 +14,11 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/heketi/heketi/executors"
+	wdb "github.com/heketi/heketi/pkg/db"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
-	"github.com/heketi/heketi/pkg/utils"
 )
 
-func (v *VolumeEntry) allocBricksInCluster(db *bolt.DB,
-	allocator Allocator,
+func (v *VolumeEntry) allocBricksInCluster(db wdb.DB,
 	cluster string,
 	gbsize int) ([]*BrickEntry, error) {
 
@@ -52,7 +51,7 @@ func (v *VolumeEntry) allocBricksInCluster(db *bolt.DB,
 		}
 
 		// Allocate bricks in the cluster
-		brick_entries, err := v.allocBricks(db, allocator, cluster, sets, brick_size)
+		brick_entries, err := v.allocBricks(db, cluster, sets, brick_size)
 		if err == ErrNoSpace {
 			logger.Debug("No space, re-trying with smaller brick size")
 			continue
@@ -67,51 +66,153 @@ func (v *VolumeEntry) allocBricksInCluster(db *bolt.DB,
 	}
 }
 
-func (v *VolumeEntry) getBrickEntryfromBrickName(db *bolt.DB, brickname string) (brickEntry *BrickEntry, e error) {
+func (v *VolumeEntry) brickNameMap(db wdb.RODB) (
+	map[string]*BrickEntry, error) {
 
-	var nodeEntry *NodeEntry
-	for _, brickid := range v.BricksIds() {
+	bmap := map[string]*BrickEntry{}
 
-		err := db.View(func(tx *bolt.Tx) error {
-			var err error
-			brickEntry, err = NewBrickEntryFromId(tx, brickid)
+	err := db.View(func(tx *bolt.Tx) error {
+		for _, brickid := range v.BricksIds() {
+			brickEntry, err := NewBrickEntryFromId(tx, brickid)
 			if err != nil {
 				return err
 			}
-			nodeEntry, err = NewNodeEntryFromId(tx, brickEntry.Info.NodeId)
+			nodeEntry, err := NewNodeEntryFromId(tx, brickEntry.Info.NodeId)
 			if err != nil {
 				return err
 			}
-			return nil
-		})
-		if err != nil {
-			return nil, err
+
+			bname := fmt.Sprintf("%v:%v",
+				nodeEntry.Info.Hostnames.Storage[0],
+				brickEntry.Info.Path)
+			bmap[bname] = brickEntry
 		}
+		return nil
+	})
+	return bmap, err
+}
 
-		if brickname == fmt.Sprintf("%v:%v", nodeEntry.Info.Hostnames.Storage[0], brickEntry.Info.Path) {
-			return brickEntry, nil
+func (v *VolumeEntry) getBrickSetForBrickId(db wdb.DB,
+	executor executors.Executor,
+	oldBrickId string, node string) (*BrickSet, int, error) {
+
+	// First gather the list of bricks from gluster which, unlike heketi,
+	// retains the brick order
+	vinfo, err := executor.VolumeInfo(node, v.Info.Name)
+	if err != nil {
+		logger.LogError("Unable to get volume info from gluster node %v for volume %v: %v", node, v.Info.Name, err)
+		return nil, 0, err
+	}
+
+	var foundbrickset bool
+	var oldBrickIndex int
+	// BrickList in volume info is a slice of all bricks in volume
+	// We loop over the slice in steps of BricksInSet()
+	// If brick to be replaced is found in an iteration, other bricks in that slice form the Brick Set
+	bmap, err := v.brickNameMap(db)
+	if err != nil {
+		return nil, 0, err
+	}
+	ssize := v.Durability.BricksInSet()
+	for slicestartindex := 0; slicestartindex <= len(vinfo.Bricks.BrickList)-ssize; slicestartindex += ssize {
+		bs := NewBrickSet(ssize)
+		for _, brick := range vinfo.Bricks.BrickList[slicestartindex : slicestartindex+ssize] {
+			brickentry, found := bmap[brick.Name]
+			if !found {
+				logger.LogError("Unable to create brick entry using brick name:%v",
+					brick.Name)
+				return nil, 0, ErrNotFound
+			}
+			if brickentry.Id() == oldBrickId {
+				foundbrickset = true
+				oldBrickIndex = len(bs.Bricks)
+			}
+			bs.Bricks = append(bs.Bricks, brickentry)
+		}
+		if foundbrickset {
+			return bs, oldBrickIndex, nil
 		}
 	}
 
-	return nil, ErrNotFound
+	logger.LogError("Unable to find brick set for brick %v, db is possibly corrupt", oldBrickId)
+	return nil, 0, ErrNotFound
 }
 
-func (v *VolumeEntry) replaceBrickInVolume(db *bolt.DB, executor executors.Executor,
-	allocator Allocator,
-	oldBrickId string) (e error) {
+// canReplaceBrickInBrickSet
+// check if a BrickSet is in a state where it's possible
+// to replace a given one of its bricks:
+// - no heals going on on the brick to be replaced
+// - enough bricks of the set are up
+func (v *VolumeEntry) canReplaceBrickInBrickSet(db wdb.DB,
+	executor executors.Executor,
+	node string,
+	bs *BrickSet,
+	index int) error {
+
+	// Get self heal status for this brick's volume
+	healinfo, err := executor.HealInfo(node, v.Info.Name)
+	if err != nil {
+		return err
+	}
+
+	var onlinePeerBrickCount = 0
+	brickId := bs.Bricks[index].Id()
+	bmap, err := v.brickNameMap(db)
+	if err != nil {
+		return err
+	}
+	for _, brickHealStatus := range healinfo.Bricks.BrickList {
+		// Gluster has a bug that it does not send Name for bricks that are down.
+		// Skip such bricks; it is safe because it is not source if it is down
+		if brickHealStatus.Name == "information not available" {
+			continue
+		}
+		iBrickEntry, found := bmap[brickHealStatus.Name]
+		if !found {
+			return fmt.Errorf("Unable to determine heal status of brick")
+		}
+		if iBrickEntry.Id() == brickId {
+			// If we are here, it means the brick to be replaced is
+			// up and running. We need to ensure that it is not a
+			// source for any files.
+			if brickHealStatus.NumberOfEntries != "-" &&
+				brickHealStatus.NumberOfEntries != "0" {
+				return fmt.Errorf("Cannot replace brick %v as it is source brick for data to be healed", iBrickEntry.Id())
+			}
+		}
+		for i, brickInSet := range bs.Bricks {
+			if i != index && brickInSet.Id() == iBrickEntry.Id() {
+				onlinePeerBrickCount++
+			}
+		}
+	}
+	if onlinePeerBrickCount < v.Durability.QuorumBrickCount() {
+		return fmt.Errorf("Cannot replace brick %v as only %v of %v "+
+			"required peer bricks are online",
+			brickId, onlinePeerBrickCount,
+			v.Durability.QuorumBrickCount())
+	}
+
+	return nil
+}
+
+type replacementItems struct {
+	oldBrickEntry     *BrickEntry
+	oldDeviceEntry    *DeviceEntry
+	oldBrickNodeEntry *NodeEntry
+	bs                *BrickSet
+	index             int
+}
+
+func (v *VolumeEntry) prepForBrickReplacement(db wdb.DB,
+	executor executors.Executor,
+	oldBrickId string) (ri replacementItems, node string, err error) {
 
 	var oldBrickEntry *BrickEntry
 	var oldDeviceEntry *DeviceEntry
-	var newDeviceEntry *DeviceEntry
 	var oldBrickNodeEntry *NodeEntry
-	var newBrickNodeEntry *NodeEntry
-	var newBrickEntry *BrickEntry
 
-	if api.DurabilityDistributeOnly == v.Info.Durability.Type {
-		return fmt.Errorf("replace brick is not supported for volume durability type %v", v.Info.Durability.Type)
-	}
-
-	err := db.View(func(tx *bolt.Tx) error {
+	err = db.View(func(tx *bolt.Tx) error {
 		var err error
 		oldBrickEntry, err = NewBrickEntryFromId(tx, oldBrickId)
 		if err != nil {
@@ -129,230 +230,219 @@ func (v *VolumeEntry) replaceBrickInVolume(db *bolt.DB, executor executors.Execu
 		return nil
 	})
 	if err != nil {
-		return err
+		return
 	}
 
-	node := oldBrickNodeEntry.ManageHostName()
+	node = oldBrickNodeEntry.ManageHostName()
 	err = executor.GlusterdCheck(node)
 	if err != nil {
 		node, err = GetVerifiedManageHostname(db, executor, oldBrickNodeEntry.Info.ClusterId)
 		if err != nil {
-			return err
+			return
 		}
 	}
 
-	// Determine the setlist by getting data from Gluster
-	vinfo, err := executor.VolumeInfo(node, v.Info.Name)
-	var slicestartindex int
-	var foundbrickset bool
-	var brick executors.Brick
-	setlist := make([]*BrickEntry, 0)
-	// BrickList in volume info is a slice of all bricks in volume
-	// We loop over the slice in steps of BricksInSet()
-	// If brick to be replaced is found in an iteration, other bricks in that slice form the setlist
-	for slicestartindex = 0; slicestartindex <= len(vinfo.Bricks.BrickList)-v.Durability.BricksInSet(); slicestartindex = slicestartindex + v.Durability.BricksInSet() {
-		setlist = make([]*BrickEntry, 0)
-		for _, brick = range vinfo.Bricks.BrickList[slicestartindex : slicestartindex+v.Durability.BricksInSet()] {
-			brickentry, err := v.getBrickEntryfromBrickName(db, brick.Name)
-			if err != nil {
-				logger.LogError("Unable to create brick entry using brick name:%v, error: %v", brick.Name, err)
-				return err
-			}
-			if brickentry.Id() == oldBrickId {
-				foundbrickset = true
-			} else {
-				setlist = append(setlist, brickentry)
-			}
-		}
-		if foundbrickset {
-			break
-		}
-	}
-	if !foundbrickset {
-		logger.LogError("Unable to find brick set for brick %v, db is possibly corrupt", oldBrickEntry.Id())
-		return ErrNotFound
+	bs, index, err := v.getBrickSetForBrickId(db, executor, oldBrickId, node)
+	if err != nil {
+		return
 	}
 
-	//Create an Id for new brick
-	newBrickId := utils.GenUUID()
+	err = v.canReplaceBrickInBrickSet(db, executor, node, bs, index)
+	if err != nil {
+		return
+	}
 
-	// Check the ring for devices to place the brick
-	deviceCh, done, errc := allocator.GetNodes(v.Info.Cluster, newBrickId)
-	defer func() {
-		close(done)
-	}()
+	ri = replacementItems{
+		oldBrickEntry:     oldBrickEntry,
+		oldDeviceEntry:    oldDeviceEntry,
+		oldBrickNodeEntry: oldBrickNodeEntry,
+		bs:                bs,
+		index:             index,
+	}
+	return
+}
 
-	for deviceId := range deviceCh {
+func (v *VolumeEntry) allocBrickReplacement(db wdb.DB,
+	oldBrickEntry *BrickEntry,
+	oldDeviceEntry *DeviceEntry,
+	bs *BrickSet,
+	index int) (newBrickEntry *BrickEntry,
+	newDeviceEntry *DeviceEntry, err error) {
 
-		// Get device entry
-		err = db.View(func(tx *bolt.Tx) error {
-			newDeviceEntry, err = NewDeviceEntryFromId(tx, deviceId)
-			if err != nil {
-				return err
-			}
-			return nil
-		})
-		if err != nil {
+	var r *BrickAllocation
+	err = db.Update(func(tx *bolt.Tx) error {
+		// returns true if new device differs from old device
+		diffDevice := func(bs *BrickSet, d *DeviceEntry) bool {
+			return oldDeviceEntry.Info.Id != d.Info.Id
+		}
+
+		var err error
+		placer := PlacerForVolume(v)
+		r, err = placer.Replace(
+			NewClusterDeviceSource(tx, v.Info.Cluster),
+			NewVolumePlacementOpts(v, oldBrickEntry.Info.Size, bs.SetSize),
+			diffDevice, bs, index)
+		if err == ErrNoSpace {
+			// swap error conditions to better match the intent
+			return ErrNoReplacement
+		} else if err != nil {
 			return err
 		}
-
-		// Skip same device
-		if oldDeviceEntry.Info.Id == newDeviceEntry.Info.Id {
-			continue
-		}
-
-		// Do not allow a device from the same node to be
-		// in the set
-		deviceOk := true
-		for _, brickInSet := range setlist {
-			if brickInSet.Info.NodeId == newDeviceEntry.NodeId {
-				deviceOk = false
-			}
-		}
-
-		if !deviceOk {
-			continue
-		}
-
-		// Try to allocate a brick on this device
-		// NewBrickEntry would deduct storage from device entry
-		// which we will save to disk, hence reload the latest device
-		// entry to get latest storage state of device
-		err = db.Update(func(tx *bolt.Tx) error {
-			newDeviceEntry, err := NewDeviceEntryFromId(tx, deviceId)
-			if err != nil {
-				return err
-			}
-			newBrickEntry = newDeviceEntry.NewBrickEntry(oldBrickEntry.Info.Size,
-				float64(v.Info.Snapshot.Factor),
-				v.Info.Gid, v.Info.Id)
-			err = newDeviceEntry.Save(tx)
-			if err != nil {
-				return err
-			}
-			return nil
-		})
-		if err != nil {
+		// Unfortunately, we need to save the updated device here in order
+		// to preserve the space allocated for the new brick.
+		if err := r.DeviceSets[0].Devices[index].Save(tx); err != nil {
 			return err
 		}
-
-		// Determine if it was successful
-		if newBrickEntry == nil {
-			continue
-		}
-
-		defer func() {
-			if e != nil {
-				db.Update(func(tx *bolt.Tx) error {
-					newDeviceEntry, err = NewDeviceEntryFromId(tx, newBrickEntry.Info.DeviceId)
-					if err != nil {
-						return err
-					}
-					newDeviceEntry.StorageFree(newBrickEntry.TotalSize())
-					newDeviceEntry.Save(tx)
-					return nil
-				})
-			}
-		}()
-
-		err = db.View(func(tx *bolt.Tx) error {
-			newBrickNodeEntry, err = NewNodeEntryFromId(tx, newBrickEntry.Info.NodeId)
-			if err != nil {
-				return err
-			}
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-
-		newBrickEntry.SetId(newBrickId)
-		var brickEntries []*BrickEntry
-		brickEntries = append(brickEntries, newBrickEntry)
-		err = CreateBricks(db, executor, brickEntries)
-		if err != nil {
-			return err
-		}
-
-		defer func() {
-			if e != nil {
-				DestroyBricks(db, executor, brickEntries)
-			}
-		}()
-
-		var oldBrick executors.BrickInfo
-		var newBrick executors.BrickInfo
-
-		oldBrick.Path = oldBrickEntry.Info.Path
-		oldBrick.Host = oldBrickNodeEntry.StorageHostName()
-		newBrick.Path = newBrickEntry.Info.Path
-		newBrick.Host = newBrickNodeEntry.StorageHostName()
-
-		err = executor.VolumeReplaceBrick(node, v.Info.Name, &oldBrick, &newBrick)
-		if err != nil {
-			return err
-		}
-
-		// After this point we should not call any defer func()
-		// We don't have a *revert* of replace brick operation
-
-		_ = oldBrickEntry.Destroy(db, executor)
-
-		// We must read entries from db again as state on disk might
-		// have changed
-
-		err = db.Update(func(tx *bolt.Tx) error {
-			err = newBrickEntry.Save(tx)
-			if err != nil {
-				return err
-			}
-			reReadNewDeviceEntry, err := NewDeviceEntryFromId(tx, newBrickEntry.Info.DeviceId)
-			if err != nil {
-				return err
-			}
-			reReadNewDeviceEntry.BrickAdd(newBrickEntry.Id())
-			err = reReadNewDeviceEntry.Save(tx)
-			if err != nil {
-				return err
-			}
-
-			reReadVolEntry, err := NewVolumeEntryFromId(tx, newBrickEntry.Info.VolumeId)
-			if err != nil {
-				return err
-			}
-			reReadVolEntry.BrickAdd(newBrickEntry.Id())
-			err = reReadVolEntry.removeBrickFromDb(tx, oldBrickEntry)
-			if err != nil {
-				return err
-			}
-			err = reReadVolEntry.Save(tx)
-			if err != nil {
-				return err
-			}
-			return nil
-		})
-		if err != nil {
-			logger.Err(err)
-		}
-
-		logger.Info("replaced brick:%v on node:%v at path:%v with brick:%v on node:%v at path:%v",
-			oldBrickEntry.Id(), oldBrickEntry.Info.NodeId, oldBrickEntry.Info.Path,
-			newBrickEntry.Id(), newBrickEntry.Info.NodeId, newBrickEntry.Info.Path)
-
 		return nil
+	})
+	if err != nil {
+		return
 	}
-	// Check if allocator returned an error
-	if err := <-errc; err != nil {
+
+	newBrickEntry = r.BrickSets[0].Bricks[index]
+	newDeviceEntry = r.DeviceSets[0].Devices[index]
+	return
+}
+
+func (v *VolumeEntry) replaceBrickInVolume(db wdb.DB, executor executors.Executor,
+	oldBrickId string) (e error) {
+
+	if api.DurabilityDistributeOnly == v.Info.Durability.Type {
+		return fmt.Errorf("replace brick is not supported for volume durability type %v", v.Info.Durability.Type)
+	}
+
+	ri, node, err := v.prepForBrickReplacement(
+		db, executor, oldBrickId)
+	if err != nil {
+		return err
+	}
+	// unpack the struct so we don't have to mess w/ the lower half of
+	// this function
+	oldBrickEntry := ri.oldBrickEntry
+	oldDeviceEntry := ri.oldDeviceEntry
+	oldBrickNodeEntry := ri.oldBrickNodeEntry
+
+	newBrickEntry, newDeviceEntry, err := v.allocBrickReplacement(
+		db, oldBrickEntry, oldDeviceEntry, ri.bs, ri.index)
+	if err != nil {
 		return err
 	}
 
-	// No device found
-	return ErrNoReplacement
+	defer func() {
+		if e != nil {
+			db.Update(func(tx *bolt.Tx) error {
+				newDeviceEntry, err = NewDeviceEntryFromId(tx, newBrickEntry.Info.DeviceId)
+				if err != nil {
+					return err
+				}
+				newDeviceEntry.StorageFree(newBrickEntry.TotalSize())
+				newDeviceEntry.Save(tx)
+				return nil
+			})
+		}
+	}()
+
+	var newBrickNodeEntry *NodeEntry
+	err = db.View(func(tx *bolt.Tx) error {
+		newBrickNodeEntry, err = NewNodeEntryFromId(tx, newBrickEntry.Info.NodeId)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	brickEntries := []*BrickEntry{newBrickEntry}
+	err = CreateBricks(db, executor, brickEntries)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if e != nil {
+			DestroyBricks(db, executor, brickEntries)
+		}
+	}()
+
+	var oldBrick executors.BrickInfo
+	var newBrick executors.BrickInfo
+
+	oldBrick.Path = oldBrickEntry.Info.Path
+	oldBrick.Host = oldBrickNodeEntry.StorageHostName()
+	newBrick.Path = newBrickEntry.Info.Path
+	newBrick.Host = newBrickNodeEntry.StorageHostName()
+
+	err = executor.VolumeReplaceBrick(node, v.Info.Name, &oldBrick, &newBrick)
+	if err != nil {
+		return err
+	}
+
+	// After this point we should not call any defer func()
+	// We don't have a *revert* of replace brick operation
+
+	spaceReclaimed, err := oldBrickEntry.Destroy(db, executor)
+	if err != nil {
+		logger.LogError("Error destroying old brick: %v", err)
+	}
+
+	// We must read entries from db again as state on disk might
+	// have changed
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		err = newBrickEntry.Save(tx)
+		if err != nil {
+			return err
+		}
+		reReadNewDeviceEntry, err := NewDeviceEntryFromId(tx, newBrickEntry.Info.DeviceId)
+		if err != nil {
+			return err
+		}
+		reReadNewDeviceEntry.BrickAdd(newBrickEntry.Id())
+		err = reReadNewDeviceEntry.Save(tx)
+		if err != nil {
+			return err
+		}
+		if spaceReclaimed {
+			oldDevice2, err := NewDeviceEntryFromId(tx, oldBrickEntry.Info.DeviceId)
+			if err != nil {
+				return err
+			}
+			oldDevice2.StorageFree(oldBrickEntry.TotalSize())
+			err = oldDevice2.Save(tx)
+			if err != nil {
+				return err
+			}
+		}
+
+		reReadVolEntry, err := NewVolumeEntryFromId(tx, newBrickEntry.Info.VolumeId)
+		if err != nil {
+			return err
+		}
+		reReadVolEntry.BrickAdd(newBrickEntry.Id())
+		err = reReadVolEntry.removeBrickFromDb(tx, oldBrickEntry)
+		if err != nil {
+			return err
+		}
+		err = reReadVolEntry.Save(tx)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		logger.Err(err)
+	}
+
+	logger.Info("replaced brick:%v on node:%v at path:%v with brick:%v on node:%v at path:%v",
+		oldBrickEntry.Id(), oldBrickEntry.Info.NodeId, oldBrickEntry.Info.Path,
+		newBrickEntry.Id(), newBrickEntry.Info.NodeId, newBrickEntry.Info.Path)
+	return nil
 }
 
 func (v *VolumeEntry) allocBricks(
-	db *bolt.DB,
-	allocator Allocator,
+	db wdb.DB,
 	cluster string,
 	bricksets int,
 	brick_size uint64) (brick_entries []*BrickEntry, e error) {
@@ -372,133 +462,44 @@ func (v *VolumeEntry) allocBricks(
 		}
 	}()
 
-	// Initialize brick_entries
-	brick_entries = make([]*BrickEntry, 0)
-
-	// Determine allocation for each brick required for this volume
-	for brick_num := 0; brick_num < bricksets; brick_num++ {
-		logger.Info("brick_num: %v", brick_num)
-
-		// Create a brick set list to later make sure that the
-		// proposed bricks and devices are acceptable
-		setlist := make([]*BrickEntry, 0)
-
-		// Generate an id for the brick
-		brickId := utils.GenUUID()
-
-		// Get allocator generator
-		// The same generator should be used for the brick and its replicas
-		deviceCh, done, errc := allocator.GetNodes(cluster, brickId)
-		defer func() {
-			close(done)
-		}()
-
-		// Check location has space for each brick and its replicas
-		for i := 0; i < v.Durability.BricksInSet(); i++ {
-			logger.Debug("%v / %v", i, v.Durability.BricksInSet())
-
-			// Do the work in the database context so that the cluster
-			// data does not change while determining brick location
-			err := db.Update(func(tx *bolt.Tx) error {
-
-				// Check the ring for devices to place the brick
-				for deviceId := range deviceCh {
-
-					// Get device entry
-					device, err := NewDeviceEntryFromId(tx, deviceId)
-					if err != nil {
-						return err
-					}
-
-					// Do not allow a device from the same node to be
-					// in the set
-					deviceOk := true
-					for _, brickInSet := range setlist {
-						if brickInSet.Info.NodeId == device.NodeId {
-							deviceOk = false
-						}
-					}
-
-					if !deviceOk {
-						continue
-					}
-
-					// Try to allocate a brick on this device
-					brick := device.NewBrickEntry(brick_size,
-						float64(v.Info.Snapshot.Factor),
-						v.Info.Gid, v.Info.Id)
-
-					// Determine if it was successful
-					if brick != nil {
-
-						// If the first in the set, the reset the id
-						if i == 0 {
-							brick.SetId(brickId)
-						}
-
-						// Save the brick entry to create later
-						brick_entries = append(brick_entries, brick)
-
-						// Add to set list
-						setlist = append(setlist, brick)
-
-						// Add brick to device
-						device.BrickAdd(brick.Id())
-
-						// Add brick to volume
-						v.BrickAdd(brick.Id())
-
-						// Save values
-						err := brick.Save(tx)
-						if err != nil {
-							return err
-						}
-
-						err = device.Save(tx)
-						if err != nil {
-							return err
-						}
-
-						return nil
-					}
-				}
-
-				// Check if allocator returned an error
-				if err := <-errc; err != nil {
+	// mimic the previous unconditional db update behavior
+	err := db.Update(func(tx *bolt.Tx) error {
+		wtx := wdb.WrapTx(tx)
+		r, e := allocateBricks(wtx, cluster, v, bricksets, brick_size)
+		if e != nil {
+			return e
+		}
+		brick_entries = []*BrickEntry{}
+		for _, bs := range r.BrickSets {
+			for _, x := range bs.Bricks {
+				brick_entries = append(brick_entries, x)
+				err := x.Save(tx)
+				if err != nil {
 					return err
 				}
-
-				// No devices found
-				return ErrNoSpace
-
-			})
-			if err != nil {
-				return brick_entries, err
+				logger.Debug("Adding brick %v to volume %v", x.Id(), v.Info.Id)
+				v.BrickAdd(x.Id())
 			}
 		}
+		for _, ds := range r.DeviceSets {
+			for _, x := range ds.Devices {
+				err := x.Save(tx)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return brick_entries, err
 	}
 
 	return brick_entries, nil
-
 }
 
 func (v *VolumeEntry) removeBrickFromDb(tx *bolt.Tx, brick *BrickEntry) error {
-
-	// Access device
-	device, err := NewDeviceEntryFromId(tx, brick.Info.DeviceId)
-	if err != nil {
-		logger.Err(err)
-		return err
-	}
-
-	// Deallocate space on device
-	device.StorageFree(brick.TotalSize())
-
-	// Delete brick from device
-	device.BrickDelete(brick.Info.Id)
-
-	// Save device
-	err = device.Save(tx)
+	err := brick.RemoveFromDevice(tx)
 	if err != nil {
 		logger.Err(err)
 		return err

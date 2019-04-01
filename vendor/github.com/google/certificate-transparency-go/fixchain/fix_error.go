@@ -184,7 +184,7 @@ func UnmarshalJSON(b []byte) (*FixError, error) {
 
 	if u.Cert != nil {
 		cert, err := x509.ParseCertificate(u.Cert)
-		if err != nil {
+		if x509.IsFatal(err) {
 			return nil, fmt.Errorf("cannot parse FixError Cert: %s", err)
 		}
 		ferr.Cert = cert
@@ -192,7 +192,7 @@ func UnmarshalJSON(b []byte) (*FixError, error) {
 
 	for _, c := range u.Chain {
 		cert, err := x509.ParseCertificate(c)
-		if err != nil {
+		if x509.IsFatal(err) {
 			return nil, fmt.Errorf("cannot parse FixError Chain: %s", err)
 		}
 		ferr.Chain = append(ferr.Chain, cert)

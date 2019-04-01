@@ -72,6 +72,7 @@ const (
 	StateAccepted           State = original.StateAccepted
 	StateCompiling          State = original.StateCompiling
 	StateEnded              State = original.StateEnded
+	StateFinalizing         State = original.StateFinalizing
 	StateNew                State = original.StateNew
 	StatePaused             State = original.StatePaused
 	StateQueued             State = original.StateQueued
@@ -79,6 +80,7 @@ const (
 	StateScheduling         State = original.StateScheduling
 	StateStarting           State = original.StateStarting
 	StateWaitingForCapacity State = original.StateWaitingForCapacity
+	StateYielded            State = original.StateYielded
 )
 
 type Type = original.Type

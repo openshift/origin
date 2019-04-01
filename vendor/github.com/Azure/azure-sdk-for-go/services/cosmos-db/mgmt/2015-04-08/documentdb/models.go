@@ -428,6 +428,8 @@ type DatabaseAccountCreateUpdateProperties struct {
 	Capabilities *[]Capability `json:"capabilities,omitempty"`
 	// VirtualNetworkRules - List of Virtual Network ACL rules configured for the Cosmos DB account.
 	VirtualNetworkRules *[]VirtualNetworkRule `json:"virtualNetworkRules,omitempty"`
+	// EnableMultipleWriteLocations - Enables the account to write in multiple locations
+	EnableMultipleWriteLocations *bool `json:"enableMultipleWriteLocations,omitempty"`
 }
 
 // DatabaseAccountListConnectionStringsResult the connection strings for the given database account.
@@ -595,6 +597,8 @@ type DatabaseAccountProperties struct {
 	FailoverPolicies *[]FailoverPolicy `json:"failoverPolicies,omitempty"`
 	// VirtualNetworkRules - List of Virtual Network ACL rules configured for the Cosmos DB account.
 	VirtualNetworkRules *[]VirtualNetworkRule `json:"virtualNetworkRules,omitempty"`
+	// EnableMultipleWriteLocations - Enables the account to write in multiple locations
+	EnableMultipleWriteLocations *bool `json:"enableMultipleWriteLocations,omitempty"`
 }
 
 // DatabaseAccountRegenerateKeyParameters parameters to regenerate the keys within the database account.

@@ -25,18 +25,23 @@ var (
 	version            bool
 )
 
+const (
+	defaultCliServer = "http://localhost:8080"
+)
+
 // Main arguments
 type Options struct {
 	Url, Key, User string
 	Json           bool
+	InsecureTLS    bool
+	TLSCerts       []string
 }
 
 var RootCmd = &cobra.Command{
-	Use:   "heketi-cli",
-	Short: "Command line program for Heketi",
-	Long:  "Command line program for Heketi",
-	Example: `  $ export HEKETI_CLI_SERVER=http://localhost:8080
-  $ heketi-cli volume list`,
+	Use:     "heketi-cli",
+	Short:   "Command line program for Heketi",
+	Long:    "Command line program for Heketi",
+	Example: `  $ heketi-cli volume list`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if version {
 			fmt.Printf("heketi-cli %v\n", HEKETI_CLI_VERSION)
@@ -50,7 +55,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 	RootCmd.PersistentFlags().StringVarP(&options.Url, "server", "s", "",
 		"\n\tHeketi server. Can also be set using the"+
-			"\n\tenvironment variable HEKETI_CLI_SERVER")
+			"\n\tenvironment variable HEKETI_CLI_SERVER (the default one is http://localhost:8080)")
 	RootCmd.PersistentFlags().StringVar(&options.Key, "secret", "",
 		"\n\tSecret key for specified user.  Can also be"+
 			"\n\tset using the environment variable HEKETI_CLI_KEY")
@@ -61,6 +66,13 @@ func init() {
 		"\n\tPrint response as JSON")
 	RootCmd.Flags().BoolVarP(&version, "version", "v", false,
 		"\n\tPrint version")
+	RootCmd.PersistentFlags().BoolVarP(&options.InsecureTLS,
+		"insecure-tls", "I", false,
+		"\n\tIf using TLS (HTTPS) do not verify server certificates (insecure)")
+	RootCmd.PersistentFlags().StringSliceVarP(&options.TLSCerts,
+		"tls-cert", "C", []string{},
+		"\n\tIf using TLS (HTTPS), specify a certificate file that can be used to verify"+
+			"\n\tthe TLS connection (can be repeated)")
 	RootCmd.SilenceUsage = true
 }
 
@@ -68,10 +80,8 @@ func initConfig() {
 	// Check server
 	if options.Url == "" {
 		options.Url = os.Getenv("HEKETI_CLI_SERVER")
-		args := os.Args[1:]
-		if options.Url == "" && !version && len(args) > 0 {
-			fmt.Fprintf(stderr, "Server must be provided\n")
-			os.Exit(3)
+		if options.Url == "" {
+			options.Url = defaultCliServer
 		}
 	}
 

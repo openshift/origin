@@ -242,3 +242,41 @@ func ToSet(resourceNames []corev1.ResourceName) sets.String {
 	}
 	return result
 }
+
+// CalculateUsage calculates and returns the requested ResourceList usage
+func CalculateUsage(namespaceName string, scopes []corev1.ResourceQuotaScope, hardLimits corev1.ResourceList, registry Registry, scopeSelector *corev1.ScopeSelector) (corev1.ResourceList, error) {
+	// find the intersection between the hard resources on the quota
+	// and the resources this controller can track to know what we can
+	// look to measure updated usage stats for
+	hardResources := ResourceNames(hardLimits)
+	potentialResources := []corev1.ResourceName{}
+	evaluators := registry.List()
+	for _, evaluator := range evaluators {
+		potentialResources = append(potentialResources, evaluator.MatchingResources(hardResources)...)
+	}
+	// NOTE: the intersection just removes duplicates since the evaluator match intersects with hard
+	matchedResources := Intersection(hardResources, potentialResources)
+
+	// sum the observed usage from each evaluator
+	newUsage := corev1.ResourceList{}
+	for _, evaluator := range evaluators {
+		// only trigger the evaluator if it matches a resource in the quota, otherwise, skip calculating anything
+		intersection := evaluator.MatchingResources(matchedResources)
+		if len(intersection) == 0 {
+			continue
+		}
+
+		usageStatsOptions := UsageStatsOptions{Namespace: namespaceName, Scopes: scopes, Resources: intersection, ScopeSelector: scopeSelector}
+		stats, err := evaluator.UsageStats(usageStatsOptions)
+		if err != nil {
+			return nil, err
+		}
+		newUsage = Add(newUsage, stats.Used)
+	}
+
+	// mask the observed usage to only the set of resources tracked by this quota
+	// merge our observed usage with the quota usage status
+	// if the new usage is different than the last usage, we will need to do an update
+	newUsage = Mask(newUsage, matchedResources)
+	return newUsage, nil
+}

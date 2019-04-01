@@ -1868,7 +1868,7 @@ func (dsap *DatabaseSecurityAlertPolicy) UnmarshalJSON(body []byte) error {
 type DatabaseSecurityAlertPolicyProperties struct {
 	// State - Specifies the state of the policy. If state is Enabled, storageEndpoint and storageAccountAccessKey are required. Possible values include: 'SecurityAlertPolicyStateNew', 'SecurityAlertPolicyStateEnabled', 'SecurityAlertPolicyStateDisabled'
 	State SecurityAlertPolicyState `json:"state,omitempty"`
-	// DisabledAlerts - Specifies the semicolon-separated list of alerts that are disabled, or empty string to disable no alerts. Possible values: Sql_Injection; Sql_Injection_Vulnerability; Access_Anomaly; Usage_Anomaly.
+	// DisabledAlerts - Specifies the semicolon-separated list of alerts that are disabled, or empty string to disable no alerts. Possible values: Sql_Injection; Sql_Injection_Vulnerability; Access_Anomaly; Data_Exfiltration; Unsafe_Action.
 	DisabledAlerts *string `json:"disabledAlerts,omitempty"`
 	// EmailAddresses - Specifies the semicolon-separated list of e-mail addresses to which the alert is sent.
 	EmailAddresses *string `json:"emailAddresses,omitempty"`
@@ -4497,6 +4497,12 @@ type ManagedInstanceProperties struct {
 	VCores *int32 `json:"vCores,omitempty"`
 	// StorageSizeInGB - The maximum storage size in GB.
 	StorageSizeInGB *int32 `json:"storageSizeInGB,omitempty"`
+	// Collation - Collation of the managed instance.
+	Collation *string `json:"collation,omitempty"`
+	// DNSZone - The Dns Zone that the managed instance is in.
+	DNSZone *string `json:"dnsZone,omitempty"`
+	// DNSZonePartner - The resource id of another managed instance whose DNS zone this managed instance will share after creation.
+	DNSZonePartner *string `json:"dnsZonePartner,omitempty"`
 }
 
 // ManagedInstancesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running

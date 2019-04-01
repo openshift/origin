@@ -3,7 +3,7 @@
 package fake
 
 import (
-	build_v1 "github.com/openshift/api/build/v1"
+	buildv1 "github.com/openshift/api/build/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -23,20 +23,20 @@ var buildconfigsResource = schema.GroupVersionResource{Group: "build.openshift.i
 var buildconfigsKind = schema.GroupVersionKind{Group: "build.openshift.io", Version: "v1", Kind: "BuildConfig"}
 
 // Get takes name of the buildConfig, and returns the corresponding buildConfig object, and an error if there is any.
-func (c *FakeBuildConfigs) Get(name string, options v1.GetOptions) (result *build_v1.BuildConfig, err error) {
+func (c *FakeBuildConfigs) Get(name string, options v1.GetOptions) (result *buildv1.BuildConfig, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(buildconfigsResource, c.ns, name), &build_v1.BuildConfig{})
+		Invokes(testing.NewGetAction(buildconfigsResource, c.ns, name), &buildv1.BuildConfig{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*build_v1.BuildConfig), err
+	return obj.(*buildv1.BuildConfig), err
 }
 
 // List takes label and field selectors, and returns the list of BuildConfigs that match those selectors.
-func (c *FakeBuildConfigs) List(opts v1.ListOptions) (result *build_v1.BuildConfigList, err error) {
+func (c *FakeBuildConfigs) List(opts v1.ListOptions) (result *buildv1.BuildConfigList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(buildconfigsResource, buildconfigsKind, c.ns, opts), &build_v1.BuildConfigList{})
+		Invokes(testing.NewListAction(buildconfigsResource, buildconfigsKind, c.ns, opts), &buildv1.BuildConfigList{})
 
 	if obj == nil {
 		return nil, err
@@ -46,8 +46,8 @@ func (c *FakeBuildConfigs) List(opts v1.ListOptions) (result *build_v1.BuildConf
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &build_v1.BuildConfigList{ListMeta: obj.(*build_v1.BuildConfigList).ListMeta}
-	for _, item := range obj.(*build_v1.BuildConfigList).Items {
+	list := &buildv1.BuildConfigList{ListMeta: obj.(*buildv1.BuildConfigList).ListMeta}
+	for _, item := range obj.(*buildv1.BuildConfigList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -63,43 +63,43 @@ func (c *FakeBuildConfigs) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Create takes the representation of a buildConfig and creates it.  Returns the server's representation of the buildConfig, and an error, if there is any.
-func (c *FakeBuildConfigs) Create(buildConfig *build_v1.BuildConfig) (result *build_v1.BuildConfig, err error) {
+func (c *FakeBuildConfigs) Create(buildConfig *buildv1.BuildConfig) (result *buildv1.BuildConfig, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(buildconfigsResource, c.ns, buildConfig), &build_v1.BuildConfig{})
+		Invokes(testing.NewCreateAction(buildconfigsResource, c.ns, buildConfig), &buildv1.BuildConfig{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*build_v1.BuildConfig), err
+	return obj.(*buildv1.BuildConfig), err
 }
 
 // Update takes the representation of a buildConfig and updates it. Returns the server's representation of the buildConfig, and an error, if there is any.
-func (c *FakeBuildConfigs) Update(buildConfig *build_v1.BuildConfig) (result *build_v1.BuildConfig, err error) {
+func (c *FakeBuildConfigs) Update(buildConfig *buildv1.BuildConfig) (result *buildv1.BuildConfig, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(buildconfigsResource, c.ns, buildConfig), &build_v1.BuildConfig{})
+		Invokes(testing.NewUpdateAction(buildconfigsResource, c.ns, buildConfig), &buildv1.BuildConfig{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*build_v1.BuildConfig), err
+	return obj.(*buildv1.BuildConfig), err
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeBuildConfigs) UpdateStatus(buildConfig *build_v1.BuildConfig) (*build_v1.BuildConfig, error) {
+func (c *FakeBuildConfigs) UpdateStatus(buildConfig *buildv1.BuildConfig) (*buildv1.BuildConfig, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(buildconfigsResource, "status", c.ns, buildConfig), &build_v1.BuildConfig{})
+		Invokes(testing.NewUpdateSubresourceAction(buildconfigsResource, "status", c.ns, buildConfig), &buildv1.BuildConfig{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*build_v1.BuildConfig), err
+	return obj.(*buildv1.BuildConfig), err
 }
 
 // Delete takes name of the buildConfig and deletes it. Returns an error if one occurs.
 func (c *FakeBuildConfigs) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(buildconfigsResource, c.ns, name), &build_v1.BuildConfig{})
+		Invokes(testing.NewDeleteAction(buildconfigsResource, c.ns, name), &buildv1.BuildConfig{})
 
 	return err
 }
@@ -108,28 +108,28 @@ func (c *FakeBuildConfigs) Delete(name string, options *v1.DeleteOptions) error 
 func (c *FakeBuildConfigs) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(buildconfigsResource, c.ns, listOptions)
 
-	_, err := c.Fake.Invokes(action, &build_v1.BuildConfigList{})
+	_, err := c.Fake.Invokes(action, &buildv1.BuildConfigList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched buildConfig.
-func (c *FakeBuildConfigs) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *build_v1.BuildConfig, err error) {
+func (c *FakeBuildConfigs) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *buildv1.BuildConfig, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(buildconfigsResource, c.ns, name, data, subresources...), &build_v1.BuildConfig{})
+		Invokes(testing.NewPatchSubresourceAction(buildconfigsResource, c.ns, name, pt, data, subresources...), &buildv1.BuildConfig{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*build_v1.BuildConfig), err
+	return obj.(*buildv1.BuildConfig), err
 }
 
 // Instantiate takes the representation of a buildRequest and creates it.  Returns the server's representation of the build, and an error, if there is any.
-func (c *FakeBuildConfigs) Instantiate(buildConfigName string, buildRequest *build_v1.BuildRequest) (result *build_v1.Build, err error) {
+func (c *FakeBuildConfigs) Instantiate(buildConfigName string, buildRequest *buildv1.BuildRequest) (result *buildv1.Build, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateSubresourceAction(buildconfigsResource, buildConfigName, "instantiate", c.ns, buildRequest), &build_v1.Build{})
+		Invokes(testing.NewCreateSubresourceAction(buildconfigsResource, buildConfigName, "instantiate", c.ns, buildRequest), &buildv1.Build{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*build_v1.Build), err
+	return obj.(*buildv1.Build), err
 }

@@ -17,27 +17,12 @@ package middleware
 import (
 	"mime"
 	"net/http"
+	"strings"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/swag"
 )
-
-// NewValidation starts a new validation middleware
-func newValidation(ctx *Context, next http.Handler) http.Handler {
-
-	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		matched, _ := ctx.RouteInfo(r)
-		_, result := ctx.BindAndValidate(r, matched)
-
-		if result != nil {
-			ctx.Respond(rw, r, matched.Produces, matched, result)
-			return
-		}
-
-		next.ServeHTTP(rw, r)
-	})
-}
 
 type validation struct {
 	context *Context
@@ -47,17 +32,9 @@ type validation struct {
 	bound   map[string]interface{}
 }
 
-type untypedBinder map[string]interface{}
-
-func (ub untypedBinder) BindRequest(r *http.Request, route *MatchedRoute, consumer runtime.Consumer) error {
-	if err := route.Binder.Bind(r, route.Params, consumer, ub); err != nil {
-		return err
-	}
-	return nil
-}
-
 // ContentType validates the content type of a request
 func validateContentType(allowed []string, actual string) error {
+	debugLog("validating content type for %q against [%s]", actual, strings.Join(allowed, ", "))
 	if len(allowed) == 0 {
 		return nil
 	}
@@ -68,10 +45,18 @@ func validateContentType(allowed []string, actual string) error {
 	if swag.ContainsStringsCI(allowed, mt) {
 		return nil
 	}
+	if swag.ContainsStringsCI(allowed, "*/*") {
+		return nil
+	}
+	parts := strings.Split(actual, "/")
+	if len(parts) == 2 && swag.ContainsStringsCI(allowed, parts[0]+"/*") {
+		return nil
+	}
 	return errors.InvalidContentType(actual, allowed)
 }
 
 func validateRequest(ctx *Context, request *http.Request, route *MatchedRoute) *validation {
+	debugLog("validating request %s %s", request.Method, request.URL.EscapedPath())
 	validate := &validation{
 		context: ctx,
 		request: request,
@@ -91,6 +76,7 @@ func validateRequest(ctx *Context, request *http.Request, route *MatchedRoute) *
 }
 
 func (v *validation) parameters() {
+	debugLog("validating request parameters for %s %s", v.request.Method, v.request.URL.EscapedPath())
 	if result := v.route.Binder.Bind(v.request, v.route.Params, v.route.Consumer, v.bound); result != nil {
 		if result.Error() == "validation failure list" {
 			for _, e := range result.(*errors.Validation).Value.([]interface{}) {
@@ -104,10 +90,14 @@ func (v *validation) parameters() {
 
 func (v *validation) contentType() {
 	if len(v.result) == 0 && runtime.HasBody(v.request) {
-		ct, _, err := v.context.ContentType(v.request)
+		debugLog("validating body content type for %s %s", v.request.Method, v.request.URL.EscapedPath())
+		ct, _, req, err := v.context.ContentType(v.request)
 		if err != nil {
 			v.result = append(v.result, err)
+		} else {
+			v.request = req
 		}
+
 		if len(v.result) == 0 {
 			if err := validateContentType(v.route.Consumes, ct); err != nil {
 				v.result = append(v.result, err)
@@ -125,7 +115,8 @@ func (v *validation) contentType() {
 }
 
 func (v *validation) responseFormat() {
-	if str := v.context.ResponseFormat(v.request, v.route.Produces); str == "" && runtime.HasBody(v.request) {
+	if str, rCtx := v.context.ResponseFormat(v.request, v.route.Produces); str == "" && runtime.HasBody(v.request) {
+		v.request = rCtx
 		v.result = append(v.result, errors.InvalidResponseFormat(v.request.Header.Get(runtime.HeaderAccept), v.route.Produces))
 	}
 }

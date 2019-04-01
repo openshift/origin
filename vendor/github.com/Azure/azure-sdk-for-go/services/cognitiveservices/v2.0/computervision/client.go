@@ -332,7 +332,7 @@ func (client BaseClient) AnalyzeImageByDomainInStreamResponder(resp *http.Respon
 // language - the desired language for output generation. If this parameter is not specified, the default value
 // is &quot;en&quot;.Supported languages:en - English, Default. es - Spanish, ja - Japanese, pt - Portuguese,
 // zh - Simplified Chinese.
-func (client BaseClient) AnalyzeImageInStream(ctx context.Context, imageParameter io.ReadCloser, visualFeatures []VisualFeatureTypes, details string, language string) (result ImageAnalysis, err error) {
+func (client BaseClient) AnalyzeImageInStream(ctx context.Context, imageParameter io.ReadCloser, visualFeatures []VisualFeatureTypes, details []Details, language string) (result ImageAnalysis, err error) {
 	req, err := client.AnalyzeImageInStreamPreparer(ctx, imageParameter, visualFeatures, details, language)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "computervision.BaseClient", "AnalyzeImageInStream", nil, "Failure preparing request")
@@ -355,7 +355,7 @@ func (client BaseClient) AnalyzeImageInStream(ctx context.Context, imageParamete
 }
 
 // AnalyzeImageInStreamPreparer prepares the AnalyzeImageInStream request.
-func (client BaseClient) AnalyzeImageInStreamPreparer(ctx context.Context, imageParameter io.ReadCloser, visualFeatures []VisualFeatureTypes, details string, language string) (*http.Request, error) {
+func (client BaseClient) AnalyzeImageInStreamPreparer(ctx context.Context, imageParameter io.ReadCloser, visualFeatures []VisualFeatureTypes, details []Details, language string) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"Endpoint": client.Endpoint,
 	}
@@ -364,8 +364,8 @@ func (client BaseClient) AnalyzeImageInStreamPreparer(ctx context.Context, image
 	if visualFeatures != nil && len(visualFeatures) > 0 {
 		queryParameters["visualFeatures"] = autorest.Encode("query", visualFeatures, ",")
 	}
-	if len(string(details)) > 0 {
-		queryParameters["details"] = autorest.Encode("query", details)
+	if details != nil && len(details) > 0 {
+		queryParameters["details"] = autorest.Encode("query", details, ",")
 	}
 	if len(string(language)) > 0 {
 		queryParameters["language"] = autorest.Encode("query", language)
@@ -415,7 +415,7 @@ func (client BaseClient) AnalyzeImageInStreamResponder(resp *http.Response) (res
 // language - the desired language for output generation. If this parameter is not specified, the default value
 // is &quot;en&quot;.Supported languages:en - English, Default. es - Spanish, ja - Japanese, pt - Portuguese,
 // zh - Simplified Chinese.
-func (client BaseClient) DescribeImage(ctx context.Context, imageURL ImageURL, maxCandidates string, language string) (result ImageDescription, err error) {
+func (client BaseClient) DescribeImage(ctx context.Context, imageURL ImageURL, maxCandidates *int32, language string) (result ImageDescription, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: imageURL,
 			Constraints: []validation.Constraint{{Target: "imageURL.URL", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
@@ -444,16 +444,16 @@ func (client BaseClient) DescribeImage(ctx context.Context, imageURL ImageURL, m
 }
 
 // DescribeImagePreparer prepares the DescribeImage request.
-func (client BaseClient) DescribeImagePreparer(ctx context.Context, imageURL ImageURL, maxCandidates string, language string) (*http.Request, error) {
+func (client BaseClient) DescribeImagePreparer(ctx context.Context, imageURL ImageURL, maxCandidates *int32, language string) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"Endpoint": client.Endpoint,
 	}
 
 	queryParameters := map[string]interface{}{}
-	if len(maxCandidates) > 0 {
-		queryParameters["maxCandidates"] = autorest.Encode("query", maxCandidates)
+	if maxCandidates != nil {
+		queryParameters["maxCandidates"] = autorest.Encode("query", *maxCandidates)
 	} else {
-		queryParameters["maxCandidates"] = autorest.Encode("query", "1")
+		queryParameters["maxCandidates"] = autorest.Encode("query", 1)
 	}
 	if len(string(language)) > 0 {
 		queryParameters["language"] = autorest.Encode("query", language)
@@ -503,7 +503,7 @@ func (client BaseClient) DescribeImageResponder(resp *http.Response) (result Ima
 // language - the desired language for output generation. If this parameter is not specified, the default value
 // is &quot;en&quot;.Supported languages:en - English, Default. es - Spanish, ja - Japanese, pt - Portuguese,
 // zh - Simplified Chinese.
-func (client BaseClient) DescribeImageInStream(ctx context.Context, imageParameter io.ReadCloser, maxCandidates string, language string) (result ImageDescription, err error) {
+func (client BaseClient) DescribeImageInStream(ctx context.Context, imageParameter io.ReadCloser, maxCandidates *int32, language string) (result ImageDescription, err error) {
 	req, err := client.DescribeImageInStreamPreparer(ctx, imageParameter, maxCandidates, language)
 	if err != nil {
 		err = autorest.NewErrorWithError(err, "computervision.BaseClient", "DescribeImageInStream", nil, "Failure preparing request")
@@ -526,16 +526,16 @@ func (client BaseClient) DescribeImageInStream(ctx context.Context, imageParamet
 }
 
 // DescribeImageInStreamPreparer prepares the DescribeImageInStream request.
-func (client BaseClient) DescribeImageInStreamPreparer(ctx context.Context, imageParameter io.ReadCloser, maxCandidates string, language string) (*http.Request, error) {
+func (client BaseClient) DescribeImageInStreamPreparer(ctx context.Context, imageParameter io.ReadCloser, maxCandidates *int32, language string) (*http.Request, error) {
 	urlParameters := map[string]interface{}{
 		"Endpoint": client.Endpoint,
 	}
 
 	queryParameters := map[string]interface{}{}
-	if len(maxCandidates) > 0 {
-		queryParameters["maxCandidates"] = autorest.Encode("query", maxCandidates)
+	if maxCandidates != nil {
+		queryParameters["maxCandidates"] = autorest.Encode("query", *maxCandidates)
 	} else {
-		queryParameters["maxCandidates"] = autorest.Encode("query", "1")
+		queryParameters["maxCandidates"] = autorest.Encode("query", 1)
 	}
 	if len(string(language)) > 0 {
 		queryParameters["language"] = autorest.Encode("query", language)

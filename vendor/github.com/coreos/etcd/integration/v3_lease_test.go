@@ -15,18 +15,17 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
-
-	"golang.org/x/net/context"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 
 	"github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes"
 	pb "github.com/coreos/etcd/etcdserver/etcdserverpb"
 	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/coreos/etcd/pkg/testutil"
+
+	"google.golang.org/grpc/metadata"
 )
 
 // TestV3LeasePrmote ensures the newly elected leader can promote itself
@@ -37,7 +36,9 @@ func TestV3LeasePrmote(t *testing.T) {
 	defer clus.Terminate(t)
 
 	// create lease
-	lresp, err := toGRPC(clus.RandClient()).Lease.LeaseGrant(context.TODO(), &pb.LeaseGrantRequest{TTL: 5})
+	lresp, err := toGRPC(clus.RandClient()).Lease.LeaseGrant(context.TODO(), &pb.LeaseGrantRequest{TTL: 3})
+	ttl := time.Duration(lresp.TTL) * time.Second
+	afterGrant := time.Now()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,10 +47,11 @@ func TestV3LeasePrmote(t *testing.T) {
 	}
 
 	// wait until the lease is going to expire.
-	time.Sleep(time.Duration(lresp.TTL-1) * time.Second)
+	time.Sleep(time.Until(afterGrant.Add(ttl - time.Second)))
 
 	// kill the current leader, all leases should be refreshed.
 	toStop := clus.waitLeader(t, clus.Members)
+	beforeStop := time.Now()
 	clus.Members[toStop].Stop(t)
 
 	var toWait []*member
@@ -61,19 +63,29 @@ func TestV3LeasePrmote(t *testing.T) {
 	clus.waitLeader(t, toWait)
 	clus.Members[toStop].Restart(t)
 	clus.waitLeader(t, clus.Members)
+	afterReelect := time.Now()
 
 	// ensure lease is refreshed by waiting for a "long" time.
 	// it was going to expire anyway.
-	time.Sleep(3 * time.Second)
+	time.Sleep(time.Until(beforeStop.Add(ttl - time.Second)))
 
 	if !leaseExist(t, clus, lresp.ID) {
 		t.Error("unexpected lease not exists")
 	}
 
-	// let lease expires. total lease = 5 seconds and we already
-	// waits for 3 seconds, so 3 seconds more is enough.
-	time.Sleep(3 * time.Second)
-	if leaseExist(t, clus, lresp.ID) {
+	// wait until the renewed lease is expected to expire.
+	time.Sleep(time.Until(afterReelect.Add(ttl)))
+
+	// wait for up to 10 seconds for lease to expire.
+	expiredCondition := func() (bool, error) {
+		return !leaseExist(t, clus, lresp.ID), nil
+	}
+	expired, err := testutil.Poll(100*time.Millisecond, 10*time.Second, expiredCondition)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !expired {
 		t.Error("unexpected lease exists")
 	}
 }
@@ -231,6 +243,43 @@ func TestV3LeaseExists(t *testing.T) {
 
 	if !leaseExist(t, clus, lresp.ID) {
 		t.Error("unexpected lease not exists")
+	}
+}
+
+// TestV3LeaseLeases creates leases and confirms list RPC fetches created ones.
+func TestV3LeaseLeases(t *testing.T) {
+	defer testutil.AfterTest(t)
+	clus := NewClusterV3(t, &ClusterConfig{Size: 1})
+	defer clus.Terminate(t)
+
+	ctx0, cancel0 := context.WithCancel(context.Background())
+	defer cancel0()
+
+	// create leases
+	ids := []int64{}
+	for i := 0; i < 5; i++ {
+		lresp, err := toGRPC(clus.RandClient()).Lease.LeaseGrant(
+			ctx0,
+			&pb.LeaseGrantRequest{TTL: 30})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if lresp.Error != "" {
+			t.Fatal(lresp.Error)
+		}
+		ids = append(ids, lresp.ID)
+	}
+
+	lresp, err := toGRPC(clus.RandClient()).Lease.LeaseLeases(
+		context.Background(),
+		&pb.LeaseLeasesRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range lresp.Leases {
+		if lresp.Leases[i].ID != ids[i] {
+			t.Fatalf("#%d: lease ID expected %d, got %d", i, ids[i], lresp.Leases[i].ID)
+		}
 	}
 }
 
@@ -523,7 +572,7 @@ func TestV3LeaseRequireLeader(t *testing.T) {
 		if err == nil {
 			t.Fatalf("got response %+v, expected error", resp)
 		}
-		if grpc.ErrorDesc(err) != rpctypes.ErrNoLeader.Error() {
+		if rpctypes.ErrorDesc(err) != rpctypes.ErrNoLeader.Error() {
 			t.Errorf("err = %v, want %v", err, rpctypes.ErrNoLeader)
 		}
 	}()

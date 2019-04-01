@@ -98,6 +98,38 @@ func PossibleAzureResourceTypeValues() []AzureResourceType {
 	return []AzureResourceType{TrafficManager, Website}
 }
 
+// AzureStorageState enumerates the values for azure storage state.
+type AzureStorageState string
+
+const (
+	// InvalidCredentials ...
+	InvalidCredentials AzureStorageState = "InvalidCredentials"
+	// InvalidShare ...
+	InvalidShare AzureStorageState = "InvalidShare"
+	// Ok ...
+	Ok AzureStorageState = "Ok"
+)
+
+// PossibleAzureStorageStateValues returns an array of possible values for the AzureStorageState const type.
+func PossibleAzureStorageStateValues() []AzureStorageState {
+	return []AzureStorageState{InvalidCredentials, InvalidShare, Ok}
+}
+
+// AzureStorageType enumerates the values for azure storage type.
+type AzureStorageType string
+
+const (
+	// AzureBlob ...
+	AzureBlob AzureStorageType = "AzureBlob"
+	// AzureFiles ...
+	AzureFiles AzureStorageType = "AzureFiles"
+)
+
+// PossibleAzureStorageTypeValues returns an array of possible values for the AzureStorageType const type.
+func PossibleAzureStorageTypeValues() []AzureStorageType {
+	return []AzureStorageType{AzureBlob, AzureFiles}
+}
+
 // BackupItemStatus enumerates the values for backup item status.
 type BackupItemStatus string
 
@@ -1079,6 +1111,10 @@ const (
 	SkuNameBasic SkuName = "Basic"
 	// SkuNameDynamic ...
 	SkuNameDynamic SkuName = "Dynamic"
+	// SkuNameElasticIsolated ...
+	SkuNameElasticIsolated SkuName = "ElasticIsolated"
+	// SkuNameElasticPremium ...
+	SkuNameElasticPremium SkuName = "ElasticPremium"
 	// SkuNameFree ...
 	SkuNameFree SkuName = "Free"
 	// SkuNameIsolated ...
@@ -1095,7 +1131,7 @@ const (
 
 // PossibleSkuNameValues returns an array of possible values for the SkuName const type.
 func PossibleSkuNameValues() []SkuName {
-	return []SkuName{SkuNameBasic, SkuNameDynamic, SkuNameFree, SkuNameIsolated, SkuNamePremium, SkuNamePremiumV2, SkuNameShared, SkuNameStandard}
+	return []SkuName{SkuNameBasic, SkuNameDynamic, SkuNameElasticIsolated, SkuNameElasticPremium, SkuNameFree, SkuNameIsolated, SkuNamePremium, SkuNamePremiumV2, SkuNameShared, SkuNameStandard}
 }
 
 // SolutionType enumerates the values for solution type.
@@ -4001,6 +4037,8 @@ type AppServicePlanPatchResourceProperties struct {
 	// PerSiteScaling - If <code>true</code>, apps assigned to this App Service plan can be scaled independently.
 	// If <code>false</code>, apps assigned to this App Service plan will scale to all instances of the plan.
 	PerSiteScaling *bool `json:"perSiteScaling,omitempty"`
+	// MaximumElasticWorkerCount - Maximum number of total workers allowed for this ElasticScaleEnabled App Service Plan
+	MaximumElasticWorkerCount *int32 `json:"maximumElasticWorkerCount,omitempty"`
 	// NumberOfSites - Number of apps assigned to this App Service plan.
 	NumberOfSites *int32 `json:"numberOfSites,omitempty"`
 	// IsSpot - If <code>true</code>, this App Service Plan owns spot instances.
@@ -4013,8 +4051,10 @@ type AppServicePlanPatchResourceProperties struct {
 	ResourceGroup *string `json:"resourceGroup,omitempty"`
 	// Reserved - If Linux app service plan <code>true</code>, <code>false</code> otherwise.
 	Reserved *bool `json:"reserved,omitempty"`
-	// IsXenon - If Hyper-V container app service plan <code>true</code>, <code>false</code> otherwise.
+	// IsXenon - Obsolete: If Hyper-V container app service plan <code>true</code>, <code>false</code> otherwise.
 	IsXenon *bool `json:"isXenon,omitempty"`
+	// HyperV - If Hyper-V container app service plan <code>true</code>, <code>false</code> otherwise.
+	HyperV *bool `json:"hyperV,omitempty"`
 	// TargetWorkerCount - Scaling worker count.
 	TargetWorkerCount *int32 `json:"targetWorkerCount,omitempty"`
 	// TargetWorkerSizeID - Scaling worker size ID.
@@ -4042,6 +4082,8 @@ type AppServicePlanProperties struct {
 	// PerSiteScaling - If <code>true</code>, apps assigned to this App Service plan can be scaled independently.
 	// If <code>false</code>, apps assigned to this App Service plan will scale to all instances of the plan.
 	PerSiteScaling *bool `json:"perSiteScaling,omitempty"`
+	// MaximumElasticWorkerCount - Maximum number of total workers allowed for this ElasticScaleEnabled App Service Plan
+	MaximumElasticWorkerCount *int32 `json:"maximumElasticWorkerCount,omitempty"`
 	// NumberOfSites - Number of apps assigned to this App Service plan.
 	NumberOfSites *int32 `json:"numberOfSites,omitempty"`
 	// IsSpot - If <code>true</code>, this App Service Plan owns spot instances.
@@ -4054,8 +4096,10 @@ type AppServicePlanProperties struct {
 	ResourceGroup *string `json:"resourceGroup,omitempty"`
 	// Reserved - If Linux app service plan <code>true</code>, <code>false</code> otherwise.
 	Reserved *bool `json:"reserved,omitempty"`
-	// IsXenon - If Hyper-V container app service plan <code>true</code>, <code>false</code> otherwise.
+	// IsXenon - Obsolete: If Hyper-V container app service plan <code>true</code>, <code>false</code> otherwise.
 	IsXenon *bool `json:"isXenon,omitempty"`
+	// HyperV - If Hyper-V container app service plan <code>true</code>, <code>false</code> otherwise.
+	HyperV *bool `json:"hyperV,omitempty"`
 	// TargetWorkerCount - Scaling worker count.
 	TargetWorkerCount *int32 `json:"targetWorkerCount,omitempty"`
 	// TargetWorkerSizeID - Scaling worker size ID.
@@ -4446,6 +4490,64 @@ func (future *AppsRestoreSnapshotSlotFuture) Result(client AppsClient) (ar autor
 	return
 }
 
+// AppsStartWebSiteNetworkTraceOperationFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
+type AppsStartWebSiteNetworkTraceOperationFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *AppsStartWebSiteNetworkTraceOperationFuture) Result(client AppsClient) (so SetObject, err error) {
+	var done bool
+	done, err = future.Done(client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "web.AppsStartWebSiteNetworkTraceOperationFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("web.AppsStartWebSiteNetworkTraceOperationFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if so.Response.Response, err = future.GetResult(sender); err == nil && so.Response.Response.StatusCode != http.StatusNoContent {
+		so, err = client.StartWebSiteNetworkTraceOperationResponder(so.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "web.AppsStartWebSiteNetworkTraceOperationFuture", "Result", so.Response.Response, "Failure responding to request")
+		}
+	}
+	return
+}
+
+// AppsStartWebSiteNetworkTraceOperationSlotFuture an abstraction for monitoring and retrieving the results of a
+// long-running operation.
+type AppsStartWebSiteNetworkTraceOperationSlotFuture struct {
+	azure.Future
+}
+
+// Result returns the result of the asynchronous operation.
+// If the operation has not completed it will return an error.
+func (future *AppsStartWebSiteNetworkTraceOperationSlotFuture) Result(client AppsClient) (so SetObject, err error) {
+	var done bool
+	done, err = future.Done(client)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "web.AppsStartWebSiteNetworkTraceOperationSlotFuture", "Result", future.Response(), "Polling failure")
+		return
+	}
+	if !done {
+		err = azure.NewAsyncOpIncompleteError("web.AppsStartWebSiteNetworkTraceOperationSlotFuture")
+		return
+	}
+	sender := autorest.DecorateSender(client, autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
+	if so.Response.Response, err = future.GetResult(sender); err == nil && so.Response.Response.StatusCode != http.StatusNoContent {
+		so, err = client.StartWebSiteNetworkTraceOperationSlotResponder(so.Response.Response)
+		if err != nil {
+			err = autorest.NewErrorWithError(err, "web.AppsStartWebSiteNetworkTraceOperationSlotFuture", "Result", so.Response.Response, "Failure responding to request")
+		}
+	}
+	return
+}
+
 // AppsSwapSlotSlotFuture an abstraction for monitoring and retrieving the results of a long-running operation.
 type AppsSwapSlotSlotFuture struct {
 	azure.Future
@@ -4553,6 +4655,58 @@ type AzureBlobStorageHTTPLogsConfig struct {
 	RetentionInDays *int32 `json:"retentionInDays,omitempty"`
 	// Enabled - True if configuration is enabled, false if it is disabled and null if configuration is not set.
 	Enabled *bool `json:"enabled,omitempty"`
+}
+
+// AzureStorageInfoValue azure Files or Blob Storage access information value for dictionary storage.
+type AzureStorageInfoValue struct {
+	// Type - Type of storage. Possible values include: 'AzureFiles', 'AzureBlob'
+	Type AzureStorageType `json:"type,omitempty"`
+	// AccountName - Name of the storage account.
+	AccountName *string `json:"accountName,omitempty"`
+	// ShareName - Name of the file share (container name, for Blob storage).
+	ShareName *string `json:"shareName,omitempty"`
+	// AccessKey - Access key for the storage account.
+	AccessKey *string `json:"accessKey,omitempty"`
+	// MountPath - Path to mount the storage within the site's runtime environment.
+	MountPath *string `json:"mountPath,omitempty"`
+	// State - State of the storage account. Possible values include: 'Ok', 'InvalidCredentials', 'InvalidShare'
+	State AzureStorageState `json:"state,omitempty"`
+}
+
+// AzureStoragePropertyDictionaryResource azureStorageInfo dictionary resource.
+type AzureStoragePropertyDictionaryResource struct {
+	autorest.Response `json:"-"`
+	// Properties - Azure storage accounts.
+	Properties map[string]*AzureStorageInfoValue `json:"properties"`
+	// ID - Resource Id.
+	ID *string `json:"id,omitempty"`
+	// Name - Resource Name.
+	Name *string `json:"name,omitempty"`
+	// Kind - Kind of resource.
+	Kind *string `json:"kind,omitempty"`
+	// Type - Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for AzureStoragePropertyDictionaryResource.
+func (aspdr AzureStoragePropertyDictionaryResource) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if aspdr.Properties != nil {
+		objectMap["properties"] = aspdr.Properties
+	}
+	if aspdr.ID != nil {
+		objectMap["id"] = aspdr.ID
+	}
+	if aspdr.Name != nil {
+		objectMap["name"] = aspdr.Name
+	}
+	if aspdr.Kind != nil {
+		objectMap["kind"] = aspdr.Kind
+	}
+	if aspdr.Type != nil {
+		objectMap["type"] = aspdr.Type
+	}
+	return json.Marshal(objectMap)
 }
 
 // AzureTableStorageApplicationLogsConfig application logs to Azure table storage configuration.
@@ -4891,6 +5045,8 @@ func (br *BackupRequest) UnmarshalJSON(body []byte) error {
 
 // BackupRequestProperties backupRequest resource specific properties
 type BackupRequestProperties struct {
+	// BackupName - Name of the backup.
+	BackupName *string `json:"backupName,omitempty"`
 	// Enabled - True if the backup schedule is enabled (must be included in that case), false if the backup schedule should be disabled.
 	Enabled *bool `json:"enabled,omitempty"`
 	// StorageAccountURL - SAS URL to the container.
@@ -6320,6 +6476,8 @@ type CsmPublishingProfileOptions struct {
 	// WebDeploy -- default
 	// Ftp. Possible values include: 'FileZilla3', 'WebDeploy', 'Ftp'
 	Format PublishingProfileFormat `json:"format,omitempty"`
+	// IncludeDisasterRecoveryEndpoints - Include the DisasterRecover endpoint if true
+	IncludeDisasterRecoveryEndpoints *bool `json:"includeDisasterRecoveryEndpoints,omitempty"`
 }
 
 // CsmSlotEntity deployment slot parameters.
@@ -6746,6 +6904,101 @@ type DeletedAppRestoreRequestProperties struct {
 
 // DeletedSite a deleted app.
 type DeletedSite struct {
+	// DeletedSiteProperties - DeletedSite resource specific properties
+	*DeletedSiteProperties `json:"properties,omitempty"`
+	// ID - Resource Id.
+	ID *string `json:"id,omitempty"`
+	// Name - Resource Name.
+	Name *string `json:"name,omitempty"`
+	// Kind - Kind of resource.
+	Kind *string `json:"kind,omitempty"`
+	// Type - Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for DeletedSite.
+func (ds DeletedSite) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if ds.DeletedSiteProperties != nil {
+		objectMap["properties"] = ds.DeletedSiteProperties
+	}
+	if ds.ID != nil {
+		objectMap["id"] = ds.ID
+	}
+	if ds.Name != nil {
+		objectMap["name"] = ds.Name
+	}
+	if ds.Kind != nil {
+		objectMap["kind"] = ds.Kind
+	}
+	if ds.Type != nil {
+		objectMap["type"] = ds.Type
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for DeletedSite struct.
+func (ds *DeletedSite) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var deletedSiteProperties DeletedSiteProperties
+				err = json.Unmarshal(*v, &deletedSiteProperties)
+				if err != nil {
+					return err
+				}
+				ds.DeletedSiteProperties = &deletedSiteProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				ds.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				ds.Name = &name
+			}
+		case "kind":
+			if v != nil {
+				var kind string
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				ds.Kind = &kind
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				ds.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// DeletedSiteProperties deletedSite resource specific properties
+type DeletedSiteProperties struct {
 	// DeletedSiteID - Numeric id for the deleted site
 	DeletedSiteID *int32 `json:"deletedSiteId,omitempty"`
 	// DeletedTimestamp - Time in UTC when the app was deleted.
@@ -6758,6 +7011,8 @@ type DeletedSite struct {
 	DeletedSiteName *string `json:"deletedSiteName,omitempty"`
 	// Slot - Slot of the deleted site
 	Slot *string `json:"slot,omitempty"`
+	// Kind - Kind of site that was deleted
+	Kind *string `json:"kind,omitempty"`
 }
 
 // DeletedWebAppCollection collection of deleted apps.
@@ -10654,6 +10909,12 @@ type ListHostingEnvironmentDiagnostics struct {
 	Value             *[]HostingEnvironmentDiagnostics `json:"value,omitempty"`
 }
 
+// ListNetworkTrace ...
+type ListNetworkTrace struct {
+	autorest.Response `json:"-"`
+	Value             *[]NetworkTrace `json:"value,omitempty"`
+}
+
 // ListOperation ...
 type ListOperation struct {
 	autorest.Response `json:"-"`
@@ -11649,6 +11910,16 @@ type NetworkFeaturesProperties struct {
 	HybridConnections *[]RelayServiceConnectionEntity `json:"hybridConnections,omitempty"`
 	// HybridConnectionsV2 - The Hybrid Connection V2 (Service Bus) view.
 	HybridConnectionsV2 *[]HybridConnection `json:"hybridConnectionsV2,omitempty"`
+}
+
+// NetworkTrace network trace
+type NetworkTrace struct {
+	// Path - Local file path for the captured network trace file.
+	Path *string `json:"path,omitempty"`
+	// Status - Current status of the network trace operation, same as Operation.Status (InProgress/Succeeded/Failed).
+	Status *string `json:"status,omitempty"`
+	// Message - Detailed message of a network trace operation, e.g. error message in case of failure.
+	Message *string `json:"message,omitempty"`
 }
 
 // Operation an operation on a resource.
@@ -14454,6 +14725,212 @@ func (page ResourceCollectionPage) Values() []string {
 	return *page.rc.Value
 }
 
+// ResourceHealthMetadata used for getting ResourceHealthCheck settings.
+type ResourceHealthMetadata struct {
+	autorest.Response `json:"-"`
+	// ResourceHealthMetadataProperties - ResourceHealthMetadata resource specific properties
+	*ResourceHealthMetadataProperties `json:"properties,omitempty"`
+	// ID - Resource Id.
+	ID *string `json:"id,omitempty"`
+	// Name - Resource Name.
+	Name *string `json:"name,omitempty"`
+	// Kind - Kind of resource.
+	Kind *string `json:"kind,omitempty"`
+	// Type - Resource type.
+	Type *string `json:"type,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for ResourceHealthMetadata.
+func (rhm ResourceHealthMetadata) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if rhm.ResourceHealthMetadataProperties != nil {
+		objectMap["properties"] = rhm.ResourceHealthMetadataProperties
+	}
+	if rhm.ID != nil {
+		objectMap["id"] = rhm.ID
+	}
+	if rhm.Name != nil {
+		objectMap["name"] = rhm.Name
+	}
+	if rhm.Kind != nil {
+		objectMap["kind"] = rhm.Kind
+	}
+	if rhm.Type != nil {
+		objectMap["type"] = rhm.Type
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for ResourceHealthMetadata struct.
+func (rhm *ResourceHealthMetadata) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var resourceHealthMetadataProperties ResourceHealthMetadataProperties
+				err = json.Unmarshal(*v, &resourceHealthMetadataProperties)
+				if err != nil {
+					return err
+				}
+				rhm.ResourceHealthMetadataProperties = &resourceHealthMetadataProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				rhm.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				rhm.Name = &name
+			}
+		case "kind":
+			if v != nil {
+				var kind string
+				err = json.Unmarshal(*v, &kind)
+				if err != nil {
+					return err
+				}
+				rhm.Kind = &kind
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				rhm.Type = &typeVar
+			}
+		}
+	}
+
+	return nil
+}
+
+// ResourceHealthMetadataCollection collection of resource health metadata.
+type ResourceHealthMetadataCollection struct {
+	autorest.Response `json:"-"`
+	// Value - Collection of resources.
+	Value *[]ResourceHealthMetadata `json:"value,omitempty"`
+	// NextLink - Link to next page of resources.
+	NextLink *string `json:"nextLink,omitempty"`
+}
+
+// ResourceHealthMetadataCollectionIterator provides access to a complete listing of ResourceHealthMetadata values.
+type ResourceHealthMetadataCollectionIterator struct {
+	i    int
+	page ResourceHealthMetadataCollectionPage
+}
+
+// Next advances to the next value.  If there was an error making
+// the request the iterator does not advance and the error is returned.
+func (iter *ResourceHealthMetadataCollectionIterator) Next() error {
+	iter.i++
+	if iter.i < len(iter.page.Values()) {
+		return nil
+	}
+	err := iter.page.Next()
+	if err != nil {
+		iter.i--
+		return err
+	}
+	iter.i = 0
+	return nil
+}
+
+// NotDone returns true if the enumeration should be started or is not yet complete.
+func (iter ResourceHealthMetadataCollectionIterator) NotDone() bool {
+	return iter.page.NotDone() && iter.i < len(iter.page.Values())
+}
+
+// Response returns the raw server response from the last page request.
+func (iter ResourceHealthMetadataCollectionIterator) Response() ResourceHealthMetadataCollection {
+	return iter.page.Response()
+}
+
+// Value returns the current value or a zero-initialized value if the
+// iterator has advanced beyond the end of the collection.
+func (iter ResourceHealthMetadataCollectionIterator) Value() ResourceHealthMetadata {
+	if !iter.page.NotDone() {
+		return ResourceHealthMetadata{}
+	}
+	return iter.page.Values()[iter.i]
+}
+
+// IsEmpty returns true if the ListResult contains no values.
+func (rhmc ResourceHealthMetadataCollection) IsEmpty() bool {
+	return rhmc.Value == nil || len(*rhmc.Value) == 0
+}
+
+// resourceHealthMetadataCollectionPreparer prepares a request to retrieve the next set of results.
+// It returns nil if no more results exist.
+func (rhmc ResourceHealthMetadataCollection) resourceHealthMetadataCollectionPreparer() (*http.Request, error) {
+	if rhmc.NextLink == nil || len(to.String(rhmc.NextLink)) < 1 {
+		return nil, nil
+	}
+	return autorest.Prepare(&http.Request{},
+		autorest.AsJSON(),
+		autorest.AsGet(),
+		autorest.WithBaseURL(to.String(rhmc.NextLink)))
+}
+
+// ResourceHealthMetadataCollectionPage contains a page of ResourceHealthMetadata values.
+type ResourceHealthMetadataCollectionPage struct {
+	fn   func(ResourceHealthMetadataCollection) (ResourceHealthMetadataCollection, error)
+	rhmc ResourceHealthMetadataCollection
+}
+
+// Next advances to the next page of values.  If there was an error making
+// the request the page does not advance and the error is returned.
+func (page *ResourceHealthMetadataCollectionPage) Next() error {
+	next, err := page.fn(page.rhmc)
+	if err != nil {
+		return err
+	}
+	page.rhmc = next
+	return nil
+}
+
+// NotDone returns true if the page enumeration should be started or is not yet complete.
+func (page ResourceHealthMetadataCollectionPage) NotDone() bool {
+	return !page.rhmc.IsEmpty()
+}
+
+// Response returns the raw server response from the last page request.
+func (page ResourceHealthMetadataCollectionPage) Response() ResourceHealthMetadataCollection {
+	return page.rhmc
+}
+
+// Values returns the slice of values for the current page or nil if there are no values.
+func (page ResourceHealthMetadataCollectionPage) Values() []ResourceHealthMetadata {
+	if page.rhmc.IsEmpty() {
+		return nil
+	}
+	return *page.rhmc.Value
+}
+
+// ResourceHealthMetadataProperties resourceHealthMetadata resource specific properties
+type ResourceHealthMetadataProperties struct {
+	// Category - The category that the resource matches in the RHC Policy File
+	Category *string `json:"category,omitempty"`
+	// SignalAvailability - Is there a health signal for the resource
+	SignalAvailability *bool `json:"signalAvailability,omitempty"`
+}
+
 // ResourceMetric object representing a metric for any resource .
 type ResourceMetric struct {
 	// Name - Name of metric.
@@ -15399,6 +15876,8 @@ type SiteConfig struct {
 	PublishingUsername *string `json:"publishingUsername,omitempty"`
 	// AppSettings - Application settings.
 	AppSettings *[]NameValuePair `json:"appSettings,omitempty"`
+	// AzureStorageAccounts - User-provided Azure storage accounts.
+	AzureStorageAccounts map[string]*AzureStorageInfoValue `json:"azureStorageAccounts"`
 	// ConnectionStrings - Connection strings.
 	ConnectionStrings *[]ConnStringInfo `json:"connectionStrings,omitempty"`
 	// MachineKey - Site MachineKey.
@@ -15466,6 +15945,165 @@ type SiteConfig struct {
 	// ReservedInstanceCount - Number of reserved instances.
 	// This setting only applies to the Consumption Plan
 	ReservedInstanceCount *int32 `json:"reservedInstanceCount,omitempty"`
+}
+
+// MarshalJSON is the custom marshaler for SiteConfig.
+func (sc SiteConfig) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if sc.NumberOfWorkers != nil {
+		objectMap["numberOfWorkers"] = sc.NumberOfWorkers
+	}
+	if sc.DefaultDocuments != nil {
+		objectMap["defaultDocuments"] = sc.DefaultDocuments
+	}
+	if sc.NetFrameworkVersion != nil {
+		objectMap["netFrameworkVersion"] = sc.NetFrameworkVersion
+	}
+	if sc.PhpVersion != nil {
+		objectMap["phpVersion"] = sc.PhpVersion
+	}
+	if sc.PythonVersion != nil {
+		objectMap["pythonVersion"] = sc.PythonVersion
+	}
+	if sc.NodeVersion != nil {
+		objectMap["nodeVersion"] = sc.NodeVersion
+	}
+	if sc.LinuxFxVersion != nil {
+		objectMap["linuxFxVersion"] = sc.LinuxFxVersion
+	}
+	if sc.WindowsFxVersion != nil {
+		objectMap["windowsFxVersion"] = sc.WindowsFxVersion
+	}
+	if sc.RequestTracingEnabled != nil {
+		objectMap["requestTracingEnabled"] = sc.RequestTracingEnabled
+	}
+	if sc.RequestTracingExpirationTime != nil {
+		objectMap["requestTracingExpirationTime"] = sc.RequestTracingExpirationTime
+	}
+	if sc.RemoteDebuggingEnabled != nil {
+		objectMap["remoteDebuggingEnabled"] = sc.RemoteDebuggingEnabled
+	}
+	if sc.RemoteDebuggingVersion != nil {
+		objectMap["remoteDebuggingVersion"] = sc.RemoteDebuggingVersion
+	}
+	if sc.HTTPLoggingEnabled != nil {
+		objectMap["httpLoggingEnabled"] = sc.HTTPLoggingEnabled
+	}
+	if sc.LogsDirectorySizeLimit != nil {
+		objectMap["logsDirectorySizeLimit"] = sc.LogsDirectorySizeLimit
+	}
+	if sc.DetailedErrorLoggingEnabled != nil {
+		objectMap["detailedErrorLoggingEnabled"] = sc.DetailedErrorLoggingEnabled
+	}
+	if sc.PublishingUsername != nil {
+		objectMap["publishingUsername"] = sc.PublishingUsername
+	}
+	if sc.AppSettings != nil {
+		objectMap["appSettings"] = sc.AppSettings
+	}
+	if sc.AzureStorageAccounts != nil {
+		objectMap["azureStorageAccounts"] = sc.AzureStorageAccounts
+	}
+	if sc.ConnectionStrings != nil {
+		objectMap["connectionStrings"] = sc.ConnectionStrings
+	}
+	if sc.MachineKey != nil {
+		objectMap["machineKey"] = sc.MachineKey
+	}
+	if sc.HandlerMappings != nil {
+		objectMap["handlerMappings"] = sc.HandlerMappings
+	}
+	if sc.DocumentRoot != nil {
+		objectMap["documentRoot"] = sc.DocumentRoot
+	}
+	if sc.ScmType != "" {
+		objectMap["scmType"] = sc.ScmType
+	}
+	if sc.Use32BitWorkerProcess != nil {
+		objectMap["use32BitWorkerProcess"] = sc.Use32BitWorkerProcess
+	}
+	if sc.WebSocketsEnabled != nil {
+		objectMap["webSocketsEnabled"] = sc.WebSocketsEnabled
+	}
+	if sc.AlwaysOn != nil {
+		objectMap["alwaysOn"] = sc.AlwaysOn
+	}
+	if sc.JavaVersion != nil {
+		objectMap["javaVersion"] = sc.JavaVersion
+	}
+	if sc.JavaContainer != nil {
+		objectMap["javaContainer"] = sc.JavaContainer
+	}
+	if sc.JavaContainerVersion != nil {
+		objectMap["javaContainerVersion"] = sc.JavaContainerVersion
+	}
+	if sc.AppCommandLine != nil {
+		objectMap["appCommandLine"] = sc.AppCommandLine
+	}
+	if sc.ManagedPipelineMode != "" {
+		objectMap["managedPipelineMode"] = sc.ManagedPipelineMode
+	}
+	if sc.VirtualApplications != nil {
+		objectMap["virtualApplications"] = sc.VirtualApplications
+	}
+	if sc.LoadBalancing != "" {
+		objectMap["loadBalancing"] = sc.LoadBalancing
+	}
+	if sc.Experiments != nil {
+		objectMap["experiments"] = sc.Experiments
+	}
+	if sc.Limits != nil {
+		objectMap["limits"] = sc.Limits
+	}
+	if sc.AutoHealEnabled != nil {
+		objectMap["autoHealEnabled"] = sc.AutoHealEnabled
+	}
+	if sc.AutoHealRules != nil {
+		objectMap["autoHealRules"] = sc.AutoHealRules
+	}
+	if sc.TracingOptions != nil {
+		objectMap["tracingOptions"] = sc.TracingOptions
+	}
+	if sc.VnetName != nil {
+		objectMap["vnetName"] = sc.VnetName
+	}
+	if sc.Cors != nil {
+		objectMap["cors"] = sc.Cors
+	}
+	if sc.Push != nil {
+		objectMap["push"] = sc.Push
+	}
+	if sc.APIDefinition != nil {
+		objectMap["apiDefinition"] = sc.APIDefinition
+	}
+	if sc.AutoSwapSlotName != nil {
+		objectMap["autoSwapSlotName"] = sc.AutoSwapSlotName
+	}
+	if sc.LocalMySQLEnabled != nil {
+		objectMap["localMySqlEnabled"] = sc.LocalMySQLEnabled
+	}
+	if sc.ManagedServiceIdentityID != nil {
+		objectMap["managedServiceIdentityId"] = sc.ManagedServiceIdentityID
+	}
+	if sc.XManagedServiceIdentityID != nil {
+		objectMap["xManagedServiceIdentityId"] = sc.XManagedServiceIdentityID
+	}
+	if sc.IPSecurityRestrictions != nil {
+		objectMap["ipSecurityRestrictions"] = sc.IPSecurityRestrictions
+	}
+	if sc.HTTP20Enabled != nil {
+		objectMap["http20Enabled"] = sc.HTTP20Enabled
+	}
+	if sc.MinTLSVersion != "" {
+		objectMap["minTlsVersion"] = sc.MinTLSVersion
+	}
+	if sc.FtpsState != "" {
+		objectMap["ftpsState"] = sc.FtpsState
+	}
+	if sc.ReservedInstanceCount != nil {
+		objectMap["reservedInstanceCount"] = sc.ReservedInstanceCount
+	}
+	return json.Marshal(objectMap)
 }
 
 // SiteConfigResource web app configuration ARM resource.
@@ -16463,8 +17101,10 @@ type SitePatchResourceProperties struct {
 	ServerFarmID *string `json:"serverFarmId,omitempty"`
 	// Reserved - <code>true</code> if reserved; otherwise, <code>false</code>.
 	Reserved *bool `json:"reserved,omitempty"`
-	// IsXenon - Hyper-V sandbox.
+	// IsXenon - Obsolete: Hyper-V sandbox.
 	IsXenon *bool `json:"isXenon,omitempty"`
+	// HyperV - Hyper-V sandbox.
+	HyperV *bool `json:"hyperV,omitempty"`
 	// LastModifiedTimeUtc - Last time the app was modified, in UTC. Read-only.
 	LastModifiedTimeUtc *date.Time `json:"lastModifiedTimeUtc,omitempty"`
 	// SiteConfig - Configuration of the app.
@@ -16643,8 +17283,10 @@ type SiteProperties struct {
 	ServerFarmID *string `json:"serverFarmId,omitempty"`
 	// Reserved - <code>true</code> if reserved; otherwise, <code>false</code>.
 	Reserved *bool `json:"reserved,omitempty"`
-	// IsXenon - Hyper-V sandbox.
+	// IsXenon - Obsolete: Hyper-V sandbox.
 	IsXenon *bool `json:"isXenon,omitempty"`
+	// HyperV - Hyper-V sandbox.
+	HyperV *bool `json:"hyperV,omitempty"`
 	// LastModifiedTimeUtc - Last time the app was modified, in UTC. Read-only.
 	LastModifiedTimeUtc *date.Time `json:"lastModifiedTimeUtc,omitempty"`
 	// SiteConfig - Configuration of the app.
@@ -16970,14 +17612,17 @@ type SkuInfos struct {
 	Skus *[]GlobalCsmSkuDescription `json:"skus,omitempty"`
 }
 
-// SlotConfigNames names for connection strings and application settings to be marked as sticky to the deployment
-// slot and not moved during a swap operation.
+// SlotConfigNames names for connection strings, application settings, and external Azure storage account
+// configuration
+// identifiers to be marked as sticky to the deployment slot and not moved during a swap operation.
 // This is valid for all deployment slots in an app.
 type SlotConfigNames struct {
 	// ConnectionStringNames - List of connection string names.
 	ConnectionStringNames *[]string `json:"connectionStringNames,omitempty"`
 	// AppSettingNames - List of application settings names.
 	AppSettingNames *[]string `json:"appSettingNames,omitempty"`
+	// AzureStorageConfigNames - List of external Azure storage account identifiers.
+	AzureStorageConfigNames *[]string `json:"azureStorageConfigNames,omitempty"`
 }
 
 // SlotConfigNamesResource slot Config names azure resource.

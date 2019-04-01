@@ -1,5 +1,3 @@
-// +build !kubernetes
-
 package set
 
 import (

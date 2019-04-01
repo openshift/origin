@@ -43,6 +43,8 @@ const (
 var (
 	HeketiStorageJobContainer string
 	heketiStorageListFilename string
+	heketiStorageDurability   string
+	heketiStorageReplicaCount int
 )
 
 func init() {
@@ -55,6 +57,18 @@ func init() {
 		"image",
 		"heketi/heketi:dev",
 		"container image to run this job")
+	setupHeketiStorageCommand.Flags().StringVar(&heketiStorageDurability,
+		"durability",
+		"replicate",
+		"\n\tOptional: Durability type. Values are:"+
+			"\n\t\tnone: No durability, for testing with single storage server environments."+
+			"\n\t\treplicate: (Default) Replica volume.")
+	setupHeketiStorageCommand.Flags().IntVar(&heketiStorageReplicaCount,
+		"replica",
+		3,
+		"\n\tOptional: Replica value for durability type 'replicate'."+
+			"\n\tDefault is 3")
+	setupHeketiStorageCommand.SilenceUsage = true
 }
 
 func saveJson(i interface{}, filename string) error {
@@ -81,7 +95,7 @@ func saveJson(i interface{}, filename string) error {
 	return nil
 }
 
-func createHeketiStorageVolume(c *client.Client) (*api.VolumeInfoResponse, error) {
+func createHeketiStorageVolume(c *client.Client, dt api.DurabilityType, replicaCount int) (*api.VolumeInfoResponse, error) {
 
 	// Make sure the volume does not already exist on any cluster
 	clusters, err := c.ClusterList()
@@ -113,9 +127,17 @@ func createHeketiStorageVolume(c *client.Client) (*api.VolumeInfoResponse, error
 	// Create request
 	req := &api.VolumeCreateRequest{}
 	req.Size = HeketiStorageVolumeSize
-	req.Durability.Type = api.DurabilityReplicate
-	req.Durability.Replicate.Replica = 3
 	req.Name = db.HeketiStorageVolumeName
+	req.Durability.Type = dt
+
+	switch dt {
+	case api.DurabilityReplicate:
+		req.Durability.Replicate.Replica = replicaCount
+	case api.DurabilityDistributeOnly:
+		// no further options needed
+	default:
+		return nil, fmt.Errorf("Durability %s is not supported for heketi database storage", dt)
+	}
 
 	// Create volume
 	volume, err := c.VolumeCreate(req)
@@ -260,12 +282,23 @@ func createHeketiCopyJob(volume *api.VolumeInfoResponse) *batch.Job {
 }
 
 var setupHeketiStorageCommand = &cobra.Command{
-	Use:   "setup-openshift-heketi-storage",
+	Use: "setup-openshift-heketi-storage",
+	Aliases: []string{
+		"setup-heketi-db-storage",
+		"setup-kubernetes-heketi-storage",
+	},
 	Short: "Setup OpenShift/Kubernetes persistent storage for Heketi",
 	Long: "Creates a dedicated GlusterFS volume for Heketi.\n" +
 		"Once the volume is created, a Kubernetes/OpenShift\n" +
 		"list object is created to configure the volume.\n",
 	RunE: func(cmd *cobra.Command, args []string) (e error) {
+
+		// Validate the requested durability
+		durability := api.DurabilityType(heketiStorageDurability)
+		err := api.ValidateDurabilityType(durability)
+		if err != nil {
+			return err
+		}
 
 		// Initialize Kubernetes List object
 		list := &KubeList{}
@@ -274,10 +307,13 @@ var setupHeketiStorageCommand = &cobra.Command{
 		list.Items = make([]interface{}, 0)
 
 		// Create client
-		c := client.NewClient(options.Url, options.User, options.Key)
+		c, err := newHeketiClient()
+		if err != nil {
+			return err
+		}
 
 		// Create volume
-		volume, err := createHeketiStorageVolume(c)
+		volume, err := createHeketiStorageVolume(c, durability, heketiStorageReplicaCount)
 		if err != nil {
 			return err
 		}

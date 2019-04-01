@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -62,11 +62,11 @@ func (c *ControllerCommandConfig) NewCommand() *cobra.Command {
 			serviceability.StartProfiler()
 
 			if err := c.basicFlags.Validate(); err != nil {
-				glog.Fatal(err)
+				klog.Fatal(err)
 			}
 
 			if err := c.StartController(context.Background()); err != nil {
-				glog.Fatal(err)
+				klog.Fatal(err)
 			}
 		},
 	}
@@ -127,11 +127,11 @@ func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
 		configdefaults.SetRecommendedHTTPServingInfoDefaults(servingInfoCopy)
 
 		if hasServiceServingCerts(certDir) {
-			glog.Infof("Using service-serving-cert provided certificates")
+			klog.Infof("Using service-serving-cert provided certificates")
 			config.ServingInfo.CertFile = filepath.Join(certDir, "tls.crt")
 			config.ServingInfo.KeyFile = filepath.Join(certDir, "tls.key")
 		} else {
-			glog.Warningf("Using insecure, self-signed certificates")
+			klog.Warningf("Using insecure, self-signed certificates")
 			temporaryCertDir, err := ioutil.TempDir("", "serving-cert-")
 			if err != nil {
 				return err

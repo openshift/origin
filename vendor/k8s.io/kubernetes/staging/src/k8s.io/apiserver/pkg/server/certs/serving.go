@@ -10,12 +10,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/golang/glog"
-
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/cert"
+	"k8s.io/klog"
 )
 
 // LoopbackClientServerNameOverride is passed to the apiserver from the loopback client in order to
@@ -74,8 +73,8 @@ func (c *DynamicServingLoader) GetConfigForClient(clientHello *tls.ClientHelloIn
 }
 
 func (c *DynamicServingLoader) Run(stopCh <-chan struct{}) {
-	glog.Infof("Starting DynamicLoader")
-	defer glog.Infof("Shutting down DynamicLoader")
+	klog.Infof("Starting DynamicLoader")
+	defer klog.Infof("Shutting down DynamicLoader")
 
 	go wait.Until(func() {
 		err := c.CheckCerts()
@@ -192,7 +191,7 @@ func (c *DynamicServingLoader) CheckCerts() error {
 		return err
 	}
 	for i, crt := range certs {
-		glog.V(2).Infof("[%d] %q serving certificate: %s", i, c.DefaultCertificate.Cert, getCertDetail(crt))
+		klog.V(2).Infof("[%d] %q serving certificate: %s", i, c.DefaultCertificate.Cert, getCertDetail(crt))
 	}
 
 	c.currentValue.Store(newRuntimeConfig)

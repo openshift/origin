@@ -67,6 +67,25 @@ func TestPathBusEscape(t *testing.T) {
 
 }
 
+func TestPathBusUnescape(t *testing.T) {
+	for in, want := range map[string]string{
+		"_":                      "",
+		"foo_2eservice":          "foo.service",
+		"foobar":                 "foobar",
+		"woof_40woof_2eservice":  "woof@woof.service",
+		"_30123456":              "0123456",
+		"account_5fdb_2eservice": "account_db.service",
+		"got_2ddashes":           "got-dashes",
+		"foobar_":                "foobar_",
+		"foobar_2":               "foobar_2",
+	} {
+		got := pathBusUnescape(in)
+		if got != want {
+			t.Errorf("bad result for pathBusUnescape(%s): got %q, want %q", in, got, want)
+		}
+	}
+}
+
 // TestNew ensures that New() works without errors.
 func TestNew(t *testing.T) {
 	_, err := New()

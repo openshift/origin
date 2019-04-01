@@ -5,4 +5,4 @@ go:
  - 1.6.2
 
 script:
- - ./test
+ - ./test.sh

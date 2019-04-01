@@ -5,11 +5,11 @@ package v1
 import (
 	time "time"
 
-	oauth_v1 "github.com/openshift/api/oauth/v1"
+	oauthv1 "github.com/openshift/api/oauth/v1"
 	versioned "github.com/openshift/client-go/oauth/clientset/versioned"
 	internalinterfaces "github.com/openshift/client-go/oauth/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/client-go/oauth/listers/oauth/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
@@ -40,20 +40,20 @@ func NewOAuthAuthorizeTokenInformer(client versioned.Interface, resyncPeriod tim
 func NewFilteredOAuthAuthorizeTokenInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.OauthV1().OAuthAuthorizeTokens().List(options)
 			},
-			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.OauthV1().OAuthAuthorizeTokens().Watch(options)
 			},
 		},
-		&oauth_v1.OAuthAuthorizeToken{},
+		&oauthv1.OAuthAuthorizeToken{},
 		resyncPeriod,
 		indexers,
 	)
@@ -64,7 +64,7 @@ func (f *oAuthAuthorizeTokenInformer) defaultInformer(client versioned.Interface
 }
 
 func (f *oAuthAuthorizeTokenInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&oauth_v1.OAuthAuthorizeToken{}, f.defaultInformer)
+	return f.factory.InformerFor(&oauthv1.OAuthAuthorizeToken{}, f.defaultInformer)
 }
 
 func (f *oAuthAuthorizeTokenInformer) Lister() v1.OAuthAuthorizeTokenLister {

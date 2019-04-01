@@ -16,15 +16,23 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/gorilla/mux"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
+	"github.com/heketi/heketi/pkg/utils"
 )
 
 func (a *App) ClusterCreate(w http.ResponseWriter, r *http.Request) {
+	var msg api.ClusterCreateRequest
+
+	err := utils.GetJsonFromRequest(r, &msg)
+	if err != nil {
+		http.Error(w, "request unable to be parsed", 422)
+		return
+	}
 
 	// Create a new ClusterInfo
-	entry := NewClusterEntryFromRequest()
+	entry := NewClusterEntryFromRequest(&msg)
 
 	// Add cluster to db
-	err := a.db.Update(func(tx *bolt.Tx) error {
+	err = a.db.Update(func(tx *bolt.Tx) error {
 		err := entry.Save(tx)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -32,7 +40,6 @@ func (a *App) ClusterCreate(w http.ResponseWriter, r *http.Request) {
 		}
 
 		return nil
-
 	})
 	if err != nil {
 		return
@@ -44,6 +51,48 @@ func (a *App) ClusterCreate(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(entry.Info); err != nil {
 		panic(err)
 	}
+}
+
+func (a *App) ClusterSetFlags(w http.ResponseWriter, r *http.Request) {
+	var msg api.ClusterSetFlagsRequest
+
+	// Get the id from the URL
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	err := utils.GetJsonFromRequest(r, &msg)
+	if err != nil {
+		http.Error(w, "request unable to be parsed", 422)
+		return
+	}
+
+	err = a.db.Update(func(tx *bolt.Tx) error {
+		entry, err := NewClusterEntryFromId(tx, id)
+		if err == ErrNotFound {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return err
+		} else if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return err
+		}
+
+		entry.Info.File = msg.File
+		entry.Info.Block = msg.Block
+
+		err = entry.Save(tx)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
 }
 
 func (a *App) ClusterList(w http.ResponseWriter, r *http.Request) {
@@ -101,6 +150,10 @@ func (a *App) ClusterInfo(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return err
 		}
+		err = UpdateClusterInfoComplete(tx, info)
+		if err != nil {
+			return err
+		}
 
 		return nil
 	})
@@ -151,9 +204,6 @@ func (a *App) ClusterDelete(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-
-	// Update allocator hat the cluster has been removed
-	a.allocator.RemoveCluster(id)
 
 	// Show that the key has been deleted
 	logger.Info("Deleted cluster [%s]", id)

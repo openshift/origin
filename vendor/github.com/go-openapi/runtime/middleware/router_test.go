@@ -35,7 +35,7 @@ func terminator(rw http.ResponseWriter, r *http.Request) {
 func TestRouterMiddleware(t *testing.T) {
 	spec, api := petstore.NewAPI(t)
 	context := NewContext(spec, api, nil)
-	mw := newRouter(context, http.HandlerFunc(terminator))
+	mw := NewRouter(context, http.HandlerFunc(terminator))
 
 	recorder := httptest.NewRecorder()
 	request, _ := http.NewRequest("GET", "/api/pets", nil)
@@ -59,9 +59,15 @@ func TestRouterMiddleware(t *testing.T) {
 	mw.ServeHTTP(recorder, request)
 	assert.Equal(t, http.StatusNotFound, recorder.Code)
 
+	recorder = httptest.NewRecorder()
+	request, _ = http.NewRequest("GET", "/pets", nil)
+
+	mw.ServeHTTP(recorder, request)
+	assert.Equal(t, http.StatusNotFound, recorder.Code)
+
 	spec, api = petstore.NewRootAPI(t)
 	context = NewContext(spec, api, nil)
-	mw = newRouter(context, http.HandlerFunc(terminator))
+	mw = NewRouter(context, http.HandlerFunc(terminator))
 
 	recorder = httptest.NewRecorder()
 	request, _ = http.NewRequest("GET", "/pets", nil)
@@ -135,7 +141,7 @@ func TestRouterCanonicalBasePath(t *testing.T) {
 	spec, api := petstore.NewAPI(t)
 	spec.Spec().BasePath = "/api///"
 	context := NewContext(spec, api, nil)
-	mw := newRouter(context, http.HandlerFunc(terminator))
+	mw := NewRouter(context, http.HandlerFunc(terminator))
 
 	recorder := httptest.NewRecorder()
 	request, _ := http.NewRequest("GET", "/api/pets", nil)
@@ -148,7 +154,7 @@ func TestRouter_EscapedPath(t *testing.T) {
 	spec, api := petstore.NewAPI(t)
 	spec.Spec().BasePath = "/api/"
 	context := NewContext(spec, api, nil)
-	mw := newRouter(context, http.HandlerFunc(terminator))
+	mw := NewRouter(context, http.HandlerFunc(terminator))
 
 	recorder := httptest.NewRecorder()
 	request, _ := http.NewRequest("GET", "/api/pets/123", nil)
@@ -161,18 +167,22 @@ func TestRouter_EscapedPath(t *testing.T) {
 
 	mw.ServeHTTP(recorder, request)
 	assert.Equal(t, 200, recorder.Code)
-	ri, _ := context.RouteInfo(request)
-	assert.Equal(t, "abc%2Fdef", ri.Params.Get("id"))
+	ri, _, _ := context.RouteInfo(request)
+	if assert.NotNil(t, ri) {
+		if assert.NotNil(t, ri.Params) {
+			assert.Equal(t, "abc/def", ri.Params.Get("id"))
+		}
+	}
 }
 
 func TestRouterStruct(t *testing.T) {
 	spec, api := petstore.NewAPI(t)
 	router := DefaultRouter(spec, newRoutableUntypedAPI(spec, api, new(Context)))
 
-	methods := router.OtherMethods("post", "/pets/{id}")
+	methods := router.OtherMethods("post", "/api/pets/{id}")
 	assert.Len(t, methods, 2)
 
-	entry, ok := router.Lookup("delete", "/pets/{id}")
+	entry, ok := router.Lookup("delete", "/api/pets/{id}")
 	assert.True(t, ok)
 	assert.NotNil(t, entry)
 	assert.Len(t, entry.Params, 1)
@@ -193,4 +203,47 @@ func petAPIRouterBuilder(spec *loads.Document, api *untyped.API, analyzed *analy
 	builder.AddRoute("GET", "/pets/{id}", analyzed.AllPaths()["/pets/{id}"].Get)
 
 	return builder
+}
+
+func TestPathConverter(t *testing.T) {
+	cases := []struct {
+		swagger string
+		denco   string
+	}{
+		{"/", "/"},
+		{"/something", "/something"},
+		{"/{id}", "/:id"},
+		{"/{id}/something/{anotherId}", "/:id/something/:anotherId"},
+		{"/{petid}", "/:petid"},
+		{"/{pet_id}", "/:pet_id"},
+		{"/{petId}", "/:petId"},
+		{"/{pet-id}", "/:pet-id"},
+		// composit parameters tests
+		{"/p_{pet_id}", "/p_:pet_id"},
+		{"/p_{petId}.{petSubId}", "/p_:petId"},
+	}
+
+	for _, tc := range cases {
+		actual := pathConverter.ReplaceAllString(tc.swagger, ":$1")
+		assert.Equal(t, tc.denco, actual, "expected swagger path %s to match %s but got %s", tc.swagger, tc.denco, actual)
+	}
+}
+
+func TestExtractCompositParameters(t *testing.T) {
+	// name is the composite parameter's name, value is the value of this composit parameter, pattern is the pattern to be matched
+	cases := []struct {
+		name string
+		value string
+		pattern string
+		names []string
+		values []string
+	}{
+		{name: "fragment", value: "gie", pattern: "e", names: []string{"fragment"}, values: []string{"gi"}},
+		{name: "fragment", value: "t.simpson", pattern: ".{subfragment}", names: []string{"fragment", "subfragment"}, values: []string{"t", "simpson"}},
+	}
+	for _, tc := range cases {
+		names, values := decodeCompositParams(tc.name, tc.value, tc.pattern, nil, nil)
+		assert.EqualValues(t, tc.names, names)
+		assert.EqualValues(t, tc.values, values)
+	}
 }

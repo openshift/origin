@@ -26,6 +26,9 @@ verify-codegen:
 verify-generated: verify-codegen
 .PHONY: verify-generated
 
+verify: verify-generated
+.PHONY: verify
+
 
 update-codegen:
 	$(call run-codegen)
@@ -33,3 +36,6 @@ update-codegen:
 
 update-generated: update-codegen
 .PHONY: update-generated
+
+update: update-generated
+.PHONY: update

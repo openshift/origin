@@ -382,6 +382,91 @@ func (client FactoriesClient) GetResponder(resp *http.Response) (result Factory,
 	return
 }
 
+// GetGitHubAccessToken get GitHub Access Token.
+// Parameters:
+// resourceGroupName - the resource group name.
+// factoryName - the factory name.
+// gitHubAccessTokenRequest - get GitHub access token request definition.
+func (client FactoriesClient) GetGitHubAccessToken(ctx context.Context, resourceGroupName string, factoryName string, gitHubAccessTokenRequest GitHubAccessTokenRequest) (result GitHubAccessTokenResponse, err error) {
+	if err := validation.Validate([]validation.Validation{
+		{TargetValue: resourceGroupName,
+			Constraints: []validation.Constraint{{Target: "resourceGroupName", Name: validation.MaxLength, Rule: 90, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
+				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._\(\)]+$`, Chain: nil}}},
+		{TargetValue: factoryName,
+			Constraints: []validation.Constraint{{Target: "factoryName", Name: validation.MaxLength, Rule: 63, Chain: nil},
+				{Target: "factoryName", Name: validation.MinLength, Rule: 3, Chain: nil},
+				{Target: "factoryName", Name: validation.Pattern, Rule: `^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$`, Chain: nil}}},
+		{TargetValue: gitHubAccessTokenRequest,
+			Constraints: []validation.Constraint{{Target: "gitHubAccessTokenRequest.GitHubAccessCode", Name: validation.Null, Rule: true, Chain: nil},
+				{Target: "gitHubAccessTokenRequest.GitHubAccessTokenBaseURL", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
+		return result, validation.NewError("datafactory.FactoriesClient", "GetGitHubAccessToken", err.Error())
+	}
+
+	req, err := client.GetGitHubAccessTokenPreparer(ctx, resourceGroupName, factoryName, gitHubAccessTokenRequest)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "datafactory.FactoriesClient", "GetGitHubAccessToken", nil, "Failure preparing request")
+		return
+	}
+
+	resp, err := client.GetGitHubAccessTokenSender(req)
+	if err != nil {
+		result.Response = autorest.Response{Response: resp}
+		err = autorest.NewErrorWithError(err, "datafactory.FactoriesClient", "GetGitHubAccessToken", resp, "Failure sending request")
+		return
+	}
+
+	result, err = client.GetGitHubAccessTokenResponder(resp)
+	if err != nil {
+		err = autorest.NewErrorWithError(err, "datafactory.FactoriesClient", "GetGitHubAccessToken", resp, "Failure responding to request")
+	}
+
+	return
+}
+
+// GetGitHubAccessTokenPreparer prepares the GetGitHubAccessToken request.
+func (client FactoriesClient) GetGitHubAccessTokenPreparer(ctx context.Context, resourceGroupName string, factoryName string, gitHubAccessTokenRequest GitHubAccessTokenRequest) (*http.Request, error) {
+	pathParameters := map[string]interface{}{
+		"factoryName":       autorest.Encode("path", factoryName),
+		"resourceGroupName": autorest.Encode("path", resourceGroupName),
+		"subscriptionId":    autorest.Encode("path", client.SubscriptionID),
+	}
+
+	const APIVersion = "2018-06-01"
+	queryParameters := map[string]interface{}{
+		"api-version": APIVersion,
+	}
+
+	preparer := autorest.CreatePreparer(
+		autorest.AsContentType("application/json; charset=utf-8"),
+		autorest.AsPost(),
+		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithPathParameters("/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.DataFactory/factories/{factoryName}/getGitHubAccessToken", pathParameters),
+		autorest.WithJSON(gitHubAccessTokenRequest),
+		autorest.WithQueryParameters(queryParameters))
+	return preparer.Prepare((&http.Request{}).WithContext(ctx))
+}
+
+// GetGitHubAccessTokenSender sends the GetGitHubAccessToken request. The method will close the
+// http.Response Body if it receives an error.
+func (client FactoriesClient) GetGitHubAccessTokenSender(req *http.Request) (*http.Response, error) {
+	return autorest.SendWithSender(client, req,
+		azure.DoRetryWithRegistration(client.Client))
+}
+
+// GetGitHubAccessTokenResponder handles the response to the GetGitHubAccessToken request. The method always
+// closes the http.Response Body.
+func (client FactoriesClient) GetGitHubAccessTokenResponder(resp *http.Response) (result GitHubAccessTokenResponse, err error) {
+	err = autorest.Respond(
+		resp,
+		client.ByInspecting(),
+		azure.WithErrorUnlessStatusCode(http.StatusOK),
+		autorest.ByUnmarshallingJSON(&result),
+		autorest.ByClosing())
+	result.Response = autorest.Response{Response: resp}
+	return
+}
+
 // List lists factories under the specified subscription.
 func (client FactoriesClient) List(ctx context.Context) (result FactoryListResponsePage, err error) {
 	result.fn = client.listNextResults

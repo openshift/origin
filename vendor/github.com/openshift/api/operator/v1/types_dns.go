@@ -1,7 +1,6 @@
 package v1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -30,6 +29,11 @@ type DNS struct {
 type DNSSpec struct {
 }
 
+const (
+	// Available indicates the DNS controller daemonset is available.
+	DNSAvailable = "Available"
+)
+
 // DNSStatus defines the observed status of the DNS.
 type DNSStatus struct {
 	// clusterIP is the service IP through which this DNS is made available.
@@ -52,50 +56,20 @@ type DNSStatus struct {
 	// More info: https://kubernetes.io/docs/concepts/services-networking/dns-pod-service
 	ClusterDomain string `json:"clusterDomain"`
 
-	// conditions represent the latest available observations of a
-	// DNS's current state.
+	// conditions provide information about the state of the DNS on the cluster.
 	//
-	// +patchMergeKey=type
-	// +patchStrategy=merge
-	// +optional
-	Conditions []DNSCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
-}
-
-// DNSCondition contains details for the current condition of this DNS.
-type DNSCondition struct {
-	// type is the type of the condition.
-	//
-	// These are the supported DNS condition types:
+	// These are the supported DNS conditions:
 	//
 	//   * Available
 	//   - True if the following conditions are met:
 	//     * DNS controller daemonset is available.
 	//   - False if any of those conditions are unsatisfied.
-	Type DNSConditionType `json:"type"`
-
-	// status is the status of the condition. Can be True, False, Unknown.
-	Status corev1.ConditionStatus `json:"status"`
-
-	// lastTransitionTime is the last time a condition status transitioned from
-	// one state to another.
-	LastTransitionTime *metav1.Time `json:"lastTransitionTime"`
-
-	// reason is a brief machine readable explanation for the condition's last
-	// transition.
-	Reason string `json:"reason,omitempty"`
-
-	// message is a human readable description of the details of the last
-	// transition, complementing reason.
-	Message string `json:"message,omitempty"`
+	//
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	// +optional
+	Conditions []OperatorCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type"`
 }
-
-// DNSConditionType is a valid value for DNSCondition
-type DNSConditionType string
-
-const (
-	// Available indicates the DNS controller daemonset is available.
-	DNSControllerAvailable DNSConditionType = "Available"
-)
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

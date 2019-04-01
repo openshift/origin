@@ -36,31 +36,21 @@ func fixListenPid() {
 func main() {
 	fixListenPid()
 
-	listeners, _ := activation.Listeners(false)
-
-	if len(listeners) == 0 {
-		panic("No listeners")
-	}
-
-	if os.Getenv("LISTEN_PID") == "" || os.Getenv("LISTEN_FDS") == "" {
-		panic("Should not unset envs")
-	}
-
-	listeners, err := activation.Listeners(true)
+	listenersWithNames, err := activation.ListenersWithNames()
 	if err != nil {
 		panic(err)
 	}
 
-	if os.Getenv("LISTEN_PID") != "" || os.Getenv("LISTEN_FDS") != "" {
+	if os.Getenv("LISTEN_PID") != "" || os.Getenv("LISTEN_FDS") != "" || os.Getenv("LISTEN_FDNAMES") != "" {
 		panic("Can not unset envs")
 	}
 
-	c0, _ := listeners[0].Accept()
-	c1, _ := listeners[1].Accept()
+	c0, _ := listenersWithNames["fd1"][0].Accept()
+	c1, _ := listenersWithNames["fd2"][0].Accept()
 
 	// Write out the expected strings to the two pipes
-	c0.Write([]byte("Hello world"))
-	c1.Write([]byte("Goodbye world"))
+	c0.Write([]byte("Hello world: fd1"))
+	c1.Write([]byte("Goodbye world: fd2"))
 
 	return
 }

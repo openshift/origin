@@ -20,65 +20,66 @@ import (
 	"fmt"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/golang/glog"
+
+	"k8s.io/klog"
 )
 
 func init() {
-	clientv3.SetLogger(glogWrapper{})
+	clientv3.SetLogger(klogWrapper{})
 }
 
-type glogWrapper struct{}
+type klogWrapper struct{}
 
-const glogWrapperDepth = 4
+const klogWrapperDepth = 4
 
-func (glogWrapper) Info(args ...interface{}) {
-	glog.InfoDepth(glogWrapperDepth, args...)
+func (klogWrapper) Info(args ...interface{}) {
+	klog.InfoDepth(klogWrapperDepth, args...)
 }
 
-func (glogWrapper) Infoln(args ...interface{}) {
-	glog.InfoDepth(glogWrapperDepth, fmt.Sprintln(args...))
+func (klogWrapper) Infoln(args ...interface{}) {
+	klog.InfoDepth(klogWrapperDepth, fmt.Sprintln(args...))
 }
 
-func (glogWrapper) Infof(format string, args ...interface{}) {
-	glog.InfoDepth(glogWrapperDepth, fmt.Sprintf(format, args...))
+func (klogWrapper) Infof(format string, args ...interface{}) {
+	klog.InfoDepth(klogWrapperDepth, fmt.Sprintf(format, args...))
 }
 
-func (glogWrapper) Warning(args ...interface{}) {
-	glog.WarningDepth(glogWrapperDepth, args...)
+func (klogWrapper) Warning(args ...interface{}) {
+	klog.WarningDepth(klogWrapperDepth, args...)
 }
 
-func (glogWrapper) Warningln(args ...interface{}) {
-	glog.WarningDepth(glogWrapperDepth, fmt.Sprintln(args...))
+func (klogWrapper) Warningln(args ...interface{}) {
+	klog.WarningDepth(klogWrapperDepth, fmt.Sprintln(args...))
 }
 
-func (glogWrapper) Warningf(format string, args ...interface{}) {
-	glog.WarningDepth(glogWrapperDepth, fmt.Sprintf(format, args...))
+func (klogWrapper) Warningf(format string, args ...interface{}) {
+	klog.WarningDepth(klogWrapperDepth, fmt.Sprintf(format, args...))
 }
 
-func (glogWrapper) Error(args ...interface{}) {
-	glog.ErrorDepth(glogWrapperDepth, args...)
+func (klogWrapper) Error(args ...interface{}) {
+	klog.ErrorDepth(klogWrapperDepth, args...)
 }
 
-func (glogWrapper) Errorln(args ...interface{}) {
-	glog.ErrorDepth(glogWrapperDepth, fmt.Sprintln(args...))
+func (klogWrapper) Errorln(args ...interface{}) {
+	klog.ErrorDepth(klogWrapperDepth, fmt.Sprintln(args...))
 }
 
-func (glogWrapper) Errorf(format string, args ...interface{}) {
-	glog.ErrorDepth(glogWrapperDepth, fmt.Sprintf(format, args...))
+func (klogWrapper) Errorf(format string, args ...interface{}) {
+	klog.ErrorDepth(klogWrapperDepth, fmt.Sprintf(format, args...))
 }
 
-func (glogWrapper) Fatal(args ...interface{}) {
-	glog.FatalDepth(glogWrapperDepth, args...)
+func (klogWrapper) Fatal(args ...interface{}) {
+	klog.FatalDepth(klogWrapperDepth, args...)
 }
 
-func (glogWrapper) Fatalln(args ...interface{}) {
-	glog.FatalDepth(glogWrapperDepth, fmt.Sprintln(args...))
+func (klogWrapper) Fatalln(args ...interface{}) {
+	klog.FatalDepth(klogWrapperDepth, fmt.Sprintln(args...))
 }
 
-func (glogWrapper) Fatalf(format string, args ...interface{}) {
-	glog.FatalDepth(glogWrapperDepth, fmt.Sprintf(format, args...))
+func (klogWrapper) Fatalf(format string, args ...interface{}) {
+	klog.FatalDepth(klogWrapperDepth, fmt.Sprintf(format, args...))
 }
 
-func (glogWrapper) V(l int) bool {
-	return bool(glog.V(glog.Level(l)))
+func (klogWrapper) V(l int) bool {
+	return bool(klog.V(klog.Level(l)))
 }

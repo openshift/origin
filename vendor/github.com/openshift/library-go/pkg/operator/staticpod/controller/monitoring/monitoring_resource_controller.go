@@ -8,7 +8,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/management"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -150,8 +150,8 @@ func (c *MonitoringResourceController) Run(workers int, stopCh <-chan struct{}) 
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	glog.Infof("Starting MonitoringResourceController")
-	defer glog.Infof("Shutting down MonitoringResourceController")
+	klog.Infof("Starting MonitoringResourceController")
+	defer klog.Infof("Shutting down MonitoringResourceController")
 	if !cache.WaitForCacheSync(stopCh, c.preRunCachesSynced...) {
 		return
 	}

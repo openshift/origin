@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -138,7 +138,7 @@ func (c *PruneController) excludedRevisionHistory(operatorStatus *operatorv1.Sta
 
 	// Return early if nothing to prune
 	if len(succeededRevisions)+len(failedRevisions) == 0 {
-		glog.V(2).Info("no revision IDs currently eligible to prune")
+		klog.V(2).Info("no revision IDs currently eligible to prune")
 		return []int{}, nil
 	}
 
@@ -278,8 +278,8 @@ func (c *PruneController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	glog.Infof("Starting PruneController")
-	defer glog.Infof("Shutting down PruneController")
+	klog.Infof("Starting PruneController")
+	defer klog.Infof("Shutting down PruneController")
 
 	// doesn't matter what workers say, only start one.
 	go wait.Until(c.runWorker, time.Second, stopCh)
@@ -312,7 +312,7 @@ func (c *PruneController) processNextWorkItem() bool {
 }
 
 func (c *PruneController) sync() error {
-	glog.V(5).Info("Syncing revision pruner")
+	klog.V(5).Info("Syncing revision pruner")
 	operatorSpec, operatorStatus, _, err := c.operatorConfigClient.GetStaticPodOperatorState()
 	if err != nil {
 		return err
@@ -325,7 +325,7 @@ func (c *PruneController) sync() error {
 	}
 	// if no IDs are excluded, then there is nothing to prune
 	if len(excludedRevisions) == 0 {
-		glog.Info("No excluded revisions to prune, skipping")
+		klog.Info("No excluded revisions to prune, skipping")
 		return nil
 	}
 

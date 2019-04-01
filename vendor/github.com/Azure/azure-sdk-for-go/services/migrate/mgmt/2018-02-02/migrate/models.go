@@ -788,6 +788,23 @@ func PossibleMachineBootTypeValues() []MachineBootType {
 	return []MachineBootType{MachineBootTypeBIOS, MachineBootTypeEFI, MachineBootTypeUnknown}
 }
 
+// NameAvailabilityReason enumerates the values for name availability reason.
+type NameAvailabilityReason string
+
+const (
+	// NameAvailabilityReasonAlreadyExists ...
+	NameAvailabilityReasonAlreadyExists NameAvailabilityReason = "AlreadyExists"
+	// NameAvailabilityReasonAvailable ...
+	NameAvailabilityReasonAvailable NameAvailabilityReason = "Available"
+	// NameAvailabilityReasonInvalid ...
+	NameAvailabilityReasonInvalid NameAvailabilityReason = "Invalid"
+)
+
+// PossibleNameAvailabilityReasonValues returns an array of possible values for the NameAvailabilityReason const type.
+func PossibleNameAvailabilityReasonValues() []NameAvailabilityReason {
+	return []NameAvailabilityReason{NameAvailabilityReasonAlreadyExists, NameAvailabilityReasonAvailable, NameAvailabilityReasonInvalid}
+}
+
 // Percentile enumerates the values for percentile.
 type Percentile string
 
@@ -1340,6 +1357,25 @@ type AssessmentResultList struct {
 	autorest.Response `json:"-"`
 	// Value - List of assessments.
 	Value *[]Assessment `json:"value,omitempty"`
+}
+
+// CheckNameAvailabilityParameters parameters for a check name availability request.
+type CheckNameAvailabilityParameters struct {
+	// Name - The name to check for availability
+	Name *string `json:"name,omitempty"`
+	// Type - The resource type. Must be set to Microsoft.Migrate/projects
+	Type *string `json:"type,omitempty"`
+}
+
+// CheckNameAvailabilityResult the CheckNameAvailability operation response.
+type CheckNameAvailabilityResult struct {
+	autorest.Response `json:"-"`
+	// NameAvailable - Gets a boolean value that indicates whether the name is available for you to use. If true, the name is available. If false, the name has already been taken or invalid and cannot be used.
+	NameAvailable *bool `json:"nameAvailable,omitempty"`
+	// Reason - Gets the reason that a project name could not be used. The Reason element is only returned if NameAvailable is false. Possible values include: 'NameAvailabilityReasonAvailable', 'NameAvailabilityReasonInvalid', 'NameAvailabilityReasonAlreadyExists'
+	Reason NameAvailabilityReason `json:"reason,omitempty"`
+	// Message - Gets an error message explaining the Reason value in more detail.
+	Message *string `json:"message,omitempty"`
 }
 
 // CloudError an error response from the Azure Migrate service.

@@ -25,11 +25,6 @@ import (
 	"github.com/heketi/tests"
 )
 
-func init() {
-	// turn off logging
-	logger.SetLevel(utils.LEVEL_NOLOG)
-}
-
 func TestClusterCreate(t *testing.T) {
 	tmpfile := tests.Tempfile()
 	defer os.Remove(tmpfile)
@@ -75,6 +70,75 @@ func TestClusterCreate(t *testing.T) {
 	tests.Assert(t, entry.Info.Id == msg.Id)
 	tests.Assert(t, len(entry.Info.Volumes) == 0)
 	tests.Assert(t, len(entry.Info.Nodes) == 0)
+}
+
+func TestClusterSetFlags(t *testing.T) {
+	tmpfile := tests.Tempfile()
+	defer os.Remove(tmpfile)
+
+	// Create the app
+	app := NewTestApp(tmpfile)
+	defer app.Close()
+	router := mux.NewRouter()
+	app.SetRoutes(router)
+
+	// Setup the server
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+
+	clusterId := "123abc"
+
+	// Store a cluster in the DB
+	entry := NewClusterEntry()
+	entry.Info.Id = clusterId
+	entry.Info.File = true
+	entry.Info.Block = true
+
+	err := app.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(BOLTDB_BUCKET_CLUSTER))
+		if b == nil {
+			return errors.New("Unable to open bucket")
+		}
+
+		buffer, err := entry.Marshal()
+		if err != nil {
+			return err
+		}
+
+		err = b.Put([]byte(entry.Info.Id), buffer)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	tests.Assert(t, err == nil)
+
+	// ClusterSetFlags JSON Request
+	request := []byte(`{
+"file": true,
+"block": false
+}`)
+
+	// Send the ClusterSetFlags request
+	r, err := http.Post(ts.URL+"/clusters/"+clusterId+"/flags",
+		"application/json", bytes.NewBuffer(request))
+	tests.Assert(t, err == nil)
+	tests.Assert(t, r.StatusCode == http.StatusOK,
+		"Expected http status OK, got: ", http.StatusText(r.StatusCode))
+
+	// Check that the data on the database is recorded correctly
+	var ce ClusterEntry
+	err = app.db.View(func(tx *bolt.Tx) error {
+		return ce.Unmarshal(
+			tx.Bucket([]byte(BOLTDB_BUCKET_CLUSTER)).
+				Get([]byte(clusterId)))
+	})
+	tests.Assert(t, err == nil)
+
+	tests.Assert(t, ce.Info.Id == clusterId)
+	tests.Assert(t, ce.Info.File == true)
+	tests.Assert(t, ce.Info.Block == false)
 }
 
 func TestClusterList(t *testing.T) {
@@ -177,6 +241,8 @@ func TestClusterInfo(t *testing.T) {
 	// Create a new ClusterInfo
 	entry := NewClusterEntry()
 	entry.Info.Id = "123"
+	entry.Info.Block = true
+	entry.Info.File = true
 	for _, node := range []string{"a1", "a2", "a3"} {
 		entry.NodeAdd(node)
 	}
@@ -220,6 +286,8 @@ func TestClusterInfo(t *testing.T) {
 
 	// Check values are equal
 	tests.Assert(t, entry.Info.Id == msg.Id)
+	tests.Assert(t, entry.Info.Block == msg.Block)
+	tests.Assert(t, entry.Info.File == msg.File)
 	tests.Assert(t, entry.Info.Volumes[0] == msg.Volumes[0])
 	tests.Assert(t, entry.Info.Volumes[1] == msg.Volumes[1])
 	tests.Assert(t, entry.Info.Volumes[2] == msg.Volumes[2])
@@ -264,60 +332,72 @@ func TestClusterDelete(t *testing.T) {
 	ts := httptest.NewServer(router)
 	defer ts.Close()
 
-	// Create an entry with volumes and nodes
-	entries := make([]*ClusterEntry, 0)
-	entry := NewClusterEntry()
-	entry.Info.Id = "a1"
-	for _, node := range []string{"a1", "a2", "a3"} {
-		entry.NodeAdd(node)
+	clusters := [](*ClusterEntry){}
+	nodes := [](*NodeEntry){}
+	volumes := [](*VolumeEntry){}
+
+	// Create a cluster with volumes and nodes
+	cluster := NewClusterEntry()
+	cluster.Info.Id = "a1"
+	for _, node := range []string{"n11", "n12", "n13"} {
+		cluster.NodeAdd(node)
+		n := NewNodeEntry()
+		n.Info.Id = node
+		nodes = append(nodes, n)
 	}
+	for _, vol := range []string{"v1", "v2", "v3"} {
+		cluster.VolumeAdd(vol)
+		v := NewVolumeEntry()
+		v.Info.Id = vol
+		volumes = append(volumes, v)
+	}
+	clusters = append(clusters, cluster)
+
+	// Create a cluster with only volumes
+	cluster = NewClusterEntry()
+	cluster.Info.Id = "a2"
 	for _, vol := range []string{"b1", "b2", "b3"} {
-		entry.VolumeAdd(vol)
+		cluster.VolumeAdd(vol)
+		v := NewVolumeEntry()
+		v.Info.Id = vol
+		volumes = append(volumes, v)
 	}
-	entries = append(entries, entry)
+	clusters = append(clusters, cluster)
 
-	// Create an entry with only volumes
-	entry = NewClusterEntry()
-	entry.Info.Id = "a2"
-	for _, vol := range []string{"b1", "b2", "b3"} {
-		entry.VolumeAdd(vol)
+	// Create a cluster with only nodes
+	cluster = NewClusterEntry()
+	cluster.Info.Id = "a3"
+	for _, node := range []string{"n31", "n32", "n33"} {
+		cluster.NodeAdd(node)
+		n := NewNodeEntry()
+		n.Info.Id = node
+		nodes = append(nodes, n)
 	}
-	entries = append(entries, entry)
+	clusters = append(clusters, cluster)
 
-	// Create an entry with only nodes
-	entry = NewClusterEntry()
-	entry.Info.Id = "a3"
-	for _, node := range []string{"a1", "a2", "a3"} {
-		entry.NodeAdd(node)
-	}
-	entries = append(entries, entry)
-
-	// Create an empty entry
-	entry = NewClusterEntry()
-	entry.Info.Id = "000"
-	entries = append(entries, entry)
+	// Create an empty cluster
+	cluster = NewClusterEntry()
+	cluster.Info.Id = "000"
+	clusters = append(clusters, cluster)
 
 	// Save the info in the database
 	err := app.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(BOLTDB_BUCKET_CLUSTER))
-		if b == nil {
-			return errors.New("Unable to open bucket")
-		}
-
-		for _, entry := range entries {
-			buffer, err := entry.Marshal()
-			if err != nil {
-				return err
-			}
-
-			err = b.Put([]byte(entry.Info.Id), buffer)
-			if err != nil {
+		for _, entry := range clusters {
+			if err := EntrySave(tx, entry, entry.Info.Id); err != nil {
 				return err
 			}
 		}
-
+		for _, entry := range nodes {
+			if err := EntrySave(tx, entry, entry.Info.Id); err != nil {
+				return err
+			}
+		}
+		for _, entry := range volumes {
+			if err := EntrySave(tx, entry, entry.Info.Id); err != nil {
+				return err
+			}
+		}
 		return nil
-
 	})
 	tests.Assert(t, err == nil)
 
@@ -327,7 +407,7 @@ func TestClusterDelete(t *testing.T) {
 	r, err := http.DefaultClient.Do(req)
 	tests.Assert(t, err == nil)
 	tests.Assert(t, r.StatusCode == http.StatusConflict)
-	tests.Assert(t, utils.GetErrorFromResponse(r).Error() == entries[0].ConflictString())
+	tests.Assert(t, utils.GetErrorFromResponse(r).Error() == clusters[0].ConflictString())
 
 	// Check that we cannot delete a cluster with volumes
 	req, err = http.NewRequest("DELETE", ts.URL+"/clusters/"+"a2", nil)
@@ -335,7 +415,7 @@ func TestClusterDelete(t *testing.T) {
 	r, err = http.DefaultClient.Do(req)
 	tests.Assert(t, err == nil)
 	tests.Assert(t, r.StatusCode == http.StatusConflict)
-	tests.Assert(t, utils.GetErrorFromResponse(r).Error() == entries[1].ConflictString())
+	tests.Assert(t, utils.GetErrorFromResponse(r).Error() == clusters[1].ConflictString())
 
 	// Check that we cannot delete a cluster with nodes
 	req, err = http.NewRequest("DELETE", ts.URL+"/clusters/"+"a3", nil)
@@ -343,7 +423,7 @@ func TestClusterDelete(t *testing.T) {
 	r, err = http.DefaultClient.Do(req)
 	tests.Assert(t, err == nil)
 	tests.Assert(t, r.StatusCode == http.StatusConflict)
-	tests.Assert(t, utils.GetErrorFromResponse(r).Error() == entries[2].ConflictString())
+	tests.Assert(t, utils.GetErrorFromResponse(r).Error() == clusters[2].ConflictString())
 
 	// Delete cluster with no elements
 	req, err = http.NewRequest("DELETE", ts.URL+"/clusters/"+"000", nil)

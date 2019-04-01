@@ -944,21 +944,6 @@ func PossibleSecurityAlertPolicyUseServerDefaultValues() []SecurityAlertPolicyUs
 	return []SecurityAlertPolicyUseServerDefault{SecurityAlertPolicyUseServerDefaultDisabled, SecurityAlertPolicyUseServerDefaultEnabled}
 }
 
-// SensitivityLabelSource enumerates the values for sensitivity label source.
-type SensitivityLabelSource string
-
-const (
-	// Current ...
-	Current SensitivityLabelSource = "current"
-	// Recommended ...
-	Recommended SensitivityLabelSource = "recommended"
-)
-
-// PossibleSensitivityLabelSourceValues returns an array of possible values for the SensitivityLabelSource const type.
-func PossibleSensitivityLabelSourceValues() []SensitivityLabelSource {
-	return []SensitivityLabelSource{Current, Recommended}
-}
-
 // ServerConnectionType enumerates the values for server connection type.
 type ServerConnectionType string
 
@@ -2633,7 +2618,7 @@ func (dsap *DatabaseSecurityAlertPolicy) UnmarshalJSON(body []byte) error {
 type DatabaseSecurityAlertPolicyProperties struct {
 	// State - Specifies the state of the policy. If state is Enabled, storageEndpoint and storageAccountAccessKey are required. Possible values include: 'SecurityAlertPolicyStateNew', 'SecurityAlertPolicyStateEnabled', 'SecurityAlertPolicyStateDisabled'
 	State SecurityAlertPolicyState `json:"state,omitempty"`
-	// DisabledAlerts - Specifies the semicolon-separated list of alerts that are disabled, or empty string to disable no alerts. Possible values: Sql_Injection; Sql_Injection_Vulnerability; Access_Anomaly; Usage_Anomaly.
+	// DisabledAlerts - Specifies the semicolon-separated list of alerts that are disabled, or empty string to disable no alerts. Possible values: Sql_Injection; Sql_Injection_Vulnerability; Access_Anomaly; Data_Exfiltration; Unsafe_Action.
 	DisabledAlerts *string `json:"disabledAlerts,omitempty"`
 	// EmailAddresses - Specifies the semicolon-separated list of e-mail addresses to which the alert is sent.
 	EmailAddresses *string `json:"emailAddresses,omitempty"`
@@ -2983,8 +2968,10 @@ func (dva *DatabaseVulnerabilityAssessment) UnmarshalJSON(body []byte) error {
 type DatabaseVulnerabilityAssessmentProperties struct {
 	// StorageContainerPath - A blob storage container path to hold the scan results (e.g. https://myStorage.blob.core.windows.net/VaScans/).
 	StorageContainerPath *string `json:"storageContainerPath,omitempty"`
-	// StorageContainerSasKey - A shared access signature (SAS Key) that has write access to the blob container specified in 'storageContainerPath' parameter.
+	// StorageContainerSasKey - A shared access signature (SAS Key) that has write access to the blob container specified in 'storageContainerPath' parameter. If 'storageAccountAccessKey' isn't specified, StorageContainerSasKey is required.
 	StorageContainerSasKey *string `json:"storageContainerSasKey,omitempty"`
+	// StorageAccountAccessKey - Specifies the identifier key of the vulnerability assessment storage account. If 'StorageContainerSasKey' isn't specified, storageAccountAccessKey is required.
+	StorageAccountAccessKey *string `json:"storageAccountAccessKey,omitempty"`
 	// RecurringScans - The recurring scans settings
 	RecurringScans *VulnerabilityAssessmentRecurringScansProperties `json:"recurringScans,omitempty"`
 }
@@ -7849,6 +7836,12 @@ type ManagedInstanceProperties struct {
 	VCores *int32 `json:"vCores,omitempty"`
 	// StorageSizeInGB - The maximum storage size in GB.
 	StorageSizeInGB *int32 `json:"storageSizeInGB,omitempty"`
+	// Collation - Collation of the managed instance.
+	Collation *string `json:"collation,omitempty"`
+	// DNSZone - The Dns Zone that the managed instance is in.
+	DNSZone *string `json:"dnsZone,omitempty"`
+	// DNSZonePartner - The resource id of another managed instance whose DNS zone this managed instance will share after creation.
+	DNSZonePartner *string `json:"dnsZonePartner,omitempty"`
 }
 
 // ManagedInstancesCreateOrUpdateFuture an abstraction for monitoring and retrieving the results of a long-running
@@ -8950,7 +8943,7 @@ func (future *RestorePointsCreateFuture) Result(client RestorePointsClient) (rp 
 type SecurityAlertPolicyProperties struct {
 	// State - Specifies the state of the policy, whether it is enabled or disabled. Possible values include: 'SecurityAlertPolicyStateNew', 'SecurityAlertPolicyStateEnabled', 'SecurityAlertPolicyStateDisabled'
 	State SecurityAlertPolicyState `json:"state,omitempty"`
-	// DisabledAlerts - Specifies an array of alerts that are disabled. Allowed values are: Sql_Injection, Sql_Injection_Vulnerability, Access_Anomaly
+	// DisabledAlerts - Specifies an array of alerts that are disabled. Allowed values are: Sql_Injection, Sql_Injection_Vulnerability, Access_Anomaly, Data_Exfiltration, Unsafe_Action
 	DisabledAlerts *[]string `json:"disabledAlerts,omitempty"`
 	// EmailAddresses - Specifies an array of e-mail addresses to which the alert is sent.
 	EmailAddresses *[]string `json:"emailAddresses,omitempty"`
@@ -8962,198 +8955,6 @@ type SecurityAlertPolicyProperties struct {
 	StorageAccountAccessKey *string `json:"storageAccountAccessKey,omitempty"`
 	// RetentionDays - Specifies the number of days to keep in the Threat Detection audit logs.
 	RetentionDays *int32 `json:"retentionDays,omitempty"`
-}
-
-// SensitivityLabel a sensitivity label.
-type SensitivityLabel struct {
-	autorest.Response `json:"-"`
-	// SensitivityLabelProperties - Resource properties.
-	*SensitivityLabelProperties `json:"properties,omitempty"`
-	// ID - Resource ID.
-	ID *string `json:"id,omitempty"`
-	// Name - Resource name.
-	Name *string `json:"name,omitempty"`
-	// Type - Resource type.
-	Type *string `json:"type,omitempty"`
-}
-
-// MarshalJSON is the custom marshaler for SensitivityLabel.
-func (sl SensitivityLabel) MarshalJSON() ([]byte, error) {
-	objectMap := make(map[string]interface{})
-	if sl.SensitivityLabelProperties != nil {
-		objectMap["properties"] = sl.SensitivityLabelProperties
-	}
-	if sl.ID != nil {
-		objectMap["id"] = sl.ID
-	}
-	if sl.Name != nil {
-		objectMap["name"] = sl.Name
-	}
-	if sl.Type != nil {
-		objectMap["type"] = sl.Type
-	}
-	return json.Marshal(objectMap)
-}
-
-// UnmarshalJSON is the custom unmarshaler for SensitivityLabel struct.
-func (sl *SensitivityLabel) UnmarshalJSON(body []byte) error {
-	var m map[string]*json.RawMessage
-	err := json.Unmarshal(body, &m)
-	if err != nil {
-		return err
-	}
-	for k, v := range m {
-		switch k {
-		case "properties":
-			if v != nil {
-				var sensitivityLabelProperties SensitivityLabelProperties
-				err = json.Unmarshal(*v, &sensitivityLabelProperties)
-				if err != nil {
-					return err
-				}
-				sl.SensitivityLabelProperties = &sensitivityLabelProperties
-			}
-		case "id":
-			if v != nil {
-				var ID string
-				err = json.Unmarshal(*v, &ID)
-				if err != nil {
-					return err
-				}
-				sl.ID = &ID
-			}
-		case "name":
-			if v != nil {
-				var name string
-				err = json.Unmarshal(*v, &name)
-				if err != nil {
-					return err
-				}
-				sl.Name = &name
-			}
-		case "type":
-			if v != nil {
-				var typeVar string
-				err = json.Unmarshal(*v, &typeVar)
-				if err != nil {
-					return err
-				}
-				sl.Type = &typeVar
-			}
-		}
-	}
-
-	return nil
-}
-
-// SensitivityLabelListResult a list of sensitivity labels.
-type SensitivityLabelListResult struct {
-	autorest.Response `json:"-"`
-	// Value - Array of results.
-	Value *[]SensitivityLabel `json:"value,omitempty"`
-	// NextLink - Link to retrieve next page of results.
-	NextLink *string `json:"nextLink,omitempty"`
-}
-
-// SensitivityLabelListResultIterator provides access to a complete listing of SensitivityLabel values.
-type SensitivityLabelListResultIterator struct {
-	i    int
-	page SensitivityLabelListResultPage
-}
-
-// Next advances to the next value.  If there was an error making
-// the request the iterator does not advance and the error is returned.
-func (iter *SensitivityLabelListResultIterator) Next() error {
-	iter.i++
-	if iter.i < len(iter.page.Values()) {
-		return nil
-	}
-	err := iter.page.Next()
-	if err != nil {
-		iter.i--
-		return err
-	}
-	iter.i = 0
-	return nil
-}
-
-// NotDone returns true if the enumeration should be started or is not yet complete.
-func (iter SensitivityLabelListResultIterator) NotDone() bool {
-	return iter.page.NotDone() && iter.i < len(iter.page.Values())
-}
-
-// Response returns the raw server response from the last page request.
-func (iter SensitivityLabelListResultIterator) Response() SensitivityLabelListResult {
-	return iter.page.Response()
-}
-
-// Value returns the current value or a zero-initialized value if the
-// iterator has advanced beyond the end of the collection.
-func (iter SensitivityLabelListResultIterator) Value() SensitivityLabel {
-	if !iter.page.NotDone() {
-		return SensitivityLabel{}
-	}
-	return iter.page.Values()[iter.i]
-}
-
-// IsEmpty returns true if the ListResult contains no values.
-func (sllr SensitivityLabelListResult) IsEmpty() bool {
-	return sllr.Value == nil || len(*sllr.Value) == 0
-}
-
-// sensitivityLabelListResultPreparer prepares a request to retrieve the next set of results.
-// It returns nil if no more results exist.
-func (sllr SensitivityLabelListResult) sensitivityLabelListResultPreparer() (*http.Request, error) {
-	if sllr.NextLink == nil || len(to.String(sllr.NextLink)) < 1 {
-		return nil, nil
-	}
-	return autorest.Prepare(&http.Request{},
-		autorest.AsJSON(),
-		autorest.AsGet(),
-		autorest.WithBaseURL(to.String(sllr.NextLink)))
-}
-
-// SensitivityLabelListResultPage contains a page of SensitivityLabel values.
-type SensitivityLabelListResultPage struct {
-	fn   func(SensitivityLabelListResult) (SensitivityLabelListResult, error)
-	sllr SensitivityLabelListResult
-}
-
-// Next advances to the next page of values.  If there was an error making
-// the request the page does not advance and the error is returned.
-func (page *SensitivityLabelListResultPage) Next() error {
-	next, err := page.fn(page.sllr)
-	if err != nil {
-		return err
-	}
-	page.sllr = next
-	return nil
-}
-
-// NotDone returns true if the page enumeration should be started or is not yet complete.
-func (page SensitivityLabelListResultPage) NotDone() bool {
-	return !page.sllr.IsEmpty()
-}
-
-// Response returns the raw server response from the last page request.
-func (page SensitivityLabelListResultPage) Response() SensitivityLabelListResult {
-	return page.sllr
-}
-
-// Values returns the slice of values for the current page or nil if there are no values.
-func (page SensitivityLabelListResultPage) Values() []SensitivityLabel {
-	if page.sllr.IsEmpty() {
-		return nil
-	}
-	return *page.sllr.Value
-}
-
-// SensitivityLabelProperties properties of a sensitivity label.
-type SensitivityLabelProperties struct {
-	// LabelName - The label name.
-	LabelName *string `json:"labelName,omitempty"`
-	// InformationType - The information type.
-	InformationType *string `json:"informationType,omitempty"`
 }
 
 // Server an Azure SQL Database server.

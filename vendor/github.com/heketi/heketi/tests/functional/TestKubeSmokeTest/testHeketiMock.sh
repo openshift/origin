@@ -1,59 +1,60 @@
-#!/bin/sh
+#!/bin/bash
 
-TOP=../../..
-CURRENT_DIR=`pwd`
+CURRENT_DIR=$(pwd)
 FUNCTIONAL_DIR=${CURRENT_DIR}/..
 RESOURCES_DIR=$CURRENT_DIR/resources
 PATH=$PATH:$RESOURCES_DIR
 
-source ${FUNCTIONAL_DIR}/lib.sh
+source "${FUNCTIONAL_DIR}/lib.sh"
 
 # Setup Docker environment
-eval $(minikube docker-env)
+eval "$(minikube docker-env)"
 
 display_information() {
 	# Display information
-	echo -e "\nVersions"
+	echo -e "\\nVersions"
 	kubectl version
 
-	echo -e "\nDocker containers running"
+	echo -e "\\nDocker containers running"
 	docker ps
 
-	echo -e "\nDocker images"
+	echo -e "\\nDocker images"
 	docker images
 
-	echo -e "\nShow nodes"
+	echo -e "\\nShow nodes"
 	kubectl get nodes
 }
 
 setup_heketi() {
 	# Start Heketi
-	echo -e "\nStart Heketi container"
+	echo -e "\\nStart Heketi container"
 	kubectl run heketi --image=heketi/heketi:ci --port=8080 || fail "Unable to start heketi container"
 	sleep 2
 
 	# This blocks until ready
 	kubectl expose deployment heketi --type=NodePort || fail "Unable to expose heketi service"
 
-	echo -e "\nShow Topology"
-	export HEKETI_CLI_SERVER=$(minikube service heketi --url)
+	echo -e "\\nShow Topology"
+	HEKETI_CLI_SERVER=$(minikube service heketi --url)
+	export HEKETI_CLI_SERVER
 	heketi-cli topology info
 
-	echo -e "\nLoad mock topology"
+	echo -e "\\nLoad mock topology"
 	heketi-cli topology load --json=mock-topology.json || fail "Unable to load topology"
 
-	echo -e "\nShow Topology"
-	export HEKETI_CLI_SERVER=$(minikube service heketi --url)
+	echo -e "\\nShow Topology"
+	HEKETI_CLI_SERVER="$(minikube service heketi --url)"
+	export HEKETI_CLI_SERVER
 	heketi-cli topology info
 
-	echo -e "\nRegister mock endpoints"
+	echo -e "\\nRegister mock endpoints"
 	kubectl create -f mock-endpoints.json || fail "Unable to submit mock-endpoints"
 
-	echo -e "\nRegister storage class"
+	echo -e "\\nRegister storage class"
 	sed -e \
 	"s#%%URL%%#${HEKETI_CLI_SERVER}#" \
-	storageclass.yaml.sed > ${RESOURCES_DIR}/sc.yaml
-    kubectl create -f ${RESOURCES_DIR}/sc.yaml || fail "Unable to register storage class"
+	storageclass.yaml.sed > "${RESOURCES_DIR}/sc.yaml"
+    kubectl create -f "${RESOURCES_DIR}/sc.yaml" || fail "Unable to register storage class"
 }
 
 test_create() {
@@ -73,13 +74,13 @@ test_create() {
 	fi
 
 	echo "Assert only one volume created in Heketi"
-	if ! heketi-cli volume list | grep Id | wc -l | grep 1 ; then
+	if ! heketi-cli volume list | grep -c Id | grep 1 ; then
 		fail "Incorrect number of volumes in Heketi"
 	fi
 
 	echo "Assert volume size is 100GiB"
-	id=`heketi-cli volume list | grep Id | awk '{print $1}' | cut -d: -f2`
-    if ! heketi-cli volume info ${id} | grep Size | cut -d: -f2 | grep 100 ; then
+	id=$(heketi-cli volume list | grep Id | awk '{print $1}' | cut -d: -f2)
+    if ! heketi-cli volume info "${id}" | grep Size | cut -d: -f2 | grep 100 ; then
 		fail "Invalid size"
 	fi
 }
@@ -99,7 +100,7 @@ test_delete() {
 display_information
 setup_heketi
 
-echo -e "\n*** Start tests ***"
+echo -e "\\n*** Start tests ***"
 test_create
 test_delete
 

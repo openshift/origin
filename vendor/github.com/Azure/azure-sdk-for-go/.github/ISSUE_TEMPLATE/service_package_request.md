@@ -14,4 +14,3 @@ Kubernetes please link any related issues from those projects.
 
 Thanks and looking forward to serving you!
 -->
-

@@ -95,6 +95,9 @@ func unionMessage(conditions []operatorv1.OperatorCondition) string {
 
 func unionReason(conditions []operatorv1.OperatorCondition) string {
 	if len(conditions) == 1 {
+		if len(conditions[0].Reason) != 0 {
+			return conditions[0].Type + conditions[0].Reason
+		}
 		return conditions[0].Type
 	} else {
 		return "MultipleConditionsMatching"

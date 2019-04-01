@@ -50,6 +50,7 @@ var negotiateContentTypeTests = []struct {
 	{"text/html;q=0.5, image/png", []string{"text/html"}, "", "text/html"},
 	{"text/html;q=0.5, image/png", []string{"image/png", "text/html"}, "", "image/png"},
 	{"text/html;q=0.5, image/png", []string{"text/html", "image/png"}, "", "image/png"},
+	{"text/html;q=0.5, image/png", []string{"text/html", "image/png"}, "", "image/png"},
 	{"image/png, image/*;q=0.5", []string{"image/jpg", "image/png"}, "", "image/png"},
 	{"image/png, image/*;q=0.5", []string{"image/jpg"}, "", "image/jpg"},
 	{"image/png, image/*;q=0.5", []string{"image/jpg", "image/gif"}, "", "image/jpg"},
@@ -57,6 +58,9 @@ var negotiateContentTypeTests = []struct {
 	{"image/png, image/*", []string{"image/gif", "image/jpg"}, "", "image/gif"},
 	{"image/png, image/*", []string{"image/gif", "image/png"}, "", "image/png"},
 	{"image/png, image/*", []string{"image/png", "image/gif"}, "", "image/png"},
+	{"application/vnd.google.protobuf;proto=io.prometheus.client.MetricFamily;encoding=delimited;q=0.7,text/plain;version=0.0.4;q=0.3", []string{"text/plain"}, "", "text/plain"},
+	{"application/json", []string{"application/json; charset=utf-8", "image/png"}, "", "application/json; charset=utf-8"},
+	{"application/json; charset=utf-8", []string{"application/json; charset=utf-8", "image/png"}, "", "application/json; charset=utf-8"},
 }
 
 func TestNegotiateContentType(t *testing.T) {
@@ -66,5 +70,14 @@ func TestNegotiateContentType(t *testing.T) {
 		if actual != tt.expect {
 			t.Errorf("NegotiateContentType(%q, %#v, %q)=%q, want %q", tt.s, tt.offers, tt.defaultOffer, actual, tt.expect)
 		}
+	}
+}
+
+func TestNegotiateContentTypeNoAcceptHeader(t *testing.T) {
+	r := &http.Request{Header: http.Header{}}
+	offers := []string{"application/json", "text/xml"}
+	actual := NegotiateContentType(r, offers, "")
+	if actual != "application/json" {
+		t.Errorf("NegotiateContentType(empty, %#v, empty)=%q, want %q", offers, actual, "application/json")
 	}
 }

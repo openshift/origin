@@ -1,11 +1,13 @@
 package resourcesynccontroller
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"sort"
+	"strings"
 	"sync"
 	"time"
-
-	"github.com/golang/glog"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,6 +17,7 @@ import (
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
 
@@ -146,6 +149,10 @@ func (c *ResourceSyncController) sync() error {
 
 	for destination, source := range c.configMapSyncRules {
 		if source == emptyResourceLocation {
+			// use the cache to check whether the configmap exists in target namespace, if not skip the extra delete call.
+			if _, err := c.configMapGetter.ConfigMaps(destination.Namespace).Get(destination.Name, metav1.GetOptions{}); err != nil && apierrors.IsNotFound(err) {
+				continue
+			}
 			if err := c.configMapGetter.ConfigMaps(destination.Namespace).Delete(destination.Name, nil); err != nil && !apierrors.IsNotFound(err) {
 				errors = append(errors, err)
 			}
@@ -159,6 +166,10 @@ func (c *ResourceSyncController) sync() error {
 	}
 	for destination, source := range c.secretSyncRules {
 		if source == emptyResourceLocation {
+			// use the cache to check whether the secret exists in target namespace, if not skip the extra delete call.
+			if _, err := c.secretGetter.Secrets(destination.Namespace).Get(destination.Name, metav1.GetOptions{}); err != nil && apierrors.IsNotFound(err) {
+				continue
+			}
 			if err := c.secretGetter.Secrets(destination.Namespace).Delete(destination.Name, nil); err != nil && !apierrors.IsNotFound(err) {
 				errors = append(errors, err)
 			}
@@ -198,8 +209,8 @@ func (c *ResourceSyncController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	glog.Infof("Starting ResourceSyncController")
-	defer glog.Infof("Shutting down ResourceSyncController")
+	klog.Infof("Starting ResourceSyncController")
+	defer klog.Infof("Shutting down ResourceSyncController")
 	if !cache.WaitForCacheSync(stopCh, c.preRunCachesSynced...) {
 		return
 	}
@@ -241,4 +252,71 @@ func (c *ResourceSyncController) eventHandler() cache.ResourceEventHandler {
 		UpdateFunc: func(old, new interface{}) { c.queue.Add(controllerWorkQueueKey) },
 		DeleteFunc: func(obj interface{}) { c.queue.Add(controllerWorkQueueKey) },
 	}
+}
+
+func NewDebugHandler(controller *ResourceSyncController) http.Handler {
+	return &debugHTTPHandler{controller: controller}
+}
+
+type debugHTTPHandler struct {
+	controller *ResourceSyncController
+}
+
+type ResourceSyncRule struct {
+	Source      ResourceLocation `json:"source"`
+	Destination ResourceLocation `json:"destination"`
+}
+
+type ResourceSyncRuleList []ResourceSyncRule
+
+func (l ResourceSyncRuleList) Len() int      { return len(l) }
+func (l ResourceSyncRuleList) Swap(i, j int) { l[i], l[j] = l[j], l[i] }
+func (l ResourceSyncRuleList) Less(i, j int) bool {
+	if strings.Compare(l[i].Source.Namespace, l[j].Source.Namespace) < 0 {
+		return true
+	}
+	if strings.Compare(l[i].Source.Namespace, l[j].Source.Namespace) > 0 {
+		return false
+	}
+	if strings.Compare(l[i].Source.Name, l[j].Source.Name) < 0 {
+		return true
+	}
+	return false
+}
+
+type ControllerSyncRules struct {
+	Secrets ResourceSyncRuleList `json:"secrets"`
+	Configs ResourceSyncRuleList `json:"configs"`
+}
+
+// ServeSyncRules provides a handler function to return the sync rules of the controller
+func (h *debugHTTPHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	syncRules := ControllerSyncRules{ResourceSyncRuleList{}, ResourceSyncRuleList{}}
+
+	h.controller.syncRuleLock.RLock()
+	defer h.controller.syncRuleLock.RUnlock()
+	syncRules.Secrets = append(syncRules.Secrets, resourceSyncRuleList(h.controller.secretSyncRules)...)
+	syncRules.Configs = append(syncRules.Configs, resourceSyncRuleList(h.controller.configMapSyncRules)...)
+
+	data, err := json.Marshal(syncRules)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Write(data)
+	w.WriteHeader(http.StatusOK)
+}
+
+func resourceSyncRuleList(syncRules map[ResourceLocation]ResourceLocation) ResourceSyncRuleList {
+	rules := make(ResourceSyncRuleList, 0, len(syncRules))
+	for src, dest := range syncRules {
+		rule := ResourceSyncRule{
+			Source:      src,
+			Destination: dest,
+		}
+		rules = append(rules, rule)
+	}
+	sort.Sort(rules)
+	return rules
 }

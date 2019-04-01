@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/imdario/mergo"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/util/diff"
@@ -84,7 +84,7 @@ func (c ConfigObserver) sync() error {
 	// don't worry about errors.  If we can't decode, we'll simply stomp over the field.
 	existingConfig := map[string]interface{}{}
 	if err := json.NewDecoder(bytes.NewBuffer(spec.ObservedConfig.Raw)).Decode(&existingConfig); err != nil {
-		glog.V(4).Infof("decode of existing config failed with error: %v", err)
+		klog.V(4).Infof("decode of existing config failed with error: %v", err)
 	}
 
 	var errs []error
@@ -99,14 +99,14 @@ func (c ConfigObserver) sync() error {
 	mergedObservedConfig := map[string]interface{}{}
 	for _, observedConfig := range observedConfigs {
 		if err := mergo.Merge(&mergedObservedConfig, observedConfig); err != nil {
-			glog.Warningf("merging observed config failed: %v", err)
+			klog.Warningf("merging observed config failed: %v", err)
 		}
 	}
 
 	reverseMergedObservedConfig := map[string]interface{}{}
 	for i := len(observedConfigs) - 1; i >= 0; i-- {
 		if err := mergo.Merge(&reverseMergedObservedConfig, observedConfigs[i]); err != nil {
-			glog.Warningf("merging observed config failed: %v", err)
+			klog.Warningf("merging observed config failed: %v", err)
 		}
 	}
 
@@ -146,8 +146,8 @@ func (c *ConfigObserver) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	glog.Infof("Starting ConfigObserver")
-	defer glog.Infof("Shutting down ConfigObserver")
+	klog.Infof("Starting ConfigObserver")
+	defer klog.Infof("Shutting down ConfigObserver")
 
 	if !cache.WaitForCacheSync(stopCh, c.listers.PreRunHasSynced()...) {
 		utilruntime.HandleError(fmt.Errorf("caches did not sync"))

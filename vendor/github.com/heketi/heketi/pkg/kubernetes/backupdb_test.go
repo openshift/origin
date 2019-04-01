@@ -256,7 +256,7 @@ func TestBackupToKubeSecretVerifyBackupWithName(t *testing.T) {
 	tmpfile := tests.Tempfile()
 	defer os.Remove(tmpfile)
 
-	// Create a name in the envrionment
+	// Create a name in the environment
 	secretName := "mysecret"
 	os.Setenv("HEKETI_KUBE_DB_SECRET_NAME", secretName)
 	defer os.Unsetenv("HEKETI_KUBE_DB_SECRET_NAME")

@@ -19,4 +19,5 @@ type VolumeDurability interface {
 	BricksInSet() int
 	SetDurability()
 	SetExecutorVolumeRequest(v *executors.VolumeRequest)
+	QuorumBrickCount() int
 }

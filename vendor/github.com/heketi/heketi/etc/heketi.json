@@ -2,6 +2,16 @@
   "_port_comment": "Heketi Server Port Number",
   "port": "8080",
 
+	"_enable_tls_comment": "Enable TLS in Heketi Server",
+	"enable_tls": false,
+
+	"_cert_file_comment": "Path to a valid certificate file",
+	"cert_file": "",
+
+	"_key_file_comment": "Path to a valid private key file",
+	"key_file": "",
+
+
   "_use_auth": "Enable JWT authorization. Please enable for deployment",
   "use_auth": false,
 
@@ -38,7 +48,8 @@
       "keyfile": "path/to/private_key",
       "user": "sshuser",
       "port": "Optional: ssh port.  Default is 22",
-      "fstab": "Optional: Specify fstab file on node.  Default is /etc/fstab"
+      "fstab": "Optional: Specify fstab file on node.  Default is /etc/fstab",
+      "backup_lvm_metadata": false
     },
 
     "_kubeexec_comment": "Kubernetes configuration",
@@ -49,17 +60,39 @@
       "user": "kubernetes username",
       "password": "password for kubernetes user",
       "namespace": "OpenShift project or Kubernetes namespace",
-      "fstab": "Optional: Specify fstab file on node.  Default is /etc/fstab"
+      "fstab": "Optional: Specify fstab file on node.  Default is /etc/fstab",
+      "backup_lvm_metadata": false
     },
 
     "_db_comment": "Database file name",
     "db": "/var/lib/heketi/heketi.db",
+
+     "_refresh_time_monitor_gluster_nodes": "Refresh time in seconds to monitor Gluster nodes",
+    "refresh_time_monitor_gluster_nodes": 120,
+
+    "_start_time_monitor_gluster_nodes": "Start time in seconds to monitor Gluster nodes when the heketi comes up",
+    "start_time_monitor_gluster_nodes": 10,
 
     "_loglevel_comment": [
       "Set log level. Choices are:",
       "  none, critical, error, warning, info, debug",
       "Default is warning"
     ],
-    "loglevel" : "debug"
+    "loglevel" : "debug",
+
+    "_auto_create_block_hosting_volume": "Creates Block Hosting volumes automatically if not found or exsisting volume exhausted",
+    "auto_create_block_hosting_volume": true,
+
+    "_block_hosting_volume_size": "New block hosting volume will be created in size mentioned, This is considered only if auto-create is enabled.",
+    "block_hosting_volume_size": 500,
+
+    "_block_hosting_volume_options": "New block hosting volume will be created with the following set of options. Removing the group gluster-block option is NOT recommended. Additional options can be added next to it separated by a comma.",
+    "block_hosting_volume_options": "group gluster-block",
+
+    "_pre_request_volume_options": "Volume options that will be applied for all volumes created. Can be overridden by volume options in volume create request.",
+    "pre_request_volume_options": "",
+
+    "_post_request_volume_options": "Volume options that will be applied for all volumes created. To be used to override volume options in volume create request.",
+    "post_request_volume_options": ""
   }
 }

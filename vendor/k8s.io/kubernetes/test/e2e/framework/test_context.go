@@ -23,28 +23,26 @@ import (
 	"os"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/onsi/ginkgo/config"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"k8s.io/kubernetes/pkg/cloudprovider"
+	"k8s.io/klog"
 	kubeletconfig "k8s.io/kubernetes/pkg/kubelet/apis/config"
-	"k8s.io/kubernetes/pkg/kubemark"
 )
 
 const defaultHost = "http://127.0.0.1:8080"
 
 type TestContextType struct {
-	KubeConfig                 string
-	KubemarkExternalKubeConfig string
-	KubeContext                string
-	KubeAPIContentType         string
-	KubeVolumeDir              string
-	CertDir                    string
-	Host                       string
+	KubeConfig         string
+	KubeContext        string
+	KubeAPIContentType string
+	KubeVolumeDir      string
+	CertDir            string
+	Host               string
 	// TODO: Deprecating this over time... instead just use gobindata_util.go , see #23987.
 	RepoRoot                string
 	DockershimCheckpointDir string
@@ -126,6 +124,9 @@ type TestContextType struct {
 	// Indicates what path the kubernetes-anywhere is installed on
 	KubernetesAnywherePath string
 
+	// The DNS Domain of the cluster.
+	ClusterDNSDomain string
+
 	// Viper-only parameters.  These will in time replace all flags.
 
 	// Example: Create a file 'e2e.json' with the following:
@@ -133,7 +134,9 @@ type TestContextType struct {
 	// 		"MaxRetries":"6"
 	// 	}
 
-	Viper    string
+	Viper string
+
+	// Cadvisor contains settings for test/e2e/instrumentation/monitoring.
 	Cadvisor struct {
 		MaxRetries      int
 		SleepDurationMS int
@@ -191,8 +194,7 @@ type CloudConfig struct {
 	NodeTag           string
 	MasterTag         string
 
-	Provider           cloudprovider.Interface
-	KubemarkController *kubemark.KubemarkController
+	Provider ProviderInterface
 }
 
 var TestContext TestContextType
@@ -242,7 +244,6 @@ func RegisterCommonFlags() {
 func RegisterClusterFlags() {
 	flag.BoolVar(&TestContext.VerifyServiceAccount, "e2e-verify-service-account", true, "If true tests will verify the service account before running.")
 	flag.StringVar(&TestContext.KubeConfig, clientcmd.RecommendedConfigPathFlag, os.Getenv(clientcmd.RecommendedConfigPathEnvVar), "Path to kubeconfig containing embedded authinfo.")
-	flag.StringVar(&TestContext.KubemarkExternalKubeConfig, fmt.Sprintf("%s-%s", "kubemark-external", clientcmd.RecommendedConfigPathFlag), "", "Path to kubeconfig containing embedded authinfo for external cluster.")
 	flag.StringVar(&TestContext.KubeContext, clientcmd.FlagContext, "", "kubeconfig context to use/override. If unset, will use value from 'current-context'")
 	flag.StringVar(&TestContext.KubeAPIContentType, "kube-api-content-type", "application/vnd.kubernetes.protobuf", "ContentType used to communicate with apiserver")
 
@@ -254,15 +255,16 @@ func RegisterClusterFlags() {
 	flag.StringVar(&TestContext.KubectlPath, "kubectl-path", "kubectl", "The kubectl binary to use. For development, you might use 'cluster/kubectl.sh' here.")
 	flag.StringVar(&TestContext.OutputDir, "e2e-output-dir", "/tmp", "Output directory for interesting/useful test data, like performance data, benchmarks, and other metrics.")
 	flag.StringVar(&TestContext.Prefix, "prefix", "e2e", "A prefix to be added to cloud resources created during testing.")
-	flag.StringVar(&TestContext.MasterOSDistro, "master-os-distro", "debian", "The OS distribution of cluster master (debian, trusty, or coreos).")
-	flag.StringVar(&TestContext.NodeOSDistro, "node-os-distro", "debian", "The OS distribution of cluster VM instances (debian, trusty, or coreos).")
+	flag.StringVar(&TestContext.MasterOSDistro, "master-os-distro", "debian", "The OS distribution of cluster master (debian, ubuntu, gci, coreos, or custom).")
+	flag.StringVar(&TestContext.NodeOSDistro, "node-os-distro", "debian", "The OS distribution of cluster VM instances (debian, ubuntu, gci, coreos, or custom).")
 	flag.StringVar(&TestContext.ClusterMonitoringMode, "cluster-monitoring-mode", "standalone", "The monitoring solution that is used in the cluster.")
 	flag.BoolVar(&TestContext.EnablePrometheusMonitoring, "prometheus-monitoring", false, "Separate Prometheus monitoring deployed in cluster.")
+	flag.StringVar(&TestContext.ClusterDNSDomain, "dns-domain", "cluster.local", "The DNS Domain of the cluster.")
 
 	// TODO: Flags per provider?  Rename gce-project/gce-zone?
 	cloudConfig := &TestContext.CloudConfig
 	flag.StringVar(&cloudConfig.MasterName, "kube-master", "", "Name of the kubernetes master. Only required if provider is gce or gke")
-	flag.StringVar(&cloudConfig.ApiEndpoint, "gce-api-endpoint", "", "The GCE ApiEndpoint being used, if applicable")
+	flag.StringVar(&cloudConfig.ApiEndpoint, "gce-api-endpoint", "", "The GCE APIEndpoint being used, if applicable")
 	flag.StringVar(&cloudConfig.ProjectID, "gce-project", "", "The GCE project being used, if applicable")
 	flag.StringVar(&cloudConfig.Zone, "gce-zone", "", "GCE zone being used, if applicable")
 	flag.StringVar(&cloudConfig.Region, "gce-region", "", "GCE region being used, if applicable")
@@ -344,7 +346,8 @@ func createKubeConfig(clientCfg *restclient.Config) *clientcmdapi.Config {
 	config := clientcmdapi.NewConfig()
 
 	credentials := clientcmdapi.NewAuthInfo()
-	credentials.TokenFile = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	credentials.Token = clientCfg.BearerToken
+	credentials.TokenFile = clientCfg.BearerTokenFile
 	credentials.ClientCertificate = clientCfg.TLSClientConfig.CertFile
 	if len(credentials.ClientCertificate) == 0 {
 		credentials.ClientCertificateData = clientCfg.TLSClientConfig.CertData
@@ -384,16 +387,36 @@ func AfterReadingAllFlags(t *TestContextType) {
 				kubeConfig := createKubeConfig(clusterConfig)
 				clientcmd.WriteToFile(*kubeConfig, tempFile.Name())
 				t.KubeConfig = tempFile.Name()
-				glog.Infof("Using a temporary kubeconfig file from in-cluster config : %s", tempFile.Name())
+				klog.Infof("Using a temporary kubeconfig file from in-cluster config : %s", tempFile.Name())
 			}
 		}
 		if len(t.KubeConfig) == 0 {
-			glog.Warningf("Unable to find in-cluster config, using default host : %s", defaultHost)
+			klog.Warningf("Unable to find in-cluster config, using default host : %s", defaultHost)
 			t.Host = defaultHost
 		}
 	}
 	// Allow 1% of nodes to be unready (statistically) - relevant for large clusters.
 	if t.AllowedNotReadyNodes == 0 {
 		t.AllowedNotReadyNodes = t.CloudConfig.NumNodes / 100
+	}
+
+	// Make sure that all test runs have a valid TestContext.CloudConfig.Provider.
+	var err error
+	TestContext.CloudConfig.Provider, err = SetupProviderConfig(TestContext.Provider)
+	if err == nil {
+		return
+	}
+	if !os.IsNotExist(errors.Cause(err)) {
+		Failf("Failed to setup provider config: %v", err)
+	}
+	// We allow unknown provider parameters for historic reasons. At least log a
+	// warning to catch typos.
+	// TODO (https://github.com/kubernetes/kubernetes/issues/70200):
+	// - remove the fallback for unknown providers
+	// - proper error message instead of Failf (which panics)
+	klog.Warningf("Unknown provider %q, proceeding as for --provider=skeleton.", TestContext.Provider)
+	TestContext.CloudConfig.Provider, err = SetupProviderConfig("skeleton")
+	if err != nil {
+		Failf("Failed to setup fallback skeleton provider config: %v", err)
 	}
 }

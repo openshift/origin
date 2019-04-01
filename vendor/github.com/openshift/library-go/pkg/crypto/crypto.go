@@ -24,7 +24,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -490,7 +490,7 @@ func GetCAFromBytes(certBytes, keyBytes []byte) (*CA, error) {
 
 // if serialFile is empty, a RandomSerialGenerator will be used
 func MakeSelfSignedCA(certFile, keyFile, serialFile, name string, expireDays int) (*CA, error) {
-	glog.V(2).Infof("Generating new CA for %s cert, and key in %s, %s", name, certFile, keyFile)
+	klog.V(2).Infof("Generating new CA for %s cert, and key in %s, %s", name, certFile, keyFile)
 
 	caConfig, err := MakeSelfSignedCAConfig(name, expireDays)
 	if err != nil {
@@ -592,7 +592,7 @@ func GetServerCert(certFile, keyFile string, hostnames sets.String) (*TLSCertifi
 	missingIps := ipsNotInSlice(ips, cert.IPAddresses)
 	missingDns := stringsNotInSlice(dns, cert.DNSNames)
 	if len(missingIps) == 0 && len(missingDns) == 0 {
-		glog.V(4).Infof("Found existing server certificate in %s", certFile)
+		klog.V(4).Infof("Found existing server certificate in %s", certFile)
 		return server, nil
 	}
 
@@ -600,7 +600,7 @@ func GetServerCert(certFile, keyFile string, hostnames sets.String) (*TLSCertifi
 }
 
 func (ca *CA) MakeAndWriteServerCert(certFile, keyFile string, hostnames sets.String, expireDays int) (*TLSCertificateConfig, error) {
-	glog.V(4).Infof("Generating server certificate in %s, key in %s", certFile, keyFile)
+	klog.V(4).Infof("Generating server certificate in %s, key in %s", certFile, keyFile)
 
 	server, err := ca.MakeServerCert(hostnames, expireDays)
 	if err != nil {
@@ -665,7 +665,7 @@ func (ca *CA) EnsureClientCertificate(certFile, keyFile string, u user.Info, exp
 }
 
 func (ca *CA) MakeClientCertificate(certFile, keyFile string, u user.Info, expireDays int) (*TLSCertificateConfig, error) {
-	glog.V(4).Infof("Generating client cert in %s and key in %s", certFile, keyFile)
+	klog.V(4).Infof("Generating client cert in %s and key in %s", certFile, keyFile)
 	// ensure parent dirs
 	if err := os.MkdirAll(filepath.Dir(certFile), os.FileMode(0755)); err != nil {
 		return nil, err

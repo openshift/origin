@@ -36,7 +36,7 @@ import (
 
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
 	apiregistrationapi "k8s.io/kube-aggregator/pkg/apis/apiregistration"
-	"k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
+	v1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
 	aggregatorscheme "k8s.io/kube-aggregator/pkg/apiserver/scheme"
 	"k8s.io/kube-aggregator/pkg/client/clientset_generated/internalclientset"
@@ -161,13 +161,12 @@ func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.Deleg
 	)
 
 	s := &APIAggregator{
-		GenericAPIServer: genericServer,
-		delegateHandler:  delegationTarget.UnprotectedHandler(),
-
-		proxyTransport: c.ExtraConfig.ProxyTransport,
-		proxyHandlers:  map[string]*proxyHandler{},
-		handledGroups:  sets.String{},
-		lister:         informerFactory.Apiregistration().InternalVersion().APIServices().Lister(),
+		GenericAPIServer:         genericServer,
+		delegateHandler:          delegationTarget.UnprotectedHandler(),
+		proxyTransport:           c.ExtraConfig.ProxyTransport,
+		proxyHandlers:            map[string]*proxyHandler{},
+		handledGroups:            sets.String{},
+		lister:                   informerFactory.Apiregistration().InternalVersion().APIServices().Lister(),
 		APIRegistrationInformers: informerFactory,
 		serviceResolver:          c.ExtraConfig.ServiceResolver,
 	}
@@ -192,7 +191,7 @@ func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.Deleg
 	s.proxyClientCert = aggregatorProxyCerts.GetRawCert
 	s.proxyClientKey = aggregatorProxyCerts.GetRawKey
 
-	availableController := statuscontrollers.NewAvailableConditionController(
+	availableController, err := statuscontrollers.NewAvailableConditionController(
 		informerFactory.Apiregistration().InternalVersion().APIServices(),
 		c.GenericConfig.SharedInformerFactory.Core().V1().Services(),
 		c.GenericConfig.SharedInformerFactory.Core().V1().Endpoints(),
@@ -202,6 +201,9 @@ func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.Deleg
 		aggregatorProxyCerts.GetRawKey,
 		s.serviceResolver,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	s.GenericAPIServer.AddPostStartHookOrDie("aggregator-reload-proxy-client-cert", func(context genericapiserver.PostStartHookContext) error {
 		go aggregatorProxyCerts.Run(context.StopCh)

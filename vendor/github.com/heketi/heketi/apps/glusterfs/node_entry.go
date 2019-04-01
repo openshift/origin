@@ -17,8 +17,10 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/heketi/heketi/executors"
+	wdb "github.com/heketi/heketi/pkg/db"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
-	"github.com/heketi/heketi/pkg/utils"
+	"github.com/heketi/heketi/pkg/idgen"
+	"github.com/heketi/heketi/pkg/sortedstrings"
 	"github.com/lpabon/godbc"
 )
 
@@ -41,10 +43,11 @@ func NewNodeEntryFromRequest(req *api.NodeAddRequest) *NodeEntry {
 	godbc.Require(req != nil)
 
 	node := NewNodeEntry()
-	node.Info.Id = utils.GenUUID()
+	node.Info.Id = idgen.GenUUID()
 	node.Info.ClusterId = req.ClusterId
 	node.Info.Hostnames = req.Hostnames
 	node.Info.Zone = req.Zone
+	node.Info.Tags = copyTags(req.Tags)
 
 	return node
 }
@@ -70,7 +73,7 @@ func (n *NodeEntry) registerStorageKey(host string) string {
 }
 
 // Verify gluster process in the node and return the manage hostname of a node in the cluster
-func GetVerifiedManageHostname(db *bolt.DB, e executors.Executor, clusterId string) (string, error) {
+func GetVerifiedManageHostname(db wdb.RODB, e executors.Executor, clusterId string) (string, error) {
 	godbc.Require(clusterId != "")
 	var cluster *ClusterEntry
 	var node *NodeEntry
@@ -110,6 +113,42 @@ func GetVerifiedManageHostname(db *bolt.DB, e executors.Executor, clusterId stri
 		node = newNode
 		break
 	}
+	if node != nil {
+		return node.ManageHostName(), nil
+	}
+	return "", ErrNotFound
+}
+
+// Returns Manage Hostname, given a Storage Hostname
+func GetManageHostnameFromStorageHostname(tx *bolt.Tx, shostname string) (string, error) {
+	godbc.Require(shostname != "")
+	var cluster *ClusterEntry
+	var node *NodeEntry
+	var clusterlist []string
+	var err error
+
+	clusterlist, err = ClusterList(tx)
+	if err != nil {
+		return "", err
+	}
+	for _, c := range clusterlist {
+		cluster, err = NewClusterEntryFromId(tx, c)
+		if err != nil {
+			return "", err
+		}
+		for _, n := range cluster.Info.Nodes {
+			var newNode *NodeEntry
+			newNode, err = NewNodeEntryFromId(tx, n)
+			if err != nil {
+				return "", err
+			}
+			if newNode.StorageHostName() == shostname {
+				node = newNode
+				break
+			}
+		}
+	}
+
 	if node != nil {
 		return node.ManageHostName(), nil
 	}
@@ -242,59 +281,7 @@ func (n *NodeEntry) Delete(tx *bolt.Tx) error {
 	return EntryDelete(tx, n, n.Info.Id)
 }
 
-func (n *NodeEntry) removeAllDisksFromRing(tx *bolt.Tx,
-	a Allocator) error {
-
-	cluster, err := NewClusterEntryFromId(tx, n.Info.ClusterId)
-	if err != nil {
-		return err
-	}
-
-	for _, deviceId := range n.Devices {
-		device, err := NewDeviceEntryFromId(tx, deviceId)
-		if err != nil {
-			return err
-		}
-
-		// Remove device
-		err = a.RemoveDevice(cluster, n, device)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (n *NodeEntry) addAllDisksToRing(tx *bolt.Tx,
-	a Allocator) error {
-
-	cluster, err := NewClusterEntryFromId(tx, n.Info.ClusterId)
-	if err != nil {
-		return err
-	}
-
-	// Add all devices
-	for _, deviceId := range n.Devices {
-		device, err := NewDeviceEntryFromId(tx, deviceId)
-		if err != nil {
-			return err
-		}
-
-		// Add device
-		if device.isOnline() {
-			err = a.AddDevice(cluster, n, device)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func (n *NodeEntry) SetState(db *bolt.DB, e executors.Executor,
-	a Allocator,
+func (n *NodeEntry) SetState(db wdb.DB, e executors.Executor,
 	s api.EntryState) error {
 
 	// Check current state
@@ -319,17 +306,11 @@ func (n *NodeEntry) SetState(db *bolt.DB, e executors.Executor,
 		case api.EntryStateOnline:
 			return nil
 		case api.EntryStateOffline:
-			// Remove all disks from Ring
 			err := db.Update(func(tx *bolt.Tx) error {
-				err := n.removeAllDisksFromRing(tx, a)
-				if err != nil {
-					return err
-				}
-
 				// Save state
 				n.State = s
 				// Save new state
-				err = n.Save(tx)
+				err := n.Save(tx)
 				if err != nil {
 					return err
 				}
@@ -350,14 +331,9 @@ func (n *NodeEntry) SetState(db *bolt.DB, e executors.Executor,
 		case api.EntryStateOffline:
 			return nil
 		case api.EntryStateOnline:
-			// Add all disks back
 			err := db.Update(func(tx *bolt.Tx) error {
-				err := n.addAllDisksToRing(tx, a)
-				if err != nil {
-					return err
-				}
 				n.State = s
-				err = n.Save(tx)
+				err := n.Save(tx)
 				if err != nil {
 					return err
 				}
@@ -377,7 +353,7 @@ func (n *NodeEntry) SetState(db *bolt.DB, e executors.Executor,
 					}
 					return nil
 				})
-				err = d.Remove(db, e, a)
+				err = d.Remove(db, e)
 				if err != nil {
 					if err == ErrNoReplacement {
 						return logger.LogError("Unable to remove node [%v] as no device was found to replace device [%v]", n.Info.Id, d.Id())
@@ -417,6 +393,7 @@ func (n *NodeEntry) NewInfoReponse(tx *bolt.Tx) (*api.NodeInfoResponse, error) {
 	info.Zone = n.Info.Zone
 	info.State = n.State
 	info.DevicesInfo = make([]api.DeviceInfoResponse, 0)
+	info.Tags = copyTags(n.Info.Tags)
 
 	// Add each drive information
 	for _, deviceid := range n.Devices {
@@ -459,16 +436,61 @@ func (n *NodeEntry) Unmarshal(buffer []byte) error {
 }
 
 func (n *NodeEntry) DeviceAdd(id string) {
-	godbc.Require(!utils.SortedStringHas(n.Devices, id))
+	godbc.Require(!sortedstrings.Has(n.Devices, id))
 
 	n.Devices = append(n.Devices, id)
 	n.Devices.Sort()
 }
 
 func (n *NodeEntry) DeviceDelete(id string) {
-	n.Devices = utils.SortedStringsDelete(n.Devices, id)
+	n.Devices = sortedstrings.Delete(n.Devices, id)
 }
 
 func NodeEntryUpgrade(tx *bolt.Tx) error {
+	return nil
+}
+
+func NodeList(tx *bolt.Tx) ([]string, error) {
+
+	list := EntryKeys(tx, BOLTDB_BUCKET_NODE)
+	if list == nil {
+		return nil, ErrAccessList
+	}
+	return list, nil
+}
+
+func (n *NodeEntry) DeleteBricksWithEmptyPath(tx *bolt.Tx) error {
+
+	logger.Debug("Deleting bricks with empty path on node [%v].",
+		n.Info.Id)
+
+	for _, deviceid := range n.Devices {
+		device, err := NewDeviceEntryFromId(tx, deviceid)
+		if err == ErrNotFound {
+			logger.Warning("Ignoring nonexisting device [%v] on "+
+				"node [%v].", deviceid, n.Info.Id)
+			continue
+		}
+		if err != nil {
+			return err
+		}
+
+		err = device.DeleteBricksWithEmptyPath(tx)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (n *NodeEntry) AllTags() map[string]string {
+	if n.Info.Tags == nil {
+		return map[string]string{}
+	}
+	return n.Info.Tags
+}
+
+func (n *NodeEntry) SetTags(t map[string]string) error {
+	n.Info.Tags = t
 	return nil
 }

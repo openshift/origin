@@ -11,9 +11,11 @@ Vagrant.configure("2") do |config|
     config.vm.provider :libvirt do |v,override|
         override.vm.box = "centos/7"
         override.vm.synced_folder '.', '/home/vagrant/sync', disabled: true
-    end
-    config.vm.provider :virtualbox do |v|
-        config.vm.box = "bento/centos-7.1"
+        # change cpu mode to passthrough as workaround, refer bugs:
+        #https://bugzilla.redhat.com/show_bug.cgi?id=1467599
+        #https://bugzilla.redhat.com/show_bug.cgi?id=1386223#c10
+        #vagrant-libvirt/vagrant-libvirt#667
+        v.cpu_mode = 'host-passthrough'
     end
 
     # Make the glusterfs cluster, each with DISKS number of drives

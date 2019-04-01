@@ -30,12 +30,13 @@ import (
 	"github.com/google/trillian/crypto/keyspb"
 	"github.com/google/trillian/storage/testdb"
 
-	// Register PEMKeyFile and PrivateKey ProtoHandlers
+	// Register PEMKeyFile and PrivateKey ProtoHandlers.
 	_ "github.com/google/trillian/crypto/keys/der/proto"
 	_ "github.com/google/trillian/crypto/keys/pem/proto"
 )
 
 var (
+	adminServer    = flag.String("admin_server", "", "Address of log admin RPC server. Required for lifecycle test.")
 	httpServers    = flag.String("ct_http_servers", "localhost:8092", "Comma-separated list of (assumed interchangeable) servers, each as address:port")
 	metricsServers = flag.String("ct_metrics_servers", "localhost:8093", "Comma-separated list of (assumed interchangeable) metrics servers, each as address:port")
 	testDir        = flag.String("testdata_dir", "testdata", "Name of directory with test data")
@@ -45,8 +46,8 @@ var (
 	skipStats      = flag.Bool("skip_stats", false, "Skip checks of expected log statistics")
 )
 
-func TestLiveCTIntegration(t *testing.T) {
-	flag.Parse()
+func commonSetup(t *testing.T) []*configpb.LogConfig {
+	t.Helper()
 	if *logConfig == "" {
 		t.Skip("Integration test skipped as no log config provided")
 	}
@@ -60,7 +61,12 @@ func TestLiveCTIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to read log config: %v", err)
 	}
+	return cfgs
+}
 
+func TestLiveCTIntegration(t *testing.T) {
+	flag.Parse()
+	cfgs := commonSetup(t)
 	for _, cfg := range cfgs {
 		cfg := cfg // capture config
 		t.Run(cfg.Prefix, func(t *testing.T) {
@@ -76,6 +82,24 @@ func TestLiveCTIntegration(t *testing.T) {
 	}
 }
 
+func TestLiveLifecycleCTIntegration(t *testing.T) {
+	flag.Parse()
+	cfgs := commonSetup(t)
+	for _, cfg := range cfgs {
+		cfg := cfg // capture config
+		t.Run(cfg.Prefix, func(t *testing.T) {
+			t.Parallel()
+			var stats *logStats
+			if !*skipStats {
+				stats = newLogStats(cfg.LogId)
+			}
+			if err := RunCTLifecycleForLog(cfg, *httpServers, *metricsServers, *adminServer, *testDir, *mmd, stats); err != nil {
+				t.Errorf("%s: failed: %v", cfg.Prefix, err)
+			}
+		})
+	}
+}
+
 const (
 	rootsPEMFile    = "../testdata/fake-ca.cert"
 	pubKeyPEMFile   = "../testdata/ct-http-server.pubkey.pem"
@@ -84,9 +108,7 @@ const (
 )
 
 func TestInProcessCTIntegration(t *testing.T) {
-	if provider := testdb.Default(); !provider.IsMySQL() {
-		t.Skipf("Skipping CT integration test, SQL driver is %q", provider.Driver)
-	}
+	testdb.SkipIfNoMySQL(t)
 
 	pubKeyDER, err := loadPublicKey(pubKeyPEMFile)
 	if err != nil {
