@@ -19,7 +19,6 @@ package apiserver
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -37,7 +36,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	"k8s.io/apiserver/pkg/util/webhook"
 	"k8s.io/client-go/tools/cache"
 
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
@@ -47,9 +46,7 @@ import (
 	internalinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion"
 	"k8s.io/apiextensions-apiserver/pkg/controller/establish"
 	"k8s.io/apiextensions-apiserver/pkg/controller/finalizer"
-	openapicontroller "k8s.io/apiextensions-apiserver/pkg/controller/openapi"
 	"k8s.io/apiextensions-apiserver/pkg/controller/status"
-	apiextensionsfeatures "k8s.io/apiextensions-apiserver/pkg/features"
 	"k8s.io/apiextensions-apiserver/pkg/registry/customresourcedefinition"
 
 	_ "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -88,6 +85,11 @@ type ExtraConfig struct {
 	// MasterCount is used to detect whether cluster is HA, and if it is
 	// the CRD Establishing will be hold by 5 seconds.
 	MasterCount int
+
+	// ServiceResolver is used in CR webhook converters to resolve webhook's service names
+	ServiceResolver webhook.ServiceResolver
+	// AuthResolverWrapper is used in CR webhook converters
+	AuthResolverWrapper webhook.AuthenticationInfoResolverWrapper
 }
 
 type Config struct {
@@ -177,7 +179,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		delegate:  delegateHandler,
 	}
 	establishingController := establish.NewEstablishingController(s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions(), crdClient.Apiextensions())
-	crdHandler := NewCustomResourceDefinitionHandler(
+	crdHandler, err := NewCustomResourceDefinitionHandler(
 		versionDiscoveryHandler,
 		groupDiscoveryHandler,
 		s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions(),
@@ -185,8 +187,13 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		c.ExtraConfig.CRDRESTOptionsGetter,
 		c.GenericConfig.AdmissionControl,
 		establishingController,
+		c.ExtraConfig.ServiceResolver,
+		c.ExtraConfig.AuthResolverWrapper,
 		c.ExtraConfig.MasterCount,
 	)
+	if err != nil {
+		return nil, err
+	}
 	s.GenericAPIServer.Handler.NonGoRestfulMux.Handle("/apis", crdHandler)
 	s.GenericAPIServer.Handler.NonGoRestfulMux.HandlePrefix("/apis/", crdHandler)
 
@@ -197,17 +204,12 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		crdClient.Apiextensions(),
 		crdHandler,
 	)
-	openapiController := openapicontroller.NewController(s.Informers.Apiextensions().InternalVersion().CustomResourceDefinitions())
 
 	s.GenericAPIServer.AddPostStartHook("start-apiextensions-informers", func(context genericapiserver.PostStartHookContext) error {
 		s.Informers.Start(context.StopCh)
 		return nil
 	})
 	s.GenericAPIServer.AddPostStartHook("start-apiextensions-controllers", func(context genericapiserver.PostStartHookContext) error {
-		if utilfeature.DefaultFeatureGate.Enabled(apiextensionsfeatures.CustomResourcePublishOpenAPI) {
-			go openapiController.Run(s.GenericAPIServer.StaticOpenAPISpec, s.GenericAPIServer.OpenAPIVersionedService, context.StopCh)
-		}
-
 		go crdController.Run(context.StopCh)
 		go namingController.Run(context.StopCh)
 		go establishingController.Run(context.StopCh)
@@ -249,10 +251,9 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 			}
 
 			discoveryGroupsAndResources := sets.NewString()
-			for _, resourceList := range serverGroupsAndResources {
-				for _, apiResource := range resourceList.APIResources {
-					group, version := splitGroupVersion(resourceList.GroupVersion)
-					discoveryGroupsAndResources.Insert(fmt.Sprintf("%s.%s.%s", apiResource.Name, version, group))
+			for _, resource := range serverGroupsAndResources {
+				for _, apiResource := range resource.APIResources {
+					discoveryGroupsAndResources.Insert(fmt.Sprintf("%s.%s.%s", apiResource.Name, apiResource.Version, apiResource.Group))
 				}
 			}
 			if !discoveryGroupsAndResources.HasAll(crdGroupsAndResources.List()...) {
@@ -276,16 +277,6 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	}
 
 	return s, nil
-}
-
-func splitGroupVersion(gv string) (group string, version string) {
-	ss := strings.SplitN(gv, "/", 2)
-	if len(ss) == 1 {
-		version = ss[0]
-	} else {
-		group, version = ss[0], ss[1]
-	}
-	return
 }
 
 func DefaultAPIResourceConfigSource() *serverstorage.ResourceConfig {

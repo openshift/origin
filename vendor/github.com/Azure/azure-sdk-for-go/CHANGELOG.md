@@ -1,5 +1,240 @@
 # CHANGELOG
 
+## `v21.3.0`
+
+### New Packages
+
+| Package Name | API Version |
+| -----------: | :---------: |
+| consumption | 2018-10-01 |
+| containerservice | 2018-09-30-preview |
+| textanalytics | v2.1 |
+
+### Updated Packages
+
+| Package Name | API Version |
+| -----------: | :---------: |
+| servicebus | 2017-04-01 |
+
+## `v21.2.0`
+
+### New Packages
+
+| Package Name | API Version |
+| -----------: | :---------: |
+| blueprint | 2017-11-11-preview |
+| containerinstance | 2018-10-01 |
+| policyinsights | 2018-07-01-preview |
+
+### Updated Packages
+
+| Package Name | API Version |
+| -----------: | :---------: |
+| auth | keyvault |
+| automation | 2018-06-preview |
+| containerregistry | 2017-10-01<br/>2018-02-01<br/>2018-09-01 |
+| costmanagement | 2018-05-31 |
+| datafactory | 2018-06-01 |
+| documentdb | 2015-04-08 |
+| hdinsight | 2015-03-01-preview<br/>2018-06-01-preview |
+| insights | 2015-05-01<br/>2018-03-01<br/>2018-09-01 |
+| job | 2017-09-01-preview |
+| mysql | 2017-12-01 |
+| operationalinsights | 2015-03-20 |
+| security | 2017-08-01-preview |
+| sql | 2017-10-01-preview |
+
+## `v21.1.0`
+
+### New Packages
+
+| Package Name | API Version |
+| -----------: | :---------: |
+| media | 2018-07-01 |
+| storage | 2018-07-01 |
+
+### Updated Packages
+
+| Package Name | API Version |
+| -----------: | :---------: |
+| authorization | 2018-09-01-preview |
+| links | 2016-09-01 |
+| resources | 2018-05-01 |
+| servicebus | 2017-04-01 |
+| subscriptions | 2016-06-01 |
+| web | 2018-02-01 |
+
+## `v21.0.0`
+
+### New Packages
+
+| Package Name | API Version |
+| -----------: | :---------: |
+| compute | 2018-10-01 |
+| deploymentmanager | 2018-09-01-preview |
+| frontdoor | 2018-08-01-preview |
+
+### Updated Packages
+
+| Package Name | API Version |
+| -----------: | :---------: |
+| advisor | 2017-04-19 |
+| compute | 2017-08-01-preview |
+| datafactory | 2017-09-01-preview |
+| features | 2015-12-01 |
+| graphrbac | 1.6 |
+| hdinsight | 2015-03-01-preview<br/>2018-06-01-preview |
+| insights | 2017-05-01-preview<br/>2018-03-01<br/>2018-09-01<br/>v1 |
+| job | 2015-11-01-preview<br/>2016-03-20-preview<br/>2016-11-01<br/>2017-09-01-preview |
+| locks | 2016-09-01 |
+| managedapplications | 2016-09-01-preview |
+| policyinsights | 2017-08-09-preview<br/>2017-10-17-preview<br/>2017-12-12-preview<br/>2018-04-04 |
+| runtime | luis |
+| security | 2017-08-01-preview |
+| sql | 2015-05-01-preview<br/>2017-10-01-preview |
+
+### BreakingChanges
+
+| Package Name | API Version |
+| -----------: | :---------: |
+| authoring | luis |
+| automation | 2018-06-preview |
+| backup | 2016-06-01<br/>2017-07-01 |
+| compute | 2018-06-01 |
+| costmanagement | 2018-08-01-preview |
+| customimagesearch | v1.0 |
+| customsearch | v1.0 |
+| databox | 2018-01-01 |
+| datafactory | 2018-06-01 |
+| eventhub | 2018-01-01-preview |
+| logic | 2018-07-01-preview |
+| monitor | 2018-09-01-preview |
+| operationalinsights | v1 |
+| services | 2018-03-01-preview |
+| sql | 2017-03-01-preview |
+| web | 2018-02-01 |
+
+## `v20.2.0`
+
+### New Services
+
+|            Package Name |      API Version      |
+| ----------------------: | :-------------------: |
+|           authorization |   2018-09-01-preview  |
+|              automation |    2018-06-preview    |
+|             consumption |       2018-08-31      |
+|       containerinstance |       2018-09-01      |
+|               eventgrid |   2018-09-15-preview  |
+|                insights |       2018-09-01      |
+|                 mariadb |   2018-06-01-preview  |
+|                 monitor |   2018-09-01-preview  |
+|                 network |       2018-08-01      |
+|             storagesync | 2018-04-02<br/>2018-07-01 |
+|              storsimple |       2016-10-01      |
+
+### Updated Services
+
+|            Package Name |      API Version      |
+| ----------------------: | :-------------------: |
+|             botservices |       2018-07-12      |
+|             hanaonazure |   2017-11-03-preview  |
+|                     job | 2015-11-01-preview<br/>2016-03-20-preview<br/>2016-11-01<br/>2017-09-01-preview |
+|                   locks |       2016-09-01      |
+|                 network |       2018-06-01      |
+|                security |   2017-08-01-preview  |
+|                services |   2018-03-01-preview  |
+
+## `v20.1.0`
+
+### New Services
+
+|            Package Name |      API Version      |
+| ----------------------: | :-------------------: |
+|                 network |       2018-07-01      |
+
+## `v20.0.0`
+
+### New Services
+
+|            Package Name |      API Version      |
+| ----------------------: | :-------------------: |
+|                   batch |     2018-08-01.7.0    |
+|             botservices |       2018-07-12      |
+|       containerregistry |       2018-09-01      |
+|          costmanagement |   2018-08-01-preview  |
+|              iotcentral |       2018-09-01      |
+|                   logic |   2018-07-01-preview  |
+|                  policy |       2018-05-01      |
+
+### Updated Services
+
+|            Package Name |      API Version      |
+| ----------------------: | :-------------------: |
+|                 advisor |       2017-04-19      |
+|                     cdn |       2017-10-12      |
+|             consumption |       2018-06-30      |
+|       containerregistry | 2017-10-01<br/>2018-02-01 |
+|                 devices |       2018-04-01      |
+|               graphrbac |          1.6          |
+|             hanaonazure |   2017-11-03-preview  |
+|                 migrate |       2018-02-02      |
+|                   mysql |       2017-12-01      |
+|                 network |       2018-06-01      |
+|        powerbidedicated |       2017-10-01      |
+|            reservations |       2018-06-01      |
+|                 signalr |   2018-03-01-preview  |
+|            siterecovery |       2018-01-10      |
+|                     sql |   2017-03-01-preview  |
+|                 storage | 2018-02-01<br/>2018-03-01-preview |
+
+### Removed Packages
+
+|            Package Name |      API Version      |
+| ----------------------: | :-------------------: |
+|              iotcentral | 2017-07-01-privatepreview |
+|                 network |       2018-05-01      |
+
+### Breaking Changes
+
+|            Package Name |      API Version      |
+| ----------------------: | :-------------------: |
+|              automation | 2015-10-31<br/>2017-05-15-preview<br/>2018-01-preview |
+|              azurestack |       2017-06-01      |
+|                 compute | 2017-12-01<br/>2018-04-01<br/>2018-06-01 |
+|          computervision |          v2.0         |
+|       containerinstance |       2018-06-01      |
+|        containerservice |       2018-03-31      |
+|        contentmoderator |          v1.0         |
+|             datafactory |       2018-06-01      |
+|                     dns | 2015-05-04-preview<br/>2016-04-01<br/>2017-09-01<br/>2017-10-01<br/>2018-03-01-preview |
+|                    face |          v1.0         |
+|               hdinsight | 2015-03-01-preview<br/>2018-06-01-preview |
+|                insights | 2017-05-01-preview<br/>2018-03-01 |
+|          luis/authoring |          v2.0         |
+|            luis/runtime |          v2.0         |
+|                 network |       2018-04-01      |
+|                security |   2017-08-01-preview  |
+|                     sql |   2017-10-01-preview  |
+|           textanalytics |          v2.0         |
+|            visualsearch |          v1.0         |
+|                     web |       2018-02-01      |
+
+## `v19.1.0`
+
+### New Services
+
+|            Package Name |      API Version      |
+| ----------------------: | :-------------------: |
+|              iotcentral |       2018-09-01      |
+|                 network |       2018-06-01      |
+|                security |   2017-08-01-preview  |
+
+### Updated Services
+
+|            Package Name |      API Version      |
+| ----------------------: | :-------------------: |
+|               eventgrid |       2018-01-01      |
+
 ## `v19.0.0`
 
 ### Removed Packages

@@ -46,7 +46,7 @@ var (
 // inside of the Spec struct for your particular operator.
 type OperatorSpec struct {
 	// managementState indicates whether and how the operator should manage the component
-	// +kubebuilder:validation:Pattern=^Managed|Unmanaged|Force|Removed$
+	// +kubebuilder:validation:Pattern=^(Managed|Unmanaged|Force|Removed)$
 	ManagementState ManagementState `json:"managementState"`
 
 	// logLevel is an intent based logging for an overall component.  It does not give fine grained control, but it is a

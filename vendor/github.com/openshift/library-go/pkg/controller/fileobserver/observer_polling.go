@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog"
 )
 
 type pollingObserver struct {
@@ -37,13 +37,13 @@ func (o *pollingObserver) AddReactor(reaction reactorFn, startingFileContent map
 		var err error
 
 		if startingContent, ok := startingFileContent[f]; ok {
-			glog.V(3).Infof("Starting from specified content for file %q", f)
+			klog.V(3).Infof("Starting from specified content for file %q", f)
 			o.files[f], err = calculateHash(bytes.NewBuffer(startingContent))
 			if err != nil {
 				panic(fmt.Sprintf("unexpected error while adding reactor for %#v: %v", files, err))
 			}
 		} else {
-			glog.V(3).Infof("Adding reactor for file %q", f)
+			klog.V(3).Infof("Adding reactor for file %q", f)
 			o.files[f], err = calculateFileHash(f)
 			if err != nil {
 				panic(fmt.Sprintf("unexpected error while adding reactor for %#v: %v", files, err))
@@ -75,7 +75,7 @@ func (o *pollingObserver) processReactors(stopCh <-chan struct{}) {
 				continue
 			}
 
-			glog.Infof("Observed change: file:%s (current: %q, lastKnown: %q)", filename, currentHash, lastKnownHash)
+			klog.Infof("Observed change: file:%s (current: %q, lastKnown: %q)", filename, currentHash, lastKnownHash)
 			o.files[filename] = currentHash
 
 			for i := range reactors {
@@ -90,21 +90,21 @@ func (o *pollingObserver) processReactors(stopCh <-chan struct{}) {
 				}
 
 				if err := reactors[i](filename, action); err != nil {
-					glog.Errorf("Reactor for %q failed: %v", filename, err)
+					klog.Errorf("Reactor for %q failed: %v", filename, err)
 				}
 			}
 		}
 		return false, nil
 	})
 	if err != nil {
-		glog.Fatalf("file observer failed: %v", err)
+		klog.Fatalf("file observer failed: %v", err)
 	}
 }
 
 // Run will start a new observer.
 func (o *pollingObserver) Run(stopChan <-chan struct{}) {
-	glog.Info("Starting file observer")
-	defer glog.Infof("Shutting down file observer")
+	klog.Info("Starting file observer")
+	defer klog.Infof("Shutting down file observer")
 	o.processReactors(stopChan)
 }
 

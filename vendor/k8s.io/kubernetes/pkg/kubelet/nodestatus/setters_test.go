@@ -906,14 +906,14 @@ func TestReadyCondition(t *testing.T) {
 			// to ensure an event is sent.
 		},
 		{
-			desc: "new, ready: apparmor validator passed",
-			node: withCapacity.DeepCopy(),
+			desc:                     "new, ready: apparmor validator passed",
+			node:                     withCapacity.DeepCopy(),
 			appArmorValidateHostFunc: func() error { return nil },
 			expectConditions:         []v1.NodeCondition{*makeReadyCondition(true, "kubelet is posting ready status. AppArmor enabled", now, now)},
 		},
 		{
-			desc: "new, ready: apparmor validator failed",
-			node: withCapacity.DeepCopy(),
+			desc:                     "new, ready: apparmor validator failed",
+			node:                     withCapacity.DeepCopy(),
 			appArmorValidateHostFunc: func() error { return fmt.Errorf("foo") },
 			// absence of an additional message is understood to mean that AppArmor is disabled
 			expectConditions: []v1.NodeCondition{*makeReadyCondition(true, "kubelet is posting ready status", now, now)},
@@ -1513,6 +1513,54 @@ func TestVolumeLimits(t *testing.T) {
 			// check expected node
 			assert.True(t, apiequality.Semantic.DeepEqual(tc.expectNode, node),
 				"Diff: %s", diff.ObjectDiff(tc.expectNode, node))
+		})
+	}
+}
+
+func TestRemoveOutOfDiskCondition(t *testing.T) {
+	now := time.Now()
+
+	var cases = []struct {
+		desc       string
+		inputNode  *v1.Node
+		expectNode *v1.Node
+	}{
+		{
+			desc: "should remove stale OutOfDiskCondition from node status",
+			inputNode: &v1.Node{
+				Status: v1.NodeStatus{
+					Conditions: []v1.NodeCondition{
+						*makeMemoryPressureCondition(false, now, now),
+						{
+							Type:   v1.NodeOutOfDisk,
+							Status: v1.ConditionFalse,
+						},
+						*makeDiskPressureCondition(false, now, now),
+					},
+				},
+			},
+			expectNode: &v1.Node{
+				Status: v1.NodeStatus{
+					Conditions: []v1.NodeCondition{
+						*makeMemoryPressureCondition(false, now, now),
+						*makeDiskPressureCondition(false, now, now),
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.desc, func(t *testing.T) {
+			// construct setter
+			setter := RemoveOutOfDiskCondition()
+			// call setter on node
+			if err := setter(tc.inputNode); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			// check expected node
+			assert.True(t, apiequality.Semantic.DeepEqual(tc.expectNode, tc.inputNode),
+				"Diff: %s", diff.ObjectDiff(tc.expectNode, tc.inputNode))
 		})
 	}
 }

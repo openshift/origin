@@ -1,19 +1,15 @@
-hash: b7aba7d584f746f71384bdde9f991d181c684adc8f841ea23e1047761c57cad0
-updated: 2019-01-28T08:23:58.779331783-05:00
+hash: 0774e6b638f20bd2ebf8d85eacf08a3420bc61b550edcfadefc6509b42a30657
+updated: 2019-03-15T11:46:30.566427098-04:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
   subpackages:
   - spew
-- name: github.com/ghodss/yaml
-  version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
 - name: github.com/gogo/protobuf
-  version: c0656edd0d9eab7c66d1eb0c568f9039345796f7
+  version: 342cbe0a04158f6dcb03ca0079991a51a4248c02
   subpackages:
   - proto
   - sortkeys
-- name: github.com/golang/glog
-  version: 44145f04b68cf362d9c4df2182967c2275eaefed
 - name: github.com/golang/protobuf
   version: b4deda0973fb4c70b50d226b1af49f3da59f5265
   subpackages:
@@ -21,11 +17,11 @@ imports:
 - name: github.com/google/gofuzz
   version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
 - name: github.com/json-iterator/go
-  version: f2b4162afba35581b6d4a50d3b8f34e33c144682
+  version: ab8a2e0c74be9d3be70b3184d9acc634935ded82
 - name: github.com/modern-go/concurrent
   version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
 - name: github.com/modern-go/reflect2
-  version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
+  version: 94122c33edd36123c84d5368cfb2b69df93a0ec8
 - name: github.com/spf13/pflag
   version: 583c0c0531f06d5278b7d917446061adc344b5cd
 - name: golang.org/x/net
@@ -45,9 +41,9 @@ imports:
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/yaml.v2
-  version: 670d4cfef0544295bc27a114dbac37980d83185a
+  version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
 - name: k8s.io/api
-  version: 6db15a15d2d3874a6c3ddb2140ac9f3bc7058428
+  version: 5cb15d34447165a97c76ed5a60e4e99c8a01ecfe
   subpackages:
   - admission/v1beta1
   - admissionregistration/v1alpha1
@@ -81,7 +77,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apimachinery
-  version: 49ce2735e5074ffc3f8190c8406cf51a96302dad
+  version: 86fb29eff6288413d76bd8506874fddd9fccdff0
   subpackages:
   - pkg/api/apitesting
   - pkg/api/apitesting/fuzzer
@@ -121,9 +117,12 @@ imports:
   - pkg/watch
   - third_party/forked/golang/reflect
 - name: k8s.io/code-generator
-  version: aef8d122b95ddd821e3bd35d4013593b1e5eda16
+  version: 2bf47b06188b89cc41d68422aa52509f2cbb4cc8
   repo: git@github.com:openshift/kubernetes-code-generator
 - name: k8s.io/gengo
-  version: 01a732e01d00cb9a81bb0ca050d3e6d2b947927b
-  repo: git@github.com:openshift/kubernetes-gengo
+  version: 51747d6e00da1fc578d5a333a93bb2abcbce7a95
+- name: k8s.io/klog
+  version: 8139d8cb77af419532b33dfa7dd09fbc5f1d344f
+- name: sigs.k8s.io/yaml
+  version: fd68e9863619f6ec2fdd8625fe1f02e7c877e480
 testImports: []

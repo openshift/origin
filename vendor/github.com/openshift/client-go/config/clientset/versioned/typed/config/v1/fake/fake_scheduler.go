@@ -3,7 +3,7 @@
 package fake
 
 import (
-	config_v1 "github.com/openshift/api/config/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -22,19 +22,19 @@ var schedulersResource = schema.GroupVersionResource{Group: "config.openshift.io
 var schedulersKind = schema.GroupVersionKind{Group: "config.openshift.io", Version: "v1", Kind: "Scheduler"}
 
 // Get takes name of the scheduler, and returns the corresponding scheduler object, and an error if there is any.
-func (c *FakeSchedulers) Get(name string, options v1.GetOptions) (result *config_v1.Scheduler, err error) {
+func (c *FakeSchedulers) Get(name string, options v1.GetOptions) (result *configv1.Scheduler, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(schedulersResource, name), &config_v1.Scheduler{})
+		Invokes(testing.NewRootGetAction(schedulersResource, name), &configv1.Scheduler{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.Scheduler), err
+	return obj.(*configv1.Scheduler), err
 }
 
 // List takes label and field selectors, and returns the list of Schedulers that match those selectors.
-func (c *FakeSchedulers) List(opts v1.ListOptions) (result *config_v1.SchedulerList, err error) {
+func (c *FakeSchedulers) List(opts v1.ListOptions) (result *configv1.SchedulerList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(schedulersResource, schedulersKind, opts), &config_v1.SchedulerList{})
+		Invokes(testing.NewRootListAction(schedulersResource, schedulersKind, opts), &configv1.SchedulerList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -43,8 +43,8 @@ func (c *FakeSchedulers) List(opts v1.ListOptions) (result *config_v1.SchedulerL
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &config_v1.SchedulerList{ListMeta: obj.(*config_v1.SchedulerList).ListMeta}
-	for _, item := range obj.(*config_v1.SchedulerList).Items {
+	list := &configv1.SchedulerList{ListMeta: obj.(*configv1.SchedulerList).ListMeta}
+	for _, item := range obj.(*configv1.SchedulerList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -59,40 +59,40 @@ func (c *FakeSchedulers) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Create takes the representation of a scheduler and creates it.  Returns the server's representation of the scheduler, and an error, if there is any.
-func (c *FakeSchedulers) Create(scheduler *config_v1.Scheduler) (result *config_v1.Scheduler, err error) {
+func (c *FakeSchedulers) Create(scheduler *configv1.Scheduler) (result *configv1.Scheduler, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(schedulersResource, scheduler), &config_v1.Scheduler{})
+		Invokes(testing.NewRootCreateAction(schedulersResource, scheduler), &configv1.Scheduler{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.Scheduler), err
+	return obj.(*configv1.Scheduler), err
 }
 
 // Update takes the representation of a scheduler and updates it. Returns the server's representation of the scheduler, and an error, if there is any.
-func (c *FakeSchedulers) Update(scheduler *config_v1.Scheduler) (result *config_v1.Scheduler, err error) {
+func (c *FakeSchedulers) Update(scheduler *configv1.Scheduler) (result *configv1.Scheduler, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(schedulersResource, scheduler), &config_v1.Scheduler{})
+		Invokes(testing.NewRootUpdateAction(schedulersResource, scheduler), &configv1.Scheduler{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.Scheduler), err
+	return obj.(*configv1.Scheduler), err
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeSchedulers) UpdateStatus(scheduler *config_v1.Scheduler) (*config_v1.Scheduler, error) {
+func (c *FakeSchedulers) UpdateStatus(scheduler *configv1.Scheduler) (*configv1.Scheduler, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateSubresourceAction(schedulersResource, "status", scheduler), &config_v1.Scheduler{})
+		Invokes(testing.NewRootUpdateSubresourceAction(schedulersResource, "status", scheduler), &configv1.Scheduler{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.Scheduler), err
+	return obj.(*configv1.Scheduler), err
 }
 
 // Delete takes name of the scheduler and deletes it. Returns an error if one occurs.
 func (c *FakeSchedulers) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(schedulersResource, name), &config_v1.Scheduler{})
+		Invokes(testing.NewRootDeleteAction(schedulersResource, name), &configv1.Scheduler{})
 	return err
 }
 
@@ -100,16 +100,16 @@ func (c *FakeSchedulers) Delete(name string, options *v1.DeleteOptions) error {
 func (c *FakeSchedulers) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewRootDeleteCollectionAction(schedulersResource, listOptions)
 
-	_, err := c.Fake.Invokes(action, &config_v1.SchedulerList{})
+	_, err := c.Fake.Invokes(action, &configv1.SchedulerList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched scheduler.
-func (c *FakeSchedulers) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *config_v1.Scheduler, err error) {
+func (c *FakeSchedulers) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *configv1.Scheduler, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(schedulersResource, name, data, subresources...), &config_v1.Scheduler{})
+		Invokes(testing.NewRootPatchSubresourceAction(schedulersResource, name, pt, data, subresources...), &configv1.Scheduler{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.Scheduler), err
+	return obj.(*configv1.Scheduler), err
 }

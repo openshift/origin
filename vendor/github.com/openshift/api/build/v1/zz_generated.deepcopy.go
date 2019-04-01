@@ -5,7 +5,7 @@
 package v1
 
 import (
-	core_v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -170,21 +170,13 @@ func (in *BuildConfigSpec) DeepCopyInto(out *BuildConfigSpec) {
 	in.CommonSpec.DeepCopyInto(&out.CommonSpec)
 	if in.SuccessfulBuildsHistoryLimit != nil {
 		in, out := &in.SuccessfulBuildsHistoryLimit, &out.SuccessfulBuildsHistoryLimit
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int32)
-			**out = **in
-		}
+		*out = new(int32)
+		**out = **in
 	}
 	if in.FailedBuildsHistoryLimit != nil {
 		in, out := &in.FailedBuildsHistoryLimit, &out.FailedBuildsHistoryLimit
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int32)
-			**out = **in
-		}
+		*out = new(int32)
+		**out = **in
 	}
 	return
 }
@@ -279,47 +271,27 @@ func (in *BuildLogOptions) DeepCopyInto(out *BuildLogOptions) {
 	out.TypeMeta = in.TypeMeta
 	if in.SinceSeconds != nil {
 		in, out := &in.SinceSeconds, &out.SinceSeconds
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int64)
-			**out = **in
-		}
+		*out = new(int64)
+		**out = **in
 	}
 	if in.SinceTime != nil {
 		in, out := &in.SinceTime, &out.SinceTime
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = (*in).DeepCopy()
-		}
+		*out = (*in).DeepCopy()
 	}
 	if in.TailLines != nil {
 		in, out := &in.TailLines, &out.TailLines
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int64)
-			**out = **in
-		}
+		*out = new(int64)
+		**out = **in
 	}
 	if in.LimitBytes != nil {
 		in, out := &in.LimitBytes, &out.LimitBytes
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int64)
-			**out = **in
-		}
+		*out = new(int64)
+		**out = **in
 	}
 	if in.Version != nil {
 		in, out := &in.Version, &out.Version
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int64)
-			**out = **in
-		}
+		*out = new(int64)
+		**out = **in
 	}
 	return
 }
@@ -347,21 +319,13 @@ func (in *BuildOutput) DeepCopyInto(out *BuildOutput) {
 	*out = *in
 	if in.To != nil {
 		in, out := &in.To, &out.To
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(core_v1.ObjectReference)
-			**out = **in
-		}
+		*out = new(corev1.ObjectReference)
+		**out = **in
 	}
 	if in.PushSecret != nil {
 		in, out := &in.PushSecret, &out.PushSecret
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(core_v1.LocalObjectReference)
-			**out = **in
-		}
+		*out = new(corev1.LocalObjectReference)
+		**out = **in
 	}
 	if in.ImageLabels != nil {
 		in, out := &in.ImageLabels, &out.ImageLabels
@@ -414,52 +378,32 @@ func (in *BuildRequest) DeepCopyInto(out *BuildRequest) {
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
 	if in.Revision != nil {
 		in, out := &in.Revision, &out.Revision
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(SourceRevision)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(SourceRevision)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.TriggeredByImage != nil {
 		in, out := &in.TriggeredByImage, &out.TriggeredByImage
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(core_v1.ObjectReference)
-			**out = **in
-		}
+		*out = new(corev1.ObjectReference)
+		**out = **in
 	}
 	if in.From != nil {
 		in, out := &in.From, &out.From
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(core_v1.ObjectReference)
-			**out = **in
-		}
+		*out = new(corev1.ObjectReference)
+		**out = **in
 	}
 	if in.Binary != nil {
 		in, out := &in.Binary, &out.Binary
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(BinaryBuildSource)
-			**out = **in
-		}
+		*out = new(BinaryBuildSource)
+		**out = **in
 	}
 	if in.LastVersion != nil {
 		in, out := &in.LastVersion, &out.LastVersion
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int64)
-			**out = **in
-		}
+		*out = new(int64)
+		**out = **in
 	}
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]core_v1.EnvVar, len(*in))
+		*out = make([]corev1.EnvVar, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -473,21 +417,13 @@ func (in *BuildRequest) DeepCopyInto(out *BuildRequest) {
 	}
 	if in.DockerStrategyOptions != nil {
 		in, out := &in.DockerStrategyOptions, &out.DockerStrategyOptions
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(DockerStrategyOptions)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(DockerStrategyOptions)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.SourceStrategyOptions != nil {
 		in, out := &in.SourceStrategyOptions, &out.SourceStrategyOptions
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(SourceStrategyOptions)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(SourceStrategyOptions)
+		(*in).DeepCopyInto(*out)
 	}
 	return
 }
@@ -515,30 +451,18 @@ func (in *BuildSource) DeepCopyInto(out *BuildSource) {
 	*out = *in
 	if in.Binary != nil {
 		in, out := &in.Binary, &out.Binary
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(BinaryBuildSource)
-			**out = **in
-		}
+		*out = new(BinaryBuildSource)
+		**out = **in
 	}
 	if in.Dockerfile != nil {
 		in, out := &in.Dockerfile, &out.Dockerfile
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(string)
-			**out = **in
-		}
+		*out = new(string)
+		**out = **in
 	}
 	if in.Git != nil {
 		in, out := &in.Git, &out.Git
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(GitBuildSource)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(GitBuildSource)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.Images != nil {
 		in, out := &in.Images, &out.Images
@@ -549,12 +473,8 @@ func (in *BuildSource) DeepCopyInto(out *BuildSource) {
 	}
 	if in.SourceSecret != nil {
 		in, out := &in.SourceSecret, &out.SourceSecret
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(core_v1.LocalObjectReference)
-			**out = **in
-		}
+		*out = new(corev1.LocalObjectReference)
+		**out = **in
 	}
 	if in.Secrets != nil {
 		in, out := &in.Secrets, &out.Secrets
@@ -608,28 +528,16 @@ func (in *BuildStatus) DeepCopyInto(out *BuildStatus) {
 	*out = *in
 	if in.StartTimestamp != nil {
 		in, out := &in.StartTimestamp, &out.StartTimestamp
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = (*in).DeepCopy()
-		}
+		*out = (*in).DeepCopy()
 	}
 	if in.CompletionTimestamp != nil {
 		in, out := &in.CompletionTimestamp, &out.CompletionTimestamp
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = (*in).DeepCopy()
-		}
+		*out = (*in).DeepCopy()
 	}
 	if in.Config != nil {
 		in, out := &in.Config, &out.Config
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(core_v1.ObjectReference)
-			**out = **in
-		}
+		*out = new(corev1.ObjectReference)
+		**out = **in
 	}
 	in.Output.DeepCopyInto(&out.Output)
 	if in.Stages != nil {
@@ -657,12 +565,8 @@ func (in *BuildStatusOutput) DeepCopyInto(out *BuildStatusOutput) {
 	*out = *in
 	if in.To != nil {
 		in, out := &in.To, &out.To
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(BuildStatusOutputTo)
-			**out = **in
-		}
+		*out = new(BuildStatusOutputTo)
+		**out = **in
 	}
 	return
 }
@@ -698,39 +602,23 @@ func (in *BuildStrategy) DeepCopyInto(out *BuildStrategy) {
 	*out = *in
 	if in.DockerStrategy != nil {
 		in, out := &in.DockerStrategy, &out.DockerStrategy
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(DockerBuildStrategy)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(DockerBuildStrategy)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.SourceStrategy != nil {
 		in, out := &in.SourceStrategy, &out.SourceStrategy
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(SourceBuildStrategy)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(SourceBuildStrategy)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.CustomStrategy != nil {
 		in, out := &in.CustomStrategy, &out.CustomStrategy
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(CustomBuildStrategy)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(CustomBuildStrategy)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.JenkinsPipelineStrategy != nil {
 		in, out := &in.JenkinsPipelineStrategy, &out.JenkinsPipelineStrategy
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(JenkinsPipelineBuildStrategy)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(JenkinsPipelineBuildStrategy)
+		(*in).DeepCopyInto(*out)
 	}
 	return
 }
@@ -750,48 +638,28 @@ func (in *BuildTriggerCause) DeepCopyInto(out *BuildTriggerCause) {
 	*out = *in
 	if in.GenericWebHook != nil {
 		in, out := &in.GenericWebHook, &out.GenericWebHook
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(GenericWebHookCause)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(GenericWebHookCause)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.GitHubWebHook != nil {
 		in, out := &in.GitHubWebHook, &out.GitHubWebHook
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(GitHubWebHookCause)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(GitHubWebHookCause)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.ImageChangeBuild != nil {
 		in, out := &in.ImageChangeBuild, &out.ImageChangeBuild
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(ImageChangeCause)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(ImageChangeCause)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.GitLabWebHook != nil {
 		in, out := &in.GitLabWebHook, &out.GitLabWebHook
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(GitLabWebHookCause)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(GitLabWebHookCause)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.BitbucketWebHook != nil {
 		in, out := &in.BitbucketWebHook, &out.BitbucketWebHook
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(BitbucketWebHookCause)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(BitbucketWebHookCause)
+		(*in).DeepCopyInto(*out)
 	}
 	return
 }
@@ -811,48 +679,28 @@ func (in *BuildTriggerPolicy) DeepCopyInto(out *BuildTriggerPolicy) {
 	*out = *in
 	if in.GitHubWebHook != nil {
 		in, out := &in.GitHubWebHook, &out.GitHubWebHook
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(WebHookTrigger)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(WebHookTrigger)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.GenericWebHook != nil {
 		in, out := &in.GenericWebHook, &out.GenericWebHook
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(WebHookTrigger)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(WebHookTrigger)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.ImageChange != nil {
 		in, out := &in.ImageChange, &out.ImageChange
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(ImageChangeTrigger)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(ImageChangeTrigger)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.GitLabWebHook != nil {
 		in, out := &in.GitLabWebHook, &out.GitLabWebHook
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(WebHookTrigger)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(WebHookTrigger)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.BitbucketWebHook != nil {
 		in, out := &in.BitbucketWebHook, &out.BitbucketWebHook
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(WebHookTrigger)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(WebHookTrigger)
+		(*in).DeepCopyInto(*out)
 	}
 	return
 }
@@ -873,12 +721,8 @@ func (in *CommonSpec) DeepCopyInto(out *CommonSpec) {
 	in.Source.DeepCopyInto(&out.Source)
 	if in.Revision != nil {
 		in, out := &in.Revision, &out.Revision
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(SourceRevision)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(SourceRevision)
+		(*in).DeepCopyInto(*out)
 	}
 	in.Strategy.DeepCopyInto(&out.Strategy)
 	in.Output.DeepCopyInto(&out.Output)
@@ -886,12 +730,8 @@ func (in *CommonSpec) DeepCopyInto(out *CommonSpec) {
 	in.PostCommit.DeepCopyInto(&out.PostCommit)
 	if in.CompletionDeadlineSeconds != nil {
 		in, out := &in.CompletionDeadlineSeconds, &out.CompletionDeadlineSeconds
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int64)
-			**out = **in
-		}
+		*out = new(int64)
+		**out = **in
 	}
 	if in.NodeSelector != nil {
 		in, out := &in.NodeSelector, &out.NodeSelector
@@ -918,12 +758,8 @@ func (in *CommonWebHookCause) DeepCopyInto(out *CommonWebHookCause) {
 	*out = *in
 	if in.Revision != nil {
 		in, out := &in.Revision, &out.Revision
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(SourceRevision)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(SourceRevision)
+		(*in).DeepCopyInto(*out)
 	}
 	return
 }
@@ -961,16 +797,12 @@ func (in *CustomBuildStrategy) DeepCopyInto(out *CustomBuildStrategy) {
 	out.From = in.From
 	if in.PullSecret != nil {
 		in, out := &in.PullSecret, &out.PullSecret
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(core_v1.LocalObjectReference)
-			**out = **in
-		}
+		*out = new(corev1.LocalObjectReference)
+		**out = **in
 	}
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]core_v1.EnvVar, len(*in))
+		*out = make([]corev1.EnvVar, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -998,44 +830,32 @@ func (in *DockerBuildStrategy) DeepCopyInto(out *DockerBuildStrategy) {
 	*out = *in
 	if in.From != nil {
 		in, out := &in.From, &out.From
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(core_v1.ObjectReference)
-			**out = **in
-		}
+		*out = new(corev1.ObjectReference)
+		**out = **in
 	}
 	if in.PullSecret != nil {
 		in, out := &in.PullSecret, &out.PullSecret
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(core_v1.LocalObjectReference)
-			**out = **in
-		}
+		*out = new(corev1.LocalObjectReference)
+		**out = **in
 	}
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]core_v1.EnvVar, len(*in))
+		*out = make([]corev1.EnvVar, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	if in.BuildArgs != nil {
 		in, out := &in.BuildArgs, &out.BuildArgs
-		*out = make([]core_v1.EnvVar, len(*in))
+		*out = make([]corev1.EnvVar, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	if in.ImageOptimizationPolicy != nil {
 		in, out := &in.ImageOptimizationPolicy, &out.ImageOptimizationPolicy
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(ImageOptimizationPolicy)
-			**out = **in
-		}
+		*out = new(ImageOptimizationPolicy)
+		**out = **in
 	}
 	return
 }
@@ -1055,19 +875,15 @@ func (in *DockerStrategyOptions) DeepCopyInto(out *DockerStrategyOptions) {
 	*out = *in
 	if in.BuildArgs != nil {
 		in, out := &in.BuildArgs, &out.BuildArgs
-		*out = make([]core_v1.EnvVar, len(*in))
+		*out = make([]corev1.EnvVar, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	if in.NoCache != nil {
 		in, out := &in.NoCache, &out.NoCache
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(bool)
-			**out = **in
-		}
+		*out = new(bool)
+		**out = **in
 	}
 	return
 }
@@ -1087,12 +903,8 @@ func (in *GenericWebHookCause) DeepCopyInto(out *GenericWebHookCause) {
 	*out = *in
 	if in.Revision != nil {
 		in, out := &in.Revision, &out.Revision
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(SourceRevision)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(SourceRevision)
+		(*in).DeepCopyInto(*out)
 	}
 	return
 }
@@ -1112,28 +924,20 @@ func (in *GenericWebHookEvent) DeepCopyInto(out *GenericWebHookEvent) {
 	*out = *in
 	if in.Git != nil {
 		in, out := &in.Git, &out.Git
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(GitInfo)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(GitInfo)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]core_v1.EnvVar, len(*in))
+		*out = make([]corev1.EnvVar, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	if in.DockerStrategyOptions != nil {
 		in, out := &in.DockerStrategyOptions, &out.DockerStrategyOptions
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(DockerStrategyOptions)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(DockerStrategyOptions)
+		(*in).DeepCopyInto(*out)
 	}
 	return
 }
@@ -1170,12 +974,8 @@ func (in *GitHubWebHookCause) DeepCopyInto(out *GitHubWebHookCause) {
 	*out = *in
 	if in.Revision != nil {
 		in, out := &in.Revision, &out.Revision
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(SourceRevision)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(SourceRevision)
+		(*in).DeepCopyInto(*out)
 	}
 	return
 }
@@ -1273,12 +1073,8 @@ func (in *ImageChangeCause) DeepCopyInto(out *ImageChangeCause) {
 	*out = *in
 	if in.FromRef != nil {
 		in, out := &in.FromRef, &out.FromRef
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(core_v1.ObjectReference)
-			**out = **in
-		}
+		*out = new(corev1.ObjectReference)
+		**out = **in
 	}
 	return
 }
@@ -1298,12 +1094,8 @@ func (in *ImageChangeTrigger) DeepCopyInto(out *ImageChangeTrigger) {
 	*out = *in
 	if in.From != nil {
 		in, out := &in.From, &out.From
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(core_v1.ObjectReference)
-			**out = **in
-		}
+		*out = new(corev1.ObjectReference)
+		**out = **in
 	}
 	return
 }
@@ -1350,12 +1142,8 @@ func (in *ImageSource) DeepCopyInto(out *ImageSource) {
 	}
 	if in.PullSecret != nil {
 		in, out := &in.PullSecret, &out.PullSecret
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(core_v1.LocalObjectReference)
-			**out = **in
-		}
+		*out = new(corev1.LocalObjectReference)
+		**out = **in
 	}
 	return
 }
@@ -1391,7 +1179,7 @@ func (in *JenkinsPipelineBuildStrategy) DeepCopyInto(out *JenkinsPipelineBuildSt
 	*out = *in
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]core_v1.EnvVar, len(*in))
+		*out = make([]corev1.EnvVar, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -1436,30 +1224,18 @@ func (in *ProxyConfig) DeepCopyInto(out *ProxyConfig) {
 	*out = *in
 	if in.HTTPProxy != nil {
 		in, out := &in.HTTPProxy, &out.HTTPProxy
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(string)
-			**out = **in
-		}
+		*out = new(string)
+		**out = **in
 	}
 	if in.HTTPSProxy != nil {
 		in, out := &in.HTTPSProxy, &out.HTTPSProxy
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(string)
-			**out = **in
-		}
+		*out = new(string)
+		**out = **in
 	}
 	if in.NoProxy != nil {
 		in, out := &in.NoProxy, &out.NoProxy
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(string)
-			**out = **in
-		}
+		*out = new(string)
+		**out = **in
 	}
 	return
 }
@@ -1530,28 +1306,20 @@ func (in *SourceBuildStrategy) DeepCopyInto(out *SourceBuildStrategy) {
 	out.From = in.From
 	if in.PullSecret != nil {
 		in, out := &in.PullSecret, &out.PullSecret
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(core_v1.LocalObjectReference)
-			**out = **in
-		}
+		*out = new(corev1.LocalObjectReference)
+		**out = **in
 	}
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]core_v1.EnvVar, len(*in))
+		*out = make([]corev1.EnvVar, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	if in.Incremental != nil {
 		in, out := &in.Incremental, &out.Incremental
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(bool)
-			**out = **in
-		}
+		*out = new(bool)
+		**out = **in
 	}
 	return
 }
@@ -1587,12 +1355,8 @@ func (in *SourceRevision) DeepCopyInto(out *SourceRevision) {
 	*out = *in
 	if in.Git != nil {
 		in, out := &in.Git, &out.Git
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(GitSourceRevision)
-			**out = **in
-		}
+		*out = new(GitSourceRevision)
+		**out = **in
 	}
 	return
 }
@@ -1612,12 +1376,8 @@ func (in *SourceStrategyOptions) DeepCopyInto(out *SourceStrategyOptions) {
 	*out = *in
 	if in.Incremental != nil {
 		in, out := &in.Incremental, &out.Incremental
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(bool)
-			**out = **in
-		}
+		*out = new(bool)
+		**out = **in
 	}
 	return
 }
@@ -1678,12 +1438,8 @@ func (in *WebHookTrigger) DeepCopyInto(out *WebHookTrigger) {
 	*out = *in
 	if in.SecretReference != nil {
 		in, out := &in.SecretReference, &out.SecretReference
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(SecretLocalReference)
-			**out = **in
-		}
+		*out = new(SecretLocalReference)
+		**out = **in
 	}
 	return
 }

@@ -3,9 +3,11 @@
 package v1
 
 import (
+	"time"
+
 	v1 "github.com/openshift/api/config/v1"
 	scheme "github.com/openshift/client-go/config/clientset/versioned/scheme"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
@@ -22,11 +24,11 @@ type ClusterOperatorInterface interface {
 	Create(*v1.ClusterOperator) (*v1.ClusterOperator, error)
 	Update(*v1.ClusterOperator) (*v1.ClusterOperator, error)
 	UpdateStatus(*v1.ClusterOperator) (*v1.ClusterOperator, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
-	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1.ClusterOperator, error)
-	List(opts meta_v1.ListOptions) (*v1.ClusterOperatorList, error)
-	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Delete(name string, options *metav1.DeleteOptions) error
+	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
+	Get(name string, options metav1.GetOptions) (*v1.ClusterOperator, error)
+	List(opts metav1.ListOptions) (*v1.ClusterOperatorList, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.ClusterOperator, err error)
 	ClusterOperatorExpansion
 }
@@ -44,7 +46,7 @@ func newClusterOperators(c *ConfigV1Client) *clusterOperators {
 }
 
 // Get takes name of the clusterOperator, and returns the corresponding clusterOperator object, and an error if there is any.
-func (c *clusterOperators) Get(name string, options meta_v1.GetOptions) (result *v1.ClusterOperator, err error) {
+func (c *clusterOperators) Get(name string, options metav1.GetOptions) (result *v1.ClusterOperator, err error) {
 	result = &v1.ClusterOperator{}
 	err = c.client.Get().
 		Resource("clusteroperators").
@@ -56,22 +58,32 @@ func (c *clusterOperators) Get(name string, options meta_v1.GetOptions) (result 
 }
 
 // List takes label and field selectors, and returns the list of ClusterOperators that match those selectors.
-func (c *clusterOperators) List(opts meta_v1.ListOptions) (result *v1.ClusterOperatorList, err error) {
+func (c *clusterOperators) List(opts metav1.ListOptions) (result *v1.ClusterOperatorList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1.ClusterOperatorList{}
 	err = c.client.Get().
 		Resource("clusteroperators").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested clusterOperators.
-func (c *clusterOperators) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *clusterOperators) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Resource("clusteroperators").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -114,7 +126,7 @@ func (c *clusterOperators) UpdateStatus(clusterOperator *v1.ClusterOperator) (re
 }
 
 // Delete takes name of the clusterOperator and deletes it. Returns an error if one occurs.
-func (c *clusterOperators) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *clusterOperators) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("clusteroperators").
 		Name(name).
@@ -124,10 +136,15 @@ func (c *clusterOperators) Delete(name string, options *meta_v1.DeleteOptions) e
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *clusterOperators) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *clusterOperators) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Resource("clusteroperators").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

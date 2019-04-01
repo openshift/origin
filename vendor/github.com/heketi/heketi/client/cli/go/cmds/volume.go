@@ -16,7 +16,6 @@ import (
 	"os"
 	"strings"
 
-	client "github.com/heketi/heketi/client/api/go-client"
 	"github.com/heketi/heketi/pkg/glusterfs/api"
 	"github.com/heketi/heketi/pkg/kubernetes"
 	"github.com/spf13/cobra"
@@ -38,6 +37,7 @@ var (
 	kubePvEndpoint       string
 	kubePv               bool
 	glusterVolumeOptions string
+	block                bool
 )
 
 func init() {
@@ -47,9 +47,12 @@ func init() {
 	volumeCommand.AddCommand(volumeExpandCommand)
 	volumeCommand.AddCommand(volumeInfoCommand)
 	volumeCommand.AddCommand(volumeListCommand)
+	volumeCommand.AddCommand(volumeBlockHostingRestrictionCommand)
+	volumeBlockHostingRestrictionCommand.AddCommand(volumeBlockHostingRestrictionUnlockCommand)
+	volumeBlockHostingRestrictionCommand.AddCommand(volumeBlockHostingRestrictionLockCommand)
 
-	volumeCreateCommand.Flags().IntVar(&size, "size", -1,
-		"\n\tSize of volume in GB")
+	volumeCreateCommand.Flags().IntVar(&size, "size", 0,
+		"\n\tSize of volume in GiB")
 	volumeCreateCommand.Flags().Int64Var(&gid, "gid", 0,
 		"\n\tOptional: Initialize volume with the specified group id")
 	volumeCreateCommand.Flags().StringVar(&volname, "name", "",
@@ -60,14 +63,11 @@ func init() {
 			"\n\t\treplicate: (Default) Distributed-Replica volume."+
 			"\n\t\tdisperse: Distributed-Erasure Coded volume.")
 	volumeCreateCommand.Flags().IntVar(&replica, "replica", 3,
-		"\n\tReplica value for durability type 'replicate'."+
-			"\n\tDefault is 3")
+		"\n\tReplica value for durability type 'replicate'.")
 	volumeCreateCommand.Flags().IntVar(&disperseData, "disperse-data", 4,
-		"\n\tOptional: Dispersion value for durability type 'disperse'."+
-			"\n\tDefault is 4")
+		"\n\tOptional: Dispersion value for durability type 'disperse'.")
 	volumeCreateCommand.Flags().IntVar(&redundancy, "redundancy", 2,
-		"\n\tOptional: Redundancy value for durability type 'disperse'."+
-			"\n\tDefault is 2")
+		"\n\tOptional: Redundancy value for durability type 'disperse'.")
 	volumeCreateCommand.Flags().Float64Var(&snapshotFactor, "snapshot-factor", 1.0,
 		"\n\tOptional: Amount of storage to allocate for snapshot support."+
 			"\n\tMust be greater 1.0.  For example if a 10TiB volume requires 5TiB of"+
@@ -90,15 +90,24 @@ func init() {
 			"\n\tKubernetes with the name provided.")
 	volumeCreateCommand.Flags().StringVar(&kubePvEndpoint, "persistent-volume-endpoint", "",
 		"\n\tOptional: Endpoint name for the persistent volume")
-	volumeExpandCommand.Flags().IntVar(&expandSize, "expand-size", -1,
-		"\n\tAmount in GB to add to the volume")
+	volumeExpandCommand.Flags().IntVar(&expandSize, "expand-size", 0,
+		"\n\tAmount in GiB to add to the volume")
 	volumeExpandCommand.Flags().StringVar(&id, "volume", "",
 		"\n\tId of volume to expand")
+	volumeCreateCommand.Flags().BoolVar(&block, "block", false,
+		"\n\tOptional: Create a block-hosting volume. Intended to host"+
+			"\n\tloopback files to be exported as block devices.")
 	volumeCreateCommand.SilenceUsage = true
 	volumeDeleteCommand.SilenceUsage = true
 	volumeExpandCommand.SilenceUsage = true
 	volumeInfoCommand.SilenceUsage = true
 	volumeListCommand.SilenceUsage = true
+	volumeBlockHostingRestrictionCommand.SilenceUsage = true
+
+	volumeCommand.AddCommand(volumeCloneCommand)
+	volumeCloneCommand.Flags().StringVar(&volname, "name", "",
+		"\n\tOptional: Name of the newly cloned volume.")
+	volumeCloneCommand.SilenceUsage = true
 }
 
 var volumeCommand = &cobra.Command{
@@ -111,32 +120,32 @@ var volumeCreateCommand = &cobra.Command{
 	Use:   "create",
 	Short: "Create a GlusterFS volume",
 	Long:  "Create a GlusterFS volume",
-	Example: `  * Create a 100GB replica 3 volume:
+	Example: `  * Create a 100GiB replica 3 volume:
       $ heketi-cli volume create --size=100
 
-  * Create a 100GB replica 3 volume specifying two specific clusters:
+  * Create a 100GiB replica 3 volume specifying two specific clusters:
       $ heketi-cli volume create --size=100 \
         --clusters=0995098e1284ddccb46c7752d142c832,60d46d518074b13a04ce1022c8c7193c
 
-  * Create a 100GB replica 2 volume with 50GB of snapshot storage:
+  * Create a 100GiB replica 2 volume with 50GiB of snapshot storage:
       $ heketi-cli volume create --size=100 --snapshot-factor=1.5 --replica=2
 
-  * Create a 100GB distributed volume
+  * Create a 100GiB distributed volume
       $ heketi-cli volume create --size=100 --durability=none
 
-  * Create a 100GB erasure coded 4+2 volume with 25GB snapshot storage:
+  * Create a 100GiB erasure coded 4+2 volume with 25GiB snapshot storage:
       $ heketi-cli volume create --size=100 --durability=disperse --snapshot-factor=1.25
 
-  * Create a 100GB erasure coded 8+3 volume with 25GB snapshot storage:
+  * Create a 100GiB erasure coded 8+3 volume with 25GiB snapshot storage:
       $ heketi-cli volume create --size=100 --durability=disperse --snapshot-factor=1.25 \
         --disperse-data=8 --redundancy=3
 
-  * Create a 100GB distributed volume which supports performance related volume options.
+  * Create a 100GiB distributed volume which supports performance related volume options.
       $ heketi-cli volume create --size=100 --durability=none --gluster-volume-options="performance.rda-cache-limit 10MB","performance.nl-cache-positive-entry no"
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Check volume size
-		if size == -1 {
+		if size == 0 {
 			return errors.New("Missing volume size")
 		}
 
@@ -153,6 +162,7 @@ var volumeCreateCommand = &cobra.Command{
 		req.Durability.Replicate.Replica = replica
 		req.Durability.Disperse.Data = disperseData
 		req.Durability.Disperse.Redundancy = redundancy
+		req.Block = block
 
 		// Check clusters
 		if clusters != "" {
@@ -179,7 +189,10 @@ var volumeCreateCommand = &cobra.Command{
 		}
 
 		// Create a client
-		heketi := client.NewClient(options.Url, options.User, options.Key)
+		heketi, err := newHeketiClient()
+		if err != nil {
+			return err
+		}
 
 		// Add volume
 		volume, err := heketi.VolumeCreate(req)
@@ -245,10 +258,13 @@ var volumeDeleteCommand = &cobra.Command{
 		volumeId := cmd.Flags().Arg(0)
 
 		// Create a client
-		heketi := client.NewClient(options.Url, options.User, options.Key)
+		heketi, err := newHeketiClient()
+		if err != nil {
+			return err
+		}
 
 		//set url
-		err := heketi.VolumeDelete(volumeId)
+		err = heketi.VolumeDelete(volumeId)
 		if err == nil {
 			fmt.Fprintf(stdout, "Volume %v deleted\n", volumeId)
 		}
@@ -261,12 +277,12 @@ var volumeExpandCommand = &cobra.Command{
 	Use:   "expand",
 	Short: "Expand a volume",
 	Long:  "Expand a volume",
-	Example: `  * Add 10GB to a volume
+	Example: `  * Add 10GiB to a volume
     $ heketi-cli volume expand --volume=60d46d518074b13a04ce1022c8c7193c --expand-size=10
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Check volume size
-		if expandSize == -1 {
+		if expandSize == 0 {
 			return errors.New("Missing volume amount to expand")
 		}
 
@@ -279,7 +295,10 @@ var volumeExpandCommand = &cobra.Command{
 		req.Size = expandSize
 
 		// Create client
-		heketi := client.NewClient(options.Url, options.User, options.Key)
+		heketi, err := newHeketiClient()
+		if err != nil {
+			return err
+		}
 
 		// Expand volume
 		volume, err := heketi.VolumeExpand(id, req)
@@ -300,10 +319,110 @@ var volumeExpandCommand = &cobra.Command{
 	},
 }
 
+var volumeBlockHostingRestrictionCommand = &cobra.Command{
+	Use:   "set-block-hosting-restriction",
+	Short: "set volume's block hosting restriction",
+	Long:  "set volume's block hosting restriction",
+}
+
+var volumeBlockHostingRestrictionLockCommand = &cobra.Command{
+	Use:   "locked",
+	Short: "restrict creation of block volumes on block hosting volume",
+	Long:  "restrict creation of block volumes on block hosting volume",
+	Example: ` * Restrict creation of block volumes on the volume
+    $ heketi-cli volume set-block-hosting-restriction locked 60d46d518074b13a04ce1022c8c7193c
+`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		s := cmd.Flags().Args()
+
+		//ensure proper number of args
+		if len(s) < 1 {
+			return errors.New("Volume id missing")
+		}
+
+		//set volumeId
+		volumeID := cmd.Flags().Arg(0)
+
+		// Create request
+		req := &api.VolumeBlockRestrictionRequest{}
+		req.Restriction = api.Locked
+
+		// Create client
+		heketi, err := newHeketiClient()
+		if err != nil {
+			return err
+		}
+
+		// Set the flag
+		volume, err := heketi.VolumeSetBlockRestriction(volumeID, req)
+		if err != nil {
+			return err
+		}
+
+		if options.Json {
+			data, err := json.Marshal(volume)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(stdout, string(data))
+		} else {
+			fmt.Fprintf(stdout, "%v", volume)
+		}
+		return nil
+	},
+}
+
+var volumeBlockHostingRestrictionUnlockCommand = &cobra.Command{
+	Use:   "unlocked",
+	Short: "allow creation of block volumes on block hosting volume",
+	Long:  "allow creation of block volumes on block hosting volume",
+	Example: ` * Allow creation of block volumes on the volume
+    $ heketi-cli volume set-block-hosting-restriction unlocked 60d46d518074b13a04ce1022c8c7193c
+`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		s := cmd.Flags().Args()
+
+		//ensure proper number of args
+		if len(s) < 1 {
+			return errors.New("Volume id missing")
+		}
+
+		//set volumeId
+		volumeID := cmd.Flags().Arg(0)
+
+		// Create request
+		req := &api.VolumeBlockRestrictionRequest{}
+		req.Restriction = api.Unrestricted
+
+		// Create client
+		heketi, err := newHeketiClient()
+		if err != nil {
+			return err
+		}
+
+		// Set the flag
+		volume, err := heketi.VolumeSetBlockRestriction(volumeID, req)
+		if err != nil {
+			return err
+		}
+
+		if options.Json {
+			data, err := json.Marshal(volume)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(stdout, string(data))
+		} else {
+			fmt.Fprintf(stdout, "%v", volume)
+		}
+		return nil
+	},
+}
+
 var volumeInfoCommand = &cobra.Command{
 	Use:     "info",
-	Short:   "Retreives information about the volume",
-	Long:    "Retreives information about the volume",
+	Short:   "Retrieves information about the volume",
+	Long:    "Retrieves information about the volume",
 	Example: "  $ heketi-cli volume info 886a86a868711bef83001",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		//ensure proper number of args
@@ -316,7 +435,10 @@ var volumeInfoCommand = &cobra.Command{
 		volumeId := cmd.Flags().Arg(0)
 
 		// Create a client to talk to Heketi
-		heketi := client.NewClient(options.Url, options.User, options.Key)
+		heketi, err := newHeketiClient()
+		if err != nil {
+			return err
+		}
 
 		// Create cluster
 		info, err := heketi.VolumeInfo(volumeId)
@@ -345,7 +467,10 @@ var volumeListCommand = &cobra.Command{
 	Example: "  $ heketi-cli volume list",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Create a client
-		heketi := client.NewClient(options.Url, options.User, options.Key)
+		heketi, err := newHeketiClient()
+		if err != nil {
+			return err
+		}
 
 		// List volumes
 		list, err := heketi.VolumeList()
@@ -366,13 +491,63 @@ var volumeListCommand = &cobra.Command{
 					return err
 				}
 
-				fmt.Fprintf(stdout, "Id:%-35v Cluster:%-35v Name:%v\n",
+				blockstr := ""
+				if volume.Block {
+					blockstr = " [block]"
+				}
+				fmt.Fprintf(stdout, "Id:%-35v Cluster:%-35v Name:%v%v\n",
 					id,
 					volume.Cluster,
-					volume.Name)
+					volume.Name,
+					blockstr)
 			}
 		}
 
+		return nil
+	},
+}
+
+var volumeCloneCommand = &cobra.Command{
+	Use:     "clone",
+	Short:   "Creates a clone",
+	Long:    "Creates a clone",
+	Example: "  $ heketi-cli volume clone 886a86a868711bef83001",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		//ensure proper number of args
+		s := cmd.Flags().Args()
+		if len(s) < 1 {
+			return errors.New("Volume id missing")
+		}
+
+		// Set volume id
+		volumeId := cmd.Flags().Arg(0)
+
+		// Create request
+		req := &api.VolumeCloneRequest{}
+		if volname != "" {
+			req.Name = volname
+		}
+
+		heketi, err := newHeketiClient()
+		if err != nil {
+			return err
+		}
+
+		// Clone the volume
+		volume, err := heketi.VolumeClone(volumeId, req)
+		if err != nil {
+			return err
+		}
+
+		if options.Json {
+			data, err := json.Marshal(volume)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(stdout, string(data))
+		} else {
+			fmt.Fprintf(stdout, "%v", volume)
+		}
 		return nil
 	},
 }

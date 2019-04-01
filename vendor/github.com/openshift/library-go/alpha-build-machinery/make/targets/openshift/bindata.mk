@@ -45,11 +45,20 @@ verify-bindata: verify-bindata-$(1)
 .PHONY: verify-bindata
 endef
 
+
 update-generated: update-bindata
 .PHONY: update-bindata
 
+update: update-generated
+.PHONY: update
+
+
 verify-generated: verify-bindata
 .PHONY: verify-bindata
+
+verify: verify-generated
+.PHONY: verify
+
 
 define add-bindata
 $(eval $(call add-bindata-internal,$(1),$(2),$(3),$(4),$(5)))

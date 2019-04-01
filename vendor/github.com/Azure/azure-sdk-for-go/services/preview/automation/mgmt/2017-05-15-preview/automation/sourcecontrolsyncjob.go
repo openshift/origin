@@ -55,7 +55,10 @@ func (client SourceControlSyncJobClient) Create(ctx context.Context, resourceGro
 				{Target: "resourceGroupName", Name: validation.MinLength, Rule: 1, Chain: nil},
 				{Target: "resourceGroupName", Name: validation.Pattern, Rule: `^[-\w\._]+$`, Chain: nil}}},
 		{TargetValue: parameters,
-			Constraints: []validation.Constraint{{Target: "parameters.SourceControlSyncJobCreateProperties", Name: validation.Null, Rule: true, Chain: nil}}}}); err != nil {
+			Constraints: []validation.Constraint{{Target: "parameters.SourceControlSyncJobCreateProperties", Name: validation.Null, Rule: true,
+				Chain: []validation.Constraint{{Target: "parameters.SourceControlSyncJobCreateProperties.CommitID", Name: validation.Null, Rule: true,
+					Chain: []validation.Constraint{{Target: "parameters.SourceControlSyncJobCreateProperties.CommitID", Name: validation.MinLength, Rule: 0, Chain: nil}}},
+				}}}}}); err != nil {
 		return result, validation.NewError("automation.SourceControlSyncJobClient", "Create", err.Error())
 	}
 

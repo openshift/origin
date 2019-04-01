@@ -1,8 +1,8 @@
 package installerpod
 
 import (
-	"github.com/golang/glog"
 	"golang.org/x/net/context"
+	"k8s.io/klog"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -21,7 +21,7 @@ func (o *InstallOptions) getSecretWithRetry(ctx context.Context, name string, is
 		var clientErr error
 		secret, clientErr = o.KubeClient.CoreV1().Secrets(o.Namespace).Get(name, metav1.GetOptions{})
 		if clientErr != nil {
-			glog.Infof("Failed to get secret %s/%s: %v", o.Namespace, name, clientErr)
+			klog.Infof("Failed to get secret %s/%s: %v", o.Namespace, name, clientErr)
 			return false, clientErr
 		}
 		return true, nil
@@ -29,7 +29,7 @@ func (o *InstallOptions) getSecretWithRetry(ctx context.Context, name string, is
 
 	switch {
 	case err == nil:
-		glog.Infof("Got secret %s/%s", o.Namespace, name)
+		klog.Infof("Got secret %s/%s", o.Namespace, name)
 		return secret, nil
 	case errors.IsNotFound(err) && isOptional:
 		return nil, nil
@@ -49,7 +49,7 @@ func (o *InstallOptions) getConfigMapWithRetry(ctx context.Context, name string,
 		var clientErr error
 		config, clientErr = o.KubeClient.CoreV1().ConfigMaps(o.Namespace).Get(name, metav1.GetOptions{})
 		if clientErr != nil {
-			glog.Infof("Failed to get config map %s/%s: %v", o.Namespace, name, clientErr)
+			klog.Infof("Failed to get config map %s/%s: %v", o.Namespace, name, clientErr)
 			return false, clientErr
 		}
 		return true, nil
@@ -57,7 +57,7 @@ func (o *InstallOptions) getConfigMapWithRetry(ctx context.Context, name string,
 
 	switch {
 	case err == nil:
-		glog.Infof("Got configMap %s/%s", o.Namespace, name)
+		klog.Infof("Got configMap %s/%s", o.Namespace, name)
 		return config, nil
 	case errors.IsNotFound(err) && isOptional:
 		return nil, nil

@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/golang/glog"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -161,7 +161,7 @@ func (r *recorder) Warningf(reason, messageFmt string, args ...interface{}) {
 func (r *recorder) Event(reason, message string) {
 	event := makeEvent(r.involvedObjectRef, r.sourceComponent, corev1.EventTypeNormal, reason, message)
 	if _, err := r.eventClient.Create(event); err != nil {
-		glog.Warningf("Error creating event %+v: %v", event, err)
+		klog.Warningf("Error creating event %+v: %v", event, err)
 	}
 }
 
@@ -169,7 +169,7 @@ func (r *recorder) Event(reason, message string) {
 func (r *recorder) Warning(reason, message string) {
 	event := makeEvent(r.involvedObjectRef, r.sourceComponent, corev1.EventTypeWarning, reason, message)
 	if _, err := r.eventClient.Create(event); err != nil {
-		glog.Warningf("Error creating event %+v: %v", event, err)
+		klog.Warningf("Error creating event %+v: %v", event, err)
 	}
 }
 

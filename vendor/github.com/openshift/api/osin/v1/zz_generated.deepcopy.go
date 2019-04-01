@@ -127,12 +127,8 @@ func (in *GitLabIdentityProvider) DeepCopyInto(out *GitLabIdentityProvider) {
 	out.ClientSecret = in.ClientSecret
 	if in.Legacy != nil {
 		in, out := &in.Legacy, &out.Legacy
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(bool)
-			**out = **in
-		}
+		*out = new(bool)
+		**out = **in
 	}
 	return
 }
@@ -333,12 +329,8 @@ func (in *OAuthConfig) DeepCopyInto(out *OAuthConfig) {
 	*out = *in
 	if in.MasterCA != nil {
 		in, out := &in.MasterCA, &out.MasterCA
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(string)
-			**out = **in
-		}
+		*out = new(string)
+		**out = **in
 	}
 	if in.IdentityProviders != nil {
 		in, out := &in.IdentityProviders, &out.IdentityProviders
@@ -350,22 +342,14 @@ func (in *OAuthConfig) DeepCopyInto(out *OAuthConfig) {
 	out.GrantConfig = in.GrantConfig
 	if in.SessionConfig != nil {
 		in, out := &in.SessionConfig, &out.SessionConfig
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(SessionConfig)
-			**out = **in
-		}
+		*out = new(SessionConfig)
+		**out = **in
 	}
 	in.TokenConfig.DeepCopyInto(&out.TokenConfig)
 	if in.Templates != nil {
 		in, out := &in.Templates, &out.Templates
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(OAuthTemplates)
-			**out = **in
-		}
+		*out = new(OAuthTemplates)
+		**out = **in
 	}
 	return
 }
@@ -586,12 +570,8 @@ func (in *TokenConfig) DeepCopyInto(out *TokenConfig) {
 	*out = *in
 	if in.AccessTokenInactivityTimeoutSeconds != nil {
 		in, out := &in.AccessTokenInactivityTimeoutSeconds, &out.AccessTokenInactivityTimeoutSeconds
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(int32)
-			**out = **in
-		}
+		*out = new(int32)
+		**out = **in
 	}
 	return
 }

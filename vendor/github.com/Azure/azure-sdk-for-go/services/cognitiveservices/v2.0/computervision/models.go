@@ -440,9 +440,9 @@ type ImageTag struct {
 // ImageType an object providing possible image types and matching confidence levels.
 type ImageType struct {
 	// ClipArtType - Confidence level that the image is a clip art.
-	ClipArtType *float64 `json:"clipArtType,omitempty"`
+	ClipArtType *int32 `json:"clipArtType,omitempty"`
 	// LineDrawingType - Confidence level that the image is a line drawing.
-	LineDrawingType *float64 `json:"lineDrawingType,omitempty"`
+	LineDrawingType *int32 `json:"lineDrawingType,omitempty"`
 }
 
 // ImageURL ...

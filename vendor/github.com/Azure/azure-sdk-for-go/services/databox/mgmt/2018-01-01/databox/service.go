@@ -151,7 +151,7 @@ func (client ServiceClient) ListAvailableSkusComplete(ctx context.Context, locat
 func (client ServiceClient) ValidateAddressMethod(ctx context.Context, location string, validateAddress ValidateAddress) (result AddressValidationOutput, err error) {
 	if err := validation.Validate([]validation.Validation{
 		{TargetValue: validateAddress,
-			Constraints: []validation.Constraint{{Target: "validateAddress.ShippingAddress", Name: validation.Null, Rule: false,
+			Constraints: []validation.Constraint{{Target: "validateAddress.ShippingAddress", Name: validation.Null, Rule: true,
 				Chain: []validation.Constraint{{Target: "validateAddress.ShippingAddress.StreetAddress1", Name: validation.Null, Rule: true, Chain: nil},
 					{Target: "validateAddress.ShippingAddress.Country", Name: validation.Null, Rule: true, Chain: nil},
 					{Target: "validateAddress.ShippingAddress.PostalCode", Name: validation.Null, Rule: true, Chain: nil},

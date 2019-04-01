@@ -3,9 +3,11 @@
 package v1
 
 import (
+	"time"
+
 	v1 "github.com/openshift/api/user/v1"
 	scheme "github.com/openshift/client-go/user/clientset/versioned/scheme"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
@@ -21,11 +23,11 @@ type IdentitiesGetter interface {
 type IdentityInterface interface {
 	Create(*v1.Identity) (*v1.Identity, error)
 	Update(*v1.Identity) (*v1.Identity, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
-	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1.Identity, error)
-	List(opts meta_v1.ListOptions) (*v1.IdentityList, error)
-	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Delete(name string, options *metav1.DeleteOptions) error
+	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
+	Get(name string, options metav1.GetOptions) (*v1.Identity, error)
+	List(opts metav1.ListOptions) (*v1.IdentityList, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.Identity, err error)
 	IdentityExpansion
 }
@@ -43,7 +45,7 @@ func newIdentities(c *UserV1Client) *identities {
 }
 
 // Get takes name of the identity, and returns the corresponding identity object, and an error if there is any.
-func (c *identities) Get(name string, options meta_v1.GetOptions) (result *v1.Identity, err error) {
+func (c *identities) Get(name string, options metav1.GetOptions) (result *v1.Identity, err error) {
 	result = &v1.Identity{}
 	err = c.client.Get().
 		Resource("identities").
@@ -55,22 +57,32 @@ func (c *identities) Get(name string, options meta_v1.GetOptions) (result *v1.Id
 }
 
 // List takes label and field selectors, and returns the list of Identities that match those selectors.
-func (c *identities) List(opts meta_v1.ListOptions) (result *v1.IdentityList, err error) {
+func (c *identities) List(opts metav1.ListOptions) (result *v1.IdentityList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1.IdentityList{}
 	err = c.client.Get().
 		Resource("identities").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested identities.
-func (c *identities) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *identities) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Resource("identities").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -98,7 +110,7 @@ func (c *identities) Update(identity *v1.Identity) (result *v1.Identity, err err
 }
 
 // Delete takes name of the identity and deletes it. Returns an error if one occurs.
-func (c *identities) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *identities) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("identities").
 		Name(name).
@@ -108,10 +120,15 @@ func (c *identities) Delete(name string, options *meta_v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *identities) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *identities) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Resource("identities").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

@@ -125,6 +125,51 @@ func (cd ConfigDataProperties) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
+// UnmarshalJSON is the custom unmarshaler for ConfigDataProperties struct.
+func (cd *ConfigDataProperties) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		default:
+			if v != nil {
+				var additionalProperties interface{}
+				err = json.Unmarshal(*v, &additionalProperties)
+				if err != nil {
+					return err
+				}
+				if cd.AdditionalProperties == nil {
+					cd.AdditionalProperties = make(map[string]interface{})
+				}
+				cd.AdditionalProperties[k] = additionalProperties
+			}
+		case "exclude":
+			if v != nil {
+				var exclude bool
+				err = json.Unmarshal(*v, &exclude)
+				if err != nil {
+					return err
+				}
+				cd.Exclude = &exclude
+			}
+		case "low_cpu_threshold":
+			if v != nil {
+				var lowCPUThreshold string
+				err = json.Unmarshal(*v, &lowCPUThreshold)
+				if err != nil {
+					return err
+				}
+				cd.LowCPUThreshold = &lowCPUThreshold
+			}
+		}
+	}
+
+	return nil
+}
+
 // ConfigurationListResult the list of Advisor configurations.
 type ConfigurationListResult struct {
 	autorest.Response `json:"-"`
@@ -371,6 +416,8 @@ type RecommendationProperties struct {
 	ShortDescription *ShortDescription `json:"shortDescription,omitempty"`
 	// SuppressionIds - The list of snoozed and dismissed rules for the recommendation.
 	SuppressionIds *[]uuid.UUID `json:"suppressionIds,omitempty"`
+	// ExtendedProperties - Extended properties
+	ExtendedProperties map[string]*string `json:"extendedProperties"`
 }
 
 // MarshalJSON is the custom marshaler for RecommendationProperties.
@@ -405,6 +452,9 @@ func (rp RecommendationProperties) MarshalJSON() ([]byte, error) {
 	}
 	if rp.SuppressionIds != nil {
 		objectMap["suppressionIds"] = rp.SuppressionIds
+	}
+	if rp.ExtendedProperties != nil {
+		objectMap["extendedProperties"] = rp.ExtendedProperties
 	}
 	return json.Marshal(objectMap)
 }

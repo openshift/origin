@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -91,7 +91,7 @@ func (c *CertSyncController) sync() error {
 		}
 
 		contentDir := getConfigMapDir(c.destinationDir, cm.Name)
-		glog.Infof("Creating directory %q ...", contentDir)
+		klog.Infof("Creating directory %q ...", contentDir)
 		if err := os.MkdirAll(contentDir, 0755); err != nil && !os.IsExist(err) {
 			errors = append(errors, err)
 			continue
@@ -103,7 +103,7 @@ func (c *CertSyncController) sync() error {
 				continue
 			}
 
-			glog.Infof("Writing configmap manifest %q ...", fullFilename)
+			klog.Infof("Writing configmap manifest %q ...", fullFilename)
 			if err := ioutil.WriteFile(fullFilename, []byte(content), 0644); err != nil {
 				errors = append(errors, err)
 				continue
@@ -129,7 +129,7 @@ func (c *CertSyncController) sync() error {
 		}
 
 		contentDir := getSecretDir(c.destinationDir, s.Name)
-		glog.Infof("Creating directory %q ...", contentDir)
+		klog.Infof("Creating directory %q ...", contentDir)
 		if err := os.MkdirAll(contentDir, 0755); err != nil && !os.IsExist(err) {
 			errors = append(errors, err)
 			continue
@@ -142,7 +142,7 @@ func (c *CertSyncController) sync() error {
 				continue
 			}
 
-			glog.Infof("Writing secret manifest %q ...", fullFilename)
+			klog.Infof("Writing secret manifest %q ...", fullFilename)
 			if err := ioutil.WriteFile(fullFilename, content, 0644); err != nil {
 				errors = append(errors, err)
 				continue
@@ -158,8 +158,8 @@ func (c *CertSyncController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	glog.Infof("Starting CertSyncer")
-	defer glog.Infof("Shutting down CertSyncer")
+	klog.Infof("Starting CertSyncer")
+	defer klog.Infof("Shutting down CertSyncer")
 
 	// doesn't matter what workers say, only start one.
 	go wait.Until(c.runWorker, time.Second, stopCh)

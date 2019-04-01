@@ -256,10 +256,6 @@ func (client Client) CreateOrUpdateSender(req *http.Request) (future CreateOrUpd
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusAccepted))
-	if err != nil {
-		return
-	}
 	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
@@ -333,10 +329,6 @@ func (client Client) CreateOrUpdateByIDSender(req *http.Request) (future CreateO
 	var resp *http.Response
 	resp, err = autorest.SendWithSender(client, req,
 		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusCreated, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -422,10 +414,6 @@ func (client Client) DeleteSender(req *http.Request) (future DeleteFuture, err e
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
-	if err != nil {
-		return
-	}
 	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
@@ -488,10 +476,6 @@ func (client Client) DeleteByIDSender(req *http.Request) (future DeleteByIDFutur
 	var resp *http.Response
 	resp, err = autorest.SendWithSender(client, req,
 		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
 	if err != nil {
 		return
 	}
@@ -661,8 +645,19 @@ func (client Client) GetByIDResponder(resp *http.Response) (result GenericResour
 
 // List get all the resources in a subscription.
 // Parameters:
-// filter - the filter to apply on the operation.
-// expand - the $expand query parameter.
+// filter - the filter to apply on the operation.<br><br>The properties you can use for eq (equals) or ne (not
+// equals) are: location, resourceType, name, resourceGroup, identity, identity/principalId, plan,
+// plan/publisher, plan/product, plan/name, plan/version, and plan/promotionCode.<br><br>For example, to filter
+// by a resource type, use: $filter=resourceType eq 'Microsoft.Network/virtualNetworks'<br><br>You can use
+// substringof(value, property) in the filter. The properties you can use for substring are: name and
+// resourceGroup.<br><br>For example, to get all resources with 'demo' anywhere in the name, use:
+// $filter=substringof('demo', name)<br><br>You can link more than one substringof together by adding and/or
+// operators.<br><br>You can filter by tag names and values. For example, to filter for a tag name and value,
+// use $filter=tagName eq 'tag1' and tagValue eq 'Value1'<br><br>You can use some properties together when
+// filtering. The combinations you can use are: substringof and/or resourceType, plan and plan/publisher and
+// plan/name, identity and identity/principalId.
+// expand - the $expand query parameter. You can expand createdTime and changedTime. For example, to expand
+// both properties, use $expand=changedTime,createdTime
 // top - the number of results to return. If null is passed, returns all resource groups.
 func (client Client) List(ctx context.Context, filter string, expand string, top *int32) (result ListResultPage, err error) {
 	result.fn = client.listNextResults
@@ -765,8 +760,19 @@ func (client Client) ListComplete(ctx context.Context, filter string, expand str
 // ListByResourceGroup get all the resources for a resource group.
 // Parameters:
 // resourceGroupName - the resource group with the resources to get.
-// filter - the filter to apply on the operation.
-// expand - the $expand query parameter
+// filter - the filter to apply on the operation.<br><br>The properties you can use for eq (equals) or ne (not
+// equals) are: location, resourceType, name, resourceGroup, identity, identity/principalId, plan,
+// plan/publisher, plan/product, plan/name, plan/version, and plan/promotionCode.<br><br>For example, to filter
+// by a resource type, use: $filter=resourceType eq 'Microsoft.Network/virtualNetworks'<br><br>You can use
+// substringof(value, property) in the filter. The properties you can use for substring are: name and
+// resourceGroup.<br><br>For example, to get all resources with 'demo' anywhere in the name, use:
+// $filter=substringof('demo', name)<br><br>You can link more than one substringof together by adding and/or
+// operators.<br><br>You can filter by tag names and values. For example, to filter for a tag name and value,
+// use $filter=tagName eq 'tag1' and tagValue eq 'Value1'<br><br>You can use some properties together when
+// filtering. The combinations you can use are: substringof and/or resourceType, plan and plan/publisher and
+// plan/name, identity and identity/principalId.
+// expand - the $expand query parameter. You can expand createdTime and changedTime. For example, to expand
+// both properties, use $expand=changedTime,createdTime
 // top - the number of results to return. If null is passed, returns all resources.
 func (client Client) ListByResourceGroup(ctx context.Context, resourceGroupName string, filter string, expand string, top *int32) (result ListResultPage, err error) {
 	if err := validation.Validate([]validation.Validation{
@@ -936,10 +942,6 @@ func (client Client) MoveResourcesSender(req *http.Request) (future MoveResource
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent))
-	if err != nil {
-		return
-	}
 	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
@@ -1023,10 +1025,6 @@ func (client Client) UpdateSender(req *http.Request) (future UpdateFuture, err e
 	if err != nil {
 		return
 	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
-	if err != nil {
-		return
-	}
 	future.Future, err = azure.NewFutureFromResponse(resp)
 	return
 }
@@ -1093,10 +1091,6 @@ func (client Client) UpdateByIDSender(req *http.Request) (future UpdateByIDFutur
 	var resp *http.Response
 	resp, err = autorest.SendWithSender(client, req,
 		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted))
 	if err != nil {
 		return
 	}
@@ -1177,10 +1171,6 @@ func (client Client) ValidateMoveResourcesSender(req *http.Request) (future Vali
 	var resp *http.Response
 	resp, err = autorest.SendWithSender(client, req,
 		azure.DoRetryWithRegistration(client.Client))
-	if err != nil {
-		return
-	}
-	err = autorest.Respond(resp, azure.WithErrorUnlessStatusCode(http.StatusOK, http.StatusAccepted, http.StatusNoContent, http.StatusConflict))
 	if err != nil {
 		return
 	}

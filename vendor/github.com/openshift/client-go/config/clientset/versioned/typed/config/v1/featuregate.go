@@ -3,9 +3,11 @@
 package v1
 
 import (
+	"time"
+
 	v1 "github.com/openshift/api/config/v1"
 	scheme "github.com/openshift/client-go/config/clientset/versioned/scheme"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
@@ -22,11 +24,11 @@ type FeatureGateInterface interface {
 	Create(*v1.FeatureGate) (*v1.FeatureGate, error)
 	Update(*v1.FeatureGate) (*v1.FeatureGate, error)
 	UpdateStatus(*v1.FeatureGate) (*v1.FeatureGate, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
-	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1.FeatureGate, error)
-	List(opts meta_v1.ListOptions) (*v1.FeatureGateList, error)
-	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Delete(name string, options *metav1.DeleteOptions) error
+	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
+	Get(name string, options metav1.GetOptions) (*v1.FeatureGate, error)
+	List(opts metav1.ListOptions) (*v1.FeatureGateList, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.FeatureGate, err error)
 	FeatureGateExpansion
 }
@@ -44,7 +46,7 @@ func newFeatureGates(c *ConfigV1Client) *featureGates {
 }
 
 // Get takes name of the featureGate, and returns the corresponding featureGate object, and an error if there is any.
-func (c *featureGates) Get(name string, options meta_v1.GetOptions) (result *v1.FeatureGate, err error) {
+func (c *featureGates) Get(name string, options metav1.GetOptions) (result *v1.FeatureGate, err error) {
 	result = &v1.FeatureGate{}
 	err = c.client.Get().
 		Resource("featuregates").
@@ -56,22 +58,32 @@ func (c *featureGates) Get(name string, options meta_v1.GetOptions) (result *v1.
 }
 
 // List takes label and field selectors, and returns the list of FeatureGates that match those selectors.
-func (c *featureGates) List(opts meta_v1.ListOptions) (result *v1.FeatureGateList, err error) {
+func (c *featureGates) List(opts metav1.ListOptions) (result *v1.FeatureGateList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1.FeatureGateList{}
 	err = c.client.Get().
 		Resource("featuregates").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested featureGates.
-func (c *featureGates) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *featureGates) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Resource("featuregates").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -114,7 +126,7 @@ func (c *featureGates) UpdateStatus(featureGate *v1.FeatureGate) (result *v1.Fea
 }
 
 // Delete takes name of the featureGate and deletes it. Returns an error if one occurs.
-func (c *featureGates) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *featureGates) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("featuregates").
 		Name(name).
@@ -124,10 +136,15 @@ func (c *featureGates) Delete(name string, options *meta_v1.DeleteOptions) error
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *featureGates) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *featureGates) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Resource("featuregates").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

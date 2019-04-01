@@ -195,8 +195,11 @@ CUSTOM_TYPHA_DEPLOYMENT_YAML="${KUBE_CUSTOM_TYPHA_DEPLOYMENT_YAML:-}"
 # To avoid running netd on a node that is not configured appropriately,
 # label each Node so that the DaemonSet can run the Pods only on ready Nodes.
 if [[ ${ENABLE_NETD:-} == "true" ]]; then
-	NON_MASTER_NODE_LABELS="${NON_MASTER_NODE_LABELS:+${NON_MASTER_NODE_LABELS},}beta.kubernetes.io/kube-netd-ready=true"
+	NON_MASTER_NODE_LABELS="${NON_MASTER_NODE_LABELS:+${NON_MASTER_NODE_LABELS},}cloud.google.com/gke-netd-ready=true"
 fi
+
+ENABLE_NODELOCAL_DNS="${KUBE_ENABLE_NODELOCAL_DNS:-false}"
+LOCAL_DNS_IP="${KUBE_LOCAL_DNS_IP:-169.254.20.10}"
 
 # Enable metadata concealment by firewalling pod traffic to the metadata server
 # and run a proxy daemonset on nodes.
@@ -216,8 +219,8 @@ fi
 ENCRYPTION_PROVIDER_CONFIG="${ENCRYPTION_PROVIDER_CONFIG:-}"
 if [[ -z "${ENCRYPTION_PROVIDER_CONFIG}" ]]; then
     ENCRYPTION_PROVIDER_CONFIG=$(cat << EOM | base64 | tr -d '\r\n'
-kind: EncryptionConfig
-apiVersion: v1
+kind: EncryptionConfiguration
+apiVersion: apiserver.config.k8s.io/v1
 resources:
   - resources:
     - secrets
@@ -261,8 +264,8 @@ if [[ ! -z "${NODE_ACCELERATORS}" ]]; then
 fi
 
 # Optional: Install cluster DNS.
-# Set CLUSTER_DNS_CORE_DNS to 'true' to install CoreDNS instead of kube-dns.
-CLUSTER_DNS_CORE_DNS="${CLUSTER_DNS_CORE_DNS:-false}"
+# Set CLUSTER_DNS_CORE_DNS to 'false' to install kube-dns instead of CoreDNS.
+CLUSTER_DNS_CORE_DNS="${CLUSTER_DNS_CORE_DNS:-true}"
 ENABLE_CLUSTER_DNS="${KUBE_ENABLE_CLUSTER_DNS:-true}"
 DNS_SERVER_IP="${KUBE_DNS_SERVER_IP:-10.0.0.10}"
 DNS_DOMAIN="${KUBE_DNS_DOMAIN:-cluster.local}"
@@ -455,11 +458,7 @@ ROTATE_CERTIFICATES="${ROTATE_CERTIFICATES:-}"
 # into kube-controller-manager via `--concurrent-service-syncs`
 CONCURRENT_SERVICE_SYNCS="${CONCURRENT_SERVICE_SYNCS:-}"
 
-if [[ "${ENABLE_TOKENREQUEST:-}" == "true" ]]; then
-  FEATURE_GATES="${FEATURE_GATES},TokenRequest=true"
-  SERVICEACCOUNT_ISSUER="https://kubernetes.io/${CLUSTER_NAME}"
-  SERVICEACCOUNT_API_AUDIENCES="https://kubernetes.default.svc"
-fi
+SERVICEACCOUNT_ISSUER="https://kubernetes.io/${CLUSTER_NAME}"
 
 # Optional: Enable Node termination Handler for Preemptible and GPU VMs.
 # https://github.com/GoogleCloudPlatform/k8s-node-termination-handler

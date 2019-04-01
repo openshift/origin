@@ -1123,12 +1123,12 @@ func (vnr *VirtualNetworkRule) UnmarshalJSON(body []byte) error {
 type VirtualNetworkRuleListResult struct {
 	autorest.Response `json:"-"`
 	// Value - Result of the List VirtualNetwork Rules operation.
-	Value *[]IPFilterRule `json:"value,omitempty"`
+	Value *[]VirtualNetworkRule `json:"value,omitempty"`
 	// NextLink - Link to the next set of results. Not empty if Value contains an incomplete list of VirtualNetwork Rules
 	NextLink *string `json:"nextLink,omitempty"`
 }
 
-// VirtualNetworkRuleListResultIterator provides access to a complete listing of IPFilterRule values.
+// VirtualNetworkRuleListResultIterator provides access to a complete listing of VirtualNetworkRule values.
 type VirtualNetworkRuleListResultIterator struct {
 	i    int
 	page VirtualNetworkRuleListResultPage
@@ -1162,9 +1162,9 @@ func (iter VirtualNetworkRuleListResultIterator) Response() VirtualNetworkRuleLi
 
 // Value returns the current value or a zero-initialized value if the
 // iterator has advanced beyond the end of the collection.
-func (iter VirtualNetworkRuleListResultIterator) Value() IPFilterRule {
+func (iter VirtualNetworkRuleListResultIterator) Value() VirtualNetworkRule {
 	if !iter.page.NotDone() {
-		return IPFilterRule{}
+		return VirtualNetworkRule{}
 	}
 	return iter.page.Values()[iter.i]
 }
@@ -1186,7 +1186,7 @@ func (vnrlr VirtualNetworkRuleListResult) virtualNetworkRuleListResultPreparer()
 		autorest.WithBaseURL(to.String(vnrlr.NextLink)))
 }
 
-// VirtualNetworkRuleListResultPage contains a page of IPFilterRule values.
+// VirtualNetworkRuleListResultPage contains a page of VirtualNetworkRule values.
 type VirtualNetworkRuleListResultPage struct {
 	fn    func(VirtualNetworkRuleListResult) (VirtualNetworkRuleListResult, error)
 	vnrlr VirtualNetworkRuleListResult
@@ -1214,7 +1214,7 @@ func (page VirtualNetworkRuleListResultPage) Response() VirtualNetworkRuleListRe
 }
 
 // Values returns the slice of values for the current page or nil if there are no values.
-func (page VirtualNetworkRuleListResultPage) Values() []IPFilterRule {
+func (page VirtualNetworkRuleListResultPage) Values() []VirtualNetworkRule {
 	if page.vnrlr.IsEmpty() {
 		return nil
 	}

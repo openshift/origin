@@ -238,7 +238,7 @@ func urlReplacement(url string) []*x509.Certificate {
 			return nil
 		}
 		cert, err := x509.ParseCertificate(s.Bytes)
-		if err != nil {
+		if x509.IsFatal(err) {
 			log.Fatalf("Can't parse built-in: %s\n%s", c, err)
 			return nil
 		}

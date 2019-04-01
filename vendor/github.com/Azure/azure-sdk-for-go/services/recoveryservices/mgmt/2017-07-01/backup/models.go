@@ -747,25 +747,6 @@ func PossibleObjectTypeValues() []ObjectType {
 	return []ObjectType{ObjectTypeExportJobsOperationResultInfo, ObjectTypeOperationResultInfo, ObjectTypeOperationResultInfoBase}
 }
 
-// ObjectTypeBasicBackupRequest enumerates the values for object type basic backup request.
-type ObjectTypeBasicBackupRequest string
-
-const (
-	// ObjectTypeAzureFileShareBackupRequest ...
-	ObjectTypeAzureFileShareBackupRequest ObjectTypeBasicBackupRequest = "AzureFileShareBackupRequest"
-	// ObjectTypeAzureWorkloadBackupRequest ...
-	ObjectTypeAzureWorkloadBackupRequest ObjectTypeBasicBackupRequest = "AzureWorkloadBackupRequest"
-	// ObjectTypeBackupRequest ...
-	ObjectTypeBackupRequest ObjectTypeBasicBackupRequest = "BackupRequest"
-	// ObjectTypeIaasVMBackupRequest ...
-	ObjectTypeIaasVMBackupRequest ObjectTypeBasicBackupRequest = "IaasVMBackupRequest"
-)
-
-// PossibleObjectTypeBasicBackupRequestValues returns an array of possible values for the ObjectTypeBasicBackupRequest const type.
-func PossibleObjectTypeBasicBackupRequestValues() []ObjectTypeBasicBackupRequest {
-	return []ObjectTypeBasicBackupRequest{ObjectTypeAzureFileShareBackupRequest, ObjectTypeAzureWorkloadBackupRequest, ObjectTypeBackupRequest, ObjectTypeIaasVMBackupRequest}
-}
-
 // ObjectTypeBasicILRRequest enumerates the values for object type basic ilr request.
 type ObjectTypeBasicILRRequest string
 
@@ -828,6 +809,25 @@ const (
 // PossibleObjectTypeBasicRecoveryPointValues returns an array of possible values for the ObjectTypeBasicRecoveryPoint const type.
 func PossibleObjectTypeBasicRecoveryPointValues() []ObjectTypeBasicRecoveryPoint {
 	return []ObjectTypeBasicRecoveryPoint{ObjectTypeAzureFileShareRecoveryPoint, ObjectTypeAzureWorkloadRecoveryPoint, ObjectTypeAzureWorkloadSAPHanaPointInTimeRecoveryPoint, ObjectTypeAzureWorkloadSAPHanaRecoveryPoint, ObjectTypeAzureWorkloadSQLPointInTimeRecoveryPoint, ObjectTypeAzureWorkloadSQLRecoveryPoint, ObjectTypeGenericRecoveryPoint, ObjectTypeIaasVMRecoveryPoint, ObjectTypeRecoveryPoint}
+}
+
+// ObjectTypeBasicRequest enumerates the values for object type basic request.
+type ObjectTypeBasicRequest string
+
+const (
+	// ObjectTypeAzureFileShareBackupRequest ...
+	ObjectTypeAzureFileShareBackupRequest ObjectTypeBasicRequest = "AzureFileShareBackupRequest"
+	// ObjectTypeAzureWorkloadBackupRequest ...
+	ObjectTypeAzureWorkloadBackupRequest ObjectTypeBasicRequest = "AzureWorkloadBackupRequest"
+	// ObjectTypeBackupRequest ...
+	ObjectTypeBackupRequest ObjectTypeBasicRequest = "BackupRequest"
+	// ObjectTypeIaasVMBackupRequest ...
+	ObjectTypeIaasVMBackupRequest ObjectTypeBasicRequest = "IaasVMBackupRequest"
+)
+
+// PossibleObjectTypeBasicRequestValues returns an array of possible values for the ObjectTypeBasicRequest const type.
+func PossibleObjectTypeBasicRequestValues() []ObjectTypeBasicRequest {
+	return []ObjectTypeBasicRequest{ObjectTypeAzureFileShareBackupRequest, ObjectTypeAzureWorkloadBackupRequest, ObjectTypeBackupRequest, ObjectTypeIaasVMBackupRequest}
 }
 
 // ObjectTypeBasicRestoreRequest enumerates the values for object type basic restore request.
@@ -1861,7 +1861,7 @@ type AzureFileShareBackupRequest struct {
 	// RecoveryPointExpiryTimeInUTC - Backup copy will expire after the time specified (UTC).
 	RecoveryPointExpiryTimeInUTC *date.Time `json:"recoveryPointExpiryTimeInUTC,omitempty"`
 	// ObjectType - Possible values include: 'ObjectTypeBackupRequest', 'ObjectTypeAzureFileShareBackupRequest', 'ObjectTypeAzureWorkloadBackupRequest', 'ObjectTypeIaasVMBackupRequest'
-	ObjectType ObjectTypeBasicBackupRequest `json:"objectType,omitempty"`
+	ObjectType ObjectTypeBasicRequest `json:"objectType,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for AzureFileShareBackupRequest.
@@ -7623,7 +7623,7 @@ type AzureWorkloadBackupRequest struct {
 	// RecoveryPointExpiryTimeInUTC - Backup copy will expire after the time specified (UTC).
 	RecoveryPointExpiryTimeInUTC *date.Time `json:"recoveryPointExpiryTimeInUTC,omitempty"`
 	// ObjectType - Possible values include: 'ObjectTypeBackupRequest', 'ObjectTypeAzureFileShareBackupRequest', 'ObjectTypeAzureWorkloadBackupRequest', 'ObjectTypeIaasVMBackupRequest'
-	ObjectType ObjectTypeBasicBackupRequest `json:"objectType,omitempty"`
+	ObjectType ObjectTypeBasicRequest `json:"objectType,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for AzureWorkloadBackupRequest.
@@ -11404,7 +11404,7 @@ type IaasVMBackupRequest struct {
 	// RecoveryPointExpiryTimeInUTC - Backup copy will expire after the time specified (UTC).
 	RecoveryPointExpiryTimeInUTC *date.Time `json:"recoveryPointExpiryTimeInUTC,omitempty"`
 	// ObjectType - Possible values include: 'ObjectTypeBackupRequest', 'ObjectTypeAzureFileShareBackupRequest', 'ObjectTypeAzureWorkloadBackupRequest', 'ObjectTypeIaasVMBackupRequest'
-	ObjectType ObjectTypeBasicBackupRequest `json:"objectType,omitempty"`
+	ObjectType ObjectTypeBasicRequest `json:"objectType,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for IaasVMBackupRequest.
@@ -16461,7 +16461,7 @@ type BasicRequest interface {
 // Request base class for backup request. Workload-specific backup requests are derived from this class.
 type Request struct {
 	// ObjectType - Possible values include: 'ObjectTypeBackupRequest', 'ObjectTypeAzureFileShareBackupRequest', 'ObjectTypeAzureWorkloadBackupRequest', 'ObjectTypeIaasVMBackupRequest'
-	ObjectType ObjectTypeBasicBackupRequest `json:"objectType,omitempty"`
+	ObjectType ObjectTypeBasicRequest `json:"objectType,omitempty"`
 }
 
 func unmarshalBasicRequest(body []byte) (BasicRequest, error) {

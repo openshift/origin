@@ -1,25 +1,24 @@
 package: github.com/openshift/library-go
 import:
 - package: k8s.io/apimachinery
-  version: kubernetes-1.12.5
 - package: k8s.io/api
-  version: kubernetes-1.12.5
+  version: kubernetes-1.13.4
 - package: k8s.io/apiserver
-  version: kubernetes-1.12.5
+  version: kubernetes-1.13.4
 - package: k8s.io/apiextensions-apiserver
-  version: kubernetes-1.12.5
+  version: kubernetes-1.13.4
 - package: k8s.io/kube-aggregator
-  version: kubernetes-1.12.5
+  version: kubernetes-1.13.4
 - package: k8s.io/client-go
-  version: kubernetes-1.12.5
+  version: kubernetes-1.13.4
 - package: github.com/openshift/api
-  version: master
+  version: rebase-1.13.4
 - package: github.com/openshift/client-go
-  version: master
+  version: rebase-1.13.4
 
 # crd-schema-gen
 - package: sigs.k8s.io/controller-tools
-  version: master
+  version: 43466124052c1a1aa7d8fd33624b00bc111fb7cf
   repo: https://github.com/openshift/kubernetes-sigs-controller-tools.git
 - package: k8s.io/gengo
   version: 4242d8e6c5dba56827bb7bcf14ad11cda38f3991

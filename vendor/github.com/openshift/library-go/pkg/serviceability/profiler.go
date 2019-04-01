@@ -6,7 +6,9 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/golang/glog"
+	_ "net/http/pprof" // include the default Go profiler mux
+
+	"k8s.io/klog"
 )
 
 // StartProfiler starts the golang profiler on a port if `web` is specified.  It uses the "standard" openshift env vars
@@ -16,8 +18,8 @@ func StartProfiler() {
 			runtime.SetBlockProfileRate(1)
 			profilePort := env("OPENSHIFT_PROFILE_PORT", "6060")
 			profileHost := env("OPENSHIFT_PROFILE_HOST", "127.0.0.1")
-			glog.Infof(fmt.Sprintf("Starting profiling endpoint at http://%s:%s/debug/pprof/", profileHost, profilePort))
-			glog.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%s", profileHost, profilePort), nil))
+			klog.Infof(fmt.Sprintf("Starting profiling endpoint at http://%s:%s/debug/pprof/", profileHost, profilePort))
+			klog.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%s", profileHost, profilePort), nil))
 		}()
 	}
 }

@@ -1,11 +1,8 @@
-#!/bin/sh
+#!/bin/bash
 
-CURRENT_DIR=`pwd`
-HEKETI_SERVER_BUILD_DIR=../../..
-FUNCTIONAL_DIR=${CURRENT_DIR}/..
-HEKETI_SERVER=${FUNCTIONAL_DIR}/heketi-server
+SCRIPT_DIR="$(cd "$(dirname "${0}")" && pwd)"
+FUNCTIONAL_DIR="${SCRIPT_DIR}/.."
 
-source ${FUNCTIONAL_DIR}/lib.sh
+. "${FUNCTIONAL_DIR}/lib.sh"
 
 functional_tests
-

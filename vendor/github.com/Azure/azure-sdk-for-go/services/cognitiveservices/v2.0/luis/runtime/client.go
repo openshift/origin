@@ -24,26 +24,21 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 )
 
-const (
-	// DefaultBaseURI is the default URI used for the service Runtime
-	DefaultBaseURI = "https://api.cognitive.microsoft.com/luis/v2.0"
-)
-
 // BaseClient is the base client for Runtime.
 type BaseClient struct {
 	autorest.Client
-	BaseURI string
+	Endpoint string
 }
 
 // New creates an instance of the BaseClient client.
-func New() BaseClient {
-	return NewWithBaseURI(DefaultBaseURI)
+func New(endpoint string) BaseClient {
+	return NewWithoutDefaults(endpoint)
 }
 
-// NewWithBaseURI creates an instance of the BaseClient client.
-func NewWithBaseURI(baseURI string) BaseClient {
+// NewWithoutDefaults creates an instance of the BaseClient client.
+func NewWithoutDefaults(endpoint string) BaseClient {
 	return BaseClient{
-		Client:  autorest.NewClientWithUserAgent(UserAgent()),
-		BaseURI: baseURI,
+		Client:   autorest.NewClientWithUserAgent(UserAgent()),
+		Endpoint: endpoint,
 	}
 }

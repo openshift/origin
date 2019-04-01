@@ -19,7 +19,7 @@
 
 package policyinsights
 
-import original "github.com/Azure/azure-sdk-for-go/services/preview/policyinsights/mgmt/2017-12-12-preview/policyinsights"
+import original "github.com/Azure/azure-sdk-for-go/services/preview/policyinsights/mgmt/2018-07-01-preview/policyinsights"
 
 const (
 	DefaultBaseURI = original.DefaultBaseURI
@@ -33,24 +33,46 @@ const (
 	Latest  PolicyStatesResource = original.Latest
 )
 
+type ErrorDefinition = original.ErrorDefinition
+type ErrorResponse = original.ErrorResponse
 type Operation = original.Operation
 type OperationDisplay = original.OperationDisplay
 type OperationsListResults = original.OperationsListResults
 type PolicyAssignmentSummary = original.PolicyAssignmentSummary
 type PolicyDefinitionSummary = original.PolicyDefinitionSummary
+type PolicyDetails = original.PolicyDetails
 type PolicyEvent = original.PolicyEvent
 type PolicyEventsQueryResults = original.PolicyEventsQueryResults
 type PolicyState = original.PolicyState
 type PolicyStatesQueryResults = original.PolicyStatesQueryResults
+type PolicyTrackedResource = original.PolicyTrackedResource
+type PolicyTrackedResourcesQueryResults = original.PolicyTrackedResourcesQueryResults
+type PolicyTrackedResourcesQueryResultsIterator = original.PolicyTrackedResourcesQueryResultsIterator
+type PolicyTrackedResourcesQueryResultsPage = original.PolicyTrackedResourcesQueryResultsPage
 type QueryFailure = original.QueryFailure
 type QueryFailureError = original.QueryFailureError
+type Remediation = original.Remediation
+type RemediationDeployment = original.RemediationDeployment
+type RemediationDeploymentsListResult = original.RemediationDeploymentsListResult
+type RemediationDeploymentsListResultIterator = original.RemediationDeploymentsListResultIterator
+type RemediationDeploymentsListResultPage = original.RemediationDeploymentsListResultPage
+type RemediationDeploymentSummary = original.RemediationDeploymentSummary
+type RemediationFilters = original.RemediationFilters
+type RemediationListResult = original.RemediationListResult
+type RemediationListResultIterator = original.RemediationListResultIterator
+type RemediationListResultPage = original.RemediationListResultPage
+type RemediationProperties = original.RemediationProperties
 type String = original.String
 type SummarizeResults = original.SummarizeResults
 type Summary = original.Summary
 type SummaryResults = original.SummaryResults
+type TrackedResourceModificationDetails = original.TrackedResourceModificationDetails
+type TypedErrorInfo = original.TypedErrorInfo
 type OperationsClient = original.OperationsClient
 type PolicyEventsClient = original.PolicyEventsClient
 type PolicyStatesClient = original.PolicyStatesClient
+type PolicyTrackedResourcesClient = original.PolicyTrackedResourcesClient
+type RemediationsClient = original.RemediationsClient
 
 func New() BaseClient {
 	return original.New()
@@ -78,6 +100,18 @@ func NewPolicyStatesClient() PolicyStatesClient {
 }
 func NewPolicyStatesClientWithBaseURI(baseURI string) PolicyStatesClient {
 	return original.NewPolicyStatesClientWithBaseURI(baseURI)
+}
+func NewPolicyTrackedResourcesClient() PolicyTrackedResourcesClient {
+	return original.NewPolicyTrackedResourcesClient()
+}
+func NewPolicyTrackedResourcesClientWithBaseURI(baseURI string) PolicyTrackedResourcesClient {
+	return original.NewPolicyTrackedResourcesClientWithBaseURI(baseURI)
+}
+func NewRemediationsClient() RemediationsClient {
+	return original.NewRemediationsClient()
+}
+func NewRemediationsClientWithBaseURI(baseURI string) RemediationsClient {
+	return original.NewRemediationsClientWithBaseURI(baseURI)
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"

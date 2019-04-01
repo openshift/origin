@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
-	fakecloud "k8s.io/kubernetes/pkg/cloudprovider/providers/fake"
+	"k8s.io/kubernetes/pkg/cloudprovider/providers/gce"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/nodeipam/ipam"
 	"k8s.io/kubernetes/pkg/controller/testutil"
@@ -48,9 +48,9 @@ func newTestNodeIpamController(clusterCIDR, serviceCIDR *net.IPNet, nodeCIDRMask
 		fakeNodeInformer.Informer().GetStore().Add(node)
 	}
 
-	fakeCloud := &fakecloud.FakeCloud{}
+	fakeGCE := gce.NewFakeGCECloud(gce.DefaultTestClusterValues())
 	return NewNodeIpamController(
-		fakeNodeInformer, fakeCloud, clientSet,
+		fakeNodeInformer, fakeGCE, clientSet,
 		clusterCIDR, serviceCIDR, nodeCIDRMaskSize, allocatorType,
 	)
 }
@@ -68,6 +68,8 @@ func TestNewNodeIpamControllerWithCIDRMasks(t *testing.T) {
 	}{
 		{"valid_range_allocator", "10.0.0.0/21", "10.1.0.0/21", 24, ipam.RangeAllocatorType, false},
 		{"valid_cloud_allocator", "10.0.0.0/21", "10.1.0.0/21", 24, ipam.CloudAllocatorType, false},
+		{"valid_ipam_from_cluster", "10.0.0.0/21", "10.1.0.0/21", 24, ipam.IPAMFromClusterAllocatorType, false},
+		{"valid_ipam_from_cloud", "10.0.0.0/21", "10.1.0.0/21", 24, ipam.IPAMFromCloudAllocatorType, false},
 		{"invalid_cluster_CIDR", "invalid", "10.1.0.0/21", 24, ipam.CloudAllocatorType, true},
 		{"valid_CIDR_smaller_than_mask_cloud_allocator", "10.0.0.0/26", "10.1.0.0/21", 24, ipam.CloudAllocatorType, false},
 		{"invalid_CIDR_smaller_than_mask_other_allocators", "10.0.0.0/26", "10.1.0.0/21", 24, ipam.IPAMFromCloudAllocatorType, true},

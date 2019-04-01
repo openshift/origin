@@ -1,15 +1,14 @@
-#!/bin/sh
+#!/bin/bash
 
-TOP=../../..
-CURRENT_DIR=`pwd`
-RESOURCES_DIR=$CURRENT_DIR/resources
-FUNCTIONAL_DIR=${CURRENT_DIR}/..
+CURRENT_DIR="$(pwd)"
+RESOURCES_DIR="$CURRENT_DIR/resources"
+FUNCTIONAL_DIR="${CURRENT_DIR}/.."
 
-source ${FUNCTIONAL_DIR}/lib.sh
+source "${FUNCTIONAL_DIR}/lib.sh"
 
 
 if [ -x /usr/local/bin/minikube ] ; then
     minikube stop
     minikube delete
 fi
-rm -rf $RESOURCES_DIR > /dev/null
+rm -rf "$RESOURCES_DIR" > /dev/null

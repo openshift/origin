@@ -15,6 +15,7 @@
 package naming
 
 import (
+	"context"
 	"encoding/json"
 	"reflect"
 	"testing"
@@ -23,7 +24,6 @@ import (
 	"github.com/coreos/etcd/integration"
 	"github.com/coreos/etcd/pkg/testutil"
 
-	"golang.org/x/net/context"
 	"google.golang.org/grpc/naming"
 )
 

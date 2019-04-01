@@ -6,10 +6,9 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/golang/glog"
-
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/klog"
 )
 
 // QuotaApplicator is used to apply quota to an emptyDir volume.
@@ -91,7 +90,7 @@ func (cr *realQuotaCommandRunner) RunApplyQuotaCommand(fsDevice string, quota re
 	cmd.Stderr = &stderr
 
 	err := cmd.Run()
-	glog.V(5).Infof("Ran: xfs_quota %s", args)
+	klog.V(5).Infof("Ran: xfs_quota %s", args)
 	return "", stderr.String(), err
 }
 
@@ -107,7 +106,7 @@ func (cr *realQuotaCommandRunner) RunMountOptionsCommand() (string, error) {
 func (xqa *xfsQuotaApplicator) Apply(dir string, medium v1.StorageMedium, pod *v1.Pod, fsGroup *int64, quota resource.Quantity) error {
 
 	if medium == v1.StorageMediumMemory {
-		glog.V(5).Infof("Skipping quota application due to memory storage medium.")
+		klog.V(5).Infof("Skipping quota application due to memory storage medium.")
 		return nil
 	}
 	isXFS, err := isXFS(xqa.cmdRunner, dir)
@@ -120,7 +119,7 @@ func (xqa *xfsQuotaApplicator) Apply(dir string, medium v1.StorageMedium, pod *v
 	if fsGroup == nil {
 		// This indicates the operation matched an SCC with FSGroup strategy RunAsAny.
 		// Not an error condition.
-		glog.V(5).Infof("Unable to apply XFS quota, no FSGroup specified.")
+		klog.V(5).Infof("Unable to apply XFS quota, no FSGroup specified.")
 		return nil
 	}
 
@@ -154,7 +153,7 @@ func (xqa *xfsQuotaApplicator) applyQuota(volDevice string, quota resource.Quant
 		return fmt.Errorf("error applying quota: %v", err)
 	}
 
-	glog.V(4).Infof("XFS quota applied: device=%s, quota=%d, fsGroup=%d", volDevice, quota.Value(), fsGroupID)
+	klog.V(4).Infof("XFS quota applied: device=%s, quota=%d, fsGroup=%d", volDevice, quota.Value(), fsGroupID)
 	return nil
 }
 

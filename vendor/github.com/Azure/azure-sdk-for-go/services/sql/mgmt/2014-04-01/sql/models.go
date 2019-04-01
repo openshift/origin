@@ -909,7 +909,7 @@ func (dsap *DatabaseSecurityAlertPolicy) UnmarshalJSON(body []byte) error {
 type DatabaseSecurityAlertPolicyProperties struct {
 	// State - Specifies the state of the policy. If state is Enabled, storageEndpoint and storageAccountAccessKey are required. Possible values include: 'SecurityAlertPolicyStateNew', 'SecurityAlertPolicyStateEnabled', 'SecurityAlertPolicyStateDisabled'
 	State SecurityAlertPolicyState `json:"state,omitempty"`
-	// DisabledAlerts - Specifies the semicolon-separated list of alerts that are disabled, or empty string to disable no alerts. Possible values: Sql_Injection; Sql_Injection_Vulnerability; Access_Anomaly; Usage_Anomaly.
+	// DisabledAlerts - Specifies the semicolon-separated list of alerts that are disabled, or empty string to disable no alerts. Possible values: Sql_Injection; Sql_Injection_Vulnerability; Access_Anomaly; Data_Exfiltration; Unsafe_Action.
 	DisabledAlerts *string `json:"disabledAlerts,omitempty"`
 	// EmailAddresses - Specifies the semicolon-separated list of e-mail addresses to which the alert is sent.
 	EmailAddresses *string `json:"emailAddresses,omitempty"`

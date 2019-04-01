@@ -35,10 +35,10 @@ func TestOperationExecutor(t *testing.T) {
 
 	context := NewContext(spec, api, nil)
 	context.router = DefaultRouter(spec, context.api)
-	mw := newOperationExecutor(context)
+	mw := NewOperationExecutor(context)
 
 	recorder := httptest.NewRecorder()
-	request, _ := http.NewRequest("GET", "/pets", nil)
+	request, _ := http.NewRequest("GET", "/api/pets", nil)
 	request.Header.Add("Accept", "application/json")
 	request.SetBasicAuth("admin", "admin")
 	mw.ServeHTTP(recorder, request)
@@ -52,10 +52,10 @@ func TestOperationExecutor(t *testing.T) {
 
 	context = NewContext(spec, api, nil)
 	context.router = DefaultRouter(spec, context.api)
-	mw = newOperationExecutor(context)
+	mw = NewOperationExecutor(context)
 
 	recorder = httptest.NewRecorder()
-	request, _ = http.NewRequest("GET", "/pets", nil)
+	request, _ = http.NewRequest("GET", "/api/pets", nil)
 	request.Header.Add("Accept", "application/json")
 	request.SetBasicAuth("admin", "admin")
 	mw.ServeHTTP(recorder, request)

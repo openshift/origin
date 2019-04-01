@@ -837,6 +837,117 @@ type ForecastsListResult struct {
 	Value *[]Forecast `json:"value,omitempty"`
 }
 
+// ManagementGroupAggregatedCostProperties the properties of the Management Group Aggregated Cost.
+type ManagementGroupAggregatedCostProperties struct {
+	// BillingPeriodID - The id of the billing period resource that the aggregated cost belongs to.
+	BillingPeriodID *string `json:"billingPeriodId,omitempty"`
+	// AzureCharges - Azure Charges.
+	AzureCharges *decimal.Decimal `json:"azureCharges,omitempty"`
+	// MarketplaceCharges - Marketplace Charges.
+	MarketplaceCharges *decimal.Decimal `json:"marketplaceCharges,omitempty"`
+	// ChargesBilledSeparately - Charges Billed Separately.
+	ChargesBilledSeparately *decimal.Decimal `json:"chargesBilledSeparately,omitempty"`
+	// Currency - The ISO currency in which the meter is charged, for example, USD.
+	Currency *string `json:"currency,omitempty"`
+	// Children - Children of a management group
+	Children *[]ManagementGroupAggregatedCostResult `json:"children,omitempty"`
+}
+
+// ManagementGroupAggregatedCostResult a management group aggregated cost resource.
+type ManagementGroupAggregatedCostResult struct {
+	autorest.Response                        `json:"-"`
+	*ManagementGroupAggregatedCostProperties `json:"properties,omitempty"`
+	// ID - Resource Id.
+	ID *string `json:"id,omitempty"`
+	// Name - Resource name.
+	Name *string `json:"name,omitempty"`
+	// Type - Resource type.
+	Type *string `json:"type,omitempty"`
+	// Tags - Resource tags.
+	Tags map[string]*string `json:"tags"`
+}
+
+// MarshalJSON is the custom marshaler for ManagementGroupAggregatedCostResult.
+func (mgacr ManagementGroupAggregatedCostResult) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if mgacr.ManagementGroupAggregatedCostProperties != nil {
+		objectMap["properties"] = mgacr.ManagementGroupAggregatedCostProperties
+	}
+	if mgacr.ID != nil {
+		objectMap["id"] = mgacr.ID
+	}
+	if mgacr.Name != nil {
+		objectMap["name"] = mgacr.Name
+	}
+	if mgacr.Type != nil {
+		objectMap["type"] = mgacr.Type
+	}
+	if mgacr.Tags != nil {
+		objectMap["tags"] = mgacr.Tags
+	}
+	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for ManagementGroupAggregatedCostResult struct.
+func (mgacr *ManagementGroupAggregatedCostResult) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		case "properties":
+			if v != nil {
+				var managementGroupAggregatedCostProperties ManagementGroupAggregatedCostProperties
+				err = json.Unmarshal(*v, &managementGroupAggregatedCostProperties)
+				if err != nil {
+					return err
+				}
+				mgacr.ManagementGroupAggregatedCostProperties = &managementGroupAggregatedCostProperties
+			}
+		case "id":
+			if v != nil {
+				var ID string
+				err = json.Unmarshal(*v, &ID)
+				if err != nil {
+					return err
+				}
+				mgacr.ID = &ID
+			}
+		case "name":
+			if v != nil {
+				var name string
+				err = json.Unmarshal(*v, &name)
+				if err != nil {
+					return err
+				}
+				mgacr.Name = &name
+			}
+		case "type":
+			if v != nil {
+				var typeVar string
+				err = json.Unmarshal(*v, &typeVar)
+				if err != nil {
+					return err
+				}
+				mgacr.Type = &typeVar
+			}
+		case "tags":
+			if v != nil {
+				var tags map[string]*string
+				err = json.Unmarshal(*v, &tags)
+				if err != nil {
+					return err
+				}
+				mgacr.Tags = tags
+			}
+		}
+	}
+
+	return nil
+}
+
 // Marketplace an marketplace resource.
 type Marketplace struct {
 	*MarketplaceProperties `json:"properties,omitempty"`

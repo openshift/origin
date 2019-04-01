@@ -3,7 +3,7 @@
 package fake
 
 import (
-	operator_v1 "github.com/openshift/api/operator/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -22,19 +22,19 @@ var consolesResource = schema.GroupVersionResource{Group: "operator.openshift.io
 var consolesKind = schema.GroupVersionKind{Group: "operator.openshift.io", Version: "v1", Kind: "Console"}
 
 // Get takes name of the console, and returns the corresponding console object, and an error if there is any.
-func (c *FakeConsoles) Get(name string, options v1.GetOptions) (result *operator_v1.Console, err error) {
+func (c *FakeConsoles) Get(name string, options v1.GetOptions) (result *operatorv1.Console, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(consolesResource, name), &operator_v1.Console{})
+		Invokes(testing.NewRootGetAction(consolesResource, name), &operatorv1.Console{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*operator_v1.Console), err
+	return obj.(*operatorv1.Console), err
 }
 
 // List takes label and field selectors, and returns the list of Consoles that match those selectors.
-func (c *FakeConsoles) List(opts v1.ListOptions) (result *operator_v1.ConsoleList, err error) {
+func (c *FakeConsoles) List(opts v1.ListOptions) (result *operatorv1.ConsoleList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(consolesResource, consolesKind, opts), &operator_v1.ConsoleList{})
+		Invokes(testing.NewRootListAction(consolesResource, consolesKind, opts), &operatorv1.ConsoleList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -43,8 +43,8 @@ func (c *FakeConsoles) List(opts v1.ListOptions) (result *operator_v1.ConsoleLis
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &operator_v1.ConsoleList{ListMeta: obj.(*operator_v1.ConsoleList).ListMeta}
-	for _, item := range obj.(*operator_v1.ConsoleList).Items {
+	list := &operatorv1.ConsoleList{ListMeta: obj.(*operatorv1.ConsoleList).ListMeta}
+	for _, item := range obj.(*operatorv1.ConsoleList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -59,40 +59,40 @@ func (c *FakeConsoles) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Create takes the representation of a console and creates it.  Returns the server's representation of the console, and an error, if there is any.
-func (c *FakeConsoles) Create(console *operator_v1.Console) (result *operator_v1.Console, err error) {
+func (c *FakeConsoles) Create(console *operatorv1.Console) (result *operatorv1.Console, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(consolesResource, console), &operator_v1.Console{})
+		Invokes(testing.NewRootCreateAction(consolesResource, console), &operatorv1.Console{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*operator_v1.Console), err
+	return obj.(*operatorv1.Console), err
 }
 
 // Update takes the representation of a console and updates it. Returns the server's representation of the console, and an error, if there is any.
-func (c *FakeConsoles) Update(console *operator_v1.Console) (result *operator_v1.Console, err error) {
+func (c *FakeConsoles) Update(console *operatorv1.Console) (result *operatorv1.Console, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(consolesResource, console), &operator_v1.Console{})
+		Invokes(testing.NewRootUpdateAction(consolesResource, console), &operatorv1.Console{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*operator_v1.Console), err
+	return obj.(*operatorv1.Console), err
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeConsoles) UpdateStatus(console *operator_v1.Console) (*operator_v1.Console, error) {
+func (c *FakeConsoles) UpdateStatus(console *operatorv1.Console) (*operatorv1.Console, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateSubresourceAction(consolesResource, "status", console), &operator_v1.Console{})
+		Invokes(testing.NewRootUpdateSubresourceAction(consolesResource, "status", console), &operatorv1.Console{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*operator_v1.Console), err
+	return obj.(*operatorv1.Console), err
 }
 
 // Delete takes name of the console and deletes it. Returns an error if one occurs.
 func (c *FakeConsoles) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(consolesResource, name), &operator_v1.Console{})
+		Invokes(testing.NewRootDeleteAction(consolesResource, name), &operatorv1.Console{})
 	return err
 }
 
@@ -100,16 +100,16 @@ func (c *FakeConsoles) Delete(name string, options *v1.DeleteOptions) error {
 func (c *FakeConsoles) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewRootDeleteCollectionAction(consolesResource, listOptions)
 
-	_, err := c.Fake.Invokes(action, &operator_v1.ConsoleList{})
+	_, err := c.Fake.Invokes(action, &operatorv1.ConsoleList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched console.
-func (c *FakeConsoles) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *operator_v1.Console, err error) {
+func (c *FakeConsoles) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *operatorv1.Console, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(consolesResource, name, data, subresources...), &operator_v1.Console{})
+		Invokes(testing.NewRootPatchSubresourceAction(consolesResource, name, pt, data, subresources...), &operatorv1.Console{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*operator_v1.Console), err
+	return obj.(*operatorv1.Console), err
 }

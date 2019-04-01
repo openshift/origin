@@ -64,3 +64,68 @@ func TestUnmarshalMerkleTreeLeaf(t *testing.T) {
 		}
 	}
 }
+
+const (
+	validRootHash = "708981e91d1487c2a9ea901ab5a8d053c1348585afcdb5e107bf60c0c1d20fc0"
+	longRootHash  = "708981e91d1487c2a9ea901ab5a8d053c1348585afcdb5e107bf60c0c1d20fc000"
+	shortRootHash = "708981e91d1487c2a9ea901ab5a8d053c1348585afcdb5e107bf60c0c1d20f"
+
+	validSignature = "040300473045022007fb5ae3cea8f076b534a01a9a19e60625c6cc70704c6c1a7c88b30d8f67d4af022100840d37b8f2f9ce134e74eefda6a0c2ad034d591b785cdc4973c4c4f5d03f0439"
+	longSignature  = "040300473045022007fb5ae3cea8f076b534a01a9a19e60625c6cc70704c6c1a7c88b30d8f67d4af022100840d37b8f2f9ce134e74eefda6a0c2ad034d591b785cdc4973c4c4f5d03f043900"
+)
+
+func mustHexDecode(s string) []byte {
+	h, err := hex.DecodeString(s)
+	if err != nil {
+		panic(err)
+	}
+	return h
+}
+
+func TestToSignedTreeHead(t *testing.T) {
+	tests := []struct {
+		desc      string
+		rootHash  string
+		signature string
+		wantErr   bool
+	}{
+		{
+			desc:      "success",
+			rootHash:  validRootHash,
+			signature: validSignature,
+		},
+		{
+			desc:      "root hash too long",
+			rootHash:  longRootHash,
+			signature: validSignature,
+			wantErr:   true,
+		},
+		{
+			desc:      "root hash too short",
+			rootHash:  shortRootHash,
+			signature: validSignature,
+			wantErr:   true,
+		},
+		{
+			desc:      "signature trailing data",
+			rootHash:  validRootHash,
+			signature: longSignature,
+			wantErr:   true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			sthResponse := &GetSTHResponse{
+				TreeSize:          278437663,
+				Timestamp:         1527076172068,
+				SHA256RootHash:    mustHexDecode(test.rootHash),
+				TreeHeadSignature: mustHexDecode(test.signature),
+			}
+			sth, err := sthResponse.ToSignedTreeHead()
+			if gotErr := (err != nil); gotErr != test.wantErr {
+				t.Errorf("GetSTHResponse.ToSignedTreeHead() = %+v, %v, want err? %t", sth, err, test.wantErr)
+			}
+		})
+	}
+}

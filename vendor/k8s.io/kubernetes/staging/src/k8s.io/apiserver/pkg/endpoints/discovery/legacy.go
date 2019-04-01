@@ -58,7 +58,7 @@ func (s *legacyRootAPIHandler) WebService() *restful.WebService {
 	ws.Doc("get available API versions")
 	ws.Route(ws.GET("/").To(s.handle).
 		Doc("get available API versions").
-		Operation("getLegacyAPIVersions").
+		Operation("getAPIVersions").
 		Produces(mediaTypes...).
 		Consumes(mediaTypes...).
 		Writes(metav1.APIVersions{}))

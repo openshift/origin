@@ -5,7 +5,7 @@
 package v1
 
 import (
-	osin_v1 "github.com/openshift/api/osin/v1"
+	osinv1 "github.com/openshift/api/osin/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -64,23 +64,22 @@ func (in *KubeAPIServerConfig) DeepCopyInto(out *KubeAPIServerConfig) {
 	}
 	if in.OAuthConfig != nil {
 		in, out := &in.OAuthConfig, &out.OAuthConfig
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(osin_v1.OAuthConfig)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(osinv1.OAuthConfig)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.APIServerArguments != nil {
 		in, out := &in.APIServerArguments, &out.APIServerArguments
 		*out = make(map[string]Arguments, len(*in))
 		for key, val := range *in {
+			var outVal []string
 			if val == nil {
 				(*out)[key] = nil
 			} else {
-				(*out)[key] = make([]string, len(val))
-				copy((*out)[key], val)
+				in, out := &val, &outVal
+				*out = make(Arguments, len(*in))
+				copy(*out, *in)
 			}
+			(*out)[key] = outVal
 		}
 	}
 	return
@@ -151,12 +150,15 @@ func (in *KubeControllerManagerConfig) DeepCopyInto(out *KubeControllerManagerCo
 		in, out := &in.ExtendedArguments, &out.ExtendedArguments
 		*out = make(map[string]Arguments, len(*in))
 		for key, val := range *in {
+			var outVal []string
 			if val == nil {
 				(*out)[key] = nil
 			} else {
-				(*out)[key] = make([]string, len(val))
-				copy((*out)[key], val)
+				in, out := &val, &outVal
+				*out = make(Arguments, len(*in))
+				copy(*out, *in)
 			}
+			(*out)[key] = outVal
 		}
 	}
 	return
@@ -218,12 +220,8 @@ func (in *MasterAuthConfig) DeepCopyInto(out *MasterAuthConfig) {
 	*out = *in
 	if in.RequestHeader != nil {
 		in, out := &in.RequestHeader, &out.RequestHeader
-		if *in == nil {
-			*out = nil
-		} else {
-			*out = new(RequestHeaderAuthenticationOptions)
-			(*in).DeepCopyInto(*out)
-		}
+		*out = new(RequestHeaderAuthenticationOptions)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.WebhookTokenAuthenticators != nil {
 		in, out := &in.WebhookTokenAuthenticators, &out.WebhookTokenAuthenticators

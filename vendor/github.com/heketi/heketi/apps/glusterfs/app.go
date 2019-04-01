@@ -10,10 +10,11 @@
 package glusterfs
 
 import (
-	"io"
+	"errors"
+	"fmt"
 	"net/http"
+	"os"
 	"strconv"
-	"time"
 
 	"github.com/boltdb/bolt"
 	"github.com/gorilla/mux"
@@ -21,22 +22,46 @@ import (
 	"github.com/heketi/heketi/executors/kubeexec"
 	"github.com/heketi/heketi/executors/mockexec"
 	"github.com/heketi/heketi/executors/sshexec"
-	"github.com/heketi/heketi/pkg/utils"
+	"github.com/heketi/heketi/pkg/logging"
 	"github.com/heketi/rest"
 )
 
 const (
-	ASYNC_ROUTE           = "/queue"
-	BOLTDB_BUCKET_CLUSTER = "CLUSTER"
-	BOLTDB_BUCKET_NODE    = "NODE"
-	BOLTDB_BUCKET_VOLUME  = "VOLUME"
-	BOLTDB_BUCKET_DEVICE  = "DEVICE"
-	BOLTDB_BUCKET_BRICK   = "BRICK"
+	ASYNC_ROUTE                    = "/queue"
+	BOLTDB_BUCKET_CLUSTER          = "CLUSTER"
+	BOLTDB_BUCKET_NODE             = "NODE"
+	BOLTDB_BUCKET_VOLUME           = "VOLUME"
+	BOLTDB_BUCKET_DEVICE           = "DEVICE"
+	BOLTDB_BUCKET_BRICK            = "BRICK"
+	BOLTDB_BUCKET_BLOCKVOLUME      = "BLOCKVOLUME"
+	BOLTDB_BUCKET_DBATTRIBUTE      = "DBATTRIBUTE"
+	DB_CLUSTER_HAS_FILE_BLOCK_FLAG = "DB_CLUSTER_HAS_FILE_BLOCK_FLAG"
+	DB_BRICK_HAS_SUBTYPE_FIELD     = "DB_BRICK_HAS_SUBTYPE_FIELD"
+	DEFAULT_OP_LIMIT               = 8
 )
 
 var (
-	logger     = utils.NewLogger("[heketi]", utils.LEVEL_INFO)
+	logger     = logging.NewLogger("[heketi]", logging.LEVEL_INFO)
 	dbfilename = "heketi.db"
+	// global var to track active node health cache
+	// if multiple apps are started the content of this var is
+	// undefined.
+	// TODO: make a global not needed
+	currentNodeHealthCache *NodeHealthCache
+
+	// global var to enable the use of the health cache + monitor
+	// when the GlusterFS App is created. This is mildly hacky but
+	// avoids having to update config files to enable the feature
+	// while avoiding having to touch all of the unit tests.
+	MonitorGlusterNodes = false
+
+	// global var that contains list of volume options that are set *before*
+	// setting the volume options that come as part of volume request.
+	PreReqVolumeOptions = ""
+
+	// global var that contains list of volume options that are set *after*
+	// setting the volume options that come as part of volume request.
+	PostReqVolumeOptions = ""
 )
 
 type App struct {
@@ -44,8 +69,14 @@ type App struct {
 	db           *bolt.DB
 	dbReadOnly   bool
 	executor     executors.Executor
-	allocator    Allocator
+	_allocator   Allocator
 	conf         *GlusterFSConfig
+
+	// health monitor
+	nhealth *NodeHealthCache
+
+	// operations tracker
+	opcounter *OpCounter
 
 	// For testing only.  Keep access to the object
 	// not through the interface
@@ -53,30 +84,41 @@ type App struct {
 }
 
 // Use for tests only
-func NewApp(configIo io.Reader) *App {
+func NewApp(conf *GlusterFSConfig) *App {
+	var err error
 	app := &App{}
 
-	// Load configuration file
-	app.conf = loadConfiguration(configIo)
-	if app.conf == nil {
-		return nil
-	}
+	app.conf = conf
+
+	// We would like to perform rebalance by default
+	// As it is very difficult to distinguish missing parameter from
+	// set-but-false parameter in json, we are going to ignore json config
+	// We will provide a env method to set it to false again.
+	app.conf.KubeConfig.RebalanceOnExpansion = true
+	app.conf.SshConfig.RebalanceOnExpansion = true
+
+	// Set values mentioned in environmental variable
+	app.setFromEnvironmentalVariable()
 
 	// Setup loglevel
-	app.setLogLevel(app.conf.Loglevel)
+	err = SetLogLevel(app.conf.Loglevel)
+	if err != nil {
+		// just log that the log level was bad, it never failed
+		// anything in previous versions
+		logger.Err(err)
+	}
 
 	// Setup asynchronous manager
 	app.asyncManager = rest.NewAsyncHttpManager(ASYNC_ROUTE)
 
 	// Setup executor
-	var err error
-	switch {
-	case app.conf.Executor == "mock":
+	switch app.conf.Executor {
+	case "mock":
 		app.xo, err = mockexec.NewMockExecutor()
 		app.executor = app.xo
-	case app.conf.Executor == "kube" || app.conf.Executor == "kubernetes":
+	case "kube", "kubernetes":
 		app.executor, err = kubeexec.NewKubeExecutor(&app.conf.KubeConfig)
-	case app.conf.Executor == "ssh" || app.conf.Executor == "":
+	case "ssh", "":
 		app.executor, err = sshexec.NewSshExecutor(&app.conf.SshConfig)
 	default:
 		return nil
@@ -92,15 +134,13 @@ func NewApp(configIo io.Reader) *App {
 		dbfilename = app.conf.DBfile
 	}
 
-	// Setup BoltDB database
-	app.db, err = bolt.Open(dbfilename, 0600, &bolt.Options{Timeout: 3 * time.Second})
+	// Setup database
+	app.db, err = OpenDB(dbfilename, false)
 	if err != nil {
-		logger.Warning("Unable to open database.  Retrying using read only mode")
+		logger.LogError("Unable to open database: %v. Retrying using read only mode", err)
 
 		// Try opening as read-only
-		app.db, err = bolt.Open(dbfilename, 0666, &bolt.Options{
-			ReadOnly: true,
-		})
+		app.db, err = OpenDB(dbfilename, true)
 		if err != nil {
 			logger.LogError("Unable to open database: %v", err)
 			return nil
@@ -108,43 +148,14 @@ func NewApp(configIo io.Reader) *App {
 		app.dbReadOnly = true
 	} else {
 		err = app.db.Update(func(tx *bolt.Tx) error {
-			// Create Cluster Bucket
-			_, err := tx.CreateBucketIfNotExists([]byte(BOLTDB_BUCKET_CLUSTER))
+			err := initializeBuckets(tx)
 			if err != nil {
-				logger.LogError("Unable to create cluster bucket in DB")
-				return err
-			}
-
-			// Create Node Bucket
-			_, err = tx.CreateBucketIfNotExists([]byte(BOLTDB_BUCKET_NODE))
-			if err != nil {
-				logger.LogError("Unable to create node bucket in DB")
-				return err
-			}
-
-			// Create Volume Bucket
-			_, err = tx.CreateBucketIfNotExists([]byte(BOLTDB_BUCKET_VOLUME))
-			if err != nil {
-				logger.LogError("Unable to create volume bucket in DB")
-				return err
-			}
-
-			// Create Device Bucket
-			_, err = tx.CreateBucketIfNotExists([]byte(BOLTDB_BUCKET_DEVICE))
-			if err != nil {
-				logger.LogError("Unable to create device bucket in DB")
-				return err
-			}
-
-			// Create Brick Bucket
-			_, err = tx.CreateBucketIfNotExists([]byte(BOLTDB_BUCKET_BRICK))
-			if err != nil {
-				logger.LogError("Unable to create brick bucket in DB")
+				logger.LogError("Unable to initialize buckets")
 				return err
 			}
 
 			// Handle Upgrade Changes
-			err = app.Upgrade(tx)
+			err = UpgradeDB(tx)
 			if err != nil {
 				logger.LogError("Unable to Upgrade Changes")
 				return err
@@ -159,20 +170,57 @@ func NewApp(configIo io.Reader) *App {
 		}
 	}
 
+	// Abort the application if there are pending operations in the db.
+	// In the immediate future we need to prevent incomplete operations
+	// from piling up in the db. If there are any pending ops in the db
+	// (meaning heketi was uncleanly terminated during the op) we are
+	// simply going to refuse to start and provide offline tooling to
+	// repair the situation. In the long term we may gain the ability to
+	// auto-rollback or even try to resume some operations.
+	if HasPendingOperations(app.db) {
+		e := errors.New(
+			"Heketi was terminated while performing one or more operations." +
+				" Server may refuse to start as long as pending operations" +
+				" are present in the db.")
+		logger.Err(e)
+		logger.Info(
+			"Please refer to the Heketi troubleshooting documentation for more" +
+				" information on how to resolve this issue.")
+		if !app.conf.IgnoreStaleOperations {
+			logger.Warning("Server refusing to start.")
+			panic(e)
+		}
+		logger.Warning("Ignoring stale pending operations." +
+			"Server will be running with incomplete/inconsistent state in DB.")
+	}
+
 	// Set advanced settings
 	app.setAdvSettings()
 
-	// Setup allocator
-	switch {
-	case app.conf.Allocator == "mock":
-		app.allocator = NewMockAllocator(app.db)
-	case app.conf.Allocator == "simple" || app.conf.Allocator == "":
-		app.conf.Allocator = "simple"
-		app.allocator = NewSimpleAllocatorFromDb(app.db)
-	default:
-		return nil
+	// Set block settings
+	app.setBlockSettings()
+
+	//default monitor gluster node refresh time
+	var timer uint32 = 120
+	var startDelay uint32 = 10
+	if app.conf.RefreshTimeMonitorGlusterNodes > 0 {
+		timer = app.conf.RefreshTimeMonitorGlusterNodes
 	}
-	logger.Info("Loaded %v allocator", app.conf.Allocator)
+	if app.conf.StartTimeMonitorGlusterNodes > 0 {
+		startDelay = app.conf.StartTimeMonitorGlusterNodes
+	}
+	if MonitorGlusterNodes {
+		app.nhealth = NewNodeHealthCache(timer, startDelay, app.db, app.executor)
+		app.nhealth.Monitor()
+		currentNodeHealthCache = app.nhealth
+	}
+
+	// set up the operations counter
+	oplimit := app.conf.MaxInflightOperations
+	if oplimit == 0 {
+		oplimit = DEFAULT_OP_LIMIT
+	}
+	app.opcounter = &OpCounter{Limit: oplimit}
 
 	// Show application has loaded
 	logger.Info("GlusterFS Application Loaded")
@@ -180,57 +228,107 @@ func NewApp(configIo io.Reader) *App {
 	return app
 }
 
-func (a *App) setLogLevel(level string) {
+func SetLogLevel(level string) error {
 	switch level {
 	case "none":
-		logger.SetLevel(utils.LEVEL_NOLOG)
+		logger.SetLevel(logging.LEVEL_NOLOG)
 	case "critical":
-		logger.SetLevel(utils.LEVEL_CRITICAL)
+		logger.SetLevel(logging.LEVEL_CRITICAL)
 	case "error":
-		logger.SetLevel(utils.LEVEL_ERROR)
+		logger.SetLevel(logging.LEVEL_ERROR)
 	case "warning":
-		logger.SetLevel(utils.LEVEL_WARNING)
+		logger.SetLevel(logging.LEVEL_WARNING)
 	case "info":
-		logger.SetLevel(utils.LEVEL_INFO)
+		logger.SetLevel(logging.LEVEL_INFO)
 	case "debug":
-		logger.SetLevel(utils.LEVEL_DEBUG)
+		logger.SetLevel(logging.LEVEL_DEBUG)
+	case "":
+		// treat empty string as a no-op & don't complain
+		// about it
+	default:
+		return fmt.Errorf("invalid log level: %s", level)
 	}
+	return nil
 }
 
-// Upgrade Path to update all the values for new API entries
-func (a *App) Upgrade(tx *bolt.Tx) error {
+func (a *App) setFromEnvironmentalVariable() {
+	var err error
 
-	err := ClusterEntryUpgrade(tx)
-	if err != nil {
-		logger.LogError("Failed to upgrade db for cluster entries")
-		return err
+	// environment variable overrides file config
+	env := os.Getenv("HEKETI_EXECUTOR")
+	if env != "" {
+		a.conf.Executor = env
 	}
 
-	err = NodeEntryUpgrade(tx)
-	if err != nil {
-		logger.LogError("Failed to upgrade db for node entries")
-		return err
+	env = os.Getenv("HEKETI_DB_PATH")
+	if env != "" {
+		a.conf.DBfile = env
 	}
 
-	err = VolumeEntryUpgrade(tx)
-	if err != nil {
-		logger.LogError("Failed to upgrade db for volume entries")
-		return err
+	env = os.Getenv("HEKETI_GLUSTERAPP_LOGLEVEL")
+	if env != "" {
+		a.conf.Loglevel = env
 	}
 
-	err = DeviceEntryUpgrade(tx)
-	if err != nil {
-		logger.LogError("Failed to upgrade db for device entries")
-		return err
+	env = os.Getenv("HEKETI_IGNORE_STALE_OPERATIONS")
+	if env != "" {
+		a.conf.IgnoreStaleOperations, err = strconv.ParseBool(env)
+		if err != nil {
+			logger.LogError("Error: While parsing HEKETI_IGNORE_STALE_OPERATIONS as bool: %v", err)
+		}
 	}
 
-	err = BrickEntryUpgrade(tx)
-	if err != nil {
-		logger.LogError("Failed to upgrade db for brick entries: %v", err)
-		return err
+	env = os.Getenv("HEKETI_AUTO_CREATE_BLOCK_HOSTING_VOLUME")
+	if "" != env {
+		a.conf.CreateBlockHostingVolumes, err = strconv.ParseBool(env)
+		if err != nil {
+			logger.LogError("Error: Parse bool in Create Block Hosting Volumes: %v", err)
+		}
 	}
 
-	return nil
+	env = os.Getenv("HEKETI_BLOCK_HOSTING_VOLUME_SIZE")
+	if "" != env {
+		a.conf.BlockHostingVolumeSize, err = strconv.Atoi(env)
+		if err != nil {
+			logger.LogError("Error: Atoi in Block Hosting Volume Size: %v", err)
+		}
+	}
+
+	env = os.Getenv("HEKETI_BLOCK_HOSTING_VOLUME_OPTIONS")
+	if "" != env {
+		a.conf.BlockHostingVolumeOptions = env
+	}
+
+	env = os.Getenv("HEKETI_GLUSTERAPP_REBALANCE_ON_EXPANSION")
+	if env != "" {
+		value, err := strconv.ParseBool(env)
+		if err != nil {
+			logger.LogError("Error: While parsing HEKETI_GLUSTERAPP_REBALANCE_ON_EXPANSION as bool: %v", err)
+		} else {
+			a.conf.SshConfig.RebalanceOnExpansion = value
+			a.conf.KubeConfig.RebalanceOnExpansion = value
+		}
+	}
+
+	env = os.Getenv("HEKETI_MAX_INFLIGHT_OPERATIONS")
+	if env != "" {
+		value, err := strconv.ParseInt(env, 10, 64)
+		if err != nil {
+			logger.LogError("Error: While parsing HEKETI_MAX_INFLIGHT_OPERATIONS: %v", err)
+		} else {
+			a.conf.MaxInflightOperations = uint64(value)
+		}
+	}
+
+	env = os.Getenv("HEKETI_PRE_REQUEST_VOLUME_OPTIONS")
+	if "" != env {
+		a.conf.PreReqVolumeOptions = env
+	}
+
+	env = os.Getenv("HEKETI_POST_REQUEST_VOLUME_OPTIONS")
+	if "" != env {
+		a.conf.PostReqVolumeOptions = env
+	}
 }
 
 func (a *App) setAdvSettings() {
@@ -254,6 +352,39 @@ func (a *App) setAdvSettings() {
 		// Convert to KB
 		BrickMinSize = uint64(a.conf.BrickMinSize) * 1024 * 1024
 	}
+	if a.conf.AverageFileSize != 0 {
+		logger.Info("Average file size on volumes set to %v KiB", a.conf.AverageFileSize)
+		averageFileSize = a.conf.AverageFileSize
+	}
+	if a.conf.PreReqVolumeOptions != "" {
+		logger.Info("Pre Request Volume Options: %v", a.conf.PreReqVolumeOptions)
+		PreReqVolumeOptions = a.conf.PreReqVolumeOptions
+	}
+	if a.conf.PostReqVolumeOptions != "" {
+		logger.Info("Post Request Volume Options: %v", a.conf.PostReqVolumeOptions)
+		PostReqVolumeOptions = a.conf.PostReqVolumeOptions
+	}
+
+}
+
+func (a *App) setBlockSettings() {
+	if a.conf.CreateBlockHostingVolumes != false {
+		logger.Info("Block: Auto Create Block Hosting Volume set to %v", a.conf.CreateBlockHostingVolumes)
+
+		// switch to auto creation of block hosting volumes
+		CreateBlockHostingVolumes = a.conf.CreateBlockHostingVolumes
+	}
+	if a.conf.BlockHostingVolumeSize > 0 {
+		logger.Info("Block: New Block Hosting Volume size %v GB", a.conf.BlockHostingVolumeSize)
+
+		// Should be in GB as this is input for block hosting volume create
+		BlockHostingVolumeSize = a.conf.BlockHostingVolumeSize
+	}
+	if a.conf.BlockHostingVolumeOptions != "" {
+		logger.Info("Block: New Block Hosting Volume Options: %v", a.conf.BlockHostingVolumeOptions)
+		BlockHostingVolumeOptions = a.conf.BlockHostingVolumeOptions
+	}
+
 }
 
 // Register Routes
@@ -274,6 +405,11 @@ func (a *App) SetRoutes(router *mux.Router) error {
 			Method:      "POST",
 			Pattern:     "/clusters",
 			HandlerFunc: a.ClusterCreate},
+		rest.Route{
+			Name:        "ClusterSetFlags",
+			Method:      "POST",
+			Pattern:     "/clusters/{id:[A-Fa-f0-9]+}/flags",
+			HandlerFunc: a.ClusterSetFlags},
 		rest.Route{
 			Name:        "ClusterInfo",
 			Method:      "GET",
@@ -311,6 +447,11 @@ func (a *App) SetRoutes(router *mux.Router) error {
 			Method:      "POST",
 			Pattern:     "/nodes/{id:[A-Fa-f0-9]+}/state",
 			HandlerFunc: a.NodeSetState},
+		rest.Route{
+			Name:        "NodeSetTags",
+			Method:      "POST",
+			Pattern:     "/nodes/{id:[A-Fa-f0-9]+}/tags",
+			HandlerFunc: a.NodeSetTags},
 
 		// Devices
 		rest.Route{
@@ -333,6 +474,16 @@ func (a *App) SetRoutes(router *mux.Router) error {
 			Method:      "POST",
 			Pattern:     "/devices/{id:[A-Fa-f0-9]+}/state",
 			HandlerFunc: a.DeviceSetState},
+		rest.Route{
+			Name:        "DeviceResync",
+			Method:      "GET",
+			Pattern:     "/devices/{id:[A-Fa-f0-9]+}/resync",
+			HandlerFunc: a.DeviceResync},
+		rest.Route{
+			Name:        "DeviceSetTags",
+			Method:      "POST",
+			Pattern:     "/devices/{id:[A-Fa-f0-9]+}/tags",
+			HandlerFunc: a.DeviceSetTags},
 
 		// Volume
 		rest.Route{
@@ -360,6 +511,40 @@ func (a *App) SetRoutes(router *mux.Router) error {
 			Method:      "GET",
 			Pattern:     "/volumes",
 			HandlerFunc: a.VolumeList},
+		rest.Route{
+			Name:        "VolumeSetBlockRestriction",
+			Method:      "POST",
+			Pattern:     "/volumes/{id:[A-Fa-f0-9]+}/block-restriction",
+			HandlerFunc: a.VolumeSetBlockRestriction},
+
+		// Volume Cloning
+		rest.Route{
+			Name:        "VolumeClone",
+			Method:      "POST",
+			Pattern:     "/volumes/{id:[A-Fa-f0-9]+}/clone",
+			HandlerFunc: a.VolumeClone},
+
+		// BlockVolumes
+		rest.Route{
+			Name:        "BlockVolumeCreate",
+			Method:      "POST",
+			Pattern:     "/blockvolumes",
+			HandlerFunc: a.BlockVolumeCreate},
+		rest.Route{
+			Name:        "BlockVolumeInfo",
+			Method:      "GET",
+			Pattern:     "/blockvolumes/{id:[A-Fa-f0-9]+}",
+			HandlerFunc: a.BlockVolumeInfo},
+		rest.Route{
+			Name:        "BlockVolumeDelete",
+			Method:      "DELETE",
+			Pattern:     "/blockvolumes/{id:[A-Fa-f0-9]+}",
+			HandlerFunc: a.BlockVolumeDelete},
+		rest.Route{
+			Name:        "BlockVolumeList",
+			Method:      "GET",
+			Pattern:     "/blockvolumes",
+			HandlerFunc: a.BlockVolumeList},
 
 		// Backup
 		rest.Route{
@@ -367,6 +552,31 @@ func (a *App) SetRoutes(router *mux.Router) error {
 			Method:      "GET",
 			Pattern:     "/backup/db",
 			HandlerFunc: a.Backup},
+
+		// Db
+		rest.Route{
+			Name:        "DbDump",
+			Method:      "GET",
+			Pattern:     "/db/dump",
+			HandlerFunc: a.DbDump},
+
+		// Logging
+		rest.Route{
+			Name:        "GetLogLevel",
+			Method:      "GET",
+			Pattern:     "/internal/logging",
+			HandlerFunc: a.GetLogLevel},
+		rest.Route{
+			Name:        "SetLogLevel",
+			Method:      "POST",
+			Pattern:     "/internal/logging",
+			HandlerFunc: a.SetLogLevel},
+		// Operations state on server
+		rest.Route{
+			Name:        "OperationsInfo",
+			Method:      "GET",
+			Pattern:     "/operations",
+			HandlerFunc: a.OperationsInfo},
 	}
 
 	// Register all routes from the App
@@ -388,6 +598,10 @@ func (a *App) SetRoutes(router *mux.Router) error {
 }
 
 func (a *App) Close() {
+	// stop the health goroutine
+	if a.nhealth != nil {
+		a.nhealth.Stop()
+	}
 
 	// Close the DB
 	a.db.Close()
@@ -410,4 +624,35 @@ func (a *App) Backup(w http.ResponseWriter, r *http.Request) {
 func (a *App) NotFoundHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Warning("Invalid path or request %v", r.URL.Path)
 	http.Error(w, "Invalid path or request", http.StatusNotFound)
+}
+
+// ServerReset resets the app and its components to the state desired
+// after the server process has restarted. The intent of this function
+// is to perform cleanup & reset tasks that are needed by the server
+// process only (should not be used by other callers of the app).
+// This should be as part of the start-up of the server instance.
+func (a *App) ServerReset() error {
+	// currently this code just resets the operations in the db
+	// to stale
+	return a.db.Update(func(tx *bolt.Tx) error {
+		if err := MarkPendingOperationsStale(tx); err != nil {
+			logger.LogError("failed to mark operations stale: %v", err)
+			return err
+		}
+		return nil
+	})
+}
+
+// currentNodeHealthStatus returns a map of node ids to the most
+// recently known health status (true is up, false is not up).
+// If a node is not found in the map its status is unknown.
+// If no heath monitor is active an empty map is always returned.
+func currentNodeHealthStatus() (nodeUp map[string]bool) {
+	if currentNodeHealthCache != nil {
+		nodeUp = currentNodeHealthCache.Status()
+	} else {
+		// just an empty map
+		nodeUp = map[string]bool{}
+	}
+	return
 }

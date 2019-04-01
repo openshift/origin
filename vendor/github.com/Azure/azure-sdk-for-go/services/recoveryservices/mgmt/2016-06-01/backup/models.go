@@ -441,21 +441,6 @@ func PossibleObjectTypeValues() []ObjectType {
 	return []ObjectType{ObjectTypeOperationStatusExtendedInfo, ObjectTypeOperationStatusJobExtendedInfo, ObjectTypeOperationStatusJobsExtendedInfo, ObjectTypeOperationStatusProvisionILRExtendedInfo}
 }
 
-// ObjectTypeBasicBackupRequest enumerates the values for object type basic backup request.
-type ObjectTypeBasicBackupRequest string
-
-const (
-	// ObjectTypeBackupRequest ...
-	ObjectTypeBackupRequest ObjectTypeBasicBackupRequest = "BackupRequest"
-	// ObjectTypeIaasVMBackupRequest ...
-	ObjectTypeIaasVMBackupRequest ObjectTypeBasicBackupRequest = "IaasVMBackupRequest"
-)
-
-// PossibleObjectTypeBasicBackupRequestValues returns an array of possible values for the ObjectTypeBasicBackupRequest const type.
-func PossibleObjectTypeBasicBackupRequestValues() []ObjectTypeBasicBackupRequest {
-	return []ObjectTypeBasicBackupRequest{ObjectTypeBackupRequest, ObjectTypeIaasVMBackupRequest}
-}
-
 // ObjectTypeBasicILRRequest enumerates the values for object type basic ilr request.
 type ObjectTypeBasicILRRequest string
 
@@ -504,6 +489,21 @@ const (
 // PossibleObjectTypeBasicRecoveryPointValues returns an array of possible values for the ObjectTypeBasicRecoveryPoint const type.
 func PossibleObjectTypeBasicRecoveryPointValues() []ObjectTypeBasicRecoveryPoint {
 	return []ObjectTypeBasicRecoveryPoint{ObjectTypeGenericRecoveryPoint, ObjectTypeIaasVMRecoveryPoint, ObjectTypeRecoveryPoint}
+}
+
+// ObjectTypeBasicRequest enumerates the values for object type basic request.
+type ObjectTypeBasicRequest string
+
+const (
+	// ObjectTypeBackupRequest ...
+	ObjectTypeBackupRequest ObjectTypeBasicRequest = "BackupRequest"
+	// ObjectTypeIaasVMBackupRequest ...
+	ObjectTypeIaasVMBackupRequest ObjectTypeBasicRequest = "IaasVMBackupRequest"
+)
+
+// PossibleObjectTypeBasicRequestValues returns an array of possible values for the ObjectTypeBasicRequest const type.
+func PossibleObjectTypeBasicRequestValues() []ObjectTypeBasicRequest {
+	return []ObjectTypeBasicRequest{ObjectTypeBackupRequest, ObjectTypeIaasVMBackupRequest}
 }
 
 // ObjectTypeBasicRestoreRequest enumerates the values for object type basic restore request.
@@ -2933,7 +2933,7 @@ type IaasVMBackupRequest struct {
 	// RecoveryPointExpiryTimeInUTC - The backup copy will expire after the time specified. The time is in UTC format.
 	RecoveryPointExpiryTimeInUTC *date.Time `json:"recoveryPointExpiryTimeInUTC,omitempty"`
 	// ObjectType - Possible values include: 'ObjectTypeBackupRequest', 'ObjectTypeIaasVMBackupRequest'
-	ObjectType ObjectTypeBasicBackupRequest `json:"objectType,omitempty"`
+	ObjectType ObjectTypeBasicRequest `json:"objectType,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for IaasVMBackupRequest.
@@ -6307,7 +6307,7 @@ type BasicRequest interface {
 // Request the base class for a backup request. Workload-specific backup requests are derived from this class.
 type Request struct {
 	// ObjectType - Possible values include: 'ObjectTypeBackupRequest', 'ObjectTypeIaasVMBackupRequest'
-	ObjectType ObjectTypeBasicBackupRequest `json:"objectType,omitempty"`
+	ObjectType ObjectTypeBasicRequest `json:"objectType,omitempty"`
 }
 
 func unmarshalBasicRequest(body []byte) (BasicRequest, error) {

@@ -10,11 +10,12 @@
 package kubeexec
 
 import (
-	"github.com/heketi/heketi/executors/sshexec"
+	"github.com/heketi/heketi/executors/cmdexec"
 )
 
 type KubeConfig struct {
-	sshexec.CLICommandConfig
+	cmdexec.CmdConfig
+
 	Namespace        string `json:"namespace"`
 	GlusterDaemonSet bool   `json:"gluster_daemonset"`
 

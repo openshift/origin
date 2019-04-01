@@ -21,6 +21,8 @@ package locks
 
 import original "github.com/Azure/azure-sdk-for-go/services/resources/mgmt/2016-09-01/locks"
 
+type AuthorizationOperationsClient = original.AuthorizationOperationsClient
+
 const (
 	DefaultBaseURI = original.DefaultBaseURI
 )
@@ -41,7 +43,18 @@ type ManagementLockListResultPage = original.ManagementLockListResultPage
 type ManagementLockObject = original.ManagementLockObject
 type ManagementLockOwner = original.ManagementLockOwner
 type ManagementLockProperties = original.ManagementLockProperties
+type Operation = original.Operation
+type OperationDisplay = original.OperationDisplay
+type OperationListResult = original.OperationListResult
+type OperationListResultIterator = original.OperationListResultIterator
+type OperationListResultPage = original.OperationListResultPage
 
+func NewAuthorizationOperationsClient(subscriptionID string) AuthorizationOperationsClient {
+	return original.NewAuthorizationOperationsClient(subscriptionID)
+}
+func NewAuthorizationOperationsClientWithBaseURI(baseURI string, subscriptionID string) AuthorizationOperationsClient {
+	return original.NewAuthorizationOperationsClientWithBaseURI(baseURI, subscriptionID)
+}
 func New(subscriptionID string) BaseClient {
 	return original.New(subscriptionID)
 }
