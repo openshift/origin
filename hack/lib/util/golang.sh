@@ -8,7 +8,7 @@ function os::golang::verify_go_version() {
 
 	local go_version
 	go_version=($(go version))
-	if ! echo "${go_version[2]#go}" | awk -F. -v min=${OS_REQUIRED_GO_VERSION#go} '{ exit $2 < min }'; then
+	if [[ "${OS_REQUIRED_GO_VERSION}" != $(echo -e "${OS_REQUIRED_GO_VERSION}\n${go_version[2]}" | sort -s -t. -k 1,1 -k 2,2n -k 3,3n | head -n1) && "${go_version[2]}" != "devel" ]]; then
 		os::log::info "Detected go version: ${go_version[*]}."
 		if [[ -z "${PERMISSIVE_GO:-}" ]]; then
 			os::log::fatal "Please install Go version ${OS_REQUIRED_GO_VERSION} or use PERMISSIVE_GO=y to bypass this check."
@@ -27,7 +27,7 @@ function os::golang::verify_glide_version() {
 
 	local glide_version
 	glide_version=($(glide --version))
-	if ! echo "${glide_version[2]#v}" | awk -F. -v min=$OS_GLIDE_MINOR_VERSION '{ exit $2 < min }'; then
+	if ! echo "${glide_version[2]#v}" | awk -F. -v min="${OS_GLIDE_MINOR_VERSION}" '{ exit $2 < min }'; then
 		os::log::info "Detected glide version: ${glide_version[*]}."
 		os::log::fatal "Please install Glide version ${OS_REQUIRED_GLIDE_VERSION} or newer."
 	fi
