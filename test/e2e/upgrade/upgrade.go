@@ -310,6 +310,7 @@ func clusterUpgrade(c configv1client.Interface, version upgrades.VersionContext)
 	if err != nil {
 		return err
 	}
+	oldVersion := cv.Status.Desired.Version
 	desired := configv1.Update{
 		Version: version.Version.String(),
 		Image:   version.NodeImage,
@@ -391,14 +392,15 @@ func clusterUpgrade(c configv1client.Interface, version upgrades.VersionContext)
 		if coList, err := c.ConfigV1().ClusterOperators().List(metav1.ListOptions{}); err == nil {
 			buf := &bytes.Buffer{}
 			tw := tabwriter.NewWriter(buf, 0, 2, 1, ' ', 0)
-			fmt.Fprintf(tw, "NAME\tA F P\tMESSAGE\n")
+			fmt.Fprintf(tw, "NAME\tA F P\tVERSION\tMESSAGE\n")
 			for _, item := range coList.Items {
 				fmt.Fprintf(tw,
-					"%s\t%s %s %s\t%s\n",
+					"%s\t%s %s %s\t%s\t%s\n",
 					item.Name,
-					findConditionShortStatus(item.Status.Conditions, configv1.OperatorAvailable),
-					findConditionShortStatus(item.Status.Conditions, configv1.OperatorFailing),
-					findConditionShortStatus(item.Status.Conditions, configv1.OperatorProgressing),
+					findConditionShortStatus(item.Status.Conditions, configv1.OperatorAvailable, configv1.ConditionTrue),
+					findConditionShortStatus(item.Status.Conditions, configv1.OperatorFailing, configv1.ConditionFalse),
+					findConditionShortStatus(item.Status.Conditions, configv1.OperatorProgressing, configv1.ConditionFalse),
+					findVersion(item.Status.Versions, "operator", oldVersion, lastCV.Status.Desired.Version),
 					findConditionMessage(item.Status.Conditions, configv1.OperatorProgressing),
 				)
 			}
@@ -413,12 +415,33 @@ func clusterUpgrade(c configv1client.Interface, version upgrades.VersionContext)
 	return nil
 }
 
-func findConditionShortStatus(conditions []configv1.ClusterOperatorStatusCondition, name configv1.ClusterStatusConditionType) string {
+func findVersion(versions []configv1.OperandVersion, name string, oldVersion, newVersion string) string {
+	for _, version := range versions {
+		if version.Name == name {
+			if len(oldVersion) > 0 && version.Version == oldVersion {
+				return "<old>"
+			}
+			if len(newVersion) > 0 && version.Version == newVersion {
+				return "<new>"
+			}
+			return version.Version
+		}
+	}
+	return ""
+}
+
+func findConditionShortStatus(conditions []configv1.ClusterOperatorStatusCondition, name configv1.ClusterStatusConditionType, unless configv1.ConditionStatus) string {
 	if c := findCondition(conditions, name); c != nil {
 		switch c.Status {
 		case configv1.ConditionTrue:
+			if unless == c.Status {
+				return " "
+			}
 			return "T"
 		case configv1.ConditionFalse:
+			if unless == c.Status {
+				return " "
+			}
 			return "F"
 		default:
 			return "U"
