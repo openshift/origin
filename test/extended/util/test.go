@@ -321,16 +321,17 @@ var (
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
-			`\[Feature:Networking-IPv6\]`,     // openshift-sdn doesn't support yet
-			`Monitoring`,                      // Not installed, should be
-			`Cluster level logging`,           // Not installed yet
-			`Kibana`,                          // Not installed
-			`Ubernetes`,                       // Can't set zone labels today
-			`kube-ui`,                         // Not installed by default
-			`Kubernetes Dashboard`,            // Not installed by default (also probably slow image pull)
-			`\[Feature:ServiceLoadBalancer\]`, // Not enabled yet
-			`PersistentVolumes-local`,         // Disable local storage in 4.0 for now (sig-storage/hekumar@redhat.com)
-			`\[Feature:RuntimeClass\]`,        // disable runtimeclass tests in 4.1 (sig-pod/sjenning@redhat.com)
+			`\[Feature:Networking-IPv6\]`,                 // openshift-sdn doesn't support yet
+			`Monitoring`,                                  // Not installed, should be
+			`Cluster level logging`,                       // Not installed yet
+			`Kibana`,                                      // Not installed
+			`Ubernetes`,                                   // Can't set zone labels today
+			`kube-ui`,                                     // Not installed by default
+			`Kubernetes Dashboard`,                        // Not installed by default (also probably slow image pull)
+			`\[Feature:ServiceLoadBalancer\]`,             // Not enabled yet
+			`PersistentVolumes-local`,                     // Disable local storage in 4.0 for now (sig-storage/hekumar@redhat.com)
+			`\[Feature:RuntimeClass\]`,                    // disable runtimeclass tests in 4.1 (sig-pod/sjenning@redhat.com)
+			`\[Feature:CustomResourceWebhookConversion\]`, // webhook conversion is off by default.  sig-master/@sttts
 
 			`NetworkPolicy between server and client should allow egress access on one named port`, // not yet implemented
 
