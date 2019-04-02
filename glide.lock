@@ -1,5 +1,5 @@
 hash: 079b9f1fdc9ed811bab54c891e0d0b03b68e23f6428be046b0f7d87148a908be
-updated: 2019-03-20T19:28:14.976609484Z
+updated: 2019-03-25T15:56:19.152737147-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -511,7 +511,7 @@ imports:
   subpackages:
   - mat64
 - name: github.com/google/btree
-  version: 4030bb1f1f0c35b30ca7009e9ebd06849dd45306
+  version: bfb38958ad2298964492841280eea188b9c23e7b
 - name: github.com/google/cadvisor
   version: e7bafcb870aceaff6ae15189520febdede52b50f
   repo: https://github.com/openshift/google-cadvisor.git
@@ -820,7 +820,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 5ad8479f64f1b60ee9c62ce8ef1fe6638838725e
+  version: 8741ff068a473be041d7bafb4502c12e4f10aab5
   subpackages:
   - apps
   - apps/v1
