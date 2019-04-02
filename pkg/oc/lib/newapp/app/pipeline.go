@@ -105,7 +105,7 @@ func (pb *pipelineBuilder) NewBuildPipeline(from string, input *ImageRef, source
 	source.Name = name
 
 	// Append any exposed ports from Dockerfile to input image
-	if sourceRepository.GetStrategy() == generate.StrategyDocker && sourceRepository.Info() != nil {
+	if sourceRepository.GetStrategy() == newapp.StrategyDocker && sourceRepository.Info() != nil {
 		node := sourceRepository.Info().Dockerfile.AST()
 		ports := dockerfile.LastExposedPorts(node)
 		if len(ports) > 0 {

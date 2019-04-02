@@ -3,6 +3,8 @@
 package internalversion
 
 import (
+	"time"
+
 	user "github.com/openshift/origin/pkg/user/apis/user"
 	scheme "github.com/openshift/origin/pkg/user/generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,10 +58,15 @@ func (c *identities) Get(name string, options v1.GetOptions) (result *user.Ident
 
 // List takes label and field selectors, and returns the list of Identities that match those selectors.
 func (c *identities) List(opts v1.ListOptions) (result *user.IdentityList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &user.IdentityList{}
 	err = c.client.Get().
 		Resource("identities").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
@@ -67,10 +74,15 @@ func (c *identities) List(opts v1.ListOptions) (result *user.IdentityList, err e
 
 // Watch returns a watch.Interface that watches the requested identities.
 func (c *identities) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Resource("identities").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -109,9 +121,14 @@ func (c *identities) Delete(name string, options *v1.DeleteOptions) error {
 
 // DeleteCollection deletes a collection of objects.
 func (c *identities) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Resource("identities").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

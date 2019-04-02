@@ -1,6 +1,9 @@
 # How to Contribute
 
 CSI is under [Apache 2.0](LICENSE) and accepts contributions via GitHub pull requests.
+
+Contributions require signing an individual or Corporate CLA available [here](https://github.com/container-storage-interface/spec/blob/master/CCLA.pdf) which should be signed and mailed to the [mailing list]( https://groups.google.com/forum/#!topic/container-storage-interface-community/).
+
 This document outlines some of the conventions on development workflow, commit message formatting, contact points and other resources to make it easier to get your contribution accepted.
 
 ## Markdown style

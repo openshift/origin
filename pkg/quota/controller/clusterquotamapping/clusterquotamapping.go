@@ -6,7 +6,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,12 +17,12 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/controller"
 
-	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
-	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
-	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
+	quotav1 "github.com/openshift/api/quota/v1"
+	quotainformer "github.com/openshift/client-go/quota/informers/externalversions/quota/v1"
+	quotalister "github.com/openshift/client-go/quota/listers/quota/v1"
+	quotav1conversions "github.com/openshift/origin/pkg/quota/apis/quota/v1"
 )
 
 // Look out, here there be dragons!
@@ -144,8 +144,8 @@ func (c *ClusterQuotaMappingController) Run(workers int, stopCh <-chan struct{})
 	<-stopCh
 }
 
-func (c *ClusterQuotaMappingController) syncQuota(quota *quotaapi.ClusterResourceQuota) error {
-	matcherFunc, err := quotaapi.GetObjectMatcher(quota.Spec.Selector)
+func (c *ClusterQuotaMappingController) syncQuota(quota *quotav1.ClusterResourceQuota) error {
+	matcherFunc, err := quotav1conversions.GetObjectMatcher(quota.Spec.Selector)
 	if err != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func (c *ClusterQuotaMappingController) syncNamespace(namespace metav1.Object) e
 		quota := allQuotas[i]
 
 		for {
-			matcherFunc, err := quotaapi.GetObjectMatcher(quota.Spec.Selector)
+			matcherFunc, err := quotav1conversions.GetObjectMatcher(quota.Spec.Selector)
 			if err != nil {
 				utilruntime.HandleError(err)
 				break
@@ -329,17 +329,13 @@ func (c *ClusterQuotaMappingController) deleteNamespace(obj interface{}) {
 	switch ns := obj.(type) {
 	case cache.DeletedFinalStateUnknown:
 		switch nested := ns.Obj.(type) {
-		case *v1.Namespace:
-			name = nested.Name
-		case *kapi.Namespace:
+		case *corev1.Namespace:
 			name = nested.Name
 		default:
 			utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not a Namespace %T", ns.Obj))
 			return
 		}
-	case *v1.Namespace:
-		name = ns.Name
-	case *kapi.Namespace:
+	case *corev1.Namespace:
 		name = ns.Name
 	default:
 		utilruntime.HandleError(fmt.Errorf("not a Namespace %v", obj))
@@ -356,19 +352,8 @@ func (c *ClusterQuotaMappingController) updateNamespace(old, cur interface{}) {
 }
 func (c *ClusterQuotaMappingController) enqueueNamespace(obj interface{}) {
 	switch ns := obj.(type) {
-	case *v1.Namespace:
+	case *corev1.Namespace:
 		if !c.clusterQuotaMapper.requireNamespace(ns) {
-			return
-		}
-	case *kapi.Namespace:
-		adaptedNs := &v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:        ns.Name,
-				Labels:      ns.Labels,
-				Annotations: ns.Annotations,
-			},
-		}
-		if !c.clusterQuotaMapper.requireNamespace(adaptedNs) {
 			return
 		}
 	default:
@@ -385,14 +370,14 @@ func (c *ClusterQuotaMappingController) enqueueNamespace(obj interface{}) {
 }
 
 func (c *ClusterQuotaMappingController) deleteQuota(obj interface{}) {
-	quota, ok1 := obj.(*quotaapi.ClusterResourceQuota)
+	quota, ok1 := obj.(*quotav1.ClusterResourceQuota)
 	if !ok1 {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			utilruntime.HandleError(fmt.Errorf("couldn't get object from tombstone %v", obj))
 			return
 		}
-		quota, ok = tombstone.Obj.(*quotaapi.ClusterResourceQuota)
+		quota, ok = tombstone.Obj.(*quotav1.ClusterResourceQuota)
 		if !ok {
 			utilruntime.HandleError(fmt.Errorf("tombstone contained object that is not a Quota %v", obj))
 			return
@@ -409,7 +394,7 @@ func (c *ClusterQuotaMappingController) updateQuota(old, cur interface{}) {
 	c.enqueueQuota(cur)
 }
 func (c *ClusterQuotaMappingController) enqueueQuota(obj interface{}) {
-	quota, ok := obj.(*quotaapi.ClusterResourceQuota)
+	quota, ok := obj.(*quotav1.ClusterResourceQuota)
 	if !ok {
 		utilruntime.HandleError(fmt.Errorf("not a Quota %v", obj))
 		return

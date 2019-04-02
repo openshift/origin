@@ -77,6 +77,11 @@ type DimensionProperties = original.DimensionProperties
 type DimensionsListResult = original.DimensionsListResult
 type ErrorDetails = original.ErrorDetails
 type ErrorResponse = original.ErrorResponse
+type Operation = original.Operation
+type OperationDisplay = original.OperationDisplay
+type OperationListResult = original.OperationListResult
+type OperationListResultIterator = original.OperationListResultIterator
+type OperationListResultPage = original.OperationListResultPage
 type Query = original.Query
 type QueryColumn = original.QueryColumn
 type QueryProperties = original.QueryProperties
@@ -97,6 +102,7 @@ type ReportConfigRecurrencePeriod = original.ReportConfigRecurrencePeriod
 type ReportConfigSchedule = original.ReportConfigSchedule
 type ReportConfigTimePeriod = original.ReportConfigTimePeriod
 type Resource = original.Resource
+type OperationsClient = original.OperationsClient
 type ReportConfigClient = original.ReportConfigClient
 type ResourceGroupDimensionsClient = original.ResourceGroupDimensionsClient
 type SubscriptionDimensionsClient = original.SubscriptionDimensionsClient
@@ -130,6 +136,12 @@ func PossibleStatusTypeValues() []StatusType {
 }
 func PossibleTimeframeTypeValues() []TimeframeType {
 	return original.PossibleTimeframeTypeValues()
+}
+func NewOperationsClient(subscriptionID string) OperationsClient {
+	return original.NewOperationsClient(subscriptionID)
+}
+func NewOperationsClientWithBaseURI(baseURI string, subscriptionID string) OperationsClient {
+	return original.NewOperationsClientWithBaseURI(baseURI, subscriptionID)
 }
 func NewReportConfigClient(subscriptionID string) ReportConfigClient {
 	return original.NewReportConfigClient(subscriptionID)

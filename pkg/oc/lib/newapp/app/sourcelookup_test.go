@@ -39,7 +39,7 @@ func TestAddBuildSecrets(t *testing.T) {
 		},
 	}
 	repo := &SourceRepository{}
-	repo.strategy = generate.StrategyDocker
+	repo.strategy = newapp.StrategyDocker
 	if err := repo.AddBuildSecrets([]string{"secret1:/absolute/path"}); err == nil {
 		t.Errorf("expected error for docker strategy when destDir is absolute")
 	}
@@ -99,7 +99,7 @@ func TestAddBuildConfigMaps(t *testing.T) {
 		},
 	}
 	repo := &SourceRepository{}
-	repo.strategy = generate.StrategyDocker
+	repo.strategy = newapp.StrategyDocker
 	if err := repo.AddBuildSecrets([]string{"config1:/absolute/path"}); err == nil {
 		t.Errorf("expected error for docker strategy when destDir is absolute")
 	}

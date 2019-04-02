@@ -28,10 +28,11 @@ import (
 	goruntime "runtime"
 	"strings"
 
-	"github.com/evanphx/json-patch"
-	"github.com/golang/glog"
+	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -46,7 +47,6 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions/openshiftpatch"
 	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
-	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/util/editor/crlf"
@@ -288,7 +288,7 @@ func (o *EditOptions) Run() error {
 			if len(results.file) > 0 {
 				os.Remove(results.file)
 			}
-			glog.V(4).Infof("User edited:\n%s", string(edited))
+			klog.V(4).Infof("User edited:\n%s", string(edited))
 
 			// Apply validation
 			schema, err := o.f.Validator(o.EnableValidation)
@@ -301,7 +301,8 @@ func (o *EditOptions) Run() error {
 					file: file,
 				}
 				containsError = true
-				fmt.Fprintln(o.ErrOut, results.addError(apierrors.NewInvalid(api.Kind(""), "", field.ErrorList{field.Invalid(nil, "The edited file failed validation", fmt.Sprintf("%v", err))}), infos[0]))
+				fmt.Fprintln(o.ErrOut, results.addError(apierrors.NewInvalid(corev1.SchemeGroupVersion.WithKind("").GroupKind(),
+					"", field.ErrorList{field.Invalid(nil, "The edited file failed validation", fmt.Sprintf("%v", err))}), infos[0]))
 				continue
 			}
 
@@ -525,7 +526,7 @@ func GetApplyPatch(obj runtime.Unstructured) ([]byte, []byte, types.PatchType, e
 	if annotations == nil {
 		annotations = map[string]string{}
 	}
-	annotations[api.LastAppliedConfigAnnotation] = string(beforeJSON)
+	annotations[corev1.LastAppliedConfigAnnotation] = string(beforeJSON)
 	accessor.SetAnnotations(objCopy, annotations)
 	afterJSON, err := encodeToJson(objCopy.(runtime.Unstructured))
 	if err != nil {
@@ -606,12 +607,12 @@ func (o *EditOptions) visitToPatch(originalInfos []*resource.Info, patchVisitor 
 			patchType = types.MergePatchType
 			patch, err = jsonpatch.CreateMergePatch(originalJS, editedJS)
 			if err != nil {
-				glog.V(4).Infof("Unable to calculate diff, no merge is possible: %v", err)
+				klog.V(4).Infof("Unable to calculate diff, no merge is possible: %v", err)
 				return err
 			}
 			for _, precondition := range preconditions {
 				if !precondition(patch) {
-					glog.V(4).Infof("Unable to calculate diff, no merge is possible: %v", err)
+					klog.V(4).Infof("Unable to calculate diff, no merge is possible: %v", err)
 					return fmt.Errorf("%s", "At least one of apiVersion, kind and name was changed")
 				}
 			}
@@ -621,7 +622,7 @@ func (o *EditOptions) visitToPatch(originalInfos []*resource.Info, patchVisitor 
 			patchType = types.StrategicMergePatchType
 			patch, err = strategicpatch.CreateTwoWayMergePatch(originalJS, editedJS, versionedObject, preconditions...)
 			if err != nil {
-				glog.V(4).Infof("Unable to calculate diff, no merge is possible: %v", err)
+				klog.V(4).Infof("Unable to calculate diff, no merge is possible: %v", err)
 				if mergepatch.IsPreconditionFailed(err) {
 					return fmt.Errorf("%s", "At least one of apiVersion, kind and name was changed")
 				}
@@ -669,12 +670,12 @@ func (o *EditOptions) visitAnnotation(annotationVisitor resource.Visitor) error 
 	err := annotationVisitor.Visit(func(info *resource.Info, incomingErr error) error {
 		// put configuration annotation in "updates"
 		if o.ApplyAnnotation {
-			if err := kubectl.CreateOrUpdateAnnotation(true, info.Object, cmdutil.InternalVersionJSONEncoder()); err != nil {
+			if err := kubectl.CreateOrUpdateAnnotation(true, info.Object, scheme.DefaultJSONEncoder()); err != nil {
 				return err
 			}
 		}
 		if err := o.Recorder.Record(info.Object); err != nil {
-			glog.V(4).Infof("error recording current command: %v", err)
+			klog.V(4).Infof("error recording current command: %v", err)
 		}
 
 		return nil

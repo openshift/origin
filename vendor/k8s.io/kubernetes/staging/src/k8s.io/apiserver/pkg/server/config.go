@@ -28,12 +28,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/emicklei/go-restful-swagger12"
+	swagger "github.com/emicklei/go-restful-swagger12"
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/go-openapi/spec"
-	"github.com/golang/glog"
 	"github.com/pborman/uuid"
-	"k8s.io/apiserver/pkg/server/certs"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -56,6 +54,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/features"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic"
+	"k8s.io/apiserver/pkg/server/certs"
 	genericfilters "k8s.io/apiserver/pkg/server/filters"
 	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/apiserver/pkg/server/routes"
@@ -64,6 +63,7 @@ import (
 	"k8s.io/apiserver/pkg/util/logs"
 	"k8s.io/client-go/informers"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/klog"
 	openapicommon "k8s.io/kube-openapi/pkg/common"
 
 	// install apis
@@ -158,9 +158,6 @@ type Config struct {
 	// If specified, long running requests such as watch will be allocated a random timeout between this value, and
 	// twice this value.  Note that it is up to the request handlers to ignore or honor this timeout. In seconds.
 	MinRequestTimeout int
-	// MinimalShutdownDuration allows to block shutdown for some time, e.g. until endpoints pointing to this API server
-	// have converged on all node. During this time, the API server keeps serving.
-	MinimalShutdownDuration time.Duration
 	// The limit on the total size increase all "copy" operations in a json
 	// patch may cause.
 	// This affects all places that applies json patch in the binary.
@@ -168,6 +165,9 @@ type Config struct {
 	// The limit on the request body size that would be accepted and decoded in a write request.
 	// 0 means no limit.
 	MaxRequestBodyBytes int64
+	// MinimalShutdownDuration allows to block shutdown for some time, e.g. until endpoints pointing to this API server
+	// have converged on all node. During this time, the API server keeps serving.
+	MinimalShutdownDuration time.Duration
 	// MaxRequestsInFlight is the maximum number of parallel non-long-running requests. Every further
 	// request has to wait. Applies only to non-mutating requests.
 	MaxRequestsInFlight int
@@ -380,11 +380,11 @@ func (c *Config) Complete(informers informers.SharedInformerFactory) CompletedCo
 	// if there is no port, and we listen on one securely, use that one
 	if _, _, err := net.SplitHostPort(c.ExternalAddress); err != nil {
 		if c.SecureServing == nil {
-			glog.Fatalf("cannot derive external address port without listening on a secure port.")
+			klog.Fatalf("cannot derive external address port without listening on a secure port.")
 		}
 		_, port, err := c.SecureServing.HostPort()
 		if err != nil {
-			glog.Fatalf("cannot derive external address from the secure port: %v", err)
+			klog.Fatalf("cannot derive external address from the secure port: %v", err)
 		}
 		c.ExternalAddress = net.JoinHostPort(c.ExternalAddress, strconv.Itoa(port))
 	}
@@ -489,9 +489,8 @@ func (c completedConfig) New(name string, delegationTarget DelegationTarget) (*G
 
 		listedPathProvider: apiServerHandler,
 
-		swaggerConfig:           c.SwaggerConfig,
-		openAPIConfig:           c.OpenAPIConfig,
-		openAPIDelegationTarget: delegationTarget,
+		swaggerConfig: c.SwaggerConfig,
+		openAPIConfig: c.OpenAPIConfig,
 
 		postStartHooks:         map[string]postStartHookEntry{},
 		preShutdownHooks:       map[string]preShutdownHookEntry{},
@@ -617,9 +616,8 @@ func installAPI(s *GenericAPIServer, c *Config) {
 		}
 	}
 
-	if c.Version != nil {
-		routes.Version{Version: c.Version}.Install(s.Handler.NonGoRestfulMux)
-	}
+	routes.Version{Version: c.Version}.Install(s.Handler.GoRestfulContainer)
+
 	if c.EnableDiscovery {
 		s.Handler.GoRestfulContainer.Add(s.DiscoveryGroupManager.WebService())
 	}

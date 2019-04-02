@@ -28,6 +28,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
+	"k8s.io/kubernetes/test/e2e/framework/testfiles"
+	"k8s.io/kubernetes/test/e2e/generated"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
@@ -68,7 +70,10 @@ func InitTest() {
 
 	TestContext.DeleteNamespace = os.Getenv("DELETE_NAMESPACE") != "false"
 	TestContext.VerifyServiceAccount = true
-	TestContext.RepoRoot = os.Getenv("KUBE_REPO_ROOT")
+	testfiles.AddFileSource(testfiles.BindataFileSource{
+		Asset:      generated.Asset,
+		AssetNames: generated.AssetNames,
+	})
 	TestContext.KubectlPath = "kubectl"
 	TestContext.KubeConfig = KubeConfigPath()
 	os.Setenv("KUBECONFIG", TestContext.KubeConfig)
@@ -316,15 +321,17 @@ var (
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
-			`\[Feature:Networking-IPv6\]`,     // openshift-sdn doesn't support yet
-			`Monitoring`,                      // Not installed, should be
-			`Cluster level logging`,           // Not installed yet
-			`Kibana`,                          // Not installed
-			`Ubernetes`,                       // Can't set zone labels today
-			`kube-ui`,                         // Not installed by default
-			`Kubernetes Dashboard`,            // Not installed by default (also probably slow image pull)
-			`\[Feature:ServiceLoadBalancer\]`, // Not enabled yet
-			`PersistentVolumes-local`,         // Disable local storage in 4.0 for now (sig-storage/hekumar@redhat.com)
+			`\[Feature:Networking-IPv6\]`,                 // openshift-sdn doesn't support yet
+			`Monitoring`,                                  // Not installed, should be
+			`Cluster level logging`,                       // Not installed yet
+			`Kibana`,                                      // Not installed
+			`Ubernetes`,                                   // Can't set zone labels today
+			`kube-ui`,                                     // Not installed by default
+			`Kubernetes Dashboard`,                        // Not installed by default (also probably slow image pull)
+			`\[Feature:ServiceLoadBalancer\]`,             // Not enabled yet
+			`PersistentVolumes-local`,                     // Disable local storage in 4.0 for now (sig-storage/hekumar@redhat.com)
+			`\[Feature:RuntimeClass\]`,                    // disable runtimeclass tests in 4.1 (sig-pod/sjenning@redhat.com)
+			`\[Feature:CustomResourceWebhookConversion\]`, // webhook conversion is off by default.  sig-master/@sttts
 
 			`NetworkPolicy between server and client should allow egress access on one named port`, // not yet implemented
 
@@ -388,7 +395,9 @@ var (
 
 			`should idle the service and DeploymentConfig properly`, // idling with a single service and DeploymentConfig [Conformance]
 
-			`\[Feature:Volumes\]`, // storage team to investigate it post-rebase
+			`\[Feature:Volumes\]`,    // storage team to investigate it post-rebase
+			`\[Driver: csi-hostpath`, // storage team to investigate it post-rebase. @hekumar
+			`SchedulerPriorities`,    // scheduler tests failing serial. sig-pod/@ravig
 
 			// TODO: the following list of tests is disabled temporarily due to the fact
 			// that we're running kubelet 1.11 and these require 1.12. We will remove them

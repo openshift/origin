@@ -61,7 +61,11 @@ func (client SourceControlClient) CreateOrUpdate(ctx context.Context, resourceGr
 					{Target: "parameters.SourceControlCreateOrUpdateProperties.FolderPath", Name: validation.Null, Rule: false,
 						Chain: []validation.Constraint{{Target: "parameters.SourceControlCreateOrUpdateProperties.FolderPath", Name: validation.MaxLength, Rule: 255, Chain: nil}}},
 					{Target: "parameters.SourceControlCreateOrUpdateProperties.SecurityToken", Name: validation.Null, Rule: false,
-						Chain: []validation.Constraint{{Target: "parameters.SourceControlCreateOrUpdateProperties.SecurityToken", Name: validation.MaxLength, Rule: 1024, Chain: nil}}},
+						Chain: []validation.Constraint{{Target: "parameters.SourceControlCreateOrUpdateProperties.SecurityToken.AccessToken", Name: validation.Null, Rule: false,
+							Chain: []validation.Constraint{{Target: "parameters.SourceControlCreateOrUpdateProperties.SecurityToken.AccessToken", Name: validation.MaxLength, Rule: 1024, Chain: nil}}},
+							{Target: "parameters.SourceControlCreateOrUpdateProperties.SecurityToken.RefreshToken", Name: validation.Null, Rule: false,
+								Chain: []validation.Constraint{{Target: "parameters.SourceControlCreateOrUpdateProperties.SecurityToken.RefreshToken", Name: validation.MaxLength, Rule: 1024, Chain: nil}}},
+						}},
 					{Target: "parameters.SourceControlCreateOrUpdateProperties.Description", Name: validation.Null, Rule: false,
 						Chain: []validation.Constraint{{Target: "parameters.SourceControlCreateOrUpdateProperties.Description", Name: validation.MaxLength, Rule: 512, Chain: nil}}},
 				}}}}}); err != nil {

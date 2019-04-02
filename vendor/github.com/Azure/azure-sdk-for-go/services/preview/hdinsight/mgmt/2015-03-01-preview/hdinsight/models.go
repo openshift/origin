@@ -91,6 +91,25 @@ func PossibleOSTypeValues() []OSType {
 	return []OSType{Linux, Windows}
 }
 
+// ResourceIdentityType enumerates the values for resource identity type.
+type ResourceIdentityType string
+
+const (
+	// None ...
+	None ResourceIdentityType = "None"
+	// SystemAssigned ...
+	SystemAssigned ResourceIdentityType = "SystemAssigned"
+	// SystemAssignedUserAssigned ...
+	SystemAssignedUserAssigned ResourceIdentityType = "SystemAssigned, UserAssigned"
+	// UserAssigned ...
+	UserAssigned ResourceIdentityType = "UserAssigned"
+)
+
+// PossibleResourceIdentityTypeValues returns an array of possible values for the ResourceIdentityType const type.
+func PossibleResourceIdentityTypeValues() []ResourceIdentityType {
+	return []ResourceIdentityType{None, SystemAssigned, SystemAssignedUserAssigned, UserAssigned}
+}
+
 // Tier enumerates the values for tier.
 type Tier string
 
@@ -190,6 +209,69 @@ func (aghe ApplicationGetHTTPSEndpoint) MarshalJSON() ([]byte, error) {
 		objectMap[k] = v
 	}
 	return json.Marshal(objectMap)
+}
+
+// UnmarshalJSON is the custom unmarshaler for ApplicationGetHTTPSEndpoint struct.
+func (aghe *ApplicationGetHTTPSEndpoint) UnmarshalJSON(body []byte) error {
+	var m map[string]*json.RawMessage
+	err := json.Unmarshal(body, &m)
+	if err != nil {
+		return err
+	}
+	for k, v := range m {
+		switch k {
+		default:
+			if v != nil {
+				var additionalProperties string
+				err = json.Unmarshal(*v, &additionalProperties)
+				if err != nil {
+					return err
+				}
+				if aghe.AdditionalProperties == nil {
+					aghe.AdditionalProperties = make(map[string]*string)
+				}
+				aghe.AdditionalProperties[k] = &additionalProperties
+			}
+		case "accessModes":
+			if v != nil {
+				var accessModes []string
+				err = json.Unmarshal(*v, &accessModes)
+				if err != nil {
+					return err
+				}
+				aghe.AccessModes = &accessModes
+			}
+		case "location":
+			if v != nil {
+				var location string
+				err = json.Unmarshal(*v, &location)
+				if err != nil {
+					return err
+				}
+				aghe.Location = &location
+			}
+		case "destinationPort":
+			if v != nil {
+				var destinationPort int32
+				err = json.Unmarshal(*v, &destinationPort)
+				if err != nil {
+					return err
+				}
+				aghe.DestinationPort = &destinationPort
+			}
+		case "publicPort":
+			if v != nil {
+				var publicPort int32
+				err = json.Unmarshal(*v, &publicPort)
+				if err != nil {
+					return err
+				}
+				aghe.PublicPort = &publicPort
+			}
+		}
+	}
+
+	return nil
 }
 
 // ApplicationListResult result of the request to list cluster Applications. It contains a list of operations and a
@@ -421,6 +503,8 @@ type Cluster struct {
 	Etag *string `json:"etag,omitempty"`
 	// Properties - The properties of the cluster.
 	Properties *ClusterGetProperties `json:"properties,omitempty"`
+	// Identity - The identity of the cluster, if configured.
+	Identity *ClusterIdentity `json:"identity,omitempty"`
 	// Location - The Azure Region where the resource lives
 	Location *string `json:"location,omitempty"`
 	// Tags - Resource tags.
@@ -441,6 +525,9 @@ func (c Cluster) MarshalJSON() ([]byte, error) {
 	}
 	if c.Properties != nil {
 		objectMap["properties"] = c.Properties
+	}
+	if c.Identity != nil {
+		objectMap["identity"] = c.Identity
 	}
 	if c.Location != nil {
 		objectMap["location"] = c.Location
@@ -468,6 +555,8 @@ type ClusterCreateParametersExtended struct {
 	Tags map[string]*string `json:"tags"`
 	// Properties - The cluster create parameters.
 	Properties *ClusterCreateProperties `json:"properties,omitempty"`
+	// Identity - The identity of the cluster, if configured.
+	Identity *ClusterIdentity `json:"identity,omitempty"`
 }
 
 // MarshalJSON is the custom marshaler for ClusterCreateParametersExtended.
@@ -481,6 +570,9 @@ func (ccpe ClusterCreateParametersExtended) MarshalJSON() ([]byte, error) {
 	}
 	if ccpe.Properties != nil {
 		objectMap["properties"] = ccpe.Properties
+	}
+	if ccpe.Identity != nil {
+		objectMap["identity"] = ccpe.Identity
 	}
 	return json.Marshal(objectMap)
 }
@@ -557,6 +649,44 @@ type ClusterGetProperties struct {
 	Errors *[]Errors `json:"errors,omitempty"`
 	// ConnectivityEndpoints - The list of connectivity endpoints.
 	ConnectivityEndpoints *[]ConnectivityEndpoint `json:"connectivityEndpoints,omitempty"`
+}
+
+// ClusterIdentity identity for the cluster.
+type ClusterIdentity struct {
+	// PrincipalID - The principal id of cluster identity. This property will only be provided for a system assigned identity.
+	PrincipalID *string `json:"principalId,omitempty"`
+	// TenantID - The tenant id associated with the cluster. This property will only be provided for a system assigned identity.
+	TenantID *string `json:"tenantId,omitempty"`
+	// Type - The type of identity used for the cluster. The type 'SystemAssigned, UserAssigned' includes both an implicitly created identity and a set of user assigned identities. Possible values include: 'SystemAssigned', 'UserAssigned', 'SystemAssignedUserAssigned', 'None'
+	Type ResourceIdentityType `json:"type,omitempty"`
+	// UserAssignedIdentities - The list of user identities associated with the cluster. The user identity dictionary key references will be ARM resource ids in the form: '/subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{identityName}'.
+	UserAssignedIdentities map[string]*ClusterIdentityUserAssignedIdentitiesValue `json:"userAssignedIdentities"`
+}
+
+// MarshalJSON is the custom marshaler for ClusterIdentity.
+func (ci ClusterIdentity) MarshalJSON() ([]byte, error) {
+	objectMap := make(map[string]interface{})
+	if ci.PrincipalID != nil {
+		objectMap["principalId"] = ci.PrincipalID
+	}
+	if ci.TenantID != nil {
+		objectMap["tenantId"] = ci.TenantID
+	}
+	if ci.Type != "" {
+		objectMap["type"] = ci.Type
+	}
+	if ci.UserAssignedIdentities != nil {
+		objectMap["userAssignedIdentities"] = ci.UserAssignedIdentities
+	}
+	return json.Marshal(objectMap)
+}
+
+// ClusterIdentityUserAssignedIdentitiesValue ...
+type ClusterIdentityUserAssignedIdentitiesValue struct {
+	// PrincipalID - The principal id of user assigned identity.
+	PrincipalID *string `json:"principalId,omitempty"`
+	// ClientID - The client id of user assigned identity.
+	ClientID *string `json:"clientId,omitempty"`
 }
 
 // ClusterListPersistedScriptActionsResult the ListPersistedScriptActions operation response.
@@ -1464,6 +1594,10 @@ type SecurityProfile struct {
 	DomainUserPassword *string `json:"domainUserPassword,omitempty"`
 	// ClusterUsersGroupDNS - Optional. The Distinguished Names for cluster user groups
 	ClusterUsersGroupDNS *[]string `json:"clusterUsersGroupDNs,omitempty"`
+	// AaddsResourceID - The resource ID of the user's Azure Active Directory Domain Service.
+	AaddsResourceID *string `json:"aaddsResourceId,omitempty"`
+	// MsiResourceID - User assigned identity that has permissions to read and create cluster-related artifacts in the user's AADDS.
+	MsiResourceID *string `json:"msiResourceId,omitempty"`
 }
 
 // SetString ...

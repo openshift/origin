@@ -42,6 +42,14 @@ const (
 	AuthenticationTypeWebLinkedServiceTypeProperties AuthenticationType = original.AuthenticationTypeWebLinkedServiceTypeProperties
 )
 
+type AuthorizationType = original.AuthorizationType
+
+const (
+	AuthorizationTypeKey                          AuthorizationType = original.AuthorizationTypeKey
+	AuthorizationTypeLinkedIntegrationRuntimeType AuthorizationType = original.AuthorizationTypeLinkedIntegrationRuntimeType
+	AuthorizationTypeRBAC                         AuthorizationType = original.AuthorizationTypeRBAC
+)
+
 type AzureSearchIndexWriteBehaviorType = original.AzureSearchIndexWriteBehaviorType
 
 const (
@@ -245,6 +253,7 @@ const (
 type IntegrationRuntimeState = original.IntegrationRuntimeState
 
 const (
+	AccessDenied     IntegrationRuntimeState = original.AccessDenied
 	Initial          IntegrationRuntimeState = original.Initial
 	Limited          IntegrationRuntimeState = original.Limited
 	NeedRegistration IntegrationRuntimeState = original.NeedRegistration
@@ -266,8 +275,9 @@ const (
 type IntegrationRuntimeUpdateResult = original.IntegrationRuntimeUpdateResult
 
 const (
-	Fail    IntegrationRuntimeUpdateResult = original.Fail
-	Succeed IntegrationRuntimeUpdateResult = original.Succeed
+	IntegrationRuntimeUpdateResultFail    IntegrationRuntimeUpdateResult = original.IntegrationRuntimeUpdateResultFail
+	IntegrationRuntimeUpdateResultNone    IntegrationRuntimeUpdateResult = original.IntegrationRuntimeUpdateResultNone
+	IntegrationRuntimeUpdateResultSucceed IntegrationRuntimeUpdateResult = original.IntegrationRuntimeUpdateResultSucceed
 )
 
 type JSONFormatFilePattern = original.JSONFormatFilePattern
@@ -537,12 +547,15 @@ type TypeBasicActivity = original.TypeBasicActivity
 
 const (
 	TypeActivity                 TypeBasicActivity = original.TypeActivity
+	TypeAppendVariable           TypeBasicActivity = original.TypeAppendVariable
 	TypeAzureMLBatchExecution    TypeBasicActivity = original.TypeAzureMLBatchExecution
 	TypeAzureMLUpdateResource    TypeBasicActivity = original.TypeAzureMLUpdateResource
 	TypeContainer                TypeBasicActivity = original.TypeContainer
 	TypeCopy                     TypeBasicActivity = original.TypeCopy
 	TypeCustom                   TypeBasicActivity = original.TypeCustom
 	TypeDatabricksNotebook       TypeBasicActivity = original.TypeDatabricksNotebook
+	TypeDatabricksSparkJar       TypeBasicActivity = original.TypeDatabricksSparkJar
+	TypeDatabricksSparkPython    TypeBasicActivity = original.TypeDatabricksSparkPython
 	TypeDataLakeAnalyticsUSQL    TypeBasicActivity = original.TypeDataLakeAnalyticsUSQL
 	TypeExecutePipeline          TypeBasicActivity = original.TypeExecutePipeline
 	TypeExecuteSSISPackage       TypeBasicActivity = original.TypeExecuteSSISPackage
@@ -557,6 +570,7 @@ const (
 	TypeHDInsightStreaming       TypeBasicActivity = original.TypeHDInsightStreaming
 	TypeIfCondition              TypeBasicActivity = original.TypeIfCondition
 	TypeLookup                   TypeBasicActivity = original.TypeLookup
+	TypeSetVariable              TypeBasicActivity = original.TypeSetVariable
 	TypeSQLServerStoredProcedure TypeBasicActivity = original.TypeSQLServerStoredProcedure
 	TypeUntil                    TypeBasicActivity = original.TypeUntil
 	TypeWait                     TypeBasicActivity = original.TypeWait
@@ -726,10 +740,19 @@ const (
 	TypeTextFormat           TypeBasicDatasetStorageFormat = original.TypeTextFormat
 )
 
+type TypeBasicDependencyReference = original.TypeBasicDependencyReference
+
+const (
+	TypeDependencyReference                          TypeBasicDependencyReference = original.TypeDependencyReference
+	TypeSelfDependencyTumblingWindowTriggerReference TypeBasicDependencyReference = original.TypeSelfDependencyTumblingWindowTriggerReference
+	TypeTriggerDependencyReference                   TypeBasicDependencyReference = original.TypeTriggerDependencyReference
+	TypeTumblingWindowTriggerDependencyReference     TypeBasicDependencyReference = original.TypeTumblingWindowTriggerDependencyReference
+)
+
 type TypeBasicFactoryRepoConfiguration = original.TypeBasicFactoryRepoConfiguration
 
 const (
-	TypeFactoryGithubConfiguration TypeBasicFactoryRepoConfiguration = original.TypeFactoryGithubConfiguration
+	TypeFactoryGitHubConfiguration TypeBasicFactoryRepoConfiguration = original.TypeFactoryGitHubConfiguration
 	TypeFactoryRepoConfiguration   TypeBasicFactoryRepoConfiguration = original.TypeFactoryRepoConfiguration
 	TypeFactoryVSTSConfiguration   TypeBasicFactoryRepoConfiguration = original.TypeFactoryVSTSConfiguration
 )
@@ -757,6 +780,7 @@ const (
 	TypeAmazonRedshift           TypeBasicLinkedService = original.TypeAmazonRedshift
 	TypeAmazonS3                 TypeBasicLinkedService = original.TypeAmazonS3
 	TypeAzureBatch               TypeBasicLinkedService = original.TypeAzureBatch
+	TypeAzureBlobStorage         TypeBasicLinkedService = original.TypeAzureBlobStorage
 	TypeAzureDatabricks          TypeBasicLinkedService = original.TypeAzureDatabricks
 	TypeAzureDataLakeAnalytics   TypeBasicLinkedService = original.TypeAzureDataLakeAnalytics
 	TypeAzureDataLakeStore       TypeBasicLinkedService = original.TypeAzureDataLakeStore
@@ -768,6 +792,7 @@ const (
 	TypeAzureSQLDatabase         TypeBasicLinkedService = original.TypeAzureSQLDatabase
 	TypeAzureSQLDW               TypeBasicLinkedService = original.TypeAzureSQLDW
 	TypeAzureStorage             TypeBasicLinkedService = original.TypeAzureStorage
+	TypeAzureTableStorage        TypeBasicLinkedService = original.TypeAzureTableStorage
 	TypeCassandra                TypeBasicLinkedService = original.TypeCassandra
 	TypeConcur                   TypeBasicLinkedService = original.TypeConcur
 	TypeCosmosDb                 TypeBasicLinkedService = original.TypeCosmosDb
@@ -829,12 +854,21 @@ const (
 type TypeBasicTrigger = original.TypeBasicTrigger
 
 const (
-	TypeBlobEventsTrigger       TypeBasicTrigger = original.TypeBlobEventsTrigger
-	TypeBlobTrigger             TypeBasicTrigger = original.TypeBlobTrigger
-	TypeMultiplePipelineTrigger TypeBasicTrigger = original.TypeMultiplePipelineTrigger
-	TypeScheduleTrigger         TypeBasicTrigger = original.TypeScheduleTrigger
-	TypeTrigger                 TypeBasicTrigger = original.TypeTrigger
-	TypeTumblingWindowTrigger   TypeBasicTrigger = original.TypeTumblingWindowTrigger
+	TypeBlobEventsTrigger          TypeBasicTrigger = original.TypeBlobEventsTrigger
+	TypeBlobTrigger                TypeBasicTrigger = original.TypeBlobTrigger
+	TypeMultiplePipelineTrigger    TypeBasicTrigger = original.TypeMultiplePipelineTrigger
+	TypeRerunTumblingWindowTrigger TypeBasicTrigger = original.TypeRerunTumblingWindowTrigger
+	TypeScheduleTrigger            TypeBasicTrigger = original.TypeScheduleTrigger
+	TypeTrigger                    TypeBasicTrigger = original.TypeTrigger
+	TypeTumblingWindowTrigger      TypeBasicTrigger = original.TypeTumblingWindowTrigger
+)
+
+type VariableType = original.VariableType
+
+const (
+	VariableTypeArray  VariableType = original.VariableTypeArray
+	VariableTypeBool   VariableType = original.VariableTypeBool
+	VariableTypeString VariableType = original.VariableTypeString
 )
 
 type WebActivityMethod = original.WebActivityMethod
@@ -863,11 +897,15 @@ type AmazonS3Dataset = original.AmazonS3Dataset
 type AmazonS3DatasetTypeProperties = original.AmazonS3DatasetTypeProperties
 type AmazonS3LinkedService = original.AmazonS3LinkedService
 type AmazonS3LinkedServiceTypeProperties = original.AmazonS3LinkedServiceTypeProperties
+type AppendVariableActivity = original.AppendVariableActivity
+type AppendVariableActivityTypeProperties = original.AppendVariableActivityTypeProperties
 type AvroFormat = original.AvroFormat
 type AzureBatchLinkedService = original.AzureBatchLinkedService
 type AzureBatchLinkedServiceTypeProperties = original.AzureBatchLinkedServiceTypeProperties
 type AzureBlobDataset = original.AzureBlobDataset
 type AzureBlobDatasetTypeProperties = original.AzureBlobDatasetTypeProperties
+type AzureBlobStorageLinkedService = original.AzureBlobStorageLinkedService
+type AzureBlobStorageLinkedServiceTypeProperties = original.AzureBlobStorageLinkedServiceTypeProperties
 type AzureDatabricksLinkedService = original.AzureDatabricksLinkedService
 type AzureDatabricksLinkedServiceTypeProperties = original.AzureDatabricksLinkedServiceTypeProperties
 type AzureDataLakeAnalyticsLinkedService = original.AzureDataLakeAnalyticsLinkedService
@@ -917,6 +955,7 @@ type AzureTableDataset = original.AzureTableDataset
 type AzureTableDatasetTypeProperties = original.AzureTableDatasetTypeProperties
 type AzureTableSink = original.AzureTableSink
 type AzureTableSource = original.AzureTableSource
+type AzureTableStorageLinkedService = original.AzureTableStorageLinkedService
 type BlobEventsTrigger = original.BlobEventsTrigger
 type BlobEventsTriggerTypeProperties = original.BlobEventsTriggerTypeProperties
 type BlobSink = original.BlobSink
@@ -950,6 +989,7 @@ type CouchbaseLinkedService = original.CouchbaseLinkedService
 type CouchbaseLinkedServiceTypeProperties = original.CouchbaseLinkedServiceTypeProperties
 type CouchbaseSource = original.CouchbaseSource
 type CouchbaseTableDataset = original.CouchbaseTableDataset
+type CreateLinkedIntegrationRuntimeRequest = original.CreateLinkedIntegrationRuntimeRequest
 type CreateRunResponse = original.CreateRunResponse
 type CustomActivity = original.CustomActivity
 type CustomActivityReferenceObject = original.CustomActivityReferenceObject
@@ -958,6 +998,10 @@ type CustomDataset = original.CustomDataset
 type CustomDataSourceLinkedService = original.CustomDataSourceLinkedService
 type DatabricksNotebookActivity = original.DatabricksNotebookActivity
 type DatabricksNotebookActivityTypeProperties = original.DatabricksNotebookActivityTypeProperties
+type DatabricksSparkJarActivity = original.DatabricksSparkJarActivity
+type DatabricksSparkJarActivityTypeProperties = original.DatabricksSparkJarActivityTypeProperties
+type DatabricksSparkPythonActivity = original.DatabricksSparkPythonActivity
+type DatabricksSparkPythonActivityTypeProperties = original.DatabricksSparkPythonActivityTypeProperties
 type DataLakeAnalyticsUSQLActivity = original.DataLakeAnalyticsUSQLActivity
 type DataLakeAnalyticsUSQLActivityTypeProperties = original.DataLakeAnalyticsUSQLActivityTypeProperties
 type BasicDataset = original.BasicDataset
@@ -966,6 +1010,7 @@ type DatasetBZip2Compression = original.DatasetBZip2Compression
 type BasicDatasetCompression = original.BasicDatasetCompression
 type DatasetCompression = original.DatasetCompression
 type DatasetDeflateCompression = original.DatasetDeflateCompression
+type DatasetFolder = original.DatasetFolder
 type DatasetGZipCompression = original.DatasetGZipCompression
 type DatasetListResponse = original.DatasetListResponse
 type DatasetListResponseIterator = original.DatasetListResponseIterator
@@ -977,6 +1022,8 @@ type DatasetStorageFormat = original.DatasetStorageFormat
 type DatasetZipDeflateCompression = original.DatasetZipDeflateCompression
 type Db2LinkedService = original.Db2LinkedService
 type Db2LinkedServiceTypeProperties = original.Db2LinkedServiceTypeProperties
+type BasicDependencyReference = original.BasicDependencyReference
+type DependencyReference = original.DependencyReference
 type DistcpSettings = original.DistcpSettings
 type DocumentDbCollectionDataset = original.DocumentDbCollectionDataset
 type DocumentDbCollectionDatasetTypeProperties = original.DocumentDbCollectionDatasetTypeProperties
@@ -1029,6 +1076,8 @@ type FtpServerLinkedService = original.FtpServerLinkedService
 type FtpServerLinkedServiceTypeProperties = original.FtpServerLinkedServiceTypeProperties
 type GetMetadataActivity = original.GetMetadataActivity
 type GetMetadataActivityTypeProperties = original.GetMetadataActivityTypeProperties
+type GitHubAccessTokenRequest = original.GitHubAccessTokenRequest
+type GitHubAccessTokenResponse = original.GitHubAccessTokenResponse
 type GoogleBigQueryLinkedService = original.GoogleBigQueryLinkedService
 type GoogleBigQueryLinkedServiceTypeProperties = original.GoogleBigQueryLinkedServiceTypeProperties
 type GoogleBigQueryObjectDataset = original.GoogleBigQueryObjectDataset
@@ -1106,6 +1155,12 @@ type JiraLinkedServiceTypeProperties = original.JiraLinkedServiceTypeProperties
 type JiraObjectDataset = original.JiraObjectDataset
 type JiraSource = original.JiraSource
 type JSONFormat = original.JSONFormat
+type LinkedIntegrationRuntime = original.LinkedIntegrationRuntime
+type LinkedIntegrationRuntimeKeyAuthorization = original.LinkedIntegrationRuntimeKeyAuthorization
+type LinkedIntegrationRuntimeRbacAuthorization = original.LinkedIntegrationRuntimeRbacAuthorization
+type LinkedIntegrationRuntimeRequest = original.LinkedIntegrationRuntimeRequest
+type BasicLinkedIntegrationRuntimeType = original.BasicLinkedIntegrationRuntimeType
+type LinkedIntegrationRuntimeType = original.LinkedIntegrationRuntimeType
 type BasicLinkedService = original.BasicLinkedService
 type LinkedService = original.LinkedService
 type LinkedServiceListResponse = original.LinkedServiceListResponse
@@ -1183,6 +1238,7 @@ type PhoenixLinkedServiceTypeProperties = original.PhoenixLinkedServiceTypePrope
 type PhoenixObjectDataset = original.PhoenixObjectDataset
 type PhoenixSource = original.PhoenixSource
 type Pipeline = original.Pipeline
+type PipelineFolder = original.PipelineFolder
 type PipelineListResponse = original.PipelineListResponse
 type PipelineListResponseIterator = original.PipelineListResponseIterator
 type PipelineListResponsePage = original.PipelineListResponsePage
@@ -1209,6 +1265,16 @@ type RedshiftUnloadSettings = original.RedshiftUnloadSettings
 type RelationalSource = original.RelationalSource
 type RelationalTableDataset = original.RelationalTableDataset
 type RelationalTableDatasetTypeProperties = original.RelationalTableDatasetTypeProperties
+type RerunTriggerListResponse = original.RerunTriggerListResponse
+type RerunTriggerListResponseIterator = original.RerunTriggerListResponseIterator
+type RerunTriggerListResponsePage = original.RerunTriggerListResponsePage
+type RerunTriggerResource = original.RerunTriggerResource
+type RerunTriggersCancelFuture = original.RerunTriggersCancelFuture
+type RerunTriggersStartFuture = original.RerunTriggersStartFuture
+type RerunTriggersStopFuture = original.RerunTriggersStopFuture
+type RerunTumblingWindowTrigger = original.RerunTumblingWindowTrigger
+type RerunTumblingWindowTriggerActionParameters = original.RerunTumblingWindowTriggerActionParameters
+type RerunTumblingWindowTriggerTypeProperties = original.RerunTumblingWindowTriggerTypeProperties
 type Resource = original.Resource
 type ResponsysLinkedService = original.ResponsysLinkedService
 type ResponsysLinkedServiceTypeProperties = original.ResponsysLinkedServiceTypeProperties
@@ -1246,17 +1312,22 @@ type SapHanaLinkedServiceProperties = original.SapHanaLinkedServiceProperties
 type ScheduleTrigger = original.ScheduleTrigger
 type ScheduleTriggerRecurrence = original.ScheduleTriggerRecurrence
 type ScheduleTriggerTypeProperties = original.ScheduleTriggerTypeProperties
+type ScriptAction = original.ScriptAction
 type BasicSecretBase = original.BasicSecretBase
 type SecretBase = original.SecretBase
 type SecureString = original.SecureString
+type SelfDependencyTumblingWindowTriggerReference = original.SelfDependencyTumblingWindowTriggerReference
 type SelfHostedIntegrationRuntime = original.SelfHostedIntegrationRuntime
 type SelfHostedIntegrationRuntimeNode = original.SelfHostedIntegrationRuntimeNode
 type SelfHostedIntegrationRuntimeStatus = original.SelfHostedIntegrationRuntimeStatus
 type SelfHostedIntegrationRuntimeStatusTypeProperties = original.SelfHostedIntegrationRuntimeStatusTypeProperties
+type SelfHostedIntegrationRuntimeTypeProperties = original.SelfHostedIntegrationRuntimeTypeProperties
 type ServiceNowLinkedService = original.ServiceNowLinkedService
 type ServiceNowLinkedServiceTypeProperties = original.ServiceNowLinkedServiceTypeProperties
 type ServiceNowObjectDataset = original.ServiceNowObjectDataset
 type ServiceNowSource = original.ServiceNowSource
+type SetVariableActivity = original.SetVariableActivity
+type SetVariableActivityTypeProperties = original.SetVariableActivityTypeProperties
 type SftpServerLinkedService = original.SftpServerLinkedService
 type SftpServerLinkedServiceTypeProperties = original.SftpServerLinkedServiceTypeProperties
 type ShopifyLinkedService = original.ShopifyLinkedService
@@ -1295,21 +1366,27 @@ type TeradataLinkedServiceTypeProperties = original.TeradataLinkedServiceTypePro
 type TextFormat = original.TextFormat
 type BasicTrigger = original.BasicTrigger
 type Trigger = original.Trigger
+type BasicTriggerDependencyReference = original.BasicTriggerDependencyReference
+type TriggerDependencyReference = original.TriggerDependencyReference
 type TriggerListResponse = original.TriggerListResponse
 type TriggerListResponseIterator = original.TriggerListResponseIterator
 type TriggerListResponsePage = original.TriggerListResponsePage
 type TriggerPipelineReference = original.TriggerPipelineReference
+type TriggerReference = original.TriggerReference
 type TriggerResource = original.TriggerResource
 type TriggerRun = original.TriggerRun
 type TriggerRunsQueryResponse = original.TriggerRunsQueryResponse
 type TriggersStartFuture = original.TriggersStartFuture
 type TriggersStopFuture = original.TriggersStopFuture
 type TumblingWindowTrigger = original.TumblingWindowTrigger
+type TumblingWindowTriggerDependencyReference = original.TumblingWindowTriggerDependencyReference
 type TumblingWindowTriggerTypeProperties = original.TumblingWindowTriggerTypeProperties
 type UntilActivity = original.UntilActivity
 type UntilActivityTypeProperties = original.UntilActivityTypeProperties
 type UpdateIntegrationRuntimeNodeRequest = original.UpdateIntegrationRuntimeNodeRequest
 type UpdateIntegrationRuntimeRequest = original.UpdateIntegrationRuntimeRequest
+type UserProperty = original.UserProperty
+type VariableSpecification = original.VariableSpecification
 type VerticaLinkedService = original.VerticaLinkedService
 type VerticaLinkedServiceTypeProperties = original.VerticaLinkedServiceTypeProperties
 type VerticaSource = original.VerticaSource
@@ -1339,6 +1416,7 @@ type ZohoSource = original.ZohoSource
 type OperationsClient = original.OperationsClient
 type PipelineRunsClient = original.PipelineRunsClient
 type PipelinesClient = original.PipelinesClient
+type RerunTriggersClient = original.RerunTriggersClient
 type TriggerRunsClient = original.TriggerRunsClient
 type TriggersClient = original.TriggersClient
 
@@ -1386,6 +1464,9 @@ func NewLinkedServicesClientWithBaseURI(baseURI string, subscriptionID string) L
 }
 func PossibleAuthenticationTypeValues() []AuthenticationType {
 	return original.PossibleAuthenticationTypeValues()
+}
+func PossibleAuthorizationTypeValues() []AuthorizationType {
+	return original.PossibleAuthorizationTypeValues()
 }
 func PossibleAzureSearchIndexWriteBehaviorTypeValues() []AzureSearchIndexWriteBehaviorType {
 	return original.PossibleAzureSearchIndexWriteBehaviorTypeValues()
@@ -1582,6 +1663,9 @@ func PossibleTypeBasicDatasetCompressionValues() []TypeBasicDatasetCompression {
 func PossibleTypeBasicDatasetStorageFormatValues() []TypeBasicDatasetStorageFormat {
 	return original.PossibleTypeBasicDatasetStorageFormatValues()
 }
+func PossibleTypeBasicDependencyReferenceValues() []TypeBasicDependencyReference {
+	return original.PossibleTypeBasicDependencyReferenceValues()
+}
 func PossibleTypeBasicFactoryRepoConfigurationValues() []TypeBasicFactoryRepoConfiguration {
 	return original.PossibleTypeBasicFactoryRepoConfigurationValues()
 }
@@ -1596,6 +1680,9 @@ func PossibleTypeBasicLinkedServiceValues() []TypeBasicLinkedService {
 }
 func PossibleTypeBasicTriggerValues() []TypeBasicTrigger {
 	return original.PossibleTypeBasicTriggerValues()
+}
+func PossibleVariableTypeValues() []VariableType {
+	return original.PossibleVariableTypeValues()
 }
 func PossibleWebActivityMethodValues() []WebActivityMethod {
 	return original.PossibleWebActivityMethodValues()
@@ -1617,6 +1704,12 @@ func NewPipelinesClient(subscriptionID string) PipelinesClient {
 }
 func NewPipelinesClientWithBaseURI(baseURI string, subscriptionID string) PipelinesClient {
 	return original.NewPipelinesClientWithBaseURI(baseURI, subscriptionID)
+}
+func NewRerunTriggersClient(subscriptionID string) RerunTriggersClient {
+	return original.NewRerunTriggersClient(subscriptionID)
+}
+func NewRerunTriggersClientWithBaseURI(baseURI string, subscriptionID string) RerunTriggersClient {
+	return original.NewRerunTriggersClientWithBaseURI(baseURI, subscriptionID)
 }
 func NewTriggerRunsClient(subscriptionID string) TriggerRunsClient {
 	return original.NewTriggerRunsClient(subscriptionID)

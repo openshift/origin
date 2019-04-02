@@ -19,35 +19,14 @@
 
 package textanalytics
 
-import original "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v2.0/textanalytics"
+import original "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v2.1/textanalytics"
 
 type BaseClient = original.BaseClient
-type AzureRegions = original.AzureRegions
-
-const (
-	Australiaeast  AzureRegions = original.Australiaeast
-	Brazilsouth    AzureRegions = original.Brazilsouth
-	Canadacentral  AzureRegions = original.Canadacentral
-	Centralindia   AzureRegions = original.Centralindia
-	Eastasia       AzureRegions = original.Eastasia
-	Eastus         AzureRegions = original.Eastus
-	Eastus2        AzureRegions = original.Eastus2
-	Japaneast      AzureRegions = original.Japaneast
-	Northeurope    AzureRegions = original.Northeurope
-	Southcentralus AzureRegions = original.Southcentralus
-	Southeastasia  AzureRegions = original.Southeastasia
-	Uksouth        AzureRegions = original.Uksouth
-	Westcentralus  AzureRegions = original.Westcentralus
-	Westeurope     AzureRegions = original.Westeurope
-	Westus         AzureRegions = original.Westus
-	Westus2        AzureRegions = original.Westus2
-)
-
 type BatchInput = original.BatchInput
 type DetectedLanguage = original.DetectedLanguage
-type EntitiesBatchResult = original.EntitiesBatchResult
-type EntitiesBatchResultItem = original.EntitiesBatchResultItem
-type EntityRecord = original.EntityRecord
+type EntitiesBatchResultItemV2dot1 = original.EntitiesBatchResultItemV2dot1
+type EntitiesBatchResultV2dot1 = original.EntitiesBatchResultV2dot1
+type EntityRecordV2dot1 = original.EntityRecordV2dot1
 type ErrorRecord = original.ErrorRecord
 type ErrorResponse = original.ErrorResponse
 type Input = original.Input
@@ -56,20 +35,17 @@ type KeyPhraseBatchResult = original.KeyPhraseBatchResult
 type KeyPhraseBatchResultItem = original.KeyPhraseBatchResultItem
 type LanguageBatchResult = original.LanguageBatchResult
 type LanguageBatchResultItem = original.LanguageBatchResultItem
-type MatchRecord = original.MatchRecord
+type MatchRecordV2dot1 = original.MatchRecordV2dot1
 type MultiLanguageBatchInput = original.MultiLanguageBatchInput
 type MultiLanguageInput = original.MultiLanguageInput
 type SentimentBatchResult = original.SentimentBatchResult
 type SentimentBatchResultItem = original.SentimentBatchResultItem
 
-func New(azureRegion AzureRegions) BaseClient {
-	return original.New(azureRegion)
+func New(endpoint string) BaseClient {
+	return original.New(endpoint)
 }
-func NewWithoutDefaults(azureRegion AzureRegions) BaseClient {
-	return original.NewWithoutDefaults(azureRegion)
-}
-func PossibleAzureRegionsValues() []AzureRegions {
-	return original.PossibleAzureRegionsValues()
+func NewWithoutDefaults(endpoint string) BaseClient {
+	return original.NewWithoutDefaults(endpoint)
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"

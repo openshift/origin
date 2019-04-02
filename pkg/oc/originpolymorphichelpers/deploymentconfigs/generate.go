@@ -4,18 +4,19 @@ import (
 	"fmt"
 	"reflect"
 
-	kapi "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/kubectl/generate"
+	"k8s.io/kubernetes/pkg/kubectl/generate/versioned"
 
-	appsapi "github.com/openshift/api/apps/v1"
+	appsv1 "github.com/openshift/api/apps/v1"
 )
 
-var basic = kubectl.BasicReplicationController{}
+var basic = versioned.BasicReplicationController{}
 
 type BasicDeploymentConfigController struct{}
 
-func (BasicDeploymentConfigController) ParamNames() []kubectl.GeneratorParam {
+func (BasicDeploymentConfigController) ParamNames() []generate.GeneratorParam {
 	return basic.ParamNames()
 }
 
@@ -25,10 +26,10 @@ func (BasicDeploymentConfigController) Generate(genericParams map[string]interfa
 		return nil, err
 	}
 	switch t := obj.(type) {
-	case *kapi.ReplicationController:
-		obj = &appsapi.DeploymentConfig{
+	case *corev1.ReplicationController:
+		obj = &appsv1.DeploymentConfig{
 			ObjectMeta: t.ObjectMeta,
-			Spec: appsapi.DeploymentConfigSpec{
+			Spec: appsv1.DeploymentConfigSpec{
 				Selector: t.Spec.Selector,
 				Replicas: *t.Spec.Replicas, // the generator never leaves this nil
 				Template: t.Spec.Template,

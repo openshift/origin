@@ -63,6 +63,15 @@ const (
 	Windows OSType = original.Windows
 )
 
+type ResourceIdentityType = original.ResourceIdentityType
+
+const (
+	None                       ResourceIdentityType = original.None
+	SystemAssigned             ResourceIdentityType = original.SystemAssigned
+	SystemAssignedUserAssigned ResourceIdentityType = original.SystemAssignedUserAssigned
+	UserAssigned               ResourceIdentityType = original.UserAssigned
+)
+
 type Tier = original.Tier
 
 const (
@@ -84,6 +93,8 @@ type ClusterCreateParametersExtended = original.ClusterCreateParametersExtended
 type ClusterCreateProperties = original.ClusterCreateProperties
 type ClusterDefinition = original.ClusterDefinition
 type ClusterGetProperties = original.ClusterGetProperties
+type ClusterIdentity = original.ClusterIdentity
+type ClusterIdentityUserAssignedIdentitiesValue = original.ClusterIdentityUserAssignedIdentitiesValue
 type ClusterListPersistedScriptActionsResult = original.ClusterListPersistedScriptActionsResult
 type ClusterListResult = original.ClusterListResult
 type ClusterListResultIterator = original.ClusterListResultIterator
@@ -195,6 +206,9 @@ func PossibleDirectoryTypeValues() []DirectoryType {
 }
 func PossibleOSTypeValues() []OSType {
 	return original.PossibleOSTypeValues()
+}
+func PossibleResourceIdentityTypeValues() []ResourceIdentityType {
+	return original.PossibleResourceIdentityTypeValues()
 }
 func PossibleTierValues() []Tier {
 	return original.PossibleTierValues()

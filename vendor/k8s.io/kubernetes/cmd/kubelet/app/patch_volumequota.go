@@ -6,10 +6,11 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/golang/glog"
-	yaml "gopkg.in/yaml.v2"
-	"k8s.io/api/core/v1"
+	"gopkg.in/yaml.v2"
+
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/emptydirquota"
 )
@@ -87,7 +88,7 @@ func PatchVolumePluginsForLocalQuota(rootdir string, plugins *[]volume.VolumePlu
 		return fmt.Errorf("perFSGroup must be a positive quantity")
 	}
 
-	glog.V(2).Info("replacing empty-dir volume plugin with quota wrapper")
+	klog.V(2).Info("replacing empty-dir volume plugin with quota wrapper")
 
 	quotaApplicator, err := emptydirquota.NewQuotaApplicator(rootdir)
 	if err != nil {
@@ -119,7 +120,7 @@ func PatchVolumePluginsForLocalQuota(rootdir string, plugins *[]volume.VolumePlu
 	}
 
 	if !wrappedEmptyDirPlugin {
-		glog.Fatal(errors.New("no plugin handling EmptyDir was found, unable to apply local quotas"))
+		klog.Fatal(errors.New("no plugin handling EmptyDir was found, unable to apply local quotas"))
 	}
 
 	return nil

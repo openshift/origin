@@ -229,6 +229,7 @@ func TestEtcd3StoragePath(t *testing.T) {
 	// enable APIs that are off by default
 	masterConfig.KubernetesMasterConfig.APIServerArguments = map[string][]string{
 		"runtime-config": {
+			"auditregistration.k8s.io/v1alpha1=true",
 			"rbac.authorization.k8s.io/v1alpha1=true",
 			"scheduling.k8s.io/v1alpha1=true",
 			"settings.k8s.io/v1alpha1=true",

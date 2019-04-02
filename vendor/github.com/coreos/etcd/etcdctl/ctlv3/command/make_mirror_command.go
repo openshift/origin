@@ -15,6 +15,7 @@
 package command
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -25,8 +26,8 @@ import (
 	"github.com/coreos/etcd/clientv3/mirror"
 	"github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes"
 	"github.com/coreos/etcd/mvcc/mvccpb"
+
 	"github.com/spf13/cobra"
-	"golang.org/x/net/context"
 )
 
 var (
@@ -65,6 +66,8 @@ func makeMirrorCommandFunc(cmd *cobra.Command, args []string) {
 	}
 
 	dialTimeout := dialTimeoutFromCmd(cmd)
+	keepAliveTime := keepAliveTimeFromCmd(cmd)
+	keepAliveTimeout := keepAliveTimeoutFromCmd(cmd)
 	sec := &secureCfg{
 		cert:              mmcert,
 		key:               mmkey,
@@ -72,7 +75,15 @@ func makeMirrorCommandFunc(cmd *cobra.Command, args []string) {
 		insecureTransport: mminsecureTr,
 	}
 
-	dc := mustClient([]string{args[0]}, dialTimeout, sec, nil)
+	cc := &clientConfig{
+		endpoints:        []string{args[0]},
+		dialTimeout:      dialTimeout,
+		keepAliveTime:    keepAliveTime,
+		keepAliveTimeout: keepAliveTimeout,
+		scfg:             sec,
+		acfg:             nil,
+	}
+	dc := cc.mustClient()
 	c := mustClientFromCmd(cmd)
 
 	err := makeMirror(context.TODO(), c, dc)

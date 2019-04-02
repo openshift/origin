@@ -943,7 +943,9 @@ func (client VirtualMachineScaleSetsClient) ListSkusComplete(ctx context.Context
 	return
 }
 
-// PerformMaintenance perform maintenance on one or more virtual machines in a VM scale set.
+// PerformMaintenance perform maintenance on one or more virtual machines in a VM scale set. Operation on instances
+// which are not eligible for perform maintenance will be failed. Please refer to best practices for more details:
+// https://docs.microsoft.com/en-us/azure/virtual-machine-scale-sets/virtual-machine-scale-sets-maintenance-notifications
 // Parameters:
 // resourceGroupName - the name of the resource group.
 // VMScaleSetName - the name of the VM scale set.

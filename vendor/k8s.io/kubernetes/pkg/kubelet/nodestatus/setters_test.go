@@ -492,14 +492,16 @@ func TestMachineInfo(t *testing.T) {
 			expectNode: &v1.Node{
 				Status: v1.NodeStatus{
 					Capacity: v1.ResourceList{
-						v1.ResourceCPU:    *resource.NewMilliQuantity(2000, resource.DecimalSI),
-						v1.ResourceMemory: *resource.NewQuantity(1024, resource.BinarySI),
-						v1.ResourcePods:   *resource.NewQuantity(110, resource.DecimalSI),
+						v1.ResourceCPU:              *resource.NewMilliQuantity(2000, resource.DecimalSI),
+						v1.ResourceEphemeralStorage: *resource.NewQuantity(5000, resource.BinarySI),
+						v1.ResourceMemory:           *resource.NewQuantity(1024, resource.BinarySI),
+						v1.ResourcePods:             *resource.NewQuantity(110, resource.DecimalSI),
 					},
 					Allocatable: v1.ResourceList{
-						v1.ResourceCPU:    *resource.NewMilliQuantity(2000, resource.DecimalSI),
-						v1.ResourceMemory: *resource.NewQuantity(1024, resource.BinarySI),
-						v1.ResourcePods:   *resource.NewQuantity(110, resource.DecimalSI),
+						v1.ResourceCPU:              *resource.NewMilliQuantity(2000, resource.DecimalSI),
+						v1.ResourceEphemeralStorage: *resource.NewQuantity(5000, resource.BinarySI),
+						v1.ResourceMemory:           *resource.NewQuantity(1024, resource.BinarySI),
+						v1.ResourcePods:             *resource.NewQuantity(110, resource.DecimalSI),
 					},
 				},
 			},
@@ -948,7 +950,7 @@ func TestReadyCondition(t *testing.T) {
 		{
 			desc:             "new, not ready: missing capacities",
 			node:             &v1.Node{},
-			expectConditions: []v1.NodeCondition{*makeReadyCondition(false, "Missing node capacity for resources: cpu, memory, pods", now, now)},
+			expectConditions: []v1.NodeCondition{*makeReadyCondition(false, "Missing node capacity for resources: cpu, memory, pods, ephemeral-storage", now, now)},
 		},
 		// the transition tests ensure timestamps are set correctly, no need to test the entire condition matrix in this section
 		{
@@ -1513,6 +1515,54 @@ func TestVolumeLimits(t *testing.T) {
 			// check expected node
 			assert.True(t, apiequality.Semantic.DeepEqual(tc.expectNode, node),
 				"Diff: %s", diff.ObjectDiff(tc.expectNode, node))
+		})
+	}
+}
+
+func TestRemoveOutOfDiskCondition(t *testing.T) {
+	now := time.Now()
+
+	var cases = []struct {
+		desc       string
+		inputNode  *v1.Node
+		expectNode *v1.Node
+	}{
+		{
+			desc: "should remove stale OutOfDiskCondition from node status",
+			inputNode: &v1.Node{
+				Status: v1.NodeStatus{
+					Conditions: []v1.NodeCondition{
+						*makeMemoryPressureCondition(false, now, now),
+						{
+							Type:   v1.NodeOutOfDisk,
+							Status: v1.ConditionFalse,
+						},
+						*makeDiskPressureCondition(false, now, now),
+					},
+				},
+			},
+			expectNode: &v1.Node{
+				Status: v1.NodeStatus{
+					Conditions: []v1.NodeCondition{
+						*makeMemoryPressureCondition(false, now, now),
+						*makeDiskPressureCondition(false, now, now),
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.desc, func(t *testing.T) {
+			// construct setter
+			setter := RemoveOutOfDiskCondition()
+			// call setter on node
+			if err := setter(tc.inputNode); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			// check expected node
+			assert.True(t, apiequality.Semantic.DeepEqual(tc.expectNode, tc.inputNode),
+				"Diff: %s", diff.ObjectDiff(tc.expectNode, tc.inputNode))
 		})
 	}
 }

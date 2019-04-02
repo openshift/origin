@@ -32,13 +32,8 @@ type VersionsClient struct {
 }
 
 // NewVersionsClient creates an instance of the VersionsClient client.
-func NewVersionsClient() VersionsClient {
-	return NewVersionsClientWithBaseURI(DefaultBaseURI)
-}
-
-// NewVersionsClientWithBaseURI creates an instance of the VersionsClient client.
-func NewVersionsClientWithBaseURI(baseURI string) VersionsClient {
-	return VersionsClient{NewWithBaseURI(baseURI)}
+func NewVersionsClient(endpoint string) VersionsClient {
+	return VersionsClient{New(endpoint)}
 }
 
 // Clone creates a new version using the current snapshot of the selected application version.
@@ -70,6 +65,10 @@ func (client VersionsClient) Clone(ctx context.Context, appID uuid.UUID, version
 
 // ClonePreparer prepares the Clone request.
 func (client VersionsClient) ClonePreparer(ctx context.Context, appID uuid.UUID, versionID string, versionCloneObject *TaskUpdateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -78,7 +77,7 @@ func (client VersionsClient) ClonePreparer(ctx context.Context, appID uuid.UUID,
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/clone", pathParameters))
 	if versionCloneObject != nil {
 		preparer = autorest.DecoratePreparer(preparer,
@@ -135,6 +134,10 @@ func (client VersionsClient) Delete(ctx context.Context, appID uuid.UUID, versio
 
 // DeletePreparer prepares the Delete request.
 func (client VersionsClient) DeletePreparer(ctx context.Context, appID uuid.UUID, versionID string) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -142,7 +145,7 @@ func (client VersionsClient) DeletePreparer(ctx context.Context, appID uuid.UUID
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -196,6 +199,10 @@ func (client VersionsClient) DeleteUnlabelledUtterance(ctx context.Context, appI
 
 // DeleteUnlabelledUtterancePreparer prepares the DeleteUnlabelledUtterance request.
 func (client VersionsClient) DeleteUnlabelledUtterancePreparer(ctx context.Context, appID uuid.UUID, versionID string, utterance string) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -204,7 +211,7 @@ func (client VersionsClient) DeleteUnlabelledUtterancePreparer(ctx context.Conte
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/suggest", pathParameters),
 		autorest.WithJSON(utterance))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -258,6 +265,10 @@ func (client VersionsClient) Export(ctx context.Context, appID uuid.UUID, versio
 
 // ExportPreparer prepares the Export request.
 func (client VersionsClient) ExportPreparer(ctx context.Context, appID uuid.UUID, versionID string) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -265,7 +276,7 @@ func (client VersionsClient) ExportPreparer(ctx context.Context, appID uuid.UUID
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/export", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -318,6 +329,10 @@ func (client VersionsClient) Get(ctx context.Context, appID uuid.UUID, versionID
 
 // GetPreparer prepares the Get request.
 func (client VersionsClient) GetPreparer(ctx context.Context, appID uuid.UUID, versionID string) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -325,7 +340,7 @@ func (client VersionsClient) GetPreparer(ctx context.Context, appID uuid.UUID, v
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -380,6 +395,10 @@ func (client VersionsClient) Import(ctx context.Context, appID uuid.UUID, luisAp
 
 // ImportPreparer prepares the Import request.
 func (client VersionsClient) ImportPreparer(ctx context.Context, appID uuid.UUID, luisApp LuisApp, versionID string) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId": autorest.Encode("path", appID),
 	}
@@ -392,7 +411,7 @@ func (client VersionsClient) ImportPreparer(ctx context.Context, appID uuid.UUID
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/import", pathParameters),
 		autorest.WithJSON(luisApp),
 		autorest.WithQueryParameters(queryParameters))
@@ -460,6 +479,10 @@ func (client VersionsClient) List(ctx context.Context, appID uuid.UUID, skip *in
 
 // ListPreparer prepares the List request.
 func (client VersionsClient) ListPreparer(ctx context.Context, appID uuid.UUID, skip *int32, take *int32) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId": autorest.Encode("path", appID),
 	}
@@ -478,7 +501,7 @@ func (client VersionsClient) ListPreparer(ctx context.Context, appID uuid.UUID, 
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -533,6 +556,10 @@ func (client VersionsClient) Update(ctx context.Context, appID uuid.UUID, versio
 
 // UpdatePreparer prepares the Update request.
 func (client VersionsClient) UpdatePreparer(ctx context.Context, appID uuid.UUID, versionID string, versionUpdateObject TaskUpdateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -541,7 +568,7 @@ func (client VersionsClient) UpdatePreparer(ctx context.Context, appID uuid.UUID
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/", pathParameters),
 		autorest.WithJSON(versionUpdateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))

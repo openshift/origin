@@ -408,7 +408,7 @@ func mockSourceRepositories(t *testing.T, file string) []*app.SourceRepository {
 		"https://github.com/openshift/ruby-hello-world.git",
 		file,
 	} {
-		s, err := app.NewSourceRepository(location, generate.StrategySource)
+		s, err := app.NewSourceRepository(location, newapp.StrategySource)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -425,7 +425,7 @@ func TestBuildPipelinesWithUnresolvedImage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	sourceRepo, err := app.NewSourceRepository("https://github.com/foo/bar.git", generate.StrategyDocker)
+	sourceRepo, err := app.NewSourceRepository("https://github.com/foo/bar.git", newapp.StrategyDocker)
 	if err != nil {
 		t.Fatal(err)
 	}

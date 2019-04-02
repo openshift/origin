@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/ghodss/yaml"
-	"github.com/golang/glog"
 	"github.com/imdario/mergo"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -87,8 +87,8 @@ func ApplyServiceMonitor(client dynamic.Interface, recorder events.Recorder, ser
 		return false, nil
 	}
 
-	if glog.V(4) {
-		glog.Infof("ServiceMonitor %q changes: %v", namespace+"/"+required.GetName(), JSONPatch(existing, existingCopy))
+	if klog.V(4) {
+		klog.Infof("ServiceMonitor %q changes: %v", namespace+"/"+required.GetName(), JSONPatch(existing, existingCopy))
 	}
 
 	if _, err = client.Resource(serviceMonitorGVR).Namespace(namespace).Update(updated, metav1.UpdateOptions{}); err != nil {

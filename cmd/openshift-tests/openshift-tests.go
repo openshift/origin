@@ -17,7 +17,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"k8s.io/apiserver/pkg/util/logs"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/library-go/pkg/serviceability"
@@ -117,6 +117,7 @@ func newRunCommand() *cobra.Command {
 					return err
 				}
 				os.Setenv("TEST_PROVIDER", opt.Provider)
+				e2e.AfterReadingAllFlags(exutil.TestContext)
 				return opt.Run(args)
 			})
 		},
@@ -165,6 +166,7 @@ func newRunUpgradeCommand() *cobra.Command {
 					return err
 				}
 				os.Setenv("TEST_PROVIDER", opt.Provider)
+				e2e.AfterReadingAllFlags(exutil.TestContext)
 				return opt.Run(args)
 			})
 		},
@@ -199,6 +201,7 @@ func newRunTestCommand() *cobra.Command {
 			if err := initUpgrade(os.Getenv("TEST_UPGRADE")); err != nil {
 				return err
 			}
+			e2e.AfterReadingAllFlags(exutil.TestContext)
 			return testOpt.Run(args)
 		},
 	}

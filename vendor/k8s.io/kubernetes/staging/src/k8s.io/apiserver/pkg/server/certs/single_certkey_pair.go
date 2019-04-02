@@ -5,11 +5,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/golang/glog"
-
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/cert"
+	"k8s.io/klog"
 )
 
 // ReactionFunc is a func that can be called on a cert change
@@ -63,8 +62,8 @@ func (c *DynamicCertKeyPairLoader) GetRawKey() []byte {
 }
 
 func (c *DynamicCertKeyPairLoader) Run(stopCh <-chan struct{}) {
-	glog.Infof("Starting DynamicCertKeyPairLoader")
-	defer glog.Infof("Shutting down DynamicCertKeyPairLoader")
+	klog.Infof("Starting DynamicCertKeyPairLoader")
+	defer klog.Infof("Shutting down DynamicCertKeyPairLoader")
 
 	go wait.Until(func() {
 		err := c.CheckCerts()
@@ -102,7 +101,7 @@ func (c *DynamicCertKeyPairLoader) CheckCerts() error {
 		return err
 	}
 	for i, crt := range certs {
-		glog.V(2).Infof("[%d] %q certificate: %s", i, c.fileReference.Cert, getCertDetail(crt))
+		klog.V(2).Infof("[%d] %q certificate: %s", i, c.fileReference.Cert, getCertDetail(crt))
 	}
 
 	if c.certChangeCallback != nil {

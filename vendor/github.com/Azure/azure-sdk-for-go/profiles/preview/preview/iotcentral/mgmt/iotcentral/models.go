@@ -19,7 +19,7 @@
 
 package iotcentral
 
-import original "github.com/Azure/azure-sdk-for-go/services/preview/iotcentral/mgmt/2017-07-01-privatepreview/iotcentral"
+import original "github.com/Azure/azure-sdk-for-go/services/preview/iotcentral/mgmt/2018-09-01/iotcentral"
 
 type AppsClient = original.AppsClient
 

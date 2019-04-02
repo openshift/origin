@@ -33,6 +33,7 @@ const (
 	DefaultBaseURI = "https://api.applicationinsights.io/v1"
 )
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // BaseClient is the base client for .
 type BaseClient struct {
 	autorest.Client
@@ -40,11 +41,13 @@ type BaseClient struct {
 	AppID   string
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // New creates an instance of the BaseClient client.
 func New(appID string) BaseClient {
 	return NewWithBaseURI(DefaultBaseURI, appID)
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // NewWithBaseURI creates an instance of the BaseClient client.
 func NewWithBaseURI(baseURI string, appID string) BaseClient {
 	return BaseClient{
@@ -54,6 +57,7 @@ func NewWithBaseURI(baseURI string, appID string) BaseClient {
 	}
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetEventMethod gets the data for a single event
 //
 // eventType is the type of events to query; either a standard event type (`traces`, `customEvents`, `pageViews`,
@@ -82,6 +86,7 @@ func (client BaseClient) GetEventMethod(ctx context.Context, eventType EventType
 	return
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetEventMethodPreparer prepares the GetEventMethod request.
 func (client BaseClient) GetEventMethodPreparer(ctx context.Context, eventType EventTypeEnum, eventID string, timespan *string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
@@ -103,6 +108,7 @@ func (client BaseClient) GetEventMethodPreparer(ctx context.Context, eventType E
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetEventMethodSender sends the GetEventMethod request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetEventMethodSender(req *http.Request) (*http.Response, error) {
@@ -110,6 +116,7 @@ func (client BaseClient) GetEventMethodSender(req *http.Request) (*http.Response
 		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetEventMethodResponder handles the response to the GetEventMethod request. The method always
 // closes the http.Response Body.
 func (client BaseClient) GetEventMethodResponder(resp *http.Response) (result EventsResultsType, err error) {
@@ -123,6 +130,7 @@ func (client BaseClient) GetEventMethodResponder(resp *http.Response) (result Ev
 	return
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetEventsMetadataODataMethod gets OData EDMX metadata describing the event data model
 func (client BaseClient) GetEventsMetadataODataMethod(ctx context.Context) (result SetObjectType, err error) {
 	req, err := client.GetEventsMetadataODataMethodPreparer(ctx)
@@ -146,6 +154,7 @@ func (client BaseClient) GetEventsMetadataODataMethod(ctx context.Context) (resu
 	return
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetEventsMetadataODataMethodPreparer prepares the GetEventsMetadataODataMethod request.
 func (client BaseClient) GetEventsMetadataODataMethodPreparer(ctx context.Context) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
@@ -159,6 +168,7 @@ func (client BaseClient) GetEventsMetadataODataMethodPreparer(ctx context.Contex
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetEventsMetadataODataMethodSender sends the GetEventsMetadataODataMethod request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetEventsMetadataODataMethodSender(req *http.Request) (*http.Response, error) {
@@ -166,6 +176,7 @@ func (client BaseClient) GetEventsMetadataODataMethodSender(req *http.Request) (
 		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetEventsMetadataODataMethodResponder handles the response to the GetEventsMetadataODataMethod request. The method always
 // closes the http.Response Body.
 func (client BaseClient) GetEventsMetadataODataMethodResponder(resp *http.Response) (result SetObjectType, err error) {
@@ -179,6 +190,7 @@ func (client BaseClient) GetEventsMetadataODataMethodResponder(resp *http.Respon
 	return
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetEventsMethod executes an OData query for events
 //
 // eventType is the type of events to query; either a standard event type (`traces`, `customEvents`, `pageViews`,
@@ -213,6 +225,7 @@ func (client BaseClient) GetEventsMethod(ctx context.Context, eventType EventTyp
 	return
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetEventsMethodPreparer prepares the GetEventsMethod request.
 func (client BaseClient) GetEventsMethodPreparer(ctx context.Context, eventType EventTypeEnum, timespan *string, filter string, search string, orderby string, selectParameter string, skip *int32, top *int32, formatParameter string, count *bool, apply string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
@@ -260,6 +273,7 @@ func (client BaseClient) GetEventsMethodPreparer(ctx context.Context, eventType 
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetEventsMethodSender sends the GetEventsMethod request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetEventsMethodSender(req *http.Request) (*http.Response, error) {
@@ -267,6 +281,7 @@ func (client BaseClient) GetEventsMethodSender(req *http.Request) (*http.Respons
 		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetEventsMethodResponder handles the response to the GetEventsMethod request. The method always
 // closes the http.Response Body.
 func (client BaseClient) GetEventsMethodResponder(resp *http.Response) (result EventsResultsType, err error) {
@@ -280,6 +295,7 @@ func (client BaseClient) GetEventsMethodResponder(resp *http.Response) (result E
 	return
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetMetricMethod gets data for a single metric.
 //
 // metricID is ID of the metric. This is either a standard AI metric, or an application-specific custom metric.
@@ -331,6 +347,7 @@ func (client BaseClient) GetMetricMethod(ctx context.Context, metricID string, t
 	return
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetMetricMethodPreparer prepares the GetMetricMethod request.
 func (client BaseClient) GetMetricMethodPreparer(ctx context.Context, metricID string, timespan *string, interval *string, aggregation []string, segment []string, top *int32, orderby string, filter string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
@@ -369,6 +386,7 @@ func (client BaseClient) GetMetricMethodPreparer(ctx context.Context, metricID s
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetMetricMethodSender sends the GetMetricMethod request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetMetricMethodSender(req *http.Request) (*http.Response, error) {
@@ -376,6 +394,7 @@ func (client BaseClient) GetMetricMethodSender(req *http.Request) (*http.Respons
 		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetMetricMethodResponder handles the response to the GetMetricMethod request. The method always
 // closes the http.Response Body.
 func (client BaseClient) GetMetricMethodResponder(resp *http.Response) (result MetricsResultType, err error) {
@@ -389,6 +408,7 @@ func (client BaseClient) GetMetricMethodResponder(resp *http.Response) (result M
 	return
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetMetricsMetadataMethod gets metadata describing the available metrics
 func (client BaseClient) GetMetricsMetadataMethod(ctx context.Context) (result SetObjectType, err error) {
 	req, err := client.GetMetricsMetadataMethodPreparer(ctx)
@@ -412,6 +432,7 @@ func (client BaseClient) GetMetricsMetadataMethod(ctx context.Context) (result S
 	return
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetMetricsMetadataMethodPreparer prepares the GetMetricsMetadataMethod request.
 func (client BaseClient) GetMetricsMetadataMethodPreparer(ctx context.Context) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
@@ -425,6 +446,7 @@ func (client BaseClient) GetMetricsMetadataMethodPreparer(ctx context.Context) (
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetMetricsMetadataMethodSender sends the GetMetricsMetadataMethod request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetMetricsMetadataMethodSender(req *http.Request) (*http.Response, error) {
@@ -432,6 +454,7 @@ func (client BaseClient) GetMetricsMetadataMethodSender(req *http.Request) (*htt
 		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetMetricsMetadataMethodResponder handles the response to the GetMetricsMetadataMethod request. The method always
 // closes the http.Response Body.
 func (client BaseClient) GetMetricsMetadataMethodResponder(resp *http.Response) (result SetObjectType, err error) {
@@ -445,6 +468,7 @@ func (client BaseClient) GetMetricsMetadataMethodResponder(resp *http.Response) 
 	return
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetMetricsMethod gets metric values for multiple metrics
 //
 // body is the batched metrics query.
@@ -476,6 +500,7 @@ func (client BaseClient) GetMetricsMethod(ctx context.Context, body []MetricsPos
 	return
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetMetricsMethodPreparer prepares the GetMetricsMethod request.
 func (client BaseClient) GetMetricsMethodPreparer(ctx context.Context, body []MetricsPostBodySchemaType) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
@@ -491,6 +516,7 @@ func (client BaseClient) GetMetricsMethodPreparer(ctx context.Context, body []Me
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetMetricsMethodSender sends the GetMetricsMethod request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetMetricsMethodSender(req *http.Request) (*http.Response, error) {
@@ -498,6 +524,7 @@ func (client BaseClient) GetMetricsMethodSender(req *http.Request) (*http.Respon
 		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetMetricsMethodResponder handles the response to the GetMetricsMethod request. The method always
 // closes the http.Response Body.
 func (client BaseClient) GetMetricsMethodResponder(resp *http.Response) (result ListMetricsResultsItemType, err error) {
@@ -511,6 +538,7 @@ func (client BaseClient) GetMetricsMethodResponder(resp *http.Response) (result 
 	return
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetQueryMethod executes an Analytics query for data
 //
 // query is the Analytics query. Learn more about the [Analytics query
@@ -539,6 +567,7 @@ func (client BaseClient) GetQueryMethod(ctx context.Context, query string, times
 	return
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetQueryMethodPreparer prepares the GetQueryMethod request.
 func (client BaseClient) GetQueryMethodPreparer(ctx context.Context, query string, timespan *string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
@@ -560,6 +589,7 @@ func (client BaseClient) GetQueryMethodPreparer(ctx context.Context, query strin
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetQueryMethodSender sends the GetQueryMethod request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetQueryMethodSender(req *http.Request) (*http.Response, error) {
@@ -567,6 +597,7 @@ func (client BaseClient) GetQueryMethodSender(req *http.Request) (*http.Response
 		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetQueryMethodResponder handles the response to the GetQueryMethod request. The method always
 // closes the http.Response Body.
 func (client BaseClient) GetQueryMethodResponder(resp *http.Response) (result QueryResultsType, err error) {
@@ -580,6 +611,7 @@ func (client BaseClient) GetQueryMethodResponder(resp *http.Response) (result Qu
 	return
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetQuerySchemaMethod gets Analytics query schema describing the data model
 func (client BaseClient) GetQuerySchemaMethod(ctx context.Context) (result QueryResultsType, err error) {
 	req, err := client.GetQuerySchemaMethodPreparer(ctx)
@@ -603,6 +635,7 @@ func (client BaseClient) GetQuerySchemaMethod(ctx context.Context) (result Query
 	return
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetQuerySchemaMethodPreparer prepares the GetQuerySchemaMethod request.
 func (client BaseClient) GetQuerySchemaMethodPreparer(ctx context.Context) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
@@ -616,6 +649,7 @@ func (client BaseClient) GetQuerySchemaMethodPreparer(ctx context.Context) (*htt
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetQuerySchemaMethodSender sends the GetQuerySchemaMethod request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) GetQuerySchemaMethodSender(req *http.Request) (*http.Response, error) {
@@ -623,6 +657,7 @@ func (client BaseClient) GetQuerySchemaMethodSender(req *http.Request) (*http.Re
 		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // GetQuerySchemaMethodResponder handles the response to the GetQuerySchemaMethod request. The method always
 // closes the http.Response Body.
 func (client BaseClient) GetQuerySchemaMethodResponder(resp *http.Response) (result QueryResultsType, err error) {
@@ -636,6 +671,7 @@ func (client BaseClient) GetQuerySchemaMethodResponder(resp *http.Response) (res
 	return
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // QueryMethod executes an Analytics query for data. [Here](/documentation/2-Using-the-API/Query) is an example for
 // using POST with an Analytics query.
 //
@@ -671,6 +707,7 @@ func (client BaseClient) QueryMethod(ctx context.Context, body QueryBodyType, ti
 	return
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // QueryMethodPreparer prepares the QueryMethod request.
 func (client BaseClient) QueryMethodPreparer(ctx context.Context, body QueryBodyType, timespan *string) (*http.Request, error) {
 	pathParameters := map[string]interface{}{
@@ -692,6 +729,7 @@ func (client BaseClient) QueryMethodPreparer(ctx context.Context, body QueryBody
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // QueryMethodSender sends the QueryMethod request. The method will close the
 // http.Response Body if it receives an error.
 func (client BaseClient) QueryMethodSender(req *http.Request) (*http.Response, error) {
@@ -699,6 +737,7 @@ func (client BaseClient) QueryMethodSender(req *http.Request) (*http.Response, e
 		autorest.DoRetryForStatusCodes(client.RetryAttempts, client.RetryDuration, autorest.StatusCodesForRetry...))
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // QueryMethodResponder handles the response to the QueryMethod request. The method always
 // closes the http.Response Body.
 func (client BaseClient) QueryMethodResponder(resp *http.Response) (result QueryResultsType, err error) {

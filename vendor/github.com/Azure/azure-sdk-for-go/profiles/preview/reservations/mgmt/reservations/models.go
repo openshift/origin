@@ -111,6 +111,7 @@ const (
 type ReservedResourceType = original.ReservedResourceType
 
 const (
+	CosmosDb        ReservedResourceType = original.CosmosDb
 	SQLDatabases    ReservedResourceType = original.SQLDatabases
 	SuseLinux       ReservedResourceType = original.SuseLinux
 	VirtualMachines ReservedResourceType = original.VirtualMachines

@@ -8,26 +8,27 @@ import (
 
 	"github.com/golang/glog"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
-	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/tools/cache"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/resourcequota"
-	utilquota "k8s.io/kubernetes/pkg/quota"
+	utilquota "k8s.io/kubernetes/pkg/quota/v1"
 
-	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
+	quotav1 "github.com/openshift/api/quota/v1"
+	quotatypedclient "github.com/openshift/client-go/quota/clientset/versioned/typed/quota/v1"
+	quotainformer "github.com/openshift/client-go/quota/informers/externalversions/quota/v1"
+	quotalister "github.com/openshift/client-go/quota/listers/quota/v1"
+	quotav1conversions "github.com/openshift/origin/pkg/quota/apis/quota/v1"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
-	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
-	quotatypedclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/typed/quota/internalversion"
-	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
-	"k8s.io/client-go/discovery"
 )
 
 type ClusterQuotaReconcilationControllerOptions struct {
@@ -250,7 +251,7 @@ func (c *ClusterQuotaReconcilationController) calculateAll() {
 
 		// If the quota status has namespaces when our mapper doesn't think it should,
 		// add it directly to the queue without any work items
-		if quota.Status.Namespaces.OrderedKeys().Front() != nil {
+		if len(quota.Status.Namespaces) > 0 {
 			c.queue.AddWithData(quota.Name)
 			continue
 		}
@@ -272,7 +273,7 @@ func (c *ClusterQuotaReconcilationController) worker() {
 
 		quotaName := uncastKey.(string)
 		quota, err := c.clusterQuotaLister.Get(quotaName)
-		if kapierrors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			c.queue.Forget(uncastKey)
 			return false
 		}
@@ -310,7 +311,7 @@ func (c *ClusterQuotaReconcilationController) worker() {
 }
 
 // syncResourceQuotaFromKey syncs a quota key
-func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuota *quotaapi.ClusterResourceQuota, workItems []workItem) (error, []workItem /* to retry */) {
+func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuota *quotav1.ClusterResourceQuota, workItems []workItem) (error, []workItem /* to retry */) {
 	quota := originalQuota.DeepCopy()
 
 	// get the list of namespaces that match this cluster quota
@@ -324,12 +325,12 @@ func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuo
 	retryItems := []workItem{}
 	for _, item := range workItems {
 		namespaceName := item.namespaceName
-		namespaceTotals, namespaceLoaded := quota.Status.Namespaces.Get(namespaceName)
+		namespaceTotals, namespaceLoaded := quotav1conversions.GetResourceQuotasStatusByNamespace(quota.Status.Namespaces, namespaceName)
 		if !matchingNamespaceNames.Has(namespaceName) {
 			if namespaceLoaded {
 				// remove this item from all totals
 				quota.Status.Total.Used = utilquota.Subtract(quota.Status.Total.Used, namespaceTotals.Used)
-				quota.Status.Namespaces.Remove(namespaceName)
+				quotav1conversions.RemoveResourceQuotasStatusByNamespace(&quota.Status.Namespaces, namespaceName)
 			}
 			continue
 		}
@@ -346,7 +347,7 @@ func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuo
 			retryItems = append(retryItems, item)
 			continue
 		}
-		recalculatedStatus := kapi.ResourceQuotaStatus{
+		recalculatedStatus := corev1.ResourceQuotaStatus{
 			Used: actualUsage,
 			Hard: quota.Spec.Quota.Hard,
 		}
@@ -354,17 +355,21 @@ func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuo
 		// subtract old usage, add new usage
 		quota.Status.Total.Used = utilquota.Subtract(quota.Status.Total.Used, namespaceTotals.Used)
 		quota.Status.Total.Used = utilquota.Add(quota.Status.Total.Used, recalculatedStatus.Used)
-		quota.Status.Namespaces.Insert(namespaceName, recalculatedStatus)
+		quotav1conversions.InsertResourceQuotasStatus(&quota.Status.Namespaces, quotav1.ResourceQuotaStatusByNamespace{
+			Namespace: namespaceName,
+			Status:    recalculatedStatus,
+		})
 	}
 
 	// Remove any namespaces from quota.status that no longer match.
 	// Needed because we will never get workitems for namespaces that no longer exist if we missed the delete event (e.g. on startup)
-	for e := quota.Status.Namespaces.OrderedKeys().Front(); e != nil; e = e.Next() {
-		namespaceName := e.Value.(string)
-		namespaceTotals, _ := quota.Status.Namespaces.Get(namespaceName)
+	// range on a copy so that we don't mutate our original
+	statusCopy := quota.Status.Namespaces.DeepCopy()
+	for _, namespaceTotals := range statusCopy {
+		namespaceName := namespaceTotals.Namespace
 		if !matchingNamespaceNames.Has(namespaceName) {
-			quota.Status.Total.Used = utilquota.Subtract(quota.Status.Total.Used, namespaceTotals.Used)
-			quota.Status.Namespaces.Remove(namespaceName)
+			quota.Status.Total.Used = utilquota.Subtract(quota.Status.Total.Used, namespaceTotals.Status.Used)
+			quotav1conversions.RemoveResourceQuotasStatusByNamespace(&quota.Status.Namespaces, namespaceName)
 		}
 	}
 
@@ -426,7 +431,7 @@ func (c *ClusterQuotaReconcilationController) updateClusterQuota(old, cur interf
 	c.enqueueClusterQuota(cur)
 }
 func (c *ClusterQuotaReconcilationController) enqueueClusterQuota(obj interface{}) {
-	quota, ok := obj.(*quotaapi.ClusterResourceQuota)
+	quota, ok := obj.(*quotav1.ClusterResourceQuota)
 	if !ok {
 		utilruntime.HandleError(fmt.Errorf("not a ClusterResourceQuota %v", obj))
 		return

@@ -32,13 +32,8 @@ type PatternClient struct {
 }
 
 // NewPatternClient creates an instance of the PatternClient client.
-func NewPatternClient() PatternClient {
-	return NewPatternClientWithBaseURI(DefaultBaseURI)
-}
-
-// NewPatternClientWithBaseURI creates an instance of the PatternClient client.
-func NewPatternClientWithBaseURI(baseURI string) PatternClient {
-	return PatternClient{NewWithBaseURI(baseURI)}
+func NewPatternClient(endpoint string) PatternClient {
+	return PatternClient{New(endpoint)}
 }
 
 // AddPattern sends the add pattern request.
@@ -70,6 +65,10 @@ func (client PatternClient) AddPattern(ctx context.Context, appID uuid.UUID, ver
 
 // AddPatternPreparer prepares the AddPattern request.
 func (client PatternClient) AddPatternPreparer(ctx context.Context, appID uuid.UUID, versionID string, pattern PatternRuleCreateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -78,7 +77,7 @@ func (client PatternClient) AddPatternPreparer(ctx context.Context, appID uuid.U
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternrule", pathParameters),
 		autorest.WithJSON(pattern))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -139,6 +138,10 @@ func (client PatternClient) BatchAddPatterns(ctx context.Context, appID uuid.UUI
 
 // BatchAddPatternsPreparer prepares the BatchAddPatterns request.
 func (client PatternClient) BatchAddPatternsPreparer(ctx context.Context, appID uuid.UUID, versionID string, patterns []PatternRuleCreateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -147,7 +150,7 @@ func (client PatternClient) BatchAddPatternsPreparer(ctx context.Context, appID 
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternrules", pathParameters),
 		autorest.WithJSON(patterns))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -202,6 +205,10 @@ func (client PatternClient) DeletePattern(ctx context.Context, appID uuid.UUID, 
 
 // DeletePatternPreparer prepares the DeletePattern request.
 func (client PatternClient) DeletePatternPreparer(ctx context.Context, appID uuid.UUID, versionID string, patternID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"patternId": autorest.Encode("path", patternID),
@@ -210,7 +217,7 @@ func (client PatternClient) DeletePatternPreparer(ctx context.Context, appID uui
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternrules/{patternId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -270,6 +277,10 @@ func (client PatternClient) DeletePatterns(ctx context.Context, appID uuid.UUID,
 
 // DeletePatternsPreparer prepares the DeletePatterns request.
 func (client PatternClient) DeletePatternsPreparer(ctx context.Context, appID uuid.UUID, versionID string, patternIds []uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -278,7 +289,7 @@ func (client PatternClient) DeletePatternsPreparer(ctx context.Context, appID uu
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternrules", pathParameters),
 		autorest.WithJSON(patternIds))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -347,6 +358,10 @@ func (client PatternClient) GetIntentPatterns(ctx context.Context, appID uuid.UU
 
 // GetIntentPatternsPreparer prepares the GetIntentPatterns request.
 func (client PatternClient) GetIntentPatternsPreparer(ctx context.Context, appID uuid.UUID, versionID string, intentID uuid.UUID, skip *int32, take *int32) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"intentId":  autorest.Encode("path", intentID),
@@ -367,7 +382,7 @@ func (client PatternClient) GetIntentPatternsPreparer(ctx context.Context, appID
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/intents/{intentId}/patternrules", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -435,6 +450,10 @@ func (client PatternClient) GetPatterns(ctx context.Context, appID uuid.UUID, ve
 
 // GetPatternsPreparer prepares the GetPatterns request.
 func (client PatternClient) GetPatternsPreparer(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -454,7 +473,7 @@ func (client PatternClient) GetPatternsPreparer(ctx context.Context, appID uuid.
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternrules", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -510,6 +529,10 @@ func (client PatternClient) UpdatePattern(ctx context.Context, appID uuid.UUID, 
 
 // UpdatePatternPreparer prepares the UpdatePattern request.
 func (client PatternClient) UpdatePatternPreparer(ctx context.Context, appID uuid.UUID, versionID string, patternID uuid.UUID, pattern PatternRuleUpdateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"patternId": autorest.Encode("path", patternID),
@@ -519,7 +542,7 @@ func (client PatternClient) UpdatePatternPreparer(ctx context.Context, appID uui
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternrules/{patternId}", pathParameters),
 		autorest.WithJSON(pattern))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -580,6 +603,10 @@ func (client PatternClient) UpdatePatterns(ctx context.Context, appID uuid.UUID,
 
 // UpdatePatternsPreparer prepares the UpdatePatterns request.
 func (client PatternClient) UpdatePatternsPreparer(ctx context.Context, appID uuid.UUID, versionID string, patterns []PatternRuleUpdateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -588,7 +615,7 @@ func (client PatternClient) UpdatePatternsPreparer(ctx context.Context, appID uu
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternrules", pathParameters),
 		autorest.WithJSON(patterns))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))

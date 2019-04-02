@@ -38,11 +38,22 @@ $ cd $GOPATH/src/github.com/heketi/heketi/tests/functional
 $ ./run.sh
 ```
 
-To run a specific functional test, go into that functionl test's directory and type:
+To run a specific functional test, go into that functional test's directory and type:
 
 ```
 $ ./run.sh
 ```
+
+Some of the test setup code assumes that root privileges are needed.
+If the user is not already root the test setup code will run sudo, if
+you know this is not needed on your system you can disable this by
+setting `HEKETI_TEST_USE_SUDO=no` in your environment.
+
+For debugging/experimentation purposes you can pause the test (at the
+level of the functional test directory) before and after the test
+suite is run. Set HEKETI_TEST_PAUSE_BEFORE=yes to prompt to continue
+before the tests are run and HEKETI_TEST_PAUSE_AFTER=yes to prompt
+to continue after the tests are run but before any teardown occurs.
 
 ## Adding new tests
 

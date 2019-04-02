@@ -18,9 +18,9 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	corev1typedclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
+	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1typedclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"

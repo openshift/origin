@@ -16,9 +16,10 @@ package validate
 
 import (
 	"encoding/json"
+	"flag"
 	"io/ioutil"
-	"log"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/go-openapi/analysis"
@@ -29,11 +30,32 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Enable long running tests by using cmd line arg,
+// Usage: go test ... -args [-enable-long|-enable-go-swagger]
+//
+// -enable-long:       enable spec_test.go:TestIssue18 and messages_test.go:Test_Quality*
+// -enable-go-swagger: enable non-regression tests against go-swagger fixtures (validation status)
+//                     in swagger_test.go:Test_GoSwagger  (running about 110 specs...)
+//
+// If none enabled, these tests are skipped
+//
+// NOTE: replacing with go test -short and testing.Short() means that
+// by default, every test is launched. With -enable-long, we just get the
+// opposite...
+var enableLongTests bool
+var enableGoSwaggerTests bool
+
 func init() {
 	loads.AddLoader(fmts.YAMLMatcher, fmts.YAMLDoc)
+	flag.BoolVar(&enableLongTests, "enable-long", false, "enable long runnning tests")
+	flag.BoolVar(&enableGoSwaggerTests, "enable-go-swagger", false, "enable go-swagger non-regression test")
 }
 
-func TestExpandResponseLocalFile(t *testing.T) {
+func skipNotify(t *testing.T) {
+	t.Log("To enable this long running test, use -args -enable-long in your go test command line")
+}
+
+func TestSpec_ExpandResponseLocalFile(t *testing.T) {
 	fp := filepath.Join("fixtures", "local_expansion", "spec.yaml")
 	doc, err := loads.Spec(fp)
 	if assert.NoError(t, err) {
@@ -46,7 +68,7 @@ func TestExpandResponseLocalFile(t *testing.T) {
 	}
 }
 
-func TestExpandResponseRecursive(t *testing.T) {
+func TestSpec_ExpandResponseRecursive(t *testing.T) {
 	fp := filepath.Join("fixtures", "recursive_expansion", "spec.yaml")
 	doc, err := loads.Spec(fp)
 	if assert.NoError(t, err) {
@@ -59,7 +81,8 @@ func TestExpandResponseRecursive(t *testing.T) {
 	}
 }
 
-func TestIssue52(t *testing.T) {
+// Spec with no path
+func TestSpec_Issue52(t *testing.T) {
 	fp := filepath.Join("fixtures", "bugs", "52", "swagger.json")
 	jstext, _ := ioutil.ReadFile(fp)
 
@@ -72,7 +95,8 @@ func TestIssue52(t *testing.T) {
 		assert.EqualError(t, res.Errors[0], ".paths in body is required")
 	}
 
-	// as swagger spec
+	// as swagger spec: path is set to nil
+	// Here, validation stops as paths is initialized to empty
 	doc, err := loads.Spec(fp)
 	if assert.NoError(t, err) {
 		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
@@ -80,10 +104,25 @@ func TestIssue52(t *testing.T) {
 		assert.False(t, res.IsValid())
 		assert.EqualError(t, res.Errors[0], ".paths in body is required")
 	}
-
+	// Here, validation continues, with invalid path from early checks as null.
+	// This provides an additional (hopefully more informative) message.
+	doc, err = loads.Spec(fp)
+	if assert.NoError(t, err) {
+		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+		validator.SetContinueOnErrors(true)
+		res, _ := validator.Validate(doc)
+		assert.False(t, res.IsValid())
+		var verifiedErrors []string
+		for _, e := range res.Errors {
+			verifiedErrors = append(verifiedErrors, e.Error())
+		}
+		assert.Len(t, verifiedErrors, 2, "Unexpected number of error messages returned")
+		assert.Contains(t, verifiedErrors, ".paths in body is required")
+		assert.Contains(t, verifiedErrors, "spec has no valid path defined")
+	}
 }
 
-func TestIssue53(t *testing.T) {
+func TestSpec_Issue53(t *testing.T) {
 	fp := filepath.Join("fixtures", "bugs", "53", "noswagger.json")
 	jstext, _ := ioutil.ReadFile(fp)
 
@@ -96,7 +135,7 @@ func TestIssue53(t *testing.T) {
 		assert.EqualError(t, res.Errors[0], ".swagger in body is required")
 	}
 
-	// as swagger spec
+	// as swagger despec
 	doc, err := loads.Spec(fp)
 	if assert.NoError(t, err) {
 		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
@@ -107,8 +146,7 @@ func TestIssue53(t *testing.T) {
 	}
 }
 
-func TestIssue62(t *testing.T) {
-	t.SkipNow()
+func TestSpec_Issue62(t *testing.T) {
 	fp := filepath.Join("fixtures", "bugs", "62", "swagger.json")
 
 	// as swagger spec
@@ -121,7 +159,7 @@ func TestIssue62(t *testing.T) {
 	}
 }
 
-func TestIssue63(t *testing.T) {
+func TestSpec_Issue63(t *testing.T) {
 	fp := filepath.Join("fixtures", "bugs", "63", "swagger.json")
 
 	// as swagger spec
@@ -133,7 +171,7 @@ func TestIssue63(t *testing.T) {
 	}
 }
 
-func TestIssue61_MultipleRefs(t *testing.T) {
+func TestSpec_Issue61_MultipleRefs(t *testing.T) {
 	fp := filepath.Join("fixtures", "bugs", "61", "multiple-refs.json")
 
 	// as swagger spec
@@ -146,7 +184,7 @@ func TestIssue61_MultipleRefs(t *testing.T) {
 	}
 }
 
-func TestIssue61_ResolvedRef(t *testing.T) {
+func TestSpec_Issue61_ResolvedRef(t *testing.T) {
 	fp := filepath.Join("fixtures", "bugs", "61", "unresolved-ref-for-name.json")
 
 	// as swagger spec
@@ -159,69 +197,168 @@ func TestIssue61_ResolvedRef(t *testing.T) {
 	}
 }
 
-func TestIssue123(t *testing.T) {
-	fp := filepath.Join("fixtures", "bugs", "123", "swagger.yml")
+// No error with this one
+func TestSpec_Issue123(t *testing.T) {
+	path := "swagger.yml"
+	fp := filepath.Join("fixtures", "bugs", "123", path)
 
 	// as swagger spec
 	doc, err := loads.Spec(fp)
 	if assert.NoError(t, err) {
 		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
 		res, _ := validator.Validate(doc)
-		for _, e := range res.Errors {
-			log.Println(e)
-		}
 		assert.True(t, res.IsValid())
+
+		var verifiedErrors []string
+		for _, e := range res.Errors {
+			verifiedErrors = append(verifiedErrors, e.Error())
+		}
+		switch {
+		case strings.Contains(path, "swagger.yml"):
+			assert.Empty(t, verifiedErrors)
+		default:
+			t.Logf("Returned error messages: %v", verifiedErrors)
+			t.Fatal("fixture not tested. Please add assertions for messages")
+		}
+
+		if DebugTest && t.Failed() {
+			if len(verifiedErrors) > 0 {
+				t.Logf("DEVMODE: Returned error messages validating %s ", path)
+				for _, v := range verifiedErrors {
+					t.Logf("%s", v)
+				}
+			}
+		}
 	}
 }
 
-func TestIssue6(t *testing.T) {
+func TestSpec_Issue6(t *testing.T) {
 	files, _ := filepath.Glob(filepath.Join("fixtures", "bugs", "6", "*.json"))
 	for _, path := range files {
+		t.Logf("Tested spec=%s", path)
 		doc, err := loads.Spec(path)
 		if assert.NoError(t, err) {
 			validator := NewSpecValidator(doc.Schema(), strfmt.Default)
 			res, _ := validator.Validate(doc)
-			for _, e := range res.Errors {
-				log.Println(e)
-			}
 			assert.False(t, res.IsValid())
+
+			var verifiedErrors []string
+			for _, e := range res.Errors {
+				verifiedErrors = append(verifiedErrors, e.Error())
+			}
+			switch {
+			case strings.Contains(path, "empty-responses.json"):
+				assert.Contains(t, verifiedErrors, "\"paths./foo.get.responses\" must not validate the schema (not)")
+				assert.Contains(t, verifiedErrors, "paths./foo.get.responses in body should have at least 1 properties")
+			case strings.Contains(path, "no-responses.json"):
+				assert.Contains(t, verifiedErrors, "paths./foo.get.responses in body is required")
+			default:
+				t.Logf("Returned error messages: %v", verifiedErrors)
+				t.Fatal("fixture not tested. Please add assertions for messages")
+			}
+			if DebugTest && t.Failed() {
+				if len(verifiedErrors) > 0 {
+					t.Logf("DEVMODE:Returned error messages validating %s ", path)
+					for _, v := range verifiedErrors {
+						t.Logf("%s", v)
+					}
+				}
+			}
 		}
 	}
 }
 
 // check if invalid patterns are indeed invalidated
-func TestIssue18(t *testing.T) {
+func TestSpec_Issue18(t *testing.T) {
+	if !enableLongTests {
+		skipNotify(t)
+		t.SkipNow()
+	}
 	files, _ := filepath.Glob(filepath.Join("fixtures", "bugs", "18", "*.json"))
 	for _, path := range files {
+		t.Logf("Tested spec=%s", path)
 		doc, err := loads.Spec(path)
 		if assert.NoError(t, err) {
 			validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+			validator.SetContinueOnErrors(true)
 			res, _ := validator.Validate(doc)
-			for _, e := range res.Errors {
-				log.Println(e)
-			}
 			assert.False(t, res.IsValid())
+
+			var verifiedErrors []string
+			for _, e := range res.Errors {
+				verifiedErrors = append(verifiedErrors, e.Error())
+			}
+			switch {
+			case strings.Contains(path, "headerItems.json"):
+				assert.Contains(t, verifiedErrors, "X-Foo in header has invalid pattern: \")<-- bad pattern\"")
+			case strings.Contains(path, "headers.json"):
+				assert.Contains(t, verifiedErrors, "in operation \"\", header X-Foo for default response has invalid pattern \")<-- bad pattern\": error parsing regexp: unexpected ): `)<-- bad pattern`")
+				//  in operation \"\", header X-Foo for default response has invalid pattern \")<-- bad pattern\": error parsing regexp: unexpected ): `)<-- bad pattern`
+				assert.Contains(t, verifiedErrors, "in operation \"\", header X-Foo for response 402 has invalid pattern \")<-- bad pattern\": error parsing regexp: unexpected ): `)<-- bad pattern`")
+				//  in operation "", header X-Foo for response 402 has invalid pattern ")<-- bad pattern": error parsing regexp: unexpected ): `)<-- bad pattern`
+
+			case strings.Contains(path, "paramItems.json"):
+				assert.Contains(t, verifiedErrors, "body param \"user\" for \"\" has invalid items pattern: \")<-- bad pattern\"")
+				// Updated message: from "user.items in body has invalid pattern: \")<-- bad pattern\"" to:
+				assert.Contains(t, verifiedErrors, "default value for user in body does not validate its schema")
+				assert.Contains(t, verifiedErrors, "user.items.default in body has invalid pattern: \")<-- bad pattern\"")
+			case strings.Contains(path, "parameters.json"):
+				assert.Contains(t, verifiedErrors, "operation \"\" has invalid pattern in param \"userId\": \")<-- bad pattern\"")
+			case strings.Contains(path, "schema.json"):
+				// TODO: strange that the text does not say response "200"...
+				assert.Contains(t, verifiedErrors, "200 in response has invalid pattern: \")<-- bad pattern\"")
+			default:
+				t.Logf("Returned error messages: %v", verifiedErrors)
+				t.Fatal("fixture not tested. Please add assertions for messages")
+			}
+
+			if DebugTest && t.Failed() {
+				if len(verifiedErrors) > 0 {
+					t.Logf("DEVMODE: Returned error messages validating %s ", path)
+					for _, v := range verifiedErrors {
+						t.Logf("%s", v)
+					}
+				}
+			}
 		}
 	}
 }
 
-// check if a fragment path parameter is recognized
-func TestIssue39(t *testing.T) {
-	fp := filepath.Join("fixtures", "bugs", "39", "swagger.yml")
+// check if a fragment path parameter is recognized, without error
+func TestSpec_Issue39(t *testing.T) {
+	path := "swagger.yml"
+	fp := filepath.Join("fixtures", "bugs", "39", path)
 
 	// as swagger spec
 	doc, err := loads.Spec(fp)
 	if assert.NoError(t, err) {
 		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
 		res, _ := validator.Validate(doc)
-		for _, e := range res.Errors {
-			log.Println(e)
-		}
 		assert.True(t, res.IsValid())
+
+		var verifiedErrors []string
+		for _, e := range res.Errors {
+			verifiedErrors = append(verifiedErrors, e.Error())
+		}
+		switch {
+		case strings.Contains(path, "swagger.yml"):
+			assert.Empty(t, verifiedErrors)
+		default:
+			t.Logf("Returned error messages: %v", verifiedErrors)
+			t.Fatal("fixture not tested. Please add assertions for messages")
+		}
+		if DebugTest && t.Failed() {
+			if len(verifiedErrors) > 0 {
+				t.Logf("DEVMODE: Returned error messages validating %s ", path)
+				for _, v := range verifiedErrors {
+					t.Logf("%s", v)
+				}
+			}
+		}
 	}
 }
 
-func TestValidateDuplicatePropertyNames(t *testing.T) {
+func TestSpec_ValidateDuplicatePropertyNames(t *testing.T) {
 	// simple allOf
 	doc, err := loads.Spec(filepath.Join("fixtures", "validation", "duplicateprops.json"))
 	if assert.NoError(t, err) {
@@ -245,7 +382,7 @@ func TestValidateDuplicatePropertyNames(t *testing.T) {
 	}
 }
 
-func TestValidateNonEmptyPathParameterNames(t *testing.T) {
+func TestSpec_ValidateNonEmptyPathParameterNames(t *testing.T) {
 	doc, err := loads.Spec(filepath.Join("fixtures", "validation", "empty-path-param-name.json"))
 	if assert.NoError(t, err) {
 		validator := NewSpecValidator(spec.MustLoadSwagger20Schema(), strfmt.Default)
@@ -257,7 +394,7 @@ func TestValidateNonEmptyPathParameterNames(t *testing.T) {
 	}
 }
 
-func TestValidateCircularAncestry(t *testing.T) {
+func TestSpec_ValidateCircularAncestry(t *testing.T) {
 	doc, err := loads.Spec(filepath.Join("fixtures", "validation", "direct-circular-ancestor.json"))
 	if assert.NoError(t, err) {
 		validator := NewSpecValidator(spec.MustLoadSwagger20Schema(), strfmt.Default)
@@ -287,10 +424,7 @@ func TestValidateCircularAncestry(t *testing.T) {
 
 }
 
-func TestValidateUniqueSecurityScopes(t *testing.T) {
-}
-
-func TestValidateReferenced(t *testing.T) {
+func TestSpec_ValidateReferenced(t *testing.T) {
 	doc, err := loads.Spec(filepath.Join("fixtures", "validation", "valid-referenced.yml"))
 	if assert.NoError(t, err) {
 		validator := NewSpecValidator(spec.MustLoadSwagger20Schema(), strfmt.Default)
@@ -306,24 +440,13 @@ func TestValidateReferenced(t *testing.T) {
 		validator.spec = doc
 		validator.analyzer = analysis.New(doc.Spec())
 		res := validator.validateReferenced()
-		assert.NotEmpty(t, res.Errors)
-		assert.Len(t, res.Errors, 3)
+		assert.Empty(t, res.Errors)
+		assert.NotEmpty(t, res.Warnings)
+		assert.Len(t, res.Warnings, 3)
 	}
 }
 
-func TestValidateBodyFormDataParams(t *testing.T) {
-	doc, err := loads.Spec(filepath.Join("fixtures", "validation", "invalid-formdata-body-params.json"))
-	if assert.NoError(t, err) {
-		validator := NewSpecValidator(spec.MustLoadSwagger20Schema(), strfmt.Default)
-		validator.spec = doc
-		validator.analyzer = analysis.New(doc.Spec())
-		res := validator.validateDefaultValueValidAgainstSchema()
-		assert.NotEmpty(t, res.Errors)
-		assert.Len(t, res.Errors, 1)
-	}
-}
-
-func TestValidateReferencesValid(t *testing.T) {
+func TestSpec_ValidateReferencesValid(t *testing.T) {
 	doc, err := loads.Spec(filepath.Join("fixtures", "validation", "valid-ref.json"))
 	if assert.NoError(t, err) {
 		validator := NewSpecValidator(spec.MustLoadSwagger20Schema(), strfmt.Default)
@@ -344,79 +467,7 @@ func TestValidateReferencesValid(t *testing.T) {
 	}
 }
 
-func TestValidatesExamplesAgainstSchema(t *testing.T) {
-	tests := []string{
-		"response",
-		"response-ref",
-	}
-
-	for _, tt := range tests {
-		doc, err := loads.Spec(filepath.Join("fixtures", "validation", "valid-example-"+tt+".json"))
-		if assert.NoError(t, err) {
-			validator := NewSpecValidator(spec.MustLoadSwagger20Schema(), strfmt.Default)
-			validator.spec = doc
-			validator.analyzer = analysis.New(doc.Spec())
-			res := validator.validateExamplesValidAgainstSchema()
-			assert.Empty(t, res.Errors, tt+" should not have errors")
-		}
-
-		doc, err = loads.Spec(filepath.Join("fixtures", "validation", "invalid-example-"+tt+".json"))
-		if assert.NoError(t, err) {
-			validator := NewSpecValidator(spec.MustLoadSwagger20Schema(), strfmt.Default)
-			validator.spec = doc
-			validator.analyzer = analysis.New(doc.Spec())
-			res := validator.validateExamplesValidAgainstSchema()
-			assert.NotEmpty(t, res.Errors, tt+" should have errors")
-			assert.Len(t, res.Errors, 1, tt+" should have 1 error")
-		}
-	}
-}
-
-func TestValidateDefaultValueAgainstSchema(t *testing.T) {
-	doc, _ := loads.Analyzed(PetStoreJSONMessage, "")
-	validator := NewSpecValidator(spec.MustLoadSwagger20Schema(), strfmt.Default)
-	validator.spec = doc
-	validator.analyzer = analysis.New(doc.Spec())
-	res := validator.validateDefaultValueValidAgainstSchema()
-	assert.Empty(t, res.Errors)
-
-	tests := []string{
-		"parameter",
-		"parameter-ref",
-		"parameter-items",
-		"header",
-		"header-items",
-		"schema",
-		"schema-ref",
-		"schema-additionalProperties",
-		"schema-patternProperties",
-		"schema-items",
-		"schema-allOf",
-	}
-
-	for _, tt := range tests {
-		doc, err := loads.Spec(filepath.Join("fixtures", "validation", "valid-default-value-"+tt+".json"))
-		if assert.NoError(t, err) {
-			validator := NewSpecValidator(spec.MustLoadSwagger20Schema(), strfmt.Default)
-			validator.spec = doc
-			validator.analyzer = analysis.New(doc.Spec())
-			res := validator.validateDefaultValueValidAgainstSchema()
-			assert.Empty(t, res.Errors, tt+" should not have errors")
-		}
-
-		doc, err = loads.Spec(filepath.Join("fixtures", "validation", "invalid-default-value-"+tt+".json"))
-		if assert.NoError(t, err) {
-			validator := NewSpecValidator(spec.MustLoadSwagger20Schema(), strfmt.Default)
-			validator.spec = doc
-			validator.analyzer = analysis.New(doc.Spec())
-			res := validator.validateDefaultValueValidAgainstSchema()
-			assert.NotEmpty(t, res.Errors, tt+" should have errors")
-			assert.Len(t, res.Errors, 1, tt+" should have 1 error")
-		}
-	}
-}
-
-func TestValidateRequiredDefinitions(t *testing.T) {
+func TestSpec_ValidateRequiredDefinitions(t *testing.T) {
 	doc, _ := loads.Analyzed(PetStoreJSONMessage, "")
 	validator := NewSpecValidator(spec.MustLoadSwagger20Schema(), strfmt.Default)
 	validator.spec = doc
@@ -458,7 +509,7 @@ func TestValidateRequiredDefinitions(t *testing.T) {
 	assert.NotEmpty(t, res.Errors)
 }
 
-func TestValidateParameters(t *testing.T) {
+func TestSpec_ValidateParameters(t *testing.T) {
 	doc, _ := loads.Analyzed(PetStoreJSONMessage, "")
 	validator := NewSpecValidator(spec.MustLoadSwagger20Schema(), strfmt.Default)
 	validator.spec = doc
@@ -522,7 +573,7 @@ func TestValidateParameters(t *testing.T) {
 	assert.Contains(t, res.Errors[0].Error(), "has no parameter definition")
 }
 
-func TestValidateItems(t *testing.T) {
+func TestSpec_ValidateItems(t *testing.T) {
 	doc, _ := loads.Analyzed(PetStoreJSONMessage, "")
 	validator := NewSpecValidator(spec.MustLoadSwagger20Schema(), strfmt.Default)
 	validator.spec = doc
@@ -620,4 +671,128 @@ func TestValidateItems(t *testing.T) {
 	pa.Post.Responses.StatusCodeResponses[200] = rp
 	res = validator.validateItems()
 	assert.NotEmpty(t, res.Errors)
+}
+
+// Reuse known validated cases through the higher level Spec() call
+func TestSpec_ValidDoc(t *testing.T) {
+	fp := filepath.Join("fixtures", "local_expansion", "spec.yaml")
+	doc2, err := loads.Spec(fp)
+	if assert.NoError(t, err) {
+		err := Spec(doc2, strfmt.Default)
+		assert.NoError(t, err)
+	}
+}
+
+// Check higher level behavior on invalid spec doc
+func TestSpec_InvalidDoc(t *testing.T) {
+	doc, err := loads.Spec(filepath.Join("fixtures", "validation", "default", "invalid-default-value-parameter.json"))
+	if assert.NoError(t, err) {
+		err := Spec(doc, strfmt.Default)
+		assert.Error(t, err)
+	}
+}
+
+func TestSpec_Validate_InvalidInterface(t *testing.T) {
+	fp := filepath.Join("fixtures", "local_expansion", "spec.yaml")
+	doc2, err := loads.Spec(fp)
+	if assert.NoError(t, err) {
+		if assert.NotNil(t, doc2) {
+			validator := NewSpecValidator(doc2.Schema(), strfmt.Default)
+			bug := "bzzz"
+			res, _ := validator.Validate(bug)
+			assert.NotEmpty(t, res.Errors)
+			assert.Contains(t, res.Errors[0].Error(), "can only validate spec.Document objects")
+		}
+	}
+}
+
+func TestSpec_ValidateBodyFormDataParams(t *testing.T) {
+	doc, err := loads.Spec(filepath.Join("fixtures", "validation", "invalid-formdata-body-params.json"))
+	if assert.NoError(t, err) {
+		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+		res, _ := validator.Validate(doc)
+		assert.NotEmpty(t, res.Errors)
+		assert.Len(t, res.Errors, 1)
+	}
+}
+
+func TestSpec_Issue73(t *testing.T) {
+	doc, err := loads.Spec(filepath.Join("fixtures", "bugs", "73", "fixture-swagger.yaml"))
+	if assert.NoError(t, err) {
+		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+		res, _ := validator.Validate(doc)
+		assert.Empty(t, res.Errors, " in fixture-swagger.yaml")
+	}
+
+	doc, err = loads.Spec(filepath.Join("fixtures", "bugs", "73", "fixture-swagger-2.yaml"))
+	if assert.NoError(t, err) {
+		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+		res, _ := validator.Validate(doc)
+		assert.Empty(t, res.Errors, "in fixture-swagger-2.yaml")
+	}
+
+	doc, err = loads.Spec(filepath.Join("fixtures", "bugs", "73", "fixture-swagger-3.yaml"))
+	if assert.NoError(t, err) {
+		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+		res, _ := validator.Validate(doc)
+		assert.Empty(t, res.Errors, "in fixture-swagger-3.yaml")
+	}
+
+	doc, err = loads.Spec(filepath.Join("fixtures", "bugs", "73", "fixture-swagger-good.yaml"))
+	if assert.NoError(t, err) {
+		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+		res, _ := validator.Validate(doc)
+		assert.Empty(t, res.Errors, " in fixture-swagger-good.yaml")
+	}
+}
+
+func TestSpec_Issue1341(t *testing.T) {
+	// testing recursive walk with defaults and examples
+	doc, err := loads.Spec(filepath.Join("fixtures", "bugs", "1341", "fixture-1341-good.yaml"))
+	if assert.NoError(t, err) {
+		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+		res, _ := validator.Validate(doc)
+		assert.Empty(t, res.Errors, " in fixture-1341-good.yaml")
+		assert.Len(t, res.Warnings, 1, " in fixture-1341-good.yaml")
+	}
+
+	doc, err = loads.Spec(filepath.Join("fixtures", "bugs", "1341", "fixture-1341.yaml"))
+	if assert.NoError(t, err) {
+		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+		res, _ := validator.Validate(doc)
+		assert.Empty(t, res.Errors, "in fixture-1341.yaml")
+		assert.Empty(t, res.Warnings, "in fixture-1341.yaml")
+	}
+
+	doc, err = loads.Spec(filepath.Join("fixtures", "bugs", "1341", "fixture-1341-2.yaml"))
+	if assert.NoError(t, err) {
+		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+		res, _ := validator.Validate(doc)
+		assert.Empty(t, res.Errors, "in fixture-1341-2.yaml")
+		assert.Empty(t, res.Warnings, "in fixture-1341-2.yaml")
+	}
+
+	doc, err = loads.Spec(filepath.Join("fixtures", "bugs", "1341", "fixture-1341-3.yaml"))
+	if assert.NoError(t, err) {
+		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+		res, _ := validator.Validate(doc)
+		assert.Empty(t, res.Errors, "in fixture-1341-3.yaml")
+		assert.Len(t, res.Warnings, 4, "in fixture-1341-3.yaml")
+	}
+
+	doc, err = loads.Spec(filepath.Join("fixtures", "bugs", "1341", "fixture-1341-4.yaml"))
+	if assert.NoError(t, err) {
+		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+		res, _ := validator.Validate(doc)
+		assert.Empty(t, res.Errors, "in fixture-1341-4.yaml")
+		assert.Empty(t, res.Warnings, "in fixture-1341-4.yaml")
+	}
+
+	doc, err = loads.Spec(filepath.Join("fixtures", "bugs", "1341", "fixture-1341-5.yaml"))
+	if assert.NoError(t, err) {
+		validator := NewSpecValidator(doc.Schema(), strfmt.Default)
+		res, _ := validator.Validate(doc)
+		assert.Len(t, res.Errors, 4, "in fixture-1341-5.yaml")
+		assert.Empty(t, res.Warnings, "in fixture-1341-5.yaml")
+	}
 }

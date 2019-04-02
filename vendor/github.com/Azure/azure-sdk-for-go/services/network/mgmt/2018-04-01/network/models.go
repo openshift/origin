@@ -18710,8 +18710,8 @@ type VpnConnectionProperties struct {
 	IngressBytesTransferred *int64 `json:"ingressBytesTransferred,omitempty"`
 	// EgressBytesTransferred - Egress bytes transferred.
 	EgressBytesTransferred *int64 `json:"egressBytesTransferred,omitempty"`
-	// ConnectionBandwidthInMbps - Expected bandwidth in MBPS.
-	ConnectionBandwidthInMbps *int32 `json:"connectionBandwidthInMbps,omitempty"`
+	// ConnectionBandwidth - Expected bandwidth in MBPS.
+	ConnectionBandwidth *int32 `json:"connectionBandwidth,omitempty"`
 	// SharedKey - SharedKey for the vpn connection.
 	SharedKey *string `json:"sharedKey,omitempty"`
 	// EnableBgp - EnableBgp flag

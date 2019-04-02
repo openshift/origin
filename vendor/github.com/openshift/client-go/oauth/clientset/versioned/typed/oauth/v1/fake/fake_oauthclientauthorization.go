@@ -3,7 +3,7 @@
 package fake
 
 import (
-	oauth_v1 "github.com/openshift/api/oauth/v1"
+	oauthv1 "github.com/openshift/api/oauth/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -22,19 +22,19 @@ var oauthclientauthorizationsResource = schema.GroupVersionResource{Group: "oaut
 var oauthclientauthorizationsKind = schema.GroupVersionKind{Group: "oauth.openshift.io", Version: "v1", Kind: "OAuthClientAuthorization"}
 
 // Get takes name of the oAuthClientAuthorization, and returns the corresponding oAuthClientAuthorization object, and an error if there is any.
-func (c *FakeOAuthClientAuthorizations) Get(name string, options v1.GetOptions) (result *oauth_v1.OAuthClientAuthorization, err error) {
+func (c *FakeOAuthClientAuthorizations) Get(name string, options v1.GetOptions) (result *oauthv1.OAuthClientAuthorization, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(oauthclientauthorizationsResource, name), &oauth_v1.OAuthClientAuthorization{})
+		Invokes(testing.NewRootGetAction(oauthclientauthorizationsResource, name), &oauthv1.OAuthClientAuthorization{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*oauth_v1.OAuthClientAuthorization), err
+	return obj.(*oauthv1.OAuthClientAuthorization), err
 }
 
 // List takes label and field selectors, and returns the list of OAuthClientAuthorizations that match those selectors.
-func (c *FakeOAuthClientAuthorizations) List(opts v1.ListOptions) (result *oauth_v1.OAuthClientAuthorizationList, err error) {
+func (c *FakeOAuthClientAuthorizations) List(opts v1.ListOptions) (result *oauthv1.OAuthClientAuthorizationList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(oauthclientauthorizationsResource, oauthclientauthorizationsKind, opts), &oauth_v1.OAuthClientAuthorizationList{})
+		Invokes(testing.NewRootListAction(oauthclientauthorizationsResource, oauthclientauthorizationsKind, opts), &oauthv1.OAuthClientAuthorizationList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -43,8 +43,8 @@ func (c *FakeOAuthClientAuthorizations) List(opts v1.ListOptions) (result *oauth
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &oauth_v1.OAuthClientAuthorizationList{ListMeta: obj.(*oauth_v1.OAuthClientAuthorizationList).ListMeta}
-	for _, item := range obj.(*oauth_v1.OAuthClientAuthorizationList).Items {
+	list := &oauthv1.OAuthClientAuthorizationList{ListMeta: obj.(*oauthv1.OAuthClientAuthorizationList).ListMeta}
+	for _, item := range obj.(*oauthv1.OAuthClientAuthorizationList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -59,29 +59,29 @@ func (c *FakeOAuthClientAuthorizations) Watch(opts v1.ListOptions) (watch.Interf
 }
 
 // Create takes the representation of a oAuthClientAuthorization and creates it.  Returns the server's representation of the oAuthClientAuthorization, and an error, if there is any.
-func (c *FakeOAuthClientAuthorizations) Create(oAuthClientAuthorization *oauth_v1.OAuthClientAuthorization) (result *oauth_v1.OAuthClientAuthorization, err error) {
+func (c *FakeOAuthClientAuthorizations) Create(oAuthClientAuthorization *oauthv1.OAuthClientAuthorization) (result *oauthv1.OAuthClientAuthorization, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(oauthclientauthorizationsResource, oAuthClientAuthorization), &oauth_v1.OAuthClientAuthorization{})
+		Invokes(testing.NewRootCreateAction(oauthclientauthorizationsResource, oAuthClientAuthorization), &oauthv1.OAuthClientAuthorization{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*oauth_v1.OAuthClientAuthorization), err
+	return obj.(*oauthv1.OAuthClientAuthorization), err
 }
 
 // Update takes the representation of a oAuthClientAuthorization and updates it. Returns the server's representation of the oAuthClientAuthorization, and an error, if there is any.
-func (c *FakeOAuthClientAuthorizations) Update(oAuthClientAuthorization *oauth_v1.OAuthClientAuthorization) (result *oauth_v1.OAuthClientAuthorization, err error) {
+func (c *FakeOAuthClientAuthorizations) Update(oAuthClientAuthorization *oauthv1.OAuthClientAuthorization) (result *oauthv1.OAuthClientAuthorization, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(oauthclientauthorizationsResource, oAuthClientAuthorization), &oauth_v1.OAuthClientAuthorization{})
+		Invokes(testing.NewRootUpdateAction(oauthclientauthorizationsResource, oAuthClientAuthorization), &oauthv1.OAuthClientAuthorization{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*oauth_v1.OAuthClientAuthorization), err
+	return obj.(*oauthv1.OAuthClientAuthorization), err
 }
 
 // Delete takes name of the oAuthClientAuthorization and deletes it. Returns an error if one occurs.
 func (c *FakeOAuthClientAuthorizations) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(oauthclientauthorizationsResource, name), &oauth_v1.OAuthClientAuthorization{})
+		Invokes(testing.NewRootDeleteAction(oauthclientauthorizationsResource, name), &oauthv1.OAuthClientAuthorization{})
 	return err
 }
 
@@ -89,16 +89,16 @@ func (c *FakeOAuthClientAuthorizations) Delete(name string, options *v1.DeleteOp
 func (c *FakeOAuthClientAuthorizations) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewRootDeleteCollectionAction(oauthclientauthorizationsResource, listOptions)
 
-	_, err := c.Fake.Invokes(action, &oauth_v1.OAuthClientAuthorizationList{})
+	_, err := c.Fake.Invokes(action, &oauthv1.OAuthClientAuthorizationList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched oAuthClientAuthorization.
-func (c *FakeOAuthClientAuthorizations) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *oauth_v1.OAuthClientAuthorization, err error) {
+func (c *FakeOAuthClientAuthorizations) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *oauthv1.OAuthClientAuthorization, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(oauthclientauthorizationsResource, name, data, subresources...), &oauth_v1.OAuthClientAuthorization{})
+		Invokes(testing.NewRootPatchSubresourceAction(oauthclientauthorizationsResource, name, pt, data, subresources...), &oauthv1.OAuthClientAuthorization{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*oauth_v1.OAuthClientAuthorization), err
+	return obj.(*oauthv1.OAuthClientAuthorization), err
 }

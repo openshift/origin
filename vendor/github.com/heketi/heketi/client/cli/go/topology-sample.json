@@ -15,14 +15,38 @@
                         "zone": 1
                     },
                     "devices": [
-                        "/dev/sdb",
-                        "/dev/sdc",
-                        "/dev/sdd",
-                        "/dev/sde",
-                        "/dev/sdf",
-                        "/dev/sdg",
-                        "/dev/sdh",
-                        "/dev/sdi"
+                        {
+                            "name": "/dev/sdb",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdc",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdd",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sde",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdf",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdg",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdh",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdi",
+                            "destroydata": false
+                        }
                     ]
                 },
                 {
@@ -38,14 +62,38 @@
                         "zone": 2
                     },
                     "devices": [
-                        "/dev/sdb",
-                        "/dev/sdc",
-                        "/dev/sdd",
-                        "/dev/sde",
-                        "/dev/sdf",
-                        "/dev/sdg",
-                        "/dev/sdh",
-                        "/dev/sdi"
+                        {
+                            "name": "/dev/sdb",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdc",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdd",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sde",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdf",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdg",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdh",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdi",
+                            "destroydata": false
+                        }
                     ]
                 },
                 {
@@ -61,14 +109,38 @@
                         "zone": 1
                     },
                     "devices": [
-                        "/dev/sdb",
-                        "/dev/sdc",
-                        "/dev/sdd",
-                        "/dev/sde",
-                        "/dev/sdf",
-                        "/dev/sdg",
-                        "/dev/sdh",
-                        "/dev/sdi"
+                        {
+                            "name": "/dev/sdb",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdc",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdd",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sde",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdf",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdg",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdh",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdi",
+                            "destroydata": false
+                        }
                     ]
                 },
                 {
@@ -84,14 +156,38 @@
                         "zone": 2
                     },
                     "devices": [
-                        "/dev/sdb",
-                        "/dev/sdc",
-                        "/dev/sdd",
-                        "/dev/sde",
-                        "/dev/sdf",
-                        "/dev/sdg",
-                        "/dev/sdh",
-                        "/dev/sdi"
+                        {
+                            "name": "/dev/sdb",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdc",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdd",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sde",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdf",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdg",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdh",
+                            "destroydata": false
+                        },
+                        {
+                            "name": "/dev/sdi",
+                            "destroydata": false
+                        }
                     ]
                 }
             ]

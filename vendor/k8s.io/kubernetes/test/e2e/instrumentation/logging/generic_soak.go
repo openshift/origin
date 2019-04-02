@@ -51,11 +51,13 @@ var _ = instrumentation.SIGDescribe("Logging soak [Performance] [Slow] [Disrupti
 		scale := framework.TestContext.LoggingSoak.Scale
 		if framework.TestContext.LoggingSoak.Scale == 0 {
 			scale = 1
+			framework.Logf("Overriding default scale value of zero to %d", scale)
 		}
 
 		milliSecondsBetweenWaves := framework.TestContext.LoggingSoak.MilliSecondsBetweenWaves
 		if milliSecondsBetweenWaves == 0 {
 			milliSecondsBetweenWaves = 5000
+			framework.Logf("Overriding default milliseconds value of zero to %d", milliSecondsBetweenWaves)
 		}
 
 		return scale, time.Duration(milliSecondsBetweenWaves) * time.Millisecond

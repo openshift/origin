@@ -16,7 +16,7 @@ package runtime
 
 import (
 	"net/http"
-	"os"
+	"net/url"
 	"testing"
 	"time"
 
@@ -43,7 +43,7 @@ func (t *trw) SetFormParam(_ string, _ ...string) error { return nil }
 
 func (t *trw) SetPathParam(_ string, _ string) error { return nil }
 
-func (t *trw) SetFileParam(_ string, _ *os.File) error { return nil }
+func (t *trw) SetFileParam(_ string, _ ...NamedReadCloser) error { return nil }
 
 func (t *trw) SetBodyParam(body interface{}) error {
 	t.Body = body
@@ -54,16 +54,32 @@ func (t *trw) SetTimeout(timeout time.Duration) error {
 	return nil
 }
 
+func (t *trw) GetQueryParams() url.Values { return nil }
+
+func (t *trw) GetMethod() string { return "" }
+
+func (t *trw) GetPath() string { return "" }
+
+func (t *trw) GetBody() []byte { return nil }
+
+func (t *trw) GetBodyParam() interface{} {
+	return t.Body
+}
+
+func (t *trw) GetFileParam() map[string][]NamedReadCloser {
+	return nil
+}
+
 func TestRequestWriterFunc(t *testing.T) {
 
 	hand := ClientRequestWriterFunc(func(r ClientRequest, reg strfmt.Registry) error {
-		r.SetHeaderParam("blah", "blah blah")
-		r.SetBodyParam(struct{ Name string }{"Adriana"})
+		_ = r.SetHeaderParam("blah", "blah blah")
+		_ = r.SetBodyParam(struct{ Name string }{"Adriana"})
 		return nil
 	})
 
 	tr := new(trw)
-	hand.WriteToRequest(tr, nil)
+	_ = hand.WriteToRequest(tr, nil)
 	assert.Equal(t, "blah blah", tr.Headers.Get("blah"))
 	assert.Equal(t, "Adriana", tr.Body.(struct{ Name string }).Name)
 }

@@ -22,12 +22,21 @@ type Infrastructure struct {
 
 // InfrastructureSpec contains settings that apply to the cluster infrastructure.
 type InfrastructureSpec struct {
-	// secret reference?
-	// configmap reference to file?
+	// cloudConfig is a reference to a ConfigMap containing the cloud provider configuration file.
+	// This configuration file is used to configure the Kubernetes cloud provider integration
+	// when using the built-in cloud provider integration or the external cloud controller manager.
+	// The namespace for this config map is openshift-config.
+	// +optional
+	CloudConfig ConfigMapFileReference `json:"cloudConfig"`
 }
 
 // InfrastructureStatus describes the infrastructure the cluster is leveraging.
 type InfrastructureStatus struct {
+	// infrastructureName uniquely identifies a cluster with a human friendly name.
+	// Once set it should not be changed. Must be of max length 27 and must have only
+	// alphanumeric or hyphen characters.
+	InfrastructureName string `json:"infrastructureName"`
+
 	// platform is the underlying infrastructure provider for the cluster. This
 	// value controls whether infrastructure automation such as service load
 	// balancers, dynamic volume provisioning, machine creation and deletion, and
@@ -53,26 +62,26 @@ type InfrastructureStatus struct {
 type PlatformType string
 
 const (
-	// AWSPlatform represents Amazon Web Services infrastructure.
-	AWSPlatform PlatformType = "AWS"
+	// AWSPlatformType represents Amazon Web Services infrastructure.
+	AWSPlatformType PlatformType = "AWS"
 
-	// AzurePlatform represents Microsoft Azure infrastructure.
-	AzurePlatform PlatformType = "Azure"
+	// AzurePlatformType represents Microsoft Azure infrastructure.
+	AzurePlatformType PlatformType = "Azure"
 
-	// GCPPlatform represents Google Cloud Platform infrastructure.
-	GCPPlatform PlatformType = "GCP"
+	// GCPPlatformType represents Google Cloud Platform infrastructure.
+	GCPPlatformType PlatformType = "GCP"
 
-	// LibvirtPlatform represents libvirt infrastructure.
-	LibvirtPlatform PlatformType = "Libvirt"
+	// LibvirtPlatformType represents libvirt infrastructure.
+	LibvirtPlatformType PlatformType = "Libvirt"
 
-	// OpenStackPlatform represents OpenStack infrastructure.
-	OpenStackPlatform PlatformType = "OpenStack"
+	// OpenStackPlatformType represents OpenStack infrastructure.
+	OpenStackPlatformType PlatformType = "OpenStack"
 
-	// NonePlatform means there is no infrastructure provider.
-	NonePlatform PlatformType = "None"
+	// NonePlatformType means there is no infrastructure provider.
+	NonePlatformType PlatformType = "None"
 
-	// VSpherePlatform represents VMWare vSphere infrastructure.
-	VSpherePlatform PlatformType = "VSphere"
+	// VSpherePlatformType represents VMWare vSphere infrastructure.
+	VSpherePlatformType PlatformType = "VSphere"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -4,16 +4,14 @@ import (
 	"bytes"
 	"fmt"
 
+	"k8s.io/kubernetes/pkg/kubectl/describe/versioned"
+
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl"
-	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	appstypedclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 func NewDeploymentConfigRollbacker(appsClient appsclient.Interface) kubectl.Rollbacker {
@@ -31,7 +29,7 @@ var _ kubectl.Rollbacker = &DeploymentConfigRollbacker{}
 // Rollback the provided deployment config to a specific revision. If revision is zero, we will
 // rollback to the previous deployment.
 func (r *DeploymentConfigRollbacker) Rollback(obj runtime.Object, updatedAnnotations map[string]string, toRevision int64, dryRun bool) (string, error) {
-	config, ok := obj.(*appsapi.DeploymentConfig)
+	config, ok := obj.(*appsv1.DeploymentConfig)
 	if !ok {
 		return "", fmt.Errorf("passed object is not a deployment config: %#v", obj)
 	}
@@ -55,11 +53,7 @@ func (r *DeploymentConfigRollbacker) Rollback(obj runtime.Object, updatedAnnotat
 
 	if dryRun {
 		out := bytes.NewBuffer([]byte("\n"))
-		internalTemplate := &kapi.PodTemplateSpec{}
-		if err := legacyscheme.Scheme.Convert(rolledback.Spec.Template, internalTemplate, nil); err != nil {
-			return "", err
-		}
-		kinternalprinters.DescribePodTemplate(internalTemplate, kinternalprinters.NewPrefixWriter(out))
+		versioned.DescribePodTemplate(rolledback.Spec.Template, versioned.NewPrefixWriter(out))
 		return out.String(), nil
 	}
 

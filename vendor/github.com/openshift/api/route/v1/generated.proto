@@ -19,13 +19,13 @@ option go_package = "v1";
 // administrator typically configures their router to be visible outside the cluster firewall, and
 // may also add additional security, caching, or traffic controls on the service content. Routers
 // usually talk directly to the service endpoints.
-// 
+//
 // Once a route is created, the `host` field may not be changed. Generally, routers use the oldest
 // route with a given host when resolving conflicts.
-// 
+//
 // Routers are subject to additional customization and may support additional controls via the
 // annotations field.
-// 
+//
 // Because administrators may configure multiple routers, the route status field is used to
 // return information to clients about the names and states of the route under each router.
 // If a client chooses a duplicate name, for instance, the route status conditions are used
@@ -108,7 +108,7 @@ message RoutePort {
 // the endpoints. Weights are between 0 and 256 with default 1. Weight 0 causes no requests
 // to the backend. If all weights are zero the route will be considered to have no backends
 // and return a standard 503 response.
-// 
+//
 // The `tls` field is optional and allows specific certificates or behavior for the
 // route. Routers typically configure a default certificate on a wildcard domain to
 // terminate routes without explicit certificates, but custom hostnames usually must
@@ -207,7 +207,7 @@ message TLSConfig {
 
   // insecureEdgeTerminationPolicy indicates the desired behavior for insecure connections to a route. While
   // each router may make its own decisions on which ports to expose, this is normally port 80.
-  // 
+  //
   // * Allow - traffic is sent to the server on the insecure port (default)
   // * Disable - no traffic is allowed on the insecure port.
   // * Redirect - clients are redirected to the secure port.

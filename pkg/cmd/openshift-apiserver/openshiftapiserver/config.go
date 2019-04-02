@@ -13,11 +13,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericapiserveroptions "k8s.io/apiserver/pkg/server/options"
+	"k8s.io/apiserver/pkg/util/webhook"
 	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/cache"
+	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
@@ -130,20 +132,6 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 		return nil, err
 	}
 
-	auditFlags := configflags.AuditFlags(&config.AuditConfig, configflags.ArgsWithPrefix(config.APIServerArguments, "audit-"))
-	auditOpt := genericapiserveroptions.NewAuditOptions()
-	fs := pflag.NewFlagSet("audit", pflag.ContinueOnError)
-	auditOpt.AddFlags(fs)
-	if err := fs.Parse(configflags.ToFlagSlice(auditFlags)); err != nil {
-		return nil, err
-	}
-	if errs := auditOpt.Validate(); len(errs) > 0 {
-		return nil, errors.NewAggregate(errs)
-	}
-	if err := auditOpt.ApplyTo(&genericConfig.Config); err != nil {
-		return nil, err
-	}
-
 	informers, err := NewInformers(kubeInformers, kubeClientConfig, genericConfig.LoopbackClientConfig)
 	if err != nil {
 		return nil, err
@@ -154,11 +142,36 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 		return nil, err
 	}
 
+	authInfoResolverWrapper := webhook.NewDefaultAuthenticationInfoResolverWrapper(nil, genericConfig.LoopbackClientConfig)
+	auditFlags := configflags.AuditFlags(&config.AuditConfig, configflags.ArgsWithPrefix(config.APIServerArguments, "audit-"))
+	auditOpt := genericapiserveroptions.NewAuditOptions()
+	fs := pflag.NewFlagSet("audit", pflag.ContinueOnError)
+	auditOpt.AddFlags(fs)
+	if err := fs.Parse(configflags.ToFlagSlice(auditFlags)); err != nil {
+		return nil, err
+	}
+	if errs := auditOpt.Validate(); len(errs) > 0 {
+		return nil, errors.NewAggregate(errs)
+	}
+	if err := auditOpt.ApplyTo(
+		&genericConfig.Config,
+		genericConfig.Config.LoopbackClientConfig,
+		informers.kubernetesInformers,
+		genericapiserveroptions.NewProcessInfo("openshift-apiserver", "openshift-apiserver"),
+		&genericapiserveroptions.WebhookOptions{
+			AuthInfoResolverWrapper: authInfoResolverWrapper,
+			// the openshift-apiserver runs on cluster as a normal pod, accessed by a service, so it should always have access to the service network
+			ServiceResolver: aggregatorapiserver.NewClusterIPServiceResolver(informers.kubernetesInformers.Core().V1().Services().Lister()),
+		},
+	); err != nil {
+		return nil, err
+	}
+
 	projectCache, err := NewProjectCache(informers.kubernetesInformers.Core().V1().Namespaces(), kubeClientConfig, config.ProjectConfig.DefaultNodeSelector)
 	if err != nil {
 		return nil, err
 	}
-	clusterQuotaMappingController := NewClusterQuotaMappingController(informers.kubernetesInformers.Core().V1().Namespaces(), informers.quotaInformers.Quota().InternalVersion().ClusterResourceQuotas())
+	clusterQuotaMappingController := NewClusterQuotaMappingController(informers.kubernetesInformers.Core().V1().Namespaces(), informers.quotaInformers.Quota().V1().ClusterResourceQuotas())
 	discoveryClient := cacheddiscovery.NewMemCacheClient(kubeClient.Discovery())
 	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(discoveryClient)
 	admissionInitializer, err := openshiftadmission.NewPluginInitializer(config.ImagePolicyConfig.ExternalRegistryHostnames, config.ImagePolicyConfig.InternalRegistryHostname, config.CloudProviderFile, kubeClientConfig, informers, genericConfig.Authorization.Authorizer, projectCache, restMapper, clusterQuotaMappingController)
@@ -218,7 +231,6 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 		ExtraConfig: OpenshiftAPIExtraConfig{
 			InformerStart:                      informers.Start,
 			KubeAPIServerClientConfig:          kubeClientConfig,
-			KubeInternalInformers:              informers.internalKubernetesInformers,
 			KubeInformers:                      kubeInformers, // TODO remove this and use the one from the genericconfig
 			QuotaInformers:                     informers.quotaInformers,
 			SecurityInformers:                  informers.securityInformers,

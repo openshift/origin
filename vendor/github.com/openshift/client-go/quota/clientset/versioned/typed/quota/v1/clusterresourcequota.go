@@ -3,9 +3,11 @@
 package v1
 
 import (
+	"time"
+
 	v1 "github.com/openshift/api/quota/v1"
 	scheme "github.com/openshift/client-go/quota/clientset/versioned/scheme"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
@@ -22,11 +24,11 @@ type ClusterResourceQuotaInterface interface {
 	Create(*v1.ClusterResourceQuota) (*v1.ClusterResourceQuota, error)
 	Update(*v1.ClusterResourceQuota) (*v1.ClusterResourceQuota, error)
 	UpdateStatus(*v1.ClusterResourceQuota) (*v1.ClusterResourceQuota, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
-	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1.ClusterResourceQuota, error)
-	List(opts meta_v1.ListOptions) (*v1.ClusterResourceQuotaList, error)
-	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Delete(name string, options *metav1.DeleteOptions) error
+	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
+	Get(name string, options metav1.GetOptions) (*v1.ClusterResourceQuota, error)
+	List(opts metav1.ListOptions) (*v1.ClusterResourceQuotaList, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.ClusterResourceQuota, err error)
 	ClusterResourceQuotaExpansion
 }
@@ -44,7 +46,7 @@ func newClusterResourceQuotas(c *QuotaV1Client) *clusterResourceQuotas {
 }
 
 // Get takes name of the clusterResourceQuota, and returns the corresponding clusterResourceQuota object, and an error if there is any.
-func (c *clusterResourceQuotas) Get(name string, options meta_v1.GetOptions) (result *v1.ClusterResourceQuota, err error) {
+func (c *clusterResourceQuotas) Get(name string, options metav1.GetOptions) (result *v1.ClusterResourceQuota, err error) {
 	result = &v1.ClusterResourceQuota{}
 	err = c.client.Get().
 		Resource("clusterresourcequotas").
@@ -56,22 +58,32 @@ func (c *clusterResourceQuotas) Get(name string, options meta_v1.GetOptions) (re
 }
 
 // List takes label and field selectors, and returns the list of ClusterResourceQuotas that match those selectors.
-func (c *clusterResourceQuotas) List(opts meta_v1.ListOptions) (result *v1.ClusterResourceQuotaList, err error) {
+func (c *clusterResourceQuotas) List(opts metav1.ListOptions) (result *v1.ClusterResourceQuotaList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1.ClusterResourceQuotaList{}
 	err = c.client.Get().
 		Resource("clusterresourcequotas").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested clusterResourceQuotas.
-func (c *clusterResourceQuotas) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *clusterResourceQuotas) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Resource("clusterresourcequotas").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -114,7 +126,7 @@ func (c *clusterResourceQuotas) UpdateStatus(clusterResourceQuota *v1.ClusterRes
 }
 
 // Delete takes name of the clusterResourceQuota and deletes it. Returns an error if one occurs.
-func (c *clusterResourceQuotas) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *clusterResourceQuotas) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("clusterresourcequotas").
 		Name(name).
@@ -124,10 +136,15 @@ func (c *clusterResourceQuotas) Delete(name string, options *meta_v1.DeleteOptio
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *clusterResourceQuotas) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *clusterResourceQuotas) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Resource("clusterresourcequotas").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

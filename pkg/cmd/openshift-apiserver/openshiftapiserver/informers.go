@@ -3,33 +3,29 @@ package openshiftapiserver
 import (
 	"time"
 
-	kexternalinformers "k8s.io/client-go/informers"
-	"k8s.io/client-go/rest"
-	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
-
 	authorizationv1client "github.com/openshift/client-go/authorization/clientset/versioned"
 	authorizationv1informer "github.com/openshift/client-go/authorization/informers/externalversions"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions"
 	oauthv1client "github.com/openshift/client-go/oauth/clientset/versioned"
 	oauthv1informer "github.com/openshift/client-go/oauth/informers/externalversions"
+	quotaclient "github.com/openshift/client-go/quota/clientset/versioned"
+	quotainformer "github.com/openshift/client-go/quota/informers/externalversions"
 	routev1client "github.com/openshift/client-go/route/clientset/versioned"
 	routev1informer "github.com/openshift/client-go/route/informers/externalversions"
 	securityv1client "github.com/openshift/client-go/security/clientset/versioned"
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned"
 	userv1informer "github.com/openshift/client-go/user/informers/externalversions"
-	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
-	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
+	kexternalinformers "k8s.io/client-go/informers"
+	"k8s.io/client-go/rest"
 )
 
 // informerHolder is a convenient way for us to keep track of the informers, but
 // is intentionally private.  We don't want to leak it out further than this package.
 // Everything else should say what it wants.
 type InformerHolder struct {
-	internalKubernetesInformers kinternalinformers.SharedInformerFactory
-	kubernetesInformers         kexternalinformers.SharedInformerFactory
+	kubernetesInformers kexternalinformers.SharedInformerFactory
 
 	// Internal OpenShift informers
 	authorizationInformers authorizationv1informer.SharedInformerFactory
@@ -43,11 +39,6 @@ type InformerHolder struct {
 
 // NewInformers is only exposed for the build's integration testing until it can be fixed more appropriately.
 func NewInformers(kubeInformers kexternalinformers.SharedInformerFactory, kubeClientConfig *rest.Config, loopbackClientConfig *rest.Config) (*InformerHolder, error) {
-	kubeInternal, err := kclientsetinternal.NewForConfig(kubeClientConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	authorizationClient, err := authorizationv1client.NewForConfig(loopbackClientConfig)
 	if err != nil {
 		return nil, err
@@ -82,21 +73,17 @@ func NewInformers(kubeInformers kexternalinformers.SharedInformerFactory, kubeCl
 	const defaultInformerResyncPeriod = 10 * time.Minute
 
 	return &InformerHolder{
-		internalKubernetesInformers: kinternalinformers.NewSharedInformerFactory(kubeInternal, defaultInformerResyncPeriod),
-		kubernetesInformers:         kubeInformers,
-		authorizationInformers:      authorizationv1informer.NewSharedInformerFactory(authorizationClient, defaultInformerResyncPeriod),
-		imageInformers:              imagev1informer.NewSharedInformerFactory(imageClient, defaultInformerResyncPeriod),
-		oauthInformers:              oauthv1informer.NewSharedInformerFactory(oauthClient, defaultInformerResyncPeriod),
-		quotaInformers:              quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod),
-		routeInformers:              routev1informer.NewSharedInformerFactory(routerClient, defaultInformerResyncPeriod),
-		securityInformers:           securityv1informer.NewSharedInformerFactory(securityClient, defaultInformerResyncPeriod),
-		userInformers:               userv1informer.NewSharedInformerFactory(userClient, defaultInformerResyncPeriod),
+		kubernetesInformers:    kubeInformers,
+		authorizationInformers: authorizationv1informer.NewSharedInformerFactory(authorizationClient, defaultInformerResyncPeriod),
+		imageInformers:         imagev1informer.NewSharedInformerFactory(imageClient, defaultInformerResyncPeriod),
+		oauthInformers:         oauthv1informer.NewSharedInformerFactory(oauthClient, defaultInformerResyncPeriod),
+		quotaInformers:         quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod),
+		routeInformers:         routev1informer.NewSharedInformerFactory(routerClient, defaultInformerResyncPeriod),
+		securityInformers:      securityv1informer.NewSharedInformerFactory(securityClient, defaultInformerResyncPeriod),
+		userInformers:          userv1informer.NewSharedInformerFactory(userClient, defaultInformerResyncPeriod),
 	}, nil
 }
 
-func (i *InformerHolder) GetInternalKubernetesInformers() kinternalinformers.SharedInformerFactory {
-	return i.internalKubernetesInformers
-}
 func (i *InformerHolder) GetKubernetesInformers() kexternalinformers.SharedInformerFactory {
 	return i.kubernetesInformers
 }
@@ -109,7 +96,7 @@ func (i *InformerHolder) GetOpenshiftImageInformers() imagev1informer.SharedInfo
 func (i *InformerHolder) GetOpenshiftOauthInformers() oauthv1informer.SharedInformerFactory {
 	return i.oauthInformers
 }
-func (i *InformerHolder) GetInternalOpenshiftQuotaInformers() quotainformer.SharedInformerFactory {
+func (i *InformerHolder) GetOpenshiftQuotaInformers() quotainformer.SharedInformerFactory {
 	return i.quotaInformers
 }
 func (i *InformerHolder) GetOpenshiftRouteInformers() routev1informer.SharedInformerFactory {
@@ -124,7 +111,6 @@ func (i *InformerHolder) GetOpenshiftUserInformers() userv1informer.SharedInform
 
 // Start initializes all requested informers.
 func (i *InformerHolder) Start(stopCh <-chan struct{}) {
-	i.internalKubernetesInformers.Start(stopCh)
 	i.kubernetesInformers.Start(stopCh)
 	i.authorizationInformers.Start(stopCh)
 	i.imageInformers.Start(stopCh)

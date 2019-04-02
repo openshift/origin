@@ -3,9 +3,11 @@
 package v1
 
 import (
+	"time"
+
 	v1 "github.com/openshift/api/config/v1"
 	scheme "github.com/openshift/client-go/config/clientset/versioned/scheme"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
@@ -22,11 +24,11 @@ type SchedulerInterface interface {
 	Create(*v1.Scheduler) (*v1.Scheduler, error)
 	Update(*v1.Scheduler) (*v1.Scheduler, error)
 	UpdateStatus(*v1.Scheduler) (*v1.Scheduler, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
-	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1.Scheduler, error)
-	List(opts meta_v1.ListOptions) (*v1.SchedulerList, error)
-	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Delete(name string, options *metav1.DeleteOptions) error
+	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
+	Get(name string, options metav1.GetOptions) (*v1.Scheduler, error)
+	List(opts metav1.ListOptions) (*v1.SchedulerList, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.Scheduler, err error)
 	SchedulerExpansion
 }
@@ -44,7 +46,7 @@ func newSchedulers(c *ConfigV1Client) *schedulers {
 }
 
 // Get takes name of the scheduler, and returns the corresponding scheduler object, and an error if there is any.
-func (c *schedulers) Get(name string, options meta_v1.GetOptions) (result *v1.Scheduler, err error) {
+func (c *schedulers) Get(name string, options metav1.GetOptions) (result *v1.Scheduler, err error) {
 	result = &v1.Scheduler{}
 	err = c.client.Get().
 		Resource("schedulers").
@@ -56,22 +58,32 @@ func (c *schedulers) Get(name string, options meta_v1.GetOptions) (result *v1.Sc
 }
 
 // List takes label and field selectors, and returns the list of Schedulers that match those selectors.
-func (c *schedulers) List(opts meta_v1.ListOptions) (result *v1.SchedulerList, err error) {
+func (c *schedulers) List(opts metav1.ListOptions) (result *v1.SchedulerList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1.SchedulerList{}
 	err = c.client.Get().
 		Resource("schedulers").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested schedulers.
-func (c *schedulers) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *schedulers) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Resource("schedulers").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -114,7 +126,7 @@ func (c *schedulers) UpdateStatus(scheduler *v1.Scheduler) (result *v1.Scheduler
 }
 
 // Delete takes name of the scheduler and deletes it. Returns an error if one occurs.
-func (c *schedulers) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *schedulers) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("schedulers").
 		Name(name).
@@ -124,10 +136,15 @@ func (c *schedulers) Delete(name string, options *meta_v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *schedulers) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *schedulers) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Resource("schedulers").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

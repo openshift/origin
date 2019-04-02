@@ -15,13 +15,13 @@
 package integration
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
-
+	"github.com/coreos/etcd/auth/authpb"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes"
 	pb "github.com/coreos/etcd/etcdserver/etcdserverpb"
@@ -106,59 +106,6 @@ func TestV3AuthRevision(t *testing.T) {
 	}
 }
 
-func authSetupRoot(t *testing.T, auth pb.AuthClient) {
-	if _, err := auth.UserAdd(context.TODO(), &pb.AuthUserAddRequest{Name: "root", Password: "123"}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := auth.RoleAdd(context.TODO(), &pb.AuthRoleAddRequest{Name: "root"}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := auth.UserGrantRole(context.TODO(), &pb.AuthUserGrantRoleRequest{User: "root", Role: "root"}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := auth.AuthEnable(context.TODO(), &pb.AuthEnableRequest{}); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestV3AuthOldRevConcurrent(t *testing.T) {
-	defer testutil.AfterTest(t)
-	clus := NewClusterV3(t, &ClusterConfig{Size: 1})
-	defer clus.Terminate(t)
-
-	authSetupRoot(t, toGRPC(clus.Client(0)).Auth)
-
-	c, cerr := clientv3.New(clientv3.Config{
-		Endpoints:   clus.Client(0).Endpoints(),
-		DialTimeout: 5 * time.Second,
-		Username:    "root",
-		Password:    "123",
-	})
-	testutil.AssertNil(t, cerr)
-	defer c.Close()
-
-	var wg sync.WaitGroup
-	f := func(i int) {
-		defer wg.Done()
-		role, user := fmt.Sprintf("test-role-%d", i), fmt.Sprintf("test-user-%d", i)
-		_, err := c.RoleAdd(context.TODO(), role)
-		testutil.AssertNil(t, err)
-		_, err = c.RoleGrantPermission(context.TODO(), role, "", clientv3.GetPrefixRangeEnd(""), clientv3.PermissionType(clientv3.PermReadWrite))
-		testutil.AssertNil(t, err)
-		_, err = c.UserAdd(context.TODO(), user, "123")
-		testutil.AssertNil(t, err)
-		_, err = c.Put(context.TODO(), "a", "b")
-		testutil.AssertNil(t, err)
-	}
-	// needs concurrency to trigger
-	numRoles := 2
-	wg.Add(numRoles)
-	for i := 0; i < numRoles; i++ {
-		go f(i)
-	}
-	wg.Wait()
-}
-
 // TestV3AuthWithLeaseRevokeWithRoot ensures that granted leases
 // with root user be revoked after TTL.
 func TestV3AuthWithLeaseRevokeWithRoot(t *testing.T) {
@@ -209,4 +156,230 @@ func TestV3AuthWithLeaseRevokeWithRoot(t *testing.T) {
 	if tresp.TTL != -1 {
 		t.Errorf("lease %016x should have been expired, got %+v", leaseID, tresp)
 	}
+}
+
+type user struct {
+	name     string
+	password string
+	role     string
+	key      string
+	end      string
+}
+
+func TestV3AuthWithLeaseRevoke(t *testing.T) {
+	defer testutil.AfterTest(t)
+	clus := NewClusterV3(t, &ClusterConfig{Size: 1})
+	defer clus.Terminate(t)
+
+	users := []user{
+		{
+			name:     "user1",
+			password: "user1-123",
+			role:     "role1",
+			key:      "k1",
+			end:      "k2",
+		},
+	}
+	authSetupUsers(t, toGRPC(clus.Client(0)).Auth, users)
+
+	authSetupRoot(t, toGRPC(clus.Client(0)).Auth)
+
+	rootc, cerr := clientv3.New(clientv3.Config{Endpoints: clus.Client(0).Endpoints(), Username: "root", Password: "123"})
+	if cerr != nil {
+		t.Fatal(cerr)
+	}
+	defer rootc.Close()
+
+	leaseResp, err := rootc.Grant(context.TODO(), 90)
+	if err != nil {
+		t.Fatal(err)
+	}
+	leaseID := leaseResp.ID
+	// permission of k3 isn't granted to user1
+	_, err = rootc.Put(context.TODO(), "k3", "val", clientv3.WithLease(leaseID))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	userc, cerr := clientv3.New(clientv3.Config{Endpoints: clus.Client(0).Endpoints(), Username: "user1", Password: "user1-123"})
+	if cerr != nil {
+		t.Fatal(cerr)
+	}
+	defer userc.Close()
+	_, err = userc.Revoke(context.TODO(), leaseID)
+	if err == nil {
+		t.Fatal("revoking from user1 should be failed with permission denied")
+	}
+}
+
+func TestV3AuthWithLeaseAttach(t *testing.T) {
+	defer testutil.AfterTest(t)
+	clus := NewClusterV3(t, &ClusterConfig{Size: 1})
+	defer clus.Terminate(t)
+
+	users := []user{
+		{
+			name:     "user1",
+			password: "user1-123",
+			role:     "role1",
+			key:      "k1",
+			end:      "k3",
+		},
+		{
+			name:     "user2",
+			password: "user2-123",
+			role:     "role2",
+			key:      "k2",
+			end:      "k4",
+		},
+	}
+	authSetupUsers(t, toGRPC(clus.Client(0)).Auth, users)
+
+	authSetupRoot(t, toGRPC(clus.Client(0)).Auth)
+
+	user1c, cerr := clientv3.New(clientv3.Config{Endpoints: clus.Client(0).Endpoints(), Username: "user1", Password: "user1-123"})
+	if cerr != nil {
+		t.Fatal(cerr)
+	}
+	defer user1c.Close()
+
+	user2c, cerr := clientv3.New(clientv3.Config{Endpoints: clus.Client(0).Endpoints(), Username: "user2", Password: "user2-123"})
+	if cerr != nil {
+		t.Fatal(cerr)
+	}
+	defer user2c.Close()
+
+	leaseResp, err := user1c.Grant(context.TODO(), 90)
+	if err != nil {
+		t.Fatal(err)
+	}
+	leaseID := leaseResp.ID
+	// permission of k2 is also granted to user2
+	_, err = user1c.Put(context.TODO(), "k2", "val", clientv3.WithLease(leaseID))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = user2c.Revoke(context.TODO(), leaseID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	leaseResp, err = user1c.Grant(context.TODO(), 90)
+	if err != nil {
+		t.Fatal(err)
+	}
+	leaseID = leaseResp.ID
+	// permission of k1 isn't granted to user2
+	_, err = user1c.Put(context.TODO(), "k1", "val", clientv3.WithLease(leaseID))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = user2c.Revoke(context.TODO(), leaseID)
+	if err == nil {
+		t.Fatal("revoking from user2 should be failed with permission denied")
+	}
+}
+
+func authSetupUsers(t *testing.T, auth pb.AuthClient, users []user) {
+	for _, user := range users {
+		if _, err := auth.UserAdd(context.TODO(), &pb.AuthUserAddRequest{Name: user.name, Password: user.password}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := auth.RoleAdd(context.TODO(), &pb.AuthRoleAddRequest{Name: user.role}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := auth.UserGrantRole(context.TODO(), &pb.AuthUserGrantRoleRequest{User: user.name, Role: user.role}); err != nil {
+			t.Fatal(err)
+		}
+
+		if len(user.key) == 0 {
+			continue
+		}
+
+		perm := &authpb.Permission{
+			PermType: authpb.READWRITE,
+			Key:      []byte(user.key),
+			RangeEnd: []byte(user.end),
+		}
+		if _, err := auth.RoleGrantPermission(context.TODO(), &pb.AuthRoleGrantPermissionRequest{Name: user.role, Perm: perm}); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func authSetupRoot(t *testing.T, auth pb.AuthClient) {
+	root := []user{
+		{
+			name:     "root",
+			password: "123",
+			role:     "root",
+			key:      "",
+		},
+	}
+	authSetupUsers(t, auth, root)
+	if _, err := auth.AuthEnable(context.TODO(), &pb.AuthEnableRequest{}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestV3AuthNonAuthorizedRPCs(t *testing.T) {
+	defer testutil.AfterTest(t)
+	clus := NewClusterV3(t, &ClusterConfig{Size: 1})
+	defer clus.Terminate(t)
+
+	nonAuthedKV := clus.Client(0).KV
+
+	key := "foo"
+	val := "bar"
+	_, err := nonAuthedKV.Put(context.TODO(), key, val)
+	if err != nil {
+		t.Fatalf("couldn't put key (%v)", err)
+	}
+
+	authSetupRoot(t, toGRPC(clus.Client(0)).Auth)
+
+	respput, err := nonAuthedKV.Put(context.TODO(), key, val)
+	if !eqErrGRPC(err, rpctypes.ErrGRPCUserEmpty) {
+		t.Fatalf("could put key (%v), it should cause an error of permission denied", respput)
+	}
+}
+
+func TestV3AuthOldRevConcurrent(t *testing.T) {
+	defer testutil.AfterTest(t)
+	clus := NewClusterV3(t, &ClusterConfig{Size: 1})
+	defer clus.Terminate(t)
+
+	authSetupRoot(t, toGRPC(clus.Client(0)).Auth)
+
+	c, cerr := clientv3.New(clientv3.Config{
+		Endpoints:   clus.Client(0).Endpoints(),
+		DialTimeout: 5 * time.Second,
+		Username:    "root",
+		Password:    "123",
+	})
+	testutil.AssertNil(t, cerr)
+	defer c.Close()
+
+	var wg sync.WaitGroup
+	f := func(i int) {
+		defer wg.Done()
+		role, user := fmt.Sprintf("test-role-%d", i), fmt.Sprintf("test-user-%d", i)
+		_, err := c.RoleAdd(context.TODO(), role)
+		testutil.AssertNil(t, err)
+		_, err = c.RoleGrantPermission(context.TODO(), role, "", clientv3.GetPrefixRangeEnd(""), clientv3.PermissionType(clientv3.PermReadWrite))
+		testutil.AssertNil(t, err)
+		_, err = c.UserAdd(context.TODO(), user, "123")
+		testutil.AssertNil(t, err)
+		_, err = c.Put(context.TODO(), "a", "b")
+		testutil.AssertNil(t, err)
+	}
+	// needs concurrency to trigger
+	numRoles := 2
+	wg.Add(numRoles)
+	for i := 0; i < numRoles; i++ {
+		go f(i)
+	}
+	wg.Wait()
 }

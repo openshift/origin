@@ -21,6 +21,6 @@ func (t tester) Has(dir string) (string, bool, error) {
 	return path, true, nil
 }
 
-func NewTester() generate.Tester {
+func NewTester() newapp.Tester {
 	return tester(true)
 }

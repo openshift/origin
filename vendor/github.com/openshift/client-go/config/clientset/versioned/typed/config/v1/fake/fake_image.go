@@ -3,7 +3,7 @@
 package fake
 
 import (
-	config_v1 "github.com/openshift/api/config/v1"
+	configv1 "github.com/openshift/api/config/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -22,19 +22,19 @@ var imagesResource = schema.GroupVersionResource{Group: "config.openshift.io", V
 var imagesKind = schema.GroupVersionKind{Group: "config.openshift.io", Version: "v1", Kind: "Image"}
 
 // Get takes name of the image, and returns the corresponding image object, and an error if there is any.
-func (c *FakeImages) Get(name string, options v1.GetOptions) (result *config_v1.Image, err error) {
+func (c *FakeImages) Get(name string, options v1.GetOptions) (result *configv1.Image, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(imagesResource, name), &config_v1.Image{})
+		Invokes(testing.NewRootGetAction(imagesResource, name), &configv1.Image{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.Image), err
+	return obj.(*configv1.Image), err
 }
 
 // List takes label and field selectors, and returns the list of Images that match those selectors.
-func (c *FakeImages) List(opts v1.ListOptions) (result *config_v1.ImageList, err error) {
+func (c *FakeImages) List(opts v1.ListOptions) (result *configv1.ImageList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(imagesResource, imagesKind, opts), &config_v1.ImageList{})
+		Invokes(testing.NewRootListAction(imagesResource, imagesKind, opts), &configv1.ImageList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -43,8 +43,8 @@ func (c *FakeImages) List(opts v1.ListOptions) (result *config_v1.ImageList, err
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &config_v1.ImageList{ListMeta: obj.(*config_v1.ImageList).ListMeta}
-	for _, item := range obj.(*config_v1.ImageList).Items {
+	list := &configv1.ImageList{ListMeta: obj.(*configv1.ImageList).ListMeta}
+	for _, item := range obj.(*configv1.ImageList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -59,40 +59,40 @@ func (c *FakeImages) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Create takes the representation of a image and creates it.  Returns the server's representation of the image, and an error, if there is any.
-func (c *FakeImages) Create(image *config_v1.Image) (result *config_v1.Image, err error) {
+func (c *FakeImages) Create(image *configv1.Image) (result *configv1.Image, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(imagesResource, image), &config_v1.Image{})
+		Invokes(testing.NewRootCreateAction(imagesResource, image), &configv1.Image{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.Image), err
+	return obj.(*configv1.Image), err
 }
 
 // Update takes the representation of a image and updates it. Returns the server's representation of the image, and an error, if there is any.
-func (c *FakeImages) Update(image *config_v1.Image) (result *config_v1.Image, err error) {
+func (c *FakeImages) Update(image *configv1.Image) (result *configv1.Image, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(imagesResource, image), &config_v1.Image{})
+		Invokes(testing.NewRootUpdateAction(imagesResource, image), &configv1.Image{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.Image), err
+	return obj.(*configv1.Image), err
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeImages) UpdateStatus(image *config_v1.Image) (*config_v1.Image, error) {
+func (c *FakeImages) UpdateStatus(image *configv1.Image) (*configv1.Image, error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateSubresourceAction(imagesResource, "status", image), &config_v1.Image{})
+		Invokes(testing.NewRootUpdateSubresourceAction(imagesResource, "status", image), &configv1.Image{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.Image), err
+	return obj.(*configv1.Image), err
 }
 
 // Delete takes name of the image and deletes it. Returns an error if one occurs.
 func (c *FakeImages) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(imagesResource, name), &config_v1.Image{})
+		Invokes(testing.NewRootDeleteAction(imagesResource, name), &configv1.Image{})
 	return err
 }
 
@@ -100,16 +100,16 @@ func (c *FakeImages) Delete(name string, options *v1.DeleteOptions) error {
 func (c *FakeImages) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	action := testing.NewRootDeleteCollectionAction(imagesResource, listOptions)
 
-	_, err := c.Fake.Invokes(action, &config_v1.ImageList{})
+	_, err := c.Fake.Invokes(action, &configv1.ImageList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched image.
-func (c *FakeImages) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *config_v1.Image, err error) {
+func (c *FakeImages) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *configv1.Image, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(imagesResource, name, data, subresources...), &config_v1.Image{})
+		Invokes(testing.NewRootPatchSubresourceAction(imagesResource, name, pt, data, subresources...), &configv1.Image{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*config_v1.Image), err
+	return obj.(*configv1.Image), err
 }

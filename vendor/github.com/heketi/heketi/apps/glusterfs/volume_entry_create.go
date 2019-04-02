@@ -15,11 +15,11 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/heketi/heketi/executors"
-	"github.com/heketi/heketi/pkg/utils"
+	wdb "github.com/heketi/heketi/pkg/db"
 	"github.com/lpabon/godbc"
 )
 
-func (v *VolumeEntry) createVolume(db *bolt.DB,
+func (v *VolumeEntry) createVolume(db wdb.RODB,
 	executor executors.Executor,
 	brick_entries []*BrickEntry) error {
 
@@ -34,33 +34,68 @@ func (v *VolumeEntry) createVolume(db *bolt.DB,
 	}
 
 	// Create the volume
-	_, err = executor.VolumeCreate(host, vr)
+	if _, err := executor.VolumeCreate(host, vr); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (v *VolumeEntry) updateHostandMountPoint(hosts []string, deletedHost string) {
+
+	v.Info.Mount.GlusterFS.Hosts = hosts
+	// Save volume information
+	if strings.Contains(v.Info.Mount.GlusterFS.MountPoint, deletedHost) {
+		v.Info.Mount.GlusterFS.MountPoint = fmt.Sprintf("%v:%v",
+			hosts[0], v.Info.Name)
+	}
+	v.Info.Mount.GlusterFS.Options["backup-volfile-servers"] =
+		strings.Join(hosts[1:], ",")
+}
+
+func getHostsFromCluster(db wdb.RODB, clusterID string) ([]string, error) {
+	hosts := []string{}
+	if err := db.View(func(tx *bolt.Tx) error {
+		cluster, err := NewClusterEntryFromId(tx, clusterID)
+		if err != nil {
+			return err
+		}
+		for _, nodeID := range cluster.Info.Nodes {
+			node, err := NewNodeEntryFromId(tx, nodeID)
+			if err != nil {
+				return err
+			}
+			hosts = append(hosts, node.StorageHostName())
+		}
+		return err
+	}); err != nil {
+		return []string{}, err
+	}
+
+	return hosts, nil
+}
+func (v *VolumeEntry) updateMountInfo(db wdb.RODB) error {
+	godbc.Require(v.Info.Cluster != "")
+
+	// Get all brick hosts
+	hosts, err := getHostsFromCluster(db, v.Info.Cluster)
 	if err != nil {
 		return err
 	}
-
-	// Get all brick hosts
-	stringset := utils.NewStringSet()
-	for _, brick := range vr.Bricks {
-		stringset.Add(brick.Host)
-	}
-	hosts := stringset.Strings()
 	v.Info.Mount.GlusterFS.Hosts = hosts
 
 	// Save volume information
 	v.Info.Mount.GlusterFS.MountPoint = fmt.Sprintf("%v:%v",
-		hosts[0], vr.Name)
+		hosts[0], v.Info.Name)
 
 	// Set glusterfs mount volfile-servers options
 	v.Info.Mount.GlusterFS.Options = make(map[string]string)
 	v.Info.Mount.GlusterFS.Options["backup-volfile-servers"] =
 		strings.Join(hosts[1:], ",")
 
-	godbc.Ensure(v.Info.Mount.GlusterFS.MountPoint != "")
 	return nil
 }
 
-func (v *VolumeEntry) createVolumeRequest(db *bolt.DB,
+func (v *VolumeEntry) createVolumeRequest(db wdb.RODB,
 	brick_entries []*BrickEntry) (*executors.VolumeRequest, string, error) {
 	godbc.Require(db != nil)
 	godbc.Require(brick_entries != nil)
@@ -99,6 +134,7 @@ func (v *VolumeEntry) createVolumeRequest(db *bolt.DB,
 	vr.Name = v.Info.Name
 	v.Durability.SetExecutorVolumeRequest(vr)
 	vr.GlusterVolumeOptions = v.GlusterVolumeOptions
+	vr.Arbiter = v.HasArbiterOption()
 
 	return vr, sshhost, nil
 }

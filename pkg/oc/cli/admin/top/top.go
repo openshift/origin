@@ -2,11 +2,11 @@ package top
 
 import (
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/top"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
@@ -30,8 +30,8 @@ func NewCommandTop(name, fullName string, f kcmdutil.Factory, streams genericcli
 		Run:   kcmdutil.DefaultSubCommandRun(streams.ErrOut),
 	}
 
-	cmdTopNode := cmdutil.ReplaceCommandName("kubectl", fullName, kcmd.NewCmdTopNode(f, nil, streams))
-	cmdTopPod := cmdutil.ReplaceCommandName("kubectl", fullName, kcmd.NewCmdTopPod(f, nil, streams))
+	cmdTopNode := cmdutil.ReplaceCommandName("kubectl", fullName, top.NewCmdTopNode(f, nil, streams))
+	cmdTopPod := cmdutil.ReplaceCommandName("kubectl", fullName, top.NewCmdTopPod(f, nil, streams))
 
 	cmds.AddCommand(NewCmdTopImages(f, fullName, TopImagesRecommendedName, streams))
 	cmds.AddCommand(NewCmdTopImageStreams(f, fullName, TopImageStreamsRecommendedName, streams))

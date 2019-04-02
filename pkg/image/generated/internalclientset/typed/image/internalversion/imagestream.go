@@ -3,6 +3,8 @@
 package internalversion
 
 import (
+	"time"
+
 	image "github.com/openshift/origin/pkg/image/apis/image"
 	scheme "github.com/openshift/origin/pkg/image/generated/internalclientset/scheme"
 	corev1 "k8s.io/api/core/v1"
@@ -63,11 +65,16 @@ func (c *imageStreams) Get(name string, options v1.GetOptions) (result *image.Im
 
 // List takes label and field selectors, and returns the list of ImageStreams that match those selectors.
 func (c *imageStreams) List(opts v1.ListOptions) (result *image.ImageStreamList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &image.ImageStreamList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("imagestreams").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
@@ -75,11 +82,16 @@ func (c *imageStreams) List(opts v1.ListOptions) (result *image.ImageStreamList,
 
 // Watch returns a watch.Interface that watches the requested imageStreams.
 func (c *imageStreams) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
 		Resource("imagestreams").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -137,10 +149,15 @@ func (c *imageStreams) Delete(name string, options *v1.DeleteOptions) error {
 
 // DeleteCollection deletes a collection of objects.
 func (c *imageStreams) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("imagestreams").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

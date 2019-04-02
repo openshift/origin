@@ -9,11 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	jsonserializer "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	api "k8s.io/kubernetes/pkg/apis/core"
@@ -111,107 +108,6 @@ func TestAllowedGrouplessVersion(t *testing.T) {
 			t.Errorf("%s: expected GroupVersion.String() to be %q, got %q", apiVersion, apiVersion, groupVersion.String())
 			continue
 		}
-	}
-}
-
-func TestAllowedTypeCoercion(t *testing.T) {
-	ten := int64(10)
-	twenty := int32(10)
-
-	testcases := []struct {
-		name        string
-		input       []byte
-		into        runtime.Object
-		expected    runtime.Object
-		expectedErr string
-	}{
-		{
-			name: "string to int64",
-			input: []byte(`{
-				"kind":"Pod",
-				"apiVersion":"v1",
-				"spec":{"activeDeadlineSeconds":"10"}
-			}`),
-			expected: &v1.Pod{
-				TypeMeta: metav1.TypeMeta{Kind: "Pod", APIVersion: "v1"},
-				Spec:     v1.PodSpec{ActiveDeadlineSeconds: &ten},
-			},
-		},
-		{
-			name: "string to int64 malformed",
-			input: []byte(`{
-				"kind":"Pod",
-				"apiVersion":"v1",
-				"spec":{"activeDeadlineSeconds":"1.1"}
-			}`),
-			expectedErr: "read int64: unexpected character: \"",
-		},
-		{
-			name: "string to int32",
-			input: []byte(`{
-				"kind":"Pod",
-				"apiVersion":"v1",
-				"spec":{"priority":"10"}
-			}`),
-			expected: &v1.Pod{
-				TypeMeta: metav1.TypeMeta{Kind: "Pod", APIVersion: "v1"},
-				Spec:     v1.PodSpec{Priority: &twenty},
-			},
-		},
-		{
-			name: "string to int32 malformed",
-			input: []byte(`{
-				"kind":"Pod",
-				"apiVersion":"v1",
-				"spec":{"priority":"1.1"}
-			}`),
-			expectedErr: "read int32: unexpected character: \"",
-		},
-		{
-			name: "empty object to array",
-			input: []byte(`{
-				"kind":"Pod",
-				"apiVersion":"v1",
-				"spec":{"containers":{}}
-			}`),
-			expected: &v1.Pod{
-				TypeMeta: metav1.TypeMeta{Kind: "Pod", APIVersion: "v1"},
-				Spec:     v1.PodSpec{Containers: nil},
-			},
-		},
-		{
-			name: "non-empty object to array fails",
-			input: []byte(`{
-				"kind":"Pod",
-				"apiVersion":"v1",
-				"spec":{"containers":{"name":"somevalue"}}
-			}`),
-			expectedErr: "v1.PodSpec.Containers: decode slice: expect [ or n, but found {",
-		},
-	}
-
-	for i := range testcases {
-		func(i int) {
-			tc := testcases[i]
-			t.Run(tc.name, func(t *testing.T) {
-				s := jsonserializer.NewSerializer(jsonserializer.DefaultMetaFactory, legacyscheme.Scheme, legacyscheme.Scheme, false)
-				obj, _, err := s.Decode(tc.input, nil, tc.into)
-				if err != nil || len(tc.expectedErr) > 0 {
-					if len(tc.expectedErr) == 0 {
-						t.Error(err)
-					} else if err == nil {
-						t.Errorf("expected error %q, got none", tc.expectedErr)
-					} else if !strings.Contains(err.Error(), tc.expectedErr) {
-						t.Errorf("expected error %q, got %q", tc.expectedErr, err.Error())
-					}
-					return
-				}
-				if !reflect.DeepEqual(obj, tc.expected) {
-					t.Errorf("Expected\n%#v\ngot\n%#v", tc.expected, obj)
-					return
-				}
-			})
-		}(i)
 	}
 }
 

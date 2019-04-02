@@ -22,11 +22,6 @@ package authoring
 import original "github.com/Azure/azure-sdk-for-go/services/cognitiveservices/v2.0/luis/authoring"
 
 type AppsClient = original.AppsClient
-
-const (
-	DefaultBaseURI = original.DefaultBaseURI
-)
-
 type BaseClient = original.BaseClient
 type ExamplesClient = original.ExamplesClient
 type FeaturesClient = original.FeaturesClient
@@ -227,6 +222,7 @@ type ApplicationPublishObject = original.ApplicationPublishObject
 type ApplicationSettings = original.ApplicationSettings
 type ApplicationSettingUpdateObject = original.ApplicationSettingUpdateObject
 type ApplicationUpdateObject = original.ApplicationUpdateObject
+type AppVersionSettingObject = original.AppVersionSettingObject
 type AvailableCulture = original.AvailableCulture
 type AvailablePrebuiltEntityModel = original.AvailablePrebuiltEntityModel
 type BatchLabelExample = original.BatchLabelExample
@@ -277,6 +273,7 @@ type LabeledUtterance = original.LabeledUtterance
 type LabelExampleResponse = original.LabelExampleResponse
 type LabelTextObject = original.LabelTextObject
 type ListApplicationInfoResponse = original.ListApplicationInfoResponse
+type ListAppVersionSettingObject = original.ListAppVersionSettingObject
 type ListAvailableCulture = original.ListAvailableCulture
 type ListAvailablePrebuiltEntityModel = original.ListAvailablePrebuiltEntityModel
 type ListBatchLabelExample = original.ListBatchLabelExample
@@ -356,38 +353,27 @@ type WordListBaseUpdateObject = original.WordListBaseUpdateObject
 type WordListObject = original.WordListObject
 type PatternClient = original.PatternClient
 type PermissionsClient = original.PermissionsClient
+type SettingsClient = original.SettingsClient
 type TrainClient = original.TrainClient
 type VersionsClient = original.VersionsClient
 
-func NewAppsClient() AppsClient {
-	return original.NewAppsClient()
+func NewAppsClient(endpoint string) AppsClient {
+	return original.NewAppsClient(endpoint)
 }
-func NewAppsClientWithBaseURI(baseURI string) AppsClient {
-	return original.NewAppsClientWithBaseURI(baseURI)
+func New(endpoint string) BaseClient {
+	return original.New(endpoint)
 }
-func New() BaseClient {
-	return original.New()
+func NewWithoutDefaults(endpoint string) BaseClient {
+	return original.NewWithoutDefaults(endpoint)
 }
-func NewWithBaseURI(baseURI string) BaseClient {
-	return original.NewWithBaseURI(baseURI)
+func NewExamplesClient(endpoint string) ExamplesClient {
+	return original.NewExamplesClient(endpoint)
 }
-func NewExamplesClient() ExamplesClient {
-	return original.NewExamplesClient()
+func NewFeaturesClient(endpoint string) FeaturesClient {
+	return original.NewFeaturesClient(endpoint)
 }
-func NewExamplesClientWithBaseURI(baseURI string) ExamplesClient {
-	return original.NewExamplesClientWithBaseURI(baseURI)
-}
-func NewFeaturesClient() FeaturesClient {
-	return original.NewFeaturesClient()
-}
-func NewFeaturesClientWithBaseURI(baseURI string) FeaturesClient {
-	return original.NewFeaturesClientWithBaseURI(baseURI)
-}
-func NewModelClient() ModelClient {
-	return original.NewModelClient()
-}
-func NewModelClientWithBaseURI(baseURI string) ModelClient {
-	return original.NewModelClientWithBaseURI(baseURI)
+func NewModelClient(endpoint string) ModelClient {
+	return original.NewModelClient(endpoint)
 }
 func PossibleOperationStatusTypeValues() []OperationStatusType {
 	return original.PossibleOperationStatusTypeValues()
@@ -434,23 +420,17 @@ func PossibleStatus1Values() []Status1 {
 func PossibleTrainingStatusValues() []TrainingStatus {
 	return original.PossibleTrainingStatusValues()
 }
-func NewPatternClient() PatternClient {
-	return original.NewPatternClient()
+func NewPatternClient(endpoint string) PatternClient {
+	return original.NewPatternClient(endpoint)
 }
-func NewPatternClientWithBaseURI(baseURI string) PatternClient {
-	return original.NewPatternClientWithBaseURI(baseURI)
+func NewPermissionsClient(endpoint string) PermissionsClient {
+	return original.NewPermissionsClient(endpoint)
 }
-func NewPermissionsClient() PermissionsClient {
-	return original.NewPermissionsClient()
+func NewSettingsClient(endpoint string) SettingsClient {
+	return original.NewSettingsClient(endpoint)
 }
-func NewPermissionsClientWithBaseURI(baseURI string) PermissionsClient {
-	return original.NewPermissionsClientWithBaseURI(baseURI)
-}
-func NewTrainClient() TrainClient {
-	return original.NewTrainClient()
-}
-func NewTrainClientWithBaseURI(baseURI string) TrainClient {
-	return original.NewTrainClientWithBaseURI(baseURI)
+func NewTrainClient(endpoint string) TrainClient {
+	return original.NewTrainClient(endpoint)
 }
 func UserAgent() string {
 	return original.UserAgent() + " profiles/preview"
@@ -458,9 +438,6 @@ func UserAgent() string {
 func Version() string {
 	return original.Version()
 }
-func NewVersionsClient() VersionsClient {
-	return original.NewVersionsClient()
-}
-func NewVersionsClientWithBaseURI(baseURI string) VersionsClient {
-	return original.NewVersionsClientWithBaseURI(baseURI)
+func NewVersionsClient(endpoint string) VersionsClient {
+	return original.NewVersionsClient(endpoint)
 }

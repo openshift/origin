@@ -31,6 +31,7 @@ const (
 
 type BaseClient = original.BaseClient
 type GroupsClient = original.GroupsClient
+type LocationClient = original.LocationClient
 type MachinesClient = original.MachinesClient
 type AssessmentSizingCriterion = original.AssessmentSizingCriterion
 
@@ -405,6 +406,14 @@ const (
 	MachineBootTypeUnknown MachineBootType = original.MachineBootTypeUnknown
 )
 
+type NameAvailabilityReason = original.NameAvailabilityReason
+
+const (
+	NameAvailabilityReasonAlreadyExists NameAvailabilityReason = original.NameAvailabilityReasonAlreadyExists
+	NameAvailabilityReasonAvailable     NameAvailabilityReason = original.NameAvailabilityReasonAvailable
+	NameAvailabilityReasonInvalid       NameAvailabilityReason = original.NameAvailabilityReasonInvalid
+)
+
 type Percentile = original.Percentile
 
 const (
@@ -442,6 +451,8 @@ type Assessment = original.Assessment
 type AssessmentOptionsResultList = original.AssessmentOptionsResultList
 type AssessmentProperties = original.AssessmentProperties
 type AssessmentResultList = original.AssessmentResultList
+type CheckNameAvailabilityParameters = original.CheckNameAvailabilityParameters
+type CheckNameAvailabilityResult = original.CheckNameAvailabilityResult
 type CloudError = original.CloudError
 type CloudErrorBody = original.CloudErrorBody
 type Disk = original.Disk
@@ -493,6 +504,12 @@ func NewGroupsClient(subscriptionID string, acceptLanguage string) GroupsClient 
 }
 func NewGroupsClientWithBaseURI(baseURI string, subscriptionID string, acceptLanguage string) GroupsClient {
 	return original.NewGroupsClientWithBaseURI(baseURI, subscriptionID, acceptLanguage)
+}
+func NewLocationClient(subscriptionID string, acceptLanguage string) LocationClient {
+	return original.NewLocationClient(subscriptionID, acceptLanguage)
+}
+func NewLocationClientWithBaseURI(baseURI string, subscriptionID string, acceptLanguage string) LocationClient {
+	return original.NewLocationClientWithBaseURI(baseURI, subscriptionID, acceptLanguage)
 }
 func NewMachinesClient(subscriptionID string, acceptLanguage string) MachinesClient {
 	return original.NewMachinesClient(subscriptionID, acceptLanguage)
@@ -553,6 +570,9 @@ func PossibleDiscoveryStatusValues() []DiscoveryStatus {
 }
 func PossibleMachineBootTypeValues() []MachineBootType {
 	return original.PossibleMachineBootTypeValues()
+}
+func PossibleNameAvailabilityReasonValues() []NameAvailabilityReason {
+	return original.PossibleNameAvailabilityReasonValues()
 }
 func PossiblePercentileValues() []Percentile {
 	return original.PossiblePercentileValues()

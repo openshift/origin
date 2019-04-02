@@ -3,6 +3,8 @@
 package internalversion
 
 import (
+	"time"
+
 	route "github.com/openshift/origin/pkg/route/apis/route"
 	scheme "github.com/openshift/origin/pkg/route/generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,11 +62,16 @@ func (c *routes) Get(name string, options v1.GetOptions) (result *route.Route, e
 
 // List takes label and field selectors, and returns the list of Routes that match those selectors.
 func (c *routes) List(opts v1.ListOptions) (result *route.RouteList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &route.RouteList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("routes").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
@@ -72,11 +79,16 @@ func (c *routes) List(opts v1.ListOptions) (result *route.RouteList, err error) 
 
 // Watch returns a watch.Interface that watches the requested routes.
 func (c *routes) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
 		Resource("routes").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -134,10 +146,15 @@ func (c *routes) Delete(name string, options *v1.DeleteOptions) error {
 
 // DeleteCollection deletes a collection of objects.
 func (c *routes) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("routes").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

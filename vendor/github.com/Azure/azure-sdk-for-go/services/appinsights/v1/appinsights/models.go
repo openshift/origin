@@ -23,6 +23,7 @@ import (
 	"github.com/Azure/go-autorest/autorest/date"
 )
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventTypeEnum enumerates the values for event type enum.
 type EventTypeEnum string
 
@@ -51,6 +52,7 @@ const (
 	Traces EventTypeEnum = "traces"
 )
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // MetricIDEnum enumerates the values for metric id enum.
 type MetricIDEnum string
 
@@ -121,6 +123,7 @@ const (
 	Userscount MetricIDEnum = "users/count"
 )
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // TypeEnum enumerates the values for type enum.
 type TypeEnum string
 
@@ -149,6 +152,7 @@ const (
 	TypeTrace TypeEnum = "trace"
 )
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // ColumnType a column in a table.
 type ColumnType struct {
 	// Name - The name of this column.
@@ -157,6 +161,7 @@ type ColumnType struct {
 	Type *string `json:"type,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // ErrorDetailType ...
 type ErrorDetailType struct {
 	// Code - The error's code.
@@ -172,6 +177,7 @@ type ErrorDetailType struct {
 	AdditionalProperties interface{} `json:"additionalProperties,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // ErrorInfoType ...
 type ErrorInfoType struct {
 	// Code - A machine readable error code.
@@ -185,12 +191,14 @@ type ErrorInfoType struct {
 	AdditionalProperties interface{}    `json:"additionalProperties,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // ErrorResponseType contains details when the response code indicates an error.
 type ErrorResponseType struct {
 	// Error - The error details.
 	Error *ErrorInfoType `json:"error,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsAiInfoType AI related application info for an event result
 type EventsAiInfoType struct {
 	// IKey - iKey of the app
@@ -203,12 +211,14 @@ type EventsAiInfoType struct {
 	SdkVersion *string `json:"sdkVersion,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsApplicationInfoType application info for an event result
 type EventsApplicationInfoType struct {
 	// Version - Version of the application
 	Version *string `json:"version,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsAvailabilityResultInfoType the availability result info
 type EventsAvailabilityResultInfoType struct {
 	// Name - The name of the availability result
@@ -229,6 +239,7 @@ type EventsAvailabilityResultInfoType struct {
 	Size *string `json:"size,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsAvailabilityResultResultType an availability result result
 type EventsAvailabilityResultResultType struct {
 	AvailabilityResult *EventsAvailabilityResultInfoType `json:"availabilityResult,omitempty"`
@@ -260,6 +271,7 @@ type EventsAvailabilityResultResultType struct {
 	Type TypeEnum `json:"type,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // MarshalJSON is the custom marshaler for EventsAvailabilityResultResultType.
 func (earrt EventsAvailabilityResultResultType) MarshalJSON() ([]byte, error) {
 	earrt.Type = TypeAvailabilityResult
@@ -307,66 +319,79 @@ func (earrt EventsAvailabilityResultResultType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsTraceResultType is the BasicEventsResultDataType implementation for EventsAvailabilityResultResultType.
 func (earrt EventsAvailabilityResultResultType) AsEventsTraceResultType() (*EventsTraceResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomEventResultType is the BasicEventsResultDataType implementation for EventsAvailabilityResultResultType.
 func (earrt EventsAvailabilityResultResultType) AsEventsCustomEventResultType() (*EventsCustomEventResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPageViewResultType is the BasicEventsResultDataType implementation for EventsAvailabilityResultResultType.
 func (earrt EventsAvailabilityResultResultType) AsEventsPageViewResultType() (*EventsPageViewResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsBrowserTimingResultType is the BasicEventsResultDataType implementation for EventsAvailabilityResultResultType.
 func (earrt EventsAvailabilityResultResultType) AsEventsBrowserTimingResultType() (*EventsBrowserTimingResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsRequestResultType is the BasicEventsResultDataType implementation for EventsAvailabilityResultResultType.
 func (earrt EventsAvailabilityResultResultType) AsEventsRequestResultType() (*EventsRequestResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsDependencyResultType is the BasicEventsResultDataType implementation for EventsAvailabilityResultResultType.
 func (earrt EventsAvailabilityResultResultType) AsEventsDependencyResultType() (*EventsDependencyResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsExceptionResultType is the BasicEventsResultDataType implementation for EventsAvailabilityResultResultType.
 func (earrt EventsAvailabilityResultResultType) AsEventsExceptionResultType() (*EventsExceptionResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsAvailabilityResultResultType is the BasicEventsResultDataType implementation for EventsAvailabilityResultResultType.
 func (earrt EventsAvailabilityResultResultType) AsEventsAvailabilityResultResultType() (*EventsAvailabilityResultResultType, bool) {
 	return &earrt, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPerformanceCounterResultType is the BasicEventsResultDataType implementation for EventsAvailabilityResultResultType.
 func (earrt EventsAvailabilityResultResultType) AsEventsPerformanceCounterResultType() (*EventsPerformanceCounterResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomMetricResultType is the BasicEventsResultDataType implementation for EventsAvailabilityResultResultType.
 func (earrt EventsAvailabilityResultResultType) AsEventsCustomMetricResultType() (*EventsCustomMetricResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsResultDataType is the BasicEventsResultDataType implementation for EventsAvailabilityResultResultType.
 func (earrt EventsAvailabilityResultResultType) AsEventsResultDataType() (*EventsResultDataType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsBasicEventsResultDataType is the BasicEventsResultDataType implementation for EventsAvailabilityResultResultType.
 func (earrt EventsAvailabilityResultResultType) AsBasicEventsResultDataType() (BasicEventsResultDataType, bool) {
 	return &earrt, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsBrowserTimingInfoType the browser timing information
 type EventsBrowserTimingInfoType struct {
 	// URLPath - The path of the URL
@@ -391,6 +416,7 @@ type EventsBrowserTimingInfoType struct {
 	ProcessingDuration *int64 `json:"processingDuration,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsBrowserTimingResultType a browser timing result
 type EventsBrowserTimingResultType struct {
 	BrowserTiming     *EventsBrowserTimingInfoType     `json:"browserTiming,omitempty"`
@@ -423,6 +449,7 @@ type EventsBrowserTimingResultType struct {
 	Type TypeEnum `json:"type,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // MarshalJSON is the custom marshaler for EventsBrowserTimingResultType.
 func (ebtrt EventsBrowserTimingResultType) MarshalJSON() ([]byte, error) {
 	ebtrt.Type = TypeBrowserTiming
@@ -473,66 +500,79 @@ func (ebtrt EventsBrowserTimingResultType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsTraceResultType is the BasicEventsResultDataType implementation for EventsBrowserTimingResultType.
 func (ebtrt EventsBrowserTimingResultType) AsEventsTraceResultType() (*EventsTraceResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomEventResultType is the BasicEventsResultDataType implementation for EventsBrowserTimingResultType.
 func (ebtrt EventsBrowserTimingResultType) AsEventsCustomEventResultType() (*EventsCustomEventResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPageViewResultType is the BasicEventsResultDataType implementation for EventsBrowserTimingResultType.
 func (ebtrt EventsBrowserTimingResultType) AsEventsPageViewResultType() (*EventsPageViewResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsBrowserTimingResultType is the BasicEventsResultDataType implementation for EventsBrowserTimingResultType.
 func (ebtrt EventsBrowserTimingResultType) AsEventsBrowserTimingResultType() (*EventsBrowserTimingResultType, bool) {
 	return &ebtrt, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsRequestResultType is the BasicEventsResultDataType implementation for EventsBrowserTimingResultType.
 func (ebtrt EventsBrowserTimingResultType) AsEventsRequestResultType() (*EventsRequestResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsDependencyResultType is the BasicEventsResultDataType implementation for EventsBrowserTimingResultType.
 func (ebtrt EventsBrowserTimingResultType) AsEventsDependencyResultType() (*EventsDependencyResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsExceptionResultType is the BasicEventsResultDataType implementation for EventsBrowserTimingResultType.
 func (ebtrt EventsBrowserTimingResultType) AsEventsExceptionResultType() (*EventsExceptionResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsAvailabilityResultResultType is the BasicEventsResultDataType implementation for EventsBrowserTimingResultType.
 func (ebtrt EventsBrowserTimingResultType) AsEventsAvailabilityResultResultType() (*EventsAvailabilityResultResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPerformanceCounterResultType is the BasicEventsResultDataType implementation for EventsBrowserTimingResultType.
 func (ebtrt EventsBrowserTimingResultType) AsEventsPerformanceCounterResultType() (*EventsPerformanceCounterResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomMetricResultType is the BasicEventsResultDataType implementation for EventsBrowserTimingResultType.
 func (ebtrt EventsBrowserTimingResultType) AsEventsCustomMetricResultType() (*EventsCustomMetricResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsResultDataType is the BasicEventsResultDataType implementation for EventsBrowserTimingResultType.
 func (ebtrt EventsBrowserTimingResultType) AsEventsResultDataType() (*EventsResultDataType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsBasicEventsResultDataType is the BasicEventsResultDataType implementation for EventsBrowserTimingResultType.
 func (ebtrt EventsBrowserTimingResultType) AsBasicEventsResultDataType() (BasicEventsResultDataType, bool) {
 	return &ebtrt, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsClientInfoType client info for an event result
 type EventsClientInfoType struct {
 	// Model - Model of the client
@@ -553,12 +593,14 @@ type EventsClientInfoType struct {
 	CountryOrRegion *string `json:"countryOrRegion,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsClientPerformanceInfoType client performance information
 type EventsClientPerformanceInfoType struct {
 	// Name - The name of the client performance
 	Name *string `json:"name,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsCloudInfoType cloud info for an event result
 type EventsCloudInfoType struct {
 	// RoleName - Role name of the cloud
@@ -567,12 +609,14 @@ type EventsCloudInfoType struct {
 	RoleInstance *string `json:"roleInstance,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsCustomEventInfoType the custom event information
 type EventsCustomEventInfoType struct {
 	// Name - The name of the custom event
 	Name *string `json:"name,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsCustomEventResultType a custom event result
 type EventsCustomEventResultType struct {
 	CustomEvent *EventsCustomEventInfoType `json:"customEvent,omitempty"`
@@ -604,6 +648,7 @@ type EventsCustomEventResultType struct {
 	Type TypeEnum `json:"type,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // MarshalJSON is the custom marshaler for EventsCustomEventResultType.
 func (ecert EventsCustomEventResultType) MarshalJSON() ([]byte, error) {
 	ecert.Type = TypeCustomEvent
@@ -651,66 +696,79 @@ func (ecert EventsCustomEventResultType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsTraceResultType is the BasicEventsResultDataType implementation for EventsCustomEventResultType.
 func (ecert EventsCustomEventResultType) AsEventsTraceResultType() (*EventsTraceResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomEventResultType is the BasicEventsResultDataType implementation for EventsCustomEventResultType.
 func (ecert EventsCustomEventResultType) AsEventsCustomEventResultType() (*EventsCustomEventResultType, bool) {
 	return &ecert, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPageViewResultType is the BasicEventsResultDataType implementation for EventsCustomEventResultType.
 func (ecert EventsCustomEventResultType) AsEventsPageViewResultType() (*EventsPageViewResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsBrowserTimingResultType is the BasicEventsResultDataType implementation for EventsCustomEventResultType.
 func (ecert EventsCustomEventResultType) AsEventsBrowserTimingResultType() (*EventsBrowserTimingResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsRequestResultType is the BasicEventsResultDataType implementation for EventsCustomEventResultType.
 func (ecert EventsCustomEventResultType) AsEventsRequestResultType() (*EventsRequestResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsDependencyResultType is the BasicEventsResultDataType implementation for EventsCustomEventResultType.
 func (ecert EventsCustomEventResultType) AsEventsDependencyResultType() (*EventsDependencyResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsExceptionResultType is the BasicEventsResultDataType implementation for EventsCustomEventResultType.
 func (ecert EventsCustomEventResultType) AsEventsExceptionResultType() (*EventsExceptionResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsAvailabilityResultResultType is the BasicEventsResultDataType implementation for EventsCustomEventResultType.
 func (ecert EventsCustomEventResultType) AsEventsAvailabilityResultResultType() (*EventsAvailabilityResultResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPerformanceCounterResultType is the BasicEventsResultDataType implementation for EventsCustomEventResultType.
 func (ecert EventsCustomEventResultType) AsEventsPerformanceCounterResultType() (*EventsPerformanceCounterResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomMetricResultType is the BasicEventsResultDataType implementation for EventsCustomEventResultType.
 func (ecert EventsCustomEventResultType) AsEventsCustomMetricResultType() (*EventsCustomMetricResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsResultDataType is the BasicEventsResultDataType implementation for EventsCustomEventResultType.
 func (ecert EventsCustomEventResultType) AsEventsResultDataType() (*EventsResultDataType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsBasicEventsResultDataType is the BasicEventsResultDataType implementation for EventsCustomEventResultType.
 func (ecert EventsCustomEventResultType) AsBasicEventsResultDataType() (BasicEventsResultDataType, bool) {
 	return &ecert, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsCustomMetricInfoType the custom metric info
 type EventsCustomMetricInfoType struct {
 	// Name - The name of the custom metric
@@ -729,6 +787,7 @@ type EventsCustomMetricInfoType struct {
 	ValueStdDev *float64 `json:"valueStdDev,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsCustomMetricResultType a custom metric result
 type EventsCustomMetricResultType struct {
 	CustomMetric *EventsCustomMetricInfoType `json:"customMetric,omitempty"`
@@ -760,6 +819,7 @@ type EventsCustomMetricResultType struct {
 	Type TypeEnum `json:"type,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // MarshalJSON is the custom marshaler for EventsCustomMetricResultType.
 func (ecmrt EventsCustomMetricResultType) MarshalJSON() ([]byte, error) {
 	ecmrt.Type = TypeCustomMetric
@@ -807,66 +867,79 @@ func (ecmrt EventsCustomMetricResultType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsTraceResultType is the BasicEventsResultDataType implementation for EventsCustomMetricResultType.
 func (ecmrt EventsCustomMetricResultType) AsEventsTraceResultType() (*EventsTraceResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomEventResultType is the BasicEventsResultDataType implementation for EventsCustomMetricResultType.
 func (ecmrt EventsCustomMetricResultType) AsEventsCustomEventResultType() (*EventsCustomEventResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPageViewResultType is the BasicEventsResultDataType implementation for EventsCustomMetricResultType.
 func (ecmrt EventsCustomMetricResultType) AsEventsPageViewResultType() (*EventsPageViewResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsBrowserTimingResultType is the BasicEventsResultDataType implementation for EventsCustomMetricResultType.
 func (ecmrt EventsCustomMetricResultType) AsEventsBrowserTimingResultType() (*EventsBrowserTimingResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsRequestResultType is the BasicEventsResultDataType implementation for EventsCustomMetricResultType.
 func (ecmrt EventsCustomMetricResultType) AsEventsRequestResultType() (*EventsRequestResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsDependencyResultType is the BasicEventsResultDataType implementation for EventsCustomMetricResultType.
 func (ecmrt EventsCustomMetricResultType) AsEventsDependencyResultType() (*EventsDependencyResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsExceptionResultType is the BasicEventsResultDataType implementation for EventsCustomMetricResultType.
 func (ecmrt EventsCustomMetricResultType) AsEventsExceptionResultType() (*EventsExceptionResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsAvailabilityResultResultType is the BasicEventsResultDataType implementation for EventsCustomMetricResultType.
 func (ecmrt EventsCustomMetricResultType) AsEventsAvailabilityResultResultType() (*EventsAvailabilityResultResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPerformanceCounterResultType is the BasicEventsResultDataType implementation for EventsCustomMetricResultType.
 func (ecmrt EventsCustomMetricResultType) AsEventsPerformanceCounterResultType() (*EventsPerformanceCounterResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomMetricResultType is the BasicEventsResultDataType implementation for EventsCustomMetricResultType.
 func (ecmrt EventsCustomMetricResultType) AsEventsCustomMetricResultType() (*EventsCustomMetricResultType, bool) {
 	return &ecmrt, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsResultDataType is the BasicEventsResultDataType implementation for EventsCustomMetricResultType.
 func (ecmrt EventsCustomMetricResultType) AsEventsResultDataType() (*EventsResultDataType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsBasicEventsResultDataType is the BasicEventsResultDataType implementation for EventsCustomMetricResultType.
 func (ecmrt EventsCustomMetricResultType) AsBasicEventsResultDataType() (BasicEventsResultDataType, bool) {
 	return &ecmrt, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsDependencyInfoType the dependency info
 type EventsDependencyInfoType struct {
 	// Target - The target of the dependency
@@ -889,6 +962,7 @@ type EventsDependencyInfoType struct {
 	ID *string `json:"id,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsDependencyResultType a dependency result
 type EventsDependencyResultType struct {
 	Dependency *EventsDependencyInfoType `json:"dependency,omitempty"`
@@ -920,6 +994,7 @@ type EventsDependencyResultType struct {
 	Type TypeEnum `json:"type,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // MarshalJSON is the custom marshaler for EventsDependencyResultType.
 func (edrt EventsDependencyResultType) MarshalJSON() ([]byte, error) {
 	edrt.Type = TypeDependency
@@ -967,66 +1042,79 @@ func (edrt EventsDependencyResultType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsTraceResultType is the BasicEventsResultDataType implementation for EventsDependencyResultType.
 func (edrt EventsDependencyResultType) AsEventsTraceResultType() (*EventsTraceResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomEventResultType is the BasicEventsResultDataType implementation for EventsDependencyResultType.
 func (edrt EventsDependencyResultType) AsEventsCustomEventResultType() (*EventsCustomEventResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPageViewResultType is the BasicEventsResultDataType implementation for EventsDependencyResultType.
 func (edrt EventsDependencyResultType) AsEventsPageViewResultType() (*EventsPageViewResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsBrowserTimingResultType is the BasicEventsResultDataType implementation for EventsDependencyResultType.
 func (edrt EventsDependencyResultType) AsEventsBrowserTimingResultType() (*EventsBrowserTimingResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsRequestResultType is the BasicEventsResultDataType implementation for EventsDependencyResultType.
 func (edrt EventsDependencyResultType) AsEventsRequestResultType() (*EventsRequestResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsDependencyResultType is the BasicEventsResultDataType implementation for EventsDependencyResultType.
 func (edrt EventsDependencyResultType) AsEventsDependencyResultType() (*EventsDependencyResultType, bool) {
 	return &edrt, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsExceptionResultType is the BasicEventsResultDataType implementation for EventsDependencyResultType.
 func (edrt EventsDependencyResultType) AsEventsExceptionResultType() (*EventsExceptionResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsAvailabilityResultResultType is the BasicEventsResultDataType implementation for EventsDependencyResultType.
 func (edrt EventsDependencyResultType) AsEventsAvailabilityResultResultType() (*EventsAvailabilityResultResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPerformanceCounterResultType is the BasicEventsResultDataType implementation for EventsDependencyResultType.
 func (edrt EventsDependencyResultType) AsEventsPerformanceCounterResultType() (*EventsPerformanceCounterResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomMetricResultType is the BasicEventsResultDataType implementation for EventsDependencyResultType.
 func (edrt EventsDependencyResultType) AsEventsCustomMetricResultType() (*EventsCustomMetricResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsResultDataType is the BasicEventsResultDataType implementation for EventsDependencyResultType.
 func (edrt EventsDependencyResultType) AsEventsResultDataType() (*EventsResultDataType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsBasicEventsResultDataType is the BasicEventsResultDataType implementation for EventsDependencyResultType.
 func (edrt EventsDependencyResultType) AsBasicEventsResultDataType() (BasicEventsResultDataType, bool) {
 	return &edrt, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsExceptionDetailsParsedStackType a parsed stack entry
 type EventsExceptionDetailsParsedStackType struct {
 	// Assembly - The assembly of the stack entry
@@ -1039,6 +1127,7 @@ type EventsExceptionDetailsParsedStackType struct {
 	Line *int64 `json:"line,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsExceptionDetailType exception details
 type EventsExceptionDetailType struct {
 	// SeverityLevel - The severity level of the exception detail
@@ -1055,6 +1144,7 @@ type EventsExceptionDetailType struct {
 	ParsedStack *[]EventsExceptionDetailsParsedStackType `json:"parsedStack,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsExceptionInfoType the exception info
 type EventsExceptionInfoType struct {
 	// SeverityLevel - The severity level of the exception
@@ -1091,6 +1181,7 @@ type EventsExceptionInfoType struct {
 	Details *[]EventsExceptionDetailType `json:"details,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsExceptionResultType an exception result
 type EventsExceptionResultType struct {
 	Exception *EventsExceptionInfoType `json:"exception,omitempty"`
@@ -1122,6 +1213,7 @@ type EventsExceptionResultType struct {
 	Type TypeEnum `json:"type,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // MarshalJSON is the custom marshaler for EventsExceptionResultType.
 func (eert EventsExceptionResultType) MarshalJSON() ([]byte, error) {
 	eert.Type = TypeException
@@ -1169,66 +1261,79 @@ func (eert EventsExceptionResultType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsTraceResultType is the BasicEventsResultDataType implementation for EventsExceptionResultType.
 func (eert EventsExceptionResultType) AsEventsTraceResultType() (*EventsTraceResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomEventResultType is the BasicEventsResultDataType implementation for EventsExceptionResultType.
 func (eert EventsExceptionResultType) AsEventsCustomEventResultType() (*EventsCustomEventResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPageViewResultType is the BasicEventsResultDataType implementation for EventsExceptionResultType.
 func (eert EventsExceptionResultType) AsEventsPageViewResultType() (*EventsPageViewResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsBrowserTimingResultType is the BasicEventsResultDataType implementation for EventsExceptionResultType.
 func (eert EventsExceptionResultType) AsEventsBrowserTimingResultType() (*EventsBrowserTimingResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsRequestResultType is the BasicEventsResultDataType implementation for EventsExceptionResultType.
 func (eert EventsExceptionResultType) AsEventsRequestResultType() (*EventsRequestResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsDependencyResultType is the BasicEventsResultDataType implementation for EventsExceptionResultType.
 func (eert EventsExceptionResultType) AsEventsDependencyResultType() (*EventsDependencyResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsExceptionResultType is the BasicEventsResultDataType implementation for EventsExceptionResultType.
 func (eert EventsExceptionResultType) AsEventsExceptionResultType() (*EventsExceptionResultType, bool) {
 	return &eert, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsAvailabilityResultResultType is the BasicEventsResultDataType implementation for EventsExceptionResultType.
 func (eert EventsExceptionResultType) AsEventsAvailabilityResultResultType() (*EventsAvailabilityResultResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPerformanceCounterResultType is the BasicEventsResultDataType implementation for EventsExceptionResultType.
 func (eert EventsExceptionResultType) AsEventsPerformanceCounterResultType() (*EventsPerformanceCounterResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomMetricResultType is the BasicEventsResultDataType implementation for EventsExceptionResultType.
 func (eert EventsExceptionResultType) AsEventsCustomMetricResultType() (*EventsCustomMetricResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsResultDataType is the BasicEventsResultDataType implementation for EventsExceptionResultType.
 func (eert EventsExceptionResultType) AsEventsResultDataType() (*EventsResultDataType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsBasicEventsResultDataType is the BasicEventsResultDataType implementation for EventsExceptionResultType.
 func (eert EventsExceptionResultType) AsBasicEventsResultDataType() (BasicEventsResultDataType, bool) {
 	return &eert, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsOperationInfoType operation info for an event result
 type EventsOperationInfoType struct {
 	// Name - Name of the operation
@@ -1241,6 +1346,7 @@ type EventsOperationInfoType struct {
 	SyntheticSource *string `json:"syntheticSource,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsPageViewInfoType the page view information
 type EventsPageViewInfoType struct {
 	// Name - The name of the page
@@ -1253,6 +1359,7 @@ type EventsPageViewInfoType struct {
 	PerformanceBucket *string `json:"performanceBucket,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsPageViewResultType a page view result
 type EventsPageViewResultType struct {
 	PageView *EventsPageViewInfoType `json:"pageView,omitempty"`
@@ -1284,6 +1391,7 @@ type EventsPageViewResultType struct {
 	Type TypeEnum `json:"type,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // MarshalJSON is the custom marshaler for EventsPageViewResultType.
 func (epvrt EventsPageViewResultType) MarshalJSON() ([]byte, error) {
 	epvrt.Type = TypePageView
@@ -1331,66 +1439,79 @@ func (epvrt EventsPageViewResultType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsTraceResultType is the BasicEventsResultDataType implementation for EventsPageViewResultType.
 func (epvrt EventsPageViewResultType) AsEventsTraceResultType() (*EventsTraceResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomEventResultType is the BasicEventsResultDataType implementation for EventsPageViewResultType.
 func (epvrt EventsPageViewResultType) AsEventsCustomEventResultType() (*EventsCustomEventResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPageViewResultType is the BasicEventsResultDataType implementation for EventsPageViewResultType.
 func (epvrt EventsPageViewResultType) AsEventsPageViewResultType() (*EventsPageViewResultType, bool) {
 	return &epvrt, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsBrowserTimingResultType is the BasicEventsResultDataType implementation for EventsPageViewResultType.
 func (epvrt EventsPageViewResultType) AsEventsBrowserTimingResultType() (*EventsBrowserTimingResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsRequestResultType is the BasicEventsResultDataType implementation for EventsPageViewResultType.
 func (epvrt EventsPageViewResultType) AsEventsRequestResultType() (*EventsRequestResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsDependencyResultType is the BasicEventsResultDataType implementation for EventsPageViewResultType.
 func (epvrt EventsPageViewResultType) AsEventsDependencyResultType() (*EventsDependencyResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsExceptionResultType is the BasicEventsResultDataType implementation for EventsPageViewResultType.
 func (epvrt EventsPageViewResultType) AsEventsExceptionResultType() (*EventsExceptionResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsAvailabilityResultResultType is the BasicEventsResultDataType implementation for EventsPageViewResultType.
 func (epvrt EventsPageViewResultType) AsEventsAvailabilityResultResultType() (*EventsAvailabilityResultResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPerformanceCounterResultType is the BasicEventsResultDataType implementation for EventsPageViewResultType.
 func (epvrt EventsPageViewResultType) AsEventsPerformanceCounterResultType() (*EventsPerformanceCounterResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomMetricResultType is the BasicEventsResultDataType implementation for EventsPageViewResultType.
 func (epvrt EventsPageViewResultType) AsEventsCustomMetricResultType() (*EventsCustomMetricResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsResultDataType is the BasicEventsResultDataType implementation for EventsPageViewResultType.
 func (epvrt EventsPageViewResultType) AsEventsResultDataType() (*EventsResultDataType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsBasicEventsResultDataType is the BasicEventsResultDataType implementation for EventsPageViewResultType.
 func (epvrt EventsPageViewResultType) AsBasicEventsResultDataType() (BasicEventsResultDataType, bool) {
 	return &epvrt, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsPerformanceCounterInfoType the performance counter info
 type EventsPerformanceCounterInfoType struct {
 	// Value - The value of the performance counter
@@ -1407,6 +1528,7 @@ type EventsPerformanceCounterInfoType struct {
 	Instance *string `json:"instance,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsPerformanceCounterResultType a performance counter result
 type EventsPerformanceCounterResultType struct {
 	PerformanceCounter *EventsPerformanceCounterInfoType `json:"performanceCounter,omitempty"`
@@ -1438,6 +1560,7 @@ type EventsPerformanceCounterResultType struct {
 	Type TypeEnum `json:"type,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // MarshalJSON is the custom marshaler for EventsPerformanceCounterResultType.
 func (epcrt EventsPerformanceCounterResultType) MarshalJSON() ([]byte, error) {
 	epcrt.Type = TypePerformanceCounter
@@ -1485,66 +1608,79 @@ func (epcrt EventsPerformanceCounterResultType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsTraceResultType is the BasicEventsResultDataType implementation for EventsPerformanceCounterResultType.
 func (epcrt EventsPerformanceCounterResultType) AsEventsTraceResultType() (*EventsTraceResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomEventResultType is the BasicEventsResultDataType implementation for EventsPerformanceCounterResultType.
 func (epcrt EventsPerformanceCounterResultType) AsEventsCustomEventResultType() (*EventsCustomEventResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPageViewResultType is the BasicEventsResultDataType implementation for EventsPerformanceCounterResultType.
 func (epcrt EventsPerformanceCounterResultType) AsEventsPageViewResultType() (*EventsPageViewResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsBrowserTimingResultType is the BasicEventsResultDataType implementation for EventsPerformanceCounterResultType.
 func (epcrt EventsPerformanceCounterResultType) AsEventsBrowserTimingResultType() (*EventsBrowserTimingResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsRequestResultType is the BasicEventsResultDataType implementation for EventsPerformanceCounterResultType.
 func (epcrt EventsPerformanceCounterResultType) AsEventsRequestResultType() (*EventsRequestResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsDependencyResultType is the BasicEventsResultDataType implementation for EventsPerformanceCounterResultType.
 func (epcrt EventsPerformanceCounterResultType) AsEventsDependencyResultType() (*EventsDependencyResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsExceptionResultType is the BasicEventsResultDataType implementation for EventsPerformanceCounterResultType.
 func (epcrt EventsPerformanceCounterResultType) AsEventsExceptionResultType() (*EventsExceptionResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsAvailabilityResultResultType is the BasicEventsResultDataType implementation for EventsPerformanceCounterResultType.
 func (epcrt EventsPerformanceCounterResultType) AsEventsAvailabilityResultResultType() (*EventsAvailabilityResultResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPerformanceCounterResultType is the BasicEventsResultDataType implementation for EventsPerformanceCounterResultType.
 func (epcrt EventsPerformanceCounterResultType) AsEventsPerformanceCounterResultType() (*EventsPerformanceCounterResultType, bool) {
 	return &epcrt, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomMetricResultType is the BasicEventsResultDataType implementation for EventsPerformanceCounterResultType.
 func (epcrt EventsPerformanceCounterResultType) AsEventsCustomMetricResultType() (*EventsCustomMetricResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsResultDataType is the BasicEventsResultDataType implementation for EventsPerformanceCounterResultType.
 func (epcrt EventsPerformanceCounterResultType) AsEventsResultDataType() (*EventsResultDataType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsBasicEventsResultDataType is the BasicEventsResultDataType implementation for EventsPerformanceCounterResultType.
 func (epcrt EventsPerformanceCounterResultType) AsBasicEventsResultDataType() (BasicEventsResultDataType, bool) {
 	return &epcrt, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsRequestInfoType the request info
 type EventsRequestInfoType struct {
 	// Name - The name of the request
@@ -1565,6 +1701,7 @@ type EventsRequestInfoType struct {
 	ID *string `json:"id,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsRequestResultType a request result
 type EventsRequestResultType struct {
 	Request *EventsRequestInfoType `json:"request,omitempty"`
@@ -1596,6 +1733,7 @@ type EventsRequestResultType struct {
 	Type TypeEnum `json:"type,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // MarshalJSON is the custom marshaler for EventsRequestResultType.
 func (errt EventsRequestResultType) MarshalJSON() ([]byte, error) {
 	errt.Type = TypeRequest
@@ -1643,76 +1781,91 @@ func (errt EventsRequestResultType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsTraceResultType is the BasicEventsResultDataType implementation for EventsRequestResultType.
 func (errt EventsRequestResultType) AsEventsTraceResultType() (*EventsTraceResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomEventResultType is the BasicEventsResultDataType implementation for EventsRequestResultType.
 func (errt EventsRequestResultType) AsEventsCustomEventResultType() (*EventsCustomEventResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPageViewResultType is the BasicEventsResultDataType implementation for EventsRequestResultType.
 func (errt EventsRequestResultType) AsEventsPageViewResultType() (*EventsPageViewResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsBrowserTimingResultType is the BasicEventsResultDataType implementation for EventsRequestResultType.
 func (errt EventsRequestResultType) AsEventsBrowserTimingResultType() (*EventsBrowserTimingResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsRequestResultType is the BasicEventsResultDataType implementation for EventsRequestResultType.
 func (errt EventsRequestResultType) AsEventsRequestResultType() (*EventsRequestResultType, bool) {
 	return &errt, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsDependencyResultType is the BasicEventsResultDataType implementation for EventsRequestResultType.
 func (errt EventsRequestResultType) AsEventsDependencyResultType() (*EventsDependencyResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsExceptionResultType is the BasicEventsResultDataType implementation for EventsRequestResultType.
 func (errt EventsRequestResultType) AsEventsExceptionResultType() (*EventsExceptionResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsAvailabilityResultResultType is the BasicEventsResultDataType implementation for EventsRequestResultType.
 func (errt EventsRequestResultType) AsEventsAvailabilityResultResultType() (*EventsAvailabilityResultResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPerformanceCounterResultType is the BasicEventsResultDataType implementation for EventsRequestResultType.
 func (errt EventsRequestResultType) AsEventsPerformanceCounterResultType() (*EventsPerformanceCounterResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomMetricResultType is the BasicEventsResultDataType implementation for EventsRequestResultType.
 func (errt EventsRequestResultType) AsEventsCustomMetricResultType() (*EventsCustomMetricResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsResultDataType is the BasicEventsResultDataType implementation for EventsRequestResultType.
 func (errt EventsRequestResultType) AsEventsResultDataType() (*EventsResultDataType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsBasicEventsResultDataType is the BasicEventsResultDataType implementation for EventsRequestResultType.
 func (errt EventsRequestResultType) AsBasicEventsResultDataType() (BasicEventsResultDataType, bool) {
 	return &errt, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsResultDataCustomDimensionsType custom dimensions of the event
 type EventsResultDataCustomDimensionsType struct {
 	AdditionalProperties interface{} `json:"additionalProperties,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsResultDataCustomMeasurementsType custom measurements of the event
 type EventsResultDataCustomMeasurementsType struct {
 	AdditionalProperties interface{} `json:"additionalProperties,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // BasicEventsResultDataType events query result data.
 type BasicEventsResultDataType interface {
 	AsEventsTraceResultType() (*EventsTraceResultType, bool)
@@ -1728,6 +1881,7 @@ type BasicEventsResultDataType interface {
 	AsEventsResultDataType() (*EventsResultDataType, bool)
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsResultDataType events query result data.
 type EventsResultDataType struct {
 	// ID - The unique ID for this event.
@@ -1831,6 +1985,7 @@ func unmarshalBasicEventsResultDataTypeArray(body []byte) ([]BasicEventsResultDa
 	return erdtArray, nil
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // MarshalJSON is the custom marshaler for EventsResultDataType.
 func (erdt EventsResultDataType) MarshalJSON() ([]byte, error) {
 	erdt.Type = TypeEventsResultData
@@ -1875,66 +2030,79 @@ func (erdt EventsResultDataType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsTraceResultType is the BasicEventsResultDataType implementation for EventsResultDataType.
 func (erdt EventsResultDataType) AsEventsTraceResultType() (*EventsTraceResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomEventResultType is the BasicEventsResultDataType implementation for EventsResultDataType.
 func (erdt EventsResultDataType) AsEventsCustomEventResultType() (*EventsCustomEventResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPageViewResultType is the BasicEventsResultDataType implementation for EventsResultDataType.
 func (erdt EventsResultDataType) AsEventsPageViewResultType() (*EventsPageViewResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsBrowserTimingResultType is the BasicEventsResultDataType implementation for EventsResultDataType.
 func (erdt EventsResultDataType) AsEventsBrowserTimingResultType() (*EventsBrowserTimingResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsRequestResultType is the BasicEventsResultDataType implementation for EventsResultDataType.
 func (erdt EventsResultDataType) AsEventsRequestResultType() (*EventsRequestResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsDependencyResultType is the BasicEventsResultDataType implementation for EventsResultDataType.
 func (erdt EventsResultDataType) AsEventsDependencyResultType() (*EventsDependencyResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsExceptionResultType is the BasicEventsResultDataType implementation for EventsResultDataType.
 func (erdt EventsResultDataType) AsEventsExceptionResultType() (*EventsExceptionResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsAvailabilityResultResultType is the BasicEventsResultDataType implementation for EventsResultDataType.
 func (erdt EventsResultDataType) AsEventsAvailabilityResultResultType() (*EventsAvailabilityResultResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPerformanceCounterResultType is the BasicEventsResultDataType implementation for EventsResultDataType.
 func (erdt EventsResultDataType) AsEventsPerformanceCounterResultType() (*EventsPerformanceCounterResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomMetricResultType is the BasicEventsResultDataType implementation for EventsResultDataType.
 func (erdt EventsResultDataType) AsEventsCustomMetricResultType() (*EventsCustomMetricResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsResultDataType is the BasicEventsResultDataType implementation for EventsResultDataType.
 func (erdt EventsResultDataType) AsEventsResultDataType() (*EventsResultDataType, bool) {
 	return &erdt, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsBasicEventsResultDataType is the BasicEventsResultDataType implementation for EventsResultDataType.
 func (erdt EventsResultDataType) AsBasicEventsResultDataType() (BasicEventsResultDataType, bool) {
 	return &erdt, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsResultsType an events query result.
 type EventsResultsType struct {
 	autorest.Response `json:"-"`
@@ -1946,6 +2114,7 @@ type EventsResultsType struct {
 	Value *[]BasicEventsResultDataType `json:"value,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // UnmarshalJSON is the custom unmarshaler for EventsResultsType struct.
 func (ert *EventsResultsType) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -1987,6 +2156,7 @@ func (ert *EventsResultsType) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsResultType an event query result.
 type EventsResultType struct {
 	// AiMessages - OData messages for this response.
@@ -1994,6 +2164,7 @@ type EventsResultType struct {
 	Value      BasicEventsResultDataType `json:"value,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // UnmarshalJSON is the custom unmarshaler for EventsResultType struct.
 func (ert *EventsResultType) UnmarshalJSON(body []byte) error {
 	var m map[string]*json.RawMessage
@@ -2026,12 +2197,14 @@ func (ert *EventsResultType) UnmarshalJSON(body []byte) error {
 	return nil
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsSessionInfoType session info for an event result
 type EventsSessionInfoType struct {
 	// ID - ID of the session
 	ID *string `json:"id,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsTraceInfoType the trace information
 type EventsTraceInfoType struct {
 	// Message - The trace message
@@ -2040,6 +2213,7 @@ type EventsTraceInfoType struct {
 	SeverityLevel *int32 `json:"severityLevel,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsTraceResultType a trace result
 type EventsTraceResultType struct {
 	Trace *EventsTraceInfoType `json:"trace,omitempty"`
@@ -2071,6 +2245,7 @@ type EventsTraceResultType struct {
 	Type TypeEnum `json:"type,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // MarshalJSON is the custom marshaler for EventsTraceResultType.
 func (etrt EventsTraceResultType) MarshalJSON() ([]byte, error) {
 	etrt.Type = TypeTrace
@@ -2118,66 +2293,79 @@ func (etrt EventsTraceResultType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsTraceResultType is the BasicEventsResultDataType implementation for EventsTraceResultType.
 func (etrt EventsTraceResultType) AsEventsTraceResultType() (*EventsTraceResultType, bool) {
 	return &etrt, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomEventResultType is the BasicEventsResultDataType implementation for EventsTraceResultType.
 func (etrt EventsTraceResultType) AsEventsCustomEventResultType() (*EventsCustomEventResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPageViewResultType is the BasicEventsResultDataType implementation for EventsTraceResultType.
 func (etrt EventsTraceResultType) AsEventsPageViewResultType() (*EventsPageViewResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsBrowserTimingResultType is the BasicEventsResultDataType implementation for EventsTraceResultType.
 func (etrt EventsTraceResultType) AsEventsBrowserTimingResultType() (*EventsBrowserTimingResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsRequestResultType is the BasicEventsResultDataType implementation for EventsTraceResultType.
 func (etrt EventsTraceResultType) AsEventsRequestResultType() (*EventsRequestResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsDependencyResultType is the BasicEventsResultDataType implementation for EventsTraceResultType.
 func (etrt EventsTraceResultType) AsEventsDependencyResultType() (*EventsDependencyResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsExceptionResultType is the BasicEventsResultDataType implementation for EventsTraceResultType.
 func (etrt EventsTraceResultType) AsEventsExceptionResultType() (*EventsExceptionResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsAvailabilityResultResultType is the BasicEventsResultDataType implementation for EventsTraceResultType.
 func (etrt EventsTraceResultType) AsEventsAvailabilityResultResultType() (*EventsAvailabilityResultResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsPerformanceCounterResultType is the BasicEventsResultDataType implementation for EventsTraceResultType.
 func (etrt EventsTraceResultType) AsEventsPerformanceCounterResultType() (*EventsPerformanceCounterResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsCustomMetricResultType is the BasicEventsResultDataType implementation for EventsTraceResultType.
 func (etrt EventsTraceResultType) AsEventsCustomMetricResultType() (*EventsCustomMetricResultType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsEventsResultDataType is the BasicEventsResultDataType implementation for EventsTraceResultType.
 func (etrt EventsTraceResultType) AsEventsResultDataType() (*EventsResultDataType, bool) {
 	return nil, false
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // AsBasicEventsResultDataType is the BasicEventsResultDataType implementation for EventsTraceResultType.
 func (etrt EventsTraceResultType) AsBasicEventsResultDataType() (BasicEventsResultDataType, bool) {
 	return &etrt, true
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // EventsUserInfoType user info for an event result
 type EventsUserInfoType struct {
 	// ID - ID of the user
@@ -2188,12 +2376,14 @@ type EventsUserInfoType struct {
 	AuthenticatedID *string `json:"authenticatedId,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // ListMetricsResultsItemType ...
 type ListMetricsResultsItemType struct {
 	autorest.Response `json:"-"`
 	Value             *[]MetricsResultsItemType `json:"value,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // MetricsPostBodySchemaParametersType the parameters for a single metrics query
 type MetricsPostBodySchemaParametersType struct {
 	// MetricID - Possible values include: 'Requestscount', 'Requestsduration', 'Requestsfailed', 'Userscount', 'Usersauthenticated', 'PageViewscount', 'PageViewsduration', 'ClientprocessingDuration', 'ClientreceiveDuration', 'ClientnetworkDuration', 'ClientsendDuration', 'ClienttotalDuration', 'Dependenciescount', 'Dependenciesfailed', 'Dependenciesduration', 'Exceptionscount', 'Exceptionsbrowser', 'Exceptionsserver', 'Sessionscount', 'PerformanceCountersrequestExecutionTime', 'PerformanceCountersrequestsPerSecond', 'PerformanceCountersrequestsInQueue', 'PerformanceCountersmemoryAvailableBytes', 'PerformanceCountersexceptionsPerSecond', 'PerformanceCountersprocessCPUPercentage', 'PerformanceCountersprocessIOBytesPerSecond', 'PerformanceCountersprocessPrivateBytes', 'PerformanceCountersprocessorCPUPercentage', 'AvailabilityResultsavailabilityPercentage', 'AvailabilityResultsduration', 'BillingtelemetryCount', 'CustomEventscount'
@@ -2207,6 +2397,7 @@ type MetricsPostBodySchemaParametersType struct {
 	Filter      *string      `json:"filter,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // MetricsPostBodySchemaType a metric request
 type MetricsPostBodySchemaType struct {
 	// ID - An identifier for this query.  Must be unique within the post body of the request.  This identifier will be the 'id' property of the response object representing this query.
@@ -2215,6 +2406,7 @@ type MetricsPostBodySchemaType struct {
 	Parameters *MetricsPostBodySchemaParametersType `json:"parameters,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // MetricsResultInfoType a metric result data.
 type MetricsResultInfoType struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
@@ -2229,6 +2421,7 @@ type MetricsResultInfoType struct {
 	Segments *[]MetricsSegmentInfoType `json:"segments,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // MarshalJSON is the custom marshaler for MetricsResultInfoType.
 func (mrit MetricsResultInfoType) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
@@ -2250,6 +2443,7 @@ func (mrit MetricsResultInfoType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // MetricsResultsItemType ...
 type MetricsResultsItemType struct {
 	// ID - The specified ID for this metric.
@@ -2260,12 +2454,14 @@ type MetricsResultsItemType struct {
 	Body *MetricsResultType `json:"body,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // MetricsResultType a metric result.
 type MetricsResultType struct {
 	autorest.Response `json:"-"`
 	Value             *MetricsResultInfoType `json:"value,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // MetricsSegmentInfoType a metric segment
 type MetricsSegmentInfoType struct {
 	// AdditionalProperties - Unmatched properties from the message are deserialized this collection
@@ -2278,6 +2474,7 @@ type MetricsSegmentInfoType struct {
 	Segments *[]MetricsSegmentInfoType `json:"segments,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // MarshalJSON is the custom marshaler for MetricsSegmentInfoType.
 func (msit MetricsSegmentInfoType) MarshalJSON() ([]byte, error) {
 	objectMap := make(map[string]interface{})
@@ -2296,6 +2493,7 @@ func (msit MetricsSegmentInfoType) MarshalJSON() ([]byte, error) {
 	return json.Marshal(objectMap)
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // QueryBodyType query request body
 type QueryBodyType struct {
 	// Query - The query to execute.
@@ -2306,6 +2504,7 @@ type QueryBodyType struct {
 	Applications *[]string `json:"applications,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // QueryResultsType contains the tables, columns & rows resulting from a query.
 type QueryResultsType struct {
 	autorest.Response `json:"-"`
@@ -2313,12 +2512,14 @@ type QueryResultsType struct {
 	Tables *[]TableType `json:"tables,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // SetObjectType ...
 type SetObjectType struct {
 	autorest.Response `json:"-"`
 	Value             interface{} `json:"value,omitempty"`
 }
 
+// Deprecated: Please use github.com/Azure/azure-sdk-for-go/services/appinsights/v1/insights instead.
 // TableType contains the columns and rows for one table in a query response.
 type TableType struct {
 	// Name - The name of the table.

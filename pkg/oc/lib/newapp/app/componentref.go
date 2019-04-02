@@ -207,7 +207,7 @@ func (r *ReferenceBuilder) AddComponents(inputs []string, fn func(*ComponentInpu
 			input.GroupID = r.groupID
 			ref := fn(input)
 			if len(repo) != 0 {
-				repository, ok := r.AddSourceRepository(repo, generate.StrategySource)
+				repository, ok := r.AddSourceRepository(repo, newapp.StrategySource)
 				if !ok {
 					continue
 				}
@@ -253,7 +253,7 @@ func (r *ReferenceBuilder) AddGroups(inputs []string) {
 }
 
 // AddSourceRepository resolves the input to an actual source repository
-func (r *ReferenceBuilder) AddSourceRepository(input string, strategy generate.Strategy) (*SourceRepository, bool) {
+func (r *ReferenceBuilder) AddSourceRepository(input string, strategy newapp.Strategy) (*SourceRepository, bool) {
 	for _, existing := range r.repos {
 		if input == existing.location {
 			return existing, true

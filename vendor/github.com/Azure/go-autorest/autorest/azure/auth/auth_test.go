@@ -47,6 +47,15 @@ func TestNewAuthorizerFromFile(t *testing.T) {
 	}
 }
 
+func TestNewAuthorizerFromFileWithResource(t *testing.T) {
+	os.Setenv("AZURE_AUTH_LOCATION", filepath.Join(getCredsPath(), "credsutf16le.json"))
+	authorizer, err := NewAuthorizerFromFileWithResource("https://my.vault.azure.net")
+	if err != nil || authorizer == nil {
+		t.Logf("NewAuthorizerFromFileWithResource failed, got error %v", err)
+		t.Fail()
+	}
+}
+
 func TestNewAuthorizerFromEnvironment(t *testing.T) {
 	os.Setenv("AZURE_TENANT_ID", expectedFile.TenantID)
 	os.Setenv("AZURE_CLIENT_ID", expectedFile.ClientID)
@@ -54,7 +63,19 @@ func TestNewAuthorizerFromEnvironment(t *testing.T) {
 	authorizer, err := NewAuthorizerFromEnvironment()
 
 	if err != nil || authorizer == nil {
-		t.Logf("NewAuthorizerFromFile failed, got error %v", err)
+		t.Logf("NewAuthorizerFromEnvironment failed, got error %v", err)
+		t.Fail()
+	}
+}
+
+func TestNewAuthorizerFromEnvironmentWithResource(t *testing.T) {
+	os.Setenv("AZURE_TENANT_ID", expectedFile.TenantID)
+	os.Setenv("AZURE_CLIENT_ID", expectedFile.ClientID)
+	os.Setenv("AZURE_CLIENT_SECRET", expectedFile.ClientSecret)
+	authorizer, err := NewAuthorizerFromEnvironmentWithResource("https://my.vault.azure.net")
+
+	if err != nil || authorizer == nil {
+		t.Logf("NewAuthorizerFromEnvironmentWithResource failed, got error %v", err)
 		t.Fail()
 	}
 }

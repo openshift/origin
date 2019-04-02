@@ -67,6 +67,7 @@ type SearchParameters = original.SearchParameters
 type SearchResultsResponse = original.SearchResultsResponse
 type SearchSchemaValue = original.SearchSchemaValue
 type SearchSort = original.SearchSort
+type SharedKeys = original.SharedKeys
 type StorageAccount = original.StorageAccount
 type StorageInsight = original.StorageInsight
 type StorageInsightListResult = original.StorageInsightListResult

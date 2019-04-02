@@ -3,10 +3,12 @@
 package v1
 
 import (
+	"time"
+
 	v1 "github.com/openshift/api/image/v1"
 	scheme "github.com/openshift/client-go/image/clientset/versioned/scheme"
-	core_v1 "k8s.io/api/core/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
@@ -23,14 +25,14 @@ type ImageStreamInterface interface {
 	Create(*v1.ImageStream) (*v1.ImageStream, error)
 	Update(*v1.ImageStream) (*v1.ImageStream, error)
 	UpdateStatus(*v1.ImageStream) (*v1.ImageStream, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
-	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1.ImageStream, error)
-	List(opts meta_v1.ListOptions) (*v1.ImageStreamList, error)
-	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Delete(name string, options *metav1.DeleteOptions) error
+	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
+	Get(name string, options metav1.GetOptions) (*v1.ImageStream, error)
+	List(opts metav1.ListOptions) (*v1.ImageStreamList, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.ImageStream, err error)
-	Secrets(imageStreamName string, options meta_v1.GetOptions) (*core_v1.SecretList, error)
-	Layers(imageStreamName string, options meta_v1.GetOptions) (*v1.ImageStreamLayers, error)
+	Secrets(imageStreamName string, options metav1.GetOptions) (*corev1.SecretList, error)
+	Layers(imageStreamName string, options metav1.GetOptions) (*v1.ImageStreamLayers, error)
 
 	ImageStreamExpansion
 }
@@ -50,7 +52,7 @@ func newImageStreams(c *ImageV1Client, namespace string) *imageStreams {
 }
 
 // Get takes name of the imageStream, and returns the corresponding imageStream object, and an error if there is any.
-func (c *imageStreams) Get(name string, options meta_v1.GetOptions) (result *v1.ImageStream, err error) {
+func (c *imageStreams) Get(name string, options metav1.GetOptions) (result *v1.ImageStream, err error) {
 	result = &v1.ImageStream{}
 	err = c.client.Get().
 		Namespace(c.ns).
@@ -63,24 +65,34 @@ func (c *imageStreams) Get(name string, options meta_v1.GetOptions) (result *v1.
 }
 
 // List takes label and field selectors, and returns the list of ImageStreams that match those selectors.
-func (c *imageStreams) List(opts meta_v1.ListOptions) (result *v1.ImageStreamList, err error) {
+func (c *imageStreams) List(opts metav1.ListOptions) (result *v1.ImageStreamList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1.ImageStreamList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("imagestreams").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested imageStreams.
-func (c *imageStreams) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *imageStreams) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Namespace(c.ns).
 		Resource("imagestreams").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -126,7 +138,7 @@ func (c *imageStreams) UpdateStatus(imageStream *v1.ImageStream) (result *v1.Ima
 }
 
 // Delete takes name of the imageStream and deletes it. Returns an error if one occurs.
-func (c *imageStreams) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *imageStreams) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("imagestreams").
@@ -137,11 +149,16 @@ func (c *imageStreams) Delete(name string, options *meta_v1.DeleteOptions) error
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *imageStreams) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *imageStreams) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("imagestreams").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()
@@ -161,9 +178,9 @@ func (c *imageStreams) Patch(name string, pt types.PatchType, data []byte, subre
 	return
 }
 
-// Secrets takes name of the imageStream, and returns the corresponding core_v1.SecretList object, and an error if there is any.
-func (c *imageStreams) Secrets(imageStreamName string, options meta_v1.GetOptions) (result *core_v1.SecretList, err error) {
-	result = &core_v1.SecretList{}
+// Secrets takes name of the imageStream, and returns the corresponding corev1.SecretList object, and an error if there is any.
+func (c *imageStreams) Secrets(imageStreamName string, options metav1.GetOptions) (result *corev1.SecretList, err error) {
+	result = &corev1.SecretList{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("imagestreams").
@@ -176,7 +193,7 @@ func (c *imageStreams) Secrets(imageStreamName string, options meta_v1.GetOption
 }
 
 // Layers takes name of the imageStream, and returns the corresponding v1.ImageStreamLayers object, and an error if there is any.
-func (c *imageStreams) Layers(imageStreamName string, options meta_v1.GetOptions) (result *v1.ImageStreamLayers, err error) {
+func (c *imageStreams) Layers(imageStreamName string, options metav1.GetOptions) (result *v1.ImageStreamLayers, err error) {
 	result = &v1.ImageStreamLayers{}
 	err = c.client.Get().
 		Namespace(c.ns).

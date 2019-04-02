@@ -30,11 +30,12 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl"
-	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/attach"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/logs"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
+	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 	"k8s.io/kubernetes/pkg/kubectl/util/term"
 	"k8s.io/kubernetes/pkg/util/interrupt"
 
@@ -97,7 +98,7 @@ var (
 type DebugOptions struct {
 	PrintFlags *genericclioptions.PrintFlags
 
-	Attach kcmd.AttachOptions
+	Attach attach.AttachOptions
 
 	CoreClient  corev1client.CoreV1Interface
 	AppsClient  appsv1client.AppsV1Interface
@@ -142,7 +143,7 @@ type DebugOptions struct {
 }
 
 func NewDebugOptions(streams genericclioptions.IOStreams) *DebugOptions {
-	attachOpts := kcmd.NewAttachOptions(streams)
+	attachOpts := attach.NewAttachOptions(streams)
 	attachOpts.TTY = true
 	attachOpts.Stdin = true
 	return &DebugOptions{
@@ -444,15 +445,15 @@ func (o *DebugOptions) RunDebug() error {
 			}
 			return fmt.Errorf(msg)
 			// switch to logging output
-		case err == kubectl.ErrPodCompleted, err == kubectl.ErrContainerTerminated, !o.Attach.Stdin:
-			return kcmd.LogsOptions{
+		case err == kubectl.ErrPodCompleted, err == conditions.ErrContainerTerminated, !o.Attach.Stdin:
+			return logs.LogsOptions{
 				Object: pod,
 				Options: &corev1.PodLogOptions{
 					Container: o.Attach.ContainerName,
 					Follow:    true,
 				},
 				RESTClientGetter: o.RESTClientGetter,
-				ConsumeRequestFn: kcmd.DefaultConsumeRequest,
+				ConsumeRequestFn: logs.DefaultConsumeRequest,
 				IOStreams:        o.IOStreams,
 				LogsForObject:    o.LogsForObject,
 			}.RunLogs()

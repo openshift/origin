@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 type Observer interface {
@@ -45,7 +45,7 @@ type reactorFn func(file string, action ActionType) error
 
 // ExitOnChangeReactor provides reactor function that causes the process to exit when the change is detected.
 var ExitOnChangeReactor reactorFn = func(filename string, action ActionType) error {
-	glog.Infof("exiting because %q changed", filename)
+	klog.Infof("exiting because %q changed", filename)
 	os.Exit(0)
 	return nil
 }

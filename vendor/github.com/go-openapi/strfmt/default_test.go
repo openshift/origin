@@ -17,6 +17,7 @@ package strfmt
 import (
 	"testing"
 
+	"github.com/globalsign/mgo/bson"
 	"github.com/pborman/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -57,6 +58,14 @@ func TestFormatURI(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
 
+	bsonData, err := bson.Marshal(&uri)
+	assert.NoError(t, err)
+
+	var uriCopy URI
+	err = bson.Unmarshal(bsonData, &uriCopy)
+	assert.NoError(t, err)
+	assert.Equal(t, uri, uriCopy)
+
 	testValid(t, "uri", str)
 	testInvalid(t, "uri", "somewhere.com")
 }
@@ -82,6 +91,14 @@ func TestFormatEmail(t *testing.T) {
 	b, err = email.MarshalJSON()
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
+
+	bsonData, err := bson.Marshal(&email)
+	assert.NoError(t, err)
+
+	var emailCopy Email
+	err = bson.Unmarshal(bsonData, &emailCopy)
+	assert.NoError(t, err)
+	assert.Equal(t, email, emailCopy)
 
 	testValid(t, "email", str)
 	testInvalid(t, "email", "somebody@somewhere@com")
@@ -109,6 +126,14 @@ func TestFormatHostname(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
 
+	bsonData, err := bson.Marshal(&hostname)
+	assert.NoError(t, err)
+
+	var hostnameCopy Hostname
+	err = bson.Unmarshal(bsonData, &hostnameCopy)
+	assert.NoError(t, err)
+	assert.Equal(t, hostname, hostnameCopy)
+
 	testValid(t, "hostname", str)
 	testInvalid(t, "hostname", "somewhere.com!")
 }
@@ -134,6 +159,14 @@ func TestFormatIPv4(t *testing.T) {
 	b, err = ipv4.MarshalJSON()
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
+
+	bsonData, err := bson.Marshal(&ipv4)
+	assert.NoError(t, err)
+
+	var ipv4Copy IPv4
+	err = bson.Unmarshal(bsonData, &ipv4Copy)
+	assert.NoError(t, err)
+	assert.Equal(t, ipv4, ipv4Copy)
 
 	testValid(t, "ipv4", str)
 	testInvalid(t, "ipv4", "192.168.254.2.2")
@@ -161,6 +194,14 @@ func TestFormatIPv6(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
 
+	bsonData, err := bson.Marshal(&ipv6)
+	assert.NoError(t, err)
+
+	var ipv6Copy IPv6
+	err = bson.Unmarshal(bsonData, &ipv6Copy)
+	assert.NoError(t, err)
+	assert.Equal(t, ipv6, ipv6Copy)
+
 	testValid(t, "ipv6", str)
 	testInvalid(t, "ipv6", "127.0.0.1")
 }
@@ -186,6 +227,14 @@ func TestFormatMAC(t *testing.T) {
 	b, err = mac.MarshalJSON()
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
+
+	bsonData, err := bson.Marshal(&mac)
+	assert.NoError(t, err)
+
+	var macCopy MAC
+	err = bson.Unmarshal(bsonData, &macCopy)
+	assert.NoError(t, err)
+	assert.Equal(t, mac, macCopy)
 
 	testValid(t, "mac", str)
 	testInvalid(t, "mac", "01:02:03:04:05")
@@ -215,8 +264,21 @@ func TestFormatUUID3(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
 
+	bsonData, err := bson.Marshal(&uuid3)
+	assert.NoError(t, err)
+
+	var uuid3Copy UUID3
+	err = bson.Unmarshal(bsonData, &uuid3Copy)
+	assert.NoError(t, err)
+	assert.Equal(t, uuid3, uuid3Copy)
+
 	testValid(t, "uuid3", str)
 	testInvalid(t, "uuid3", "not-a-uuid")
+
+	var uuidZero UUID3
+	err = uuidZero.UnmarshalJSON([]byte(jsonNull))
+	assert.NoError(t, err)
+	assert.EqualValues(t, UUID3(""), uuidZero)
 }
 
 func TestFormatUUID4(t *testing.T) {
@@ -243,8 +305,21 @@ func TestFormatUUID4(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
 
+	bsonData, err := bson.Marshal(&uuid4)
+	assert.NoError(t, err)
+
+	var uuid4Copy UUID4
+	err = bson.Unmarshal(bsonData, &uuid4Copy)
+	assert.NoError(t, err)
+	assert.Equal(t, uuid4, uuid4Copy)
+
 	testValid(t, "uuid4", str)
 	testInvalid(t, "uuid4", "not-a-uuid")
+
+	var uuidZero UUID4
+	err = uuidZero.UnmarshalJSON([]byte(jsonNull))
+	assert.NoError(t, err)
+	assert.EqualValues(t, UUID4(""), uuidZero)
 }
 
 func TestFormatUUID5(t *testing.T) {
@@ -271,8 +346,21 @@ func TestFormatUUID5(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
 
+	bsonData, err := bson.Marshal(&uuid5)
+	assert.NoError(t, err)
+
+	var uuid5Copy UUID5
+	err = bson.Unmarshal(bsonData, &uuid5Copy)
+	assert.NoError(t, err)
+	assert.Equal(t, uuid5, uuid5Copy)
+
 	testValid(t, "uuid5", str)
 	testInvalid(t, "uuid5", "not-a-uuid")
+
+	var uuidZero UUID5
+	err = uuidZero.UnmarshalJSON([]byte(jsonNull))
+	assert.NoError(t, err)
+	assert.EqualValues(t, UUID5(""), uuidZero)
 }
 
 func TestFormatUUID(t *testing.T) {
@@ -299,8 +387,21 @@ func TestFormatUUID(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
 
+	bsonData, err := bson.Marshal(&uuid)
+	assert.NoError(t, err)
+
+	var uuidCopy UUID
+	err = bson.Unmarshal(bsonData, &uuidCopy)
+	assert.NoError(t, err)
+	assert.Equal(t, uuid, uuidCopy)
+
 	testValid(t, "uuid", str)
 	testInvalid(t, "uuid", "not-a-uuid")
+
+	var uuidZero UUID
+	err = uuidZero.UnmarshalJSON([]byte(jsonNull))
+	assert.NoError(t, err)
+	assert.EqualValues(t, UUID(""), uuidZero)
 }
 
 func TestFormatISBN(t *testing.T) {
@@ -324,6 +425,14 @@ func TestFormatISBN(t *testing.T) {
 	b, err = isbn.MarshalJSON()
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
+
+	bsonData, err := bson.Marshal(&isbn)
+	assert.NoError(t, err)
+
+	var isbnCopy ISBN
+	err = bson.Unmarshal(bsonData, &isbnCopy)
+	assert.NoError(t, err)
+	assert.Equal(t, isbn, isbnCopy)
 
 	testValid(t, "isbn", str)
 	testInvalid(t, "isbn", "836217463") // bad checksum
@@ -351,6 +460,14 @@ func TestFormatISBN10(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
 
+	bsonData, err := bson.Marshal(&isbn10)
+	assert.NoError(t, err)
+
+	var isbn10Copy ISBN10
+	err = bson.Unmarshal(bsonData, &isbn10Copy)
+	assert.NoError(t, err)
+	assert.Equal(t, isbn10, isbn10Copy)
+
 	testValid(t, "isbn10", str)
 	testInvalid(t, "isbn10", "836217463") // bad checksum
 }
@@ -376,6 +493,14 @@ func TestFormatISBN13(t *testing.T) {
 	b, err = isbn13.MarshalJSON()
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
+
+	bsonData, err := bson.Marshal(&isbn13)
+	assert.NoError(t, err)
+
+	var isbn13Copy ISBN13
+	err = bson.Unmarshal(bsonData, &isbn13Copy)
+	assert.NoError(t, err)
+	assert.Equal(t, isbn13, isbn13Copy)
 
 	testValid(t, "isbn13", str)
 	testInvalid(t, "isbn13", "978-0321751042") // bad checksum
@@ -403,6 +528,14 @@ func TestFormatHexColor(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
 
+	bsonData, err := bson.Marshal(&hexColor)
+	assert.NoError(t, err)
+
+	var hexColorCopy HexColor
+	err = bson.Unmarshal(bsonData, &hexColorCopy)
+	assert.NoError(t, err)
+	assert.Equal(t, hexColor, hexColorCopy)
+
 	testValid(t, "hexcolor", str)
 	testInvalid(t, "hexcolor", "#fffffffz")
 }
@@ -428,6 +561,14 @@ func TestFormatRGBColor(t *testing.T) {
 	b, err = rgbColor.MarshalJSON()
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
+
+	bsonData, err := bson.Marshal(&rgbColor)
+	assert.NoError(t, err)
+
+	var rgbColorCopy RGBColor
+	err = bson.Unmarshal(bsonData, &rgbColorCopy)
+	assert.NoError(t, err)
+	assert.Equal(t, rgbColor, rgbColorCopy)
 
 	testValid(t, "rgbcolor", str)
 	testInvalid(t, "rgbcolor", "rgb(300,0,0)")
@@ -455,6 +596,14 @@ func TestFormatSSN(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
 
+	bsonData, err := bson.Marshal(&ssn)
+	assert.NoError(t, err)
+
+	var ssnCopy SSN
+	err = bson.Unmarshal(bsonData, &ssnCopy)
+	assert.NoError(t, err)
+	assert.Equal(t, ssn, ssnCopy)
+
 	testValid(t, "ssn", str)
 	testInvalid(t, "ssn", "999 99 999")
 }
@@ -480,6 +629,14 @@ func TestFormatCreditCard(t *testing.T) {
 	b, err = creditCard.MarshalJSON()
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
+
+	bsonData, err := bson.Marshal(&creditCard)
+	assert.NoError(t, err)
+
+	var creditCardCopy CreditCard
+	err = bson.Unmarshal(bsonData, &creditCardCopy)
+	assert.NoError(t, err)
+	assert.Equal(t, creditCard, creditCardCopy)
 
 	testValid(t, "creditcard", str)
 	testInvalid(t, "creditcard", "9999-9999-9999-999") // bad checksum
@@ -507,6 +664,14 @@ func TestFormatPassword(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
 
+	bsonData, err := bson.Marshal(&password)
+	assert.NoError(t, err)
+
+	var passwordCopy Password
+	err = bson.Unmarshal(bsonData, &passwordCopy)
+	assert.NoError(t, err)
+	assert.Equal(t, password, passwordCopy)
+
 	// everything is valid
 	testValid(t, "password", str)
 }
@@ -532,6 +697,14 @@ func TestFormatBase64(t *testing.T) {
 	b, err = b64.MarshalJSON()
 	assert.NoError(t, err)
 	assert.Equal(t, bj, b)
+
+	bsonData, err := bson.Marshal(&b64)
+	assert.NoError(t, err)
+
+	var b64Copy Base64
+	err = bson.Unmarshal(bsonData, &b64Copy)
+	assert.NoError(t, err)
+	assert.Equal(t, b64, b64Copy)
 
 	testValid(t, "byte", str)
 	testInvalid(t, "byte", "ZWxpemFiZXRocG9zZXk") // missing pad char

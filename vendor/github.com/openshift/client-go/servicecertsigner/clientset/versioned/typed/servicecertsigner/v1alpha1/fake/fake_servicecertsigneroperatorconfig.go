@@ -107,7 +107,7 @@ func (c *FakeServiceCertSignerOperatorConfigs) DeleteCollection(options *v1.Dele
 // Patch applies the patch and returns the patched serviceCertSignerOperatorConfig.
 func (c *FakeServiceCertSignerOperatorConfigs) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ServiceCertSignerOperatorConfig, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(servicecertsigneroperatorconfigsResource, name, data, subresources...), &v1alpha1.ServiceCertSignerOperatorConfig{})
+		Invokes(testing.NewRootPatchSubresourceAction(servicecertsigneroperatorconfigsResource, name, pt, data, subresources...), &v1alpha1.ServiceCertSignerOperatorConfig{})
 	if obj == nil {
 		return nil, err
 	}

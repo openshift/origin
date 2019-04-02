@@ -1,10 +1,12 @@
 package migrate
 
 import (
-	"flag"
+	"fmt"
 	"runtime"
 	"sync"
 	"testing"
+
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
@@ -12,15 +14,14 @@ import (
 
 // TestResourceVisitor_Visit is used to check for race conditions
 func TestResourceVisitor_Visit(t *testing.T) {
-	// get log level flag for glog
-	verbosity := flag.CommandLine.Lookup("v").Value
+	var level klog.Level
 	// save its original value
-	origVerbosity := verbosity.String()
+	origVerbosity := level.Get()
 	// set log level high enough so we write to ResourceOptions.Out on each success
-	verbosity.Set("1")
+	level.Set("1")
 	// restore the original flag value when we return
 	defer func() {
-		verbosity.Set(origVerbosity)
+		level.Set(fmt.Sprintf("%d", origVerbosity))
 	}()
 
 	type fields struct {

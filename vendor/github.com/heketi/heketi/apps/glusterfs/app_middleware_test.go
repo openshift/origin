@@ -18,14 +18,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/boltdb/bolt"
-	"github.com/heketi/heketi/pkg/utils"
+	//"github.com/boltdb/bolt"
+	wdb "github.com/heketi/heketi/pkg/db"
 	"github.com/heketi/tests"
 )
-
-func init() {
-	logger.SetLevel(utils.LEVEL_NOLOG)
-}
 
 func TestBackupToKubeSecretMaxSize(t *testing.T) {
 	tmpfile := tests.Tempfile()
@@ -87,7 +83,9 @@ func TestBackupToKubeSecretMaxSizeFailure(t *testing.T) {
 	tests.Assert(t, err == nil)
 	err = gz.Close()
 	tests.Assert(t, err == nil)
-	tests.Assert(t, b.Len() > 1024*MB)
+	// changing the pattern of IDs generate really changes the compression
+	// ratios of the db. this is a crappy test!
+	tests.Assert(t, b.Len() > MB)
 }
 
 func TestBackupToKubeSecretBackupOnNonGet(t *testing.T) {
@@ -99,7 +97,7 @@ func TestBackupToKubeSecretBackupOnNonGet(t *testing.T) {
 	defer app.Close()
 
 	incluster_count := 0
-	defer tests.Patch(&kubeBackupDbToSecret, func(db *bolt.DB) error {
+	defer tests.Patch(&kubeBackupDbToSecret, func(db wdb.RODB) error {
 		incluster_count++
 		return nil
 	}).Restore()
@@ -141,7 +139,7 @@ func TestBackupToKubeSecretBackupOnGet(t *testing.T) {
 	defer app.Close()
 
 	incluster_count := 0
-	defer tests.Patch(&kubeBackupDbToSecret, func(db *bolt.DB) error {
+	defer tests.Patch(&kubeBackupDbToSecret, func(db wdb.RODB) error {
 		incluster_count++
 		return nil
 	}).Restore()

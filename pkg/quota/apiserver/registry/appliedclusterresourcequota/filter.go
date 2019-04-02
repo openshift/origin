@@ -17,11 +17,12 @@ import (
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	"github.com/openshift/api/quota"
+	quotalister "github.com/openshift/client-go/quota/listers/quota/v1"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
+	quotav1conversions "github.com/openshift/origin/pkg/quota/apis/quota/v1"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
-	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
 )
 
 type AppliedClusterResourceQuotaREST struct {
@@ -67,7 +68,7 @@ func (r *AppliedClusterResourceQuotaREST) Get(ctx context.Context, name string, 
 		return nil, err
 	}
 
-	return quotaapi.ConvertClusterResourceQuotaToAppliedClusterResourceQuota(clusterQuota), nil
+	return quotaapi.ConvertV1ClusterResourceQuotaToV1AppliedClusterResourceQuota(clusterQuota), nil
 }
 
 func (r *AppliedClusterResourceQuotaREST) NewList() runtime.Object {
@@ -93,7 +94,11 @@ func (r *AppliedClusterResourceQuotaREST) List(ctx context.Context, options *met
 		if matches, err := matcher.Matches(quota); err != nil || !matches {
 			continue
 		}
-		list.Items = append(list.Items, *quotaapi.ConvertClusterResourceQuotaToAppliedClusterResourceQuota(quota))
+		internalAppliedQuota, err := quotav1conversions.ConvertV1ClusterResourceQuotaToInternalAppliedClusterResourceQuota(quota)
+		if err != nil {
+			return nil, err
+		}
+		list.Items = append(list.Items, *internalAppliedQuota)
 	}
 
 	return list, nil

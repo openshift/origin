@@ -10,8 +10,8 @@ import (
 	"github.com/openshift/origin/pkg/quota/image"
 	"k8s.io/kubernetes/pkg/controller"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
-	"k8s.io/kubernetes/pkg/quota/generic"
-	quotainstall "k8s.io/kubernetes/pkg/quota/install"
+	"k8s.io/kubernetes/pkg/quota/v1/generic"
+	quotainstall "k8s.io/kubernetes/pkg/quota/v1/install"
 )
 
 func RunResourceQuotaManager(ctx *ControllerContext) (bool, error) {
@@ -55,7 +55,7 @@ func RunClusterQuotaReconciliationController(ctx *ControllerContext) (bool, erro
 
 	clusterQuotaMappingController := clusterquotamapping.NewClusterQuotaMappingController(
 		ctx.KubernetesInformers.Core().V1().Namespaces(),
-		ctx.InternalQuotaInformers.Quota().InternalVersion().ClusterResourceQuotas())
+		ctx.QuotaInformers.Quota().V1().ClusterResourceQuotas())
 	resourceQuotaControllerClient := ctx.ClientBuilder.ClientOrDie("resourcequota-controller")
 	discoveryFunc := resourceQuotaControllerClient.Discovery().ServerPreferredNamespacedResources
 	listerFuncForResource := generic.ListerFuncForResourceFunc(ctx.GenericResourceInformer.ForResource)
@@ -72,9 +72,9 @@ func RunClusterQuotaReconciliationController(ctx *ControllerContext) (bool, erro
 	}
 
 	options := clusterquotareconciliation.ClusterQuotaReconcilationControllerOptions{
-		ClusterQuotaInformer: ctx.InternalQuotaInformers.Quota().InternalVersion().ClusterResourceQuotas(),
+		ClusterQuotaInformer: ctx.QuotaInformers.Quota().V1().ClusterResourceQuotas(),
 		ClusterQuotaMapper:   clusterQuotaMappingController.GetClusterQuotaMapper(),
-		ClusterQuotaClient:   ctx.ClientBuilder.OpenshiftInternalQuotaClientOrDie(saName).Quota().ClusterResourceQuotas(),
+		ClusterQuotaClient:   ctx.ClientBuilder.OpenshiftQuotaClientOrDie(saName).Quota().ClusterResourceQuotas(),
 
 		Registry:                  resourceQuotaRegistry,
 		ResyncPeriod:              defaultResyncPeriod,

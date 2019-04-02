@@ -5,11 +5,11 @@ package v1
 import (
 	time "time"
 
-	build_v1 "github.com/openshift/api/build/v1"
+	buildv1 "github.com/openshift/api/build/v1"
 	versioned "github.com/openshift/client-go/build/clientset/versioned"
 	internalinterfaces "github.com/openshift/client-go/build/informers/externalversions/internalinterfaces"
 	v1 "github.com/openshift/client-go/build/listers/build/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
 	cache "k8s.io/client-go/tools/cache"
@@ -41,20 +41,20 @@ func NewBuildConfigInformer(client versioned.Interface, namespace string, resync
 func NewFilteredBuildConfigInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
-			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
+			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.BuildV1().BuildConfigs(namespace).List(options)
 			},
-			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
+			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
 				return client.BuildV1().BuildConfigs(namespace).Watch(options)
 			},
 		},
-		&build_v1.BuildConfig{},
+		&buildv1.BuildConfig{},
 		resyncPeriod,
 		indexers,
 	)
@@ -65,7 +65,7 @@ func (f *buildConfigInformer) defaultInformer(client versioned.Interface, resync
 }
 
 func (f *buildConfigInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&build_v1.BuildConfig{}, f.defaultInformer)
+	return f.factory.InformerFor(&buildv1.BuildConfig{}, f.defaultInformer)
 }
 
 func (f *buildConfigInformer) Lister() v1.BuildConfigLister {

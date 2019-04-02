@@ -15,7 +15,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 // Repository represents a git source repository
@@ -170,7 +170,7 @@ func IsBareRoot(path string) (bool, error) {
 // 2) Refs which the RHEL7 git version appears to be too old to handle correctly
 // (example ref form: foo-bar-1), but which newer git versions seem to manage OK.
 func (r *repository) PotentialPRRetryAsFetch(dir, remote, ref string, err error) error {
-	glog.V(4).Infof("Checkout after clone failed for ref %s with error: %v, attempting fetch", ref, err)
+	klog.V(4).Infof("Checkout after clone failed for ref %s with error: %v, attempting fetch", ref, err)
 	err = r.Fetch(dir, remote, ref)
 	if err != nil {
 		return err
@@ -180,7 +180,7 @@ func (r *repository) PotentialPRRetryAsFetch(dir, remote, ref string, err error)
 	if err != nil {
 		return err
 	}
-	glog.V(4).Infof("Fetch / checkout for %s successful", ref)
+	klog.V(4).Infof("Fetch / checkout for %s successful", ref)
 	return nil
 }
 
@@ -421,7 +421,7 @@ func command(name, dir string, env []string, args ...string) (stdout, stderr str
 func timedCommand(timeout time.Duration, name, dir string, env []string, args ...string) (stdout, stderr string, err error) {
 	var stdoutBuffer, stderrBuffer bytes.Buffer
 
-	glog.V(4).Infof("Executing %s %s", name, strings.Join(args, " "))
+	klog.V(4).Infof("Executing %s %s", name, strings.Join(args, " "))
 
 	cmd := exec.Command(name, args...)
 	cmd.Dir = dir
@@ -430,9 +430,9 @@ func timedCommand(timeout time.Duration, name, dir string, env []string, args ..
 	cmd.Stderr = &stderrBuffer
 
 	if env != nil {
-		glog.V(8).Infof("Environment:\n")
+		klog.V(8).Infof("Environment:\n")
 		for _, e := range env {
-			glog.V(8).Infof("- %s", e)
+			klog.V(8).Infof("- %s", e)
 		}
 	}
 
@@ -472,7 +472,7 @@ func runCommand(cmd *exec.Cmd, timeout time.Duration) (error, bool) {
 	out := make(chan error)
 	go func() {
 		if err := cmd.Start(); err != nil {
-			glog.V(4).Infof("Error starting execution: %v", err)
+			klog.V(4).Infof("Error starting execution: %v", err)
 		}
 		out <- cmd.Wait()
 	}()
@@ -481,7 +481,7 @@ func runCommand(cmd *exec.Cmd, timeout time.Duration) (error, bool) {
 		select {
 		case err := <-out:
 			if err != nil {
-				glog.V(4).Infof("Error executing command: %v", err)
+				klog.V(4).Infof("Error executing command: %v", err)
 			}
 			return err, false
 		}
@@ -489,11 +489,11 @@ func runCommand(cmd *exec.Cmd, timeout time.Duration) (error, bool) {
 		select {
 		case err := <-out:
 			if err != nil {
-				glog.V(4).Infof("Error executing command: %v", err)
+				klog.V(4).Infof("Error executing command: %v", err)
 			}
 			return err, false
 		case <-time.After(timeout):
-			glog.V(4).Infof("Command execution timed out after %s", timeout)
+			klog.V(4).Infof("Command execution timed out after %s", timeout)
 			return nil, true
 		}
 	}

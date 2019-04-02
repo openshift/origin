@@ -1,7 +1,7 @@
 package resourceapply
 
 import (
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	apiextv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	apiextclientv1beta1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
@@ -31,8 +31,8 @@ func ApplyCustomResourceDefinition(client apiextclientv1beta1.CustomResourceDefi
 		return existing, false, nil
 	}
 
-	if glog.V(4) {
-		glog.Infof("CustomResourceDefinition %q changes: %s", existing.Name, JSONPatch(existing, existingCopy))
+	if klog.V(4) {
+		klog.Infof("CustomResourceDefinition %q changes: %s", existing.Name, JSONPatch(existing, existingCopy))
 	}
 
 	actual, err := client.CustomResourceDefinitions().Update(existingCopy)

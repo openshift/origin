@@ -3,7 +3,7 @@ package resourceapply
 import (
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -43,8 +43,8 @@ func ApplyClusterRole(client rbacclientv1.ClusterRolesGetter, recorder events.Re
 	existingCopy.Rules = required.Rules
 	existingCopy.AggregationRule = nil
 
-	if glog.V(4) {
-		glog.Infof("ClusterRole %q changes: %v", required.Name, JSONPatch(existing, existingCopy))
+	if klog.V(4) {
+		klog.Infof("ClusterRole %q changes: %v", required.Name, JSONPatch(existing, existingCopy))
 	}
 
 	actual, err := client.ClusterRoles().Update(existingCopy)
@@ -96,8 +96,8 @@ func ApplyClusterRoleBinding(client rbacclientv1.ClusterRoleBindingsGetter, reco
 	existingCopy.Subjects = requiredCopy.Subjects
 	existingCopy.RoleRef = requiredCopy.RoleRef
 
-	if glog.V(4) {
-		glog.Infof("ClusterRoleBinding %q changes: %v", requiredCopy.Name, JSONPatch(existing, existingCopy))
+	if klog.V(4) {
+		klog.Infof("ClusterRoleBinding %q changes: %v", requiredCopy.Name, JSONPatch(existing, existingCopy))
 	}
 
 	actual, err := client.ClusterRoleBindings().Update(existingCopy)
@@ -128,8 +128,8 @@ func ApplyRole(client rbacclientv1.RolesGetter, recorder events.Recorder, requir
 
 	existingCopy.Rules = required.Rules
 
-	if glog.V(4) {
-		glog.Infof("Role %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(existing, existingCopy))
+	if klog.V(4) {
+		klog.Infof("Role %q changes: %v", required.Namespace+"/"+required.Name, JSONPatch(existing, existingCopy))
 	}
 	actual, err := client.Roles(required.Namespace).Update(existing)
 	reportUpdateEvent(recorder, required, err)
@@ -180,8 +180,8 @@ func ApplyRoleBinding(client rbacclientv1.RoleBindingsGetter, recorder events.Re
 	existingCopy.Subjects = requiredCopy.Subjects
 	existingCopy.RoleRef = requiredCopy.RoleRef
 
-	if glog.V(4) {
-		glog.Infof("RoleBinding %q changes: %v", requiredCopy.Namespace+"/"+requiredCopy.Name, JSONPatch(existing, existingCopy))
+	if klog.V(4) {
+		klog.Infof("RoleBinding %q changes: %v", requiredCopy.Namespace+"/"+requiredCopy.Name, JSONPatch(existing, existingCopy))
 	}
 
 	actual, err := client.RoleBindings(requiredCopy.Namespace).Update(existingCopy)

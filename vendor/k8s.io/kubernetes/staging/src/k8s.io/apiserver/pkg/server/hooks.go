@@ -22,7 +22,7 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -106,7 +106,7 @@ func (s *GenericAPIServer) AddPostStartHook(name string, hook PostStartHookFunc)
 // AddPostStartHookOrDie allows you to add a PostStartHook, but dies on failure
 func (s *GenericAPIServer) AddPostStartHookOrDie(name string, hook PostStartHookFunc) {
 	if err := s.AddPostStartHook(name, hook); err != nil {
-		glog.Fatalf("Error registering PostStartHook %q: %v", name, err)
+		klog.Fatalf("Error registering PostStartHook %q: %v", name, err)
 	}
 }
 
@@ -137,7 +137,7 @@ func (s *GenericAPIServer) AddPreShutdownHook(name string, hook PreShutdownHookF
 // AddPreShutdownHookOrDie allows you to add a PostStartHook, but dies on failure
 func (s *GenericAPIServer) AddPreShutdownHookOrDie(name string, hook PreShutdownHookFunc) {
 	if err := s.AddPreShutdownHook(name, hook); err != nil {
-		glog.Fatalf("Error registering PreShutdownHook %q: %v", name, err)
+		klog.Fatalf("Error registering PreShutdownHook %q: %v", name, err)
 	}
 }
 
@@ -190,7 +190,7 @@ func runPostStartHook(name string, entry postStartHookEntry, context PostStartHo
 	}()
 	// if the hook intentionally wants to kill server, let it.
 	if err != nil {
-		glog.Fatalf("PostStartHook %q failed: %v", name, err)
+		klog.Fatalf("PostStartHook %q failed: %v", name, err)
 	}
 	close(entry.done)
 }

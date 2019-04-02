@@ -281,7 +281,7 @@ ETCD_DISCOVERY=https://discovery.etcd.io/3e86b59982e49066c5d813af1c2e2579cbf573d
 --discovery https://discovery.etcd.io/3e86b59982e49066c5d813af1c2e2579cbf573de
 ```
 
-**Each member must have a different name flag specified or else discovery will fail due to duplicated names. `Hostname` or `machine-id` can be a good choice. **
+**Each member must have a different name flag specified or else discovery will fail due to duplicated names. `Hostname` or `machine-id` can be a good choice.**
 
 Now we start etcd with those relevant flags for each member:
 
@@ -456,6 +456,8 @@ $ etcd --name infra2 \
 --listen-peer-urls http://10.0.1.12:2380
 ```
 
+Since v3.1.0 (except v3.2.9), when `etcd --discovery-srv=example.com` is configured with TLS, server will only authenticate peers/clients when the provided certs have root domain `example.com` as an entry in Subject Alternative Name (SAN) field. See [Notes for DNS SRV][security-guide-dns-srv].
+
 ### Gateway
 
 etcd gateway is a simple TCP proxy that forwards network data to the etcd cluster. Please read [gateway guide][gateway] for more information.
@@ -475,5 +477,6 @@ To setup an etcd cluster with proxies of v2 API, please read the the [clustering
 [proxy]: https://github.com/coreos/etcd/blob/release-2.3/Documentation/proxy.md
 [clustering_etcd2]: https://github.com/coreos/etcd/blob/release-2.3/Documentation/clustering.md
 [security-guide]: security.md
+[security-guide-dns-srv]: security.md#notes-for-dns-srv
 [tls-setup]: ../../hack/tls-setup
 [gateway]: gateway.md

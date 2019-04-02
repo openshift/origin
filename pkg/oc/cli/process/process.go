@@ -22,10 +22,10 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	"k8s.io/kubernetes/pkg/kubectl"
-	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/generate"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
+	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	octemplateapi "github.com/openshift/api/template"
 	templatev1 "github.com/openshift/api/template/v1"
@@ -405,7 +405,7 @@ func (o *ProcessOptions) RunProcess() error {
 	}
 
 	if label := o.labels; len(label) > 0 {
-		lbl, err := kubectl.ParseLabels(label)
+		lbl, err := generate.ParseLabels(label)
 		if err != nil {
 			return fmt.Errorf("error parsing labels: %v\n", err)
 		}

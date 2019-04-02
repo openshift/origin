@@ -181,21 +181,13 @@ func StartRealMasterOrDie(t *testing.T) *Master {
 
 	return &Master{
 		Client:    kubeClient,
-		Dynamic:   dynamic_NewForConfigOrDie(kubeClientConfig),
+		Dynamic:   dynamic.NewForConfigOrDie(kubeClientConfig),
 		Config:    kubeClientConfig,
 		KV:        kvClient,
 		Mapper:    restMapper,
 		Resources: GetResources(t, serverResources),
 		Cleanup:   cleanup,
 	}
-}
-
-func dynamic_NewForConfigOrDie(kubeClientConfig *restclient.Config) dynamic.Interface {
-	d, err := dynamic.NewForConfig(kubeClientConfig)
-	if err != nil {
-		panic(err)
-	}
-	return d
 }
 
 // Master represents a running API server that is ready for use

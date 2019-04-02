@@ -96,7 +96,7 @@ func (c *FakeGroups) DeleteCollection(options *v1.DeleteOptions, listOptions v1.
 // Patch applies the patch and returns the patched group.
 func (c *FakeGroups) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *user.Group, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(groupsResource, name, data, subresources...), &user.Group{})
+		Invokes(testing.NewRootPatchSubresourceAction(groupsResource, name, pt, data, subresources...), &user.Group{})
 	if obj == nil {
 		return nil, err
 	}

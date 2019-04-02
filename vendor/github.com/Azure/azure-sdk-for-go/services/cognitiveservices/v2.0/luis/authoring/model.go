@@ -32,13 +32,8 @@ type ModelClient struct {
 }
 
 // NewModelClient creates an instance of the ModelClient client.
-func NewModelClient() ModelClient {
-	return NewModelClientWithBaseURI(DefaultBaseURI)
-}
-
-// NewModelClientWithBaseURI creates an instance of the ModelClient client.
-func NewModelClientWithBaseURI(baseURI string) ModelClient {
-	return ModelClient{NewWithBaseURI(baseURI)}
+func NewModelClient(endpoint string) ModelClient {
+	return ModelClient{New(endpoint)}
 }
 
 // AddClosedList adds a closed list model to the application.
@@ -71,6 +66,10 @@ func (client ModelClient) AddClosedList(ctx context.Context, appID uuid.UUID, ve
 
 // AddClosedListPreparer prepares the AddClosedList request.
 func (client ModelClient) AddClosedListPreparer(ctx context.Context, appID uuid.UUID, versionID string, closedListModelCreateObject ClosedListModelCreateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -79,7 +78,7 @@ func (client ModelClient) AddClosedListPreparer(ctx context.Context, appID uuid.
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/closedlists", pathParameters),
 		autorest.WithJSON(closedListModelCreateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -134,6 +133,10 @@ func (client ModelClient) AddCompositeEntity(ctx context.Context, appID uuid.UUI
 
 // AddCompositeEntityPreparer prepares the AddCompositeEntity request.
 func (client ModelClient) AddCompositeEntityPreparer(ctx context.Context, appID uuid.UUID, versionID string, compositeModelCreateObject CompositeEntityModel) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -142,7 +145,7 @@ func (client ModelClient) AddCompositeEntityPreparer(ctx context.Context, appID 
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/compositeentities", pathParameters),
 		autorest.WithJSON(compositeModelCreateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -198,6 +201,10 @@ func (client ModelClient) AddCompositeEntityChild(ctx context.Context, appID uui
 
 // AddCompositeEntityChildPreparer prepares the AddCompositeEntityChild request.
 func (client ModelClient) AddCompositeEntityChildPreparer(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID, compositeChildModelCreateObject CompositeChildModelCreateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"cEntityId": autorest.Encode("path", cEntityID),
@@ -207,7 +214,7 @@ func (client ModelClient) AddCompositeEntityChildPreparer(ctx context.Context, a
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/compositeentities/{cEntityId}/children", pathParameters),
 		autorest.WithJSON(compositeChildModelCreateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -262,6 +269,10 @@ func (client ModelClient) AddCustomPrebuiltDomain(ctx context.Context, appID uui
 
 // AddCustomPrebuiltDomainPreparer prepares the AddCustomPrebuiltDomain request.
 func (client ModelClient) AddCustomPrebuiltDomainPreparer(ctx context.Context, appID uuid.UUID, versionID string, prebuiltDomainObject PrebuiltDomainCreateBaseObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -270,7 +281,7 @@ func (client ModelClient) AddCustomPrebuiltDomainPreparer(ctx context.Context, a
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/customprebuiltdomains", pathParameters),
 		autorest.WithJSON(prebuiltDomainObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -326,6 +337,10 @@ func (client ModelClient) AddCustomPrebuiltEntity(ctx context.Context, appID uui
 
 // AddCustomPrebuiltEntityPreparer prepares the AddCustomPrebuiltEntity request.
 func (client ModelClient) AddCustomPrebuiltEntityPreparer(ctx context.Context, appID uuid.UUID, versionID string, prebuiltDomainModelCreateObject PrebuiltDomainModelCreateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -334,7 +349,7 @@ func (client ModelClient) AddCustomPrebuiltEntityPreparer(ctx context.Context, a
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/customprebuiltentities", pathParameters),
 		autorest.WithJSON(prebuiltDomainModelCreateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -390,6 +405,10 @@ func (client ModelClient) AddCustomPrebuiltIntent(ctx context.Context, appID uui
 
 // AddCustomPrebuiltIntentPreparer prepares the AddCustomPrebuiltIntent request.
 func (client ModelClient) AddCustomPrebuiltIntentPreparer(ctx context.Context, appID uuid.UUID, versionID string, prebuiltDomainModelCreateObject PrebuiltDomainModelCreateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -398,7 +417,7 @@ func (client ModelClient) AddCustomPrebuiltIntentPreparer(ctx context.Context, a
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/customprebuiltintents", pathParameters),
 		autorest.WithJSON(prebuiltDomainModelCreateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -453,6 +472,10 @@ func (client ModelClient) AddEntity(ctx context.Context, appID uuid.UUID, versio
 
 // AddEntityPreparer prepares the AddEntity request.
 func (client ModelClient) AddEntityPreparer(ctx context.Context, appID uuid.UUID, versionID string, modelCreateObject ModelCreateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -461,7 +484,7 @@ func (client ModelClient) AddEntityPreparer(ctx context.Context, appID uuid.UUID
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/entities", pathParameters),
 		autorest.WithJSON(modelCreateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -517,6 +540,10 @@ func (client ModelClient) AddExplicitListItem(ctx context.Context, appID uuid.UU
 
 // AddExplicitListItemPreparer prepares the AddExplicitListItem request.
 func (client ModelClient) AddExplicitListItemPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, item ExplicitListItemCreateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -526,7 +553,7 @@ func (client ModelClient) AddExplicitListItemPreparer(ctx context.Context, appID
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternanyentities/{entityId}/explicitlist", pathParameters),
 		autorest.WithJSON(item))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -581,6 +608,10 @@ func (client ModelClient) AddHierarchicalEntity(ctx context.Context, appID uuid.
 
 // AddHierarchicalEntityPreparer prepares the AddHierarchicalEntity request.
 func (client ModelClient) AddHierarchicalEntityPreparer(ctx context.Context, appID uuid.UUID, versionID string, hierarchicalModelCreateObject HierarchicalEntityModel) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -589,7 +620,7 @@ func (client ModelClient) AddHierarchicalEntityPreparer(ctx context.Context, app
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/hierarchicalentities", pathParameters),
 		autorest.WithJSON(hierarchicalModelCreateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -645,6 +676,10 @@ func (client ModelClient) AddHierarchicalEntityChild(ctx context.Context, appID 
 
 // AddHierarchicalEntityChildPreparer prepares the AddHierarchicalEntityChild request.
 func (client ModelClient) AddHierarchicalEntityChildPreparer(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID, hierarchicalChildModelCreateObject HierarchicalChildModelCreateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"hEntityId": autorest.Encode("path", hEntityID),
@@ -654,7 +689,7 @@ func (client ModelClient) AddHierarchicalEntityChildPreparer(ctx context.Context
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/hierarchicalentities/{hEntityId}/children", pathParameters),
 		autorest.WithJSON(hierarchicalChildModelCreateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -709,6 +744,10 @@ func (client ModelClient) AddIntent(ctx context.Context, appID uuid.UUID, versio
 
 // AddIntentPreparer prepares the AddIntent request.
 func (client ModelClient) AddIntentPreparer(ctx context.Context, appID uuid.UUID, versionID string, intentCreateObject ModelCreateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -717,7 +756,7 @@ func (client ModelClient) AddIntentPreparer(ctx context.Context, appID uuid.UUID
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/intents", pathParameters),
 		autorest.WithJSON(intentCreateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -778,6 +817,10 @@ func (client ModelClient) AddPrebuilt(ctx context.Context, appID uuid.UUID, vers
 
 // AddPrebuiltPreparer prepares the AddPrebuilt request.
 func (client ModelClient) AddPrebuiltPreparer(ctx context.Context, appID uuid.UUID, versionID string, prebuiltExtractorNames []string) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -786,7 +829,7 @@ func (client ModelClient) AddPrebuiltPreparer(ctx context.Context, appID uuid.UU
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/prebuilts", pathParameters),
 		autorest.WithJSON(prebuiltExtractorNames))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -842,6 +885,10 @@ func (client ModelClient) AddSubList(ctx context.Context, appID uuid.UUID, versi
 
 // AddSubListPreparer prepares the AddSubList request.
 func (client ModelClient) AddSubListPreparer(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID, wordListCreateObject WordListObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":      autorest.Encode("path", appID),
 		"clEntityId": autorest.Encode("path", clEntityID),
@@ -851,7 +898,7 @@ func (client ModelClient) AddSubListPreparer(ctx context.Context, appID uuid.UUI
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/closedlists/{clEntityId}/sublists", pathParameters),
 		autorest.WithJSON(wordListCreateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -907,6 +954,10 @@ func (client ModelClient) CreateClosedListEntityRole(ctx context.Context, appID 
 
 // CreateClosedListEntityRolePreparer prepares the CreateClosedListEntityRole request.
 func (client ModelClient) CreateClosedListEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, entityRoleCreateObject EntityRoleCreateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -916,7 +967,7 @@ func (client ModelClient) CreateClosedListEntityRolePreparer(ctx context.Context
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/closedlists/{entityId}/roles", pathParameters),
 		autorest.WithJSON(entityRoleCreateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -972,6 +1023,10 @@ func (client ModelClient) CreateCompositeEntityRole(ctx context.Context, appID u
 
 // CreateCompositeEntityRolePreparer prepares the CreateCompositeEntityRole request.
 func (client ModelClient) CreateCompositeEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID, entityRoleCreateObject EntityRoleCreateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"cEntityId": autorest.Encode("path", cEntityID),
@@ -981,7 +1036,7 @@ func (client ModelClient) CreateCompositeEntityRolePreparer(ctx context.Context,
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/compositeentities/{cEntityId}/roles", pathParameters),
 		autorest.WithJSON(entityRoleCreateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -1037,6 +1092,10 @@ func (client ModelClient) CreateCustomPrebuiltEntityRole(ctx context.Context, ap
 
 // CreateCustomPrebuiltEntityRolePreparer prepares the CreateCustomPrebuiltEntityRole request.
 func (client ModelClient) CreateCustomPrebuiltEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, entityRoleCreateObject EntityRoleCreateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -1046,7 +1105,7 @@ func (client ModelClient) CreateCustomPrebuiltEntityRolePreparer(ctx context.Con
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/customprebuiltentities/{entityId}/roles", pathParameters),
 		autorest.WithJSON(entityRoleCreateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -1102,6 +1161,10 @@ func (client ModelClient) CreateEntityRole(ctx context.Context, appID uuid.UUID,
 
 // CreateEntityRolePreparer prepares the CreateEntityRole request.
 func (client ModelClient) CreateEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, entityRoleCreateObject EntityRoleCreateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -1111,7 +1174,7 @@ func (client ModelClient) CreateEntityRolePreparer(ctx context.Context, appID uu
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/entities/{entityId}/roles", pathParameters),
 		autorest.WithJSON(entityRoleCreateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -1167,6 +1230,10 @@ func (client ModelClient) CreateHierarchicalEntityRole(ctx context.Context, appI
 
 // CreateHierarchicalEntityRolePreparer prepares the CreateHierarchicalEntityRole request.
 func (client ModelClient) CreateHierarchicalEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID, entityRoleCreateObject EntityRoleCreateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"hEntityId": autorest.Encode("path", hEntityID),
@@ -1176,7 +1243,7 @@ func (client ModelClient) CreateHierarchicalEntityRolePreparer(ctx context.Conte
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/hierarchicalentities/{hEntityId}/roles", pathParameters),
 		autorest.WithJSON(entityRoleCreateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -1232,6 +1299,10 @@ func (client ModelClient) CreatePatternAnyEntityModel(ctx context.Context, appID
 
 // CreatePatternAnyEntityModelPreparer prepares the CreatePatternAnyEntityModel request.
 func (client ModelClient) CreatePatternAnyEntityModelPreparer(ctx context.Context, appID uuid.UUID, versionID string, extractorCreateObject PatternAnyModelCreateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -1240,7 +1311,7 @@ func (client ModelClient) CreatePatternAnyEntityModelPreparer(ctx context.Contex
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternanyentities", pathParameters),
 		autorest.WithJSON(extractorCreateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -1296,6 +1367,10 @@ func (client ModelClient) CreatePatternAnyEntityRole(ctx context.Context, appID 
 
 // CreatePatternAnyEntityRolePreparer prepares the CreatePatternAnyEntityRole request.
 func (client ModelClient) CreatePatternAnyEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, entityRoleCreateObject EntityRoleCreateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -1305,7 +1380,7 @@ func (client ModelClient) CreatePatternAnyEntityRolePreparer(ctx context.Context
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternanyentities/{entityId}/roles", pathParameters),
 		autorest.WithJSON(entityRoleCreateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -1361,6 +1436,10 @@ func (client ModelClient) CreatePrebuiltEntityRole(ctx context.Context, appID uu
 
 // CreatePrebuiltEntityRolePreparer prepares the CreatePrebuiltEntityRole request.
 func (client ModelClient) CreatePrebuiltEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, entityRoleCreateObject EntityRoleCreateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -1370,7 +1449,7 @@ func (client ModelClient) CreatePrebuiltEntityRolePreparer(ctx context.Context, 
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/prebuilts/{entityId}/roles", pathParameters),
 		autorest.WithJSON(entityRoleCreateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -1426,6 +1505,10 @@ func (client ModelClient) CreateRegexEntityModel(ctx context.Context, appID uuid
 
 // CreateRegexEntityModelPreparer prepares the CreateRegexEntityModel request.
 func (client ModelClient) CreateRegexEntityModelPreparer(ctx context.Context, appID uuid.UUID, versionID string, regexEntityExtractorCreateObj RegexModelCreateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -1434,7 +1517,7 @@ func (client ModelClient) CreateRegexEntityModelPreparer(ctx context.Context, ap
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/regexentities", pathParameters),
 		autorest.WithJSON(regexEntityExtractorCreateObj))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -1490,6 +1573,10 @@ func (client ModelClient) CreateRegexEntityRole(ctx context.Context, appID uuid.
 
 // CreateRegexEntityRolePreparer prepares the CreateRegexEntityRole request.
 func (client ModelClient) CreateRegexEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, entityRoleCreateObject EntityRoleCreateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -1499,7 +1586,7 @@ func (client ModelClient) CreateRegexEntityRolePreparer(ctx context.Context, app
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPost(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/regexentities/{entityId}/roles", pathParameters),
 		autorest.WithJSON(entityRoleCreateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -1554,6 +1641,10 @@ func (client ModelClient) DeleteClosedList(ctx context.Context, appID uuid.UUID,
 
 // DeleteClosedListPreparer prepares the DeleteClosedList request.
 func (client ModelClient) DeleteClosedListPreparer(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":      autorest.Encode("path", appID),
 		"clEntityId": autorest.Encode("path", clEntityID),
@@ -1562,7 +1653,7 @@ func (client ModelClient) DeleteClosedListPreparer(ctx context.Context, appID uu
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/closedlists/{clEntityId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -1617,6 +1708,10 @@ func (client ModelClient) DeleteClosedListEntityRole(ctx context.Context, appID 
 
 // DeleteClosedListEntityRolePreparer prepares the DeleteClosedListEntityRole request.
 func (client ModelClient) DeleteClosedListEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -1626,7 +1721,7 @@ func (client ModelClient) DeleteClosedListEntityRolePreparer(ctx context.Context
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/closedlists/{entityId}/roles/{roleId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -1680,6 +1775,10 @@ func (client ModelClient) DeleteCompositeEntity(ctx context.Context, appID uuid.
 
 // DeleteCompositeEntityPreparer prepares the DeleteCompositeEntity request.
 func (client ModelClient) DeleteCompositeEntityPreparer(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"cEntityId": autorest.Encode("path", cEntityID),
@@ -1688,7 +1787,7 @@ func (client ModelClient) DeleteCompositeEntityPreparer(ctx context.Context, app
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/compositeentities/{cEntityId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -1743,6 +1842,10 @@ func (client ModelClient) DeleteCompositeEntityChild(ctx context.Context, appID 
 
 // DeleteCompositeEntityChildPreparer prepares the DeleteCompositeEntityChild request.
 func (client ModelClient) DeleteCompositeEntityChildPreparer(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID, cChildID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"cChildId":  autorest.Encode("path", cChildID),
@@ -1752,7 +1855,7 @@ func (client ModelClient) DeleteCompositeEntityChildPreparer(ctx context.Context
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/compositeentities/{cEntityId}/children/{cChildId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -1807,6 +1910,10 @@ func (client ModelClient) DeleteCompositeEntityRole(ctx context.Context, appID u
 
 // DeleteCompositeEntityRolePreparer prepares the DeleteCompositeEntityRole request.
 func (client ModelClient) DeleteCompositeEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID, roleID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"cEntityId": autorest.Encode("path", cEntityID),
@@ -1816,7 +1923,7 @@ func (client ModelClient) DeleteCompositeEntityRolePreparer(ctx context.Context,
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/compositeentities/{cEntityId}/roles/{roleId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -1871,6 +1978,10 @@ func (client ModelClient) DeleteCustomEntityRole(ctx context.Context, appID uuid
 
 // DeleteCustomEntityRolePreparer prepares the DeleteCustomEntityRole request.
 func (client ModelClient) DeleteCustomEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -1880,7 +1991,7 @@ func (client ModelClient) DeleteCustomEntityRolePreparer(ctx context.Context, ap
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/customprebuiltentities/{entityId}/roles/{roleId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -1934,6 +2045,10 @@ func (client ModelClient) DeleteCustomPrebuiltDomain(ctx context.Context, appID 
 
 // DeleteCustomPrebuiltDomainPreparer prepares the DeleteCustomPrebuiltDomain request.
 func (client ModelClient) DeleteCustomPrebuiltDomainPreparer(ctx context.Context, appID uuid.UUID, versionID string, domainName string) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":      autorest.Encode("path", appID),
 		"domainName": autorest.Encode("path", domainName),
@@ -1942,7 +2057,7 @@ func (client ModelClient) DeleteCustomPrebuiltDomainPreparer(ctx context.Context
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/customprebuiltdomains/{domainName}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -1996,6 +2111,10 @@ func (client ModelClient) DeleteEntity(ctx context.Context, appID uuid.UUID, ver
 
 // DeleteEntityPreparer prepares the DeleteEntity request.
 func (client ModelClient) DeleteEntityPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -2004,7 +2123,7 @@ func (client ModelClient) DeleteEntityPreparer(ctx context.Context, appID uuid.U
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/entities/{entityId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -2059,6 +2178,10 @@ func (client ModelClient) DeleteEntityRole(ctx context.Context, appID uuid.UUID,
 
 // DeleteEntityRolePreparer prepares the DeleteEntityRole request.
 func (client ModelClient) DeleteEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -2068,7 +2191,7 @@ func (client ModelClient) DeleteEntityRolePreparer(ctx context.Context, appID uu
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/entities/{entityId}/roles/{roleId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -2123,6 +2246,10 @@ func (client ModelClient) DeleteExplicitListItem(ctx context.Context, appID uuid
 
 // DeleteExplicitListItemPreparer prepares the DeleteExplicitListItem request.
 func (client ModelClient) DeleteExplicitListItemPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, itemID int64) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -2132,7 +2259,7 @@ func (client ModelClient) DeleteExplicitListItemPreparer(ctx context.Context, ap
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternanyentities/{entityId}/explicitlist/{itemId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -2186,6 +2313,10 @@ func (client ModelClient) DeleteHierarchicalEntity(ctx context.Context, appID uu
 
 // DeleteHierarchicalEntityPreparer prepares the DeleteHierarchicalEntity request.
 func (client ModelClient) DeleteHierarchicalEntityPreparer(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"hEntityId": autorest.Encode("path", hEntityID),
@@ -2194,7 +2325,7 @@ func (client ModelClient) DeleteHierarchicalEntityPreparer(ctx context.Context, 
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/hierarchicalentities/{hEntityId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -2249,6 +2380,10 @@ func (client ModelClient) DeleteHierarchicalEntityChild(ctx context.Context, app
 
 // DeleteHierarchicalEntityChildPreparer prepares the DeleteHierarchicalEntityChild request.
 func (client ModelClient) DeleteHierarchicalEntityChildPreparer(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID, hChildID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"hChildId":  autorest.Encode("path", hChildID),
@@ -2258,7 +2393,7 @@ func (client ModelClient) DeleteHierarchicalEntityChildPreparer(ctx context.Cont
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/hierarchicalentities/{hEntityId}/children/{hChildId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -2313,6 +2448,10 @@ func (client ModelClient) DeleteHierarchicalEntityRole(ctx context.Context, appI
 
 // DeleteHierarchicalEntityRolePreparer prepares the DeleteHierarchicalEntityRole request.
 func (client ModelClient) DeleteHierarchicalEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID, roleID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"hEntityId": autorest.Encode("path", hEntityID),
@@ -2322,7 +2461,7 @@ func (client ModelClient) DeleteHierarchicalEntityRolePreparer(ctx context.Conte
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/hierarchicalentities/{hEntityId}/roles/{roleId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -2378,6 +2517,10 @@ func (client ModelClient) DeleteIntent(ctx context.Context, appID uuid.UUID, ver
 
 // DeleteIntentPreparer prepares the DeleteIntent request.
 func (client ModelClient) DeleteIntentPreparer(ctx context.Context, appID uuid.UUID, versionID string, intentID uuid.UUID, deleteUtterances *bool) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"intentId":  autorest.Encode("path", intentID),
@@ -2393,7 +2536,7 @@ func (client ModelClient) DeleteIntentPreparer(ctx context.Context, appID uuid.U
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/intents/{intentId}", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -2448,6 +2591,10 @@ func (client ModelClient) DeletePatternAnyEntityModel(ctx context.Context, appID
 
 // DeletePatternAnyEntityModelPreparer prepares the DeletePatternAnyEntityModel request.
 func (client ModelClient) DeletePatternAnyEntityModelPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -2456,7 +2603,7 @@ func (client ModelClient) DeletePatternAnyEntityModelPreparer(ctx context.Contex
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternanyentities/{entityId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -2511,6 +2658,10 @@ func (client ModelClient) DeletePatternAnyEntityRole(ctx context.Context, appID 
 
 // DeletePatternAnyEntityRolePreparer prepares the DeletePatternAnyEntityRole request.
 func (client ModelClient) DeletePatternAnyEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -2520,7 +2671,7 @@ func (client ModelClient) DeletePatternAnyEntityRolePreparer(ctx context.Context
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternanyentities/{entityId}/roles/{roleId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -2574,6 +2725,10 @@ func (client ModelClient) DeletePrebuilt(ctx context.Context, appID uuid.UUID, v
 
 // DeletePrebuiltPreparer prepares the DeletePrebuilt request.
 func (client ModelClient) DeletePrebuiltPreparer(ctx context.Context, appID uuid.UUID, versionID string, prebuiltID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":      autorest.Encode("path", appID),
 		"prebuiltId": autorest.Encode("path", prebuiltID),
@@ -2582,7 +2737,7 @@ func (client ModelClient) DeletePrebuiltPreparer(ctx context.Context, appID uuid
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/prebuilts/{prebuiltId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -2637,6 +2792,10 @@ func (client ModelClient) DeletePrebuiltEntityRole(ctx context.Context, appID uu
 
 // DeletePrebuiltEntityRolePreparer prepares the DeletePrebuiltEntityRole request.
 func (client ModelClient) DeletePrebuiltEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -2646,7 +2805,7 @@ func (client ModelClient) DeletePrebuiltEntityRolePreparer(ctx context.Context, 
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/prebuilts/{entityId}/roles/{roleId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -2700,6 +2859,10 @@ func (client ModelClient) DeleteRegexEntityModel(ctx context.Context, appID uuid
 
 // DeleteRegexEntityModelPreparer prepares the DeleteRegexEntityModel request.
 func (client ModelClient) DeleteRegexEntityModelPreparer(ctx context.Context, appID uuid.UUID, versionID string, regexEntityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":         autorest.Encode("path", appID),
 		"regexEntityId": autorest.Encode("path", regexEntityID),
@@ -2708,7 +2871,7 @@ func (client ModelClient) DeleteRegexEntityModelPreparer(ctx context.Context, ap
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/regexentities/{regexEntityId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -2763,6 +2926,10 @@ func (client ModelClient) DeleteRegexEntityRole(ctx context.Context, appID uuid.
 
 // DeleteRegexEntityRolePreparer prepares the DeleteRegexEntityRole request.
 func (client ModelClient) DeleteRegexEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -2772,7 +2939,7 @@ func (client ModelClient) DeleteRegexEntityRolePreparer(ctx context.Context, app
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/regexentities/{entityId}/roles/{roleId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -2827,6 +2994,10 @@ func (client ModelClient) DeleteSubList(ctx context.Context, appID uuid.UUID, ve
 
 // DeleteSubListPreparer prepares the DeleteSubList request.
 func (client ModelClient) DeleteSubListPreparer(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID, subListID int32) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":      autorest.Encode("path", appID),
 		"clEntityId": autorest.Encode("path", clEntityID),
@@ -2836,7 +3007,7 @@ func (client ModelClient) DeleteSubListPreparer(ctx context.Context, appID uuid.
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsDelete(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/closedlists/{clEntityId}/sublists/{subListId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -2904,6 +3075,10 @@ func (client ModelClient) ExamplesMethod(ctx context.Context, appID uuid.UUID, v
 
 // ExamplesMethodPreparer prepares the ExamplesMethod request.
 func (client ModelClient) ExamplesMethodPreparer(ctx context.Context, appID uuid.UUID, versionID string, modelID string, skip *int32, take *int32) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"modelId":   autorest.Encode("path", modelID),
@@ -2924,7 +3099,7 @@ func (client ModelClient) ExamplesMethodPreparer(ctx context.Context, appID uuid
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/models/{modelId}/examples", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -2979,6 +3154,10 @@ func (client ModelClient) GetClosedList(ctx context.Context, appID uuid.UUID, ve
 
 // GetClosedListPreparer prepares the GetClosedList request.
 func (client ModelClient) GetClosedListPreparer(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":      autorest.Encode("path", appID),
 		"clEntityId": autorest.Encode("path", clEntityID),
@@ -2987,7 +3166,7 @@ func (client ModelClient) GetClosedListPreparer(ctx context.Context, appID uuid.
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/closedlists/{clEntityId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -3042,6 +3221,10 @@ func (client ModelClient) GetClosedListEntityRole(ctx context.Context, appID uui
 
 // GetClosedListEntityRolePreparer prepares the GetClosedListEntityRole request.
 func (client ModelClient) GetClosedListEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -3051,7 +3234,7 @@ func (client ModelClient) GetClosedListEntityRolePreparer(ctx context.Context, a
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/closedlists/{entityId}/roles/{roleId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -3105,6 +3288,10 @@ func (client ModelClient) GetClosedListEntityRoles(ctx context.Context, appID uu
 
 // GetClosedListEntityRolesPreparer prepares the GetClosedListEntityRoles request.
 func (client ModelClient) GetClosedListEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -3113,7 +3300,7 @@ func (client ModelClient) GetClosedListEntityRolesPreparer(ctx context.Context, 
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/closedlists/{entityId}/roles", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -3167,6 +3354,10 @@ func (client ModelClient) GetCompositeEntity(ctx context.Context, appID uuid.UUI
 
 // GetCompositeEntityPreparer prepares the GetCompositeEntity request.
 func (client ModelClient) GetCompositeEntityPreparer(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"cEntityId": autorest.Encode("path", cEntityID),
@@ -3175,7 +3366,7 @@ func (client ModelClient) GetCompositeEntityPreparer(ctx context.Context, appID 
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/compositeentities/{cEntityId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -3230,6 +3421,10 @@ func (client ModelClient) GetCompositeEntityRole(ctx context.Context, appID uuid
 
 // GetCompositeEntityRolePreparer prepares the GetCompositeEntityRole request.
 func (client ModelClient) GetCompositeEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID, roleID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"cEntityId": autorest.Encode("path", cEntityID),
@@ -3239,7 +3434,7 @@ func (client ModelClient) GetCompositeEntityRolePreparer(ctx context.Context, ap
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/compositeentities/{cEntityId}/roles/{roleId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -3293,6 +3488,10 @@ func (client ModelClient) GetCompositeEntityRoles(ctx context.Context, appID uui
 
 // GetCompositeEntityRolesPreparer prepares the GetCompositeEntityRoles request.
 func (client ModelClient) GetCompositeEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"cEntityId": autorest.Encode("path", cEntityID),
@@ -3301,7 +3500,7 @@ func (client ModelClient) GetCompositeEntityRolesPreparer(ctx context.Context, a
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/compositeentities/{cEntityId}/roles", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -3356,6 +3555,10 @@ func (client ModelClient) GetCustomEntityRole(ctx context.Context, appID uuid.UU
 
 // GetCustomEntityRolePreparer prepares the GetCustomEntityRole request.
 func (client ModelClient) GetCustomEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -3365,7 +3568,7 @@ func (client ModelClient) GetCustomEntityRolePreparer(ctx context.Context, appID
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/customprebuiltentities/{entityId}/roles/{roleId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -3419,6 +3622,10 @@ func (client ModelClient) GetCustomPrebuiltEntityRoles(ctx context.Context, appI
 
 // GetCustomPrebuiltEntityRolesPreparer prepares the GetCustomPrebuiltEntityRoles request.
 func (client ModelClient) GetCustomPrebuiltEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -3427,7 +3634,7 @@ func (client ModelClient) GetCustomPrebuiltEntityRolesPreparer(ctx context.Conte
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/customprebuiltentities/{entityId}/roles", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -3481,6 +3688,10 @@ func (client ModelClient) GetEntity(ctx context.Context, appID uuid.UUID, versio
 
 // GetEntityPreparer prepares the GetEntity request.
 func (client ModelClient) GetEntityPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -3489,7 +3700,7 @@ func (client ModelClient) GetEntityPreparer(ctx context.Context, appID uuid.UUID
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/entities/{entityId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -3544,6 +3755,10 @@ func (client ModelClient) GetEntityRole(ctx context.Context, appID uuid.UUID, ve
 
 // GetEntityRolePreparer prepares the GetEntityRole request.
 func (client ModelClient) GetEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -3553,7 +3768,7 @@ func (client ModelClient) GetEntityRolePreparer(ctx context.Context, appID uuid.
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/entities/{entityId}/roles/{roleId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -3607,6 +3822,10 @@ func (client ModelClient) GetEntityRoles(ctx context.Context, appID uuid.UUID, v
 
 // GetEntityRolesPreparer prepares the GetEntityRoles request.
 func (client ModelClient) GetEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -3615,7 +3834,7 @@ func (client ModelClient) GetEntityRolesPreparer(ctx context.Context, appID uuid
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/entities/{entityId}/roles", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -3679,6 +3898,10 @@ func (client ModelClient) GetEntitySuggestions(ctx context.Context, appID uuid.U
 
 // GetEntitySuggestionsPreparer prepares the GetEntitySuggestions request.
 func (client ModelClient) GetEntitySuggestionsPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, take *int32) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -3694,7 +3917,7 @@ func (client ModelClient) GetEntitySuggestionsPreparer(ctx context.Context, appI
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/entities/{entityId}/suggest", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -3749,6 +3972,10 @@ func (client ModelClient) GetExplicitList(ctx context.Context, appID uuid.UUID, 
 
 // GetExplicitListPreparer prepares the GetExplicitList request.
 func (client ModelClient) GetExplicitListPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -3757,7 +3984,7 @@ func (client ModelClient) GetExplicitListPreparer(ctx context.Context, appID uui
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternanyentities/{entityId}/explicitlist", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -3812,6 +4039,10 @@ func (client ModelClient) GetExplicitListItem(ctx context.Context, appID uuid.UU
 
 // GetExplicitListItemPreparer prepares the GetExplicitListItem request.
 func (client ModelClient) GetExplicitListItemPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, itemID int64) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -3821,7 +4052,7 @@ func (client ModelClient) GetExplicitListItemPreparer(ctx context.Context, appID
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternanyentities/{entityId}/explicitlist/{itemId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -3875,6 +4106,10 @@ func (client ModelClient) GetHierarchicalEntity(ctx context.Context, appID uuid.
 
 // GetHierarchicalEntityPreparer prepares the GetHierarchicalEntity request.
 func (client ModelClient) GetHierarchicalEntityPreparer(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"hEntityId": autorest.Encode("path", hEntityID),
@@ -3883,7 +4118,7 @@ func (client ModelClient) GetHierarchicalEntityPreparer(ctx context.Context, app
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/hierarchicalentities/{hEntityId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -3938,6 +4173,10 @@ func (client ModelClient) GetHierarchicalEntityChild(ctx context.Context, appID 
 
 // GetHierarchicalEntityChildPreparer prepares the GetHierarchicalEntityChild request.
 func (client ModelClient) GetHierarchicalEntityChildPreparer(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID, hChildID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"hChildId":  autorest.Encode("path", hChildID),
@@ -3947,7 +4186,7 @@ func (client ModelClient) GetHierarchicalEntityChildPreparer(ctx context.Context
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/hierarchicalentities/{hEntityId}/children/{hChildId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -4002,6 +4241,10 @@ func (client ModelClient) GetHierarchicalEntityRole(ctx context.Context, appID u
 
 // GetHierarchicalEntityRolePreparer prepares the GetHierarchicalEntityRole request.
 func (client ModelClient) GetHierarchicalEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID, roleID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"hEntityId": autorest.Encode("path", hEntityID),
@@ -4011,7 +4254,7 @@ func (client ModelClient) GetHierarchicalEntityRolePreparer(ctx context.Context,
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/hierarchicalentities/{hEntityId}/roles/{roleId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -4065,6 +4308,10 @@ func (client ModelClient) GetHierarchicalEntityRoles(ctx context.Context, appID 
 
 // GetHierarchicalEntityRolesPreparer prepares the GetHierarchicalEntityRoles request.
 func (client ModelClient) GetHierarchicalEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"hEntityId": autorest.Encode("path", hEntityID),
@@ -4073,7 +4320,7 @@ func (client ModelClient) GetHierarchicalEntityRolesPreparer(ctx context.Context
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/hierarchicalentities/{hEntityId}/roles", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -4127,6 +4374,10 @@ func (client ModelClient) GetIntent(ctx context.Context, appID uuid.UUID, versio
 
 // GetIntentPreparer prepares the GetIntent request.
 func (client ModelClient) GetIntentPreparer(ctx context.Context, appID uuid.UUID, versionID string, intentID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"intentId":  autorest.Encode("path", intentID),
@@ -4135,7 +4386,7 @@ func (client ModelClient) GetIntentPreparer(ctx context.Context, appID uuid.UUID
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/intents/{intentId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -4199,6 +4450,10 @@ func (client ModelClient) GetIntentSuggestions(ctx context.Context, appID uuid.U
 
 // GetIntentSuggestionsPreparer prepares the GetIntentSuggestions request.
 func (client ModelClient) GetIntentSuggestionsPreparer(ctx context.Context, appID uuid.UUID, versionID string, intentID uuid.UUID, take *int32) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"intentId":  autorest.Encode("path", intentID),
@@ -4214,7 +4469,7 @@ func (client ModelClient) GetIntentSuggestionsPreparer(ctx context.Context, appI
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/intents/{intentId}/suggest", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -4269,6 +4524,10 @@ func (client ModelClient) GetPatternAnyEntityInfo(ctx context.Context, appID uui
 
 // GetPatternAnyEntityInfoPreparer prepares the GetPatternAnyEntityInfo request.
 func (client ModelClient) GetPatternAnyEntityInfoPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -4277,7 +4536,7 @@ func (client ModelClient) GetPatternAnyEntityInfoPreparer(ctx context.Context, a
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternanyentities/{entityId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -4344,6 +4603,10 @@ func (client ModelClient) GetPatternAnyEntityInfos(ctx context.Context, appID uu
 
 // GetPatternAnyEntityInfosPreparer prepares the GetPatternAnyEntityInfos request.
 func (client ModelClient) GetPatternAnyEntityInfosPreparer(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -4363,7 +4626,7 @@ func (client ModelClient) GetPatternAnyEntityInfosPreparer(ctx context.Context, 
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternanyentities", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -4419,6 +4682,10 @@ func (client ModelClient) GetPatternAnyEntityRole(ctx context.Context, appID uui
 
 // GetPatternAnyEntityRolePreparer prepares the GetPatternAnyEntityRole request.
 func (client ModelClient) GetPatternAnyEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -4428,7 +4695,7 @@ func (client ModelClient) GetPatternAnyEntityRolePreparer(ctx context.Context, a
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternanyentities/{entityId}/roles/{roleId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -4482,6 +4749,10 @@ func (client ModelClient) GetPatternAnyEntityRoles(ctx context.Context, appID uu
 
 // GetPatternAnyEntityRolesPreparer prepares the GetPatternAnyEntityRoles request.
 func (client ModelClient) GetPatternAnyEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -4490,7 +4761,7 @@ func (client ModelClient) GetPatternAnyEntityRolesPreparer(ctx context.Context, 
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternanyentities/{entityId}/roles", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -4544,6 +4815,10 @@ func (client ModelClient) GetPrebuilt(ctx context.Context, appID uuid.UUID, vers
 
 // GetPrebuiltPreparer prepares the GetPrebuilt request.
 func (client ModelClient) GetPrebuiltPreparer(ctx context.Context, appID uuid.UUID, versionID string, prebuiltID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":      autorest.Encode("path", appID),
 		"prebuiltId": autorest.Encode("path", prebuiltID),
@@ -4552,7 +4827,7 @@ func (client ModelClient) GetPrebuiltPreparer(ctx context.Context, appID uuid.UU
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/prebuilts/{prebuiltId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -4607,6 +4882,10 @@ func (client ModelClient) GetPrebuiltEntityRole(ctx context.Context, appID uuid.
 
 // GetPrebuiltEntityRolePreparer prepares the GetPrebuiltEntityRole request.
 func (client ModelClient) GetPrebuiltEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -4616,7 +4895,7 @@ func (client ModelClient) GetPrebuiltEntityRolePreparer(ctx context.Context, app
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/prebuilts/{entityId}/roles/{roleId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -4670,6 +4949,10 @@ func (client ModelClient) GetPrebuiltEntityRoles(ctx context.Context, appID uuid
 
 // GetPrebuiltEntityRolesPreparer prepares the GetPrebuiltEntityRoles request.
 func (client ModelClient) GetPrebuiltEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -4678,7 +4961,7 @@ func (client ModelClient) GetPrebuiltEntityRolesPreparer(ctx context.Context, ap
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/prebuilts/{entityId}/roles", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -4732,6 +5015,10 @@ func (client ModelClient) GetRegexEntityEntityInfo(ctx context.Context, appID uu
 
 // GetRegexEntityEntityInfoPreparer prepares the GetRegexEntityEntityInfo request.
 func (client ModelClient) GetRegexEntityEntityInfoPreparer(ctx context.Context, appID uuid.UUID, versionID string, regexEntityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":         autorest.Encode("path", appID),
 		"regexEntityId": autorest.Encode("path", regexEntityID),
@@ -4740,7 +5027,7 @@ func (client ModelClient) GetRegexEntityEntityInfoPreparer(ctx context.Context, 
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/regexentities/{regexEntityId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -4807,6 +5094,10 @@ func (client ModelClient) GetRegexEntityInfos(ctx context.Context, appID uuid.UU
 
 // GetRegexEntityInfosPreparer prepares the GetRegexEntityInfos request.
 func (client ModelClient) GetRegexEntityInfosPreparer(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -4826,7 +5117,7 @@ func (client ModelClient) GetRegexEntityInfosPreparer(ctx context.Context, appID
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/regexentities", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -4882,6 +5173,10 @@ func (client ModelClient) GetRegexEntityRole(ctx context.Context, appID uuid.UUI
 
 // GetRegexEntityRolePreparer prepares the GetRegexEntityRole request.
 func (client ModelClient) GetRegexEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -4891,7 +5186,7 @@ func (client ModelClient) GetRegexEntityRolePreparer(ctx context.Context, appID 
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/regexentities/{entityId}/roles/{roleId}", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -4945,6 +5240,10 @@ func (client ModelClient) GetRegexEntityRoles(ctx context.Context, appID uuid.UU
 
 // GetRegexEntityRolesPreparer prepares the GetRegexEntityRoles request.
 func (client ModelClient) GetRegexEntityRolesPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -4953,7 +5252,7 @@ func (client ModelClient) GetRegexEntityRolesPreparer(ctx context.Context, appID
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/regexentities/{entityId}/roles", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -5020,6 +5319,10 @@ func (client ModelClient) ListClosedLists(ctx context.Context, appID uuid.UUID, 
 
 // ListClosedListsPreparer prepares the ListClosedLists request.
 func (client ModelClient) ListClosedListsPreparer(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -5039,7 +5342,7 @@ func (client ModelClient) ListClosedListsPreparer(ctx context.Context, appID uui
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/closedlists", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -5107,6 +5410,10 @@ func (client ModelClient) ListCompositeEntities(ctx context.Context, appID uuid.
 
 // ListCompositeEntitiesPreparer prepares the ListCompositeEntities request.
 func (client ModelClient) ListCompositeEntitiesPreparer(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -5126,7 +5433,7 @@ func (client ModelClient) ListCompositeEntitiesPreparer(ctx context.Context, app
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/compositeentities", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -5180,6 +5487,10 @@ func (client ModelClient) ListCustomPrebuiltEntities(ctx context.Context, appID 
 
 // ListCustomPrebuiltEntitiesPreparer prepares the ListCustomPrebuiltEntities request.
 func (client ModelClient) ListCustomPrebuiltEntitiesPreparer(ctx context.Context, appID uuid.UUID, versionID string) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -5187,7 +5498,7 @@ func (client ModelClient) ListCustomPrebuiltEntitiesPreparer(ctx context.Context
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/customprebuiltentities", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -5240,6 +5551,10 @@ func (client ModelClient) ListCustomPrebuiltIntents(ctx context.Context, appID u
 
 // ListCustomPrebuiltIntentsPreparer prepares the ListCustomPrebuiltIntents request.
 func (client ModelClient) ListCustomPrebuiltIntentsPreparer(ctx context.Context, appID uuid.UUID, versionID string) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -5247,7 +5562,7 @@ func (client ModelClient) ListCustomPrebuiltIntentsPreparer(ctx context.Context,
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/customprebuiltintents", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -5300,6 +5615,10 @@ func (client ModelClient) ListCustomPrebuiltModels(ctx context.Context, appID uu
 
 // ListCustomPrebuiltModelsPreparer prepares the ListCustomPrebuiltModels request.
 func (client ModelClient) ListCustomPrebuiltModelsPreparer(ctx context.Context, appID uuid.UUID, versionID string) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -5307,7 +5626,7 @@ func (client ModelClient) ListCustomPrebuiltModelsPreparer(ctx context.Context, 
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/customprebuiltmodels", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -5374,6 +5693,10 @@ func (client ModelClient) ListEntities(ctx context.Context, appID uuid.UUID, ver
 
 // ListEntitiesPreparer prepares the ListEntities request.
 func (client ModelClient) ListEntitiesPreparer(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -5393,7 +5716,7 @@ func (client ModelClient) ListEntitiesPreparer(ctx context.Context, appID uuid.U
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/entities", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -5461,6 +5784,10 @@ func (client ModelClient) ListHierarchicalEntities(ctx context.Context, appID uu
 
 // ListHierarchicalEntitiesPreparer prepares the ListHierarchicalEntities request.
 func (client ModelClient) ListHierarchicalEntitiesPreparer(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -5480,7 +5807,7 @@ func (client ModelClient) ListHierarchicalEntitiesPreparer(ctx context.Context, 
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/hierarchicalentities", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -5548,6 +5875,10 @@ func (client ModelClient) ListIntents(ctx context.Context, appID uuid.UUID, vers
 
 // ListIntentsPreparer prepares the ListIntents request.
 func (client ModelClient) ListIntentsPreparer(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -5567,7 +5898,7 @@ func (client ModelClient) ListIntentsPreparer(ctx context.Context, appID uuid.UU
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/intents", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -5635,6 +5966,10 @@ func (client ModelClient) ListModels(ctx context.Context, appID uuid.UUID, versi
 
 // ListModelsPreparer prepares the ListModels request.
 func (client ModelClient) ListModelsPreparer(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -5654,7 +5989,7 @@ func (client ModelClient) ListModelsPreparer(ctx context.Context, appID uuid.UUI
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/models", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -5708,6 +6043,10 @@ func (client ModelClient) ListPrebuiltEntities(ctx context.Context, appID uuid.U
 
 // ListPrebuiltEntitiesPreparer prepares the ListPrebuiltEntities request.
 func (client ModelClient) ListPrebuiltEntitiesPreparer(ctx context.Context, appID uuid.UUID, versionID string) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -5715,7 +6054,7 @@ func (client ModelClient) ListPrebuiltEntitiesPreparer(ctx context.Context, appI
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/listprebuilts", pathParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
 }
@@ -5782,6 +6121,10 @@ func (client ModelClient) ListPrebuilts(ctx context.Context, appID uuid.UUID, ve
 
 // ListPrebuiltsPreparer prepares the ListPrebuilts request.
 func (client ModelClient) ListPrebuiltsPreparer(ctx context.Context, appID uuid.UUID, versionID string, skip *int32, take *int32) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"versionId": autorest.Encode("path", versionID),
@@ -5801,7 +6144,7 @@ func (client ModelClient) ListPrebuiltsPreparer(ctx context.Context, appID uuid.
 
 	preparer := autorest.CreatePreparer(
 		autorest.AsGet(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/prebuilts", pathParameters),
 		autorest.WithQueryParameters(queryParameters))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -5857,6 +6200,10 @@ func (client ModelClient) PatchClosedList(ctx context.Context, appID uuid.UUID, 
 
 // PatchClosedListPreparer prepares the PatchClosedList request.
 func (client ModelClient) PatchClosedListPreparer(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID, closedListModelPatchObject ClosedListModelPatchObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":      autorest.Encode("path", appID),
 		"clEntityId": autorest.Encode("path", clEntityID),
@@ -5866,7 +6213,7 @@ func (client ModelClient) PatchClosedListPreparer(ctx context.Context, appID uui
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPatch(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/closedlists/{clEntityId}", pathParameters),
 		autorest.WithJSON(closedListModelPatchObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -5922,6 +6269,10 @@ func (client ModelClient) UpdateClosedList(ctx context.Context, appID uuid.UUID,
 
 // UpdateClosedListPreparer prepares the UpdateClosedList request.
 func (client ModelClient) UpdateClosedListPreparer(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID, closedListModelUpdateObject ClosedListModelUpdateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":      autorest.Encode("path", appID),
 		"clEntityId": autorest.Encode("path", clEntityID),
@@ -5931,7 +6282,7 @@ func (client ModelClient) UpdateClosedListPreparer(ctx context.Context, appID uu
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/closedlists/{clEntityId}", pathParameters),
 		autorest.WithJSON(closedListModelUpdateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -5988,6 +6339,10 @@ func (client ModelClient) UpdateClosedListEntityRole(ctx context.Context, appID 
 
 // UpdateClosedListEntityRolePreparer prepares the UpdateClosedListEntityRole request.
 func (client ModelClient) UpdateClosedListEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID, entityRoleUpdateObject EntityRoleUpdateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -5998,7 +6353,7 @@ func (client ModelClient) UpdateClosedListEntityRolePreparer(ctx context.Context
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/closedlists/{entityId}/roles/{roleId}", pathParameters),
 		autorest.WithJSON(entityRoleUpdateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -6054,6 +6409,10 @@ func (client ModelClient) UpdateCompositeEntity(ctx context.Context, appID uuid.
 
 // UpdateCompositeEntityPreparer prepares the UpdateCompositeEntity request.
 func (client ModelClient) UpdateCompositeEntityPreparer(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID, compositeModelUpdateObject CompositeEntityModel) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"cEntityId": autorest.Encode("path", cEntityID),
@@ -6063,7 +6422,7 @@ func (client ModelClient) UpdateCompositeEntityPreparer(ctx context.Context, app
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/compositeentities/{cEntityId}", pathParameters),
 		autorest.WithJSON(compositeModelUpdateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -6120,6 +6479,10 @@ func (client ModelClient) UpdateCompositeEntityRole(ctx context.Context, appID u
 
 // UpdateCompositeEntityRolePreparer prepares the UpdateCompositeEntityRole request.
 func (client ModelClient) UpdateCompositeEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, cEntityID uuid.UUID, roleID uuid.UUID, entityRoleUpdateObject EntityRoleUpdateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"cEntityId": autorest.Encode("path", cEntityID),
@@ -6130,7 +6493,7 @@ func (client ModelClient) UpdateCompositeEntityRolePreparer(ctx context.Context,
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/compositeentities/{cEntityId}/roles/{roleId}", pathParameters),
 		autorest.WithJSON(entityRoleUpdateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -6187,6 +6550,10 @@ func (client ModelClient) UpdateCustomPrebuiltEntityRole(ctx context.Context, ap
 
 // UpdateCustomPrebuiltEntityRolePreparer prepares the UpdateCustomPrebuiltEntityRole request.
 func (client ModelClient) UpdateCustomPrebuiltEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID, entityRoleUpdateObject EntityRoleUpdateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -6197,7 +6564,7 @@ func (client ModelClient) UpdateCustomPrebuiltEntityRolePreparer(ctx context.Con
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/customprebuiltentities/{entityId}/roles/{roleId}", pathParameters),
 		autorest.WithJSON(entityRoleUpdateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -6253,6 +6620,10 @@ func (client ModelClient) UpdateEntity(ctx context.Context, appID uuid.UUID, ver
 
 // UpdateEntityPreparer prepares the UpdateEntity request.
 func (client ModelClient) UpdateEntityPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, modelUpdateObject ModelUpdateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -6262,7 +6633,7 @@ func (client ModelClient) UpdateEntityPreparer(ctx context.Context, appID uuid.U
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/entities/{entityId}", pathParameters),
 		autorest.WithJSON(modelUpdateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -6319,6 +6690,10 @@ func (client ModelClient) UpdateEntityRole(ctx context.Context, appID uuid.UUID,
 
 // UpdateEntityRolePreparer prepares the UpdateEntityRole request.
 func (client ModelClient) UpdateEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID, entityRoleUpdateObject EntityRoleUpdateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -6329,7 +6704,7 @@ func (client ModelClient) UpdateEntityRolePreparer(ctx context.Context, appID uu
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/entities/{entityId}/roles/{roleId}", pathParameters),
 		autorest.WithJSON(entityRoleUpdateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -6386,6 +6761,10 @@ func (client ModelClient) UpdateExplicitListItem(ctx context.Context, appID uuid
 
 // UpdateExplicitListItemPreparer prepares the UpdateExplicitListItem request.
 func (client ModelClient) UpdateExplicitListItemPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, itemID int64, item ExplicitListItemUpdateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -6396,7 +6775,7 @@ func (client ModelClient) UpdateExplicitListItemPreparer(ctx context.Context, ap
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternanyentities/{entityId}/explicitlist/{itemId}", pathParameters),
 		autorest.WithJSON(item))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -6452,6 +6831,10 @@ func (client ModelClient) UpdateHierarchicalEntity(ctx context.Context, appID uu
 
 // UpdateHierarchicalEntityPreparer prepares the UpdateHierarchicalEntity request.
 func (client ModelClient) UpdateHierarchicalEntityPreparer(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID, hierarchicalModelUpdateObject HierarchicalEntityModel) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"hEntityId": autorest.Encode("path", hEntityID),
@@ -6461,7 +6844,7 @@ func (client ModelClient) UpdateHierarchicalEntityPreparer(ctx context.Context, 
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/hierarchicalentities/{hEntityId}", pathParameters),
 		autorest.WithJSON(hierarchicalModelUpdateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -6518,6 +6901,10 @@ func (client ModelClient) UpdateHierarchicalEntityChild(ctx context.Context, app
 
 // UpdateHierarchicalEntityChildPreparer prepares the UpdateHierarchicalEntityChild request.
 func (client ModelClient) UpdateHierarchicalEntityChildPreparer(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID, hChildID uuid.UUID, hierarchicalChildModelUpdateObject HierarchicalChildModelUpdateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"hChildId":  autorest.Encode("path", hChildID),
@@ -6528,7 +6915,7 @@ func (client ModelClient) UpdateHierarchicalEntityChildPreparer(ctx context.Cont
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/hierarchicalentities/{hEntityId}/children/{hChildId}", pathParameters),
 		autorest.WithJSON(hierarchicalChildModelUpdateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -6585,6 +6972,10 @@ func (client ModelClient) UpdateHierarchicalEntityRole(ctx context.Context, appI
 
 // UpdateHierarchicalEntityRolePreparer prepares the UpdateHierarchicalEntityRole request.
 func (client ModelClient) UpdateHierarchicalEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, hEntityID uuid.UUID, roleID uuid.UUID, entityRoleUpdateObject EntityRoleUpdateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"hEntityId": autorest.Encode("path", hEntityID),
@@ -6595,7 +6986,7 @@ func (client ModelClient) UpdateHierarchicalEntityRolePreparer(ctx context.Conte
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/hierarchicalentities/{hEntityId}/roles/{roleId}", pathParameters),
 		autorest.WithJSON(entityRoleUpdateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -6651,6 +7042,10 @@ func (client ModelClient) UpdateIntent(ctx context.Context, appID uuid.UUID, ver
 
 // UpdateIntentPreparer prepares the UpdateIntent request.
 func (client ModelClient) UpdateIntentPreparer(ctx context.Context, appID uuid.UUID, versionID string, intentID uuid.UUID, modelUpdateObject ModelUpdateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"intentId":  autorest.Encode("path", intentID),
@@ -6660,7 +7055,7 @@ func (client ModelClient) UpdateIntentPreparer(ctx context.Context, appID uuid.U
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/intents/{intentId}", pathParameters),
 		autorest.WithJSON(modelUpdateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -6716,6 +7111,10 @@ func (client ModelClient) UpdatePatternAnyEntityModel(ctx context.Context, appID
 
 // UpdatePatternAnyEntityModelPreparer prepares the UpdatePatternAnyEntityModel request.
 func (client ModelClient) UpdatePatternAnyEntityModelPreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, patternAnyUpdateObject PatternAnyModelUpdateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -6725,7 +7124,7 @@ func (client ModelClient) UpdatePatternAnyEntityModelPreparer(ctx context.Contex
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternanyentities/{entityId}", pathParameters),
 		autorest.WithJSON(patternAnyUpdateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -6782,6 +7181,10 @@ func (client ModelClient) UpdatePatternAnyEntityRole(ctx context.Context, appID 
 
 // UpdatePatternAnyEntityRolePreparer prepares the UpdatePatternAnyEntityRole request.
 func (client ModelClient) UpdatePatternAnyEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID, entityRoleUpdateObject EntityRoleUpdateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -6792,7 +7195,7 @@ func (client ModelClient) UpdatePatternAnyEntityRolePreparer(ctx context.Context
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/patternanyentities/{entityId}/roles/{roleId}", pathParameters),
 		autorest.WithJSON(entityRoleUpdateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -6849,6 +7252,10 @@ func (client ModelClient) UpdatePrebuiltEntityRole(ctx context.Context, appID uu
 
 // UpdatePrebuiltEntityRolePreparer prepares the UpdatePrebuiltEntityRole request.
 func (client ModelClient) UpdatePrebuiltEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID, entityRoleUpdateObject EntityRoleUpdateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -6859,7 +7266,7 @@ func (client ModelClient) UpdatePrebuiltEntityRolePreparer(ctx context.Context, 
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/prebuilts/{entityId}/roles/{roleId}", pathParameters),
 		autorest.WithJSON(entityRoleUpdateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -6915,6 +7322,10 @@ func (client ModelClient) UpdateRegexEntityModel(ctx context.Context, appID uuid
 
 // UpdateRegexEntityModelPreparer prepares the UpdateRegexEntityModel request.
 func (client ModelClient) UpdateRegexEntityModelPreparer(ctx context.Context, appID uuid.UUID, versionID string, regexEntityID uuid.UUID, regexEntityUpdateObject RegexModelUpdateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":         autorest.Encode("path", appID),
 		"regexEntityId": autorest.Encode("path", regexEntityID),
@@ -6924,7 +7335,7 @@ func (client ModelClient) UpdateRegexEntityModelPreparer(ctx context.Context, ap
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/regexentities/{regexEntityId}", pathParameters),
 		autorest.WithJSON(regexEntityUpdateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -6981,6 +7392,10 @@ func (client ModelClient) UpdateRegexEntityRole(ctx context.Context, appID uuid.
 
 // UpdateRegexEntityRolePreparer prepares the UpdateRegexEntityRole request.
 func (client ModelClient) UpdateRegexEntityRolePreparer(ctx context.Context, appID uuid.UUID, versionID string, entityID uuid.UUID, roleID uuid.UUID, entityRoleUpdateObject EntityRoleUpdateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":     autorest.Encode("path", appID),
 		"entityId":  autorest.Encode("path", entityID),
@@ -6991,7 +7406,7 @@ func (client ModelClient) UpdateRegexEntityRolePreparer(ctx context.Context, app
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/regexentities/{entityId}/roles/{roleId}", pathParameters),
 		autorest.WithJSON(entityRoleUpdateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))
@@ -7048,6 +7463,10 @@ func (client ModelClient) UpdateSubList(ctx context.Context, appID uuid.UUID, ve
 
 // UpdateSubListPreparer prepares the UpdateSubList request.
 func (client ModelClient) UpdateSubListPreparer(ctx context.Context, appID uuid.UUID, versionID string, clEntityID uuid.UUID, subListID int32, wordListBaseUpdateObject WordListBaseUpdateObject) (*http.Request, error) {
+	urlParameters := map[string]interface{}{
+		"Endpoint": client.Endpoint,
+	}
+
 	pathParameters := map[string]interface{}{
 		"appId":      autorest.Encode("path", appID),
 		"clEntityId": autorest.Encode("path", clEntityID),
@@ -7058,7 +7477,7 @@ func (client ModelClient) UpdateSubListPreparer(ctx context.Context, appID uuid.
 	preparer := autorest.CreatePreparer(
 		autorest.AsContentType("application/json; charset=utf-8"),
 		autorest.AsPut(),
-		autorest.WithBaseURL(client.BaseURI),
+		autorest.WithCustomBaseURL("{Endpoint}/luis/api/v2.0", urlParameters),
 		autorest.WithPathParameters("/apps/{appId}/versions/{versionId}/closedlists/{clEntityId}/sublists/{subListId}", pathParameters),
 		autorest.WithJSON(wordListBaseUpdateObject))
 	return preparer.Prepare((&http.Request{}).WithContext(ctx))

@@ -10,12 +10,15 @@
 package apps
 
 import (
-	"github.com/gorilla/mux"
 	"net/http"
+
+	"github.com/gorilla/mux"
+	"github.com/heketi/heketi/pkg/glusterfs/api"
 )
 
 type Application interface {
 	SetRoutes(router *mux.Router) error
+	TopologyInfo() (*api.TopologyInfoResponse, error)
 	Close()
 	Auth(w http.ResponseWriter, r *http.Request, next http.HandlerFunc)
 }

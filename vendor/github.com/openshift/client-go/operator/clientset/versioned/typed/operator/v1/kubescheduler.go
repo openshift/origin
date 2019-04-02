@@ -3,9 +3,11 @@
 package v1
 
 import (
+	"time"
+
 	v1 "github.com/openshift/api/operator/v1"
 	scheme "github.com/openshift/client-go/operator/clientset/versioned/scheme"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
@@ -22,11 +24,11 @@ type KubeSchedulerInterface interface {
 	Create(*v1.KubeScheduler) (*v1.KubeScheduler, error)
 	Update(*v1.KubeScheduler) (*v1.KubeScheduler, error)
 	UpdateStatus(*v1.KubeScheduler) (*v1.KubeScheduler, error)
-	Delete(name string, options *meta_v1.DeleteOptions) error
-	DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error
-	Get(name string, options meta_v1.GetOptions) (*v1.KubeScheduler, error)
-	List(opts meta_v1.ListOptions) (*v1.KubeSchedulerList, error)
-	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
+	Delete(name string, options *metav1.DeleteOptions) error
+	DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error
+	Get(name string, options metav1.GetOptions) (*v1.KubeScheduler, error)
+	List(opts metav1.ListOptions) (*v1.KubeSchedulerList, error)
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.KubeScheduler, err error)
 	KubeSchedulerExpansion
 }
@@ -44,7 +46,7 @@ func newKubeSchedulers(c *OperatorV1Client) *kubeSchedulers {
 }
 
 // Get takes name of the kubeScheduler, and returns the corresponding kubeScheduler object, and an error if there is any.
-func (c *kubeSchedulers) Get(name string, options meta_v1.GetOptions) (result *v1.KubeScheduler, err error) {
+func (c *kubeSchedulers) Get(name string, options metav1.GetOptions) (result *v1.KubeScheduler, err error) {
 	result = &v1.KubeScheduler{}
 	err = c.client.Get().
 		Resource("kubeschedulers").
@@ -56,22 +58,32 @@ func (c *kubeSchedulers) Get(name string, options meta_v1.GetOptions) (result *v
 }
 
 // List takes label and field selectors, and returns the list of KubeSchedulers that match those selectors.
-func (c *kubeSchedulers) List(opts meta_v1.ListOptions) (result *v1.KubeSchedulerList, err error) {
+func (c *kubeSchedulers) List(opts metav1.ListOptions) (result *v1.KubeSchedulerList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1.KubeSchedulerList{}
 	err = c.client.Get().
 		Resource("kubeschedulers").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested kubeSchedulers.
-func (c *kubeSchedulers) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *kubeSchedulers) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
 		Resource("kubeschedulers").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -114,7 +126,7 @@ func (c *kubeSchedulers) UpdateStatus(kubeScheduler *v1.KubeScheduler) (result *
 }
 
 // Delete takes name of the kubeScheduler and deletes it. Returns an error if one occurs.
-func (c *kubeSchedulers) Delete(name string, options *meta_v1.DeleteOptions) error {
+func (c *kubeSchedulers) Delete(name string, options *metav1.DeleteOptions) error {
 	return c.client.Delete().
 		Resource("kubeschedulers").
 		Name(name).
@@ -124,10 +136,15 @@ func (c *kubeSchedulers) Delete(name string, options *meta_v1.DeleteOptions) err
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *kubeSchedulers) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
+func (c *kubeSchedulers) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
 		Resource("kubeschedulers").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()

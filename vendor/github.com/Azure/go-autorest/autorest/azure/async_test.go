@@ -527,8 +527,8 @@ func TestAsyncPollingReturnsWrappedError(t *testing.T) {
 	sender := mocks.NewSender()
 	sender.AppendResponse(newOperationResourceErrorResponse("Failed"))
 	err = pt.pollForStatus(sender)
-	if err != nil {
-		t.Fatalf("failed to poll for status: %v", err)
+	if err == nil {
+		t.Fatal("unexpected nil polling error")
 	}
 	err = pt.pollingError()
 	if err == nil {
@@ -552,8 +552,8 @@ func TestLocationPollingReturnsWrappedError(t *testing.T) {
 	sender := mocks.NewSender()
 	sender.AppendResponse(newProvisioningStatusErrorResponse("Failed"))
 	err = pt.pollForStatus(sender)
-	if err != nil {
-		t.Fatalf("failed to poll for status: %v", err)
+	if err == nil {
+		t.Fatal("unexpected nil polling error")
 	}
 	err = pt.pollingError()
 	if err == nil {
@@ -577,8 +577,8 @@ func TestLocationPollingReturnsUnwrappedError(t *testing.T) {
 	sender := mocks.NewSender()
 	sender.AppendResponse(newProvisioningStatusUnwrappedErrorResponse("Failed"))
 	err = pt.pollForStatus(sender)
-	if err != nil {
-		t.Fatalf("failed to poll for status: %v", err)
+	if err == nil {
+		t.Fatal("unexpected nil polling error")
 	}
 	err = pt.pollingError()
 	if err == nil {
@@ -744,9 +744,28 @@ func TestFuture_MarshallingSuccess(t *testing.T) {
 }
 
 func TestFuture_MarshallingWithError(t *testing.T) {
-	future, err := NewFutureFromResponse(newAsyncResponseWithError(http.MethodPut))
+	r2 := newOperationResourceResponse("busy")
+	r3 := newOperationResourceErrorResponse(operationFailed)
+
+	sender := mocks.NewSender()
+	sender.AppendAndRepeatResponse(r2, 2)
+	sender.AppendResponse(r3)
+	client := autorest.Client{
+		PollingDelay:    1 * time.Second,
+		PollingDuration: autorest.DefaultPollingDuration,
+		RetryAttempts:   autorest.DefaultRetryAttempts,
+		RetryDuration:   1 * time.Second,
+		Sender:          sender,
+	}
+
+	future, err := NewFutureFromResponse(newSimpleAsyncResp())
 	if err != nil {
 		t.Fatalf("failed to create future: %v", err)
+	}
+
+	err = future.WaitForCompletion(context.Background(), client)
+	if err == nil {
+		t.Fatal("expected non-nil error")
 	}
 
 	data, err := json.Marshal(future)
@@ -773,16 +792,9 @@ func TestFuture_MarshallingWithError(t *testing.T) {
 }
 
 func TestFuture_CreateFromFailedOperation(t *testing.T) {
-	future, err := NewFutureFromResponse(newAsyncResponseWithError(http.MethodPut))
-	if err != nil {
-		t.Fatalf("failed to create future: %v", err)
-	}
-	done, err := future.Done(mocks.NewSender())
+	_, err := NewFutureFromResponse(newAsyncResponseWithError(http.MethodPut))
 	if err == nil {
-		t.Fatalf("Done should have returned an error")
-	}
-	if !done {
-		t.Fatalf("should be done")
+		t.Fatal("expected non-nil error")
 	}
 }
 

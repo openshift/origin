@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -95,8 +95,8 @@ func (c *ManagementStateController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	glog.Infof("Starting management-state-controller-" + c.operatorName)
-	defer glog.Infof("Shutting down management-state-controller-" + c.operatorName)
+	klog.Infof("Starting management-state-controller-" + c.operatorName)
+	defer klog.Infof("Shutting down management-state-controller-" + c.operatorName)
 
 	// doesn't matter what workers say, only start one.
 	go wait.Until(c.runWorker, time.Second, stopCh)
