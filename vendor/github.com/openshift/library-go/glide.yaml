@@ -12,9 +12,9 @@ import:
 - package: k8s.io/client-go
   version: kubernetes-1.13.4
 - package: github.com/openshift/api
-  version: rebase-1.13.4
+  version: master
 - package: github.com/openshift/client-go
-  version: rebase-1.13.4
+  version: master
 
 # crd-schema-gen
 - package: sigs.k8s.io/controller-tools
