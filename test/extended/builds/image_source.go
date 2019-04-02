@@ -71,9 +71,9 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("expecting the pod to contain the file from the input image")
-				out, err := oc.Run("exec").Args(pod.Name, "-c", pod.Spec.Containers[0].Name, "--", "ls", "injected/dir").Output()
+				out, err := oc.Run("exec").Args(pod.Name, "-c", pod.Spec.Containers[0].Name, "--", "ls", "-R", "-l", "injected/opt/app-root").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(out).To(o.ContainSubstring("ruby"))
+				o.Expect(out).To(o.ContainSubstring("bin -> ../../rh/rh-ruby22/root/usr/bin"))
 			})
 		})
 		g.Describe("buildconfig with input source image and docker strategy", func() {
@@ -98,9 +98,9 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("expecting the pod to contain the file from the input image")
-				out, err := oc.Run("exec").Args(pod.Name, "-c", pod.Spec.Containers[0].Name, "--", "ls", "injected/dir").Output()
+				out, err := oc.Run("exec").Args(pod.Name, "-c", pod.Spec.Containers[0].Name, "--", "ls", "-R", "-l", "injected/opt/app-root").Output()
 				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(out).To(o.ContainSubstring("ruby"))
+				o.Expect(out).To(o.ContainSubstring("bin -> ../../rh/rh-ruby22/root/usr/bin"))
 			})
 		})
 		g.Describe("creating a build with an input source image and s2i strategy", func() {
