@@ -20,7 +20,10 @@ package webhook
 import (
 	"encoding/json"
 	"fmt"
+	"runtime/debug"
 	"time"
+
+	"github.com/davecgh/go-spew/spew"
 
 	"k8s.io/klog"
 
@@ -189,7 +192,9 @@ func (w *WebhookAuthorizer) Authorize(attr authorizer.Attributes) (decision auth
 		})
 		if err != nil {
 			// An error here indicates bad configuration or an outage. Log for debugging.
-			klog.Errorf("Failed to make webhook authorizer request: %v", err)
+			klog.Errorf("Failed to make webhook authorizer request %v", err)
+			klog.Errorf("Error: %s\nAttributes:\n%s\n\nSAR object:\n%s\n\n", spew.Sdump(err), spew.Sdump(attr), spew.Sdump(r))
+			debug.PrintStack()
 			return w.decisionOnError, "", err
 		}
 		r.Status = result.Status
