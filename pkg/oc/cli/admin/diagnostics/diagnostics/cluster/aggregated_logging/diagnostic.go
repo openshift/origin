@@ -7,10 +7,12 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	kapibatch "k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	cronjobclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/batch/internalversion"
 	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
 
 	appsv1 "github.com/openshift/api/apps/v1"
@@ -39,6 +41,7 @@ type AggregatedLogging struct {
 	DCClient          appstypedclient.DeploymentConfigsGetter
 	SCCClient         securitytypedclient.SecurityContextConstraintsGetter
 	KubeClient        kclientset.Interface
+	CronJobClient     cronjobclient.CronJobsGetter
 	result            types.DiagnosticResult
 }
 
@@ -68,6 +71,7 @@ func NewAggregatedLogging(
 	crbClient rbacclient.ClusterRoleBindingsGetter,
 	dcClient appstypedclient.DeploymentConfigsGetter,
 	sccClient securitytypedclient.SecurityContextConstraintsGetter,
+	cronjobClient cronjobclient.CronJobsGetter,
 ) *AggregatedLogging {
 	return &AggregatedLogging{
 		Project:           project,
@@ -77,6 +81,7 @@ func NewAggregatedLogging(
 		CRBClient:         crbClient,
 		DCClient:          dcClient,
 		SCCClient:         sccClient,
+		CronJobClient:     cronjobClient,
 		KubeClient:        kclient,
 		result:            types.NewDiagnosticResult(AggregatedLoggingName),
 	}
@@ -119,6 +124,10 @@ func (d *AggregatedLogging) pods(project string, options metav1.ListOptions) (*k
 }
 func (d *AggregatedLogging) deploymentconfigs(project string, options metav1.ListOptions) (*appsv1.DeploymentConfigList, error) {
 	return d.DCClient.DeploymentConfigs(project).List(options)
+}
+
+func (d *AggregatedLogging) cronjobs(project string, options metav1.ListOptions) (*kapibatch.CronJobList, error) {
+	return d.CronJobClient.CronJobs(project).List(options)
 }
 
 func (d *AggregatedLogging) Info(id string, message string) {
@@ -203,6 +212,7 @@ func (d *AggregatedLogging) Check() types.DiagnosticResult {
 	checkClusterRoleBindings(d, d, d.Project)
 	checkSccs(d, d, d.Project)
 	checkDeploymentConfigs(d, d, d.Project)
+	checkCronJobs(d, d, d.Project)
 	checkDaemonSets(d, d, d.Project)
 	checkServices(d, d, d.Project)
 	checkRoutes(d, d, d.Project)
