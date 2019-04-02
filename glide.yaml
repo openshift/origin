@@ -79,11 +79,11 @@ import:
 
 # openshift second
 - package: github.com/openshift/api
-  version: rebase-1.13.4
+  version: master
 - package: github.com/openshift/client-go
-  version: rebase-1.13.4
+  version: master
 - package: github.com/openshift/library-go
-  version: rebase-1.13.4
+  version: master
 - package: github.com/openshift/source-to-image
   version: master
 
