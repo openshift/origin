@@ -1,5 +1,5 @@
-hash: 2e7366b266c6d7c8fde96a3f31cf04ea517a8261acb66d4cc5c8459c83a1deeb
-updated: 2019-04-01T18:04:06.122064165-04:00
+hash: fdb248c68c494301c2b236fe16e13d5dd13c98590244b837f6ffff67c59d1942
+updated: 2019-04-02T12:40:58.982073501-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -898,7 +898,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: 3a6077f1f910bfaec1f34ae9db3492a52e804ae0
+  version: d2f01e7b77a6fc78b328db20285423838419fef7
   subpackages:
   - apps
   - apps/v1
@@ -944,7 +944,7 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 84c2b942258aea2462e675e03aeb8eb4cb5f3c29
+  version: 7cc0953bbbb7925e30232c056606d666942bb542
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/fake
@@ -1070,7 +1070,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: c2806fc0c9daef943d4cc42ac1e3c06231eee43d
+  version: dab26bb3a8dc7fccde7227194af755bbff30ce5d
   subpackages:
   - pkg/config/configdefaults
   - pkg/config/helpers
@@ -1549,7 +1549,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: c63e56f7cbc3d1b4bbc5e12741386725100e2775
+  version: 126ddf8324125004347d1241ac4a862e966f038f
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apis/apiextensions
@@ -1588,7 +1588,7 @@ imports:
   - test/integration
   - test/integration/fixtures
 - name: k8s.io/apimachinery
-  version: 1d549bf4cdeaf52053a0786aba9522ebf380b6cc
+  version: bfd9d19397c4e19add0aff1d5e6455e1e0d2df6d
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/apitesting
@@ -2090,7 +2090,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: b3a190a6b89cbe8688f757f2437ade916da5fc2b
+  version: 00ef801c64ccdebd08d44d186d4d484a8fce3a1b
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config

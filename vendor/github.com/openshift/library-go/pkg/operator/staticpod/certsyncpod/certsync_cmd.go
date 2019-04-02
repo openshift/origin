@@ -7,7 +7,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
-	"k8s.io/klog/glog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
@@ -94,7 +93,7 @@ func (o *CertSyncControllerOptions) Run() error {
 	go controller.Run(1, stopCh)
 
 	<-stopCh
-	glog.Infof("Shutting down certificate syncer")
+	klog.Infof("Shutting down certificate syncer")
 
 	return nil
 }
