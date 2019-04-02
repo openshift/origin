@@ -408,6 +408,8 @@ var (
 			`CSI Volumes CSI attach test using HostPath driver`,
 			`CSI Volumes CSI plugin test using CSI driver: hostPath`,
 			`Volume metrics should create volume metrics in Volume Manager`,
+
+			`Kubelet when scheduling a busybox Pod with hostAliases should write entries to /etc/hosts`, // https://bugzilla.redhat.com/show_bug.cgi?id=1695278
 		},
 		// tests too slow to be part of conformance
 		"[Slow]": {
