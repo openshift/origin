@@ -11,6 +11,10 @@ const (
 	// the IAM policy associated with this account.
 	ErrCodeAuthorizationErrorException = "AuthorizationErrorException"
 
+	// ErrCodeConflictErrorException for service response error code
+	// "ConflictErrorException".
+	ErrCodeConflictErrorException = "ConflictErrorException"
+
 	// ErrCodeInvalidParameterException for service response error code
 	// "InvalidParameterException".
 	//
@@ -29,6 +33,16 @@ const (
 	//
 	// This operation is not permitted.
 	ErrCodeOperationNotPermittedException = "OperationNotPermittedException"
+
+	// ErrCodeResourceInUseException for service response error code
+	// "ResourceInUseException".
+	//
+	// This issue occurs when the same clientRequestToken is used with the StartImportTask
+	// action, but with different parameters. For example, you use the same request
+	// token but have two different import URLs, you can encounter this issue. If
+	// the import tasks are meant to be different, use a different clientRequestToken,
+	// and try again.
+	ErrCodeResourceInUseException = "ResourceInUseException"
 
 	// ErrCodeResourceNotFoundException for service response error code
 	// "ResourceNotFoundException".

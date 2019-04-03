@@ -10,128 +10,104 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/routerinsertion"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
-
-func TestFirewallList(t *testing.T) {
-	client, err := clients.NewNetworkV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a network client: %v", err)
-	}
-
-	allPages, err := firewalls.List(client, nil).AllPages()
-	if err != nil {
-		t.Fatalf("Unable to list firewalls: %v", err)
-	}
-
-	allFirewalls, err := firewalls.ExtractFirewalls(allPages)
-	if err != nil {
-		t.Fatalf("Unable to extract firewalls: %v", err)
-	}
-
-	for _, firewall := range allFirewalls {
-		tools.PrintResource(t, firewall)
-	}
-}
 
 func TestFirewallCRUD(t *testing.T) {
 	client, err := clients.NewNetworkV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a network client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	router, err := layer3.CreateExternalRouter(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create router: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer layer3.DeleteRouter(t, client, router.ID)
 
 	rule, err := CreateRule(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create rule: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteRule(t, client, rule.ID)
 
 	tools.PrintResource(t, rule)
 
 	policy, err := CreatePolicy(t, client, rule.ID)
-	if err != nil {
-		t.Fatalf("Unable to create policy: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeletePolicy(t, client, policy.ID)
 
 	tools.PrintResource(t, policy)
 
 	firewall, err := CreateFirewall(t, client, policy.ID)
-	if err != nil {
-		t.Fatalf("Unable to create firewall: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteFirewall(t, client, firewall.ID)
 
 	tools.PrintResource(t, firewall)
 
-	updateOpts := firewalls.UpdateOpts{
+	fwName := ""
+	fwDescription := ""
+	fwUpdateOpts := firewalls.UpdateOpts{
+		Name:        &fwName,
+		Description: &fwDescription,
 		PolicyID:    policy.ID,
-		Description: "Some firewall description",
 	}
 
-	_, err = firewalls.Update(client, firewall.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatalf("Unable to update firewall: %v", err)
-	}
+	_, err = firewalls.Update(client, firewall.ID, fwUpdateOpts).Extract()
+	th.AssertNoErr(t, err)
 
 	newFirewall, err := firewalls.Get(client, firewall.ID).Extract()
-	if err != nil {
-		t.Fatalf("Unable to get firewall: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, newFirewall)
+	th.AssertEquals(t, newFirewall.Name, fwName)
+	th.AssertEquals(t, newFirewall.Description, fwDescription)
+	th.AssertEquals(t, newFirewall.PolicyID, policy.ID)
+
+	allPages, err := firewalls.List(client, nil).AllPages()
+	th.AssertNoErr(t, err)
+
+	allFirewalls, err := firewalls.ExtractFirewalls(allPages)
+	th.AssertNoErr(t, err)
+
+	var found bool
+	for _, firewall := range allFirewalls {
+		if firewall.ID == newFirewall.ID {
+			found = true
+		}
+	}
+
+	th.AssertEquals(t, found, true)
 }
 
 func TestFirewallCRUDRouter(t *testing.T) {
 	client, err := clients.NewNetworkV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a network client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	router, err := layer3.CreateExternalRouter(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create router: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer layer3.DeleteRouter(t, client, router.ID)
 
 	rule, err := CreateRule(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create rule: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteRule(t, client, rule.ID)
 
 	tools.PrintResource(t, rule)
 
 	policy, err := CreatePolicy(t, client, rule.ID)
-	if err != nil {
-		t.Fatalf("Unable to create policy: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeletePolicy(t, client, policy.ID)
 
 	tools.PrintResource(t, policy)
 
 	firewall, err := CreateFirewallOnRouter(t, client, policy.ID, router.ID)
-	if err != nil {
-		t.Fatalf("Unable to create firewall: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteFirewall(t, client, firewall.ID)
 
 	tools.PrintResource(t, firewall)
 
 	router2, err := layer3.CreateExternalRouter(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create router: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer layer3.DeleteRouter(t, client, router2.ID)
 
+	description := "Some firewall description"
 	firewallUpdateOpts := firewalls.UpdateOpts{
 		PolicyID:    policy.ID,
-		Description: "Some firewall description",
+		Description: &description,
 	}
 
 	updateOpts := routerinsertion.UpdateOptsExt{
@@ -140,57 +116,44 @@ func TestFirewallCRUDRouter(t *testing.T) {
 	}
 
 	_, err = firewalls.Update(client, firewall.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatalf("Unable to update firewall: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	newFirewall, err := firewalls.Get(client, firewall.ID).Extract()
-	if err != nil {
-		t.Fatalf("Unable to get firewall: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, newFirewall)
 }
 
 func TestFirewallCRUDRemoveRouter(t *testing.T) {
 	client, err := clients.NewNetworkV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a network client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	router, err := layer3.CreateExternalRouter(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create router: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer layer3.DeleteRouter(t, client, router.ID)
 
 	rule, err := CreateRule(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create rule: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteRule(t, client, rule.ID)
 
 	tools.PrintResource(t, rule)
 
 	policy, err := CreatePolicy(t, client, rule.ID)
-	if err != nil {
-		t.Fatalf("Unable to create policy: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeletePolicy(t, client, policy.ID)
 
 	tools.PrintResource(t, policy)
 
 	firewall, err := CreateFirewallOnRouter(t, client, policy.ID, router.ID)
-	if err != nil {
-		t.Fatalf("Unable to create firewall: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteFirewall(t, client, firewall.ID)
 
 	tools.PrintResource(t, firewall)
 
+	description := "Some firewall description"
 	firewallUpdateOpts := firewalls.UpdateOpts{
 		PolicyID:    policy.ID,
-		Description: "Some firewall description",
+		Description: &description,
 	}
 
 	updateOpts := routerinsertion.UpdateOptsExt{
@@ -199,14 +162,10 @@ func TestFirewallCRUDRemoveRouter(t *testing.T) {
 	}
 
 	_, err = firewalls.Update(client, firewall.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatalf("Unable to update firewall: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	newFirewall, err := firewalls.Get(client, firewall.ID).Extract()
-	if err != nil {
-		t.Fatalf("Unable to get firewall: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, newFirewall)
 }

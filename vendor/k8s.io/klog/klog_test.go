@@ -19,6 +19,7 @@ package klog
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	stdLog "log"
 	"path/filepath"
 	"runtime"
@@ -27,6 +28,9 @@ import (
 	"testing"
 	"time"
 )
+
+// TODO: This test package should be refactored so that tests cannot
+// interfere with each-other.
 
 // Test that shortHostname works as advertised.
 func TestShortHostname(t *testing.T) {
@@ -368,6 +372,76 @@ func TestRollover(t *testing.T) {
 	}
 	if info.nbytes >= MaxSize {
 		t.Errorf("file size was not reset: %d", info.nbytes)
+	}
+}
+
+func TestOpenAppendOnStart(t *testing.T) {
+	const (
+		x string = "xxxxxxxxxx"
+		y string = "yyyyyyyyyy"
+	)
+
+	setFlags()
+	var err error
+	defer func(previous func(error)) { logExitFunc = previous }(logExitFunc)
+	logExitFunc = func(e error) {
+		err = e
+	}
+
+	f, err := ioutil.TempFile("", "test_klog_OpenAppendOnStart")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	logging.logFile = f.Name()
+
+	// Erase files created by prior tests,
+	for i := range logging.file {
+		logging.file[i] = nil
+	}
+
+	// Logging creates the file
+	Info(x)
+	_, ok := logging.file[infoLog].(*syncBuffer)
+	if !ok {
+		t.Fatal("info wasn't created")
+	}
+	if err != nil {
+		t.Fatalf("info has initial error: %v", err)
+	}
+	// ensure we wrote what we expected
+	logging.flushAll()
+	b, err := ioutil.ReadFile(logging.logFile)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(string(b), x) {
+		t.Fatalf("got %s, missing expected Info log: %s", string(b), x)
+	}
+
+	// Set the file to nil so it gets "created" (opened) again on the next write.
+	for i := range logging.file {
+		logging.file[i] = nil
+	}
+
+	// Logging agagin should open the file again with O_APPEND instead of O_TRUNC
+	Info(y)
+	// ensure we wrote what we expected
+	logging.flushAll()
+	b, err = ioutil.ReadFile(logging.logFile)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(string(b), y) {
+		t.Fatalf("got %s, missing expected Info log: %s", string(b), y)
+	}
+	// The initial log message should be preserved across create calls.
+	logging.flushAll()
+	b, err = ioutil.ReadFile(logging.logFile)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(string(b), x) {
+		t.Fatalf("got %s, missing expected Info log: %s", string(b), x)
 	}
 }
 

@@ -28,19 +28,20 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/klog"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 )
 
 var (
-	plugin_long = templates.LongDesc(`
+	pluginLong = templates.LongDesc(`
 		Provides utilities for interacting with plugins.
 
 		Plugins provide extended functionality that is not part of the major command-line distribution.
 		Please refer to the documentation and examples for more information about how write your own plugins.`)
 
-	plugin_list_long = templates.LongDesc(`
+	pluginListLong = templates.LongDesc(`
 		List all available plugin files on a user's PATH.
 
 		Available plugin files are those that are:
@@ -57,7 +58,7 @@ func NewCmdPlugin(f cmdutil.Factory, streams genericclioptions.IOStreams) *cobra
 		Use:                   "plugin [flags]",
 		DisableFlagsInUseLine: true,
 		Short:                 i18n.T("Provides utilities for interacting with plugins."),
-		Long:                  plugin_long,
+		Long:                  pluginLong,
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.DefaultSubCommandRun(streams.ErrOut)(cmd, args)
 		},
@@ -71,6 +72,8 @@ type PluginListOptions struct {
 	Verifier PathVerifier
 	NameOnly bool
 
+	PluginPaths []string
+
 	genericclioptions.IOStreams
 }
 
@@ -83,7 +86,7 @@ func NewCmdPluginList(f cmdutil.Factory, streams genericclioptions.IOStreams) *c
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "list all visible plugin executables on a user's PATH",
-		Long:  plugin_list_long,
+		Long:  pluginListLong,
 		Run: func(cmd *cobra.Command, args []string) {
 			cmdutil.CheckErr(o.Complete(cmd))
 			cmdutil.CheckErr(o.Run())
@@ -99,22 +102,25 @@ func (o *PluginListOptions) Complete(cmd *cobra.Command) error {
 		root:        cmd.Root(),
 		seenPlugins: make(map[string]string, 0),
 	}
+
+	o.PluginPaths = filepath.SplitList(os.Getenv("PATH"))
 	return nil
 }
 
 func (o *PluginListOptions) Run() error {
-	path := "PATH"
-	if runtime.GOOS == "windows" {
-		path = "path"
-	}
-
 	pluginsFound := false
 	isFirstFile := true
 	pluginErrors := []error{}
 	pluginWarnings := 0
-	for _, dir := range filepath.SplitList(os.Getenv(path)) {
+
+	for _, dir := range uniquePathsList(o.PluginPaths) {
 		files, err := ioutil.ReadDir(dir)
 		if err != nil {
+			if _, ok := err.(*os.PathError); ok && strings.Contains(err.Error(), "no such file") {
+				klog.V(3).Infof("unable to find directory %q in your PATH. Skipping...", dir)
+				continue
+			}
+
 			pluginErrors = append(pluginErrors, fmt.Errorf("error: unable to read directory %q in your PATH: %v", dir, err))
 			continue
 		}

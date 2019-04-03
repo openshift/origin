@@ -62,7 +62,8 @@ func newServerSpanFromInbound(ctx context.Context, tracer opentracing.Tracer, fu
 		ext.RPCServerOption(parentSpanContext),
 		grpcTag,
 	)
-	hackyInjectOpentracingIdsToTags(serverSpan, grpc_ctxtags.Extract(ctx))
+
+	injectOpentracingIdsToTags(serverSpan, grpc_ctxtags.Extract(ctx))
 	return opentracing.ContextWithSpan(ctx, serverSpan), serverSpan
 }
 

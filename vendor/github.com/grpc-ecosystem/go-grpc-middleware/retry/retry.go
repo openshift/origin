@@ -254,7 +254,7 @@ func (s *serverStreamingRetryingStream) reestablishStreamAndResendBuffer(callCtx
 func waitRetryBackoff(attempt uint, parentCtx context.Context, callOpts *options) error {
 	var waitTime time.Duration = 0
 	if attempt > 0 {
-		waitTime = callOpts.backoffFunc(attempt)
+		waitTime = callOpts.backoffFunc(parentCtx, attempt)
 	}
 	if waitTime > 0 {
 		logTrace(parentCtx, "grpc_retry attempt: %d, backoff for %v", attempt, waitTime)

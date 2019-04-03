@@ -55,15 +55,16 @@
 
   {{range $i, $s := .Sections}}
   <!-- start of slide {{$s.Number}} -->
-      <article>
+      <article {{$s.HTMLAttributes}}>
       {{if $s.Elem}}
         <h3>{{$s.Title}}</h3>
         {{range $s.Elem}}{{elem $.Template .}}{{end}}
       {{else}}
         <h2>{{$s.Title}}</h2>
       {{end}}
+      <span class="pagenumber">{{pagenum $s 1}}</span>
       </article>
-  <!-- end of slide {{$i}} -->
+  <!-- end of slide {{$s.Number}} -->
   {{end}}{{/* of Slide block */}}
 
       <article>

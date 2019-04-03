@@ -156,8 +156,9 @@ func TestUpdate(t *testing.T) {
 		portsbinding.PortsBindingExt
 	}
 
+	name := "new_port_name"
 	portUpdateOpts := ports.UpdateOpts{
-		Name: "new_port_name",
+		Name: &name,
 		FixedIPs: []ports.IP{
 			{SubnetID: "a0304c3a-4f08-4c43-88af-d796509c97d2", IPAddress: "10.0.0.3"},
 		},

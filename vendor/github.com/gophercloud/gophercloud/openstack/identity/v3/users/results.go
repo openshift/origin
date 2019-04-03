@@ -98,9 +98,34 @@ type UpdateResult struct {
 	userResult
 }
 
+// ChangePasswordResult is the response from a ChangePassword operation. Call its
+// ExtractErr method to determine if the request succeeded or failed.
+type ChangePasswordResult struct {
+	gophercloud.ErrResult
+}
+
 // DeleteResult is the response from a Delete operation. Call its ExtractErr to
 // determine if the request succeeded or failed.
 type DeleteResult struct {
+	gophercloud.ErrResult
+}
+
+// AddToGroupResult is the response from a AddToGroup operation. Call its
+// ExtractErr method to determine if the request succeeded or failed.
+type AddToGroupResult struct {
+	gophercloud.ErrResult
+}
+
+// IsMemberOfGroupResult is the response from a IsMemberOfGroup operation. Call its
+// Extract method to determine if the request succeeded or failed.
+type IsMemberOfGroupResult struct {
+	isMember bool
+	gophercloud.Result
+}
+
+// RemoveFromGroupResult is the response from a RemoveFromGroup operation. Call its
+// ExtractErr method to determine if the request succeeded or failed.
+type RemoveFromGroupResult struct {
 	gophercloud.ErrResult
 }
 
@@ -146,4 +171,9 @@ func (r userResult) Extract() (*User, error) {
 	}
 	err := r.ExtractInto(&s)
 	return s.User, err
+}
+
+// Extract extracts IsMemberOfGroupResult as bool and error values
+func (r IsMemberOfGroupResult) Extract() (bool, error) {
+	return r.isMember, r.Err
 }

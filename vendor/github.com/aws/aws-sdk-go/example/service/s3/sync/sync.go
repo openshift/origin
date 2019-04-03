@@ -5,6 +5,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"mime"
 	"os"
 	"path/filepath"
 	"strings"
@@ -69,10 +70,18 @@ func (iter *SyncFolderIterator) UploadObject() s3manager.BatchUploadObject {
 		iter.err = err
 	}
 
+	extension := filepath.Ext(fi.key)
+	mimeType := mime.TypeByExtension(extension)
+
+	if mimeType == "" {
+		mimeType = "binary/octet-stream"
+	}
+
 	input := s3manager.UploadInput{
-		Bucket: &iter.bucket,
-		Key:    &fi.key,
-		Body:   body,
+		Bucket:      &iter.bucket,
+		Key:         &fi.key,
+		Body:        body,
+		ContentType: &mimeType,
 	}
 
 	return s3manager.BatchUploadObject{
@@ -101,11 +110,11 @@ func main() {
 
 	iter := NewSyncFolderIterator(*pathPtr, *bucketPtr)
 	if err := uploader.UploadWithIterator(aws.BackgroundContext(), iter); err != nil {
-		fmt.Fprintf(os.Stderr, "unexpected error has occured: %v", err)
+		fmt.Fprintf(os.Stderr, "unexpected error has occurred: %v", err)
 	}
 
 	if err := iter.Err(); err != nil {
-		fmt.Fprintf(os.Stderr, "unexpected error occured during file walking: %v", err)
+		fmt.Fprintf(os.Stderr, "unexpected error occurred during file walking: %v", err)
 	}
 
 	fmt.Println("Success")

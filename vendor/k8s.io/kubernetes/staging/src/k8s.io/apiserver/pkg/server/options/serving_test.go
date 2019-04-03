@@ -36,9 +36,9 @@ import (
 	. "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/certs"
 	servingcerttesting "k8s.io/apiserver/pkg/server/options/testing"
-	utilflag "k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/client-go/discovery"
 	restclient "k8s.io/client-go/rest"
+	cliflag "k8s.io/component-base/cli/flag"
 )
 
 func setUp(t *testing.T) Config {
@@ -404,7 +404,7 @@ func TestServerRunWithSNI(t *testing.T) {
 			caCerts := []*x509.Certificate{ca}
 
 			// create SNI certs
-			var namedCertKeys []utilflag.NamedCertKey
+			var namedCertKeys []cliflag.NamedCertKey
 			serverSig, err := servingcerttesting.CertFileSignature(serverCertBundleFile, serverKeyFile)
 			if err != nil {
 				t.Fatalf("failed to get server cert signature: %v", err)
@@ -421,7 +421,7 @@ func TestServerRunWithSNI(t *testing.T) {
 					t.Fatalf("failed to create SNI cert %d: %v", j, err)
 				}
 
-				namedCertKeys = append(namedCertKeys, utilflag.NamedCertKey{
+				namedCertKeys = append(namedCertKeys, cliflag.NamedCertKey{
 					KeyFile:  keyFile,
 					CertFile: certBundleFile,
 					Names:    c.explicitNames,
@@ -483,7 +483,7 @@ func TestServerRunWithSNI(t *testing.T) {
 
 			// add poststart hook to know when the server is up.
 			startedCh := make(chan struct{})
-			s.AddPostStartHook("test-notifier", func(context PostStartHookContext) error {
+			s.AddPostStartHookOrDie("test-notifier", func(context PostStartHookContext) error {
 				close(startedCh)
 				return nil
 			})

@@ -12,6 +12,7 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/clients"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/v2/volumes"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/aggregates"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/attachinterfaces"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	dsr "github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/defsecrules"
@@ -19,6 +20,7 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/networks"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/quotasets"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/rescueunrescue"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/schedulerhints"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/secgroups"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/servergroups"
@@ -27,8 +29,6 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	th "github.com/gophercloud/gophercloud/testhelper"
-
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/aggregates"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -775,7 +775,9 @@ func DeleteServer(t *testing.T, client *gophercloud.ServiceClient, server *serve
 		t.Fatalf("Error deleting server %s: %s", server.ID, err)
 	}
 
-	t.Fatalf("Could not delete server: %s", server.ID)
+	// If we reach this point, the API returned an actual DELETED status
+	// which is a very short window of time, but happens occasionally.
+	t.Logf("Deleted server: %s", server.ID)
 }
 
 // DeleteServerGroup will delete a server group. A fatal error will occur if
@@ -970,4 +972,33 @@ func FillUpdateOptsFromQuotaSet(src quotasets.QuotaSet, dest *quotasets.UpdateOp
 	dest.ServerGroups = &src.ServerGroups
 	dest.ServerGroupMembers = &src.ServerGroupMembers
 	dest.MetadataItems = &src.MetadataItems
+}
+
+// RescueServer will place the specified server into rescue mode.
+func RescueServer(t *testing.T, client *gophercloud.ServiceClient, server *servers.Server) error {
+	t.Logf("Attempting to put server %s into rescue mode", server.ID)
+	_, err := rescueunrescue.Rescue(client, server.ID, rescueunrescue.RescueOpts{}).Extract()
+	if err != nil {
+		return err
+	}
+
+	if err := WaitForComputeStatus(client, server, "RESCUE"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UnrescueServer will return server from rescue mode.
+func UnrescueServer(t *testing.T, client *gophercloud.ServiceClient, server *servers.Server) error {
+	t.Logf("Attempting to return server %s from rescue mode", server.ID)
+	if err := rescueunrescue.Unrescue(client, server.ID).ExtractErr(); err != nil {
+		return err
+	}
+
+	if err := WaitForComputeStatus(client, server, "ACTIVE"); err != nil {
+		return err
+	}
+
+	return nil
 }

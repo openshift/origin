@@ -46,8 +46,8 @@ import (
 	netutil "k8s.io/apimachinery/pkg/util/net"
 	certutil "k8s.io/client-go/util/cert"
 	cloudprovider "k8s.io/cloud-provider"
+	nodehelpers "k8s.io/cloud-provider/node/helpers"
 	"k8s.io/klog"
-	v1helper "k8s.io/kubernetes/pkg/apis/core/v1/helper"
 )
 
 const (
@@ -110,9 +110,10 @@ type LoadBalancerOpts struct {
 
 // BlockStorageOpts is used to talk to Cinder service
 type BlockStorageOpts struct {
-	BSVersion       string `gcfg:"bs-version"`        // overrides autodetection. v1 or v2. Defaults to auto
-	TrustDevicePath bool   `gcfg:"trust-device-path"` // See Issue #33128
-	IgnoreVolumeAZ  bool   `gcfg:"ignore-volume-az"`
+	BSVersion             string `gcfg:"bs-version"`        // overrides autodetection. v1 or v2. Defaults to auto
+	TrustDevicePath       bool   `gcfg:"trust-device-path"` // See Issue #33128
+	IgnoreVolumeAZ        bool   `gcfg:"ignore-volume-az"`
+	NodeVolumeAttachLimit int    `gcfg:"node-volume-attach-limit"` // override volume attach limit for Cinder. Default is : 256
 }
 
 // RouterOpts is used for Neutron routes
@@ -125,6 +126,9 @@ type MetadataOpts struct {
 	SearchOrder    string     `gcfg:"search-order"`
 	RequestTimeout MyDuration `gcfg:"request-timeout"`
 }
+
+var _ cloudprovider.Interface = (*OpenStack)(nil)
+var _ cloudprovider.Zones = (*OpenStack)(nil)
 
 // OpenStack is an implementation of cloud provider Interface for OpenStack.
 type OpenStack struct {
@@ -366,6 +370,32 @@ func newOpenStack(cfg Config) (*OpenStack, error) {
 	return &os, nil
 }
 
+// NewFakeOpenStackCloud creates and returns an instance of Openstack cloudprovider.
+// Mainly for use in tests that require instantiating Openstack without having
+// to go through cloudprovider interface.
+func NewFakeOpenStackCloud(cfg Config) (*OpenStack, error) {
+	provider, err := openstack.NewClient(cfg.Global.AuthURL)
+	if err != nil {
+		return nil, err
+	}
+	emptyDuration := MyDuration{}
+	if cfg.Metadata.RequestTimeout == emptyDuration {
+		cfg.Metadata.RequestTimeout.Duration = time.Duration(defaultTimeOut)
+	}
+	provider.HTTPClient.Timeout = cfg.Metadata.RequestTimeout.Duration
+
+	os := OpenStack{
+		provider:     provider,
+		region:       cfg.Global.Region,
+		lbOpts:       cfg.LoadBalancer,
+		bsOpts:       cfg.BlockStorage,
+		routeOpts:    cfg.Route,
+		metadataOpts: cfg.Metadata,
+	}
+
+	return &os, nil
+}
+
 // Initialize passes a Kubernetes clientBuilder interface to the cloud provider
 func (os *OpenStack) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
 }
@@ -473,7 +503,7 @@ func nodeAddresses(srv *servers.Server) ([]v1.NodeAddress, error) {
 				addressType = v1.NodeInternalIP
 			}
 
-			v1helper.AddToNodeAddresses(&addrs,
+			nodehelpers.AddToNodeAddresses(&addrs,
 				v1.NodeAddress{
 					Type:    addressType,
 					Address: props.Addr,
@@ -484,7 +514,7 @@ func nodeAddresses(srv *servers.Server) ([]v1.NodeAddress, error) {
 
 	// AccessIPs are usually duplicates of "public" addresses.
 	if srv.AccessIPv4 != "" {
-		v1helper.AddToNodeAddresses(&addrs,
+		nodehelpers.AddToNodeAddresses(&addrs,
 			v1.NodeAddress{
 				Type:    v1.NodeExternalIP,
 				Address: srv.AccessIPv4,
@@ -493,7 +523,7 @@ func nodeAddresses(srv *servers.Server) ([]v1.NodeAddress, error) {
 	}
 
 	if srv.AccessIPv6 != "" {
-		v1helper.AddToNodeAddresses(&addrs,
+		nodehelpers.AddToNodeAddresses(&addrs,
 			v1.NodeAddress{
 				Type:    v1.NodeExternalIP,
 				Address: srv.AccessIPv6,
@@ -502,7 +532,7 @@ func nodeAddresses(srv *servers.Server) ([]v1.NodeAddress, error) {
 	}
 
 	if srv.Metadata[TypeHostName] != "" {
-		v1helper.AddToNodeAddresses(&addrs,
+		nodehelpers.AddToNodeAddresses(&addrs,
 			v1.NodeAddress{
 				Type:    v1.NodeHostName,
 				Address: srv.Metadata[TypeHostName],

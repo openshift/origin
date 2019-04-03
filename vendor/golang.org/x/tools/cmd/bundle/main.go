@@ -88,6 +88,7 @@ import (
 	"go/build"
 	"go/format"
 	"go/parser"
+	"go/printer"
 	"go/token"
 	"go/types"
 	"io/ioutil"
@@ -104,8 +105,8 @@ var (
 	outputFile = flag.String("o", "", "write output to `file` (default standard output)")
 	dstPath    = flag.String("dst", "", "set destination import `path` (default taken from current directory)")
 	pkgName    = flag.String("pkg", "", "set destination package `name` (default taken from current directory)")
-	prefix     = flag.String("prefix", "", "set bundled identifier prefix to `p` (default source package name + \"_\")")
-	underscore = flag.Bool("underscore", false, "rewrite golang.org to golang_org in imports; temporary workaround for golang.org/issue/16333")
+	prefix     = flag.String("prefix", "&_", "set bundled identifier prefix to `p` (default is \"&_\", where & stands for the original name)")
+	underscore = flag.Bool("underscore", false, "rewrite golang.org/x/* to internal/x/* imports; temporary workaround for golang.org/issue/16333")
 
 	importMap = map[string]string{}
 )
@@ -199,10 +200,11 @@ func bundle(src, dst, dstpkg, prefix string) ([]byte, error) {
 		return nil, err
 	}
 
-	info := lprog.Package(src)
-	if prefix == "" {
-		pkgName := info.Files[0].Name.Name
-		prefix = pkgName + "_"
+	// Because there was a single Import call and Load succeeded,
+	// InitialPackages is guaranteed to hold the sole requested package.
+	info := lprog.InitialPackages()[0]
+	if strings.Contains(prefix, "&") {
+		prefix = strings.Replace(prefix, "&", info.Files[0].Name.Name, -1)
 	}
 
 	objsToUpdate := make(map[types.Object]bool)
@@ -296,7 +298,7 @@ func bundle(src, dst, dstpkg, prefix string) ([]byte, error) {
 				pkgStd[spec] = true
 			} else {
 				if *underscore {
-					spec = strings.Replace(spec, "golang.org/", "golang_org/", 1)
+					spec = strings.Replace(spec, "golang.org/x/", "internal/x/", 1)
 				}
 				pkgExt[spec] = true
 			}
@@ -346,25 +348,41 @@ func bundle(src, dst, dstpkg, prefix string) ([]byte, error) {
 			return true
 		})
 
+		last := f.Package
+		if len(f.Imports) > 0 {
+			imp := f.Imports[len(f.Imports)-1]
+			last = imp.End()
+			if imp.Comment != nil {
+				if e := imp.Comment.End(); e > last {
+					last = e
+				}
+			}
+		}
+
 		// Pretty-print package-level declarations.
 		// but no package or import declarations.
-		//
-		// TODO(adonovan): this may cause loss of comments
-		// preceding or associated with the package or import
-		// declarations or not associated with any declaration.
-		// Check.
 		var buf bytes.Buffer
 		for _, decl := range f.Decls {
 			if decl, ok := decl.(*ast.GenDecl); ok && decl.Tok == token.IMPORT {
 				continue
 			}
+
+			beg, end := sourceRange(decl)
+
+			printComments(&out, f.Comments, last, beg)
+
 			buf.Reset()
-			format.Node(&buf, lprog.Fset, decl)
+			format.Node(&buf, lprog.Fset, &printer.CommentedNode{Node: decl, Comments: f.Comments})
 			// Remove each "@@@." in the output.
 			// TODO(adonovan): not hygienic.
 			out.Write(bytes.Replace(buf.Bytes(), []byte("@@@."), nil, -1))
+
+			last = printSameLineComment(&out, f.Comments, lprog.Fset, end)
+
 			out.WriteString("\n\n")
 		}
+
+		printLastComments(&out, f.Comments, last)
 	}
 
 	// Now format the entire thing.
@@ -374,6 +392,69 @@ func bundle(src, dst, dstpkg, prefix string) ([]byte, error) {
 	}
 
 	return result, nil
+}
+
+// sourceRange returns the [beg, end) interval of source code
+// belonging to decl (incl. associated comments).
+func sourceRange(decl ast.Decl) (beg, end token.Pos) {
+	beg = decl.Pos()
+	end = decl.End()
+
+	var doc, com *ast.CommentGroup
+
+	switch d := decl.(type) {
+	case *ast.GenDecl:
+		doc = d.Doc
+		if len(d.Specs) > 0 {
+			switch spec := d.Specs[len(d.Specs)-1].(type) {
+			case *ast.ValueSpec:
+				com = spec.Comment
+			case *ast.TypeSpec:
+				com = spec.Comment
+			}
+		}
+	case *ast.FuncDecl:
+		doc = d.Doc
+	}
+
+	if doc != nil {
+		beg = doc.Pos()
+	}
+	if com != nil && com.End() > end {
+		end = com.End()
+	}
+
+	return beg, end
+}
+
+func printComments(out *bytes.Buffer, comments []*ast.CommentGroup, pos, end token.Pos) {
+	for _, cg := range comments {
+		if pos <= cg.Pos() && cg.Pos() < end {
+			for _, c := range cg.List {
+				fmt.Fprintln(out, c.Text)
+			}
+			fmt.Fprintln(out)
+		}
+	}
+}
+
+const infinity = 1 << 30
+
+func printLastComments(out *bytes.Buffer, comments []*ast.CommentGroup, pos token.Pos) {
+	printComments(out, comments, pos, infinity)
+}
+
+func printSameLineComment(out *bytes.Buffer, comments []*ast.CommentGroup, fset *token.FileSet, pos token.Pos) token.Pos {
+	tf := fset.File(pos)
+	for _, cg := range comments {
+		if pos <= cg.Pos() && tf.Line(cg.Pos()) == tf.Line(pos) {
+			for _, c := range cg.List {
+				fmt.Fprintln(out, c.Text)
+			}
+			return cg.End()
+		}
+	}
+	return pos
 }
 
 type flagFunc func(string)

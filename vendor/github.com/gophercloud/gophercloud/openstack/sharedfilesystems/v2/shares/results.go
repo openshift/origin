@@ -2,9 +2,16 @@ package shares
 
 import (
 	"encoding/json"
+	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/pagination"
+)
+
+const (
+	invalidMarker = "-1"
 )
 
 // Share contains all information associated with an OpenStack Share
@@ -64,6 +71,8 @@ type Share struct {
 	SourceCgsnapshotMemberID string `json:"source_cgsnapshot_member_id"`
 	// Timestamp when the share was created
 	CreatedAt time.Time `json:"-"`
+	// Timestamp when the share was updated
+	UpdatedAt time.Time `json:"-"`
 }
 
 func (r *Share) UnmarshalJSON(b []byte) error {
@@ -71,6 +80,7 @@ func (r *Share) UnmarshalJSON(b []byte) error {
 	var s struct {
 		tmp
 		CreatedAt gophercloud.JSONRFC3339MilliNoZ `json:"created_at"`
+		UpdatedAt gophercloud.JSONRFC3339MilliNoZ `json:"updated_at"`
 	}
 	err := json.Unmarshal(b, &s)
 	if err != nil {
@@ -79,6 +89,7 @@ func (r *Share) UnmarshalJSON(b []byte) error {
 	*r = Share(s.tmp)
 
 	r.CreatedAt = time.Time(s.CreatedAt)
+	r.UpdatedAt = time.Time(s.UpdatedAt)
 
 	return nil
 }
@@ -101,6 +112,86 @@ type CreateResult struct {
 	commonResult
 }
 
+// SharePage is a pagination.pager that is returned from a call to the List function.
+type SharePage struct {
+	pagination.MarkerPageBase
+}
+
+// NextPageURL generates the URL for the page of results after this one.
+func (r SharePage) NextPageURL() (string, error) {
+	currentURL := r.URL
+	mark, err := r.Owner.LastMarker()
+	if err != nil {
+		return "", err
+	}
+	if mark == invalidMarker {
+		return "", nil
+	}
+
+	q := currentURL.Query()
+	q.Set("offset", mark)
+	currentURL.RawQuery = q.Encode()
+	return currentURL.String(), nil
+}
+
+// LastMarker returns the last offset in a ListResult.
+func (r SharePage) LastMarker() (string, error) {
+	shares, err := ExtractShares(r)
+	if err != nil {
+		return invalidMarker, err
+	}
+	if len(shares) == 0 {
+		return invalidMarker, nil
+	}
+
+	u, err := url.Parse(r.URL.String())
+	if err != nil {
+		return invalidMarker, err
+	}
+	queryParams := u.Query()
+	offset := queryParams.Get("offset")
+	limit := queryParams.Get("limit")
+
+	// Limit is not present, only one page required
+	if limit == "" {
+		return invalidMarker, nil
+	}
+
+	iOffset := 0
+	if offset != "" {
+		iOffset, err = strconv.Atoi(offset)
+		if err != nil {
+			return invalidMarker, err
+		}
+	}
+	iLimit, err := strconv.Atoi(limit)
+	if err != nil {
+		return invalidMarker, err
+	}
+	iOffset = iOffset + iLimit
+	offset = strconv.Itoa(iOffset)
+
+	return offset, nil
+}
+
+// IsEmpty satisifies the IsEmpty method of the Page interface
+func (r SharePage) IsEmpty() (bool, error) {
+	shares, err := ExtractShares(r)
+	return len(shares) == 0, err
+}
+
+// ExtractShares extracts and returns a Share slice. It is used while
+// iterating over a shares.List call.
+func ExtractShares(r pagination.Page) ([]Share, error) {
+	var s struct {
+		Shares []Share `json:"shares"`
+	}
+
+	err := (r.(SharePage)).ExtractInto(&s)
+
+	return s.Shares, err
+}
+
 // DeleteResult contains the response body and error from a Delete request.
 type DeleteResult struct {
 	gophercloud.ErrResult
@@ -109,6 +200,33 @@ type DeleteResult struct {
 // GetResult contains the response body and error from a Get request.
 type GetResult struct {
 	commonResult
+}
+
+// UpdateResult contains the response body and error from an Update request.
+type UpdateResult struct {
+	commonResult
+}
+
+// IDFromName is a convenience function that returns a share's ID given its name.
+func IDFromName(client *gophercloud.ServiceClient, name string) (string, error) {
+	r, err := ListDetail(client, &ListOpts{Name: name}).AllPages()
+	if err != nil {
+		return "", err
+	}
+
+	ss, err := ExtractShares(r)
+	if err != nil {
+		return "", err
+	}
+
+	switch len(ss) {
+	case 0:
+		return "", gophercloud.ErrResourceNotFound{Name: name, ResourceType: "share"}
+	case 1:
+		return ss[0].ID, nil
+	default:
+		return "", gophercloud.ErrMultipleResourcesFound{Name: name, Count: len(ss), ResourceType: "share"}
+	}
 }
 
 // GetExportLocationsResult contains the result body and error from an
@@ -176,4 +294,33 @@ func (r GrantAccessResult) Extract() (*AccessRight, error) {
 // GrantAccessResult contains the result body and error from an GrantAccess request.
 type GrantAccessResult struct {
 	gophercloud.Result
+}
+
+// RevokeAccessResult contains the response body and error from a Revoke access request.
+type RevokeAccessResult struct {
+	gophercloud.ErrResult
+}
+
+// Extract will get a slice of AccessRight objects from the commonResult
+func (r ListAccessRightsResult) Extract() ([]AccessRight, error) {
+	var s struct {
+		AccessRights []AccessRight `json:"access_list"`
+	}
+	err := r.ExtractInto(&s)
+	return s.AccessRights, err
+}
+
+// ListAccessRightsResult contains the result body and error from a ListAccessRights request.
+type ListAccessRightsResult struct {
+	gophercloud.Result
+}
+
+// ExtendResult contains the response body and error from an Extend request.
+type ExtendResult struct {
+	gophercloud.ErrResult
+}
+
+// ShrinkResult contains the response body and error from a Shrink request.
+type ShrinkResult struct {
+	gophercloud.ErrResult
 }

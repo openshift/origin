@@ -1,5 +1,5 @@
 /*
-Copyright 2016 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ import (
 	bootstraputil "k8s.io/cluster-bootstrap/token/util"
 	"k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
 	kubeadmapiv1beta1 "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm/v1beta1"
+	kubeadmcmdoptions "k8s.io/kubernetes/cmd/kubeadm/app/cmd/options"
 	"k8s.io/kubernetes/cmd/kubeadm/app/componentconfigs"
 	"k8s.io/kubernetes/cmd/kubeadm/app/constants"
 	"k8s.io/kubernetes/cmd/kubeadm/app/features"
@@ -146,7 +147,7 @@ func ValidateDiscoveryBootstrapToken(b *kubeadm.BootstrapTokenDiscovery, fldPath
 		allErrs = append(allErrs, field.Invalid(fldPath, "", "using token-based discovery without caCertHashes can be unsafe. Set unsafeSkipCAVerification to continue"))
 	}
 
-	allErrs = append(allErrs, ValidateToken(b.Token, fldPath.Child("token"))...)
+	allErrs = append(allErrs, ValidateToken(b.Token, fldPath.Child(kubeadmcmdoptions.TokenStr))...)
 	allErrs = append(allErrs, ValidateDiscoveryTokenAPIServer(b.APIServerEndpoint, fldPath.Child("apiServerEndpoints"))...)
 
 	return allErrs
@@ -199,9 +200,9 @@ func ValidateBootstrapTokens(bts []kubeadm.BootstrapToken, fldPath *field.Path) 
 	allErrs := field.ErrorList{}
 	for i, bt := range bts {
 		btPath := fldPath.Child(fmt.Sprintf("%d", i))
-		allErrs = append(allErrs, ValidateToken(bt.Token.String(), btPath.Child("token"))...)
-		allErrs = append(allErrs, ValidateTokenUsages(bt.Usages, btPath.Child("usages"))...)
-		allErrs = append(allErrs, ValidateTokenGroups(bt.Usages, bt.Groups, btPath.Child("groups"))...)
+		allErrs = append(allErrs, ValidateToken(bt.Token.String(), btPath.Child(kubeadmcmdoptions.TokenStr))...)
+		allErrs = append(allErrs, ValidateTokenUsages(bt.Usages, btPath.Child(kubeadmcmdoptions.TokenUsages))...)
+		allErrs = append(allErrs, ValidateTokenGroups(bt.Usages, bt.Groups, btPath.Child(kubeadmcmdoptions.TokenGroups))...)
 
 		if bt.Expires != nil && bt.TTL != nil {
 			allErrs = append(allErrs, field.Invalid(btPath, "", "the BootstrapToken .TTL and .Expires fields are mutually exclusive"))
@@ -306,8 +307,10 @@ func ValidateEtcd(e *kubeadm.Etcd, fldPath *field.Path) field.ErrorList {
 func ValidateCertSANs(altnames []string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 	for _, altname := range altnames {
-		if len(validation.IsDNS1123Subdomain(altname)) != 0 && net.ParseIP(altname) == nil {
-			allErrs = append(allErrs, field.Invalid(fldPath, altname, "altname is not a valid dns label or ip address"))
+		if errs := validation.IsDNS1123Subdomain(altname); len(errs) != 0 {
+			if net.ParseIP(altname) == nil {
+				allErrs = append(allErrs, field.Invalid(fldPath, altname, fmt.Sprintf("altname is not a valid IP address or DNS label: %s", strings.Join(errs, "; "))))
+			}
 		}
 	}
 	return allErrs
@@ -403,8 +406,8 @@ func ValidateMixedArguments(flag *pflag.FlagSet) error {
 
 	mixedInvalidFlags := []string{}
 	flag.Visit(func(f *pflag.Flag) {
-		if f.Name == "config" || f.Name == "ignore-preflight-errors" || strings.HasPrefix(f.Name, "skip-") || f.Name == "dry-run" || f.Name == "kubeconfig" || f.Name == "v" || f.Name == "rootfs" || f.Name == "print-join-command" || f.Name == "node-name" || f.Name == "cri-socket" {
-			// "--skip-*" flags or other whitelisted flags can be set with --config
+		if isAllowedFlag(f.Name) {
+			// "--skip-*" flags or other allowed flags can be set with --config
 			return
 		}
 		mixedInvalidFlags = append(mixedInvalidFlags, f.Name)
@@ -414,6 +417,23 @@ func ValidateMixedArguments(flag *pflag.FlagSet) error {
 		return errors.Errorf("can not mix '--config' with arguments %v", mixedInvalidFlags)
 	}
 	return nil
+}
+
+func isAllowedFlag(flagName string) bool {
+	knownFlags := sets.NewString(kubeadmcmdoptions.CfgPath,
+		kubeadmcmdoptions.IgnorePreflightErrors,
+		kubeadmcmdoptions.DryRun,
+		kubeadmcmdoptions.KubeconfigPath,
+		kubeadmcmdoptions.NodeName,
+		kubeadmcmdoptions.NodeCRISocket,
+		kubeadmcmdoptions.KubeconfigDir,
+		kubeadmcmdoptions.UploadCerts,
+		kubeadmcmdoptions.CertificateKey,
+		"print-join-command", "rootfs", "v")
+	if knownFlags.Has(flagName) {
+		return true
+	}
+	return strings.HasPrefix(flagName, "skip-")
 }
 
 // ValidateFeatureGates validates provided feature gates

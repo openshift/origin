@@ -23,9 +23,8 @@ import (
 	"strings"
 
 	"k8s.io/api/core/v1"
-	cloudprovider "k8s.io/cloud-provider"
-
 	"k8s.io/apimachinery/pkg/types"
+	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog"
 )
 
@@ -48,7 +47,7 @@ func (az *Cloud) NodeAddresses(ctx context.Context, name types.NodeName) ([]v1.N
 	}
 
 	addressGetter := func(nodeName types.NodeName) ([]v1.NodeAddress, error) {
-		ip, publicIP, err := az.GetIPForMachineWithRetry(nodeName)
+		ip, publicIP, err := az.getIPForMachine(nodeName)
 		if err != nil {
 			klog.V(2).Infof("NodeAddresses(%s) abort backoff: %v", nodeName, err)
 			return nil, err
@@ -164,6 +163,9 @@ func (az *Cloud) InstanceExistsByProviderID(ctx context.Context, providerID stri
 
 	name, err := az.vmSet.GetNodeNameByProviderID(providerID)
 	if err != nil {
+		if err == cloudprovider.InstanceNotFound {
+			return false, nil
+		}
 		return false, err
 	}
 
@@ -244,7 +246,7 @@ func (az *Cloud) InstanceID(ctx context.Context, name types.NodeName) (string, e
 		}
 
 		// Get resource group name.
-		resourceGroup := metadata.Compute.ResourceGroup
+		resourceGroup := strings.ToLower(metadata.Compute.ResourceGroup)
 
 		// Compose instanceID based on nodeName for standard instance.
 		if az.VMType == vmTypeStandard {

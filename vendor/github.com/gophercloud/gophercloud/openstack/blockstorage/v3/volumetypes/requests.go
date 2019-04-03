@@ -112,9 +112,9 @@ type UpdateOptsBuilder interface {
 // to the volumetypes.Update function. For more information about the parameters, see
 // the Volume Type object.
 type UpdateOpts struct {
-	Name        string `json:"name,omitempty"`
-	Description string `json:"description,omitempty"`
-	IsPublic    *bool  `json:"is_public,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
+	IsPublic    *bool   `json:"is_public,omitempty"`
 }
 
 // ToVolumeUpdateMap assembles a request body based on the contents of an

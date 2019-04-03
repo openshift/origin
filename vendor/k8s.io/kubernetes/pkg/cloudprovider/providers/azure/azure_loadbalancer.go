@@ -27,11 +27,11 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	cloudprovider "k8s.io/cloud-provider"
-	serviceapi "k8s.io/kubernetes/pkg/api/v1/service"
+	servicehelpers "k8s.io/cloud-provider/service/helpers"
+	"k8s.io/klog"
 
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2017-09-01/network"
 	"github.com/Azure/go-autorest/autorest/to"
-	"k8s.io/klog"
 )
 
 const (
@@ -169,27 +169,47 @@ func (az *Cloud) UpdateLoadBalancer(ctx context.Context, clusterName string, ser
 func (az *Cloud) EnsureLoadBalancerDeleted(ctx context.Context, clusterName string, service *v1.Service) error {
 	isInternal := requiresInternalLoadBalancer(service)
 	serviceName := getServiceName(service)
-	klog.V(5).Infof("delete(%s): START clusterName=%q", serviceName, clusterName)
+	klog.V(5).Infof("Delete service (%s): START clusterName=%q", serviceName, clusterName)
+
+	ignoreErrors := func(err error) error {
+		if ignoreStatusNotFoundFromError(err) == nil {
+			klog.V(5).Infof("EnsureLoadBalancerDeleted: ignoring StatusNotFound error because the resource doesn't exist (%v)", err)
+			return nil
+		}
+
+		if ignoreStatusForbiddenFromError(err) == nil {
+			klog.V(5).Infof("EnsureLoadBalancerDeleted: ignoring StatusForbidden error (%v). This may be caused by wrong configuration via service annotations", err)
+			return nil
+		}
+
+		return err
+	}
 
 	serviceIPToCleanup, err := az.findServiceIPAddress(ctx, clusterName, service, isInternal)
-	if err != nil {
+	if ignoreErrors(err) != nil {
 		return err
 	}
 
 	klog.V(2).Infof("EnsureLoadBalancerDeleted: reconciling security group for service %q with IP %q, wantLb = false", serviceName, serviceIPToCleanup)
 	if _, err := az.reconcileSecurityGroup(clusterName, service, &serviceIPToCleanup, false /* wantLb */); err != nil {
-		return err
+		if ignoreErrors(err) != nil {
+			return err
+		}
 	}
 
 	if _, err := az.reconcileLoadBalancer(clusterName, service, nil, false /* wantLb */); err != nil {
-		return err
+		if ignoreErrors(err) != nil {
+			return err
+		}
 	}
 
 	if _, err := az.reconcilePublicIP(clusterName, service, nil, false /* wantLb */); err != nil {
-		return err
+		if ignoreErrors(err) != nil {
+			return err
+		}
 	}
 
-	klog.V(2).Infof("delete(%s): FINISH", serviceName)
+	klog.V(2).Infof("Delete service (%s): FINISH", serviceName)
 	return nil
 }
 
@@ -210,7 +230,7 @@ func (az *Cloud) getServiceLoadBalancer(service *v1.Service, clusterName string,
 	primaryVMSetName := az.vmSet.GetPrimaryVMSetName()
 	defaultLBName := az.getAzureLoadBalancerName(clusterName, primaryVMSetName, isInternal)
 
-	existingLBs, err := az.ListLBWithRetry(service)
+	existingLBs, err := az.ListLB(service)
 	if err != nil {
 		return nil, nil, false, err
 	}
@@ -387,7 +407,7 @@ func (az *Cloud) determinePublicIPName(clusterName string, service *v1.Service) 
 
 	pipResourceGroup := az.getPublicIPAddressResourceGroup(service)
 
-	pips, err := az.ListPIPWithRetry(service, pipResourceGroup)
+	pips, err := az.ListPIP(service, pipResourceGroup)
 	if err != nil {
 		return "", err
 	}
@@ -474,13 +494,13 @@ func (az *Cloud) ensurePublicIPExists(service *v1.Service, pipName string, domai
 	}
 
 	klog.V(2).Infof("ensurePublicIPExists for service(%s): pip(%s) - creating", serviceName, *pip.Name)
-	klog.V(10).Infof("CreateOrUpdatePIPWithRetry(%s, %q): start", pipResourceGroup, *pip.Name)
-	err = az.CreateOrUpdatePIPWithRetry(service, pipResourceGroup, pip)
+	klog.V(10).Infof("CreateOrUpdatePIP(%s, %q): start", pipResourceGroup, *pip.Name)
+	err = az.CreateOrUpdatePIP(service, pipResourceGroup, pip)
 	if err != nil {
 		klog.V(2).Infof("ensure(%s) abort backoff: pip(%s) - creating", serviceName, *pip.Name)
 		return nil, err
 	}
-	klog.V(10).Infof("CreateOrUpdatePIPWithRetry(%s, %q): end", pipResourceGroup, *pip.Name)
+	klog.V(10).Infof("CreateOrUpdatePIP(%s, %q): end", pipResourceGroup, *pip.Name)
 
 	ctx, cancel := getContextWithCancel()
 	defer cancel()
@@ -818,16 +838,16 @@ func (az *Cloud) reconcileLoadBalancer(clusterName string, service *v1.Service, 
 			klog.V(10).Infof("EnsureBackendPoolDeleted(%s, %s): end", lbBackendPoolID, vmSetName)
 
 			// Remove the LB.
-			klog.V(10).Infof("reconcileLoadBalancer: az.DeleteLBWithRetry(%q): start", lbName)
-			err = az.DeleteLBWithRetry(service, lbName)
+			klog.V(10).Infof("reconcileLoadBalancer: az.DeleteLB(%q): start", lbName)
+			err = az.DeleteLB(service, lbName)
 			if err != nil {
 				klog.V(2).Infof("reconcileLoadBalancer for service(%s) abort backoff: lb(%s) - deleting; no remaining frontendIPConfigurations", serviceName, lbName)
 				return nil, err
 			}
-			klog.V(10).Infof("az.DeleteLBWithRetry(%q): end", lbName)
+			klog.V(10).Infof("az.DeleteLB(%q): end", lbName)
 		} else {
 			klog.V(2).Infof("reconcileLoadBalancer: reconcileLoadBalancer for service(%s): lb(%s) - updating", serviceName, lbName)
-			err := az.CreateOrUpdateLBWithRetry(service, *lb)
+			err := az.CreateOrUpdateLB(service, *lb)
 			if err != nil {
 				klog.V(2).Infof("reconcileLoadBalancer for service(%s) abort backoff: lb(%s) - updating", serviceName, lbName)
 				return nil, err
@@ -898,8 +918,8 @@ func (az *Cloud) reconcileLoadBalancerRule(
 				return expectedProbes, expectedRules, err
 			}
 
-			if serviceapi.NeedsHealthCheck(service) {
-				podPresencePath, podPresencePort := serviceapi.GetServiceHealthCheckPathPort(service)
+			if servicehelpers.NeedsHealthCheck(service) {
+				podPresencePath, podPresencePort := servicehelpers.GetServiceHealthCheckPathPort(service)
 
 				expectedProbes = append(expectedProbes, network.Probe{
 					Name: &lbRuleName,
@@ -939,10 +959,11 @@ func (az *Cloud) reconcileLoadBalancerRule(
 					BackendAddressPool: &network.SubResource{
 						ID: to.StringPtr(lbBackendPoolID),
 					},
-					LoadDistribution: loadDistribution,
-					FrontendPort:     to.Int32Ptr(port.Port),
-					BackendPort:      to.Int32Ptr(port.Port),
-					EnableFloatingIP: to.BoolPtr(true),
+					LoadDistribution:    loadDistribution,
+					FrontendPort:        to.Int32Ptr(port.Port),
+					BackendPort:         to.Int32Ptr(port.Port),
+					EnableFloatingIP:    to.BoolPtr(true),
+					DisableOutboundSnat: to.BoolPtr(az.disableLoadBalancerOutboundSNAT()),
 				},
 			}
 			if protocol == v1.ProtocolTCP {
@@ -994,7 +1015,7 @@ func (az *Cloud) reconcileSecurityGroup(clusterName string, service *v1.Service,
 		destinationIPAddress = "*"
 	}
 
-	sourceRanges, err := serviceapi.GetLoadBalancerSourceRanges(service)
+	sourceRanges, err := servicehelpers.GetLoadBalancerSourceRanges(service)
 	if err != nil {
 		return nil, err
 	}
@@ -1003,7 +1024,7 @@ func (az *Cloud) reconcileSecurityGroup(clusterName string, service *v1.Service,
 		return nil, err
 	}
 	var sourceAddressPrefixes []string
-	if (sourceRanges == nil || serviceapi.IsAllowAll(sourceRanges)) && len(serviceTags) == 0 {
+	if (sourceRanges == nil || servicehelpers.IsAllowAll(sourceRanges)) && len(serviceTags) == 0 {
 		if !requiresInternalLoadBalancer(service) {
 			sourceAddressPrefixes = []string{"Internet"}
 		}
@@ -1154,8 +1175,8 @@ func (az *Cloud) reconcileSecurityGroup(clusterName string, service *v1.Service,
 	if dirtySg {
 		sg.SecurityRules = &updatedRules
 		klog.V(2).Infof("reconcileSecurityGroup for service(%s): sg(%s) - updating", serviceName, *sg.Name)
-		klog.V(10).Infof("CreateOrUpdateSGWithRetry(%q): start", *sg.Name)
-		err := az.CreateOrUpdateSGWithRetry(service, sg)
+		klog.V(10).Infof("CreateOrUpdateSecurityGroup(%q): start", *sg.Name)
+		err := az.CreateOrUpdateSecurityGroup(service, sg)
 		if err != nil {
 			klog.V(2).Infof("ensure(%s) abort backoff: sg(%s) - updating", serviceName, *sg.Name)
 			// TODO (Nov 2017): remove when augmented security rules are out of preview
@@ -1168,7 +1189,7 @@ func (az *Cloud) reconcileSecurityGroup(clusterName string, service *v1.Service,
 			// END TODO
 			return nil, err
 		}
-		klog.V(10).Infof("CreateOrUpdateSGWithRetry(%q): end", *sg.Name)
+		klog.V(10).Infof("CreateOrUpdateSecurityGroup(%q): end", *sg.Name)
 	}
 	return &sg, nil
 }
@@ -1326,7 +1347,7 @@ func (az *Cloud) reconcilePublicIP(clusterName string, service *v1.Service, lb *
 
 	pipResourceGroup := az.getPublicIPAddressResourceGroup(service)
 
-	pips, err := az.ListPIPWithRetry(service, pipResourceGroup)
+	pips, err := az.ListPIP(service, pipResourceGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -1425,7 +1446,7 @@ func (az *Cloud) safeDeletePublicIP(service *v1.Service, pipResourceGroup string
 
 		// Update load balancer when frontendIPConfigUpdated or loadBalancerRuleUpdated.
 		if frontendIPConfigUpdated || loadBalancerRuleUpdated {
-			err := az.CreateOrUpdateLBWithRetry(service, *lb)
+			err := az.CreateOrUpdateLB(service, *lb)
 			if err != nil {
 				klog.Errorf("safeDeletePublicIP for service(%s) failed with error: %v", getServiceName(service), err)
 				return err
@@ -1434,14 +1455,14 @@ func (az *Cloud) safeDeletePublicIP(service *v1.Service, pipResourceGroup string
 	}
 
 	pipName := to.String(pip.Name)
-	klog.V(10).Infof("DeletePublicIPWithRetry(%s, %q): start", pipResourceGroup, pipName)
-	err := az.DeletePublicIPWithRetry(service, pipResourceGroup, pipName)
+	klog.V(10).Infof("DeletePublicIP(%s, %q): start", pipResourceGroup, pipName)
+	err := az.DeletePublicIP(service, pipResourceGroup, pipName)
 	if err != nil {
 		if err = ignoreStatusNotFoundFromError(err); err != nil {
 			return err
 		}
 	}
-	klog.V(10).Infof("DeletePublicIPWithRetry(%s, %q): end", pipResourceGroup, pipName)
+	klog.V(10).Infof("DeletePublicIP(%s, %q): end", pipResourceGroup, pipName)
 
 	return nil
 }
@@ -1538,7 +1559,7 @@ func requiresInternalLoadBalancer(service *v1.Service) bool {
 
 func subnet(service *v1.Service) *string {
 	if requiresInternalLoadBalancer(service) {
-		if l, found := service.Annotations[ServiceAnnotationLoadBalancerInternalSubnet]; found {
+		if l, found := service.Annotations[ServiceAnnotationLoadBalancerInternalSubnet]; found && strings.TrimSpace(l) != "" {
 			return &l
 		}
 	}

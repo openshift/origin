@@ -7,17 +7,21 @@ const (
 	// ErrCodeBadRequestException for service response error code
 	// "BadRequestException".
 	//
-	// Your request didn't pass one or more validation tests. For example, a name
-	// already exists when createing a resource or a name may not exist when getting
-	// a transcription job or custom vocabulary. See the exception Message field
+	// Your request didn't pass one or more validation tests. For example, if the
+	// transcription you're trying to delete doesn't exist or if it is in a non-terminal
+	// state (for example, it's "in progress"). See the exception Message field
 	// for more information.
 	ErrCodeBadRequestException = "BadRequestException"
 
 	// ErrCodeConflictException for service response error code
 	// "ConflictException".
 	//
-	// The JobName field is a duplicate of a previously entered job name. Resend
-	// your request with a different name.
+	// When you are using the StartTranscriptionJob operation, the JobName field
+	// is a duplicate of a previously entered job name. Resend your request with
+	// a different name.
+	//
+	// When you are using the UpdateVocabulary operation, there are two jobs running
+	// at the same time. Resend the second request later.
 	ErrCodeConflictException = "ConflictException"
 
 	// ErrCodeInternalFailureException for service response error code
@@ -37,7 +41,7 @@ const (
 	// ErrCodeNotFoundException for service response error code
 	// "NotFoundException".
 	//
-	// We can't find the requested transcription job or custom vocabulary. Check
-	// the name and try your request again.
+	// We can't find the requested resource. Check the name and try your request
+	// again.
 	ErrCodeNotFoundException = "NotFoundException"
 )

@@ -41,6 +41,36 @@ func TestCreate(t *testing.T) {
 	th.AssertDeepEquals(t, &expectedInstance, instance)
 }
 
+func TestCreateWithFault(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleCreateWithFault(t)
+
+	opts := instances.CreateOpts{
+		Name:      "json_rack_instance",
+		FlavorRef: "1",
+		Databases: db.BatchCreateOpts{
+			{CharSet: "utf8", Collate: "utf8_general_ci", Name: "sampledb"},
+			{Name: "nextround"},
+		},
+		Users: users.BatchCreateOpts{
+			{
+				Name:     "demouser",
+				Password: "demopassword",
+				Databases: db.BatchCreateOpts{
+					{Name: "sampledb"},
+				},
+			},
+		},
+		Size: 2,
+	}
+
+	instance, err := instances.Create(fake.ServiceClient(), opts).Extract()
+
+	th.AssertNoErr(t, err)
+	th.AssertDeepEquals(t, &expectedInstanceWithFault, instance)
+}
+
 func TestInstanceList(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()

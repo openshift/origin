@@ -8,13 +8,14 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/clients"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/projects"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 func TestProjectsList(t *testing.T) {
+	clients.RequireAdmin(t)
+
 	client, err := clients.NewIdentityV3Client()
-	if err != nil {
-		t.Fatalf("Unable to obtain an identity client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	var iTrue bool = true
 	listOpts := projects.ListOpts{
@@ -22,35 +23,76 @@ func TestProjectsList(t *testing.T) {
 	}
 
 	allPages, err := projects.List(client, listOpts).AllPages()
-	if err != nil {
-		t.Fatalf("Unable to list projects: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	allProjects, err := projects.ExtractProjects(allPages)
-	if err != nil {
-		t.Fatalf("Unable to extract projects: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
+	var found bool
 	for _, project := range allProjects {
 		tools.PrintResource(t, project)
+
+		if project.Name == "admin" {
+			found = true
+		}
 	}
+
+	th.AssertEquals(t, found, true)
+
+	listOpts.Filters = map[string]string{
+		"name__contains": "dmi",
+	}
+
+	allPages, err = projects.List(client, listOpts).AllPages()
+	th.AssertNoErr(t, err)
+
+	allProjects, err = projects.ExtractProjects(allPages)
+	th.AssertNoErr(t, err)
+
+	found = false
+	for _, project := range allProjects {
+		tools.PrintResource(t, project)
+
+		if project.Name == "admin" {
+			found = true
+		}
+	}
+
+	th.AssertEquals(t, found, true)
+
+	listOpts.Filters = map[string]string{
+		"name__contains": "foo",
+	}
+
+	allPages, err = projects.List(client, listOpts).AllPages()
+	th.AssertNoErr(t, err)
+
+	allProjects, err = projects.ExtractProjects(allPages)
+	th.AssertNoErr(t, err)
+
+	found = false
+	for _, project := range allProjects {
+		tools.PrintResource(t, project)
+
+		if project.Name == "admin" {
+			found = true
+		}
+	}
+
+	th.AssertEquals(t, found, false)
 }
 
 func TestProjectsGet(t *testing.T) {
+	clients.RequireAdmin(t)
+
 	client, err := clients.NewIdentityV3Client()
-	if err != nil {
-		t.Fatalf("Unable to obtain an identity client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	allPages, err := projects.List(client, nil).AllPages()
-	if err != nil {
-		t.Fatalf("Unable to list projects: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	allProjects, err := projects.ExtractProjects(allPages)
-	if err != nil {
-		t.Fatalf("Unable to extract projects: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	project := allProjects[0]
 	p, err := projects.Get(client, project.ID).Extract()
@@ -59,40 +101,42 @@ func TestProjectsGet(t *testing.T) {
 	}
 
 	tools.PrintResource(t, p)
+
+	th.AssertEquals(t, project.Name, p.Name)
 }
 
 func TestProjectsCRUD(t *testing.T) {
+	clients.RequireAdmin(t)
+
 	client, err := clients.NewIdentityV3Client()
-	if err != nil {
-		t.Fatalf("Unable to obtain an identity client: %v")
-	}
+	th.AssertNoErr(t, err)
 
 	project, err := CreateProject(t, client, nil)
-	if err != nil {
-		t.Fatalf("Unable to create project: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteProject(t, client, project.ID)
 
 	tools.PrintResource(t, project)
 
-	var iFalse bool = false
+	description := ""
+	iFalse := false
 	updateOpts := projects.UpdateOpts{
-		Enabled: &iFalse,
+		Description: &description,
+		Enabled:     &iFalse,
 	}
 
 	updatedProject, err := projects.Update(client, project.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatalf("Unable to update project: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, updatedProject)
+	th.AssertEquals(t, updatedProject.Description, description)
+	th.AssertEquals(t, updatedProject.Enabled, iFalse)
 }
 
 func TestProjectsDomain(t *testing.T) {
+	clients.RequireAdmin(t)
+
 	client, err := clients.NewIdentityV3Client()
-	if err != nil {
-		t.Fatalf("Unable to obtain an identity client: %v")
-	}
+	th.AssertNoErr(t, err)
 
 	var iTrue = true
 	createOpts := projects.CreateOpts{
@@ -100,9 +144,7 @@ func TestProjectsDomain(t *testing.T) {
 	}
 
 	projectDomain, err := CreateProject(t, client, &createOpts)
-	if err != nil {
-		t.Fatalf("Unable to create project: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteProject(t, client, projectDomain.ID)
 
 	tools.PrintResource(t, projectDomain)
@@ -112,12 +154,12 @@ func TestProjectsDomain(t *testing.T) {
 	}
 
 	project, err := CreateProject(t, client, &createOpts)
-	if err != nil {
-		t.Fatalf("Unable to create project: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteProject(t, client, project.ID)
 
 	tools.PrintResource(t, project)
+
+	th.AssertEquals(t, project.DomainID, projectDomain.ID)
 
 	var iFalse = false
 	updateOpts := projects.UpdateOpts{
@@ -125,21 +167,17 @@ func TestProjectsDomain(t *testing.T) {
 	}
 
 	_, err = projects.Update(client, projectDomain.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatalf("Unable to disable domain: %v")
-	}
+	th.AssertNoErr(t, err)
 }
 
 func TestProjectsNested(t *testing.T) {
+	clients.RequireAdmin(t)
+
 	client, err := clients.NewIdentityV3Client()
-	if err != nil {
-		t.Fatalf("Unable to obtain an identity client: %v")
-	}
+	th.AssertNoErr(t, err)
 
 	projectMain, err := CreateProject(t, client, nil)
-	if err != nil {
-		t.Fatalf("Unable to create project: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteProject(t, client, projectMain.ID)
 
 	tools.PrintResource(t, projectMain)
@@ -149,10 +187,10 @@ func TestProjectsNested(t *testing.T) {
 	}
 
 	project, err := CreateProject(t, client, &createOpts)
-	if err != nil {
-		t.Fatalf("Unable to create project: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteProject(t, client, project.ID)
 
 	tools.PrintResource(t, project)
+
+	th.AssertEquals(t, project.ParentID, projectMain.ID)
 }

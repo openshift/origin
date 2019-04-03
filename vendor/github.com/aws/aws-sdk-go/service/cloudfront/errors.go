@@ -301,10 +301,6 @@ const (
 	// No profile specified for the field-level encryption query argument.
 	ErrCodeQueryArgProfileEmpty = "QueryArgProfileEmpty"
 
-	// ErrCodeResourceInUse for service response error code
-	// "ResourceInUse".
-	ErrCodeResourceInUse = "ResourceInUse"
-
 	// ErrCodeStreamingDistributionAlreadyExists for service response error code
 	// "StreamingDistributionAlreadyExists".
 	ErrCodeStreamingDistributionAlreadyExists = "StreamingDistributionAlreadyExists"
@@ -428,6 +424,13 @@ const (
 	// ErrCodeTooManyOriginCustomHeaders for service response error code
 	// "TooManyOriginCustomHeaders".
 	ErrCodeTooManyOriginCustomHeaders = "TooManyOriginCustomHeaders"
+
+	// ErrCodeTooManyOriginGroupsPerDistribution for service response error code
+	// "TooManyOriginGroupsPerDistribution".
+	//
+	// Processing your request would cause you to exceed the maximum number of origin
+	// groups allowed.
+	ErrCodeTooManyOriginGroupsPerDistribution = "TooManyOriginGroupsPerDistribution"
 
 	// ErrCodeTooManyOrigins for service response error code
 	// "TooManyOrigins".

@@ -825,6 +825,21 @@
         {"shape":"ServiceAccountException"}
       ]
     },
+    "StopJob":{
+      "name":"StopJob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"StopJobRequest"},
+      "output":{"shape":"StopJobResult"},
+      "errors":[
+        {"shape":"ArgumentException"},
+        {"shape":"NotFoundException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"ServiceAccountException"}
+      ]
+    },
     "StopRemoteAccessSession":{
       "name":"StopRemoteAccessSession",
       "http":{
@@ -923,6 +938,21 @@
       },
       "input":{"shape":"UpdateProjectRequest"},
       "output":{"shape":"UpdateProjectResult"},
+      "errors":[
+        {"shape":"ArgumentException"},
+        {"shape":"NotFoundException"},
+        {"shape":"LimitExceededException"},
+        {"shape":"ServiceAccountException"}
+      ]
+    },
+    "UpdateUpload":{
+      "name":"UpdateUpload",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"UpdateUploadRequest"},
+      "output":{"shape":"UpdateUploadResult"},
       "errors":[
         {"shape":"ArgumentException"},
         {"shape":"NotFoundException"},
@@ -1033,7 +1063,8 @@
         "XCTEST_LOG",
         "VIDEO",
         "CUSTOMER_ARTIFACT",
-        "CUSTOMER_ARTIFACT_LOG"
+        "CUSTOMER_ARTIFACT_LOG",
+        "TESTSPEC_OUTPUT"
       ]
     },
     "Artifacts":{
@@ -1089,7 +1120,8 @@
         "projectArn":{"shape":"AmazonResourceName"},
         "name":{"shape":"Name"},
         "description":{"shape":"Message"},
-        "rules":{"shape":"Rules"}
+        "rules":{"shape":"Rules"},
+        "maxDevices":{"shape":"Integer"}
       }
     },
     "CreateDevicePoolResult":{
@@ -1361,7 +1393,8 @@
         "remoteDebugEnabled":{"shape":"Boolean"},
         "fleetType":{"shape":"String"},
         "fleetName":{"shape":"String"},
-        "instances":{"shape":"DeviceInstances"}
+        "instances":{"shape":"DeviceInstances"},
+        "availability":{"shape":"DeviceAvailability"}
       }
     },
     "DeviceAttribute":{
@@ -1376,8 +1409,53 @@
         "APPIUM_VERSION",
         "INSTANCE_ARN",
         "INSTANCE_LABELS",
+        "FLEET_TYPE",
+        "OS_VERSION",
+        "MODEL",
+        "AVAILABILITY"
+      ]
+    },
+    "DeviceAvailability":{
+      "type":"string",
+      "enum":[
+        "TEMPORARY_NOT_AVAILABLE",
+        "BUSY",
+        "AVAILABLE",
+        "HIGHLY_AVAILABLE"
+      ]
+    },
+    "DeviceFilter":{
+      "type":"structure",
+      "members":{
+        "attribute":{"shape":"DeviceFilterAttribute"},
+        "operator":{"shape":"RuleOperator"},
+        "values":{"shape":"DeviceFilterValues"}
+      }
+    },
+    "DeviceFilterAttribute":{
+      "type":"string",
+      "enum":[
+        "ARN",
+        "PLATFORM",
+        "OS_VERSION",
+        "MODEL",
+        "AVAILABILITY",
+        "FORM_FACTOR",
+        "MANUFACTURER",
+        "REMOTE_ACCESS_ENABLED",
+        "REMOTE_DEBUG_ENABLED",
+        "INSTANCE_ARN",
+        "INSTANCE_LABELS",
         "FLEET_TYPE"
       ]
+    },
+    "DeviceFilterValues":{
+      "type":"list",
+      "member":{"shape":"String"}
+    },
+    "DeviceFilters":{
+      "type":"list",
+      "member":{"shape":"DeviceFilter"}
     },
     "DeviceFormFactor":{
       "type":"string",
@@ -1427,7 +1505,8 @@
         "name":{"shape":"Name"},
         "description":{"shape":"Message"},
         "type":{"shape":"DevicePoolType"},
-        "rules":{"shape":"Rules"}
+        "rules":{"shape":"Rules"},
+        "maxDevices":{"shape":"Integer"}
       }
     },
     "DevicePoolCompatibilityResult":{
@@ -1453,6 +1532,25 @@
       "type":"list",
       "member":{"shape":"DevicePool"}
     },
+    "DeviceSelectionConfiguration":{
+      "type":"structure",
+      "required":[
+        "filters",
+        "maxDevices"
+      ],
+      "members":{
+        "filters":{"shape":"DeviceFilters"},
+        "maxDevices":{"shape":"Integer"}
+      }
+    },
+    "DeviceSelectionResult":{
+      "type":"structure",
+      "members":{
+        "filters":{"shape":"DeviceFilters"},
+        "matchedDevicesCount":{"shape":"Integer"},
+        "maxDevices":{"shape":"Integer"}
+      }
+    },
     "Devices":{
       "type":"list",
       "member":{"shape":"Device"}
@@ -1464,6 +1562,7 @@
         "jobTimeoutMinutes":{"shape":"JobTimeoutMinutes"},
         "accountsCleanup":{"shape":"AccountsCleanup"},
         "appPackagesCleanup":{"shape":"AppPackagesCleanup"},
+        "videoCapture":{"shape":"VideoCapture"},
         "skipAppResign":{"shape":"SkipAppResign"}
       }
     },
@@ -1821,7 +1920,9 @@
         "message":{"shape":"Message"},
         "device":{"shape":"Device"},
         "instanceArn":{"shape":"AmazonResourceName"},
-        "deviceMinutes":{"shape":"DeviceMinutes"}
+        "deviceMinutes":{"shape":"DeviceMinutes"},
+        "videoEndpoint":{"shape":"String"},
+        "videoCapture":{"shape":"VideoCapture"}
       }
     },
     "JobTimeoutMinutes":{"type":"integer"},
@@ -1889,7 +1990,8 @@
       "type":"structure",
       "members":{
         "arn":{"shape":"AmazonResourceName"},
-        "nextToken":{"shape":"PaginationToken"}
+        "nextToken":{"shape":"PaginationToken"},
+        "filters":{"shape":"DeviceFilters"}
       }
     },
     "ListDevicesResult":{
@@ -2092,6 +2194,7 @@
       "required":["arn"],
       "members":{
         "arn":{"shape":"AmazonResourceName"},
+        "type":{"shape":"UploadType"},
         "nextToken":{"shape":"PaginationToken"}
       }
     },
@@ -2426,7 +2529,9 @@
       "enum":[
         "EQUALS",
         "LESS_THAN",
+        "LESS_THAN_OR_EQUALS",
         "GREATER_THAN",
+        "GREATER_THAN_OR_EQUALS",
         "IN",
         "NOT_IN",
         "CONTAINS"
@@ -2467,7 +2572,9 @@
         "location":{"shape":"Location"},
         "customerArtifactPaths":{"shape":"CustomerArtifactPaths"},
         "webUrl":{"shape":"String"},
-        "skipAppResign":{"shape":"SkipAppResign"}
+        "skipAppResign":{"shape":"SkipAppResign"},
+        "testSpecArn":{"shape":"AmazonResourceName"},
+        "deviceSelectionResult":{"shape":"DeviceSelectionResult"}
       }
     },
     "Runs":{
@@ -2526,13 +2633,13 @@
       "type":"structure",
       "required":[
         "projectArn",
-        "devicePoolArn",
         "test"
       ],
       "members":{
         "projectArn":{"shape":"AmazonResourceName"},
         "appArn":{"shape":"AmazonResourceName"},
         "devicePoolArn":{"shape":"AmazonResourceName"},
+        "deviceSelectionConfiguration":{"shape":"DeviceSelectionConfiguration"},
         "name":{"shape":"Name"},
         "test":{"shape":"ScheduleRunTest"},
         "configuration":{"shape":"ScheduleRunConfiguration"},
@@ -2551,6 +2658,7 @@
       "members":{
         "type":{"shape":"TestType"},
         "testPackageArn":{"shape":"AmazonResourceName"},
+        "testSpecArn":{"shape":"AmazonResourceName"},
         "filter":{"shape":"Filter"},
         "parameters":{"shape":"TestParameters"}
       }
@@ -2572,6 +2680,19 @@
       "type":"string",
       "max":8192,
       "min":0
+    },
+    "StopJobRequest":{
+      "type":"structure",
+      "required":["arn"],
+      "members":{
+        "arn":{"shape":"AmazonResourceName"}
+      }
+    },
+    "StopJobResult":{
+      "type":"structure",
+      "members":{
+        "job":{"shape":"Job"}
+      }
     },
     "StopRemoteAccessSessionRequest":{
       "type":"structure",
@@ -2650,9 +2771,13 @@
         "APPIUM_JAVA_JUNIT",
         "APPIUM_JAVA_TESTNG",
         "APPIUM_PYTHON",
+        "APPIUM_NODE",
+        "APPIUM_RUBY",
         "APPIUM_WEB_JAVA_JUNIT",
         "APPIUM_WEB_JAVA_TESTNG",
         "APPIUM_WEB_PYTHON",
+        "APPIUM_WEB_NODE",
+        "APPIUM_WEB_RUBY",
         "CALABASH",
         "INSTRUMENTATION",
         "UIAUTOMATION",
@@ -2721,7 +2846,9 @@
         "arn":{"shape":"AmazonResourceName"},
         "name":{"shape":"Name"},
         "description":{"shape":"Message"},
-        "rules":{"shape":"Rules"}
+        "rules":{"shape":"Rules"},
+        "maxDevices":{"shape":"Integer"},
+        "clearMaxDevices":{"shape":"Boolean"}
       }
     },
     "UpdateDevicePoolResult":{
@@ -2787,6 +2914,22 @@
         "project":{"shape":"Project"}
       }
     },
+    "UpdateUploadRequest":{
+      "type":"structure",
+      "required":["arn"],
+      "members":{
+        "arn":{"shape":"AmazonResourceName"},
+        "name":{"shape":"Name"},
+        "contentType":{"shape":"ContentType"},
+        "editContent":{"shape":"Boolean"}
+      }
+    },
+    "UpdateUploadResult":{
+      "type":"structure",
+      "members":{
+        "upload":{"shape":"Upload"}
+      }
+    },
     "UpdateVPCEConfigurationRequest":{
       "type":"structure",
       "required":["arn"],
@@ -2815,8 +2958,16 @@
         "url":{"shape":"URL"},
         "metadata":{"shape":"Metadata"},
         "contentType":{"shape":"ContentType"},
-        "message":{"shape":"Message"}
+        "message":{"shape":"Message"},
+        "category":{"shape":"UploadCategory"}
       }
+    },
+    "UploadCategory":{
+      "type":"string",
+      "enum":[
+        "CURATED",
+        "PRIVATE"
+      ]
     },
     "UploadStatus":{
       "type":"string",
@@ -2837,15 +2988,31 @@
         "APPIUM_JAVA_JUNIT_TEST_PACKAGE",
         "APPIUM_JAVA_TESTNG_TEST_PACKAGE",
         "APPIUM_PYTHON_TEST_PACKAGE",
+        "APPIUM_NODE_TEST_PACKAGE",
+        "APPIUM_RUBY_TEST_PACKAGE",
         "APPIUM_WEB_JAVA_JUNIT_TEST_PACKAGE",
         "APPIUM_WEB_JAVA_TESTNG_TEST_PACKAGE",
         "APPIUM_WEB_PYTHON_TEST_PACKAGE",
+        "APPIUM_WEB_NODE_TEST_PACKAGE",
+        "APPIUM_WEB_RUBY_TEST_PACKAGE",
         "CALABASH_TEST_PACKAGE",
         "INSTRUMENTATION_TEST_PACKAGE",
         "UIAUTOMATION_TEST_PACKAGE",
         "UIAUTOMATOR_TEST_PACKAGE",
         "XCTEST_TEST_PACKAGE",
-        "XCTEST_UI_TEST_PACKAGE"
+        "XCTEST_UI_TEST_PACKAGE",
+        "APPIUM_JAVA_JUNIT_TEST_SPEC",
+        "APPIUM_JAVA_TESTNG_TEST_SPEC",
+        "APPIUM_PYTHON_TEST_SPEC",
+        "APPIUM_NODE_TEST_SPEC",
+        "APPIUM_RUBY_TEST_SPEC",
+        "APPIUM_WEB_JAVA_JUNIT_TEST_SPEC",
+        "APPIUM_WEB_JAVA_TESTNG_TEST_SPEC",
+        "APPIUM_WEB_PYTHON_TEST_SPEC",
+        "APPIUM_WEB_NODE_TEST_SPEC",
+        "APPIUM_WEB_RUBY_TEST_SPEC",
+        "INSTRUMENTATION_TEST_SPEC",
+        "XCTEST_UI_TEST_SPEC"
       ]
     },
     "Uploads":{
@@ -2880,6 +3047,7 @@
       "type":"string",
       "max":2048,
       "min":0
-    }
+    },
+    "VideoCapture":{"type":"boolean"}
   }
 }

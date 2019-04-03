@@ -73,9 +73,10 @@ func TestUpdateTenant(t *testing.T) {
 	mockUpdateTenantResponse(t)
 
 	id := "5c62ef576dc7444cbb73b1fe84b97648"
+	description := "This is new name"
 	opts := tenants.UpdateOpts{
 		Name:        "new_name",
-		Description: "This is new name",
+		Description: &description,
 		Enabled:     gophercloud.Enabled,
 	}
 

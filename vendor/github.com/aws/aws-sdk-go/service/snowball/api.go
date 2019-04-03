@@ -9,6 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
 const opCancelCluster = "CancelCluster"
@@ -16,7 +18,7 @@ const opCancelCluster = "CancelCluster"
 // CancelClusterRequest generates a "aws/request.Request" representing the
 // client's request for the CancelCluster operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -50,6 +52,7 @@ func (c *Snowball) CancelClusterRequest(input *CancelClusterInput) (req *request
 
 	output = &CancelClusterOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -106,7 +109,7 @@ const opCancelJob = "CancelJob"
 // CancelJobRequest generates a "aws/request.Request" representing the
 // client's request for the CancelJob operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -140,6 +143,7 @@ func (c *Snowball) CancelJobRequest(input *CancelJobInput) (req *request.Request
 
 	output = &CancelJobOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -147,8 +151,7 @@ func (c *Snowball) CancelJobRequest(input *CancelJobInput) (req *request.Request
 //
 // Cancels the specified job. You can only cancel a job before its JobState
 // value changes to PreparingAppliance. Requesting the ListJobs or DescribeJob
-// action will return a job's JobState as part of the response element data
-// returned.
+// action returns a job's JobState as part of the response element data returned.
 //
 // Returns awserr.Error for service API and SDK errors. Use runtime type assertions
 // with awserr.Error's Code and Message methods to get detailed information about
@@ -197,7 +200,7 @@ const opCreateAddress = "CreateAddress"
 // CreateAddressRequest generates a "aws/request.Request" representing the
 // client's request for the CreateAddress operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -285,7 +288,7 @@ const opCreateCluster = "CreateCluster"
 // CreateClusterRequest generates a "aws/request.Request" representing the
 // client's request for the CreateCluster operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -349,6 +352,10 @@ func (c *Snowball) CreateClusterRequest(input *CreateClusterInput) (req *request
 //   that the CreateClusterRequest$SnowballType value supports your CreateJobRequest$JobType,
 //   and try again.
 //
+//   * ErrCodeEc2RequestFailedException "Ec2RequestFailedException"
+//   Your IAM user lacks the necessary Amazon EC2 permissions to perform the attempted
+//   action.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/snowball-2016-06-30/CreateCluster
 func (c *Snowball) CreateCluster(input *CreateClusterInput) (*CreateClusterOutput, error) {
 	req, out := c.CreateClusterRequest(input)
@@ -376,7 +383,7 @@ const opCreateJob = "CreateJob"
 // CreateJobRequest generates a "aws/request.Request" representing the
 // client's request for the CreateJob operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -448,6 +455,10 @@ func (c *Snowball) CreateJobRequest(input *CreateJobInput) (req *request.Request
 //   this cluster, try again and create jobs until your cluster has exactly five
 //   notes.
 //
+//   * ErrCodeEc2RequestFailedException "Ec2RequestFailedException"
+//   Your IAM user lacks the necessary Amazon EC2 permissions to perform the attempted
+//   action.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/snowball-2016-06-30/CreateJob
 func (c *Snowball) CreateJob(input *CreateJobInput) (*CreateJobOutput, error) {
 	req, out := c.CreateJobRequest(input)
@@ -475,7 +486,7 @@ const opDescribeAddress = "DescribeAddress"
 // DescribeAddressRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAddress operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -556,7 +567,7 @@ const opDescribeAddresses = "DescribeAddresses"
 // DescribeAddressesRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeAddresses operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -698,7 +709,7 @@ const opDescribeCluster = "DescribeCluster"
 // DescribeClusterRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeCluster operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -779,7 +790,7 @@ const opDescribeJob = "DescribeJob"
 // DescribeJobRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeJob operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -860,7 +871,7 @@ const opGetJobManifest = "GetJobManifest"
 // GetJobManifestRequest generates a "aws/request.Request" representing the
 // client's request for the GetJobManifest operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -961,7 +972,7 @@ const opGetJobUnlockCode = "GetJobUnlockCode"
 // GetJobUnlockCodeRequest generates a "aws/request.Request" representing the
 // client's request for the GetJobUnlockCode operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1057,7 +1068,7 @@ const opGetSnowballUsage = "GetSnowballUsage"
 // GetSnowballUsageRequest generates a "aws/request.Request" representing the
 // client's request for the GetSnowballUsage operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1135,7 +1146,7 @@ const opListClusterJobs = "ListClusterJobs"
 // ListClusterJobsRequest generates a "aws/request.Request" representing the
 // client's request for the ListClusterJobs operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1221,7 +1232,7 @@ const opListClusters = "ListClusters"
 // ListClustersRequest generates a "aws/request.Request" representing the
 // client's request for the ListClusters operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1298,12 +1309,100 @@ func (c *Snowball) ListClustersWithContext(ctx aws.Context, input *ListClustersI
 	return out, req.Send()
 }
 
+const opListCompatibleImages = "ListCompatibleImages"
+
+// ListCompatibleImagesRequest generates a "aws/request.Request" representing the
+// client's request for the ListCompatibleImages operation. The "output" return
+// value will be populated with the request's response once the request completes
+// successfully.
+//
+// Use "Send" method on the returned Request to send the API call to the service.
+// the "output" return value is not valid until after Send returns without error.
+//
+// See ListCompatibleImages for more information on using the ListCompatibleImages
+// API call, and error handling.
+//
+// This method is useful when you want to inject custom logic or configuration
+// into the SDK's request lifecycle. Such as custom headers, or retry logic.
+//
+//
+//    // Example sending a request using the ListCompatibleImagesRequest method.
+//    req, resp := client.ListCompatibleImagesRequest(params)
+//
+//    err := req.Send()
+//    if err == nil { // resp is now filled
+//        fmt.Println(resp)
+//    }
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/snowball-2016-06-30/ListCompatibleImages
+func (c *Snowball) ListCompatibleImagesRequest(input *ListCompatibleImagesInput) (req *request.Request, output *ListCompatibleImagesOutput) {
+	op := &request.Operation{
+		Name:       opListCompatibleImages,
+		HTTPMethod: "POST",
+		HTTPPath:   "/",
+	}
+
+	if input == nil {
+		input = &ListCompatibleImagesInput{}
+	}
+
+	output = &ListCompatibleImagesOutput{}
+	req = c.newRequest(op, input, output)
+	return
+}
+
+// ListCompatibleImages API operation for Amazon Import/Export Snowball.
+//
+// This action returns a list of the different Amazon EC2 Amazon Machine Images
+// (AMIs) that are owned by your AWS account that would be supported for use
+// on EDGE, EDGE_C, and EDGE_CG devices. For more information on compatible
+// AMIs, see Using Amazon EC2 Compute Instances (http://docs.aws.amazon.com/snowball/latest/developer-guide/using-ec2.html)
+// in the AWS Snowball Developer Guide.
+//
+// Returns awserr.Error for service API and SDK errors. Use runtime type assertions
+// with awserr.Error's Code and Message methods to get detailed information about
+// the error.
+//
+// See the AWS API reference guide for Amazon Import/Export Snowball's
+// API operation ListCompatibleImages for usage and error information.
+//
+// Returned Error Codes:
+//   * ErrCodeInvalidNextTokenException "InvalidNextTokenException"
+//   The NextToken string was altered unexpectedly, and the operation has stopped.
+//   Run the operation without changing the NextToken string, and try again.
+//
+//   * ErrCodeEc2RequestFailedException "Ec2RequestFailedException"
+//   Your IAM user lacks the necessary Amazon EC2 permissions to perform the attempted
+//   action.
+//
+// See also, https://docs.aws.amazon.com/goto/WebAPI/snowball-2016-06-30/ListCompatibleImages
+func (c *Snowball) ListCompatibleImages(input *ListCompatibleImagesInput) (*ListCompatibleImagesOutput, error) {
+	req, out := c.ListCompatibleImagesRequest(input)
+	return out, req.Send()
+}
+
+// ListCompatibleImagesWithContext is the same as ListCompatibleImages with the addition of
+// the ability to pass a context and additional request options.
+//
+// See ListCompatibleImages for details on how to use this API operation.
+//
+// The context must be non-nil and will be used for request cancellation. If
+// the context is nil a panic will occur. In the future the SDK may create
+// sub-contexts for http.Requests. See https://golang.org/pkg/context/
+// for more information on using Contexts.
+func (c *Snowball) ListCompatibleImagesWithContext(ctx aws.Context, input *ListCompatibleImagesInput, opts ...request.Option) (*ListCompatibleImagesOutput, error) {
+	req, out := c.ListCompatibleImagesRequest(input)
+	req.SetContext(ctx)
+	req.ApplyOptions(opts...)
+	return out, req.Send()
+}
+
 const opListJobs = "ListJobs"
 
 // ListJobsRequest generates a "aws/request.Request" representing the
 // client's request for the ListJobs operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1443,7 +1542,7 @@ const opUpdateCluster = "UpdateCluster"
 // UpdateClusterRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateCluster operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1477,6 +1576,7 @@ func (c *Snowball) UpdateClusterRequest(input *UpdateClusterInput) (req *request
 
 	output = &UpdateClusterOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1512,6 +1612,10 @@ func (c *Snowball) UpdateClusterRequest(input *UpdateClusterInput) (req *request
 //   that the CreateClusterRequest$SnowballType value supports your CreateJobRequest$JobType,
 //   and try again.
 //
+//   * ErrCodeEc2RequestFailedException "Ec2RequestFailedException"
+//   Your IAM user lacks the necessary Amazon EC2 permissions to perform the attempted
+//   action.
+//
 // See also, https://docs.aws.amazon.com/goto/WebAPI/snowball-2016-06-30/UpdateCluster
 func (c *Snowball) UpdateCluster(input *UpdateClusterInput) (*UpdateClusterOutput, error) {
 	req, out := c.UpdateClusterRequest(input)
@@ -1539,7 +1643,7 @@ const opUpdateJob = "UpdateJob"
 // UpdateJobRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateJob operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1573,6 +1677,7 @@ func (c *Snowball) UpdateJobRequest(input *UpdateJobInput) (req *request.Request
 
 	output = &UpdateJobOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1612,6 +1717,10 @@ func (c *Snowball) UpdateJobRequest(input *UpdateJobInput) (req *request.Request
 //   less than five nodes for your cluster and you have more nodes to create for
 //   this cluster, try again and create jobs until your cluster has exactly five
 //   notes.
+//
+//   * ErrCodeEc2RequestFailedException "Ec2RequestFailedException"
+//   Your IAM user lacks the necessary Amazon EC2 permissions to perform the attempted
+//   action.
 //
 // See also, https://docs.aws.amazon.com/goto/WebAPI/snowball-2016-06-30/UpdateJob
 func (c *Snowball) UpdateJob(input *UpdateJobInput) (*UpdateJobOutput, error) {
@@ -1955,7 +2064,7 @@ type ClusterListEntry struct {
 	ClusterState *string `type:"string" enum:"ClusterState"`
 
 	// The creation date for this cluster.
-	CreationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDate *time.Time `type:"timestamp"`
 
 	// Defines an optional description of the cluster, for example Environmental
 	// Data Cluster-01.
@@ -2010,7 +2119,7 @@ type ClusterMetadata struct {
 	ClusterState *string `type:"string" enum:"ClusterState"`
 
 	// The creation date for this cluster.
-	CreationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDate *time.Time `type:"timestamp"`
 
 	// The optional description of the cluster.
 	Description *string `min:"1" type:"string"`
@@ -2042,25 +2151,25 @@ type ClusterMetadata struct {
 	RoleARN *string `type:"string"`
 
 	// The shipping speed for each node in this cluster. This speed doesn't dictate
-	// how soon you'll get each Snowball Edge appliance, rather it represents how
-	// quickly each appliance moves to its destination while in transit. Regional
-	// shipping speeds are as follows:
+	// how soon you'll get each device, rather it represents how quickly each device
+	// moves to its destination while in transit. Regional shipping speeds are as
+	// follows:
 	//
-	//    * In Australia, you have access to express shipping. Typically, appliances
+	//    * In Australia, you have access to express shipping. Typically, devices
 	//    shipped express are delivered in about a day.
 	//
 	//    * In the European Union (EU), you have access to express shipping. Typically,
-	//    Snowball Edges shipped express are delivered in about a day. In addition,
-	//    most countries in the EU have access to standard shipping, which typically
+	//    devices shipped express are delivered in about a day. In addition, most
+	//    countries in the EU have access to standard shipping, which typically
 	//    takes less than a week, one way.
 	//
-	//    * In India, Snowball Edges are delivered in one to seven days.
+	//    * In India, devices are delivered in one to seven days.
 	//
 	//    * In the US, you have access to one-day shipping and two-day shipping.
 	ShippingOption *string `type:"string" enum:"ShippingOption"`
 
-	// The type of AWS Snowball appliance to use for this cluster. Currently, the
-	// only supported appliance type for cluster jobs is EDGE.
+	// The type of AWS Snowball device to use for this cluster. The only supported
+	// device types for cluster jobs are EDGE, EDGE_C, and EDGE_CG.
 	SnowballType *string `type:"string" enum:"Type"`
 }
 
@@ -2149,6 +2258,42 @@ func (s *ClusterMetadata) SetShippingOption(v string) *ClusterMetadata {
 // SetSnowballType sets the SnowballType field's value.
 func (s *ClusterMetadata) SetSnowballType(v string) *ClusterMetadata {
 	s.SnowballType = &v
+	return s
+}
+
+// A JSON-formatted object that describes a compatible Amazon Machine Image
+// (AMI). For more information on compatible AMIs, see Using Amazon EC2 Compute
+// Instances (http://docs.aws.amazon.com/snowball/latest/developer-guide/using-ec2.html)
+// in the AWS Snowball Developer Guide.
+type CompatibleImage struct {
+	_ struct{} `type:"structure"`
+
+	// The unique identifier for an individual Snowball Edge AMI.
+	AmiId *string `min:"1" type:"string"`
+
+	// The optional name of a compatible image.
+	Name *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s CompatibleImage) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s CompatibleImage) GoString() string {
+	return s.String()
+}
+
+// SetAmiId sets the AmiId field's value.
+func (s *CompatibleImage) SetAmiId(v string) *CompatibleImage {
+	s.AmiId = &v
+	return s
+}
+
+// SetName sets the Name field's value.
+func (s *CompatibleImage) SetName(v string) *CompatibleImage {
+	s.Name = &v
 	return s
 }
 
@@ -2265,11 +2410,11 @@ type CreateClusterInput struct {
 	RoleARN *string `type:"string" required:"true"`
 
 	// The shipping speed for each node in this cluster. This speed doesn't dictate
-	// how soon you'll get each Snowball Edge appliance, rather it represents how
-	// quickly each appliance moves to its destination while in transit. Regional
-	// shipping speeds are as follows:
+	// how soon you'll get each Snowball Edge device, rather it represents how quickly
+	// each device moves to its destination while in transit. Regional shipping
+	// speeds are as follows:
 	//
-	//    * In Australia, you have access to express shipping. Typically, appliances
+	//    * In Australia, you have access to express shipping. Typically, devices
 	//    shipped express are delivered in about a day.
 	//
 	//    * In the European Union (EU), you have access to express shipping. Typically,
@@ -2277,15 +2422,15 @@ type CreateClusterInput struct {
 	//    most countries in the EU have access to standard shipping, which typically
 	//    takes less than a week, one way.
 	//
-	//    * In India, Snowball Edges are delivered in one to seven days.
+	//    * In India, devices are delivered in one to seven days.
 	//
 	//    * In the US, you have access to one-day shipping and two-day shipping.
 	//
 	// ShippingOption is a required field
 	ShippingOption *string `type:"string" required:"true" enum:"ShippingOption"`
 
-	// The type of AWS Snowball appliance to use for this cluster. Currently, the
-	// only supported appliance type for cluster jobs is EDGE.
+	// The type of AWS Snowball device to use for this cluster. The only supported
+	// device types for cluster jobs are EDGE, EDGE_C, and EDGE_CG.
 	SnowballType *string `type:"string" enum:"Type"`
 }
 
@@ -2491,8 +2636,8 @@ type CreateJobInput struct {
 	// Snowballs come with 80 TB in storage capacity.
 	SnowballCapacityPreference *string `type:"string" enum:"Capacity"`
 
-	// The type of AWS Snowball appliance to use for this job. Currently, the only
-	// supported appliance type for cluster jobs is EDGE.
+	// The type of AWS Snowball device to use for this job. The only supported device
+	// types for cluster jobs are EDGE, EDGE_C, and EDGE_CG.
 	SnowballType *string `type:"string" enum:"Type"`
 }
 
@@ -2628,7 +2773,7 @@ func (s *CreateJobOutput) SetJobId(v string) *CreateJobOutput {
 	return s
 }
 
-// Defines the real-time status of a Snowball's data transfer while the appliance
+// Defines the real-time status of a Snowball's data transfer while the device
 // is at AWS. This data is only available while a job has a JobState value of
 // InProgress, for both import and export jobs.
 type DataTransfer struct {
@@ -2971,6 +3116,63 @@ func (s *DescribeJobOutput) SetSubJobMetadata(v []*JobMetadata) *DescribeJobOutp
 	return s
 }
 
+// A JSON-formatted object that contains the IDs for an Amazon Machine Image
+// (AMI), including the Amazon EC2 AMI ID and the Snowball Edge AMI ID. Each
+// AMI has these two IDs to simplify identifying the AMI in both the AWS Cloud
+// and on the device.
+type Ec2AmiResource struct {
+	_ struct{} `type:"structure"`
+
+	// The ID of the AMI in Amazon EC2.
+	//
+	// AmiId is a required field
+	AmiId *string `min:"12" type:"string" required:"true"`
+
+	// The ID of the AMI on the supported device.
+	SnowballAmiId *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s Ec2AmiResource) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s Ec2AmiResource) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *Ec2AmiResource) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "Ec2AmiResource"}
+	if s.AmiId == nil {
+		invalidParams.Add(request.NewErrParamRequired("AmiId"))
+	}
+	if s.AmiId != nil && len(*s.AmiId) < 12 {
+		invalidParams.Add(request.NewErrParamMinLen("AmiId", 12))
+	}
+	if s.SnowballAmiId != nil && len(*s.SnowballAmiId) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("SnowballAmiId", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetAmiId sets the AmiId field's value.
+func (s *Ec2AmiResource) SetAmiId(v string) *Ec2AmiResource {
+	s.AmiId = &v
+	return s
+}
+
+// SetSnowballAmiId sets the SnowballAmiId field's value.
+func (s *Ec2AmiResource) SetSnowballAmiId(v string) *Ec2AmiResource {
+	s.SnowballAmiId = &v
+	return s
+}
+
 // The container for the EventTriggerDefinition$EventResourceARN.
 type EventTriggerDefinition struct {
 	_ struct{} `type:"structure"`
@@ -3181,7 +3383,7 @@ type JobListEntry struct {
 	_ struct{} `type:"structure"`
 
 	// The creation date for this job.
-	CreationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDate *time.Time `type:"timestamp"`
 
 	// The optional description of this specific job, for example Important Photos
 	// 2016-08-11.
@@ -3204,7 +3406,7 @@ type JobListEntry struct {
 	// The type of job.
 	JobType *string `type:"string" enum:"JobType"`
 
-	// The type of appliance used with this job.
+	// The type of device used with this job.
 	SnowballType *string `type:"string" enum:"Type"`
 }
 
@@ -3334,10 +3536,10 @@ type JobMetadata struct {
 	ClusterId *string `min:"1" type:"string"`
 
 	// The creation date for this job.
-	CreationDate *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationDate *time.Time `type:"timestamp"`
 
 	// A value that defines the real-time status of a Snowball's data transfer while
-	// the appliance is at AWS. This data is only available while a job has a JobState
+	// the device is at AWS. This data is only available while a job has a JobState
 	// value of InProgress, for both import and export jobs.
 	DataTransferProgress *DataTransfer `type:"structure"`
 
@@ -3392,7 +3594,7 @@ type JobMetadata struct {
 	// regions use 80 TB capacity Snowballs.
 	SnowballCapacityPreference *string `type:"string" enum:"Capacity"`
 
-	// The type of appliance used with this job.
+	// The type of device used with this job.
 	SnowballType *string `type:"string" enum:"Type"`
 }
 
@@ -3508,11 +3710,14 @@ func (s *JobMetadata) SetSnowballType(v string) *JobMetadata {
 	return s
 }
 
-// Contains an array of S3Resource objects. Each S3Resource object represents
-// an Amazon S3 bucket that your transferred data will be exported from or imported
-// into.
+// Contains an array of AWS resource objects. Each object represents an Amazon
+// S3 bucket, an AWS Lambda function, or an Amazon Machine Image (AMI) based
+// on Amazon EC2 that is associated with a particular job.
 type JobResource struct {
 	_ struct{} `type:"structure"`
+
+	// The Amazon Machine Images (AMIs) associated with this job.
+	Ec2AmiResources []*Ec2AmiResource `type:"list"`
 
 	// The Python-language Lambda functions for this job.
 	LambdaResources []*LambdaResource `type:"list"`
@@ -3534,6 +3739,16 @@ func (s JobResource) GoString() string {
 // Validate inspects the fields of the type to determine if they are valid.
 func (s *JobResource) Validate() error {
 	invalidParams := request.ErrInvalidParams{Context: "JobResource"}
+	if s.Ec2AmiResources != nil {
+		for i, v := range s.Ec2AmiResources {
+			if v == nil {
+				continue
+			}
+			if err := v.Validate(); err != nil {
+				invalidParams.AddNested(fmt.Sprintf("%s[%v]", "Ec2AmiResources", i), err.(request.ErrInvalidParams))
+			}
+		}
+	}
 	if s.S3Resources != nil {
 		for i, v := range s.S3Resources {
 			if v == nil {
@@ -3549,6 +3764,12 @@ func (s *JobResource) Validate() error {
 		return invalidParams
 	}
 	return nil
+}
+
+// SetEc2AmiResources sets the Ec2AmiResources field's value.
+func (s *JobResource) SetEc2AmiResources(v []*Ec2AmiResource) *JobResource {
+	s.Ec2AmiResources = v
+	return s
 }
 
 // SetLambdaResources sets the LambdaResources field's value.
@@ -3829,6 +4050,87 @@ func (s *ListClustersOutput) SetClusterListEntries(v []*ClusterListEntry) *ListC
 
 // SetNextToken sets the NextToken field's value.
 func (s *ListClustersOutput) SetNextToken(v string) *ListClustersOutput {
+	s.NextToken = &v
+	return s
+}
+
+type ListCompatibleImagesInput struct {
+	_ struct{} `type:"structure"`
+
+	// The maximum number of results for the list of compatible images. Currently,
+	// each supported device can store 10 AMIs.
+	MaxResults *int64 `type:"integer"`
+
+	// HTTP requests are stateless. To identify what object comes "next" in the
+	// list of compatible images, you can specify a value for NextToken as the starting
+	// point for your list of returned images.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s ListCompatibleImagesInput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListCompatibleImagesInput) GoString() string {
+	return s.String()
+}
+
+// Validate inspects the fields of the type to determine if they are valid.
+func (s *ListCompatibleImagesInput) Validate() error {
+	invalidParams := request.ErrInvalidParams{Context: "ListCompatibleImagesInput"}
+	if s.NextToken != nil && len(*s.NextToken) < 1 {
+		invalidParams.Add(request.NewErrParamMinLen("NextToken", 1))
+	}
+
+	if invalidParams.Len() > 0 {
+		return invalidParams
+	}
+	return nil
+}
+
+// SetMaxResults sets the MaxResults field's value.
+func (s *ListCompatibleImagesInput) SetMaxResults(v int64) *ListCompatibleImagesInput {
+	s.MaxResults = &v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListCompatibleImagesInput) SetNextToken(v string) *ListCompatibleImagesInput {
+	s.NextToken = &v
+	return s
+}
+
+type ListCompatibleImagesOutput struct {
+	_ struct{} `type:"structure"`
+
+	// A JSON-formatted object that describes a compatible AMI.
+	CompatibleImages []*CompatibleImage `type:"list"`
+
+	// Because HTTP requests are stateless, this is the starting point for your
+	// next list of returned images.
+	NextToken *string `min:"1" type:"string"`
+}
+
+// String returns the string representation
+func (s ListCompatibleImagesOutput) String() string {
+	return awsutil.Prettify(s)
+}
+
+// GoString returns the string representation
+func (s ListCompatibleImagesOutput) GoString() string {
+	return s.String()
+}
+
+// SetCompatibleImages sets the CompatibleImages field's value.
+func (s *ListCompatibleImagesOutput) SetCompatibleImages(v []*CompatibleImage) *ListCompatibleImagesOutput {
+	s.CompatibleImages = v
+	return s
+}
+
+// SetNextToken sets the NextToken field's value.
+func (s *ListCompatibleImagesOutput) SetNextToken(v string) *ListCompatibleImagesOutput {
 	s.NextToken = &v
 	return s
 }
@@ -4281,8 +4583,7 @@ type UpdateJobInput struct {
 	// The new or updated Notification object.
 	Notification *Notification `type:"structure"`
 
-	// The updated S3Resource object (for a single Amazon S3 bucket or key range),
-	// or the updated JobResource object (for multiple buckets or key ranges).
+	// The updated JobResource object, or the updated JobResource object.
 	Resources *JobResource `type:"structure"`
 
 	// The new role Amazon Resource Name (ARN) that you want to associate with this
@@ -4416,6 +4717,9 @@ const (
 	// CapacityT100 is a Capacity enum value
 	CapacityT100 = "T100"
 
+	// CapacityT42 is a Capacity enum value
+	CapacityT42 = "T42"
+
 	// CapacityNoPreference is a Capacity enum value
 	CapacityNoPreference = "NoPreference"
 )
@@ -4455,6 +4759,9 @@ const (
 
 	// JobStateInTransitToAws is a JobState enum value
 	JobStateInTransitToAws = "InTransitToAWS"
+
+	// JobStateWithAwssortingFacility is a JobState enum value
+	JobStateWithAwssortingFacility = "WithAWSSortingFacility"
 
 	// JobStateWithAws is a JobState enum value
 	JobStateWithAws = "WithAWS"
@@ -4506,4 +4813,10 @@ const (
 
 	// TypeEdge is a Type enum value
 	TypeEdge = "EDGE"
+
+	// TypeEdgeC is a Type enum value
+	TypeEdgeC = "EDGE_C"
+
+	// TypeEdgeCg is a Type enum value
+	TypeEdgeCg = "EDGE_CG"
 )

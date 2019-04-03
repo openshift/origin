@@ -107,11 +107,11 @@ type UpdateOptsBuilder interface {
 
 // UpdateOpts contains the values used when updating a firewall.
 type UpdateOpts struct {
-	PolicyID     string `json:"firewall_policy_id" required:"true"`
-	Name         string `json:"name,omitempty"`
-	Description  string `json:"description,omitempty"`
-	AdminStateUp *bool  `json:"admin_state_up,omitempty"`
-	Shared       *bool  `json:"shared,omitempty"`
+	PolicyID     string  `json:"firewall_policy_id" required:"true"`
+	Name         *string `json:"name,omitempty"`
+	Description  *string `json:"description,omitempty"`
+	AdminStateUp *bool   `json:"admin_state_up,omitempty"`
+	Shared       *bool   `json:"shared,omitempty"`
 }
 
 // ToFirewallUpdateMap casts a CreateOpts struct to a map.

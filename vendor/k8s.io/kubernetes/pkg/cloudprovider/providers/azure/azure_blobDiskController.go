@@ -32,10 +32,10 @@ import (
 	azstorage "github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/rubiojr/go-vhd/vhd"
-	"k8s.io/klog"
 
 	kwait "k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/kubernetes/pkg/volume"
+	volerr "k8s.io/cloud-provider/volume/errors"
+	"k8s.io/klog"
 )
 
 const (
@@ -82,7 +82,7 @@ func (c *BlobDiskController) initStorageAccounts() {
 // If no storage account is given, search all the storage accounts associated with the resource group and pick one that
 // fits storage type and location.
 func (c *BlobDiskController) CreateVolume(blobName, accountName, accountType, location string, requestGB int) (string, string, int, error) {
-	account, key, err := c.common.cloud.ensureStorageAccount(accountName, accountType, string(defaultStorageAccountKind), c.common.resourceGroup, location, dedicatedDiskAccountNamePrefix)
+	account, key, err := c.common.cloud.EnsureStorageAccount(accountName, accountType, string(defaultStorageAccountKind), c.common.resourceGroup, location, dedicatedDiskAccountNamePrefix)
 	if err != nil {
 		return "", "", 0, fmt.Errorf("could not get storage key for storage account %s: %v", accountName, err)
 	}
@@ -110,7 +110,7 @@ func (c *BlobDiskController) DeleteVolume(diskURI string) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse vhd URI %v", err)
 	}
-	key, err := c.common.cloud.getStorageAccesskey(accountName, c.common.resourceGroup)
+	key, err := c.common.cloud.GetStorageAccesskey(accountName, c.common.resourceGroup)
 	if err != nil {
 		return fmt.Errorf("no key for storage account %s, err %v", accountName, err)
 	}
@@ -121,7 +121,7 @@ func (c *BlobDiskController) DeleteVolume(diskURI string) error {
 		if strings.Contains(detail, errLeaseIDMissing) {
 			// disk is still being used
 			// see https://msdn.microsoft.com/en-us/library/microsoft.windowsazure.storage.blob.protocol.bloberrorcodestrings.leaseidmissing.aspx
-			return volume.NewDeletedVolumeInUseError(fmt.Sprintf("disk %q is still in use while being deleted", diskURI))
+			return volerr.NewDeletedVolumeInUseError(fmt.Sprintf("disk %q is still in use while being deleted", diskURI))
 		}
 		return fmt.Errorf("failed to delete vhd %v, account %s, blob %s, err: %v", diskURI, accountName, blob, err)
 	}

@@ -27,6 +27,10 @@ type ListOpts struct {
 	Limit        int          `q:"limit"`
 	SortKey      string       `q:"sort_key"`
 	SortDir      string       `q:"sort_dir"`
+	Tags         string       `q:"tags"`
+	TagsAny      string       `q:"tags-any"`
+	NotTags      string       `q:"not-tags"`
+	NotTagsAny   string       `q:"not-tags-any"`
 }
 
 // ToRBACPolicyListQuery formats a ListOpts into a query string.

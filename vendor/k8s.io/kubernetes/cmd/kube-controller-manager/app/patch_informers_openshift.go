@@ -3,11 +3,12 @@ package app
 import (
 	"time"
 
+	"k8s.io/klog"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/klog"
 
 	appclient "github.com/openshift/client-go/apps/clientset/versioned"
 	appinformer "github.com/openshift/client-go/apps/informers/externalversions"

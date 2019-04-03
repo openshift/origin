@@ -209,7 +209,7 @@ func (s *sanity) checkInstr(idx int, instr Instruction) {
 	// enclosing Function or Package.
 }
 
-func (s *sanity) checkFinalInstr(idx int, instr Instruction) {
+func (s *sanity) checkFinalInstr(instr Instruction) {
 	switch instr := instr.(type) {
 	case *If:
 		if nsuccs := len(s.block.Succs); nsuccs != 2 {
@@ -324,7 +324,7 @@ func (s *sanity) checkBlock(b *BasicBlock, index int) {
 		if j < n-1 {
 			s.checkInstr(j, instr)
 		} else {
-			s.checkFinalInstr(j, instr)
+			s.checkFinalInstr(instr)
 		}
 
 		// Check Instruction.Operands.
@@ -351,7 +351,9 @@ func (s *sanity) checkBlock(b *BasicBlock, index int) {
 			// Check that Operands that are also Instructions belong to same function.
 			// TODO(adonovan): also check their block dominates block b.
 			if val, ok := val.(Instruction); ok {
-				if val.Parent() != s.fn {
+				if val.Block() == nil {
+					s.errorf("operand %d of %s is an instruction (%s) that belongs to no block", i, instr, val)
+				} else if val.Parent() != s.fn {
 					s.errorf("operand %d of %s is an instruction (%s) from function %s", i, instr, val, val.Parent())
 				}
 			}
@@ -406,8 +408,8 @@ func (s *sanity) checkFunction(fn *Function) bool {
 		s.errorf("nil Prog")
 	}
 
-	fn.String()            // must not crash
-	fn.RelString(fn.pkg()) // must not crash
+	_ = fn.String()            // must not crash
+	_ = fn.RelString(fn.pkg()) // must not crash
 
 	// All functions have a package, except delegates (which are
 	// shared across packages, or duplicated as weak symbols in a
@@ -443,6 +445,17 @@ func (s *sanity) checkFunction(fn *Function) bool {
 	for i, p := range fn.Params {
 		if p.Parent() != fn {
 			s.errorf("Param %s at index %d has wrong parent", p.Name(), i)
+		}
+		// Check common suffix of Signature and Params match type.
+		if sig := fn.Signature; sig != nil {
+			j := i - len(fn.Params) + sig.Params().Len() // index within sig.Params
+			if j < 0 {
+				continue
+			}
+			if !types.Identical(p.Type(), sig.Params().At(j).Type()) {
+				s.errorf("Param %s at index %d has wrong type (%s, versus %s in Signature)", p.Name(), i, p.Type(), sig.Params().At(j).Type())
+
+			}
 		}
 		s.checkReferrerList(p)
 	}
@@ -486,7 +499,7 @@ func sanityCheckPackage(pkg *Package) {
 	if pkg.Pkg == nil {
 		panic(fmt.Sprintf("Package %s has no Object", pkg))
 	}
-	pkg.String() // must not crash
+	_ = pkg.String() // must not crash
 
 	for name, mem := range pkg.Members {
 		if name != mem.Name() {

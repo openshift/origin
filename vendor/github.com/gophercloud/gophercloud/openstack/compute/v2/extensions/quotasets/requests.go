@@ -5,34 +5,32 @@ import (
 )
 
 // Get returns public data about a previously created QuotaSet.
-func Get(client *gophercloud.ServiceClient, tenantID string) GetResult {
-	var res GetResult
-	_, res.Err = client.Get(getURL(client, tenantID), &res.Body, nil)
-	return res
+func Get(client *gophercloud.ServiceClient, tenantID string) (r GetResult) {
+	_, r.Err = client.Get(getURL(client, tenantID), &r.Body, nil)
+	return
 }
 
 // GetDetail returns detailed public data about a previously created QuotaSet.
-func GetDetail(client *gophercloud.ServiceClient, tenantID string) GetDetailResult {
-	var res GetDetailResult
-	_, res.Err = client.Get(getDetailURL(client, tenantID), &res.Body, nil)
-	return res
+func GetDetail(client *gophercloud.ServiceClient, tenantID string) (r GetDetailResult) {
+	_, r.Err = client.Get(getDetailURL(client, tenantID), &r.Body, nil)
+	return
 }
 
 // Updates the quotas for the given tenantID and returns the new QuotaSet.
-func Update(client *gophercloud.ServiceClient, tenantID string, opts UpdateOptsBuilder) (res UpdateResult) {
+func Update(client *gophercloud.ServiceClient, tenantID string, opts UpdateOptsBuilder) (r UpdateResult) {
 	reqBody, err := opts.ToComputeQuotaUpdateMap()
 	if err != nil {
-		res.Err = err
+		r.Err = err
 		return
 	}
 
-	_, res.Err = client.Put(updateURL(client, tenantID), reqBody, &res.Body, &gophercloud.RequestOpts{OkCodes: []int{200}})
-	return res
+	_, r.Err = client.Put(updateURL(client, tenantID), reqBody, &r.Body, &gophercloud.RequestOpts{OkCodes: []int{200}})
+	return
 }
 
 // Resets the quotas for the given tenant to their default values.
-func Delete(client *gophercloud.ServiceClient, tenantID string) (res DeleteResult) {
-	_, res.Err = client.Delete(deleteURL(client, tenantID), nil)
+func Delete(client *gophercloud.ServiceClient, tenantID string) (r DeleteResult) {
+	_, r.Err = client.Delete(deleteURL(client, tenantID), nil)
 	return
 }
 

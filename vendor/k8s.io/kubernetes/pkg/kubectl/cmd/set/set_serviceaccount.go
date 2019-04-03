@@ -21,15 +21,15 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/klog"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
-	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
+	"k8s.io/cli-runtime/pkg/printers"
+	"k8s.io/cli-runtime/pkg/resource"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
@@ -56,7 +56,7 @@ var (
 	`))
 )
 
-// serviceAccountConfig encapsulates the data required to perform the operation.
+// SetServiceAccountOptions encapsulates the data required to perform the operation.
 type SetServiceAccountOptions struct {
 	PrintFlags  *genericclioptions.PrintFlags
 	RecordFlags *genericclioptions.RecordFlags
@@ -77,6 +77,7 @@ type SetServiceAccountOptions struct {
 	genericclioptions.IOStreams
 }
 
+// NewSetServiceAccountOptions returns an initialized SetServiceAccountOptions instance
 func NewSetServiceAccountOptions(streams genericclioptions.IOStreams) *SetServiceAccountOptions {
 	return &SetServiceAccountOptions{
 		PrintFlags:  genericclioptions.NewPrintFlags("serviceaccount updated").WithTypeSetter(scheme.Scheme),
@@ -150,14 +151,12 @@ func (o *SetServiceAccountOptions) Complete(f cmdutil.Factory, cmd *cobra.Comman
 	}
 	o.serviceAccountName = args[len(args)-1]
 	resources := args[:len(args)-1]
-	includeUninitialized := cmdutil.ShouldIncludeUninitialized(cmd, false)
 	builder := f.NewBuilder().
 		WithScheme(scheme.Scheme, scheme.Scheme.PrioritizedVersionsAllGroups()...).
 		LocalParam(o.local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(enforceNamespace, &o.fileNameOptions).
-		IncludeUninitialized(includeUninitialized).
 		Flatten()
 	if !o.local {
 		builder.ResourceTypeOrNameArgs(o.all, resources...).

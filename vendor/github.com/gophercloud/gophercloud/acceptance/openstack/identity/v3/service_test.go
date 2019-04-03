@@ -8,39 +8,42 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/clients"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/services"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 func TestServicesList(t *testing.T) {
+	clients.RequireAdmin(t)
+
 	client, err := clients.NewIdentityV3Client()
-	if err != nil {
-		t.Fatalf("Unable to obtain an identity client: %v")
-	}
+	th.AssertNoErr(t, err)
 
 	listOpts := services.ListOpts{
 		ServiceType: "identity",
 	}
 
 	allPages, err := services.List(client, listOpts).AllPages()
-	if err != nil {
-		t.Fatalf("Unable to list services: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	allServices, err := services.ExtractServices(allPages)
-	if err != nil {
-		t.Fatalf("Unable to extract services: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
+	var found bool
 	for _, service := range allServices {
 		tools.PrintResource(t, service)
+
+		if service.Type == "identity" {
+			found = true
+		}
 	}
 
+	th.AssertEquals(t, found, true)
 }
 
 func TestServicesCRUD(t *testing.T) {
+	clients.RequireAdmin(t)
+
 	client, err := clients.NewIdentityV3Client()
-	if err != nil {
-		t.Fatalf("Unable to obtain an identity client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	createOpts := services.CreateOpts{
 		Type: "testing",
@@ -51,9 +54,7 @@ func TestServicesCRUD(t *testing.T) {
 
 	// Create service in the default domain
 	service, err := CreateService(t, client, &createOpts)
-	if err != nil {
-		t.Fatalf("Unable to create service: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteService(t, client, service.ID)
 
 	tools.PrintResource(t, service)
@@ -68,10 +69,10 @@ func TestServicesCRUD(t *testing.T) {
 	}
 
 	newService, err := services.Update(client, service.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatalf("Unable to update service: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, newService)
 	tools.PrintResource(t, newService.Extra)
+
+	th.AssertEquals(t, newService.Extra["description"], "Test Users")
 }

@@ -165,9 +165,11 @@ func TestUpdate(t *testing.T) {
     `)
 	})
 
+	var name = "fw"
+	var description = "updated fw"
 	firewallUpdateOpts := firewalls.UpdateOpts{
-		Name:         "fw",
-		Description:  "updated fw",
+		Name:         &name,
+		Description:  &description,
 		AdminStateUp: gophercloud.Disabled,
 		PolicyID:     "19ab8c87-4a32-4e6a-a74e-b77fffb89a0c",
 	}
@@ -219,9 +221,11 @@ func TestUpdateWithNoRouters(t *testing.T) {
     `)
 	})
 
+	var name = "fw"
+	var description = "updated fw"
 	firewallUpdateOpts := firewalls.UpdateOpts{
-		Name:         "fw",
-		Description:  "updated fw",
+		Name:         &name,
+		Description:  &description,
 		AdminStateUp: gophercloud.Disabled,
 		PolicyID:     "19ab8c87-4a32-4e6a-a74e-b77fffb89a0c",
 	}
