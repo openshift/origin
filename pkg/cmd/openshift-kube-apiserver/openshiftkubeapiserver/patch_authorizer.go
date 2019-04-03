@@ -33,7 +33,7 @@ func NewAuthorizer(versionedInformers informers.SharedInformerFactory) authorize
 		versionedInformers.Core().V1().Nodes(),
 		versionedInformers.Core().V1().Pods(),
 		versionedInformers.Core().V1().PersistentVolumes(),
-		versionedInformers.Storage().V1beta1().VolumeAttachments(),
+		versionedInformers.Storage().V1().VolumeAttachments(),
 	)
 	nodeAuthorizer := node.NewAuthorizer(graph, nodeidentifier.NewDefaultNodeIdentifier(), kbootstrappolicy.NodeRules())
 

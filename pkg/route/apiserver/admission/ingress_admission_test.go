@@ -3,6 +3,8 @@ package admission
 import (
 	"testing"
 
+	"k8s.io/kubernetes/pkg/apis/networking"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
@@ -21,8 +23,8 @@ func (a *fakeAuthorizer) Authorize(authorizer.Attributes) (authorizer.Decision, 
 }
 
 func TestAdmission(t *testing.T) {
-	var newIngress *kextensions.Ingress
-	var oldIngress *kextensions.Ingress
+	var newIngress *networking.Ingress
+	var oldIngress *networking.Ingress
 
 	tests := []struct {
 		config           *ingressadmission.IngressAdmissionConfig
@@ -112,10 +114,10 @@ func TestAdmission(t *testing.T) {
 	}
 	for _, test := range tests {
 		if len(test.newHost) > 0 {
-			newIngress = &kextensions.Ingress{
+			newIngress = &networking.Ingress{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
-				Spec: kextensions.IngressSpec{
-					Rules: []kextensions.IngressRule{
+				Spec: networking.IngressSpec{
+					Rules: []networking.IngressRule{
 						{
 							Host: test.newHost,
 						},
@@ -124,7 +126,7 @@ func TestAdmission(t *testing.T) {
 			}
 		} else {
 			//Used to test deleting a hostname
-			newIngress = &kextensions.Ingress{
+			newIngress = &networking.Ingress{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
 			}
 		}
@@ -133,10 +135,10 @@ func TestAdmission(t *testing.T) {
 
 		if len(test.oldHost) > 0 {
 			//Provides the previous state of an ingress object
-			oldIngress = &kextensions.Ingress{
+			oldIngress = &networking.Ingress{
 				ObjectMeta: metav1.ObjectMeta{Name: "test"},
-				Spec: kextensions.IngressSpec{
-					Rules: []kextensions.IngressRule{
+				Spec: networking.IngressSpec{
+					Rules: []networking.IngressRule{
 						{
 							Host: test.oldHost,
 						},
@@ -147,7 +149,7 @@ func TestAdmission(t *testing.T) {
 			oldIngress = nil
 		}
 
-		err := handler.Validate(admission.NewAttributesRecord(newIngress, oldIngress, kextensions.Kind("ingresses").WithVersion("Version"), "namespace", newIngress.ObjectMeta.Name, kextensions.Resource("ingresses").WithVersion("version"), "", test.op, false, nil))
+		err := handler.Validate(admission.NewAttributesRecord(newIngress, oldIngress, kextensions.Kind("ingresses").WithVersion("Version"), "namespace", newIngress.ObjectMeta.Name, kextensions.Resource("ingresses").WithVersion("version"), "", test.op, false, nil), nil)
 		if test.admit && err != nil {
 			t.Errorf("%s: expected no error but got: %s", test.testName, err)
 		} else if !test.admit && err == nil {

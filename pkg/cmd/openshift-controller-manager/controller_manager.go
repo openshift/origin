@@ -86,6 +86,7 @@ func RunOpenShiftControllerManager(config *openshiftcontrolplanev1.OpenShiftCont
 		"openshift-controller-manager",
 		"openshift-master-controllers", // this matches what ansible used to set
 		kubeClient.CoreV1(),
+		kubeClient.CoordinationV1(),
 		resourcelock.ResourceLockConfig{
 			Identity:      id,
 			EventRecorder: eventRecorder,

@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
-	controllerapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
+	"k8s.io/kubernetes/cmd/controller-manager/app"
 	"k8s.io/kubernetes/pkg/controller"
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
@@ -220,7 +220,7 @@ func (c *ControllerContext) StartInformers(stopCh <-chan struct{}) {
 }
 
 func (c *ControllerContext) IsControllerEnabled(name string) bool {
-	return controllerapp.IsControllerEnabled(name, sets.String{}, c.OpenshiftControllerConfig.Controllers...)
+	return app.IsControllerEnabled(name, sets.String{}, c.OpenshiftControllerConfig.Controllers)
 }
 
 type ControllerClientBuilder interface {

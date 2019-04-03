@@ -140,7 +140,7 @@ func NewOcCommand(name, fullName string, in io.Reader, out, errout io.Writer) *c
 		BashCompletionFunction: bashCompletionFunc,
 	}
 
-	kubeConfigFlags := genericclioptions.NewConfigFlags()
+	kubeConfigFlags := genericclioptions.NewConfigFlags(true)
 	kubeConfigFlags.AddFlags(cmds.PersistentFlags())
 	matchVersionKubeConfigFlags := kcmdutil.NewMatchVersionFlags(kubeConfigFlags)
 	matchVersionKubeConfigFlags.AddFlags(cmds.PersistentFlags())
