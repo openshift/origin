@@ -212,10 +212,10 @@ func (master *OsdnMaster) checkClusterNetworkAgainstClusterObjects() error {
 	if subnetList, err := master.networkClient.Network().HostSubnets().List(metav1.ListOptions{}); err == nil {
 		subnets = subnetList.Items
 	}
-	if podList, err := master.kClient.Core().Pods(metav1.NamespaceAll).List(metav1.ListOptions{}); err == nil {
+	if podList, err := master.kClient.CoreV1().Pods(metav1.NamespaceAll).List(metav1.ListOptions{}); err == nil {
 		pods = podList.Items
 	}
-	if serviceList, err := master.kClient.Core().Services(metav1.NamespaceAll).List(metav1.ListOptions{}); err == nil {
+	if serviceList, err := master.kClient.CoreV1().Services(metav1.NamespaceAll).List(metav1.ListOptions{}); err == nil {
 		services = serviceList.Items
 	}
 

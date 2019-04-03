@@ -446,7 +446,7 @@ func (node *OsdnNode) GetLocalPods(namespace string) ([]corev1.Pod, error) {
 		LabelSelector: labels.Everything().String(),
 		FieldSelector: fieldSelector.String(),
 	}
-	podList, err := node.kClient.Core().Pods(namespace).List(opts)
+	podList, err := node.kClient.CoreV1().Pods(namespace).List(opts)
 	if err != nil {
 		return nil, err
 	}

@@ -29,7 +29,7 @@ func RunResourceQuotaManager(ctx *ControllerContext) (bool, error) {
 	resourceQuotaRegistry := generic.NewRegistry(imageEvaluators)
 
 	resourceQuotaControllerOptions := &kresourcequota.ResourceQuotaControllerOptions{
-		QuotaClient:               ctx.ClientBuilder.ClientOrDie(saName).Core(),
+		QuotaClient:               ctx.ClientBuilder.ClientOrDie(saName).CoreV1(),
 		ResourceQuotaInformer:     ctx.KubernetesInformers.Core().V1().ResourceQuotas(),
 		ResyncPeriod:              controller.StaticResyncPeriodFunc(resourceQuotaSyncPeriod),
 		Registry:                  resourceQuotaRegistry,

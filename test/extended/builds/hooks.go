@@ -95,12 +95,12 @@ var _ = g.Describe("[Feature:Builds][Slow] testing build configuration hooks", f
 
 				g.By("expecting the pod to deploy successfully")
 				deploymentConfigLabel := exutil.ParseLabelsOrDie("app=mys2itest")
-				pods, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), deploymentConfigLabel, exutil.CheckPodIsRunning, 1, 2*time.Minute)
+				pods, err := exutil.WaitForPods(oc.KubeClient().CoreV1().Pods(oc.Namespace()), deploymentConfigLabel, exutil.CheckPodIsRunning, 1, 2*time.Minute)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(len(pods)).To(o.Equal(1))
 
 				g.By("getting the pod information")
-				pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(pods[0], metav1.GetOptions{})
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(pods[0], metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("verifying the postCommit hook did not modify the final image")
@@ -171,12 +171,12 @@ var _ = g.Describe("[Feature:Builds][Slow] testing build configuration hooks", f
 
 				g.By("expecting the pod to deploy successfully")
 				deploymentConfigLabel := exutil.ParseLabelsOrDie("app=mydockertest")
-				pods, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), deploymentConfigLabel, exutil.CheckPodIsRunning, 1, 2*time.Minute)
+				pods, err := exutil.WaitForPods(oc.KubeClient().CoreV1().Pods(oc.Namespace()), deploymentConfigLabel, exutil.CheckPodIsRunning, 1, 2*time.Minute)
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(len(pods)).To(o.Equal(1))
 
 				g.By("getting the pod information")
-				pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(pods[0], metav1.GetOptions{})
+				pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(pods[0], metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("verifying the postCommit hook did not modify the final image")

@@ -5,11 +5,12 @@ package node
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/containernetworking/cni/pkg/types/current"
 	"net"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/containernetworking/cni/pkg/types/current"
 
 	networkv1 "github.com/openshift/api/network/v1"
 	"github.com/openshift/origin/pkg/network/common"
@@ -509,7 +510,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 		}
 	}()
 
-	v1Pod, err := m.kClient.Core().Pods(req.PodNamespace).Get(req.PodName, metav1.GetOptions{})
+	v1Pod, err := m.kClient.CoreV1().Pods(req.PodNamespace).Get(req.PodName, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, err
 	}

@@ -48,7 +48,7 @@ func getConfigMapRefValue(client kubernetes.Interface, namespace string, store *
 	configMap, ok := store.ConfigMapStore[configMapSelector.Name]
 	if !ok {
 		var err error
-		configMap, err = client.Core().ConfigMaps(namespace).Get(configMapSelector.Name, metav1.GetOptions{})
+		configMap, err = client.CoreV1().ConfigMaps(namespace).Get(configMapSelector.Name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}

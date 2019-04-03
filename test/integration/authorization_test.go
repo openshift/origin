@@ -638,7 +638,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 				Users:           sets.NewString("edgar"),
 				Groups:          sets.NewString(),
 				Namespace:       "mallet-project",
-				EvaluationError: `[clusterrole.rbac.authorization.k8s.io "admin" not found, clusterrole.rbac.authorization.k8s.io "admin" not found, clusterrole.rbac.authorization.k8s.io "admin" not found]`,
+				EvaluationError: `clusterrole.rbac.authorization.k8s.io "admin" not found`,
 			},
 		}
 		test.response.Users.Insert(globalClusterReaderUsers.List()...)

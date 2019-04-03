@@ -172,7 +172,7 @@ func (b *Broker) Bind(u user.Info, instanceID, bindingID string, breq *api.BindR
 
 	// end users are not expected to have access to BrokerTemplateInstance
 	// objects; SAR on the TemplateInstance instead.
-	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+	if err := util.Authorize(b.kc.AuthorizationV1().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
 		Verb:      "get",
 		Group:     templateapi.GroupName,
@@ -214,7 +214,7 @@ func (b *Broker) Bind(u user.Info, instanceID, bindingID string, breq *api.BindR
 			return api.InternalServerError(err)
 		}
 
-		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+		if err := util.Authorize(b.kc.AuthorizationV1().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 			Namespace: object.Ref.Namespace,
 			Verb:      "get",
 			Group:     mapping.Resource.Group,
@@ -252,7 +252,7 @@ func (b *Broker) Bind(u user.Info, instanceID, bindingID string, breq *api.BindR
 
 	// end users are not expected to have access to BrokerTemplateInstance
 	// objects; SAR on the TemplateInstance instead.
-	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+	if err := util.Authorize(b.kc.AuthorizationV1().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
 		Verb:      "update",
 		Group:     templateapi.GroupName,

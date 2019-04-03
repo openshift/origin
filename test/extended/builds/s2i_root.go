@@ -48,7 +48,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 		o.Expect(build.Status.Message).To(o.BeEquivalentTo(s2istatus.ReasonMessagePullBuilderImageFailed))
 
 		podname := build.Annotations[buildutil.BuildPodNameAnnotation]
-		pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
+		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		containers := make([]corev1.Container, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))
@@ -89,7 +89,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		podname := build.Annotations[buildutil.BuildPodNameAnnotation]
-		pod, err := oc.KubeClient().Core().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
+		pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(podname, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		containers := make([]corev1.Container, len(pod.Spec.Containers)+len(pod.Spec.InitContainers))

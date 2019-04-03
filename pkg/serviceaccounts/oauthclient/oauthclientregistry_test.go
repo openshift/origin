@@ -570,8 +570,8 @@ func TestGetClient(t *testing.T) {
 		delegate := &fakeDelegate{}
 		fakerecorder := record.NewFakeRecorder(100)
 		getter := saOAuthClientAdapter{
-			saClient:      tc.kubeClient.Core(),
-			secretClient:  tc.kubeClient.Core(),
+			saClient:      tc.kubeClient.CoreV1(),
+			secretClient:  tc.kubeClient.CoreV1(),
 			eventRecorder: fakerecorder,
 			routeClient:   tc.routeClient.Route(),
 			delegate:      delegate,

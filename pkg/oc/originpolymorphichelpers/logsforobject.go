@@ -23,7 +23,7 @@ import (
 )
 
 func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorphichelpers.LogsForObjectFunc {
-	return func(restClientGetter genericclioptions.RESTClientGetter, object, options runtime.Object, timeout time.Duration, allContainers bool) ([]*rest.Request, error) {
+	return func(restClientGetter genericclioptions.RESTClientGetter, object, options runtime.Object, timeout time.Duration, allContainers bool) ([]rest.ResponseWrapper, error) {
 		clientConfig, err := restClientGetter.ToRESTConfig()
 		if err != nil {
 			return nil, err
@@ -40,7 +40,7 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 				return nil, err
 			}
 			// TODO: support allContainers flag
-			return []*rest.Request{appsmanualclientv1.NewRolloutLogClient(appsClient.RESTClient(), t.Namespace).Logs(t.Name, *dopts)}, nil
+			return []rest.ResponseWrapper{appsmanualclientv1.NewRolloutLogClient(appsClient.RESTClient(), t.Namespace).Logs(t.Name, *dopts)}, nil
 		case *buildv1.Build:
 			bopts, ok := options.(*buildv1.BuildLogOptions)
 			if !ok {
@@ -54,7 +54,7 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 				return nil, err
 			}
 			// TODO: support allContainers flag
-			return []*rest.Request{buildmanualclientv1.NewBuildLogClient(buildClient.RESTClient(), t.Namespace).Logs(t.Name, *bopts)}, nil
+			return []rest.ResponseWrapper{buildmanualclientv1.NewBuildLogClient(buildClient.RESTClient(), t.Namespace).Logs(t.Name, *bopts)}, nil
 		case *buildv1.BuildConfig:
 			bopts, ok := options.(*buildv1.BuildLogOptions)
 			if !ok {
@@ -77,11 +77,11 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 				// If a version has been specified, try to get the logs from that build.
 				desired := ocbuildapihelpers.BuildNameForConfigVersion(t.Name, int(*bopts.Version))
 				// TODO: support allContainers flag
-				return []*rest.Request{logClient.Logs(desired, *bopts)}, nil
+				return []rest.ResponseWrapper{logClient.Logs(desired, *bopts)}, nil
 			}
 			sort.Sort(sort.Reverse(ocbuildapihelpers.BuildSliceByCreationTimestamp(filteredInternalBuildItems)))
 			// TODO: support allContainers flag
-			return []*rest.Request{logClient.Logs(filteredInternalBuildItems[0].Name, *bopts)}, nil
+			return []rest.ResponseWrapper{logClient.Logs(filteredInternalBuildItems[0].Name, *bopts)}, nil
 		case *buildapi.Build:
 			bopts, ok := options.(*buildv1.BuildLogOptions)
 			if !ok {
@@ -95,7 +95,7 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 				return nil, err
 			}
 			// TODO: support allContainers flag
-			return []*rest.Request{buildmanualclientv1.NewBuildLogClient(buildClient.RESTClient(), t.Namespace).Logs(t.Name, *bopts)}, nil
+			return []rest.ResponseWrapper{buildmanualclientv1.NewBuildLogClient(buildClient.RESTClient(), t.Namespace).Logs(t.Name, *bopts)}, nil
 		case *buildapi.BuildConfig:
 			bopts, ok := options.(*buildv1.BuildLogOptions)
 			if !ok {
@@ -118,11 +118,11 @@ func NewLogsForObjectFn(delegate polymorphichelpers.LogsForObjectFunc) polymorph
 				// If a version has been specified, try to get the logs from that build.
 				desired := ocbuildapihelpers.BuildNameForConfigVersion(t.Name, int(*bopts.Version))
 				// TODO: support allContainers flag
-				return []*rest.Request{logClient.Logs(desired, *bopts)}, nil
+				return []rest.ResponseWrapper{logClient.Logs(desired, *bopts)}, nil
 			}
 			sort.Sort(sort.Reverse(ocbuildapihelpers.BuildSliceByCreationTimestamp(filteredInternalBuildItems)))
 			// TODO: support allContainers flag
-			return []*rest.Request{logClient.Logs(filteredInternalBuildItems[0].Name, *bopts)}, nil
+			return []rest.ResponseWrapper{logClient.Logs(filteredInternalBuildItems[0].Name, *bopts)}, nil
 		default:
 			return delegate(restClientGetter, object, options, timeout, allContainers)
 		}

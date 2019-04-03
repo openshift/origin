@@ -35,7 +35,7 @@ func (b *Broker) Deprovision(u user.Info, instanceID string) *api.Response {
 	// end users are not expected to have access to BrokerTemplateInstance
 	// objects; SAR on the TemplateInstance instead.
 
-	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+	if err := util.Authorize(b.kc.AuthorizationV1().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
 		Verb:      "get",
 		Group:     templateapi.GroupName,
@@ -45,7 +45,7 @@ func (b *Broker) Deprovision(u user.Info, instanceID string) *api.Response {
 		return api.Forbidden(err)
 	}
 
-	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+	if err := util.Authorize(b.kc.AuthorizationV1().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
 		Verb:      "delete",
 		Group:     templateapi.GroupName,

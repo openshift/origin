@@ -273,7 +273,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					err := exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "sample-build-binary-invalidnodeselector-1", nil, nil, cancelFn)
 					o.Expect(err).NotTo(o.HaveOccurred())
 					o.Expect(build.Status.Phase).To(o.Equal(buildv1.BuildPhaseCancelled))
-					exutil.CheckForBuildEvent(oc.KubeClient().Core(), build, buildutil.BuildCancelledEventReason,
+					exutil.CheckForBuildEvent(oc.KubeClient().CoreV1(), build, buildutil.BuildCancelledEventReason,
 						buildutil.BuildCancelledEventMessage)
 				})
 			})
@@ -314,7 +314,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					err = oc.Run("cancel-build").Args(buildName).Execute()
 					o.Expect(err).ToNot(o.HaveOccurred())
 					wg.Wait()
-					exutil.CheckForBuildEvent(oc.KubeClient().Core(), build, buildutil.BuildCancelledEventReason,
+					exutil.CheckForBuildEvent(oc.KubeClient().CoreV1(), build, buildutil.BuildCancelledEventReason,
 						buildutil.BuildCancelledEventMessage)
 
 				})

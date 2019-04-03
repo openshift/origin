@@ -612,7 +612,7 @@ func IsBlobStoredInRegistry(
 // assumed to be in a read-only mode and using filesystem as a storage driver. It returns lists of deleted
 // files.
 func RunHardPrune(oc *exutil.CLI, dryRun bool) (*RegistryStorageFiles, error) {
-	pod, err := GetRegistryPod(oc.AsAdmin().KubeClient().Core())
+	pod, err := GetRegistryPod(oc.AsAdmin().KubeClient().CoreV1())
 	if err != nil {
 		return nil, err
 	}

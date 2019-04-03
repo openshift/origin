@@ -103,7 +103,7 @@ func (e *DockercfgDeletedController) secretDeleted(obj interface{}) {
 	}
 
 	// remove the reference token secret
-	if err := e.client.Core().Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Annotations[ServiceAccountTokenSecretNameKey], nil); (err != nil) && !kapierrors.IsNotFound(err) {
+	if err := e.client.CoreV1().Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Annotations[ServiceAccountTokenSecretNameKey], nil); (err != nil) && !kapierrors.IsNotFound(err) {
 		utilruntime.HandleError(err)
 	}
 }
@@ -144,7 +144,7 @@ func (e *DockercfgDeletedController) removeDockercfgSecretReference(dockercfgSec
 	serviceAccount.ImagePullSecrets = imagePullSecrets
 
 	if changed {
-		_, err = e.client.Core().ServiceAccounts(dockercfgSecret.Namespace).Update(serviceAccount)
+		_, err = e.client.CoreV1().ServiceAccounts(dockercfgSecret.Namespace).Update(serviceAccount)
 		if err != nil {
 			return err
 		}
@@ -160,7 +160,7 @@ func (e *DockercfgDeletedController) getServiceAccount(secret *v1.Secret) (*v1.S
 		return nil, nil
 	}
 
-	serviceAccount, err := e.client.Core().ServiceAccounts(secret.Namespace).Get(saName, metav1.GetOptions{})
+	serviceAccount, err := e.client.CoreV1().ServiceAccounts(secret.Namespace).Get(saName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

@@ -58,7 +58,7 @@ func RunImageTriggerController(ctx *ControllerContext) (bool, error) {
 		Informer:  ctx.BuildInformers.Build().V1().BuildConfigs().Informer(),
 		Store:     ctx.BuildInformers.Build().V1().BuildConfigs().Informer().GetIndexer(),
 		TriggerFn: triggerbuildconfigs.NewBuildConfigTriggerIndexer,
-		Reactor:   triggerbuildconfigs.NewBuildConfigReactor(bcInstantiator, kclient.Core().RESTClient()),
+		Reactor:   triggerbuildconfigs.NewBuildConfigReactor(bcInstantiator, kclient.CoreV1().RESTClient()),
 	})
 	sources = append(sources, imagetriggercontroller.TriggerSource{
 		Resource:  schema.GroupResource{Group: "extensions", Resource: "deployments"},
@@ -132,7 +132,7 @@ func (u podSpecUpdater) Update(obj runtime.Object) error {
 		_, err := u.kclient.BatchV2alpha1().CronJobs(t.Namespace).Update(t)
 		return err
 	case *kapiv1.Pod:
-		_, err := u.kclient.Core().Pods(t.Namespace).Update(t)
+		_, err := u.kclient.CoreV1().Pods(t.Namespace).Update(t)
 		return err
 	default:
 		return fmt.Errorf("unrecognized object - no trigger update possible for %T", obj)

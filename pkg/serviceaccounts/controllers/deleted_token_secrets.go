@@ -92,7 +92,7 @@ func (e *DockercfgTokenDeletedController) secretDeleted(obj interface{}) {
 
 	// remove the reference token secrets
 	for _, dockercfgSecret := range dockercfgSecrets {
-		if err := e.client.Core().Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name, nil); (err != nil) && !apierrors.IsNotFound(err) {
+		if err := e.client.CoreV1().Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name, nil); (err != nil) && !apierrors.IsNotFound(err) {
 			utilruntime.HandleError(err)
 		}
 	}
@@ -103,7 +103,7 @@ func (e *DockercfgTokenDeletedController) findDockercfgSecrets(tokenSecret *v1.S
 	dockercfgSecrets := []*v1.Secret{}
 
 	options := metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector(api.SecretTypeField, string(v1.SecretTypeDockercfg)).String()}
-	potentialSecrets, err := e.client.Core().Secrets(tokenSecret.Namespace).List(options)
+	potentialSecrets, err := e.client.CoreV1().Secrets(tokenSecret.Namespace).List(options)
 	if err != nil {
 		return nil, err
 	}

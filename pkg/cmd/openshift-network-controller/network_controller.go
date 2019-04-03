@@ -63,6 +63,7 @@ func RunOpenShiftNetworkController(config *openshiftcontrolplanev1.OpenShiftCont
 		"openshift-sdn",
 		"openshift-network-controller",
 		kubeClient.CoreV1(),
+		kubeClient.CoordinationV1(),
 		resourcelock.ResourceLockConfig{
 			Identity:      id,
 			EventRecorder: eventRecorder,

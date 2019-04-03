@@ -199,7 +199,7 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 			setupJenkins(jenkinsPersistentTemplatePath)
 			// additionally ensure that the build works in a memory constrained
 			// environment
-			_, err := oc.AdminKubeClient().Core().LimitRanges(oc.Namespace()).Create(&corev1.LimitRange{
+			_, err := oc.AdminKubeClient().CoreV1().LimitRanges(oc.Namespace()).Create(&corev1.LimitRange{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "limitrange",
 				},
@@ -215,7 +215,7 @@ var _ = g.Describe("[Slow]jenkins repos e2e openshift using slow samples pipelin
 				},
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
-			defer oc.AdminKubeClient().Core().LimitRanges(oc.Namespace()).Delete("limitrange", &metav1.DeleteOptions{})
+			defer oc.AdminKubeClient().CoreV1().LimitRanges(oc.Namespace()).Delete("limitrange", &metav1.DeleteOptions{})
 
 			g.By("delete jenkins job runs when jenkins re-establishes communications")
 			g.By("should delete job runs when the associated build is deleted - jenkins unreachable")

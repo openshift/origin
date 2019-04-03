@@ -346,7 +346,7 @@ func (e *DockercfgController) syncServiceAccount(key string) error {
 		// Clear the pending token annotation when updating
 		delete(serviceAccount.Annotations, PendingTokenAnnotation)
 
-		updatedSA, err := e.client.Core().ServiceAccounts(serviceAccount.Namespace).Update(serviceAccount)
+		updatedSA, err := e.client.CoreV1().ServiceAccounts(serviceAccount.Namespace).Update(serviceAccount)
 		if err == nil {
 			e.serviceAccountCache.Mutation(updatedSA)
 		}
@@ -372,7 +372,7 @@ func (e *DockercfgController) syncServiceAccount(key string) error {
 			if !exists || !needsDockercfgSecret(obj.(*v1.ServiceAccount)) || serviceAccount.UID != obj.(*v1.ServiceAccount).UID {
 				// somehow a dockercfg secret appeared or the SA disappeared.  cleanup the secret we made and return
 				glog.V(2).Infof("Deleting secret because the work is already done %s/%s", dockercfgSecret.Namespace, dockercfgSecret.Name)
-				e.client.Core().Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name, nil)
+				e.client.CoreV1().Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name, nil)
 				return nil
 			}
 
@@ -385,7 +385,7 @@ func (e *DockercfgController) syncServiceAccount(key string) error {
 		// Clear the pending token annotation when updating
 		delete(serviceAccount.Annotations, PendingTokenAnnotation)
 
-		updatedSA, err := e.client.Core().ServiceAccounts(serviceAccount.Namespace).Update(serviceAccount)
+		updatedSA, err := e.client.CoreV1().ServiceAccounts(serviceAccount.Namespace).Update(serviceAccount)
 		if err == nil {
 			e.serviceAccountCache.Mutation(updatedSA)
 		}
@@ -396,7 +396,7 @@ func (e *DockercfgController) syncServiceAccount(key string) error {
 		// nothing to do.  Our choice was stale or we got a conflict.  Either way that means that the service account was updated.  We simply need to return because we'll get an update notification later
 		// we do need to clean up our dockercfgSecret.  token secrets are cleaned up by the controller handling service account dockercfg secret deletes
 		glog.V(2).Infof("Deleting secret %s/%s (err=%v)", dockercfgSecret.Namespace, dockercfgSecret.Name, err)
-		e.client.Core().Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name, nil)
+		e.client.CoreV1().Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name, nil)
 	}
 	return err
 }
@@ -412,7 +412,7 @@ func (e *DockercfgController) createTokenSecret(serviceAccount *v1.ServiceAccoun
 			serviceAccount.Annotations = map[string]string{}
 		}
 		serviceAccount.Annotations[PendingTokenAnnotation] = pendingTokenName
-		updatedServiceAccount, err := e.client.Core().ServiceAccounts(serviceAccount.Namespace).Update(serviceAccount)
+		updatedServiceAccount, err := e.client.CoreV1().ServiceAccounts(serviceAccount.Namespace).Update(serviceAccount)
 		// Conflicts mean we'll get called to sync this service account again
 		if kapierrors.IsConflict(err) {
 			return nil, false, nil
@@ -449,7 +449,7 @@ func (e *DockercfgController) createTokenSecret(serviceAccount *v1.ServiceAccoun
 	}
 
 	glog.V(4).Infof("Creating token secret %q for service account %s/%s", tokenSecret.Name, serviceAccount.Namespace, serviceAccount.Name)
-	token, err := e.client.Core().Secrets(tokenSecret.Namespace).Create(tokenSecret)
+	token, err := e.client.CoreV1().Secrets(tokenSecret.Namespace).Create(tokenSecret)
 	// Already exists but not in cache means we'll get an add watch event and resync
 	if kapierrors.IsAlreadyExists(err) {
 		return nil, false, nil
@@ -506,7 +506,7 @@ func (e *DockercfgController) createDockerPullSecret(serviceAccount *v1.ServiceA
 	dockercfgSecret.Data[v1.DockerConfigKey] = dockercfgContent
 
 	// Save the secret
-	createdSecret, err := e.client.Core().Secrets(tokenSecret.Namespace).Create(dockercfgSecret)
+	createdSecret, err := e.client.CoreV1().Secrets(tokenSecret.Namespace).Create(dockercfgSecret)
 	return createdSecret, err == nil, err
 }
 

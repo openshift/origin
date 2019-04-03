@@ -16,7 +16,7 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
-func NewAttachablePodForObjectFn(delegate polymorphichelpers.AttachableLogsForObjectFunc) polymorphichelpers.AttachableLogsForObjectFunc {
+func NewAttachablePodForObjectFn(delegate polymorphichelpers.AttachablePodForObjectFunc) polymorphichelpers.AttachablePodForObjectFunc {
 	return func(restClientGetter genericclioptions.RESTClientGetter, object runtime.Object, timeout time.Duration) (*v1.Pod, error) {
 		switch t := object.(type) {
 		case *appsapi.DeploymentConfig:

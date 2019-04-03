@@ -117,7 +117,7 @@ func setUser(cli *exutil.CLI, user *userapi.User) {
 
 // TSBClient returns a client to the running template service broker
 func TSBClient(oc *exutil.CLI) (osbclient.Client, error) {
-	svc, err := oc.AdminKubeClient().Core().Services("openshift-template-service-broker").Get("apiserver", metav1.GetOptions{})
+	svc, err := oc.AdminKubeClient().CoreV1().Services("openshift-template-service-broker").Get("apiserver", metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

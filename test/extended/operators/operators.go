@@ -41,7 +41,7 @@ var _ = g.Describe("[Feature:Platform][Smoke] Managed cluster should", func() {
 
 		// presence of the CVO namespace gates this test
 		g.By("checking for the cluster version operator")
-		skipUnlessCVO(c.Core().Namespaces())
+		skipUnlessCVO(c.CoreV1().Namespaces())
 
 		g.By("waiting for the cluster version to be applied")
 		cvc := dc.Resource(schema.GroupVersionResource{Group: "config.openshift.io", Resource: "clusterversions", Version: "v1"})
@@ -182,7 +182,7 @@ var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
 
 		// presence of the CVO namespace gates this test
 		g.By("checking for the cluster version operator")
-		skipUnlessCVO(coreclient.Core().Namespaces())
+		skipUnlessCVO(coreclient.CoreV1().Namespaces())
 
 		// we need to get the list of versions
 		cv, err := c.Config().ClusterVersions().Get("version", metav1.GetOptions{})

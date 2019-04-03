@@ -149,6 +149,6 @@ func (c *ProjectFinalizerController) finalize(namespace *v1.Namespace) error {
 	}
 
 	// we have removed content, so mark it finalized by us
-	_, err := c.client.Core().Namespaces().Finalize(namespace)
+	_, err := c.client.CoreV1().Namespaces().Finalize(namespace)
 	return err
 }

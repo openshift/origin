@@ -187,8 +187,8 @@ func TestControllerHandlesStaleEvents(t *testing.T) {
 	nowTime := time.Now().Truncate(time.Second)
 	fakeClient, fakeDeployClient, res := prepFakeClient(t, nowTime)
 	controller := &UnidlingController{
-		endpointsNamespacer: fakeClient.Core(),
-		rcNamespacer:        fakeClient.Core(),
+		endpointsNamespacer: fakeClient.CoreV1(),
+		rcNamespacer:        fakeClient.CoreV1(),
 		dcNamespacer:        fakeDeployClient.Apps(),
 	}
 
@@ -243,8 +243,8 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 	fakeClient, fakeDeployClient, res := prepFakeClient(t, idledTime, baseScales...)
 
 	controller := &UnidlingController{
-		endpointsNamespacer: fakeClient.Core(),
-		rcNamespacer:        fakeClient.Core(),
+		endpointsNamespacer: fakeClient.CoreV1(),
+		rcNamespacer:        fakeClient.CoreV1(),
 		dcNamespacer:        fakeDeployClient.Apps(),
 	}
 
@@ -355,8 +355,8 @@ func TestControllerUnidlesProperly(t *testing.T) {
 	fakeClient, fakeDeployClient, res := prepFakeClient(t, nowTime.Add(-10*time.Second), baseScales...)
 
 	controller := &UnidlingController{
-		endpointsNamespacer: fakeClient.Core(),
-		rcNamespacer:        fakeClient.Core(),
+		endpointsNamespacer: fakeClient.CoreV1(),
+		rcNamespacer:        fakeClient.CoreV1(),
 		dcNamespacer:        fakeDeployClient.Apps(),
 	}
 
@@ -695,8 +695,8 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 	for _, test := range tests {
 		fakeClient, fakeDeployClient := prepareFakeClientForFailureTest(test)
 		controller := &UnidlingController{
-			endpointsNamespacer: fakeClient.Core(),
-			rcNamespacer:        fakeClient.Core(),
+			endpointsNamespacer: fakeClient.CoreV1(),
+			rcNamespacer:        fakeClient.CoreV1(),
 			dcNamespacer:        fakeDeployClient.Apps(),
 		}
 

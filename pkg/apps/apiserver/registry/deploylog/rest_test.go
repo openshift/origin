@@ -152,8 +152,8 @@ func mockREST(version, desired int64, status appsv1.DeploymentStatus) *REST {
 
 	return &REST{
 		dcClient:  fakeDn.Apps(),
-		rcClient:  fakeRn.Core(),
-		podClient: fakePn.Core(),
+		rcClient:  fakeRn.CoreV1(),
+		podClient: fakePn.CoreV1(),
 		timeout:   defaultTimeout,
 	}
 }

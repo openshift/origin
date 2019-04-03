@@ -21,7 +21,7 @@ import (
 	webhooktoken "k8s.io/apiserver/plugin/pkg/authenticator/token/webhook"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/util/cert"
+	"k8s.io/client-go/util/keyutil"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
@@ -101,7 +101,7 @@ func newAuthenticator(
 	if len(serviceAccountPublicKeyFiles) > 0 {
 		publicKeys := []interface{}{}
 		for _, keyFile := range serviceAccountPublicKeyFiles {
-			readPublicKeys, err := cert.PublicKeysFromFile(keyFile)
+			readPublicKeys, err := keyutil.PublicKeysFromFile(keyFile)
 			if err != nil {
 				return nil, nil, fmt.Errorf("Error reading service account key file %s: %v", keyFile, err)
 			}

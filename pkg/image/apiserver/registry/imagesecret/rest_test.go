@@ -37,7 +37,7 @@ func TestGetSecrets(t *testing.T) {
 			},
 		},
 	})
-	rest := NewREST(fake.Core())
+	rest := NewREST(fake.CoreV1())
 	opts, _, _ := rest.NewGetOptions()
 	obj, err := rest.Get(apirequest.NewDefaultContext(), "", opts)
 	if err != nil {

@@ -38,7 +38,7 @@ var _ = g.Describe("[Feature:Machines][Smoke] Managed cluster should", func() {
 
 		g.By("checking for the openshift machine api operator")
 		// TODO: skip if platform != aws
-		skipUnlessMachineAPIOperator(c.Core().Namespaces())
+		skipUnlessMachineAPIOperator(c.CoreV1().Namespaces())
 
 		g.By("ensuring every node is linked to a machine api resource")
 		allNodes, err := c.CoreV1().Nodes().List(metav1.ListOptions{})

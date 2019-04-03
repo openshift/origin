@@ -168,7 +168,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 		g.It("should report failed soon after an annotated objects has failed", func() {
 			var err error
 
-			secret, err := cli.KubeClient().Core().Secrets(cli.Namespace()).Create(&v1.Secret{
+			secret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Create(&v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "secret",
 				},

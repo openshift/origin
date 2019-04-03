@@ -39,7 +39,7 @@ func TestOAuthDisabled(t *testing.T) {
 	}
 
 	// Make sure cert auth still works
-	namespaces, err := client.Core().Namespaces().List(metav1.ListOptions{})
+	namespaces, err := client.CoreV1().Namespaces().List(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
 	}

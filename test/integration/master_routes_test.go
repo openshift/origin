@@ -266,7 +266,7 @@ func TestApiGroups(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	defer kclientset.Core().Namespaces().Delete(ns, &metav1.DeleteOptions{})
+	defer kclientset.CoreV1().Namespaces().Delete(ns, &metav1.DeleteOptions{})
 
 	t.Logf("GETting builds")
 	req, err := http.NewRequest("GET", masterConfig.OAuthConfig.MasterPublicURL+fmt.Sprintf("/apis/%s/%s", buildv1.GroupName, buildv1.SchemeGroupVersion.Version), nil)

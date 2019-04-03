@@ -139,7 +139,7 @@ func TestWaitForBuild(t *testing.T) {
 		})
 		storage := REST{
 			BuildClient: buildClient.Build(),
-			PodClient:   newPodClient().Core(),
+			PodClient:   newPodClient().CoreV1(),
 			Timeout:     defaultTimeout,
 		}
 		getSimplePodLogsFn := func(podNamespace, podName string, logOpts *kapi.PodLogOptions) (runtime.Object, error) {
@@ -169,7 +169,7 @@ func TestWaitForBuildTimeout(t *testing.T) {
 	ctx := apirequest.NewDefaultContext()
 	storage := REST{
 		BuildClient: buildClient.Build(),
-		PodClient:   newPodClient().Core(),
+		PodClient:   newPodClient().CoreV1(),
 		Timeout:     100 * time.Millisecond,
 	}
 
@@ -185,7 +185,7 @@ func resourceLocationHelper(buildPhase buildv1.BuildPhase, podPhase string, ctx 
 
 	storage := &REST{
 		BuildClient: buildClient.Build(),
-		PodClient:   newPodClient().Core(),
+		PodClient:   newPodClient().CoreV1(),
 		Timeout:     defaultTimeout,
 	}
 	actualPodNamespace := ""
@@ -255,7 +255,7 @@ func TestPreviousBuildLogs(t *testing.T) {
 
 	storage := &REST{
 		BuildClient: buildClient.Build(),
-		PodClient:   anotherNewPodClient().Core(),
+		PodClient:   anotherNewPodClient().CoreV1(),
 		Timeout:     defaultTimeout,
 	}
 	actualPodNamespace := ""

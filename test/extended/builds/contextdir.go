@@ -73,7 +73,7 @@ var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", fun
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				assertPageContent := func(content string) {
-					_, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunning, 1, 4*time.Minute)
+					_, err := exutil.WaitForPods(oc.KubeClient().CoreV1().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunning, 1, 4*time.Minute)
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					result, err := imageeco.CheckPageContains(oc, "frontend", "", content)
@@ -85,7 +85,7 @@ var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", fun
 				assertPageContent("Hello world!")
 
 				g.By("checking the pod count")
-				pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: dcLabel.String()})
+				pods, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: dcLabel.String()})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(len(pods.Items)).To(o.Equal(1))
 

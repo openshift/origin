@@ -67,7 +67,7 @@ func (mp *multiTenantPlugin) updatePodNetwork(namespace string, oldNetID, netID 
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Could not get list of local pods in namespace %q: %v", namespace, err))
 	}
-	services, err := mp.node.kClient.Core().Services(namespace).List(metav1.ListOptions{})
+	services, err := mp.node.kClient.CoreV1().Services(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Could not get list of services in namespace %q: %v", namespace, err))
 		services = &corev1.ServiceList{}

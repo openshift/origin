@@ -180,7 +180,7 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(origNode *
 					condition.Message = "openshift-sdn cleared kubelet-set NoRouteCreated"
 					condition.LastTransitionTime = metav1.Now()
 
-					if knode, err = master.kClient.Core().Nodes().UpdateStatus(knode); err == nil {
+					if knode, err = master.kClient.CoreV1().Nodes().UpdateStatus(knode); err == nil {
 						cleared = true
 					}
 				}
@@ -258,7 +258,7 @@ func (master *OsdnMaster) reconcileHostSubnet(subnet *networkapi.HostSubnet) err
 	var err error
 	node, err = master.nodeInformer.Lister().Get(subnet.Name)
 	if err != nil {
-		node, err = master.kClient.Core().Nodes().Get(subnet.Name, metav1.GetOptions{})
+		node, err = master.kClient.CoreV1().Nodes().Get(subnet.Name, metav1.GetOptions{})
 		if err != nil {
 			if kerrs.IsNotFound(err) {
 				node = nil

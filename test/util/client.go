@@ -160,7 +160,7 @@ func GetScopedClientForUser(clusterAdminClientConfig *restclient.Config, usernam
 }
 
 func GetClientForServiceAccount(adminClient kubernetes.Interface, clientConfig restclient.Config, namespace, name string) (*kubernetes.Clientset, *restclient.Config, error) {
-	_, err := adminClient.Core().Namespaces().Create(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
+	_, err := adminClient.CoreV1().Namespaces().Create(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}})
 	if err != nil && !kerrs.IsAlreadyExists(err) {
 		return nil, nil, err
 	}

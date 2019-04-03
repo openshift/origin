@@ -75,7 +75,7 @@ type fakeControllerClient struct {
 }
 
 func (c *fakeControllerClient) ReplicationControllers(ns string) kcoreclient.ReplicationControllerInterface {
-	return c.fakeClient.Core().ReplicationControllers(ns)
+	return c.fakeClient.CoreV1().ReplicationControllers(ns)
 }
 
 func (c *fakeControllerClient) scaledOnce() bool {
@@ -132,7 +132,7 @@ func TestRecreate_initialDeployment(t *testing.T) {
 		out:               &bytes.Buffer{},
 		errOut:            &bytes.Buffer{},
 		getUpdateAcceptor: getUpdateAcceptor,
-		eventClient:       fake.NewSimpleClientset().Core(),
+		eventClient:       fake.NewSimpleClientset().CoreV1(),
 	}
 
 	config := appstest.OkDeploymentConfig(1)
@@ -165,7 +165,7 @@ func TestRecreate_deploymentPreHookSuccess(t *testing.T) {
 		out:               &bytes.Buffer{},
 		errOut:            &bytes.Buffer{},
 		getUpdateAcceptor: getUpdateAcceptor,
-		eventClient:       fake.NewSimpleClientset().Core(),
+		eventClient:       fake.NewSimpleClientset().CoreV1(),
 		rcClient:          controllerClient,
 		scaleClient:       controllerClient.fakeScaleClient(),
 		hookExecutor: &hookExecutorImpl{
@@ -196,7 +196,7 @@ func TestRecreate_deploymentPreHookFail(t *testing.T) {
 		out:               &bytes.Buffer{},
 		errOut:            &bytes.Buffer{},
 		getUpdateAcceptor: getUpdateAcceptor,
-		eventClient:       fake.NewSimpleClientset().Core(),
+		eventClient:       fake.NewSimpleClientset().CoreV1(),
 		rcClient:          controllerClient,
 		scaleClient:       controllerClient.fakeScaleClient(),
 		hookExecutor: &hookExecutorImpl{
@@ -228,7 +228,7 @@ func TestRecreate_deploymentMidHookSuccess(t *testing.T) {
 		errOut:            &bytes.Buffer{},
 		rcClient:          controllerClient,
 		scaleClient:       controllerClient.fakeScaleClient(),
-		eventClient:       fake.NewSimpleClientset().Core(),
+		eventClient:       fake.NewSimpleClientset().CoreV1(),
 		getUpdateAcceptor: getUpdateAcceptor,
 		hookExecutor: &hookExecutorImpl{
 			executeFunc: func(hook *appsv1.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error {
@@ -260,7 +260,7 @@ func TestRecreate_deploymentPostHookSuccess(t *testing.T) {
 		errOut:            &bytes.Buffer{},
 		rcClient:          controllerClient,
 		scaleClient:       controllerClient.fakeScaleClient(),
-		eventClient:       fake.NewSimpleClientset().Core(),
+		eventClient:       fake.NewSimpleClientset().CoreV1(),
 		getUpdateAcceptor: getUpdateAcceptor,
 		hookExecutor: &hookExecutorImpl{
 			executeFunc: func(hook *appsv1.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error {
@@ -292,7 +292,7 @@ func TestRecreate_deploymentPostHookFail(t *testing.T) {
 		errOut:            &bytes.Buffer{},
 		rcClient:          controllerClient,
 		scaleClient:       controllerClient.fakeScaleClient(),
-		eventClient:       fake.NewSimpleClientset().Core(),
+		eventClient:       fake.NewSimpleClientset().CoreV1(),
 		getUpdateAcceptor: getUpdateAcceptor,
 		hookExecutor: &hookExecutorImpl{
 			executeFunc: func(hook *appsv1.LifecycleHook, deployment *corev1.ReplicationController, suffix, label string) error {
@@ -361,7 +361,7 @@ func TestRecreate_acceptorSuccessWithColdCaches(t *testing.T) {
 	strategy := &RecreateDeploymentStrategy{
 		out:         &bytes.Buffer{},
 		errOut:      &bytes.Buffer{},
-		eventClient: fake.NewSimpleClientset().Core(),
+		eventClient: fake.NewSimpleClientset().CoreV1(),
 	}
 
 	acceptorCalled := false
@@ -406,7 +406,7 @@ func TestRecreate_acceptorFail(t *testing.T) {
 	strategy := &RecreateDeploymentStrategy{
 		out:         &bytes.Buffer{},
 		errOut:      &bytes.Buffer{},
-		eventClient: fake.NewSimpleClientset().Core(),
+		eventClient: fake.NewSimpleClientset().CoreV1(),
 	}
 
 	acceptor := &testAcceptor{

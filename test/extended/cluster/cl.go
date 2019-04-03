@@ -149,7 +149,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 						configMapName := InjectConfigMap(c, nsName, pod.Parameters, config)
 						// Cleanup ConfigMap at some point after the Pods are created
 						defer func() {
-							_ = c.Core().ConfigMaps(nsName).Delete(configMapName, nil)
+							_ = c.CoreV1().ConfigMaps(nsName).Delete(configMapName, nil)
 						}()
 					}
 					// TODO sjug: pass label via config
