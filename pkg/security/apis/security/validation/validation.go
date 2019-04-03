@@ -281,9 +281,13 @@ func ValidatePodSecurityPolicySubjectReview(podSecurityPolicySubjectReview *secu
 	return allErrs
 }
 
-func validatePodSecurityPolicySubjectReviewSpec(podSecurityPolicySubjectReviewSpec *securityapi.PodSecurityPolicySubjectReviewSpec, fldPath *field.Path) field.ErrorList {
+func validatePodSecurityPolicySubjectReviewSpec(spec *securityapi.PodSecurityPolicySubjectReviewSpec, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, kapivalidation.ValidatePodSpec(&podSecurityPolicySubjectReviewSpec.Template.Spec, fldPath.Child("template", "spec"))...)
+	allErrs = append(allErrs, kapivalidation.ValidatePodSpec(&spec.Template.Spec, fldPath.Child("template", "spec"))...)
+	// make sure we never pass an empty user list to FindApplicableSCCs as it will consider that as matching all SCCs
+	if len(spec.User) == 0 && len(spec.Groups) == 0 && len(spec.Template.Spec.ServiceAccountName) == 0 {
+		allErrs = append(allErrs, field.Required(fldPath.Child("user"), "at least one of user, groups or serviceAccountName must be specified"))
+	}
 	return allErrs
 }
 
