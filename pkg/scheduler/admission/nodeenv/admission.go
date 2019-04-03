@@ -102,11 +102,11 @@ func (p *podNodeEnvironment) admit(a admission.Attributes, mutationAllowed bool)
 	return nil
 }
 
-func (p *podNodeEnvironment) Admit(a admission.Attributes) (err error) {
+func (p *podNodeEnvironment) Admit(a admission.Attributes, _ admission.ObjectInterfaces) (err error) {
 	return p.admit(a, true)
 }
 
-func (p *podNodeEnvironment) Validate(a admission.Attributes) (err error) {
+func (p *podNodeEnvironment) Validate(a admission.Attributes, _ admission.ObjectInterfaces) (err error) {
 	return p.admit(a, false)
 }
 

@@ -159,10 +159,10 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, false, nil,
 	)
-	if err := plugin.Admit(attrs); err != nil {
+	if err := plugin.Admit(attrs, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := plugin.Validate(attrs); err != nil {
+	if err := plugin.Validate(attrs, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -173,10 +173,10 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, false, nil,
 	)
-	if err := plugin.Admit(attrs); err != nil {
+	if err := plugin.Admit(attrs, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := plugin.Validate(attrs); err != nil {
+	if err := plugin.Validate(attrs, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -187,10 +187,10 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, false, nil,
 	)
-	if err := plugin.Admit(attrs); err != nil {
+	if err := plugin.Admit(attrs, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := plugin.Validate(attrs); err != nil {
+	if err := plugin.Validate(attrs, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -201,10 +201,10 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, false, nil,
 	)
-	if err := plugin.Admit(attrs); err != nil {
+	if err := plugin.Admit(attrs, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := plugin.Validate(attrs); err != nil {
+	if err := plugin.Validate(attrs, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -215,10 +215,10 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, false, nil,
 	)
-	if err := plugin.Admit(attrs); err != nil {
+	if err := plugin.Admit(attrs, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := plugin.Validate(attrs); err != nil {
+	if err := plugin.Validate(attrs, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -230,10 +230,10 @@ func TestDefaultPolicy(t *testing.T) {
 		"", admission.Create, false, nil,
 	)
 	t.Logf("%#v", plugin.accepter)
-	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
+	if err := plugin.Admit(attrs, nil); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
-	if err := plugin.Validate(attrs); err == nil || !kerrors.IsInvalid(err) {
+	if err := plugin.Validate(attrs, nil); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
 
@@ -244,10 +244,10 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, false, nil,
 	)
-	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
+	if err := plugin.Admit(attrs, nil); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
-	if err := plugin.Validate(attrs); err == nil || !kerrors.IsInvalid(err) {
+	if err := plugin.Validate(attrs, nil); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
 
@@ -258,10 +258,10 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, false, nil,
 	)
-	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
+	if err := plugin.Admit(attrs, nil); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
-	if err := plugin.Validate(attrs); err == nil || !kerrors.IsInvalid(err) {
+	if err := plugin.Validate(attrs, nil); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
 
@@ -274,10 +274,10 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "build1", buildGroupVersionResource,
 		"", admission.Create, false, nil,
 	)
-	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
+	if err := plugin.Admit(attrs, nil); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
-	if err := plugin.Validate(attrs); err == nil || !kerrors.IsInvalid(err) {
+	if err := plugin.Validate(attrs, nil); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
 	attrs = admission.NewAttributesRecord(
@@ -288,10 +288,10 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "build1", buildGroupVersionResource,
 		"", admission.Create, false, nil,
 	)
-	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
+	if err := plugin.Admit(attrs, nil); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
-	if err := plugin.Validate(attrs); err == nil || !kerrors.IsInvalid(err) {
+	if err := plugin.Validate(attrs, nil); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
 	attrs = admission.NewAttributesRecord(
@@ -302,10 +302,10 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "build1", buildGroupVersionResource,
 		"", admission.Create, false, nil,
 	)
-	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
+	if err := plugin.Admit(attrs, nil); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
-	if err := plugin.Validate(attrs); err == nil || !kerrors.IsInvalid(err) {
+	if err := plugin.Validate(attrs, nil); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
 	attrs = admission.NewAttributesRecord(
@@ -316,10 +316,10 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "build1", buildGroupVersionResource,
 		"", admission.Create, false, nil,
 	)
-	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
+	if err := plugin.Admit(attrs, nil); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
-	if err := plugin.Validate(attrs); err == nil || !kerrors.IsInvalid(err) {
+	if err := plugin.Validate(attrs, nil); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
 
@@ -333,10 +333,10 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "build1", buildConfigGroupVersionResource,
 		"", admission.Create, false, nil,
 	)
-	if err := plugin.Admit(attrs); err != nil {
+	if err := plugin.Admit(attrs, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := plugin.Validate(attrs); err != nil {
+	if err := plugin.Validate(attrs, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -348,10 +348,10 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, false, nil,
 	)
-	if err := plugin.Admit(attrs); err != nil {
+	if err := plugin.Admit(attrs, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := plugin.Validate(attrs); err != nil {
+	if err := plugin.Validate(attrs, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -363,10 +363,10 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, false, nil,
 	)
-	if err := plugin.Admit(attrs); err == nil || !kerrors.IsInvalid(err) {
+	if err := plugin.Admit(attrs, nil); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
-	if err := plugin.Validate(attrs); err == nil || !kerrors.IsInvalid(err) {
+	if err := plugin.Validate(attrs, nil); err == nil || !kerrors.IsInvalid(err) {
 		t.Fatal(err)
 	}
 
@@ -386,10 +386,10 @@ func TestDefaultPolicy(t *testing.T) {
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, false, nil,
 	)
-	if err := plugin.Admit(attrs); err != nil {
+	if err := plugin.Admit(attrs, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := plugin.Validate(attrs); err != nil {
+	if err := plugin.Validate(attrs, nil); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -410,10 +410,10 @@ func TestAdmissionWithoutPodSpec(t *testing.T) {
 		"", "node1", schema.GroupVersionResource{Version: "v1", Resource: "nodes"},
 		"", admission.Create, false, nil,
 	)
-	if err := p.Admit(attrs); !kerrors.IsForbidden(err) || !strings.Contains(err.Error(), "No list of images available for this object") {
+	if err := p.Admit(attrs, nil); !kerrors.IsForbidden(err) || !strings.Contains(err.Error(), "No list of images available for this object") {
 		t.Fatal(err)
 	}
-	if err := p.Validate(attrs); !kerrors.IsForbidden(err) || !strings.Contains(err.Error(), "No list of images available for this object") {
+	if err := p.Validate(attrs, nil); !kerrors.IsForbidden(err) || !strings.Contains(err.Error(), "No list of images available for this object") {
 		t.Fatal(err)
 	}
 }
@@ -471,10 +471,10 @@ func TestAdmissionResolution(t *testing.T) {
 		false,
 		nil,
 	)
-	if err := p.Admit(failingAttrs); err == nil {
+	if err := p.Admit(failingAttrs, nil); err == nil {
 		t.Fatal(err)
 	}
-	if err := p.Validate(failingAttrs); err == nil {
+	if err := p.Validate(failingAttrs, nil); err == nil {
 		t.Fatal(err)
 	}
 
@@ -492,7 +492,7 @@ func TestAdmissionResolution(t *testing.T) {
 		"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods"},
 		"", admission.Create, false, nil,
 	)
-	if err := p.Admit(attrs); err != nil {
+	if err := p.Admit(attrs, nil); err != nil {
 		t.Logf("object: %#v", attrs.GetObject())
 		t.Fatal(err)
 	}
@@ -500,7 +500,7 @@ func TestAdmissionResolution(t *testing.T) {
 		pod.Spec.Containers[1].Image != "myregistry.com/mysql/mysql@sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4" {
 		t.Errorf("unexpected image: %#v", pod)
 	}
-	if err := p.Validate(attrs); err != nil {
+	if err := p.Validate(attrs, nil); err != nil {
 		t.Logf("object: %#v", attrs.GetObject())
 		t.Fatal(err)
 	}
@@ -511,7 +511,7 @@ func TestAdmissionResolution(t *testing.T) {
 
 	// Simulate a later admission plugin modifying the pod spec back to something that requires resolution
 	pod.Spec.Containers[0].Image = "myregistry.com/mysql/mysql:latest"
-	if err := p.Validate(attrs); err == nil {
+	if err := p.Validate(attrs, nil); err == nil {
 		t.Fatal("expected validate error on mutation, got none")
 	} else if !strings.Contains(err.Error(), "changed after admission") {
 		t.Fatalf("expected mutation-related error, got %v", err)
@@ -1335,7 +1335,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if err := p.Admit(test.attrs); err != nil {
+			if err := p.Admit(test.attrs, nil); err != nil {
 				if test.admit {
 					t.Errorf("%d: should admit: %v", i, err)
 				}
@@ -1349,7 +1349,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 				t.Errorf("%d: unequal: %s", i, diff.ObjectReflectDiff(test.expect, test.attrs.GetObject()))
 			}
 
-			if err := p.Validate(test.attrs); err != nil {
+			if err := p.Validate(test.attrs, nil); err != nil {
 				t.Errorf("%d: should validate: %v", i, err)
 				return
 			}

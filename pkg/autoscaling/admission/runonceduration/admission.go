@@ -70,7 +70,7 @@ type runOnceDuration struct {
 
 var _ = initializer.WantsExternalKubeInformerFactory(&runOnceDuration{})
 
-func (a *runOnceDuration) Admit(attributes admission.Attributes) error {
+func (a *runOnceDuration) Admit(attributes admission.Attributes, _ admission.ObjectInterfaces) error {
 	switch {
 	case a.config == nil,
 		attributes.GetResource().GroupResource() != kapi.Resource("pods"),

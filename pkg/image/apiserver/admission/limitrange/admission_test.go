@@ -71,7 +71,7 @@ func TestAdmitImageStreamMapping(t *testing.T) {
 			false,
 			nil)
 
-		err = plugin.(admission.MutationInterface).Admit(attrs)
+		err = plugin.(admission.MutationInterface).Admit(attrs, nil)
 		if v.shouldAdmit && err != nil {
 			t.Errorf("%s expected to be admitted but received error %v", k, err)
 		}

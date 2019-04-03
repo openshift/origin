@@ -20,7 +20,7 @@ func (p pluginHandlerWithNamespaceNameConditions) Handles(operation admission.Op
 }
 
 // Admit performs a mutating admission control check and emit metrics.
-func (p pluginHandlerWithNamespaceNameConditions) Admit(a admission.Attributes) error {
+func (p pluginHandlerWithNamespaceNameConditions) Admit(a admission.Attributes, o admission.ObjectInterfaces) error {
 	if !p.shouldRunAdmission(a) {
 		return nil
 	}
@@ -29,11 +29,11 @@ func (p pluginHandlerWithNamespaceNameConditions) Admit(a admission.Attributes) 
 	if !ok {
 		return nil
 	}
-	return mutatingHandler.Admit(a)
+	return mutatingHandler.Admit(a, o)
 }
 
 // Validate performs a non-mutating admission control check and emits metrics.
-func (p pluginHandlerWithNamespaceNameConditions) Validate(a admission.Attributes) error {
+func (p pluginHandlerWithNamespaceNameConditions) Validate(a admission.Attributes, o admission.ObjectInterfaces) error {
 	if !p.shouldRunAdmission(a) {
 		return nil
 	}
@@ -42,7 +42,7 @@ func (p pluginHandlerWithNamespaceNameConditions) Validate(a admission.Attribute
 	if !ok {
 		return nil
 	}
-	return validatingHandler.Validate(a)
+	return validatingHandler.Validate(a, o)
 }
 
 func (p pluginHandlerWithNamespaceNameConditions) shouldRunAdmission(attr admission.Attributes) bool {

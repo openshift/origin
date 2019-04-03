@@ -293,7 +293,7 @@ func TestAdmit(t *testing.T) {
 			"",
 			"CREATE",
 			false,
-			&user.DefaultInfo{Name: tc.user}))
+			&user.DefaultInfo{Name: tc.user}), nil)
 		if err != nil && !tc.expectForbidden {
 			t.Errorf("Got unexpected error for user %s: %v", tc.user, err)
 			continue

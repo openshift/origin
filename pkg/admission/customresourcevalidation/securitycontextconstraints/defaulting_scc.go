@@ -48,7 +48,7 @@ func NewDefaulter() admission.Interface {
 }
 
 // Admit defaults an SCC by going unstructured > external > internal > external > unstructured
-func (a *defaultSCC) Admit(attributes admission.Attributes) error {
+func (a *defaultSCC) Admit(attributes admission.Attributes, o admission.ObjectInterfaces) error {
 	if a.shouldIgnore(attributes) {
 		return nil
 	}

@@ -37,7 +37,7 @@ var _ admission.ValidationInterface = &validateCustomResource{}
 
 // Validate is an admission function that will validate a CRD in config.openshift.io.  uncastAttributes are attributes
 // that are of type unstructured.
-func (a *validateCustomResource) Validate(uncastAttributes admission.Attributes) error {
+func (a *validateCustomResource) Validate(uncastAttributes admission.Attributes, _ admission.ObjectInterfaces) error {
 	attributes := &unstructuredUnpackingAttributes{Attributes: uncastAttributes}
 	if a.shouldIgnore(attributes) {
 		return nil
