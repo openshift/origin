@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
+	"k8s.io/cli-runtime/pkg/resource"
 	fakev1 "k8s.io/client-go/kubernetes/fake"
 	clientfake "k8s.io/client-go/rest/fake"
 	"k8s.io/client-go/restmapper"

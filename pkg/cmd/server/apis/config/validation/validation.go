@@ -2,7 +2,7 @@ package validation
 
 import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	apiserverflag "k8s.io/apiserver/pkg/util/flag"
+	apiserverflag "k8s.io/component-base/cli/flag"
 
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/common"

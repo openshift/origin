@@ -8,7 +8,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	apiserverflag "k8s.io/apiserver/pkg/util/flag"
+	apiserverflag "k8s.io/component-base/cli/flag"
 )
 
 // Apply stores the provided arguments onto a flag set, reporting any errors

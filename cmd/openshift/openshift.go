@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"time"
 
-	"k8s.io/apiserver/pkg/util/logs"
+	"k8s.io/component-base/logs"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/library-go/pkg/serviceability"

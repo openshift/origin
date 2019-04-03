@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
+	"k8s.io/cli-runtime/pkg/printers"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"

@@ -5,7 +5,7 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/server/options"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
-	apiserverflag "k8s.io/apiserver/pkg/util/flag"
+	apiserverflag "k8s.io/component-base/cli/flag"
 
 	configv1 "github.com/openshift/api/config/v1"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
