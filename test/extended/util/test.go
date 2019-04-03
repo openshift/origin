@@ -78,6 +78,11 @@ func InitTest() {
 	TestContext.KubeConfig = KubeConfigPath()
 	os.Setenv("KUBECONFIG", TestContext.KubeConfig)
 
+	// "debian" is used when not set. At least GlusterFS tests need "custom".
+	// (There is no option for "rhel" or "centos".)
+	TestContext.NodeOSDistro = "custom"
+	TestContext.MasterOSDistro = "custom"
+
 	// load and set the host variable for kubectl
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&clientcmd.ClientConfigLoadingRules{ExplicitPath: TestContext.KubeConfig}, &clientcmd.ConfigOverrides{})
 	cfg, err := clientConfig.ClientConfig()
