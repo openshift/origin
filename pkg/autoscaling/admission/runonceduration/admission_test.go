@@ -136,7 +136,7 @@ func TestRunOnceDurationAdmit(t *testing.T) {
 		admissionPlugin.(*runOnceDuration).nsLister = fakeNamespaceLister(tc.projectAnnotations)
 		pod := tc.pod
 		attrs := admission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), "default", "test", kapi.Resource("pods").WithVersion("version"), "", admission.Create, false, nil)
-		if err := admissionPlugin.(admission.MutationInterface).Admit(attrs); err != nil {
+		if err := admissionPlugin.(admission.MutationInterface).Admit(attrs, nil); err != nil {
 			t.Errorf("%s: unexpected mutating admission error: %v", tc.name, err)
 			continue
 		}

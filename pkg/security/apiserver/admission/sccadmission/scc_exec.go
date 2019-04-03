@@ -39,7 +39,7 @@ type sccExecRestrictions struct {
 	client              kubernetes.Interface
 }
 
-func (d *sccExecRestrictions) Validate(a admission.Attributes) (err error) {
+func (d *sccExecRestrictions) Validate(a admission.Attributes, o admission.ObjectInterfaces) (err error) {
 	if a.GetOperation() != admission.Connect {
 		return nil
 	}
@@ -65,7 +65,7 @@ func (d *sccExecRestrictions) Validate(a admission.Attributes) (err error) {
 	createAttributes := admission.NewAttributesRecord(internalPod, nil, coreapi.Kind("Pod").WithVersion(""), a.GetNamespace(), a.GetName(), a.GetResource(), "", admission.Create, false, a.GetUserInfo())
 	// call SCC.Admit instead of SCC.Validate because we accept that a different SCC is chosen. SCC.Validate would require
 	// that the chosen SCC (stored in the "openshift.io/scc" annotation) does not change.
-	if err := d.constraintAdmission.Admit(createAttributes); err != nil {
+	if err := d.constraintAdmission.Admit(createAttributes, o); err != nil {
 		return admission.NewForbidden(a, fmt.Errorf("%s operation is not allowed because the pod's security context exceeds your permissions: %v", a.GetSubresource(), err))
 	}
 

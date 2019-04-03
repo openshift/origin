@@ -80,24 +80,24 @@ func (a *imageLimitRangerPlugin) ValidateInitialization() error {
 }
 
 // Admit invokes the admission logic for checking against LimitRanges.
-func (a *imageLimitRangerPlugin) Admit(attr admission.Attributes) error {
+func (a *imageLimitRangerPlugin) Admit(attr admission.Attributes, o admission.ObjectInterfaces) error {
 	if !a.SupportsAttributes(attr) {
 		return nil // not applicable
 	}
 
-	err := a.limitRanger.Admit(attr)
+	err := a.limitRanger.Admit(attr, o)
 	if err != nil {
 		return err
 	}
-	return a.limitRanger.Validate(attr)
+	return a.limitRanger.Validate(attr, o)
 }
 
-func (a *imageLimitRangerPlugin) Validate(attr admission.Attributes) error {
+func (a *imageLimitRangerPlugin) Validate(attr admission.Attributes, o admission.ObjectInterfaces) error {
 	if !a.SupportsAttributes(attr) {
 		return nil // not applicable
 	}
 
-	return a.limitRanger.Validate(attr)
+	return a.limitRanger.Validate(attr, o)
 }
 
 // SupportsAttributes is a helper that returns true if the resource is supported by the plugin.

@@ -146,7 +146,7 @@ func TestPodNodeConstraints(t *testing.T) {
 		if tc.expectedErrorMsg != "" {
 			expectedError = admission.NewForbidden(attrs, fmt.Errorf(tc.expectedErrorMsg))
 		}
-		err = prc.(admission.ValidationInterface).Validate(attrs)
+		err = prc.(admission.ValidationInterface).Validate(attrs, nil)
 		checkAdmitError(t, err, expectedError, errPrefix)
 	}
 }
@@ -163,7 +163,7 @@ func TestPodNodeConstraintsPodUpdate(t *testing.T) {
 		return
 	}
 	attrs := admission.NewAttributesRecord(nodeNamePod(), nodeNamePod(), kapi.Kind("Pod").WithVersion("version"), ns, "test", kapi.Resource("pods").WithVersion("version"), "", admission.Update, false, serviceaccount.UserInfo("", "", ""))
-	err = prc.(admission.ValidationInterface).Validate(attrs)
+	err = prc.(admission.ValidationInterface).Validate(attrs, nil)
 	checkAdmitError(t, err, expectedError, errPrefix)
 }
 
@@ -179,7 +179,7 @@ func TestPodNodeConstraintsNonHandledResources(t *testing.T) {
 		return
 	}
 	attrs := admission.NewAttributesRecord(resourceQuota(), nil, kapi.Kind("ResourceQuota").WithVersion("version"), ns, "test", kapi.Resource("resourcequotas").WithVersion("version"), "", admission.Create, false, serviceaccount.UserInfo("", "", ""))
-	err = prc.(admission.ValidationInterface).Validate(attrs)
+	err = prc.(admission.ValidationInterface).Validate(attrs, nil)
 	checkAdmitError(t, err, expectedError, errPrefix)
 }
 
@@ -300,7 +300,7 @@ func TestPodNodeConstraintsResources(t *testing.T) {
 					if tp.expectedErrorMsg != "" {
 						expectedError = admission.NewForbidden(attrs, fmt.Errorf(tp.expectedErrorMsg))
 					}
-					err = prc.(admission.ValidationInterface).Validate(attrs)
+					err = prc.(admission.ValidationInterface).Validate(attrs, nil)
 					checkAdmitError(t, err, expectedError, errPrefix)
 				}
 			}

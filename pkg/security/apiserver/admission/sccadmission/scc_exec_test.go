@@ -100,7 +100,7 @@ func TestExecAdmit(t *testing.T) {
 		p.SetExternalKubeClientSet(tc)
 
 		attrs := admission.NewAttributesRecord(nil, nil, coreapi.Kind("Pod").WithVersion("version"), "namespace", "pod-name", coreapi.Resource(v.resource).WithVersion("version"), v.subresource, v.operation, false, &user.DefaultInfo{})
-		err := p.Validate(attrs)
+		err := p.Validate(attrs, nil)
 
 		if v.shouldAdmit && err != nil {
 			t.Errorf("%s: expected no errors but received %v", k, err)
