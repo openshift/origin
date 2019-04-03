@@ -82,12 +82,12 @@ func (strategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) fie
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes.
-func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
+func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
 	scc, ok := obj.(*securityapi.SecurityContextConstraints)
 	if !ok {
-		return nil, nil, false, fmt.Errorf("not SecurityContextConstraints")
+		return nil, nil, fmt.Errorf("not SecurityContextConstraints")
 	}
-	return labels.Set(scc.Labels), SelectableFields(scc), scc.Initializers != nil, nil
+	return labels.Set(scc.Labels), SelectableFields(scc), nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
@@ -95,12 +95,12 @@ func Matcher(label labels.Selector, field fields.Selector) apistorage.SelectionP
 	return apistorage.SelectionPredicate{
 		Label: label,
 		Field: field,
-		GetAttrs: func(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
+		GetAttrs: func(obj runtime.Object) (labels.Set, fields.Set, error) {
 			scc, ok := obj.(*securityapi.SecurityContextConstraints)
 			if !ok {
-				return nil, nil, false, fmt.Errorf("not a securitycontextconstraint")
+				return nil, nil, fmt.Errorf("not a securitycontextconstraint")
 			}
-			return labels.Set(scc.Labels), SelectableFields(scc), scc.Initializers != nil, nil
+			return labels.Set(scc.Labels), SelectableFields(scc), nil
 		},
 	}
 }

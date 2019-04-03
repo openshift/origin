@@ -65,12 +65,12 @@ func ConvertNamespaceList(namespaceList *corev1.NamespaceList) *projectapi.Proje
 }
 
 // getAttrs returns labels and fields of a given object for filtering purposes.
-func getAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
+func getAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
 	projectObj, ok := obj.(*projectapi.Project)
 	if !ok {
-		return nil, nil, false, fmt.Errorf("not a project")
+		return nil, nil, fmt.Errorf("not a project")
 	}
-	return labels.Set(projectObj.Labels), projectToSelectableFields(projectObj), projectObj.Initializers != nil, nil
+	return labels.Set(projectObj.Labels), projectToSelectableFields(projectObj), nil
 }
 
 // MatchProject returns a generic matcher for a given label and field selector.
