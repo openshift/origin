@@ -6,7 +6,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
+	"k8s.io/cli-runtime/pkg/printers"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"

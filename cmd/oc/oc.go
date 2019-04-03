@@ -8,7 +8,7 @@ import (
 	"time"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apiserver/pkg/util/logs"
+	"k8s.io/component-base/logs"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/openshift/api/apps"

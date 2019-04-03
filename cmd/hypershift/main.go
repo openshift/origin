@@ -12,8 +12,8 @@ import (
 	"github.com/spf13/pflag"
 
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	utilflag "k8s.io/apiserver/pkg/util/flag"
-	"k8s.io/apiserver/pkg/util/logs"
+	utilflag "k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/logs"
 
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver"

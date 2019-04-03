@@ -9,7 +9,7 @@ import (
 	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
+	"k8s.io/cli-runtime/pkg/resource"
 )
 
 // TestResourceVisitor_Visit is used to check for race conditions

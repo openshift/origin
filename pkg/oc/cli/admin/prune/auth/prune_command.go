@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
+	"k8s.io/cli-runtime/pkg/resource"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 

@@ -11,7 +11,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/client-go/informers"
-	"k8s.io/client-go/util/integer"
+	"k8s.io/utils/integer"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration"
