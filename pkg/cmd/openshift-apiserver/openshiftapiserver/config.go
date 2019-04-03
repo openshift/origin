@@ -191,7 +191,7 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 	admissionOptions.EnablePlugins = config.AdmissionConfig.EnabledAdmissionPlugins
 	admissionOptions.DisablePlugins = config.AdmissionConfig.DisabledAdmissionPlugins
 	admissionOptions.ConfigFile = admissionConfigFile
-	admissionOptions.ApplyTo(&genericConfig.Config, kubeInformers, kubeClientConfig, legacyscheme.Scheme, admissionInitializer)
+	admissionOptions.ApplyTo(&genericConfig.Config, kubeInformers, kubeClientConfig, admissionInitializer)
 
 	var externalRegistryHostname string
 	if len(config.ImagePolicyConfig.ExternalRegistryHostnames) > 0 {
