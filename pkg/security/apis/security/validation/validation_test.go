@@ -432,7 +432,7 @@ func TestValidatePodSecurityPolicySubjectReview(t *testing.T) {
 	}
 
 	koCases := map[string]securityapi.PodSecurityPolicySubjectReview{
-		"[spec.template.spec.containers[0].name: Required value, spec.template.spec.containers[0].image: Required value, spec.template.spec.containers[0].imagePullPolicy: Required value]": {
+		"[spec.template.spec.containers[0].name: Required value, spec.template.spec.containers[0].image: Required value, spec.template.spec.containers[0].imagePullPolicy: Required value, spec.user: Required value: at least one of user, groups or serviceAccountName must be specified]": {
 			Spec: securityapi.PodSecurityPolicySubjectReviewSpec{
 				Template: kapi.PodTemplateSpec{
 					Spec: invalidPodSpec(),
