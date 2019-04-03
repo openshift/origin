@@ -7,13 +7,13 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	"k8s.io/apiserver/pkg/server/options"
 	clientgoinformers "k8s.io/client-go/informers"
 	kexternalinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/cmd/kube-apiserver/app"
+	"k8s.io/kubernetes/pkg/kubeapiserver/options"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/quota/v1/generic"
 	"k8s.io/kubernetes/pkg/quota/v1/install"
@@ -115,7 +115,8 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 		}
 		*pluginInitializers = append(*pluginInitializers, openshiftPluginInitializer)
 
-		// set up the decorators we need
+		// set up the decorators we need.  This is done late and out of order because our decorators currently require informers which are not
+		// present until we start running
 		namespaceLabelDecorator := namespaceconditions.NamespaceLabelConditions{
 			NamespaceClient: kubeClient.CoreV1(),
 			NamespaceLister: kubeInformers.Core().V1().Namespaces().Lister(),
@@ -123,7 +124,7 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 			SkipLevelZeroNames: kubeadmission.SkipRunLevelZeroPlugins,
 			SkipLevelOneNames:  kubeadmission.SkipRunLevelOnePlugins,
 		}
-		options.AdmissionDecorator = admission.Decorators{
+		options.Decorators = admission.Decorators{
 			admission.DecoratorFunc(namespaceLabelDecorator.WithNamespaceLabelConditions),
 			admission.DecoratorFunc(admissionmetrics.WithControllerMetrics),
 		}
