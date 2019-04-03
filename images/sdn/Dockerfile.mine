@@ -1,0 +1,55 @@
+FROM registry.svc.ci.openshift.org/ocp/builder:golang-1.10 AS builder
+WORKDIR /go/src/github.com/openshift/origin
+COPY . .
+RUN make build WHAT=" \
+    cmd/openshift-sdn \
+    cmd/sdn-cni-plugin \
+    vendor/github.com/containernetworking/plugins/plugins/ipam/host-local \
+    vendor/github.com/containernetworking/plugins/plugins/main/loopback \
+    "
+
+FROM registry.svc.ci.openshift.org/ocp/4.0:base AS RHEL7
+COPY mirror/ocp-4.0-default.repo /etc/yum.repos.d/ocp-4.0-default.repo
+COPY mirror/ops-mirror.pem /etc/yum.repos.d/ops-mirror.pem
+COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/openshift-sdn /usr/bin/
+COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/sdn-cni-plugin /opt/cni/bin/openshift-sdn
+COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/loopback /opt/cni/bin/
+COPY images/sdn/scripts/* /usr/sbin/
+COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/host-local /opt/cni/bin/
+RUN INSTALL_PKGS=" \
+      openvswitch2.11 container-selinux socat ethtool iptables nmap-ncat \
+      libmnl libnetfilter_conntrack conntrack-tools \
+      libnfnetlink iproute bridge-utils procps-ng openssl \
+      binutils xz sysvinit-tools dbus \
+      " && \
+    rm /etc/yum.repos.d/content.repo && \
+    yum install -y --setopt=tsflags=nodocs $INSTALL_PKGS && \
+    mkdir -p /etc/sysconfig/cni/net.d && \
+    yum clean all && rm -rf /var/cache/* && \
+    rm -f /etc/yum.repos.d/ops-mirror.pem && \
+    rm -f /etc/yum.repos.d/ocp-4.0-default.repo
+
+FROM registry.svc.ci.openshift.org/clayton-test-1/ubi:8
+COPY --from=RHEL7 / /RHEL7
+COPY yum.repos.d/* /etc/yum.repos.d/
+COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/openshift-sdn /usr/bin/
+COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/sdn-cni-plugin /opt/cni/bin/openshift-sdn
+COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/loopback /opt/cni/bin/
+COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/host-local /opt/cni/bin/
+COPY images/sdn/scripts/* /usr/sbin/
+
+RUN INSTALL_PKGS=" \
+      container-selinux socat ethtool iptables nmap-ncat \
+      libmnl libnetfilter_conntrack conntrack-tools \
+      libnfnetlink iproute procps-ng openssl \
+      binutils xz dbus \
+     " && \
+      yum install -y --setopt=tsflags=nodocs $INSTALL_PKGS && \
+      yum install -y http://download-node-02.eng.bos.redhat.com/brewroot/packages/openvswitch2.11/2.11.0/4.el8fdp/x86_64/openvswitch2.11-2.11.0-4.el8fdp.x86_64.rpm http://download-node-02.eng.bos.redhat.com/brewroot/packages/openvswitch2.11/2.11.0/4.el8fdp/x86_64/network-scripts-openvswitch2.11-2.11.0-4.el8fdp.x86_64.rpm http://download-node-02.eng.bos.redhat.com/brewroot/packages/openvswitch2.11/2.11.0/4.el8fdp/x86_64/openvswitch2.11-debuginfo-2.11.0-4.el8fdp.x86_64.rpm http://download-node-02.eng.bos.redhat.com/brewroot/packages/openvswitch2.11/2.11.0/4.el8fdp/x86_64/openvswitch2.11-debugsource-2.11.0-4.el8fdp.x86_64.rpm  http://download-node-02.eng.bos.redhat.com/brewroot/packages/openvswitch2.11/2.11.0/4.el8fdp/x86_64/openvswitch2.11-devel-2.11.0-4.el8fdp.x86_64.rpm http://download-node-02.eng.bos.redhat.com/brewroot/packages/openvswitch2.11/2.11.0/4.el8fdp/x86_64/python3-openvswitch2.11-2.11.0-4.el8fdp.x86_64.rpm http://download-node-02.eng.bos.redhat.com/brewroot/packages/openvswitch2.11/2.11.0/4.el8fdp/x86_64/python3-openvswitch2.11-debuginfo-2.11.0-4.el8fdp.x86_64.rpm http://download-node-02.eng.bos.redhat.com/brewroot/packages/openvswitch-selinux-extra-policy/1.0/11.el8fdp/noarch/openvswitch-selinux-extra-policy-1.0-11.el8fdp.noarch.rpm &&\
+      mkdir -p /etc/sysconfig/cni/net.d && \
+      yum clean all && rm -rf /var/cache/*
+
+LABEL io.k8s.display-name="OpenShift SDN" \
+      io.k8s.description="This is a component of OpenShift and contains the networking tool stack for the default SDN implementation." \
+      io.openshift.tags="openshift,sdn"
+ENTRYPOINT [ "/usr/sbin/start-script.sh" ]
