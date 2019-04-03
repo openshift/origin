@@ -15,10 +15,10 @@ import (
 func GetEtcdOptions(startingFlags map[string][]string, serializedConfig configv1.EtcdStorageConfig, defaultWatchCacheSizes map[schema.GroupResource]int) (*options.EtcdOptions, error) {
 	storageConfig := storagebackend.NewDefaultConfig(serializedConfig.StoragePrefix, nil)
 	storageConfig.Type = "etcd3"
-	storageConfig.ServerList = serializedConfig.URLs
-	storageConfig.KeyFile = serializedConfig.KeyFile
-	storageConfig.CertFile = serializedConfig.CertFile
-	storageConfig.CAFile = serializedConfig.CA
+	storageConfig.Transport.ServerList = serializedConfig.URLs
+	storageConfig.Transport.KeyFile = serializedConfig.KeyFile
+	storageConfig.Transport.CertFile = serializedConfig.CertFile
+	storageConfig.Transport.CAFile = serializedConfig.CA
 
 	etcdOptions := options.NewEtcdOptions(storageConfig)
 	etcdOptions.DefaultStorageMediaType = "application/vnd.kubernetes.protobuf"
