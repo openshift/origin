@@ -132,17 +132,20 @@ func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Re
 	if err != nil {
 		// clients should not be able to find information about build configs in
 		// the system unless the config exists and the secret matches
+		glog.V(0).Infof("GGM get bc error %#v hooktype %q name %q", err, hookType, name)
 		return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", hookType, name))
 	}
 
 	triggers, err := plugin.GetTriggers(config)
 	if err != nil {
+		glog.V(0).Infof("GGM get triggers error %#v hooktype %q name %q", err, hookType, name)
 		return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", hookType, name))
 	}
 
-	glog.V(4).Infof("checking secret for %q webhook trigger of buildconfig %s/%s", hookType, config.Namespace, config.Name)
+	glog.V(0).Infof("GGM checking secret for %q webhook trigger of buildconfig %s/%s", hookType, config.Namespace, config.Name)
 	trigger, err := webhook.CheckSecret(config.Namespace, secret, triggers, w.secretsClient)
 	if err != nil {
+		glog.V(0).Infof("GGM check secret error %#v webhook %q name %q", err, hookType, name)
 		return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", hookType, name))
 	}
 
@@ -150,6 +153,7 @@ func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Re
 	if !proceed {
 		switch err {
 		case webhook.ErrSecretMismatch, webhook.ErrHookNotEnabled:
+			glog.V(0).Infof("GGM webhook plugin %#v got error %#v hooktype %q name %q", plugin, err, hookType, name)
 			return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", hookType, name))
 		case webhook.MethodNotSupported:
 			return errors.NewMethodNotSupported(build.Resource("buildconfighook"), req.Method)
