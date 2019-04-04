@@ -323,6 +323,7 @@ var (
 			`\[NodeAlphaFeature:NodeLease\]`,                 // flag gate is off
 			`\[Feature:TTLAfterFinished\]`,                   // flag gate is off
 			`\[Feature:GPUDevicePlugin\]`,                    // GPU node needs to be available
+			`\[Feature:ExpandCSIVolumes\]`,                   // off by default .  sig-storage
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
@@ -336,6 +337,7 @@ var (
 			`\[Feature:ServiceLoadBalancer\]`, // Not enabled yet
 			`\[Feature:RuntimeClass\]`,        // disable runtimeclass tests in 4.1 (sig-pod/sjenning@redhat.com)
 			`\[Feature:CustomResourceWebhookConversion\]`, // webhook conversion is off by default.  sig-master/@sttts
+			`CSI mock volume`,                             // mock volumes don't see work right.  Newly enabledin 1.14. sig-storage
 
 			`NetworkPolicy between server and client should allow egress access on one named port`, // not yet implemented
 
