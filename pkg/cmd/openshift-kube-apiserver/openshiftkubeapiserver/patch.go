@@ -59,7 +59,11 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 			kubeAPIServerConfig.ServiceAccountPublicKeyFiles, kubeAPIServerConfig.OAuthConfig, kubeAPIServerConfig.AuthConfig,
 			genericConfig.LoopbackClientConfig,
 			kubeAPIServerInformers.OpenshiftOAuthInformers.Oauth().V1().OAuthClients().Lister(),
-			kubeAPIServerInformers.OpenshiftUserInformers.User().V1().Groups())
+			kubeAPIServerInformers.OpenshiftUserInformers.User().V1().Groups(),
+			kubeAPIServerInformers.KubernetesInformers.Core().V1().Secrets().Lister(),
+			kubeAPIServerInformers.KubernetesInformers.Core().V1().ServiceAccounts().Lister(),
+			kubeAPIServerInformers.KubernetesInformers.Core().V1().Pods().Lister(),
+		)
 		if err != nil {
 			return nil, err
 		}

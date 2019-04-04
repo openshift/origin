@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/apiserver/pkg/server/certs"
-
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/group"
 	"k8s.io/apiserver/pkg/authentication/request/anonymous"
@@ -18,8 +16,10 @@ import (
 	tokencache "k8s.io/apiserver/pkg/authentication/token/cache"
 	tokenunion "k8s.io/apiserver/pkg/authentication/token/union"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	"k8s.io/apiserver/pkg/server/certs"
 	webhooktoken "k8s.io/apiserver/plugin/pkg/authenticator/token/webhook"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/keyutil"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
@@ -49,6 +49,9 @@ func NewAuthenticator(
 	privilegedLoopbackConfig *rest.Config,
 	oauthClientLister oauthclientlister.OAuthClientLister,
 	groupInformer userinformer.GroupInformer,
+	secretLister corev1listers.SecretLister,
+	serviceAccountLister corev1listers.ServiceAccountLister,
+	podLister corev1listers.PodLister,
 ) (authenticator.Request, map[string]genericapiserver.PostStartHookFunc, error) {
 	kubeExternalClient, err := kclientsetexternal.NewForConfig(privilegedLoopbackConfig)
 	if err != nil {
@@ -65,7 +68,7 @@ func NewAuthenticator(
 
 	// this is safe because the server does a quorum read and we're hitting a "magic" authorizer to get permissions based on system:masters
 	// once the cache is added, we won't be paying a double hop cost to etcd on each request, so the simplification will help.
-	serviceAccountTokenGetter := sacontroller.NewGetterFromClient(kubeExternalClient)
+	serviceAccountTokenGetter := sacontroller.NewGetterFromClient(kubeExternalClient, secretLister, serviceAccountLister, podLister)
 
 	return newAuthenticator(
 		serviceAccountPublicKeyFiles,
