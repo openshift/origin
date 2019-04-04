@@ -95,16 +95,14 @@ func (p *pruner) Prune(deleter DeploymentDeleter) error {
 // deploymentDeleter removes a deployment from OpenShift.
 type deploymentDeleter struct {
 	deployments corev1client.ReplicationControllersGetter
-	pods        corev1client.PodsGetter
 }
 
 var _ DeploymentDeleter = &deploymentDeleter{}
 
 // NewDeploymentDeleter creates a new deploymentDeleter.
-func NewDeploymentDeleter(deployments corev1client.ReplicationControllersGetter, pods corev1client.PodsGetter) DeploymentDeleter {
+func NewDeploymentDeleter(deployments corev1client.ReplicationControllersGetter) DeploymentDeleter {
 	return &deploymentDeleter{
 		deployments: deployments,
-		pods:        pods,
 	}
 }
 

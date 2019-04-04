@@ -168,7 +168,7 @@ func (o PruneDeploymentsOptions) Run() error {
 	deploymentDeleter := &describingDeploymentDeleter{w: w}
 
 	if o.Confirm {
-		deploymentDeleter.delegate = NewDeploymentDeleter(o.KubeClient, o.KubeClient)
+		deploymentDeleter.delegate = NewDeploymentDeleter(o.KubeClient)
 	} else {
 		fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made. Add --confirm to remove deployments")
 	}
