@@ -176,6 +176,22 @@ items:
     - list
     - watch
   - apiGroups:
+    - networking.k8s.io
+    resources:
+    - ingresses/status
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - node.k8s.io
+    resources:
+    - runtimeclasses
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
     - policy
     resources:
     - poddisruptionbudgets/status
@@ -206,6 +222,8 @@ items:
   - apiGroups:
     - storage.k8s.io
     resources:
+    - csidrivers
+    - csinodes
     - storageclasses
     - volumeattachments
     - volumeattachments/status
