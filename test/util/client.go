@@ -24,6 +24,8 @@ import (
 	quota "k8s.io/kubernetes/pkg/quota/v1"
 	sautil "k8s.io/kubernetes/pkg/serviceaccount"
 
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
@@ -83,6 +85,7 @@ func GetClientForUser(clusterAdminConfig *restclient.Config, username string) (k
 			ObjectMeta: metav1.ObjectMeta{Name: username},
 		}
 		user, err = userClient.User().Users().Create(user)
+		e2e.Logf("GGM created user %s with err %#v", username, user)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -113,6 +116,7 @@ func GetClientForUser(clusterAdminConfig *restclient.Config, username string) (k
 		UserUID:    string(user.UID),
 	}
 	if _, err := oauthClient.Oauth().OAuthAccessTokens().Create(token); err != nil {
+		e2e.Logf("GGM error creating token for test client %s err %#v", username, err)
 		return nil, nil, err
 	}
 

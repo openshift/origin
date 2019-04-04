@@ -8,6 +8,8 @@ import (
 	restclient "k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/origin/pkg/client/config"
 )
@@ -35,10 +37,12 @@ func getUserNicknameFromConfig(clientCfg *restclient.Config) (string, error) {
 
 func getUserPartOfNickname(clientCfg *restclient.Config) (string, error) {
 	userClient, err := userv1typedclient.NewForConfig(clientCfg)
+	e2e.Logf("GGM getUserPartOfNickname 1 %#v", err)
 	if err != nil {
 		return "", err
 	}
 	userInfo, err := userClient.Users().Get("~", metav1.GetOptions{})
+	e2e.Logf("GGM getUserPartOfNickname 2 %#v", err)
 	if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {
 		// if we're talking to kube (or likely talking to kube), take a best guess consistent with login
 		switch {
@@ -75,16 +79,19 @@ func getContextNicknameFromConfig(namespace string, clientCfg *restclient.Config
 func CreateConfig(namespace string, clientCfg *restclient.Config) (*clientcmdapi.Config, error) {
 	clusterNick, err := getClusterNicknameFromConfig(clientCfg)
 	if err != nil {
+		e2e.Logf("GGM cluster nick error %#v", err)
 		return nil, err
 	}
 
 	userNick, err := getUserNicknameFromConfig(clientCfg)
 	if err != nil {
+		e2e.Logf("GGM user nic error %#v", err)
 		return nil, err
 	}
 
 	contextNick, err := getContextNicknameFromConfig(namespace, clientCfg)
 	if err != nil {
+		e2e.Logf("GGM ctx nick error %#v", err)
 		return nil, err
 	}
 
