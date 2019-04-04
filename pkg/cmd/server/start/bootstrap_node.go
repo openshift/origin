@@ -20,7 +20,7 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/server/origin/node"
 )
 
 // loadBootstrap attempts to ensure a bootstrap configuration exists inside the node config dir
@@ -114,7 +114,9 @@ func (o NodeOptions) loadBootstrap(nodeConfigDir string) error {
 				return err
 			}
 
-			overrideNodeConfigForBootstrap(nodeConfig, bootstrapKubeconfig)
+			if err := overrideNodeConfigForBootstrap(nodeConfig, bootstrapKubeconfig); err != nil {
+				return err
+			}
 
 			b, err = configapilatest.WriteYAML(nodeConfig)
 			if err != nil {
@@ -131,21 +133,15 @@ func (o NodeOptions) loadBootstrap(nodeConfigDir string) error {
 }
 
 // overrideNodeConfigForBootstrap sets certain bootstrap overrides.
-func overrideNodeConfigForBootstrap(nodeConfig *configapi.NodeConfig, bootstrapKubeconfig string) {
+func overrideNodeConfigForBootstrap(nodeConfig *configapi.NodeConfig, bootstrapKubeconfig string) error {
 	if nodeConfig.KubeletArguments == nil {
 		nodeConfig.KubeletArguments = configapi.ExtendedArguments{}
 	}
 
 	// Set impliict defaults the same as the kubelet (until this entire code path is removed)
 	nodeConfig.NodeName = nodeutil.GetHostname(nodeConfig.NodeName)
-	if nodeConfig.DNSIP == "0.0.0.0" {
-		nodeConfig.DNSIP = nodeConfig.NodeIP
-		// TODO: the Kubelet should do this defaulting (to the IP it recognizes)
-		if len(nodeConfig.DNSIP) == 0 {
-			if ip, err := cmdutil.DefaultLocalIP4(); err == nil {
-				nodeConfig.DNSIP = ip.String()
-			}
-		}
+	if err := node.SetDNSIP(nodeConfig); err != nil {
+		return err
 	}
 
 	// Created during bootstrapping
@@ -167,4 +163,5 @@ func overrideNodeConfigForBootstrap(nodeConfig *configapi.NodeConfig, bootstrapK
 			"RotateKubeletClientCertificate=true,RotateKubeletServerCertificate=true",
 		}
 	}
+	return nil
 }
