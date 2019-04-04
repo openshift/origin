@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,6 +17,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kubetypedclient "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/klog"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/api/build"
@@ -112,7 +112,7 @@ type WebHookHandler struct {
 // ServeHTTP implements the standard http.Handler
 func (h *WebHookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := h.ProcessWebHook(w, r, h.ctx, h.name, h.options.Path); err != nil {
-		glog.Errorf("%s\n%s\n%s\n", config.Sdump(err), config.Sdump(r), config.Sdump(h))
+		klog.Errorf("%s\n%s\n%s\n", config.Sdump(err), config.Sdump(r), config.Sdump(h))
 		h.responder.Error(err)
 		return
 	}
@@ -123,14 +123,14 @@ func (h *WebHookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Request, ctx context.Context, name, subpath string) error {
 	parts := strings.Split(strings.TrimPrefix(subpath, "/"), "/")
 	if len(parts) != 2 {
-		glog.Error("")
+		klog.Error("")
 		return errors.NewBadRequest(fmt.Sprintf("unexpected hook subpath %s", subpath))
 	}
 	secret, hookType := parts[0], parts[1]
 
 	plugin, ok := w.plugins[hookType]
 	if !ok {
-		glog.Error("")
+		klog.Error("")
 		return errors.NewNotFound(build.Resource("buildconfighook"), hookType)
 	}
 
@@ -138,20 +138,20 @@ func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Re
 	if err != nil {
 		// clients should not be able to find information about build configs in
 		// the system unless the config exists and the secret matches
-		glog.Error("")
+		klog.Error("")
 		return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", hookType, name))
 	}
 
 	triggers, err := plugin.GetTriggers(config)
 	if err != nil {
-		glog.Error("")
+		klog.Error("")
 		return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", hookType, name))
 	}
 
-	glog.V(4).Infof("checking secret for %q webhook trigger of buildconfig %s/%s", hookType, config.Namespace, config.Name)
+	klog.V(4).Infof("checking secret for %q webhook trigger of buildconfig %s/%s", hookType, config.Namespace, config.Name)
 	trigger, err := webhook.CheckSecret(config.Namespace, secret, triggers, w.secretsClient)
 	if err != nil {
-		glog.Error("")
+		klog.Error("")
 		return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", hookType, name))
 	}
 
@@ -159,14 +159,14 @@ func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Re
 	if !proceed {
 		switch err {
 		case webhook.ErrSecretMismatch, webhook.ErrHookNotEnabled:
-			glog.Error("")
+			klog.Error("")
 			return errors.NewUnauthorized(fmt.Sprintf("the webhook %q for %q did not accept your secret", hookType, name))
 		case webhook.MethodNotSupported:
-			glog.Error("")
+			klog.Error("")
 			return errors.NewMethodNotSupported(build.Resource("buildconfighook"), req.Method)
 		}
 		if _, ok := err.(*errors.StatusError); !ok && err != nil {
-			glog.Error("")
+			klog.Error("")
 			return errors.NewInternalError(fmt.Errorf("hook failed: %v", err))
 		}
 		return err
@@ -185,7 +185,7 @@ func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Re
 
 	newBuild, err := w.instantiator.Instantiate(config.Namespace, request)
 	if err != nil {
-		glog.Error("")
+		klog.Error("")
 		return errors.NewInternalError(fmt.Errorf("could not generate a build: %v", err))
 	}
 
