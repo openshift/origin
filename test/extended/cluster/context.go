@@ -25,15 +25,16 @@ type ContextType struct {
 
 // ClusterLoaderType struct only used for Cluster Loader test config
 type ClusterLoaderType struct {
-	Number     int `mapstructure:"num" yaml:"num"`
-	Basename   string
-	IfExists   string                    `json:"ifexists"`
-	Labels     map[string]string         `yaml:",omitempty"`
-	Tuning     string                    `yaml:",omitempty"`
-	Configmaps map[string]interface{}    `yaml:",omitempty"`
-	Secrets    map[string]interface{}    `yaml:",omitempty"`
-	Pods       []ClusterLoaderObjectType `yaml:",omitempty"`
-	Templates  []ClusterLoaderObjectType `yaml:",omitempty"`
+	Number       int `mapstructure:"num" yaml:"num"`
+	Basename     string
+	IfExists     string                    `json:"ifexists"`
+	Labels       map[string]string         `yaml:",omitempty"`
+	NodeSelector string                    `yaml:",omitempty"`
+	Tuning       string                    `yaml:",omitempty"`
+	Configmaps   map[string]interface{}    `yaml:",omitempty"`
+	Secrets      map[string]interface{}    `yaml:",omitempty"`
+	Pods         []ClusterLoaderObjectType `yaml:",omitempty"`
+	Templates    []ClusterLoaderObjectType `yaml:",omitempty"`
 }
 
 // ClusterLoaderObjectType is nested object type for cluster loader struct
