@@ -7,15 +7,18 @@ import (
 
 	"k8s.io/apiserver/pkg/admission"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	"k8s.io/kube-aggregator/pkg/apiserver"
 	"k8s.io/kubernetes/cmd/kube-apiserver/app"
 	"k8s.io/kubernetes/pkg/capabilities"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
+
 	"github.com/openshift/origin/pkg/admission/customresourcevalidation/customresourcevalidationregistration"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/kubeadmission"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/openshiftkubeapiserver"
+
 	"k8s.io/kubernetes/pkg/kubeapiserver/options"
 
 	// for metrics
@@ -23,6 +26,9 @@ import (
 )
 
 func RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig, stopCh <-chan struct{}) error {
+	// This allows to move cluster resource quota to CRD
+	apiserver.AddAlwaysLocalDelegateForPrefix("/apis/quota.openshift.io/v1/clusterresourcequotas")
+
 	// Allow privileged containers
 	capabilities.Initialize(capabilities.Capabilities{
 		AllowPrivileged: true,
