@@ -32,14 +32,16 @@ var (
 )
 
 type JoinOptions struct {
-	Options *ProjectOptions
+	Options     *ProjectOptions
+	JoinProject *ProjectOptions
 
 	joinProjectName string
 }
 
 func NewJoinOptions(streams genericclioptions.IOStreams) *JoinOptions {
 	return &JoinOptions{
-		Options: NewProjectOptions(streams),
+		Options:     NewProjectOptions(streams),
+		JoinProject: NewProjectOptions(streams),
 	}
 }
 
@@ -69,6 +71,9 @@ func (o *JoinOptions) Complete(f kcmdutil.Factory, c *cobra.Command, args []stri
 	if err := o.Options.Complete(f, c, args); err != nil {
 		return err
 	}
+	if err := o.JoinProject.Complete(f, c, []string{o.joinProjectName}); err != nil {
+		return err
+	}
 	o.Options.CheckSelector = c.Flag("selector").Changed
 	return nil
 }
@@ -86,6 +91,10 @@ func (o *JoinOptions) Validate() error {
 
 func (o *JoinOptions) Run() error {
 	projects, err := o.Options.GetProjects()
+	if err != nil {
+		return err
+	}
+	_, err = o.JoinProject.GetProjects()
 	if err != nil {
 		return err
 	}
