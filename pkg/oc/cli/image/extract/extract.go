@@ -87,6 +87,7 @@ var (
 type LayerInfo struct {
 	Index      int
 	Descriptor distribution.Descriptor
+	Mapping    *Mapping
 }
 
 // TarEntryFunc is called once per entry in the tar file. It may return
@@ -435,11 +436,11 @@ func (o *Options) Run() error {
 				var layerInfos []LayerInfo
 				if byEntry != nil && !o.AllLayers {
 					for i := len(filteredLayers) - 1; i >= 0; i-- {
-						layerInfos = append(layerInfos, LayerInfo{Index: i, Descriptor: filteredLayers[i]})
+						layerInfos = append(layerInfos, LayerInfo{Index: i, Descriptor: filteredLayers[i], Mapping: &mapping})
 					}
 				} else {
 					for i := range filteredLayers {
-						layerInfos = append(layerInfos, LayerInfo{Index: i, Descriptor: filteredLayers[i]})
+						layerInfos = append(layerInfos, LayerInfo{Index: i, Descriptor: filteredLayers[i], Mapping: &mapping})
 					}
 				}
 
