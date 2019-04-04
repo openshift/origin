@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"strings"
 
+	"k8s.io/kubernetes/pkg/kubectl/cmd/kustomize"
+
 	"k8s.io/kubernetes/pkg/kubectl/cmd/diff"
 
 	"github.com/spf13/cobra"
@@ -226,6 +228,7 @@ func NewOcCommand(name, fullName string, in io.Reader, out, errout io.Writer) *c
 				kubectlwrappers.NewCmdApiResources(fullName, f, ioStreams),
 				kubectlwrappers.NewCmdClusterInfo(fullName, f, ioStreams),
 				diff.NewCmdDiff(f, ioStreams),
+				kustomize.NewCmdKustomize(ioStreams),
 			},
 		},
 		{
