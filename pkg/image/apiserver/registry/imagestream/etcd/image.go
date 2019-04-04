@@ -231,3 +231,7 @@ func (l *ImageLayers) GetOwnerReferences() []metav1.OwnerReference       { retur
 func (l *ImageLayers) SetOwnerReferences([]metav1.OwnerReference)        {}
 func (l *ImageLayers) GetClusterName() string                            { return "" }
 func (l *ImageLayers) SetClusterName(clusterName string)                 {}
+func (l *ImageLayers) GetManagedFields() []metav1.ManagedFieldsEntry {
+	return []metav1.ManagedFieldsEntry{}
+}
+func (l *ImageLayers) SetManagedFields(managedFields []metav1.ManagedFieldsEntry) {}
