@@ -9,13 +9,12 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
-
-	"k8s.io/kubernetes/pkg/kubectl/cmd/diff"
-
 	"github.com/spf13/cobra"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/diff"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/kustomize"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/plugin"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
@@ -231,6 +230,7 @@ func NewOcCommand(name, fullName string, in io.Reader, out, errout io.Writer) *c
 				kubectlwrappers.NewCmdApiResources(fullName, f, ioStreams),
 				kubectlwrappers.NewCmdClusterInfo(fullName, f, ioStreams),
 				diff.NewCmdDiff(f, ioStreams),
+				kustomize.NewCmdKustomize(ioStreams),
 			},
 		},
 		{
