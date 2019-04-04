@@ -530,7 +530,7 @@ func (o *VolumeOptions) RunVolume() error {
 			continue
 		}
 
-		actual, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch, &metav1.UpdateOptions{})
+		actual, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch, &metav1.PatchOptions{})
 		if err != nil {
 			allErrs = append(allErrs, fmt.Errorf("failed to patch volume update to pod template: %v\n", err))
 			continue
