@@ -529,7 +529,7 @@ func addE2EServiceAccountsToSCC(securityClient securityclient.Interface, namespa
 		}
 
 		for _, ns := range namespaces {
-			if strings.HasPrefix(ns.Name, "e2e-") {
+			if isE2ENamespace(ns.Name) {
 				scc.Groups = append(scc.Groups, fmt.Sprintf("system:serviceaccounts:%s", ns.Name))
 			}
 		}
@@ -543,10 +543,25 @@ func addE2EServiceAccountsToSCC(securityClient securityclient.Interface, namespa
 	}
 }
 
+func isE2ENamespace(ns string) bool {
+	return true
+	//return strings.HasPrefix(ns, "e2e-") ||
+	//	strings.HasPrefix(ns, "aggregator-") ||
+	//	strings.HasPrefix(ns, "csi-") ||
+	//	strings.HasPrefix(ns, "deployment-") ||
+	//	strings.HasPrefix(ns, "disruption-") ||
+	//	strings.HasPrefix(ns, "gc-") ||
+	//	strings.HasPrefix(ns, "kubectl-") ||
+	//	strings.HasPrefix(ns, "proxy-") ||
+	//	strings.HasPrefix(ns, "provisioning-") ||
+	//	strings.HasPrefix(ns, "statefulset-") ||
+	//	strings.HasPrefix(ns, "services-")
+}
+
 func addRoleToE2EServiceAccounts(rbacClient rbacv1client.RbacV1Interface, namespaces []kapiv1.Namespace, roleName string) {
 	err := retry.RetryOnConflict(longRetry, func() error {
 		for _, ns := range namespaces {
-			if strings.HasPrefix(ns.Name, "e2e-") && ns.Status.Phase != kapiv1.NamespaceTerminating {
+			if isE2ENamespace(ns.Name) && ns.Status.Phase != kapiv1.NamespaceTerminating {
 				sa := fmt.Sprintf("system:serviceaccount:%s:default", ns.Name)
 				addRole := &policy.RoleModificationOptions{
 					RoleBindingNamespace: ns.Name,
