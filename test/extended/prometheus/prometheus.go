@@ -130,7 +130,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 					// TODO: this should be https
 					targets.Expect(labels{"job": "scheduler"}, "up", "^http://.*/metrics$"),
 					// TODO: this should be https
-					targets.Expect(labels{"job": "kube-controller-manager"}, "up", "^http://.*/metrics$"),
+					// targets.Expect(labels{"job": "kube-controller-manager"}, "up", "^http://.*/metrics$"),
 					targets.Expect(labels{"job": "kube-state-metrics"}, "up", "^https://.*/metrics$"),
 					// TODO: should probably be https
 					targets.Expect(labels{"job": "cluster-version-operator"}, "up", "^http://.*/metrics$"),
