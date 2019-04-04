@@ -20,6 +20,8 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -49,6 +51,9 @@ type KlogWriter struct{}
 // Write implements the io.Writer interface.
 func (writer KlogWriter) Write(data []byte) (n int, err error) {
 	klog.InfoDepth(1, string(data))
+	if strings.Contains(string(data), "tls") {
+		debug.PrintStack()
+	}
 	return len(data), nil
 }
 
