@@ -471,11 +471,14 @@ func TestHandle_noop(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		client := fake.NewSimpleClientset()
-
 		deployment, _ := appsutil.MakeDeployment(appstest.OkDeploymentConfig(1))
 		deployment.Annotations[appsv1.DeploymentStatusAnnotation] = string(test.deploymentPhase)
 		deployment.CreationTimestamp = metav1.Now()
+
+		client := fake.NewSimpleClientset(
+			&corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Namespace: deployment.Namespace, Name: "config-1-deploy"},
+			})
 
 		controller := okDeploymentController(client, deployment, nil, true, test.podPhase)
 
