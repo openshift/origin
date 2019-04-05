@@ -71,6 +71,8 @@ type PluginListOptions struct {
 	Verifier PathVerifier
 	NameOnly bool
 
+	PluginPaths []string
+
 	genericclioptions.IOStreams
 }
 
@@ -99,20 +101,22 @@ func (o *PluginListOptions) Complete(cmd *cobra.Command) error {
 		root:        cmd.Root(),
 		seenPlugins: make(map[string]string, 0),
 	}
-	return nil
-}
 
-func (o *PluginListOptions) Run() error {
 	path := "PATH"
 	if runtime.GOOS == "windows" {
 		path = "path"
 	}
+	o.PluginPaths = filepath.SplitList(os.Getenv(path))
+	return nil
+}
 
+func (o *PluginListOptions) Run() error {
 	pluginsFound := false
 	isFirstFile := true
 	pluginErrors := []error{}
 	pluginWarnings := 0
-	for _, dir := range filepath.SplitList(os.Getenv(path)) {
+
+	for _, dir := range uniquePathsList(o.PluginPaths) {
 		files, err := ioutil.ReadDir(dir)
 		if err != nil {
 			pluginErrors = append(pluginErrors, fmt.Errorf("error: unable to read directory %q in your PATH: %v", dir, err))
