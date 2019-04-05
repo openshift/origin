@@ -337,7 +337,7 @@ var (
 			`\[Feature:ServiceLoadBalancer\]`, // Not enabled yet
 			`\[Feature:RuntimeClass\]`,        // disable runtimeclass tests in 4.1 (sig-pod/sjenning@redhat.com)
 			`\[Feature:CustomResourceWebhookConversion\]`, // webhook conversion is off by default.  sig-master/@sttts
-			`CSI mock volume`,                             // mock volumes don't see work right.  Newly enabledin 1.14. sig-storage
+			`CSI mock volume`, // mock volumes don't see work right.  Newly enabledin 1.14. sig-storage
 
 			`NetworkPolicy between server and client should allow egress access on one named port`, // not yet implemented
 
@@ -419,6 +419,8 @@ var (
 			// TODO: Enable the following tests once resource quota is enabled in
 			`\[Feature:ScopeSelectors\]`, // @ravig - sig-pod
 			`\[Feature:PodPriority\]`,    // @ravig - sig-pod
+
+			`provisioning should access volume from different nodes`, // has bad assumptions about hostname labels.  sig-storage/@wongma7
 		},
 		// tests too slow to be part of conformance
 		"[Slow]": {
