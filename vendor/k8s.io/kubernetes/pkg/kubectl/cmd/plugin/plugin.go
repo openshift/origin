@@ -102,11 +102,7 @@ func (o *PluginListOptions) Complete(cmd *cobra.Command) error {
 		seenPlugins: make(map[string]string, 0),
 	}
 
-	path := "PATH"
-	if runtime.GOOS == "windows" {
-		path = "path"
-	}
-	o.PluginPaths = filepath.SplitList(os.Getenv(path))
+	o.PluginPaths = filepath.SplitList(os.Getenv("PATH"))
 	return nil
 }
 
