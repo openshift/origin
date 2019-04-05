@@ -28,32 +28,32 @@ var _ = g.Describe("[bldcompat][Slow][Compatibility] build controller", func() {
 
 		g.Describe("RunBuildControllerTest", func() {
 			g.It("should succeed", func() {
-				build.RunBuildControllerTest(g.GinkgoT(), oc.BuildClient().Build(), oc.AdminKubeClient(), oc.Namespace())
+				build.RunBuildControllerTest(g.GinkgoT(), oc.BuildClient().BuildV1(), oc.AdminKubeClient(), oc.Namespace())
 			})
 		})
 		g.Describe("RunBuildControllerPodSyncTest", func() {
 			g.It("should succeed", func() {
-				build.RunBuildControllerPodSyncTest(g.GinkgoT(), oc.BuildClient().Build(), oc.AdminKubeClient(), oc.Namespace())
+				build.RunBuildControllerPodSyncTest(g.GinkgoT(), oc.BuildClient().BuildV1(), oc.AdminKubeClient(), oc.Namespace())
 			})
 		})
 		g.Describe("RunImageChangeTriggerTest [SkipPrevControllers]", func() {
 			g.It("should succeed", func() {
-				build.RunImageChangeTriggerTest(g.GinkgoT(), oc.AdminBuildClient().Build(), oc.AdminImageClient().Image(), oc.Namespace())
+				build.RunImageChangeTriggerTest(g.GinkgoT(), oc.AdminBuildClient().BuildV1(), oc.AdminImageClient().ImageV1(), oc.Namespace())
 			})
 		})
 		g.Describe("RunBuildDeleteTest", func() {
 			g.It("should succeed", func() {
-				build.RunBuildDeleteTest(g.GinkgoT(), oc.AdminBuildClient().Build(), oc.AdminKubeClient(), oc.Namespace())
+				build.RunBuildDeleteTest(g.GinkgoT(), oc.AdminBuildClient().BuildV1(), oc.AdminKubeClient(), oc.Namespace())
 			})
 		})
 		g.Describe("RunBuildRunningPodDeleteTest", func() {
 			g.It("should succeed", func() {
-				build.RunBuildRunningPodDeleteTest(g.GinkgoT(), oc.AdminBuildClient().Build(), oc.AdminKubeClient(), oc.Namespace())
+				build.RunBuildRunningPodDeleteTest(g.GinkgoT(), oc.AdminBuildClient().BuildV1(), oc.AdminKubeClient(), oc.Namespace())
 			})
 		})
 		g.Describe("RunBuildConfigChangeControllerTest", func() {
 			g.It("should succeed", func() {
-				build.RunBuildConfigChangeControllerTest(g.GinkgoT(), oc.AdminBuildClient().Build(), oc.Namespace())
+				build.RunBuildConfigChangeControllerTest(g.GinkgoT(), oc.AdminBuildClient().BuildV1(), oc.Namespace())
 			})
 		})
 	})

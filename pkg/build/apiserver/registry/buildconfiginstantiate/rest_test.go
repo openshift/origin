@@ -26,7 +26,7 @@ func TestCreateInstantiate(t *testing.T) {
 		fakeSecrets = append(fakeSecrets, s)
 	}
 	rest := InstantiateREST{&generator.BuildGenerator{
-		Secrets:         fake.NewSimpleClientset(fakeSecrets...).Core(),
+		Secrets:         fake.NewSimpleClientset(fakeSecrets...).CoreV1(),
 		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
 		Client: generator.TestingClient{
 			GetBuildConfigFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*buildv1.BuildConfig, error) {

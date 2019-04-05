@@ -23,8 +23,8 @@ func TestRolling_deployInitial(t *testing.T) {
 	initialStrategyInvoked := false
 
 	strategy := &RollingDeploymentStrategy{
-		rcClient:    fake.NewSimpleClientset().Core(),
-		eventClient: fake.NewSimpleClientset().Core(),
+		rcClient:    fake.NewSimpleClientset().CoreV1(),
+		eventClient: fake.NewSimpleClientset().CoreV1(),
 		initialStrategy: &testStrategy{
 			deployFn: func(from *corev1.ReplicationController, to *corev1.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 				initialStrategyInvoked = true
@@ -80,8 +80,8 @@ func TestRolling_deployRolling(t *testing.T) {
 
 	var rollingConfig *RollingUpdaterConfig
 	strategy := &RollingDeploymentStrategy{
-		rcClient:    client.Core(),
-		eventClient: fake.NewSimpleClientset().Core(),
+		rcClient:    client.CoreV1(),
+		eventClient: fake.NewSimpleClientset().CoreV1(),
 		initialStrategy: &testStrategy{
 			deployFn: func(from *corev1.ReplicationController, to *corev1.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 				t.Fatalf("unexpected call to initial strategy")
@@ -169,8 +169,8 @@ func TestRolling_deployRollingHooks(t *testing.T) {
 	})
 
 	strategy := &RollingDeploymentStrategy{
-		rcClient:    client.Core(),
-		eventClient: fake.NewSimpleClientset().Core(),
+		rcClient:    client.CoreV1(),
+		eventClient: fake.NewSimpleClientset().CoreV1(),
 		initialStrategy: &testStrategy{
 			deployFn: func(from *corev1.ReplicationController, to *corev1.ReplicationController, desiredReplicas int, updateAcceptor strat.UpdateAcceptor) error {
 				t.Fatalf("unexpected call to initial strategy")
@@ -230,8 +230,8 @@ func TestRolling_deployInitialHooks(t *testing.T) {
 	var hookError error
 
 	strategy := &RollingDeploymentStrategy{
-		rcClient:    fake.NewSimpleClientset().Core(),
-		eventClient: fake.NewSimpleClientset().Core(),
+		rcClient:    fake.NewSimpleClientset().CoreV1(),
+		eventClient: fake.NewSimpleClientset().CoreV1(),
 		initialStrategy: &testStrategy{
 			deployFn: func(from *corev1.ReplicationController, to *corev1.ReplicationController, desiredReplicas int,
 				updateAcceptor strat.UpdateAcceptor) error {

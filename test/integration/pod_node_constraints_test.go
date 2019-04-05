@@ -273,6 +273,6 @@ func testPodNodeConstraintsObjectCreationWithPodTemplate(t *testing.T, name stri
 
 	// DeploymentConfig
 	dc := testPodNodeConstraintsDeploymentConfig(nodeName, nodeSelector)
-	_, err = appsClient.Apps().DeploymentConfigs(testutil.Namespace()).Create(dc)
+	_, err = appsClient.AppsV1().DeploymentConfigs(testutil.Namespace()).Create(dc)
 	checkForbiddenErr("dc", err)
 }

@@ -692,7 +692,7 @@ func TestLegacyEndpointConfirmNoEscalation(t *testing.T) {
 			for _, group := range rule.APIGroups {
 				for _, resource := range rule.Resources {
 					if err := testutil.WaitForClusterPolicyUpdate(
-						userInternalClient.Authorization(),
+						userInternalClient.AuthorizationV1(),
 						verb,
 						schema.GroupResource{Group: group, Resource: resource},
 						true,

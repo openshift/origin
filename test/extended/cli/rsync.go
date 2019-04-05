@@ -43,7 +43,7 @@ var _ = g.Describe("[cli][Slow] can use rsync to upload files to pods", func() {
 
 		g.By("Getting the mariadb pod name")
 		selector, _ := labels.Parse("name=mariadb")
-		pods, err := oc.KubeClient().Core().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: selector.String()})
+		pods, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: selector.String()})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(pods.Items)).ToNot(o.BeZero())
 		podName = pods.Items[0].Name

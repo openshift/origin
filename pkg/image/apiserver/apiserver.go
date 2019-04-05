@@ -225,7 +225,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		whitelister = whitelist.WhitelistAllRegistries()
 	}
 
-	imageLayerIndex := imagestreametcd.NewImageLayerIndex(imageV1Client.Image().Images())
+	imageLayerIndex := imagestreametcd.NewImageLayerIndex(imageV1Client.ImageV1().Images())
 	c.ExtraConfig.startFns = append(c.ExtraConfig.startFns, imageLayerIndex.Run)
 
 	imageRegistry := image.NewRegistry(imageStorage)

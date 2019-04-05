@@ -95,7 +95,7 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 		description:       "can I get a subjectaccessreview on myself even if I have no rights to do it generally",
 		localInterface:    valerieAuthorizationClient.LocalSubjectAccessReviews("openshift"),
 		localReview:       askCanICreatePolicyBindings,
-		kubeAuthInterface: valerieKubeClient.Authorization(),
+		kubeAuthInterface: valerieKubeClient.AuthorizationV1(),
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
 			Reason:    ``,
@@ -111,7 +111,7 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 		description:       "I shouldn't be allowed to ask whether someone else can perform an action",
 		localInterface:    valerieAuthorizationClient.LocalSubjectAccessReviews("openshift"),
 		localReview:       askCanClusterAdminsCreateProject,
-		kubeAuthInterface: valerieKubeClient.Authorization(),
+		kubeAuthInterface: valerieKubeClient.AuthorizationV1(),
 		kubeNamespace:     "openshift",
 		err:               `localsubjectaccessreviews.authorization.openshift.io is forbidden: User "valerie" cannot create resource "localsubjectaccessreviews" in API group "authorization.openshift.io" in the namespace "openshift"`,
 		kubeErr:           `localsubjectaccessreviews.authorization.k8s.io is forbidden: User "valerie" cannot create resource "localsubjectaccessreviews" in API group "authorization.k8s.io" in the namespace "openshift"`,
@@ -145,7 +145,7 @@ func TestSelfSubjectAccessReviewsNonExistingNamespace(t *testing.T) {
 		description:       "ensure SAR for non-existing namespace does not leak namespace info",
 		localInterface:    authorizationclient.NewForConfigOrDie(valerieClientConfig).Authorization().LocalSubjectAccessReviews("foo"),
 		localReview:       askCanICreatePodsInNonExistingNamespace,
-		kubeAuthInterface: valerieKubeClient.Authorization(),
+		kubeAuthInterface: valerieKubeClient.AuthorizationV1(),
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
 			Reason:    ``,

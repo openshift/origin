@@ -149,7 +149,7 @@ func TestDeploymentConfigDefaults(t *testing.T) {
 	t.Run("apps.openshift.io", func(t *testing.T) {
 		for _, tc := range ttApps {
 			t.Run("", func(t *testing.T) {
-				appsDC, err := appsClient.Apps().DeploymentConfigs(namespace).Create(tc.obj)
+				appsDC, err := appsClient.AppsV1().DeploymentConfigs(namespace).Create(tc.obj)
 				if err != nil {
 					t.Fatalf("Failed to create DC: %v", err)
 				}

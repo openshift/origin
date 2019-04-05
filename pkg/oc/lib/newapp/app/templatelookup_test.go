@@ -29,7 +29,7 @@ func testTemplateClient(templates *templatev1.TemplateList) templatev1client.Tem
 			return true, templates, nil
 		}
 	})
-	return fake.Template()
+	return fake.TemplateV1()
 }
 
 func TestTemplateSearcher(t *testing.T) {

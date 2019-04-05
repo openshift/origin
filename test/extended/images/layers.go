@@ -36,7 +36,7 @@ var _ = g.Describe("[Feature:ImageLayers][registry] Image layer subresource", fu
 	oc = exutil.NewCLI("image-layers", exutil.KubeConfigPath())
 
 	g.It("should identify a deleted image as missing", func() {
-		client := imagev1client.NewForConfigOrDie(oc.AdminConfig()).Image()
+		client := imagev1client.NewForConfigOrDie(oc.AdminConfig()).ImageV1()
 		_, err := client.ImageStreams(oc.Namespace()).Create(&imagev1.ImageStream{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test",
@@ -74,7 +74,7 @@ var _ = g.Describe("[Feature:ImageLayers][registry] Image layer subresource", fu
 
 	g.It("should return layers from tagged images", func() {
 		ns = []string{oc.Namespace()}
-		client := imagev1client.NewForConfigOrDie(oc.UserConfig()).Image()
+		client := imagev1client.NewForConfigOrDie(oc.UserConfig()).ImageV1()
 		isi, err := client.ImageStreamImports(oc.Namespace()).Create(&imagev1.ImageStreamImport{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "1",
@@ -154,7 +154,7 @@ RUN mkdir -p /var/lib && echo "a" > /var/lib/file
 `
 
 		g.By("running a build based on our tagged layer")
-		buildClient := buildv1client.NewForConfigOrDie(oc.UserConfig()).Build()
+		buildClient := buildv1client.NewForConfigOrDie(oc.UserConfig()).BuildV1()
 		_, err = buildClient.Builds(oc.Namespace()).Create(&buildv1.Build{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "output",

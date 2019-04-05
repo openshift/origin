@@ -193,9 +193,9 @@ func waitForLimitSync(oc *exutil.CLI, hardLimit corev1.ResourceList) error {
 
 func createImageStreamMapping(oc *exutil.CLI, namespace, name, tag string) error {
 	e2e.Logf("Creating image stream mapping for %s/%s:%s...", namespace, name, tag)
-	_, err := oc.AdminImageClient().Image().ImageStreams(namespace).Get(name, metav1.GetOptions{})
+	_, err := oc.AdminImageClient().ImageV1().ImageStreams(namespace).Get(name, metav1.GetOptions{})
 	if kerrors.IsNotFound(err) {
-		_, err = oc.AdminImageClient().Image().ImageStreams(namespace).Create(&imagev1.ImageStream{
+		_, err = oc.AdminImageClient().ImageV1().ImageStreams(namespace).Create(&imagev1.ImageStream{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,
 				Namespace: namespace,
@@ -207,7 +207,7 @@ func createImageStreamMapping(oc *exutil.CLI, namespace, name, tag string) error
 	} else if err != nil {
 		return err
 	}
-	_, err = oc.AdminImageClient().Image().ImageStreamMappings(namespace).Create(&imagev1.ImageStreamMapping{
+	_, err = oc.AdminImageClient().ImageV1().ImageStreamMappings(namespace).Create(&imagev1.ImageStreamMapping{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,

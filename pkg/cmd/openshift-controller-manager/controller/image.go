@@ -58,7 +58,7 @@ func RunImageTriggerController(ctx *ControllerContext) (bool, error) {
 		Informer:  ctx.BuildInformers.Build().V1().BuildConfigs().Informer(),
 		Store:     ctx.BuildInformers.Build().V1().BuildConfigs().Informer().GetIndexer(),
 		TriggerFn: triggerbuildconfigs.NewBuildConfigTriggerIndexer,
-		Reactor:   triggerbuildconfigs.NewBuildConfigReactor(bcInstantiator, kclient.Core().RESTClient()),
+		Reactor:   triggerbuildconfigs.NewBuildConfigReactor(bcInstantiator, kclient.CoreV1().RESTClient()),
 	})
 	sources = append(sources, imagetriggercontroller.TriggerSource{
 		Resource:  schema.GroupResource{Group: "extensions", Resource: "deployments"},
@@ -105,10 +105,10 @@ type podSpecUpdater struct {
 func (u podSpecUpdater) Update(obj runtime.Object) error {
 	switch t := obj.(type) {
 	case *kextensionsv1beta1.DaemonSet:
-		_, err := u.kclient.Extensions().DaemonSets(t.Namespace).Update(t)
+		_, err := u.kclient.ExtensionsV1beta1().DaemonSets(t.Namespace).Update(t)
 		return err
 	case *kextensionsv1beta1.Deployment:
-		_, err := u.kclient.Extensions().Deployments(t.Namespace).Update(t)
+		_, err := u.kclient.ExtensionsV1beta1().Deployments(t.Namespace).Update(t)
 		return err
 	case *kappsv1beta1.Deployment:
 		_, err := u.kclient.AppsV1beta1().Deployments(t.Namespace).Update(t)
@@ -123,7 +123,7 @@ func (u podSpecUpdater) Update(obj runtime.Object) error {
 		_, err := u.kclient.AppsV1beta2().StatefulSets(t.Namespace).Update(t)
 		return err
 	case *kbatchv1.Job:
-		_, err := u.kclient.Batch().Jobs(t.Namespace).Update(t)
+		_, err := u.kclient.BatchV1().Jobs(t.Namespace).Update(t)
 		return err
 	case *kbatchv1beta1.CronJob:
 		_, err := u.kclient.BatchV1beta1().CronJobs(t.Namespace).Update(t)
@@ -132,7 +132,7 @@ func (u podSpecUpdater) Update(obj runtime.Object) error {
 		_, err := u.kclient.BatchV2alpha1().CronJobs(t.Namespace).Update(t)
 		return err
 	case *kapiv1.Pod:
-		_, err := u.kclient.Core().Pods(t.Namespace).Update(t)
+		_, err := u.kclient.CoreV1().Pods(t.Namespace).Update(t)
 		return err
 	default:
 		return fmt.Errorf("unrecognized object - no trigger update possible for %T", obj)

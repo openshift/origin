@@ -406,7 +406,7 @@ func GetRegistryPod(podsGetter kcoreclient.PodsGetter) (*kapiv1.Pod, error) {
 
 // LogRegistryPod attempts to write registry log to a file in artifacts directory.
 func LogRegistryPod(oc *exutil.CLI) error {
-	pod, err := GetRegistryPod(oc.KubeClient().Core())
+	pod, err := GetRegistryPod(oc.KubeClient().CoreV1())
 	if err != nil {
 		return fmt.Errorf("failed to get registry pod: %v", err)
 	}

@@ -36,7 +36,7 @@ func NewREST(appsclient appsclient.Interface, kc kubernetes.Interface) *REST {
 	return &REST{
 		generator: NewRollbackGenerator(),
 		dn:        appsclient.AppsV1(),
-		rn:        kc.Core(),
+		rn:        kc.CoreV1(),
 	}
 }
 

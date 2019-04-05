@@ -106,7 +106,7 @@ func Start(networkConfig openshiftcontrolplanev1.NetworkControllerConfig, networ
 	err = wait.PollImmediate(1*time.Second, time.Minute, func() (bool, error) {
 		// reset this so that failures come through correctly.
 		getError = nil
-		existingCN, err := master.networkClient.Network().ClusterNetworks().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
+		existingCN, err := master.networkClient.NetworkV1().ClusterNetworks().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
 		if err != nil {
 			if !kapierrors.IsNotFound(err) {
 				// the first request can fail on permissions
@@ -117,7 +117,7 @@ func Start(networkConfig openshiftcontrolplanev1.NetworkControllerConfig, networ
 				return false, err
 			}
 
-			if _, err = master.networkClient.Network().ClusterNetworks().Create(configCN); err != nil {
+			if _, err = master.networkClient.NetworkV1().ClusterNetworks().Create(configCN); err != nil {
 				return false, err
 			}
 			glog.Infof("Created ClusterNetwork %s", common.ClusterNetworkToString(configCN))
@@ -137,7 +137,7 @@ func Start(networkConfig openshiftcontrolplanev1.NetworkControllerConfig, networ
 					utilruntime.HandleError(fmt.Errorf("Attempting to modify cluster to exclude existing objects: %v", err))
 					return false, err
 				}
-				if _, err = master.networkClient.Network().ClusterNetworks().Update(configCN); err != nil {
+				if _, err = master.networkClient.NetworkV1().ClusterNetworks().Update(configCN); err != nil {
 					return false, err
 				}
 				glog.Infof("Updated ClusterNetwork %s", common.ClusterNetworkToString(configCN))
@@ -209,13 +209,13 @@ func (master *OsdnMaster) checkClusterNetworkAgainstClusterObjects() error {
 	var subnets []networkapi.HostSubnet
 	var pods []kapi.Pod
 	var services []kapi.Service
-	if subnetList, err := master.networkClient.Network().HostSubnets().List(metav1.ListOptions{}); err == nil {
+	if subnetList, err := master.networkClient.NetworkV1().HostSubnets().List(metav1.ListOptions{}); err == nil {
 		subnets = subnetList.Items
 	}
-	if podList, err := master.kClient.Core().Pods(metav1.NamespaceAll).List(metav1.ListOptions{}); err == nil {
+	if podList, err := master.kClient.CoreV1().Pods(metav1.NamespaceAll).List(metav1.ListOptions{}); err == nil {
 		pods = podList.Items
 	}
-	if serviceList, err := master.kClient.Core().Services(metav1.NamespaceAll).List(metav1.ListOptions{}); err == nil {
+	if serviceList, err := master.kClient.CoreV1().Services(metav1.NamespaceAll).List(metav1.ListOptions{}); err == nil {
 		services = serviceList.Items
 	}
 

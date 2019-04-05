@@ -590,7 +590,7 @@ func TestCreateImageImport(t *testing.T) {
 			Scheduled:       test.scheduled,
 			ReferencePolicy: test.referencePolicy,
 			Confirm:         test.confirm,
-			isClient:        fake.Image().ImageStreams("other"),
+			isClient:        fake.ImageV1().ImageStreams("other"),
 		}
 
 		if test.insecure != nil {

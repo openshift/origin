@@ -36,7 +36,7 @@ func TestListProjects(t *testing.T) {
 	}
 	mockClient := fake.NewSimpleClientset(&namespaceList)
 	storage := REST{
-		client: mockClient.Core().Namespaces(),
+		client: mockClient.CoreV1().Namespaces(),
 		lister: &mockLister{&namespaceList},
 	}
 	user := &user.DefaultInfo{
@@ -73,7 +73,7 @@ func TestCreateProjectBadObject(t *testing.T) {
 
 func TestCreateInvalidProject(t *testing.T) {
 	mockClient := &fake.Clientset{}
-	storage := NewREST(mockClient.Core().Namespaces(), &mockLister{}, nil, nil)
+	storage := NewREST(mockClient.CoreV1().Namespaces(), &mockLister{}, nil, nil)
 	_, err := storage.Create(apirequest.NewContext(), &projectapi.Project{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{oapi.OpenShiftDisplayName: "h\t\ni"},
@@ -86,7 +86,7 @@ func TestCreateInvalidProject(t *testing.T) {
 
 func TestCreateProjectOK(t *testing.T) {
 	mockClient := &fake.Clientset{}
-	storage := NewREST(mockClient.Core().Namespaces(), &mockLister{}, nil, nil)
+	storage := NewREST(mockClient.CoreV1().Namespaces(), &mockLister{}, nil, nil)
 	_, err := storage.Create(apirequest.NewContext(), &projectapi.Project{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 	}, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
@@ -103,7 +103,7 @@ func TestCreateProjectOK(t *testing.T) {
 
 func TestGetProjectOK(t *testing.T) {
 	mockClient := fake.NewSimpleClientset(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "foo"}})
-	storage := NewREST(mockClient.Core().Namespaces(), &mockLister{}, nil, nil)
+	storage := NewREST(mockClient.CoreV1().Namespaces(), &mockLister{}, nil, nil)
 	project, err := storage.Get(apirequest.NewContext(), "foo", &metav1.GetOptions{})
 	if project == nil {
 		t.Error("Unexpected nil project")
@@ -119,7 +119,7 @@ func TestGetProjectOK(t *testing.T) {
 func TestDeleteProject(t *testing.T) {
 	mockClient := &fake.Clientset{}
 	storage := REST{
-		client: mockClient.Core().Namespaces(),
+		client: mockClient.CoreV1().Namespaces(),
 	}
 	obj, _, err := storage.Delete(apirequest.NewContext(), "foo", nil)
 	if obj == nil {

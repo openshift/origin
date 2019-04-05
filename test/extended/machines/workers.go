@@ -119,7 +119,7 @@ var _ = g.Describe("[Feature:Machines][Disruptive] Managed cluster should", func
 
 		g.By("checking for the openshift machine api operator")
 		// TODO: skip if platform != aws
-		skipUnlessMachineAPIOperator(c.Core().Namespaces())
+		skipUnlessMachineAPIOperator(c.CoreV1().Namespaces())
 
 		g.By("validating node and machine invariants")
 		// fetch machines

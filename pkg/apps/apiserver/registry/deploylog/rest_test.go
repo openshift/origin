@@ -97,7 +97,7 @@ func mockREST(version, desired int64, status appsv1.DeploymentStatus) *REST {
 	// Used for testing validation errors prior to getting replication controllers.
 	if desired > version {
 		return &REST{
-			dcClient: fakeDn.Apps(),
+			dcClient: fakeDn.AppsV1(),
 			timeout:  defaultTimeout,
 		}
 	}
@@ -151,9 +151,9 @@ func mockREST(version, desired int64, status appsv1.DeploymentStatus) *REST {
 	}
 
 	return &REST{
-		dcClient:  fakeDn.Apps(),
-		rcClient:  fakeRn.Core(),
-		podClient: fakePn.Core(),
+		dcClient:  fakeDn.AppsV1(),
+		rcClient:  fakeRn.CoreV1(),
+		podClient: fakePn.CoreV1(),
 		timeout:   defaultTimeout,
 	}
 }

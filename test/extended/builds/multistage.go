@@ -44,7 +44,7 @@ COPY --from=test /usr/bin/curl /test/
 			o.Expect(is.Status.DockerImageRepository).NotTo(o.BeEmpty(), "registry not yet configured?")
 			registry := strings.Split(is.Status.DockerImageRepository, "/")[0]
 
-			build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Create(&buildv1.Build{
+			build, err := oc.BuildClient().BuildV1().Builds(oc.Namespace()).Create(&buildv1.Build{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "multi-stage",
 				},
@@ -70,7 +70,7 @@ COPY --from=test /usr/bin/curl /test/
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			result := exutil.NewBuildResult(oc, build)
-			err = exutil.WaitForBuildResult(oc.AdminBuildClient().Build().Builds(oc.Namespace()), result)
+			err = exutil.WaitForBuildResult(oc.AdminBuildClient().BuildV1().Builds(oc.Namespace()), result)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			pod, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).Get(build.Name+"-build", metav1.GetOptions{})

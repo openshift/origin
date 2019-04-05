@@ -129,8 +129,8 @@ func TestCreateGeneratorError(t *testing.T) {
 
 	rest := REST{
 		generator: &terribleGenerator{},
-		dn:        oc.Apps(),
-		rn:        kc.Core(),
+		dn:        oc.AppsV1(),
+		rn:        kc.CoreV1(),
 	}
 
 	_, err := rest.Create(apirequest.NewDefaultContext(), &appsapi.DeploymentConfigRollback{

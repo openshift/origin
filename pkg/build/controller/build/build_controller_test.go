@@ -495,13 +495,13 @@ func TestCreateBuildPod(t *testing.T) {
 	expected.setMessage("")
 	validateUpdate(t, "create build pod", expected, update)
 	// Make sure that a pod was created
-	pod, err := kubeClient.Core().Pods("namespace").Get(podName, metav1.GetOptions{})
+	pod, err := kubeClient.CoreV1().Pods("namespace").Get(podName, metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 	// Make sure that a configMap was created, with an ownerRef
 	configMapName := buildapihelpers.GetBuildCAConfigMapName(build)
-	configMap, err := kubeClient.Core().ConfigMaps("namespace").Get(configMapName, metav1.GetOptions{})
+	configMap, err := kubeClient.CoreV1().ConfigMaps("namespace").Get(configMapName, metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -882,7 +882,7 @@ func TestCancelBuild(t *testing.T) {
 	pod := &corev1.Pod{}
 	pod.Name = "canceltest-build"
 	pod.Namespace = "testns"
-	client := fake.NewSimpleClientset(pod).Core()
+	client := fake.NewSimpleClientset(pod).CoreV1()
 	bc := BuildController{
 		podClient: client,
 	}

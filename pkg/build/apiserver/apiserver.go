@@ -130,9 +130,9 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		Client: buildgenerator.Client{
 			Builds:            buildClient.BuildV1(),
 			BuildConfigs:      buildClient.BuildV1(),
-			ImageStreams:      imageClient.Image(),
-			ImageStreamImages: imageClient.Image(),
-			ImageStreamTags:   imageClient.Image(),
+			ImageStreams:      imageClient.ImageV1(),
+			ImageStreamImages: imageClient.ImageV1(),
+			ImageStreamTags:   imageClient.ImageV1(),
 		},
 		ServiceAccounts: kubeClient.CoreV1(),
 		Secrets:         kubeClient.CoreV1(),

@@ -28,7 +28,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	// hook
 	g.AfterEach(func() {
 		if g.CurrentGinkgoTestDescription().Failed {
-			client := routeclientset.NewForConfigOrDie(oc.AdminConfig()).Route().Routes(ns)
+			client := routeclientset.NewForConfigOrDie(oc.AdminConfig()).RouteV1().Routes(ns)
 			if routes, _ := client.List(metav1.ListOptions{}); routes != nil {
 				outputIngress(routes.Items...)
 			}

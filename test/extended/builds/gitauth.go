@@ -85,11 +85,11 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 				testGitAuth("gitserver", gitServerFixture, sourceURLTemplate, func() string {
 					g.By(fmt.Sprintf("creating a new secret for the gitserver by calling oc secrets new-basicauth %s --username=%s --password=%s",
 						sourceSecretName, gitUserName, gitPassword))
-					sa, err := oc.KubeClient().Core().ServiceAccounts(oc.Namespace()).Get("builder", metav1.GetOptions{})
+					sa, err := oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()).Get("builder", metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					for _, s := range sa.Secrets {
 						if strings.Contains(s.Name, "token") {
-							secret, err := oc.KubeClient().Core().Secrets(oc.Namespace()).Get(s.Name, metav1.GetOptions{})
+							secret, err := oc.KubeClient().CoreV1().Secrets(oc.Namespace()).Get(s.Name, metav1.GetOptions{})
 							o.Expect(err).NotTo(o.HaveOccurred())
 							err = oc.Run("create").Args(
 								"secret",

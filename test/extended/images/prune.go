@@ -192,7 +192,7 @@ var _ = g.Describe("[Feature:ImagePrune][registry][Serial][Suite:openshift/regis
 })
 
 func getImageName(oc *exutil.CLI, namespace, name, tag string) (string, error) {
-	istag, err := oc.AdminImageClient().Image().ImageStreamTags(namespace).Get(fmt.Sprintf("%s:%s", name, tag), metav1.GetOptions{})
+	istag, err := oc.AdminImageClient().ImageV1().ImageStreamTags(namespace).Get(fmt.Sprintf("%s:%s", name, tag), metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}

@@ -74,15 +74,15 @@ func TestProjectRequestError(t *testing.T) {
 	}
 
 	// Watch the project, rolebindings, and configmaps
-	nswatch, err := kubeClientset.Core().Namespaces().Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", ns).String()})
+	nswatch, err := kubeClientset.CoreV1().Namespaces().Watch(metav1.ListOptions{FieldSelector: fields.OneTermEqualSelector("metadata.name", ns).String()})
 	if err != nil {
 		t.Fatal(err)
 	}
-	roleWatch, err := kubeClientset.Rbac().RoleBindings(ns).Watch(metav1.ListOptions{})
+	roleWatch, err := kubeClientset.RbacV1().RoleBindings(ns).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmwatch, err := kubeClientset.Core().ConfigMaps(ns).Watch(metav1.ListOptions{})
+	cmwatch, err := kubeClientset.CoreV1().ConfigMaps(ns).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +137,7 @@ func TestProjectRequestError(t *testing.T) {
 	}
 
 	// Verify project is deleted
-	if nsObj, err := kubeClientset.Core().Namespaces().Get(ns, metav1.GetOptions{}); !kapierrors.IsNotFound(err) {
+	if nsObj, err := kubeClientset.CoreV1().Namespaces().Get(ns, metav1.GetOptions{}); !kapierrors.IsNotFound(err) {
 		t.Errorf("Expected namespace to be gone, got %#v, %#v", nsObj, err)
 	}
 }

@@ -29,7 +29,7 @@ func RunUnidlingController(ctx *ControllerContext) (bool, error) {
 		return false, err
 	}
 
-	coreClient := ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraUnidlingControllerServiceAccountName).Core()
+	coreClient := ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraUnidlingControllerServiceAccountName).CoreV1()
 	controller := unidlingcontroller.NewUnidlingController(
 		scaleClient,
 		ctx.RestMapper,

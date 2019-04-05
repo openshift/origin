@@ -48,7 +48,7 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 	})
 
 	d := &DeploymentConfigDescriber{
-		appsClient: fake.Apps(),
+		appsClient: fake.AppsV1(),
 		kubeClient: kFake,
 	}
 

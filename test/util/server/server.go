@@ -785,7 +785,7 @@ func serviceAccountSecretsExist(clientset kubernetes.Interface, namespace string
 		if len(secret.Namespace) > 0 {
 			ns = secret.Namespace
 		}
-		secret, err := clientset.Core().Secrets(ns).Get(secret.Name, metav1.GetOptions{})
+		secret, err := clientset.CoreV1().Secrets(ns).Get(secret.Name, metav1.GetOptions{})
 		if err == nil {
 			switch secret.Type {
 			case corev1.SecretTypeServiceAccountToken:
@@ -821,7 +821,7 @@ func WaitForPodCreationServiceAccounts(clientset kubernetes.Interface, namespace
 			glog.Warningf("Error attempting to create test pod: %v", err)
 			return false, nil
 		}
-		err = clientset.Core().Pods(namespace).Delete(pod.Name, metav1.NewDeleteOptions(0))
+		err = clientset.CoreV1().Pods(namespace).Delete(pod.Name, metav1.NewDeleteOptions(0))
 		if err != nil {
 			return false, err
 		}

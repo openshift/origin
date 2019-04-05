@@ -570,10 +570,10 @@ func TestGetClient(t *testing.T) {
 		delegate := &fakeDelegate{}
 		fakerecorder := record.NewFakeRecorder(100)
 		getter := saOAuthClientAdapter{
-			saClient:      tc.kubeClient.Core(),
-			secretClient:  tc.kubeClient.Core(),
+			saClient:      tc.kubeClient.CoreV1(),
+			secretClient:  tc.kubeClient.CoreV1(),
 			eventRecorder: fakerecorder,
-			routeClient:   tc.routeClient.Route(),
+			routeClient:   tc.routeClient.RouteV1(),
 			delegate:      delegate,
 			grantMethod:   oauthapiv1.GrantHandlerPrompt,
 			decoder:       codecFactory.UniversalDecoder(),
@@ -1236,7 +1236,7 @@ func buildRouteClient(routes []*routeapi.Route) saOAuthClientAdapter {
 		objects = append(objects, route)
 	}
 	return saOAuthClientAdapter{
-		routeClient:   routefake.NewSimpleClientset(objects...).Route(),
+		routeClient:   routefake.NewSimpleClientset(objects...).RouteV1(),
 		eventRecorder: record.NewFakeRecorder(100),
 	}
 }

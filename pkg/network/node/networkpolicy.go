@@ -123,7 +123,7 @@ func (np *networkPolicyPlugin) initNamespaces() error {
 
 	inUseVNIDs := np.node.oc.FindPolicyVNIDs()
 
-	namespaces, err := np.node.kClient.Core().Namespaces().List(metav1.ListOptions{})
+	namespaces, err := np.node.kClient.CoreV1().Namespaces().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

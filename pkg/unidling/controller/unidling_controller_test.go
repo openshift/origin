@@ -187,9 +187,9 @@ func TestControllerHandlesStaleEvents(t *testing.T) {
 	nowTime := time.Now().Truncate(time.Second)
 	fakeClient, fakeDeployClient, res := prepFakeClient(t, nowTime)
 	controller := &UnidlingController{
-		endpointsNamespacer: fakeClient.Core(),
-		rcNamespacer:        fakeClient.Core(),
-		dcNamespacer:        fakeDeployClient.Apps(),
+		endpointsNamespacer: fakeClient.CoreV1(),
+		rcNamespacer:        fakeClient.CoreV1(),
+		dcNamespacer:        fakeDeployClient.AppsV1(),
 	}
 
 	retry, err := controller.handleRequest(types.NamespacedName{
@@ -243,9 +243,9 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 	fakeClient, fakeDeployClient, res := prepFakeClient(t, idledTime, baseScales...)
 
 	controller := &UnidlingController{
-		endpointsNamespacer: fakeClient.Core(),
-		rcNamespacer:        fakeClient.Core(),
-		dcNamespacer:        fakeDeployClient.Apps(),
+		endpointsNamespacer: fakeClient.CoreV1(),
+		rcNamespacer:        fakeClient.CoreV1(),
+		dcNamespacer:        fakeDeployClient.AppsV1(),
 	}
 
 	retry, err := controller.handleRequest(types.NamespacedName{
@@ -355,9 +355,9 @@ func TestControllerUnidlesProperly(t *testing.T) {
 	fakeClient, fakeDeployClient, res := prepFakeClient(t, nowTime.Add(-10*time.Second), baseScales...)
 
 	controller := &UnidlingController{
-		endpointsNamespacer: fakeClient.Core(),
-		rcNamespacer:        fakeClient.Core(),
-		dcNamespacer:        fakeDeployClient.Apps(),
+		endpointsNamespacer: fakeClient.CoreV1(),
+		rcNamespacer:        fakeClient.CoreV1(),
+		dcNamespacer:        fakeDeployClient.AppsV1(),
 	}
 
 	retry, err := controller.handleRequest(types.NamespacedName{
@@ -695,9 +695,9 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 	for _, test := range tests {
 		fakeClient, fakeDeployClient := prepareFakeClientForFailureTest(test)
 		controller := &UnidlingController{
-			endpointsNamespacer: fakeClient.Core(),
-			rcNamespacer:        fakeClient.Core(),
-			dcNamespacer:        fakeDeployClient.Apps(),
+			endpointsNamespacer: fakeClient.CoreV1(),
+			rcNamespacer:        fakeClient.CoreV1(),
+			dcNamespacer:        fakeDeployClient.AppsV1(),
 		}
 
 		var retry bool

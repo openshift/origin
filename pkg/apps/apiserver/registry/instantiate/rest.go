@@ -35,7 +35,7 @@ import (
 // NewREST provides new REST storage for the apps API group.
 func NewREST(store registry.Store, imagesclient imageclientinternal.Interface, kc kubernetes.Interface, admission admission.Interface) *REST {
 	store.UpdateStrategy = Strategy
-	return &REST{store: &store, is: imagesclient.Image(), rn: kc.Core(), admit: admission}
+	return &REST{store: &store, is: imagesclient.Image(), rn: kc.CoreV1(), admit: admission}
 }
 
 // REST implements the Creater interface.

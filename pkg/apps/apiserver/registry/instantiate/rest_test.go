@@ -713,7 +713,7 @@ func TestCanTrigger(t *testing.T) {
 
 		test.config = appstest.RoundTripConfig(t, test.config)
 
-		got, gotCauses, err := canTrigger(test.config, client.Core(), test.force)
+		got, gotCauses, err := canTrigger(test.config, client.CoreV1(), test.force)
 		if err != nil && !test.expectedErr {
 			t.Errorf("unexpected error: %v", err)
 			continue
