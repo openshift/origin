@@ -8,7 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openshift/origin/pkg/api/legacy"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
+	kprinters "k8s.io/kubernetes/pkg/printers"
+
+	"github.com/openshift/origin/pkg/api/install"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -17,13 +24,11 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	kprinters "k8s.io/kubernetes/pkg/printers"
 )
+
+func init() {
+	install.InstallInternalOpenShift(legacyscheme.Scheme)
+}
 
 // PrinterCoverageExceptions is the list of API types that do NOT have corresponding printers
 // If you add something to this list, explain why it doesn't need printing.  waaaa is not a valid
@@ -63,6 +68,7 @@ var PrinterCoverageExceptions = []reflect.Type{
 var MissingPrinterCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&appsapi.DeploymentConfigRollback{}),
 	reflect.TypeOf(&imageapi.ImageStreamMapping{}),
+	reflect.TypeOf(&imageapi.ImageStreamLayers{}),
 	reflect.TypeOf(&projectapi.ProjectRequest{}),
 }
 
@@ -71,7 +77,11 @@ func TestPrinterCoverage(t *testing.T) {
 	AddHandlers(printer)
 
 main:
-	for _, apiType := range legacyscheme.Scheme.KnownTypes(legacy.InternalGroupVersion) {
+	for gvk, apiType := range legacyscheme.Scheme.AllKnownTypes() {
+		if gvk.Version != runtime.APIVersionInternal {
+			continue
+		}
+
 		if !strings.Contains(apiType.PkgPath(), "github.com/openshift/origin") || strings.Contains(apiType.PkgPath(), "github.com/openshift/origin/vendor/") {
 			continue
 		}
