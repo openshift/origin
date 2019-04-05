@@ -1,6 +1,10 @@
 package apiserver
 
 import (
+	"fmt"
+	"strings"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
@@ -15,4 +19,14 @@ func AddAlwaysLocalDelegateForPrefix(prefix string) {
 		return
 	}
 	alwaysLocalDelegatePathPrefixes.Insert(prefix)
+}
+
+func APIServiceAlreadyExists(groupVersion schema.GroupVersion) bool {
+	testPrefix := fmt.Sprintf("/apis/%s/%s/", groupVersion.Group, groupVersion.Version)
+	for _, prefix := range alwaysLocalDelegatePathPrefixes.List() {
+		if strings.HasPrefix(prefix, testPrefix) {
+			return true
+		}
+	}
+	return false
 }
