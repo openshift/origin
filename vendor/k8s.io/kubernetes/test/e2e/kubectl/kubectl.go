@@ -590,6 +590,21 @@ var _ = SIGDescribe("Kubectl client", func() {
 			Expect(c.BatchV1().Jobs(ns).Delete("run-test-3", nil)).To(BeNil())
 		})
 
+		It("should contain last line of the log", func() {
+			nsFlag := fmt.Sprintf("--namespace=%v", ns)
+			podName := "run-log-test"
+
+			By("executing a command with run")
+			framework.RunKubectlOrDie("run", podName, "--generator=run-pod/v1", "--image="+busyboxImage, "--restart=OnFailure", nsFlag, "--", "sh", "-c", "sleep 10; seq 100 | while read i; do echo $i; sleep 0.01; done; echo EOF")
+
+			if !framework.CheckPodsRunningReady(c, ns, []string{podName}, framework.PodStartTimeout) {
+				framework.Failf("Pod for run-log-test was not ready")
+			}
+
+			logOutput := framework.RunKubectlOrDie(nsFlag, "logs", "-f", "run-log-test")
+			Expect(logOutput).To(ContainSubstring("EOF"))
+		})
+
 		It("should support port-forward", func() {
 			By("forwarding the container port to a local port")
 			cmd := runPortForward(ns, simplePodName, simplePodPort)
