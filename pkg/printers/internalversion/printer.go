@@ -78,6 +78,7 @@ var (
 	policyRuleColumns = []string{"VERBS", "NON-RESOURCE URLS", "RESOURCE NAMES", "API GROUPS", "RESOURCES"}
 
 	securityContextConstraintsColumns = []string{"NAME", "PRIV", "CAPS", "SELINUX", "RUNASUSER", "FSGROUP", "SUPGROUP", "PRIORITY", "READONLYROOTFS", "VOLUMES"}
+	rangeAllocationColumns            = []string{"NAME", "RANGE", "DATA"}
 )
 
 func init() {
@@ -165,6 +166,8 @@ func AddHandlers(p kprinters.PrintHandler) {
 
 	p.Handler(securityContextConstraintsColumns, nil, printSecurityContextConstraints)
 	p.Handler(securityContextConstraintsColumns, nil, printSecurityContextConstraintsList)
+	p.Handler(rangeAllocationColumns, nil, printRangeAllocation)
+	p.Handler(rangeAllocationColumns, nil, printRangeAllocationList)
 }
 
 const templateDescriptionLen = 80
@@ -1282,6 +1285,21 @@ func printSecurityContextConstraints(item *securityapi.SecurityContextConstraint
 func printSecurityContextConstraintsList(list *securityapi.SecurityContextConstraintsList, w io.Writer, options kprinters.PrintOptions) error {
 	for _, item := range list.Items {
 		if err := printSecurityContextConstraints(&item, w, options); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func printRangeAllocation(item *securityapi.RangeAllocation, w io.Writer, options kprinters.PrintOptions) error {
+	_, err := fmt.Fprintf(w, "%s\t%s\t0x%x\n", item.Name, item.Range, item.Data)
+	return err
+}
+
+func printRangeAllocationList(list *securityapi.RangeAllocationList, w io.Writer, options kprinters.PrintOptions) error {
+	for _, item := range list.Items {
+		if err := printRangeAllocation(&item, w, options); err != nil {
 			return err
 		}
 	}
