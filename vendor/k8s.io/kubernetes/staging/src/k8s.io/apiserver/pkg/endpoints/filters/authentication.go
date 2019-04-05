@@ -19,8 +19,10 @@ package filters
 import (
 	"errors"
 	"net/http"
+	"runtime/debug"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/klog"
 
@@ -82,6 +84,8 @@ func WithAuthentication(handler http.Handler, auth authenticator.Request, failed
 	})
 }
 
+var config = spew.ConfigState{Indent: "\t", MaxDepth: 5, DisableMethods: true}
+
 func Unauthorized(s runtime.NegotiatedSerializer, supportsBasicAuth bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if supportsBasicAuth {
@@ -96,6 +100,10 @@ func Unauthorized(s runtime.NegotiatedSerializer, supportsBasicAuth bool) http.H
 
 		gv := schema.GroupVersion{Group: requestInfo.APIGroup, Version: requestInfo.APIVersion}
 		responsewriters.ErrorNegotiated(apierrors.NewUnauthorized("Unauthorized"), s, gv, w, req)
+
+		klog.Errorf("\n%s\n\n%s\n\n%s\n\n%s\n\n%s\n\n%v\n\n",
+			config.Sdump(requestInfo), config.Sdump(s), config.Sdump(gv), config.Sdump(req), config.Sdump(w), supportsBasicAuth)
+		debug.PrintStack()
 	})
 }
 
