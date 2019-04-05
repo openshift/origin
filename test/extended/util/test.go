@@ -398,6 +398,9 @@ var (
 			`SELinux relabeling`, // https://github.com/openshift/origin/issues/7287 still broken
 			`Volumes CephFS`,     // permission denied, selinux?
 
+			`should be rejected when no endpoints exist`,                // works locally, fails in CI. sig-network
+			`should implement service.kubernetes.io/service-proxy-name`, // this is an optional test that requires SSH. sig-network
+
 			`should support inline execution and attach`, // https://bugzilla.redhat.com/show_bug.cgi?id=1624041
 
 			`should idle the service and DeploymentConfig properly`, // idling with a single service and DeploymentConfig [Conformance]
