@@ -6,7 +6,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"text/tabwriter"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,8 +44,6 @@ var (
 	routeColumns                = []string{"NAME", "HOST/PORT", "PATH", "SERVICES", "PORT", "TERMINATION", "WILDCARD"}
 	deploymentConfigColumns     = []string{"NAME", "REVISION", "DESIRED", "CURRENT", "TRIGGERED BY"}
 	templateColumns             = []string{"NAME", "DESCRIPTION", "PARAMETERS", "OBJECTS"}
-	policyColumns               = []string{"NAME", "ROLES", "LAST MODIFIED"}
-	policyBindingColumns        = []string{"NAME", "ROLE BINDINGS", "LAST MODIFIED"}
 	roleBindingColumns          = []string{"NAME", "ROLE", "USERS", "GROUPS", "SERVICE ACCOUNTS", "SUBJECTS"}
 	roleColumns                 = []string{"NAME"}
 
@@ -171,25 +168,6 @@ func AddHandlers(p kprinters.PrintHandler) {
 }
 
 const templateDescriptionLen = 80
-
-// PrintTemplateParameters the Template parameters with their default values
-func PrintTemplateParameters(params []templateapi.Parameter, output io.Writer) error {
-	w := tabwriter.NewWriter(output, 20, 5, 3, ' ', 0)
-	defer w.Flush()
-	parameterColumns := []string{"NAME", "DESCRIPTION", "GENERATOR", "VALUE"}
-	fmt.Fprintf(w, "%s\n", strings.Join(parameterColumns, "\t"))
-	for _, p := range params {
-		value := p.Value
-		if len(p.Generate) != 0 {
-			value = p.From
-		}
-		_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", p.Name, p.Description, p.Generate, value)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
 
 // formatResourceName receives a resource kind, name, and boolean specifying
 // whether or not to update the current name to "kind/name"
