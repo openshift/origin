@@ -3,6 +3,7 @@ package release
 import (
 	"archive/tar"
 	"archive/zip"
+	"bufio"
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
@@ -222,6 +223,10 @@ func (o *ExtractOptions) extractCommand(command string) error {
 		// if we need to write an archive, wrap the file appropriately to create a single
 		// entry
 		var w io.Writer = f
+
+		bw := bufio.NewWriterSize(w, 16*1024)
+		w = bw
+
 		var hash hash.Hash
 		closeFn := func() error { return nil }
 		if target.AsArchive {
@@ -249,7 +254,10 @@ func (o *ExtractOptions) extractCommand(command string) error {
 
 			} else {
 				glog.V(2).Infof("Writing %s as a tar.gz archive %s", hdr.Name, layer.Mapping.To)
-				gw := gzip.NewWriter(w)
+				gw, err := gzip.NewWriterLevel(w, 3)
+				if err != nil {
+					return false, err
+				}
 				tw := tar.NewWriter(gw)
 
 				if err := tw.WriteHeader(&tar.Header{
@@ -275,7 +283,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 		// copy the input to disk
 		if target.InjectReleaseImage {
 			var matched bool
-			matched, err = copyAndReplaceReleaseImage(w, r, 64*1024, o.From)
+			matched, err = copyAndReplaceReleaseImage(w, r, 4*1024, o.From)
 			if !matched {
 				fmt.Fprintf(o.ErrOut, "warning: Unable to replace release image location into %s, installer will not be locked to the correct image\n", target.TargetName)
 			}
@@ -291,6 +299,9 @@ func (o *ExtractOptions) extractCommand(command string) error {
 
 		// ensure the file is written to disk
 		if err := closeFn(); err != nil {
+			return false, err
+		}
+		if err := bw.Flush(); err != nil {
 			return false, err
 		}
 		if err := f.Close(); err != nil {
