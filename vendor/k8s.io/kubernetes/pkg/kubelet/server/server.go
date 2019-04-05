@@ -27,12 +27,10 @@ import (
 	"net/url"
 	"reflect"
 	goruntime "runtime"
-	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/emicklei/go-restful"
 	cadvisormetrics "github.com/google/cadvisor/container"
 	cadvisorapi "github.com/google/cadvisor/info/v1"
@@ -238,20 +236,11 @@ func NewServer(
 	return server
 }
 
-var config = spew.ConfigState{Indent: "\t", MaxDepth: 5, DisableMethods: true}
-
 // InstallAuthFilter installs authentication filters with the restful Container.
 func (s *Server) InstallAuthFilter() {
 	s.restfulCont.Filter(func(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
 		// Authenticate
 		info, ok, err := s.auth.AuthenticateRequest(req.Request)
-
-		if !ok || err != nil {
-			klog.Errorf("\n%s\n\n%s\n\n%s\n\n",
-				config.Sdump(req), config.Sdump(resp), config.Sdump(chain))
-			debug.PrintStack()
-		}
-
 		if err != nil {
 			klog.Errorf("Unable to authenticate the request due to an error: %v", err)
 			resp.WriteErrorString(http.StatusUnauthorized, "Unauthorized")
