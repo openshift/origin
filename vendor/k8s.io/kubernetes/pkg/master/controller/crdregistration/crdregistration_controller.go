@@ -33,6 +33,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
+	"k8s.io/kube-aggregator/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/controller"
 )
 
@@ -193,6 +194,10 @@ func (c *crdRegistrationController) enqueueCRD(crd *apiextensions.CustomResource
 
 func (c *crdRegistrationController) handleVersionUpdate(groupVersion schema.GroupVersion) error {
 	apiServiceName := groupVersion.Version + "." + groupVersion.Group
+	
+	if apiserver.APIServiceAlreadyExists(groupVersion) {
+		return nil
+	}
 
 	// check all CRDs.  There shouldn't that many, but if we have problems later we can index them
 	crds, err := c.crdLister.List(labels.Everything())
