@@ -324,6 +324,7 @@ var (
 			`\[Feature:TTLAfterFinished\]`,                   // flag gate is off
 			`\[Feature:GPUDevicePlugin\]`,                    // GPU node needs to be available
 			`\[Feature:ExpandCSIVolumes\]`,                   // off by default .  sig-storage
+			`\[Feature:DynamicAudit\]`,                       // off by default.  sig-master
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
