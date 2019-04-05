@@ -85,7 +85,7 @@ func NewIngressIPController(services cache.SharedIndexInformer, kc kclientset.In
 	recorder := eventBroadcaster.NewRecorder(legacyscheme.Scheme, v1.EventSource{Component: "ingressip-controller"})
 
 	ic := &IngressIPController{
-		client:     kc.Core(),
+		client:     kc.CoreV1(),
 		queue:      workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 		maxRetries: 10,
 		recorder:   recorder,

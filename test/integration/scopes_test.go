@@ -56,7 +56,7 @@ func TestScopedTokens(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := buildv1client.NewForConfigOrDie(haroldConfig).Build().Builds(projectName).List(metav1.ListOptions{}); err != nil {
+	if _, err := buildv1client.NewForConfigOrDie(haroldConfig).BuildV1().Builds(projectName).List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -80,7 +80,7 @@ func TestScopedTokens(t *testing.T) {
 	whoamiConfig := rest.AnonymousClientConfig(clusterAdminClientConfig)
 	whoamiConfig.BearerToken = whoamiOnlyToken.Name
 
-	if _, err := buildv1client.NewForConfigOrDie(whoamiConfig).Build().Builds(projectName).List(metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
+	if _, err := buildv1client.NewForConfigOrDie(whoamiConfig).BuildV1().Builds(projectName).List(metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -119,7 +119,7 @@ func TestScopedImpersonation(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	err = clusterAdminBuildClient.Build().RESTClient().Get().
+	err = clusterAdminBuildClient.BuildV1().RESTClient().Get().
 		SetHeader(authenticationv1.ImpersonateUserHeader, "harold").
 		SetHeader(authenticationv1.ImpersonateUserExtraHeaderPrefix+authorizationapi.ScopesKey, "user:info").
 		Namespace(projectName).Resource("builds").Name("name").Do().Into(&buildapi.Build{})
@@ -160,7 +160,7 @@ func TestScopeEscalations(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := buildv1client.NewForConfigOrDie(haroldConfig).Build().Builds(projectName).List(metav1.ListOptions{}); err != nil {
+	if _, err := buildv1client.NewForConfigOrDie(haroldConfig).BuildV1().Builds(projectName).List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

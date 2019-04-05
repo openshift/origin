@@ -177,7 +177,7 @@ func TestTag(t *testing.T) {
 		})
 
 		test.opts.IOStreams = genericclioptions.NewTestIOStreamsDiscard()
-		test.opts.client = client.Image()
+		test.opts.client = client.ImageV1()
 
 		err := test.opts.Validate()
 		if (err == nil && len(test.validateErr) != 0) || (err != nil && err.Error() != test.validateErr) {
@@ -225,7 +225,7 @@ func TestRunTag_DeleteOld(t *testing.T) {
 	}{
 		opts: &TagOptions{
 			IOStreams:      genericclioptions.NewTestIOStreamsDiscard(),
-			client:         client.Image(),
+			client:         client.ImageV1(),
 			deleteTag:      true,
 			destNamespace:  []string{"yourproject"},
 			destNameAndTag: []string{"rails:tip"},
@@ -268,7 +268,7 @@ func TestRunTag_AddNew(t *testing.T) {
 	}{
 		opts: &TagOptions{
 			IOStreams: genericclioptions.NewTestIOStreamsDiscard(),
-			client:    client.Image(),
+			client:    client.ImageV1(),
 			ref: imagev1.DockerImageReference{
 				Namespace: "openshift",
 				Name:      "ruby",
@@ -316,7 +316,7 @@ func TestRunTag_AddRestricted(t *testing.T) {
 	}{
 		opts: &TagOptions{
 			IOStreams: genericclioptions.NewTestIOStreamsDiscard(),
-			client:    client.Image(),
+			client:    client.ImageV1(),
 			ref: imagev1.DockerImageReference{
 				Namespace: "openshift",
 				Name:      "ruby",
@@ -362,7 +362,7 @@ func TestRunTag_DeleteNew(t *testing.T) {
 	}{
 		opts: &TagOptions{
 			IOStreams:      genericclioptions.NewTestIOStreamsDiscard(),
-			client:         client.Image(),
+			client:         client.ImageV1(),
 			deleteTag:      true,
 			destNamespace:  []string{"yourproject"},
 			destNameAndTag: []string{"rails:tip"},

@@ -168,13 +168,13 @@ func BuildAndPushImageOfSizeWithBuilder(
 		istName += ":" + tag
 	}
 
-	bc, err := oc.BuildClient().Build().BuildConfigs(namespace).Get(name, metav1.GetOptions{})
+	bc, err := oc.BuildClient().BuildV1().BuildConfigs(namespace).Get(name, metav1.GetOptions{})
 	if err == nil {
 		if bc.Spec.CommonSpec.Output.To.Kind != "ImageStreamTag" {
 			return fmt.Errorf("Unexpected kind of buildspec's output (%s != %s)", bc.Spec.CommonSpec.Output.To.Kind, "ImageStreamTag")
 		}
 		bc.Spec.CommonSpec.Output.To.Name = istName
-		if _, err = oc.BuildClient().Build().BuildConfigs(namespace).Update(bc); err != nil {
+		if _, err = oc.BuildClient().BuildV1().BuildConfigs(namespace).Update(bc); err != nil {
 			return err
 		}
 	} else {
@@ -612,7 +612,7 @@ func IsBlobStoredInRegistry(
 // assumed to be in a read-only mode and using filesystem as a storage driver. It returns lists of deleted
 // files.
 func RunHardPrune(oc *exutil.CLI, dryRun bool) (*RegistryStorageFiles, error) {
-	pod, err := GetRegistryPod(oc.AsAdmin().KubeClient().Core())
+	pod, err := GetRegistryPod(oc.AsAdmin().KubeClient().CoreV1())
 	if err != nil {
 		return nil, err
 	}

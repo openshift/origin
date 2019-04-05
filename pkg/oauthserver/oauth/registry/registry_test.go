@@ -281,7 +281,7 @@ func TestRegistryAndServer(t *testing.T) {
 			objs = append(objs, testCase.ClientAuth)
 		}
 		fakeOAuthClient := oauthfake.NewSimpleClientset(objs...)
-		storage := registrystorage.New(fakeOAuthClient.Oauth().OAuthAccessTokens(), fakeOAuthClient.Oauth().OAuthAuthorizeTokens(), fakeOAuthClient.Oauth().OAuthClients(), 0)
+		storage := registrystorage.New(fakeOAuthClient.OauthV1().OAuthAccessTokens(), fakeOAuthClient.OauthV1().OAuthAuthorizeTokens(), fakeOAuthClient.OauthV1().OAuthClients(), 0)
 		config := osinserver.NewDefaultServerConfig()
 
 		h.AuthorizeHandler = osinserver.AuthorizeHandlers{
@@ -291,7 +291,7 @@ func TestRegistryAndServer(t *testing.T) {
 				h,
 			),
 			handlers.NewGrantCheck(
-				NewClientAuthorizationGrantChecker(fakeOAuthClient.Oauth().OAuthClientAuthorizations()),
+				NewClientAuthorizationGrantChecker(fakeOAuthClient.OauthV1().OAuthClientAuthorizations()),
 				h,
 				h,
 			),

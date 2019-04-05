@@ -59,7 +59,7 @@ func SetupK8SNFSServerAndVolume(oc *CLI, count int) (*kapiv1.Pod, []*kapiv1.Pers
 			},
 		}
 		pvTemplate := e2e.MakePersistentVolume(pvConfig)
-		pv, err := oc.AdminKubeClient().Core().PersistentVolumes().Create(pvTemplate)
+		pv, err := oc.AdminKubeClient().CoreV1().PersistentVolumes().Create(pvTemplate)
 		if err != nil {
 			e2e.Logf("error creating persistent volume %#v", err)
 		}

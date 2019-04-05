@@ -123,7 +123,7 @@ func TestUpdateQuota(t *testing.T) {
 
 		client := fakequotaclient.NewSimpleClientset(objs...)
 
-		accessor := newQuotaAccessor(quotaLister, nil, client.Quota(), nil)
+		accessor := newQuotaAccessor(quotaLister, nil, client.QuotaV1(), nil)
 
 		actualErr := accessor.UpdateQuotaStatus(tc.quotaToUpdate)
 		switch {
@@ -313,7 +313,7 @@ func TestGetQuota(t *testing.T) {
 
 		client := fakequotaclient.NewSimpleClientset()
 
-		accessor := newQuotaAccessor(quotaLister, namespaceLister, client.Quota(), tc.mapperFunc())
+		accessor := newQuotaAccessor(quotaLister, namespaceLister, client.QuotaV1(), tc.mapperFunc())
 
 		actualQuotas, actualErr := accessor.GetQuotas(tc.requestedNamespace)
 		switch {

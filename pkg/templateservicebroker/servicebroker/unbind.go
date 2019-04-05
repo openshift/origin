@@ -34,7 +34,7 @@ func (b *Broker) Unbind(u user.Info, instanceID, bindingID string) *api.Response
 
 	namespace := brokerTemplateInstance.Spec.TemplateInstance.Namespace
 
-	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+	if err := util.Authorize(b.kc.AuthorizationV1().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
 		Verb:      "get",
 		Group:     templateapi.GroupName,
@@ -64,7 +64,7 @@ func (b *Broker) Unbind(u user.Info, instanceID, bindingID string) *api.Response
 	// Note that this specific templateinstance object might not actually exist
 	// anymore, but the SAR check is still valid to confirm the user can update
 	// templateinstances in this namespace.
-	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+	if err := util.Authorize(b.kc.AuthorizationV1().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
 		Verb:      "delete",
 		Group:     templateapi.GroupName,

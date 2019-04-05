@@ -37,7 +37,7 @@ var _ = g.Describe("[Feature:ImageExtract] Image extract", func() {
 
 		ns = oc.Namespace()
 		cli := oc.KubeFramework().PodClient()
-		client := imageclientset.NewForConfigOrDie(oc.UserConfig()).Image()
+		client := imageclientset.NewForConfigOrDie(oc.UserConfig()).ImageV1()
 
 		_, err = client.ImageStreamImports(ns).Create(&imageapi.ImageStreamImport{
 			ObjectMeta: metav1.ObjectMeta{

@@ -50,7 +50,7 @@ func TestDeployScale(t *testing.T) {
 	config.Spec.Triggers = []appsv1.DeploymentTriggerPolicy{}
 	config.Spec.Replicas = 1
 
-	dc, err := adminAppsClient.Apps().DeploymentConfigs(namespace).Create(config)
+	dc, err := adminAppsClient.AppsV1().DeploymentConfigs(namespace).Create(config)
 	if err != nil {
 		t.Fatalf("Couldn't create DeploymentConfig: %v %#v", err, config)
 	}
@@ -79,7 +79,7 @@ func TestDeployScale(t *testing.T) {
 	}
 
 	condition := func() (bool, error) {
-		config, err := adminAppsClient.Apps().DeploymentConfigs(namespace).Get(dc.Name, metav1.GetOptions{})
+		config, err := adminAppsClient.AppsV1().DeploymentConfigs(namespace).Get(dc.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, nil
 		}

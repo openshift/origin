@@ -85,7 +85,7 @@ func NewBroker(saKubeClientConfig *restclient.Config, informer templateinformer.
 	}
 	b := &Broker{
 		kc:                 kubeClient,
-		templateclient:     templateClient.Template(),
+		templateclient:     templateClient.TemplateV1(),
 		lister:             informer.Lister(),
 		hasSynced:          informer.Informer().HasSynced,
 		templateNamespaces: templateNamespaces,

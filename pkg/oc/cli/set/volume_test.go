@@ -112,7 +112,7 @@ func getFakeMapping() *meta.RESTMapping {
 func getFakeInfo(podInfo *corev1.Pod) ([]*resource.Info, *VolumeOptions) {
 	fakeMapping := getFakeMapping()
 	info := &resource.Info{
-		Client:    fake.NewSimpleClientset().Core().RESTClient(),
+		Client:    fake.NewSimpleClientset().CoreV1().RESTClient(),
 		Mapping:   fakeMapping,
 		Namespace: "default",
 		Name:      "fakepod",

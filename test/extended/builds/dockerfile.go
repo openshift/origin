@@ -48,14 +48,14 @@ USER 1001
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("checking the buildconfig content")
-				bc, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("busybox", metav1.GetOptions{})
+				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("busybox", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(bc.Spec.Source.Git).To(o.BeNil())
 				o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile))
 
 				buildName := "busybox-1"
 				g.By("expecting the Dockerfile build is in Complete phase")
-				err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), buildName, nil, nil, nil)
+				err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), buildName, nil, nil, nil)
 				//debug for failures
 				if err != nil {
 					exutil.DumpBuildLogs("busybox", oc)
@@ -74,7 +74,7 @@ USER 1001
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("checking the buildconfig content")
-				bc, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("centos", metav1.GetOptions{})
+				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("centos", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(bc.Spec.Source.Git).To(o.BeNil())
 				o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile2))
@@ -83,7 +83,7 @@ USER 1001
 
 				buildName := "centos-1"
 				g.By("expecting the Dockerfile build is in Complete phase")
-				err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), buildName, nil, nil, nil)
+				err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), buildName, nil, nil, nil)
 				//debug for failures
 				if err != nil {
 					exutil.DumpBuildLogs("centos", oc)
@@ -106,13 +106,13 @@ USER 1001
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("checking the buildconfig content")
-				bc, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("scratch", metav1.GetOptions{})
+				bc, err := oc.BuildClient().BuildV1().BuildConfigs(oc.Namespace()).Get("scratch", metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile3))
 
 				buildName := "scratch-1"
 				g.By("expecting the Dockerfile build is in Complete phase")
-				err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), buildName, nil, nil, nil)
+				err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), buildName, nil, nil, nil)
 				//debug for failures
 				if err != nil {
 					exutil.DumpBuildLogs("scratch", oc)

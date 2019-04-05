@@ -36,7 +36,7 @@ func TestWebhook(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to get osClient: %v", err)
 	}
-	clusterAdminBuildClient := buildv1client.NewForConfigOrDie(clusterAdminClientConfig).Build()
+	clusterAdminBuildClient := buildv1client.NewForConfigOrDie(clusterAdminClientConfig).BuildV1()
 
 	kubeClient.CoreV1().Namespaces().Create(&corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{Name: testutil.Namespace()},
@@ -146,8 +146,8 @@ func TestWebhookGitHubPushWithImage(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	clusterAdminImageClient := imagev1client.NewForConfigOrDie(clusterAdminClientConfig).Image()
-	clusterAdminBuildClient := buildv1client.NewForConfigOrDie(clusterAdminClientConfig).Build()
+	clusterAdminImageClient := imagev1client.NewForConfigOrDie(clusterAdminClientConfig).ImageV1()
+	clusterAdminBuildClient := buildv1client.NewForConfigOrDie(clusterAdminClientConfig).BuildV1()
 
 	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
 	if err != nil {
@@ -259,8 +259,8 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	clusterAdminImageClient := imagev1client.NewForConfigOrDie(clusterAdminClientConfig).Image()
-	clusterAdminBuildClient := buildv1client.NewForConfigOrDie(clusterAdminClientConfig).Build()
+	clusterAdminImageClient := imagev1client.NewForConfigOrDie(clusterAdminClientConfig).ImageV1()
+	clusterAdminBuildClient := buildv1client.NewForConfigOrDie(clusterAdminClientConfig).BuildV1()
 
 	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
@@ -365,7 +365,7 @@ func TestWebhookGitHubPing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unable to get osClient: %v", err)
 	}
-	clusterAdminBuildClient := buildv1client.NewForConfigOrDie(clusterAdminClientConfig).Build()
+	clusterAdminBuildClient := buildv1client.NewForConfigOrDie(clusterAdminClientConfig).BuildV1()
 
 	kubeClient.CoreV1().Namespaces().Create(&corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{Name: testutil.Namespace()},

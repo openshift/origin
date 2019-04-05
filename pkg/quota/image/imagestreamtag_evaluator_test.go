@@ -208,7 +208,7 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 		for _, is := range tc.iss {
 			isInformer.Informer().GetIndexer().Add(&is)
 		}
-		evaluator := NewImageStreamTagEvaluator(isInformer.Lister(), fakeClient.Image())
+		evaluator := NewImageStreamTagEvaluator(isInformer.Lister(), fakeClient.ImageV1())
 
 		usage, err := evaluator.Usage(&tc.ist)
 		if err != nil {

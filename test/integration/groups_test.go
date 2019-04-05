@@ -97,7 +97,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := testutil.WaitForPolicyUpdate(valerieKubeClient.Authorization(), "empty", "get", kapi.Resource("pods"), true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(valerieKubeClient.AuthorizationV1(), "empty", "get", kapi.Resource("pods"), true); err != nil {
 		t.Error(err)
 	}
 
@@ -155,7 +155,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := testutil.WaitForPolicyUpdate(valerieKubeClient.Authorization(), "empty", "get", kapi.Resource("pods"), true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(valerieKubeClient.AuthorizationV1(), "empty", "get", kapi.Resource("pods"), true); err != nil {
 		t.Error(err)
 	}
 

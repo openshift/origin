@@ -102,7 +102,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	if err != nil {
 		return nil, err
 	}
-	userIdentityMappingStorage := useridentitymapping.NewREST(userClient.User().Users(), userClient.User().Identities())
+	userIdentityMappingStorage := useridentitymapping.NewREST(userClient.UserV1().Users(), userClient.UserV1().Identities())
 	groupStorage, err := groupetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
 	if err != nil {
 		return nil, err

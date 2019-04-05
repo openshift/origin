@@ -19,7 +19,7 @@ func TestServiceResolverCacheEmpty(t *testing.T) {
 			Ports: []corev1.ServicePort{{Port: 80}},
 		},
 	})
-	cache := newServiceResolverCache(fakeClient.Core().Services("default").Get)
+	cache := newServiceResolverCache(fakeClient.CoreV1().Services("default").Get)
 	if v, ok := cache.resolve("FOO_SERVICE_HOST"); v != "" || !ok {
 		t.Errorf("unexpected cache item")
 	}

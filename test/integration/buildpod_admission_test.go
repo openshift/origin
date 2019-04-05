@@ -250,7 +250,7 @@ func runBuildPodAdmissionTest(t *testing.T, client buildclient.Interface, kclien
 	*v1.Pod) {
 
 	ns := testutil.Namespace()
-	_, err := client.Build().Builds(ns).Create(build)
+	_, err := client.BuildV1().Builds(ns).Create(build)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -261,7 +261,7 @@ func runBuildPodAdmissionTest(t *testing.T, client buildclient.Interface, kclien
 			buildutil.GetBuildPodName(build),
 		).String(),
 	}
-	podWatch, err := kclientset.Core().Pods(ns).Watch(watchOpt)
+	podWatch, err := kclientset.CoreV1().Pods(ns).Watch(watchOpt)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -329,7 +329,7 @@ func setupBuildPodAdmissionTest(t *testing.T, pluginConfig map[string]*configapi
 		t.Fatal(err)
 	}
 
-	_, err = clusterAdminKubeClientset.Core().Namespaces().Create(&v1.Namespace{
+	_, err = clusterAdminKubeClientset.CoreV1().Namespaces().Create(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{Name: testutil.Namespace()},
 	})
 	if err != nil {

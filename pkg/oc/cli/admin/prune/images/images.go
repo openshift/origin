@@ -273,12 +273,12 @@ func (o PruneImagesOptions) Validate() error {
 
 // Run contains all the necessary functionality for the OpenShift cli prune images command.
 func (o PruneImagesOptions) Run() error {
-	allPods, err := o.KubeClient.Core().Pods(o.Namespace).List(metav1.ListOptions{})
+	allPods, err := o.KubeClient.CoreV1().Pods(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	allRCs, err := o.KubeClient.Core().ReplicationControllers(o.Namespace).List(metav1.ListOptions{})
+	allRCs, err := o.KubeClient.CoreV1().ReplicationControllers(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -297,7 +297,7 @@ func (o PruneImagesOptions) Run() error {
 		return err
 	}
 
-	allDSs, err := o.KubeClient.Apps().DaemonSets(o.Namespace).List(metav1.ListOptions{})
+	allDSs, err := o.KubeClient.AppsV1().DaemonSets(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		// TODO: remove in future (3.9) release
 		if !kerrors.IsForbidden(err) {
@@ -306,7 +306,7 @@ func (o PruneImagesOptions) Run() error {
 		fmt.Fprintf(o.ErrOut, "Failed to list daemonsets: %v\n - * Make sure to update clusterRoleBindings.\n", err)
 	}
 
-	allDeployments, err := o.KubeClient.Apps().Deployments(o.Namespace).List(metav1.ListOptions{})
+	allDeployments, err := o.KubeClient.AppsV1().Deployments(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		// TODO: remove in future (3.9) release
 		if !kerrors.IsForbidden(err) {
@@ -320,7 +320,7 @@ func (o PruneImagesOptions) Run() error {
 		return err
 	}
 
-	allRSs, err := o.KubeClient.Apps().ReplicaSets(o.Namespace).List(metav1.ListOptions{})
+	allRSs, err := o.KubeClient.AppsV1().ReplicaSets(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		// TODO: remove in future (3.9) release
 		if !kerrors.IsForbidden(err) {
@@ -329,7 +329,7 @@ func (o PruneImagesOptions) Run() error {
 		fmt.Fprintf(o.ErrOut, "Failed to list replicasets: %v\n - * Make sure to update clusterRoleBindings.\n", err)
 	}
 
-	limitRangesList, err := o.KubeClient.Core().LimitRanges(o.Namespace).List(metav1.ListOptions{})
+	limitRangesList, err := o.KubeClient.CoreV1().LimitRanges(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

@@ -93,7 +93,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 
 	// retry this a couple times.  We seem to be flaking on update conflicts and missing secrets all together
 	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		defaultSA, err = clusterAdminKubeClientset.Core().ServiceAccounts(projectName).Get("default", metav1.GetOptions{})
+		defaultSA, err = clusterAdminKubeClientset.CoreV1().ServiceAccounts(projectName).Get("default", metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -102,7 +102,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 		}
 		defaultSA.Annotations[saoauth.OAuthRedirectModelAnnotationURIPrefix+"one"] = redirectURL
 		defaultSA.Annotations[saoauth.OAuthWantChallengesAnnotationPrefix] = "true"
-		defaultSA, err = clusterAdminKubeClientset.Core().ServiceAccounts(projectName).Update(defaultSA)
+		defaultSA, err = clusterAdminKubeClientset.CoreV1().ServiceAccounts(projectName).Update(defaultSA)
 		return err
 	})
 	if err != nil {
@@ -112,7 +112,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 	var oauthSecret *corev1.Secret
 	// retry this a couple times.  We seem to be flaking on update conflicts and missing secrets all together
 	err = wait.PollImmediate(30*time.Millisecond, 10*time.Second, func() (done bool, err error) {
-		allSecrets, err := clusterAdminKubeClientset.Core().Secrets(projectName).List(metav1.ListOptions{})
+		allSecrets, err := clusterAdminKubeClientset.CoreV1().Secrets(projectName).List(metav1.ListOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -590,7 +590,7 @@ func runOAuthFlow(
 
 		whoamiConfig := restclient.AnonymousClientConfig(clusterAdminClientConfig)
 		whoamiConfig.BearerToken = accessData.AccessToken
-		whoamiBuildClient := buildv1client.NewForConfigOrDie(whoamiConfig).Build()
+		whoamiBuildClient := buildv1client.NewForConfigOrDie(whoamiConfig).BuildV1()
 		whoamiUserClient := userclient.NewForConfigOrDie(whoamiConfig)
 
 		_, err = whoamiBuildClient.Builds(projectName).List(metav1.ListOptions{})

@@ -108,7 +108,7 @@ func TestClusterQuota(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if _, err := clusterAdminKubeClient.CoreV1().ConfigMaps("second").Create(configmap); !apierrors.IsForbidden(err) {
-		list, err := clusterAdminQuotaClient.Quota().AppliedClusterResourceQuotas("second").List(metav1.ListOptions{})
+		list, err := clusterAdminQuotaClient.QuotaV1().AppliedClusterResourceQuotas("second").List(metav1.ListOptions{})
 		if err == nil {
 			t.Errorf("quota is %#v", list)
 		}
@@ -137,7 +137,7 @@ func TestClusterQuota(t *testing.T) {
 	}
 
 	if _, err := clusterAdminImageClient.ImageStreams("second").Create(imagestream); !apierrors.IsForbidden(err) {
-		list, err := clusterAdminQuotaClient.Quota().AppliedClusterResourceQuotas("second").List(metav1.ListOptions{})
+		list, err := clusterAdminQuotaClient.QuotaV1().AppliedClusterResourceQuotas("second").List(metav1.ListOptions{})
 		if err == nil {
 			t.Errorf("quota is %#v", list)
 		}
@@ -153,7 +153,7 @@ func TestClusterQuota(t *testing.T) {
 
 func waitForQuotaLabeling(clusterAdminClient quotaclient.Interface, namespaceName string) error {
 	return utilwait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (done bool, err error) {
-		list, err := clusterAdminClient.Quota().AppliedClusterResourceQuotas(namespaceName).List(metav1.ListOptions{})
+		list, err := clusterAdminClient.QuotaV1().AppliedClusterResourceQuotas(namespaceName).List(metav1.ListOptions{})
 		if err != nil {
 			return false, nil
 		}
@@ -181,7 +181,7 @@ func labelNamespace(clusterAdminKubeClient corev1client.NamespacesGetter, namesp
 
 func waitForQuotaStatus(clusterAdminClient quotaclient.Interface, name string, conditionFn func(*quotav1.ClusterResourceQuota) bool) error {
 	err := utilwait.PollImmediate(100*time.Millisecond, 30*time.Second, func() (done bool, err error) {
-		quota, err := clusterAdminClient.Quota().ClusterResourceQuotas().Get(name, metav1.GetOptions{})
+		quota, err := clusterAdminClient.QuotaV1().ClusterResourceQuotas().Get(name, metav1.GetOptions{})
 		if err != nil {
 			return false, nil
 		}

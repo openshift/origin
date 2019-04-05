@@ -329,7 +329,7 @@ func TestSubjectCheckers(t *testing.T) {
 	}
 
 	ctx, err := newRoleBindingRestrictionContext("namespace",
-		kclient, fakeUserClient.User(), groupCache)
+		kclient, fakeUserClient.UserV1(), groupCache)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

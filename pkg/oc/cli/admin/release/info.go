@@ -111,7 +111,7 @@ func (o *InfoOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []st
 		if err != nil {
 			return fmt.Errorf("info expects one argument, or a connection to an OpenShift 4.x server: %v", err)
 		}
-		cv, err := client.Config().ClusterVersions().Get("version", metav1.GetOptions{})
+		cv, err := client.ConfigV1().ClusterVersions().Get("version", metav1.GetOptions{})
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return fmt.Errorf("you must be connected to an OpenShift 4.x server to fetch the current version")
