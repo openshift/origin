@@ -2,9 +2,9 @@ package server
 
 import (
 	"bufio"
+	"bytes"
 	"net"
 	"net/http"
-	"sync"
 
 	"github.com/davecgh/go-spew/spew"
 
@@ -29,16 +29,16 @@ func withDebug(handler http.Handler) http.Handler {
 			panic(config.Sdump("ENJ:", "unknown type:", d))
 		}
 
-		if !final.shouldLog {
+		if !final.shouldLog() {
 			return
 		}
 
-		log(r, w)
+		log(final.code, final.buf.String(), final.Header(), r, w)
 	})
 }
 
 func log(args ...interface{}) {
-	klog.ErrorDepth(1, "ENJ:", config.Sdump(args...))
+	klog.ErrorDepth(1, "ENJ:\n", config.Sdump(args...))
 }
 
 func decorateResponseWriter(responseWriter http.ResponseWriter) http.ResponseWriter {
@@ -63,21 +63,28 @@ var _ http.ResponseWriter = &auditResponseWriter{}
 // create immediately an event (for long running requests).
 type auditResponseWriter struct {
 	http.ResponseWriter
-	once      sync.Once
-	shouldLog bool
+	code int
+	buf  bytes.Buffer
 }
 
 func (a *auditResponseWriter) Write(bs []byte) (int, error) {
+	_, _ = a.buf.Write(bs)
 	return a.ResponseWriter.Write(bs)
 }
 
 func (a *auditResponseWriter) WriteHeader(code int) {
 	a.ResponseWriter.WriteHeader(code)
-	if code == http.StatusUnauthorized {
-		a.once.Do(func() {
-			a.shouldLog = true
-		})
+	a.code = code
+}
+
+var unauthorizedMsg = []byte(`nauthorized`)
+
+func (a *auditResponseWriter) shouldLog() bool {
+	if a.code == http.StatusUnauthorized {
+		return true
 	}
+
+	return bytes.Contains(a.buf.Bytes(), unauthorizedMsg)
 }
 
 // fancyResponseWriterDelegator implements http.CloseNotifier, http.Flusher and
