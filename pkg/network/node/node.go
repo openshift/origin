@@ -385,6 +385,11 @@ func (node *OsdnNode) reattachPods(existingPods map[string]podNetworkInfo) error
 			glog.Warningf("Could not find sandbox for existing pod with IP %s; it may be in an inconsistent state", podInfo.ip)
 			continue
 		}
+		if _, err := node.oc.ovs.GetOFPort(podInfo.vethName); err != nil {
+			glog.Infof("Interface %s for pod '%s/%s' no longer exists", podInfo.vethName, sandbox.Metadata.Namespace, sandbox.Metadata.Name)
+			failed = append(failed, sandbox)
+			continue
+		}
 
 		req := &cniserver.PodRequest{
 			Command:      cniserver.CNI_ADD,
@@ -395,12 +400,21 @@ func (node *OsdnNode) reattachPods(existingPods map[string]podNetworkInfo) error
 			AssignedIP:   podInfo.ip,
 			Result:       make(chan *cniserver.PodResult),
 		}
+		// NB: we don't need to worry about locking here because the cniserver
+		// isn't running for real yet.
 		if _, err := node.podManager.handleCNIRequest(req); err != nil {
 			glog.Warningf("Could not reattach pod '%s/%s' to SDN: %v", req.PodNamespace, req.PodName, err)
 			failed = append(failed, sandbox)
 		}
 	}
 
+	// Kill any remaining pods in another thread, after letting SDN startup proceed
+	go node.killFailedPods(failed)
+
+	return nil
+}
+
+func (node *OsdnNode) killFailedPods(failed []*kruntimeapi.PodSandbox) {
 	// Kill pods we couldn't recover; they will get restarted and then
 	// we'll be able to set them up correctly
 	for _, sandbox := range failed {
@@ -412,8 +426,6 @@ func (node *OsdnNode) reattachPods(existingPods map[string]podNetworkInfo) error
 			glog.Warningf("Failed to kill pod '%s/%s' sandbox: %v", podRef.Namespace, podRef.Name, err)
 		}
 	}
-
-	return nil
 }
 
 // FIXME: this should eventually go into kubelet via a CNI UPDATE/CHANGE action
