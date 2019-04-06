@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"net"
 	"net/http"
-	"strings"
 	"sync"
 
 	"github.com/davecgh/go-spew/spew"
@@ -27,7 +26,7 @@ func withDebug(handler http.Handler) http.Handler {
 		case *fancyResponseWriterDelegator:
 			final = t.auditResponseWriter
 		default:
-			panic(config.Sprintf("unknown type: %#+v", d))
+			panic(config.Sdump("ENJ:", "unknown type:", d))
 		}
 
 		if !final.shouldLog {
@@ -39,9 +38,7 @@ func withDebug(handler http.Handler) http.Handler {
 }
 
 func log(args ...interface{}) {
-	format := strings.Repeat("%#+v\n\n", len(args))
-	s := config.Sprintf("ENJ:\n"+format, args...)
-	klog.ErrorDepth(1, s)
+	klog.ErrorDepth(1, "ENJ:", config.Sdump(args...))
 }
 
 func decorateResponseWriter(responseWriter http.ResponseWriter) http.ResponseWriter {
