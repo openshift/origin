@@ -101,9 +101,8 @@ func NewCreateMasterCertsOptions(streams genericclioptions.IOStreams) *CreateMas
 func NewCommandCreateMasterCerts(commandName string, fullName string, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewCreateMasterCertsOptions(streams)
 	cmd := &cobra.Command{
-		Use:   commandName,
-		Short: "Create certificates and keys for a master",
-		Long:  fmt.Sprintf(masterCertLong, fullName),
+		Use:  commandName,
+		Long: fmt.Sprintf(masterCertLong, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Validate(args))
 			kcmdutil.CheckErr(o.CreateMasterCerts())
