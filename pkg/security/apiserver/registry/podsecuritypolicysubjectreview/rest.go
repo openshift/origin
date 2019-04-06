@@ -64,9 +64,13 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 		return nil, kapierrors.NewInvalid(coreapi.Kind("PodSecurityPolicySubjectReview"), "", errs)
 	}
 
-	userInfo := &user.DefaultInfo{Name: pspsr.Spec.User, Groups: pspsr.Spec.Groups}
+	var users []user.Info
 
-	users := []user.Info{userInfo}
+	specUser := &user.DefaultInfo{Name: pspsr.Spec.User, Groups: pspsr.Spec.Groups}
+	if len(specUser.Name) > 0 || len(specUser.Groups) > 0 {
+		users = append(users, specUser)
+	}
+
 	saName := pspsr.Spec.Template.Spec.ServiceAccountName
 	if len(saName) > 0 {
 		users = append(users, serviceaccount.UserInfo(ns, saName, ""))
