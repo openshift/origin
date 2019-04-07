@@ -133,11 +133,11 @@ func (v *validator) Validate(_ string, public *jwt.Claims, privateObj interface{
 		// Make sure token hasn't been invalidated by deletion of the secret
 		secret, err := v.getter.GetSecret(namespace, secref.Name)
 		if err != nil {
-			klog.V(4).Infof("Could not retrieve bound secret %s/%s for service account %s/%s: %v", namespace, secref.Name, namespace, saref.Name, err)
+			klog.Errorf("ENJ: Could not retrieve bound secret %s/%s for service account %s/%s: %v", namespace, secref.Name, namespace, saref.Name, err)
 			return nil, errors.New("Token has been invalidated")
 		}
 		if secret.DeletionTimestamp != nil {
-			klog.V(4).Infof("Bound secret is deleted and awaiting removal: %s/%s for service account %s/%s", namespace, secref.Name, namespace, saref.Name)
+			klog.Errorf("ENJ: Bound secret is deleted and awaiting removal: %s/%s for service account %s/%s", namespace, secref.Name, namespace, saref.Name)
 			return nil, errors.New("Token has been invalidated")
 		}
 		if secref.UID != string(secret.UID) {
@@ -151,11 +151,11 @@ func (v *validator) Validate(_ string, public *jwt.Claims, privateObj interface{
 		// Make sure token hasn't been invalidated by deletion of the pod
 		pod, err := v.getter.GetPod(namespace, podref.Name)
 		if err != nil {
-			klog.V(4).Infof("Could not retrieve bound pod %s/%s for service account %s/%s: %v", namespace, podref.Name, namespace, saref.Name, err)
+			klog.Errorf("ENJ: Could not retrieve bound pod %s/%s for service account %s/%s: %v", namespace, podref.Name, namespace, saref.Name, err)
 			return nil, errors.New("Token has been invalidated")
 		}
 		if pod.DeletionTimestamp != nil {
-			klog.V(4).Infof("Bound pod is deleted and awaiting removal: %s/%s for service account %s/%s", namespace, podref.Name, namespace, saref.Name)
+			klog.Errorf("ENJ: Bound pod is deleted and awaiting removal: %s/%s for service account %s/%s", namespace, podref.Name, namespace, saref.Name)
 			return nil, errors.New("Token has been invalidated")
 		}
 		if podref.UID != string(pod.UID) {
