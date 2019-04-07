@@ -106,7 +106,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker bind test", f
 		})
 
 		g.It("should pass bind tests", func() {
-			svc, err := cli.KubeClient().Core().Services(cli.Namespace()).Get("service", metav1.GetOptions{})
+			svc, err := cli.KubeClient().CoreV1().Services(cli.Namespace()).Get("service", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			bind, err := brokercli.Bind(context.Background(), cliUser, instanceID, bindingID, &api.BindRequest{

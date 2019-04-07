@@ -161,7 +161,7 @@ func (master *OsdnMaster) initSubnetAllocators() error {
 	}
 
 	// Populate subnet allocator
-	subnets, err := master.networkClient.Network().HostSubnets().List(metav1.ListOptions{})
+	subnets, err := master.networkClient.NetworkV1().HostSubnets().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

@@ -99,13 +99,13 @@ func TestHandleBuildPruning(t *testing.T) {
 
 	buildClient := buildfake.NewSimpleClientset(objects...)
 
-	build, err := buildClient.Build().Builds("namespace").Get("myapp-0", metav1.GetOptions{})
+	build, err := buildClient.BuildV1().Builds("namespace").Get("myapp-0", metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("%v", err)
 	}
 
-	buildLister := buildclient.NewClientBuildLister(buildClient.Build())
-	buildConfigGetter := buildclient.NewClientBuildConfigLister(buildClient.Build())
+	buildLister := buildclient.NewClientBuildLister(buildClient.BuildV1())
+	buildConfigGetter := buildclient.NewClientBuildConfigLister(buildClient.BuildV1())
 	buildDeleter := buildclient.NewClientBuildClient(buildClient)
 
 	bcName := buildutil.ConfigNameForBuild(build)

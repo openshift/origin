@@ -255,7 +255,7 @@ func TestSyncFunc(t *testing.T) {
 			// we only need these fields to test the sync func
 			controller := ClusterQuotaReconcilationController{
 				clusterQuotaMapper: tc.mapperFunc(),
-				clusterQuotaClient: client.Quota().ClusterResourceQuotas(),
+				clusterQuotaClient: client.QuotaV1().ClusterResourceQuotas(),
 			}
 
 			actualErr, actualRetries := controller.syncQuotaForNamespaces(tc.startingQuota(), tc.workItems)

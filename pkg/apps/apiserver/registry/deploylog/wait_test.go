@@ -27,7 +27,7 @@ func TestWaitForRunningDeploymentSuccess(t *testing.T) {
 
 	go func() {
 		defer close(stopChan)
-		rc, ok, err := WaitForRunningDeployment(kubeclient.Core(), fakeController, 10*time.Second)
+		rc, ok, err := WaitForRunningDeployment(kubeclient.CoreV1(), fakeController, 10*time.Second)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -67,7 +67,7 @@ func TestWaitForRunningDeploymentRestartWatch(t *testing.T) {
 	stopChan := make(chan struct{})
 	go func() {
 		defer close(stopChan)
-		rc, ok, err := WaitForRunningDeployment(kubeclient.Core(), fakeController, 10*time.Second)
+		rc, ok, err := WaitForRunningDeployment(kubeclient.CoreV1(), fakeController, 10*time.Second)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

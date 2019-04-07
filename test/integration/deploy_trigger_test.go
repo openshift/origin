@@ -43,7 +43,7 @@ func TestTriggers_manual(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).Apps()
+	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).AppsV1()
 
 	config := appstest.OkDeploymentConfig(0)
 	config.Namespace = namespace
@@ -118,7 +118,7 @@ func TestTriggers_imageChange(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}
-	projectAdminAppsClient := appsclient.NewForConfigOrDie(projectAdminClientConfig).Apps()
+	projectAdminAppsClient := appsclient.NewForConfigOrDie(projectAdminClientConfig).AppsV1()
 	projectAdminImageClient := imageclient.NewForConfigOrDie(projectAdminClientConfig).Image()
 
 	imageStream := &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: appstest.ImageStreamName}}
@@ -223,7 +223,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}
-	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).Apps()
+	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).AppsV1()
 	adminImageClient := imageclient.NewForConfigOrDie(adminConfig).Image()
 
 	imageStream := &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: appstest.ImageStreamName}}
@@ -402,7 +402,7 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}
-	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).Apps()
+	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).AppsV1()
 	adminImageClient := imageclient.NewForConfigOrDie(adminConfig).Image()
 
 	imageStream := &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: appstest.ImageStreamName}}
@@ -568,7 +568,7 @@ func TestTriggers_configChange(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).Apps()
+	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig).AppsV1()
 
 	config := appstest.OkDeploymentConfig(0)
 	config.Namespace = namespace

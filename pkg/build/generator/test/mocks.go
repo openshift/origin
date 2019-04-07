@@ -67,7 +67,7 @@ func MockBuilderServiceAccount(secrets []*corev1.Secret) corev1client.ServiceAcc
 		},
 		Secrets: secretRefs,
 	})
-	return fake.NewSimpleClientset(fakeObjects...).Core()
+	return fake.NewSimpleClientset(fakeObjects...).CoreV1()
 }
 
 func MockBuildConfig(source buildv1.BuildSource, strategy buildv1.BuildStrategy, output buildv1.BuildOutput) *buildv1.BuildConfig {

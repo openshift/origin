@@ -140,7 +140,7 @@ func (o *LoginOptions) Complete(f kcmdutil.Factory, args []string) error {
 		if err != nil {
 			return err
 		}
-		sa, err := client.Core().ServiceAccounts(ns).Get(o.ServiceAccount, metav1.GetOptions{})
+		sa, err := client.CoreV1().ServiceAccounts(ns).Get(o.ServiceAccount, metav1.GetOptions{})
 		if err != nil {
 			if kerrors.IsNotFound(err) {
 				return fmt.Errorf("the service account %s does not exist in namespace %s", o.ServiceAccount, ns)
@@ -149,7 +149,7 @@ func (o *LoginOptions) Complete(f kcmdutil.Factory, args []string) error {
 		}
 		var lastErr error
 		for _, ref := range sa.Secrets {
-			secret, err := client.Core().Secrets(ns).Get(ref.Name, metav1.GetOptions{})
+			secret, err := client.CoreV1().Secrets(ns).Get(ref.Name, metav1.GetOptions{})
 			if err != nil {
 				lastErr = err
 				continue
@@ -213,7 +213,7 @@ func (o *LoginOptions) Complete(f kcmdutil.Factory, args []string) error {
 
 func findPublicHostname(client *imageclient.Clientset, namespaces ...string) (name string, internal bool) {
 	for _, ns := range namespaces {
-		imageStreams, err := client.Image().ImageStreams(ns).List(metav1.ListOptions{})
+		imageStreams, err := client.ImageV1().ImageStreams(ns).List(metav1.ListOptions{})
 		if err != nil || len(imageStreams.Items) == 0 {
 			continue
 		}

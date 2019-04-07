@@ -458,7 +458,7 @@ func (node *OsdnNode) GetLocalPods(namespace string) ([]corev1.Pod, error) {
 		LabelSelector: labels.Everything().String(),
 		FieldSelector: fieldSelector.String(),
 	}
-	podList, err := node.kClient.Core().Pods(namespace).List(opts)
+	podList, err := node.kClient.CoreV1().Pods(namespace).List(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -530,7 +530,7 @@ func (node *OsdnNode) handleDeleteService(obj interface{}) {
 
 func validateNetworkPluginName(networkClient networkclient.Interface, pluginName string) error {
 	// Detect any plugin mismatches between node and master
-	clusterNetwork, err := networkClient.Network().ClusterNetworks().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
+	clusterNetwork, err := networkClient.NetworkV1().ClusterNetworks().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
 	switch {
 	case errors.IsNotFound(err):
 		return fmt.Errorf("master has not created a default cluster network, network plugin %q can not start", pluginName)

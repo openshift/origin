@@ -279,7 +279,7 @@ func (r *REST) getTemplate() (*templatev1.Template, error) {
 		return DefaultTemplate(), nil
 	}
 
-	return r.templateClient.Template().Templates(r.templateNamespace).Get(r.templateName, metav1.GetOptions{})
+	return r.templateClient.TemplateV1().Templates(r.templateNamespace).Get(r.templateName, metav1.GetOptions{})
 }
 
 var _ = rest.Lister(&REST{})

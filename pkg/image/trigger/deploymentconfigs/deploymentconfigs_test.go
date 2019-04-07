@@ -397,7 +397,7 @@ func TestDeploymentConfigReactor(t *testing.T) {
 					return true, test.response, nil
 				})
 			}
-			r := DeploymentConfigReactor{Client: c.Apps()}
+			r := DeploymentConfigReactor{Client: c.AppsV1()}
 			initial := test.obj.DeepCopy()
 			err := r.ImageChanged(test.obj, fakeTagRetriever(test.tags))
 			if !kapihelper.Semantic.DeepEqual(initial, test.obj) {

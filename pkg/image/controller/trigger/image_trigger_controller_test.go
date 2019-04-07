@@ -182,8 +182,8 @@ func fakeBuildConfigInstantiator(buildcfg *buildv1.BuildConfig, imageStream *ima
 	instantiator := &fakeInstantiator{}
 	instantiator.buildConfigUpdater = &fakeBuildConfigUpdater{}
 	generator := &buildgenerator.BuildGenerator{
-		Secrets:         fake.NewSimpleClientset().Core(),
-		ServiceAccounts: fake.NewSimpleClientset(&builderAccount).Core(),
+		Secrets:         fake.NewSimpleClientset().CoreV1(),
+		ServiceAccounts: fake.NewSimpleClientset(&builderAccount).CoreV1(),
 		Client: buildgenerator.TestingClient{
 			GetBuildConfigFunc: func(ctx context.Context, name string, options *metav1.GetOptions) (*buildv1.BuildConfig, error) {
 				return buildcfg, nil

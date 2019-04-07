@@ -181,7 +181,7 @@ func (q *restrictUsersAdmission) Validate(a admission.Attributes) (err error) {
 	}
 
 	roleBindingRestrictionContext, err := newRoleBindingRestrictionContext(ns,
-		q.kubeClient, q.userClient.User(), q.groupCache)
+		q.kubeClient, q.userClient.UserV1(), q.groupCache)
 	if err != nil {
 		return admission.NewForbidden(a, err)
 	}

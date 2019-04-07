@@ -37,7 +37,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	// hook
 	g.AfterEach(func() {
 		if g.CurrentGinkgoTestDescription().Failed {
-			client := routeclientset.NewForConfigOrDie(oc.AdminConfig()).Route().Routes(ns)
+			client := routeclientset.NewForConfigOrDie(oc.AdminConfig()).RouteV1().Routes(ns)
 			if routes, _ := client.List(metav1.ListOptions{}); routes != nil {
 				outputIngress(routes.Items...)
 			}
@@ -53,7 +53,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 		routerImage, _ = exutil.FindRouterImage(oc)
 		routerImage = strings.Replace(routerImage, "${component}", "haproxy-router", -1)
 
-		_, err := oc.AdminKubeClient().Rbac().RoleBindings(ns).Create(&rbacv1.RoleBinding{
+		_, err := oc.AdminKubeClient().RbacV1().RoleBindings(ns).Create(&rbacv1.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "router",
 			},
@@ -74,7 +74,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	g.Describe("The HAProxy router", func() {
 		g.It("converges when multiple routers are writing status", func() {
 			g.By("deploying a scaled out namespace scoped router")
-			rs, err := oc.KubeClient().Extensions().ReplicaSets(ns).Create(
+			rs, err := oc.KubeClient().ExtensionsV1beta1().ReplicaSets(ns).Create(
 				scaledRouter(
 					routerImage,
 					[]string{
@@ -90,7 +90,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating multiple routes")
-			client := routeclientset.NewForConfigOrDie(oc.AdminConfig()).Route().Routes(ns)
+			client := routeclientset.NewForConfigOrDie(oc.AdminConfig()).RouteV1().Routes(ns)
 			var rv string
 			for i := 0; i < 10; i++ {
 				_, err := client.Create(&routev1.Route{
@@ -156,7 +156,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 		g.It("converges when multiple routers are writing conflicting status", func() {
 			g.By("deploying a scaled out namespace scoped router")
 
-			rs, err := oc.KubeClient().Extensions().ReplicaSets(ns).Create(
+			rs, err := oc.KubeClient().ExtensionsV1beta1().ReplicaSets(ns).Create(
 				scaledRouter(
 					routerImage,
 					[]string{
@@ -176,7 +176,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("creating multiple routes")
-			client := routeclientset.NewForConfigOrDie(oc.AdminConfig()).Route().Routes(ns)
+			client := routeclientset.NewForConfigOrDie(oc.AdminConfig()).RouteV1().Routes(ns)
 			var rv string
 			for i := 0; i < 20; i++ {
 				_, err := client.Create(&routev1.Route{

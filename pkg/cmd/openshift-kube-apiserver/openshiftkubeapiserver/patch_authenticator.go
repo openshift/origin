@@ -74,7 +74,7 @@ func NewAuthenticator(
 		oauthClient.OAuthAccessTokens(),
 		oauthClientLister,
 		serviceAccountTokenGetter,
-		userClient.User().Users(),
+		userClient.UserV1().Users(),
 		servingInfo.ClientCA,
 		usercache.NewGroupCache(groupInformer),
 		bootstrap.NewBootstrapUserDataGetter(kubeExternalClient.CoreV1(), kubeExternalClient.CoreV1()),

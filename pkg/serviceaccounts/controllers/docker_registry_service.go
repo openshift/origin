@@ -402,7 +402,7 @@ func (e *DockerRegistryServiceController) syncSecretUpdate(key string) error {
 	}
 	dockercfgSecret.Data[v1.DockerConfigKey] = dockercfgContent
 
-	if _, err := e.client.Core().Secrets(dockercfgSecret.Namespace).Update(dockercfgSecret); err != nil {
+	if _, err := e.client.CoreV1().Secrets(dockercfgSecret.Namespace).Update(dockercfgSecret); err != nil {
 		return err
 	}
 

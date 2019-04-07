@@ -33,12 +33,12 @@ func NewClientBuildConfigClient(client buildclient.Interface) *ClientBuildConfig
 
 // Get returns a BuildConfig using the OpenShift client.
 func (c ClientBuildConfigClient) Get(namespace, name string, options metav1.GetOptions) (*buildv1.BuildConfig, error) {
-	return c.Client.Build().BuildConfigs(namespace).Get(name, options)
+	return c.Client.BuildV1().BuildConfigs(namespace).Get(name, options)
 }
 
 // Update updates a BuildConfig using the OpenShift client.
 func (c ClientBuildConfigClient) Update(buildConfig *buildv1.BuildConfig) error {
-	_, err := c.Client.Build().BuildConfigs(buildConfig.Namespace).Update(buildConfig)
+	_, err := c.Client.BuildV1().BuildConfigs(buildConfig.Namespace).Update(buildConfig)
 	return err
 }
 
@@ -74,23 +74,23 @@ func NewClientBuildClient(client buildclient.Interface) *ClientBuildClient {
 
 // Update updates buildclient using the OpenShift client.
 func (c ClientBuildClient) Update(namespace string, build *buildv1.Build) error {
-	_, e := c.Client.Build().Builds(namespace).Update(build)
+	_, e := c.Client.BuildV1().Builds(namespace).Update(build)
 	return e
 }
 
 // Patch patches buildclient using the OpenShift client.
 func (c ClientBuildClient) Patch(namespace, name string, patch []byte) (*buildv1.Build, error) {
-	return c.Client.Build().Builds(namespace).Patch(name, types.StrategicMergePatchType, patch)
+	return c.Client.BuildV1().Builds(namespace).Patch(name, types.StrategicMergePatchType, patch)
 }
 
 // List lists the buildclient using the OpenShift client.
 func (c ClientBuildClient) List(namespace string, opts metav1.ListOptions) (*buildv1.BuildList, error) {
-	return c.Client.Build().Builds(namespace).List(opts)
+	return c.Client.BuildV1().Builds(namespace).List(opts)
 }
 
 // DeleteBuild deletes a build from OpenShift.
 func (c ClientBuildClient) DeleteBuild(build *buildv1.Build) error {
-	return c.Client.Build().Builds(build.Namespace).Delete(build.Name, &metav1.DeleteOptions{})
+	return c.Client.BuildV1().Builds(build.Namespace).Delete(build.Name, &metav1.DeleteOptions{})
 }
 
 // ClientBuildLister implements the build lister interface over a client
@@ -204,7 +204,7 @@ func NewClientBuildClonerClient(client buildclient.Interface) *ClientBuildCloner
 
 // Clone generates new build for given build name
 func (c ClientBuildClonerClient) Clone(namespace string, request *buildv1.BuildRequest) (*buildv1.Build, error) {
-	return c.Client.Build().Builds(namespace).Clone(request.Name, request)
+	return c.Client.BuildV1().Builds(namespace).Clone(request.Name, request)
 }
 
 // BuildConfigInstantiator provides methods for instantiating buildclient from build configs
@@ -224,7 +224,7 @@ func NewClientBuildConfigInstantiatorClient(client buildclient.Interface) *Clien
 
 // Instantiate generates new build for given buildConfig
 func (c ClientBuildConfigInstantiatorClient) Instantiate(namespace string, request *buildv1.BuildRequest) (*buildv1.Build, error) {
-	return c.Client.Build().BuildConfigs(namespace).Instantiate(request.Name, request)
+	return c.Client.BuildV1().BuildConfigs(namespace).Instantiate(request.Name, request)
 }
 
 // TODO: Why we need this, seems like an copy of the client above

@@ -51,7 +51,7 @@ RUN curl -vvv hello-openshift:8080
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("expecting the build is in Complete phase")
-				err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "centos-1", nil, nil, nil)
+				err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(oc.Namespace()), "centos-1", nil, nil, nil)
 				//debug for failures
 				if err != nil {
 					exutil.DumpBuildLogs("centos", oc)

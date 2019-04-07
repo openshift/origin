@@ -371,10 +371,10 @@ func TestHandleScenarios(t *testing.T) {
 			informer: cache.NewSharedIndexInformer(
 				&cache.ListWatch{
 					ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-						return oc.Apps().DeploymentConfigs(metav1.NamespaceAll).List(options)
+						return oc.AppsV1().DeploymentConfigs(metav1.NamespaceAll).List(options)
 					},
 					WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-						return oc.Apps().DeploymentConfigs(metav1.NamespaceAll).Watch(options)
+						return oc.AppsV1().DeploymentConfigs(metav1.NamespaceAll).Watch(options)
 					},
 				},
 				&appsv1.DeploymentConfig{},

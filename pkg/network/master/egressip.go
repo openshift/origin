@@ -105,7 +105,7 @@ func (eim *egressIPManager) maybeDoUpdateEgressCIDRs() (bool, error) {
 			newIPs := sets.NewString(egressIPs...)
 			if !oldIPs.Equal(newIPs) {
 				hs.EgressIPs = egressIPs
-				_, err = eim.networkClient.Network().HostSubnets().Update(hs)
+				_, err = eim.networkClient.NetworkV1().HostSubnets().Update(hs)
 			}
 			return err
 		})

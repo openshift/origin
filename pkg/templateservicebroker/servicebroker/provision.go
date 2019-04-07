@@ -51,7 +51,7 @@ func (b *Broker) ensureSecret(u user.Info, namespace string, brokerTemplateInsta
 			}
 		}
 	}
-	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+	if err := util.Authorize(b.kc.AuthorizationV1().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
 		Verb:      "create",
 		Group:     kapiv1.GroupName,
@@ -61,14 +61,14 @@ func (b *Broker) ensureSecret(u user.Info, namespace string, brokerTemplateInsta
 		return nil, api.Forbidden(err)
 	}
 
-	createdSec, err := b.kc.Core().Secrets(namespace).Create(secret)
+	createdSec, err := b.kc.CoreV1().Secrets(namespace).Create(secret)
 	if err == nil {
 		*didWork = true
 		return createdSec, nil
 	}
 
 	if kerrors.IsAlreadyExists(err) {
-		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+		if err := util.Authorize(b.kc.AuthorizationV1().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 			Namespace: namespace,
 			Verb:      "get",
 			Group:     kapiv1.GroupName,
@@ -78,7 +78,7 @@ func (b *Broker) ensureSecret(u user.Info, namespace string, brokerTemplateInsta
 			return nil, api.Forbidden(err)
 		}
 
-		existingSec, err := b.kc.Core().Secrets(namespace).Get(secret.Name, metav1.GetOptions{})
+		existingSec, err := b.kc.CoreV1().Secrets(namespace).Get(secret.Name, metav1.GetOptions{})
 		if err == nil && reflect.DeepEqual(secret.Data, existingSec.Data) {
 			return existingSec, nil
 		}
@@ -132,7 +132,7 @@ func (b *Broker) ensureTemplateInstance(u user.Info, namespace string, brokerTem
 		},
 	}
 
-	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+	if err := util.Authorize(b.kc.AuthorizationV1().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
 		Verb:      "create",
 		Group:     templateapiv1.GroupName,
@@ -149,7 +149,7 @@ func (b *Broker) ensureTemplateInstance(u user.Info, namespace string, brokerTem
 	}
 
 	if kerrors.IsAlreadyExists(err) {
-		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+		if err := util.Authorize(b.kc.AuthorizationV1().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 			Namespace: namespace,
 			Verb:      "get",
 			Group:     templateapiv1.GroupName,
@@ -181,7 +181,7 @@ func (b *Broker) ensureBrokerTemplateInstanceUIDs(u user.Info, namespace string,
 
 	// end users are not expected to have access to BrokerTemplateInstance
 	// objects; SAR on the TemplateInstance instead.
-	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+	if err := util.Authorize(b.kc.AuthorizationV1().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
 		Verb:      "update",
 		Group:     templateapiv1.GroupName,
@@ -243,7 +243,7 @@ func (b *Broker) ensureBrokerTemplateInstance(u user.Info, namespace, instanceID
 
 	// end users are not expected to have access to BrokerTemplateInstance
 	// objects; SAR on the TemplateInstance instead.
-	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+	if err := util.Authorize(b.kc.AuthorizationV1().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
 		Verb:      "create",
 		Group:     templateapiv1.GroupName,
@@ -262,7 +262,7 @@ func (b *Broker) ensureBrokerTemplateInstance(u user.Info, namespace, instanceID
 	if kerrors.IsAlreadyExists(err) {
 		// end users are not expected to have access to BrokerTemplateInstance
 		// objects; SAR on the TemplateInstance instead.
-		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+		if err := util.Authorize(b.kc.AuthorizationV1().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 			Namespace: namespace,
 			Verb:      "get",
 			Group:     templateapiv1.GroupName,
@@ -333,7 +333,7 @@ func (b *Broker) Provision(u user.Info, instanceID string, preq *api.ProvisionRe
 	}
 
 	// with groups in the user.Info vs. the username only form of auth, we can SAR for get access on template resources
-	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+	if err := util.Authorize(b.kc.AuthorizationV1().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 		Namespace: template.Namespace,
 		Verb:      "get",
 		Group:     templateapiv1.GroupName,
@@ -343,7 +343,7 @@ func (b *Broker) Provision(u user.Info, instanceID string, preq *api.ProvisionRe
 		return api.Forbidden(err)
 	}
 
-	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+	if err := util.Authorize(b.kc.AuthorizationV1().SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 		Namespace: namespace,
 		Verb:      "create",
 		Group:     templateapiv1.GroupName,

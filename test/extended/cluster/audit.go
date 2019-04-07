@@ -46,15 +46,15 @@ var _ = g.Describe("[Feature:Audit] Basic audit", func() {
 				"top-secret": []byte("foo-bar"),
 			},
 		}
-		_, err := f.ClientSet.Core().Secrets(f.Namespace.Name).Create(secret)
+		_, err := f.ClientSet.CoreV1().Secrets(f.Namespace.Name).Create(secret)
 		framework.ExpectNoError(err, "failed to create audit-secret")
-		_, err = f.ClientSet.Core().Secrets(f.Namespace.Name).Get(secret.Name, metav1.GetOptions{})
+		_, err = f.ClientSet.CoreV1().Secrets(f.Namespace.Name).Get(secret.Name, metav1.GetOptions{})
 		framework.ExpectNoError(err, "failed to get audit-secret")
-		err = f.ClientSet.Core().Secrets(f.Namespace.Name).Delete(secret.Name, &metav1.DeleteOptions{})
+		err = f.ClientSet.CoreV1().Secrets(f.Namespace.Name).Delete(secret.Name, &metav1.DeleteOptions{})
 		framework.ExpectNoError(err, "failed to delete audit-secret")
 
 		// /version should not be audited
-		_, err = f.ClientSet.Core().RESTClient().Get().AbsPath("/version").DoRaw()
+		_, err = f.ClientSet.CoreV1().RESTClient().Get().AbsPath("/version").DoRaw()
 		framework.ExpectNoError(err, "failed to query version")
 
 		expectedEvents := []auditEvent{{

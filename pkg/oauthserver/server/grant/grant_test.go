@@ -41,7 +41,7 @@ func badAuth(err error) *testAuth {
 }
 
 func emptyClientRegistry() api.OAuthClientGetter {
-	return oauthfake.NewSimpleClientset().Oauth().OAuthClients()
+	return oauthfake.NewSimpleClientset().OauthV1().OAuthClients()
 }
 
 func goodClientRegistry(clientID string, redirectURIs []string, literalScopes []string) api.OAuthClientGetter {
@@ -52,14 +52,14 @@ func goodClientRegistry(clientID string, redirectURIs []string, literalScopes []
 	}
 	fakeOAuthClient := oauthfake.NewSimpleClientset(client)
 
-	return fakeOAuthClient.Oauth().OAuthClients()
+	return fakeOAuthClient.OauthV1().OAuthClients()
 }
 func badClientRegistry(err error) api.OAuthClientGetter {
 	fakeOAuthClient := oauthfake.NewSimpleClientset()
 	fakeOAuthClient.PrependReactor("get", "oauthclients", func(action clienttesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, err
 	})
-	return fakeOAuthClient.Oauth().OAuthClients()
+	return fakeOAuthClient.OauthV1().OAuthClients()
 }
 
 func emptyAuthRegistry() *oauthfake.Clientset {
@@ -395,7 +395,7 @@ func TestGrant(t *testing.T) {
 	}
 
 	for k, testCase := range testCases {
-		server := httptest.NewServer(NewGrant(testCase.CSRF, testCase.Auth, DefaultFormRenderer, testCase.ClientRegistry, testCase.AuthRegistry.Oauth().OAuthClientAuthorizations()))
+		server := httptest.NewServer(NewGrant(testCase.CSRF, testCase.Auth, DefaultFormRenderer, testCase.ClientRegistry, testCase.AuthRegistry.OauthV1().OAuthClientAuthorizations()))
 
 		var resp *http.Response
 		if testCase.PostValues != nil {

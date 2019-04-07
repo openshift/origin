@@ -175,7 +175,7 @@ func TestCancelBuildRun(t *testing.T) {
 
 		test.opts.timeout = 1 * time.Second
 		test.opts.Client = client.BuildV1()
-		test.opts.BuildClient = client.Build().Builds(test.opts.Namespace)
+		test.opts.BuildClient = client.BuildV1().Builds(test.opts.Namespace)
 		test.opts.ReportError = func(err error) {
 			test.opts.HasError = true
 			t.Logf("got error: %v", err)

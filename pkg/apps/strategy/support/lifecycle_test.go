@@ -66,7 +66,7 @@ func TestHookExecutor_executeExecNewCreatePodFailure(t *testing.T) {
 		return true, nil, errors.New("could not create the pod")
 	})
 	executor := &hookExecutor{
-		pods: client.Core(),
+		pods: client.CoreV1(),
 	}
 
 	if err := executor.executeExecNewPod(hook, deployment, "hook", "test"); err == nil {
@@ -111,7 +111,7 @@ func TestHookExecutor_executeExecNewPodSucceeded(t *testing.T) {
 	}()
 
 	executor := &hookExecutor{
-		pods: client.Core(),
+		pods: client.CoreV1(),
 		out:  podLogs,
 		getPodLogs: func(*corev1.Pod) (io.ReadCloser, error) {
 			return ioutil.NopCloser(strings.NewReader("test")), nil
@@ -175,7 +175,7 @@ func TestHookExecutor_executeExecNewPodFailed(t *testing.T) {
 	}()
 
 	executor := &hookExecutor{
-		pods: client.Core(),
+		pods: client.CoreV1(),
 		out:  ioutil.Discard,
 		getPodLogs: func(*corev1.Pod) (io.ReadCloser, error) {
 			return ioutil.NopCloser(strings.NewReader("test")), nil

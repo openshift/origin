@@ -128,7 +128,7 @@ func (o *Options) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string
 }
 
 func (o *Options) Run() error {
-	cv, err := o.Client.Config().ClusterVersions().Get("version", metav1.GetOptions{})
+	cv, err := o.Client.ConfigV1().ClusterVersions().Get("version", metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return fmt.Errorf("No cluster version information available - you must be connected to a v4.0 OpenShift server to fetch the current version")
@@ -144,7 +144,7 @@ func (o *Options) Run() error {
 		}
 		original := cv.Spec.DesiredUpdate
 		cv.Spec.DesiredUpdate = nil
-		updated, err := o.Client.Config().ClusterVersions().Patch(cv.Name, types.MergePatchType, []byte(`{"spec":{"desiredUpdate":null}}`))
+		updated, err := o.Client.ConfigV1().ClusterVersions().Patch(cv.Name, types.MergePatchType, []byte(`{"spec":{"desiredUpdate":null}}`))
 		if err != nil {
 			return fmt.Errorf("Unable to cancel current rollout: %v", err)
 		}
@@ -171,7 +171,7 @@ func (o *Options) Run() error {
 		update := cv.Status.AvailableUpdates[len(cv.Status.AvailableUpdates)-1]
 		cv.Spec.DesiredUpdate = &update
 
-		_, err := o.Client.Config().ClusterVersions().Update(cv)
+		_, err := o.Client.ConfigV1().ClusterVersions().Update(cv)
 		if err != nil {
 			return fmt.Errorf("Unable to upgrade to latest version %s: %v", update.Version, err)
 		}
@@ -226,7 +226,7 @@ func (o *Options) Run() error {
 
 		cv.Spec.DesiredUpdate = update
 
-		_, err := o.Client.Config().ClusterVersions().Update(cv)
+		_, err := o.Client.ConfigV1().ClusterVersions().Update(cv)
 		if err != nil {
 			return fmt.Errorf("Unable to upgrade: %v", err)
 		}

@@ -158,7 +158,7 @@ func (ni *NetworkInfo) CheckClusterObjects(subnets []networkapi.HostSubnet, pods
 }
 
 func GetNetworkInfo(networkClient networkclient.Interface) (*NetworkInfo, error) {
-	cn, err := networkClient.Network().ClusterNetworks().Get(networkapi.ClusterNetworkDefault, v1.GetOptions{})
+	cn, err := networkClient.NetworkV1().ClusterNetworks().Get(networkapi.ClusterNetworkDefault, v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
