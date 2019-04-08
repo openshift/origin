@@ -216,6 +216,10 @@ function localup::start_kubeapiserver() {
     # Create kubeconfigs for all components, using client certs
     kube::util::write_client_kubeconfig "${CONTROLPLANE_SUDO}" "${CERT_DIR}" "${ROOT_CA_FILE}" "${API_HOST}" "${API_SECURE_PORT}" admin
     chown "${USER:-$(id -u)}" "${CERT_DIR}/client-admin.key" # make readable for kubectl
+
+    for filename in ${OS_ROOT}/hack/local-up-master/kube-apiserver-manifests/*.yaml; do
+       oc --config=${LOCALUP_CONFIG}/kube-apiserver/admin.kubeconfig apply -f ${filename}
+    done
 }
 
 function localup::start_kubecontrollermanager() {

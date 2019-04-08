@@ -97,6 +97,8 @@ os::test::junit::declare_suite_start "setup/localup"
 os::cmd::try_until_text "oc get --raw /healthz --as system:unauthenticated --config='${ADMIN_KUBECONFIG}'" 'ok' $(( 160 * second )) 0.25
 os::cmd::try_until_success "oc get service kubernetes --namespace default --config='${ADMIN_KUBECONFIG}'" $(( 160 * second )) 0.25
 os::cmd::try_until_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority ${MASTER_CONFIG_DIR}/server-ca.crt -u test-user -p anything" $(( 160 * second )) 0.25
+# wait for the CRD to be available
+os::cmd::try_until_success "oc get clusterresourcequotas --config='${ADMIN_KUBECONFIG}'" $(( 160 * second )) 0.25
 os::test::junit::declare_suite_end
 os::log::debug "localup server health checks done at: $( date )"
 
