@@ -28,6 +28,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/klog"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
@@ -71,6 +72,8 @@ type PluginListOptions struct {
 	Verifier PathVerifier
 	NameOnly bool
 
+	PluginPaths []string
+
 	genericclioptions.IOStreams
 }
 
@@ -99,22 +102,25 @@ func (o *PluginListOptions) Complete(cmd *cobra.Command) error {
 		root:        cmd.Root(),
 		seenPlugins: make(map[string]string, 0),
 	}
+
+	o.PluginPaths = filepath.SplitList(os.Getenv("PATH"))
 	return nil
 }
 
 func (o *PluginListOptions) Run() error {
-	path := "PATH"
-	if runtime.GOOS == "windows" {
-		path = "path"
-	}
-
 	pluginsFound := false
 	isFirstFile := true
 	pluginErrors := []error{}
 	pluginWarnings := 0
-	for _, dir := range filepath.SplitList(os.Getenv(path)) {
+
+	for _, dir := range uniquePathsList(o.PluginPaths) {
 		files, err := ioutil.ReadDir(dir)
 		if err != nil {
+			if _, ok := err.(*os.PathError); ok && strings.Contains(err.Error(), "no such file") {
+				klog.V(3).Infof("unable to find directory %q in your PATH. Skipping...", dir)
+				continue
+			}
+
 			pluginErrors = append(pluginErrors, fmt.Errorf("error: unable to read directory %q in your PATH: %v", dir, err))
 			continue
 		}
