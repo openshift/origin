@@ -39,7 +39,6 @@ import (
 	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/library-go/pkg/crypto"
-	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver"
 	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
@@ -55,9 +54,7 @@ import (
 	"github.com/openshift/origin/test/util"
 
 	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
-	_ "k8s.io/kubernetes/pkg/apis/core/install"
-	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
+	"github.com/openshift/origin/pkg/api/install"
 )
 
 var (
@@ -321,8 +318,9 @@ func CleanupMasterEtcd(t *testing.T, config *configapi.MasterConfig) {
 func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, stopCh <-chan struct{}) (string, error) {
 	guardMaster()
 
-	// openshift apiserver needs its own scheme, but this installs it for now.  oc needs it off, openshift apiserver needs it on. awesome.
-	legacy.InstallInternalLegacyAll(legacyscheme.Scheme)
+	// openshift apiserver needs all internal types
+	install.InstallInternalOpenShift(legacyscheme.Scheme)
+	install.InstallInternalKube(legacyscheme.Scheme)
 
 	// setup clients et all
 	adminKubeConfigFile := util.KubeConfigPath()
