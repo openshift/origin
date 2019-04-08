@@ -20,23 +20,44 @@ import (
 	"fmt"
 	"net/http"
 	"runtime/debug"
+	"strings"
 
 	"github.com/davecgh/go-spew/spew"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/storage"
+	"k8s.io/klog"
 )
 
 var config = spew.ConfigState{Indent: "\t", MaxDepth: 0, DisableMethods: true}
+
+func log(args ...interface{}) {
+	klog.ErrorDepth(1, "ENJ:\n", config.Sdump(args...))
+}
+
+const unauthorizedMsg = `nauthorized`
 
 // statusError is an object that can be converted into an metav1.Status
 type statusError interface {
 	Status() metav1.Status
 }
 
-// ErrorToAPIStatus converts an error to an metav1.Status object.
 func ErrorToAPIStatus(err error) *metav1.Status {
+	e := errorToAPIStatus(err)
+	if errors.IsUnauthorized(err) ||
+		strings.Contains(string(e.Reason), unauthorizedMsg) ||
+		strings.Contains(e.Message, unauthorizedMsg) ||
+		e.Code == 401 {
+		log(err)
+		debug.PrintStack()
+	}
+	return e
+}
+
+// ErrorToAPIStatus converts an error to an metav1.Status object.
+func errorToAPIStatus(err error) *metav1.Status {
 	switch t := err.(type) {
 	case statusError:
 		status := t.Status()
@@ -67,7 +88,6 @@ func ErrorToAPIStatus(err error) *metav1.Status {
 		// error by not using pkg/api/errors, or unexpected failure
 		// cases.
 		runtime.HandleError(fmt.Errorf("apiserver received an error that is not an metav1.Status: %s", config.Sdump(err)))
-		debug.PrintStack()
 		return &metav1.Status{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Status",
