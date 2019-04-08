@@ -2,7 +2,6 @@ package deploylog
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -22,6 +21,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/client-go/kubernetes"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/cache"
 	watchtools "k8s.io/client-go/tools/watch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/controller"
@@ -154,13 +154,14 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 			return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to run deployer pod %s: %v", podName, err))
 		}
 
-		latest, ok, err := WaitForRunningDeployment(r.rcClient, target, r.timeout)
+		latest, err := WaitForRunningDeployment(r.rcClient, target, r.timeout)
+		if err == wait.ErrWaitTimeout {
+			return nil, apierrors.NewServerTimeout(kapi.Resource("ReplicationController"), "get", 2)
+		}
 		if err != nil {
 			return nil, apierrors.NewBadRequest(fmt.Sprintf("unable to wait for deployment %s to run: %v", labelForDeployment, err))
 		}
-		if !ok {
-			return nil, apierrors.NewServerTimeout(kapi.Resource("ReplicationController"), "get", 2)
-		}
+
 		if appsutil.IsCompleteDeployment(latest) {
 			podName, err = r.returnApplicationPodName(target)
 			if err != nil {
@@ -280,31 +281,40 @@ func WaitForRunningDeployerPod(podClient corev1client.PodsGetter, rc *corev1.Rep
 	canGetLogs := func(p *corev1.Pod) bool {
 		return corev1.PodSucceeded == p.Status.Phase || corev1.PodFailed == p.Status.Phase || corev1.PodRunning == p.Status.Phase
 	}
-	pod, err := podClient.Pods(rc.Namespace).Get(podName, metav1.GetOptions{})
-	if err == nil && canGetLogs(pod) {
-		return nil
-	}
-	watcher, err := podClient.Pods(rc.Namespace).Watch(
-		metav1.ListOptions{
-			FieldSelector: fields.OneTermEqualSelector("metadata.name", podName).String(),
+
+	fieldSelector := fields.OneTermEqualSelector("metadata.name", podName).String()
+	lw := &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+			options.FieldSelector = fieldSelector
+			return podClient.Pods(rc.Namespace).List(options)
 		},
-	)
-	if err != nil {
-		return err
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			options.FieldSelector = fieldSelector
+			return podClient.Pods(rc.Namespace).Watch(options)
+		},
 	}
 
-	defer watcher.Stop()
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	_, err = watchtools.UntilWithoutRetry(ctx, watcher, func(e watch.Event) (bool, error) {
-		if e.Type == watch.Error {
-			return false, fmt.Errorf("encountered error while watching for pod: %v", e.Object)
+	_, err := watchtools.UntilWithSync(ctx, lw, &corev1.Pod{}, nil, func(e watch.Event) (bool, error) {
+		switch e.Type {
+		case watch.Added, watch.Modified:
+			newPod, ok := e.Object.(*corev1.Pod)
+			if !ok {
+				return true, fmt.Errorf("unknown event object %#v", e.Object)
+			}
+
+			return canGetLogs(newPod), nil
+
+		case watch.Deleted:
+			return true, fmt.Errorf("pod got deleted %#v", e.Object)
+
+		case watch.Error:
+			return true, fmt.Errorf("encountered error while watching for pod: %v", e.Object)
+
+		default:
+			return true, fmt.Errorf("unexpected event type: %T", e.Type)
 		}
-		obj, isPod := e.Object.(*corev1.Pod)
-		if !isPod {
-			return false, errors.New("received unknown object while watching for pods")
-		}
-		return canGetLogs(obj), nil
 	})
 	return err
 }
