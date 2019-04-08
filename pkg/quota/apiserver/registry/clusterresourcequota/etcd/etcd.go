@@ -2,27 +2,26 @@ package etcd
 
 import (
 	"context"
+	"fmt"
 
+	"k8s.io/apimachinery/pkg/watch"
+
+	"k8s.io/apimachinery/pkg/api/errors"
+
+	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apiserver/pkg/registry/generic"
-	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/kubernetes/pkg/printers"
-	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
-	"github.com/openshift/api/quota"
-	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
-	"github.com/openshift/origin/pkg/quota/apiserver/registry/clusterresourcequota"
 )
 
 type REST struct {
-	*registry.Store
 }
 
 var _ rest.StandardStorage = &REST{}
 var _ rest.ShortNamesProvider = &REST{}
+var _ rest.Scoper = &REST{}
 
 // ShortNames implements the ShortNamesProvider interface. Returns a list of short names for a resource.
 func (r *REST) ShortNames() []string {
@@ -30,35 +29,52 @@ func (r *REST) ShortNames() []string {
 }
 
 // NewREST returns a RESTStorage object that will work against ClusterResourceQuota objects.
-func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST, error) {
-	store := &registry.Store{
-		NewFunc:                  func() runtime.Object { return &quotaapi.ClusterResourceQuota{} },
-		NewListFunc:              func() runtime.Object { return &quotaapi.ClusterResourceQuotaList{} },
-		DefaultQualifiedResource: quota.Resource("clusterresourcequotas"),
+func NewREST() (*REST, *StatusREST, error) {
+	return &REST{}, &StatusREST{}, nil
+}
 
-		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
+func (r *REST) NamespaceScoped() bool {
+	return false
+}
 
-		CreateStrategy: clusterresourcequota.Strategy,
-		UpdateStrategy: clusterresourcequota.Strategy,
-		DeleteStrategy: clusterresourcequota.Strategy,
-	}
+func (r *REST) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+	return nil, errors.NewInternalError(fmt.Errorf("unsupported"))
+}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter}
-	if err := store.CompleteWithOptions(options); err != nil {
-		return nil, nil, err
-	}
+func (r *REST) NewList() runtime.Object {
+	return &quotaapi.ClusterResourceQuotaList{}
+}
 
-	statusStore := *store
-	statusStore.CreateStrategy = nil
-	statusStore.DeleteStrategy = nil
-	statusStore.UpdateStrategy = clusterresourcequota.StatusStrategy
+func (r *REST) List(ctx context.Context, options *metainternalversion.ListOptions) (runtime.Object, error) {
+	return nil, errors.NewInternalError(fmt.Errorf("unsupported"))
+}
 
-	return &REST{store}, &StatusREST{store: &statusStore}, nil
+func (r *REST) New() runtime.Object {
+	return &quotaapi.ClusterResourceQuota{}
+}
+
+func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
+	return nil, errors.NewInternalError(fmt.Errorf("unsupported"))
+}
+
+func (r *REST) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc, forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
+	return nil, false, errors.NewInternalError(fmt.Errorf("unsupported"))
+}
+
+func (r *REST) Delete(ctx context.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
+	return nil, false, errors.NewInternalError(fmt.Errorf("unsupported"))
+}
+
+func (r *REST) DeleteCollection(ctx context.Context, options *metav1.DeleteOptions, listOptions *metainternalversion.ListOptions) (runtime.Object, error) {
+	return nil, errors.NewInternalError(fmt.Errorf("unsupported"))
+}
+
+func (r *REST) Watch(ctx context.Context, options *metainternalversion.ListOptions) (watch.Interface, error) {
+	return nil, errors.NewInternalError(fmt.Errorf("unsupported"))
 }
 
 // StatusREST implements the REST endpoint for changing the status of a resourcequota.
 type StatusREST struct {
-	store *registry.Store
 }
 
 // StatusREST implements Patcher
@@ -70,10 +86,10 @@ func (r *StatusREST) New() runtime.Object {
 
 // Get retrieves the object from the storage. It is required to support Patch.
 func (r *StatusREST) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
-	return r.store.Get(ctx, name, options)
+	return nil, errors.NewInternalError(fmt.Errorf("unsupported"))
 }
 
 // Update alters the status subset of an object.
 func (r *StatusREST) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc, forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
-	return r.store.Update(ctx, name, objInfo, createValidation, updateValidation, forceAllowCreate, options)
+	return nil, false, errors.NewInternalError(fmt.Errorf("unsupported"))
 }
