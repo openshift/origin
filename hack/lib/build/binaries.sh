@@ -91,20 +91,9 @@ function os::build::setup_env() {
 
   unset GOBIN
 
-  # default to OS_OUTPUT_GOPATH if no GOPATH set
-  if [[ -z "${GOPATH:-}" ]]; then
-    export OS_OUTPUT_GOPATH=1
-  fi
-
-  # use the regular gopath for building
-  if [[ -z "${OS_OUTPUT_GOPATH:-}" ]]; then
-    export OS_TARGET_BIN=${GOPATH}/bin
-    return
-  fi
-
   # create a local GOPATH in _output
   GOPATH="${OS_OUTPUT}/go"
-  OS_TARGET_BIN=${GOPATH}/bin
+  OS_TARGET_BIN="${OS_OUTPUT}/go/bin"
   local go_pkg_dir="${GOPATH}/src/${OS_GO_PACKAGE}"
   local go_pkg_basedir=$(dirname "${go_pkg_dir}")
 
@@ -120,9 +109,8 @@ function os::build::setup_env() {
   # Append OS_EXTRA_GOPATH to the GOPATH if it is defined.
   if [[ -n ${OS_EXTRA_GOPATH:-} ]]; then
     GOPATH="${GOPATH}:${OS_EXTRA_GOPATH}"
-    # TODO: needs to handle multiple directories
-    OS_TARGET_BIN=${OS_EXTRA_GOPATH}/bin
   fi
+
   export GOPATH
   export OS_TARGET_BIN
 }
@@ -234,7 +222,6 @@ os::build::internal::build_binaries() {
 
       if [[ ${#nonstatics[@]} -gt 0 ]]; then
         GOOS=${platform%/*} GOARCH=${platform##*/} go install \
-          -pkgdir "${pkgdir}/${platform}" \
           -tags "${OS_GOFLAGS_TAGS-} ${!platform_gotags_envvar:-}" \
           -ldflags="${local_ldflags}" \
           "${goflags[@]:+${goflags[@]}}" \
@@ -256,7 +243,6 @@ os::build::internal::build_binaries() {
         local outfile="${OS_OUTPUT_BINPATH}/${platform}/$(basename ${test})"
         # disabling cgo allows use of delve
         CGO_ENABLED="${OS_TEST_CGO_ENABLED:-}" GOOS=${platform%/*} GOARCH=${platform##*/} go test \
-          -pkgdir "${pkgdir}/${platform}" \
           -tags "${OS_GOFLAGS_TAGS-} ${!platform_gotags_test_envvar:-}" \
           -ldflags "${local_ldflags}" \
           -i -c -o "${outfile}" \
