@@ -234,43 +234,72 @@ func (r *REST) returnApplicationPodName(target *corev1.ReplicationController) (s
 
 // GetFirstPod returns a pod matching the namespace and label selector
 // and the number of all pods that match the label selector.
+// DO NOT EDIT: this is a copy of the same function from kubectl to avoid carrying the dependency
 func GetFirstPod(client corev1client.PodsGetter, namespace string, selector string, timeout time.Duration, sortBy func([]*corev1.Pod) sort.Interface) (*corev1.Pod, int, error) {
-	options := metav1.ListOptions{LabelSelector: selector}
-
-	podList, err := client.Pods(namespace).List(options)
-	if err != nil {
-		return nil, 0, err
-	}
-	pods := []*corev1.Pod{}
-	for i := range podList.Items {
-		pods = append(pods, &podList.Items[i])
-	}
-	if len(pods) > 0 {
-		sort.Sort(sortBy(pods))
-		return pods[0], len(podList.Items), nil
+	lw := &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+			options.LabelSelector = selector
+			return client.Pods(namespace).List(options)
+		},
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			options.LabelSelector = selector
+			return client.Pods(namespace).Watch(options)
+		},
 	}
 
-	// Watch until we observe a pod
-	options.ResourceVersion = podList.ResourceVersion
-	w, err := client.Pods(namespace).Watch(options)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer w.Stop()
+	var initialPods []*corev1.Pod
+	preconditionFunc := func(store cache.Store) (bool, error) {
+		items := store.List()
+		if len(items) > 0 {
+			for _, item := range items {
+				pod, ok := item.(*corev1.Pod)
+				if !ok {
+					return true, fmt.Errorf("unexpected store item type: %#v", item)
+				}
 
-	condition := func(event watch.Event) (bool, error) {
-		return event.Type == watch.Added || event.Type == watch.Modified, nil
+				initialPods = append(initialPods, pod)
+			}
+
+			sort.Sort(sortBy(initialPods))
+
+			return true, nil
+		}
+
+		// Continue by watching for a new pod to appear
+		return false, nil
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+
+	ctx, cancel := watchtools.ContextWithOptionalTimeout(context.Background(), timeout)
 	defer cancel()
-	event, err := watchtools.UntilWithoutRetry(ctx, w, condition)
+	event, err := watchtools.UntilWithSync(ctx, lw, &corev1.Pod{}, preconditionFunc, func(event watch.Event) (bool, error) {
+		switch event.Type {
+		case watch.Added, watch.Modified:
+			// Any pod is good enough
+			return true, nil
+
+		case watch.Deleted:
+			return true, fmt.Errorf("pod got deleted %#v", event.Object)
+
+		case watch.Error:
+			return true, fmt.Errorf("unexpected error %#v", event.Object)
+
+		default:
+			return true, fmt.Errorf("unexpected event type: %T", event.Type)
+		}
+	})
 	if err != nil {
 		return nil, 0, err
 	}
+
+	if len(initialPods) > 0 {
+		return initialPods[0], len(initialPods), nil
+	}
+
 	pod, ok := event.Object.(*corev1.Pod)
 	if !ok {
 		return nil, 0, fmt.Errorf("%#v is not a pod event", event)
 	}
+
 	return pod, 1, nil
 }
 
