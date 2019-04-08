@@ -51,7 +51,7 @@ func NewInformers(kubeInformers kexternalinformers.SharedInformerFactory, kubeCl
 	if err != nil {
 		return nil, err
 	}
-	quotaClient, err := quotaclient.NewForConfig(loopbackClientConfig)
+	quotaClient, err := quotaclient.NewForConfig(kubeClientConfig)
 	if err != nil {
 		return nil, err
 	}
