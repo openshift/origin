@@ -17,7 +17,7 @@ import (
 	"k8s.io/apimachinery/third_party/forked/golang/netutil"
 	restclient "k8s.io/client-go/rest"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 // UpgradeAwareSingleHostReverseProxy is capable of proxying both regular HTTP
@@ -126,7 +126,7 @@ func (p *UpgradeAwareSingleHostReverseProxy) isUpgradeRequest(req *http.Request)
 func (p *UpgradeAwareSingleHostReverseProxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	newReq, err := p.newProxyRequest(req)
 	if err != nil {
-		glog.Errorf("Error creating backend request: %s", err)
+		klog.Errorf("Error creating backend request: %s", err)
 		// TODO do we need to do more than this?
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -169,7 +169,7 @@ func (p *UpgradeAwareSingleHostReverseProxy) dialBackend(req *http.Request) (net
 func (p *UpgradeAwareSingleHostReverseProxy) serveUpgrade(w http.ResponseWriter, req *http.Request) {
 	backendConn, err := p.dialBackend(req)
 	if err != nil {
-		glog.Errorf("Error connecting to backend: %s", err)
+		klog.Errorf("Error connecting to backend: %s", err)
 		// TODO do we need to do more than this?
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
@@ -180,20 +180,20 @@ func (p *UpgradeAwareSingleHostReverseProxy) serveUpgrade(w http.ResponseWriter,
 
 	err = req.Write(backendConn)
 	if err != nil {
-		glog.Errorf("Error writing request to backend: %s", err)
+		klog.Errorf("Error writing request to backend: %s", err)
 		return
 	}
 
 	resp, err := http.ReadResponse(bufio.NewReader(backendConn), req)
 	if err != nil {
-		glog.Errorf("Error reading response from backend: %s", err)
+		klog.Errorf("Error reading response from backend: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal Server Error"))
 		return
 	}
 
 	if resp.StatusCode == http.StatusUnauthorized {
-		glog.Errorf("Got unauthorized error from backend for: %s %s", req.Method, req.URL)
+		klog.Errorf("Got unauthorized error from backend for: %s %s", req.Method, req.URL)
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal Server Error"))
 		return
@@ -201,7 +201,7 @@ func (p *UpgradeAwareSingleHostReverseProxy) serveUpgrade(w http.ResponseWriter,
 
 	requestHijackedConn, _, err := w.(http.Hijacker).Hijack()
 	if err != nil {
-		glog.Errorf("Error hijacking request connection: %s", err)
+		klog.Errorf("Error hijacking request connection: %s", err)
 		return
 	}
 	defer requestHijackedConn.Close()
@@ -213,7 +213,7 @@ func (p *UpgradeAwareSingleHostReverseProxy) serveUpgrade(w http.ResponseWriter,
 	removeChallengeHeaders(resp)
 	err = resp.Write(requestHijackedConn)
 	if err != nil {
-		glog.Errorf("Error writing backend response to client: %s", err)
+		klog.Errorf("Error writing backend response to client: %s", err)
 		return
 	}
 

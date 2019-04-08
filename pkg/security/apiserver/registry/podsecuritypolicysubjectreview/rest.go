@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -88,12 +88,12 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 			err      error
 		)
 		if provider, namespace, err = scc.CreateProviderFromConstraint(ns, namespace, constraint, r.client); err != nil {
-			glog.Errorf("Unable to create provider for constraint: %v", err)
+			klog.Errorf("Unable to create provider for constraint: %v", err)
 			continue
 		}
 		filled, err := FillPodSecurityPolicySubjectReviewStatus(&pspsr.Status, provider, pspsr.Spec.Template.Spec, constraint)
 		if err != nil {
-			glog.Errorf("unable to fill PodSecurityPolicySubjectReviewStatus from constraint %v", err)
+			klog.Errorf("unable to fill PodSecurityPolicySubjectReviewStatus from constraint %v", err)
 			continue
 		}
 		if filled {
@@ -109,7 +109,7 @@ func FillPodSecurityPolicySubjectReviewStatus(s *securityapi.PodSecurityPolicySu
 		Spec: spec,
 	}
 	if errs := scc.AssignSecurityContext(provider, pod, field.NewPath(fmt.Sprintf("provider %s: ", provider.GetSCCName()))); len(errs) > 0 {
-		glog.Errorf("unable to assign SecurityContextConstraints provider: %v", errs)
+		klog.Errorf("unable to assign SecurityContextConstraints provider: %v", errs)
 		s.Reason = "CantAssignSecurityContextConstraintProvider"
 		return false, fmt.Errorf("unable to assign SecurityContextConstraints provider: %v", errs.ToAggregate())
 	}

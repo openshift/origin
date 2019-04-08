@@ -7,7 +7,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -145,10 +145,10 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 	switch status {
 	case appsv1.DeploymentStatusNew, appsv1.DeploymentStatusPending:
 		if deployLogOpts.NoWait {
-			glog.V(4).Infof("Deployment %s is in %s state. No logs to retrieve yet.", labelForDeployment, status)
+			klog.V(4).Infof("Deployment %s is in %s state. No logs to retrieve yet.", labelForDeployment, status)
 			return &genericrest.LocationStreamer{}, nil
 		}
-		glog.V(4).Infof("Deployment %s is in %s state, waiting for it to start...", labelForDeployment, status)
+		klog.V(4).Infof("Deployment %s is in %s state, waiting for it to start...", labelForDeployment, status)
 
 		if err := WaitForRunningDeployerPod(r.podClient, target, r.timeout); err != nil {
 			return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to run deployer pod %s: %v", podName, err))

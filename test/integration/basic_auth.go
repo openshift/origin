@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/gorilla/context"
+	"k8s.io/klog"
 
 	knet "k8s.io/apimachinery/pkg/util/net"
 )
@@ -40,7 +40,7 @@ func NewBasicAuthChallenger(realm string, users []User, authenticatedHandler htt
 }
 
 func (challenger BasicAuthChallenger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	glog.Infof("--- %v\n", r.URL)
+	klog.Infof("--- %v\n", r.URL)
 
 	authHeader := r.Header["Authorization"]
 	if len(authHeader) == 0 {
@@ -77,14 +77,14 @@ func (challenger BasicAuthChallenger) ServeHTTP(w http.ResponseWriter, r *http.R
 }
 
 func (challenger *BasicAuthChallenger) Challenge(w http.ResponseWriter) {
-	glog.Infof("Sending challenge\n")
+	klog.Infof("Sending challenge\n")
 
 	w.Header().Set("WWW-Authenticate", "Basic realm=\""+challenger.realm+"\"")
 	Error("Authorization failed", http.StatusUnauthorized, w)
 }
 
 func Error(message string, status int, w http.ResponseWriter) {
-	glog.Infof("Writing error: %s\n", message)
+	klog.Infof("Writing error: %s\n", message)
 
 	data := map[string]string{"error": message}
 	json, _ := json.Marshal(data)
@@ -101,11 +101,11 @@ func (challenger *BasicAuthChallenger) Validate(username, password string) bool 
 	}
 
 	if knownUser.Password == password {
-		glog.Infof("Validated user: %s\n", username)
+		klog.Infof("Validated user: %s\n", username)
 		return true
 	}
 
-	glog.Infof("Rejected user: %s\n", username)
+	klog.Infof("Rejected user: %s\n", username)
 	return false
 }
 

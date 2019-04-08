@@ -3,7 +3,7 @@ package util
 import (
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"github.com/openshift/origin/pkg/api/legacy"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
@@ -184,7 +184,7 @@ func (c *ScaleAnnotater) UpdateObjectScale(updater ScaleUpdater, namespace strin
 		case *appsv1.DeploymentConfig, *corev1.ReplicationController:
 			return updater.Update(c, obj, scale)
 		default:
-			glog.V(2).Infof("Unidling unknown type %t: using scale interface and not removing annotations", obj)
+			klog.V(2).Infof("Unidling unknown type %t: using scale interface and not removing annotations", obj)
 			_, err = c.scales.Scales(namespace).Update(mapping.Resource.GroupResource(), scale)
 		}
 	}

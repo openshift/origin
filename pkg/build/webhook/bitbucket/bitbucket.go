@@ -8,7 +8,7 @@ import (
 	"mime"
 	"net/http"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -74,7 +74,7 @@ type ref struct {
 
 // Extract services webhooks from bitbucket.com
 func (p *WebHookPlugin) Extract(buildCfg *buildv1.BuildConfig, trigger *buildv1.WebHookTrigger, req *http.Request) (revision *buildv1.SourceRevision, envvars []corev1.EnvVar, dockerStrategyOptions *buildv1.DockerStrategyOptions, proceed bool, err error) {
-	glog.V(4).Infof("Verifying build request for BuildConfig %s/%s", buildCfg.Namespace, buildCfg.Name)
+	klog.V(4).Infof("Verifying build request for BuildConfig %s/%s", buildCfg.Namespace, buildCfg.Name)
 	if err = verifyRequest(req); err != nil {
 		return revision, envvars, dockerStrategyOptions, false, err
 	}
@@ -100,7 +100,7 @@ func (p *WebHookPlugin) Extract(buildCfg *buildv1.BuildConfig, trigger *buildv1.
 	}
 
 	if !webhook.GitRefMatches(branch, webhook.DefaultConfigRef, &buildCfg.Spec.Source) {
-		glog.V(2).Infof("Skipping build for BuildConfig %s/%s.  Branch reference '%s' does not match configuration", buildCfg.Namespace, buildCfg.Name, branch)
+		klog.V(2).Infof("Skipping build for BuildConfig %s/%s.  Branch reference '%s' does not match configuration", buildCfg.Namespace, buildCfg.Name, branch)
 		return revision, envvars, dockerStrategyOptions, false, err
 	}
 

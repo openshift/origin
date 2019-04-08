@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -16,6 +15,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
@@ -33,7 +33,7 @@ func NewDeploymentConfigController(
 	kubeClientset kclientset.Interface,
 ) *DeploymentConfigController {
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kubeClientset.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(legacyscheme.Scheme, v1.EventSource{Component: "deploymentconfig-controller"})
 
@@ -75,14 +75,14 @@ func (c *DeploymentConfigController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	glog.Infof("Starting deploymentconfig controller")
+	klog.Infof("Starting deploymentconfig controller")
 
 	// Wait for the rc and dc stores to sync before starting any work in this controller.
 	if !cache.WaitForCacheSync(stopCh, c.dcStoreSynced, c.rcListerSynced) {
 		return
 	}
 
-	glog.Info("deploymentconfig controller caches are synced. Starting workers.")
+	klog.Info("deploymentconfig controller caches are synced. Starting workers.")
 
 	for i := 0; i < workers; i++ {
 		go wait.Until(c.worker, time.Second, stopCh)
@@ -92,12 +92,12 @@ func (c *DeploymentConfigController) Run(workers int, stopCh <-chan struct{}) {
 
 	<-stopCh
 
-	glog.Infof("Shutting down deploymentconfig controller")
+	klog.Infof("Shutting down deploymentconfig controller")
 }
 
 func (c *DeploymentConfigController) addDeploymentConfig(obj interface{}) {
 	dc := obj.(*appsv1.DeploymentConfig)
-	glog.V(4).Infof("Adding deployment config %s/%s", dc.Namespace, dc.Name)
+	klog.V(4).Infof("Adding deployment config %s/%s", dc.Namespace, dc.Name)
 	c.enqueueDeploymentConfig(dc)
 }
 
@@ -105,7 +105,7 @@ func (c *DeploymentConfigController) updateDeploymentConfig(old, cur interface{}
 	newDc := cur.(*appsv1.DeploymentConfig)
 	oldDc := old.(*appsv1.DeploymentConfig)
 
-	glog.V(4).Infof("Updating deployment config %s/%s", oldDc.Namespace, oldDc.Name)
+	klog.V(4).Infof("Updating deployment config %s/%s", oldDc.Namespace, oldDc.Name)
 	c.enqueueDeploymentConfig(newDc)
 }
 
@@ -123,7 +123,7 @@ func (c *DeploymentConfigController) deleteDeploymentConfig(obj interface{}) {
 			return
 		}
 	}
-	glog.V(4).Infof("Deleting deployment config %s/%s", dc.Namespace, dc.Name)
+	klog.V(4).Infof("Deleting deployment config %s/%s", dc.Namespace, dc.Name)
 	c.enqueueDeploymentConfig(dc)
 }
 

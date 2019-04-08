@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -52,7 +52,7 @@ func (s *s3CredentialStore) Retrieve() (credentials.Value, error) {
 		return credentials.Value{}, fmt.Errorf("no AWS credentials located for %s", s.url)
 	}
 	s.retrieved = true
-	glog.V(4).Infof("found credentials for %s", s.url)
+	klog.V(4).Infof("found credentials for %s", s.url)
 	return credentials.Value{
 		AccessKeyID:     accessKeyID,
 		SecretAccessKey: secretAccessKey,
@@ -80,7 +80,7 @@ func (d *s3Driver) newObject(server *url.URL, region string, insecure bool, secu
 	awsConfig.WithCredentials(creds)
 	awsConfig.WithRegion(region)
 	awsConfig.WithDisableSSL(insecure)
-	if glog.V(6) {
+	if klog.V(6) {
 		awsConfig.WithLogLevel(aws.LogDebug)
 	}
 
@@ -172,7 +172,7 @@ func (r *s3Repository) attemptCopy(id string, bucket, key string) bool {
 			sourceKey = strings.TrimSuffix(copyFrom, "[store]")
 			d, err := godigest.Parse(id)
 			if err != nil {
-				glog.V(4).Infof("Object %q is not a valid digest, cannot perform [store] copy: %v", id, err)
+				klog.V(4).Infof("Object %q is not a valid digest, cannot perform [store] copy: %v", id, err)
 				continue
 			}
 			sourceKey = fmt.Sprintf("%s%s/%s/%s/data", sourceKey, d.Algorithm().String(), d.Hex()[:2], d.Hex())
@@ -185,14 +185,14 @@ func (r *s3Repository) attemptCopy(id string, bucket, key string) bool {
 			Key:        aws.String(key),
 		})
 		if err == nil {
-			glog.V(4).Infof("Copied existing object from %s to %s", sourceKey, key)
+			klog.V(4).Infof("Copied existing object from %s to %s", sourceKey, key)
 			return true
 		}
 		if a, ok := err.(awserr.Error); ok && a.Code() == "NoSuchKey" {
-			glog.V(4).Infof("No existing object matches source %s", sourceKey)
+			klog.V(4).Infof("No existing object matches source %s", sourceKey)
 			continue
 		}
-		glog.V(4).Infof("Unable to copy from %s to %s: %v", sourceKey, key, err)
+		klog.V(4).Infof("Unable to copy from %s to %s: %v", sourceKey, key, err)
 	}
 	return false
 }

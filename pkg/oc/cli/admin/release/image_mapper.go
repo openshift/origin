@@ -12,9 +12,9 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/ghodss/yaml"
-	"github.com/golang/glog"
 	imageapi "github.com/openshift/api/image/v1"
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
+	"k8s.io/klog"
 )
 
 type Payload struct {
@@ -74,7 +74,7 @@ func (p *Payload) Rewrite(allowTags bool, fn func(component string) imagereferen
 		if bytes.Equal(data, out) {
 			continue
 		}
-		glog.V(6).Infof("Rewrote\n%s\n\nto\n\n%s\n", string(data), string(out))
+		klog.V(6).Infof("Rewrote\n%s\n\nto\n\n%s\n", string(data), string(out))
 		if err := ioutil.WriteFile(path, out, file.Mode()); err != nil {
 			return err
 		}
@@ -142,7 +142,7 @@ func NewTransformFromImageStreamFile(path string, input *imageapi.ImageStream, a
 		}
 		if len(ref.TargetPullSpec) == 0 {
 			if allowMissingImages {
-				glog.V(2).Infof("Image file %q referenced an image %q that is not part of the input images, skipping", path, tag.From.Name)
+				klog.V(2).Infof("Image file %q referenced an image %q that is not part of the input images, skipping", path, tag.From.Name)
 				continue
 			}
 			return nil, fmt.Errorf("image file %q referenced image %q that is not part of the input images", path, tag.Name)
@@ -166,7 +166,7 @@ func NewTransformFromImageStreamFile(path string, input *imageapi.ImageStream, a
 		if !ok {
 			continue
 		}
-		glog.V(4).Infof("Found build versions from %s: %s", tag.Name, value)
+		klog.V(4).Infof("Found build versions from %s: %s", tag.Name, value)
 		items, err := parseComponentVersionsLabel(value)
 		if err != nil {
 			return nil, fmt.Errorf("input image stream has an invalid version annotation for tag %q: %v", tag.Name, value)
@@ -179,7 +179,7 @@ func NewTransformFromImageStreamFile(path string, input *imageapi.ImageStream, a
 				}
 			} else {
 				versions[k] = v
-				glog.V(4).Infof("Found version %s=%s from %s", k, v, tag.Name)
+				klog.V(4).Infof("Found version %s=%s from %s", k, v, tag.Name)
 			}
 			tagsByName[k] = append(tagsByName[k], tag.Name)
 		}
@@ -232,7 +232,7 @@ func NewImageMapper(images map[string]ImageReference) (ManifestMapper, error) {
 		repositories = append(repositories, regexp.QuoteMeta(ref.SourceRepository))
 	}
 	if len(repositories) == 0 {
-		glog.V(5).Infof("No images are mapped, will not replace any contents")
+		klog.V(5).Infof("No images are mapped, will not replace any contents")
 		return NopManifestMapper, nil
 	}
 	pattern := fmt.Sprintf(patternImageFormat, strings.Join(repositories, "|"))
@@ -244,13 +244,13 @@ func NewImageMapper(images map[string]ImageReference) (ManifestMapper, error) {
 			repository := string(parts[2])
 			name, ok := bySource[repository]
 			if !ok {
-				glog.V(4).Infof("found potential image %q, but no matching definition", repository)
+				klog.V(4).Infof("found potential image %q, but no matching definition", repository)
 				return in
 			}
 			ref := images[name]
 
 			suffix := parts[3]
-			glog.V(2).Infof("found repository %q with locator %q in the input, switching to %q (from pattern %s)", string(repository), string(suffix), ref.TargetPullSpec, pattern)
+			klog.V(2).Infof("found repository %q with locator %q in the input, switching to %q (from pattern %s)", string(repository), string(suffix), ref.TargetPullSpec, pattern)
 			switch {
 			case len(suffix) == 0:
 				// we found a repository, but no tag or digest (implied latest), or we got an exact match
@@ -469,9 +469,9 @@ func ReplacementsForImageStream(is *imageapi.ImageStream, allowTags bool, fn fun
 		tag.From.Name = newImage
 	}
 
-	if glog.V(5) {
+	if klog.V(5) {
 		for k, v := range replacements {
-			glog.Infof("Mapping %s -> %s", k, v)
+			klog.Infof("Mapping %s -> %s", k, v)
 		}
 	}
 	return replacements, nil

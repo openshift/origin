@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -67,7 +67,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 	}
 
 	if len(serviceAccounts) == 0 {
-		glog.Errorf("No service accounts for namespace %s", ns)
+		klog.Errorf("No service accounts for namespace %s", ns)
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("unable to find ServiceAccount for namespace: %s", ns))
 	}
 
@@ -93,7 +93,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 			}
 			_, err = podsecuritypolicysubjectreview.FillPodSecurityPolicySubjectReviewStatus(&pspsrs, provider, pspr.Spec.Template.Spec, constraint)
 			if err != nil {
-				glog.Errorf("unable to fill PodSecurityPolicyReviewStatus from constraint %v", err)
+				klog.Errorf("unable to fill PodSecurityPolicyReviewStatus from constraint %v", err)
 				continue
 			}
 			sapsprs := securityapi.ServiceAccountPodSecurityPolicyReviewStatus{PodSecurityPolicySubjectReviewStatus: pspsrs, Name: sa.Name}

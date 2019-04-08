@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -275,7 +275,7 @@ func (b OpenshiftControllerClientBuilder) OpenshiftTemplateClient(name string) (
 func (b OpenshiftControllerClientBuilder) OpenshiftTemplateClientOrDie(name string) templateclient.Interface {
 	client, err := b.OpenshiftTemplateClient(name)
 	if err != nil {
-		glog.Fatal(err)
+		klog.Fatal(err)
 	}
 	return client
 }
@@ -297,7 +297,7 @@ func (b OpenshiftControllerClientBuilder) OpenshiftImageClient(name string) (ima
 func (b OpenshiftControllerClientBuilder) OpenshiftImageClientOrDie(name string) imageclient.Interface {
 	client, err := b.OpenshiftImageClient(name)
 	if err != nil {
-		glog.Fatal(err)
+		klog.Fatal(err)
 	}
 	return client
 }
@@ -319,7 +319,7 @@ func (b OpenshiftControllerClientBuilder) OpenshiftAppsClient(name string) (apps
 func (b OpenshiftControllerClientBuilder) OpenshiftAppsClientOrDie(name string) appsclient.Interface {
 	client, err := b.OpenshiftAppsClient(name)
 	if err != nil {
-		glog.Fatal(err)
+		klog.Fatal(err)
 	}
 	return client
 }
@@ -341,7 +341,7 @@ func (b OpenshiftControllerClientBuilder) OpenshiftBuildClient(name string) (bui
 func (b OpenshiftControllerClientBuilder) OpenshiftBuildClientOrDie(name string) buildclient.Interface {
 	client, err := b.OpenshiftBuildClient(name)
 	if err != nil {
-		glog.Fatal(err)
+		klog.Fatal(err)
 	}
 	return client
 }
@@ -363,7 +363,7 @@ func (b OpenshiftControllerClientBuilder) OpenshiftConfigClient(name string) (co
 func (b OpenshiftControllerClientBuilder) OpenshiftConfigClientOrDie(name string) configclient.Interface {
 	client, err := b.OpenshiftConfigClient(name)
 	if err != nil {
-		glog.Fatal(err)
+		klog.Fatal(err)
 	}
 	return client
 }
@@ -382,7 +382,7 @@ func (b OpenshiftControllerClientBuilder) OpenshiftQuotaClient(name string) (quo
 func (b OpenshiftControllerClientBuilder) OpenshiftQuotaClientOrDie(name string) quotaclient.Interface {
 	client, err := b.OpenshiftQuotaClient(name)
 	if err != nil {
-		glog.Fatal(err)
+		klog.Fatal(err)
 	}
 	return client
 }
@@ -404,7 +404,7 @@ func (b OpenshiftControllerClientBuilder) OpenshiftNetworkClient(name string) (n
 func (b OpenshiftControllerClientBuilder) OpenshiftNetworkClientOrDie(name string) networkclient.Interface {
 	client, err := b.OpenshiftNetworkClient(name)
 	if err != nil {
-		glog.Fatal(err)
+		klog.Fatal(err)
 	}
 	return client
 }
@@ -420,7 +420,7 @@ func (b OpenshiftControllerClientBuilder) OpenshiftSecurityClient(name string) (
 func (b OpenshiftControllerClientBuilder) OpenshiftSecurityClientOrDie(name string) securityclient.Interface {
 	client, err := b.OpenshiftSecurityClient(name)
 	if err != nil {
-		glog.Fatal(err)
+		klog.Fatal(err)
 	}
 	return client
 }

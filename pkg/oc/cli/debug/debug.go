@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	kappsv1 "k8s.io/api/apps/v1"
 	kappsv1beta1 "k8s.io/api/apps/v1beta1"
@@ -234,7 +234,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []s
 		o.Attach.Stdin = false
 	default:
 		o.Attach.TTY = term.IsTerminal(o.In)
-		glog.V(4).Infof("Defaulting TTY to %t", o.Attach.TTY)
+		klog.V(4).Infof("Defaulting TTY to %t", o.Attach.TTY)
 	}
 	if o.NoStdin {
 		o.Attach.TTY = false
@@ -341,7 +341,7 @@ func (o *DebugOptions) RunDebug() error {
 		return fmt.Errorf("cannot debug %s: %v", infos[0].Name, err)
 	}
 	if err != nil {
-		glog.V(4).Infof("Unable to get exact template, but continuing with fallback: %v", err)
+		klog.V(4).Infof("Unable to get exact template, but continuing with fallback: %v", err)
 	}
 	template := &corev1.PodTemplateSpec{}
 	if err := legacyscheme.Scheme.Convert(templateV1, template, nil); err != nil {
@@ -365,7 +365,7 @@ func (o *DebugOptions) RunDebug() error {
 			fmt.Fprintf(o.ErrOut, "\n")
 		}
 
-		glog.V(4).Infof("Defaulting container name to %s", pod.Spec.Containers[0].Name)
+		klog.V(4).Infof("Defaulting container name to %s", pod.Spec.Containers[0].Name)
 		o.Attach.ContainerName = pod.Spec.Containers[0].Name
 	}
 
@@ -396,7 +396,7 @@ func (o *DebugOptions) RunDebug() error {
 		return o.Printer.PrintObj(pod, o.Out)
 	}
 
-	glog.V(5).Infof("Creating pod: %#v", pod)
+	klog.V(5).Infof("Creating pod: %#v", pod)
 	pod, err = o.createPod(pod)
 	if err != nil {
 		return err
@@ -419,7 +419,7 @@ func (o *DebugOptions) RunDebug() error {
 		},
 	)
 
-	glog.V(5).Infof("Created attach arguments: %#v", o.Attach)
+	klog.V(5).Infof("Created attach arguments: %#v", o.Attach)
 	return o.Attach.InterruptParent.Run(func() error {
 		w, err := o.CoreClient.Pods(pod.Namespace).Watch(metav1.SingleObject(pod.ObjectMeta))
 		if err != nil {

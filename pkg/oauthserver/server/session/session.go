@@ -3,8 +3,8 @@ package session
 import (
 	"net/http"
 
-	"github.com/golang/glog"
 	"github.com/gorilla/sessions"
+	"k8s.io/klog"
 )
 
 type store struct {
@@ -42,7 +42,7 @@ func (s *store) Get(r *http.Request) Values {
 
 		// log the error in case we ever need to know that it is occurring
 		// we do not log the request as that could leak sensitive information such as the cookie
-		glog.V(4).Infof("failed to decode secure session cookie %s: %v", s.name, err)
+		klog.V(4).Infof("failed to decode secure session cookie %s: %v", s.name, err)
 
 		return Values{}
 	}

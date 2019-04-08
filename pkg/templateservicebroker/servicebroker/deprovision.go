@@ -3,7 +3,7 @@ package servicebroker
 import (
 	"net/http"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	authorizationv1 "k8s.io/api/authorization/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -20,7 +20,7 @@ import (
 // collector is responsible for the removal of the objects provisioned by the
 // Template(Instance) itself.
 func (b *Broker) Deprovision(u user.Info, instanceID string) *api.Response {
-	glog.V(4).Infof("Template service broker: Deprovision: instanceID %s", instanceID)
+	klog.V(4).Infof("Template service broker: Deprovision: instanceID %s", instanceID)
 
 	brokerTemplateInstance, err := b.templateclient.BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 	if err != nil {

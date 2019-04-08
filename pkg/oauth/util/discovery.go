@@ -7,7 +7,7 @@ import (
 	"net/url"
 
 	"github.com/RangelReale/osin"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	osinv1 "github.com/openshift/api/osin/v1"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
@@ -111,7 +111,7 @@ func PrepOauthMetadata(oauthConfig *osinv1.OAuthConfig, oauthMetadataFile string
 		metadataStruct := getOauthMetadata(oauthConfig.MasterPublicURL)
 		metadata, err := json.MarshalIndent(metadataStruct, "", "  ")
 		if err != nil {
-			glog.Errorf("Unable to initialize OAuth authorization server metadata route: %v", err)
+			klog.Errorf("Unable to initialize OAuth authorization server metadata route: %v", err)
 			return nil, nil, err
 		}
 		return metadata, &metadataStruct, nil
@@ -125,7 +125,7 @@ func DeprecatedPrepOauthMetadata(oauthConfig *configapi.OAuthConfig, oauthMetada
 		metadataStruct := getOauthMetadata(oauthConfig.MasterPublicURL)
 		metadata, err := json.MarshalIndent(metadataStruct, "", "  ")
 		if err != nil {
-			glog.Errorf("Unable to initialize OAuth authorization server metadata route: %v", err)
+			klog.Errorf("Unable to initialize OAuth authorization server metadata route: %v", err)
 			return nil, nil, err
 		}
 		return metadata, &metadataStruct, nil

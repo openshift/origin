@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -90,7 +90,7 @@ func (c *constraint) Admit(a admission.Attributes) error {
 	if allowedPod != nil {
 		*pod = *allowedPod
 		// annotate and accept the pod
-		glog.V(4).Infof("pod %s (generate: %s) validated against provider %s", pod.Name, pod.GenerateName, sccName)
+		klog.V(4).Infof("pod %s (generate: %s) validated against provider %s", pod.Name, pod.GenerateName, sccName)
 		if pod.ObjectMeta.Annotations == nil {
 			pod.ObjectMeta.Annotations = map[string]string{}
 		}
@@ -99,7 +99,7 @@ func (c *constraint) Admit(a admission.Attributes) error {
 	}
 
 	// we didn't validate against any security context constraint provider, reject the pod and give the errors for each attempt
-	glog.V(4).Infof("unable to validate pod %s (generate: %s) against any security context constraint: %v", pod.Name, pod.GenerateName, validationErrs)
+	klog.V(4).Infof("unable to validate pod %s (generate: %s) against any security context constraint: %v", pod.Name, pod.GenerateName, validationErrs)
 	return admission.NewForbidden(a, fmt.Errorf("unable to validate against any security context constraint: %v", validationErrs))
 }
 
@@ -121,13 +121,13 @@ func (c *constraint) Validate(a admission.Attributes) error {
 	}
 
 	// we didn't validate against any provider, reject the pod and give the errors for each attempt
-	glog.V(4).Infof("unable to validate pod %s (generate: %s) in namespace %s against any security context constraint: %v", pod.Name, pod.GenerateName, a.GetNamespace(), validationErrs)
+	klog.V(4).Infof("unable to validate pod %s (generate: %s) in namespace %s against any security context constraint: %v", pod.Name, pod.GenerateName, a.GetNamespace(), validationErrs)
 	return admission.NewForbidden(a, fmt.Errorf("unable to validate against any security context constraint: %v", validationErrs))
 }
 
 func (c *constraint) computeSecurityContext(a admission.Attributes, pod *coreapi.Pod, specMutationAllowed bool, validatedSCCHint string) (*coreapi.Pod, string, field.ErrorList, error) {
 	// get all constraints that are usable by the user
-	glog.V(4).Infof("getting security context constraints for pod %s (generate: %s) in namespace %s with user info %v", pod.Name, pod.GenerateName, a.GetNamespace(), a.GetUserInfo())
+	klog.V(4).Infof("getting security context constraints for pod %s (generate: %s) in namespace %s with user info %v", pod.Name, pod.GenerateName, a.GetNamespace(), a.GetUserInfo())
 
 	constraints, err := scc.NewDefaultSCCMatcher(c.sccLister, nil).FindApplicableSCCs(a.GetNamespace())
 	if err != nil {
@@ -195,16 +195,16 @@ loop:
 			// even on creating. We prefer most restrictive SCC in this case even if it mutates a pod.
 			allowedPod = podCopy
 			allowingProvider = provider
-			glog.V(5).Infof("pod %s (generate: %s) validated against provider %s with mutation", pod.Name, pod.GenerateName, sccName)
+			klog.V(5).Infof("pod %s (generate: %s) validated against provider %s with mutation", pod.Name, pod.GenerateName, sccName)
 			break loop
 		case apiequality.Semantic.DeepEqual(pod, podCopy):
 			// if we don't allow mutation, only use the validated pod if it didn't require any spec changes
 			allowedPod = podCopy
 			allowingProvider = provider
-			glog.V(5).Infof("pod %s (generate: %s) validated against provider %s without mutation", pod.Name, pod.GenerateName, sccName)
+			klog.V(5).Infof("pod %s (generate: %s) validated against provider %s without mutation", pod.Name, pod.GenerateName, sccName)
 			break loop
 		default:
-			glog.V(5).Infof("pod %s (generate: %s) validated against provider %s, but required mutation, skipping", pod.Name, pod.GenerateName, sccName)
+			klog.V(5).Infof("pod %s (generate: %s) validated against provider %s, but required mutation, skipping", pod.Name, pod.GenerateName, sccName)
 		}
 	}
 
@@ -274,9 +274,9 @@ func logProviders(pod *coreapi.Pod, providers []scc.SecurityContextConstraintsPr
 	for i, p := range providers {
 		names[i] = p.GetSCCName()
 	}
-	glog.V(4).Infof("validating pod %s (generate: %s) against providers %s", pod.Name, pod.GenerateName, strings.Join(names, ","))
+	klog.V(4).Infof("validating pod %s (generate: %s) against providers %s", pod.Name, pod.GenerateName, strings.Join(names, ","))
 
 	for _, err := range providerCreationErrs {
-		glog.V(4).Infof("provider creation error: %v", err)
+		klog.V(4).Infof("provider creation error: %v", err)
 	}
 }

@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/klog"
 )
 
 // the opposite of kvalidation.DNS1123LabelFmt
@@ -68,7 +68,7 @@ func (ung *uniqueNameGenerator) ensureValidName(name string) (string, error) {
 		name = strings.TrimLeft(name, "-")
 
 		if len(name) > kvalidation.DNS1123SubdomainMaxLength {
-			glog.V(4).Infof("Trimming %s to maximum allowable length (%d)\n", name, kvalidation.DNS1123SubdomainMaxLength)
+			klog.V(4).Infof("Trimming %s to maximum allowable length (%d)\n", name, kvalidation.DNS1123SubdomainMaxLength)
 			name = name[:kvalidation.DNS1123SubdomainMaxLength]
 		}
 	}

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/glog"
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog"
 
 	"github.com/openshift/library-go/pkg/git"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
@@ -127,7 +127,7 @@ func Resolve(appConfig *AppConfig) (*ResolvedComponents, error) {
 
 	// if the --context-dir flag was passed, set the context directory on all repositories
 	if len(g.ContextDir) > 0 && len(repositories) > 0 {
-		glog.V(5).Infof("Setting contextDir on all repositories to %v", g.ContextDir)
+		klog.V(5).Infof("Setting contextDir on all repositories to %v", g.ContextDir)
 		for _, repo := range repositories {
 			repo.SetContextDir(g.ContextDir)
 		}
@@ -135,7 +135,7 @@ func Resolve(appConfig *AppConfig) (*ResolvedComponents, error) {
 
 	// if the --strategy flag was passed, set the build strategy on all repositories
 	if g.Strategy != newapp.StrategyUnspecified && len(repositories) > 0 {
-		glog.V(5).Infof("Setting build strategy on all repositories to %v", g.Strategy)
+		klog.V(5).Infof("Setting build strategy on all repositories to %v", g.Strategy)
 		for _, repo := range repositories {
 			repo.SetStrategy(g.Strategy)
 		}
@@ -187,8 +187,8 @@ func Resolve(appConfig *AppConfig) (*ResolvedComponents, error) {
 	}
 	components = append(components, sourceComponents...)
 
-	glog.V(4).Infof("Code [%v]", repositories)
-	glog.V(4).Infof("Components [%v]", components)
+	klog.V(4).Infof("Code [%v]", repositories)
+	klog.V(4).Infof("Components [%v]", components)
 
 	return &ResolvedComponents{
 		Components:   components,
@@ -489,9 +489,9 @@ func EnsureHasSource(components app.ComponentReferences, repositories app.Source
 			" and the following repositories are not used: %s\nUse '[image]~[repo]' to declare which code goes with which image", components, repositories)
 
 	case len(repositories) == 1:
-		glog.V(2).Infof("Using %q as the source for build", repositories[0])
+		klog.V(2).Infof("Using %q as the source for build", repositories[0])
 		for _, component := range components {
-			glog.V(2).Infof("Pairing with component %v", component)
+			klog.V(2).Infof("Pairing with component %v", component)
 			component.Input().Use(repositories[0])
 			repositories[0].UsedBy(component)
 		}

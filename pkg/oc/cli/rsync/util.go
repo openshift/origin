@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"runtime"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -21,8 +21,8 @@ var (
 func executeWithLogging(e executor, cmd []string) error {
 	w := &bytes.Buffer{}
 	err := e.Execute(cmd, nil, w, w)
-	glog.V(4).Infof("%s", w.String())
-	glog.V(4).Infof("error: %v", err)
+	klog.V(4).Infof("%s", w.String())
+	klog.V(4).Infof("error: %v", err)
 	return err
 }
 

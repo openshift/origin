@@ -12,8 +12,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -87,15 +87,15 @@ func (o CreateKeyPairOptions) Validate(args []string) error {
 }
 
 func (o CreateKeyPairOptions) CreateKeyPair() error {
-	glog.V(4).Infof("Creating a key pair with: %#v", o)
+	klog.V(4).Infof("Creating a key pair with: %#v", o)
 
 	if !o.Overwrite {
 		if _, err := os.Stat(o.PrivateKeyFile); err == nil {
-			glog.V(3).Infof("Keeping existing private key file %s\n", o.PrivateKeyFile)
+			klog.V(3).Infof("Keeping existing private key file %s\n", o.PrivateKeyFile)
 			return nil
 		}
 		if _, err := os.Stat(o.PublicKeyFile); err == nil {
-			glog.V(3).Infof("Keeping existing public key file %s\n", o.PublicKeyFile)
+			klog.V(3).Infof("Keeping existing public key file %s\n", o.PublicKeyFile)
 			return nil
 		}
 	}

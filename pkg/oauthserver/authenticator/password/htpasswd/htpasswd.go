@@ -9,8 +9,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/golang/glog"
 	"golang.org/x/crypto/bcrypt"
+	"k8s.io/klog"
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 
@@ -83,7 +83,7 @@ func (a *Authenticator) load() error {
 
 		parts := strings.SplitN(line, ":", 2)
 		if len(parts) != 2 {
-			glog.Warningf("Ignoring malformed htpasswd line: %s", line)
+			klog.Warningf("Ignoring malformed htpasswd line: %s", line)
 			continue
 		}
 
@@ -92,7 +92,7 @@ func (a *Authenticator) load() error {
 		if _, duplicate := newusernames[username]; duplicate {
 			if _, warned := warnedusernames[username]; !warned {
 				warnedusernames[username] = true
-				glog.Warningf("%s contains multiple passwords for user '%s'. The last one specified will be used.", a.file, username)
+				klog.Warningf("%s contains multiple passwords for user '%s'. The last one specified will be used.", a.file, username)
 			}
 		}
 		newusernames[username] = password
@@ -109,7 +109,7 @@ func (a *Authenticator) loadIfNeeded() error {
 		return err
 	}
 	if a.fileInfo == nil || a.fileInfo.ModTime() != info.ModTime() {
-		glog.V(4).Infof("Loading htpasswd file %s...", a.file)
+		klog.V(4).Infof("Loading htpasswd file %s...", a.file)
 		loadingErr := a.load()
 		if loadingErr != nil {
 			return err

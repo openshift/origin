@@ -6,7 +6,7 @@ import (
 	"net"
 	"reflect"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
@@ -27,7 +27,7 @@ func RegisterRestrictedEndpoints(plugins *admission.Plugins) {
 				return nil, err
 			}
 			if pluginConfig == nil {
-				glog.Infof("Admission plugin %q is not configured so it will be disabled.", RestrictedEndpointsPluginName)
+				klog.Infof("Admission plugin %q is not configured so it will be disabled.", RestrictedEndpointsPluginName)
 				return nil, nil
 			}
 			restrictedNetworks, err := ParseSimpleCIDRRules(pluginConfig.RestrictedCIDRs)

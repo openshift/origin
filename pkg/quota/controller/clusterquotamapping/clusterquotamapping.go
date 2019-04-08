@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -127,15 +127,15 @@ func (c *ClusterQuotaMappingController) Run(workers int, stopCh <-chan struct{})
 	defer c.namespaceQueue.ShutDown()
 	defer c.quotaQueue.ShutDown()
 
-	glog.Infof("Starting ClusterQuotaMappingController controller")
-	defer glog.Infof("Shutting down ClusterQuotaMappingController controller")
+	klog.Infof("Starting ClusterQuotaMappingController controller")
+	defer klog.Infof("Shutting down ClusterQuotaMappingController controller")
 
 	if !cache.WaitForCacheSync(stopCh, c.namespacesSynced, c.quotasSynced) {
 		utilruntime.HandleError(fmt.Errorf("timed out waiting for caches to sync"))
 		return
 	}
 
-	glog.V(4).Infof("Starting workers for quota mapping controller workers")
+	klog.V(4).Infof("Starting workers for quota mapping controller workers")
 	for i := 0; i < workers; i++ {
 		go wait.Until(c.namespaceWorker, time.Second, stopCh)
 		go wait.Until(c.quotaWorker, time.Second, stopCh)

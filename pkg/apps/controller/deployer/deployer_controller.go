@@ -3,7 +3,7 @@ package deployment
 import (
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	corev1 "k8s.io/api/core/v1"
@@ -140,7 +140,7 @@ func (c *DeploymentController) handle(deployment *corev1.ReplicationController, 
 			nextStatus = appsv1.DeploymentStatusFailed
 			updatedAnnotations[appsv1.DeploymentStatusReasonAnnotation] = appsutil.DeploymentFailedUnableToCreateDeployerPod
 			c.emitDeploymentEvent(deployment, corev1.EventTypeWarning, "RolloutTimeout", fmt.Sprintf("Rollout for %q failed to create deployer pod (timeoutSeconds: %ds)", appsutil.LabelForDeployment(deployment), appsutil.GetTimeoutSecondsForStrategy(config)))
-			glog.V(4).Infof("Failing deployment %s/%s as we reached timeout while waiting for the deployer pod to be created", deployment.Namespace, deployment.Name)
+			klog.V(4).Infof("Failing deployment %s/%s as we reached timeout while waiting for the deployer pod to be created", deployment.Namespace, deployment.Name)
 			break
 		}
 
@@ -170,7 +170,7 @@ func (c *DeploymentController) handle(deployment *corev1.ReplicationController, 
 				updatedAnnotations[appsv1.DeployerPodStartedAtAnnotation] = deploymentPod.Status.StartTime.String()
 			}
 			nextStatus = appsv1.DeploymentStatusPending
-			glog.V(4).Infof("Created deployer pod %q for %q", deploymentPod.Name, appsutil.LabelForDeployment(deployment))
+			klog.V(4).Infof("Created deployer pod %q for %q", deploymentPod.Name, appsutil.LabelForDeployment(deployment))
 
 		// Most likely dead code since we never get an error different from 404 back from the cache.
 		case deployerErr != nil:
@@ -284,7 +284,7 @@ func (c *DeploymentController) handle(deployment *corev1.ReplicationController, 
 		if _, err := c.rn.ReplicationControllers(deploymentCopy.Namespace).Update(deploymentCopy); err != nil {
 			return fmt.Errorf("couldn't update rollout status for %q to %s: %v", appsutil.LabelForDeployment(deploymentCopy), nextStatus, err)
 		}
-		glog.V(4).Infof("Updated rollout status for %q from %s to %s (scale: %d)", appsutil.LabelForDeployment(deploymentCopy), currentStatus, nextStatus, *deploymentCopy.Spec.Replicas)
+		klog.V(4).Infof("Updated rollout status for %q from %s to %s (scale: %d)", appsutil.LabelForDeployment(deploymentCopy), currentStatus, nextStatus, *deploymentCopy.Spec.Replicas)
 
 		if appsutil.IsDeploymentCancelled(deploymentCopy) && appsutil.IsFailedDeployment(deploymentCopy) {
 			c.emitDeploymentEvent(deploymentCopy, corev1.EventTypeNormal, "RolloutCancelled", fmt.Sprintf("Rollout for %q cancelled", appsutil.LabelForDeployment(deploymentCopy)))
@@ -468,7 +468,7 @@ func (c *DeploymentController) makeDeployerContainer(strategy *appsv1.Deployment
 		// TODO: The size of environment value should be probably validated in k8s api validation
 		//       as when the env var size is more than 128kb the execve calls will fail.
 		if len(env.Value) > maxInjectedEnvironmentAllowedSize {
-			glog.Errorf("failed to inject %s environment variable as the size exceed %d bytes", env.Name, maxInjectedEnvironmentAllowedSize)
+			klog.Errorf("failed to inject %s environment variable as the size exceed %d bytes", env.Name, maxInjectedEnvironmentAllowedSize)
 			continue
 		}
 		environment = append(environment, env)
@@ -492,14 +492,14 @@ func (c *DeploymentController) setDeployerPodsOwnerRef(deployment *corev1.Replic
 	}
 
 	encoder := legacyscheme.Codecs.LegacyCodec(legacyscheme.Scheme.PrioritizedVersionsAllGroups()...)
-	glog.V(4).Infof("deployment %s/%s owning %d pods", deployment.Namespace, deployment.Name, len(deployerPodsList))
+	klog.V(4).Infof("deployment %s/%s owning %d pods", deployment.Namespace, deployment.Name, len(deployerPodsList))
 
 	var errors []error
 	for _, pod := range deployerPodsList {
 		if len(pod.OwnerReferences) > 0 {
 			continue
 		}
-		glog.V(4).Infof("setting ownerRef for pod %s/%s to deployment %s/%s", pod.Namespace, pod.Name, deployment.Namespace, deployment.Name)
+		klog.V(4).Infof("setting ownerRef for pod %s/%s to deployment %s/%s", pod.Namespace, pod.Name, deployment.Namespace, deployment.Name)
 		newPod := pod.DeepCopy()
 		newPod.SetOwnerReferences([]metav1.OwnerReference{{
 			APIVersion: "v1",
@@ -580,6 +580,6 @@ func (c *DeploymentController) handleErr(err error, key interface{}, deployment 
 	if _, isActionableErr := err.(actionableError); isActionableErr {
 		c.emitDeploymentEvent(deployment, corev1.EventTypeWarning, "FailedRetry", msg)
 	}
-	glog.V(2).Infof(msg)
+	klog.V(2).Infof(msg)
 	c.queue.Forget(key)
 }

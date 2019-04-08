@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -313,12 +313,12 @@ func (o *RsyncOptions) WatchAndSync() error {
 			select {
 			case event := <-watcher.Events:
 				changeLock.Lock()
-				glog.V(5).Infof("filesystem watch event: %s", event)
+				klog.V(5).Infof("filesystem watch event: %s", event)
 				lastChange = time.Now()
 				dirty = true
 				if event.Op&fsnotify.Remove == fsnotify.Remove {
 					if e := watcher.Remove(event.Name); e != nil {
-						glog.V(5).Infof("error removing watch for %s: %v", event.Name, e)
+						klog.V(5).Infof("error removing watch for %s: %v", event.Name, e)
 					}
 				} else {
 					if e := fsnotification.AddRecursiveWatch(watcher, event.Name); e != nil && watchError == nil {
@@ -353,12 +353,12 @@ func (o *RsyncOptions) WatchAndSync() error {
 		// the filesystem is in the middle of changing due to a massive
 		// set of changes (such as a local build in progress).
 		if dirty && time.Now().After(lastChange.Add(delay)) {
-			glog.V(1).Info("Synchronizing filesystem changes...")
+			klog.V(1).Info("Synchronizing filesystem changes...")
 			err = o.Strategy.Copy(o.Source, o.Destination, o.Out, o.ErrOut)
 			if err != nil {
 				return err
 			}
-			glog.V(1).Info("Done.")
+			klog.V(1).Info("Done.")
 			dirty = false
 		}
 		changeLock.Unlock()

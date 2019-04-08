@@ -3,7 +3,7 @@ package tokencmd
 import (
 	"net/http"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -75,7 +75,7 @@ func (h *MultiHandler) HandleChallenge(requestURL string, headers http.Header) (
 		retryHeaders, retry, err = handler.HandleChallenge(requestURL, headers)
 
 		if err != nil {
-			glog.V(5).Infof("handler[%d] error: %v", i, err)
+			klog.V(5).Infof("handler[%d] error: %v", i, err)
 		}
 		// If the handler successfully handled the challenge, or we have no other options, select it as our handler
 		if err == nil || i == len(h.possibleHandlers)-1 {

@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	krand "k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/klog"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
@@ -92,7 +92,7 @@ func getUsedPorts(data string) map[int]struct{} {
 		if !strings.Contains(parts[0], ":") {
 			continue
 		}
-		glog.V(5).Infof("Determining port in use from: %s", line)
+		klog.V(5).Infof("Determining port in use from: %s", line)
 		localAddress := strings.Split(parts[1], ":")
 		if len(localAddress) < 2 {
 			continue
@@ -102,7 +102,7 @@ func getUsedPorts(data string) map[int]struct{} {
 			ports[int(port)] = struct{}{}
 		}
 	}
-	glog.V(2).Infof("Used ports in container: %#v", ports)
+	klog.V(2).Infof("Used ports in container: %#v", ports)
 	return ports
 }
 
@@ -113,15 +113,15 @@ func randomPort() int {
 func localPort() (int, error) {
 	l, err := net.Listen("tcp", ":0")
 	if err != nil {
-		glog.V(1).Infof("Could not determine local free port: %v", err)
+		klog.V(1).Infof("Could not determine local free port: %v", err)
 		return 0, err
 	}
 	defer l.Close()
-	glog.V(1).Infof("Found listener port at: %s", l.Addr().String())
+	klog.V(1).Infof("Found listener port at: %s", l.Addr().String())
 	addr := strings.Split(l.Addr().String(), ":")
 	port, err := strconv.Atoi(addr[len(addr)-1])
 	if err != nil {
-		glog.V(1).Infof("Could not parse listener address %#v: %v", addr, err)
+		klog.V(1).Infof("Could not parse listener address %#v: %v", addr, err)
 		return 0, err
 	}
 	return port, nil
@@ -136,18 +136,18 @@ func (s *rsyncDaemonStrategy) getFreePort() (int, error) {
 	if err == nil {
 		usedPorts = getUsedPorts(tcpData.String())
 	} else {
-		glog.V(4).Infof("Error getting free port data: %v, Err: %s", err, cmdErr.String())
+		klog.V(4).Infof("Error getting free port data: %v, Err: %s", err, cmdErr.String())
 	}
 	tries := 0
 	for {
 		tries++
 		if tries > 20 {
-			glog.V(4).Infof("Too many attempts trying to find free port")
+			klog.V(4).Infof("Too many attempts trying to find free port")
 			break
 		}
 		port := randomPort()
 		if _, used := usedPorts[port]; !used {
-			glog.V(4).Infof("Found free container port: %d", port)
+			klog.V(4).Infof("Found free container port: %d", port)
 			return port, nil
 		}
 	}
@@ -201,7 +201,7 @@ func (s *rsyncDaemonStrategy) killRemoteDaemon() error {
 	cmdErr := &bytes.Buffer{}
 	err := s.RemoteExecutor.Execute(cmd, cmdIn, cmdOut, cmdErr)
 	if err != nil {
-		glog.V(1).Infof("Error killing rsync daemon: %v. Out: %s, Err: %s\n", err, cmdOut.String(), cmdErr.String())
+		klog.V(1).Infof("Error killing rsync daemon: %v. Out: %s, Err: %s\n", err, cmdOut.String(), cmdErr.String())
 	}
 	return err
 }
@@ -222,7 +222,7 @@ func (s *rsyncDaemonStrategy) stopPortForward() {
 }
 
 func (s *rsyncDaemonStrategy) copyUsingDaemon(source, destination *pathSpec, out, errOut io.Writer) error {
-	glog.V(3).Infof("Copying files with rsync daemon")
+	klog.V(3).Infof("Copying files with rsync daemon")
 	cmd := append([]string{"rsync"}, s.Flags...)
 	var sourceArg, destinationArg string
 	if source.Local() {

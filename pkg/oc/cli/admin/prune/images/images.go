@@ -15,9 +15,9 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/golang/glog"
 	gonum "github.com/gonum/graph"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -502,7 +502,7 @@ func printSummary(out io.Writer, deletions []imageprune.Deletion, failures []ima
 		fmt.Fprintf(out, "Deleted %d objects out of %d.\n", len(deletions), len(deletions)+len(failures))
 		fmt.Fprintf(out, "Failed to delete %d objects.\n", len(failures))
 	}
-	if !glog.V(2) {
+	if !klog.V(2) {
 		return
 	}
 

@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -170,18 +170,18 @@ func (eim *egressIPManager) check(retrying bool) bool {
 
 		online := eim.tracker.Ping(node.ip, timeout)
 		if node.offline && online {
-			glog.Infof("Node %s is back online", node.ip)
+			klog.Infof("Node %s is back online", node.ip)
 			node.offline = false
 			eim.tracker.SetNodeOffline(node.ip, false)
 		} else if !node.offline && !online {
 			node.retries++
 			if node.retries > maxRetries {
-				glog.Warningf("Node %s is offline", node.ip)
+				klog.Warningf("Node %s is offline", node.ip)
 				node.retries = 0
 				node.offline = true
 				eim.tracker.SetNodeOffline(node.ip, true)
 			} else {
-				glog.V(2).Infof("Node %s may be offline... retrying", node.ip)
+				klog.V(2).Infof("Node %s may be offline... retrying", node.ip)
 				needRetry = true
 			}
 		}

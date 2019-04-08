@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -121,12 +121,12 @@ func (o LogoutOptions) RunLogout() error {
 	}
 
 	if err := client.OAuthAccessTokens().Delete(token, &metav1.DeleteOptions{}); err != nil {
-		glog.V(1).Infof("%v", err)
+		klog.V(1).Infof("%v", err)
 	}
 
 	configErr := deleteTokenFromConfig(*o.StartingKubeConfig, o.PathOptions, token)
 	if configErr == nil {
-		glog.V(1).Infof("Removed token from your local configuration.")
+		klog.V(1).Infof("Removed token from your local configuration.")
 
 		// only return error instead of successful message if removing token from client
 		// config fails. Any error that occurs deleting token using api is logged above.

@@ -32,13 +32,13 @@ import (
 	utilsysctl "k8s.io/kubernetes/pkg/util/sysctl"
 	utilexec "k8s.io/utils/exec"
 
-	"github.com/golang/glog"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	sdnproxy "github.com/openshift/origin/pkg/network/proxy"
 	"github.com/openshift/origin/pkg/proxy/hybrid"
 	"github.com/openshift/origin/pkg/proxy/unidler"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog"
 )
 
 // ProxyConfigFromNodeConfig builds the kube-proxy configuration from the already-parsed nodeconfig.
@@ -139,7 +139,7 @@ func (sdn *OpenShiftSDN) runProxy() {
 
 	hostname, err := utilnode.GetHostname(sdn.ProxyConfig.HostnameOverride)
 	if err != nil {
-		glog.Fatalf("Unable to get hostname: %v", err)
+		klog.Fatalf("Unable to get hostname: %v", err)
 	}
 
 	eventBroadcaster := record.NewBroadcaster()
@@ -166,17 +166,17 @@ func (sdn *OpenShiftSDN) runProxy() {
 
 	switch sdn.ProxyConfig.Mode {
 	case kubeproxyconfig.ProxyModeIPTables:
-		glog.V(0).Info("Using iptables Proxier.")
+		klog.V(0).Info("Using iptables Proxier.")
 		if bindAddr.Equal(net.IPv4zero) {
 			var err error
 			bindAddr, err = getNodeIP(sdn.informers.KubeClient.CoreV1(), hostname)
 			if err != nil {
-				glog.Fatalf("Unable to get a bind address: %v", err)
+				klog.Fatalf("Unable to get a bind address: %v", err)
 			}
 		}
 		if sdn.ProxyConfig.IPTables.MasqueradeBit == nil {
 			// IPTablesMasqueradeBit must be specified or defaulted.
-			glog.Fatalf("Unable to read IPTablesMasqueradeBit from config")
+			klog.Fatalf("Unable to read IPTablesMasqueradeBit from config")
 		}
 		proxierIptables, err := iptables.NewProxier(
 			iptInterface,
@@ -196,16 +196,16 @@ func (sdn *OpenShiftSDN) runProxy() {
 		metrics.RegisterMetrics()
 
 		if err != nil {
-			glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
+			klog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
 		}
 		proxier = proxierIptables
 		endpointsHandler = proxierIptables
 		servicesHandler = proxierIptables
 		// No turning back. Remove artifacts that might still exist from the userspace Proxier.
-		glog.V(0).Info("Tearing down userspace rules.")
+		klog.V(0).Info("Tearing down userspace rules.")
 		userspace.CleanupLeftovers(iptInterface)
 	case kubeproxyconfig.ProxyModeUserspace:
-		glog.V(0).Info("Using userspace Proxier.")
+		klog.V(0).Info("Using userspace Proxier.")
 		// This is a proxy.LoadBalancer which NewProxier needs but has methods we don't need for
 		// our config.EndpointsHandler.
 		loadBalancer := userspace.NewLoadBalancerRR()
@@ -225,15 +225,15 @@ func (sdn *OpenShiftSDN) runProxy() {
 			sdn.ProxyConfig.NodePortAddresses,
 		)
 		if err != nil {
-			glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
+			klog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
 		}
 		proxier = proxierUserspace
 		servicesHandler = proxierUserspace
 		// Remove artifacts from the pure-iptables Proxier.
-		glog.V(0).Info("Tearing down pure-iptables proxy rules.")
+		klog.V(0).Info("Tearing down pure-iptables proxy rules.")
 		iptables.CleanupLeftovers(iptInterface)
 	default:
-		glog.Fatalf("Unknown proxy mode %q", sdn.ProxyConfig.Mode)
+		klog.Fatalf("Unknown proxy mode %q", sdn.ProxyConfig.Mode)
 	}
 
 	// Create configs (i.e. Watches for Services and Endpoints)
@@ -250,7 +250,7 @@ func (sdn *OpenShiftSDN) runProxy() {
 		signaler := unidler.NewEventSignaler(recorder)
 		unidlingUserspaceProxy, err := unidler.NewUnidlerProxier(unidlingLoadBalancer, bindAddr, iptInterface, execer, *portRange, sdn.ProxyConfig.IPTables.SyncPeriod.Duration, sdn.ProxyConfig.IPTables.MinSyncPeriod.Duration, sdn.ProxyConfig.UDPIdleTimeout.Duration, sdn.ProxyConfig.NodePortAddresses, signaler)
 		if err != nil {
-			glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
+			klog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
 		}
 		hybridProxier, err := hybrid.NewHybridProxier(
 			unidlingLoadBalancer,
@@ -263,7 +263,7 @@ func (sdn *OpenShiftSDN) runProxy() {
 			sdn.informers.KubeInformers.Core().V1().Services().Lister(),
 		)
 		if err != nil {
-			glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
+			klog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
 		}
 		endpointsHandler = hybridProxier
 		servicesHandler = hybridProxier
@@ -280,7 +280,7 @@ func (sdn *OpenShiftSDN) runProxy() {
 	)
 	// customized handling registration that inserts a filter if needed
 	if err := sdn.OsdnProxy.Start(endpointsHandler); err != nil {
-		glog.Fatalf("error: node proxy plugin startup failed: %v", err)
+		klog.Fatalf("error: node proxy plugin startup failed: %v", err)
 	}
 	endpointsHandler = sdn.OsdnProxy
 	endpointsConfig.RegisterEventHandler(endpointsHandler)
@@ -308,7 +308,7 @@ func (sdn *OpenShiftSDN) runProxy() {
 
 	// periodically sync k8s iptables rules
 	go utilwait.Forever(proxier.SyncLoop, 0)
-	glog.Infof("Started Kubernetes Proxy on %s", sdn.ProxyConfig.BindAddress)
+	klog.Infof("Started Kubernetes Proxy on %s", sdn.ProxyConfig.BindAddress)
 }
 
 // getNodeIP is copied from the upstream proxy config to retrieve the IP of a node.
@@ -329,7 +329,7 @@ func getNodeIP(client kv1core.CoreV1Interface, hostname string) (net.IP, error) 
 		if nodeErr == nil {
 			return true, nil
 		} else if kapierrors.IsNotFound(nodeErr) {
-			glog.Warningf("waiting for node %q to be registered with master...", hostname)
+			klog.Warningf("waiting for node %q to be registered with master...", hostname)
 			return false, nil
 		} else {
 			return false, nodeErr

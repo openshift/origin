@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 // git is a wrapper to invoke git safely, similar to
@@ -36,7 +36,7 @@ func (g *git) exec(command ...string) (string, error) {
 	cmd.Dir = g.path
 	cmd.Stdout = buf
 	cmd.Stderr = bufErr
-	glog.V(5).Infof("Executing git: %v\n", cmd.Args)
+	klog.V(5).Infof("Executing git: %v\n", cmd.Args)
 	err := cmd.Run()
 	if err != nil {
 		return bufErr.String(), err
@@ -85,13 +85,13 @@ func (g *git) CheckoutCommit(repo, commit string) error {
 	}
 
 	// try to fetch by URL
-	glog.V(4).Infof("failed to checkout: %v", err)
+	klog.V(4).Infof("failed to checkout: %v", err)
 	if err := ensureFetchedRemoteForRepo(g, repo); err == nil {
 		if _, err := g.exec("checkout", commit); err == nil {
 			return nil
 		}
 	} else {
-		glog.V(4).Infof("failed to fetch: %v", err)
+		klog.V(4).Infof("failed to fetch: %v", err)
 	}
 
 	return fmt.Errorf("could not locate commit %s", commit)
@@ -179,8 +179,8 @@ func mergeLogForRepo(g *git, repo string, from, to string) ([]MergeCommit, error
 		}
 	}
 
-	if glog.V(5) {
-		glog.Infof("Got commit info:\n%s", strconv.Quote(out))
+	if klog.V(5) {
+		klog.Infof("Got commit info:\n%s", strconv.Quote(out))
 	}
 
 	var commits []MergeCommit
@@ -224,7 +224,7 @@ func mergeLogForRepo(g *git, repo string, from, to string) ([]MergeCommit, error
 				return nil, fmt.Errorf("could not extract PR number from %q: %v", mergeMsg, err)
 			}
 		} else {
-			glog.V(2).Infof("Omitted commit %s which has no pull-request", mergeCommit.Commit)
+			klog.V(2).Infof("Omitted commit %s which has no pull-request", mergeCommit.Commit)
 			continue
 		}
 		if len(mergeCommit.Subject) == 0 {
@@ -245,7 +245,7 @@ func ensureCloneForRepo(dir string, repo string, alternateRepos []string, out, e
 	if err != nil {
 		return nil, err
 	}
-	glog.V(4).Infof("Ensure repo is cloned at %s pointing to %s", basePath, repo)
+	klog.V(4).Infof("Ensure repo is cloned at %s pointing to %s", basePath, repo)
 	fi, err := os.Stat(basePath)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -265,7 +265,7 @@ func ensureCloneForRepo(dir string, repo string, alternateRepos []string, out, e
 		if err != noSuchRepo {
 			return nil, err
 		}
-		glog.V(2).Infof("Cloning %s ...", repo)
+		klog.V(2).Infof("Cloning %s ...", repo)
 		if err := extractedRepo.Clone(repo, out, errOut); err != nil {
 			return nil, err
 		}

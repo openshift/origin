@@ -9,7 +9,7 @@ import (
 	"net/url"
 
 	"github.com/RangelReale/osincli"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/external"
@@ -120,7 +120,7 @@ func (p *provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdenti
 	if len(userdata.Email) > 0 {
 		identity.Extra[authapi.IdentityEmailKey] = userdata.Email
 	}
-	glog.V(4).Infof("Got identity=%#v", identity)
+	klog.V(4).Infof("Got identity=%#v", identity)
 
 	return identity, true, nil
 }

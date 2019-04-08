@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/labels"
 	kcorelisters "k8s.io/client-go/listers/core/v1"
@@ -63,7 +63,7 @@ func InitializeMetricsCollector(rcLister kcorelisters.ReplicationControllerListe
 		prometheus.MustRegister(&apps)
 		registered = true
 	}
-	glog.V(4).Info("apps metrics registered with prometheus")
+	klog.V(4).Info("apps metrics registered with prometheus")
 }
 
 func (c *appsCollector) Describe(ch chan<- *prometheus.Desc) {
@@ -80,7 +80,7 @@ type failedRollout struct {
 func (c *appsCollector) Collect(ch chan<- prometheus.Metric) {
 	result, err := c.lister.List(labels.Everything())
 	if err != nil {
-		glog.V(4).Infof("Collecting metrics for apps failed: %v", err)
+		klog.V(4).Infof("Collecting metrics for apps failed: %v", err)
 		return
 	}
 

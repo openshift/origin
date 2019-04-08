@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	kappsv1 "k8s.io/api/apps/v1"
 	kappsv1beta2 "k8s.io/api/apps/v1beta2"
@@ -518,7 +518,7 @@ func (a *acceptNonExistentImageStream) Accept(from interface{}) bool {
 	}
 	is, ok := from.(*imagev1.ImageStream)
 	if !ok {
-		glog.V(4).Infof("type cast to image stream %#v not right for an unanticipated reason", from)
+		klog.V(4).Infof("type cast to image stream %#v not right for an unanticipated reason", from)
 		return true
 	}
 	namespace := a.namespace
@@ -527,7 +527,7 @@ func (a *acceptNonExistentImageStream) Accept(from interface{}) bool {
 	}
 	imgstrm, err := a.getter.ImageStreams(namespace).Get(is.Name, metav1.GetOptions{})
 	if err == nil && imgstrm != nil {
-		glog.V(4).Infof("acceptor determined that imagestream %s in namespace %s exists so don't accept: %#v", is.Name, namespace, imgstrm)
+		klog.V(4).Infof("acceptor determined that imagestream %s in namespace %s exists so don't accept: %#v", is.Name, namespace, imgstrm)
 		return false
 	}
 	return true
@@ -567,7 +567,7 @@ func (a *acceptNonExistentImageStreamTag) Accept(from interface{}) bool {
 	}
 	ist, ok := from.(*imagev1.ImageStreamTag)
 	if !ok {
-		glog.V(4).Infof("type cast to imagestreamtag %#v not right for an unanticipated reason", from)
+		klog.V(4).Infof("type cast to imagestreamtag %#v not right for an unanticipated reason", from)
 		return true
 	}
 	namespace := a.namespace
@@ -576,7 +576,7 @@ func (a *acceptNonExistentImageStreamTag) Accept(from interface{}) bool {
 	}
 	tag, err := a.getter.ImageStreamTags(namespace).Get(ist.Name, metav1.GetOptions{})
 	if err == nil && tag != nil {
-		glog.V(4).Infof("acceptor determined that imagestreamtag %s in namespace %s exists so don't accept: %#v", ist.Name, namespace, tag)
+		klog.V(4).Infof("acceptor determined that imagestreamtag %s in namespace %s exists so don't accept: %#v", ist.Name, namespace, tag)
 		return false
 	}
 	return true

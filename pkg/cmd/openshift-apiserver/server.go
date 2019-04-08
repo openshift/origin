@@ -1,7 +1,7 @@
 package openshift_apiserver
 
 import (
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/pkg/version"
@@ -42,7 +42,7 @@ func RunOpenShiftAPIServer(serverConfig *openshiftcontrolplanev1.OpenShiftAPISer
 	// this sets up the openapi endpoints
 	preparedOpenshiftAPIServer := openshiftAPIServer.GenericAPIServer.PrepareRun()
 
-	glog.Infof("Starting master on %s (%s)", serverConfig.ServingInfo.BindAddress, version.Get().String())
+	klog.Infof("Starting master on %s (%s)", serverConfig.ServingInfo.BindAddress, version.Get().String())
 
 	return preparedOpenshiftAPIServer.Run(stopCh)
 }

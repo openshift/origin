@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	kpath "k8s.io/apimachinery/pkg/api/validation/path"
@@ -54,7 +54,7 @@ func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) field.Err
 	if !kapihelper.Semantic.DeepEqual(build.Spec, olderCopy.Spec) {
 		diff, err := diffBuildSpec(build.Spec, olderCopy.Spec)
 		if err != nil {
-			glog.V(2).Infof("Error calculating build spec patch: %v", err)
+			klog.V(2).Infof("Error calculating build spec patch: %v", err)
 			diff = "[unknown]"
 		}
 		detail := fmt.Sprintf("spec is immutable, diff: %s", diff)

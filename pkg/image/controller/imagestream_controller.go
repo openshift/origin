@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -63,7 +63,7 @@ func (c *ImageStreamController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	glog.Infof("Starting image stream controller")
+	klog.Infof("Starting image stream controller")
 
 	// Wait for the stream store to sync before starting any work in this controller.
 	if !cache.WaitForCacheSync(stopCh, c.listerSynced) {
@@ -78,7 +78,7 @@ func (c *ImageStreamController) Run(workers int, stopCh <-chan struct{}) {
 	metrics.InitializeImportCollector(false, c.importCounter.Collect)
 
 	<-stopCh
-	glog.Infof("Shutting down image stream controller")
+	klog.Infof("Shutting down image stream controller")
 }
 
 func (c *ImageStreamController) addImageStream(obj interface{}) {
@@ -142,7 +142,7 @@ func (c *ImageStreamController) processNextWorkItem() bool {
 func (c *ImageStreamController) syncImageStream(key string) error {
 	startTime := time.Now()
 	defer func() {
-		glog.V(4).Infof("Finished syncing image stream %q (%v)", key, time.Since(startTime))
+		klog.V(4).Infof("Finished syncing image stream %q (%v)", key, time.Since(startTime))
 	}()
 
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
@@ -151,14 +151,14 @@ func (c *ImageStreamController) syncImageStream(key string) error {
 	}
 	stream, err := c.lister.ImageStreams(namespace).Get(name)
 	if apierrs.IsNotFound(err) {
-		glog.V(4).Infof("ImageStream has been deleted: %v", key)
+		klog.V(4).Infof("ImageStream has been deleted: %v", key)
 		return nil
 	}
 	if err != nil {
 		return err
 	}
 
-	glog.V(3).Infof("Queued import of stream %s/%s...", stream.Namespace, stream.Name)
+	klog.V(3).Infof("Queued import of stream %s/%s...", stream.Namespace, stream.Name)
 	result, err := handleImageStream(stream, c.client.RESTClient(), c.notifier)
 	c.importCounter.Increment(result, err)
 	return err
@@ -235,7 +235,7 @@ func handleImageStream(
 	if !ok {
 		return nil, nil
 	}
-	glog.V(3).Infof("Importing stream %s/%s partial=%t...", stream.Namespace, stream.Name, partial)
+	klog.V(3).Infof("Importing stream %s/%s partial=%t...", stream.Namespace, stream.Name, partial)
 
 	if notifier != nil {
 		notifier.Importing(stream)
@@ -269,7 +269,7 @@ func handleImageStream(
 		}
 	}
 	if isi.Spec.Repository == nil && len(isi.Spec.Images) == 0 {
-		glog.V(4).Infof("Did not find any tags or repository needing import")
+		klog.V(4).Infof("Did not find any tags or repository needing import")
 		return nil, nil
 	}
 	// use RESTClient directly here to be able to extend request timeout
@@ -286,11 +286,11 @@ func handleImageStream(
 		if apierrs.IsNotFound(err) && isStatusErrorKind(err, "imageStream") {
 			return result, ErrNotImportable
 		}
-		glog.V(4).Infof("Import stream %s/%s partial=%t error: %v", stream.Namespace, stream.Name, partial, err)
+		klog.V(4).Infof("Import stream %s/%s partial=%t error: %v", stream.Namespace, stream.Name, partial, err)
 		return result, err
 	}
 
-	glog.V(5).Infof("Import stream %s/%s partial=%t import: %#v", stream.Namespace, stream.Name, partial, result.Status.Import)
+	klog.V(5).Infof("Import stream %s/%s partial=%t import: %#v", stream.Namespace, stream.Name, partial, result.Status.Import)
 	return result, nil
 }
 

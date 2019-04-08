@@ -8,7 +8,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/docker/distribution"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	units "github.com/docker/go-units"
 	godigest "github.com/opencontainers/go-digest"
@@ -330,7 +330,7 @@ func (p *registryPlan) SavedManifest(srcDigest, dstDigest godigest.Digest) {
 	}
 	p.lock.Lock()
 	defer p.lock.Unlock()
-	glog.V(4).Infof("Associated digest %s with converted digest %s", srcDigest, dstDigest)
+	klog.V(4).Infof("Associated digest %s with converted digest %s", srcDigest, dstDigest)
 	p.manifestConversions[srcDigest] = dstDigest
 }
 

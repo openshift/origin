@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
@@ -151,7 +151,7 @@ func (eip *egressIPWatcher) assignEgressIP(egressIP, mark string) error {
 	err = netlink.AddrAdd(eip.localEgressLink, addr)
 	if err != nil {
 		if err == syscall.EEXIST {
-			glog.V(2).Infof("Egress IP %q already exists on %s", egressIPNet, eip.localEgressLink.Attrs().Name)
+			klog.V(2).Infof("Egress IP %q already exists on %s", egressIPNet, eip.localEgressLink.Attrs().Name)
 		} else {
 			return fmt.Errorf("could not add egress IP %q to %s: %v", egressIPNet, eip.localEgressLink.Attrs().Name, err)
 		}
@@ -161,7 +161,7 @@ func (eip *egressIPWatcher) assignEgressIP(egressIP, mark string) error {
 	go func() {
 		out, err := exec.Command("/sbin/arping", "-q", "-A", "-c", "1", "-I", eip.localEgressLink.Attrs().Name, egressIP).CombinedOutput()
 		if err != nil {
-			glog.Warningf("Failed to send ARP claim for egress IP %q: %v (%s)", egressIP, err, string(out))
+			klog.Warningf("Failed to send ARP claim for egress IP %q: %v (%s)", egressIP, err, string(out))
 			return
 		}
 		time.Sleep(2 * time.Second)
@@ -194,7 +194,7 @@ func (eip *egressIPWatcher) releaseEgressIP(egressIP, mark string) error {
 	err = netlink.AddrDel(eip.localEgressLink, addr)
 	if err != nil {
 		if err == syscall.EADDRNOTAVAIL {
-			glog.V(2).Infof("Could not delete egress IP %q from %s: no such address", egressIPNet, eip.localEgressLink.Attrs().Name)
+			klog.V(2).Infof("Could not delete egress IP %q from %s: no such address", egressIPNet, eip.localEgressLink.Attrs().Name)
 		} else {
 			return fmt.Errorf("could not delete egress IP %q from %s: %v", egressIPNet, eip.localEgressLink.Attrs().Name, err)
 		}

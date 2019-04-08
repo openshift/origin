@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 // VisitObjectStrings recursively visits all string fields in the object and calls the
@@ -74,7 +74,7 @@ func visitValue(v reflect.Value, visitor func(string) (string, bool)) error {
 		}
 		v.SetString(s)
 	default:
-		glog.V(5).Infof("Ignoring non-parameterizable field type '%s': %v", v.Kind(), v)
+		klog.V(5).Infof("Ignoring non-parameterizable field type '%s': %v", v.Kind(), v)
 		return nil
 	}
 	return nil

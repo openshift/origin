@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -91,7 +91,7 @@ func authorizedForSCC(sccName string, info user.Info, namespace string, a author
 	}
 	decision, reason, err := a.Authorize(attr)
 	if err != nil {
-		glog.V(5).Infof("cannot authorize for SCC: %v %q %v", decision, reason, err)
+		klog.V(5).Infof("cannot authorize for SCC: %v %q %v", decision, reason, err)
 		return false
 	}
 	return decision == authorizer.DecisionAllow
@@ -289,7 +289,7 @@ func getPreallocatedUIDRange(ns *corev1.Namespace) (*int64, *int64, error) {
 
 	var min int64 = int64(uidBlock.Start)
 	var max int64 = int64(uidBlock.End)
-	glog.V(4).Infof("got preallocated values for min: %d, max: %d for uid range in namespace %s", min, max, ns.Name)
+	klog.V(4).Infof("got preallocated values for min: %d, max: %d for uid range in namespace %s", min, max, ns.Name)
 	return &min, &max, nil
 }
 
@@ -302,7 +302,7 @@ func getPreallocatedLevel(ns *corev1.Namespace) (string, error) {
 	if len(level) == 0 {
 		return "", fmt.Errorf("found annotation %s but it was empty", allocator.MCSAnnotation)
 	}
-	glog.V(4).Infof("got preallocated value for level: %s for selinux options in namespace %s", level, ns.Name)
+	klog.V(4).Infof("got preallocated value for level: %s for selinux options in namespace %s", level, ns.Name)
 	return level, nil
 }
 
@@ -312,7 +312,7 @@ func getPreallocatedLevel(ns *corev1.Namespace) (string, error) {
 func getSupplementalGroupsAnnotation(ns *corev1.Namespace) (string, error) {
 	groups, ok := ns.Annotations[allocator.SupplementalGroupsAnnotation]
 	if !ok {
-		glog.V(4).Infof("unable to find supplemental group annotation %s falling back to %s", allocator.SupplementalGroupsAnnotation, allocator.UIDRangeAnnotation)
+		klog.V(4).Infof("unable to find supplemental group annotation %s falling back to %s", allocator.SupplementalGroupsAnnotation, allocator.UIDRangeAnnotation)
 
 		groups, ok = ns.Annotations[allocator.UIDRangeAnnotation]
 		if !ok {
@@ -332,7 +332,7 @@ func getPreallocatedFSGroup(ns *corev1.Namespace) ([]securityapi.IDRange, error)
 	if err != nil {
 		return nil, err
 	}
-	glog.V(4).Infof("got preallocated value for groups: %s in namespace %s", groups, ns.Name)
+	klog.V(4).Infof("got preallocated value for groups: %s in namespace %s", groups, ns.Name)
 
 	blocks, err := parseSupplementalGroupAnnotation(groups)
 	if err != nil {
@@ -352,7 +352,7 @@ func getPreallocatedSupplementalGroups(ns *corev1.Namespace) ([]securityapi.IDRa
 	if err != nil {
 		return nil, err
 	}
-	glog.V(4).Infof("got preallocated value for groups: %s in namespace %s", groups, ns.Name)
+	klog.V(4).Infof("got preallocated value for groups: %s in namespace %s", groups, ns.Name)
 
 	blocks, err := parseSupplementalGroupAnnotation(groups)
 	if err != nil {

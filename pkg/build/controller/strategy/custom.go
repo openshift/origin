@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,7 +82,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildv1.Build, additionalCA
 	}
 
 	if strategy.ExposeDockerSocket {
-		glog.V(2).Infof("ExposeDockerSocket is enabled for %s build", build.Name)
+		klog.V(2).Infof("ExposeDockerSocket is enabled for %s build", build.Name)
 		containerEnv = append(containerEnv, corev1.EnvVar{Name: "DOCKER_SOCKET", Value: dockerSocketPath})
 	}
 
@@ -123,7 +123,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildv1.Build, additionalCA
 	if !strategy.ForcePull {
 		pod.Spec.Containers[0].ImagePullPolicy = corev1.PullIfNotPresent
 	} else {
-		glog.V(2).Infof("ForcePull is enabled for %s build", build.Name)
+		klog.V(2).Infof("ForcePull is enabled for %s build", build.Name)
 		pod.Spec.Containers[0].ImagePullPolicy = corev1.PullAlways
 	}
 	pod.Spec.Containers[0].Resources = build.Spec.Resources

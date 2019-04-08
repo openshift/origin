@@ -3,7 +3,7 @@ package controller
 import (
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -64,12 +64,12 @@ func (c *ProjectFinalizerController) Run(stopCh <-chan struct{}, workers int) {
 		return
 	}
 
-	glog.V(5).Infof("Starting workers")
+	klog.V(5).Infof("Starting workers")
 	for i := 0; i < workers; i++ {
 		go c.worker()
 	}
 	<-stopCh
-	glog.V(1).Infof("Shutting down")
+	klog.V(1).Infof("Shutting down")
 }
 
 func (c *ProjectFinalizerController) enqueueNamespace(obj interface{}) {

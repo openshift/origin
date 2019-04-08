@@ -3,7 +3,7 @@ package prometheus
 import (
 	"sync"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -85,7 +85,7 @@ func InitializeImportCollector(
 	if isc.cbCollectISCounts != nil && isc.cbCollectScheduledCounts != nil {
 		prometheus.MustRegister(&isc)
 		collectorRegistered = true
-		glog.V(4).Info("Image import controller metrics registered with prometherus")
+		klog.V(4).Info("Image import controller metrics registered with prometherus")
 	}
 }
 
@@ -97,7 +97,7 @@ func (isc *importStatusCollector) Describe(ch chan<- *prometheus.Desc) {
 func (isc *importStatusCollector) Collect(ch chan<- prometheus.Metric) {
 	successCounts, errorCounts, err := isc.cbCollectISCounts()
 	if err != nil {
-		glog.Errorf("Failed to collect image import metrics: %v", err)
+		klog.Errorf("Failed to collect image import metrics: %v", err)
 		ch <- prometheus.NewInvalidMetric(successCountDesc, err)
 	} else {
 		pushSuccessCounts("false", successCounts, ch)
@@ -106,7 +106,7 @@ func (isc *importStatusCollector) Collect(ch chan<- prometheus.Metric) {
 
 	successCounts, errorCounts, err = isc.cbCollectScheduledCounts()
 	if err != nil {
-		glog.Errorf("Failed to collect scheduled image import metrics: %v", err)
+		klog.Errorf("Failed to collect scheduled image import metrics: %v", err)
 		ch <- prometheus.NewInvalidMetric(errorCountDesc, err)
 		return
 	}

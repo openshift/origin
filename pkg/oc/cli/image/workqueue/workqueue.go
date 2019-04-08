@@ -3,7 +3,7 @@ package workqueue
 import (
 	"sync"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 type Work interface {
@@ -41,7 +41,7 @@ func (q *workQueue) run(workers int, stopCh <-chan struct{}) {
 	}
 	for i := 0; i < workers; i++ {
 		go func(i int) {
-			defer glog.V(4).Infof("worker %d stopping", i)
+			defer klog.V(4).Infof("worker %d stopping", i)
 			for {
 				select {
 				case work, ok := <-q.ch:
@@ -57,7 +57,7 @@ func (q *workQueue) run(workers int, stopCh <-chan struct{}) {
 		}(i)
 	}
 	<-stopCh
-	glog.V(4).Infof("work queue exiting")
+	klog.V(4).Infof("work queue exiting")
 }
 
 func (q *workQueue) Batch(fn func(Work)) {
@@ -137,10 +137,10 @@ func (w *worker) Try(fn func() error) {
 			err := fn()
 			if w.err == nil {
 				// TODO: have the work queue accumulate errors and release them with Done()
-				glog.Errorf("Worker error: %v", err)
+				klog.Errorf("Worker error: %v", err)
 				return
 			}
-			glog.V(4).Infof("about to send work queue error: %v", err)
+			klog.V(4).Infof("about to send work queue error: %v", err)
 			w.err <- err
 		},
 	}

@@ -8,8 +8,8 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
-	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/util/httprequest"
+	"k8s.io/klog"
 )
 
 // ErrorPage implements auth and grant error handling by rendering an error page for browser-like clients
@@ -23,7 +23,7 @@ func NewErrorPageHandler(renderer ErrorPageRenderer) *ErrorPage {
 }
 
 func (p *ErrorPage) AuthenticationError(err error, w http.ResponseWriter, req *http.Request) (bool, error) {
-	glog.Errorf("AuthenticationError: %v", err)
+	klog.Errorf("AuthenticationError: %v", err)
 	// Only render html error pages for browser-like things
 	if !httprequest.PrefersHTML(req) {
 		return false, err
@@ -38,7 +38,7 @@ func (p *ErrorPage) AuthenticationError(err error, w http.ResponseWriter, req *h
 }
 
 func (p *ErrorPage) GrantError(err error, w http.ResponseWriter, req *http.Request) (bool, error) {
-	glog.Errorf("GrantError: %v", err)
+	klog.Errorf("GrantError: %v", err)
 	// Only render html error pages for browser-like things
 	if !httprequest.PrefersHTML(req) {
 		return false, err

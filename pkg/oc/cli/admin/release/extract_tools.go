@@ -19,7 +19,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -146,7 +146,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 	var validTargets []extractTarget
 	for _, target := range targets {
 		if currentOS != "*" && target.OS != currentOS {
-			glog.V(2).Infof("Skipping %s, does not match current OS %s", target.ArchiveFormat, target.OS)
+			klog.V(2).Infof("Skipping %s, does not match current OS %s", target.ArchiveFormat, target.OS)
 			continue
 		}
 		spec, err := findImageSpec(release.References, target.Mapping.Image, o.From)
@@ -154,7 +154,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 			missing.Insert(target.Mapping.Image)
 			continue
 		}
-		glog.V(2).Infof("Will extract %s from %s", target.Mapping.From, spec)
+		klog.V(2).Infof("Will extract %s from %s", target.Mapping.From, spec)
 		ref, err := imagereference.Parse(spec)
 		if err != nil {
 			return err
@@ -233,7 +233,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 			hash = sha256.New()
 			w = io.MultiWriter(hash, w)
 			if target.AsZip {
-				glog.V(2).Infof("Writing %s as a ZIP archive %s", hdr.Name, layer.Mapping.To)
+				klog.V(2).Infof("Writing %s as a ZIP archive %s", hdr.Name, layer.Mapping.To)
 				zw := zip.NewWriter(w)
 
 				zh := &zip.FileHeader{
@@ -253,7 +253,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 				closeFn = func() error { return zw.Close() }
 
 			} else {
-				glog.V(2).Infof("Writing %s as a tar.gz archive %s", hdr.Name, layer.Mapping.To)
+				klog.V(2).Infof("Writing %s as a tar.gz archive %s", hdr.Name, layer.Mapping.To)
 				gw, err := gzip.NewWriterLevel(w, 3)
 				if err != nil {
 					return false, err
@@ -308,7 +308,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 			return false, err
 		}
 		if err := os.Chtimes(f.Name(), hdr.ModTime, hdr.ModTime); err != nil {
-			glog.V(2).Infof("Unable to set extracted file modification time: %v", err)
+			klog.V(2).Infof("Unable to set extracted file modification time: %v", err)
 		}
 
 		// calculate hashes
@@ -392,7 +392,7 @@ func copyAndReplaceReleaseImage(w io.Writer, r io.Reader, bufferSize int, releas
 		if n > 0 {
 			index := bytes.Index(buf[:end], match)
 			if index != -1 {
-				glog.V(2).Infof("Found match at %d (len=%d, offset=%d, n=%d)", index, len(buf), offset, n)
+				klog.V(2).Infof("Found match at %d (len=%d, offset=%d, n=%d)", index, len(buf), offset, n)
 				// the replacement starts at the beginning of the match, contains the release string and a terminating NUL byte
 				copy(buf[index:index+len(releaseImage)], []byte(releaseImage))
 				buf[index+len(releaseImage)] = 0x00

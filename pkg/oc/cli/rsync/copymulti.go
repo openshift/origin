@@ -6,8 +6,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog"
 )
 
 // copyStrategies is an ordered list of copyStrategy objects that behaves as a single
@@ -27,7 +27,7 @@ func (ss copyStrategies) Copy(source, destination *pathSpec, out, errOut io.Writ
 		errBuf := &bytes.Buffer{}
 		err = s.Copy(source, destination, out, errBuf)
 		if _, isSetupError := err.(strategySetupError); isSetupError {
-			glog.V(4).Infof("Error output:\n%s", errBuf.String())
+			klog.V(4).Infof("Error output:\n%s", errBuf.String())
 			fmt.Fprintf(errOut, "WARNING: cannot use %s: %v\n", s.String(), err.Error())
 			continue
 		}

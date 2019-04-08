@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/golang/glog"
 	gonum "github.com/gonum/graph"
+	"k8s.io/klog"
 
 	kerrapi "k8s.io/apimachinery/pkg/api/errors"
 
@@ -271,7 +271,7 @@ func pruneImages(
 	err := imagePruner.DeleteImage(imageNode.Image)
 	if err != nil {
 		if kerrapi.IsNotFound(err) {
-			glog.V(2).Infof("Skipping image %s that no longer exists", imageNode.Image.Name)
+			klog.V(2).Infof("Skipping image %s that no longer exists", imageNode.Image.Name)
 		} else {
 			failures = append(failures, Failure{Node: imageNode, Err: err})
 		}
@@ -299,7 +299,7 @@ func pruneImageComponents(
 			return
 		}
 		streamName := getName(stream.ImageStream)
-		glog.V(4).Infof("Pruning repository %s/%s: %s", registryURL.Host, streamName, comp.Describe())
+		klog.V(4).Infof("Pruning repository %s/%s: %s", registryURL.Host, streamName, comp.Describe())
 		err := layerLinkDeleter.DeleteLayerLink(registryClient, registryURL, streamName, comp.Component)
 		if err != nil {
 			failures = append(failures, Failure{Node: comp, Parent: stream, Err: err})
@@ -346,7 +346,7 @@ func pruneManifests(
 	) {
 		repoName := getName(stream.ImageStream)
 
-		glog.V(4).Infof("Pruning manifest %s in the repository %s/%s", manifestNode.Component, registryURL.Host, repoName)
+		klog.V(4).Infof("Pruning manifest %s in the repository %s/%s", manifestNode.Component, registryURL.Host, repoName)
 		err := manifestPruner.DeleteManifest(registryClient, registryURL, repoName, manifestNode.Component)
 		if err != nil {
 			failures = append(failures, Failure{Node: manifestNode, Parent: stream, Err: err})

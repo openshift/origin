@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	apifilters "k8s.io/apiserver/pkg/endpoints/filters"
@@ -99,11 +99,11 @@ func serveControllers(servingInfo configv1.HTTPServingInfo, handler http.Handler
 	}
 
 	go utilwait.Forever(func() {
-		glog.Infof("Started health checks at %s", servingInfo.BindAddress)
+		klog.Infof("Started health checks at %s", servingInfo.BindAddress)
 
 		extraCerts, err := getNamedCertificateMap(servingInfo.NamedCertificates)
 		if err != nil {
-			glog.Fatal(err)
+			klog.Fatal(err)
 		}
 		server.TLSConfig = crypto.SecureTLSConfig(&tls.Config{
 			// Populate PeerCertificates in requests, but don't reject connections without certificates
@@ -115,7 +115,7 @@ func serveControllers(servingInfo configv1.HTTPServingInfo, handler http.Handler
 			MinVersion:     crypto.TLSVersionOrDie(servingInfo.MinTLSVersion),
 			CipherSuites:   crypto.CipherSuitesOrDie(servingInfo.CipherSuites),
 		})
-		glog.Fatal(cmdutil.ListenAndServeTLS(server, servingInfo.BindNetwork, servingInfo.CertFile, servingInfo.KeyFile))
+		klog.Fatal(cmdutil.ListenAndServeTLS(server, servingInfo.BindNetwork, servingInfo.CertFile, servingInfo.KeyFile))
 	}, 0)
 
 	return nil

@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -28,7 +28,7 @@ func RegisterExternalIP(plugins *admission.Plugins) {
 				return nil, err
 			}
 			if pluginConfig == nil {
-				glog.Infof("Admission plugin %q is not configured so it will be disabled.", ExternalIPPluginName)
+				klog.Infof("Admission plugin %q is not configured so it will be disabled.", ExternalIPPluginName)
 				return nil, nil
 			}
 

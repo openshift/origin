@@ -17,7 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/network/node/cniserver"
 	"github.com/openshift/origin/pkg/util/netutils"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -249,10 +249,10 @@ func (m *podManager) waitRequest(request *cniserver.PodRequest) *cniserver.PodRe
 // Enqueue incoming pod requests from the CNI server, wait on the result,
 // and return that result to the CNI client
 func (m *podManager) handleCNIRequest(request *cniserver.PodRequest) ([]byte, error) {
-	glog.V(5).Infof("Dispatching pod network request %v", request)
+	klog.V(5).Infof("Dispatching pod network request %v", request)
 	m.addRequest(request)
 	result := m.waitRequest(request)
-	glog.V(5).Infof("Returning pod network request %v, result %s err %v", request, string(result.Response), result.Err)
+	klog.V(5).Infof("Returning pod network request %v, result %s err %v", request, string(result.Response), result.Err)
 	return result.Response, result.Err
 }
 
@@ -285,9 +285,9 @@ func (m *podManager) UpdateLocalMulticastRules(vnid uint32) {
 // setup/teardown logic
 func (m *podManager) processCNIRequests() {
 	for request := range m.requests {
-		glog.V(5).Infof("Processing pod network request %v", request)
+		klog.V(5).Infof("Processing pod network request %v", request)
 		result := m.processRequest(request)
-		glog.V(5).Infof("Processed pod network request %v, result %s err %v", request, string(result.Response), result.Err)
+		klog.V(5).Infof("Processed pod network request %v, result %s err %v", request, string(result.Response), result.Err)
 		request.Result <- result
 	}
 	panic("stopped processing CNI pod requests!")
@@ -504,7 +504,7 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 			m.ipamDel(req.SandboxID)
 			if mappings := m.shouldSyncHostports(nil); mappings != nil {
 				if err := m.hostportSyncer.SyncHostports(Tun0, mappings); err != nil {
-					glog.Warningf("failed syncing hostports: %v", err)
+					klog.Warningf("failed syncing hostports: %v", err)
 				}
 			}
 		}

@@ -5,10 +5,10 @@ import (
 	"io"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
-// Logger is a simple interface that is roughly equivalent to glog.
+// Logger is a simple interface that is roughly equivalent to klog.
 type Logger interface {
 	Is(level int) bool
 	V(level int) Logger
@@ -39,28 +39,28 @@ func (discard) Infof(_ string, _ ...interface{}) {}
 type glogger struct{}
 
 func (glogger) Is(level int) bool {
-	return bool(glog.V(glog.Level(level)))
+	return bool(klog.V(klog.Level(level)))
 }
 
 func (glogger) V(level int) Logger {
-	return gverbose{glog.V(glog.Level(level))}
+	return gverbose{klog.V(klog.Level(level))}
 }
 
 func (glogger) Infof(format string, args ...interface{}) {
-	glog.InfoDepth(2, fmt.Sprintf(format, args...))
+	klog.InfoDepth(2, fmt.Sprintf(format, args...))
 }
 
-// gverbose handles glog.V(x) calls
+// gverbose handles klog.V(x) calls
 type gverbose struct {
-	glog.Verbose
+	klog.Verbose
 }
 
 func (gverbose) Is(level int) bool {
-	return bool(glog.V(glog.Level(level)))
+	return bool(klog.V(klog.Level(level)))
 }
 
 func (gverbose) V(level int) Logger {
-	if glog.V(glog.Level(level)) {
+	if klog.V(klog.Level(level)) {
 		return Log
 	}
 	return None
@@ -68,24 +68,24 @@ func (gverbose) V(level int) Logger {
 
 func (g gverbose) Infof(format string, args ...interface{}) {
 	if g.Verbose {
-		glog.InfoDepth(2, fmt.Sprintf(format, args...))
+		klog.InfoDepth(2, fmt.Sprintf(format, args...))
 	}
 }
 
 // file logs the provided messages at level or below to the writer, or delegates
-// to glog.
+// to klog.
 type file struct {
 	w     io.Writer
 	level int
 }
 
 func (f file) Is(level int) bool {
-	return level <= f.level || bool(glog.V(glog.Level(level)))
+	return level <= f.level || bool(klog.V(klog.Level(level)))
 }
 
 func (f file) V(level int) Logger {
 	// only log things that glog allows
-	if !glog.V(glog.Level(level)) {
+	if !klog.V(klog.Level(level)) {
 		return None
 	}
 	// send anything above our level to glog

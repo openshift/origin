@@ -7,8 +7,8 @@ import (
 
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
-	"github.com/golang/glog"
 	godigest "github.com/opencontainers/go-digest"
+	"k8s.io/klog"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -93,7 +93,7 @@ func InternalImageWithMetadata(image *imageapi.Image) error {
 	ReorderImageLayers(image)
 
 	if len(image.DockerImageLayers) > 0 && image.DockerImageMetadata.Size > 0 && len(image.DockerImageManifestMediaType) > 0 {
-		glog.V(5).Infof("Image metadata already filled for %s", image.Name)
+		klog.V(5).Infof("Image metadata already filled for %s", image.Name)
 		return nil
 	}
 

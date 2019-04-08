@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/moby/buildkit/frontend/dockerfile/parser"
+	"k8s.io/klog"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
@@ -69,11 +69,11 @@ func (d dockerfileContents) Contents() string {
 func IsRemoteRepository(s string) (bool, error) {
 	url, err := s2igit.Parse(s)
 	if err != nil {
-		glog.V(5).Infof("%s is not a valid url: %v", s, err)
+		klog.V(5).Infof("%s is not a valid url: %v", s, err)
 		return false, err
 	}
 	if url.IsLocal() {
-		glog.V(5).Infof("%s is not a valid remote git clone spec", s)
+		klog.V(5).Infof("%s is not a valid remote git clone spec", s)
 		return false, nil
 	}
 	gitRepo := git.NewRepository()
@@ -86,10 +86,10 @@ func IsRemoteRepository(s string) (bool, error) {
 		}
 	}
 	if err != nil {
-		glog.V(5).Infof("could not list git remotes for %s: %v", s, err)
+		klog.V(5).Infof("could not list git remotes for %s: %v", s, err)
 		return false, err
 	}
-	glog.V(5).Infof("%s is a valid remote git repository", s)
+	klog.V(5).Infof("%s is a valid remote git repository", s)
 	return true, nil
 }
 
@@ -311,7 +311,7 @@ func (r *SourceRepository) DetectAuth() error {
 	}
 
 	gitRepo := git.NewRepositoryWithEnv(env)
-	glog.V(4).Infof("Checking if %v requires authentication", url.StringNoFragment())
+	klog.V(4).Infof("Checking if %v requires authentication", url.StringNoFragment())
 	_, _, err = gitRepo.TimedListRemote(10*time.Second, url.StringNoFragment(), "--heads")
 	if err != nil {
 		r.requiresAuth = true
@@ -623,12 +623,12 @@ func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*B
 // the context directory if specified.
 func CloneAndCheckoutSources(repo git.Repository, remote, ref, localDir, contextDir string) (string, error) {
 	if len(ref) == 0 {
-		glog.V(5).Infof("No source ref specified, using shallow git clone")
+		klog.V(5).Infof("No source ref specified, using shallow git clone")
 		if err := repo.CloneWithOptions(localDir, remote, git.Shallow, "--recursive"); err != nil {
 			return "", fmt.Errorf("shallow cloning repository %q to %q failed: %v", remote, localDir, err)
 		}
 	} else {
-		glog.V(5).Infof("Requested ref %q, performing full git clone and git checkout", ref)
+		klog.V(5).Infof("Requested ref %q, performing full git clone and git checkout", ref)
 		if err := repo.Clone(localDir, remote); err != nil {
 			return "", fmt.Errorf("cloning repository %q to %q failed: %v", remote, localDir, err)
 		}
@@ -642,7 +642,7 @@ func CloneAndCheckoutSources(repo git.Repository, remote, ref, localDir, context
 		}
 	}
 	if len(contextDir) > 0 {
-		glog.V(5).Infof("Using context directory %q. The full source path is %q", contextDir, filepath.Join(localDir, contextDir))
+		klog.V(5).Infof("Using context directory %q. The full source path is %q", contextDir, filepath.Join(localDir, contextDir))
 	}
 	return filepath.Join(localDir, contextDir), nil
 }

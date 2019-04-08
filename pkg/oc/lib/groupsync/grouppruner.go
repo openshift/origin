@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
@@ -42,16 +42,16 @@ func (s *LDAPGroupPruner) Prune() []error {
 	var errors []error
 
 	// determine what to sync
-	glog.V(1).Infof("LDAPGroupPruner listing groups to prune with %v", s.GroupLister)
+	klog.V(1).Infof("LDAPGroupPruner listing groups to prune with %v", s.GroupLister)
 	ldapGroupUIDs, err := s.GroupLister.ListGroups()
 	if err != nil {
 		errors = append(errors, err)
 		return errors
 	}
-	glog.V(1).Infof("LDAPGroupPruner will attempt to prune ldapGroupUIDs %v", ldapGroupUIDs)
+	klog.V(1).Infof("LDAPGroupPruner will attempt to prune ldapGroupUIDs %v", ldapGroupUIDs)
 
 	for _, ldapGroupUID := range ldapGroupUIDs {
-		glog.V(1).Infof("Checking LDAP group %v", ldapGroupUID)
+		klog.V(1).Infof("Checking LDAP group %v", ldapGroupUID)
 
 		exists, err := s.GroupDetector.Exists(ldapGroupUID)
 		if err != nil {

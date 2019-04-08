@@ -16,7 +16,7 @@ import (
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/fsouza/go-dockerclient"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
@@ -385,7 +385,7 @@ func (c *connection) checkV2() (bool, error) {
 	if err != nil {
 		// if we tried https and were rejected, try http
 		if c.url.Scheme == "https" && c.allowInsecure {
-			glog.V(4).Infof("Failed to get https, trying http: %v", err)
+			klog.V(4).Infof("Failed to get https, trying http: %v", err)
 			c.url.Scheme = "http"
 			return c.checkV2()
 		}
@@ -400,11 +400,11 @@ func (c *connection) checkV2() (bool, error) {
 		return false, nil
 	}
 	if len(resp.Header.Get("Docker-Distribution-API-Version")) == 0 {
-		glog.V(5).Infof("Registry v2 API at %s did not have a Docker-Distribution-API-Version header", base.String())
+		klog.V(5).Infof("Registry v2 API at %s did not have a Docker-Distribution-API-Version header", base.String())
 		return false, nil
 	}
 
-	glog.V(5).Infof("Found registry v2 API at %s", base.String())
+	klog.V(5).Infof("Found registry v2 API at %s", base.String())
 	return true, nil
 }
 
@@ -490,7 +490,7 @@ func (c *connection) authenticateV2(header string) (string, error) {
 // the appropriate endpoint token. It will try HTTP if HTTPS fails and insecure connections
 // are allowed.
 func (c *connection) getRepositoryV1(name string) (repository, error) {
-	glog.V(4).Infof("Getting repository %s from %s", name, c.url.String())
+	klog.V(4).Infof("Getting repository %s from %s", name, c.url.String())
 
 	base := c.url
 	base.Path = path.Join(base.Path, fmt.Sprintf("/v1/repositories/%s/images", name))
@@ -503,7 +503,7 @@ func (c *connection) getRepositoryV1(name string) (repository, error) {
 	if err != nil {
 		// if we tried https and were rejected, try http
 		if c.url.Scheme == "https" && c.allowInsecure {
-			glog.V(4).Infof("Failed to get https, trying http: %v", err)
+			klog.V(4).Infof("Failed to get https, trying http: %v", err)
 			c.url.Scheme = "http"
 			return c.getRepositoryV1(name)
 		}
@@ -642,7 +642,7 @@ func (repo *v2repository) getTaggedImage(c *connection, tag, userTag string) (*I
 			// docker will not return a NotFound on any repository URL - for backwards compatibility, return NotFound on the
 			// repo
 			body, _ := ioutil.ReadAll(resp.Body)
-			glog.V(4).Infof("passed valid auth token, but unable to find tagged image at %q, %d %v: %s", req.URL.String(), resp.StatusCode, resp.Header, body)
+			klog.V(4).Infof("passed valid auth token, but unable to find tagged image at %q, %d %v: %s", req.URL.String(), resp.StatusCode, resp.Header, body)
 			return nil, nil, errTagNotFound{len(userTag) == 0, tag, repo.name}
 		}
 		token, err := c.authenticateV2(resp.Header.Get("WWW-Authenticate"))
@@ -654,7 +654,7 @@ func (repo *v2repository) getTaggedImage(c *connection, tag, userTag string) (*I
 		return repo.getTaggedImage(c, tag, userTag)
 	case code == http.StatusNotFound:
 		body, _ := ioutil.ReadAll(resp.Body)
-		glog.V(4).Infof("unable to find tagged image at %q, %d %v: %s", req.URL.String(), resp.StatusCode, resp.Header, body)
+		klog.V(4).Infof("unable to find tagged image at %q, %d %v: %s", req.URL.String(), resp.StatusCode, resp.Header, body)
 		return nil, nil, errTagNotFound{len(userTag) == 0, tag, repo.name}
 	case code >= 300 || resp.StatusCode < 200:
 		// token might have expired - evict repo from cache so we can get a new one on retry
@@ -718,7 +718,7 @@ func (repo *v2repository) getImageConfig(c *connection, dgst string) ([]byte, er
 			// docker will not return a NotFound on any repository URL - for backwards compatibility, return NotFound on the
 			// repo
 			body, _ := ioutil.ReadAll(resp.Body)
-			glog.V(4).Infof("passed valid auth token, but unable to find image config at %q, %d %v: %s", req.URL.String(), resp.StatusCode, resp.Header, body)
+			klog.V(4).Infof("passed valid auth token, but unable to find image config at %q, %d %v: %s", req.URL.String(), resp.StatusCode, resp.Header, body)
 			return nil, errBlobNotFound{dgst, repo.name}
 		}
 		token, err := c.authenticateV2(resp.Header.Get("WWW-Authenticate"))
@@ -730,7 +730,7 @@ func (repo *v2repository) getImageConfig(c *connection, dgst string) ([]byte, er
 		return repo.getImageConfig(c, dgst)
 	case code == http.StatusNotFound:
 		body, _ := ioutil.ReadAll(resp.Body)
-		glog.V(4).Infof("unable to find image config at %q, %d %v: %s", req.URL.String(), resp.StatusCode, resp.Header, body)
+		klog.V(4).Infof("unable to find image config at %q, %d %v: %s", req.URL.String(), resp.StatusCode, resp.Header, body)
 		return nil, errBlobNotFound{dgst, repo.name}
 	case code >= 300 || resp.StatusCode < 200:
 		// token might have expired - evict repo from cache so we can get a new one on retry
@@ -831,7 +831,7 @@ func (repo *v1repository) getTaggedImage(c *connection, tag, userTag string) (*I
 			return repo.getImage(c, image, "")
 		}
 		body, _ := ioutil.ReadAll(resp.Body)
-		glog.V(4).Infof("unable to find v1 tagged image at %q, %d %v: %s", req.URL.String(), resp.StatusCode, resp.Header, body)
+		klog.V(4).Infof("unable to find v1 tagged image at %q, %d %v: %s", req.URL.String(), resp.StatusCode, resp.Header, body)
 		return nil, nil, errTagNotFound{len(userTag) == 0, tag, repo.name}
 	case code >= 300 || resp.StatusCode < 200:
 		// token might have expired - evict repo from cache so we can get a new one on retry
@@ -869,7 +869,7 @@ func (repo *v1repository) getImage(c *connection, image, userTag string) (*Image
 		// token might have expired - evict repo from cache so we can get a new one on retry
 		delete(c.cached, repo.name)
 		if body, err := ioutil.ReadAll(resp.Body); err == nil {
-			glog.V(6).Infof("unable to fetch image %s: %#v\n%s", req.URL, resp, string(body))
+			klog.V(6).Infof("unable to fetch image %s: %#v\n%s", req.URL, resp, string(body))
 		}
 		return nil, nil, fmt.Errorf("error retrieving image %s: server returned %d", req.URL, resp.StatusCode)
 	}

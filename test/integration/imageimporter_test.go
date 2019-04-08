@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/docker/distribution/registry/api/errcode"
-	"github.com/golang/glog"
 	gocontext "golang.org/x/net/context"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -669,7 +669,7 @@ func TestImageStreamImportScheduled(t *testing.T) {
 		case "/v2/test/image/manifests/latest", "/v2/test/image/manifests/" + etcdDigest, "/v2/test/image/manifests/" + phpDigest:
 			count++
 			t.Logf("serving %d", count)
-			glog.Infof("serving request %d for %s", count, r.URL.Path)
+			klog.Infof("serving request %d for %s", count, r.URL.Path)
 			var manifest, digest string
 			switch count {
 			case 1, 2:

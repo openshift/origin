@@ -12,7 +12,7 @@ import (
 
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -306,12 +306,12 @@ func (c *OAuthServerConfig) getAuthenticationFinalizer() osinserver.AuthorizeHan
 		return osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (bool, error) {
 			user, ok := ar.UserData.(kuser.Info)
 			if !ok {
-				glog.Errorf("the provided user data is not a user.Info object: %#v", user)
+				klog.Errorf("the provided user data is not a user.Info object: %#v", user)
 				user = &kuser.DefaultInfo{} // set non-nil so we always try to invalidate
 			}
 
 			if err := c.ExtraOAuthConfig.SessionAuth.InvalidateAuthentication(w, user); err != nil {
-				glog.V(5).Infof("error invaliding cookie session: %v", err)
+				klog.V(5).Infof("error invaliding cookie session: %v", err)
 			}
 			// do not fail the OAuth flow if we cannot invalidate the cookie
 			// it will expire on its own regardless

@@ -250,7 +250,7 @@ func (s *RollingDeploymentStrategy) Deploy(from *corev1.ReplicationController, t
 	return nil
 }
 
-// rollingUpdaterWriter is an io.Writer that delegates to glog.
+// rollingUpdaterWriter is an io.Writer that delegates to klog.
 type rollingUpdaterWriter struct {
 	w      io.Writer
 	called bool

@@ -3,7 +3,7 @@ package imagestreammapping
 import (
 	"context"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
@@ -95,7 +95,7 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 			streamRef.ID = image.Name
 			ref = streamRef.Exact()
 		} else {
-			glog.V(4).Infof("Failed to get dockerImageReference for stream %s/%s: %v", stream.Namespace, stream.Name, err)
+			klog.V(4).Infof("Failed to get dockerImageReference for stream %s/%s: %v", stream.Namespace, stream.Name, err)
 		}
 	}
 

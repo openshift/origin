@@ -3,7 +3,7 @@ package overrides
 import (
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -29,15 +29,15 @@ func (b BuildOverrides) ApplyOverrides(pod *corev1.Pod) error {
 		return err
 	}
 
-	glog.V(4).Infof("Applying overrides to build %s/%s", build.Namespace, build.Name)
+	klog.V(4).Infof("Applying overrides to build %s/%s", build.Namespace, build.Name)
 
 	if b.Config.ForcePull {
 		if build.Spec.Strategy.DockerStrategy != nil {
-			glog.V(5).Infof("Setting docker strategy ForcePull to true in build %s/%s", build.Namespace, build.Name)
+			klog.V(5).Infof("Setting docker strategy ForcePull to true in build %s/%s", build.Namespace, build.Name)
 			build.Spec.Strategy.DockerStrategy.ForcePull = true
 		}
 		if build.Spec.Strategy.SourceStrategy != nil {
-			glog.V(5).Infof("Setting source strategy ForcePull to true in build %s/%s", build.Namespace, build.Name)
+			klog.V(5).Infof("Setting source strategy ForcePull to true in build %s/%s", build.Namespace, build.Name)
 			build.Spec.Strategy.SourceStrategy.ForcePull = true
 		}
 		if build.Spec.Strategy.CustomStrategy != nil {
@@ -45,7 +45,7 @@ func (b BuildOverrides) ApplyOverrides(pod *corev1.Pod) error {
 			if err != nil {
 				return err
 			}
-			glog.V(5).Infof("Setting custom strategy ForcePull to true in build %s/%s", build.Namespace, build.Name)
+			klog.V(5).Infof("Setting custom strategy ForcePull to true in build %s/%s", build.Namespace, build.Name)
 			build.Spec.Strategy.CustomStrategy.ForcePull = true
 		}
 	}
@@ -56,7 +56,7 @@ func (b BuildOverrides) ApplyOverrides(pod *corev1.Pod) error {
 			Name:  lbl.Name,
 			Value: lbl.Value,
 		}
-		glog.V(5).Infof("Overriding image label %s=%s in build %s/%s", lbl.Name, lbl.Value, build.Namespace, build.Name)
+		klog.V(5).Infof("Overriding image label %s=%s in build %s/%s", lbl.Name, lbl.Value, build.Namespace, build.Name)
 		overrideLabel(externalLabel, &build.Spec.Output.ImageLabels)
 	}
 
@@ -64,7 +64,7 @@ func (b BuildOverrides) ApplyOverrides(pod *corev1.Pod) error {
 		pod.Spec.NodeSelector = map[string]string{}
 	}
 	for k, v := range b.Config.NodeSelector {
-		glog.V(5).Infof("Adding override nodeselector %s=%s to build pod %s/%s", k, v, pod.Namespace, pod.Name)
+		klog.V(5).Infof("Adding override nodeselector %s=%s to build pod %s/%s", k, v, pod.Namespace, pod.Name)
 		pod.Spec.NodeSelector[k] = v
 	}
 
@@ -72,13 +72,13 @@ func (b BuildOverrides) ApplyOverrides(pod *corev1.Pod) error {
 		pod.Annotations = map[string]string{}
 	}
 	for k, v := range b.Config.Annotations {
-		glog.V(5).Infof("Adding override annotation %s=%s to build pod %s/%s", k, v, pod.Namespace, pod.Name)
+		klog.V(5).Infof("Adding override annotation %s=%s to build pod %s/%s", k, v, pod.Namespace, pod.Name)
 		pod.Annotations[k] = v
 	}
 
 	// Override Tolerations
 	if len(b.Config.Tolerations) != 0 {
-		glog.V(5).Infof("Overriding tolerations for pod %s/%s", pod.Namespace, pod.Name)
+		klog.V(5).Infof("Overriding tolerations for pod %s/%s", pod.Namespace, pod.Name)
 		pod.Spec.Tolerations = []corev1.Toleration{}
 		for _, toleration := range b.Config.Tolerations {
 			t := corev1.Toleration{}
@@ -96,11 +96,11 @@ func (b BuildOverrides) ApplyOverrides(pod *corev1.Pod) error {
 
 func applyForcePullToPod(pod *corev1.Pod) error {
 	for i := range pod.Spec.InitContainers {
-		glog.V(5).Infof("Setting ImagePullPolicy to PullAlways on init container %s of pod %s/%s", pod.Spec.InitContainers[i].Name, pod.Namespace, pod.Name)
+		klog.V(5).Infof("Setting ImagePullPolicy to PullAlways on init container %s of pod %s/%s", pod.Spec.InitContainers[i].Name, pod.Namespace, pod.Name)
 		pod.Spec.InitContainers[i].ImagePullPolicy = corev1.PullAlways
 	}
 	for i := range pod.Spec.Containers {
-		glog.V(5).Infof("Setting ImagePullPolicy to PullAlways on container %s of pod %s/%s", pod.Spec.Containers[i].Name, pod.Namespace, pod.Name)
+		klog.V(5).Infof("Setting ImagePullPolicy to PullAlways on container %s of pod %s/%s", pod.Spec.Containers[i].Name, pod.Namespace, pod.Name)
 		pod.Spec.Containers[i].ImagePullPolicy = corev1.PullAlways
 	}
 	return nil
@@ -110,7 +110,7 @@ func overrideLabel(overridingLabel buildv1.ImageLabel, buildLabels *[]buildv1.Im
 	found := false
 	for i, lbl := range *buildLabels {
 		if lbl.Name == overridingLabel.Name {
-			glog.V(5).Infof("Replacing label %s (original value %q) with new value %q", lbl.Name, lbl.Value, overridingLabel.Value)
+			klog.V(5).Infof("Replacing label %s (original value %q) with new value %q", lbl.Name, lbl.Value, overridingLabel.Value)
 			(*buildLabels)[i] = overridingLabel
 			found = true
 		}

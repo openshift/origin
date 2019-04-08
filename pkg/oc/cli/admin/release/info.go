@@ -21,9 +21,9 @@ import (
 	"github.com/blang/semver"
 	"github.com/docker/distribution"
 	units "github.com/docker/go-units"
-	"github.com/golang/glog"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -441,7 +441,7 @@ func (o *InfoOptions) LoadReleaseInfo(image string, retrieveImages bool) (*Relea
 			release.Metadata = m
 		default:
 			if ext := path.Ext(hdr.Name); len(ext) > 0 && (ext == ".yaml" || ext == ".yml" || ext == ".json") {
-				glog.V(4).Infof("Found manifest %s", hdr.Name)
+				klog.V(4).Infof("Found manifest %s", hdr.Name)
 				data, err := ioutil.ReadAll(r)
 				if err != nil {
 					errs = append(errs, fmt.Errorf("unable to read release manifest %q: %v", hdr.Name, err))

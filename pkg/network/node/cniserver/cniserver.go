@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/gorilla/mux"
+	"k8s.io/klog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
@@ -283,7 +283,7 @@ func (s *CNIServer) handleCNIRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	glog.V(5).Infof("Waiting for %s result for pod %s/%s", req.Command, req.PodNamespace, req.PodName)
+	klog.V(5).Infof("Waiting for %s result for pod %s/%s", req.Command, req.PodNamespace, req.PodName)
 	result, err := s.requestFunc(req)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("%v", err), http.StatusBadRequest)
@@ -291,7 +291,7 @@ func (s *CNIServer) handleCNIRequest(w http.ResponseWriter, r *http.Request) {
 		// Empty response JSON means success with no body
 		w.Header().Set("Content-Type", "application/json")
 		if _, err := w.Write(result); err != nil {
-			glog.Warningf("Error writing %s HTTP response: %v", req.Command, err)
+			klog.Warningf("Error writing %s HTTP response: %v", req.Command, err)
 		}
 	}
 }

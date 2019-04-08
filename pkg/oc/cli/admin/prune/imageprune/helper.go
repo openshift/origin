@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/docker/distribution/registry/api/errcode"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/api/meta"
@@ -183,7 +183,7 @@ func TryProtocolsWithRegistryURL(registry string, allowInsecure bool, action fun
 	registry = url.Host
 
 	for _, proto := range protos {
-		glog.V(4).Infof("Trying protocol %s for the registry URL %s", proto, registry)
+		klog.V(4).Infof("Trying protocol %s for the registry URL %s", proto, registry)
 		url.Scheme = proto
 		err := action(*url)
 		if err == nil {
@@ -191,7 +191,7 @@ func TryProtocolsWithRegistryURL(registry string, allowInsecure bool, action fun
 		}
 
 		if err != nil {
-			glog.V(4).Infof("Error with %s for %s: %v", proto, registry, err)
+			klog.V(4).Infof("Error with %s for %s: %v", proto, registry, err)
 		}
 
 		if _, ok := err.(*errcode.Errors); ok {
@@ -274,7 +274,7 @@ func (e *ErrBadReference) String() string {
 func getName(obj runtime.Object) string {
 	accessor, err := kmeta.Accessor(obj)
 	if err != nil {
-		glog.V(4).Infof("Error getting accessor for %#v", obj)
+		klog.V(4).Infof("Error getting accessor for %#v", obj)
 		return "<unknown>"
 	}
 	ns := accessor.GetNamespace()
@@ -298,7 +298,7 @@ func getKindName(obj *corev1.ObjectReference) string {
 func getRef(obj runtime.Object) *corev1.ObjectReference {
 	ref, err := ref.GetReference(scheme.Scheme, obj)
 	if err != nil {
-		glog.Errorf("failed to get reference to object %T: %v", obj, err)
+		klog.Errorf("failed to get reference to object %T: %v", obj, err)
 		return nil
 	}
 	return ref

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,7 +46,7 @@ func (hsw *hostSubnetWatcher) Start(networkInformers networkinformers.SharedInfo
 
 func (hsw *hostSubnetWatcher) handleAddOrUpdateHostSubnet(obj, _ interface{}, eventType watch.EventType) {
 	hs := obj.(*networkapi.HostSubnet)
-	glog.V(5).Infof("Watch %s event for HostSubnet %q", eventType, hs.Name)
+	klog.V(5).Infof("Watch %s event for HostSubnet %q", eventType, hs.Name)
 
 	if err := common.ValidateHostSubnet(hs); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Ignoring invalid HostSubnet %s: %v", common.HostSubnetToString(hs), err))
@@ -60,7 +60,7 @@ func (hsw *hostSubnetWatcher) handleAddOrUpdateHostSubnet(obj, _ interface{}, ev
 
 func (hsw *hostSubnetWatcher) handleDeleteHostSubnet(obj interface{}) {
 	hs := obj.(*networkapi.HostSubnet)
-	glog.V(5).Infof("Watch %s event for HostSubnet %q", watch.Deleted, hs.Name)
+	klog.V(5).Infof("Watch %s event for HostSubnet %q", watch.Deleted, hs.Name)
 
 	if err := hsw.deleteHostSubnet(hs); err != nil {
 		utilruntime.HandleError(err)
@@ -151,12 +151,12 @@ func (node *OsdnNode) getLocalSubnet() (string, error) {
 			} else if subnet.HostIP == node.localIP {
 				return true, nil
 			} else {
-				glog.Warningf("HostIP %q for local subnet does not match with nodeIP %q, "+
+				klog.Warningf("HostIP %q for local subnet does not match with nodeIP %q, "+
 					"Waiting for master to update subnet for node %q ...", subnet.HostIP, node.localIP, node.hostName)
 				return false, nil
 			}
 		} else if kapierrors.IsNotFound(err) {
-			glog.Warningf("Could not find an allocated subnet for node: %s, Waiting...", node.hostName)
+			klog.Warningf("Could not find an allocated subnet for node: %s, Waiting...", node.hostName)
 			return false, nil
 		} else {
 			return false, err

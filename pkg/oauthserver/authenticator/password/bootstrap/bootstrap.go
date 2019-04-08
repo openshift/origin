@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
 	"golang.org/x/crypto/bcrypt"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -69,7 +69,7 @@ func (b *bootstrapPassword) AuthenticatePassword(ctx context.Context, username, 
 
 	if err := bcrypt.CompareHashAndPassword(data.PasswordHash, []byte(password)); err != nil {
 		if err == bcrypt.ErrMismatchedHashAndPassword {
-			glog.V(4).Infof("%s password mismatch", bootstrapUserBasicAuth)
+			klog.V(4).Infof("%s password mismatch", bootstrapUserBasicAuth)
 			return nil, false, nil
 		}
 		return nil, false, err
@@ -114,14 +114,14 @@ type bootstrapUserDataGetter struct {
 func (b *bootstrapUserDataGetter) Get() (*BootstrapUserData, bool, error) {
 	secret, err := b.secrets.Get(bootstrapUserBasicAuth, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
-		glog.V(4).Infof("%s secret does not exist", bootstrapUserBasicAuth)
+		klog.V(4).Infof("%s secret does not exist", bootstrapUserBasicAuth)
 		return nil, false, nil
 	}
 	if err != nil {
 		return nil, false, err
 	}
 	if secret.DeletionTimestamp != nil {
-		glog.V(4).Infof("%s secret is being deleted", bootstrapUserBasicAuth)
+		klog.V(4).Infof("%s secret is being deleted", bootstrapUserBasicAuth)
 		return nil, false, nil
 	}
 	namespace, err := b.namespaces.Get(metav1.NamespaceSystem, metav1.GetOptions{})

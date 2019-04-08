@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	kapi "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -54,7 +54,7 @@ type OsdnMaster struct {
 func Start(networkConfig openshiftcontrolplanev1.NetworkControllerConfig, networkClient networkclient.Interface,
 	kClient kclientset.Interface, kubeInformers informers.SharedInformerFactory,
 	networkInformers networkinternalinformers.SharedInformerFactory) error {
-	glog.Infof("Initializing SDN master of type %q", networkConfig.NetworkPluginName)
+	klog.Infof("Initializing SDN master of type %q", networkConfig.NetworkPluginName)
 
 	master := &OsdnMaster{
 		kClient:       kClient,
@@ -120,7 +120,7 @@ func Start(networkConfig openshiftcontrolplanev1.NetworkControllerConfig, networ
 			if _, err = master.networkClient.NetworkV1().ClusterNetworks().Create(configCN); err != nil {
 				return false, err
 			}
-			glog.Infof("Created ClusterNetwork %s", common.ClusterNetworkToString(configCN))
+			klog.Infof("Created ClusterNetwork %s", common.ClusterNetworkToString(configCN))
 
 			if err = master.checkClusterNetworkAgainstClusterObjects(); err != nil {
 				utilruntime.HandleError(fmt.Errorf("Cluster contains objects incompatible with new ClusterNetwork: %v", err))
@@ -140,9 +140,9 @@ func Start(networkConfig openshiftcontrolplanev1.NetworkControllerConfig, networ
 				if _, err = master.networkClient.NetworkV1().ClusterNetworks().Update(configCN); err != nil {
 					return false, err
 				}
-				glog.Infof("Updated ClusterNetwork %s", common.ClusterNetworkToString(configCN))
+				klog.Infof("Updated ClusterNetwork %s", common.ClusterNetworkToString(configCN))
 			} else {
-				glog.V(5).Infof("No change to ClusterNetwork %s", common.ClusterNetworkToString(configCN))
+				klog.V(5).Infof("No change to ClusterNetwork %s", common.ClusterNetworkToString(configCN))
 			}
 		}
 
@@ -174,11 +174,11 @@ func (master *OsdnMaster) startSubSystems(pluginName string) {
 		master.namespaceInformer.Informer().GetController().HasSynced,
 		master.hostSubnetInformer.Informer().GetController().HasSynced,
 		master.netNamespaceInformer.Informer().GetController().HasSynced) {
-		glog.Fatalf("failed to sync SDN master informers")
+		klog.Fatalf("failed to sync SDN master informers")
 	}
 
 	if err := master.startSubnetMaster(); err != nil {
-		glog.Fatalf("failed to start subnet master: %v", err)
+		klog.Fatalf("failed to start subnet master: %v", err)
 	}
 
 	switch pluginName {
@@ -189,7 +189,7 @@ func (master *OsdnMaster) startSubSystems(pluginName string) {
 	}
 	if master.vnids != nil {
 		if err := master.startVNIDMaster(); err != nil {
-			glog.Fatalf("failed to start VNID master: %v", err)
+			klog.Fatalf("failed to start VNID master: %v", err)
 		}
 	}
 

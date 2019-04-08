@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -88,7 +88,7 @@ func (g *Generator) Generate(body []byte) (*templatev1.Template, error) {
 		return nil, err
 	}
 
-	glog.V(4).Infof("app.json: %#v", appJSON)
+	klog.V(4).Infof("app.json: %#v", appJSON)
 
 	name := g.Name
 	if len(name) == 0 && len(g.LocalPath) > 0 {
@@ -147,7 +147,7 @@ func (g *Generator) Generate(body []byte) (*templatev1.Template, error) {
 	warnings := make(map[string][]string)
 
 	if len(appJSON.Formation) == 0 {
-		glog.V(4).Infof("No formation in app.json, adding a default web")
+		klog.V(4).Infof("No formation in app.json, adding a default web")
 		// TODO: read Procfile for command?
 		appJSON.Formation = map[string]Formation{
 			"web": {
@@ -229,7 +229,7 @@ func (g *Generator) Generate(body []byte) (*templatev1.Template, error) {
 	pipeline.Build.Source.DockerfileContents = fakeDockerfile
 	pipeline.Name = name
 	pipeline.Image.ObjectName = name
-	glog.V(4).Infof("created pipeline %+v", pipeline)
+	klog.V(4).Infof("created pipeline %+v", pipeline)
 
 	pipelines = append(pipelines, pipeline)
 
@@ -343,7 +343,7 @@ func appObjectsToTemplateObjects(objs []runtime.Object) []runtime.RawExtension {
 	for _, o := range objs {
 		raw, err := json.Marshal(o)
 		if err != nil {
-			glog.V(1).Infof("error marshaling app object to raw bytes: %v", err)
+			klog.V(1).Infof("error marshaling app object to raw bytes: %v", err)
 			continue
 		}
 

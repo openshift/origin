@@ -10,12 +10,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/ginkgo/types"
 	"github.com/onsi/gomega"
+	"k8s.io/klog"
 
 	kapiv1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -96,7 +96,7 @@ func InitTest() {
 	// Ensure that Kube tests run privileged (like they do upstream)
 	TestContext.CreateTestingNS = createTestingNS
 
-	glog.V(2).Infof("Extended test version %s", version.Get().String())
+	klog.V(2).Infof("Extended test version %s", version.Get().String())
 }
 
 func ExecuteTest(t ginkgo.GinkgoTestingT, suite string) {
@@ -108,7 +108,7 @@ func ExecuteTest(t ginkgo.GinkgoTestingT, suite string) {
 
 	if TestContext.ReportDir != "" {
 		if err := os.MkdirAll(TestContext.ReportDir, 0755); err != nil {
-			glog.Errorf("Failed creating report directory: %v", err)
+			klog.Errorf("Failed creating report directory: %v", err)
 		}
 		defer e2e.CoreDump(TestContext.ReportDir)
 	}
@@ -262,7 +262,7 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 		return ns, err
 	}
 
-	glog.V(2).Infof("blah=%s", ginkgo.CurrentGinkgoTestDescription().FileName)
+	klog.V(2).Infof("blah=%s", ginkgo.CurrentGinkgoTestDescription().FileName)
 
 	// Add anyuid and privileged permissions for upstream tests
 	if (isKubernetesE2ETest() && !skipTestNamespaceCustomization()) || isOriginUpgradeTest() {
