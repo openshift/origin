@@ -145,13 +145,6 @@ var openshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageD
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/quota/apis/quota/v1
-	gvr("quota.openshift.io", "v1", "clusterresourcequotas"): {
-		Stub:             `{"metadata": {"name": "quota1g"}, "spec": {"selector": {"labels": {"matchLabels": {"a": "b"}}}}}`,
-		ExpectedEtcdPath: "openshift.io/clusterresourcequotas/quota1g",
-	},
-	// --
-
 	// github.com/openshift/origin/pkg/route/apis/route/v1
 	gvr("route.openshift.io", "v1", "routes"): {
 		Stub:             `{"metadata": {"name": "route1g"}, "spec": {"host": "hostname1", "to": {"name": "service1"}}}`,
@@ -207,6 +200,7 @@ var openshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageD
 var kindWhiteList = sets.NewString(
 	"ImageStreamTag",
 	"UserIdentityMapping",
+	"ClusterResourceQuota",
 )
 
 // namespace used for all tests, do not change this
@@ -325,6 +319,7 @@ func TestEtcd3StoragePath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	resourcesToPersist := append(
 		etcddata.GetResources(t, serverResources),
 	)
