@@ -263,6 +263,11 @@ func TestEtcd3StoragePath(t *testing.T) {
 	// create CRDs so we can make sure that custom resources do not get lost
 	etcddata.CreateTestCRDs(t, apiextensionsclientset.NewForConfigOrDie(kubeConfig), false, etcddata.GetCustomResourceDefinitionData()...)
 
+	// wait for cluster resource quota CRD to be available
+	if err := testutil.WaitForClusterResourceQuotaCRDAvailable(kubeConfig); err != nil {
+		t.Fatal(err)
+	}
+
 	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discocache.NewMemCacheClient(kubeClient.Discovery()))
 	mapper.Reset()
 

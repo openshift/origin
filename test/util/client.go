@@ -15,9 +15,12 @@ import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
@@ -201,6 +204,24 @@ func GetClientForServiceAccount(adminClient kubernetes.Interface, clientConfig r
 	}
 
 	return kubeClientset, saClientConfig, nil
+}
+
+func WaitForClusterResourceQuotaCRDAvailable(clusterAdminClientConfig *rest.Config) error {
+	dynamicClient := dynamic.NewForConfigOrDie(clusterAdminClientConfig)
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	err := wait.PollImmediateUntil(1*time.Minute, func() (done bool, err error) {
+		_, listErr := dynamicClient.Resource(schema.GroupVersionResource{
+			Version:  "v1",
+			Group:    "quota.openshift.io",
+			Resource: "clusterresourcequotas",
+		}).List(metav1.ListOptions{})
+		return listErr == nil, nil
+	}, stopCh)
+	if err != nil {
+		return fmt.Errorf("failed to wait for cluster resource quota CRD: %v", err)
+	}
+	return nil
 }
 
 // WaitForResourceQuotaLimitSync watches given resource quota until its hard limit is updated to match the desired
