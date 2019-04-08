@@ -9,7 +9,6 @@ import (
 
 	kubeauthorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -25,23 +24,18 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	appsapi "k8s.io/kubernetes/pkg/apis/apps"
 	extensionsapi "k8s.io/kubernetes/pkg/apis/extensions"
-	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 
 	oapps "github.com/openshift/api/apps"
 	"github.com/openshift/api/build"
 	"github.com/openshift/api/image"
 	"github.com/openshift/api/oauth"
-	appsv1client "github.com/openshift/client-go/apps/clientset/versioned"
-	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
-	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -207,54 +201,6 @@ func TestClusterReaderCoverage(t *testing.T) {
 	}
 }
 
-func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	defer testserver.CleanupMasterEtcd(t, masterConfig)
-
-	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	_, haroldConfig, err := testserver.CreateNewProject(clusterAdminClientConfig, "hammer-project", "harold")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	_, markConfig, err := testserver.CreateNewProject(clusterAdminClientConfig, "mallet-project", "mark")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	_, err = appsv1client.NewForConfigOrDie(haroldConfig).AppsV1().DeploymentConfigs("hammer-project").List(metav1.ListOptions{})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	_, err = appsv1client.NewForConfigOrDie(markConfig).AppsV1().DeploymentConfigs("hammer-project").List(metav1.ListOptions{})
-	if (err == nil) || !kapierror.IsForbidden(err) {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	// projects are a special case where a get of a project actually sets a namespace.  Make sure that
-	// the namespace is properly special cased and set for authorization rules
-	_, err = projectclient.NewForConfigOrDie(haroldConfig).Project().Projects().Get("hammer-project", metav1.GetOptions{})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	_, err = projectclient.NewForConfigOrDie(markConfig).Project().Projects().Get("hammer-project", metav1.GetOptions{})
-	if (err == nil) || !kapierror.IsForbidden(err) {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	// wait for the project authorization cache to catch the change.  It is on a one second period
-	waitForProject(t, projectv1client.NewForConfigOrDie(haroldConfig), "hammer-project", 1*time.Second, 10)
-	waitForProject(t, projectv1client.NewForConfigOrDie(markConfig), "mallet-project", 1*time.Second, 10)
-}
-
 // waitForProject will execute a client list of projects looking for the project with specified name
 // if not found, it will retry up to numRetries at the specified delayInterval
 func waitForProject(t *testing.T, client projectv1client.ProjectV1Interface, projectName string, delayInterval time.Duration, numRetries int) {
@@ -271,107 +217,6 @@ func waitForProject(t *testing.T, client projectv1client.ProjectV1Interface, pro
 		}
 	}
 	t.Errorf("expected project %v not found", projectName)
-}
-
-func TestAuthorizationResolution(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	defer testserver.CleanupMasterEtcd(t, masterConfig)
-
-	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	clusterAdminAuthorizationClient := rbacv1client.NewForConfigOrDie(clusterAdminClientConfig)
-
-	addValerie := &policy.RoleModificationOptions{
-		RoleName:   bootstrappolicy.ViewRoleName,
-		RoleKind:   "ClusterRole",
-		RbacClient: clusterAdminAuthorizationClient,
-		Users:      []string{"valerie"},
-		PrintFlags: genericclioptions.NewPrintFlags(""),
-		ToPrinter:  func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
-	}
-	if err := addValerie.AddRole(); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if err = clusterAdminAuthorizationClient.ClusterRoles().Delete(bootstrappolicy.ViewRoleName, nil); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	addEdgar := &policy.RoleModificationOptions{
-		RoleName:   bootstrappolicy.EditRoleName,
-		RoleKind:   "ClusterRole",
-		RbacClient: clusterAdminAuthorizationClient,
-		Users:      []string{"edgar"},
-		PrintFlags: genericclioptions.NewPrintFlags(""),
-		ToPrinter:  func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
-	}
-	if err := addEdgar.AddRole(); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if err := addValerie.AddRole(); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	roleWithGroup := &rbacv1.ClusterRole{}
-	roleWithGroup.Name = "with-group"
-	roleWithGroup.Rules = append(roleWithGroup.Rules,
-		rbacv1helpers.NewRule("list").
-			Groups(buildapi.GroupName).
-			Resources("builds").
-			RuleOrDie())
-	if _, err := clusterAdminAuthorizationClient.ClusterRoles().Create(roleWithGroup); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	addBuildLister := &policy.RoleModificationOptions{
-		RoleName:   "with-group",
-		RoleKind:   "ClusterRole",
-		RbacClient: clusterAdminAuthorizationClient,
-		Users:      []string{"build-lister"},
-		PrintFlags: genericclioptions.NewPrintFlags(""),
-		ToPrinter:  func(string) (printers.ResourcePrinter, error) { return printers.NewDiscardingPrinter(), nil },
-	}
-	if err := addBuildLister.AddRole(); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	clusterAdminConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	_, userClientConfig, err := testutil.GetClientForUser(clusterAdminConfig, "build-lister")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	buildClient := buildv1client.NewForConfigOrDie(userClientConfig)
-	appsClient := appsv1client.NewForConfigOrDie(userClientConfig)
-
-	// the authorization cache may not be up to date, retry
-	if err := wait.Poll(10*time.Millisecond, 2*time.Minute, func() (bool, error) {
-		_, err := buildClient.BuildV1().Builds(metav1.NamespaceDefault).List(metav1.ListOptions{})
-		if kapierror.IsForbidden(err) {
-			return false, nil
-		}
-		return err == nil, err
-	}); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if _, err := buildClient.BuildV1().Builds(metav1.NamespaceDefault).List(metav1.ListOptions{}); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if _, err := appsClient.AppsV1().DeploymentConfigs(metav1.NamespaceDefault).List(metav1.ListOptions{}); !kapierror.IsForbidden(err) {
-		t.Errorf("expected forbidden, got %v", err)
-	}
-
 }
 
 // This list includes the admins from above, plus users or groups known to have global view access

@@ -2,16 +2,11 @@ package integration
 
 import (
 	"fmt"
-	"path"
 	"testing"
 	"time"
 
-	etcd "github.com/coreos/etcd/client"
-	"golang.org/x/net/context"
-
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -21,13 +16,10 @@ import (
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	buildv1 "github.com/openshift/api/build/v1"
-	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
@@ -101,125 +93,6 @@ func TestProjectIsNamespace(t *testing.T) {
 	}
 	if project.Annotations["openshift.io/node-selector"] != namespace.Annotations["openshift.io/node-selector"] {
 		t.Fatalf("Project node selector did not match namespace node selector, project %v, namespace %v", project.Annotations["openshift.io/node-selector"], namespace.Annotations["openshift.io/node-selector"])
-	}
-}
-
-// TestProjectLifecycle verifies that content cannot be added in a project that does not exist
-// and that openshift content is cleaned up when a project is deleted.
-func TestProjectLifecycle(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	etcd3, err := testserver.MasterEtcdClients(masterConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	clusterAdminBuildClient := buildv1client.NewForConfigOrDie(clusterAdminClientConfig).BuildV1()
-
-	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	pod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: "pod"},
-		Spec: corev1.PodSpec{
-			Containers:    []corev1.Container{{Name: "ctr", Image: "image", ImagePullPolicy: "IfNotPresent"}},
-			RestartPolicy: corev1.RestartPolicyAlways,
-			DNSPolicy:     corev1.DNSClusterFirst,
-		},
-	}
-
-	_, err = clusterAdminKubeClientset.CoreV1().Pods("test").Create(pod)
-	if err == nil {
-		t.Errorf("Expected an error on creation of a Kubernetes resource because namespace does not exist")
-	}
-
-	build := &buildv1.Build{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "buildid",
-			Namespace: "test",
-			Labels: map[string]string{
-				buildutil.BuildConfigLabel:    "mock-build-config",
-				buildutil.BuildRunPolicyLabel: string(buildv1.BuildRunPolicyParallel),
-			},
-		},
-		Spec: buildv1.BuildSpec{
-			CommonSpec: buildv1.CommonSpec{
-				Source: buildv1.BuildSource{
-					Git: &buildv1.GitBuildSource{
-						URI: "http://github.com/my/repository",
-					},
-					ContextDir: "context",
-				},
-				Strategy: buildv1.BuildStrategy{
-					DockerStrategy: &buildv1.DockerBuildStrategy{},
-				},
-				Output: buildv1.BuildOutput{
-					To: &corev1.ObjectReference{
-						Kind: "DockerImage",
-						Name: "repository/data",
-					},
-				},
-			},
-		},
-		Status: buildv1.BuildStatus{
-			Phase: buildv1.BuildPhaseNew,
-		},
-	}
-
-	_, err = clusterAdminBuildClient.Builds("test").Create(build)
-	if err == nil {
-		t.Errorf("Expected an error on creation of a Origin resource because namespace does not exist")
-	}
-
-	_, err = clusterAdminKubeClientset.CoreV1().Namespaces().Create(&corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{Name: "test"},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = clusterAdminBuildClient.Builds("test").Create(build)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// confirm that we see the build in etcd
-	buildEtcdKey := path.Join("/", masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, "builds", "test", "buildid")
-	if _, err := etcd3.KV.Get(context.TODO(), buildEtcdKey); err != nil {
-		t.Fatal(err)
-	}
-
-	// delete the project, which should finalize our stuff
-	if err := clusterAdminKubeClientset.CoreV1().Namespaces().Delete("test", nil); err != nil {
-		t.Fatal(err)
-	}
-	err = wait.PollImmediate(30*time.Millisecond, 30*time.Second, func() (bool, error) {
-		var err error
-		_, err = clusterAdminKubeClientset.CoreV1().Namespaces().Get("test", metav1.GetOptions{})
-		if kapierrors.IsNotFound(err) {
-			return true, nil
-		}
-		if err != nil {
-			return false, err
-		}
-		return false, nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// confirm the build is gone in etcd
-	resp, err := etcd3.KV.Get(context.TODO(), buildEtcdKey)
-	if !(etcd.IsKeyNotFound(err) || (resp != nil && len(resp.Kvs) == 0)) {
-		t.Fatalf("didn't delete the build: %v %#v", err, resp.Kvs)
 	}
 }
 

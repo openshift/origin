@@ -3,14 +3,12 @@ package integration
 import (
 	"encoding/json"
 	"os"
-	"reflect"
 	"strings"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/client-go/kubernetes"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
@@ -24,83 +22,8 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func TestImageStreamList(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	defer testserver.CleanupMasterEtcd(t, masterConfig)
-
-	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig).Image()
-
-	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	builds, err := clusterAdminImageClient.ImageStreams(testutil.Namespace()).List(metav1.ListOptions{})
-	if err != nil {
-		t.Fatalf("Unexpected error %v", err)
-	}
-	if len(builds.Items) != 0 {
-		t.Errorf("Expected no builds, got %#v", builds.Items)
-	}
-}
-
 func mockImageStream() *imageapi.ImageStream {
 	return &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: "test"}}
-}
-
-func TestImageStreamCreate(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	defer testserver.CleanupMasterEtcd(t, masterConfig)
-
-	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig).Image()
-	err = testutil.CreateNamespace(clusterAdminKubeConfig, testutil.Namespace())
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	stream := mockImageStream()
-
-	if _, err := clusterAdminImageClient.ImageStreams(testutil.Namespace()).Create(&imageapi.ImageStream{}); err == nil || !errors.IsInvalid(err) {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-
-	expected, err := clusterAdminImageClient.ImageStreams(testutil.Namespace()).Create(stream)
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	if expected.Name == "" {
-		t.Errorf("Unexpected empty image Name %v", expected)
-	}
-
-	actual, err := clusterAdminImageClient.ImageStreams(testutil.Namespace()).Get(stream.Name, metav1.GetOptions{})
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
-	if !reflect.DeepEqual(expected, actual) {
-		t.Errorf("unexpected object: %s", diff.ObjectDiff(expected, actual))
-	}
-
-	streams, err := clusterAdminImageClient.ImageStreams(testutil.Namespace()).List(metav1.ListOptions{})
-	if err != nil {
-		t.Fatalf("Unexpected error %v", err)
-	}
-	if len(streams.Items) != 1 {
-		t.Errorf("Expected one image, got %#v", streams.Items)
-	}
 }
 
 func TestImageStreamMappingCreate(t *testing.T) {
