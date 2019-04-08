@@ -12,20 +12,20 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 )
 
-// pathSpec represents a path (remote or local) given as a source or destination
+// PathSpec represents a path (remote or local) given as a source or destination
 // argument to the rsync command
-type pathSpec struct {
+type PathSpec struct {
 	PodName string
 	Path    string
 }
 
 // Local returns true if the path is a local machine path
-func (s *pathSpec) Local() bool {
+func (s *PathSpec) Local() bool {
 	return len(s.PodName) == 0
 }
 
 // RsyncPath returns a pathSpec in the form that can be used directly by the OS rsync command
-func (s *pathSpec) RsyncPath() string {
+func (s *PathSpec) RsyncPath() string {
 	if len(s.PodName) > 0 {
 		return fmt.Sprintf("%s:%s", s.PodName, s.Path)
 	}
@@ -36,7 +36,7 @@ func (s *pathSpec) RsyncPath() string {
 }
 
 // Validate returns an error if the pathSpec is not valid.
-func (s *pathSpec) Validate() error {
+func (s *PathSpec) Validate() error {
 	if s.Local() {
 		info, err := os.Stat(s.Path)
 		if err != nil {
@@ -61,17 +61,17 @@ func isPathForPod(path string) bool {
 }
 
 // parsePathSpec parses a string argument into a pathSpec object
-func parsePathSpec(path string) (*pathSpec, error) {
+func parsePathSpec(path string) (*PathSpec, error) {
 	parts := strings.SplitN(path, ":", 2)
 	if !isPathForPod(path) {
-		return &pathSpec{
+		return &PathSpec{
 			Path: path,
 		}, nil
 	}
 	if reasons := kvalidation.ValidatePodName(parts[0], false); len(reasons) != 0 {
 		return nil, fmt.Errorf("invalid pod name %s: %s", parts[0], strings.Join(reasons, ", "))
 	}
-	return &pathSpec{
+	return &PathSpec{
 		PodName: parts[0],
 		Path:    parts[1],
 	}, nil

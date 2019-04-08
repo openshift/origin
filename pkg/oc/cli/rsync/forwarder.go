@@ -8,7 +8,6 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
 // portForwarder starts port forwarding to a given pod
@@ -53,21 +52,13 @@ func (f *portForwarder) ForwardPorts(ports []string, stopChan <-chan struct{}) e
 }
 
 // newPortForwarder creates a new forwarder for use with rsync
-func newPortForwarder(f kcmdutil.Factory, o *RsyncOptions) (forwarder, error) {
-	config, err := f.ToRESTConfig()
-	if err != nil {
-		return nil, err
-	}
-	client, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
+func newPortForwarder(o *RsyncOptions) forwarder {
 	return &portForwarder{
 		Namespace: o.Namespace,
 		PodName:   o.PodName(),
-		Client:    client,
-		Config:    config,
+		Client:    o.Client,
+		Config:    o.Config,
 		Out:       o.Out,
 		ErrOut:    o.ErrOut,
-	}, nil
+	}
 }

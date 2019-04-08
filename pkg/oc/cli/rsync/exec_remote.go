@@ -10,7 +10,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	kexec "k8s.io/kubernetes/pkg/kubectl/cmd/exec"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
 // remoteExecutor will execute commands on a given pod/container by using the kube Exec command
@@ -59,22 +58,13 @@ func (e *remoteExecutor) Execute(command []string, in io.Reader, out, errOut io.
 	return err
 }
 
-func newRemoteExecutor(f kcmdutil.Factory, o *RsyncOptions) (executor, error) {
-	config, err := f.ToRESTConfig()
-	if err != nil {
-		return nil, err
-	}
-	client, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-
+func newRemoteExecutor(o *RsyncOptions) executor {
 	return &remoteExecutor{
 		Namespace:         o.Namespace,
 		PodName:           o.PodName(),
 		ContainerName:     o.ContainerName,
 		SuggestedCmdUsage: o.SuggestedCmdUsage,
-		Config:            config,
-		Client:            client,
-	}, nil
+		Config:            o.Config,
+		Client:            o.Client,
+	}
 }
