@@ -19,11 +19,16 @@ package responsewriters
 import (
 	"fmt"
 	"net/http"
+	"runtime/debug"
+
+	"github.com/davecgh/go-spew/spew"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/storage"
 )
+
+var config = spew.ConfigState{Indent: "\t", MaxDepth: 0, DisableMethods: true}
 
 // statusError is an object that can be converted into an metav1.Status
 type statusError interface {
@@ -61,7 +66,8 @@ func ErrorToAPIStatus(err error) *metav1.Status {
 		// by REST storage - these typically indicate programmer
 		// error by not using pkg/api/errors, or unexpected failure
 		// cases.
-		runtime.HandleError(fmt.Errorf("apiserver received an error that is not an metav1.Status: %#+v", err))
+		runtime.HandleError(fmt.Errorf("apiserver received an error that is not an metav1.Status: %s", config.Sdump(err)))
+		debug.PrintStack()
 		return &metav1.Status{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Status",
