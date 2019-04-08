@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/klog"
 
@@ -46,6 +47,12 @@ func init() {
 	prometheus.MustRegister(authenticatedUserCounter)
 }
 
+var config = spew.ConfigState{Indent: "\t", MaxDepth: 5, DisableMethods: true}
+
+func log(args ...interface{}) {
+	klog.ErrorDepth(1, "ENJ:\n", config.Sdump(args...))
+}
+
 // WithAuthentication creates an http handler that tries to authenticate the given request as a user, and then
 // stores any such user found onto the provided context for the request. If authentication fails or returns an error
 // the failed handler is used. On success, "Authorization" header is removed from the request and handler
@@ -61,6 +68,8 @@ func WithAuthentication(handler http.Handler, auth authenticator.Request, failed
 		}
 		resp, ok, err := auth.AuthenticateRequest(req)
 		if err != nil || !ok {
+			log(resp, ok, err, req, w)
+
 			if err != nil {
 				klog.Errorf("Unable to authenticate the request due to an error: %v", err)
 			}

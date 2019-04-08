@@ -65,10 +65,14 @@ func WithAuthorization(handler http.Handler, a authorizer.Authorizer, s runtime.
 			return
 		}
 		if err != nil {
+			log(authorized, reason, err, attributes, ae, req, w)
+
 			audit.LogAnnotation(ae, reasonAnnotationKey, reasonError)
 			responsewriters.InternalError(w, req, err)
 			return
 		}
+
+		log(authorized, reason, err, attributes, ae, req, w)
 
 		klog.V(4).Infof("Forbidden: %#v, Reason: %q", req.RequestURI, reason)
 		audit.LogAnnotation(ae, decisionAnnotationKey, decisionForbid)
