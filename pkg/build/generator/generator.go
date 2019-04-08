@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -222,7 +222,7 @@ func (g *BuildGenerator) Instantiate(ctx context.Context, request *buildv1.Build
 	for i := 0; i < conflictRetries; i++ {
 		build, err = g.instantiate(ctx, request)
 		if errors.IsConflict(err) {
-			glog.V(4).Infof("instantiate returned conflict, try %d/%d", i+1, conflictRetries)
+			klog.V(4).Infof("instantiate returned conflict, try %d/%d", i+1, conflictRetries)
 			continue
 		}
 		if err != nil {
@@ -236,7 +236,7 @@ func (g *BuildGenerator) Instantiate(ctx context.Context, request *buildv1.Build
 }
 
 func (g *BuildGenerator) instantiate(ctx context.Context, request *buildv1.BuildRequest) (*buildv1.Build, error) {
-	glog.V(4).Infof("Generating Build from %s", describeBuildRequest(request))
+	klog.V(4).Infof("Generating Build from %s", describeBuildRequest(request))
 	bc, err := g.Client.GetBuildConfig(ctx, request.Name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -310,12 +310,12 @@ func (g *BuildGenerator) instantiate(ctx context.Context, request *buildv1.Build
 			newBuild.Spec.Strategy.SourceStrategy.Incremental = sourceOpts.Incremental
 		}
 	}
-	glog.V(4).Infof("Build %s/%s has been generated from %s/%s BuildConfig", newBuild.Namespace, newBuild.ObjectMeta.Name, bc.Namespace, bc.ObjectMeta.Name)
+	klog.V(4).Infof("Build %s/%s has been generated from %s/%s BuildConfig", newBuild.Namespace, newBuild.ObjectMeta.Name, bc.Namespace, bc.ObjectMeta.Name)
 
 	// need to update the BuildConfig because LastVersion and possibly
 	// LastTriggeredImageID changed
 	if err := g.Client.UpdateBuildConfig(ctx, bc); err != nil {
-		glog.V(4).Infof("Failed to update BuildConfig %s/%s so no Build will be created", bc.Namespace, bc.Name)
+		klog.V(4).Infof("Failed to update BuildConfig %s/%s so no Build will be created", bc.Namespace, bc.Name)
 		return nil, err
 	}
 
@@ -331,7 +331,7 @@ func (g *BuildGenerator) instantiate(ctx context.Context, request *buildv1.Build
 // when lastVersion is not nil
 func (g *BuildGenerator) checkLastVersion(bc *buildv1.BuildConfig, lastVersion *int64) error {
 	if lastVersion != nil && bc.Status.LastVersion != *lastVersion {
-		glog.V(2).Infof("Aborting version triggered build for BuildConfig %s/%s because the BuildConfig LastVersion (%d) does not match the requested LastVersion (%d)", bc.Namespace, bc.Name, bc.Status.LastVersion, *lastVersion)
+		klog.V(2).Infof("Aborting version triggered build for BuildConfig %s/%s because the BuildConfig LastVersion (%d) does not match the requested LastVersion (%d)", bc.Namespace, bc.Name, bc.Status.LastVersion, *lastVersion)
 		return fmt.Errorf("the LastVersion(%v) on build config %s/%s does not match the build request LastVersion(%d)",
 			bc.Status.LastVersion, bc.Namespace, bc.Name, *lastVersion)
 	}
@@ -346,7 +346,7 @@ func (g *BuildGenerator) updateImageTriggers(ctx context.Context, bc *buildv1.Bu
 		requestTrigger = findImageChangeTrigger(bc, from)
 	}
 	if requestTrigger != nil && triggeredBy != nil && requestTrigger.LastTriggeredImageID == triggeredBy.Name {
-		glog.V(2).Infof("Aborting imageid triggered build for BuildConfig %s/%s with imageid %s because the BuildConfig already matches this imageid", bc.Namespace, bc.Name, triggeredBy.Name)
+		klog.V(2).Infof("Aborting imageid triggered build for BuildConfig %s/%s with imageid %s because the BuildConfig already matches this imageid", bc.Namespace, bc.Name, triggeredBy.Name)
 		return fmt.Errorf("build config %s/%s has already instantiated a build for imageid %s", bc.Namespace, bc.Name, triggeredBy.Name)
 	}
 	// Update last triggered image id for all image change triggers
@@ -365,7 +365,7 @@ func (g *BuildGenerator) updateImageTriggers(ctx context.Context, bc *buildv1.Bu
 			triggerImageRef = buildutil.GetInputReference(bc.Spec.Strategy)
 		}
 		if triggerImageRef == nil {
-			glog.Warningf("Could not get ImageStream reference for default ImageChangeTrigger on BuildConfig %s/%s", bc.Namespace, bc.Name)
+			klog.Warningf("Could not get ImageStream reference for default ImageChangeTrigger on BuildConfig %s/%s", bc.Namespace, bc.Name)
 			continue
 		}
 		image, err := g.resolveImageStreamReference(ctx, *triggerImageRef, bc.Namespace)
@@ -375,7 +375,7 @@ func (g *BuildGenerator) updateImageTriggers(ctx context.Context, bc *buildv1.Bu
 				return err
 			}
 			// Otherwise, warn that an error occurred, but continue
-			glog.Warningf("Could not resolve trigger reference for build config %s/%s: %#v", bc.Namespace, bc.Name, triggerImageRef)
+			klog.Warningf("Could not resolve trigger reference for build config %s/%s: %#v", bc.Namespace, bc.Name, triggerImageRef)
 		}
 		trigger.ImageChange.LastTriggeredImageID = image
 	}
@@ -410,14 +410,14 @@ func (g *BuildGenerator) Clone(ctx context.Context, request *buildv1.BuildReques
 		if err == nil || !errors.IsConflict(err) {
 			break
 		}
-		glog.V(4).Infof("clone returned conflict, try %d/%d", i+1, conflictRetries)
+		klog.V(4).Infof("clone returned conflict, try %d/%d", i+1, conflictRetries)
 	}
 
 	return build, err
 }
 
 func (g *BuildGenerator) clone(ctx context.Context, request *buildv1.BuildRequest) (*buildv1.Build, error) {
-	glog.V(4).Infof("Generating build from build %s/%s", request.Namespace, request.Name)
+	klog.V(4).Infof("Generating build from build %s/%s", request.Namespace, request.Name)
 	build, err := g.Client.GetBuild(ctx, request.Name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -436,7 +436,7 @@ func (g *BuildGenerator) clone(ctx context.Context, request *buildv1.BuildReques
 	}
 
 	newBuild := generateBuildFromBuild(build, buildConfig)
-	glog.V(4).Infof("Build %s/%s has been generated from Build %s/%s", newBuild.Namespace, newBuild.ObjectMeta.Name, build.Namespace, build.ObjectMeta.Name)
+	klog.V(4).Infof("Build %s/%s has been generated from Build %s/%s", newBuild.Namespace, newBuild.ObjectMeta.Name, build.Namespace, build.ObjectMeta.Name)
 
 	// Copy build trigger information to the build object.
 	newBuild.Spec.TriggeredBy = request.TriggeredBy
@@ -459,7 +459,7 @@ func (g *BuildGenerator) clone(ctx context.Context, request *buildv1.BuildReques
 	// need to update the BuildConfig because LastVersion changed
 	if buildConfig != nil {
 		if err := g.Client.UpdateBuildConfig(ctx, buildConfig); err != nil {
-			glog.V(4).Infof("Failed to update BuildConfig %s/%s so no Build will be created", buildConfig.Namespace, buildConfig.Name)
+			klog.V(4).Infof("Failed to update BuildConfig %s/%s so no Build will be created", buildConfig.Namespace, buildConfig.Name)
 			return nil, err
 		}
 	}
@@ -663,50 +663,50 @@ func (g *BuildGenerator) resolveImageStreamReference(ctx context.Context, from c
 		namespace = defaultNamespace
 	}
 
-	glog.V(4).Infof("Resolving ImageStreamReference %s of Kind %s in namespace %s", from.Name, from.Kind, namespace)
+	klog.V(4).Infof("Resolving ImageStreamReference %s of Kind %s in namespace %s", from.Name, from.Kind, namespace)
 	switch from.Kind {
 	case "ImageStreamImage":
 		name, id, err := imageutil.ParseImageStreamImageName(from.Name)
 		if err != nil {
 			err = resolveError(from.Kind, namespace, from.Name, err)
-			glog.V(2).Info(err)
+			klog.V(2).Info(err)
 			return "", err
 		}
 		stream, err := g.Client.GetImageStream(apirequest.WithNamespace(ctx, namespace), name, &metav1.GetOptions{})
 		if err != nil {
 			err = resolveError(from.Kind, namespace, from.Name, err)
-			glog.V(2).Info(err)
+			klog.V(2).Info(err)
 			return "", err
 		}
 		reference, ok := imageutil.DockerImageReferenceForImage(stream, id)
 		if !ok {
 			err = resolveError(from.Kind, namespace, from.Name, fmt.Errorf("unable to find corresponding tag for image %q", id))
-			glog.V(2).Info(err)
+			klog.V(2).Info(err)
 			return "", err
 		}
-		glog.V(4).Infof("Resolved ImageStreamImage %s to image %q", from.Name, reference)
+		klog.V(4).Infof("Resolved ImageStreamImage %s to image %q", from.Name, reference)
 		return reference, nil
 
 	case "ImageStreamTag":
 		name, tag, err := imageutil.ParseImageStreamTagName(from.Name)
 		if err != nil {
 			err = resolveError(from.Kind, namespace, from.Name, err)
-			glog.V(2).Info(err)
+			klog.V(2).Info(err)
 			return "", err
 		}
 		stream, err := g.Client.GetImageStream(apirequest.WithNamespace(ctx, namespace), name, &metav1.GetOptions{})
 		if err != nil {
 			err = resolveError(from.Kind, namespace, from.Name, err)
-			glog.V(2).Info(err)
+			klog.V(2).Info(err)
 			return "", err
 		}
 		reference, ok := imageutil.ResolveLatestTaggedImage(stream, tag)
 		if !ok {
 			err = resolveError(from.Kind, namespace, from.Name, fmt.Errorf("unable to find latest tagged image"))
-			glog.V(2).Info(err)
+			klog.V(2).Info(err)
 			return "", err
 		}
-		glog.V(4).Infof("Resolved ImageStreamTag %s to image %q", from.Name, reference)
+		klog.V(4).Infof("Resolved ImageStreamTag %s to image %q", from.Name, reference)
 		return reference, nil
 	case "DockerImage":
 		return from.Name, nil
@@ -723,32 +723,32 @@ func (g *BuildGenerator) resolveImageStreamDockerRepository(ctx context.Context,
 		namespace = from.Namespace
 	}
 
-	glog.V(4).Infof("Resolving ImageStreamReference %s of Kind %s in namespace %s", from.Name, from.Kind, namespace)
+	klog.V(4).Infof("Resolving ImageStreamReference %s of Kind %s in namespace %s", from.Name, from.Kind, namespace)
 	switch from.Kind {
 	case "ImageStreamImage":
 		imageStreamImage, err := g.Client.GetImageStreamImage(apirequest.WithNamespace(ctx, namespace), from.Name, &metav1.GetOptions{})
 		if err != nil {
 			err = resolveError(from.Kind, namespace, from.Name, err)
-			glog.V(2).Info(err)
+			klog.V(2).Info(err)
 			return "", err
 		}
 		image := imageStreamImage.Image
-		glog.V(4).Infof("Resolved ImageStreamReference %s to image %s with reference %s in namespace %s", from.Name, image.Name, image.DockerImageReference, namespace)
+		klog.V(4).Infof("Resolved ImageStreamReference %s to image %s with reference %s in namespace %s", from.Name, image.Name, image.DockerImageReference, namespace)
 		return image.DockerImageReference, nil
 	case "ImageStreamTag":
 		name := strings.Split(from.Name, ":")[0]
 		is, err := g.Client.GetImageStream(apirequest.WithNamespace(ctx, namespace), name, &metav1.GetOptions{})
 		if err != nil {
 			err = resolveError("ImageStream", namespace, from.Name, err)
-			glog.V(2).Info(err)
+			klog.V(2).Info(err)
 			return "", err
 		}
 		image, err := imageutil.DockerImageReferenceForStream(is)
 		if err != nil {
-			glog.V(2).Infof("Error resolving Docker image reference for %s/%s: %v", namespace, name, err)
+			klog.V(2).Infof("Error resolving Docker image reference for %s/%s: %v", namespace, name, err)
 			return "", err
 		}
-		glog.V(4).Infof("Resolved ImageStreamTag %s/%s to repository %s", namespace, from.Name, image)
+		klog.V(4).Infof("Resolved ImageStreamTag %s/%s to repository %s", namespace, from.Name, image)
 		return image.String(), nil
 	case "DockerImage":
 		return from.Name, nil
@@ -766,12 +766,12 @@ func (g *BuildGenerator) resolveImageSecret(ctx context.Context, secrets []corev
 	// Get the image pull spec from the image stream reference
 	imageSpec, err := g.resolveImageStreamDockerRepository(ctx, *imageRef, buildNamespace)
 	if err != nil {
-		glog.V(2).Infof("Unable to resolve the image name for %s/%s: %v", buildNamespace, imageRef, err)
+		klog.V(2).Infof("Unable to resolve the image name for %s/%s: %v", buildNamespace, imageRef, err)
 		return nil
 	}
 	s := findDockerSecretAsInternalReference(secrets, imageSpec)
 	if s == nil {
-		glog.V(4).Infof("No secrets found for pushing or pulling the %s  %s/%s", imageRef.Kind, buildNamespace, imageRef.Name)
+		klog.V(4).Infof("No secrets found for pushing or pulling the %s  %s/%s", imageRef.Kind, buildNamespace, imageRef.Name)
 	}
 	return s
 }
@@ -789,7 +789,7 @@ func findDockerSecretAsInternalReference(secrets []corev1.Secret, image string) 
 		secretList := []corev1.Secret{externalSecret}
 		keyring, err := credentialprovidersecrets.MakeDockerKeyring(secretList, &emptyKeyring)
 		if err != nil {
-			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
+			klog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
 			continue
 		}
 		if _, found := keyring.Lookup(image); found {
@@ -832,11 +832,11 @@ func updateCustomImageEnv(strategy *buildv1.CustomBuildStrategy, newImage string
 	} else {
 		found := false
 		for i := range strategy.Env {
-			glog.V(4).Infof("Checking env variable %s %s", strategy.Env[i].Name, strategy.Env[i].Value)
+			klog.V(4).Infof("Checking env variable %s %s", strategy.Env[i].Name, strategy.Env[i].Value)
 			if strategy.Env[i].Name == buildutil.CustomBuildStrategyBaseImageKey {
 				found = true
 				strategy.Env[i].Value = newImage
-				glog.V(4).Infof("Updated env variable %s to %s", strategy.Env[i].Name, strategy.Env[i].Value)
+				klog.V(4).Infof("Updated env variable %s to %s", strategy.Env[i].Name, strategy.Env[i].Value)
 				break
 			}
 		}

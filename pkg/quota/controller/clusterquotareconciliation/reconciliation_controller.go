@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -131,7 +131,7 @@ func NewClusterQuotaReconcilationController(options ClusterQuotaReconcilationCon
 func (c *ClusterQuotaReconcilationController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 
-	glog.Infof("Starting the cluster quota reconciliation controller")
+	klog.Infof("Starting the cluster quota reconciliation controller")
 
 	// the controllers that replenish other resources to respond rapidly to state changes
 	go c.quotaMonitor.Run(stopCh)
@@ -149,7 +149,7 @@ func (c *ClusterQuotaReconcilationController) Run(workers int, stopCh <-chan str
 	go wait.Until(func() { c.calculateAll() }, c.resyncPeriod, stopCh)
 
 	<-stopCh
-	glog.Infof("Shutting down ClusterQuotaReconcilationController")
+	klog.Infof("Shutting down ClusterQuotaReconcilationController")
 	c.queue.ShutDown()
 }
 
@@ -176,12 +176,12 @@ func (c *ClusterQuotaReconcilationController) Sync(discoveryFunc resourcequota.N
 
 		// Decide whether discovery has reported a change.
 		if reflect.DeepEqual(oldResources, newResources) {
-			glog.V(4).Infof("no resource updates from discovery, skipping resource quota sync")
+			klog.V(4).Infof("no resource updates from discovery, skipping resource quota sync")
 			return
 		}
 
 		// Something has changed, so track the new state and perform a sync.
-		glog.V(2).Infof("syncing resource quota controller with updated resources from discovery: %v", newResources)
+		klog.V(2).Infof("syncing resource quota controller with updated resources from discovery: %v", newResources)
 		oldResources = newResources
 
 		// Ensure workers are paused to avoid processing events before informers
@@ -304,7 +304,7 @@ func (c *ClusterQuotaReconcilationController) worker() {
 
 	for {
 		if quit := workFunc(); quit {
-			glog.Infof("resource quota controller worker shutting down")
+			klog.Infof("resource quota controller worker shutting down")
 			return
 		}
 	}

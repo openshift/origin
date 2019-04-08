@@ -7,18 +7,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 func addNamespaceRole(namespaceRoles map[string][]rbacv1.Role, namespace string, role rbacv1.Role) {
 	if namespace != "openshift" && !strings.HasPrefix(namespace, "openshift-") {
-		glog.Fatalf(`roles can only be bootstrapped into reserved "openshift" namespace or namespaces starting with "openshift-", not %q`, namespace)
+		klog.Fatalf(`roles can only be bootstrapped into reserved "openshift" namespace or namespaces starting with "openshift-", not %q`, namespace)
 	}
 
 	existingRoles := namespaceRoles[namespace]
 	for _, existingRole := range existingRoles {
 		if role.Name == existingRole.Name {
-			glog.Fatalf("role %q was already registered in %q", role.Name, namespace)
+			klog.Fatalf("role %q was already registered in %q", role.Name, namespace)
 		}
 	}
 
@@ -30,13 +30,13 @@ func addNamespaceRole(namespaceRoles map[string][]rbacv1.Role, namespace string,
 
 func addNamespaceRoleBinding(namespaceRoleBindings map[string][]rbacv1.RoleBinding, namespace string, roleBinding rbacv1.RoleBinding) {
 	if namespace != "openshift" && !strings.HasPrefix(namespace, "openshift-") {
-		glog.Fatalf(`role bindings can only be bootstrapped into reserved "openshift" namespace or namespaces starting with "openshift-", not %q`, namespace)
+		klog.Fatalf(`role bindings can only be bootstrapped into reserved "openshift" namespace or namespaces starting with "openshift-", not %q`, namespace)
 	}
 
 	existingRoleBindings := namespaceRoleBindings[namespace]
 	for _, existingRoleBinding := range existingRoleBindings {
 		if roleBinding.Name == existingRoleBinding.Name {
-			glog.Fatalf("rolebinding %q was already registered in %q", roleBinding.Name, namespace)
+			klog.Fatalf("rolebinding %q was already registered in %q", roleBinding.Name, namespace)
 		}
 	}
 

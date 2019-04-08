@@ -3,7 +3,7 @@ package sort
 import (
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -90,7 +90,7 @@ func pointValue(constraint *securityv1.SecurityContextConstraints) points {
 	if found {
 		totalPoints += points
 	} else {
-		glog.Warningf("SELinuxContext type %q has no point value, this may cause issues in sorting SCCs by restriction", strategyType)
+		klog.Warningf("SELinuxContext type %q has no point value, this may cause issues in sorting SCCs by restriction", strategyType)
 	}
 
 	strategyType = string(constraint.RunAsUser.Type)
@@ -98,7 +98,7 @@ func pointValue(constraint *securityv1.SecurityContextConstraints) points {
 	if found {
 		totalPoints += points
 	} else {
-		glog.Warningf("RunAsUser type %q has no point value, this may cause issues in sorting SCCs by restriction", strategyType)
+		klog.Warningf("RunAsUser type %q has no point value, this may cause issues in sorting SCCs by restriction", strategyType)
 	}
 
 	return totalPoints

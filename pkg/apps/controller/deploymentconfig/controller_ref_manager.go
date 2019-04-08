@@ -3,7 +3,6 @@ package deploymentconfig
 import (
 	"fmt"
 
-	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,6 +12,7 @@ import (
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 )
 
@@ -152,7 +152,7 @@ func (m *RCControllerRefManager) AdoptReplicationController(rs *v1.ReplicationCo
 // ReleaseReplicationController sends a patch to free the ReplicationController from the control of the Deployment controller.
 // It returns the error if the patching fails. 404 and 422 errors are ignored.
 func (m *RCControllerRefManager) ReleaseReplicationController(rc *v1.ReplicationController) error {
-	glog.V(4).Infof("patching ReplicationController %s/%s to remove its controllerRef to %s/%s:%s",
+	klog.V(4).Infof("patching ReplicationController %s/%s to remove its controllerRef to %s/%s:%s",
 		rc.Namespace, rc.Name, m.controllerKind.GroupVersion(), m.controllerKind.Kind, m.Controller.GetName())
 	deleteOwnerRefPatch := fmt.Sprintf(`{"metadata":{"ownerReferences":[{"$patch":"delete","uid":"%s"}],"uid":"%s"}}`, m.Controller.GetUID(), rc.UID)
 	err := m.rcControl.PatchReplicationController(rc.Namespace, rc.Name, []byte(deleteOwnerRefPatch))

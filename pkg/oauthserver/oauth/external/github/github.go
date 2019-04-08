@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/RangelReale/osincli"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/external"
@@ -187,7 +187,7 @@ func (p *provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdenti
 		if !userOrgs.HasAny(p.allowedOrganizations.List()...) {
 			return nil, false, fmt.Errorf("User %s is not a member of any allowed organizations %v (user is a member of %v)", userdata.Login, p.allowedOrganizations.List(), userOrgs.List())
 		}
-		glog.V(4).Infof("User %s is a member of organizations %v)", userdata.Login, userOrgs.List())
+		klog.V(4).Infof("User %s is a member of organizations %v)", userdata.Login, userOrgs.List())
 	}
 	if len(p.allowedTeams) > 0 {
 		userTeams, err := p.getUserTeams(data.AccessToken)
@@ -198,7 +198,7 @@ func (p *provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdenti
 		if !userTeams.HasAny(p.allowedTeams.List()...) {
 			return nil, false, fmt.Errorf("User %s is not a member of any allowed teams %v (user is a member of %v)", userdata.Login, p.allowedTeams.List(), userTeams.List())
 		}
-		glog.V(4).Infof("User %s is a member of teams %v)", userdata.Login, userTeams.List())
+		klog.V(4).Infof("User %s is a member of teams %v)", userdata.Login, userTeams.List())
 	}
 
 	// The returned email is empty if the user has not specified a public email address in their profile
@@ -207,7 +207,7 @@ func (p *provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdenti
 		if err == nil {
 			userdata.Email = email
 		} else {
-			glog.V(4).Infof("Failed to get user email information %#v", err)
+			klog.V(4).Infof("Failed to get user email information %#v", err)
 		}
 	}
 
@@ -221,7 +221,7 @@ func (p *provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdenti
 	if len(userdata.Email) > 0 {
 		identity.Extra[authapi.IdentityEmailKey] = userdata.Email
 	}
-	glog.V(4).Infof("Got identity=%#v", identity)
+	klog.V(4).Infof("Got identity=%#v", identity)
 
 	return identity, true, nil
 }

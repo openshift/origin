@@ -12,8 +12,8 @@ import (
 
 	"k8s.io/apiserver/pkg/admission/initializer"
 
-	"github.com/golang/glog"
 	"github.com/hashicorp/golang-lru"
+	"k8s.io/klog"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -59,7 +59,7 @@ func Register(plugins *admission.Plugins) {
 			if errs := validation.Validate(config); len(errs) > 0 {
 				return nil, errs.ToAggregate()
 			}
-			glog.V(5).Infof("%s admission controller loaded with config: %#v", imagepolicy.PluginName, config)
+			klog.V(5).Infof("%s admission controller loaded with config: %#v", imagepolicy.PluginName, config)
 			return newImagePolicyPlugin(config)
 		})
 }
@@ -188,7 +188,7 @@ func (a *imagePolicyPlugin) admit(attr admission.Attributes, mutationAllowed boo
 		return nil
 	}
 
-	glog.V(5).Infof("running image policy admission for %s:%s/%s", attr.GetKind(), attr.GetNamespace(), attr.GetName())
+	klog.V(5).Infof("running image policy admission for %s:%s/%s", attr.GetKind(), attr.GetNamespace(), attr.GetName())
 	m, err := internalimagereferencemutators.GetImageReferenceMutator(attr.GetObject(), attr.GetOldObject())
 	if err != nil {
 		return apierrs.NewForbidden(schemagr, attr.GetName(), fmt.Errorf("unable to apply image policy against objects of type %T: %v", attr.GetObject(), err))
@@ -228,7 +228,7 @@ func (m *mutationPreventer) Mutate(fn internalimagereferencemutators.ImageRefere
 			return fmt.Errorf("error in image policy validation: %v", err)
 		}
 		if !reflect.DeepEqual(ref, original) {
-			glog.V(2).Infof("disallowed mutation in image policy validation: %s", diff.ObjectGoPrintSideBySide(original, ref))
+			klog.V(2).Infof("disallowed mutation in image policy validation: %s", diff.ObjectGoPrintSideBySide(original, ref))
 			return fmt.Errorf("this image is prohibited by policy (changed after admission)")
 		}
 		return nil
@@ -361,7 +361,7 @@ func (c *imageResolutionCache) resolveImageStreamTag(namespace, name, tag string
 		if isImageStreamTagNotFound(err) {
 			if stream, err := c.imageClient.ImageStreams(namespace).Get(name, metav1.GetOptions{}); err == nil && (forceResolveLocalNames || stream.Spec.LookupPolicy.Local) && len(stream.Status.DockerImageRepository) > 0 {
 				if ref, err := imageapi.ParseDockerImageReference(stream.Status.DockerImageRepository); err == nil {
-					glog.V(4).Infof("%s/%s:%s points to a local name resolving stream, but the tag does not exist", namespace, name, tag)
+					klog.V(4).Infof("%s/%s:%s points to a local name resolving stream, but the tag does not exist", namespace, name, tag)
 					ref.Tag = tag
 					attrs.Name = ref
 					attrs.LocalRewrite = true

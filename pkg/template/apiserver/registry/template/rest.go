@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,7 +60,7 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 	}
 	processor := templateprocessing.NewProcessor(generators)
 	if errs := processor.Process(tpl); len(errs) > 0 {
-		glog.V(1).Infof(errs.ToAggregate().Error())
+		klog.V(1).Infof(errs.ToAggregate().Error())
 		return nil, errors.NewInvalid(template.Kind("Template"), tpl.Name, errs)
 	}
 

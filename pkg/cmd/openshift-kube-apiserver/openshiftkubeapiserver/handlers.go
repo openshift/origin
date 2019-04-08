@@ -9,7 +9,7 @@ import (
 	"regexp"
 
 	"github.com/emicklei/go-restful"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	authenticationv1 "k8s.io/api/authentication/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -69,7 +69,7 @@ func versionSkewFilter(handler http.Handler, userAgentMatchingConfig kubecontrol
 	for _, config := range filterConfig.RequiredClients {
 		userAgentFilter, err := newUserAgentFilter(config)
 		if err != nil {
-			glog.Errorf("Failure to compile User-Agent regex %v: %v", config.Regex, err)
+			klog.Errorf("Failure to compile User-Agent regex %v: %v", config.Regex, err)
 			continue
 		}
 
@@ -78,7 +78,7 @@ func versionSkewFilter(handler http.Handler, userAgentMatchingConfig kubecontrol
 	for _, config := range filterConfig.DeniedClients {
 		userAgentFilter, err := newUserAgentFilter(config.UserAgentMatchRule)
 		if err != nil {
-			glog.Errorf("Failure to compile User-Agent regex %v: %v", config.Regex, err)
+			klog.Errorf("Failure to compile User-Agent regex %v: %v", config.Regex, err)
 			continue
 		}
 		userAgentFilter.message = config.RejectionMessage

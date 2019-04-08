@@ -3,7 +3,7 @@ package deployments
 import (
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -50,7 +50,7 @@ type PrunerOptions struct {
 // NewPruner returns a Pruner over specified data using specified options.
 // deploymentConfigs, deployments, opts.KeepYoungerThan, opts.Orphans, opts.KeepComplete, opts.KeepFailed, deploymentPruneFunc
 func NewPruner(options PrunerOptions) Pruner {
-	glog.V(1).Infof("Creating deployment pruner with keepYoungerThan=%v, orphans=%v, keepComplete=%v, keepFailed=%v",
+	klog.V(1).Infof("Creating deployment pruner with keepYoungerThan=%v, orphans=%v, keepComplete=%v, keepFailed=%v",
 		options.KeepYoungerThan, options.Orphans, options.KeepComplete, options.KeepFailed)
 
 	filter := &andFilter{
@@ -107,7 +107,7 @@ func NewDeploymentDeleter(deployments corev1client.ReplicationControllersGetter)
 }
 
 func (p *deploymentDeleter) DeleteDeployment(deployment *corev1.ReplicationController) error {
-	glog.V(4).Infof("Deleting deployment %q", deployment.Name)
+	klog.V(4).Infof("Deleting deployment %q", deployment.Name)
 	policy := metav1.DeletePropagationBackground
 	return p.deployments.ReplicationControllers(deployment.Namespace).Delete(deployment.Name, &metav1.DeleteOptions{PropagationPolicy: &policy})
 }

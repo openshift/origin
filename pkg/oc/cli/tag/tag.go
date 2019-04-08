@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -180,7 +180,7 @@ func (o *TagOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []str
 	// Populate source.
 	if !o.deleteTag {
 		source := args[0]
-		glog.V(3).Infof("Using %q as a source tag", source)
+		klog.V(3).Infof("Using %q as a source tag", source)
 
 		sourceKind := o.sourceKind
 		if len(sourceKind) > 0 {
@@ -264,7 +264,7 @@ func (o *TagOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []str
 		args = args[1:]
 		o.sourceKind = sourceKind
 		o.ref = ref
-		glog.V(3).Infof("Source tag %s %#v", o.sourceKind, o.ref)
+		klog.V(3).Infof("Source tag %s %#v", o.sourceKind, o.ref)
 	}
 
 	// Populate destinations.
@@ -275,7 +275,7 @@ func (o *TagOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []str
 		}
 		o.destNamespace = append(o.destNamespace, destNamespace)
 		o.destNameAndTag = append(o.destNameAndTag, destNameAndTag)
-		glog.V(3).Infof("Using \"%s/%s\" as a destination tag", destNamespace, destNameAndTag)
+		klog.V(3).Infof("Using \"%s/%s\" as a destination tag", destNamespace, destNameAndTag)
 	}
 
 	return nil

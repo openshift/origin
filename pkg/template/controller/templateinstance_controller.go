@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/klog"
 
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -136,14 +136,14 @@ func (c *TemplateInstanceController) sync(key string) error {
 		return nil
 	}
 
-	glog.V(4).Infof("TemplateInstance controller: syncing %s", key)
+	klog.V(4).Infof("TemplateInstance controller: syncing %s", key)
 
 	templateInstanceCopy := templateInstanceOriginal.DeepCopy()
 
 	if len(templateInstanceCopy.Status.Objects) != len(templateInstanceCopy.Spec.Template.Objects) {
 		err = c.instantiate(templateInstanceCopy)
 		if err != nil {
-			glog.V(4).Infof("TemplateInstance controller: instantiate %s returned %v", key, err)
+			klog.V(4).Infof("TemplateInstance controller: instantiate %s returned %v", key, err)
 
 			templateInstanceSetCondition(templateInstanceCopy, templatev1.TemplateInstanceCondition{
 				Type:    templatev1.TemplateInstanceInstantiateFailure,
@@ -160,7 +160,7 @@ func (c *TemplateInstanceController) sync(key string) error {
 		if err != nil && !kerrors.IsTimeout(err) {
 			// NB: kerrors.IsTimeout() is true in the case of an API server
 			// timeout, not the timeout caused by readinessTimeout expiring.
-			glog.V(4).Infof("TemplateInstance controller: checkReadiness %s returned %v", key, err)
+			klog.V(4).Infof("TemplateInstance controller: checkReadiness %s returned %v", key, err)
 
 			templateInstanceSetCondition(templateInstanceCopy, templatev1.TemplateInstanceCondition{
 				Type:    templatev1.TemplateInstanceInstantiateFailure,
@@ -285,7 +285,7 @@ func (c *TemplateInstanceController) Run(workers int, stopCh <-chan struct{}) {
 		return
 	}
 
-	glog.V(2).Infof("Starting TemplateInstance controller")
+	klog.V(2).Infof("Starting TemplateInstance controller")
 
 	for i := 0; i < workers; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
@@ -406,7 +406,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templatev1.Te
 		return err
 	}
 
-	glog.V(4).Infof("TemplateInstance controller: creating TemplateConfig for %s/%s", templateInstance.Namespace, templateInstance.Name)
+	klog.V(4).Infof("TemplateInstance controller: creating TemplateConfig for %s/%s", templateInstance.Namespace, templateInstance.Name)
 
 	v1Template, err := legacyscheme.Scheme.ConvertToVersion(template, templatev1.GroupVersion)
 	if err != nil {
@@ -428,7 +428,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templatev1.Te
 
 	// First, do all the SARs to ensure the requester actually has permissions
 	// to create.
-	glog.V(4).Infof("TemplateInstance controller: running SARs for %s/%s", templateInstance.Namespace, templateInstance.Name)
+	klog.V(4).Infof("TemplateInstance controller: running SARs for %s/%s", templateInstance.Namespace, templateInstance.Name)
 	allErrors := []error{}
 	for _, currObj := range processedObjects.Items {
 		restMapping, mappingErr := c.dynamicRestMapper.RESTMapping(currObj.GroupVersionKind().GroupKind(), currObj.GroupVersionKind().Version)
@@ -463,7 +463,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templatev1.Te
 
 	// Second, create the objects, being tolerant if they already exist and are
 	// labelled as having previously been created by us.
-	glog.V(4).Infof("TemplateInstance controller: creating objects for %s/%s", templateInstance.Namespace, templateInstance.Name)
+	klog.V(4).Infof("TemplateInstance controller: creating objects for %s/%s", templateInstance.Namespace, templateInstance.Name)
 	templateInstance.Status.Objects = nil
 	allErrors = []error{}
 	for _, currObj := range processedObjects.Items {

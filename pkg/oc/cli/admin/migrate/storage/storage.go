@@ -5,9 +5,9 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"golang.org/x/time/rate"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -330,7 +330,7 @@ func (o *MigrateAPIStorageOptions) rateLimit(oldObject *unstructured.Unstructure
 	var dataLen int
 	if data, err := oldObject.MarshalJSON(); err != nil {
 		// this should never happen
-		glog.Errorf("failed to marshall %#v: %v", oldObject, err)
+		klog.Errorf("failed to marshall %#v: %v", oldObject, err)
 		// but in case it somehow does happen, assume the object was
 		// larger than most objects so we still rate limit "enough"
 		dataLen = 8192
@@ -348,7 +348,7 @@ func (o *MigrateAPIStorageOptions) rateLimit(oldObject *unstructured.Unstructure
 	latency := o.limiter.take(2 * dataLen)
 	// mimic rest.Request.tryThrottle logging logic
 	if latency > longThrottleLatency {
-		glog.V(4).Infof("Throttling request took %v, request: %s:%s", latency, "PUT", oldObject.GetSelfLink())
+		klog.V(4).Infof("Throttling request took %v, request: %s:%s", latency, "PUT", oldObject.GetSelfLink())
 	}
 }
 
@@ -381,7 +381,7 @@ func (t *tokenLimiter) getDuration(n int) time.Duration {
 	reservation := t.rateLimiter.ReserveN(now, n)
 	if !reservation.OK() {
 		// this should never happen but we do not want to hang a worker forever
-		glog.Errorf("unable to get rate limited reservation, burst=%d n=%d", t.burst, n)
+		klog.Errorf("unable to get rate limited reservation, burst=%d n=%d", t.burst, n)
 		return time.Minute
 	}
 	return reservation.DelayFrom(now)

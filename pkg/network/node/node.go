@@ -14,8 +14,8 @@ import (
 
 	"k8s.io/kubernetes/pkg/apis/core/v1/helper"
 
-	"github.com/golang/glog"
 	"github.com/vishvananda/netlink"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -145,7 +145,7 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		// Not an OpenShift plugin
 		return nil, nil
 	}
-	glog.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q), iptables sync period %q", c.PluginName, c.Hostname, c.SelfIP, c.IPTablesSyncPeriod.String())
+	klog.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q), iptables sync period %q", c.PluginName, c.Hostname, c.SelfIP, c.IPTablesSyncPeriod.String())
 
 	if useConnTrack && c.ProxyMode != kubeproxyconfig.ProxyModeIPTables {
 		return nil, fmt.Errorf("%q plugin is not compatible with proxy-mode %q", c.PluginName, c.ProxyMode)
@@ -204,21 +204,21 @@ func (c *OsdnNodeConfig) setNodeIP() error {
 			return err
 		}
 		c.Hostname = strings.TrimSpace(string(output))
-		glog.Infof("Resolved hostname to %q", c.Hostname)
+		klog.Infof("Resolved hostname to %q", c.Hostname)
 	}
 
 	if len(c.SelfIP) == 0 {
 		var err error
 		c.SelfIP, err = netutils.GetNodeIP(c.Hostname)
 		if err != nil {
-			glog.V(5).Infof("Failed to determine node address from hostname %s; using default interface (%v)", c.Hostname, err)
+			klog.V(5).Infof("Failed to determine node address from hostname %s; using default interface (%v)", c.Hostname, err)
 			var defaultIP net.IP
 			defaultIP, err = kubeutilnet.ChooseHostInterface()
 			if err != nil {
 				return err
 			}
 			c.SelfIP = defaultIP.String()
-			glog.Infof("Resolved IP address to %q", c.SelfIP)
+			klog.Infof("Resolved IP address to %q", c.SelfIP)
 		}
 	}
 
@@ -245,7 +245,7 @@ func GetLinkDetails(ip string) (netlink.Link, *net.IPNet, error) {
 	for _, link := range links {
 		addrs, err := netlink.AddrList(link, netlink.FAMILY_V4)
 		if err != nil {
-			glog.Warningf("Could not get addresses of interface %q: %v", link.Attrs().Name, err)
+			klog.Warningf("Could not get addresses of interface %q: %v", link.Attrs().Name, err)
 			continue
 		}
 
@@ -264,7 +264,7 @@ func GetLinkDetails(ip string) (netlink.Link, *net.IPNet, error) {
 }
 
 func (node *OsdnNode) Start() error {
-	glog.V(2).Infof("Starting openshift-sdn network plugin")
+	klog.V(2).Infof("Starting openshift-sdn network plugin")
 
 	if err := validateNetworkPluginName(node.networkClient, node.policy.Name()); err != nil {
 		return fmt.Errorf("failed to validate network configuration: %v", err)
@@ -323,7 +323,7 @@ func (node *OsdnNode) Start() error {
 		node.watchServices()
 	}
 
-	glog.V(2).Infof("Starting openshift-sdn pod manager")
+	klog.V(2).Infof("Starting openshift-sdn pod manager")
 	if err := node.podManager.Start(cniserver.CNIServerRunDir, node.localSubnetCIDR,
 		node.networkInfo.ClusterNetworks, node.networkInfo.ServiceNetwork.String(),
 		networkChanged); err != nil {
@@ -331,7 +331,7 @@ func (node *OsdnNode) Start() error {
 	}
 
 	if networkChanged && len(existingPods) > 0 {
-		glog.Infof("OVS bridge has been recreated. Will reattach %d existing pods...", len(existingPods))
+		klog.Infof("OVS bridge has been recreated. Will reattach %d existing pods...", len(existingPods))
 		err := node.reattachPods(existingPods)
 		if err != nil {
 			return err
@@ -347,7 +347,7 @@ func (node *OsdnNode) Start() error {
 		gatherPeriodicMetrics(node.oc.ovs)
 	}, time.Minute*2)
 
-	glog.V(2).Infof("openshift-sdn network plugin registering startup")
+	klog.V(2).Infof("openshift-sdn network plugin registering startup")
 
 	// Make an event that openshift-sdn started
 	node.recorder.Eventf(&corev1.ObjectReference{Kind: "Node", Name: node.hostName}, corev1.EventTypeNormal, "Starting", "Starting openshift-sdn.")
@@ -365,7 +365,7 @@ func (node *OsdnNode) Start() error {
 		return err
 	}
 
-	glog.V(2).Infof("openshift-sdn network plugin ready")
+	klog.V(2).Infof("openshift-sdn network plugin ready")
 	return nil
 }
 
@@ -382,11 +382,11 @@ func (node *OsdnNode) reattachPods(existingPods map[string]podNetworkInfo) error
 	for sandboxID, podInfo := range existingPods {
 		sandbox, ok := sandboxes[sandboxID]
 		if !ok {
-			glog.Warningf("Could not find sandbox for existing pod with IP %s; it may be in an inconsistent state", podInfo.ip)
+			klog.Warningf("Could not find sandbox for existing pod with IP %s; it may be in an inconsistent state", podInfo.ip)
 			continue
 		}
 		if _, err := node.oc.ovs.GetOFPort(podInfo.vethName); err != nil {
-			glog.Infof("Interface %s for pod '%s/%s' no longer exists", podInfo.vethName, sandbox.Metadata.Namespace, sandbox.Metadata.Name)
+			klog.Infof("Interface %s for pod '%s/%s' no longer exists", podInfo.vethName, sandbox.Metadata.Namespace, sandbox.Metadata.Name)
 			failed = append(failed, sandbox)
 			continue
 		}
@@ -403,7 +403,7 @@ func (node *OsdnNode) reattachPods(existingPods map[string]podNetworkInfo) error
 		// NB: we don't need to worry about locking here because the cniserver
 		// isn't running for real yet.
 		if _, err := node.podManager.handleCNIRequest(req); err != nil {
-			glog.Warningf("Could not reattach pod '%s/%s' to SDN: %v", req.PodNamespace, req.PodName, err)
+			klog.Warningf("Could not reattach pod '%s/%s' to SDN: %v", req.PodNamespace, req.PodName, err)
 			failed = append(failed, sandbox)
 		}
 	}
@@ -421,9 +421,9 @@ func (node *OsdnNode) killFailedPods(failed []*kruntimeapi.PodSandbox) {
 		podRef := &corev1.ObjectReference{Kind: "Pod", Name: sandbox.Metadata.Name, Namespace: sandbox.Metadata.Namespace, UID: types.UID(sandbox.Metadata.Uid)}
 		node.recorder.Eventf(podRef, corev1.EventTypeWarning, "NetworkFailed", "The pod's network interface has been lost and the pod will be stopped.")
 
-		glog.V(5).Infof("Killing pod '%s/%s' sandbox due to failed restart", podRef.Namespace, podRef.Name)
+		klog.V(5).Infof("Killing pod '%s/%s' sandbox due to failed restart", podRef.Namespace, podRef.Name)
 		if err := node.runtimeService.StopPodSandbox(sandbox.Id); err != nil {
-			glog.Warningf("Failed to kill pod '%s/%s' sandbox: %v", podRef.Namespace, podRef.Name, err)
+			klog.Warningf("Failed to kill pod '%s/%s' sandbox: %v", podRef.Namespace, podRef.Name, err)
 		}
 	}
 }
@@ -498,7 +498,7 @@ func (node *OsdnNode) handleAddOrUpdateService(obj, oldObj interface{}, eventTyp
 		return
 	}
 
-	glog.V(5).Infof("Watch %s event for Service %q", eventType, serv.Name)
+	klog.V(5).Infof("Watch %s event for Service %q", eventType, serv.Name)
 	oldServ, exists := oldObj.(*corev1.Service)
 	if exists {
 		if !isServiceChanged(oldServ, serv) {
@@ -524,7 +524,7 @@ func (node *OsdnNode) handleDeleteService(obj interface{}) {
 		return
 	}
 
-	glog.V(5).Infof("Watch %s event for Service %q", watch.Deleted, serv.Name)
+	klog.V(5).Infof("Watch %s event for Service %q", watch.Deleted, serv.Name)
 	node.DeleteServiceRules(serv)
 }
 

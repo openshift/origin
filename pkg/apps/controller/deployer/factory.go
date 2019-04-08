@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -15,6 +14,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
@@ -31,7 +31,7 @@ func NewDeployerController(
 	env []v1.EnvVar,
 ) *DeploymentController {
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartLogging(klog.Infof)
 	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: kubeClientset.CoreV1().Events("")})
 	recorder := eventBroadcaster.NewRecorder(legacyscheme.Scheme, v1.EventSource{Component: "deployer-controller"})
 
@@ -70,14 +70,14 @@ func (c *DeploymentController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	glog.Infof("Starting deployer controller")
+	klog.Infof("Starting deployer controller")
 
 	// Wait for the dc store to sync before starting any work in this controller.
 	if !cache.WaitForCacheSync(stopCh, c.rcListerSynced, c.podListerSynced) {
 		return
 	}
 
-	glog.Infof("Deployer controller caches are synced. Starting workers.")
+	klog.Infof("Deployer controller caches are synced. Starting workers.")
 
 	for i := 0; i < workers; i++ {
 		go wait.Until(c.worker, time.Second, stopCh)
@@ -85,7 +85,7 @@ func (c *DeploymentController) Run(workers int, stopCh <-chan struct{}) {
 
 	<-stopCh
 
-	glog.Infof("Shutting down deployer controller")
+	klog.Infof("Shutting down deployer controller")
 }
 
 func (c *DeploymentController) addReplicationController(obj interface{}) {
@@ -204,11 +204,11 @@ func (c *DeploymentController) getByKey(key string) (*v1.ReplicationController, 
 	rc, err := c.rcLister.ReplicationControllers(namespace).Get(name)
 	if errors.IsNotFound(err) {
 		// TODO tnozicka: this is not normal and should be refactored
-		glog.V(4).Infof("Replication controller %q has been deleted", key)
+		klog.V(4).Infof("Replication controller %q has been deleted", key)
 		return nil, nil
 	}
 	if err != nil {
-		glog.Infof("Unable to retrieve replication controller %q from store: %v", key, err)
+		klog.Infof("Unable to retrieve replication controller %q from store: %v", key, err)
 		c.queue.AddRateLimited(key)
 		return nil, err
 	}

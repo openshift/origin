@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/golang/glog"
 	gocontext "golang.org/x/net/context"
+	"k8s.io/klog"
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/manifestlist"
@@ -67,7 +67,7 @@ func NewImageStreamImporter(retriever RepositoryRetriever, maximumTagsPerRepo in
 		limiter = flowcontrol.NewFakeAlwaysRateLimiter()
 	}
 	if cache == nil {
-		glog.V(5).Infof("the global layer cache is disabled")
+		klog.V(5).Infof("the global layer cache is disabled")
 	}
 	return &ImageStreamImporter{
 		maximumTagsPerRepo: maximumTagsPerRepo,
@@ -407,13 +407,13 @@ func manifestFromManifestList(ctx gocontext.Context, manifestList *manifestlist.
 		}
 	}
 	if manifestDigest == "" {
-		glog.V(5).Infof("unable to find %s/%s manifest in manifest list %s, doing conservative fail by switching to the first one: %#+v", preferOS, preferArch, ref.Exact(), manifestList.Manifests[0])
+		klog.V(5).Infof("unable to find %s/%s manifest in manifest list %s, doing conservative fail by switching to the first one: %#+v", preferOS, preferArch, ref.Exact(), manifestList.Manifests[0])
 		manifestDigest = manifestList.Manifests[0].Digest
 	}
 
 	manifest, err := s.Get(ctx, manifestDigest)
 	if err != nil {
-		glog.V(5).Infof("unable to get %s/%s manifest by digest %q for image %s: %#v", preferOS, preferArch, manifestDigest, ref.Exact(), err)
+		klog.V(5).Infof("unable to get %s/%s manifest by digest %q for image %s: %#v", preferOS, preferArch, manifestDigest, ref.Exact(), err)
 		return nil, formatRepositoryError(ref, err)
 	}
 	return manifest, err
@@ -432,13 +432,13 @@ func (isi *ImageStreamImporter) importManifest(ctx gocontext.Context, manifest d
 	} else if deserializedManifest, isSchema2 := manifest.(*schema2.DeserializedManifest); isSchema2 {
 		imageConfig, getImportConfigErr := b.Get(ctx, deserializedManifest.Config.Digest)
 		if getImportConfigErr != nil {
-			glog.V(5).Infof("unable to get image config by digest %q for image %s: %#v", d, ref.Exact(), getImportConfigErr)
+			klog.V(5).Infof("unable to get image config by digest %q for image %s: %#v", d, ref.Exact(), getImportConfigErr)
 			return image, formatRepositoryError(ref, getImportConfigErr)
 		}
 		image, err = schema2ToImage(deserializedManifest, imageConfig, d)
 	} else {
 		err = fmt.Errorf("unsupported image manifest type: %T", manifest)
-		glog.V(5).Info(err)
+		klog.V(5).Info(err)
 	}
 	if err != nil {
 		return
@@ -459,11 +459,11 @@ func (isi *ImageStreamImporter) importManifest(ctx gocontext.Context, manifest d
 // importRepositoryFromDocker loads the tags and images requested in the passed importRepository, obeying the
 // optional rate limiter.  Errors are set onto the individual tags and digest objects.
 func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context, retriever RepositoryRetriever, repository *importRepository, limiter flowcontrol.RateLimiter) {
-	glog.V(5).Infof("importing remote Docker repository registry=%s repository=%s insecure=%t", repository.Registry, repository.Name, repository.Insecure)
+	klog.V(5).Infof("importing remote Docker repository registry=%s repository=%s insecure=%t", repository.Registry, repository.Name, repository.Insecure)
 	// retrieve the repository
 	repo, err := retriever.Repository(ctx, repository.Registry, repository.Name, repository.Insecure)
 	if err != nil {
-		glog.V(5).Infof("unable to access repository %#v: %#v", repository, err)
+		klog.V(5).Infof("unable to access repository %#v: %#v", repository, err)
 		switch {
 		case err == reference.ErrReferenceInvalidFormat:
 			err = field.Invalid(field.NewPath("from", "name"), repository.Name, "the provided repository name is not valid")
@@ -486,7 +486,7 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 	// get a manifest context
 	s, err := repo.Manifests(ctx)
 	if err != nil {
-		glog.V(5).Infof("unable to access manifests for repository %#v: %#v", repository, err)
+		klog.V(5).Infof("unable to access manifests for repository %#v: %#v", repository, err)
 		switch {
 		case isDockerError(err, v2.ErrorCodeNameUnknown):
 			err = kapierrors.NewNotFound(image.Resource("dockerimage"), repository.Ref.Exact())
@@ -506,7 +506,7 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 	if count := repository.MaximumTags; count > 0 || count == -1 {
 		tags, err := repo.Tags(ctx).All(ctx)
 		if err != nil {
-			glog.V(5).Infof("unable to access tags for repository %#v: %#v", repository, err)
+			klog.V(5).Infof("unable to access tags for repository %#v: %#v", repository, err)
 			switch {
 			case isDockerError(err, v2.ErrorCodeNameUnknown):
 				err = kapierrors.NewNotFound(image.Resource("dockerimage"), repository.Ref.Exact())
@@ -558,7 +558,7 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 
 		manifest, err := s.Get(ctx, d)
 		if err != nil {
-			glog.V(5).Infof("unable to get manifest by digest %q for image %s: %#v", d, ref.Exact(), err)
+			klog.V(5).Infof("unable to get manifest by digest %q for image %s: %#v", d, ref.Exact(), err)
 			importDigest.Err = formatRepositoryError(ref, err)
 			continue
 		}
@@ -580,7 +580,7 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 
 		manifest, err := s.Get(ctx, "", distribution.WithTag(importTag.Name))
 		if err != nil {
-			glog.V(5).Infof("unable to get manifest by tag %q for image %s: %#v", importTag.Name, ref.Exact(), err)
+			klog.V(5).Infof("unable to get manifest by tag %q for image %s: %#v", importTag.Name, ref.Exact(), err)
 			importTag.Err = formatRepositoryError(ref, err)
 			continue
 		}

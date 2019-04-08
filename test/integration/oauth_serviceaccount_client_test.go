@@ -14,7 +14,7 @@ import (
 	"golang.org/x/net/html"
 
 	"github.com/RangelReale/osincli"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -506,7 +506,7 @@ func runOAuthFlow(
 	directHTTPClient := &http.Client{
 		Transport: testTransport,
 		CheckRedirect: func(redirectReq *http.Request, via []*http.Request) error {
-			glog.Infof("302 Location: %s", redirectReq.URL.String())
+			klog.Infof("302 Location: %s", redirectReq.URL.String())
 			req = redirectReq
 			operations = append(operations, "redirect to "+redirectReq.URL.Path)
 			return nil
@@ -515,16 +515,16 @@ func runOAuthFlow(
 	}
 
 	for {
-		glog.Infof("%s %s", req.Method, req.URL.String())
+		klog.Infof("%s %s", req.Method, req.URL.String())
 		operations = append(operations, req.Method+" "+req.URL.Path)
 
 		// Always set the csrf header
 		req.Header.Set("X-CSRF-Token", "1")
 		resp, err := directHTTPClient.Do(req)
 		if err != nil {
-			glog.Infof("%#v", operations)
-			glog.Infof("%#v", jar)
-			glog.Errorf("Error %v\n%#v\n%#v", err, err, resp)
+			klog.Infof("%#v", operations)
+			klog.Infof("%#v", jar)
+			klog.Errorf("Error %v\n%#v\n%#v", err, err, resp)
 			t.Errorf("Error %v\n%#v\n%#v", err, err, resp)
 			return
 		}

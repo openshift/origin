@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
@@ -26,12 +26,12 @@ func waitForOVS(network, addr string) error {
 	return utilwait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
 		c, err := ovsclient.DialTimeout(network, addr, ovsDialTimeout)
 		if err != nil {
-			glog.V(2).Infof("waiting for OVS to start: %v", err)
+			klog.V(2).Infof("waiting for OVS to start: %v", err)
 			return false, nil
 		}
 		defer c.Close()
 		if err := c.Ping(); err != nil {
-			glog.V(2).Infof("waiting for OVS to start, ping failed: %v", err)
+			klog.V(2).Infof("waiting for OVS to start, ping failed: %v", err)
 			return false, nil
 		}
 		return true, nil
@@ -59,12 +59,12 @@ func runOVSHealthCheck(network, addr string, healthFn func() error) {
 		err = utilwait.PollImmediate(100*time.Millisecond, ovsRecoveryTimeout, func() (bool, error) {
 			c, err := ovsclient.DialTimeout(network, addr, ovsDialTimeout)
 			if err != nil {
-				glog.V(2).Infof("SDN healthcheck unable to reconnect to OVS server: %v", err)
+				klog.V(2).Infof("SDN healthcheck unable to reconnect to OVS server: %v", err)
 				return false, nil
 			}
 			defer c.Close()
 			if err := c.Ping(); err != nil {
-				glog.V(2).Infof("SDN healthcheck unable to ping OVS server: %v", err)
+				klog.V(2).Infof("SDN healthcheck unable to ping OVS server: %v", err)
 				return false, nil
 			}
 			if err := healthFn(); err != nil {
@@ -75,7 +75,7 @@ func runOVSHealthCheck(network, addr string, healthFn func() error) {
 		if err != nil {
 			// If OVS restarts and our health check fails, we exit
 			// TODO: make openshift-sdn able to reconcile without a restart
-			glog.Fatalf("SDN healthcheck detected unhealthy OVS server, restarting: %v", err)
+			klog.Fatalf("SDN healthcheck detected unhealthy OVS server, restarting: %v", err)
 		}
 	}, ovsDialTimeout, utilwait.NeverStop)
 
@@ -84,17 +84,17 @@ func runOVSHealthCheck(network, addr string, healthFn func() error) {
 	go utilwait.Until(func() {
 		c, err := ovsclient.DialTimeout(network, addr, ovsDialTimeout)
 		if err != nil {
-			glog.V(2).Infof("SDN healthcheck unable to reconnect to OVS server: %v", err)
+			klog.V(2).Infof("SDN healthcheck unable to reconnect to OVS server: %v", err)
 			return
 		}
 		defer c.Close()
 		if err := c.Ping(); err != nil {
-			glog.V(2).Infof("SDN healthcheck unable to ping OVS server: %v", err)
+			klog.V(2).Infof("SDN healthcheck unable to ping OVS server: %v", err)
 			return
 		}
 		if err := healthFn(); err != nil {
-			glog.Fatalf("SDN healthcheck detected unhealthy OVS server, restarting: %v", err)
+			klog.Fatalf("SDN healthcheck detected unhealthy OVS server, restarting: %v", err)
 		}
-		glog.V(4).Infof("SDN healthcheck succeeded")
+		klog.V(4).Infof("SDN healthcheck succeeded")
 	}, ovsHealthcheckInterval, utilwait.NeverStop)
 }

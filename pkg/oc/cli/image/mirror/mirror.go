@@ -14,10 +14,10 @@ import (
 	"github.com/docker/distribution/registry/client"
 
 	units "github.com/docker/go-units"
-	"github.com/golang/glog"
 	godigest "github.com/opencontainers/go-digest"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -304,7 +304,7 @@ func (o *MirrorImageOptions) Run() error {
 
 	if o.ManifestUpdateCallback != nil {
 		for _, reg := range p.registries {
-			glog.V(4).Infof("Manifests mapped %#v", reg.manifestConversions)
+			klog.V(4).Infof("Manifests mapped %#v", reg.manifestConversions)
 			if err := o.ManifestUpdateCallback(reg.name, reg.manifestConversions); err != nil {
 				return err
 			}
@@ -337,7 +337,7 @@ func (o *MirrorImageOptions) plan() (*plan, error) {
 
 	tree := buildTargetTree(o.Mappings)
 	for registry, scopes := range calculateDockerRegistryScopes(tree) {
-		glog.V(5).Infof("Using scopes for registry %s: %v", registry, scopes)
+		klog.V(5).Infof("Using scopes for registry %s: %v", registry, scopes)
 		if o.SkipMultipleScopes {
 			toContexts[registry] = toContext.Copy()
 		} else {
@@ -388,7 +388,7 @@ func (o *MirrorImageOptions) plan() (*plan, error) {
 							return
 						}
 						srcDigest := desc.Digest
-						glog.V(3).Infof("Resolved source image %s:%s to %s\n", src.ref, srcTag, srcDigest)
+						klog.V(3).Infof("Resolved source image %s:%s to %s\n", src.ref, srcTag, srcDigest)
 						src.mergeIntoDigests(srcDigest, pushTargets)
 					})
 				}
@@ -407,7 +407,7 @@ func (o *MirrorImageOptions) plan() (*plan, error) {
 							plan.AddError(retrieverError{src: src.ref, err: fmt.Errorf("unable to retrieve source image %s manifest %s: %v", src.ref, srcDigest, err)})
 							return
 						}
-						glog.V(5).Infof("Found manifest %s with type %T", srcDigest, srcManifest)
+						klog.V(5).Infof("Found manifest %s with type %T", srcDigest, srcManifest)
 
 						// filter or load manifest list as appropriate
 						originalSrcDigest := srcDigest
@@ -458,7 +458,7 @@ func (o *MirrorImageOptions) plan() (*plan, error) {
 									mustCopyLayers = true
 									blobPlan.AlreadyExists(distribution.Descriptor{Digest: srcDigest})
 								} else {
-									glog.V(4).Infof("Manifest exists in %s, no need to copy layers without --force", dst.ref)
+									klog.V(4).Infof("Manifest exists in %s, no need to copy layers without --force", dst.ref)
 								}
 							}
 
@@ -513,13 +513,13 @@ func copyBlob(ctx context.Context, plan *workPlan, c *repositoryBlobCopy, blob d
 		_, err := c.to.Stat(ctx, blob.Digest)
 		if err == nil {
 			// blob exists, skip
-			glog.V(5).Infof("Server reports blob exists %#v", blob)
+			klog.V(5).Infof("Server reports blob exists %#v", blob)
 			c.parent.parent.AssociateBlob(blob.Digest, c.parent.name)
 			c.parent.ExpectBlob(blob.Digest)
 			return nil
 		}
 		if err != distribution.ErrBlobUnknown {
-			glog.V(5).Infof("Server was unable to check whether blob exists %s: %v", blob.Digest, err)
+			klog.V(5).Infof("Server was unable to check whether blob exists %s: %v", blob.Digest, err)
 		}
 	}
 
@@ -560,13 +560,13 @@ func copyBlob(ctx context.Context, plan *workPlan, c *repositoryBlobCopy, blob d
 	w, err := c.to.Create(ctx, options...)
 	// no-op
 	if err == ErrAlreadyExists {
-		glog.V(5).Infof("Blob already exists %#v", blob)
+		klog.V(5).Infof("Blob already exists %#v", blob)
 		return nil
 	}
 
 	// mount successful
 	if ebm, ok := err.(distribution.ErrBlobMounted); ok {
-		glog.V(5).Infof("Blob mounted %#v", blob)
+		klog.V(5).Infof("Blob mounted %#v", blob)
 		if ebm.From.Digest() != blob.Digest {
 			return fmt.Errorf("unable to push %s: tried to mount blob %s source and got back a different digest %s", c.fromRef, blob.Digest, ebm.From.Digest())
 		}
@@ -587,7 +587,7 @@ func copyBlob(ctx context.Context, plan *workPlan, c *repositoryBlobCopy, blob d
 	}
 
 	err = func() error {
-		glog.V(5).Infof("Uploading blob %s", blob.Digest)
+		klog.V(5).Infof("Uploading blob %s", blob.Digest)
 		defer w.Cancel(ctx)
 		r, err := c.from.Open(ctx, blob.Digest)
 		if err != nil {

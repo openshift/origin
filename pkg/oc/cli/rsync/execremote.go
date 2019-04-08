@@ -4,7 +4,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/kubernetes"
@@ -28,7 +28,7 @@ var _ executor = &remoteExecutor{}
 
 // Execute will run a command in a pod
 func (e *remoteExecutor) Execute(command []string, in io.Reader, out, errOut io.Writer) error {
-	glog.V(3).Infof("Remote executor running command: %s", strings.Join(command, " "))
+	klog.V(3).Infof("Remote executor running command: %s", strings.Join(command, " "))
 	execOptions := &kexec.ExecOptions{
 		StreamOptions: kexec.StreamOptions{
 			Namespace:     e.Namespace,
@@ -49,12 +49,12 @@ func (e *remoteExecutor) Execute(command []string, in io.Reader, out, errOut io.
 	}
 	err := execOptions.Validate()
 	if err != nil {
-		glog.V(4).Infof("Error from remote command validation: %v", err)
+		klog.V(4).Infof("Error from remote command validation: %v", err)
 		return err
 	}
 	err = execOptions.Run()
 	if err != nil {
-		glog.V(4).Infof("Error from remote execution: %v", err)
+		klog.V(4).Infof("Error from remote execution: %v", err)
 	}
 	return err
 }

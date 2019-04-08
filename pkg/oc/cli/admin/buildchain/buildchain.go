@@ -5,12 +5,12 @@ import (
 	"io"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/klog"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
@@ -123,7 +123,7 @@ func (o *BuildChainOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 	switch resource {
 	case image.Resource("imagestreamtags"):
 		o.name = imageapi.NormalizeImageStreamTag(o.name)
-		glog.V(4).Infof("Using %q as the image stream tag to look dependencies for", o.name)
+		klog.V(4).Infof("Using %q as the image stream tag to look dependencies for", o.name)
 	default:
 		return fmt.Errorf("invalid resource provided: %v", resource)
 	}
@@ -136,7 +136,7 @@ func (o *BuildChainOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 			return err
 		}
 		for _, project := range projectList.Items {
-			glog.V(4).Infof("Found namespace %q", project.Name)
+			klog.V(4).Infof("Found namespace %q", project.Name)
 			o.namespaces.Insert(project.Name)
 		}
 	}
@@ -145,9 +145,9 @@ func (o *BuildChainOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 	if err != nil {
 		return err
 	}
-	glog.V(4).Infof("Using %q as the namespace for %q", o.defaultNamespace, o.name)
+	klog.V(4).Infof("Using %q as the namespace for %q", o.defaultNamespace, o.name)
 	o.namespaces.Insert(o.defaultNamespace)
-	glog.V(4).Infof("Will look for deps in %s", strings.Join(o.namespaces.List(), ","))
+	klog.V(4).Infof("Will look for deps in %s", strings.Join(o.namespaces.List(), ","))
 
 	return nil
 }

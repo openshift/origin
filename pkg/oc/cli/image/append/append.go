@@ -13,8 +13,8 @@ import (
 	"time"
 
 	units "github.com/docker/go-units"
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/manifest/schema2"
@@ -271,9 +271,9 @@ func (o *AppendImageOptions) Run() error {
 			return err
 		}
 	} else {
-		if glog.V(4) {
+		if klog.V(4) {
 			configJSON, _ := json.MarshalIndent(base, "", "  ")
-			glog.Infof("input config:\n%s\nlayers: %#v", configJSON, layers)
+			klog.Infof("input config:\n%s\nlayers: %#v", configJSON, layers)
 		}
 
 		base.Parent = ""
@@ -303,9 +303,9 @@ func (o *AppendImageOptions) Run() error {
 		}
 	}
 
-	if glog.V(4) {
+	if klog.V(4) {
 		configJSON, _ := json.MarshalIndent(base, "", "  ")
-		glog.Infof("output config:\n%s", configJSON)
+		klog.Infof("output config:\n%s", configJSON)
 	}
 
 	numLayers := len(layers)
@@ -360,13 +360,13 @@ func (o *AppendImageOptions) Run() error {
 				if !o.Force {
 					if desc, err := toBlobs.Stat(ctx, layer.Digest); err == nil {
 						// ensure the correct size makes it back to the manifest
-						glog.V(4).Infof("Layer %s already exists in destination (%s)", layer.Digest, units.HumanSizeWithPrecision(float64(layer.Size), 3))
+						klog.V(4).Infof("Layer %s already exists in destination (%s)", layer.Digest, units.HumanSizeWithPrecision(float64(layer.Size), 3))
 						if layer.Size == 0 {
 							layer.Size = desc.Size
 						}
 						// we need to calculate the tar sum from the image, requiring us to pull it
 						if needLayerDigest {
-							glog.V(4).Infof("Need tar sum, streaming layer %s", layer.Digest)
+							klog.V(4).Infof("Need tar sum, streaming layer %s", layer.Digest)
 							r, err := fromBlobs.Open(ctx, layer.Digest)
 							if err != nil {
 								return fmt.Errorf("unable to access the layer %s in order to calculate its content ID: %v", layer.Digest, err)
@@ -376,7 +376,7 @@ func (o *AppendImageOptions) Run() error {
 							if err != nil {
 								return fmt.Errorf("unable to calculate contentID for layer %s: %v", layer.Digest, err)
 							}
-							glog.V(4).Infof("Layer %s has tar sum %s", layer.Digest, layerDigest)
+							klog.V(4).Infof("Layer %s has tar sum %s", layer.Digest, layerDigest)
 							base.RootFS.DiffIDs[index] = layerDigest.String()
 						}
 						// TODO: due to a bug in the registry, the empty layer is always returned as existing, but
@@ -452,7 +452,7 @@ func copyBlob(ctx context.Context, fromBlobs, toBlobs distribution.BlobService, 
 		switch t := err.(type) {
 		case distribution.ErrBlobMounted:
 			// mount successful
-			glog.V(5).Infof("Blob mounted %#v", layer)
+			klog.V(5).Infof("Blob mounted %#v", layer)
 			if t.From.Digest() != layer.Digest {
 				return distribution.Descriptor{}, "", fmt.Errorf("unable to upload layer %s to destination repository: tried to mount source and got back a different digest %s", layer.Digest, t.From.Digest())
 			}
@@ -475,13 +475,13 @@ func copyBlob(ctx context.Context, fromBlobs, toBlobs distribution.BlobService, 
 	// copy the blob, calculating the diffID if necessary
 	var layerDigest digest.Digest
 	if needLayerDigest {
-		glog.V(4).Infof("Need tar sum, calculating while streaming %s", layer.Digest)
+		klog.V(4).Infof("Need tar sum, calculating while streaming %s", layer.Digest)
 		calculatedDigest, _, _, _, err := add.DigestCopy(bw, r)
 		if err != nil {
 			return distribution.Descriptor{}, "", err
 		}
 		layerDigest = calculatedDigest
-		glog.V(4).Infof("Layer %s has tar sum %s", layer.Digest, layerDigest)
+		klog.V(4).Infof("Layer %s has tar sum %s", layer.Digest, layerDigest)
 
 	} else {
 		if _, err := bw.ReadFrom(r); err != nil {

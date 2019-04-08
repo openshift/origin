@@ -15,10 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/klog"
-
-	"github.com/golang/glog"
-
 	kappsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest/fake"
 	clienttesting "k8s.io/client-go/testing"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/openshift/api"
@@ -1736,7 +1733,7 @@ func TestPrunerGetNextJob(t *testing.T) {
 	var level klog.Level
 	level.Set(fmt.Sprint(*logLevel))
 
-	glog.V(2).Infof("debug")
+	klog.V(2).Infof("debug")
 	algo := pruneAlgorithm{
 		keepYoungerThan: time.Now(),
 	}

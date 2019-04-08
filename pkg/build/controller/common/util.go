@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -36,7 +36,7 @@ func (b ByCreationTimestamp) Less(i, j int) bool {
 // HandleBuildPruning handles the deletion of old successful and failed builds
 // based on settings in the BuildConfig.
 func HandleBuildPruning(buildConfigName string, namespace string, buildLister buildlister.BuildLister, buildConfigGetter buildlister.BuildConfigLister, buildDeleter buildclient.BuildDeleter) error {
-	glog.V(4).Infof("Handling build pruning for %s/%s", namespace, buildConfigName)
+	klog.V(4).Infof("Handling build pruning for %s/%s", namespace, buildConfigName)
 
 	buildConfig, err := buildConfigGetter.BuildConfigs(namespace).Get(buildConfigName)
 	if err != nil {
@@ -54,9 +54,9 @@ func HandleBuildPruning(buildConfigName string, namespace string, buildLister bu
 		sort.Sort(ByCreationTimestamp(successfulBuilds))
 
 		successfulBuildsHistoryLimit := int(*buildConfig.Spec.SuccessfulBuildsHistoryLimit)
-		glog.V(5).Infof("Current successful builds: %v, SuccessfulBuildsHistoryLimit: %v", len(successfulBuilds), successfulBuildsHistoryLimit)
+		klog.V(5).Infof("Current successful builds: %v, SuccessfulBuildsHistoryLimit: %v", len(successfulBuilds), successfulBuildsHistoryLimit)
 		if len(successfulBuilds) > successfulBuildsHistoryLimit {
-			glog.V(5).Infof("Preparing to prune %v of %v successful builds", len(successfulBuilds)-successfulBuildsHistoryLimit, len(successfulBuilds))
+			klog.V(5).Infof("Preparing to prune %v of %v successful builds", len(successfulBuilds)-successfulBuildsHistoryLimit, len(successfulBuilds))
 			buildsToDelete = append(buildsToDelete, successfulBuilds[successfulBuildsHistoryLimit:]...)
 		}
 	}
@@ -71,15 +71,15 @@ func HandleBuildPruning(buildConfigName string, namespace string, buildLister bu
 		sort.Sort(ByCreationTimestamp(failedBuilds))
 
 		failedBuildsHistoryLimit := int(*buildConfig.Spec.FailedBuildsHistoryLimit)
-		glog.V(5).Infof("Current failed builds: %v, FailedBuildsHistoryLimit: %v", len(failedBuilds), failedBuildsHistoryLimit)
+		klog.V(5).Infof("Current failed builds: %v, FailedBuildsHistoryLimit: %v", len(failedBuilds), failedBuildsHistoryLimit)
 		if len(failedBuilds) > failedBuildsHistoryLimit {
-			glog.V(5).Infof("Preparing to prune %v of %v failed builds", len(failedBuilds)-failedBuildsHistoryLimit, len(failedBuilds))
+			klog.V(5).Infof("Preparing to prune %v of %v failed builds", len(failedBuilds)-failedBuildsHistoryLimit, len(failedBuilds))
 			buildsToDelete = append(buildsToDelete, failedBuilds[failedBuildsHistoryLimit:]...)
 		}
 	}
 
 	for i, b := range buildsToDelete {
-		glog.V(4).Infof("Pruning build: %s/%s", b.Namespace, b.Name)
+		klog.V(4).Infof("Pruning build: %s/%s", b.Namespace, b.Name)
 		if err := buildDeleter.DeleteBuild(buildsToDelete[i]); err != nil {
 			errList = append(errList, err)
 		}

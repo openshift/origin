@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -250,7 +250,7 @@ func (c *UnidlingController) awaitRequest() bool {
 		return true
 	}
 
-	glog.V(4).Infof("Unable to fully process unidling request for %s/%s (at %s), will retry: %v", info.Namespace, info.Name, lastFired, err)
+	klog.V(4).Infof("Unable to fully process unidling request for %s/%s (at %s), will retry: %v", info.Namespace, info.Name, lastFired, err)
 	c.queue.AddRateLimited(infoRaw)
 	return true
 }
@@ -271,7 +271,7 @@ func (c *UnidlingController) handleRequest(info types.NamespacedName, lastFired 
 	// make sure we actually were idled...
 	idledTimeRaw, wasIdled := targetEndpoints.Annotations[unidlingapi.IdledAtAnnotation]
 	if !wasIdled {
-		glog.V(5).Infof("UnidlingController received a NeedPods event for a service that was not idled, ignoring")
+		klog.V(5).Infof("UnidlingController received a NeedPods event for a service that was not idled, ignoring")
 		return false, nil
 	}
 
@@ -282,7 +282,7 @@ func (c *UnidlingController) handleRequest(info types.NamespacedName, lastFired 
 		return false, fmt.Errorf("unable to check idled-at time: %v", err)
 	}
 	if lastFired.Before(idledTime) {
-		glog.V(5).Infof("UnidlingController received an out-of-date NeedPods event, ignoring")
+		klog.V(5).Infof("UnidlingController received an out-of-date NeedPods event, ignoring")
 		return false, nil
 	}
 
@@ -294,7 +294,7 @@ func (c *UnidlingController) handleRequest(info types.NamespacedName, lastFired 
 			return false, fmt.Errorf("unable to unmarshal target scalable references: %v", err)
 		}
 	} else {
-		glog.V(4).Infof("Service %s/%s had no scalables to unidle", info.Namespace, info.Name)
+		klog.V(4).Infof("Service %s/%s had no scalables to unidle", info.Namespace, info.Name)
 		targetScalables = []unidlingapi.RecordedScaleReference{}
 	}
 
@@ -326,7 +326,7 @@ func (c *UnidlingController) handleRequest(info types.NamespacedName, lastFired 
 		}
 
 		if scale.Spec.Replicas > 0 {
-			glog.V(4).Infof("%s %q is not idle, skipping while unidling service %s/%s", scalableRef.Kind, scalableRef.Name, info.Namespace, info.Name)
+			klog.V(4).Infof("%s %q is not idle, skipping while unidling service %s/%s", scalableRef.Kind, scalableRef.Name, info.Namespace, info.Name)
 			continue
 		}
 
@@ -342,7 +342,7 @@ func (c *UnidlingController) handleRequest(info types.NamespacedName, lastFired 
 			}
 			continue
 		} else {
-			glog.V(4).Infof("Scaled up %s %q while unidling service %s/%s", scalableRef.Kind, scalableRef.Name, info.Namespace, info.Name)
+			klog.V(4).Infof("Scaled up %s %q while unidling service %s/%s", scalableRef.Kind, scalableRef.Name, info.Namespace, info.Name)
 		}
 
 		delete(targetScalablesSet, scalableRef)

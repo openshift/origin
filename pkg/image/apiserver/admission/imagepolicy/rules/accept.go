@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -93,21 +93,21 @@ func (r *executionAccepter) Accepts(attrs *ImagePolicyAttributes) bool {
 
 	anyMatched := false
 	for _, rule := range r.rules {
-		glog.V(5).Infof("image policy checking rule %q", rule.Name)
+		klog.V(5).Infof("image policy checking rule %q", rule.Name)
 		if attrs.ExcludedRules.Has(rule.Name) && !rule.IgnoreNamespaceOverride {
-			glog.V(5).Infof("skipping because rule is excluded by namespace annotations\n")
+			klog.V(5).Infof("skipping because rule is excluded by namespace annotations\n")
 			continue
 		}
 
 		// if we don't have a resolved image and we're supposed to skip the rule if that happens,
 		// continue here.  Otherwise, the reject option is impossible to reason about.
 		if attrs.Image == nil && rule.SkipOnResolutionFailure {
-			glog.V(5).Infof("skipping because image is not resolved and skip on failure is true\n")
+			klog.V(5).Infof("skipping because image is not resolved and skip on failure is true\n")
 			continue
 		}
 
 		matches := matchImageCondition(&rule.ImageCondition, r.integratedRegistryMatcher, attrs)
-		glog.V(5).Infof("Rule %q(reject=%t) applies to image %v: %t", rule.Name, rule.Reject, attrs.Name, matches)
+		klog.V(5).Infof("Rule %q(reject=%t) applies to image %v: %t", rule.Name, rule.Reject, attrs.Name, matches)
 		if matches {
 			if rule.Reject {
 				return false

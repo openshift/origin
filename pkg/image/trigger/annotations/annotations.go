@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -127,14 +127,14 @@ func UpdateObjectFromImages(obj runtime.Object, tagRetriever trigger.TagRetrieve
 	if err != nil {
 		return nil, err
 	}
-	glog.V(5).Infof("%T/%s has triggers: %#v", obj, m.GetName(), triggers)
+	klog.V(5).Infof("%T/%s has triggers: %#v", obj, m.GetName(), triggers)
 	for _, trigger := range triggers {
 		if trigger.Paused {
 			continue
 		}
 		fieldPath := trigger.FieldPath
 		if !strings.HasPrefix(trigger.FieldPath, basePath) {
-			glog.V(5).Infof("%T/%s trigger %s did not match base path %s", obj, m.GetName(), trigger.FieldPath, basePath)
+			klog.V(5).Infof("%T/%s trigger %s did not match base path %s", obj, m.GetName(), trigger.FieldPath, basePath)
 			continue
 		}
 		fieldPath = strings.TrimPrefix(fieldPath, basePath)
@@ -145,7 +145,7 @@ func UpdateObjectFromImages(obj runtime.Object, tagRetriever trigger.TagRetrieve
 		}
 		ref, _, ok := tagRetriever.ImageStreamTag(namespace, trigger.From.Name)
 		if !ok {
-			glog.V(5).Infof("%T/%s detected no pending image on %s from %#v", obj, m.GetName(), trigger.FieldPath, trigger.From)
+			klog.V(5).Infof("%T/%s detected no pending image on %s from %#v", obj, m.GetName(), trigger.FieldPath, trigger.From)
 			continue
 		}
 
@@ -165,7 +165,7 @@ func UpdateObjectFromImages(obj runtime.Object, tagRetriever trigger.TagRetrieve
 				spec, _ = ometa.GetPodSpecReferenceMutator(updated)
 				container, _ = findContainerBySelector(spec, init, selector)
 			}
-			glog.V(5).Infof("%T/%s detected change on %s = %s", obj, m.GetName(), trigger.FieldPath, ref)
+			klog.V(5).Infof("%T/%s detected change on %s = %s", obj, m.GetName(), trigger.FieldPath, ref)
 			container.SetImage(ref)
 		}
 	}
@@ -181,7 +181,7 @@ func ContainerImageChanged(oldObj, newObj runtime.Object, newTriggers []triggera
 
 		newContainer, _, err := ContainerForObjectFieldPath(newObj, trigger.FieldPath)
 		if err != nil {
-			glog.V(5).Infof("%v", err)
+			klog.V(5).Infof("%v", err)
 			continue
 		}
 

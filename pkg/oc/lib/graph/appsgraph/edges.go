@@ -1,8 +1,8 @@
 package appsgraph
 
 import (
-	"github.com/golang/glog"
 	"github.com/gonum/graph"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -95,7 +95,7 @@ func AddAllDeploymentConfigsDeploymentEdges(g osgraph.MutableUniqueGraph) {
 func AddVolumeClaimEdges(g osgraph.Graph, dcNode *appsgraph.DeploymentConfigNode) {
 	podTemplate := dcNode.DeploymentConfig.Spec.Template
 	if podTemplate == nil {
-		glog.Warningf("DeploymentConfig %s/%s template should not be empty", dcNode.DeploymentConfig.Namespace, dcNode.DeploymentConfig.Name)
+		klog.Warningf("DeploymentConfig %s/%s template should not be empty", dcNode.DeploymentConfig.Namespace, dcNode.DeploymentConfig.Name)
 		return
 	}
 	for _, volume := range podTemplate.Spec.Volumes {

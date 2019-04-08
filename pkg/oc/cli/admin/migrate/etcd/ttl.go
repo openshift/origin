@@ -7,9 +7,9 @@ import (
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/pkg/transport"
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
+	"k8s.io/klog"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -109,7 +109,7 @@ func generateClientConfig(o *MigrateTTLReferenceOptions) (*clientv3.Config, erro
 	}
 
 	if cfgtls != nil {
-		glog.V(4).Infof("TLS configuration: %#v", cfgtls)
+		klog.V(4).Infof("TLS configuration: %#v", cfgtls)
 		clientTLS, err := cfgtls.ClientConfig()
 		if err != nil {
 			return nil, err
@@ -124,7 +124,7 @@ func (o *MigrateTTLReferenceOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	glog.V(4).Infof("Using client config: %#v", c)
+	klog.V(4).Infof("Using client config: %#v", c)
 
 	client, err := clientv3.New(*c)
 	if err != nil {

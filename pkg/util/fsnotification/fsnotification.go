@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"github.com/fsnotify/fsnotify"
 )
@@ -27,7 +27,7 @@ func AddRecursiveWatch(watcher *fsnotify.Watcher, path string) error {
 
 	folders, err := getSubFolders(path)
 	for _, v := range folders {
-		glog.V(5).Infof("adding watch on path %s", v)
+		klog.V(5).Infof("adding watch on path %s", v)
 		err = watcher.Add(v)
 		if err != nil {
 			// "no space left on device" issues are usually resolved via

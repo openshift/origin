@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,7 +54,7 @@ func (p *ProjectCache) GetNamespace(name string) (*corev1.Namespace, error) {
 			return nil, err
 		}
 		if exists {
-			glog.V(4).Infof("found %s in cache after waiting", name)
+			klog.V(4).Infof("found %s in cache after waiting", name)
 		}
 	}
 
@@ -68,7 +68,7 @@ func (p *ProjectCache) GetNamespace(name string) (*corev1.Namespace, error) {
 		if err != nil {
 			return nil, fmt.Errorf("namespace %s does not exist", name)
 		}
-		glog.V(4).Infof("found %s via storage lookup", name)
+		klog.V(4).Infof("found %s via storage lookup", name)
 	}
 	return namespace, nil
 }

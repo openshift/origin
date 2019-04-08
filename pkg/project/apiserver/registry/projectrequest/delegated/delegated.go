@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	authorizationv1 "k8s.io/api/authorization/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -270,7 +270,7 @@ func (r *REST) waitForRoleBinding(namespace, name string) {
 	})
 
 	if err != nil {
-		glog.V(4).Infof("authorization cache failed to update for %v %v: %v", namespace, name, err)
+		klog.V(4).Infof("authorization cache failed to update for %v %v: %v", namespace, name, err)
 	}
 }
 

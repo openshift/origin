@@ -3,7 +3,7 @@ package controller
 import (
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -49,7 +49,7 @@ func (s *ScheduledImageStreamController) Importing(stream *imagev1.ImageStream) 
 	if !s.enabled {
 		return
 	}
-	glog.V(5).Infof("DEBUG: stream %s was just imported", stream.Name)
+	klog.V(5).Infof("DEBUG: stream %s was just imported", stream.Name)
 	// Push the current key back to the end of the queue because it's just been imported
 	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(stream)
 	if err != nil {
@@ -63,7 +63,7 @@ func (s *ScheduledImageStreamController) Importing(stream *imagev1.ImageStream) 
 func (s *ScheduledImageStreamController) Run(stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 
-	glog.Infof("Starting scheduled import controller")
+	klog.Infof("Starting scheduled import controller")
 
 	// Wait for the stream store to sync before starting any work in this controller.
 	if !cache.WaitForCacheSync(stopCh, s.listerSynced) {
@@ -76,7 +76,7 @@ func (s *ScheduledImageStreamController) Run(stopCh <-chan struct{}) {
 	metrics.InitializeImportCollector(true, s.importCounter.Collect)
 
 	<-stopCh
-	glog.Infof("Shutting down image stream controller")
+	klog.Infof("Shutting down image stream controller")
 }
 
 func (s *ScheduledImageStreamController) addImageStream(obj interface{}) {
@@ -118,7 +118,7 @@ func (s *ScheduledImageStreamController) enqueueImageStream(stream *imagev1.Imag
 	if needsScheduling(stream) {
 		key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(stream)
 		if err != nil {
-			glog.V(2).Infof("unable to get namespace key function for stream %s/%s: %v", stream.Namespace, stream.Name, err)
+			klog.V(2).Infof("unable to get namespace key function for stream %s/%s: %v", stream.Namespace, stream.Name, err)
 			return
 		}
 		s.scheduler.Add(key, uniqueItem{uid: string(stream.UID), resourceVersion: stream.ResourceVersion})
@@ -132,12 +132,12 @@ func (s *ScheduledImageStreamController) syncTimed(key, value interface{}) {
 		return
 	}
 	if s.rateLimiter != nil && !s.rateLimiter.TryAccept() {
-		glog.V(5).Infof("DEBUG: check of %s exceeded rate limit, will retry later", key)
+		klog.V(5).Infof("DEBUG: check of %s exceeded rate limit, will retry later", key)
 		return
 	}
 	namespace, name, err := cache.SplitMetaNamespaceKey(key.(string))
 	if err != nil {
-		glog.V(2).Infof("unable to split namespace key for key %q: %v", key, err)
+		klog.V(2).Infof("unable to split namespace key for key %q: %v", key, err)
 		return
 	}
 	if err := s.syncTimedByName(namespace, name); err != nil {
@@ -168,7 +168,7 @@ func (s *ScheduledImageStreamController) syncTimedByName(namespace, name string)
 	stream := sharedStream.DeepCopy()
 	resetScheduledTags(stream)
 
-	glog.V(3).Infof("Scheduled import of stream %s/%s...", stream.Namespace, stream.Name)
+	klog.V(3).Infof("Scheduled import of stream %s/%s...", stream.Namespace, stream.Name)
 	result, err := handleImageStream(stream, s.client, nil)
 	s.importCounter.Increment(result, err)
 	return err

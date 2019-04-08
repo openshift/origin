@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
 	"golang.org/x/net/context"
+	"k8s.io/klog"
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/reference"
@@ -211,7 +211,7 @@ func (c *Context) ping(registry url.URL, insecure bool, transport http.RoundTrip
 	resp, err := pingClient.Do(req)
 	if err != nil {
 		if insecure && registry.Scheme == "https" {
-			glog.V(5).Infof("Falling back to an HTTP check for an insecure registry %s: %v", registry.String(), err)
+			klog.V(5).Infof("Falling back to an HTTP check for an insecure registry %s: %v", registry.String(), err)
 			registry.Scheme = "http"
 			_, nErr := c.ping(registry, true, transport)
 			if nErr != nil {
@@ -225,7 +225,7 @@ func (c *Context) ping(registry url.URL, insecure bool, transport http.RoundTrip
 
 	versions := auth.APIVersions(resp, "Docker-Distribution-API-Version")
 	if len(versions) == 0 {
-		glog.V(5).Infof("Registry responded to v2 Docker endpoint, but has no header for Docker Distribution %s: %d, %#v", req.URL, resp.StatusCode, resp.Header)
+		klog.V(5).Infof("Registry responded to v2 Docker endpoint, but has no header for Docker Distribution %s: %d, %#v", req.URL, resp.StatusCode, resp.Header)
 		switch {
 		case resp.StatusCode >= 200 && resp.StatusCode < 300:
 			// v2
@@ -366,7 +366,7 @@ func (c *retryRepository) shouldRetry(count int, err error) bool {
 	}
 	// don't hot loop
 	time.Sleep(c.wait)
-	glog.V(4).Infof("Retrying request to Docker registry after encountering error (%d attempts remaining): %v", count, err)
+	klog.V(4).Infof("Retrying request to Docker registry after encountering error (%d attempts remaining): %v", count, err)
 	return true
 }
 

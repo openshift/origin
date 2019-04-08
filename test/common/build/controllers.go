@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	corev1 "k8s.io/api/core/v1"
@@ -229,7 +229,7 @@ func RunBuildControllerPodSyncTest(t testingT, buildClient buildv1clienttyped.Bu
 				if !ok {
 					t.Fatalf("%s: unexpected object received: %#v\n", test.Name, e.Object)
 				}
-				glog.Infof("pod watch event received for pod %s/%s: %v, pod phase: %v", pod.Namespace, pod.Name, e.Type, pod.Status.Phase)
+				klog.Infof("pod watch event received for pod %s/%s: %v, pod phase: %v", pod.Namespace, pod.Name, e.Type, pod.Status.Phase)
 				if pod.Status.Phase == corev1.PodPending {
 					podReadyChan <- pod
 					break
@@ -299,7 +299,7 @@ func RunBuildControllerPodSyncTest(t testingT, buildClient buildv1clienttyped.Bu
 							errChan <- fmt.Errorf("unexpected object received: %#v", e.Object)
 							return
 						}
-						glog.Infof("build watch event received for build %s/%s: %v, build phase: %v", b.Namespace, b.Name, e.Type, b.Status.Phase)
+						klog.Infof("build watch event received for build %s/%s: %v, build phase: %v", b.Namespace, b.Name, e.Type, b.Status.Phase)
 						if e.Type != watchapi.Modified {
 							errChan <- fmt.Errorf("unexpected event received: %s, object: %#v", e.Type, e.Object)
 							return
@@ -323,7 +323,7 @@ func RunBuildControllerPodSyncTest(t testingT, buildClient buildv1clienttyped.Bu
 					t.Errorf("%s: Timed out waiting for build %s/%s to reach state %s. Current state: %s", test.Name, b.Namespace, b.Name, state.BuildPhase, b.Status.Phase)
 					return false
 				case <-stateReached:
-					glog.Infof("%s: build %s/%s reached desired state of %s", test.Name, b.Namespace, b.Name, state.BuildPhase)
+					klog.Infof("%s: build %s/%s reached desired state of %s", test.Name, b.Namespace, b.Name, state.BuildPhase)
 				}
 
 				// After state is reached, continue waiting some time to check for unexpected transitions

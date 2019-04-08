@@ -7,8 +7,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	kappsv1 "k8s.io/api/apps/v1"
 	kappsv1beta1 "k8s.io/api/apps/v1beta1"
@@ -329,7 +329,7 @@ func (o *TriggersOptions) Run() error {
 		}
 
 		if string(patch.Patch) == "{}" || len(patch.Patch) == 0 {
-			glog.V(1).Infof("info: %s was not changed\n", name)
+			klog.V(1).Infof("info: %s was not changed\n", name)
 			continue
 		}
 
@@ -397,7 +397,7 @@ func (o *TriggersOptions) printTriggers(infos []*resource.Info) error {
 			return nil
 		})
 		if err != nil {
-			glog.V(2).Infof("Unable to calculate trigger for %s: %v", info.Name, err)
+			klog.V(2).Infof("Unable to calculate trigger for %s: %v", info.Name, err)
 			fmt.Fprintf(w, "%s/%s\t%s\t%s\t%t\n", info.Mapping.Resource.Resource, info.Name, "<error>", "", false)
 		}
 	}
@@ -837,7 +837,7 @@ func (t *TriggerDefinition) Apply(obj runtime.Object) error {
 		}
 		alreadyTriggered := sets.NewString()
 		var triggers []triggerapi.ObjectFieldTrigger
-		glog.V(4).Infof("calculated triggers: %#v", t.ImageChange)
+		klog.V(4).Infof("calculated triggers: %#v", t.ImageChange)
 		for _, trigger := range t.ImageChange {
 			if len(trigger.Names) == 0 {
 				return fmt.Errorf("you must specify --containers when setting --from-image")
@@ -891,7 +891,7 @@ func (t *TriggerDefinition) Apply(obj runtime.Object) error {
 		case *kappsv1.Deployment:
 			typed.Spec.Paused = !t.ConfigChange
 		}
-		glog.V(4).Infof("Updated annotated object: %#v", obj)
+		klog.V(4).Infof("Updated annotated object: %#v", obj)
 		return nil
 
 	default:

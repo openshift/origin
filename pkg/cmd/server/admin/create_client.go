@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -122,7 +122,7 @@ func (o CreateClientOptions) Validate(args []string) error {
 }
 
 func (o CreateClientOptions) CreateClientFolder() error {
-	glog.V(4).Infof("creating a .kubeconfig with: %#v", o)
+	klog.V(4).Infof("creating a .kubeconfig with: %#v", o)
 
 	baseName := o.BaseName
 	if len(baseName) == 0 {

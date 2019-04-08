@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/glog"
 	"gopkg.in/ldap.v2"
+	"k8s.io/klog"
 
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
@@ -195,7 +195,7 @@ func QueryForUniqueEntry(clientConfig ldapclient.Config, query *ldap.SearchReque
 	}
 
 	entry := result[0]
-	glog.V(4).Infof("found dn=%q for %s", entry.DN, query.Filter)
+	klog.V(4).Infof("found dn=%q for %s", entry.DN, query.Filter)
 	return entry, nil
 }
 
@@ -225,10 +225,10 @@ func QueryForEntries(clientConfig ldapclient.Config, query *ldap.SearchRequest) 
 	var searchResult *ldap.SearchResult
 	control := ldap.FindControl(query.Controls, ldap.ControlTypePaging)
 	if control == nil {
-		glog.V(4).Infof("searching LDAP server with config %v with dn=%q and scope %v for %s requesting %v", clientConfig, query.BaseDN, query.Scope, query.Filter, query.Attributes)
+		klog.V(4).Infof("searching LDAP server with config %v with dn=%q and scope %v for %s requesting %v", clientConfig, query.BaseDN, query.Scope, query.Filter, query.Attributes)
 		searchResult, err = connection.Search(query)
 	} else if pagingControl, ok := control.(*ldap.ControlPaging); ok {
-		glog.V(4).Infof("searching LDAP server with config %v with dn=%q and scope %v for %s requesting %v with pageSize=%d", clientConfig, query.BaseDN, query.Scope, query.Filter, query.Attributes, pagingControl.PagingSize)
+		klog.V(4).Infof("searching LDAP server with config %v with dn=%q and scope %v for %s requesting %v with pageSize=%d", clientConfig, query.BaseDN, query.Scope, query.Filter, query.Attributes, pagingControl.PagingSize)
 		searchResult, err = connection.SearchWithPaging(query, pagingControl.PagingSize)
 	} else {
 		err = fmt.Errorf("invalid paging control type: %v", control)
@@ -242,7 +242,7 @@ func QueryForEntries(clientConfig ldapclient.Config, query *ldap.SearchRequest) 
 	}
 
 	for _, entry := range searchResult.Entries {
-		glog.V(4).Infof("found dn=%q ", entry.DN)
+		klog.V(4).Infof("found dn=%q ", entry.DN)
 	}
 	return searchResult.Entries, nil
 }

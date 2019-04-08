@@ -11,7 +11,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"github.com/gonum/graph/simple"
 )
@@ -100,7 +100,7 @@ func (o *GraphOptions) BuildGraph() (*MutableDirectedGraph, error) {
 				// if a package imports a dependency that we did not visit
 				// while traversing the code tree, ignore it, as it is not
 				// required for the root repository to build.
-				glog.V(1).Infof("Skipping unvisited (missing) dependency %q, which is imported by package %q", dependency, pkg.ImportPath)
+				klog.V(1).Infof("Skipping unvisited (missing) dependency %q, which is imported by package %q", dependency, pkg.ImportPath)
 				continue
 			}
 

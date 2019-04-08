@@ -3,8 +3,8 @@ package builds
 import (
 	"time"
 
-	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
@@ -46,7 +46,7 @@ type PrunerOptions struct {
 
 // NewPruner returns a Pruner over specified data using specified options.
 func NewPruner(options PrunerOptions) Pruner {
-	glog.V(1).Infof("Creating build pruner with keepYoungerThan=%v, orphans=%v, keepComplete=%v, keepFailed=%v",
+	klog.V(1).Infof("Creating build pruner with keepYoungerThan=%v, orphans=%v, keepComplete=%v, keepFailed=%v",
 		options.KeepYoungerThan, options.Orphans, options.KeepComplete, options.KeepFailed)
 
 	filter := &andFilter{

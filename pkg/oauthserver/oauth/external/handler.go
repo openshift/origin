@@ -9,7 +9,7 @@ import (
 	"net/url"
 
 	"github.com/RangelReale/osincli"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -66,19 +66,19 @@ func NewExternalOAuthRedirector(provider Provider, state State, redirectURL stri
 
 // AuthenticationRedirect implements oauth.handlers.RedirectAuthHandler
 func (h *Handler) AuthenticationRedirect(w http.ResponseWriter, req *http.Request) error {
-	glog.V(4).Infof("Authentication needed for %v", h.provider)
+	klog.V(4).Infof("Authentication needed for %v", h.provider)
 
 	authReq := h.client.NewAuthorizeRequest(osincli.CODE)
 	h.provider.AddCustomParameters(authReq)
 
 	state, err := h.state.Generate(w, req)
 	if err != nil {
-		glog.V(4).Infof("Error generating state: %v", err)
+		klog.V(4).Infof("Error generating state: %v", err)
 		return err
 	}
 
 	oauthURL := authReq.GetAuthorizeUrlWithParams(state)
-	glog.V(4).Infof("redirect to %v", oauthURL)
+	klog.V(4).Infof("redirect to %v", oauthURL)
 
 	http.Redirect(w, req, oauthURL.String(), http.StatusFound)
 	return nil
@@ -121,19 +121,19 @@ func (h *Handler) AuthenticatePassword(ctx context.Context, username, password s
 			// An invalid_grant error means the username/password was rejected
 			return nil, false, nil
 		}
-		glog.V(4).Infof("Error getting access token using resource owner password grant: %v", err)
+		klog.V(4).Infof("Error getting access token using resource owner password grant: %v", err)
 		return nil, false, err
 	}
 
-	glog.V(5).Infof("Got access data for %s", username)
+	klog.V(5).Infof("Got access data for %s", username)
 
 	identity, ok, err := h.provider.GetUserIdentity(accessData)
 	if err != nil {
-		glog.V(4).Infof("Error getting userIdentityInfo info: %v", err)
+		klog.V(4).Infof("Error getting userIdentityInfo info: %v", err)
 		return nil, false, err
 	}
 	if !ok {
-		glog.V(4).Infof("Could not get userIdentityInfo info from access token")
+		klog.V(4).Infof("Could not get userIdentityInfo info from access token")
 		err := errors.New("Could not get userIdentityInfo info from access token")
 		return nil, false, err
 	}
@@ -148,22 +148,22 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	authReq := h.client.NewAuthorizeRequest(osincli.CODE)
 	authData, err := authReq.HandleRequest(req)
 	if err != nil {
-		glog.V(4).Infof("Error handling request: %v", err)
+		klog.V(4).Infof("Error handling request: %v", err)
 		h.handleError(err, w, req)
 		return
 	}
 
-	glog.V(4).Infof("Got auth data")
+	klog.V(4).Infof("Got auth data")
 
 	// Validate state before making any server-to-server calls
 	ok, err := h.state.Check(authData.State, req)
 	if err != nil {
-		glog.V(4).Infof("Error verifying state: %v", err)
+		klog.V(4).Infof("Error verifying state: %v", err)
 		h.handleError(err, w, req)
 		return
 	}
 	if !ok {
-		glog.V(4).Infof("State is invalid")
+		klog.V(4).Infof("State is invalid")
 		err := errors.New("State is invalid")
 		h.handleError(err, w, req)
 		return
@@ -173,21 +173,21 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	accessReq := h.client.NewAccessRequest(osincli.AUTHORIZATION_CODE, authData)
 	accessData, err := accessReq.GetToken()
 	if err != nil {
-		glog.V(4).Infof("Error getting access token: %v", err)
+		klog.V(4).Infof("Error getting access token: %v", err)
 		h.handleError(err, w, req)
 		return
 	}
 
-	glog.V(5).Infof("Got access data")
+	klog.V(5).Infof("Got access data")
 
 	identity, ok, err := h.provider.GetUserIdentity(accessData)
 	if err != nil {
-		glog.V(4).Infof("Error getting userIdentityInfo info: %v", err)
+		klog.V(4).Infof("Error getting userIdentityInfo info: %v", err)
 		h.handleError(err, w, req)
 		return
 	}
 	if !ok {
-		glog.V(4).Infof("Could not get userIdentityInfo info from access token")
+		klog.V(4).Infof("Could not get userIdentityInfo info from access token")
 		err := errors.New("Could not get userIdentityInfo info from access token")
 		h.handleError(err, w, req)
 		return
@@ -195,15 +195,15 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	user, err := h.mapper.UserFor(identity)
 	if err != nil {
-		glog.V(4).Infof("Error creating or updating mapping for: %#v due to %v", identity, err)
+		klog.V(4).Infof("Error creating or updating mapping for: %#v due to %v", identity, err)
 		h.handleError(err, w, req)
 		return
 	}
-	glog.V(4).Infof("Got userIdentityMapping: %#v", user)
+	klog.V(4).Infof("Got userIdentityMapping: %#v", user)
 
 	_, err = h.success.AuthenticationSucceeded(user, authData.State, w, req)
 	if err != nil {
-		glog.V(4).Infof("Error calling success handler: %v", err)
+		klog.V(4).Infof("Error calling success handler: %v", err)
 		h.handleError(err, w, req)
 		return
 	}

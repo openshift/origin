@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -203,7 +203,7 @@ func (r *LayersREST) Get(ctx context.Context, name string, options *metav1.GetOp
 		missing = addImageStreamLayersFromCache(isl, is, r.index)
 		if len(missing) > 0 {
 			// TODO: return this in the API object as well
-			glog.V(2).Infof("Image stream %s/%s references %d images that could not be found: %v", is.Namespace, is.Name, len(missing), missing)
+			klog.V(2).Infof("Image stream %s/%s references %d images that could not be found: %v", is.Namespace, is.Name, len(missing), missing)
 		}
 	}
 

@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	"github.com/docker/distribution"
 	dockerarchive "github.com/docker/docker/pkg/archive"
@@ -373,7 +373,7 @@ func (o *Options) Run() error {
 						return fmt.Errorf("unable to check whether to include image %s: %v", from, err)
 					}
 					if !ok {
-						glog.V(2).Infof("Filtered out image %s with digest %s from being extracted", from, srcDigest)
+						klog.V(2).Infof("Filtered out image %s with digest %s from being extracted", from, srcDigest)
 						return nil
 					}
 				}
@@ -450,7 +450,7 @@ func (o *Options) Run() error {
 					cont, err := func() (bool, error) {
 						fromBlobs := repo.Blobs(ctx)
 
-						glog.V(5).Infof("Extracting from layer: %#v", layer)
+						klog.V(5).Infof("Extracting from layer: %#v", layer)
 
 						// source
 						r, err := fromBlobs.Open(ctx, layer.Digest)
@@ -472,7 +472,7 @@ func (o *Options) Run() error {
 							return cont, err
 						}
 
-						glog.V(4).Infof("Extracting layer %s with options %#v", layer.Digest, options)
+						klog.V(4).Infof("Extracting layer %s with options %#v", layer.Digest, options)
 						if _, err := archive.ApplyLayer(mapping.To, r, options); err != nil {
 							return false, fmt.Errorf("unable to extract layer %s from %s: %v", layer.Digest, from.Exact(), err)
 						}
@@ -510,14 +510,14 @@ func layerByEntry(r io.Reader, options *archive.TarOptions, layerInfo LayerInfo,
 			}
 			return false, err
 		}
-		glog.V(6).Infof("Printing layer entry %#v", hdr)
+		klog.V(6).Infof("Printing layer entry %#v", hdr)
 		if options.AlterHeaders != nil {
 			ok, err := options.AlterHeaders.Alter(hdr)
 			if err != nil {
 				return false, err
 			}
 			if !ok {
-				glog.V(5).Infof("Exclude entry %s %x %d", hdr.Name, hdr.Typeflag, hdr.Size)
+				klog.V(5).Infof("Exclude entry %s %x %d", hdr.Name, hdr.Typeflag, hdr.Size)
 				continue
 			}
 		}
@@ -612,7 +612,7 @@ func (n *copyFromPattern) Alter(hdr *tar.Header) (bool, error) {
 		matchName = matchName[:i]
 	}
 	if ok, err := path.Match(n.Name, matchName); !ok || err != nil {
-		glog.V(5).Infof("Excluded %s due to filter %s", hdr.Name, n.Name)
+		klog.V(5).Infof("Excluded %s due to filter %s", hdr.Name, n.Name)
 		return false, err
 	}
 	return true, nil
@@ -620,19 +620,19 @@ func (n *copyFromPattern) Alter(hdr *tar.Header) (bool, error) {
 
 func changeTarEntryParent(hdr *tar.Header, from string) bool {
 	if !strings.HasPrefix(hdr.Name, from) {
-		glog.V(5).Infof("Exclude %s due to missing prefix %s", hdr.Name, from)
+		klog.V(5).Infof("Exclude %s due to missing prefix %s", hdr.Name, from)
 		return false
 	}
 	if len(hdr.Linkname) > 0 {
 		if strings.HasPrefix(hdr.Linkname, from) {
 			hdr.Linkname = strings.TrimPrefix(hdr.Linkname, from)
-			glog.V(5).Infof("Updated link to %s", hdr.Linkname)
+			klog.V(5).Infof("Updated link to %s", hdr.Linkname)
 		} else {
-			glog.V(4).Infof("Name %s won't correctly point to %s outside of %s", hdr.Name, hdr.Linkname, from)
+			klog.V(4).Infof("Name %s won't correctly point to %s outside of %s", hdr.Name, hdr.Linkname, from)
 		}
 	}
 	hdr.Name = strings.TrimPrefix(hdr.Name, from)
-	glog.V(5).Infof("Updated name %s", hdr.Name)
+	klog.V(5).Infof("Updated name %s", hdr.Name)
 	return true
 }
 
@@ -644,7 +644,7 @@ func (_ filesOnly) Alter(hdr *tar.Header) (bool, error) {
 	case tar.TypeReg, tar.TypeRegA, tar.TypeDir:
 		return true, nil
 	default:
-		glog.V(6).Infof("Excluded %s because type was not a regular file or directory: %x", hdr.Name, hdr.Typeflag)
+		klog.V(6).Infof("Excluded %s because type was not a regular file or directory: %x", hdr.Name, hdr.Typeflag)
 		return false, nil
 	}
 }

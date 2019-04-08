@@ -9,8 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 
-	"github.com/golang/glog"
 	"gopkg.in/ldap.v2"
+	"k8s.io/klog"
 
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/identitymapper"
@@ -119,7 +119,7 @@ func (a *Authenticator) getIdentity(username, password string) (authapi.UserIden
 		nil,          // controls
 	)
 
-	glog.V(4).Infof("searching for %s", filter)
+	klog.V(4).Infof("searching for %s", filter)
 	results, err := l.Search(searchRequest)
 	if err != nil {
 		return nil, false, err
@@ -127,7 +127,7 @@ func (a *Authenticator) getIdentity(username, password string) (authapi.UserIden
 
 	if len(results.Entries) == 0 {
 		// 0 results means a missing username, not an error
-		glog.V(4).Infof("no entries matching %s", filter)
+		klog.V(4).Infof("no entries matching %s", filter)
 		return nil, false, nil
 	}
 	if len(results.Entries) > 1 {
@@ -136,11 +136,11 @@ func (a *Authenticator) getIdentity(username, password string) (authapi.UserIden
 	}
 
 	entry := results.Entries[0]
-	glog.V(4).Infof("found dn=%q for %s", entry.DN, filter)
+	klog.V(4).Infof("found dn=%q for %s", entry.DN, filter)
 
 	// Bind with given username and password to attempt to authenticate
 	if err := l.Bind(entry.DN, password); err != nil {
-		glog.V(4).Infof("error binding password for %q: %v", entry.DN, err)
+		klog.V(4).Infof("error binding password for %q: %v", entry.DN, err)
 		if err, ok := err.(*ldap.Error); ok {
 			switch err.ResultCode {
 			case ldap.LDAPResultInappropriateAuthentication:

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -214,7 +214,7 @@ func (w *userProjectWatcher) Watch() {
 		case event := <-w.cacheIncoming:
 			if curLen := int64(len(w.cacheIncoming)); watchChannelHWM.Update(curLen) {
 				// Monitor if this gets backed up, and how much.
-				glog.V(2).Infof("watch: %v objects queued in project cache watching channel.", curLen)
+				klog.V(2).Infof("watch: %v objects queued in project cache watching channel.", curLen)
 			}
 
 			w.emit(event)

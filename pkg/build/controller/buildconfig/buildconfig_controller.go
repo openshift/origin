@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -99,7 +99,7 @@ func NewBuildConfigController(buildInternalClient buildclient.Interface, kubeExt
 }
 
 func (c *BuildConfigController) handleBuildConfig(bc *buildv1.BuildConfig) error {
-	glog.V(4).Infof("Handling BuildConfig %s", bcDesc(bc))
+	klog.V(4).Infof("Handling BuildConfig %s", bcDesc(bc))
 
 	if err := buildcommon.HandleBuildPruning(bc.Name, bc.Namespace, c.buildLister, c.buildConfigGetter, c.buildDeleter); err != nil {
 		utilruntime.HandleError(fmt.Errorf("failed to prune builds for %s/%s: %v", bc.Namespace, bc.Name, err))
@@ -115,7 +115,7 @@ func (c *BuildConfigController) handleBuildConfig(bc *buildv1.BuildConfig) error
 		return nil
 	}
 
-	glog.V(4).Infof("Running build for BuildConfig %s", bcDesc(bc))
+	klog.V(4).Infof("Running build for BuildConfig %s", bcDesc(bc))
 
 	buildTriggerCauses := []buildv1.BuildTriggerCause{}
 	// instantiate new build
@@ -190,14 +190,14 @@ func (c *BuildConfigController) Run(workers int, stopCh <-chan struct{}) {
 		return
 	}
 
-	glog.Infof("Starting buildconfig controller")
+	klog.Infof("Starting buildconfig controller")
 
 	for i := 0; i < workers; i++ {
 		go wait.Until(c.worker, time.Second, stopCh)
 	}
 
 	<-stopCh
-	glog.Infof("Shutting down buildconfig controller")
+	klog.Infof("Shutting down buildconfig controller")
 }
 
 func (c *BuildConfigController) worker() {
@@ -242,18 +242,18 @@ func (c *BuildConfigController) handleError(err error, key interface{}) {
 	}
 
 	if IsFatal(err) {
-		glog.V(2).Infof("Will not retry fatal error for key %v: %v", key, err)
+		klog.V(2).Infof("Will not retry fatal error for key %v: %v", key, err)
 		c.queue.Forget(key)
 		return
 	}
 
 	if c.queue.NumRequeues(key) < maxRetries {
-		glog.V(4).Infof("Retrying key %v: %v", key, err)
+		klog.V(4).Infof("Retrying key %v: %v", key, err)
 		c.queue.AddRateLimited(key)
 		return
 	}
 
-	glog.V(2).Infof("Giving up retrying %v: %v", key, err)
+	klog.V(2).Infof("Giving up retrying %v: %v", key, err)
 	c.queue.Forget(key)
 }
 
@@ -261,11 +261,11 @@ func (c *BuildConfigController) handleError(err error, key interface{}) {
 func (c *BuildConfigController) getBuildConfigByKey(key string) (*buildv1.BuildConfig, error) {
 	obj, exists, err := c.buildConfigInformer.GetIndexer().GetByKey(key)
 	if err != nil {
-		glog.V(2).Infof("Unable to retrieve buildconfig %s from store: %v", key, err)
+		klog.V(2).Infof("Unable to retrieve buildconfig %s from store: %v", key, err)
 		return nil, err
 	}
 	if !exists {
-		glog.V(2).Infof("Buildconfig %q has been deleted", key)
+		klog.V(2).Infof("Buildconfig %q has been deleted", key)
 		return nil, nil
 	}
 

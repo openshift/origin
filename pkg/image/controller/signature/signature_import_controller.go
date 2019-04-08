@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -52,12 +52,12 @@ func NewSignatureImportController(ctx context.Context, imageClient imagev1client
 	imageInformer.Informer().AddEventHandlerWithResyncPeriod(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			image := obj.(*imagev1.Image)
-			glog.V(4).Infof("Adding image %s", image.Name)
+			klog.V(4).Infof("Adding image %s", image.Name)
 			controller.enqueueImage(obj)
 		},
 		UpdateFunc: func(old, cur interface{}) {
 			image := cur.(*imagev1.Image)
-			glog.V(4).Infof("Updating image %s", image.Name)
+			klog.V(4).Infof("Updating image %s", image.Name)
 			controller.enqueueImage(cur)
 		},
 	}, resyncInterval)
@@ -73,12 +73,12 @@ func (s *SignatureImportController) Run(workers int, stopCh <-chan struct{}) {
 		return
 	}
 
-	glog.V(5).Infof("Starting workers")
+	klog.V(5).Infof("Starting workers")
 	for i := 0; i < workers; i++ {
 		go wait.Until(s.worker, time.Second, stopCh)
 	}
 	<-stopCh
-	glog.V(1).Infof("Shutting down")
+	klog.V(1).Infof("Shutting down")
 
 }
 
@@ -121,35 +121,35 @@ func (s *SignatureImportController) enqueueImage(obj interface{}) {
 	}
 	key, err := controller.KeyFunc(obj)
 	if err != nil {
-		glog.Errorf("Couldn't get key for object %+v: %v", obj, err)
+		klog.Errorf("Couldn't get key for object %+v: %v", obj, err)
 		return
 	}
 	s.queue.Add(key)
 }
 
 func (s *SignatureImportController) syncImageSignatures(key string) error {
-	glog.V(4).Infof("Initiating download of signatures for %s", key)
+	klog.V(4).Infof("Initiating download of signatures for %s", key)
 	image, err := s.imageLister.Get(key)
 	if err != nil {
-		glog.V(4).Infof("Unable to get image %v: %v", key, err)
+		klog.V(4).Infof("Unable to get image %v: %v", key, err)
 		return err
 	}
 
 	if image.Annotations[imageapi.ManagedByOpenShiftAnnotation] == "true" {
-		glog.V(4).Infof("Skipping downloading signatures for image %s because it's a managed image", image.Name)
+		klog.V(4).Infof("Skipping downloading signatures for image %s because it's a managed image", image.Name)
 		return nil
 	}
 
 	currentSignatures, err := s.fetcher.DownloadImageSignatures(image)
 	if err != nil {
-		glog.V(4).Infof("Failed to fetch image %s signatures: %v", image.Name, err)
+		klog.V(4).Infof("Failed to fetch image %s signatures: %v", image.Name, err)
 		return err
 	}
 
 	// Having no signatures means no-op (we don't remove stored signatures when
 	// the sig-store no longer have them).
 	if len(currentSignatures) == 0 {
-		glog.V(4).Infof("No signatures downloaded for %s", image.Name)
+		klog.V(4).Infof("No signatures downloaded for %s", image.Name)
 		return nil
 	}
 
@@ -173,7 +173,7 @@ func (s *SignatureImportController) syncImageSignatures(key string) error {
 	}
 
 	if len(newImage.Signatures) > s.signatureImportLimit {
-		glog.V(2).Infof("Image %s reached signature limit (max:%d, want:%d)", newImage.Name, s.signatureImportLimit, len(newImage.Signatures))
+		klog.V(2).Infof("Image %s reached signature limit (max:%d, want:%d)", newImage.Name, s.signatureImportLimit, len(newImage.Signatures))
 		return nil
 	}
 
@@ -181,7 +181,7 @@ func (s *SignatureImportController) syncImageSignatures(key string) error {
 	if !shouldUpdate {
 		return nil
 	}
-	glog.V(4).Infof("Image %s now has %d signatures", newImage.Name, len(newImage.Signatures))
+	klog.V(4).Infof("Image %s now has %d signatures", newImage.Name, len(newImage.Signatures))
 
 	_, err = s.imageClient.ImageV1().Images().Update(newImage)
 	return err

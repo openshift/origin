@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -118,7 +118,7 @@ func (vmap *nodeVNIDMap) WaitAndGetVNID(name string) (uint32, error) {
 		if err != nil {
 			return 0, fmt.Errorf("failed to find netid for namespace: %s, %v", name, err)
 		}
-		glog.Warningf("Netid for namespace: %s exists but not found in vnid map", name)
+		klog.Warningf("Netid for namespace: %s exists but not found in vnid map", name)
 		vmap.setVNID(netns.Name, netns.NetID, netnsIsMulticastEnabled(netns))
 		return netns.NetID, nil
 	}
@@ -145,7 +145,7 @@ func (vmap *nodeVNIDMap) setVNID(name string, id uint32, mcEnabled bool) {
 	vmap.mcEnabled[name] = mcEnabled
 	vmap.addNamespaceToSet(name, id)
 
-	glog.Infof("Associate netid %d to namespace %q with mcEnabled %v", id, name, mcEnabled)
+	klog.Infof("Associate netid %d to namespace %q with mcEnabled %v", id, name, mcEnabled)
 }
 
 func (vmap *nodeVNIDMap) unsetVNID(name string) (id uint32, err error) {
@@ -159,7 +159,7 @@ func (vmap *nodeVNIDMap) unsetVNID(name string) (id uint32, err error) {
 	vmap.removeNamespaceFromSet(name, id)
 	delete(vmap.ids, name)
 	delete(vmap.mcEnabled, name)
-	glog.Infof("Dissociate netid %d from namespace %q", id, name)
+	klog.Infof("Dissociate netid %d from namespace %q", id, name)
 	return id, nil
 }
 
@@ -200,7 +200,7 @@ func (vmap *nodeVNIDMap) watchNetNamespaces() {
 
 func (vmap *nodeVNIDMap) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {
 	netns := obj.(*networkapi.NetNamespace)
-	glog.V(5).Infof("Watch %s event for NetNamespace %q", eventType, netns.Name)
+	klog.V(5).Infof("Watch %s event for NetNamespace %q", eventType, netns.Name)
 
 	// Skip this event if nothing has changed
 	oldNetID, err := vmap.getVNID(netns.NetName)
@@ -220,7 +220,7 @@ func (vmap *nodeVNIDMap) handleAddOrUpdateNetNamespace(obj, _ interface{}, event
 
 func (vmap *nodeVNIDMap) handleDeleteNetNamespace(obj interface{}) {
 	netns := obj.(*networkapi.NetNamespace)
-	glog.V(5).Infof("Watch %s event for NetNamespace %q", watch.Deleted, netns.Name)
+	klog.V(5).Infof("Watch %s event for NetNamespace %q", watch.Deleted, netns.Name)
 
 	// Unset VNID first so further operations don't see the deleted VNID
 	vmap.unsetVNID(netns.NetName)

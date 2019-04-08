@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -254,7 +254,7 @@ func FindDockerSecretAsReference(secrets []corev1.Secret, image string) *corev1.
 		secretList := []corev1.Secret{secret}
 		keyring, err := credentialprovidersecrets.MakeDockerKeyring(secretList, &emptyKeyring)
 		if err != nil {
-			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
+			klog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
 			continue
 		}
 		if _, found := keyring.Lookup(image); found {
@@ -291,11 +291,11 @@ func UpdateCustomImageEnv(strategy *buildv1.CustomBuildStrategy, newImage string
 	} else {
 		found := false
 		for i := range strategy.Env {
-			glog.V(4).Infof("Checking env variable %s %s", strategy.Env[i].Name, strategy.Env[i].Value)
+			klog.V(4).Infof("Checking env variable %s %s", strategy.Env[i].Name, strategy.Env[i].Value)
 			if strategy.Env[i].Name == CustomBuildStrategyBaseImageKey {
 				found = true
 				strategy.Env[i].Value = newImage
-				glog.V(4).Infof("Updated env variable %s to %s", strategy.Env[i].Name, strategy.Env[i].Value)
+				klog.V(4).Infof("Updated env variable %s to %s", strategy.Env[i].Name, strategy.Env[i].Value)
 				break
 			}
 		}

@@ -1,7 +1,7 @@
 package prometheus
 
 import (
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -61,7 +61,7 @@ func IntializeMetricsCollector(buildLister buildlister.BuildLister) {
 		prometheus.MustRegister(&bc)
 		registered = true
 	}
-	glog.V(4).Info("build metrics registered with prometheus")
+	klog.V(4).Info("build metrics registered with prometheus")
 }
 
 // Describe implements the prometheus.Collector interface.
@@ -81,7 +81,7 @@ func (bc *buildCollector) Collect(ch chan<- prometheus.Metric) {
 	result, err := bc.lister.List(kselector.Everything())
 
 	if err != nil {
-		glog.V(4).Infof("Collect err %v", err)
+		klog.V(4).Infof("Collect err %v", err)
 		return
 	}
 

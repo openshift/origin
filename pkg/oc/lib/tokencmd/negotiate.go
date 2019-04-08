@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 // Negotiator defines the minimal interface needed to interact with GSSAPI to perform a negotiate challenge/response
@@ -57,7 +57,7 @@ func (c *NegotiateChallengeHandler) HandleChallenge(requestURL string, headers h
 	// Process the token
 	outgoingToken, err := c.negotiator.InitSecContext(requestURL, incomingToken)
 	if err != nil {
-		glog.V(5).Infof("InitSecContext returned error: %v", err)
+		klog.V(5).Infof("InitSecContext returned error: %v", err)
 		return nil, false, err
 	}
 
@@ -71,7 +71,7 @@ func (c *NegotiateChallengeHandler) CompleteChallenge(requestURL string, headers
 	if c.negotiator.IsComplete() {
 		return nil
 	}
-	glog.V(5).Infof("continue needed")
+	klog.V(5).Infof("continue needed")
 
 	// Get incoming token
 	isNegotiate, incomingToken, err := getNegotiateToken(headers)
@@ -85,7 +85,7 @@ func (c *NegotiateChallengeHandler) CompleteChallenge(requestURL string, headers
 	// Process the token
 	_, err = c.negotiator.InitSecContext(requestURL, incomingToken)
 	if err != nil {
-		glog.V(5).Infof("InitSecContext returned error during final negotiation: %v", err)
+		klog.V(5).Infof("InitSecContext returned error during final negotiation: %v", err)
 		return err
 	}
 	if !c.negotiator.IsComplete() {

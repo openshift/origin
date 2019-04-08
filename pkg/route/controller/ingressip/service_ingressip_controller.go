@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -168,7 +168,7 @@ func (ic *IngressIPController) Run(stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer ic.queue.ShutDown()
 
-	glog.V(5).Infof("Waiting for the initial sync to be completed")
+	klog.V(5).Infof("Waiting for the initial sync to be completed")
 	if !cache.WaitForCacheSync(stopCh, ic.hasSynced) {
 		return
 	}
@@ -177,7 +177,7 @@ func (ic *IngressIPController) Run(stopCh <-chan struct{}) {
 		return
 	}
 
-	glog.V(5).Infof("Initial sync completed, starting worker")
+	klog.V(5).Infof("Initial sync completed, starting worker")
 	for ic.work() {
 		var done bool
 		select {
@@ -190,7 +190,7 @@ func (ic *IngressIPController) Run(stopCh <-chan struct{}) {
 		}
 	}
 
-	glog.V(1).Infof("Shutting down ingress ip controller")
+	klog.V(1).Infof("Shutting down ingress ip controller")
 }
 
 type serviceAge []*v1.Service
@@ -212,7 +212,7 @@ func (ic *IngressIPController) processInitialSync() bool {
 	ic.lock.Lock()
 	defer ic.lock.Unlock()
 
-	glog.V(5).Infof("Processing initial sync")
+	klog.V(5).Infof("Processing initial sync")
 
 	// Track services that need to be processed after existing
 	// allocations are recorded.
@@ -272,7 +272,7 @@ func (ic *IngressIPController) processInitialSync() bool {
 	sort.Sort(serviceAge(pendingServices))
 	for _, service := range pendingServices {
 		if key, err := controller.KeyFunc(service); err == nil {
-			glog.V(5).Infof("Adding service back to queue: %v ", key)
+			klog.V(5).Infof("Adding service back to queue: %v ", key)
 			change := &serviceChange{key: key}
 			ic.queue.Add(change)
 		} else {
@@ -287,7 +287,7 @@ func (ic *IngressIPController) processInitialSync() bool {
 		ic.queue.Add(change)
 	}
 
-	glog.V(5).Infof("Completed processing initial sync")
+	klog.V(5).Infof("Completed processing initial sync")
 
 	return true
 }
@@ -298,9 +298,9 @@ func (ic *IngressIPController) getCachedService(key string) *v1.Service {
 		return nil
 	}
 	if obj, exists, err := ic.cache.GetByKey(key); err != nil {
-		glog.V(5).Infof("Unable to retrieve service %v from store: %v", key, err)
+		klog.V(5).Infof("Unable to retrieve service %v from store: %v", key, err)
 	} else if !exists {
-		glog.V(6).Infof("Service %v has been deleted", key)
+		klog.V(6).Infof("Service %v has been deleted", key)
 	} else {
 		return obj.(*v1.Service)
 	}
@@ -337,7 +337,7 @@ func (ic *IngressIPController) recordLocalAllocation(key, ipString string) (real
 		return false, fmt.Errorf("Unexpected error from ip allocator for service %v: %v", key, err)
 	}
 	ic.allocationMap[ipString] = key
-	glog.V(5).Infof("Recorded allocation of ip %v for service %v", ipString, key)
+	klog.V(5).Infof("Recorded allocation of ip %v for service %v", ipString, key)
 	return false, nil
 }
 
@@ -496,7 +496,7 @@ func (ic *IngressIPController) allocate(service *v1.Service, key string) error {
 	}
 	ipString := ip.String()
 
-	glog.V(5).Infof("Allocating ip %v to service %v", ipString, key)
+	klog.V(5).Infof("Allocating ip %v to service %v", ipString, key)
 	serviceCopy.Status = v1.ServiceStatus{
 		LoadBalancer: v1.LoadBalancerStatus{
 			Ingress: []v1.LoadBalancerIngress{
@@ -521,7 +521,7 @@ func (ic *IngressIPController) allocate(service *v1.Service, key string) error {
 // deallocate ensures that the ip currently allocated to a service is
 // removed and that its loadbalancer status is cleared.
 func (ic *IngressIPController) deallocate(service *v1.Service, key string) error {
-	glog.V(5).Infof("Clearing allocation state for %v", key)
+	klog.V(5).Infof("Clearing allocation state for %v", key)
 
 	// Make a copy to modify to avoid mutating cache state
 	serviceCopy := service.DeepCopy()
@@ -541,7 +541,7 @@ func (ic *IngressIPController) deallocate(service *v1.Service, key string) error
 // clearLocalAllocation clears an in-memory allocation if it belongs
 // to the specified service key.
 func (ic *IngressIPController) clearLocalAllocation(key, ipString string) bool {
-	glog.V(5).Infof("Attempting to clear local allocation of ip %v for service %v", ipString, key)
+	klog.V(5).Infof("Attempting to clear local allocation of ip %v for service %v", ipString, key)
 
 	ip := net.ParseIP(ipString)
 	if ip == nil {
@@ -553,10 +553,10 @@ func (ic *IngressIPController) clearLocalAllocation(key, ipString string) bool {
 	ipKey, ok := ic.allocationMap[ipString]
 	switch {
 	case !ok:
-		glog.V(6).Infof("IP address %v is not currently allocated", ipString)
+		klog.V(6).Infof("IP address %v is not currently allocated", ipString)
 		return false
 	case key != ipKey:
-		glog.V(6).Infof("IP address %v is not allocated to service %v", ipString, key)
+		klog.V(6).Infof("IP address %v is not allocated to service %v", ipString, key)
 		return false
 	}
 
@@ -567,7 +567,7 @@ func (ic *IngressIPController) clearLocalAllocation(key, ipString string) bool {
 		return false
 	}
 	delete(ic.allocationMap, ipString)
-	glog.V(5).Infof("IP address %v is now available for allocation", ipString)
+	klog.V(5).Infof("IP address %v is now available for allocation", ipString)
 	return true
 }
 
@@ -579,7 +579,7 @@ func (ic *IngressIPController) clearPersistedAllocation(service *v1.Service, key
 	if len(errMessage) > 0 {
 		utilruntime.HandleError(fmt.Errorf(errMessage))
 	} else {
-		glog.V(5).Infof("Attempting to clear persisted allocation for service: %v", key)
+		klog.V(5).Infof("Attempting to clear persisted allocation for service: %v", key)
 	}
 
 	// An ingress ip is only allowed in ExternalIPs when a
@@ -588,7 +588,7 @@ func (ic *IngressIPController) clearPersistedAllocation(service *v1.Service, key
 	ingressIP := service.Status.LoadBalancer.Ingress[0].IP
 	for i, ip := range service.Spec.ExternalIPs {
 		if ip == ingressIP {
-			glog.V(5).Infof("Removing ip %v from the external ips of service %v", ingressIP, key)
+			klog.V(5).Infof("Removing ip %v from the external ips of service %v", ingressIP, key)
 			service.Spec.ExternalIPs = append(service.Spec.ExternalIPs[:i], service.Spec.ExternalIPs[i+1:]...)
 			if err := ic.persistServiceSpec(service); err != nil {
 				return err
@@ -598,7 +598,7 @@ func (ic *IngressIPController) clearPersistedAllocation(service *v1.Service, key
 	}
 
 	service.Status.LoadBalancer = v1.LoadBalancerStatus{}
-	glog.V(5).Infof("Clearing the load balancer status of service: %v", key)
+	klog.V(5).Infof("Clearing the load balancer status of service: %v", key)
 	return ic.persistServiceStatus(service)
 }
 
@@ -611,13 +611,13 @@ func (ic *IngressIPController) ensureExternalIP(service *v1.Service, key, ingres
 	for _, ip := range service.Spec.ExternalIPs {
 		if ip == ingressIP {
 			ipExists = true
-			glog.V(6).Infof("Service %v already has ip %v as an external ip", key, ingressIP)
+			klog.V(6).Infof("Service %v already has ip %v as an external ip", key, ingressIP)
 			break
 		}
 	}
 	if !ipExists {
 		service.Spec.ExternalIPs = append(service.Spec.ExternalIPs, ingressIP)
-		glog.V(5).Infof("Adding ip %v to service %v as an external ip", ingressIP, key)
+		klog.V(5).Infof("Adding ip %v to service %v as an external ip", ingressIP, key)
 		return ic.persistServiceSpec(service)
 	}
 	return nil
@@ -671,7 +671,7 @@ func persistService(client kcoreclient.ServicesGetter, service *v1.Service, targ
 			// If the service no longer exists, we don't want to recreate
 			// it. Just bail out so that we can process the delete, which
 			// we should soon be receiving if we haven't already.
-			glog.V(5).Infof("Not persisting update to service '%s/%s' that no longer exists: %v",
+			klog.V(5).Infof("Not persisting update to service '%s/%s' that no longer exists: %v",
 				service.Namespace, service.Name, err)
 			return true, nil
 		case kerrors.IsConflict(err):
@@ -679,7 +679,7 @@ func persistService(client kcoreclient.ServicesGetter, service *v1.Service, targ
 			// unrelated to load balancer status. For now, just rely on
 			// the fact that we'll also process the update that caused the
 			// resource version to change.
-			glog.V(5).Infof("Not persisting update to service '%s/%s' that has been changed since we received it: %v",
+			klog.V(5).Infof("Not persisting update to service '%s/%s' that has been changed since we received it: %v",
 				service.Namespace, service.Name, err)
 			return true, nil
 		default:

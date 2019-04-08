@@ -5,7 +5,7 @@ package node
 import (
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	networkapi "github.com/openshift/api/network/v1"
 	"github.com/openshift/origin/pkg/network/common"
@@ -28,7 +28,7 @@ func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
 	for _, policy := range policies.Items {
 		vnid, err := plugin.policy.GetVNID(policy.Namespace)
 		if err != nil {
-			glog.Warningf("Could not find netid for namespace %q: %v", policy.Namespace, err)
+			klog.Warningf("Could not find netid for namespace %q: %v", policy.Namespace, err)
 			continue
 		}
 		plugin.egressPolicies[vnid] = append(plugin.egressPolicies[vnid], policy)
@@ -52,14 +52,14 @@ func (plugin *OsdnNode) watchEgressNetworkPolicies() {
 
 func (plugin *OsdnNode) handleAddOrUpdateEgressNetworkPolicy(obj, _ interface{}, eventType watch.EventType) {
 	policy := obj.(*networkapi.EgressNetworkPolicy)
-	glog.V(5).Infof("Watch %s event for EgressNetworkPolicy %s/%s", eventType, policy.Namespace, policy.Name)
+	klog.V(5).Infof("Watch %s event for EgressNetworkPolicy %s/%s", eventType, policy.Namespace, policy.Name)
 
 	plugin.handleEgressNetworkPolicy(policy, eventType)
 }
 
 func (plugin *OsdnNode) handleDeleteEgressNetworkPolicy(obj interface{}) {
 	policy := obj.(*networkapi.EgressNetworkPolicy)
-	glog.V(5).Infof("Watch %s event for EgressNetworkPolicy %s/%s", watch.Deleted, policy.Namespace, policy.Name)
+	klog.V(5).Infof("Watch %s event for EgressNetworkPolicy %s/%s", watch.Deleted, policy.Namespace, policy.Name)
 
 	plugin.handleEgressNetworkPolicy(policy, watch.Deleted)
 }
@@ -119,11 +119,11 @@ func (plugin *OsdnNode) syncEgressDNSPolicyRules() {
 
 	for {
 		policyUpdates := <-plugin.egressDNS.Updates
-		glog.V(5).Infof("Egress dns sync: updating policy: %v", policyUpdates.UID)
+		klog.V(5).Infof("Egress dns sync: updating policy: %v", policyUpdates.UID)
 
 		vnid, err := plugin.policy.GetVNID(policyUpdates.Namespace)
 		if err != nil {
-			glog.Warningf("Could not find netid for namespace %q: %v", policyUpdates.Namespace, err)
+			klog.Warningf("Could not find netid for namespace %q: %v", policyUpdates.Namespace, err)
 			continue
 		}
 

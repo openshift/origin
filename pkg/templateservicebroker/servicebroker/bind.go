@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -149,7 +149,7 @@ func updateCredentialsForObject(credentials map[string]interface{}, obj runtime.
 
 // Bind returns the secrets and services from a provisioned template.
 func (b *Broker) Bind(u user.Info, instanceID, bindingID string, breq *api.BindRequest) *api.Response {
-	glog.V(4).Infof("Template service broker: Bind: instanceID %s, bindingID %s", instanceID, bindingID)
+	klog.V(4).Infof("Template service broker: Bind: instanceID %s, bindingID %s", instanceID, bindingID)
 
 	if errs := ValidateBindRequest(breq); len(errs) > 0 {
 		return api.BadRequest(errs.ToAggregate())

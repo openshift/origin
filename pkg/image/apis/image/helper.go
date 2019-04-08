@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/blang/semver"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"github.com/openshift/api/image"
 	"github.com/openshift/origin/pkg/image/apis/image/reference"
@@ -458,19 +458,19 @@ func tagsChanged(new, old []TagEvent) (changed bool, deleted bool) {
 // Returns the number of tags changed.
 func UpdateTrackingTags(stream *ImageStream, updatedTag string, updatedImage TagEvent) int {
 	updated := 0
-	glog.V(5).Infof("UpdateTrackingTags: stream=%s/%s, updatedTag=%s, updatedImage.dockerImageReference=%s, updatedImage.image=%s", stream.Namespace, stream.Name, updatedTag, updatedImage.DockerImageReference, updatedImage.Image)
+	klog.V(5).Infof("UpdateTrackingTags: stream=%s/%s, updatedTag=%s, updatedImage.dockerImageReference=%s, updatedImage.image=%s", stream.Namespace, stream.Name, updatedTag, updatedImage.DockerImageReference, updatedImage.Image)
 	for specTag, tagRef := range stream.Spec.Tags {
-		glog.V(5).Infof("Examining spec tag %q, tagRef=%#v", specTag, tagRef)
+		klog.V(5).Infof("Examining spec tag %q, tagRef=%#v", specTag, tagRef)
 
 		// no from
 		if tagRef.From == nil {
-			glog.V(5).Infof("tagRef.From is nil, skipping")
+			klog.V(5).Infof("tagRef.From is nil, skipping")
 			continue
 		}
 
 		// wrong kind
 		if tagRef.From.Kind != "ImageStreamTag" {
-			glog.V(5).Infof("tagRef.Kind %q isn't ImageStreamTag, skipping", tagRef.From.Kind)
+			klog.V(5).Infof("tagRef.Kind %q isn't ImageStreamTag, skipping", tagRef.From.Kind)
 			continue
 		}
 
@@ -481,7 +481,7 @@ func UpdateTrackingTags(stream *ImageStream, updatedTag string, updatedImage Tag
 
 		// different namespace
 		if tagRefNamespace != stream.Namespace {
-			glog.V(5).Infof("tagRefNamespace %q doesn't match stream namespace %q - skipping", tagRefNamespace, stream.Namespace)
+			klog.V(5).Infof("tagRefNamespace %q doesn't match stream namespace %q - skipping", tagRefNamespace, stream.Namespace)
 			continue
 		}
 
@@ -492,7 +492,7 @@ func UpdateTrackingTags(stream *ImageStream, updatedTag string, updatedImage Tag
 			ok := true
 			tagRefName, tag, ok = SplitImageStreamTag(tagRef.From.Name)
 			if !ok {
-				glog.V(5).Infof("tagRefName %q contains invalid reference - skipping", tagRef.From.Name)
+				klog.V(5).Infof("tagRefName %q contains invalid reference - skipping", tagRef.From.Name)
 				continue
 			}
 		} else {
@@ -502,22 +502,22 @@ func UpdateTrackingTags(stream *ImageStream, updatedTag string, updatedImage Tag
 			tag = tagRef.From.Name
 		}
 
-		glog.V(5).Infof("tagRefName=%q, tag=%q", tagRefName, tag)
+		klog.V(5).Infof("tagRefName=%q, tag=%q", tagRefName, tag)
 
 		// different stream
 		if tagRefName != stream.Name {
-			glog.V(5).Infof("tagRefName %q doesn't match stream name %q - skipping", tagRefName, stream.Name)
+			klog.V(5).Infof("tagRefName %q doesn't match stream name %q - skipping", tagRefName, stream.Name)
 			continue
 		}
 
 		// different tag
 		if tag != updatedTag {
-			glog.V(5).Infof("tag %q doesn't match updated tag %q - skipping", tag, updatedTag)
+			klog.V(5).Infof("tag %q doesn't match updated tag %q - skipping", tag, updatedTag)
 			continue
 		}
 
 		if AddTagEventToImageStream(stream, specTag, updatedImage) {
-			glog.V(5).Infof("stream updated")
+			klog.V(5).Infof("stream updated")
 			updated++
 		}
 	}

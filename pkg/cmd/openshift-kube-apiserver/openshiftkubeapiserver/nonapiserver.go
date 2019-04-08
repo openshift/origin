@@ -3,7 +3,7 @@ package openshiftkubeapiserver
 import (
 	"net/http"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericmux "k8s.io/apiserver/pkg/server/mux"
@@ -25,7 +25,7 @@ func NewOpenshiftNonAPIConfig(generiConfig *genericapiserver.Config, kubeInforme
 	ret.ExtraConfig.OAuthMetadata, _, err = oauthutil.PrepOauthMetadata(oauthConfig, authConfig.OAuthMetadataFile)
 	if err != nil {
 		// invalid metadata must not prevent the kube api server from starting
-		glog.Errorf("Unable to initialize OAuth authorization server metadata: %v", err)
+		klog.Errorf("Unable to initialize OAuth authorization server metadata: %v", err)
 	}
 
 	return ret, nil

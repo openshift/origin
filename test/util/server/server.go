@@ -16,7 +16,7 @@ import (
 	"time"
 
 	etcdclientv3 "github.com/coreos/etcd/clientv3"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -149,7 +149,7 @@ func setupStartOptions() *start.MasterArgs {
 	masterAddr := os.Getenv("OS_MASTER_ADDR")
 	if len(masterAddr) == 0 {
 		if addr, err := FindAvailableBindAddress(10000, 29999); err != nil {
-			glog.Fatalf("Couldn't find free address for master: %v", err)
+			klog.Fatalf("Couldn't find free address for master: %v", err)
 		} else {
 			masterAddr = addr
 		}
@@ -160,7 +160,7 @@ func setupStartOptions() *start.MasterArgs {
 	dnsAddr := os.Getenv("OS_DNS_ADDR")
 	if len(dnsAddr) == 0 {
 		if addr, err := FindAvailableBindAddress(10000, 29999); err != nil {
-			glog.Fatalf("Couldn't find free address for DNS: %v", err)
+			klog.Fatalf("Couldn't find free address for DNS: %v", err)
 		} else {
 			dnsAddr = addr
 		}
@@ -239,7 +239,7 @@ func DefaultMasterOptionsWithTweaks() (*configapi.MasterConfig, error) {
 	}
 	masterConfig.ImagePolicyConfig.AllowedRegistriesForImport = &allowedRegistries
 
-	glog.Infof("Starting integration server from master %s", masterArgs.ConfigDir.Value())
+	klog.Infof("Starting integration server from master %s", masterArgs.ConfigDir.Value())
 
 	return masterConfig, nil
 }
@@ -436,9 +436,9 @@ func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig
 	kubeAPIServerConfig.APIServerArguments["audit-log-format"] = kubecontrolplanev1.Arguments{"json"}
 	go func() {
 		if err := openshift_kube_apiserver.RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig, stopCh); err != nil {
-			glog.Errorf("openshift-kube-apiserver terminated: %v", err)
+			klog.Errorf("openshift-kube-apiserver terminated: %v", err)
 		} else {
-			glog.Info("openshift-kube-apiserver terminated cleanly")
+			klog.Info("openshift-kube-apiserver terminated cleanly")
 		}
 	}()
 
@@ -488,9 +488,9 @@ func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig 
 	openshiftAPIServerConfig.ServingInfo.BindAddress = openshiftAddrStr
 	go func() {
 		if err := openshift_apiserver.RunOpenShiftAPIServer(openshiftAPIServerConfig, stopCh); err != nil {
-			glog.Errorf("openshift-apiserver terminated: %v", err)
+			klog.Errorf("openshift-apiserver terminated: %v", err)
 		} else {
-			glog.Info("openshift-apiserver terminated cleanly")
+			klog.Info("openshift-apiserver terminated cleanly")
 		}
 	}()
 
@@ -654,7 +654,7 @@ func startKubernetesControllers(masterConfig *configapi.MasterConfig, adminKubeC
 	go func() {
 		cmd := kube_controller_manager.NewControllerManagerCommand()
 		if err := cmd.ParseFlags(args); err != nil {
-			glog.Errorf("kube-controller-manager failed to parse flags: %v", err)
+			klog.Errorf("kube-controller-manager failed to parse flags: %v", err)
 			return
 		}
 		cmd.Run(cmd, nil)
@@ -708,7 +708,7 @@ func startOpenShiftControllers(masterConfig *configapi.MasterConfig) error {
 	openshiftControllerConfig.ServingInfo.BindAddress = openshiftAddrStr
 	go func() {
 		if err := openshift_controller_manager.RunOpenShiftControllerManager(openshiftControllerConfig, privilegedLoopbackConfig); err != nil {
-			glog.Errorf("openshift-controller-manager terminated: %v", err)
+			klog.Errorf("openshift-controller-manager terminated: %v", err)
 		}
 		// TODO: stop openshift-controller-manager on exit of the test
 	}()
@@ -806,7 +806,7 @@ func WaitForPodCreationServiceAccounts(clientset kubernetes.Interface, namespace
 	return wait.PollImmediate(time.Second, PodCreationWaitTimeout, func() (bool, error) {
 		pod, err := clientset.CoreV1().Pods(namespace).Create(testPod)
 		if err != nil {
-			glog.Warningf("Error attempting to create test pod: %v", err)
+			klog.Warningf("Error attempting to create test pod: %v", err)
 			return false, nil
 		}
 		err = clientset.CoreV1().Pods(namespace).Delete(pod.Name, metav1.NewDeleteOptions(0))

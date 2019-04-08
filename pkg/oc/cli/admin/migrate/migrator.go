@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -316,7 +316,7 @@ func (o *ResourceOptions) Complete(f kcmdutil.Factory, c *cobra.Command) error {
 				include.Insert(reduce)
 			}
 		}
-		glog.V(4).Infof("Found the following resources from the server: %v", include.List())
+		klog.V(4).Infof("Found the following resources from the server: %v", include.List())
 		last := o.Include[i+1:]
 		o.Include = append([]string{}, o.Include[:i]...)
 		o.Include = append(o.Include, include.List()...)
@@ -626,16 +626,16 @@ func (t *migrateTracker) run() {
 			t.resourcesWithErrors.Insert((&groupResource).String())
 		case attemptResultIgnore:
 			t.ignored++
-			if glog.V(2) {
+			if klog.V(2) {
 				t.report("ignored:", r.data.info, nil)
 			}
 		case attemptResultUnchanged:
 			t.unchanged++
-			if glog.V(2) {
+			if klog.V(2) {
 				t.report("unchanged:", r.data.info, nil)
 			}
 		case attemptResultSuccess:
-			if glog.V(1) {
+			if klog.V(1) {
 				if t.dryRun {
 					t.report("migrated (dry run):", r.data.info, nil)
 				} else {
@@ -707,7 +707,7 @@ func (t *migrateWorker) try(info *resource.Info, retries int) (attemptResult, er
 			}
 			if canRetry(err) {
 				if retries > 0 {
-					if bool(glog.V(1)) && err != ErrRecalculate {
+					if bool(klog.V(1)) && err != ErrRecalculate {
 						// signal that we had to retry on this resource
 						t.results <- resultData{retry: true, data: workData{info: info, err: err}}
 					}

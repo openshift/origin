@@ -3,8 +3,8 @@ package admin
 import (
 	"errors"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -97,7 +97,7 @@ func (o CreateSignerCertOptions) Validate(args []string) error {
 }
 
 func (o CreateSignerCertOptions) CreateSignerCert() (*crypto.CA, error) {
-	glog.V(4).Infof("Creating a signer cert with: %#v", o)
+	klog.V(4).Infof("Creating a signer cert with: %#v", o)
 	var ca *crypto.CA
 	var err error
 	written := true
@@ -107,9 +107,9 @@ func (o CreateSignerCertOptions) CreateSignerCert() (*crypto.CA, error) {
 		ca, written, err = crypto.EnsureCA(o.CertFile, o.KeyFile, o.SerialFile, o.Name, o.ExpireDays)
 	}
 	if written {
-		glog.V(3).Infof("Generated new CA for %s: cert in %s and key in %s\n", o.Name, o.CertFile, o.KeyFile)
+		klog.V(3).Infof("Generated new CA for %s: cert in %s and key in %s\n", o.Name, o.CertFile, o.KeyFile)
 	} else {
-		glog.V(3).Infof("Keeping existing CA cert at %s and key at %s\n", o.CertFile, o.KeyFile)
+		klog.V(3).Infof("Keeping existing CA cert at %s and key at %s\n", o.CertFile, o.KeyFile)
 	}
 	return ca, err
 }

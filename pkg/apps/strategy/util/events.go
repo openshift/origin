@@ -5,7 +5,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,11 +26,11 @@ func RecordConfigEvent(client corev1client.EventsGetter, deployment *corev1.Repl
 	if config, err := appsutil.DecodeDeploymentConfig(deployment); err == nil {
 		obj = config
 	} else {
-		glog.Errorf("Unable to decode deployment config from %s/%s: %v", deployment.Namespace, deployment.Name, err)
+		klog.Errorf("Unable to decode deployment config from %s/%s: %v", deployment.Namespace, deployment.Name, err)
 	}
 	ref, err := reference.GetReference(legacyscheme.Scheme, obj)
 	if err != nil {
-		glog.Errorf("Unable to get reference for %#v: %v", obj, err)
+		klog.Errorf("Unable to get reference for %#v: %v", obj, err)
 		return
 	}
 	event := &corev1.Event{
@@ -50,7 +50,7 @@ func RecordConfigEvent(client corev1client.EventsGetter, deployment *corev1.Repl
 		Type:           eventType,
 	}
 	if _, err := client.Events(ref.Namespace).Create(event); err != nil {
-		glog.Errorf("Could not create event '%#v': %v", event, err)
+		klog.Errorf("Could not create event '%#v': %v", event, err)
 	}
 }
 

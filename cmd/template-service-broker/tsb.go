@@ -7,8 +7,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/version"
+	"k8s.io/klog"
 
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/util/logs"
@@ -41,6 +41,6 @@ func main() {
 	cmd := tsbcmd.NewCommandStartTemplateServiceBrokerServer(os.Stdout, os.Stderr, stopCh)
 	cmd.Flags().AddGoFlagSet(flag.CommandLine)
 	if err := cmd.Execute(); err != nil {
-		glog.Fatal(err)
+		klog.Fatal(err)
 	}
 }

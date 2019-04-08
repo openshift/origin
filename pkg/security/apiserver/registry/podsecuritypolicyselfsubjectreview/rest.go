@@ -15,11 +15,11 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
-	"github.com/golang/glog"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityvalidation "github.com/openshift/origin/pkg/security/apis/security/validation"
 	podsecuritypolicysubjectreview "github.com/openshift/origin/pkg/security/apiserver/registry/podsecuritypolicysubjectreview"
 	scc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
+	"k8s.io/klog"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.
@@ -81,12 +81,12 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 			err      error
 		)
 		if provider, namespace, err = scc.CreateProviderFromConstraint(ns, namespace, constraint, r.client); err != nil {
-			glog.Errorf("Unable to create provider for constraint: %v", err)
+			klog.Errorf("Unable to create provider for constraint: %v", err)
 			continue
 		}
 		filled, err := podsecuritypolicysubjectreview.FillPodSecurityPolicySubjectReviewStatus(&pspssr.Status, provider, pspssr.Spec.Template.Spec, constraint)
 		if err != nil {
-			glog.Errorf("unable to fill PodSecurityPolicySelfSubjectReview from constraint %v", err)
+			klog.Errorf("unable to fill PodSecurityPolicySelfSubjectReview from constraint %v", err)
 			continue
 		}
 		if filled {

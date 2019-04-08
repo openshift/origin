@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -134,7 +134,7 @@ func (a *imageLimitRangerPlugin) MutateLimit(limitRange *corev1.LimitRange, kind
 func (a *imageLimitRangerPlugin) ValidateLimit(limitRange *corev1.LimitRange, kind string, obj runtime.Object) error {
 	isObj, ok := obj.(*imageapi.ImageStreamMapping)
 	if !ok {
-		glog.V(5).Infof("%s: received object other than ImageStreamMapping (%T)", PluginName, obj)
+		klog.V(5).Infof("%s: received object other than ImageStreamMapping (%T)", PluginName, obj)
 		return nil
 	}
 

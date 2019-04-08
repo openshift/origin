@@ -9,9 +9,9 @@ import (
 	"path"
 
 	"github.com/coreos/go-systemd/daemon"
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -66,7 +66,7 @@ func NewOpenShiftControllerManagerCommand(name, basename string, out, errout io.
 						os.Exit(255)
 					}
 				}
-				glog.Fatal(err)
+				klog.Fatal(err)
 			}
 		},
 	}
@@ -150,7 +150,7 @@ func (o *OpenShiftControllerManager) RunControllerManager() error {
 	validationResults := validation.ValidateMasterConfig(masterConfig, nil)
 	if len(validationResults.Warnings) != 0 {
 		for _, warning := range validationResults.Warnings {
-			glog.Warningf("%v", warning)
+			klog.Warningf("%v", warning)
 		}
 	}
 	if len(validationResults.Errors) != 0 {

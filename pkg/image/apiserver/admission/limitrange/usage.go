@@ -3,7 +3,7 @@ package limitrange
 import (
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -117,7 +117,7 @@ func gatherImagesFromImageStreamSpec(is *imageapi.ImageStream) sets.String {
 
 		ref, err := getImageReferenceForObjectReference(is.Namespace, tagRef.From)
 		if err != nil {
-			glog.V(4).Infof("could not process object reference: %v", err)
+			klog.V(4).Infof("could not process object reference: %v", err)
 			continue
 		}
 

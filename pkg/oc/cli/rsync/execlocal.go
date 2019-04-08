@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 // localExecutor will execute commands on the local machine
@@ -16,14 +16,14 @@ var _ executor = &localExecutor{}
 
 // Execute will run a command locally
 func (*localExecutor) Execute(command []string, in io.Reader, out, errOut io.Writer) error {
-	glog.V(3).Infof("Local executor running command: %s", strings.Join(command, " "))
+	klog.V(3).Infof("Local executor running command: %s", strings.Join(command, " "))
 	cmd := exec.Command(command[0], command[1:]...)
 	cmd.Stdout = out
 	cmd.Stderr = errOut
 	cmd.Stdin = in
 	err := cmd.Run()
 	if err != nil {
-		glog.V(4).Infof("Error from local command execution: %v", err)
+		klog.V(4).Infof("Error from local command execution: %v", err)
 	}
 	return err
 }

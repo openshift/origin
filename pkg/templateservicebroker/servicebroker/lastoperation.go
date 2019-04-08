@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	authorizationv1 "k8s.io/api/authorization/v1"
 	kapiv1 "k8s.io/api/core/v1"
@@ -21,7 +21,7 @@ import (
 // LastOperation returns the status of an asynchronous operation.  Currently
 // the OSB API only supports async Provision and Deprovision.
 func (b *Broker) LastOperation(u user.Info, instanceID string, operation api.Operation) *api.Response {
-	glog.V(4).Infof("Template service broker: LastOperation: instanceID %s", instanceID)
+	klog.V(4).Infof("Template service broker: LastOperation: instanceID %s", instanceID)
 
 	switch operation {
 	case api.OperationProvisioning:

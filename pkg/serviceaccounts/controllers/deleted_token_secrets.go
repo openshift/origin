@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -62,14 +62,14 @@ type DockercfgTokenDeletedController struct {
 // Runs controller loops and returns on shutdown
 func (e *DockercfgTokenDeletedController) Run(stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
-	glog.Infof("Starting DockercfgTokenDeletedController controller")
-	defer glog.Infof("Shutting down DockercfgTokenDeletedController controller")
+	klog.Infof("Starting DockercfgTokenDeletedController controller")
+	defer klog.Infof("Shutting down DockercfgTokenDeletedController controller")
 
 	// Wait for the stores to fill
 	if !cache.WaitForCacheSync(stopCh, e.secretController.HasSynced) {
 		return
 	}
-	glog.V(1).Infof("caches synced")
+	klog.V(1).Infof("caches synced")
 
 	<-stopCh
 }
@@ -83,7 +83,7 @@ func (e *DockercfgTokenDeletedController) secretDeleted(obj interface{}) {
 
 	dockercfgSecrets, err := e.findDockercfgSecrets(tokenSecret)
 	if err != nil {
-		glog.Error(err)
+		klog.Error(err)
 		return
 	}
 	if len(dockercfgSecrets) == 0 {

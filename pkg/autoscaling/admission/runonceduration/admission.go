@@ -6,7 +6,7 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
@@ -28,7 +28,7 @@ func Register(plugins *admission.Plugins) {
 				return nil, err
 			}
 			if pluginConfig == nil {
-				glog.Infof("Admission plugin %q is not configured so it will be disabled.", "autoscaling.openshift.io/RunOnceDuration")
+				klog.Infof("Admission plugin %q is not configured so it will be disabled.", "autoscaling.openshift.io/RunOnceDuration")
 				return nil, nil
 			}
 			return NewRunOnceDuration(pluginConfig), nil

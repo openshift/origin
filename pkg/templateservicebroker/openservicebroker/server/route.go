@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	restful "github.com/emicklei/go-restful"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -28,7 +28,7 @@ func Route(container *restful.Container, path string, b api.Broker) {
 		return func(req *restful.Request, resp *restful.Response) {
 			response := f(b, req)
 			if response.Err != nil {
-				glog.V(2).Infof("Service broker: call to %s returned %v", path, response.Err)
+				klog.V(2).Infof("Service broker: call to %s returned %v", path, response.Err)
 
 				resp.WriteHeaderAndJson(response.Code, &api.ErrorResponse{Description: response.Err.Error()}, restful.MIME_JSON)
 			} else {

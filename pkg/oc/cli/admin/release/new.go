@@ -20,9 +20,9 @@ import (
 	"github.com/blang/semver"
 	"github.com/docker/docker/pkg/archive"
 	"github.com/ghodss/yaml"
-	"github.com/golang/glog"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -366,7 +366,7 @@ func (o *NewOptions) Run() error {
 			cm.Previous = []string{}
 		}
 	}
-	glog.V(4).Infof("Release metadata:\n%s", toJSONString(cm))
+	klog.V(4).Infof("Release metadata:\n%s", toJSONString(cm))
 
 	exclude := sets.NewString()
 	for _, s := range o.Exclude {
@@ -400,7 +400,7 @@ func (o *NewOptions) Run() error {
 		extractOpts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {
 			if config.Config != nil {
 				baseDigest = config.Config.Labels[annotationReleaseBaseImageDigest]
-				glog.V(4).Infof("Release image was built on top of %s", baseDigest)
+				klog.V(4).Infof("Release image was built on top of %s", baseDigest)
 			}
 		}
 		extractOpts.TarEntryCallback = func(hdr *tar.Header, _ extract.LayerInfo, r io.Reader) (bool, error) {
@@ -532,7 +532,7 @@ func (o *NewOptions) Run() error {
 			if f.IsDir() {
 				name := f.Name()
 				if exclude.Has(name) {
-					glog.V(2).Infof("Excluded directory %#v", f)
+					klog.V(2).Infof("Excluded directory %#v", f)
 					continue
 				}
 				metadata[name] = imageData{Directory: filepath.Join(o.FromDirectory, f.Name())}
@@ -559,7 +559,7 @@ func (o *NewOptions) Run() error {
 	default:
 		for _, m := range o.Mappings {
 			if exclude.Has(m.Source) {
-				glog.V(2).Infof("Excluded mapping %s", m.Source)
+				klog.V(2).Infof("Excluded mapping %s", m.Source)
 				continue
 			}
 			ordered = append(ordered, m.Source)
@@ -582,7 +582,7 @@ func (o *NewOptions) Run() error {
 	// update any custom mappings and then sort the spec tags
 	for _, m := range o.Mappings {
 		if exclude.Has(m.Source) {
-			glog.V(2).Infof("Excluded mapping %s", m.Source)
+			klog.V(2).Infof("Excluded mapping %s", m.Source)
 			continue
 		}
 		tag := hasTag(is.Spec.Tags, m.Source)
@@ -723,7 +723,7 @@ func resolveImageStreamTagsToReferenceMode(inputIS, is *imageapi.ImageStream, re
 		externalFn := func(source, image string) string {
 			// filter source URLs
 			if len(source) > 0 && len(internal) > 0 && strings.HasPrefix(source, internal) {
-				glog.V(2).Infof("Can't use source %s because it points to the internal registry", source)
+				klog.V(2).Infof("Can't use source %s because it points to the internal registry", source)
 				source = ""
 			}
 			// default to the external registry name
@@ -736,7 +736,7 @@ func resolveImageStreamTagsToReferenceMode(inputIS, is *imageapi.ImageStream, re
 		covered := sets.NewString()
 		for _, ref := range inputIS.Spec.Tags {
 			if exclude.Has(ref.Name) {
-				glog.V(2).Infof("Excluded spec tag %s", ref.Name)
+				klog.V(2).Infof("Excluded spec tag %s", ref.Name)
 				continue
 			}
 
@@ -748,7 +748,7 @@ func resolveImageStreamTagsToReferenceMode(inputIS, is *imageapi.ImageStream, re
 				case len(from.ID) > 0:
 					source := externalFn(ref.From.Name, from.ID)
 					if len(source) == 0 {
-						glog.V(2).Infof("Can't use spec tag %q because we cannot locate or calculate a source location", ref.Name)
+						klog.V(2).Infof("Can't use spec tag %q because we cannot locate or calculate a source location", ref.Name)
 						continue
 					}
 
@@ -793,7 +793,7 @@ func resolveImageStreamTagsToReferenceMode(inputIS, is *imageapi.ImageStream, re
 				continue
 			}
 			if exclude.Has(tag.Tag) {
-				glog.V(2).Infof("Excluded status tag %s", tag.Tag)
+				klog.V(2).Infof("Excluded status tag %s", tag.Tag)
 				continue
 			}
 
@@ -808,14 +808,14 @@ func resolveImageStreamTagsToReferenceMode(inputIS, is *imageapi.ImageStream, re
 			}
 			// skip rather than error (user created a reference spec tag, then deleted it)
 			if len(tag.Items[0].Image) == 0 {
-				glog.V(2).Infof("the tag %q in the source input stream has no image id", tag.Tag)
+				klog.V(2).Infof("the tag %q in the source input stream has no image id", tag.Tag)
 				continue
 			}
 
 			// attempt to identify the source image
 			source := externalFn(tag.Items[0].DockerImageReference, tag.Items[0].Image)
 			if len(source) == 0 {
-				glog.V(2).Infof("Can't use tag %q because we cannot locate or calculate a source location", tag.Tag)
+				klog.V(2).Infof("Can't use tag %q because we cannot locate or calculate a source location", tag.Tag)
 				continue
 			}
 			sourceRef, err := imagereference.Parse(source)
@@ -841,7 +841,7 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 		return fmt.Errorf("no component images defined, unable to build a release payload")
 	}
 
-	glog.V(4).Infof("Extracting manifests for release from input images")
+	klog.V(4).Infof("Extracting manifests for release from input images")
 
 	dir := o.Directory
 	if len(dir) == 0 {
@@ -929,7 +929,7 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 				}
 
 				if len(labels[annotationReleaseOperator]) == 0 {
-					glog.V(2).Infof("Image %s has no %s label, skipping", m.ImageRef, annotationReleaseOperator)
+					klog.V(2).Infof("Image %s has no %s label, skipping", m.ImageRef, annotationReleaseOperator)
 					return false, nil
 				}
 				if err := os.MkdirAll(dstDir, 0777); err != nil {
@@ -944,7 +944,7 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 			},
 		})
 	}
-	glog.V(4).Infof("Manifests will be extracted from:\n%#v", opts.Mappings)
+	klog.V(4).Infof("Manifests will be extracted from:\n%#v", opts.Mappings)
 	if err := opts.Run(); err != nil {
 		return err
 	}
@@ -964,7 +964,7 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 }
 
 func (o *NewOptions) mirrorImages(is *imageapi.ImageStream) error {
-	glog.V(4).Infof("Mirroring release contents to %s", o.Mirror)
+	klog.V(4).Infof("Mirroring release contents to %s", o.Mirror)
 	copied := is.DeepCopy()
 	opts := NewMirrorOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
 	opts.DryRun = o.DryRun
@@ -995,9 +995,9 @@ func (o *NewOptions) mirrorImages(is *imageapi.ImageStream) error {
 			tag.From.Name = value
 		}
 	}
-	if glog.V(4) {
+	if klog.V(4) {
 		data, _ := json.MarshalIndent(is, "", "  ")
-		glog.Infof("Image references updated to:\n%s", string(data))
+		klog.Infof("Image references updated to:\n%s", string(data))
 	}
 
 	return nil
@@ -1006,7 +1006,7 @@ func (o *NewOptions) mirrorImages(is *imageapi.ImageStream) error {
 func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time) error {
 	switch {
 	case len(o.ToDir) > 0:
-		glog.V(4).Infof("Writing release contents to directory %s", o.ToDir)
+		klog.V(4).Infof("Writing release contents to directory %s", o.ToDir)
 		if err := os.MkdirAll(o.ToDir, 0777); err != nil {
 			return err
 		}
@@ -1043,7 +1043,7 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 			}
 		}
 	case len(o.ToFile) > 0:
-		glog.V(4).Infof("Writing release contents to file %s", o.ToFile)
+		klog.V(4).Infof("Writing release contents to file %s", o.ToFile)
 		var w io.WriteCloser
 		if o.ToFile == "-" {
 			w = nopCloser{o.Out}
@@ -1063,11 +1063,11 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 		}
 		if o.ToFile != "-" {
 			if err := os.Chtimes(o.ToFile, is.CreationTimestamp.Time, is.CreationTimestamp.Time); err != nil {
-				glog.V(2).Infof("Unable to set timestamps on output file: %v", err)
+				klog.V(2).Infof("Unable to set timestamps on output file: %v", err)
 			}
 		}
 	case len(o.ToImage) > 0:
-		glog.V(4).Infof("Writing release contents to image %s", o.ToImage)
+		klog.V(4).Infof("Writing release contents to image %s", o.ToImage)
 		toRef, err := imagereference.Parse(o.ToImage)
 		if err != nil {
 			return fmt.Errorf("--to-image was not valid: %v", err)
@@ -1188,7 +1188,7 @@ func writePayload(w io.Writer, is *imageapi.ImageStream, cm *CincinnatiMetadata,
 	}
 	newest = newest.UTC().Truncate(time.Second)
 	is.CreationTimestamp.Time = newest
-	glog.V(4).Infof("Most recent content has date %s", newest.Format(time.RFC3339))
+	klog.V(4).Infof("Most recent content has date %s", newest.Format(time.RFC3339))
 
 	gw := gzip.NewWriter(w)
 	tw := tar.NewWriter(gw)
@@ -1230,7 +1230,7 @@ func writePayload(w io.Writer, is *imageapi.ImageStream, cm *CincinnatiMetadata,
 
 		if fi := takeFileByName(&contents, "image-references"); fi != nil {
 			path := filepath.Join(image.Directory, fi.Name())
-			glog.V(2).Infof("Perform image replacement based on inclusion of %s", path)
+			klog.V(2).Infof("Perform image replacement based on inclusion of %s", path)
 			transform, err = NewTransformFromImageStreamFile(path, is, allowMissingImages)
 			if err != nil {
 				return fmt.Errorf("operator %q failed to map images: %s", name, err)
@@ -1259,7 +1259,7 @@ func writePayload(w io.Writer, is *imageapi.ImageStream, cm *CincinnatiMetadata,
 			}
 			src := filepath.Join(image.Directory, fi.Name())
 			dst := path.Join(append(append([]string{}, parts...), filename)...)
-			glog.V(4).Infof("Copying %s to %s", src, dst)
+			klog.V(4).Infof("Copying %s to %s", src, dst)
 
 			data, err := ioutil.ReadFile(src)
 			if err != nil {
@@ -1279,7 +1279,7 @@ func writePayload(w io.Writer, is *imageapi.ImageStream, cm *CincinnatiMetadata,
 			if err := tw.WriteHeader(&tar.Header{Mode: 0444, ModTime: fi.ModTime(), Typeflag: tar.TypeReg, Name: dst, Size: int64(len(modified))}); err != nil {
 				return err
 			}
-			glog.V(6).Infof("Writing payload to %s\n%s", dst, string(modified))
+			klog.V(6).Infof("Writing payload to %s\n%s", dst, string(modified))
 			if _, err := tw.Write(modified); err != nil {
 				return err
 			}
@@ -1346,7 +1346,7 @@ func pruneEmptyDirectories(dir string) error {
 		if len(names) > 0 {
 			return nil
 		}
-		glog.V(4).Infof("Component %s does not have any manifests", path)
+		klog.V(4).Infof("Component %s does not have any manifests", path)
 		return os.Remove(path)
 	})
 }
@@ -1447,7 +1447,7 @@ func pruneUnreferencedImageStreams(out io.Writer, is *imageapi.ImageStream, meta
 	for _, tag := range is.Spec.Tags {
 		_, ok := referenced[tag.Name]
 		if !ok {
-			glog.V(3).Infof("Excluding tag %s which is not referenced by an operator", tag.Name)
+			klog.V(3).Infof("Excluding tag %s which is not referenced by an operator", tag.Name)
 			continue
 		}
 		updated = append(updated, tag)
