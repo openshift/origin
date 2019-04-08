@@ -14,6 +14,7 @@ import (
 
 	quotav1 "github.com/openshift/api/quota/v1"
 	quotaclient "github.com/openshift/client-go/quota/clientset/versioned"
+
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
@@ -37,6 +38,10 @@ func TestClusterQuota(t *testing.T) {
 	}
 	clusterAdminQuotaClient := quotaclient.NewForConfigOrDie(clusterAdminClientConfig)
 	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig).Image()
+
+	if err := testutil.WaitForClusterResourceQuotaCRDAvailable(clusterAdminClientConfig); err != nil {
+		t.Fatal(err)
+	}
 
 	cq := &quotav1.ClusterResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{Name: "overall"},
