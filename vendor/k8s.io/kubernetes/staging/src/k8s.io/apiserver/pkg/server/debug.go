@@ -13,7 +13,7 @@ import (
 
 var config = spew.ConfigState{Indent: "\t", MaxDepth: 5, DisableMethods: true}
 
-func withDebug(handler http.Handler) http.Handler {
+func withDebug(handler http.Handler, forceLog bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		d := decorateResponseWriter(w)
 
@@ -29,7 +29,7 @@ func withDebug(handler http.Handler) http.Handler {
 			panic(config.Sdump("ENJ:", "unknown type:", d))
 		}
 
-		if !final.shouldLog() {
+		if !forceLog && !final.shouldLog() {
 			return
 		}
 
