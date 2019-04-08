@@ -128,9 +128,9 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 					targets.Expect(labels{"job": "apiserver"}, "up", "^https://.*/metrics$"),
 					// TODO: add openshift api
 					// TODO: this should be https
-					targets.Expect(labels{"job": "scheduler"}, "up", "^http://.*/metrics$"),
-					// TODO: this should be https
 					// targets.Expect(labels{"job": "kube-controller-manager"}, "up", "^http://.*/metrics$"),
+					// TODO: check only for https after merging https://github.com/openshift/cluster-monitoring-operator/pull/308
+					targets.Expect(labels{"job": "scheduler"}, "up", "^(http|https)://.*/metrics$"),
 					targets.Expect(labels{"job": "kube-state-metrics"}, "up", "^https://.*/metrics$"),
 					// TODO: should probably be https
 					targets.Expect(labels{"job": "cluster-version-operator"}, "up", "^http://.*/metrics$"),
@@ -138,6 +138,10 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 					targets.Expect(labels{"job": "kubelet"}, "up", "^https://.*/metrics$"),
 					targets.Expect(labels{"job": "kubelet"}, "up", "^https://.*/metrics/cadvisor$"),
 					targets.Expect(labels{"job": "node-exporter"}, "up", "^https://.*/metrics$"),
+					targets.Expect(labels{"job": "prometheus-operator"}, "up", "^http://.*/metrics$"),
+					targets.Expect(labels{"job": "alertmanager-main"}, "up", "^https://.*/metrics$"),
+					targets.Expect(labels{"job": "crio"}, "up", "^http://.*/metrics$"),
+					targets.Expect(labels{"job": "telemeter-client"}, "up", "^https://.*/metrics$"),
 				)
 				if len(lastErrs) > 0 {
 					e2e.Logf("missing some targets: %v", lastErrs)
