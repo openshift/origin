@@ -26,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/evanphx/json-patch"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -187,6 +188,8 @@ func statusCausesToAggrError(scs []metav1.StatusCause) utilerrors.Aggregate {
 	return utilerrors.NewAggregate(errs)
 }
 
+var config = spew.ConfigState{Indent: "\t", MaxDepth: 0, DisableMethods: true}
+
 // StandardErrorMessage translates common errors into a human readable message, or returns
 // false if the error is not one of the recognized types. It may also log extended
 // information to klog.
@@ -202,7 +205,7 @@ func StandardErrorMessage(err error) (string, bool) {
 	case isStatus:
 		switch s := status.Status(); {
 		case s.Reason == metav1.StatusReasonUnauthorized:
-			return fmt.Sprintf("error: You must be logged in to the server (%s)", s.Message), true
+			return fmt.Sprintf("error: You must be logged in to the server (%s)", config.Sdump(err)), true
 		case len(s.Reason) > 0:
 			return fmt.Sprintf("Error from server (%s): %s", s.Reason, err.Error()), true
 		default:
