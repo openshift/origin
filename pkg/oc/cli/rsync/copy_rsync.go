@@ -9,12 +9,10 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"k8s.io/klog"
 
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/kubernetes"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/klog"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
@@ -34,23 +32,22 @@ type rsyncStrategy struct {
 // rshExcludeFlags are flags that are passed to oc rsync, and should not be passed on to the underlying command being invoked via oc rsh.
 var rshExcludeFlags = sets.NewString("delete", "strategy", "quiet", "include", "exclude", "progress", "no-perms", "watch", "compress")
 
-func newRsyncStrategy(f kcmdutil.Factory, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
-	// Determine the rsh command to pass to the local rsync command
-	rshCmd := cmdutil.SiblingCommand(c, "rsh")
+func DefaultRsyncRemoteShellToUse(cmd *cobra.Command) string {
+	rshCmd := cmdutil.SiblingCommand(cmd, "rsh")
 	// Append all original flags to rsh command
-	c.Flags().Visit(func(flag *pflag.Flag) {
+	cmd.Flags().Visit(func(flag *pflag.Flag) {
 		if rshExcludeFlags.Has(flag.Name) {
 			return
 		}
 		rshCmd = append(rshCmd, fmt.Sprintf("--%s=%s", flag.Name, flag.Value.String()))
 	})
-	rshCmdStr := strings.Join(rsyncEscapeCommand(rshCmd), " ")
-	klog.V(4).Infof("Rsh command: %s", rshCmdStr)
+	return strings.Join(rsyncEscapeCommand(rshCmd), " ")
+}
 
-	remoteExec, err := newRemoteExecutor(f, o)
-	if err != nil {
-		return nil, err
-	}
+// NewRsyncStrategy returns a copy strategy that uses rsync.
+func NewRsyncStrategy(o *RsyncOptions) CopyStrategy {
+	klog.V(4).Infof("Rsh command: %s", o.RshCmd)
+
 	// The blocking-io flag is used to resolve a sync issue when
 	// copying from the pod to the local machine
 	flags := []string{"--blocking-io"}
@@ -61,25 +58,17 @@ func newRsyncStrategy(f kcmdutil.Factory, c *cobra.Command, o *RsyncOptions) (co
 	if o.Source.Local() {
 		podName = o.Destination.PodName
 	}
-	config, err := f.ToRESTConfig()
-	if err != nil {
-		return nil, err
-	}
-	client, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
 
 	return &rsyncStrategy{
 		Flags:          flags,
-		RshCommand:     rshCmdStr,
-		RemoteExecutor: remoteExec,
+		RshCommand:     o.RshCmd,
+		RemoteExecutor: newRemoteExecutor(o),
 		LocalExecutor:  newLocalExecutor(),
-		podChecker:     podAPIChecker{client, o.Namespace, podName},
-	}, nil
+		podChecker:     podAPIChecker{o.Client, o.Namespace, podName},
+	}
 }
 
-func (r *rsyncStrategy) Copy(source, destination *pathSpec, out, errOut io.Writer) error {
+func (r *rsyncStrategy) Copy(source, destination *PathSpec, out, errOut io.Writer) error {
 	klog.V(3).Infof("Copying files with rsync")
 	cmd := append([]string{"rsync"}, r.Flags...)
 	cmd = append(cmd, "-e", r.RshCommand, source.RsyncPath(), destination.RsyncPath())

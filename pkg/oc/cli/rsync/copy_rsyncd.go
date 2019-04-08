@@ -12,11 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spf13/cobra"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	krand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/klog"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
 const (
@@ -177,7 +175,7 @@ func (s *rsyncDaemonStrategy) startRemoteDaemon() error {
 	startTime := time.Now()
 	for {
 		if time.Since(startTime) > RsyncDaemonStartTimeOut {
-			return fmt.Errorf("Timed out waiting for rsync daemon to start")
+			return fmt.Errorf("timed out waiting for rsync daemon to start")
 		}
 		checkScript.Reset()
 		err = s.RemoteExecutor.Execute([]string{"sh"}, checkScript, ioutil.Discard, ioutil.Discard)
@@ -221,7 +219,7 @@ func (s *rsyncDaemonStrategy) stopPortForward() {
 	close(s.portForwardChan)
 }
 
-func (s *rsyncDaemonStrategy) copyUsingDaemon(source, destination *pathSpec, out, errOut io.Writer) error {
+func (s *rsyncDaemonStrategy) copyUsingDaemon(source, destination *PathSpec, out, errOut io.Writer) error {
 	klog.V(3).Infof("Copying files with rsync daemon")
 	cmd := append([]string{"rsync"}, s.Flags...)
 	var sourceArg, destinationArg string
@@ -247,7 +245,7 @@ func (s *rsyncDaemonStrategy) copyUsingDaemon(source, destination *pathSpec, out
 	return err
 }
 
-func (s *rsyncDaemonStrategy) Copy(source, destination *pathSpec, out, errOut io.Writer) error {
+func (s *rsyncDaemonStrategy) Copy(source, destination *PathSpec, out, errOut io.Writer) error {
 	err := s.startRemoteDaemon()
 	if err != nil {
 		if isExitError(err) {
@@ -286,26 +284,21 @@ func (s *rsyncDaemonStrategy) Validate() error {
 	return nil
 }
 
-func newRsyncDaemonStrategy(f kcmdutil.Factory, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
+// NewRsyncDaemonStrategy returns a copy strategy that starts and uses an rsync daemon in the remote pod.
+func NewRsyncDaemonStrategy(o *RsyncOptions) CopyStrategy {
 	flags := rsyncDefaultFlags
 	flags = append(flags, rsyncFlagsFromOptions(o)...)
 
-	remoteExec, err := newRemoteExecutor(f, o)
-	if err != nil {
-		return nil, err
-	}
+	remoteExec := newRemoteExecutor(o)
 
-	forwarder, err := newPortForwarder(f, o)
-	if err != nil {
-		return nil, err
-	}
+	forwarder := newPortForwarder(o)
 
 	return &rsyncDaemonStrategy{
 		Flags:          flags,
 		RemoteExecutor: remoteExec,
 		LocalExecutor:  newLocalExecutor(),
 		PortForwarder:  forwarder,
-	}, nil
+	}
 }
 
 func (s *rsyncDaemonStrategy) String() string {

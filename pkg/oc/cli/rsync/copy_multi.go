@@ -12,14 +12,14 @@ import (
 
 // copyStrategies is an ordered list of copyStrategy objects that behaves as a single
 // strategy. If a strategy fails with a setup error, it continues on to the next strategy.
-type copyStrategies []copyStrategy
+type copyStrategies []CopyStrategy
 
 // ensure copyStrategies implements the copyStrategy interface
-var _ copyStrategy = copyStrategies{}
+var _ CopyStrategy = copyStrategies{}
 
 // Copy will call copy for strategies in list order. If a strategySetupError results from a copy,
 // the next strategy will be attempted. Otherwise the error is returned.
-func (ss copyStrategies) Copy(source, destination *pathSpec, out, errOut io.Writer) error {
+func (ss copyStrategies) Copy(source, destination *PathSpec, out, errOut io.Writer) error {
 	var err error
 	foundStrategy := false
 
