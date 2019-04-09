@@ -67,27 +67,27 @@ func TestRunOnceDurationAdmit(t *testing.T) {
 		expectedActiveDeadlineSeconds *int64
 	}{
 		{
-			name:   "expect globally configured duration to be set",
-			config: testConfig(int64p(10)),
-			pod:    testRunOncePod(),
+			name:                          "expect globally configured duration to be set",
+			config:                        testConfig(int64p(10)),
+			pod:                           testRunOncePod(),
 			expectedActiveDeadlineSeconds: int64p(10),
 		},
 		{
-			name:   "empty config, no duration to be set",
-			config: testConfig(nil),
-			pod:    testRunOncePod(),
+			name:                          "empty config, no duration to be set",
+			config:                        testConfig(nil),
+			pod:                           testRunOncePod(),
 			expectedActiveDeadlineSeconds: nil,
 		},
 		{
-			name:   "expect configured duration to not limit lower existing duration",
-			config: testConfig(int64p(10)),
-			pod:    testRunOncePodWithDuration(5),
+			name:                          "expect configured duration to not limit lower existing duration",
+			config:                        testConfig(int64p(10)),
+			pod:                           testRunOncePodWithDuration(5),
 			expectedActiveDeadlineSeconds: int64p(5),
 		},
 		{
-			name:   "expect empty config to not limit existing duration",
-			config: testConfig(nil),
-			pod:    testRunOncePodWithDuration(5),
+			name:                          "expect empty config to not limit existing duration",
+			config:                        testConfig(nil),
+			pod:                           testRunOncePodWithDuration(5),
 			expectedActiveDeadlineSeconds: int64p(5),
 		},
 		{
@@ -118,15 +118,15 @@ func TestRunOnceDurationAdmit(t *testing.T) {
 			expectedActiveDeadlineSeconds: int64p(1000),
 		},
 		{
-			name:   "make no change to a pod that is not a run-once pod",
-			config: testConfig(int64p(10)),
-			pod:    testRestartAlwaysPod(),
+			name:                          "make no change to a pod that is not a run-once pod",
+			config:                        testConfig(int64p(10)),
+			pod:                           testRestartAlwaysPod(),
 			expectedActiveDeadlineSeconds: nil,
 		},
 		{
-			name:   "update a pod that has a RestartOnFailure policy",
-			config: testConfig(int64p(10)),
-			pod:    testRestartOnFailurePod(),
+			name:                          "update a pod that has a RestartOnFailure policy",
+			config:                        testConfig(int64p(10)),
+			pod:                           testRestartOnFailurePod(),
 			expectedActiveDeadlineSeconds: int64p(10),
 		},
 	}

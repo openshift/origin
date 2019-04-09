@@ -26,7 +26,7 @@ func testData() []*imagev1.ImageStream {
 			ObjectMeta: metav1.ObjectMeta{Name: "rails", Namespace: "yourproject", ResourceVersion: "10", CreationTimestamp: metav1.Now()},
 			Spec: imagev1.ImageStreamSpec{
 				DockerImageRepository: "",
-				Tags: []imagev1.TagReference{},
+				Tags:                  []imagev1.TagReference{},
 			},
 		},
 		{

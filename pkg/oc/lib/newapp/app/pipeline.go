@@ -128,11 +128,11 @@ func (pb *pipelineBuilder) NewBuildPipeline(from string, input *ImageRef, source
 	}
 
 	build := &BuildRef{
-		Source:   source,
-		Input:    input,
-		Strategy: strategy,
-		Output:   output,
-		Env:      pb.environment,
+		Source:                source,
+		Input:                 input,
+		Strategy:              strategy,
+		Output:                output,
+		Env:                   pb.environment,
 		DockerStrategyOptions: pb.dockerStrategyOptions,
 		Binary:                binary,
 	}

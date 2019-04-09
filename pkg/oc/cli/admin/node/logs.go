@@ -94,11 +94,11 @@ func NewLogsOptions(streams genericclioptions.IOStreams) *LogsOptions {
 func NewCmdLogs(baseName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewLogsOptions(streams)
 	cmd := &cobra.Command{
-		Use: "node-logs [-l LABELS] [NODE...]",
+		Use:                   "node-logs [-l LABELS] [NODE...]",
 		DisableFlagsInUseLine: true,
-		Short:   "Display and filter node logs",
-		Long:    logsLong,
-		Example: fmt.Sprintf(logsExample, baseName),
+		Short:                 "Display and filter node logs",
+		Long:                  logsLong,
+		Example:               fmt.Sprintf(logsExample, baseName),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
 			kcmdutil.CheckErr(o.Validate())

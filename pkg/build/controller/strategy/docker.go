@@ -115,10 +115,10 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildv1.Build, additionalCA
 	// (also if it's a docker type build, we should always have a dockerfile to manage)
 	if build.Spec.Source.Git != nil || build.Spec.Source.Binary != nil {
 		gitCloneContainer := v1.Container{
-			Name:    GitCloneContainer,
-			Image:   bs.Image,
-			Command: []string{"openshift-git-clone"},
-			Env:     copyEnvVarSlice(containerEnv),
+			Name:                     GitCloneContainer,
+			Image:                    bs.Image,
+			Command:                  []string{"openshift-git-clone"},
+			Env:                      copyEnvVarSlice(containerEnv),
 			TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
 			VolumeMounts: []v1.VolumeMount{
 				{
@@ -166,10 +166,10 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildv1.Build, additionalCA
 	}
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers,
 		v1.Container{
-			Name:    "manage-dockerfile",
-			Image:   bs.Image,
-			Command: []string{"openshift-manage-dockerfile"},
-			Env:     copyEnvVarSlice(containerEnv),
+			Name:                     "manage-dockerfile",
+			Image:                    bs.Image,
+			Command:                  []string{"openshift-manage-dockerfile"},
+			Env:                      copyEnvVarSlice(containerEnv),
 			TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
 			VolumeMounts: []v1.VolumeMount{
 				{

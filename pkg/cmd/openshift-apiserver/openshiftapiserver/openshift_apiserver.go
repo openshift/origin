@@ -169,8 +169,8 @@ func (c *completedConfig) withAppsAPIServer(delegateAPIServer genericapiserver.D
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config, SharedInformerFactory: c.GenericConfig.SharedInformerFactory},
 		ExtraConfig: oappsapiserver.ExtraConfig{
 			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
-			Codecs: legacyscheme.Codecs,
-			Scheme: legacyscheme.Scheme,
+			Codecs:                    legacyscheme.Codecs,
+			Scheme:                    legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -211,8 +211,8 @@ func (c *completedConfig) withBuildAPIServer(delegateAPIServer genericapiserver.
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config, SharedInformerFactory: c.GenericConfig.SharedInformerFactory},
 		ExtraConfig: buildapiserver.ExtraConfig{
 			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
-			Codecs: legacyscheme.Codecs,
-			Scheme: legacyscheme.Scheme,
+			Codecs:                    legacyscheme.Codecs,
+			Scheme:                    legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()
@@ -233,9 +233,9 @@ func (c *completedConfig) withImageAPIServer(delegateAPIServer genericapiserver.
 			RegistryHostnameRetriever:          c.ExtraConfig.RegistryHostnameRetriever,
 			AllowedRegistriesForImport:         c.ExtraConfig.AllowedRegistriesForImport,
 			MaxImagesBulkImportedPerRepository: c.ExtraConfig.MaxImagesBulkImportedPerRepository,
-			Codecs:              legacyscheme.Codecs,
-			Scheme:              legacyscheme.Scheme,
-			AdditionalTrustedCA: c.ExtraConfig.AdditionalTrustedCA,
+			Codecs:                             legacyscheme.Codecs,
+			Scheme:                             legacyscheme.Scheme,
+			AdditionalTrustedCA:                c.ExtraConfig.AdditionalTrustedCA,
 		},
 	}
 	config := cfg.Complete()
@@ -377,8 +377,8 @@ func (c *completedConfig) withTemplateAPIServer(delegateAPIServer genericapiserv
 		GenericConfig: &genericapiserver.RecommendedConfig{Config: *c.GenericConfig.Config, SharedInformerFactory: c.GenericConfig.SharedInformerFactory},
 		ExtraConfig: templateapiserver.ExtraConfig{
 			KubeAPIServerClientConfig: c.ExtraConfig.KubeAPIServerClientConfig,
-			Codecs: legacyscheme.Codecs,
-			Scheme: legacyscheme.Scheme,
+			Codecs:                    legacyscheme.Codecs,
+			Scheme:                    legacyscheme.Scheme,
 		},
 	}
 	config := cfg.Complete()

@@ -1673,7 +1673,7 @@ func mockBuild(phase buildv1.BuildPhase, output buildv1.BuildOutput) *buildv1.Bu
 				buildutil.BuildConfigAnnotation: "test-bc",
 			},
 			Labels: map[string]string{
-				"name": "dataBuild",
+				"name":                        "dataBuild",
 				buildutil.BuildRunPolicyLabel: string(buildv1.BuildRunPolicyParallel),
 				buildutil.BuildConfigLabel:    "test-bc",
 			},

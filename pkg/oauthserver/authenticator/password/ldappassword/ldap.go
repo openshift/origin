@@ -111,12 +111,12 @@ func (a *Authenticator) getIdentity(username, password string) (authapi.UserIden
 		a.options.URL.BaseDN,     // base dn
 		int(a.options.URL.Scope), // scope
 		ldap.NeverDerefAliases,   // deref
-		2,            // size limit, we want to know if this is not unique, but don't want the entire tree
-		0,            // no client-specified time limit, determined by LDAP server. TODO: make configurable?
-		false,        // not types only
-		filter,       // filter
-		attrs.List(), // attributes to retrieve
-		nil,          // controls
+		2,                        // size limit, we want to know if this is not unique, but don't want the entire tree
+		0,                        // no client-specified time limit, determined by LDAP server. TODO: make configurable?
+		false,                    // not types only
+		filter,                   // filter
+		attrs.List(),             // attributes to retrieve
+		nil,                      // controls
 	)
 
 	klog.V(4).Infof("searching for %s", filter)

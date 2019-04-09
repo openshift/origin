@@ -1035,7 +1035,7 @@ func TestGenerateBuildWithImageTagForSourceStrategyImageRepository(t *testing.T)
 					ObjectMeta: metav1.ObjectMeta{Name: imageRepoName},
 					Status: imagev1.ImageStreamStatus{
 						DockerImageRepository: originalImage,
-						Tags: is.Status.Tags,
+						Tags:                  is.Status.Tags,
 					},
 				}, nil
 			},
@@ -1106,7 +1106,7 @@ func TestGenerateBuildWithImageTagForDockerStrategyImageRepository(t *testing.T)
 					ObjectMeta: metav1.ObjectMeta{Name: imageRepoName},
 					Status: imagev1.ImageStreamStatus{
 						DockerImageRepository: originalImage,
-						Tags: is.Status.Tags,
+						Tags:                  is.Status.Tags,
 					},
 				}, nil
 			},
@@ -1176,7 +1176,7 @@ func TestGenerateBuildWithImageTagForCustomStrategyImageRepository(t *testing.T)
 					ObjectMeta: metav1.ObjectMeta{Name: imageRepoName},
 					Status: imagev1.ImageStreamStatus{
 						DockerImageRepository: originalImage,
-						Tags: is.Status.Tags,
+						Tags:                  is.Status.Tags,
 					},
 				}, nil
 			},

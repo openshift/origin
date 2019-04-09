@@ -245,7 +245,7 @@ func TestValidateAdmissionPluginConfig(t *testing.T) {
 		{
 			config: map[string]*configapi.AdmissionPluginConfig{
 				"openshift.io/OriginResourceQuota": &configOnly,
-				"two": &configOnly,
+				"two":                              &configOnly,
 			},
 			warningFields: []string{"[openshift.io/OriginResourceQuota]"},
 			expectError:   false,
