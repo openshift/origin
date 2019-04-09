@@ -162,14 +162,14 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			tests := map[string][]metricTest{
-				// should have constantly firing a watchdog alert
+				// should have a constantly firing watchdog alert
 				`ALERTS{alertstate="firing",alertname="Watchdog"}`: {metricTest{greaterThanEqual: true, value: 1}},
 				// should be only one watchdog alert (this is a workaround as metricTest doesn't offer equality operator)
 				`ALERTS{alertstate="firing",alertname="Watchdog",severity="none"}`: {metricTest{greaterThanEqual: false, value: 2}},
 			}
 			runQueries(tests, oc, ns, execPodName, url, bearerToken)
 
-			e2e.Logf("Watchdog alert is firing: %s", bearerToken)
+			e2e.Logf("Watchdog alert is firing")
 		})
 		g.It("should have non-Pod host cAdvisor metrics", func() {
 			oc.SetupProject()
@@ -192,6 +192,22 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			tests := map[string][]metricTest{
 				//something
 				`openshift_sdn_ovs_flows`: {metricTest{greaterThanEqual: true, value: 1}},
+			}
+			runQueries(tests, oc, ns, execPodName, url, bearerToken)
+		})
+		g.It("should report less than two alerts in firing or pending state", func() {
+			oc.SetupProject()
+			ns := oc.Namespace()
+			execPodName := e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) { pod.Spec.Containers[0].Image = "centos:7" })
+			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+
+			// needed for cluster to settle and have metrics and alerts usable
+			time.Sleep(5 * time.Minute)
+
+			tests := map[string][]metricTest{
+				// should be checking there is no more than 1 alerts firing.
+				// Checking for specific alert is done in "should have a Watchdog alert in firing state".
+				`sum(ALERTS{alertstate=~"firing|pending"})`: {metricTest{greaterThanEqual: false, value: 2}},
 			}
 			runQueries(tests, oc, ns, execPodName, url, bearerToken)
 		})
