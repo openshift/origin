@@ -57,6 +57,27 @@ func TestAdmissionPlugin_Validate(t *testing.T) {
 			name:       "cluster",
 			denyDelete: false,
 		},
+		{
+			tcName:     "operator-banned-excluded-name",
+			group:      "operator.openshift.io",
+			resource:   "kubeapiservers",
+			name:       "not-cluster",
+			denyDelete: false,
+		},
+		{
+			tcName:     "operator-banned",
+			group:      "operator.openshift.io",
+			resource:   "kubeapiservers",
+			name:       "cluster",
+			denyDelete: true,
+		},
+		{
+			tcName:     "operator-different-resource",
+			group:      "operator.openshift.io",
+			resource:   "dns",
+			name:       "cluster",
+			denyDelete: false,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.tcName, func(t *testing.T) {
