@@ -37,7 +37,7 @@ func TestRegistryWhitelister(t *testing.T) {
 			},
 			difs: map[imageapi.DockerImageReference]error{
 				{Registry: "docker.io", Namespace: "library", Name: "busybox"}: fmt.Errorf(`registry "docker.io" not allowed by empty whitelist`),
-				{Name: "busybox"}:                                              fmt.Errorf(`registry "docker.io:443" not allowed by empty whitelist`),
+				{Name: "busybox"}: fmt.Errorf(`registry "docker.io:443" not allowed by empty whitelist`),
 			},
 		},
 

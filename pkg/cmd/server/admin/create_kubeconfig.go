@@ -189,7 +189,7 @@ func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error
 
 	clusters := make(map[string]*clientcmdapi.Cluster)
 	clusters[clusterNick] = &clientcmdapi.Cluster{
-		Server: o.APIServerURL,
+		Server:                   o.APIServerURL,
 		CertificateAuthorityData: caData,
 	}
 
@@ -205,7 +205,7 @@ func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error
 		publicContextNick := config.GetContextNickname(o.ContextNamespace, publicClusterNick, userNick)
 
 		clusters[publicClusterNick] = &clientcmdapi.Cluster{
-			Server: o.PublicAPIServerURL,
+			Server:                   o.PublicAPIServerURL,
 			CertificateAuthorityData: caData,
 		}
 		contexts[publicContextNick] = &clientcmdapi.Context{Cluster: publicClusterNick, AuthInfo: userNick, Namespace: o.ContextNamespace}

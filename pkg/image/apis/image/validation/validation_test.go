@@ -311,7 +311,7 @@ func TestValidateImageStreamMappingNotOK(t *testing.T) {
 					Namespace: "default",
 				},
 				DockerImageRepository: "openshift/ruby-19-centos",
-				Tag: imageapi.DefaultImageTag,
+				Tag:                   imageapi.DefaultImageTag,
 				Image: imageapi.Image{
 					DockerImageReference: "openshift/ruby-19-centos",
 				},
@@ -325,7 +325,7 @@ func TestValidateImageStreamMappingNotOK(t *testing.T) {
 					Namespace: "default",
 				},
 				DockerImageRepository: "registry/extra/openshift//ruby-19-centos",
-				Tag: imageapi.DefaultImageTag,
+				Tag:                   imageapi.DefaultImageTag,
 				Image: imageapi.Image{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "foo",
@@ -416,24 +416,24 @@ func TestValidateImageStream(t *testing.T) {
 			},
 		},
 		"invalid dockerImageRepository": {
-			namespace: "namespace",
-			name:      "foo",
+			namespace:             "namespace",
+			name:                  "foo",
 			dockerImageRepository: "a-|///bbb",
 			expected: field.ErrorList{
 				field.Invalid(field.NewPath("spec", "dockerImageRepository"), "a-|///bbb", "invalid reference format"),
 			},
 		},
 		"invalid dockerImageRepository with tag": {
-			namespace: "namespace",
-			name:      "foo",
+			namespace:             "namespace",
+			name:                  "foo",
 			dockerImageRepository: "a/b:tag",
 			expected: field.ErrorList{
 				field.Invalid(field.NewPath("spec", "dockerImageRepository"), "a/b:tag", "the repository name may not contain a tag"),
 			},
 		},
 		"invalid dockerImageRepository with ID": {
-			namespace: "namespace",
-			name:      "foo",
+			namespace:             "namespace",
+			name:                  "foo",
 			dockerImageRepository: "a/b@sha256:something",
 			expected: field.ErrorList{
 				field.Invalid(field.NewPath("spec", "dockerImageRepository"), "a/b@sha256:something", "invalid reference format"),
@@ -590,7 +590,7 @@ func TestValidateImageStream(t *testing.T) {
 				},
 				Spec: imageapi.ImageStreamSpec{
 					DockerImageRepository: test.dockerImageRepository,
-					Tags: test.specTags,
+					Tags:                  test.specTags,
 				},
 				Status: imageapi.ImageStreamStatus{
 					Tags: test.statusTags,
@@ -835,7 +835,7 @@ func TestValidateImageStreamWithWhitelister(t *testing.T) {
 				},
 				Spec: imageapi.ImageStreamSpec{
 					DockerImageRepository: test.dockerImageRepository,
-					Tags: test.specTags,
+					Tags:                  test.specTags,
 				},
 				Status: imageapi.ImageStreamStatus{
 					Tags: test.statusTags,
@@ -1015,7 +1015,7 @@ func TestValidateImageStreamUpdateWithWhitelister(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: imageapi.ImageStreamSpec{
 					DockerImageRepository: tc.oldDockerImageRepository,
-					Tags: tc.oldSpecTags,
+					Tags:                  tc.oldSpecTags,
 				},
 				Status: imageapi.ImageStreamStatus{
 					Tags: tc.oldStatusTags,
@@ -1025,7 +1025,7 @@ func TestValidateImageStreamUpdateWithWhitelister(t *testing.T) {
 				ObjectMeta: objMeta,
 				Spec: imageapi.ImageStreamSpec{
 					DockerImageRepository: tc.newDockerImageRepository,
-					Tags: tc.newSpecTags,
+					Tags:                  tc.newSpecTags,
 				},
 				Status: imageapi.ImageStreamStatus{
 					Tags: tc.newStatusTags,
