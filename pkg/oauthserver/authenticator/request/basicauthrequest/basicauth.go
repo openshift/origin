@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 
@@ -44,13 +44,13 @@ func (authHandler *basicAuthRequestHandler) AuthenticateRequest(req *http.Reques
 
 	switch {
 	case err != nil:
-		glog.Errorf(`Error authenticating login %q with provider %q: %v`, username, authHandler.provider, err)
+		klog.Errorf(`Error authenticating login %q with provider %q: %v`, username, authHandler.provider, err)
 		result = metrics.ErrorResult
 	case !ok:
-		glog.V(4).Infof(`Login with provider %q failed for login %q`, authHandler.provider, username)
+		klog.V(4).Infof(`Login with provider %q failed for login %q`, authHandler.provider, username)
 		result = metrics.FailResult
 	case ok:
-		glog.V(4).Infof(`Login with provider %q succeeded for login %q: %#v`, authHandler.provider, username, authResponse.User)
+		klog.V(4).Infof(`Login with provider %q succeeded for login %q: %#v`, authHandler.provider, username, authResponse.User)
 	}
 	return authResponse, ok, err
 }

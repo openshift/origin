@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	kapi "k8s.io/api/core/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
@@ -47,7 +47,7 @@ func (master *OsdnMaster) handleAddOrUpdateNode(obj, _ interface{}, eventType wa
 		return
 	}
 	// Node status is frequently updated by kubelet, so log only if the above condition is not met
-	glog.V(5).Infof("Watch %s event for Node %q", eventType, node.Name)
+	klog.V(5).Infof("Watch %s event for Node %q", eventType, node.Name)
 
 	master.clearInitialNodeNetworkUnavailableCondition(node)
 
@@ -61,7 +61,7 @@ func (master *OsdnMaster) handleAddOrUpdateNode(obj, _ interface{}, eventType wa
 
 func (master *OsdnMaster) handleDeleteNode(obj interface{}) {
 	node := obj.(*kapi.Node)
-	glog.V(5).Infof("Watch %s event for Node %q", watch.Deleted, node.Name)
+	klog.V(5).Infof("Watch %s event for Node %q", watch.Deleted, node.Name)
 
 	if _, exists := master.hostSubnetNodeIPs[node.UID]; !exists {
 		return
@@ -100,7 +100,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeUID string, nodeIP string
 			if err != nil {
 				return "", fmt.Errorf("error updating subnet %s for node %s: %v", sub.Subnet, nodeName, err)
 			}
-			glog.Infof("Updated HostSubnet %s", common.HostSubnetToString(sub))
+			klog.Infof("Updated HostSubnet %s", common.HostSubnetToString(sub))
 			return nodeIP, nil
 		}
 	}
@@ -130,7 +130,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeUID string, nodeIP string
 		}
 		return "", fmt.Errorf("error allocating subnet for node %q: %v", nodeName, err)
 	}
-	glog.Infof("Created HostSubnet %s", common.HostSubnetToString(sub))
+	klog.Infof("Created HostSubnet %s", common.HostSubnetToString(sub))
 	return nodeIP, nil
 }
 
@@ -146,7 +146,7 @@ func (master *OsdnMaster) deleteNode(nodeName string) error {
 		return fmt.Errorf("error deleting subnet for node %q: %v", nodeName, err)
 	}
 
-	glog.Infof("Deleted HostSubnet %s", subInfo)
+	klog.Infof("Deleted HostSubnet %s", subInfo)
 	return nil
 }
 
@@ -192,7 +192,7 @@ func (master *OsdnMaster) clearInitialNodeNetworkUnavailableCondition(origNode *
 	if resultErr != nil {
 		utilruntime.HandleError(fmt.Errorf("status update failed for local node: %v", resultErr))
 	} else if cleared {
-		glog.Infof("Cleared node NetworkUnavailable/NoRouteCreated condition for %s", node.Name)
+		klog.Infof("Cleared node NetworkUnavailable/NoRouteCreated condition for %s", node.Name)
 	}
 }
 
@@ -214,7 +214,7 @@ func (master *OsdnMaster) watchSubnets() {
 
 func (master *OsdnMaster) handleAddOrUpdateSubnet(obj, _ interface{}, eventType watch.EventType) {
 	hs := obj.(*networkapi.HostSubnet)
-	glog.V(5).Infof("Watch %s event for HostSubnet %q", eventType, hs.Name)
+	klog.V(5).Infof("Watch %s event for HostSubnet %q", eventType, hs.Name)
 
 	if err := common.ValidateHostSubnet(hs); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Ignoring invalid HostSubnet %s: %v", common.HostSubnetToString(hs), err))
@@ -239,7 +239,7 @@ func (master *OsdnMaster) handleAddOrUpdateSubnet(obj, _ interface{}, eventType 
 
 func (master *OsdnMaster) handleDeleteSubnet(obj interface{}) {
 	hs := obj.(*networkapi.HostSubnet)
-	glog.V(5).Infof("Watch %s event for HostSubnet %q", watch.Deleted, hs.Name)
+	klog.V(5).Infof("Watch %s event for HostSubnet %q", watch.Deleted, hs.Name)
 
 	if _, ok := hs.Annotations[networkapi.AssignHostSubnetAnnotation]; ok {
 		return
@@ -283,13 +283,13 @@ func (master *OsdnMaster) reconcileHostSubnet(subnet *networkapi.HostSubnet) err
 		}
 	} else if node == nil && len(subnet.Annotations[networkapi.NodeUIDAnnotation]) > 0 {
 		// Missed Node event, delete stale subnet.
-		glog.Infof("Setup found no node associated with hostsubnet %s, deleting the hostsubnet", subnet.Name)
+		klog.Infof("Setup found no node associated with hostsubnet %s, deleting the hostsubnet", subnet.Name)
 		if err = master.networkClient.NetworkV1().HostSubnets().Delete(subnet.Name, &metav1.DeleteOptions{}); err != nil {
 			return fmt.Errorf("error deleting subnet %v: %v", subnet, err)
 		}
 	} else if string(node.UID) != subnet.Annotations[networkapi.NodeUIDAnnotation] {
 		// Missed Node event, node with the same name exists delete stale subnet.
-		glog.Infof("Missed node event, hostsubnet %s has the UID of an incorrect object, deleting the hostsubnet", subnet.Name)
+		klog.Infof("Missed node event, hostsubnet %s has the UID of an incorrect object, deleting the hostsubnet", subnet.Name)
 		if err = master.networkClient.NetworkV1().HostSubnets().Delete(subnet.Name, &metav1.DeleteOptions{}); err != nil {
 			return fmt.Errorf("error deleting subnet %v: %v", subnet, err)
 		}
@@ -308,7 +308,7 @@ func (master *OsdnMaster) handleAssignHostSubnetAnnotation(hs *networkapi.HostSu
 	if err := master.networkClient.NetworkV1().HostSubnets().Delete(hs.Name, &metav1.DeleteOptions{}); err != nil {
 		return fmt.Errorf("error in deleting annotated subnet: %s, %v", hs.Name, err)
 	}
-	glog.Infof("Deleted HostSubnet not backed by node: %s", common.HostSubnetToString(hs))
+	klog.Infof("Deleted HostSubnet not backed by node: %s", common.HostSubnetToString(hs))
 
 	var hsAnnotations map[string]string
 	if vnid, ok := hs.Annotations[networkapi.FixedVNIDHostAnnotation]; ok {
@@ -324,6 +324,6 @@ func (master *OsdnMaster) handleAssignHostSubnetAnnotation(hs *networkapi.HostSu
 	if _, err := master.addNode(hs.Name, "", hs.HostIP, hsAnnotations); err != nil {
 		return fmt.Errorf("error creating subnet: %s, %v", hs.Name, err)
 	}
-	glog.Infof("Created HostSubnet not backed by node: %s", common.HostSubnetToString(hs))
+	klog.Infof("Created HostSubnet not backed by node: %s", common.HostSubnetToString(hs))
 	return nil
 }

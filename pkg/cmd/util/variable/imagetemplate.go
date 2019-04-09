@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 // ImageTemplate is a class to assist in expanding parameterized Docker image references
@@ -45,7 +45,7 @@ func NewDefaultImageTemplate() ImageTemplate {
 func (t *ImageTemplate) ExpandOrDie(component string) string {
 	value, err := t.Expand(component)
 	if err != nil {
-		glog.Fatalf("Unable to find an image for %q due to an error processing the format: %v", component, err)
+		klog.Fatalf("Unable to find an image for %q due to an error processing the format: %v", component, err)
 	}
 	return value
 }

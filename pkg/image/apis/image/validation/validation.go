@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/docker/distribution/reference"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/validation/path"
@@ -564,7 +564,7 @@ func ValidateImageStreamImport(isi *imageapi.ImageStreamImport) field.ErrorList 
 func isRepositoryInsecure(obj runtime.Object) bool {
 	accessor, err := kmeta.Accessor(obj)
 	if err != nil {
-		glog.V(4).Infof("Error getting accessor for %#v", obj)
+		klog.V(4).Infof("Error getting accessor for %#v", obj)
 		return false
 	}
 	return accessor.GetAnnotations()[imageapi.InsecureRepositoryAnnotation] == "true"

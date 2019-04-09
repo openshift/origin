@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -146,7 +146,7 @@ func parseDockerTimestamp(s string) (time.Time, error) {
 }
 
 func doGarbageCollection(client *dockerClient, options *dockerGCConfigCmdOptions, rootDir string) error {
-	glog.Infof("gathering disk usage data")
+	klog.Infof("gathering disk usage data")
 	capacityBytes, usageBytes, err := getRootDirInfo(rootDir)
 	if err != nil {
 		return err
@@ -155,13 +155,13 @@ func doGarbageCollection(client *dockerClient, options *dockerGCConfigCmdOptions
 	highThresholdBytes := capacityBytes * int64(options.ImageGCHighThresholdPercent) / 100
 	lowThresholdBytes := capacityBytes * int64(options.ImageGCLowThresholdPercent) / 100
 	if usageBytes < highThresholdBytes {
-		glog.Infof("usage is under high threshold (%vMB < %vMB)", bytesToMB(usageBytes), bytesToMB(highThresholdBytes))
+		klog.Infof("usage is under high threshold (%vMB < %vMB)", bytesToMB(usageBytes), bytesToMB(highThresholdBytes))
 		return nil
 	}
 
 	attemptToFreeBytes := usageBytes - lowThresholdBytes
 	freedBytes := int64(0)
-	glog.Infof("usage exceeds high threshold (%vMB > %vMB), attempting to free %vMB", bytesToMB(usageBytes), bytesToMB(highThresholdBytes), bytesToMB(attemptToFreeBytes))
+	klog.Infof("usage exceeds high threshold (%vMB > %vMB), attempting to free %vMB", bytesToMB(usageBytes), bytesToMB(highThresholdBytes), bytesToMB(attemptToFreeBytes))
 
 	// conatiners
 	exitedFilter := dockerfilters.NewArgs()
@@ -170,25 +170,25 @@ func doGarbageCollection(client *dockerClient, options *dockerGCConfigCmdOptions
 	if err != nil {
 		return err
 	}
-	glog.Infof("%d exited containers found", len(containers))
+	klog.Infof("%d exited containers found", len(containers))
 	sort.Sort(oldestContainersFirst(containers))
 	for _, c := range containers {
 		if freedBytes > attemptToFreeBytes {
-			glog.Infof("usage is below low threshold, freed %vMB", bytesToMB(freedBytes))
+			klog.Infof("usage is below low threshold, freed %vMB", bytesToMB(freedBytes))
 			return nil
 		}
 		age := time.Now().Sub(time.Unix(c.Created, 0))
 		if age < options.MinimumGCAge.Duration {
-			glog.Infof("remaining containers are too young")
+			klog.Infof("remaining containers are too young")
 			break
 		}
-		glog.Infof("removing container %v (size: %v, age: %v)", c.ID, c.SizeRw, age)
+		klog.Infof("removing container %v (size: %v, age: %v)", c.ID, c.SizeRw, age)
 		var err error
 		if !options.DryRun {
 			err = client.ContainerRemove(c.ID, dockertypes.ContainerRemoveOptions{RemoveVolumes: true})
 		}
 		if err != nil {
-			glog.Infof("unable to remove container: %v", err)
+			klog.Infof("unable to remove container: %v", err)
 		} else {
 			freedBytes += c.SizeRw
 		}
@@ -200,49 +200,49 @@ func doGarbageCollection(client *dockerClient, options *dockerGCConfigCmdOptions
 		return err
 	}
 	sort.Sort(oldestImagesFirst(images))
-	glog.Infof("%d images found", len(images))
+	klog.Infof("%d images found", len(images))
 	for _, i := range images {
 		if freedBytes > attemptToFreeBytes {
-			glog.Infof("usage is below low threshold, freed %vMB", bytesToMB(freedBytes))
+			klog.Infof("usage is below low threshold, freed %vMB", bytesToMB(freedBytes))
 			return nil
 		}
 		// filter openshift infra images
 		if len(i.RepoTags) > 0 {
 			if strings.HasPrefix(i.RepoTags[0], "registry.ops.openshift.com/openshift3") ||
 				strings.HasPrefix(i.RepoTags[0], "docker.io/openshift") {
-				glog.Infof("skipping infra image: %v", i.RepoTags[0])
+				klog.Infof("skipping infra image: %v", i.RepoTags[0])
 				continue
 			}
 		}
 		// filter young images
 		age := time.Now().Sub(time.Unix(i.Created, 0))
 		if age < options.MinimumGCAge.Duration {
-			glog.Infof("remaining images are too young")
+			klog.Infof("remaining images are too young")
 			break
 		}
-		glog.Infof("removing image %v (size: %v, age: %v)", i.ID, i.Size, age)
+		klog.Infof("removing image %v (size: %v, age: %v)", i.ID, i.Size, age)
 		var err error
 		if !options.DryRun {
 			err = client.ImageRemove(i.ID, dockertypes.ImageRemoveOptions{PruneChildren: true})
 		}
 		if err != nil {
-			glog.Infof("unable to remove image: %v", err)
+			klog.Infof("unable to remove image: %v", err)
 		} else {
 			freedBytes += i.Size
 		}
 	}
-	glog.Infof("unable to get below low threshold, %vMB freed", bytesToMB(freedBytes))
+	klog.Infof("unable to get below low threshold, %vMB freed", bytesToMB(freedBytes))
 
 	return nil
 }
 
 // Run runs the dockergc command.
 func Run(f kcmdutil.Factory, options *dockerGCConfigCmdOptions, cmd *cobra.Command, args []string) error {
-	glog.Infof("docker build garbage collection daemon")
+	klog.Infof("docker build garbage collection daemon")
 	if options.DryRun {
-		glog.Infof("Running in dry-run mode")
+		klog.Infof("Running in dry-run mode")
 	}
-	glog.Infof("MinimumGCAge: %v, ImageGCHighThresholdPercent: %v, ImageGCLowThresholdPercent: %v", options.MinimumGCAge, options.ImageGCHighThresholdPercent, options.ImageGCLowThresholdPercent)
+	klog.Infof("MinimumGCAge: %v, ImageGCHighThresholdPercent: %v, ImageGCLowThresholdPercent: %v", options.MinimumGCAge, options.ImageGCHighThresholdPercent, options.ImageGCLowThresholdPercent)
 	client, err := newDockerClient(dockerTimeout)
 	if err != nil {
 		return err
@@ -263,7 +263,7 @@ func Run(f kcmdutil.Factory, options *dockerGCConfigCmdOptions, cmd *cobra.Comma
 	for {
 		err := doGarbageCollection(client, options, rootDir)
 		if err != nil {
-			glog.Errorf("garbage collection attempt failed: %v", err)
+			klog.Errorf("garbage collection attempt failed: %v", err)
 		}
 		if options.DryRun {
 			return nil

@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/RangelReale/osin"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 
@@ -46,13 +46,13 @@ type TokenTimeoutSeconds interface {
 func (h *authorizeAuthenticator) HandleAuthorize(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (bool, error) {
 	info, ok, err := h.request.AuthenticateRequest(ar.HttpRequest)
 	if err != nil {
-		glog.V(4).Infof("OAuth authentication error: %v", err)
+		klog.V(4).Infof("OAuth authentication error: %v", err)
 		return h.errorHandler.AuthenticationError(err, w, ar.HttpRequest)
 	}
 	if !ok {
 		return h.handler.AuthenticationNeeded(ar.Client, w, ar.HttpRequest)
 	}
-	glog.V(4).Infof("OAuth authentication succeeded: %#v", info.User)
+	klog.V(4).Infof("OAuth authentication succeeded: %#v", info.User)
 	ar.UserData = info.User
 	ar.Authorized = true
 
@@ -98,11 +98,11 @@ func (h *accessAuthenticator) HandleAccess(ar *osin.AccessRequest, w http.Respon
 	case osin.CLIENT_CREDENTIALS:
 		info, ok, err = h.client.AuthenticateClient(ar.Client)
 	default:
-		glog.Warningf("Received unknown access token type: %s", ar.Type)
+		klog.Warningf("Received unknown access token type: %s", ar.Type)
 	}
 
 	if err != nil {
-		glog.V(4).Infof("Unable to authenticate %s: %v", ar.Type, err)
+		klog.V(4).Infof("Unable to authenticate %s: %v", ar.Type, err)
 		return err
 	}
 

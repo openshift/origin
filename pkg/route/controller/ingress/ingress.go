@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
@@ -160,7 +160,7 @@ type queueKey struct {
 // NewController instantiates a Controller
 func NewController(eventsClient kv1core.EventsGetter, client routeclient.RoutesGetter, ingresses extensionsinformers.IngressInformer, secrets coreinformers.SecretInformer, services coreinformers.ServiceInformer, routes routeinformers.RouteInformer) *Controller {
 	broadcaster := record.NewBroadcaster()
-	broadcaster.StartLogging(glog.Infof)
+	broadcaster.StartLogging(klog.Infof)
 	// TODO: remove the wrapper when every clients have moved to use the clientset.
 	broadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: eventsClient.Events("")})
 	recorder := broadcaster.NewRecorder(legacyscheme.Scheme, v1.EventSource{Component: "ingress-to-route-controller"})
@@ -291,7 +291,7 @@ func (c *Controller) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	glog.Infof("Starting controller")
+	klog.Infof("Starting controller")
 
 	if !cache.WaitForCacheSync(stopCh, c.syncs...) {
 		utilruntime.HandleError(fmt.Errorf("timed out waiting for caches to sync"))
@@ -303,13 +303,13 @@ func (c *Controller) Run(workers int, stopCh <-chan struct{}) {
 	}
 
 	<-stopCh
-	glog.Infof("Shutting down controller")
+	klog.Infof("Shutting down controller")
 }
 
 func (c *Controller) worker() {
 	for c.processNext() {
 	}
-	glog.V(4).Infof("Worker stopped")
+	klog.V(4).Infof("Worker stopped")
 }
 
 func (c *Controller) processNext() bool {
@@ -319,10 +319,10 @@ func (c *Controller) processNext() bool {
 	}
 	defer c.queue.Done(key)
 
-	glog.V(5).Infof("processing %v begin", key)
+	klog.V(5).Infof("processing %v begin", key)
 	err := c.sync(key.(queueKey))
 	c.handleNamespaceErr(err, key)
-	glog.V(5).Infof("processing %v end", key)
+	klog.V(5).Infof("processing %v end", key)
 
 	return true
 }
@@ -333,7 +333,7 @@ func (c *Controller) handleNamespaceErr(err error, key interface{}) {
 		return
 	}
 
-	glog.V(4).Infof("Error syncing %v: %v", key, err)
+	klog.V(4).Infof("Error syncing %v: %v", key, err)
 	c.queue.AddRateLimited(key)
 }
 
@@ -352,7 +352,7 @@ func (c *Controller) sync(key queueKey) error {
 	// if we are waiting to observe the result of route creations, simply delay
 	if c.expectations.Expecting(key.namespace, key.name) {
 		c.queue.AddAfter(key, c.expectationDelay)
-		glog.V(5).Infof("Ingress %s/%s has unsatisfied expectations", key.namespace, key.name)
+		klog.V(5).Infof("Ingress %s/%s has unsatisfied expectations", key.namespace, key.name)
 		return nil
 	}
 

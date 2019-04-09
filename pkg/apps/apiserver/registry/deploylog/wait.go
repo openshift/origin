@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,7 +43,7 @@ func WaitForRunningDeployment(rn corev1client.ReplicationControllersGetter, obse
 			switch t := e.Object.(type) {
 			case *metav1.Status:
 				if t.Reason == metav1.StatusReasonGone {
-					glog.V(5).Infof("encountered error while watching for replication controller: %v (retrying)", t)
+					klog.V(5).Infof("encountered error while watching for replication controller: %v (retrying)", t)
 					return false, ErrTooOldResourceVersion
 				}
 			}

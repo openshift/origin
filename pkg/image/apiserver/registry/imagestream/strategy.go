@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/glog"
 	authorizationapi "k8s.io/api/authorization/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,6 +15,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/storage/names"
 	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
@@ -219,7 +219,7 @@ func (s Strategy) tagsChanged(old, stream *imageapi.ImageStream) field.ErrorList
 			continue
 		}
 
-		glog.V(5).Infof("Detected changed tag %s in %s/%s", tag, stream.Namespace, stream.Name)
+		klog.V(5).Infof("Detected changed tag %s in %s/%s", tag, stream.Namespace, stream.Name)
 
 		generation := stream.Generation
 		tagRef.Generation = &generation
@@ -497,7 +497,7 @@ func (v *TagVerifier) Verify(old, stream *imageapi.ImageStream, user user.Info) 
 				},
 			},
 		})
-		glog.V(4).Infof("Performing SubjectAccessReview for user=%s, groups=%v to %s/%s", user.GetName(), user.GetGroups(), tagRef.From.Namespace, streamName)
+		klog.V(4).Infof("Performing SubjectAccessReview for user=%s, groups=%v to %s/%s", user.GetName(), user.GetGroups(), tagRef.From.Namespace, streamName)
 		resp, err := v.subjectAccessReviewClient.Create(subjectAccessReview)
 		if err != nil || resp == nil || (resp != nil && !resp.Status.Allowed) {
 			message := fmt.Sprintf("%s/%s", tagRef.From.Namespace, streamName)

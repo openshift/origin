@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildlister "github.com/openshift/client-go/build/listers/build/v1"
@@ -36,7 +36,7 @@ func ForBuild(build *buildv1.Build, policies []RunPolicy) RunPolicy {
 	buildPolicy := buildRunPolicy(build)
 	for _, s := range policies {
 		if s.Handles(buildPolicy) {
-			glog.V(5).Infof("Using %T run policy for build %s/%s", s, build.Namespace, build.Name)
+			klog.V(5).Infof("Using %T run policy for build %s/%s", s, build.Namespace, build.Name)
 			return s
 		}
 	}
@@ -131,6 +131,6 @@ func buildRunPolicy(build *buildv1.Build) buildv1.BuildRunPolicy {
 			return buildv1.BuildRunPolicySerialLatestOnly
 		}
 	}
-	glog.V(5).Infof("Build %s/%s does not have start policy label set, using default (Serial)", build.Namespace, build.Name)
+	klog.V(5).Infof("Build %s/%s does not have start policy label set, using default (Serial)", build.Namespace, build.Name)
 	return buildv1.BuildRunPolicySerial
 }

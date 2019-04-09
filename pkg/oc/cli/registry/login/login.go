@@ -11,8 +11,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -298,7 +298,7 @@ func (o *LoginOptions) Run() error {
 	if o.CreateDirectory {
 		dir := filepath.Dir(filename)
 		if err := os.MkdirAll(dir, 0700); err != nil {
-			glog.V(2).Infof("Unable to create nested directories: %v", err)
+			klog.V(2).Infof("Unable to create nested directories: %v", err)
 		}
 	}
 

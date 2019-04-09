@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -168,7 +168,7 @@ func (h *binaryInstantiateHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	h.options.Name = h.name
 	if err := rest.BeforeCreate(BinaryStrategy, h.ctx, h.options); err != nil {
-		glog.Infof("failed to validate binary: %#v", h.options)
+		klog.Infof("failed to validate binary: %#v", h.options)
 		return nil, err
 	}
 
@@ -206,7 +206,7 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 					}
 				}
 			}
-			glog.V(2).Infof("failed to instantiate: %#v", request)
+			klog.V(2).Infof("failed to instantiate: %#v", request)
 			return false, err
 		}
 		build = result
@@ -295,7 +295,7 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 func (h *binaryInstantiateHandler) cancelBuild(build *buildapi.Build) {
 	var versionedBuild = &buildv1.Build{}
 	if err := legacyscheme.Scheme.Convert(build, versionedBuild, nil); err != nil {
-		glog.Errorf("Unable to convert build to versioned build: %v", err)
+		klog.Errorf("Unable to convert build to versioned build: %v", err)
 		return
 	}
 	versionedBuild.Status.Cancelled = true

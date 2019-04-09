@@ -18,9 +18,9 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -386,7 +386,7 @@ func (o *ObserveOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args [
 					break
 				}
 			}
-			glog.V(4).Infof("Found existing keys: %v", outputNames)
+			klog.V(4).Infof("Found existing keys: %v", outputNames)
 			return outputNames, nil
 		}
 		o.knownObjects = o.argumentStore
@@ -441,9 +441,9 @@ func (o *ObserveOptions) Run() error {
 		}))
 		http.Handle("/metrics", prometheus.Handler())
 		go func() {
-			glog.Fatalf("Unable to listen on %q: %v", o.listenAddr, http.ListenAndServe(o.listenAddr, nil))
+			klog.Fatalf("Unable to listen on %q: %v", o.listenAddr, http.ListenAndServe(o.listenAddr, nil))
 		}()
-		glog.V(2).Infof("Listening on %s at /metrics and /healthz", o.listenAddr)
+		klog.V(2).Infof("Listening on %s at /metrics and /healthz", o.listenAddr)
 	}
 
 	// exit cleanly after a certain period
@@ -473,7 +473,7 @@ func (o *ObserveOptions) Run() error {
 				utilruntime.HandleError(err)
 				observedListErrors++
 				if o.maximumErrors != -1 && observedListErrors > o.maximumErrors {
-					glog.Fatalf("Maximum list errors of %d reached, exiting", o.maximumErrors)
+					klog.Fatalf("Maximum list errors of %d reached, exiting", o.maximumErrors)
 				}
 			}
 		}, time.Second, stopCh)
@@ -653,7 +653,7 @@ func (o *ObserveOptions) finishSync() error {
 }
 
 func (o *ObserveOptions) next(deltaType cache.DeltaType, obj runtime.Object, output []byte, arguments []string) error {
-	glog.V(4).Infof("Processing %s %v: %#v", deltaType, arguments, obj)
+	klog.V(4).Infof("Processing %s %v: %#v", deltaType, arguments, obj)
 	m, err := meta.Accessor(obj)
 	if err != nil {
 		return fmt.Errorf("unable to handle %T: %v", obj, err)
@@ -786,7 +786,7 @@ func retryCommandError(onExitStatus, times int, fn func() error) error {
 	if err != nil && onExitStatus != 0 && times > 0 {
 		if status, ok := exitCodeForCommandError(err); ok {
 			if status == onExitStatus {
-				glog.V(4).Infof("retrying command: %v", err)
+				klog.V(4).Infof("retrying command: %v", err)
 				return retryCommandError(onExitStatus, times-1, fn)
 			}
 		}

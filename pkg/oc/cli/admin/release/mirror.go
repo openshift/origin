@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -172,7 +172,7 @@ func (o *MirrorOptions) Run() error {
 			value := strings.Replace(dst, "${component}", name, -1)
 			ref, err := imagereference.Parse(value)
 			if err != nil {
-				glog.Fatalf("requested component %q could not be injected into %s: %v", name, dst, err)
+				klog.Fatalf("requested component %q could not be injected into %s: %v", name, dst, err)
 			}
 			return ref
 		}
@@ -271,7 +271,7 @@ func (o *MirrorOptions) Run() error {
 			Destination: targetFn(tag.Name),
 			Name:        tag.Name,
 		})
-		glog.V(2).Infof("Mapping %#v", mappings[len(mappings)-1])
+		klog.V(2).Infof("Mapping %#v", mappings[len(mappings)-1])
 
 		dstRef := targetFn(tag.Name)
 		dstRef.Tag = ""
@@ -344,7 +344,7 @@ func (o *MirrorOptions) Run() error {
 
 				for i, image := range result.Status.Images {
 					name := result.Spec.Images[i].To.Name
-					glog.V(4).Infof("Import result for %s: %#v", name, image.Status)
+					klog.V(4).Infof("Import result for %s: %#v", name, image.Status)
 					if image.Status.Status == metav1.StatusSuccess {
 						delete(remaining, name)
 						delete(hasErrors, name)
@@ -352,7 +352,7 @@ func (o *MirrorOptions) Run() error {
 						delete(remaining, name)
 						err := errors.FromObject(&image.Status)
 						hasErrors[name] = err
-						glog.V(2).Infof("Failed to import %s as tag %s: %v", remaining[name].Source, name, err)
+						klog.V(2).Infof("Failed to import %s as tag %s: %v", remaining[name].Source, name, err)
 					}
 				}
 				return nil
@@ -403,7 +403,7 @@ func (o *MirrorOptions) Run() error {
 			}
 			if changed, ok := manifests[digest.Digest(ref.ID)]; ok {
 				ref.ID = changed.String()
-				glog.V(4).Infof("During mirroring, image %s was updated to digest %s", tag.From.Name, changed)
+				klog.V(4).Infof("During mirroring, image %s was updated to digest %s", tag.From.Name, changed)
 				tag.From.Name = ref.Exact()
 			}
 		}

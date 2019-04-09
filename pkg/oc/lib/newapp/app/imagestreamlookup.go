@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog"
 
 	dockerv10 "github.com/openshift/api/image/docker10"
 	imagev1 "github.com/openshift/api/image/v1"
@@ -44,7 +44,7 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 		default:
 			ref, err = imageapi.ParseDockerImageReference(term)
 			if err != nil || len(ref.Registry) != 0 {
-				glog.V(2).Infof("image streams must be of the form [<namespace>/]<name>[:<tag>|@<digest>], term %q did not qualify", term)
+				klog.V(2).Infof("image streams must be of the form [<namespace>/]<name>[:<tag>|@<digest>], term %q did not qualify", term)
 				continue
 			}
 		}
@@ -60,7 +60,7 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 			followTag = true
 		}
 		for _, namespace := range namespaces {
-			glog.V(4).Infof("checking ImageStreams %s/%s with ref %q", namespace, ref.Name, searchTag)
+			klog.V(4).Infof("checking ImageStreams %s/%s with ref %q", namespace, ref.Name, searchTag)
 			exact := false
 			streams, err := r.Client.ImageStreams(namespace).List(metav1.ListOptions{})
 			if err != nil {
@@ -76,7 +76,7 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 				stream := &streams.Items[i]
 				score, scored := imageStreamScorer(*stream, ref.Name)
 				if !scored {
-					glog.V(2).Infof("unscored %s: %v", stream.Name, score)
+					klog.V(2).Infof("unscored %s: %v", stream.Name, score)
 					continue
 				}
 
@@ -115,7 +115,7 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 						Meta:        meta,
 						NoTagsFound: notFound,
 					}
-					glog.V(2).Infof("Adding %s as component match for %q with score %v", match.Description, term, matchScore)
+					klog.V(2).Infof("Adding %s as component match for %q with score %v", match.Description, term, matchScore)
 					componentMatches = append(componentMatches, match)
 				}
 
@@ -150,7 +150,7 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 				if (specTag != nil && followTag && imageutil.HasAnnotationTag(specTag, imageapi.TagReferenceAnnotationTagHidden)) ||
 					latest == nil || len(latest.Image) == 0 {
 
-					glog.V(2).Infof("no image recorded for %s/%s:%s", stream.Namespace, stream.Name, finalTag)
+					klog.V(2).Infof("no image recorded for %s/%s:%s", stream.Namespace, stream.Name, finalTag)
 					if r.AllowMissingTags {
 						addMatch(finalTag, score, nil, false)
 						continue
@@ -191,7 +191,7 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 				if err != nil {
 					if errors.IsNotFound(err) {
 						// continue searching
-						glog.V(2).Infof("tag %q is set, but image %q has been removed", finalTag, latest.Image)
+						klog.V(2).Infof("tag %q is set, but image %q has been removed", finalTag, latest.Image)
 						continue
 					}
 					errs = append(errs, err)
@@ -324,7 +324,7 @@ func matchSupportsAnnotation(value, annotation string) (float32, bool) {
 
 func (r *ImageStreamByAnnotationSearcher) annotationMatches(stream *imagev1.ImageStream, value string) []*ComponentMatch {
 	if stream.Spec.Tags == nil {
-		glog.Infof("No tags found on image, returning nil")
+		klog.Infof("No tags found on image, returning nil")
 		return nil
 	}
 	matches := []*ComponentMatch{}
@@ -346,7 +346,7 @@ func (r *ImageStreamByAnnotationSearcher) annotationMatches(stream *imagev1.Imag
 		}
 		imageStream, err := r.ImageStreamImages.ImageStreamImages(stream.Namespace).Get(imageapi.JoinImageStreamImage(stream.Name, latest.Image), metav1.GetOptions{})
 		if err != nil {
-			glog.V(2).Infof("Could not retrieve image stream image for stream %q, tag %q: %v", stream.Name, tagref.Name, err)
+			klog.V(2).Infof("Could not retrieve image stream image for stream %q, tag %q: %v", stream.Name, tagref.Name, err)
 			continue
 		}
 		if imageStream == nil {
@@ -361,7 +361,7 @@ func (r *ImageStreamByAnnotationSearcher) annotationMatches(stream *imagev1.Imag
 
 		imageData := imageStream.Image
 		if err := imageutil.ImageWithMetadata(&imageData); err != nil {
-			glog.V(5).Infof("error obtaining docker image metadata: %v", err)
+			klog.V(5).Infof("error obtaining docker image metadata: %v", err)
 			return nil
 		}
 
@@ -376,7 +376,7 @@ func (r *ImageStreamByAnnotationSearcher) annotationMatches(stream *imagev1.Imag
 			matchName = fmt.Sprintf("%s:%s", matchName, tagref.Name)
 			description = fmt.Sprintf("Image stream %q (tag %q) in project %q", stream.Name, tagref.Name, stream.Namespace)
 		}
-		glog.V(5).Infof("ImageStreamAnnotationSearcher match found: %s for %s with score %f", matchName, value, score)
+		klog.V(5).Infof("ImageStreamAnnotationSearcher match found: %s for %s with score %f", matchName, value, score)
 		match := &ComponentMatch{
 			Value:       value,
 			Name:        fmt.Sprintf("%s", matchName),
@@ -414,7 +414,7 @@ func (r *ImageStreamByAnnotationSearcher) Search(precise bool, terms ...string) 
 					errs = append(errs, fmt.Errorf("unable to find the specified image: %s", term))
 					continue
 				}
-				glog.V(5).Infof("Checking imagestream %s/%s for supports annotation %q", namespace, streams[i].Name, term)
+				klog.V(5).Infof("Checking imagestream %s/%s for supports annotation %q", namespace, streams[i].Name, term)
 				matches = append(matches, r.annotationMatches(&streams[i], term)...)
 			}
 		}

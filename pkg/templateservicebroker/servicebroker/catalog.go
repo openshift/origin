@@ -6,8 +6,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/labels"
 
-	"github.com/golang/glog"
 	jsschema "github.com/lestrrat/go-jsschema"
+	"k8s.io/klog"
 
 	templateapiv1 "github.com/openshift/api/template/v1"
 	oapi "github.com/openshift/origin/pkg/api"
@@ -118,7 +118,7 @@ func serviceFromTemplate(template *templateapiv1.Template) *api.Service {
 // Catalog returns our service catalog (one service per OpenShift template in
 // configured namespace(s)).
 func (b *Broker) Catalog() *api.Response {
-	glog.V(4).Infof("Template service broker: Catalog")
+	klog.V(4).Infof("Template service broker: Catalog")
 
 	var services []*api.Service
 

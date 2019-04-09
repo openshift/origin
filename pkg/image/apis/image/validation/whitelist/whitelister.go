@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	kerrutil "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -202,11 +202,11 @@ func (rw *registryWhitelister) AdmitDockerImageReference(ref *imageapi.DockerIma
 	}
 
 	if len(rw.whitelist) == 0 {
-		glog.V(5).Infof("registry %q not allowed by empty whitelist", hostname)
+		klog.V(5).Infof("registry %q not allowed by empty whitelist", hostname)
 		return fmt.Errorf("registry %q not allowed by empty whitelist", hostname)
 	}
 
-	glog.V(5).Infof("registry %q not allowed by whitelist: %s", hostname, strings.Join(whitelist, ", "))
+	klog.V(5).Infof("registry %q not allowed by whitelist: %s", hostname, strings.Join(whitelist, ", "))
 	if len(rw.whitelist) <= showMax {
 		return fmt.Errorf("registry %q not allowed by whitelist: %s", hostname, strings.Join(whitelist, ", "))
 	}

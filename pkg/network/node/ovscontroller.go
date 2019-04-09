@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	networkapi "github.com/openshift/api/network/v1"
 	"github.com/openshift/origin/pkg/network/common"
@@ -520,7 +520,7 @@ func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []networkapi.Eg
 				if selector == "0.0.0.0/0" {
 					dst = ""
 				} else if selector == "0.0.0.0/32" {
-					glog.Warningf("Correcting CIDRSelector '0.0.0.0/32' to '0.0.0.0/0' in EgressNetworkPolicy %s:%s", policies[0].Namespace, policies[0].Name)
+					klog.Warningf("Correcting CIDRSelector '0.0.0.0/32' to '0.0.0.0/0' in EgressNetworkPolicy %s:%s", policies[0].Namespace, policies[0].Name)
 					dst = ""
 				} else {
 					dst = fmt.Sprintf(", nw_dst=%s", selector)
@@ -683,7 +683,7 @@ func (oc *ovsController) findInUseAndPolicyVNIDs() (sets.Int, sets.Int) {
 	for _, flow := range flows {
 		parsed, err := ovs.ParseFlow(ovs.ParseForDump, flow)
 		if err != nil {
-			glog.Warningf("findInUseAndPolicyVNIDs: could not parse flow %q: %v", flow, err)
+			klog.Warningf("findInUseAndPolicyVNIDs: could not parse flow %q: %v", flow, err)
 			continue
 		}
 
@@ -701,7 +701,7 @@ func (oc *ovsController) findInUseAndPolicyVNIDs() (sets.Int, sets.Int) {
 				}
 				vnid, err := strconv.ParseInt(action.Value[:vnidEnd], 0, 32)
 				if err != nil {
-					glog.Warningf("findInUseAndPolicyVNIDs: could not parse VNID in 'load:%s': %v", action.Value, err)
+					klog.Warningf("findInUseAndPolicyVNIDs: could not parse VNID in 'load:%s': %v", action.Value, err)
 					continue
 				}
 				inUseVNIDs.Insert(int(vnid))
@@ -714,7 +714,7 @@ func (oc *ovsController) findInUseAndPolicyVNIDs() (sets.Int, sets.Int) {
 			if field, exists := parsed.FindField("reg1"); exists {
 				vnid, err := strconv.ParseInt(field.Value, 0, 32)
 				if err != nil {
-					glog.Warningf("findInUseAndPolicyVNIDs: could not parse VNID in 'reg1=%s': %v", field.Value, err)
+					klog.Warningf("findInUseAndPolicyVNIDs: could not parse VNID in 'reg1=%s': %v", field.Value, err)
 					continue
 				}
 				policyVNIDs.Insert(int(vnid))

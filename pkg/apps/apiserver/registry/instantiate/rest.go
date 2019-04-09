@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -91,7 +91,7 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 			}
 			return nil
 		}
-		glog.V(4).Infof("New deployment for %q caused by %#v", config.Name, causes)
+		klog.V(4).Infof("New deployment for %q caused by %#v", config.Name, causes)
 
 		config.Status.Details = new(appsapi.DeploymentDetails)
 		config.Status.Details.Causes = causes
@@ -350,7 +350,7 @@ func hasUpdatedTriggers(current, previous appsapi.DeploymentConfig) bool {
 			}
 		}
 		if !found {
-			glog.V(4).Infof("Deployment config %s/%s current version contains new trigger %#v", current.Namespace, current.Name, ct)
+			klog.V(4).Infof("Deployment config %s/%s current version contains new trigger %#v", current.Namespace, current.Name, ct)
 			return true
 		}
 	}
@@ -372,7 +372,7 @@ func triggeredByDifferentImage(ictParams appsapi.DeploymentTriggerImageChangePar
 		}
 
 		if t.ImageChangeParams.LastTriggeredImage != ictParams.LastTriggeredImage {
-			glog.V(4).Infof("Deployment config %s/%s triggered by different image: %s -> %s", previous.Namespace, previous.Name, t.ImageChangeParams.LastTriggeredImage, ictParams.LastTriggeredImage)
+			klog.V(4).Infof("Deployment config %s/%s triggered by different image: %s -> %s", previous.Namespace, previous.Name, t.ImageChangeParams.LastTriggeredImage, ictParams.LastTriggeredImage)
 			return true
 		}
 		return false

@@ -9,14 +9,14 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 // TryListen tries to open a connection on the given port and returns true if it succeeded.
 func TryListen(network, hostPort string) (bool, error) {
 	l, err := net.Listen(network, hostPort)
 	if err != nil {
-		glog.V(5).Infof("Failure while checking listen on %s: %v", hostPort, err)
+		klog.V(5).Infof("Failure while checking listen on %s: %v", hostPort, err)
 		return false, err
 	}
 	defer l.Close()
@@ -86,7 +86,7 @@ func WaitForSuccessfulDial(https bool, network, address string, timeout, interva
 			conn, err = dialer.Dial(network, address)
 		}
 		if err != nil {
-			glog.V(5).Infof("Got error %#v, trying again: %#v\n", err, address)
+			klog.V(5).Infof("Got error %#v, trying again: %#v\n", err, address)
 			time.Sleep(interval)
 			continue
 		}

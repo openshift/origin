@@ -8,7 +8,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"github.com/openshift/origin/pkg/util/netutils"
 
@@ -124,7 +124,7 @@ func (plugin *OsdnNode) SetupSDN() (bool, map[string]podNetworkInfo, error) {
 	localSubnetMaskLength, _ := ipnet.Mask.Size()
 	localSubnetGateway := netutils.GenerateDefaultGateway(ipnet).String()
 
-	glog.V(5).Infof("[SDN setup] node pod subnet %s gateway %s", ipnet.String(), localSubnetGateway)
+	klog.V(5).Infof("[SDN setup] node pod subnet %s gateway %s", ipnet.String(), localSubnetGateway)
 
 	gwCIDR := fmt.Sprintf("%s/%d", localSubnetGateway, localSubnetMaskLength)
 
@@ -135,12 +135,12 @@ func (plugin *OsdnNode) SetupSDN() (bool, map[string]podNetworkInfo, error) {
 	var changed bool
 	var existingPods map[string]podNetworkInfo
 	if err := plugin.alreadySetUp(gwCIDR, clusterNetworkCIDRs); err == nil {
-		glog.V(5).Infof("[SDN setup] no SDN setup required")
+		klog.V(5).Infof("[SDN setup] no SDN setup required")
 	} else {
-		glog.Infof("[SDN setup] full SDN setup required (%v)", err)
+		klog.Infof("[SDN setup] full SDN setup required (%v)", err)
 		existingPods, err = plugin.oc.GetPodNetworkInfo()
 		if err != nil {
-			glog.Warningf("[SDN setup] Could not get details of existing pods: %v", err)
+			klog.Warningf("[SDN setup] Could not get details of existing pods: %v", err)
 		}
 		if err := plugin.setup(clusterNetworkCIDRs, localSubnetCIDR, localSubnetGateway, gwCIDR); err != nil {
 			return false, nil, err
@@ -209,14 +209,14 @@ func (plugin *OsdnNode) updateEgressNetworkPolicyRules(vnid uint32) {
 }
 
 func (plugin *OsdnNode) AddServiceRules(service *corev1.Service, netID uint32) {
-	glog.V(5).Infof("AddServiceRules for %v", service)
+	klog.V(5).Infof("AddServiceRules for %v", service)
 	if err := plugin.oc.AddServiceRules(service, netID); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error adding OVS flows for service %v, netid %d: %v", service, netID, err))
 	}
 }
 
 func (plugin *OsdnNode) DeleteServiceRules(service *corev1.Service) {
-	glog.V(5).Infof("DeleteServiceRules for %v", service)
+	klog.V(5).Infof("DeleteServiceRules for %v", service)
 	if err := plugin.oc.DeleteServiceRules(service); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error deleting OVS flows for service %v: %v", service, err))
 	}

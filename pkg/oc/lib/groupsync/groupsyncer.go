@@ -6,8 +6,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/golang/glog"
 	"gopkg.in/ldap.v2"
+	"k8s.io/klog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,16 +54,16 @@ func (s *LDAPGroupSyncer) Sync() ([]*userv1.Group, []error) {
 	var errors []error
 
 	// determine what to sync
-	glog.V(1).Infof("Listing with %v", s.GroupLister)
+	klog.V(1).Infof("Listing with %v", s.GroupLister)
 	ldapGroupUIDs, err := s.GroupLister.ListGroups()
 	if err != nil {
 		errors = append(errors, err)
 		return nil, errors
 	}
-	glog.V(1).Infof("Sync ldapGroupUIDs %v", ldapGroupUIDs)
+	klog.V(1).Infof("Sync ldapGroupUIDs %v", ldapGroupUIDs)
 
 	for _, ldapGroupUID := range ldapGroupUIDs {
-		glog.V(1).Infof("Checking LDAP group %v", ldapGroupUID)
+		klog.V(1).Infof("Checking LDAP group %v", ldapGroupUID)
 
 		// get membership data
 		memberEntries, err := s.GroupMemberExtractor.ExtractMembers(ldapGroupUID)
@@ -80,7 +80,7 @@ func (s *LDAPGroupSyncer) Sync() ([]*userv1.Group, []error) {
 			errors = append(errors, err)
 			continue
 		}
-		glog.V(1).Infof("Has OpenShift users %v", usernames)
+		klog.V(1).Infof("Has OpenShift users %v", usernames)
 
 		// update the OpenShift Group corresponding to this record
 		openshiftGroup, err := s.makeOpenShiftGroup(ldapGroupUID, usernames)
@@ -112,7 +112,7 @@ func (s *LDAPGroupSyncer) determineUsernames(members []*ldap.Entry) ([]string, e
 		if err != nil {
 			return nil, err
 		}
-		glog.V(2).Infof("Found OpenShift username %q for LDAP user for %v", username, member)
+		klog.V(2).Infof("Found OpenShift username %q for LDAP user for %v", username, member)
 
 		usernames = append(usernames, username)
 	}

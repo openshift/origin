@@ -3,7 +3,7 @@ package policy
 import (
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -84,7 +84,7 @@ func (s *SerialLatestOnlyPolicy) cancelPreviousBuilds(build *buildv1.Build) []er
 			b.Status.Cancelled = true
 			err := s.BuildUpdater.Update(b.Namespace, b)
 			if err != nil && errors.IsConflict(err) {
-				glog.V(5).Infof("Error cancelling build %s/%s: %v (will retry)", b.Namespace, b.Name, err)
+				klog.V(5).Infof("Error cancelling build %s/%s: %v (will retry)", b.Namespace, b.Name, err)
 				return false, nil
 			}
 			return true, err

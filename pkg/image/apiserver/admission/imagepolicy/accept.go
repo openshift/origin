@@ -3,7 +3,7 @@ package imagepolicy
 import (
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,7 +53,7 @@ func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imag
 				resolvedAttrs, err := resolver.ResolveObjectReference(ref, attr.GetNamespace(), resolveAllNames)
 				switch {
 				case err != nil && policy.FailOnResolutionFailure(gr):
-					glog.V(5).Infof("resource failed on error during required image resolution: %v", err)
+					klog.V(5).Infof("resource failed on error during required image resolution: %v", err)
 					// if we had a resolution error and we're supposed to fail, fail
 					decision.resolutionErr = err
 					decision.tested = true
@@ -61,7 +61,7 @@ func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imag
 					return err
 
 				case err != nil:
-					glog.V(5).Infof("error during optional image resolution: %v", err)
+					klog.V(5).Infof("error during optional image resolution: %v", err)
 					// if we had an error, but aren't supposed to fail, just don't do anything else and keep track of
 					// the resolution failure
 					decision.resolutionErr = err
@@ -89,13 +89,13 @@ func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imag
 			}
 			decision.attrs.Resource = gr
 			decision.attrs.ExcludedRules = excludedRules
-			glog.V(5).Infof("post resolution, ref=%s:%s/%s, image attributes=%#v, resolution err=%v", ref.Kind, ref.Name, ref.Namespace, *decision.attrs, decision.resolutionErr)
+			klog.V(5).Infof("post resolution, ref=%s:%s/%s, image attributes=%#v, resolution err=%v", ref.Kind, ref.Name, ref.Namespace, *decision.attrs, decision.resolutionErr)
 		}
 
 		// we only need to test a given input once for acceptance
 		if !decision.tested {
 			accepted := accepter.Accepts(decision.attrs)
-			glog.V(5).Infof("Made decision for %v (as: %v, resolution err: %v): accept=%t", ref, decision.attrs.Name, decision.resolutionErr, accepted)
+			klog.V(5).Infof("Made decision for %v (as: %v, resolution err: %v): accept=%t", ref, decision.attrs.Name, decision.resolutionErr, accepted)
 
 			decision.tested = true
 			decisions[*ref] = decision
@@ -126,7 +126,7 @@ func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imag
 	}
 
 	if len(errs) > 0 {
-		glog.V(5).Infof("image policy admission rejecting due to: %v", errs)
+		klog.V(5).Infof("image policy admission rejecting due to: %v", errs)
 		return apierrs.NewInvalid(attr.GetKind().GroupKind(), attr.GetName(), errs)
 	}
 	return nil

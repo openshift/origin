@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/golang/glog"
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/configdefaults"
+	"k8s.io/klog"
 )
 
 // ResolveDirectoriesForSATokenVerification takes our config (which allows directories) and navigates one level of
@@ -21,13 +21,13 @@ func ResolveDirectoriesForSATokenVerification(config *kubecontrolplanev1.KubeAPI
 		file, err := os.Open(filename)
 		if err != nil {
 			resolvedSATokenValidationCerts = append(resolvedSATokenValidationCerts, filename)
-			glog.Warningf(err.Error())
+			klog.Warningf(err.Error())
 			continue
 		}
 		fileInfo, err := file.Stat()
 		if err != nil {
 			resolvedSATokenValidationCerts = append(resolvedSATokenValidationCerts, filename)
-			glog.Warningf(err.Error())
+			klog.Warningf(err.Error())
 			continue
 		}
 		if !fileInfo.IsDir() {
@@ -38,7 +38,7 @@ func ResolveDirectoriesForSATokenVerification(config *kubecontrolplanev1.KubeAPI
 		contents, err := ioutil.ReadDir(filename)
 		switch {
 		case os.IsNotExist(err) || os.IsPermission(err):
-			glog.Warningf(err.Error())
+			klog.Warningf(err.Error())
 		case err != nil:
 			panic(err) // some weird, unexpected error
 		default:

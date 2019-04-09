@@ -88,7 +88,7 @@ func main() {
 		"github.com/docker/distribution",
 		"github.com/coreos/etcd",
 		"github.com/emicklei/go-restful",
-		"github.com/golang/glog",
+		"k8s.io/klog",
 		"github.com/cloudflare/cfssl",
 		"github.com/google/certificate-transparency",
 		"github.com/RangelReale/osin",

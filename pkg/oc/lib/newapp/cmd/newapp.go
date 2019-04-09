@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/fsouza/go-dockerclient"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -268,7 +268,7 @@ func (c *AppConfig) SetOpenShiftClient(imageClient imagev1typedclient.ImageV1Int
 func (c *AppConfig) tryToAddEnvironmentArguments(s string) bool {
 	rc := env.IsEnvironmentArgument(s)
 	if rc {
-		glog.V(2).Infof("treating %s as possible environment argument\n", s)
+		klog.V(2).Infof("treating %s as possible environment argument\n", s)
 		c.Environment = append(c.Environment, s)
 	} else {
 		c.EnvironmentClassificationErrors[s] = ArgumentClassificationError{
@@ -284,7 +284,7 @@ func (c *AppConfig) tryToAddSourceArguments(s string) bool {
 	local, derr := app.IsDirectory(s)
 
 	if remote || local {
-		glog.V(2).Infof("treating %s as possible source repo\n", s)
+		klog.V(2).Infof("treating %s as possible source repo\n", s)
 		c.SourceRepositories = append(c.SourceRepositories, s)
 		return true
 	}
@@ -312,7 +312,7 @@ func (c *AppConfig) tryToAddSourceArguments(s string) bool {
 func (c *AppConfig) tryToAddComponentArguments(s string) bool {
 	err := app.IsComponentReference(s)
 	if err == nil {
-		glog.V(2).Infof("treating %s as a component ref\n", s)
+		klog.V(2).Infof("treating %s as a component ref\n", s)
 		c.Components = append(c.Components, s)
 		return true
 	}
@@ -327,7 +327,7 @@ func (c *AppConfig) tryToAddComponentArguments(s string) bool {
 func (c *AppConfig) tryToAddTemplateArguments(s string) bool {
 	rc, err := app.IsPossibleTemplateFile(s)
 	if rc {
-		glog.V(2).Infof("treating %s as possible template file\n", s)
+		klog.V(2).Infof("treating %s as possible template file\n", s)
 		c.Components = append(c.Components, s)
 		return true
 	}
@@ -365,7 +365,7 @@ func (c *AppConfig) AddArguments(args []string) []string {
 			delete(c.TemplateClassificationErrors, s)
 			// we are going to save the source errors in case this really was a source repo in the end
 		default:
-			glog.V(2).Infof("treating %s as unknown\n", s)
+			klog.V(2).Infof("treating %s as unknown\n", s)
 			unknown = append(unknown, s)
 		}
 
@@ -430,7 +430,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 
 	pipelineBuilder := app.NewPipelineBuilder(c.Name, buildEnvironment, DockerStrategyOptions, c.OutputDocker).To(c.To)
 	for _, group := range components.Group() {
-		glog.V(4).Infof("found group: %v", group)
+		klog.V(4).Infof("found group: %v", group)
 		common := app.PipelineGroup{}
 		for _, ref := range group {
 			refInput := ref.Input()
@@ -439,12 +439,12 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 
 			switch {
 			case refInput.ExpectToBuild:
-				glog.V(4).Infof("will add %q secrets into a build for a source build of %q", strings.Join(c.Secrets, ","), refInput.Uses)
+				klog.V(4).Infof("will add %q secrets into a build for a source build of %q", strings.Join(c.Secrets, ","), refInput.Uses)
 				if err := refInput.Uses.AddBuildSecrets(c.Secrets); err != nil {
 					return nil, fmt.Errorf("unable to add build secrets %q: %v", strings.Join(c.Secrets, ","), err)
 				}
 
-				glog.V(4).Infof("will add %q configMaps into a build for a source build of %q", strings.Join(c.ConfigMaps, ","), refInput.Uses)
+				klog.V(4).Infof("will add %q configMaps into a build for a source build of %q", strings.Join(c.ConfigMaps, ","), refInput.Uses)
 				if err = refInput.Uses.AddBuildConfigMaps(c.ConfigMaps); err != nil {
 					return nil, fmt.Errorf("unable to add build configMaps %q: %v", strings.Join(c.Secrets, ","), err)
 				}
@@ -464,12 +464,12 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 					}
 					if !inputImage.AsImageStream && from != "scratch" && (refInput.Uses == nil || refInput.Uses.GetStrategy() != newapp.StrategyPipeline) {
 						msg := "Could not find an image stream match for %q. Make sure that a Docker image with that tag is available on the node for the build to succeed."
-						glog.Warningf(msg, from)
+						klog.Warningf(msg, from)
 					}
 					image = inputImage
 				}
 
-				glog.V(4).Infof("will use %q as the base image for a source build of %q", ref, refInput.Uses)
+				klog.V(4).Infof("will use %q as the base image for a source build of %q", ref, refInput.Uses)
 				if pipeline, err = pipelineBuilder.NewBuildPipeline(from, image, refInput.Uses, c.BinaryBuild); err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", refInput.Uses, err)
 				}
@@ -480,10 +480,10 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				}
 				if !inputImage.AsImageStream {
 					msg := "Could not find an image stream match for %q. Make sure that a Docker image with that tag is available on the node for the deployment to succeed."
-					glog.Warningf(msg, from)
+					klog.Warningf(msg, from)
 				}
 
-				glog.V(4).Infof("will include %q", ref)
+				klog.V(4).Infof("will include %q", ref)
 				if pipeline, err = pipelineBuilder.NewImagePipeline(from, inputImage); err != nil {
 					return nil, fmt.Errorf("can't include %q: %v", refInput, err)
 				}
@@ -530,7 +530,7 @@ func (c *AppConfig) buildTemplates(components app.ComponentReferences, parameter
 	for _, ref := range components {
 		tpl := ref.Input().ResolvedMatch.Template
 
-		glog.V(4).Infof("processing template %s/%s", c.OriginNamespace, tpl.Name)
+		klog.V(4).Infof("processing template %s/%s", c.OriginNamespace, tpl.Name)
 		if len(c.ContextDir) > 0 {
 			return "", nil, fmt.Errorf("--context-dir is not supported when using a template")
 		}
@@ -612,7 +612,7 @@ func (c *AppConfig) installComponents(components app.ComponentReferences, env ap
 	if err != nil {
 		return nil, "", fmt.Errorf("can't include %q: %v", input, err)
 	}
-	glog.V(4).Infof("Resolved match for installer %#v", input.ResolvedMatch)
+	klog.V(4).Infof("Resolved match for installer %#v", input.ResolvedMatch)
 
 	imageRef.AsImageStream = false
 	imageRef.AsResolvedImage = true
@@ -627,7 +627,7 @@ func (c *AppConfig) installComponents(components app.ComponentReferences, env ap
 		}
 	}
 	imageRef.ObjectName = name
-	glog.V(4).Infof("Proposed installable image %#v", imageRef)
+	klog.V(4).Infof("Proposed installable image %#v", imageRef)
 
 	secretAccessor := c.SecretAccessor
 	generatorInput := input.ResolvedMatch.GeneratorInput
@@ -739,8 +739,8 @@ func (c *AppConfig) RunQuery() (*QueryResult, error) {
 		return nil, err
 	}
 
-	glog.V(4).Infof("Code %v", repositories)
-	glog.V(4).Infof("Components %v", components)
+	klog.V(4).Infof("Code %v", repositories)
+	klog.V(4).Infof("Components %v", components)
 
 	matches := app.ComponentMatches{}
 	objects := app.Objects{}
@@ -980,7 +980,7 @@ func (c *AppConfig) Run() (*AppResult, error) {
 		}
 		for _, obj := range objects {
 			if bc, ok := obj.(*buildv1.BuildConfig); ok {
-				glog.V(4).Infof("Setting source secret for build config to: %v", c.SourceSecret)
+				klog.V(4).Infof("Setting source secret for build config to: %v", c.SourceSecret)
 				bc.Spec.Source.SourceSecret = &corev1.LocalObjectReference{Name: c.SourceSecret}
 				break
 			}
@@ -992,7 +992,7 @@ func (c *AppConfig) Run() (*AppResult, error) {
 		}
 		for _, obj := range objects {
 			if bc, ok := obj.(*buildv1.BuildConfig); ok {
-				glog.V(4).Infof("Setting push secret for build config to: %v", c.SourceSecret)
+				klog.V(4).Infof("Setting push secret for build config to: %v", c.SourceSecret)
 				bc.Spec.Output.PushSecret = &corev1.LocalObjectReference{Name: c.PushSecret}
 				break
 			}
@@ -1256,7 +1256,7 @@ func (c *AppConfig) removeRedundantTags(objects app.Objects) (app.Objects, error
 			}
 			istName := fmt.Sprintf("%s/%s", istNamespace, ist.Name)
 			if _, ok := objectsToRemove[istName]; ok {
-				glog.V(4).Infof("Removing duplicate tag from object list: %s", istName)
+				klog.V(4).Infof("Removing duplicate tag from object list: %s", istName)
 				continue
 			}
 		}
@@ -1272,9 +1272,9 @@ func (c *AppConfig) removeRedundantTags(objects app.Objects) (app.Objects, error
 func (c *AppConfig) checkCircularReferences(objects app.Objects) error {
 	for i, obj := range objects {
 
-		if glog.V(5) {
+		if klog.V(5) {
 			json, _ := json.MarshalIndent(obj, "", "\t")
-			glog.Infof("\n\nCycle check input object %v:\n%v\n", i, string(json))
+			klog.Infof("\n\nCycle check input object %v:\n%v\n", i, string(json))
 		}
 
 		if bc, ok := obj.(*buildv1.BuildConfig); ok {
@@ -1290,20 +1290,20 @@ func (c *AppConfig) checkCircularReferences(objects app.Objects) error {
 				if _, ok := err.(app.CircularReferenceError); ok {
 					return err
 				}
-				glog.Warningf("Unable to check for circular build input: %v", err)
+				klog.Warningf("Unable to check for circular build input: %v", err)
 				return nil
 			}
-			glog.V(5).Infof("Post follow input:\n%#v\n", dockerInput)
+			klog.V(5).Infof("Post follow input:\n%#v\n", dockerInput)
 
 			dockerOutput, err := c.followRefToDockerImage(output, nil, objects)
 			if err != nil {
 				if _, ok := err.(app.CircularReferenceError); ok {
 					return err
 				}
-				glog.Warningf("Unable to check for circular build output: %v", err)
+				klog.Warningf("Unable to check for circular build output: %v", err)
 				return nil
 			}
-			glog.V(5).Infof("Post follow:\n%#v\n", dockerOutput)
+			klog.V(5).Infof("Post follow:\n%#v\n", dockerOutput)
 
 			// with reuse of existing image streams, some scenarios have arisen where
 			// comparisons of input/output prior to following the ref to the docker image

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	restful "github.com/emicklei/go-restful"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -441,7 +441,7 @@ type apiServerAppenderFunc func(delegateAPIServer genericapiserver.DelegationTar
 func addAPIServerOrDie(delegateAPIServer genericapiserver.DelegationTarget, apiServerAppenderFn apiServerAppenderFunc) genericapiserver.DelegationTarget {
 	delegateAPIServer, err := apiServerAppenderFn(delegateAPIServer)
 	if err != nil {
-		glog.Fatal(err)
+		klog.Fatal(err)
 	}
 
 	return delegateAPIServer
@@ -537,7 +537,7 @@ func AddOpenshiftVersionRoute(container *restful.Container, path string) {
 	// Build version info once
 	versionInfo, err := json.MarshalIndent(version.Get(), "", "  ")
 	if err != nil {
-		glog.Errorf("Unable to initialize version route: %v", err)
+		klog.Errorf("Unable to initialize version route: %v", err)
 		return
 	}
 
@@ -564,7 +564,7 @@ func writeJSON(resp *restful.Response, json []byte) {
 
 func (c *completedConfig) startProjectCache(context genericapiserver.PostStartHookContext) error {
 	// RunProjectCache populates project cache, used by scheduler and project admission controller.
-	glog.Infof("Using default project node label selector: %s", c.ExtraConfig.ProjectCache.DefaultNodeSelector)
+	klog.Infof("Using default project node label selector: %s", c.ExtraConfig.ProjectCache.DefaultNodeSelector)
 	go c.ExtraConfig.ProjectCache.Run(context.StopCh)
 	return nil
 }
@@ -603,7 +603,7 @@ func (c *completedConfig) bootstrapSCC(context genericapiserver.PostStartHookCon
 			utilruntime.HandleError(fmt.Errorf("unable to create default security context constraint %s.  Got error: %v", scc.Name, err))
 			continue
 		}
-		glog.Infof("Created default security context constraint %s", scc.Name)
+		klog.Infof("Created default security context constraint %s", scc.Name)
 	}
 	return nil
 }
@@ -636,7 +636,7 @@ func (c *completedConfig) EnsureOpenShiftInfraNamespace(context genericapiserver
 	// Ensure we have the bootstrap SA for Nodes
 	_, err = coreClient.ServiceAccounts(namespaceName).Create(&kapi.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: bootstrappolicy.InfraNodeBootstrapServiceAccountName}})
 	if err != nil && !kapierror.IsAlreadyExists(err) {
-		glog.Errorf("Error creating service account %s/%s: %v", namespaceName, bootstrappolicy.InfraNodeBootstrapServiceAccountName, err)
+		klog.Errorf("Error creating service account %s/%s: %v", namespaceName, bootstrappolicy.InfraNodeBootstrapServiceAccountName, err)
 	}
 
 	return nil

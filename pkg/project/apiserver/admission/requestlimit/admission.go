@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,7 +44,7 @@ func Register(plugins *admission.Plugins) {
 				return nil, err
 			}
 			if pluginConfig == nil {
-				glog.Infof("Admission plugin %q is not configured so it will be disabled.", "project.openshift.io/ProjectRequestLimit")
+				klog.Infof("Admission plugin %q is not configured so it will be disabled.", "project.openshift.io/ProjectRequestLimit")
 				return nil, nil
 			}
 			return NewProjectRequestLimit(pluginConfig)

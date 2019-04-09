@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	corev1 "k8s.io/api/core/v1"
@@ -88,11 +88,11 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 	// Build has not launched, wait until it runs
 	case buildv1.BuildPhaseNew, buildv1.BuildPhasePending:
 		if buildLogOpts.NoWait {
-			glog.V(4).Infof("Build %s/%s is in %s state. No logs to retrieve yet.", build.Namespace, build.Name, build.Status.Phase)
+			klog.V(4).Infof("Build %s/%s is in %s state. No logs to retrieve yet.", build.Namespace, build.Name, build.Status.Phase)
 			// return empty content if not waiting for build
 			return &genericrest.LocationStreamer{}, nil
 		}
-		glog.V(4).Infof("Build %s/%s is in %s state, waiting for Build to start", build.Namespace, build.Name, build.Status.Phase)
+		klog.V(4).Infof("Build %s/%s is in %s state, waiting for Build to start", build.Namespace, build.Name, build.Status.Phase)
 		latest, ok, err := buildwait.WaitForRunningBuild(r.BuildClient, build.Namespace, build.Name, r.Timeout)
 		if err != nil {
 			return nil, errors.NewBadRequest(fmt.Sprintf("unable to wait for build %s to run: %v", build.Name, err))
@@ -169,11 +169,11 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 		for waitForInitContainers {
 			select {
 			case <-ctx.Done():
-				glog.V(4).Infof("timed out while iterating on build init containers for build pod %s/%s", build.Namespace, buildPodName)
+				klog.V(4).Infof("timed out while iterating on build init containers for build pod %s/%s", build.Namespace, buildPodName)
 				return
 			default:
 			}
-			glog.V(4).Infof("iterating through build init containers for build pod %s/%s", build.Namespace, buildPodName)
+			klog.V(4).Infof("iterating through build init containers for build pod %s/%s", build.Namespace, buildPodName)
 
 			// assume we are not going to need to iterate again until proven otherwise
 			waitForInitContainers = false
@@ -190,7 +190,7 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 			// Walk all the initcontainers in order and dump/stream their logs.  The initcontainers
 			// are defined in order of execution, so that's the order we'll dump their logs in.
 			for _, status := range buildPod.Status.InitContainerStatuses {
-				glog.V(4).Infof("processing build pod: %s/%s container: %s in state %#v", build.Namespace, buildPodName, status.Name, status.State)
+				klog.V(4).Infof("processing build pod: %s/%s container: %s in state %#v", build.Namespace, buildPodName, status.Name, status.State)
 
 				if status.State.Terminated != nil && status.State.Terminated.ExitCode != 0 {
 					initFailed = true
@@ -229,7 +229,7 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 				}
 
 				if err := r.pipeLogs(ctx, build.Namespace, buildPodName, containerLogOpts, pipeStreamer.In); err != nil {
-					glog.Errorf("error: failed to stream logs for build pod: %s/%s container: %s, due to: %v", build.Namespace, buildPodName, status.Name, err)
+					klog.Errorf("error: failed to stream logs for build pod: %s/%s container: %s, due to: %v", build.Namespace, buildPodName, status.Name, err)
 					return
 				}
 
@@ -281,14 +281,14 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 				return false, nil
 			})
 			if err != nil {
-				glog.Errorf("error: failed to stream logs for build pod: %s/%s due to: %v", build.Namespace, buildPodName, err)
+				klog.Errorf("error: failed to stream logs for build pod: %s/%s due to: %v", build.Namespace, buildPodName, err)
 				return
 			}
 
 			containerLogOpts := buildinternalhelpers.BuildToPodLogOptions(buildLogOpts)
 			containerLogOpts.Container = selectBuilderContainer(buildPod.Spec.Containers)
 			if containerLogOpts.Container == "" {
-				glog.Errorf("error: failed to select a container in build pod: %s/%s", build.Namespace, buildPodName)
+				klog.Errorf("error: failed to select a container in build pod: %s/%s", build.Namespace, buildPodName)
 			}
 
 			// never follow logs for terminated pods, it just causes latency in streaming the result.
@@ -297,7 +297,7 @@ func (r *REST) Get(ctx context.Context, name string, opts runtime.Object) (runti
 			}
 
 			if err := r.pipeLogs(ctx, build.Namespace, buildPodName, containerLogOpts, pipeStreamer.In); err != nil {
-				glog.Errorf("error: failed to stream logs for build pod: %s/%s due to: %v", build.Namespace, buildPodName, err)
+				klog.Errorf("error: failed to stream logs for build pod: %s/%s due to: %v", build.Namespace, buildPodName, err)
 				return
 			}
 		}
@@ -318,16 +318,16 @@ func (r *REST) New() runtime.Object {
 
 // pipeLogs retrieves the logs for a particular container and streams them into the provided writer.
 func (r *REST) pipeLogs(ctx context.Context, namespace, buildPodName string, containerLogOpts *kapi.PodLogOptions, writer io.Writer) error {
-	glog.V(4).Infof("pulling build pod logs for %s/%s, container %s", namespace, buildPodName, containerLogOpts.Container)
+	klog.V(4).Infof("pulling build pod logs for %s/%s, container %s", namespace, buildPodName, containerLogOpts.Container)
 
 	logRequest := r.PodClient.Pods(namespace).GetLogs(buildPodName, podLogOptionsToV1(containerLogOpts))
 	readerCloser, err := logRequest.Stream()
 	if err != nil {
-		glog.Errorf("error: could not write build log for pod %q to stream due to: %v", buildPodName, err)
+		klog.Errorf("error: could not write build log for pod %q to stream due to: %v", buildPodName, err)
 		return err
 	}
 
-	glog.V(4).Infof("retrieved logs for build pod: %s/%s container: %s", namespace, buildPodName, containerLogOpts.Container)
+	klog.V(4).Infof("retrieved logs for build pod: %s/%s container: %s", namespace, buildPodName, containerLogOpts.Container)
 	// dump all container logs from the log stream into a single output stream that we'll send back to the client.
 	_, err = io.Copy(writer, readerCloser)
 	return err

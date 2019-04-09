@@ -19,8 +19,8 @@ import (
 	v2 "github.com/docker/distribution/registry/api/v2"
 
 	"github.com/docker/libtrust"
-	"github.com/golang/glog"
 	digest "github.com/opencontainers/go-digest"
+	"k8s.io/klog"
 
 	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
@@ -177,7 +177,7 @@ func ManifestToImageConfig(ctx context.Context, srcManifest distribution.Manifes
 		if err != nil {
 			return nil, nil, fmt.Errorf("cannot retrieve image configuration for %s: %v", location, err)
 		}
-		glog.V(4).Infof("Raw image config json:\n%s", string(configJSON))
+		klog.V(4).Infof("Raw image config json:\n%s", string(configJSON))
 		config := &docker10.DockerImageConfig{}
 		if err := json.Unmarshal(configJSON, &config); err != nil {
 			return nil, nil, fmt.Errorf("unable to parse image configuration: %v", err)
@@ -193,9 +193,9 @@ func ManifestToImageConfig(ctx context.Context, srcManifest distribution.Manifes
 		return base, layers, nil
 
 	case *schema1.SignedManifest:
-		if glog.V(4) {
+		if klog.V(4) {
 			_, configJSON, _ := srcManifest.Payload()
-			glog.Infof("Raw image config json:\n%s", string(configJSON))
+			klog.Infof("Raw image config json:\n%s", string(configJSON))
 		}
 		if len(t.History) == 0 {
 			return nil, nil, fmt.Errorf("input image is in an unknown format: no v1Compatibility history")
@@ -240,10 +240,10 @@ func ProcessManifestList(ctx context.Context, srcDigest digest.Digest, srcManife
 		filtered := make([]manifestlist.ManifestDescriptor, 0, len(t.Manifests))
 		for _, manifest := range t.Manifests {
 			if !filterFn(&manifest, len(t.Manifests) > 1) {
-				glog.V(5).Infof("Skipping image for %#v from %s", manifest.Platform, ref)
+				klog.V(5).Infof("Skipping image for %#v from %s", manifest.Platform, ref)
 				continue
 			}
-			glog.V(5).Infof("Including image for %#v from %s", manifest.Platform, ref)
+			klog.V(5).Infof("Including image for %#v from %s", manifest.Platform, ref)
 			filtered = append(filtered, manifest)
 		}
 
@@ -264,7 +264,7 @@ func ProcessManifestList(ctx context.Context, srcDigest digest.Digest, srcManife
 			}
 			manifestList = t
 			manifestDigest = srcDigest.Algorithm().FromBytes(body)
-			glog.V(5).Infof("Filtered manifest list to new digest %s:\n%s", manifestDigest, body)
+			klog.V(5).Infof("Filtered manifest list to new digest %s:\n%s", manifestDigest, body)
 		}
 
 		for i, manifest := range t.Manifests {
@@ -282,7 +282,7 @@ func ProcessManifestList(ctx context.Context, srcDigest digest.Digest, srcManife
 				return nil, nil, "", fmt.Errorf("unable to convert source image %s manifest list to single manifest: %v", ref, err)
 			}
 			manifestDigest := srcDigest.Algorithm().FromBytes(body)
-			glog.V(5).Infof("Used only one manifest from the list %s", manifestDigest)
+			klog.V(5).Infof("Used only one manifest from the list %s", manifestDigest)
 			return srcManifests, srcManifests[0], manifestDigest, nil
 		default:
 			return append(srcManifests, manifestList), manifestList, manifestDigest, nil
@@ -329,10 +329,10 @@ func PutManifestInCompatibleSchema(
 ) (digest.Digest, error) {
 	var options []distribution.ManifestServiceOption
 	if len(tag) > 0 {
-		glog.V(5).Infof("Put manifest %s:%s", ref, tag)
+		klog.V(5).Infof("Put manifest %s:%s", ref, tag)
 		options = []distribution.ManifestServiceOption{distribution.WithTag(tag)}
 	} else {
-		glog.V(5).Infof("Put manifest %s", ref)
+		klog.V(5).Infof("Put manifest %s", ref)
 	}
 	toDigest, err := toManifests.Put(ctx, srcManifest, options...)
 	if err == nil {
@@ -355,19 +355,19 @@ func PutManifestInCompatibleSchema(
 	if tagErr != nil {
 		return toDigest, err
 	}
-	glog.V(5).Infof("Registry reported invalid manifest error, attempting to convert to v2schema1 as ref %s", tagRef)
+	klog.V(5).Infof("Registry reported invalid manifest error, attempting to convert to v2schema1 as ref %s", tagRef)
 	schema1Manifest, convertErr := convertToSchema1(ctx, blobs, configJSON, schema2Manifest, tagRef)
 	if convertErr != nil {
-		if glog.V(6) {
+		if klog.V(6) {
 			_, data, _ := schema2Manifest.Payload()
-			glog.Infof("Input schema\n%s", string(data))
+			klog.Infof("Input schema\n%s", string(data))
 		}
-		glog.V(2).Infof("Unable to convert manifest to schema1: %v", convertErr)
+		klog.V(2).Infof("Unable to convert manifest to schema1: %v", convertErr)
 		return toDigest, err
 	}
-	if glog.V(6) {
+	if klog.V(6) {
 		_, data, _ := schema1Manifest.Payload()
-		glog.Infof("Converted to v2schema1\n%s", string(data))
+		klog.Infof("Converted to v2schema1\n%s", string(data))
 	}
 	return toManifests.Put(ctx, schema1Manifest, distribution.WithTag(tag))
 }
@@ -386,8 +386,8 @@ func convertToSchema1(ctx context.Context, blobs distribution.BlobService, confi
 	if err != nil {
 		return nil, err
 	}
-	if glog.V(6) {
-		glog.Infof("Down converting v2 schema image:\n%#v\n%s", schema2Manifest.Layers, configJSON)
+	if klog.V(6) {
+		klog.Infof("Down converting v2 schema image:\n%#v\n%s", schema2Manifest.Layers, configJSON)
 	}
 	builder := schema1.NewConfigManifestBuilder(blobs, trustKey, ref, configJSON)
 	for _, d := range schema2Manifest.Layers {

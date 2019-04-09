@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -122,7 +122,7 @@ func (i deploymentConfigTriggerIndexer) Index(obj, old interface{}) (string, *tr
 			triggers = calculateDeploymentConfigTriggers(dc)
 		case cache.DeletedFinalStateUnknown:
 			// don't process triggers as the state could be stale
-			glog.V(4).Infof("skipping trigger calculation for deleted deploymentconfig %q", deleted.Key)
+			klog.V(4).Infof("skipping trigger calculation for deleted deploymentconfig %q", deleted.Key)
 		}
 		change = cache.Deleted
 	default:
@@ -190,7 +190,7 @@ func UpdateDeploymentConfigImages(dc *appsv1.DeploymentConfig, tagRetriever trig
 
 		ref, _, ok := tagRetriever.ImageStreamTag(namespace, p.From.Name)
 		if !ok && len(p.LastTriggeredImage) == 0 {
-			glog.V(4).Infof("trigger %#v in deployment %s is not resolveable", p, dc.Name)
+			klog.V(4).Infof("trigger %#v in deployment %s is not resolveable", p, dc.Name)
 			return nil, false, nil
 		}
 
@@ -235,16 +235,16 @@ func (r *DeploymentConfigReactor) ImageChanged(obj runtime.Object, tagRetriever 
 		return err
 	}
 	if !resolvable {
-		if glog.V(4) {
-			glog.Infof("Ignoring changes to deployment config %s, has unresolved images: %s", dc.Name, printDeploymentTriggers(newDC.Spec.Triggers))
+		if klog.V(4) {
+			klog.Infof("Ignoring changes to deployment config %s, has unresolved images: %s", dc.Name, printDeploymentTriggers(newDC.Spec.Triggers))
 		}
 		return nil
 	}
 	if updated == nil {
-		glog.V(4).Infof("Deployment config %s has not changed", dc.Name)
+		klog.V(4).Infof("Deployment config %s has not changed", dc.Name)
 		return nil
 	}
-	glog.V(4).Infof("Deployment config %s has changed", dc.Name)
+	klog.V(4).Infof("Deployment config %s has changed", dc.Name)
 	_, err = r.Client.DeploymentConfigs(dc.Namespace).Update(updated)
 	return err
 }

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/apcera/gssapi"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 )
@@ -64,7 +64,7 @@ func (g *gssapiNegotiator) InitSecContext(requestURL string, challengeToken []by
 
 		if len(g.principalName) > 0 {
 			// Get credentials for a specific principal
-			glog.V(5).Infof("acquiring credentials for principal name %s", g.principalName)
+			klog.V(5).Infof("acquiring credentials for principal name %s", g.principalName)
 			credBuffer, err := lib.MakeBufferString(g.principalName)
 			if err != nil {
 				return nil, convertGSSAPIError(err)
@@ -79,7 +79,7 @@ func (g *gssapiNegotiator) InitSecContext(requestURL string, challengeToken []by
 
 			cred, _, _, err := lib.AcquireCred(credName, time.Duration(0), lib.GSS_C_NO_OID_SET, gssapi.GSS_C_INITIATE)
 			if err != nil {
-				glog.V(5).Infof("AcquireCred returned error: %v", err)
+				klog.V(5).Infof("AcquireCred returned error: %v", err)
 				return nil, convertGSSAPIError(err)
 			}
 			g.cred = cred
@@ -93,7 +93,7 @@ func (g *gssapiNegotiator) InitSecContext(requestURL string, challengeToken []by
 			return nil, err
 		}
 
-		glog.V(5).Infof("importing service name %s", serviceName)
+		klog.V(5).Infof("importing service name %s", serviceName)
 		nameBuf, err := lib.MakeBufferString(serviceName)
 		if err != nil {
 			return nil, convertGSSAPIError(err)
@@ -120,15 +120,15 @@ func (g *gssapiNegotiator) InitSecContext(requestURL string, challengeToken []by
 
 	switch err {
 	case nil:
-		glog.V(5).Infof("InitSecContext returned GSS_S_COMPLETE")
+		klog.V(5).Infof("InitSecContext returned GSS_S_COMPLETE")
 		g.complete = true
 		return outgoingToken.Bytes(), nil
 	case gssapi.ErrContinueNeeded:
-		glog.V(5).Infof("InitSecContext returned GSS_S_CONTINUE_NEEDED")
+		klog.V(5).Infof("InitSecContext returned GSS_S_CONTINUE_NEEDED")
 		g.complete = false
 		return outgoingToken.Bytes(), nil
 	default:
-		glog.V(5).Infof("InitSecContext returned error: %v", err)
+		klog.V(5).Infof("InitSecContext returned error: %v", err)
 		return nil, convertGSSAPIError(err)
 	}
 }
@@ -156,7 +156,7 @@ func (g *gssapiNegotiator) Release() error {
 
 func (g *gssapiNegotiator) loadLib() (*gssapi.Lib, error) {
 	g.loadOnce.Do(func() {
-		glog.V(5).Infof("loading gssapi")
+		klog.V(5).Infof("loading gssapi")
 
 		var libPaths []string
 		switch runtime.GOOS {
@@ -176,13 +176,13 @@ func (g *gssapiNegotiator) loadLib() (*gssapi.Lib, error) {
 
 			// If we successfully loaded from this path, return early
 			if loadError == nil {
-				glog.V(5).Infof("loaded gssapi %s", libPath)
+				klog.V(5).Infof("loaded gssapi %s", libPath)
 				g.lib = lib
 				return
 			}
 
 			// Otherwise, log and aggregate
-			glog.V(5).Infof("%v", loadError)
+			klog.V(5).Infof("%v", loadError)
 			loadErrors = append(loadErrors, convertGSSAPIError(loadError))
 		}
 		g.loadError = utilerrors.NewAggregate(loadErrors)

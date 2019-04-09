@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -238,7 +238,7 @@ func (s *BuildStrategyRef) BuildStrategy(env Environment, dockerStrategyOptions 
 		}, s.Base.BuildTriggers()
 	}
 
-	glog.Error("BuildStrategy called with unknown strategy")
+	klog.Error("BuildStrategy called with unknown strategy")
 	return nil, nil
 }
 

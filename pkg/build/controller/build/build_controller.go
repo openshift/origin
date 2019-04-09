@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/containers/image/signature"
-	"github.com/golang/glog"
 	toml "github.com/pelletier/go-toml"
+	"k8s.io/klog"
 
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	metrics "github.com/openshift/origin/pkg/build/metrics/prometheus"
@@ -323,7 +323,7 @@ func (bc *BuildController) Run(workers int, stopCh <-chan struct{}) {
 		utilruntime.HandleError(fmt.Errorf("errors syncing build controller config: %v", errs))
 	}
 
-	glog.Infof("Starting build controller")
+	klog.Infof("Starting build controller")
 
 	// Only need one worker to manage config
 	go wait.Until(bc.controllerConfigWorker, time.Second, stopCh)
@@ -339,7 +339,7 @@ func (bc *BuildController) Run(workers int, stopCh <-chan struct{}) {
 	metrics.IntializeMetricsCollector(bc.buildLister)
 
 	<-stopCh
-	glog.Infof("Shutting down build controller")
+	klog.Infof("Shutting down build controller")
 }
 
 func (bc *BuildController) buildWorker() {
@@ -426,7 +426,7 @@ func (bc *BuildController) handleBuild(build *buildv1.Build) error {
 		return nil
 	}
 
-	glog.V(4).Infof("Handling build %s", buildDesc(build))
+	klog.V(4).Infof("Handling build %s", buildDesc(build))
 
 	pod, podErr := bc.podStore.Pods(build.Namespace).Get(buildapihelpers.GetBuildPodName(build))
 
@@ -472,7 +472,7 @@ func shouldIgnore(build *buildv1.Build) bool {
 	// If pipeline build, do nothing.
 	// These builds are processed/updated/etc by the jenkins sync plugin
 	if build.Spec.Strategy.JenkinsPipelineStrategy != nil {
-		glog.V(4).Infof("Ignoring build %s with jenkins pipeline strategy", buildDesc(build))
+		klog.V(4).Infof("Ignoring build %s with jenkins pipeline strategy", buildDesc(build))
 		return true
 	}
 
@@ -491,7 +491,7 @@ func shouldIgnore(build *buildv1.Build) bool {
 				return false
 			}
 		}
-		glog.V(4).Infof("Ignoring build %s in completed state", buildDesc(build))
+		klog.V(4).Infof("Ignoring build %s in completed state", buildDesc(build))
 		return true
 	}
 
@@ -505,7 +505,7 @@ func shouldCancel(build *buildv1.Build) bool {
 
 // cancelBuild deletes a build pod and returns an update to mark the build as cancelled
 func (bc *BuildController) cancelBuild(build *buildv1.Build) (*buildUpdate, error) {
-	glog.V(4).Infof("Cancelling build %s", buildDesc(build))
+	klog.V(4).Infof("Cancelling build %s", buildDesc(build))
 
 	podName := buildapihelpers.GetBuildPodName(build)
 	err := bc.podClient.Pods(build.Namespace).Delete(podName, &metav1.DeleteOptions{})
@@ -617,7 +617,7 @@ func (bc *BuildController) resolveImageSecretAsReference(build *buildv1.Build, i
 		secret = buildutil.FindDockerSecretAsReference(builderSecrets, imagename)
 	}
 	if secret == nil {
-		glog.V(4).Infof("build %s is referencing an unknown image, will attempt to use the default secret for the service account", build.Name)
+		klog.V(4).Infof("build %s is referencing an unknown image, will attempt to use the default secret for the service account", build.Name)
 		dockerSecretExists := false
 		for _, builderSecret := range builderSecrets {
 			if builderSecret.Type == corev1.SecretTypeDockercfg || builderSecret.Type == corev1.SecretTypeDockerConfigJson {
@@ -631,7 +631,7 @@ func (bc *BuildController) resolveImageSecretAsReference(build *buildv1.Build, i
 		if !dockerSecretExists {
 			return nil, fmt.Errorf("No docker secrets associated with build service account %s", serviceAccount)
 		}
-		glog.V(4).Infof("No secrets found for pushing or pulling image named %s for build, using default: %s %s/%s", imagename, build.Namespace, build.Name, secret.Name)
+		klog.V(4).Infof("No secrets found for pushing or pulling image named %s for build, using default: %s %s/%s", imagename, build.Namespace, build.Name, secret.Name)
 	}
 	return secret, nil
 }
@@ -821,7 +821,7 @@ func (bc *BuildController) resolveImageReferences(build *buildv1.Build, update *
 		return err
 	}
 	if len(streams) == 0 {
-		glog.V(5).Infof("Build %s contains no unresolved image references", build.Name)
+		klog.V(5).Infof("Build %s contains no unresolved image references", build.Name)
 		return nil
 	}
 
@@ -1000,7 +1000,7 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 		return update, nil
 	}
 
-	glog.V(4).Infof("Pod %s/%s for build %s is about to be created", build.Namespace, buildPod.Name, buildDesc(build))
+	klog.V(4).Infof("Pod %s/%s for build %s is about to be created", build.Namespace, buildPod.Name, buildDesc(build))
 	pod, err := bc.podClient.Pods(build.Namespace).Create(buildPod)
 	if err != nil && !errors.IsAlreadyExists(err) {
 		// Log an event if the pod is not created (most likely due to quota denial).
@@ -1011,7 +1011,7 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 
 	} else if err != nil {
 		bc.recorder.Eventf(build, corev1.EventTypeWarning, "FailedCreate", "Pod already exists: %s/%s", buildPod.Namespace, buildPod.Name)
-		glog.V(4).Infof("Build pod %s/%s for build %s already exists", build.Namespace, buildPod.Name, buildDesc(build))
+		klog.V(4).Infof("Build pod %s/%s for build %s already exists", build.Namespace, buildPod.Name, buildDesc(build))
 
 		// If the existing pod was not created by this build, switch to the
 		// Error state.
@@ -1020,11 +1020,11 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 			return nil, err
 		}
 		if !strategy.HasOwnerReference(existingPod, build) {
-			glog.V(4).Infof("Did not recognise pod %s/%s as belonging to build %s", build.Namespace, buildPod.Name, buildDesc(build))
+			klog.V(4).Infof("Did not recognise pod %s/%s as belonging to build %s", build.Namespace, buildPod.Name, buildDesc(build))
 			update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonBuildPodExists, buildutil.StatusMessageBuildPodExists)
 			return update, nil
 		}
-		glog.V(4).Infof("Recognised pod %s/%s as belonging to build %s", build.Namespace, buildPod.Name, buildDesc(build))
+		klog.V(4).Infof("Recognised pod %s/%s as belonging to build %s", build.Namespace, buildPod.Name, buildDesc(build))
 		// Check if the existing pod has the CA ConfigMap properly attached
 		hasCAMap, err := bc.findOwnedConfigMap(existingPod, build.Namespace, buildapihelpers.GetBuildCAConfigMapName(build))
 		if err != nil {
@@ -1050,7 +1050,7 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 		}
 
 	} else {
-		glog.V(4).Infof("Created pod %s/%s for build %s", build.Namespace, buildPod.Name, buildDesc(build))
+		klog.V(4).Infof("Created pod %s/%s for build %s", build.Namespace, buildPod.Name, buildDesc(build))
 		// Create the CA ConfigMap to mount certificate authorities to the build pod
 		update, err = bc.createBuildCAConfigMap(build, pod, update)
 		if err != nil {
@@ -1082,7 +1082,7 @@ func (bc *BuildController) handleActiveBuild(build *buildv1.Build, pod *corev1.P
 	if pod == nil {
 		pod = bc.findMissingPod(build)
 		if pod == nil {
-			glog.V(4).Infof("Failed to find the build pod for build %s. Moving it to Error state", buildDesc(build))
+			klog.V(4).Infof("Failed to find the build pod for build %s. Moving it to Error state", buildDesc(build))
 			return transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonBuildPodDeleted, buildutil.StatusMessageBuildPodDeleted), nil
 		}
 	}
@@ -1105,7 +1105,7 @@ func (bc *BuildController) handleActiveBuild(build *buildv1.Build, pod *corev1.P
 		}
 		if secret := build.Spec.Output.PushSecret; secret != nil && build.Status.Reason != buildv1.StatusReasonMissingPushSecret {
 			if _, err := bc.secretStore.Secrets(build.Namespace).Get(secret.Name); err != nil && errors.IsNotFound(err) {
-				glog.V(4).Infof("Setting reason for pending build to %q due to missing secret for %s", build.Status.Reason, buildDesc(build))
+				klog.V(4).Infof("Setting reason for pending build to %q due to missing secret for %s", build.Status.Reason, buildDesc(build))
 				update = transitionToPhase(buildv1.BuildPhasePending, buildv1.StatusReasonMissingPushSecret, buildutil.StatusMessageMissingPushSecret)
 			}
 		}
@@ -1123,13 +1123,13 @@ func (bc *BuildController) handleActiveBuild(build *buildv1.Build, pod *corev1.P
 		if len(pod.Status.ContainerStatuses) == 0 {
 			// no containers in the pod means something went terribly wrong, so the build
 			// should be set to an error state
-			glog.V(2).Infof("Setting build %s to error state because its pod has no containers", buildDesc(build))
+			klog.V(2).Infof("Setting build %s to error state because its pod has no containers", buildDesc(build))
 			update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonNoBuildContainerStatus,
 				buildutil.StatusMessageNoBuildContainerStatus)
 		} else {
 			for _, info := range pod.Status.ContainerStatuses {
 				if info.State.Terminated != nil && info.State.Terminated.ExitCode != 0 {
-					glog.V(2).Infof("Setting build %s to error state because a container in its pod has non-zero exit code", buildDesc(build))
+					klog.V(2).Infof("Setting build %s to error state because a container in its pod has non-zero exit code", buildDesc(build))
 					update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonFailedContainer, buildutil.StatusMessageFailedContainer)
 					break
 				}
@@ -1235,7 +1235,7 @@ func (bc *BuildController) updateBuild(build *buildv1.Build, update *buildUpdate
 		if buildutil.IsTerminalPhase(*update.phase) {
 			setBuildCompletionData(build, pod, update)
 		}
-		glog.V(4).Infof("Updating build %s -> %s%s", buildDesc(build), *update.phase, reasonText)
+		klog.V(4).Infof("Updating build %s -> %s%s", buildDesc(build), *update.phase, reasonText)
 	}
 
 	// Ensure that a pod name annotation has been set on the build if a pod is available
@@ -1287,25 +1287,25 @@ func (bc *BuildController) enqueueBuildConfig(ns, name string) {
 }
 
 func (bc *BuildController) handleBuildConfig(bcNamespace string, bcName string) error {
-	glog.V(4).Infof("Handling build config %s/%s", bcNamespace, bcName)
+	klog.V(4).Infof("Handling build config %s/%s", bcNamespace, bcName)
 	nextBuilds, hasRunningBuilds, err := policy.GetNextConfigBuild(bc.buildLister, bcNamespace, bcName)
 	if err != nil {
-		glog.V(2).Infof("Error getting next builds for %s/%s: %v", bcNamespace, bcName, err)
+		klog.V(2).Infof("Error getting next builds for %s/%s: %v", bcNamespace, bcName, err)
 		return err
 	}
-	glog.V(5).Infof("Build config %s/%s: has %d next builds, is running builds: %v", bcNamespace, bcName, len(nextBuilds), hasRunningBuilds)
+	klog.V(5).Infof("Build config %s/%s: has %d next builds, is running builds: %v", bcNamespace, bcName, len(nextBuilds), hasRunningBuilds)
 	if hasRunningBuilds {
-		glog.V(4).Infof("Build config %s/%s has running builds, will retry", bcNamespace, bcName)
+		klog.V(4).Infof("Build config %s/%s has running builds, will retry", bcNamespace, bcName)
 		return fmt.Errorf("build config %s/%s has running builds and cannot run more builds", bcNamespace, bcName)
 	}
 	if len(nextBuilds) == 0 {
-		glog.V(4).Infof("Build config %s/%s has no builds to run next, will retry", bcNamespace, bcName)
+		klog.V(4).Infof("Build config %s/%s has no builds to run next, will retry", bcNamespace, bcName)
 		return fmt.Errorf("build config %s/%s has no builds to run next", bcNamespace, bcName)
 	}
 
 	// Enqueue any builds to build next
 	for _, build := range nextBuilds {
-		glog.V(5).Infof("Queueing next build for build config %s/%s: %s", bcNamespace, bcName, build.Name)
+		klog.V(5).Infof("Queueing next build for build config %s/%s: %s", bcNamespace, bcName, build.Name)
 		bc.enqueueBuild(build)
 	}
 	return nil
@@ -1338,7 +1338,7 @@ func (bc *BuildController) patchBuild(build *buildv1.Build, update *buildUpdate)
 		return nil, fmt.Errorf("failed to create a build patch: %v", err)
 	}
 
-	glog.V(5).Infof("Patching build %s with %v", buildDesc(build), update)
+	klog.V(5).Infof("Patching build %s with %v", buildDesc(build), update)
 	return bc.buildPatcher.Patch(build.Namespace, build.Name, patch)
 }
 
@@ -1348,7 +1348,7 @@ func (bc *BuildController) findMissingPod(build *buildv1.Build) *corev1.Pod {
 	// Make one last attempt to fetch the pod using the REST client
 	pod, err := bc.podClient.Pods(build.Namespace).Get(buildapihelpers.GetBuildPodName(build), metav1.GetOptions{})
 	if err == nil {
-		glog.V(2).Infof("Found missing pod for build %s by using direct client.", buildDesc(build))
+		klog.V(2).Infof("Found missing pod for build %s by using direct client.", buildDesc(build))
 		return pod
 	}
 	return nil
@@ -1358,11 +1358,11 @@ func (bc *BuildController) findMissingPod(build *buildv1.Build) *corev1.Pod {
 func (bc *BuildController) getBuildByKey(key string) (*buildv1.Build, error) {
 	obj, exists, err := bc.buildInformer.GetIndexer().GetByKey(key)
 	if err != nil {
-		glog.V(2).Infof("Unable to retrieve build %q from store: %v", key, err)
+		klog.V(2).Infof("Unable to retrieve build %q from store: %v", key, err)
 		return nil, err
 	}
 	if !exists {
-		glog.V(2).Infof("Build %q has been deleted", key)
+		klog.V(2).Infof("Build %q has been deleted", key)
 		return nil, nil
 	}
 
@@ -1480,18 +1480,18 @@ func (bc *BuildController) handleBuildError(err error, key interface{}) {
 	}
 
 	if strategy.IsFatal(err) {
-		glog.V(2).Infof("Will not retry fatal error for key %v: %v", key, err)
+		klog.V(2).Infof("Will not retry fatal error for key %v: %v", key, err)
 		bc.buildQueue.Forget(key)
 		return
 	}
 
 	if bc.buildQueue.NumRequeues(key) < maxRetries {
-		glog.V(4).Infof("Retrying key %v: %v", key, err)
+		klog.V(4).Infof("Retrying key %v: %v", key, err)
 		bc.buildQueue.AddRateLimited(key)
 		return
 	}
 
-	glog.V(2).Infof("Giving up retrying %v: %v", key, err)
+	klog.V(2).Infof("Giving up retrying %v: %v", key, err)
 	bc.buildQueue.Forget(key)
 }
 
@@ -1505,12 +1505,12 @@ func (bc *BuildController) handleBuildConfigError(err error, key interface{}) {
 	}
 
 	if bc.buildConfigQueue.NumRequeues(key) < maxRetries {
-		glog.V(4).Infof("Retrying key %v: %v", key, err)
+		klog.V(4).Infof("Retrying key %v: %v", key, err)
 		bc.buildConfigQueue.AddRateLimited(key)
 		return
 	}
 
-	glog.V(2).Infof("Giving up retrying %v: %v", key, err)
+	klog.V(2).Infof("Giving up retrying %v: %v", key, err)
 	bc.buildConfigQueue.Forget(key)
 }
 
@@ -1524,7 +1524,7 @@ func (bc *BuildController) createBuildCAConfigMap(build *buildv1.Build, buildPod
 		update.setMessage(buildutil.StatusMessageCannotCreateCAConfigMap)
 		return update, fmt.Errorf("failed to create build certificate authority configMap: %v", err)
 	}
-	glog.V(4).Infof("Created certificate authority configMap %s/%s for build %s", build.Namespace, configMap.Name, buildDesc(build))
+	klog.V(4).Infof("Created certificate authority configMap %s/%s for build %s", build.Namespace, configMap.Name, buildDesc(build))
 	return update, nil
 }
 
@@ -1579,7 +1579,7 @@ func (bc *BuildController) createBuildSystemConfConfigMap(build *buildv1.Build, 
 		update.setMessage(buildutil.StatusMessageCannotCreateBuildSysConfigMap)
 		return update, fmt.Errorf("failed to create build system config configMap: %v", err)
 	}
-	glog.V(4).Infof("Created build system config configMap %s/%s for build %s", build.Namespace, configMap.Name, buildDesc(build))
+	klog.V(4).Infof("Created build system config configMap %s/%s for build %s", build.Namespace, configMap.Name, buildDesc(build))
 	return update, nil
 }
 
@@ -1652,10 +1652,10 @@ func (bc *BuildController) readClusterBuildControllerConfig() error {
 		return nil
 	}
 
-	if glog.V(5) {
+	if klog.V(5) {
 		configJSON, _ := json.Marshal(buildConfig)
 		if configJSON != nil {
-			glog.Infof("build controller config: %s", string(configJSON))
+			klog.Infof("build controller config: %s", string(configJSON))
 		}
 	}
 	bc.buildDefaults.DefaultProxy = buildConfig.Spec.BuildDefaults.DefaultProxy
@@ -1681,10 +1681,10 @@ func (bc *BuildController) readClusterImageConfig() []error {
 		return configErrs
 	}
 
-	if glog.V(5) {
+	if klog.V(5) {
 		configJSON, _ := json.Marshal(imageConfig)
 		if configJSON != nil {
-			glog.Infof("image config: %s", string(configJSON))
+			klog.Infof("image config: %s", string(configJSON))
 		}
 	}
 
@@ -1714,7 +1714,7 @@ func (bc *BuildController) readClusterImageConfig() []error {
 
 func (bc *BuildController) getAdditionalTrustedCAData(config *configv1.Image) (map[string]string, error) {
 	if len(config.Spec.AdditionalTrustedCA.Name) == 0 {
-		glog.V(4).Info("additional certificate authorities for builds not specified")
+		klog.V(4).Info("additional certificate authorities for builds not specified")
 		return nil, nil
 	}
 	additionalCA, err := bc.openShiftConfigConfigMapStore.ConfigMaps("openshift-config").Get(config.Spec.AdditionalTrustedCA.Name)
@@ -1722,19 +1722,19 @@ func (bc *BuildController) getAdditionalTrustedCAData(config *configv1.Image) (m
 		return nil, err
 	}
 	if additionalCA == nil {
-		glog.V(3).Infof("configMap reference %s/%s with additional certificate authorities for builds not found",
+		klog.V(3).Infof("configMap reference %s/%s with additional certificate authorities for builds not found",
 			"openshift-config",
 			config.Spec.AdditionalTrustedCA.Name)
 		return nil, nil
 	}
-	if glog.V(5) {
+	if klog.V(5) {
 		keys := make([]string, len(additionalCA.Data))
 		i := 0
 		for key := range additionalCA.Data {
 			keys[i] = key
 			i++
 		}
-		glog.Infof("found certificate authorities for hosts %s", keys)
+		klog.Infof("found certificate authorities for hosts %s", keys)
 	}
 	return additionalCA.Data, nil
 }
@@ -1742,7 +1742,7 @@ func (bc *BuildController) getAdditionalTrustedCAData(config *configv1.Image) (m
 func (bc *BuildController) createBuildRegistriesConfigData(config *configv1.Image) (string, error) {
 	registriesConfig := config.Spec.RegistrySources
 	if len(registriesConfig.InsecureRegistries) == 0 {
-		glog.V(4).Info("using default insecure registry settings for builds")
+		klog.V(4).Info("using default insecure registry settings for builds")
 		return "", nil
 	}
 	configObj := tomlConfig{
@@ -1763,18 +1763,18 @@ func (bc *BuildController) createBuildRegistriesConfigData(config *configv1.Imag
 		return "", err
 	}
 	if len(configTOML) == 0 {
-		glog.V(4).Info("using default insecure registry settings for builds")
+		klog.V(4).Info("using default insecure registry settings for builds")
 		return "", nil
 	}
-	glog.V(4).Info("overrode insecure registry settings for builds")
-	glog.V(5).Infof("generated registries.conf for build pods: \n%s", string(configTOML))
+	klog.V(4).Info("overrode insecure registry settings for builds")
+	klog.V(5).Infof("generated registries.conf for build pods: \n%s", string(configTOML))
 	return string(configTOML), nil
 }
 
 func (bc *BuildController) createBuildSignaturePolicyData(config *configv1.Image) (string, error) {
 	registriesConfig := config.Spec.RegistrySources
 	if len(registriesConfig.AllowedRegistries) == 0 && len(registriesConfig.BlockedRegistries) == 0 {
-		glog.V(4).Info("allowing builds to pull images from all registries")
+		klog.V(4).Info("allowing builds to pull images from all registries")
 		return "", nil
 	}
 	if len(registriesConfig.AllowedRegistries) != 0 && len(registriesConfig.BlockedRegistries) != 0 {
@@ -1783,7 +1783,7 @@ func (bc *BuildController) createBuildSignaturePolicyData(config *configv1.Image
 	policyObj := &signature.Policy{}
 	transportScopes := make(signature.PolicyTransportScopes)
 	if len(registriesConfig.AllowedRegistries) > 0 {
-		glog.V(4).Infof("only allowing image pulls from %s for builds", registriesConfig.AllowedRegistries)
+		klog.V(4).Infof("only allowing image pulls from %s for builds", registriesConfig.AllowedRegistries)
 		policyObj.Default = signature.PolicyRequirements{
 			signature.NewPRReject(),
 		}
@@ -1794,7 +1794,7 @@ func (bc *BuildController) createBuildSignaturePolicyData(config *configv1.Image
 		}
 	}
 	if len(registriesConfig.BlockedRegistries) > 0 {
-		glog.V(4).Infof("blocking image pulls from %s for builds", registriesConfig.BlockedRegistries)
+		klog.V(4).Infof("blocking image pulls from %s for builds", registriesConfig.BlockedRegistries)
 		policyObj.Default = signature.PolicyRequirements{
 			signature.NewPRInsecureAcceptAnything(),
 		}
@@ -1825,7 +1825,7 @@ func (bc *BuildController) createBuildSignaturePolicyData(config *configv1.Image
 	if len(policyJSON) == 0 {
 		return "", nil
 	}
-	glog.V(5).Infof("generated policy.json for build pods: \n%s", string(policyJSON))
+	klog.V(5).Infof("generated policy.json for build pods: \n%s", string(policyJSON))
 	return string(policyJSON), err
 }
 

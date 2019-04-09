@@ -5,7 +5,7 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -43,7 +43,7 @@ func Register(plugins *admission.Plugins) {
 				return nil, err
 			}
 			if pluginConfig == nil {
-				glog.Infof("Admission plugin %q is not configured so it will be disabled.", PluginName)
+				klog.Infof("Admission plugin %q is not configured so it will be disabled.", PluginName)
 				return nil, nil
 			}
 			return NewPodNodeConstraints(pluginConfig, nodeidentifier.NewDefaultNodeIdentifier()), nil

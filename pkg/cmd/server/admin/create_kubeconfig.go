@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -144,7 +144,7 @@ func (o CreateKubeConfigOptions) Validate(args []string) error {
 }
 
 func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error) {
-	glog.V(4).Infof("creating a .kubeconfig with: %#v", o)
+	klog.V(4).Infof("creating a .kubeconfig with: %#v", o)
 
 	// read all the referenced filenames
 	caData, err := readFiles(o.APIServerCAFiles, []byte("\n"))
@@ -218,7 +218,7 @@ func (o CreateKubeConfigOptions) CreateKubeConfig() (*clientcmdapi.Config, error
 		CurrentContext: contextNick,
 	}
 
-	glog.V(3).Infof("Generating '%s' API client config as %s\n", userNick, o.KubeConfigFile)
+	klog.V(3).Infof("Generating '%s' API client config as %s\n", userNick, o.KubeConfigFile)
 	// Ensure the parent dir exists
 	if err := os.MkdirAll(filepath.Dir(o.KubeConfigFile), os.FileMode(0755)); err != nil {
 		return nil, err

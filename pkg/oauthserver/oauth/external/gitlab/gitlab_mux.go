@@ -7,7 +7,7 @@ import (
 
 	"github.com/openshift/origin/pkg/oauthserver/oauth/external"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 // The hosted version of GitLab is guaranteed to be using the latest stable version
@@ -16,10 +16,10 @@ const gitlabHostedDomain = "gitlab.com"
 
 func NewProvider(providerName, URL, clientID, clientSecret string, transport http.RoundTripper, legacy *bool) (external.Provider, error) {
 	if isLegacy(legacy, URL) {
-		glog.Infof("Using legacy OAuth2 for GitLab identity provider %s url=%s clientID=%s", providerName, URL, clientID)
+		klog.Infof("Using legacy OAuth2 for GitLab identity provider %s url=%s clientID=%s", providerName, URL, clientID)
 		return NewOAuthProvider(providerName, URL, clientID, clientSecret, transport)
 	}
-	glog.Infof("Using OIDC for GitLab identity provider %s url=%s clientID=%s", providerName, URL, clientID)
+	klog.Infof("Using OIDC for GitLab identity provider %s url=%s clientID=%s", providerName, URL, clientID)
 	return NewOIDCProvider(providerName, URL, clientID, clientSecret, transport)
 }
 

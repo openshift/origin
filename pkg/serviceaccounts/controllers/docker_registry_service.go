@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -140,8 +140,8 @@ func (e *DockerRegistryServiceController) Run(workers int, stopCh <-chan struct{
 	defer utilruntime.HandleCrash()
 	defer e.registryLocationQueue.ShutDown()
 
-	glog.Infof("Starting DockerRegistryServiceController controller")
-	defer glog.Infof("Shutting down DockerRegistryServiceController controller")
+	klog.Infof("Starting DockerRegistryServiceController controller")
+	defer klog.Infof("Shutting down DockerRegistryServiceController controller")
 
 	// Wait for the store to sync before starting any work in this controller.
 	ready := make(chan struct{})
@@ -151,7 +151,7 @@ func (e *DockerRegistryServiceController) Run(workers int, stopCh <-chan struct{
 	case <-stopCh:
 		return
 	}
-	glog.V(1).Infof("caches synced")
+	klog.V(1).Infof("caches synced")
 
 	go wait.Until(e.watchForDockerURLChanges, time.Second, stopCh)
 	for i := 0; i < workers; i++ {
@@ -237,7 +237,7 @@ func (e *DockerRegistryServiceController) getDockerRegistryLocations() []string 
 	for _, location := range serviceLocations {
 		ret = append(ret, getDockerRegistryLocations(e.serviceLister, location, e.clusterDNSSuffix)...)
 	}
-	glog.V(4).Infof("found docker registry urls: %v", ret)
+	klog.V(4).Infof("found docker registry urls: %v", ret)
 	return ret
 }
 
@@ -269,10 +269,10 @@ func (e *DockerRegistryServiceController) syncRegistryLocationChange() error {
 	newDockerRegistryLocations := sets.NewString(newLocations...)
 	existingURLs := e.getRegistryURLs()
 	if existingURLs.Equal(newDockerRegistryLocations) && e.initialSecretsCheckDone {
-		glog.V(3).Infof("No effective update: %v", newDockerRegistryLocations)
+		klog.V(3).Infof("No effective update: %v", newDockerRegistryLocations)
 		return nil
 	}
-	glog.V(1).Infof("Updating registry URLs from %v to %v", existingURLs, newDockerRegistryLocations)
+	klog.V(1).Infof("Updating registry URLs from %v to %v", existingURLs, newDockerRegistryLocations)
 
 	// make sure that new dockercfg secrets get the correct locations
 	e.dockercfgController.SetDockerURLs(newDockerRegistryLocations.List()...)

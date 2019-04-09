@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/apis/policy"
 
 	corev1 "k8s.io/api/core/v1"
@@ -174,7 +174,7 @@ func makeVolume(volumeName, refName string, mode int32, fsType policy.FSType) co
 			DefaultMode: &mode,
 		}
 	default:
-		glog.V(3).Infof("File system %s is not supported for volumes. Using empty directory instead.", fsType)
+		klog.V(3).Infof("File system %s is not supported for volumes. Using empty directory instead.", fsType)
 		vol.VolumeSource.EmptyDir = &corev1.EmptyDirVolumeSource{}
 	}
 
@@ -189,7 +189,7 @@ func setupDockerSecrets(pod *corev1.Pod, container *corev1.Container, pushSecret
 		container.Env = append(container.Env, []corev1.EnvVar{
 			{Name: "PUSH_DOCKERCFG_PATH", Value: DockerPushSecretMountPath},
 		}...)
-		glog.V(3).Infof("%s will be used for docker push in %s", DockerPushSecretMountPath, pod.Name)
+		klog.V(3).Infof("%s will be used for docker push in %s", DockerPushSecretMountPath, pod.Name)
 	}
 
 	if pullSecret != nil {
@@ -197,7 +197,7 @@ func setupDockerSecrets(pod *corev1.Pod, container *corev1.Container, pushSecret
 		container.Env = append(container.Env, []corev1.EnvVar{
 			{Name: "PULL_DOCKERCFG_PATH", Value: DockerPullSecretMountPath},
 		}...)
-		glog.V(3).Infof("%s will be used for docker pull in %s", DockerPullSecretMountPath, pod.Name)
+		klog.V(3).Infof("%s will be used for docker pull in %s", DockerPullSecretMountPath, pod.Name)
 	}
 
 	for i, imageSource := range imageSources {
@@ -209,7 +209,7 @@ func setupDockerSecrets(pod *corev1.Pod, container *corev1.Container, pushSecret
 		container.Env = append(container.Env, []corev1.EnvVar{
 			{Name: fmt.Sprintf("%s%d", "PULL_SOURCE_DOCKERCFG_PATH_", i), Value: mountPath},
 		}...)
-		glog.V(3).Infof("%s will be used for docker pull in %s", mountPath, pod.Name)
+		klog.V(3).Infof("%s will be used for docker pull in %s", mountPath, pod.Name)
 	}
 }
 
@@ -221,7 +221,7 @@ func setupSourceSecrets(pod *corev1.Pod, container *corev1.Container, sourceSecr
 	}
 
 	mountSecretVolume(pod, container, sourceSecret.Name, sourceSecretMountPath, "source")
-	glog.V(3).Infof("Installed source secrets in %s, in Pod %s/%s", sourceSecretMountPath, pod.Namespace, pod.Name)
+	klog.V(3).Infof("Installed source secrets in %s, in Pod %s/%s", sourceSecretMountPath, pod.Namespace, pod.Name)
 	container.Env = append(container.Env, []corev1.EnvVar{
 		{Name: "SOURCE_SECRET_PATH", Value: sourceSecretMountPath},
 	}...)
@@ -232,7 +232,7 @@ func setupSourceSecrets(pod *corev1.Pod, container *corev1.Container, sourceSecr
 func setupInputConfigMaps(pod *corev1.Pod, container *corev1.Container, configs []buildv1.ConfigMapBuildSource) {
 	for _, c := range configs {
 		mountConfigMapVolume(pod, container, c.ConfigMap.Name, filepath.Join(ConfigMapBuildSourceBaseMountPath, c.ConfigMap.Name), "build")
-		glog.V(3).Infof("%s will be used as a build config in %s", c.ConfigMap.Name, ConfigMapBuildSourceBaseMountPath)
+		klog.V(3).Infof("%s will be used as a build config in %s", c.ConfigMap.Name, ConfigMapBuildSourceBaseMountPath)
 	}
 }
 
@@ -241,7 +241,7 @@ func setupInputConfigMaps(pod *corev1.Pod, container *corev1.Container, configs 
 func setupInputSecrets(pod *corev1.Pod, container *corev1.Container, secrets []buildv1.SecretBuildSource) {
 	for _, s := range secrets {
 		mountSecretVolume(pod, container, s.Secret.Name, filepath.Join(SecretBuildSourceBaseMountPath, s.Secret.Name), "build")
-		glog.V(3).Infof("%s will be used as a build secret in %s", s.Secret.Name, SecretBuildSourceBaseMountPath)
+		klog.V(3).Infof("%s will be used as a build secret in %s", s.Secret.Name, SecretBuildSourceBaseMountPath)
 	}
 }
 
@@ -294,7 +294,7 @@ func addOutputEnvVars(buildOutput *corev1.ObjectReference, output *[]corev1.EnvV
 func setupAdditionalSecrets(pod *corev1.Pod, container *corev1.Container, secrets []buildv1.SecretSpec) {
 	for _, secretSpec := range secrets {
 		mountSecretVolume(pod, container, secretSpec.SecretSource.Name, secretSpec.MountPath, "secret")
-		glog.V(3).Infof("Installed additional secret in %s, in Pod %s/%s", secretSpec.MountPath, pod.Namespace, pod.Name)
+		klog.V(3).Infof("Installed additional secret in %s, in Pod %s/%s", secretSpec.MountPath, pod.Namespace, pod.Name)
 	}
 }
 

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/RangelReale/osin"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -129,7 +129,7 @@ func (s *storage) SaveAuthorize(data *osin.AuthorizeData) error {
 func (s *storage) LoadAuthorize(code string) (*osin.AuthorizeData, error) {
 	authorize, err := s.authorizetoken.Get(code, metav1.GetOptions{})
 	if kerrors.IsNotFound(err) {
-		glog.V(5).Info("Authorization code not found")
+		klog.V(5).Info("Authorization code not found")
 		return nil, nil
 	}
 	if err != nil {

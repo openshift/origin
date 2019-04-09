@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/RangelReale/osincli"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -191,7 +191,7 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 		}
 	}
 
-	glog.V(5).Infof("openid claims: %#v", claims)
+	klog.V(5).Infof("openid claims: %#v", claims)
 
 	id, ok := getClaimValue(claims, p.IDClaims...)
 	if !ok {
@@ -212,7 +212,7 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 		identity.Extra[authapi.IdentityDisplayNameKey] = name
 	}
 
-	glog.V(4).Infof("identity=%#v", identity)
+	klog.V(4).Infof("identity=%#v", identity)
 
 	return identity, true, nil
 }

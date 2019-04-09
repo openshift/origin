@@ -13,8 +13,8 @@ import (
 
 	"github.com/MakeNowJust/heredoc"
 	docker "github.com/fsouza/go-dockerclient"
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -483,7 +483,7 @@ func (o *AppOptions) RunNewApp() error {
 					return false, nil
 				})
 				if err != nil {
-					glog.V(4).Infof("Failed to poll route %s host field: %s", t.Name, err)
+					klog.V(4).Infof("Failed to poll route %s host field: %s", t.Name, err)
 				} else {
 					fmt.Fprintf(out, "%sAccess your application via route '%s' \n", indent, route.Spec.Host)
 				}
@@ -521,11 +521,11 @@ func getServices(items []runtime.Object) []*corev1.Service {
 		unstructuredObj := i.(*unstructured.Unstructured)
 		obj, err := legacyscheme.Scheme.New(unstructuredObj.GroupVersionKind())
 		if err != nil {
-			glog.V(1).Info(err)
+			klog.V(1).Info(err)
 			continue
 		}
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructuredObj.Object, obj); err != nil {
-			glog.V(1).Info(err)
+			klog.V(1).Info(err)
 			continue
 		}
 
@@ -591,7 +591,7 @@ func installationStarted(c corev1typedclient.PodInterface, name string, s corev1
 			if secret.Annotations[newcmd.GeneratedForJob] == "true" &&
 				secret.Annotations[newcmd.GeneratedForJobFor] == pod.Annotations[newcmd.GeneratedForJobFor] {
 				if err := s.Delete(name, nil); err != nil {
-					glog.V(4).Infof("Failed to delete install secret %s: %v", name, err)
+					klog.V(4).Infof("Failed to delete install secret %s: %v", name, err)
 				}
 			}
 		}
@@ -612,7 +612,7 @@ func installationComplete(c corev1typedclient.PodInterface, name string, out io.
 		case corev1.PodSucceeded:
 			fmt.Fprintf(out, "--> Success\n")
 			if err := c.Delete(name, nil); err != nil {
-				glog.V(4).Infof("Failed to delete install pod %s: %v", name, err)
+				klog.V(4).Infof("Failed to delete install pod %s: %v", name, err)
 			}
 			return true, nil
 		case corev1.PodFailed:
@@ -642,12 +642,12 @@ func getDockerClient() (*docker.Client, error) {
 	dockerClient, _, err := dockerutil.NewHelper().GetClient()
 	if err == nil {
 		if err = dockerClient.Ping(); err != nil {
-			glog.V(4).Infof("Docker client did not respond to a ping: %v", err)
+			klog.V(4).Infof("Docker client did not respond to a ping: %v", err)
 			return nil, err
 		}
 		return dockerClient, nil
 	}
-	glog.V(2).Infof("No local Docker daemon detected: %v", err)
+	klog.V(2).Infof("No local Docker daemon detected: %v", err)
 	return nil, err
 }
 

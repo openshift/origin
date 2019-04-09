@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -79,12 +79,12 @@ func NewDockercfgController(serviceAccounts informers.ServiceAccountInformer, se
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
 				serviceAccount := obj.(*v1.ServiceAccount)
-				glog.V(5).Infof("Adding service account %s", serviceAccount.Name)
+				klog.V(5).Infof("Adding service account %s", serviceAccount.Name)
 				e.enqueueServiceAccount(serviceAccount)
 			},
 			UpdateFunc: func(old, cur interface{}) {
 				serviceAccount := cur.(*v1.ServiceAccount)
-				glog.V(5).Infof("Updating service account %s", serviceAccount.Name)
+				klog.V(5).Infof("Updating service account %s", serviceAccount.Name)
 				// Resync on service object relist.
 				e.enqueueServiceAccount(serviceAccount)
 			},
@@ -151,9 +151,9 @@ func (e *DockercfgController) handleTokenSecretUpdate(oldObj, newObj interface{}
 	if oldObj != nil {
 		oldSecret := oldObj.(*v1.Secret)
 		wasPopulated = len(oldSecret.Data[v1.ServiceAccountTokenKey]) > 0
-		glog.V(5).Infof("Updating token secret %s/%s", secret.Namespace, secret.Name)
+		klog.V(5).Infof("Updating token secret %s/%s", secret.Namespace, secret.Name)
 	} else {
-		glog.V(5).Infof("Adding token secret %s/%s", secret.Namespace, secret.Name)
+		klog.V(5).Infof("Adding token secret %s/%s", secret.Namespace, secret.Name)
 	}
 
 	if !wasPopulated && isPopulated {
@@ -168,12 +168,12 @@ func (e *DockercfgController) handleTokenSecretDelete(obj interface{}) {
 	if !isSecret {
 		tombstone, objIsTombstone := obj.(cache.DeletedFinalStateUnknown)
 		if !objIsTombstone {
-			glog.V(2).Infof("Expected tombstone object when deleting token, got %v", obj)
+			klog.V(2).Infof("Expected tombstone object when deleting token, got %v", obj)
 			return
 		}
 		secret, isSecret = tombstone.Obj.(*v1.Secret)
 		if !isSecret {
-			glog.V(2).Infof("Expected tombstone object to contain secret, got: %v", obj)
+			klog.V(2).Infof("Expected tombstone object to contain secret, got: %v", obj)
 			return
 		}
 	}
@@ -207,8 +207,8 @@ func (e *DockercfgController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer e.queue.ShutDown()
 
-	glog.Infof("Starting DockercfgController controller")
-	defer glog.Infof("Shutting down DockercfgController controller")
+	klog.Infof("Starting DockercfgController controller")
+	defer klog.Infof("Shutting down DockercfgController controller")
 
 	// Wait for the store to sync before starting any work in this controller.
 	ready := make(chan struct{})
@@ -218,13 +218,13 @@ func (e *DockercfgController) Run(workers int, stopCh <-chan struct{}) {
 	case <-stopCh:
 		return
 	}
-	glog.V(1).Infof("urls found")
+	klog.V(1).Infof("urls found")
 
 	// Wait for the stores to fill
 	if !cache.WaitForCacheSync(stopCh, e.serviceAccountController.HasSynced, e.secretController.HasSynced) {
 		return
 	}
-	glog.V(1).Infof("caches synced")
+	klog.V(1).Infof("caches synced")
 
 	for i := 0; i < workers; i++ {
 		go wait.Until(e.worker, time.Second, stopCh)
@@ -252,7 +252,7 @@ func (e *DockercfgController) enqueueServiceAccount(serviceAccount *v1.ServiceAc
 
 	key, err := controller.KeyFunc(serviceAccount)
 	if err != nil {
-		glog.Errorf("Couldn't get key for object %+v: %v", serviceAccount, err)
+		klog.Errorf("Couldn't get key for object %+v: %v", serviceAccount, err)
 		return
 	}
 
@@ -288,7 +288,7 @@ func (e *DockercfgController) work() bool {
 			utilruntime.HandleError(fmt.Errorf("error syncing service, it will be tried again on a resync %v: %v", key, err))
 			e.queue.Forget(key)
 		} else {
-			glog.V(4).Infof("error syncing service, it will be retried %v: %v", key, err)
+			klog.V(4).Infof("error syncing service, it will be retried %v: %v", key, err)
 			e.queue.AddRateLimited(key)
 		}
 	}
@@ -317,11 +317,11 @@ func needsDockercfgSecret(serviceAccount *v1.ServiceAccount) bool {
 func (e *DockercfgController) syncServiceAccount(key string) error {
 	obj, exists, err := e.serviceAccountCache.GetByKey(key)
 	if err != nil {
-		glog.V(4).Infof("Unable to retrieve service account %v from store: %v", key, err)
+		klog.V(4).Infof("Unable to retrieve service account %v from store: %v", key, err)
 		return err
 	}
 	if !exists {
-		glog.V(4).Infof("Service account has been deleted %v", key)
+		klog.V(4).Infof("Service account has been deleted %v", key)
 		return nil
 	}
 	if !needsDockercfgSecret(obj.(*v1.ServiceAccount)) {
@@ -358,7 +358,7 @@ func (e *DockercfgController) syncServiceAccount(key string) error {
 		return err
 	}
 	if !created {
-		glog.V(5).Infof("The dockercfg secret was not created for service account %s/%s, will retry", serviceAccount.Namespace, serviceAccount.Name)
+		klog.V(5).Infof("The dockercfg secret was not created for service account %s/%s, will retry", serviceAccount.Namespace, serviceAccount.Name)
 		return nil
 	}
 
@@ -371,7 +371,7 @@ func (e *DockercfgController) syncServiceAccount(key string) error {
 			}
 			if !exists || !needsDockercfgSecret(obj.(*v1.ServiceAccount)) || serviceAccount.UID != obj.(*v1.ServiceAccount).UID {
 				// somehow a dockercfg secret appeared or the SA disappeared.  cleanup the secret we made and return
-				glog.V(2).Infof("Deleting secret because the work is already done %s/%s", dockercfgSecret.Namespace, dockercfgSecret.Name)
+				klog.V(2).Infof("Deleting secret because the work is already done %s/%s", dockercfgSecret.Namespace, dockercfgSecret.Name)
 				e.client.CoreV1().Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name, nil)
 				return nil
 			}
@@ -395,7 +395,7 @@ func (e *DockercfgController) syncServiceAccount(key string) error {
 	if err != nil {
 		// nothing to do.  Our choice was stale or we got a conflict.  Either way that means that the service account was updated.  We simply need to return because we'll get an update notification later
 		// we do need to clean up our dockercfgSecret.  token secrets are cleaned up by the controller handling service account dockercfg secret deletes
-		glog.V(2).Infof("Deleting secret %s/%s (err=%v)", dockercfgSecret.Namespace, dockercfgSecret.Name, err)
+		klog.V(2).Infof("Deleting secret %s/%s (err=%v)", dockercfgSecret.Namespace, dockercfgSecret.Name, err)
 		e.client.CoreV1().Secrets(dockercfgSecret.Namespace).Delete(dockercfgSecret.Name, nil)
 	}
 	return err
@@ -448,7 +448,7 @@ func (e *DockercfgController) createTokenSecret(serviceAccount *v1.ServiceAccoun
 		Data: map[string][]byte{},
 	}
 
-	glog.V(4).Infof("Creating token secret %q for service account %s/%s", tokenSecret.Name, serviceAccount.Namespace, serviceAccount.Name)
+	klog.V(4).Infof("Creating token secret %q for service account %s/%s", tokenSecret.Name, serviceAccount.Namespace, serviceAccount.Name)
 	token, err := e.client.CoreV1().Secrets(tokenSecret.Namespace).Create(tokenSecret)
 	// Already exists but not in cache means we'll get an add watch event and resync
 	if kapierrors.IsAlreadyExists(err) {
@@ -467,7 +467,7 @@ func (e *DockercfgController) createDockerPullSecret(serviceAccount *v1.ServiceA
 		return nil, false, err
 	}
 	if !isPopulated {
-		glog.V(5).Infof("Token secret for service account %s/%s is not populated yet", serviceAccount.Namespace, serviceAccount.Name)
+		klog.V(5).Infof("Token secret for service account %s/%s is not populated yet", serviceAccount.Namespace, serviceAccount.Name)
 		return nil, false, nil
 	}
 
@@ -485,7 +485,7 @@ func (e *DockercfgController) createDockerPullSecret(serviceAccount *v1.ServiceA
 		Type: v1.SecretTypeDockercfg,
 		Data: map[string][]byte{},
 	}
-	glog.V(4).Infof("Creating dockercfg secret %q for service account %s/%s", dockercfgSecret.Name, serviceAccount.Namespace, serviceAccount.Name)
+	klog.V(4).Infof("Creating dockercfg secret %q for service account %s/%s", dockercfgSecret.Name, serviceAccount.Namespace, serviceAccount.Name)
 
 	// prevent updating the DockerURL until we've created the secret
 	e.dockerURLLock.Lock()

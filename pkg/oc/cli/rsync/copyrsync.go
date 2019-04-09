@@ -7,9 +7,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"k8s.io/klog"
 
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -45,7 +45,7 @@ func newRsyncStrategy(f kcmdutil.Factory, c *cobra.Command, o *RsyncOptions) (co
 		rshCmd = append(rshCmd, fmt.Sprintf("--%s=%s", flag.Name, flag.Value.String()))
 	})
 	rshCmdStr := strings.Join(rsyncEscapeCommand(rshCmd), " ")
-	glog.V(4).Infof("Rsh command: %s", rshCmdStr)
+	klog.V(4).Infof("Rsh command: %s", rshCmdStr)
 
 	remoteExec, err := newRemoteExecutor(f, o)
 	if err != nil {
@@ -80,7 +80,7 @@ func newRsyncStrategy(f kcmdutil.Factory, c *cobra.Command, o *RsyncOptions) (co
 }
 
 func (r *rsyncStrategy) Copy(source, destination *pathSpec, out, errOut io.Writer) error {
-	glog.V(3).Infof("Copying files with rsync")
+	klog.V(3).Infof("Copying files with rsync")
 	cmd := append([]string{"rsync"}, r.Flags...)
 	cmd = append(cmd, "-e", r.RshCommand, source.RsyncPath(), destination.RsyncPath())
 	errBuf := &bytes.Buffer{}

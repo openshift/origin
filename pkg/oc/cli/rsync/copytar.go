@@ -11,10 +11,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/spf13/cobra"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
@@ -62,22 +62,22 @@ func newTarStrategy(f kcmdutil.Factory, c *cobra.Command, o *RsyncOptions) (copy
 }
 
 func deleteContents(dir string) error {
-	glog.V(4).Infof("Deleting local directory contents: %s", dir)
+	klog.V(4).Infof("Deleting local directory contents: %s", dir)
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
-		glog.V(4).Infof("Could not read directory %s: %v", dir, err)
+		klog.V(4).Infof("Could not read directory %s: %v", dir, err)
 		return err
 	}
 	for _, f := range files {
 		if f.IsDir() {
-			glog.V(5).Infof("Deleting directory: %s", f.Name())
+			klog.V(5).Infof("Deleting directory: %s", f.Name())
 			err = os.RemoveAll(filepath.Join(dir, f.Name()))
 		} else {
-			glog.V(5).Infof("Deleting file: %s", f.Name())
+			klog.V(5).Infof("Deleting file: %s", f.Name())
 			err = os.Remove(filepath.Join(dir, f.Name()))
 		}
 		if err != nil {
-			glog.V(4).Infof("Error deleting file or directory: %s: %v", f.Name(), err)
+			klog.V(4).Infof("Error deleting file or directory: %s: %v", f.Name(), err)
 			return err
 		}
 	}
@@ -120,7 +120,7 @@ func deleteFiles(source, dest *pathSpec, remoteExecutor executor) error {
 
 func (r *tarStrategy) Copy(source, destination *pathSpec, out, errOut io.Writer) error {
 
-	glog.V(3).Infof("Copying files with tar")
+	klog.V(3).Infof("Copying files with tar")
 
 	if len(r.IgnoredFlags) > 0 {
 		fmt.Fprintf(errOut, "Ignoring the following flags because they only apply to rsync: %s\n", strings.Join(r.IgnoredFlags, ", "))
@@ -142,13 +142,13 @@ func (r *tarStrategy) Copy(source, destination *pathSpec, out, errOut io.Writer)
 
 	// Create tar
 	if source.Local() {
-		glog.V(4).Infof("Creating local tar file %s from local path %s", tmp.Name(), source.Path)
+		klog.V(4).Infof("Creating local tar file %s from local path %s", tmp.Name(), source.Path)
 		err = tarLocal(r.Tar, source.Path, tmp)
 		if err != nil {
 			return fmt.Errorf("error creating local tar of source directory: %v", err)
 		}
 	} else {
-		glog.V(4).Infof("Creating local tar file %s from remote path %s", tmp.Name(), source.Path)
+		klog.V(4).Infof("Creating local tar file %s from remote path %s", tmp.Name(), source.Path)
 		errBuf := &bytes.Buffer{}
 		err = tarRemote(r.RemoteExecutor, source.Path, r.Includes, r.Excludes, tmp, errBuf)
 		if err != nil {
@@ -166,10 +166,10 @@ func (r *tarStrategy) Copy(source, destination *pathSpec, out, errOut io.Writer)
 
 	// Extract tar
 	if destination.Local() {
-		glog.V(4).Infof("Untarring temp file %s to local directory %s", tmp.Name(), destination.Path)
+		klog.V(4).Infof("Untarring temp file %s to local directory %s", tmp.Name(), destination.Path)
 		err = untarLocal(r.Tar, destination.Path, tmp, r.Quiet, out)
 	} else {
-		glog.V(4).Infof("Untarring temp file %s to remote directory %s", tmp.Name(), destination.Path)
+		klog.V(4).Infof("Untarring temp file %s to remote directory %s", tmp.Name(), destination.Path)
 		errBuf := &bytes.Buffer{}
 		err = untarRemote(r.RemoteExecutor, destination.Path, r.Flags, tmp, out, errBuf)
 		if err != nil {
@@ -204,7 +204,7 @@ func (r *tarStrategy) String() string {
 }
 
 func tarRemote(exec executor, sourceDir string, includes, excludes []string, out, errOut io.Writer) error {
-	glog.V(4).Infof("Tarring %s remotely", sourceDir)
+	klog.V(4).Infof("Tarring %s remotely", sourceDir)
 
 	exclude := []string{}
 	for _, pattern := range excludes {
@@ -228,12 +228,12 @@ func tarRemote(exec executor, sourceDir string, includes, excludes []string, out
 		cmd = []string{"tar", "-C", path.Dir(sourceDir), "-c", path.Base(sourceDir)}
 		cmd = append(cmd, append(include, exclude...)...)
 	}
-	glog.V(4).Infof("Remote tar command: %s", strings.Join(cmd, " "))
+	klog.V(4).Infof("Remote tar command: %s", strings.Join(cmd, " "))
 	return exec.Execute(cmd, nil, out, errOut)
 }
 
 func tarLocal(tar tar.Tar, sourceDir string, w io.Writer) error {
-	glog.V(4).Infof("Tarring %s locally", sourceDir)
+	klog.V(4).Infof("Tarring %s locally", sourceDir)
 	// includeParent mimics rsync's behavior. When the source path ends in a path
 	// separator, then only the contents of the directory are copied. Otherwise,
 	// the directory itself is copied.
@@ -246,7 +246,7 @@ func tarLocal(tar tar.Tar, sourceDir string, w io.Writer) error {
 }
 
 func untarLocal(tar tar.Tar, destinationDir string, r io.Reader, quiet bool, logger io.Writer) error {
-	glog.V(4).Infof("Extracting tar locally to %s", destinationDir)
+	klog.V(4).Infof("Extracting tar locally to %s", destinationDir)
 	if quiet {
 		return tar.ExtractTarStream(destinationDir, r)
 	}
@@ -256,6 +256,6 @@ func untarLocal(tar tar.Tar, destinationDir string, r io.Reader, quiet bool, log
 func untarRemote(exec executor, destinationDir string, flags []string, in io.Reader, out, errOut io.Writer) error {
 	cmd := []string{"tar", "-C", destinationDir, "-ox"}
 	cmd = append(cmd, flags...)
-	glog.V(4).Infof("Extracting tar remotely with command: %s", strings.Join(cmd, " "))
+	klog.V(4).Infof("Extracting tar remotely with command: %s", strings.Join(cmd, " "))
 	return exec.Execute(cmd, in, out, errOut)
 }

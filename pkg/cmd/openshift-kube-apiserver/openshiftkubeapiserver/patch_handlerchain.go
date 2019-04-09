@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	genericapiserver "k8s.io/apiserver/pkg/server"
 
@@ -79,7 +79,7 @@ func withOAuthRedirection(oauthConfig *osinv1.OAuthConfig, handler, oauthServerH
 		return handler
 	}
 
-	glog.Infof("Starting OAuth2 API at %s", urls.OpenShiftOAuthAPIPrefix)
+	klog.Infof("Starting OAuth2 API at %s", urls.OpenShiftOAuthAPIPrefix)
 	return WithPatternPrefixHandler(handler, oauthServerHandler, openShiftOAuthAPIPrefix, openShiftLoginPrefix, openShiftLogoutPrefix, openShiftOAuthCallbackPrefix)
 }
 

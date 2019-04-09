@@ -3,7 +3,7 @@ package openshift_kube_apiserver
 import (
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apiserver/pkg/admission"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -58,7 +58,7 @@ func RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig *kubecontrolplanev1.Kub
 	if err := cmd.ParseFlags(args); err != nil {
 		return err
 	}
-	glog.Infof("`kube-apiserver %v`", args)
+	klog.Infof("`kube-apiserver %v`", args)
 	if err := cmd.RunE(cmd, nil); err != nil {
 		return err
 	}

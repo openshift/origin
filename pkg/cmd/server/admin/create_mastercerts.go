@@ -8,8 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -176,7 +176,7 @@ func (o CreateMasterCertsOptions) Validate(args []string) error {
 }
 
 func (o CreateMasterCertsOptions) CreateMasterCerts() error {
-	glog.V(4).Infof("Creating all certs with: %#v", o)
+	klog.V(4).Infof("Creating all certs with: %#v", o)
 
 	getSignerCertOptions, err := o.createNewSigner(CAFilePrefix)
 	if err != nil {

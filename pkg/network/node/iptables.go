@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
@@ -62,7 +62,7 @@ func (n *NodeIPTables) syncLoop() {
 	defer t.Stop()
 	for {
 		<-t.C
-		glog.V(6).Infof("Periodic openshift iptables sync")
+		klog.V(6).Infof("Periodic openshift iptables sync")
 		err := n.syncIPTableRules()
 		if err != nil {
 			utilruntime.HandleError(fmt.Errorf("Syncing openshift iptables failed: %v", err))
@@ -101,9 +101,9 @@ func (n *NodeIPTables) syncIPTableRules() error {
 
 	start := time.Now()
 	defer func() {
-		glog.V(4).Infof("syncIPTableRules took %v", time.Since(start))
+		klog.V(4).Infof("syncIPTableRules took %v", time.Since(start))
 	}()
-	glog.V(3).Infof("Syncing openshift iptables rules")
+	klog.V(3).Infof("Syncing openshift iptables rules")
 
 	chains := n.getNodeIPTablesChains()
 	for i := len(chains) - 1; i >= 0; i-- {

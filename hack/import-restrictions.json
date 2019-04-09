@@ -261,7 +261,7 @@
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/apis/core",
       "vendor/k8s.io/kubernetes/pkg/apis/core/v1",
-      "vendor/github.com/golang/glog",
+      "vendor/k8s.io/klog",
       "vendor/github.com/blang/semver"
     ]
   },
@@ -416,7 +416,7 @@
       "github.com/openshift/origin/pkg/template/servicebroker"
     ],
     "allowedImportPackages": [
-      "vendor/github.com/golang/glog",
+      "vendor/k8s.io/klog",
       "vendor/k8s.io/api/core/v1",
       "vendor/k8s.io/api/authorization/v1",
       "vendor/k8s.io/kubernetes/pkg/apis/core",
@@ -455,7 +455,7 @@
       "github.com/openshift/origin/pkg/oauthserver"
     ],
     "allowedImportPackages": [
-      "vendor/github.com/golang/glog",
+      "vendor/k8s.io/klog",
       "vendor/github.com/davecgh/go-spew/spew",
       "github.com/openshift/origin/pkg/authorization/authorizer/scope",
       "github.com/openshift/origin/pkg/oauth/apis/oauth/validation",
@@ -487,7 +487,7 @@
       "vendor/github.com/docker/libtrust",
       "vendor/github.com/fsnotify/fsnotify",
       "vendor/github.com/fsouza/go-dockerclient",
-      "vendor/github.com/golang/glog",
+      "vendor/k8s.io/klog",
       "vendor/github.com/gonum/graph",
       "vendor/github.com/joho/godotenv",
       "vendor/github.com/MakeNowJust/heredoc",

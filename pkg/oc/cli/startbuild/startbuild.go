@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	"github.com/openshift/source-to-image/pkg/tar"
 	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
@@ -488,7 +488,7 @@ func (o *StartBuildOptions) streamBuildLogs(build *buildv1.Build) error {
 		rd, logErr := o.BuildLogClient.Logs(build.Name, opts).Stream()
 		if logErr != nil {
 			err = ocerrors.NewError("unable to stream the build logs").WithCause(logErr)
-			glog.V(4).Infof("Error: %v", err)
+			klog.V(4).Infof("Error: %v", err)
 			if o.WaitForComplete {
 				continue
 			}
@@ -497,7 +497,7 @@ func (o *StartBuildOptions) streamBuildLogs(build *buildv1.Build) error {
 		defer rd.Close()
 		if _, streamErr := io.Copy(o.Out, rd); streamErr != nil {
 			err = ocerrors.NewError("unable to stream the build logs").WithCause(streamErr)
-			glog.V(4).Infof("Error: %v", err)
+			klog.V(4).Infof("Error: %v", err)
 		}
 		break
 	}
@@ -611,7 +611,7 @@ func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client 
 				options.CommitterName = info.GitSourceRevision.Committer.Name
 				options.CommitterEmail = info.GitSourceRevision.Committer.Email
 			} else {
-				glog.V(6).Infof("Unable to read Git info from %q: %v", clean, gitErr)
+				klog.V(6).Infof("Unable to read Git info from %q: %v", clean, gitErr)
 			}
 
 			// NOTE: It's important that this stays false unless we change the
@@ -646,7 +646,7 @@ func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client 
 				// We only want to grab the contents of the specified commit, with
 				// submodules included
 				cloneOptions := []string{"--recursive"}
-				if verbose := glog.V(3); !verbose {
+				if verbose := klog.V(3); !verbose {
 					cloneOptions = append(cloneOptions, "--quiet")
 				}
 
@@ -814,7 +814,7 @@ func (o *StartBuildOptions) RunStartBuildWebHook() error {
 			}
 		}
 	}
-	glog.V(4).Infof("Triggering hook %s\n%s", hook, string(data))
+	klog.V(4).Infof("Triggering hook %s\n%s", hook, string(data))
 	resp, err := httpClient.Post(hook.String(), "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return err
@@ -881,7 +881,7 @@ func hookEventFromPostReceive(repo git.Repository, path, postReceivePath string)
 		}
 		info, err := gitRefInfo(repo, path, ref.New)
 		if err != nil {
-			glog.V(4).Infof("Could not retrieve info for %s:%s: %v", ref.Ref, ref.New, err)
+			klog.V(4).Infof("Could not retrieve info for %s:%s: %v", ref.Ref, ref.New, err)
 		}
 		info.Ref = ref.Ref
 		info.Commit = ref.New
@@ -990,7 +990,7 @@ func httpFileName(resp *http.Response) (filename string) {
 		if err == nil {
 			filename = params["filename"]
 		} else {
-			glog.V(6).Infof("Unable to determine filename from Content-Disposition header: %v", err)
+			klog.V(6).Infof("Unable to determine filename from Content-Disposition header: %v", err)
 		}
 	}
 

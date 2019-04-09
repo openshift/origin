@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	kapiv1 "k8s.io/api/core/v1"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
@@ -12,7 +12,7 @@ import (
 
 func RunServiceAccountController(ctx *ControllerContext) (bool, error) {
 	if len(ctx.OpenshiftControllerConfig.ServiceAccount.ManagedNames) == 0 {
-		glog.Infof("Skipped starting Service Account Manager, no managed names specified")
+		klog.Infof("Skipped starting Service Account Manager, no managed names specified")
 		return false, nil
 	}
 

@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/spf13/pflag"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -204,7 +204,7 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 
 	var caData []byte
 	if len(config.ImagePolicyConfig.AdditionalTrustedCA) != 0 {
-		glog.V(2).Infof("Image import using additional CA path: %s", config.ImagePolicyConfig.AdditionalTrustedCA)
+		klog.V(2).Infof("Image import using additional CA path: %s", config.ImagePolicyConfig.AdditionalTrustedCA)
 		var err error
 		caData, err = ioutil.ReadFile(config.ImagePolicyConfig.AdditionalTrustedCA)
 		if err != nil {

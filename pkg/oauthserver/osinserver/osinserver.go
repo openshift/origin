@@ -6,7 +6,7 @@ import (
 	"path"
 
 	"github.com/RangelReale/osin"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
@@ -26,8 +26,8 @@ type Server struct {
 type Logger struct{}
 
 func (l Logger) Printf(format string, v ...interface{}) {
-	if glog.V(2) {
-		glog.ErrorDepth(3, fmt.Sprintf("osin: "+format, v...))
+	if klog.V(2) {
+		klog.ErrorDepth(3, fmt.Sprintf("osin: "+format, v...))
 	}
 }
 

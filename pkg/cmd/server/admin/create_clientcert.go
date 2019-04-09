@@ -4,7 +4,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apiserver/pkg/authentication/user"
 
@@ -54,7 +54,7 @@ func (o CreateClientCertOptions) Validate(args []string) error {
 }
 
 func (o CreateClientCertOptions) CreateClientCert() (*crypto.TLSCertificateConfig, error) {
-	glog.V(4).Infof("Creating a client cert with: %#v and %#v", o, o.SignerCertOptions)
+	klog.V(4).Infof("Creating a client cert with: %#v and %#v", o, o.SignerCertOptions)
 
 	signerCert, err := o.SignerCertOptions.CA()
 	if err != nil {
@@ -70,9 +70,9 @@ func (o CreateClientCertOptions) CreateClientCert() (*crypto.TLSCertificateConfi
 		cert, written, err = signerCert.EnsureClientCertificate(o.CertFile, o.KeyFile, userInfo, o.ExpireDays)
 	}
 	if written {
-		glog.V(3).Infof("Generated new client cert as %s and key as %s\n", o.CertFile, o.KeyFile)
+		klog.V(3).Infof("Generated new client cert as %s and key as %s\n", o.CertFile, o.KeyFile)
 	} else {
-		glog.V(3).Infof("Keeping existing client cert at %s and key at %s\n", o.CertFile, o.KeyFile)
+		klog.V(3).Infof("Keeping existing client cert at %s and key at %s\n", o.CertFile, o.KeyFile)
 	}
 	return cert, err
 }

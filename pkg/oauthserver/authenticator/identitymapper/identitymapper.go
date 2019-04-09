@@ -3,7 +3,7 @@ package identitymapper
 import (
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 
@@ -23,9 +23,9 @@ func ResponseFor(mapper api.UserIdentityMapper, identity api.UserIdentityInfo) (
 	return &authenticator.Response{User: user}, true, nil
 }
 
-// logf(...) is the same as glog.V(4).Infof(...) except it reports the caller as the line number
+// logf(...) is the same as klog.V(4).Infof(...) except it reports the caller as the line number
 func logf(format string, args ...interface{}) {
-	if glog.V(4) {
-		glog.InfoDepth(2, fmt.Sprintf("identitymapper: "+format, args...))
+	if klog.V(4) {
+		klog.InfoDepth(2, fmt.Sprintf("identitymapper: "+format, args...))
 	}
 }

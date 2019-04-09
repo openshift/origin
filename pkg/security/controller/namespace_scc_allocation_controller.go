@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -83,19 +83,19 @@ func (c *NamespaceSCCAllocationController) Run(stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	defer glog.V(1).Infof("Shutting down")
+	defer klog.V(1).Infof("Shutting down")
 
 	// Wait for the stores to fill
 	if !controller.WaitForCacheSync(controllerName, stopCh, c.nsListerSynced) {
 		return
 	}
 
-	glog.V(1).Infof("Repairing SCC UID Allocations")
+	klog.V(1).Infof("Repairing SCC UID Allocations")
 	if err := c.WaitForRepair(stopCh); err != nil {
 		// this is consistent with previous behavior
-		glog.Fatal(err)
+		klog.Fatal(err)
 	}
-	glog.V(1).Infof("Repair complete")
+	klog.V(1).Infof("Repair complete")
 
 	go c.worker()
 	<-stopCh

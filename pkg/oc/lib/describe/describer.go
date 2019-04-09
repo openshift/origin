@@ -9,7 +9,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	units "github.com/docker/go-units"
 	corev1 "k8s.io/api/core/v1"
@@ -76,55 +76,55 @@ func describerMap(clientConfig *rest.Config, kclient kubernetes.Interface, host 
 	// we can't fail and we can't log at a normal level because this is sometimes called with `nils` for help :(
 	kubeClient, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
-		glog.V(1).Info(err)
+		klog.V(1).Info(err)
 	}
 	oauthorizationClient, err := oauthorizationclient.NewForConfig(clientConfig)
 	if err != nil {
-		glog.V(1).Info(err)
+		klog.V(1).Info(err)
 	}
 	onetworkClient, err := onetworktypedclient.NewForConfig(clientConfig)
 	if err != nil {
-		glog.V(1).Info(err)
+		klog.V(1).Info(err)
 	}
 	userClient, err := userclient.NewForConfig(clientConfig)
 	if err != nil {
-		glog.V(1).Info(err)
+		klog.V(1).Info(err)
 	}
 	quotaClient, err := quotaclient.NewForConfig(clientConfig)
 	if err != nil {
-		glog.V(1).Info(err)
+		klog.V(1).Info(err)
 	}
 	imageClient, err := imageclient.NewForConfig(clientConfig)
 	if err != nil {
-		glog.V(1).Info(err)
+		klog.V(1).Info(err)
 	}
 	appsClient, err := appstypedclient.NewForConfig(clientConfig)
 	if err != nil {
-		glog.V(1).Info(err)
+		klog.V(1).Info(err)
 	}
 	buildClient, err := buildv1clienttyped.NewForConfig(clientConfig)
 	if err != nil {
-		glog.V(1).Info(err)
+		klog.V(1).Info(err)
 	}
 	templateClient, err := templateclient.NewForConfig(clientConfig)
 	if err != nil {
-		glog.V(1).Info(err)
+		klog.V(1).Info(err)
 	}
 	routeClient, err := routeclient.NewForConfig(clientConfig)
 	if err != nil {
-		glog.V(1).Info(err)
+		klog.V(1).Info(err)
 	}
 	projectClient, err := projectclient.NewForConfig(clientConfig)
 	if err != nil {
-		glog.V(1).Info(err)
+		klog.V(1).Info(err)
 	}
 	oauthClient, err := oauthclient.NewForConfig(clientConfig)
 	if err != nil {
-		glog.V(1).Info(err)
+		klog.V(1).Info(err)
 	}
 	securityClient, err := securityclient.NewForConfig(clientConfig)
 	if err != nil {
-		glog.V(1).Info(err)
+		klog.V(1).Info(err)
 	}
 
 	m := map[schema.GroupKind]describe.Describer{
@@ -1303,7 +1303,7 @@ func (d *TemplateInstanceDescriber) DescribeParameters(template templateapi.Temp
 		return
 	} else if err != nil {
 		fmt.Fprintf(out, "Unknown error occurred, please rerun with loglevel > 4 for more information")
-		glog.V(4).Infof("%v", err)
+		klog.V(4).Infof("%v", err)
 		return
 	}
 

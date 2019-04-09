@@ -1,8 +1,8 @@
 package top
 
 import (
-	"github.com/golang/glog"
 	gonum "github.com/gonum/graph"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -37,7 +37,7 @@ func addImagesToGraph(g genericgraph.Graph, images *imagev1.ImageList) {
 	for i := range images.Items {
 		image := &images.Items[i]
 
-		glog.V(4).Infof("Adding image %q to graph", image.Name)
+		klog.V(4).Infof("Adding image %q to graph", image.Name)
 		imageNode := imagegraph.EnsureImageNode(g, image)
 
 		topLayerAdded := false
@@ -55,7 +55,7 @@ func addImagesToGraph(g genericgraph.Graph, images *imagev1.ImageList) {
 				topLayerAdded = true
 			}
 			g.AddEdge(imageNode, layerNode, edgeKind)
-			glog.V(4).Infof("Adding image layer %q to graph (%q)", layer.Name, edgeKind)
+			klog.V(4).Infof("Adding image layer %q to graph (%q)", layer.Name, edgeKind)
 		}
 	}
 }
@@ -63,7 +63,7 @@ func addImagesToGraph(g genericgraph.Graph, images *imagev1.ImageList) {
 func addImageStreamsToGraph(g genericgraph.Graph, streams *imagev1.ImageStreamList) {
 	for i := range streams.Items {
 		stream := &streams.Items[i]
-		glog.V(4).Infof("Adding ImageStream %s/%s to graph", stream.Namespace, stream.Name)
+		klog.V(4).Infof("Adding ImageStream %s/%s to graph", stream.Namespace, stream.Name)
 		isNode := imagegraph.EnsureImageStreamNode(g, stream)
 		imageStreamNode := isNode.(*imagegraph.ImageStreamNode)
 
@@ -73,11 +73,11 @@ func addImageStreamsToGraph(g genericgraph.Graph, streams *imagev1.ImageStreamLi
 				image := history.Items[i]
 				imageNode := imagegraph.FindImage(g, image.Image)
 				if imageNode == nil {
-					glog.V(2).Infof("Unable to find image %q in graph (from tag=%q, dockerImageReference=%s)",
+					klog.V(2).Infof("Unable to find image %q in graph (from tag=%q, dockerImageReference=%s)",
 						history.Items[i].Image, tag, image.DockerImageReference)
 					continue
 				}
-				glog.V(4).Infof("Adding edge from %q to %q", imageStreamNode.UniqueName(), imageNode.UniqueName())
+				klog.V(4).Infof("Adding edge from %q to %q", imageStreamNode.UniqueName(), imageNode.UniqueName())
 				edgeKind := ImageStreamImageEdgeKind
 				if i > 0 {
 					edgeKind = HistoricImageStreamImageEdgeKind
@@ -92,11 +92,11 @@ func addPodsToGraph(g genericgraph.Graph, pods *corev1.PodList) {
 	for i := range pods.Items {
 		pod := &pods.Items[i]
 		if pod.Status.Phase != corev1.PodRunning && pod.Status.Phase != corev1.PodPending {
-			glog.V(4).Infof("Pod %s/%s is not running nor pending - skipping", pod.Namespace, pod.Name)
+			klog.V(4).Infof("Pod %s/%s is not running nor pending - skipping", pod.Namespace, pod.Name)
 			continue
 		}
 
-		glog.V(4).Infof("Adding pod %s/%s to graph", pod.Namespace, pod.Name)
+		klog.V(4).Infof("Adding pod %s/%s to graph", pod.Namespace, pod.Name)
 		podNode := kubegraph.EnsurePodNode(g, pod)
 		addPodSpecToGraph(g, &pod.Spec, podNode)
 	}
@@ -106,10 +106,10 @@ func addPodSpecToGraph(g genericgraph.Graph, spec *corev1.PodSpec, predecessor g
 	for j := range spec.Containers {
 		container := spec.Containers[j]
 
-		glog.V(4).Infof("Examining container image %q", container.Image)
+		klog.V(4).Infof("Examining container image %q", container.Image)
 		ref, err := reference.Parse(container.Image)
 		if err != nil {
-			glog.V(2).Infof("Unable to parse DockerImageReference %q: %v - skipping", container.Image, err)
+			klog.V(2).Infof("Unable to parse DockerImageReference %q: %v - skipping", container.Image, err)
 			continue
 		}
 
@@ -120,11 +120,11 @@ func addPodSpecToGraph(g genericgraph.Graph, spec *corev1.PodSpec, predecessor g
 
 		imageNode := imagegraph.FindImage(g, ref.ID)
 		if imageNode == nil {
-			glog.V(1).Infof("Unable to find image %q in the graph", ref.ID)
+			klog.V(1).Infof("Unable to find image %q in the graph", ref.ID)
 			continue
 		}
 
-		glog.V(4).Infof("Adding edge from %v to %v", predecessor, imageNode)
+		klog.V(4).Infof("Adding edge from %v to %v", predecessor, imageNode)
 		g.AddEdge(predecessor, imageNode, PodImageEdgeKind)
 	}
 }

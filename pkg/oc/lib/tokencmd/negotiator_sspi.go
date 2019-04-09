@@ -16,7 +16,7 @@ import (
 
 	"github.com/alexbrainman/sspi"
 	"github.com/alexbrainman/sspi/negotiate"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 const (
@@ -109,7 +109,7 @@ func NewSSPINegotiator(principalName, password, host string, reader io.Reader) N
 }
 
 func (s *sspiNegotiator) Load() error {
-	glog.V(5).Info("Attempt to load SSPI")
+	klog.V(5).Info("Attempt to load SSPI")
 	// do nothing since SSPI uses lazy DLL loading
 	return nil
 }
@@ -122,7 +122,7 @@ func (s *sspiNegotiator) InitSecContext(requestURL string, challengeToken []byte
 		return s.initContext(requestURL)
 	}
 
-	glog.V(5).Info("Continue SSPI flow")
+	klog.V(5).Info("Continue SSPI flow")
 	return s.updateContext(challengeToken)
 }
 
@@ -132,7 +132,7 @@ func (s *sspiNegotiator) IsComplete() bool {
 
 func (s *sspiNegotiator) Release() error {
 	defer runtime.HandleCrash()
-	glog.V(5).Info("Attempt to release SSPI")
+	klog.V(5).Info("Attempt to release SSPI")
 	var errs []error
 	if err := s.ctx.Release(); err != nil {
 		logSSPI("SSPI context release failed: %v", err)
@@ -152,7 +152,7 @@ func (s *sspiNegotiator) initContext(requestURL string) (outputToken []byte, err
 		return nil, err
 	}
 	s.cred = cred
-	glog.V(5).Info("getUserCredentials successful")
+	klog.V(5).Info("getUserCredentials successful")
 
 	serviceName, err := getServiceName('/', requestURL)
 	if err != nil {
@@ -166,7 +166,7 @@ func (s *sspiNegotiator) initContext(requestURL string) (outputToken []byte, err
 		return nil, err
 	}
 	s.ctx = ctx
-	glog.V(5).Info("NewClientContextWithFlags successful")
+	klog.V(5).Info("NewClientContextWithFlags successful")
 	return outputToken, nil
 }
 
@@ -194,11 +194,11 @@ func (s *sspiNegotiator) getUserCredentials() (*sspi.Credentials, error) {
 			logSSPI("AcquireUserCredentials failed: %v", err)
 			return nil, err
 		}
-		glog.V(5).Info("AcquireUserCredentials successful")
+		klog.V(5).Info("AcquireUserCredentials successful")
 		return cred, nil
 	}
 
-	glog.V(5).Info("Using AcquireCurrentUserCredentials because principalName is empty")
+	klog.V(5).Info("Using AcquireCurrentUserCredentials because principalName is empty")
 	return negotiate.AcquireCurrentUserCredentials()
 }
 
@@ -280,29 +280,29 @@ func (s *sspiNegotiator) updateContext(challengeToken []byte) (outputToken []byt
 
 	// TODO should we skip the flag check if complete = true?
 	if nonFatalErr := s.ctx.VerifyFlags(); nonFatalErr == nil {
-		glog.V(5).Info("ClientContext.VerifyFlags successful")
+		klog.V(5).Info("ClientContext.VerifyFlags successful")
 	} else {
 		logSSPI("ClientContext.VerifyFlags failed: %v", nonFatalErr)
 		if fatalErr := s.ctx.VerifySelectiveFlags(s.requiredFlags); fatalErr != nil {
 			logSSPI("ClientContext.VerifySelectiveFlags failed: %v", fatalErr)
 			return nil, fatalErr
 		}
-		glog.V(5).Info("ClientContext.VerifySelectiveFlags successful")
+		klog.V(5).Info("ClientContext.VerifySelectiveFlags successful")
 	}
 
 	return outputToken, nil
 }
 
-// logSSPI is the equivalent of glog.V(5).Infof(format, args) except it
+// logSSPI is the equivalent of klog.V(5).Infof(format, args) except it
 // includes error code information for any syscall.Errno contained in args
 func logSSPI(format string, args ...interface{}) {
-	if glog.V(5) {
+	if klog.V(5) {
 		for i, arg := range args {
 			if errno, ok := arg.(syscall.Errno); ok {
 				args[i] = fmt.Sprintf("%v, code=%#v", errno, errno)
 			}
 		}
 		s := fmt.Sprintf(format, args...)
-		glog.InfoDepth(1, s)
+		klog.InfoDepth(1, s)
 	}
 }

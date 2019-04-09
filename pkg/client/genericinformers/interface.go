@@ -1,7 +1,7 @@
 package genericinformers
 
 import (
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -68,7 +68,7 @@ func (i genericInformers) ForResource(resource schema.GroupVersionResource) (inf
 			firstErr = err
 		}
 	}
-	glog.V(4).Infof("Couldn't find informer for %v", resource)
+	klog.V(4).Infof("Couldn't find informer for %v", resource)
 	return nil, firstErr
 }
 

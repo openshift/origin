@@ -7,9 +7,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/golang/glog"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -246,8 +246,8 @@ func (o *ExtractOptions) extractGit(dir string) error {
 		repo := ref.Annotations[annotationBuildSourceLocation]
 		commit := ref.Annotations[annotationBuildSourceCommit]
 		if len(repo) == 0 || len(commit) == 0 {
-			if glog.V(2) {
-				glog.Infof("Tag %s has no source info", ref.Name)
+			if klog.V(2) {
+				klog.Infof("Tag %s has no source info", ref.Name)
 			} else {
 				fmt.Fprintf(o.ErrOut, "warning: Tag %s has no source info\n", ref.Name)
 			}
@@ -268,7 +268,7 @@ func (o *ExtractOptions) extractGit(dir string) error {
 			continue
 		}
 
-		glog.V(2).Infof("Checkout %s from %s ...", commit, repo)
+		klog.V(2).Infof("Checkout %s from %s ...", commit, repo)
 		if err := extractedRepo.CheckoutCommit(repo, commit); err != nil {
 			hadErrors = true
 			fmt.Fprintf(o.ErrOut, "error: checking out commit for %s: %v\n", repo, err)

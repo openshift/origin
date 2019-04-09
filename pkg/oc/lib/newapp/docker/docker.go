@@ -4,8 +4,8 @@ import (
 	"os"
 
 	docker "github.com/fsouza/go-dockerclient"
-	"github.com/golang/glog"
 	"github.com/spf13/pflag"
+	"k8s.io/klog"
 )
 
 // Helper contains all the valid config options for connecting to Docker from
@@ -41,7 +41,7 @@ func (_ *Helper) GetClient() (client *docker.Client, endpoint string, err error)
 func (h *Helper) GetClientOrExit() (*docker.Client, string) {
 	client, addr, err := h.GetClient()
 	if err != nil {
-		glog.Fatalf("ERROR: Couldn't connect to Docker at %s.\n%v\n.", addr, err)
+		klog.Fatalf("ERROR: Couldn't connect to Docker at %s.\n%v\n.", addr, err)
 	}
 	return client, addr
 }

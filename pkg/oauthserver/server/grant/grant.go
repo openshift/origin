@@ -7,7 +7,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -198,7 +198,7 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 
 func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Request) {
 	if ok := l.csrf.Check(req, req.PostFormValue(csrfParam)); !ok {
-		glog.V(4).Infof("Invalid CSRF token: %s", req.PostFormValue(csrfParam))
+		klog.V(4).Infof("Invalid CSRF token: %s", req.PostFormValue(csrfParam))
 		l.failed("Invalid CSRF token", w, req)
 		return
 	}
@@ -209,7 +209,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 	username := req.PostFormValue(userNameParam)
 
 	if username != user.GetName() {
-		glog.Errorf("User (%v) did not match authenticated user (%v)", username, user.GetName())
+		klog.Errorf("User (%v) did not match authenticated user (%v)", username, user.GetName())
 		l.failed("User did not match", w, req)
 		return
 	}
@@ -248,7 +248,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 		// Add new scopes and update
 		clientAuth.Scopes = scope.Add(clientAuth.Scopes, scope.Split(scopes))
 		if _, err = l.authregistry.Update(clientAuth); err != nil {
-			glog.Errorf("Unable to update authorization: %v", err)
+			klog.Errorf("Unable to update authorization: %v", err)
 			l.failed("Could not update client authorization", w, req)
 			return
 		}
@@ -263,7 +263,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 		clientAuth.Name = clientAuthID
 
 		if _, err = l.authregistry.Create(clientAuth); err != nil {
-			glog.Errorf("Unable to create authorization: %v", err)
+			klog.Errorf("Unable to create authorization: %v", err)
 			l.failed("Could not create client authorization", w, req)
 			return
 		}

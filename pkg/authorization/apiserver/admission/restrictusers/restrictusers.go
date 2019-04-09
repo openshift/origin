@@ -11,11 +11,11 @@ import (
 
 	"k8s.io/client-go/rest"
 
-	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
 	userapi "github.com/openshift/api/user/v1"
@@ -138,7 +138,7 @@ func (q *restrictUsersAdmission) Validate(a admission.Attributes) (err error) {
 	}
 
 	if len(rolebinding.Subjects) == 0 {
-		glog.V(4).Infof("No new subjects; admitting")
+		klog.V(4).Infof("No new subjects; admitting")
 		return nil
 	}
 
@@ -151,12 +151,12 @@ func (q *restrictUsersAdmission) Validate(a admission.Attributes) (err error) {
 		oldSubjects = oldrolebinding.Subjects
 	}
 
-	glog.V(4).Infof("Handling rolebinding %s/%s",
+	klog.V(4).Infof("Handling rolebinding %s/%s",
 		rolebinding.Namespace, rolebinding.Name)
 
 	newSubjects := subjectsDelta(oldSubjects, rolebinding.Subjects)
 	if len(newSubjects) == 0 {
-		glog.V(4).Infof("No new subjects; admitting")
+		klog.V(4).Infof("No new subjects; admitting")
 		return nil
 	}
 
@@ -167,7 +167,7 @@ func (q *restrictUsersAdmission) Validate(a admission.Attributes) (err error) {
 		return admission.NewForbidden(a, err)
 	}
 	if len(roleBindingRestrictionList.Items) == 0 {
-		glog.V(4).Infof("No rolebinding restrictions specified; admitting")
+		klog.V(4).Infof("No rolebinding restrictions specified; admitting")
 		return nil
 	}
 
@@ -204,7 +204,7 @@ func (q *restrictUsersAdmission) Validate(a admission.Attributes) (err error) {
 		return admission.NewForbidden(a, kerrors.NewAggregate(errs))
 	}
 
-	glog.V(4).Infof("All new subjects are allowed; admitting")
+	klog.V(4).Infof("All new subjects are allowed; admitting")
 
 	return nil
 }

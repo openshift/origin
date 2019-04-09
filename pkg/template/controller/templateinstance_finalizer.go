@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -115,13 +115,13 @@ func (c *TemplateInstanceFinalizerController) sync(key string) error {
 		return nil
 	}
 
-	glog.V(4).Infof("TemplateInstanceFinalizer controller: syncing %s", key)
+	klog.V(4).Infof("TemplateInstanceFinalizer controller: syncing %s", key)
 
 	errs := []error{}
 	foreground := metav1.DeletePropagationForeground
 	deleteOpts := &metav1.DeleteOptions{PropagationPolicy: &foreground}
 	for _, o := range templateInstance.Status.Objects {
-		glog.V(5).Infof("attempting to delete object: %#v", o)
+		klog.V(5).Infof("attempting to delete object: %#v", o)
 
 		gv, err := schema.ParseGroupVersion(o.Ref.APIVersion)
 		if err != nil {
@@ -186,19 +186,19 @@ func (c *TemplateInstanceFinalizerController) Run(workers int, stopCh <-chan str
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	glog.V(2).Infof("TemplateInstanceFinalizer controller waiting for cache sync")
+	klog.V(2).Infof("TemplateInstanceFinalizer controller waiting for cache sync")
 	if !cache.WaitForCacheSync(stopCh, c.informerSynced) {
 		return
 	}
 
-	glog.Infof("Starting TemplateInstanceFinalizer controller")
+	klog.Infof("Starting TemplateInstanceFinalizer controller")
 
 	for i := 0; i < workers; i++ {
 		go wait.Until(c.runWorker, time.Second, stopCh)
 	}
 
 	<-stopCh
-	glog.V(2).Infof("Stopping TemplateInstanceFinalizer controller")
+	klog.V(2).Infof("Stopping TemplateInstanceFinalizer controller")
 }
 
 // runWorker repeatedly calls processNextWorkItem until the latter wants to

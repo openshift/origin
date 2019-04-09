@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -148,7 +148,7 @@ type TriggerController struct {
 
 func NewTriggerEventBroadcaster(client kv1core.CoreV1Interface) record.EventBroadcaster {
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartLogging(klog.Infof)
 	// TODO: remove the wrapper when every client has moved to use the clientset.
 	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: client.Events("")})
 	return eventBroadcaster
@@ -214,7 +214,7 @@ func (c *TriggerController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	glog.Infof("Starting trigger controller")
+	klog.Infof("Starting trigger controller")
 
 	if !cache.WaitForCacheSync(stopCh, c.syncs...) {
 		utilruntime.HandleError(fmt.Errorf("timed out waiting for caches to sync"))
@@ -230,7 +230,7 @@ func (c *TriggerController) Run(workers int, stopCh <-chan struct{}) {
 	}
 
 	<-stopCh
-	glog.Infof("Shutting down trigger controller")
+	klog.Infof("Shutting down trigger controller")
 }
 
 func (c *TriggerController) addImageStreamNotification(obj interface{}) {
@@ -256,7 +256,7 @@ func (c *TriggerController) enqueueImageStream(is *imagev1.ImageStream) {
 func (c *TriggerController) imageStreamWorker() {
 	for c.processNextImageStream() {
 	}
-	glog.V(4).Infof("Image stream worker stopped")
+	klog.V(4).Infof("Image stream worker stopped")
 }
 
 func (c *TriggerController) processNextImageStream() bool {
@@ -279,13 +279,13 @@ func (c *TriggerController) handleImageStreamErr(err error, key interface{}) {
 	}
 
 	if c.queue.NumRequeues(key) < maxRetries {
-		glog.V(4).Infof("Error syncing image stream %v: %v", key, err)
+		klog.V(4).Infof("Error syncing image stream %v: %v", key, err)
 		c.queue.AddRateLimited(key)
 		return
 	}
 
 	utilruntime.HandleError(err)
-	glog.V(4).Infof("Dropping image stream %q out of the queue: %v", key, err)
+	klog.V(4).Infof("Dropping image stream %q out of the queue: %v", key, err)
 	c.queue.Forget(key)
 }
 
@@ -294,7 +294,7 @@ func (c *TriggerController) handleImageStreamErr(err error, key interface{}) {
 func (c *TriggerController) resourceWorker() {
 	for c.processNextResource() {
 	}
-	glog.V(4).Infof("Resource worker stopped")
+	klog.V(4).Infof("Resource worker stopped")
 }
 
 func (c *TriggerController) processNextResource() bool {
@@ -317,24 +317,24 @@ func (c *TriggerController) handleResourceErr(err error, key string) {
 	}
 
 	if delay, ok := c.resourceFailureDelayFn(c.imageChangeQueue.NumRequeues(key)); ok {
-		glog.V(4).Infof("Error syncing resource %s: %v", key, err)
+		klog.V(4).Infof("Error syncing resource %s: %v", key, err)
 		c.imageChangeQueue.AddAfter(key, delay)
 		return
 	}
 
 	utilruntime.HandleError(err)
-	glog.V(4).Infof("Dropping resource %q out of the queue: %v", key, err)
+	klog.V(4).Infof("Dropping resource %q out of the queue: %v", key, err)
 	c.imageChangeQueue.Forget(key)
 }
 
 // syncImageStream will sync the image stream with the given key.
 // This function is not meant to be invoked concurrently with the same key.
 func (c *TriggerController) syncImageStream(key string) error {
-	if glog.V(4) {
+	if klog.V(4) {
 		startTime := time.Now()
-		glog.Infof("Started syncing image stream %q", key)
+		klog.Infof("Started syncing image stream %q", key)
 		defer func() {
-			glog.Infof("Finished syncing image stream %q (%v)", key, time.Since(startTime))
+			klog.Infof("Finished syncing image stream %q (%v)", key, time.Since(startTime))
 		}()
 	}
 
@@ -358,11 +358,11 @@ func (c *TriggerController) syncImageStream(key string) error {
 
 // syncResource handles a set of changes against one of the possible resources generically.
 func (c *TriggerController) syncResource(key string) error {
-	if glog.V(4) {
+	if klog.V(4) {
 		startTime := time.Now()
-		glog.Infof("Started syncing resource %q", key)
+		klog.Infof("Started syncing resource %q", key)
 		defer func() {
-			glog.Infof("Finished syncing resource %q (%v)", key, time.Since(startTime))
+			klog.Infof("Finished syncing resource %q (%v)", key, time.Since(startTime))
 		}()
 	}
 

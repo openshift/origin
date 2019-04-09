@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	ktypes "k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -163,14 +163,14 @@ func (eit *EgressIPTracker) watchHostSubnets(hostSubnetInformer networkinformers
 
 func (eit *EgressIPTracker) handleAddOrUpdateHostSubnet(obj, _ interface{}, eventType watch.EventType) {
 	hs := obj.(*networkapi.HostSubnet)
-	glog.V(5).Infof("Watch %s event for HostSubnet %q", eventType, hs.Name)
+	klog.V(5).Infof("Watch %s event for HostSubnet %q", eventType, hs.Name)
 
 	eit.UpdateHostSubnetEgress(hs)
 }
 
 func (eit *EgressIPTracker) handleDeleteHostSubnet(obj interface{}) {
 	hs := obj.(*networkapi.HostSubnet)
-	glog.V(5).Infof("Watch %s event for HostSubnet %q", watch.Deleted, hs.Name)
+	klog.V(5).Infof("Watch %s event for HostSubnet %q", watch.Deleted, hs.Name)
 
 	hs = hs.DeepCopy()
 	hs.EgressCIDRs = nil
@@ -268,14 +268,14 @@ func (eit *EgressIPTracker) watchNetNamespaces(netNamespaceInformer networkinfor
 
 func (eit *EgressIPTracker) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {
 	netns := obj.(*networkapi.NetNamespace)
-	glog.V(5).Infof("Watch %s event for NetNamespace %q", eventType, netns.Name)
+	klog.V(5).Infof("Watch %s event for NetNamespace %q", eventType, netns.Name)
 
 	eit.UpdateNetNamespaceEgress(netns)
 }
 
 func (eit *EgressIPTracker) handleDeleteNetNamespace(obj interface{}) {
 	netns := obj.(*networkapi.NetNamespace)
-	glog.V(5).Infof("Watch %s event for NetNamespace %q", watch.Deleted, netns.Name)
+	klog.V(5).Infof("Watch %s event for NetNamespace %q", watch.Deleted, netns.Name)
 
 	eit.DeleteNetNamespaceEgress(netns.NetID)
 }
@@ -378,11 +378,11 @@ func (eit *EgressIPTracker) syncEgressIPs() {
 
 func (eit *EgressIPTracker) syncEgressNodeState(eg *egressIPInfo, active bool) {
 	if active && eg.assignedNodeIP != eg.nodes[0].nodeIP {
-		glog.V(4).Infof("Assigning egress IP %s to node %s", eg.ip, eg.nodes[0].nodeIP)
+		klog.V(4).Infof("Assigning egress IP %s to node %s", eg.ip, eg.nodes[0].nodeIP)
 		eg.assignedNodeIP = eg.nodes[0].nodeIP
 		eit.watcher.ClaimEgressIP(eg.namespaces[0].vnid, eg.ip, eg.assignedNodeIP)
 	} else if !active && eg.assignedNodeIP != "" {
-		glog.V(4).Infof("Removing egress IP %s from node %s", eg.ip, eg.assignedNodeIP)
+		klog.V(4).Infof("Removing egress IP %s from node %s", eg.ip, eg.assignedNodeIP)
 		eit.watcher.ReleaseEgressIP(eg.ip, eg.assignedNodeIP)
 		eg.assignedNodeIP = ""
 	}
@@ -409,14 +409,14 @@ func (eit *EgressIPTracker) syncEgressNamespaceState(ns *namespaceEgress) {
 		}
 		if len(eg.namespaces) > 1 {
 			active = nil
-			glog.V(4).Infof("VNID %d gets no egress due to multiply-assigned egress IP %s", ns.vnid, eg.ip)
+			klog.V(4).Infof("VNID %d gets no egress due to multiply-assigned egress IP %s", ns.vnid, eg.ip)
 			break
 		}
 		if active == nil {
 			if eg.assignedNodeIP == "" {
-				glog.V(4).Infof("VNID %d cannot use unassigned egress IP %s", ns.vnid, eg.ip)
+				klog.V(4).Infof("VNID %d cannot use unassigned egress IP %s", ns.vnid, eg.ip)
 			} else if len(ns.requestedIPs) > 1 && eg.nodes[0].offline {
-				glog.V(4).Infof("VNID %d cannot use egress IP %s on offline node %s", ns.vnid, eg.ip, eg.assignedNodeIP)
+				klog.V(4).Infof("VNID %d cannot use egress IP %s on offline node %s", ns.vnid, eg.ip, eg.assignedNodeIP)
 			} else {
 				active = eg
 			}

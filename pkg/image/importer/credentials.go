@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	kapiv1 "k8s.io/api/core/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
@@ -69,7 +69,7 @@ func (s *SecretCredentialStore) init() credentialprovider.DockerKeyring {
 	// TODO: need a version of this that is best effort secret - otherwise one error blocks all secrets
 	keyring, err := credentialprovidersecrets.MakeDockerKeyring(s.secrets, emptyKeyring)
 	if err != nil {
-		glog.V(5).Infof("Loading keyring failed for credential store: %v", err)
+		klog.V(5).Infof("Loading keyring failed for credential store: %v", err)
 		s.err = err
 		keyring = emptyKeyring
 	}
@@ -104,12 +104,12 @@ func basicCredentialsFromKeyring(keyring credentialprovider.DockerKeyring, targe
 	if !found || len(configs) == 0 {
 		// do a special case check for docker.io to match historical lookups when we respond to a challenge
 		if value == "auth.docker.io/token" {
-			glog.V(5).Infof("Being asked for %s (%s), trying %s for legacy behavior", target, value, "index.docker.io/v1")
+			klog.V(5).Infof("Being asked for %s (%s), trying %s for legacy behavior", target, value, "index.docker.io/v1")
 			return basicCredentialsFromKeyring(keyring, &url.URL{Host: "index.docker.io", Path: "/v1"})
 		}
 		// docker 1.9 saves 'docker.io' in config in f23, see https://bugzilla.redhat.com/show_bug.cgi?id=1309739
 		if value == "index.docker.io" {
-			glog.V(5).Infof("Being asked for %s (%s), trying %s for legacy behavior", target, value, "docker.io")
+			klog.V(5).Infof("Being asked for %s (%s), trying %s for legacy behavior", target, value, "docker.io")
 			return basicCredentialsFromKeyring(keyring, &url.URL{Host: "docker.io"})
 		}
 
@@ -117,14 +117,14 @@ func basicCredentialsFromKeyring(keyring credentialprovider.DockerKeyring, targe
 		if (strings.HasSuffix(target.Host, ":443") && target.Scheme == "https") ||
 			(strings.HasSuffix(target.Host, ":80") && target.Scheme == "http") {
 			host := strings.SplitN(target.Host, ":", 2)[0]
-			glog.V(5).Infof("Being asked for %s (%s), trying %s without port", target, value, host)
+			klog.V(5).Infof("Being asked for %s (%s), trying %s without port", target, value, host)
 
 			return basicCredentialsFromKeyring(keyring, &url.URL{Scheme: target.Scheme, Host: host, Path: target.Path})
 		}
 
-		glog.V(5).Infof("Unable to find a secret to match %s (%s)", target, value)
+		klog.V(5).Infof("Unable to find a secret to match %s (%s)", target, value)
 		return "", ""
 	}
-	glog.V(5).Infof("Found secret to match %s (%s): %s", target, value, configs[0].ServerAddress)
+	klog.V(5).Infof("Found secret to match %s (%s): %s", target, value, configs[0].ServerAddress)
 	return configs[0].Username, configs[0].Password
 }

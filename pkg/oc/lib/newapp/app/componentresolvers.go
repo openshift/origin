@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/util/errors"
 )
@@ -59,7 +59,7 @@ func (r PerfectMatchWeightedResolver) Resolve(value string) (*ComponentMatch, er
 		}
 		matches, err := group.Search(true, value)
 		if err != nil {
-			glog.V(5).Infof("Error from resolver: %v\n", err)
+			klog.V(5).Infof("Error from resolver: %v\n", err)
 			errs = append(errs, err...)
 		}
 		types = append(types, group.Type())

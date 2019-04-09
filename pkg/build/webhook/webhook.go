@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubernetes "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/klog"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -72,7 +72,7 @@ func CheckSecret(namespace, userSecret string, triggers []*buildv1.WebHookTrigge
 			}
 		}
 		if secretRef != nil {
-			glog.V(4).Infof("Checking user secret against secret ref %s", secretRef.Name)
+			klog.V(4).Infof("Checking user secret against secret ref %s", secretRef.Name)
 			s, err := secretsClient.Secrets(namespace).Get(secretRef.Name, metav1.GetOptions{})
 			if err != nil && !kerrors.IsNotFound(err) {
 				return nil, err
@@ -84,7 +84,7 @@ func CheckSecret(namespace, userSecret string, triggers []*buildv1.WebHookTrigge
 			}
 		}
 	}
-	glog.V(4).Infof("did not find a matching secret")
+	klog.V(4).Infof("did not find a matching secret")
 	return nil, ErrSecretMismatch
 }
 

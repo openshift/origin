@@ -11,10 +11,10 @@ import (
 
 	"github.com/onsi/gomega"
 
-	"github.com/golang/glog"
 	"github.com/onsi/ginkgo"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"k8s.io/klog"
 
 	"k8s.io/apiserver/pkg/util/logs"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
@@ -283,6 +283,6 @@ func decodeProviderTo(provider string, testContext *e2e.TestContextType) error {
 			return fmt.Errorf("provider must decode into the cloud config object: %v", err)
 		}
 	}
-	glog.V(2).Infof("Provider %s: %#v", testContext.Provider, testContext.CloudConfig)
+	klog.V(2).Infof("Provider %s: %#v", testContext.Provider, testContext.CloudConfig)
 	return nil
 }

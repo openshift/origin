@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/util/clock"
+	"k8s.io/klog"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -70,7 +70,7 @@ func NewTimeoutValidator(tokens oauthclient.OAuthAccessTokenInterface, oauthClie
 	}
 	a.flushHandler = a.flush
 	a.putTokenHandler = a.putToken
-	glog.V(5).Infof("Token Timeout Validator primed with defaultTimeout=%s tickerInterval=%s", a.defaultTimeout, a.tickerInterval)
+	klog.V(5).Infof("Token Timeout Validator primed with defaultTimeout=%s tickerInterval=%s", a.defaultTimeout, a.tickerInterval)
 	return a
 }
 
@@ -109,7 +109,7 @@ func (a *TimeoutValidator) putToken(td *tokenData) {
 func (a *TimeoutValidator) clientTimeout(name string) time.Duration {
 	oauthClient, err := a.oauthClients.Get(name)
 	if err != nil {
-		glog.V(5).Infof("Failed to fetch OAuthClient %q for timeout value: %v", name, err)
+		klog.V(5).Infof("Failed to fetch OAuthClient %q for timeout value: %v", name, err)
 		return a.defaultTimeout
 	}
 	if oauthClient.AccessTokenInactivityTimeoutSeconds == nil {
@@ -150,7 +150,7 @@ func (a *TimeoutValidator) flush(flushHorizon time.Time) {
 	// flush all tokens that are about to expire before the flushHorizon.
 	// Typically the flushHorizon is set to a time slightly past the next
 	// ticker interval, so that not token ends up timing out between flushes
-	glog.V(5).Infof("Flushing tokens timing out before %s", flushHorizon)
+	klog.V(5).Infof("Flushing tokens timing out before %s", flushHorizon)
 
 	// grab all tokens that need to be update in this flush interval
 	// and remove them from the stored data, they either flush now or never
@@ -167,11 +167,11 @@ func (a *TimeoutValidator) flush(flushHorizon time.Time) {
 		case err == nil:
 			flushedTokens++
 		case apierrors.IsConflict(err) || apierrors.IsServerTimeout(err):
-			glog.V(5).Infof("Token update deferred for token belonging to %s",
+			klog.V(5).Infof("Token update deferred for token belonging to %s",
 				td.token.UserName)
 			retryList = append(retryList, td)
 		default:
-			glog.V(5).Infof("Token timeout for user=%q client=%q scopes=%v was not updated",
+			klog.V(5).Infof("Token timeout for user=%q client=%q scopes=%v was not updated",
 				td.token.UserName, td.token.ClientName, td.token.Scopes)
 		}
 	}
@@ -181,14 +181,14 @@ func (a *TimeoutValidator) flush(flushHorizon time.Time) {
 	for _, td := range retryList {
 		err := a.update(td)
 		if err != nil {
-			glog.V(5).Infof("Token timeout for user=%q client=%q scopes=%v was not updated",
+			klog.V(5).Infof("Token timeout for user=%q client=%q scopes=%v was not updated",
 				td.token.UserName, td.token.ClientName, td.token.Scopes)
 		} else {
 			flushedTokens++
 		}
 	}
 
-	glog.V(5).Infof("Successfully flushed %d tokens out of %d",
+	klog.V(5).Infof("Successfully flushed %d tokens out of %d",
 		flushedTokens, len(tokenList))
 }
 
@@ -200,7 +200,7 @@ func (a *TimeoutValidator) nextTick() time.Time {
 
 func (a *TimeoutValidator) Run(stopCh <-chan struct{}) {
 	defer runtime.HandleCrash()
-	glog.V(5).Infof("Started Token Timeout Flush Handling thread!")
+	klog.V(5).Infof("Started Token Timeout Flush Handling thread!")
 
 	ticker := a.clock.NewTicker(a.tickerInterval)
 	// make sure to kill the ticker when we exit
@@ -219,7 +219,7 @@ func (a *TimeoutValidator) Run(stopCh <-chan struct{}) {
 			// if this token is going to time out before the timer, flush now
 			tokenTimeout := td.timeout()
 			if tokenTimeout.Before(nextTick) {
-				glog.V(5).Infof("Timeout for user=%q client=%q scopes=%v falls before next ticker (%s < %s), forcing flush!",
+				klog.V(5).Infof("Timeout for user=%q client=%q scopes=%v falls before next ticker (%s < %s), forcing flush!",
 					td.token.UserName, td.token.ClientName, td.token.Scopes, tokenTimeout, nextTick)
 				a.flushHandler(nextTick)
 			}

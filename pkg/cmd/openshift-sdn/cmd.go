@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/clientcmd"
@@ -79,7 +79,7 @@ func NewOpenShiftSDNCommand(basename string, errout io.Writer) *cobra.Command {
 func (sdn *OpenShiftSDN) Run(c *cobra.Command, errout io.Writer, stopCh chan struct{}) {
 	err := injectKubeAPIEnv(sdn.URLOnlyKubeConfigFilePath)
 	if err != nil {
-		glog.Fatal(err)
+		klog.Fatal(err)
 	}
 
 	// Parse config file, build config objects
@@ -94,24 +94,24 @@ func (sdn *OpenShiftSDN) Run(c *cobra.Command, errout io.Writer, stopCh chan str
 				os.Exit(255)
 			}
 		}
-		glog.Fatal(err)
+		klog.Fatal(err)
 	}
 
 	// Set up a watch on our config file; if it changes, we should exit -
 	// (we don't have the ability to dynamically reload config changes).
 	if err := watchForChanges(sdn.ConfigFilePath, stopCh); err != nil {
-		glog.Fatalf("unable to setup configuration watch: %v", err)
+		klog.Fatalf("unable to setup configuration watch: %v", err)
 	}
 
 	// Build underlying network objects
 	err = sdn.Init()
 	if err != nil {
-		glog.Fatalf("Failed to initialize sdn: %v", err)
+		klog.Fatalf("Failed to initialize sdn: %v", err)
 	}
 
 	err = sdn.Start(stopCh)
 	if err != nil {
-		glog.Fatalf("Failed to start sdn: %v", err)
+		klog.Fatalf("Failed to start sdn: %v", err)
 	}
 
 	<-stopCh
@@ -130,7 +130,7 @@ func (sdn *OpenShiftSDN) ValidateAndParse() error {
 		return errors.New("cannot pass --kubeconfig and --url-only-kubeconfig")
 	}
 
-	glog.V(2).Infof("Reading node configuration from %s", sdn.ConfigFilePath)
+	klog.V(2).Infof("Reading node configuration from %s", sdn.ConfigFilePath)
 	var err error
 	sdn.NodeConfig, err = configapilatest.ReadAndResolveNodeConfig(sdn.ConfigFilePath)
 	if err != nil {
@@ -151,17 +151,17 @@ func (sdn *OpenShiftSDN) ValidateAndParse() error {
 
 	if len(validationResults.Warnings) != 0 {
 		for _, warning := range validationResults.Warnings {
-			glog.Warningf("Warning: %v, node start will continue.", warning)
+			klog.Warningf("Warning: %v, node start will continue.", warning)
 		}
 	}
 	if len(validationResults.Errors) != 0 {
-		glog.V(4).Infof("Configuration is invalid: %#v", sdn.NodeConfig)
+		klog.V(4).Infof("Configuration is invalid: %#v", sdn.NodeConfig)
 		return kerrors.NewInvalid(configapi.Kind("NodeConfig"), sdn.ConfigFilePath, validationResults.Errors)
 	}
 
 	sdn.ProxyConfig, err = ProxyConfigFromNodeConfig(*sdn.NodeConfig)
 	if err != nil {
-		glog.V(4).Infof("Unable to build proxy config: %v", err)
+		klog.V(4).Infof("Unable to build proxy config: %v", err)
 		return err
 	}
 
@@ -194,7 +194,7 @@ func (sdn *OpenShiftSDN) Init() error {
 
 // Start starts the network, proxy, and informers, then returns.
 func (sdn *OpenShiftSDN) Start(stopCh <-chan struct{}) error {
-	glog.Infof("Starting node networking (%s)", version.Get().String())
+	klog.Infof("Starting node networking (%s)", version.Get().String())
 
 	serviceability.StartProfiler()
 	err := sdn.runSDN()
@@ -227,7 +227,7 @@ func injectKubeAPIEnv(kcPath string) error {
 
 		// The kubernetes in-cluster functions don't let you override the apiserver
 		// directly; gotta "pass" it via environment vars.
-		glog.V(2).Infof("Overriding kubernetes api to %s", apiURL)
+		klog.V(2).Infof("Overriding kubernetes api to %s", apiURL)
 		os.Setenv("KUBERNETES_SERVICE_HOST", url.Hostname())
 		os.Setenv("KUBERNETES_SERVICE_PORT", url.Port())
 	}
@@ -253,7 +253,7 @@ func watchForChanges(configPath string, stopCh chan struct{}) error {
 		if err := watcher.Add(p); err != nil {
 			return err
 		}
-		glog.V(2).Infof("Watching config file %s for changes", p)
+		klog.V(2).Infof("Watching config file %s for changes", p)
 
 		stat, err := os.Lstat(p)
 		if err != nil {
@@ -279,14 +279,14 @@ func watchForChanges(configPath string, stopCh chan struct{}) error {
 				if !ok {
 					return
 				}
-				glog.V(2).Infof("Configuration file %s changed, exiting...", event.Name)
+				klog.V(2).Infof("Configuration file %s changed, exiting...", event.Name)
 				close(stopCh)
 				return
 			case err, ok := <-watcher.Errors:
 				if !ok {
 					return
 				}
-				glog.V(4).Infof("fsnotify error %v", err)
+				klog.V(4).Infof("fsnotify error %v", err)
 			}
 		}
 	}()

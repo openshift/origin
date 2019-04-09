@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/utils/exec"
@@ -142,11 +142,11 @@ func New(execer exec.Interface, bridge string, minVersion string) (Interface, er
 }
 
 func (ovsif *ovsExec) execWithStdin(cmd string, stdinArgs []string, args ...string) (string, error) {
-	logLevel := glog.Level(4)
+	logLevel := klog.Level(4)
 	switch cmd {
 	case OVS_OFCTL:
 		if args[0] == "dump-flows" {
-			logLevel = glog.Level(5)
+			logLevel = klog.Level(5)
 		}
 		args = append([]string{"-O", "OpenFlow13"}, args...)
 	case OVS_VSCTL:
@@ -159,14 +159,14 @@ func (ovsif *ovsExec) execWithStdin(cmd string, stdinArgs []string, args ...stri
 		stdin := bytes.NewBufferString(stdinString)
 		kcmd.SetStdin(stdin)
 
-		glog.V(logLevel).Infof("Executing: %s %s <<\n%s", cmd, strings.Join(args, " "), stdinString)
+		klog.V(logLevel).Infof("Executing: %s %s <<\n%s", cmd, strings.Join(args, " "), stdinString)
 	} else {
-		glog.V(logLevel).Infof("Executing: %s %s", cmd, strings.Join(args, " "))
+		klog.V(logLevel).Infof("Executing: %s %s", cmd, strings.Join(args, " "))
 	}
 
 	output, err := kcmd.CombinedOutput()
 	if err != nil {
-		glog.V(2).Infof("Error executing %s: %s", cmd, string(output))
+		klog.V(2).Infof("Error executing %s: %s", cmd, string(output))
 		return "", err
 	}
 

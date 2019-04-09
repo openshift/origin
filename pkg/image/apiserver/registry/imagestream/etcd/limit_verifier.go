@@ -3,7 +3,7 @@ package etcd
 import (
 	"fmt"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -25,7 +25,7 @@ func ImageLimitVerifier(limitRangeInformer corev1informers.LimitRangeInformer) i
 		}
 		// the verifier must return an error
 		if len(list) == 0 && len(limitRangeInformer.Informer().LastSyncResourceVersion()) == 0 {
-			glog.V(4).Infof("LimitVerifier still waiting for ranges to load: %#v", limitRangeInformer.Informer())
+			klog.V(4).Infof("LimitVerifier still waiting for ranges to load: %#v", limitRangeInformer.Informer())
 			forbiddenErr := apierrors.NewForbidden(schema.GroupResource{Resource: "limitranges"}, "", fmt.Errorf("the server is still loading limit information"))
 			forbiddenErr.ErrStatus.Details.RetryAfterSeconds = 1
 			return nil, forbiddenErr

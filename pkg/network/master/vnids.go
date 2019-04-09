@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	kapi "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -112,7 +112,7 @@ func (vmap *masterVNIDMap) allocateNetID(nsName string) (uint32, bool, error) {
 	}
 
 	vmap.setVNID(nsName, netid)
-	glog.Infof("Allocated netid %d for namespace %q", netid, nsName)
+	klog.Infof("Allocated netid %d for namespace %q", netid, nsName)
 	return netid, exists, nil
 }
 
@@ -134,9 +134,9 @@ func (vmap *masterVNIDMap) releaseNetID(nsName string) error {
 		if err := vmap.netIDManager.Release(netid); err != nil {
 			return fmt.Errorf("error while releasing netid %d for namespace %q, %v", netid, nsName, err)
 		}
-		glog.Infof("Released netid %d for namespace %q", netid, nsName)
+		klog.Infof("Released netid %d for namespace %q", netid, nsName)
 	} else {
-		glog.V(5).Infof("netid %d for namespace %q is still in use", netid, nsName)
+		klog.V(5).Infof("netid %d for namespace %q is still in use", netid, nsName)
 	}
 	return nil
 }
@@ -190,7 +190,7 @@ func (vmap *masterVNIDMap) updateNetID(nsName string, action networkapihelpers.P
 
 	// Set new network ID
 	vmap.setVNID(nsName, netid)
-	glog.Infof("Updated netid %d for namespace %q", netid, nsName)
+	klog.Infof("Updated netid %d for namespace %q", netid, nsName)
 	return netid, nil
 }
 
@@ -303,7 +303,7 @@ func (master *OsdnMaster) watchNamespaces() {
 
 func (master *OsdnMaster) handleAddOrUpdateNamespace(obj, _ interface{}, eventType watch.EventType) {
 	ns := obj.(*kapi.Namespace)
-	glog.V(5).Infof("Watch %s event for Namespace %q", eventType, ns.Name)
+	klog.V(5).Infof("Watch %s event for Namespace %q", eventType, ns.Name)
 
 	if err := master.vnids.assignVNID(master.networkClient, ns.Name); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error assigning netid: %v", err))
@@ -312,7 +312,7 @@ func (master *OsdnMaster) handleAddOrUpdateNamespace(obj, _ interface{}, eventTy
 
 func (master *OsdnMaster) handleDeleteNamespace(obj interface{}) {
 	ns := obj.(*kapi.Namespace)
-	glog.V(5).Infof("Watch %s event for Namespace %q", watch.Deleted, ns.Name)
+	klog.V(5).Infof("Watch %s event for Namespace %q", watch.Deleted, ns.Name)
 	if err := master.vnids.revokeVNID(master.networkClient, ns.Name); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error revoking netid: %v", err))
 	}
@@ -325,7 +325,7 @@ func (master *OsdnMaster) watchNetNamespaces() {
 
 func (master *OsdnMaster) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {
 	netns := obj.(*networkv1.NetNamespace)
-	glog.V(5).Infof("Watch %s event for NetNamespace %q", eventType, netns.Name)
+	klog.V(5).Infof("Watch %s event for NetNamespace %q", eventType, netns.Name)
 
 	if err := master.vnids.updateVNID(master.networkClient, netns); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Error updating netid: %v", err))

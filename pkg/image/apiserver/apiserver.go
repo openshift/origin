@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -148,28 +148,28 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	}
 
 	err = filepath.Walk("/var/run/configmaps/image-import-ca", func(path string, info os.FileInfo, err error) error {
-		glog.V(2).Infof("reading image import ca path: %s, incoming err: %v", path, err)
+		klog.V(2).Infof("reading image import ca path: %s, incoming err: %v", path, err)
 		if err != nil {
 			return err
 		}
 		if !info.Mode().IsRegular() {
-			glog.V(2).Infof("skipping dir or symlink: %s", path)
+			klog.V(2).Infof("skipping dir or symlink: %s", path)
 			return nil
 		}
 		data, err := ioutil.ReadFile(path)
 		if err != nil {
-			glog.Errorf("error reading file: %s, err: %v", path, err)
+			klog.Errorf("error reading file: %s, err: %v", path, err)
 			// we don't want to abandon trying to read additional files
 			return nil
 		}
 		pemOk := tlsConfig.RootCAs.AppendCertsFromPEM(data)
 		if !pemOk {
-			glog.Errorf("unable to read certificate data from %s", path)
+			klog.Errorf("unable to read certificate data from %s", path)
 		}
 		return nil
 	})
 	if err != nil {
-		glog.Errorf("unable to process additional image import certificates: %v", err)
+		klog.Errorf("unable to process additional image import certificates: %v", err)
 	}
 
 	transport := knet.SetTransportDefaults(&http.Transport{

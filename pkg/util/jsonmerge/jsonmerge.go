@@ -6,7 +6,7 @@ import (
 	"reflect"
 
 	"github.com/evanphx/json-patch"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
@@ -65,7 +65,7 @@ func NewDelta(from, to []byte) (*Delta, error) {
 	if err != nil {
 		return nil, err
 	}
-	glog.V(6).Infof("Patch created from:\n%s\n%s\n%s", string(before), string(after), string(diff))
+	klog.V(6).Infof("Patch created from:\n%s\n%s\n%s", string(before), string(after), string(diff))
 	d.original = before
 	d.edit = diff
 	return d, nil
@@ -98,7 +98,7 @@ func (d *Delta) Apply(latest []byte) ([]byte, error) {
 		}
 	}
 
-	glog.V(6).Infof("Testing for conflict between:\n%s\n%s", string(d.edit), string(changes))
+	klog.V(6).Infof("Testing for conflict between:\n%s\n%s", string(d.edit), string(changes))
 	if hasConflicts(diff1, diff2) {
 		return nil, ErrConflict
 	}

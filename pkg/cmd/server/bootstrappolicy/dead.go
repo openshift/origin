@@ -1,7 +1,7 @@
 package bootstrappolicy
 
 import (
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,7 +16,7 @@ var (
 func addDeadClusterRole(name string) {
 	for _, existingRole := range deadClusterRoles {
 		if name == existingRole.Name {
-			glog.Fatalf("role %q was already registered", name)
+			klog.Fatalf("role %q was already registered", name)
 		}
 	}
 
@@ -30,7 +30,7 @@ func addDeadClusterRole(name string) {
 func addDeadClusterRoleBinding(name, roleName string) {
 	for _, existing := range deadClusterRoleBindings {
 		if name == existing.Name {
-			glog.Fatalf("%q was already registered", name)
+			klog.Fatalf("%q was already registered", name)
 		}
 	}
 

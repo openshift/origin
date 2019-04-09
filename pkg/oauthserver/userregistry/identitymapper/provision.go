@@ -3,7 +3,7 @@ package identitymapper
 import (
 	"context"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
@@ -114,11 +114,11 @@ func (p *provisioningIdentityMapper) getMapping(ctx context.Context, identity *u
 		return nil, err
 	}
 	if u.UID != identity.User.UID {
-		glog.Errorf("identity.user.uid (%s) and user.uid (%s) do not match for identity %s", identity.User.UID, u.UID, identity.Name)
+		klog.Errorf("identity.user.uid (%s) and user.uid (%s) do not match for identity %s", identity.User.UID, u.UID, identity.Name)
 		return nil, kerrs.NewNotFound(userapi.Resource("useridentitymapping"), identity.Name)
 	}
 	if !sets.NewString(u.Identities...).Has(identity.Name) {
-		glog.Errorf("user.identities (%#v) does not include identity (%s)", u, identity.Name)
+		klog.Errorf("user.identities (%#v) does not include identity (%s)", u, identity.Name)
 		return nil, kerrs.NewNotFound(userapi.Resource("useridentitymapping"), identity.Name)
 	}
 	return userToInfo(u), nil

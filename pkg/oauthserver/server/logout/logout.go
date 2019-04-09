@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/RangelReale/osin"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	"k8s.io/apiserver/pkg/authentication/user"
 
@@ -53,7 +53,7 @@ func (l *logout) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// invalidate with empty user to force session removal
 	if err := l.invalidator.InvalidateAuthentication(w, &user.DefaultInfo{}); err != nil {
-		glog.V(5).Infof("error logging out: %v", err)
+		klog.V(5).Infof("error logging out: %v", err)
 		http.Error(w, "failed to log out", http.StatusInternalServerError)
 		return
 	}

@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/docker/docker/pkg/term"
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 // PromptForString takes an io.Reader and prompts for user input if it's a terminal, returning the result.
@@ -33,7 +33,7 @@ func PromptForPasswordString(r io.Reader, w io.Writer, format string, a ...inter
 		if term.IsTerminal(inFd) {
 			oldState, err := term.SaveState(inFd)
 			if err != nil {
-				glog.V(3).Infof("Unable to save terminal state")
+				klog.V(3).Infof("Unable to save terminal state")
 				return PromptForString(r, w, format, a...)
 			}
 
@@ -49,7 +49,7 @@ func PromptForPasswordString(r io.Reader, w io.Writer, format string, a ...inter
 
 			return input
 		}
-		glog.V(3).Infof("Stdin is not a terminal")
+		klog.V(3).Infof("Stdin is not a terminal")
 		return PromptForString(r, w, format, a...)
 	}
 	return PromptForString(r, w, format, a...)

@@ -5,13 +5,13 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/golang/glog"
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/encoding/dot"
 	"github.com/gonum/graph/path"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog"
 
 	imagev1 "github.com/openshift/api/image/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
@@ -56,7 +56,7 @@ func (d *ChainDescriber) MakeGraph() (osgraph.Graph, error) {
 
 	loaders := []GraphLoader{}
 	for namespace := range d.namespaces {
-		glog.V(4).Infof("Loading build configurations from %q", namespace)
+		klog.V(4).Infof("Loading build configurations from %q", namespace)
 		loaders = append(loaders, &bcLoader{namespace: namespace, lister: d.c})
 	}
 	loadingFuncs := []func() error{}

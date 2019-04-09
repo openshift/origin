@@ -7,7 +7,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -79,7 +79,7 @@ func New(pluginName string, networkClient networkclient.Interface, kClient kuber
 }
 
 func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsHandler) error {
-	glog.Infof("Starting multitenant SDN proxy endpoint filter")
+	klog.Infof("Starting multitenant SDN proxy endpoint filter")
 
 	var err error
 	proxy.networkInfo, err = common.GetNetworkInfo(proxy.networkClient)
@@ -120,7 +120,7 @@ func (proxy *OsdnProxy) watchEgressNetworkPolicies() {
 
 func (proxy *OsdnProxy) handleAddOrUpdateEgressNetworkPolicy(obj, _ interface{}, eventType watch.EventType) {
 	policy := obj.(*networkv1.EgressNetworkPolicy)
-	glog.V(5).Infof("Watch %s event for EgressNetworkPolicy %s/%s", eventType, policy.Namespace, policy.Name)
+	klog.V(5).Infof("Watch %s event for EgressNetworkPolicy %s/%s", eventType, policy.Namespace, policy.Name)
 
 	proxy.egressDNS.Delete(*policy)
 	proxy.egressDNS.Add(*policy)
@@ -132,7 +132,7 @@ func (proxy *OsdnProxy) handleAddOrUpdateEgressNetworkPolicy(obj, _ interface{},
 
 func (proxy *OsdnProxy) handleDeleteEgressNetworkPolicy(obj interface{}) {
 	policy := obj.(*networkv1.EgressNetworkPolicy)
-	glog.V(5).Infof("Watch %s event for EgressNetworkPolicy %s/%s", watch.Deleted, policy.Namespace, policy.Name)
+	klog.V(5).Infof("Watch %s event for EgressNetworkPolicy %s/%s", watch.Deleted, policy.Namespace, policy.Name)
 
 	proxy.egressDNS.Delete(*policy)
 	policy.Spec.Egress = nil
@@ -147,7 +147,7 @@ func (proxy *OsdnProxy) watchNetNamespaces() {
 
 func (proxy *OsdnProxy) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {
 	netns := obj.(*networkv1.NetNamespace)
-	glog.V(5).Infof("Watch %s event for NetNamespace %q", eventType, netns.Name)
+	klog.V(5).Infof("Watch %s event for NetNamespace %q", eventType, netns.Name)
 
 	proxy.idLock.Lock()
 	defer proxy.idLock.Unlock()
@@ -156,7 +156,7 @@ func (proxy *OsdnProxy) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventT
 
 func (proxy *OsdnProxy) handleDeleteNetNamespace(obj interface{}) {
 	netns := obj.(*networkv1.NetNamespace)
-	glog.V(5).Infof("Watch %s event for NetNamespace %q", watch.Deleted, netns.Name)
+	klog.V(5).Infof("Watch %s event for NetNamespace %q", watch.Deleted, netns.Name)
 
 	proxy.idLock.Lock()
 	defer proxy.idLock.Unlock()
@@ -228,7 +228,7 @@ func (proxy *OsdnProxy) updateEgressNetworkPolicy(policy networkv1.EgressNetwork
 		if len(ref.namespaceFirewalls) == 1 {
 			for uid := range ref.namespaceFirewalls {
 				ref.activePolicy = &uid
-				glog.Infof("Applied firewall egress network policy: %q to namespace: %q", uid, ns)
+				klog.Infof("Applied firewall egress network policy: %q to namespace: %q", uid, ns)
 			}
 		} else {
 			ref.activePolicy = nil
@@ -276,7 +276,7 @@ func (proxy *OsdnProxy) endpointsBlocked(ep *corev1.Endpoints) bool {
 			IP := net.ParseIP(addr.IP)
 			if _, contains := common.ClusterNetworkListContains(proxy.networkInfo.ClusterNetworks, IP); !contains && !proxy.networkInfo.ServiceNetwork.Contains(IP) {
 				if proxy.firewallBlocksIP(ep.Namespace, IP) {
-					glog.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to firewalled destination (%s)", ep.Name, ep.Namespace, addr.IP)
+					klog.Warningf("Service '%s' in namespace '%s' has an Endpoint pointing to firewalled destination (%s)", ep.Name, ep.Namespace, addr.IP)
 					return true
 				}
 			}
@@ -303,7 +303,7 @@ func (proxy *OsdnProxy) OnEndpointsUpdate(old, ep *corev1.Endpoints) {
 
 	pep := proxy.allEndpoints[ep.UID]
 	if pep == nil {
-		glog.Warningf("Got OnEndpointsUpdate for unknown Endpoints %#v", ep)
+		klog.Warningf("Got OnEndpointsUpdate for unknown Endpoints %#v", ep)
 		pep = &proxyEndpoints{ep, true}
 		proxy.allEndpoints[ep.UID] = pep
 	}
@@ -327,7 +327,7 @@ func (proxy *OsdnProxy) OnEndpointsDelete(ep *corev1.Endpoints) {
 
 	pep := proxy.allEndpoints[ep.UID]
 	if pep == nil {
-		glog.Warningf("Got OnEndpointsDelete for unknown Endpoints %#v", ep)
+		klog.Warningf("Got OnEndpointsDelete for unknown Endpoints %#v", ep)
 		return
 	}
 	delete(proxy.allEndpoints, ep.UID)
@@ -351,7 +351,7 @@ func (proxy *OsdnProxy) syncEgressDNSProxyFirewall() {
 
 	for {
 		policyUpdates := <-proxy.egressDNS.Updates
-		glog.V(5).Infof("Egress dns sync: update proxy firewall for policy: %v", policyUpdates.UID)
+		klog.V(5).Infof("Egress dns sync: update proxy firewall for policy: %v", policyUpdates.UID)
 
 		policy, ok := getPolicy(policyUpdates.UID, policies)
 		if !ok {
@@ -363,7 +363,7 @@ func (proxy *OsdnProxy) syncEgressDNSProxyFirewall() {
 
 			policy, ok = getPolicy(policyUpdates.UID, policies)
 			if !ok {
-				glog.Warningf("Unable to update proxy firewall for policy: %v, policy not found", policyUpdates.UID)
+				klog.Warningf("Unable to update proxy firewall for policy: %v, policy not found", policyUpdates.UID)
 				continue
 			}
 		}

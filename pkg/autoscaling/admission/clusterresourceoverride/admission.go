@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -42,7 +42,7 @@ func Register(plugins *admission.Plugins) {
 				return nil, err
 			}
 			if pluginConfig == nil {
-				glog.Infof("Admission plugin %q is not configured so it will be disabled.", api.PluginName)
+				klog.Infof("Admission plugin %q is not configured so it will be disabled.", api.PluginName)
 				return nil, nil
 			}
 			return newClusterResourceOverride(pluginConfig)
@@ -70,7 +70,7 @@ var _ = admission.ValidationInterface(&clusterResourceOverridePlugin{})
 // newClusterResourceOverride returns an admission controller for containers that
 // configurably overrides container resource request/limits
 func newClusterResourceOverride(config *api.ClusterResourceOverrideConfig) (admission.Interface, error) {
-	glog.V(2).Infof("%s admission controller loaded with config: %v", api.PluginName, config)
+	klog.V(2).Infof("%s admission controller loaded with config: %v", api.PluginName, config)
 	var internal *internalConfig
 	if config != nil {
 		internal = &internalConfig{
@@ -105,7 +105,7 @@ func (d *clusterResourceOverridePlugin) SetExternalKubeInformerFactory(kubeInfor
 func ReadConfig(configFile io.Reader) (*api.ClusterResourceOverrideConfig, error) {
 	obj, err := configlatest.ReadYAML(configFile)
 	if err != nil {
-		glog.V(5).Infof("%s error reading config: %v", api.PluginName, err)
+		klog.V(5).Infof("%s error reading config: %v", api.PluginName, err)
 		return nil, err
 	}
 	if obj == nil {
@@ -115,7 +115,7 @@ func ReadConfig(configFile io.Reader) (*api.ClusterResourceOverrideConfig, error
 	if !ok {
 		return nil, fmt.Errorf("unexpected config object: %#v", obj)
 	}
-	glog.V(5).Infof("%s config is: %v", api.PluginName, config)
+	klog.V(5).Infof("%s config is: %v", api.PluginName, config)
 	if errs := validation.Validate(config); len(errs) > 0 {
 		return nil, errs.ToAggregate()
 	}
@@ -154,7 +154,7 @@ func (a *clusterResourceOverridePlugin) Validate(attr admission.Attributes) erro
 
 // TODO this will need to update when we have pod requests/limits
 func (a *clusterResourceOverridePlugin) admit(attr admission.Attributes, mutationAllowed bool) error {
-	glog.V(6).Infof("%s admission controller is invoked", api.PluginName)
+	klog.V(6).Infof("%s admission controller is invoked", api.PluginName)
 	if a.config == nil || attr.GetResource().GroupResource() != coreapi.Resource("pods") || attr.GetSubresource() != "" {
 		return nil // not applicable
 	}
@@ -162,23 +162,23 @@ func (a *clusterResourceOverridePlugin) admit(attr admission.Attributes, mutatio
 	if !ok {
 		return admission.NewForbidden(attr, fmt.Errorf("unexpected object: %#v", attr.GetObject()))
 	}
-	glog.V(5).Infof("%s is looking at creating pod %s in project %s", api.PluginName, pod.Name, attr.GetNamespace())
+	klog.V(5).Infof("%s is looking at creating pod %s in project %s", api.PluginName, pod.Name, attr.GetNamespace())
 
 	// allow annotations on project to override
 	ns, err := a.nsLister.Get(attr.GetNamespace())
 	if err != nil {
-		glog.Warningf("%s got an error retrieving namespace: %v", api.PluginName, err)
+		klog.Warningf("%s got an error retrieving namespace: %v", api.PluginName, err)
 		return admission.NewForbidden(attr, err) // this should not happen though
 	}
 
 	projectEnabledPlugin, exists := ns.Annotations[clusterResourceOverrideAnnotation]
 	if exists && projectEnabledPlugin != "true" {
-		glog.V(5).Infof("%s is disabled for project %s", api.PluginName, attr.GetNamespace())
+		klog.V(5).Infof("%s is disabled for project %s", api.PluginName, attr.GetNamespace())
 		return nil // disabled for this project, do nothing
 	}
 
 	if isExemptedNamespace(ns.Name) {
-		glog.V(5).Infof("%s is skipping exempted project %s", api.PluginName, attr.GetNamespace())
+		klog.V(5).Infof("%s is skipping exempted project %s", api.PluginName, attr.GetNamespace())
 		return nil // project is exempted, do nothing
 	}
 
@@ -199,11 +199,11 @@ func (a *clusterResourceOverridePlugin) admit(attr admission.Attributes, mutatio
 
 	// Reuse LimitRanger logic to apply limit/req defaults from the project. Ignore validation
 	// errors, assume that LimitRanger will run after this plugin to validate.
-	glog.V(5).Infof("%s: initial pod limits are: %#v", api.PluginName, pod.Spec)
+	klog.V(5).Infof("%s: initial pod limits are: %#v", api.PluginName, pod.Spec)
 	if err := a.LimitRanger.Admit(attr); err != nil {
-		glog.V(5).Infof("%s: error from LimitRanger: %#v", api.PluginName, err)
+		klog.V(5).Infof("%s: error from LimitRanger: %#v", api.PluginName, err)
 	}
-	glog.V(5).Infof("%s: pod limits after LimitRanger: %#v", api.PluginName, pod.Spec)
+	klog.V(5).Infof("%s: pod limits after LimitRanger: %#v", api.PluginName, pod.Spec)
 	for i := range pod.Spec.InitContainers {
 		if err := updateContainerResources(a.config, &pod.Spec.InitContainers[i], nsCPUFloor, nsMemFloor, mutationAllowed); err != nil {
 			return admission.NewForbidden(attr, fmt.Errorf("spec.initContainers[%d].%v", i, err))
@@ -214,7 +214,7 @@ func (a *clusterResourceOverridePlugin) admit(attr admission.Attributes, mutatio
 			return admission.NewForbidden(attr, fmt.Errorf("spec.containers[%d].%v", i, err))
 		}
 	}
-	glog.V(5).Infof("%s: pod limits after overrides are: %#v", api.PluginName, pod.Spec)
+	klog.V(5).Infof("%s: pod limits after overrides are: %#v", api.PluginName, pod.Spec)
 	return nil
 }
 
@@ -241,7 +241,7 @@ func updateContainerResources(config *internalConfig, container *coreapi.Contain
 			q = memFloor.Copy()
 		}
 		if nsMemFloor != nil && q.Cmp(*nsMemFloor) < 0 {
-			glog.V(5).Infof("%s: %s pod limit %q below namespace limit; setting limit to %q", api.PluginName, corev1.ResourceMemory, q.String(), nsMemFloor.String())
+			klog.V(5).Infof("%s: %s pod limit %q below namespace limit; setting limit to %q", api.PluginName, corev1.ResourceMemory, q.String(), nsMemFloor.String())
 			q = nsMemFloor.Copy()
 		}
 		if err := applyQuantity(resources.Requests, corev1.ResourceMemory, *q, mutationAllowed); err != nil {
@@ -255,7 +255,7 @@ func updateContainerResources(config *internalConfig, container *coreapi.Contain
 			q = cpuFloor.Copy()
 		}
 		if nsCPUFloor != nil && q.Cmp(*nsCPUFloor) < 0 {
-			glog.V(5).Infof("%s: %s pod limit %q below namespace limit; setting limit to %q", api.PluginName, corev1.ResourceCPU, q.String(), nsCPUFloor.String())
+			klog.V(5).Infof("%s: %s pod limit %q below namespace limit; setting limit to %q", api.PluginName, corev1.ResourceCPU, q.String(), nsCPUFloor.String())
 			q = nsCPUFloor.Copy()
 		}
 		if err := applyQuantity(resources.Limits, corev1.ResourceCPU, *q, mutationAllowed); err != nil {
@@ -271,7 +271,7 @@ func updateContainerResources(config *internalConfig, container *coreapi.Contain
 			q = cpuFloor.Copy()
 		}
 		if nsCPUFloor != nil && q.Cmp(*nsCPUFloor) < 0 {
-			glog.V(5).Infof("%s: %s pod limit %q below namespace limit; setting limit to %q", api.PluginName, corev1.ResourceCPU, q.String(), nsCPUFloor.String())
+			klog.V(5).Infof("%s: %s pod limit %q below namespace limit; setting limit to %q", api.PluginName, corev1.ResourceCPU, q.String(), nsCPUFloor.String())
 			q = nsCPUFloor.Copy()
 		}
 		if err := applyQuantity(resources.Requests, corev1.ResourceCPU, *q, mutationAllowed); err != nil {

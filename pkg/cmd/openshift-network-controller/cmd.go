@@ -12,8 +12,8 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/coreos/go-systemd/daemon"
-	"github.com/golang/glog"
 	"github.com/spf13/cobra"
+	"k8s.io/klog"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -63,7 +63,7 @@ func NewOpenShiftNetworkControllerCommand(name, basename string, out, errout io.
 						os.Exit(255)
 					}
 				}
-				glog.Fatal(err)
+				klog.Fatal(err)
 			}
 		},
 	}
