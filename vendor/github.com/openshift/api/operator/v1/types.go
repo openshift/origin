@@ -54,6 +54,11 @@ type OperatorSpec struct {
 	// +optional
 	LogLevel LogLevel `json:"logLevel"`
 
+	// operatorLogLevel is an intent based logging for the operator itself.  It does not give fine grained control, but it is a
+	// simple way to manage coarse grained logging choices that operators have to interpret for themselves.
+	// +optional
+	OperatorLogLevel LogLevel `json:"operatorLogLevel"`
+
 	// operandSpecs provide customization for functional units within the component
 	// +optional
 	OperandSpecs []OperandSpec `json:"operandSpecs,omitempty"`
