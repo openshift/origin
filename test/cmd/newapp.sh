@@ -105,6 +105,9 @@ os::cmd::try_until_success 'oc get imagestreamtags myruby:latest'
 os::cmd::expect_success 'oc new-app myruby~https://github.com/openshift/ruby-hello-world.git --dry-run'
 os::cmd::expect_success 'oc delete is myruby'
 
+# Ensure clear error message wrt templates container CRDs and new-app appears
+os::cmd::expect_failure_and_text 'oc new-app -f test/testdata/newapp/template-with-crd.yaml' 'error: The template contained an object type unknown to '
+
 # docker strategy with repo that has no dockerfile
 os::cmd::expect_failure_and_text 'oc new-app https://github.com/sclorg/nodejs-ex --strategy=docker' 'No Dockerfile was found'
 
