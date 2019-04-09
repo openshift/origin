@@ -251,6 +251,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 	}
 
 	c.podInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    c.podAdded,
 		UpdateFunc: c.podUpdated,
 		DeleteFunc: c.podDeleted,
 	})
@@ -1381,7 +1382,15 @@ func (bc *BuildController) podUpdated(old, cur interface{}) {
 		return
 	}
 	if isBuildPod(curPod) {
+		klog.V(0).Infof("GGM podUpdated enqueing build %s for pod %s old status %#v new status %#v", resourceName(curPod.Namespace, getBuildName(curPod)), curPod.Name, oldPod.Status, curPod.Status)
 		bc.enqueueBuildForPod(curPod)
+	}
+}
+
+func (bc *BuildController) podAdded(obj interface{}) {
+	pod := obj.(*corev1.Pod)
+	if isBuildPod(pod) {
+		klog.V(0).Infof("GGM podAdded build %s for pod %s status %#v", resourceName(pod.Namespace, getBuildName(pod)), pod.Name, pod.Status)
 	}
 }
 
@@ -1410,14 +1419,17 @@ func (bc *BuildController) podDeleted(obj interface{}) {
 // is created
 func (bc *BuildController) buildAdded(obj interface{}) {
 	build := obj.(*buildv1.Build)
+	klog.V(0).Infof("GGM build %s added %#v", build.Name, build.Status)
 	bc.enqueueBuild(build)
 }
 
 // buildUpdated is called by the build informer event handler whenever a build
 // is updated or there is a relist of builds
 func (bc *BuildController) buildUpdated(old, cur interface{}) {
-	build := cur.(*buildv1.Build)
-	bc.enqueueBuild(build)
+	oldbuild := old.(*buildv1.Build)
+	newbuild := cur.(*buildv1.Build)
+	klog.V(0).Infof("GGM build %s update old status %#v new status %#v", newbuild.Name, oldbuild.Status, newbuild.Status)
+	bc.enqueueBuild(newbuild)
 }
 
 // buildDeleted is called by the build informer event handler whenever a build
