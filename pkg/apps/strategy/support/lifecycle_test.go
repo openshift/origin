@@ -388,7 +388,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 					Labels: map[string]string{
 						"openshift.io/deployer-pod.type":     "hook",
 						appsv1.DeployerPodForDeploymentLabel: deploymentName,
-						"label1": "value1",
+						"label1":                             "value1",
 					},
 					Annotations: map[string]string{
 						appsv1.DeploymentAnnotation: deploymentName,
@@ -437,7 +437,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 			},
 			strategyLabels: map[string]string{
 				appsv1.DeployerPodForDeploymentLabel: "ignoredValue",
-				"label1": "value1",
+				"label1":                             "value1",
 			},
 			strategyAnnotations: map[string]string{"annotation2": "value2"},
 		},

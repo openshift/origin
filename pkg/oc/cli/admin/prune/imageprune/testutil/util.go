@@ -201,7 +201,7 @@ func AgedStream(registry, namespace, name string, ageInMinutes int64, tags []ima
 		},
 		Status: imagev1.ImageStreamStatus{
 			DockerImageRepository: fmt.Sprintf("%s/%s/%s", registry, namespace, name),
-			Tags: tags,
+			Tags:                  tags,
 		},
 	}
 

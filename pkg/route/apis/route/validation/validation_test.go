@@ -493,8 +493,8 @@ func TestValidatePassthroughInsecureEdgeTerminationPolicy(t *testing.T) {
 		routeapi.InsecureEdgeTerminationPolicyNone:     false,
 		routeapi.InsecureEdgeTerminationPolicyAllow:    true,
 		routeapi.InsecureEdgeTerminationPolicyRedirect: false,
-		"support HTTPsec":                              true,
-		"or maybe HSTS":                                true,
+		"support HTTPsec": true,
+		"or maybe HSTS":   true,
 	}
 
 	for key, expected := range insecureTypes {
@@ -691,8 +691,8 @@ func TestValidateEdgeReencryptInsecureEdgeTerminationPolicy(t *testing.T) {
 		routeapi.InsecureEdgeTerminationPolicyNone:     false,
 		routeapi.InsecureEdgeTerminationPolicyAllow:    false,
 		routeapi.InsecureEdgeTerminationPolicyRedirect: false,
-		"support HTTPsec":                              true,
-		"or maybe HSTS":                                true,
+		"support HTTPsec": true,
+		"or maybe HSTS":   true,
 	}
 
 	for _, tc := range tests {

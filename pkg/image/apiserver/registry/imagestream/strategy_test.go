@@ -1113,7 +1113,7 @@ func TestTagsChanged(t *testing.T) {
 			},
 			Status: imageapi.ImageStreamStatus{
 				DockerImageRepository: test.stream,
-				Tags: test.existingTagHistory,
+				Tags:                  test.existingTagHistory,
 			},
 		}
 		// we can't reuse the same map twice, it causes both to be modified during updates
@@ -1134,7 +1134,7 @@ func TestTagsChanged(t *testing.T) {
 			},
 			Status: imageapi.ImageStreamStatus{
 				DockerImageRepository: test.stream,
-				Tags: previousTagHistory,
+				Tags:                  previousTagHistory,
 			},
 		}
 		if test.previous == nil {

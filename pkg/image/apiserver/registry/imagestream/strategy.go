@@ -82,7 +82,7 @@ func (s Strategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	stream := obj.(*imageapi.ImageStream)
 	stream.Status = imageapi.ImageStreamStatus{
 		DockerImageRepository: s.dockerImageRepository(stream, false),
-		Tags: make(map[string]imageapi.TagEventList),
+		Tags:                  make(map[string]imageapi.TagEventList),
 	}
 	stream.Generation = 1
 	for tag, ref := range stream.Spec.Tags {

@@ -136,7 +136,7 @@ func TestDefaults(t *testing.T) {
 							DNSPolicy:                     kapiv1.DNSClusterFirst,
 							Containers: []kapiv1.Container{
 								{
-									Name: "test",
+									Name:                     "test",
 									TerminationMessagePath:   "/dev/termination-log",
 									TerminationMessagePolicy: kapiv1.TerminationMessageReadFile,
 									// The pull policy will be "PullAlways" only when the
@@ -392,7 +392,7 @@ func TestDefaults(t *testing.T) {
 						Spec: kapiv1.PodSpec{
 							Containers: []kapiv1.Container{
 								{
-									Name: "first",
+									Name:                     "first",
 									TerminationMessagePath:   "/dev/termination-log",
 									TerminationMessagePolicy: kapiv1.TerminationMessageReadFile,
 									ImagePullPolicy:          kapiv1.PullIfNotPresent,
@@ -464,7 +464,7 @@ func TestDefaults(t *testing.T) {
 						Spec: kapiv1.PodSpec{
 							Containers: []kapiv1.Container{
 								{
-									Name: "first",
+									Name:                     "first",
 									TerminationMessagePath:   "/dev/termination-log",
 									TerminationMessagePolicy: kapiv1.TerminationMessageReadFile,
 									ImagePullPolicy:          kapiv1.PullIfNotPresent,
