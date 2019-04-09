@@ -5,6 +5,12 @@ RUN make build WHAT=vendor/k8s.io/kubernetes/cmd/hyperkube
 
 FROM registry.svc.ci.openshift.org/ocp/4.0:base
 COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/hyperkube /usr/bin/
+
+RUN INSTALL_PKGS="ceph-common" && \
+    yum install -y --setopt=tsflags=nodocs $INSTALL_PKGS && \
+    mkdir -p /etc/sysconfig/cni/net.d && \
+    yum clean all && rm -rf /var/cache/*
+
 LABEL io.k8s.display-name="OpenShift Kubernetes Server Commands" \
       io.k8s.description="OpenShift is a platform for developing, building, and deploying containerized applications." \
       io.openshift.tags="openshift,hyperkube" \
