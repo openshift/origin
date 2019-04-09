@@ -88,7 +88,7 @@ func NewControllerContext(
 	if err != nil {
 		return nil, err
 	}
-	quotaClient, err := quotaclient.NewForConfig(clientConfig)
+	quotaClient, err := quotaclient.NewForConfig(nonProtobufConfig(clientConfig))
 	if err != nil {
 		return nil, err
 	}
@@ -373,7 +373,7 @@ func (b OpenshiftControllerClientBuilder) OpenshiftQuotaClient(name string) (quo
 	if err != nil {
 		return nil, err
 	}
-	return quotaclient.NewForConfig(clientConfig)
+	return quotaclient.NewForConfig(nonProtobufConfig(clientConfig))
 }
 
 // OpenshiftInternalBuildClientOrDie provides a REST client for the build API.
