@@ -146,6 +146,7 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 	if err != nil {
 		return fmt.Errorf("failed to convert IPAM result: %v", err)
 	}
+	defaultGW := result020.IP4.Gateway
 	result020.IP4.Gateway = nil
 
 	result030, err := current.NewResultFromResult(result020)
@@ -164,7 +165,7 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 	}
 	result030.IPs[0].Interface = current.Int(0)
 
-	err = ns.WithNetNSPath(args.Netns, func(ns.NetNS) error {
+	err = ns.WithNetNSPath(args.Netns, func(hostNS ns.NetNS) error {
 		// Set up eth0
 		if err := ip.SetHWAddrByIP(args.IfName, result030.IPs[0].Address.IP, nil); err != nil {
 			return fmt.Errorf("failed to set pod interface MAC address: %v", err)
@@ -187,7 +188,35 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 		if err == nil {
 			err = netlink.LinkSetUp(link)
 			if err != nil {
+				return fmt.Errorf("failed to enable macvlan device: %v", err)
+			}
+
+			// A macvlan can't reach its parent interface's IP, so we need to
+			// add a route to that via the SDN
+			var addrs []netlink.Addr
+			err = hostNS.Do(func(ns.NetNS) error {
+				parent, err := netlink.LinkByIndex(link.Attrs().ParentIndex)
+				if err != nil {
+					return err
+				}
+				addrs, err = netlink.AddrList(parent, netlink.FAMILY_V4)
+				return err
+			})
+			if err != nil {
 				return fmt.Errorf("failed to configure macvlan device: %v", err)
+			}
+			for _, addr := range addrs {
+				route := &netlink.Route{
+					Dst: &net.IPNet{
+						IP:   addr.IP,
+						Mask: net.CIDRMask(32, 32),
+					},
+					Gw: defaultGW,
+				}
+				err = netlink.RouteAdd(route)
+				if err != nil {
+					return fmt.Errorf("failed to configure macvlan device: %v", err)
+				}
 			}
 		}
 

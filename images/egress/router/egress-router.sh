@@ -106,7 +106,7 @@ function gen_iptables_rules() {
             fi
         fi
     done <<< "${EGRESS_DESTINATION}"
-    echo -A POSTROUTING -j SNAT --to-source "${EGRESS_SOURCE}"
+    echo -A POSTROUTING -o macvlan0 -j SNAT --to-source "${EGRESS_SOURCE}"
 }
 
 function setup_iptables() {
