@@ -15,7 +15,7 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -149,6 +149,22 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 				}
 				return true, nil
 			})).NotTo(o.HaveOccurred())
+		})
+		g.It("should have a Watchdog alert in firing state", func() {
+			oc.SetupProject()
+			ns := oc.Namespace()
+			execPodName := e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) { pod.Spec.Containers[0].Image = "centos:7" })
+			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+
+			tests := map[string][]metricTest{
+				// should have constantly firing a watchdog alert
+				`ALERTS{alertstate="firing",alertname="Watchdog"}`: {metricTest{greaterThanEqual: true, value: 1}},
+				// should be only one watchdog alert (this is a workaround as metricTest doesn't offer equality operator)
+				`ALERTS{alertstate="firing",alertname="Watchdog",severity="none"}`: {metricTest{greaterThanEqual: false, value: 2}},
+			}
+			runQueries(tests, oc, ns, execPodName, url, bearerToken)
+
+			e2e.Logf("Watchdog alert is firing: %s", bearerToken)
 		})
 	})
 })
