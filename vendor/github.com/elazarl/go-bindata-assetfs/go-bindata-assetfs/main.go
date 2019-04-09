@@ -5,12 +5,11 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
 )
-
-const bindatafile = "bindata.go"
 
 func isDebug(args []string) bool {
 	flagset := flag.NewFlagSet("", flag.ContinueOnError)
@@ -28,28 +27,52 @@ func isDebug(args []string) bool {
 	return *debug
 }
 
+func getBinDataFile() (*os.File, *os.File, []string, error) {
+	bindataArgs := make([]string, 0)
+	outputLoc := "bindata.go"
+
+	for i := 1; i < len(os.Args); i++ {
+		if os.Args[i] == "-o" {
+			outputLoc = os.Args[i+1]
+			i++
+		} else {
+			bindataArgs = append(bindataArgs, os.Args[i])
+		}
+	}
+
+	tempFile, err := ioutil.TempFile(os.TempDir(), "")
+	if err != nil {
+		return &os.File{}, &os.File{}, nil, err
+	}
+
+	outputFile, err := os.Create(outputLoc)
+	if err != nil {
+		return &os.File{}, &os.File{}, nil, err
+	}
+
+	bindataArgs = append([]string{"-o", tempFile.Name()}, bindataArgs...)
+	return outputFile, tempFile, bindataArgs, nil
+}
+
 func main() {
-	if _, err := exec.LookPath("go-bindata"); err != nil {
+	path, err := exec.LookPath("go-bindata")
+	if err != nil {
 		fmt.Println("Cannot find go-bindata executable in path")
 		fmt.Println("Maybe you need: go get github.com/elazarl/go-bindata-assetfs/...")
 		os.Exit(1)
 	}
-	cmd := exec.Command("go-bindata", os.Args[1:]...)
+	out, in, args, err := getBinDataFile()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error: cannot create temporary file", err)
+		os.Exit(1)
+	}
+	cmd := exec.Command(path, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
+		fmt.Fprintln(os.Stderr, "Error: go-bindata: ", err)
 		os.Exit(1)
-	}
-	in, err := os.Open(bindatafile)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Cannot read", bindatafile, err)
-		return
-	}
-	out, err := os.Create("bindata_assetfs.go")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Cannot write 'bindata_assetfs.go'", err)
-		return
 	}
 	debug := isDebug(os.Args[1:])
 	r := bufio.NewReader(in)
@@ -59,7 +82,7 @@ func main() {
 			line = append(line, '\n')
 		}
 		if _, err := out.Write(line); err != nil {
-			fmt.Fprintln(os.Stderr, "Cannot write to 'bindata_assetfs.go'", err)
+			fmt.Fprintln(os.Stderr, "Cannot write to ", out.Name(), err)
 			return
 		}
 		if !done && !isPrefix && bytes.HasPrefix(line, []byte("import (")) {
@@ -82,8 +105,11 @@ func assetFS() http.FileSystem {
 	} else {
 		fmt.Fprintln(out, `
 func assetFS() *assetfs.AssetFS {
+	assetInfo := func(path string) (os.FileInfo, error) {
+		return os.Stat(path)
+	}
 	for k := range _bintree.Children {
-		return &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, Prefix: k}
+		return &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, AssetInfo: assetInfo, Prefix: k}
 	}
 	panic("unreachable")
 }`)
@@ -91,7 +117,7 @@ func assetFS() *assetfs.AssetFS {
 	// Close files BEFORE remove calls (don't use defer).
 	in.Close()
 	out.Close()
-	if err := os.Remove(bindatafile); err != nil {
-		fmt.Fprintln(os.Stderr, "Cannot remove", bindatafile, err)
+	if err := os.Remove(in.Name()); err != nil {
+		fmt.Fprintln(os.Stderr, "Cannot remove", in.Name(), err)
 	}
 }

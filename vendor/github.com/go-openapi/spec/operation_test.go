@@ -15,6 +15,8 @@
 package spec
 
 import (
+	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"testing"
 
@@ -56,7 +58,7 @@ var operation = Operation{
 	},
 }
 
-var operationJSON = `{
+const operationJSON = `{
 	"description": "operation description",
 	"x-framework": "go-swagger",
 	"consumes": [ "application/json", "application/x-yaml" ],
@@ -74,6 +76,179 @@ var operationJSON = `{
 		}
 	}
 }`
+
+func TestSuccessResponse(t *testing.T) {
+	ope := &Operation{}
+	resp, n, f := ope.SuccessResponse()
+	assert.Nil(t, resp)
+	assert.Equal(t, 0, n)
+	assert.Equal(t, false, f)
+
+	resp, n, f = operation.SuccessResponse()
+	if assert.NotNil(t, resp) {
+		assert.Equal(t, "void response", resp.Description)
+	}
+	assert.Equal(t, 0, n)
+	assert.Equal(t, false, f)
+
+	err := json.Unmarshal([]byte(operationJSON), ope)
+	if !assert.Nil(t, err) {
+		t.FailNow()
+	}
+	ope = ope.RespondsWith(301, &Response{
+		ResponseProps: ResponseProps{
+			Description: "failure",
+		},
+	})
+	resp, n, f = ope.SuccessResponse()
+	if assert.NotNil(t, resp) {
+		assert.Equal(t, "void response", resp.Description)
+	}
+	assert.Equal(t, 0, n)
+	assert.Equal(t, false, f)
+
+	ope = ope.RespondsWith(200, &Response{
+		ResponseProps: ResponseProps{
+			Description: "success",
+		},
+	})
+
+	resp, n, f = ope.SuccessResponse()
+	if assert.NotNil(t, resp) {
+		assert.Equal(t, "success", resp.Description)
+	}
+	assert.Equal(t, 200, n)
+	assert.Equal(t, true, f)
+}
+
+func TestOperationBuilder(t *testing.T) {
+	ope := NewOperation("").WithID("operationID")
+	ope = ope.RespondsWith(200, &Response{
+		ResponseProps: ResponseProps{
+			Description: "success",
+		},
+	}).
+		WithDefaultResponse(&Response{
+			ResponseProps: ResponseProps{
+				Description: "default",
+			},
+		}).
+		SecuredWith("scheme-name", "scope1", "scope2").
+		WithConsumes("application/json").
+		WithProduces("application/json").
+		Deprecate().
+		WithTags("this", "that").
+		AddParam(nil).
+		AddParam(QueryParam("myQueryParam").Typed("integer", "int32")).
+		AddParam(QueryParam("myQueryParam").Typed("string", "hostname")).
+		AddParam(PathParam("myPathParam").Typed("string", "uuid")).
+		WithDescription("test operation").
+		WithSummary("my summary").
+		WithExternalDocs("some doc", "https://www.example.com")
+
+	jazon, _ := json.MarshalIndent(ope, "", " ")
+	assert.JSONEq(t, `{
+		     "operationId": "operationID",
+				 "description": "test operation",
+				 "summary": "my summary",
+				 "externalDocs": {
+					 "description": "some doc",
+					 "url": "https://www.example.com"
+				 },
+	       "security": [
+          {
+           "scheme-name": [
+            "scope1",
+            "scope2"
+           ]
+          }
+         ],
+         "consumes": [
+          "application/json"
+         ],
+         "produces": [
+          "application/json"
+         ],
+         "tags": [
+          "this",
+          "that"
+         ],
+         "deprecated": true,
+         "parameters": [
+          {
+           "type": "string",
+           "format": "hostname",
+           "name": "myQueryParam",
+           "in": "query"
+          },
+          {
+           "type": "string",
+           "format": "uuid",
+           "name": "myPathParam",
+           "in": "path",
+           "required": true
+          }
+         ],
+				 "responses": {
+          "200": {
+           "description": "success"
+          },
+          "default": {
+           "description": "default"
+          }
+         }
+		 }`, string(jazon))
+
+	// check token lookup
+	token, err := ope.JSONLookup("responses")
+	assert.NoError(t, err)
+	jazon, _ = json.MarshalIndent(token, "", " ")
+	assert.JSONEq(t, `{
+         "200": {
+          "description": "success"
+         },
+         "default": {
+          "description": "default"
+         }
+			 }`, string(jazon))
+
+	// check delete methods
+	ope = ope.RespondsWith(200, nil).
+		RemoveParam("myQueryParam", "query").
+		RemoveParam("myPathParam", "path").
+		RemoveParam("fakeParam", "query").
+		Undeprecate().
+		WithExternalDocs("", "")
+	jazon, _ = json.MarshalIndent(ope, "", " ")
+	assert.JSONEq(t, `{
+         "security": [
+          {
+           "scheme-name": [
+            "scope1",
+            "scope2"
+           ]
+          }
+         ],
+         "description": "test operation",
+         "consumes": [
+          "application/json"
+         ],
+         "produces": [
+          "application/json"
+         ],
+         "tags": [
+          "this",
+          "that"
+         ],
+         "summary": "my summary",
+         "operationId": "operationID",
+         "responses": {
+          "default": {
+           "description": "default"
+          }
+         }
+			 }`, string(jazon))
+}
 
 func TestIntegrationOperation(t *testing.T) {
 	var actual Operation
@@ -103,5 +278,100 @@ func TestSecurityProperty(t *testing.T) {
 			assert.Equal(t, securityContainsEmptyArray, props)
 		}
 	}
+}
 
+func TestOperationGobEncoding(t *testing.T) {
+	// 1. empty scope in security requirements:  "security": [ { "apiKey": [] } ],
+	doTestOperationGobEncoding(t, operationJSON)
+
+	// 2. nil security requirements
+	doTestOperationGobEncoding(t, `{
+	"description": "operation description",
+	"x-framework": "go-swagger",
+	"consumes": [ "application/json", "application/x-yaml" ],
+	"produces": [ "application/json", "application/x-yaml" ],
+	"schemes": ["http", "https"],
+	"tags": ["dogs"],
+	"summary": "the summary of the operation",
+	"operationId": "sendCat",
+	"deprecated": true,
+	"parameters": [{"$ref":"Cat"}],
+	"responses": {
+		"default": {
+			"description": "void response"
+		}
+	}
+}`)
+
+	// 3. empty security requirement
+	doTestOperationGobEncoding(t, `{
+	"description": "operation description",
+	"x-framework": "go-swagger",
+	"consumes": [ "application/json", "application/x-yaml" ],
+	"produces": [ "application/json", "application/x-yaml" ],
+	"schemes": ["http", "https"],
+	"tags": ["dogs"],
+	"security": [],
+	"summary": "the summary of the operation",
+	"operationId": "sendCat",
+	"deprecated": true,
+	"parameters": [{"$ref":"Cat"}],
+	"responses": {
+		"default": {
+			"description": "void response"
+		}
+	}
+}`)
+
+	// 4. non-empty security requirements
+	doTestOperationGobEncoding(t, `{
+	"description": "operation description",
+	"x-framework": "go-swagger",
+	"consumes": [ "application/json", "application/x-yaml" ],
+	"produces": [ "application/json", "application/x-yaml" ],
+	"schemes": ["http", "https"],
+	"tags": ["dogs"],
+	"summary": "the summary of the operation",
+	"security": [ { "scoped-auth": [ "phone", "email" ] , "api-key": []} ],
+	"operationId": "sendCat",
+	"deprecated": true,
+	"parameters": [{"$ref":"Cat"}],
+	"responses": {
+		"default": {
+			"description": "void response"
+		}
+	}
+}`)
+
+}
+
+func doTestOperationGobEncoding(t *testing.T, fixture string) {
+	var src, dst Operation
+
+	if !assert.NoError(t, json.Unmarshal([]byte(fixture), &src)) {
+		t.FailNow()
+	}
+
+	doTestAnyGobEncoding(t, &src, &dst)
+}
+
+func doTestAnyGobEncoding(t *testing.T, src, dst interface{}) {
+	expectedJSON, _ := json.MarshalIndent(src, "", " ")
+
+	var b bytes.Buffer
+	err := gob.NewEncoder(&b).Encode(src)
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	err = gob.NewDecoder(&b).Decode(dst)
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+
+	jazon, err := json.MarshalIndent(dst, "", " ")
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+	assert.JSONEq(t, string(expectedJSON), string(jazon))
 }

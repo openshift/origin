@@ -130,7 +130,7 @@ func (c *StaticPodStateController) sync() error {
 	} else {
 		c.versionRecorder.SetVersion(
 			c.operandName,
-			status.VersionForOperand(c.operatorNamespace, images.List()[0], c.configMapGetter, c.eventRecorder),
+			status.VersionForOperandFromEnv(),
 		)
 	}
 
