@@ -36,7 +36,7 @@ func TestClusterQuota(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminQuotaClient := quotaclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminQuotaClient := quotaclient.NewForConfigOrDie(testutil.NonProtobufConfig(clusterAdminClientConfig))
 	clusterAdminImageClient := imageclient.NewForConfigOrDie(clusterAdminClientConfig).Image()
 
 	if err := testutil.WaitForClusterResourceQuotaCRDAvailable(clusterAdminClientConfig); err != nil {
