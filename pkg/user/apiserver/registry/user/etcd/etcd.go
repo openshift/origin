@@ -100,8 +100,10 @@ func (r *REST) Get(ctx context.Context, name string, options *metav1.GetOptions)
 	}
 
 	// do not bother looking up users that cannot be persisted
+	// make sure we return a status error otherwise the API server will complain
 	if reasons := validation.ValidateUserName(name, false); len(reasons) != 0 {
-		return nil, field.Invalid(field.NewPath("metadata", "name"), name, strings.Join(reasons, ", "))
+		err := field.Invalid(field.NewPath("metadata", "name"), name, strings.Join(reasons, ", "))
+		return nil, kerrs.NewInvalid(usergroup.Kind("User"), name, field.ErrorList{err})
 	}
 
 	return r.Store.Get(ctx, name, options)
