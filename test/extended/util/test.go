@@ -397,7 +397,6 @@ var (
 
 			`\[Feature:Volumes\]`,    // storage team to investigate it post-rebase
 			`\[Driver: csi-hostpath`, // storage team to investigate it post-rebase. @hekumar
-			`SchedulerPriorities`,    // scheduler tests failing serial. sig-pod/@ravig
 			// BlockVolume tests that need kubelet 1.13
 			`\[Driver: nfs\] \[Testpattern: Pre-provisioned PV \(block volmode\)\] volumeMode should fail to create pod by failing to mount volume`,
 			`\[Driver: aws\] \[Testpattern: Dynamic PV \(block volmode\)\] volumeMode should create sc, pod, pv, and pvc, read/write to the pv, and delete all created resources`,
