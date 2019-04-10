@@ -20,6 +20,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	"github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+
+	"github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/cli/rsync"
 )
 
@@ -91,8 +94,18 @@ func (o *MustGatherOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 		o.DestDir = fmt.Sprintf("must-gather.local.%06d", rand.Int63())
 	}
 	if len(o.Image) == 0 {
-		// TODO lookup cluster specific default
-		o.Image = "quay.io/openshift/origin-must-gather:v4.0"
+		imageClient, err := v1.NewForConfig(o.Config)
+		if err != nil {
+			return err
+		}
+		imageStream, err := imageClient.ImageStreams("openshift").Get("must-gather", metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		var ok bool
+		if o.Image, ok = util.ResolveLatestTaggedImage(imageStream, "latest"); !ok {
+			return fmt.Errorf("unable to to resolve must-gather image")
+		}
 	}
 	o.PrinterCreated, err = printers.NewTypeSetter(scheme.Scheme).WrapToPrinter(&printers.NamePrinter{Operation: "created"}, nil)
 	if err != nil {
