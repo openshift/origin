@@ -43,6 +43,7 @@ func addGlogFlags(fs *pflag.FlagSet) {
 	Register(fs, "alsologtostderr")
 	Register(fs, "v")
 	Register(fs, "skip_headers")
+	Register(fs, "skip_log_headers")
 	Register(fs, "stderrthreshold")
 	Register(fs, "vmodule")
 	Register(fs, "log_backtrace_at")
