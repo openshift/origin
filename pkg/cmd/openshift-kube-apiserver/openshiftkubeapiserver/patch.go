@@ -174,11 +174,16 @@ func (c *KubeAPIServerServerPatchContext) PatchServer(server *master.Master) err
 
 // NewInformers is only exposed for the build's integration testing until it can be fixed more appropriately.
 func NewInformers(versionedInformers clientgoinformers.SharedInformerFactory, loopbackClientConfig *rest.Config) (*KubeAPIServerInformers, error) {
+	// ClusterResourceQuota is served using CRD resource any status update must use JSON
+	jsonLoopbackClientConfig := rest.CopyConfig(loopbackClientConfig)
+	jsonLoopbackClientConfig.ContentConfig.AcceptContentTypes = "application/json"
+	jsonLoopbackClientConfig.ContentConfig.ContentType = "application/json"
+
 	oauthClient, err := oauthclient.NewForConfig(loopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}
-	quotaClient, err := quotaclient.NewForConfig(loopbackClientConfig)
+	quotaClient, err := quotaclient.NewForConfig(jsonLoopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}
