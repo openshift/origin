@@ -20,6 +20,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	"github.com/openshift/origin/pkg/auth/server/headers"
 	"github.com/openshift/origin/pkg/auth/server/session"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
@@ -203,6 +204,7 @@ func (c *OAuthServerConfig) buildHandlerChainForOAuth(startingHandler http.Handl
 	handler = genericfilters.WithTimeoutForNonLongRunningRequests(handler, genericConfig.RequestContextMapper, genericConfig.LongRunningFunc, genericConfig.RequestTimeout)
 	handler = genericapifilters.WithRequestInfo(handler, genericapiserver.NewRequestInfoResolver(genericConfig), genericConfig.RequestContextMapper)
 	handler = apirequest.WithRequestContext(handler, genericConfig.RequestContextMapper)
+	handler = headers.WithStandardHeaders(handler)
 	handler = genericfilters.WithPanicRecovery(handler)
 	return handler
 }
