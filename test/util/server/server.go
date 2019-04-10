@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 	"time"
 
 	etcdclientv3 "github.com/coreos/etcd/clientv3"
+	"github.com/openshift/library-go/pkg/assets/create"
 	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
@@ -442,9 +444,22 @@ func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig
 		}
 	}()
 
-	url, err := url.Parse(fmt.Sprintf("https://%s", masterConfig.ServingInfo.BindAddress))
-	if err := waitForServerHealthy(url); err != nil {
+	serverURL, err := url.Parse(fmt.Sprintf("https://%s", masterConfig.ServingInfo.BindAddress))
+	if err := waitForServerHealthy(serverURL); err != nil {
 		return fmt.Errorf("Waiting for Kubernetes API /healthz failed with: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.TODO(), 30*time.Second)
+	defer cancel()
+
+	crdManifestsDir := "../../hack/local-up-master/kube-apiserver-manifests"
+	if _, err := os.Stat(crdManifestsDir); os.IsNotExist(err) {
+		return fmt.Errorf("directory with CRD manifests %q not found", crdManifestsDir)
+	}
+	if err := create.EnsureManifestsCreated(ctx, crdManifestsDir, clientConfig, create.CreateOptions{
+		Verbose: true,
+	}); err != nil {
+		return err
 	}
 
 	return nil

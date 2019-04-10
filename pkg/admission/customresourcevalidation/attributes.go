@@ -1,10 +1,12 @@
 package customresourcevalidation
 
 import (
-	configv1 "github.com/openshift/api/config/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/admission"
+
+	configv1 "github.com/openshift/api/config/v1"
+	quotav1 "github.com/openshift/api/quota/v1"
 )
 
 // unstructuredUnpackingAttributes tries to convert to a real object in the config scheme
@@ -20,14 +22,14 @@ func (a *unstructuredUnpackingAttributes) GetOldObject() runtime.Object {
 	return toBestObjectPossible(a.Attributes.GetOldObject())
 }
 
-// toBestObjectPossible tries to convert to a real object in the config scheme
+// toBestObjectPossible tries to convert to a real object in the supported scheme
 func toBestObjectPossible(orig runtime.Object) runtime.Object {
 	unstructuredOrig, ok := orig.(runtime.Unstructured)
 	if !ok {
 		return orig
 	}
 
-	targetObj, err := configScheme.New(unstructuredOrig.GetObjectKind().GroupVersionKind())
+	targetObj, err := supportedObjectsScheme.New(unstructuredOrig.GetObjectKind().GroupVersionKind())
 	if err != nil {
 		utilruntime.HandleError(err)
 		return unstructuredOrig
@@ -39,8 +41,9 @@ func toBestObjectPossible(orig runtime.Object) runtime.Object {
 	return targetObj
 }
 
-var configScheme = runtime.NewScheme()
+var supportedObjectsScheme = runtime.NewScheme()
 
 func init() {
-	utilruntime.Must(configv1.Install(configScheme))
+	utilruntime.Must(configv1.Install(supportedObjectsScheme))
+	utilruntime.Must(quotav1.Install(supportedObjectsScheme))
 }

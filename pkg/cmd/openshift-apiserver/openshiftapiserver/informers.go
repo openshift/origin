@@ -51,7 +51,7 @@ func NewInformers(kubeInformers kexternalinformers.SharedInformerFactory, kubeCl
 	if err != nil {
 		return nil, err
 	}
-	quotaClient, err := quotaclient.NewForConfig(loopbackClientConfig)
+	quotaClient, err := quotaclient.NewForConfig(nonProtobufConfig(kubeClientConfig))
 	if err != nil {
 		return nil, err
 	}
@@ -82,6 +82,15 @@ func NewInformers(kubeInformers kexternalinformers.SharedInformerFactory, kubeCl
 		securityInformers:      securityv1informer.NewSharedInformerFactory(securityClient, defaultInformerResyncPeriod),
 		userInformers:          userv1informer.NewSharedInformerFactory(userClient, defaultInformerResyncPeriod),
 	}, nil
+}
+
+// nonProtobufConfig returns a copy of inConfig that doesn't force the use of protobufs,
+// for working with CRD-based APIs.
+func nonProtobufConfig(inConfig *rest.Config) *rest.Config {
+	npConfig := rest.CopyConfig(inConfig)
+	npConfig.ContentConfig.AcceptContentTypes = "application/json"
+	npConfig.ContentConfig.ContentType = "application/json"
+	return npConfig
 }
 
 func (i *InformerHolder) GetKubernetesInformers() kexternalinformers.SharedInformerFactory {

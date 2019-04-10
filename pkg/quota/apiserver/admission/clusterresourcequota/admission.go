@@ -141,7 +141,13 @@ func (q *clusterQuotaAdmission) SetExternalKubeInformerFactory(informers informe
 
 func (q *clusterQuotaAdmission) SetRESTClientConfig(restClientConfig rest.Config) {
 	var err error
-	q.clusterQuotaClient, err = quotatypedclient.NewForConfig(&restClientConfig)
+
+	// ClusterResourceQuota is served using CRD resource any status update must use JSON
+	jsonClientConfig := rest.CopyConfig(&restClientConfig)
+	jsonClientConfig.ContentConfig.AcceptContentTypes = "application/json"
+	jsonClientConfig.ContentConfig.ContentType = "application/json"
+
+	q.clusterQuotaClient, err = quotatypedclient.NewForConfig(jsonClientConfig)
 	if err != nil {
 		utilruntime.HandleError(err)
 		return
