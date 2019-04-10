@@ -43,16 +43,38 @@ func TestOAuthServerHeaders(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Hit the login URL
-	loginURL := *baseURL
-	loginURL.Path = "/login"
-	checkNewReqHeaders(t, transport, loginURL.String())
+	for _, path := range []string{
+		// hit the root URL
+		// disabled until we move this test to e2e (root goes to kube API in integration tests)
+		// "/",
 
-	// Hit the grant URL
-	grantURL := *baseURL
-	grantURL.Path = "/oauth/authorize/approve"
-	checkNewReqHeaders(t, transport, grantURL.String())
+		// hit the login URL for when there is only one IDP
+		// the OAuth server only handles this endpoint when
+		// there is a single IDP but that is not true for the integration tests
+		// but, even our 404 page should have the correct headers
+		"/login",
 
+		// hit the login URL for the allow all IDP
+		"/login/anypassword",
+
+		// hit the token URL
+		"/oauth/token",
+
+		// hit the authorize URL
+		"/oauth/authorize",
+
+		// hit the grant URL
+		"/oauth/authorize/approve",
+
+		// hit the token request URL
+		"/oauth/token/request",
+	} {
+		t.Run(path, func(t *testing.T) {
+			urlCopy := *baseURL
+			urlCopy.Path = path
+			checkNewReqHeaders(t, transport, urlCopy.String())
+		})
+	}
 }
 
 func checkNewReqHeaders(t *testing.T, rt http.RoundTripper, check_url string) {
@@ -68,18 +90,46 @@ func checkNewReqHeaders(t *testing.T, rt http.RoundTripper, check_url string) {
 		t.Fatalf("unexpected error %v", err)
 	}
 
-	checkImportantHeaders := map[string]string{
+	allHeaders := http.Header{}
+	for key, val := range map[string]string{
+		// security related headers that we really care about, should not change
+		"Cache-Control":          "no-cache, no-store, max-age=0, must-revalidate",
+		"Pragma":                 "no-cache",
+		"Expires":                "0",
 		"Referrer-Policy":        "strict-origin-when-cross-origin",
 		"X-Frame-Options":        "DENY",
 		"X-Content-Type-Options": "nosniff",
 		"X-DNS-Prefetch-Control": "off",
 		"X-XSS-Protection":       "1; mode=block",
+
+		// non-security headers, should not change
+		// adding items here should be validated to make sure they do not conflict with any security headers
+		// <no items currently>
+	} {
+		// use set so we get the canonical form of these headers
+		allHeaders.Set(key, val)
 	}
 
-	for key, val := range checkImportantHeaders {
-		header := resp.Header.Get(key)
-		if header != val {
-			t.Errorf("While probing %s expected header %s: %s, got {%v}", check_url, key, val, header)
-		}
+	// these headers can change per request and are not important to us
+	// only add items to this list if they cannot be statically checked above
+	ignoredHeaders := []string{"Audit-Id", "Date", "Content-Type", "Content-Length", "Location"}
+	for _, h := range ignoredHeaders {
+		resp.Header.Del(h)
+	}
+
+	// tolerate additional header set by osin library code
+	expires := resp.Header["Expires"]
+	if len(expires) == 2 && expires[1] == "Fri, 01 Jan 1990 00:00:00 GMT" {
+		resp.Header["Expires"] = expires[:1]
+	}
+
+	// deduplicate headers (osin library code adds some duplicates)
+	for k, vv := range resp.Header {
+		resp.Header[k] = sets.NewString(vv...).List()
+	}
+
+	if !reflect.DeepEqual(allHeaders, resp.Header) {
+		t.Errorf("Header for %s does not match: expected: %#v got: %#v diff: %s",
+			checkUrl, allHeaders, resp.Header, diff.ObjectDiff(allHeaders, resp.Header))
 	}
 }

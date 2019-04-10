@@ -16,7 +16,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
-	"github.com/openshift/origin/pkg/auth/server/headers"
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	oapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
@@ -107,8 +106,6 @@ func (l *Grant) Install(mux Mux, paths ...string) {
 }
 
 func (l *Grant) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	headers.SetStandardHeaders(w)
-
 	user, ok, err := l.auth.AuthenticateRequest(req)
 	if err != nil || !ok {
 		l.redirect("You must reauthenticate before continuing", w, req)

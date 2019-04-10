@@ -25,6 +25,8 @@ import (
 	kcorestorage "k8s.io/kubernetes/pkg/registry/core/rest"
 
 	"crypto/x509"
+
+	authheaders "github.com/openshift/origin/pkg/auth/server/headers"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	serverauthenticator "github.com/openshift/origin/pkg/cmd/server/authenticator"
@@ -249,6 +251,7 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 		handler = apiserverfilters.WithMaxInFlightLimit(handler, kc.MaxRequestsInFlight, kc.MaxMutatingRequestsInFlight, contextMapper, kc.LongRunningFunc)
 		handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(kc), contextMapper)
 		handler = apirequest.WithRequestContext(handler, contextMapper)
+		handler = authheaders.WithStandardHeaders(handler)
 		handler = apiserverfilters.WithPanicRecovery(handler)
 
 		return handler

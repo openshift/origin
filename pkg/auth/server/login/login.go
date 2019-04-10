@@ -16,7 +16,6 @@ import (
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 	"github.com/openshift/origin/pkg/auth/server/errorpage"
-	"github.com/openshift/origin/pkg/auth/server/headers"
 )
 
 const (
@@ -95,7 +94,6 @@ func (l *Login) Install(mux Mux, paths ...string) {
 }
 
 func (l *Login) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	headers.SetStandardHeaders(w)
 	switch req.Method {
 	case "GET":
 		l.handleLoginForm(w, req)
