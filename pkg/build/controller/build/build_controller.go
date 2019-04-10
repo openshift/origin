@@ -476,6 +476,12 @@ func shouldIgnore(build *buildv1.Build) bool {
 		return true
 	}
 
+	// builds that are in the process of being deleted should be ignored, otherwise
+	// they might attempt to recreate a pod that was just GCed as part of the build
+	// deletion propagation.
+	if build.DeletionTimestamp != nil {
+		return true
+	}
 	// If a build is in a terminal state, ignore it; unless it is in a succeeded or failed
 	// state and its completion time or logsnippet is not set, then we should at least attempt to set its
 	// completion time and logsnippet if possible because the build pod may have put the build in
