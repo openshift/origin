@@ -291,6 +291,13 @@ func isLimitSynced(received, expected corev1.ResourceList) bool {
 	return true
 }
 
+func NonProtobufConfig(inConfig *rest.Config) *rest.Config {
+	npConfig := rest.CopyConfig(inConfig)
+	npConfig.ContentConfig.AcceptContentTypes = "application/json"
+	npConfig.ContentConfig.ContentType = "application/json"
+	return npConfig
+}
+
 // turnOffRateLimiting reduces the chance that a flaky test can be written while using this package
 func turnOffRateLimiting(config *restclient.Config) *restclient.Config {
 	configCopy := *config
