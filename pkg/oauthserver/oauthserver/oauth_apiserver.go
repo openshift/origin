@@ -27,6 +27,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
+	"github.com/openshift/origin/pkg/oauthserver/server/headers"
 	"github.com/openshift/origin/pkg/oauthserver/server/session"
 	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset"
 )
@@ -218,6 +219,7 @@ func (c *OAuthServerConfig) buildHandlerChainForOAuth(startingHandler http.Handl
 	handler = genericfilters.WithTimeoutForNonLongRunningRequests(handler, genericConfig.RequestContextMapper, genericConfig.LongRunningFunc, genericConfig.RequestTimeout)
 	handler = genericapifilters.WithRequestInfo(handler, genericapiserver.NewRequestInfoResolver(genericConfig), genericConfig.RequestContextMapper)
 	handler = apirequest.WithRequestContext(handler, genericConfig.RequestContextMapper)
+	handler = headers.WithStandardHeaders(handler)
 	handler = genericfilters.WithPanicRecovery(handler)
 	return handler
 }
