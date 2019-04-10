@@ -14,18 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package openapi
+package aggregator
 
 import (
 	"fmt"
 	"net/http"
-	"sort"
 	"sync"
 	"time"
 
 	restful "github.com/emicklei/go-restful"
 	"github.com/go-openapi/spec"
-	"k8s.io/apiserver/pkg/server/mux"
 
 	"k8s.io/apiserver/pkg/server"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
@@ -34,6 +32,15 @@ import (
 	"k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/handler"
 )
+
+// SpecAggregator calls out to http handlers of APIServices and merges specs. It keeps state of the last
+// known specs including the http etag.
+type SpecAggregator interface {
+	AddUpdateAPIService(handler http.Handler, apiService *apiregistration.APIService) error
+	UpdateAPIServiceSpec(apiServiceName string, spec *spec.Swagger, etag string) error
+	RemoveAPIServiceSpec(apiServiceName string) error
+	GetAPIServiceInfo(apiServiceName string) (handler http.Handler, etag string, exists bool)
+}
 
 const (
 	aggregatorUser                = "system:aggregator"
@@ -44,42 +51,16 @@ const (
 	locallyGeneratedEtagPrefix = "\"6E8F849B434D4B98A569B9D7718876E9-"
 )
 
-type specAggregator struct {
-	// mutex protects all members of this struct.
-	rwMutex sync.RWMutex
-
-	// Map of API Services' OpenAPI specs by their name
-	openAPISpecs map[string]*openAPISpecInfo
-
-	// provided for dynamic OpenAPI spec
-	openAPIVersionedService *handler.OpenAPIService
-}
-
-var _ AggregationManager = &specAggregator{}
-
-// This function is not thread safe as it only being called on startup.
-func (s *specAggregator) addLocalSpec(spec *spec.Swagger, localHandler http.Handler, name, etag string) {
-	localAPIService := apiregistration.APIService{}
-	localAPIService.Name = name
-	s.openAPISpecs[name] = &openAPISpecInfo{
-		etag:       etag,
-		apiService: localAPIService,
-		handler:    localHandler,
-		spec:       spec,
-	}
-}
-
 // BuildAndRegisterAggregator registered OpenAPI aggregator handler. This function is not thread safe as it only being called on startup.
 func BuildAndRegisterAggregator(downloader *Downloader, delegationTarget server.DelegationTarget, webServices []*restful.WebService,
-	config *common.Config, pathHandler *mux.PathRecorderMux) (AggregationManager, error) {
+	config *common.Config, pathHandler common.PathHandler) (SpecAggregator, error) {
 	s := &specAggregator{
 		openAPISpecs: map[string]*openAPISpecInfo{},
 	}
 
 	i := 0
 	// Build Aggregator's spec
-	aggregatorOpenAPISpec, err := builder.BuildOpenAPISpec(
-		webServices, config)
+	aggregatorOpenAPISpec, err := builder.BuildOpenAPISpec(webServices, config)
 	if err != nil {
 		return nil, err
 	}
@@ -109,26 +90,39 @@ func BuildAndRegisterAggregator(downloader *Downloader, delegationTarget server.
 		return nil, err
 	}
 
+	// Install handler
 	s.openAPIVersionedService, err = handler.RegisterOpenAPIVersionedService(
 		specToServe, "/openapi/v2", pathHandler)
 	if err != nil {
 		return nil, err
 	}
 
-	// NOTE: [DEPRECATION] We will announce deprecation for format-separated endpoints for OpenAPI spec,
-	// and switch to a single /openapi/v2 endpoint in Kubernetes 1.10. The design doc and deprecation process
-	// are tracked at: https://docs.google.com/document/d/19lEqE9lc4yHJ3WJAJxS_G7TcORIJXGHyq3wpwcH28nU.
-	pathHandler.Handle("/swagger.json", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		// forward request to /openapi/v2
-		clone := *req
-		u := *req.URL
-		u.Path = "/openapi/v2"
-		u.RawPath = "/openapi/v2"
-		clone.URL = &u
-		pathHandler.ServeHTTP(w, &clone)
-	}))
-
 	return s, nil
+}
+
+type specAggregator struct {
+	// mutex protects all members of this struct.
+	rwMutex sync.RWMutex
+
+	// Map of API Services' OpenAPI specs by their name
+	openAPISpecs map[string]*openAPISpecInfo
+
+	// provided for dynamic OpenAPI spec
+	openAPIVersionedService *handler.OpenAPIService
+}
+
+var _ SpecAggregator = &specAggregator{}
+
+// This function is not thread safe as it only being called on startup.
+func (s *specAggregator) addLocalSpec(spec *spec.Swagger, localHandler http.Handler, name, etag string) {
+	localAPIService := apiregistration.APIService{}
+	localAPIService.Name = name
+	s.openAPISpecs[name] = &openAPISpecInfo{
+		etag:       etag,
+		apiService: localAPIService,
+		handler:    localHandler,
+		spec:       spec,
+	}
 }
 
 // openAPISpecInfo is used to store OpenAPI spec with its priority.
@@ -140,59 +134,6 @@ type openAPISpecInfo struct {
 	spec    *spec.Swagger
 	handler http.Handler
 	etag    string
-}
-
-// byPriority can be used in sort.Sort to sort specs with their priorities.
-type byPriority struct {
-	specs           []openAPISpecInfo
-	groupPriorities map[string]int32
-}
-
-func (a byPriority) Len() int      { return len(a.specs) }
-func (a byPriority) Swap(i, j int) { a.specs[i], a.specs[j] = a.specs[j], a.specs[i] }
-func (a byPriority) Less(i, j int) bool {
-	// All local specs will come first
-	if a.specs[i].apiService.Spec.Service == nil && a.specs[j].apiService.Spec.Service != nil {
-		return true
-	}
-	if a.specs[i].apiService.Spec.Service != nil && a.specs[j].apiService.Spec.Service == nil {
-		return false
-	}
-	// WARNING: This will result in not following priorities for local APIServices.
-	if a.specs[i].apiService.Spec.Service == nil {
-		// Sort local specs with their name. This is the order in the delegation chain (aggregator first).
-		return a.specs[i].apiService.Name < a.specs[j].apiService.Name
-	}
-	var iPriority, jPriority int32
-	if a.specs[i].apiService.Spec.Group == a.specs[j].apiService.Spec.Group {
-		iPriority = a.specs[i].apiService.Spec.VersionPriority
-		jPriority = a.specs[i].apiService.Spec.VersionPriority
-	} else {
-		iPriority = a.groupPriorities[a.specs[i].apiService.Spec.Group]
-		jPriority = a.groupPriorities[a.specs[j].apiService.Spec.Group]
-	}
-	if iPriority != jPriority {
-		// Sort by priority, higher first
-		return iPriority > jPriority
-	}
-	// Sort by service name.
-	return a.specs[i].apiService.Name < a.specs[j].apiService.Name
-}
-
-func sortByPriority(specs []openAPISpecInfo) {
-	b := byPriority{
-		specs:           specs,
-		groupPriorities: map[string]int32{},
-	}
-	for _, spec := range specs {
-		if spec.apiService.Spec.Service == nil {
-			continue
-		}
-		if pr, found := b.groupPriorities[spec.apiService.Spec.Group]; !found || spec.apiService.Spec.GroupPriorityMinimum > pr {
-			b.groupPriorities[spec.apiService.Spec.Group] = spec.apiService.Spec.GroupPriorityMinimum
-		}
-	}
-	sort.Sort(b)
 }
 
 // buildOpenAPISpec aggregates all OpenAPI specs.  It is not thread-safe. The caller is responsible to hold proper locks.
@@ -209,7 +150,6 @@ func (s *specAggregator) buildOpenAPISpec() (specToReturn *spec.Swagger, err err
 	}
 	sortByPriority(specs)
 	for _, specInfo := range specs {
-		// TODO: Make kube-openapi.MergeSpec(s) accept nil or empty spec as destination and just clone the spec in that case.
 		if specToReturn == nil {
 			specToReturn = &spec.Swagger{}
 			*specToReturn = *specInfo.spec
