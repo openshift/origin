@@ -12,6 +12,8 @@ import (
 	"k8s.io/klog"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
@@ -53,9 +55,9 @@ var (
 	rsyncDefaultFlags = []string{"--archive", "--no-owner", "--no-group", "--omit-dir-times", "--numeric-ids"}
 )
 
-// copyStrategy
-type copyStrategy interface {
-	Copy(source, destination *pathSpec, out, errOut io.Writer) error
+// CopyStrategy implementations copy file to/from a pod.
+type CopyStrategy interface {
+	Copy(source, destination *PathSpec, out, errOut io.Writer) error
 	Validate() error
 	String() string
 }
@@ -79,9 +81,9 @@ type podChecker interface {
 type RsyncOptions struct {
 	Namespace         string
 	ContainerName     string
-	Source            *pathSpec
-	Destination       *pathSpec
-	Strategy          copyStrategy
+	Source            *PathSpec
+	Destination       *PathSpec
+	Strategy          CopyStrategy
 	StrategyName      string
 	Quiet             bool
 	Delete            bool
@@ -89,11 +91,14 @@ type RsyncOptions struct {
 	Compress          bool
 	SuggestedCmdUsage string
 
+	RshCmd        string
 	RsyncInclude  []string
 	RsyncExclude  []string
 	RsyncProgress bool
 	RsyncNoPerms  bool
 
+	Config *rest.Config
+	Client kubernetes.Interface
 	genericclioptions.IOStreams
 }
 
@@ -104,7 +109,6 @@ func NewRsyncOptions(streams genericclioptions.IOStreams) *RsyncOptions {
 }
 
 // NewCmdRsync creates a new sync command
-
 func NewCmdRsync(name, parent string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewRsyncOptions(streams)
 
@@ -120,7 +124,7 @@ func NewCmdRsync(name, parent string, f kcmdutil.Factory, streams genericcliopti
 		},
 	}
 
-	// NOTE: When adding new flags to the command, please update the rshExcludeFlags in copyrsync.go
+	// NOTE: When adding new flags to the command, please update the rshExcludeFlags in copy_rsync.go
 	// if those flags should not be passed to the rsh command.
 
 	cmd.Flags().StringVarP(&o.ContainerName, "container", "c", "", "Container within the pod")
@@ -147,43 +151,16 @@ func warnNoRsync(out io.Writer) {
 	fmt.Fprintf(out, noRsyncUnixWarning)
 }
 
-func (o *RsyncOptions) determineStrategy(f kcmdutil.Factory, cmd *cobra.Command, name string) (copyStrategy, error) {
+func (o *RsyncOptions) GetCopyStrategy(name string) (CopyStrategy, error) {
 	switch name {
 	case "":
-		// Default case, use an rsync strategy first and then fallback to Tar
-		strategies := copyStrategies{}
-		if hasLocalRsync() {
-			if isWindows() {
-				strategy, err := newRsyncDaemonStrategy(f, cmd, o)
-				if err != nil {
-					return nil, err
-				}
-				strategies = append(strategies, strategy)
-			} else {
-				strategy, err := newRsyncStrategy(f, cmd, o)
-				if err != nil {
-					return nil, err
-				}
-				strategies = append(strategies, strategy)
-			}
-		} else {
-			warnNoRsync(o.ErrOut)
-		}
-		strategy, err := newTarStrategy(f, cmd, o)
-		if err != nil {
-			return nil, err
-		}
-		strategies = append(strategies, strategy)
-		return strategies, nil
+		return NewDefaultCopyStrategy(o), nil
 	case "rsync":
-		return newRsyncStrategy(f, cmd, o)
-
+		return NewRsyncStrategy(o), nil
 	case "rsync-daemon":
-		return newRsyncDaemonStrategy(f, cmd, o)
-
+		return NewRsyncDaemonStrategy(o), nil
 	case "tar":
-		return newTarStrategy(f, cmd, o)
-
+		return NewTarStrategy(o), nil
 	default:
 		return nil, fmt.Errorf("unknown strategy: %s", name)
 	}
@@ -239,7 +216,9 @@ func (o *RsyncOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []s
 		o.SuggestedCmdUsage = fmt.Sprintf("Use '%s describe pod/%s -n %s' to see all of the containers in this pod.", fullCmdName, o.PodName(), o.Namespace)
 	}
 
-	o.Strategy, err = o.determineStrategy(f, cmd, o.StrategyName)
+	o.RshCmd = DefaultRsyncRemoteShellToUse(cmd)
+
+	o.Strategy, err = o.GetCopyStrategy(o.StrategyName)
 	if err != nil {
 		return err
 	}

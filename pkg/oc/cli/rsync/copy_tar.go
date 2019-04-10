@@ -11,12 +11,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/openshift/source-to-image/pkg/tar"
-	"github.com/spf13/cobra"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog"
-	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/source-to-image/pkg/tar"
 	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 )
 
@@ -37,17 +35,15 @@ type tarStrategy struct {
 	Flags          []string
 }
 
-func newTarStrategy(f kcmdutil.Factory, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
+// NewTarStrategy returns a copy strategy that uses tar.
+func NewTarStrategy(o *RsyncOptions) CopyStrategy {
 
 	tarHelper := tar.New(s2ifs.NewFileSystem())
 	tarHelper.SetExclusionPattern(nil)
 
 	ignoredFlags := rsyncSpecificFlags(o)
 
-	remoteExec, err := newRemoteExecutor(f, o)
-	if err != nil {
-		return nil, err
-	}
+	remoteExec := newRemoteExecutor(o)
 
 	return &tarStrategy{
 		Quiet:          o.Quiet,
@@ -58,7 +54,7 @@ func newTarStrategy(f kcmdutil.Factory, c *cobra.Command, o *RsyncOptions) (copy
 		RemoteExecutor: remoteExec,
 		IgnoredFlags:   ignoredFlags,
 		Flags:          tarFlagsFromOptions(o),
-	}, nil
+	}
 }
 
 func deleteContents(dir string) error {
@@ -84,7 +80,7 @@ func deleteContents(dir string) error {
 	return nil
 }
 
-func deleteLocal(source, dest *pathSpec) error {
+func deleteLocal(source, dest *PathSpec) error {
 	deleteDir := dest.Path
 	// Determine which directory to empty based on source parameter
 	// If the source does not end in a path separator, the directory
@@ -97,7 +93,7 @@ func deleteLocal(source, dest *pathSpec) error {
 	return deleteContents(deleteDir)
 }
 
-func deleteRemote(source, dest *pathSpec, ex executor) error {
+func deleteRemote(source, dest *PathSpec, ex executor) error {
 	// Determine which directory to empty based on source parameter
 	// If the source does not end in a path separator, the directory
 	// being copied over is the directory that needs to be cleaned out
@@ -111,14 +107,14 @@ func deleteRemote(source, dest *pathSpec, ex executor) error {
 	return executeWithLogging(ex, deleteCmd)
 }
 
-func deleteFiles(source, dest *pathSpec, remoteExecutor executor) error {
+func deleteFiles(source, dest *PathSpec, remoteExecutor executor) error {
 	if dest.Local() {
 		return deleteLocal(source, dest)
 	}
 	return deleteRemote(source, dest, remoteExecutor)
 }
 
-func (r *tarStrategy) Copy(source, destination *pathSpec, out, errOut io.Writer) error {
+func (r *tarStrategy) Copy(source, destination *PathSpec, out, errOut io.Writer) error {
 
 	klog.V(3).Infof("Copying files with tar")
 
