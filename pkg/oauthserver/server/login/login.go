@@ -18,7 +18,6 @@ import (
 	"github.com/openshift/origin/pkg/oauthserver/prometheus"
 	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
 	"github.com/openshift/origin/pkg/oauthserver/server/errorpage"
-	"github.com/openshift/origin/pkg/oauthserver/server/headers"
 	"github.com/openshift/origin/pkg/oauthserver/server/redirect"
 )
 
@@ -99,7 +98,6 @@ func (l *Login) Install(mux oauthserver.Mux, paths ...string) {
 }
 
 func (l *Login) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	headers.SetStandardHeaders(w)
 	switch req.Method {
 	case "GET":
 		l.handleLoginForm(w, req)
