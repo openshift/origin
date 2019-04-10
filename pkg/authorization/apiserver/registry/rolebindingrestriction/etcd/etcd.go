@@ -1,43 +1,68 @@
 package etcd
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apiserver/pkg/registry/generic"
-	"k8s.io/apiserver/pkg/registry/generic/registry"
-	"k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/kubernetes/pkg/printers"
-	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
+	"context"
+	"fmt"
 
-	authorization "github.com/openshift/api/authorization"
+	"k8s.io/apimachinery/pkg/watch"
+
+	"k8s.io/apimachinery/pkg/api/errors"
+
+	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/registry/rest"
+
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/authorization/apiserver/registry/rolebindingrestriction"
-	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 )
 
 type REST struct {
-	*registry.Store
 }
 
 var _ rest.StandardStorage = &REST{}
+var _ rest.Scoper = &REST{}
 
 // NewREST returns a RESTStorage object that will work against nodes.
-func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, error) {
-	store := &registry.Store{
-		NewFunc:                  func() runtime.Object { return &authorizationapi.RoleBindingRestriction{} },
-		NewListFunc:              func() runtime.Object { return &authorizationapi.RoleBindingRestrictionList{} },
-		DefaultQualifiedResource: authorization.Resource("rolebindingrestrictions"),
+func NewREST() (*REST, error) {
+	return &REST{}, nil
+}
 
-		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
+func (r *REST) NamespaceScoped() bool {
+	return true
+}
 
-		CreateStrategy: rolebindingrestriction.Strategy,
-		UpdateStrategy: rolebindingrestriction.Strategy,
-		DeleteStrategy: rolebindingrestriction.Strategy,
-	}
+func (r *REST) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+	return nil, errors.NewInternalError(fmt.Errorf("unsupported"))
+}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter}
-	if err := store.CompleteWithOptions(options); err != nil {
-		return nil, err
-	}
+func (r *REST) NewList() runtime.Object {
+	return &authorizationapi.RoleBindingRestrictionList{}
+}
 
-	return &REST{Store: store}, nil
+func (r *REST) List(ctx context.Context, options *metainternalversion.ListOptions) (runtime.Object, error) {
+	return nil, errors.NewInternalError(fmt.Errorf("unsupported"))
+}
+
+func (r *REST) New() runtime.Object {
+	return &authorizationapi.RoleBindingRestriction{}
+}
+
+func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
+	return nil, errors.NewInternalError(fmt.Errorf("unsupported"))
+}
+
+func (r *REST) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc, forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
+	return nil, false, errors.NewInternalError(fmt.Errorf("unsupported"))
+}
+
+func (r *REST) Delete(ctx context.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
+	return nil, false, errors.NewInternalError(fmt.Errorf("unsupported"))
+}
+
+func (r *REST) DeleteCollection(ctx context.Context, options *metav1.DeleteOptions, listOptions *metainternalversion.ListOptions) (runtime.Object, error) {
+	return nil, errors.NewInternalError(fmt.Errorf("unsupported"))
+}
+
+func (r *REST) Watch(ctx context.Context, options *metainternalversion.ListOptions) (watch.Interface, error) {
+	return nil, errors.NewInternalError(fmt.Errorf("unsupported"))
 }
