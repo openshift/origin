@@ -28,6 +28,7 @@ import (
 	"github.com/openshift/api/image"
 	"github.com/openshift/api/network"
 	"github.com/openshift/api/oauth"
+	"github.com/openshift/api/operator"
 	"github.com/openshift/api/project"
 	"github.com/openshift/api/quota"
 	"github.com/openshift/api/route"
@@ -72,6 +73,7 @@ var (
 	imageGroup          = image.GroupName
 	networkGroup        = network.GroupName
 	oauthGroup          = oauth.GroupName
+	operatorGroup       = operator.GroupName
 	projectGroup        = project.GroupName
 	quotaGroup          = quota.GroupName
 	routeGroup          = route.GroupName
@@ -134,7 +136,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 				Labels: map[string]string{"rbac.authorization.k8s.io/aggregate-to-cluster-reader": "true"},
 			},
 			Rules: []rbacv1.PolicyRule{
-				rbacv1helpers.NewRule(read...).Groups(kapiGroup).Resources("componentstatuses", "nodes", "nodes/status", "persistentvolumeclaims/status", "persistentvolumes",
+				rbacv1helpers.NewRule(read...).Groups(kapiGroup).Resources("componentstatuses", "configmaps", "nodes", "nodes/status", "persistentvolumeclaims/status", "persistentvolumes",
 					"persistentvolumes/status", "pods/binding", "pods/eviction", "podtemplates", "securitycontextconstraints", "services/status").RuleOrDie(),
 
 				rbacv1helpers.NewRule(read...).Groups(admissionRegistrationGroup).Resources("mutatingwebhookconfigurations", "validatingwebhookconfigurations").RuleOrDie(),
@@ -150,6 +152,9 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 
 				rbacv1helpers.NewRule(read...).Groups(batchGroup).Resources("jobs/status", "cronjobs/status").RuleOrDie(),
 
+				rbacv1helpers.NewRule(read...).Groups(configGroup).Resources("apiservers", "authentications", "builds", "clusteroperators", "clusterversions",
+					"consoles", "dnses", "featuregates", "images", "infrastructures", "ingresses", "networks", "oauths", "projects", "proxies", "schedulers").RuleOrDie(),
+
 				rbacv1helpers.NewRule(read...).Groups(coordinationGroup).Resources("leases").RuleOrDie(),
 
 				rbacv1helpers.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets/status", "deployments/status", "horizontalpodautoscalers",
@@ -157,6 +162,10 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 					"storageclasses", "thirdpartyresources").RuleOrDie(),
 
 				rbacv1helpers.NewRule(read...).Groups(eventsGroup).Resources("events").RuleOrDie(),
+
+				rbacv1helpers.NewRule(read...).Groups(operatorGroup).Resources("authentications", "dnses", "consoles", "etcds", "kubeapiservers", "kubecontrollermanagers",
+					"kubeschedulers", "networks", "openshiftapiservers", "openshiftcontrollermanagers", "servicecas", "servicecatalogapiservers", "servicecatalogcontrollermanagers",
+					"ingresscontrollers").RuleOrDie(),
 
 				rbacv1helpers.NewRule(read...).Groups(policyGroup).Resources("podsecuritypolicies", "poddisruptionbudgets/status").RuleOrDie(),
 

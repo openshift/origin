@@ -106,6 +106,15 @@ func TestBootstrapClusterRoles(t *testing.T) {
 	testObjects(t, list, "bootstrap_cluster_roles.yaml")
 }
 
+func TestOpenshiftAPIBootstrapClusterRole(t *testing.T) {
+	roles := bootstrappolicy.GetOpenshiftBootstrapClusterRoles()
+	list := &api.List{}
+	for i := range roles {
+		list.Items = append(list.Items, &roles[i])
+	}
+	testObjects(t, list, "openshift_bootstrap_cluster_roles.yaml")
+}
+
 func testObjects(t *testing.T, list *api.List, fixtureFilename string) {
 	filename := filepath.Join("../../../../test/testdata/bootstrappolicy", fixtureFilename)
 	expectedYAML, err := ioutil.ReadFile(filename)

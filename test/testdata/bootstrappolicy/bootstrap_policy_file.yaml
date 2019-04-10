@@ -70,6 +70,7 @@ items:
     - ""
     resources:
     - componentstatuses
+    - configmaps
     - nodes
     - nodes/status
     - persistentvolumeclaims/status
@@ -141,6 +142,29 @@ items:
     - list
     - watch
   - apiGroups:
+    - config.openshift.io
+    resources:
+    - apiservers
+    - authentications
+    - builds
+    - clusteroperators
+    - clusterversions
+    - consoles
+    - dnses
+    - featuregates
+    - images
+    - infrastructures
+    - ingresses
+    - networks
+    - oauths
+    - projects
+    - proxies
+    - schedulers
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
     - coordination.k8s.io
     resources:
     - leases
@@ -171,6 +195,27 @@ items:
     - events.k8s.io
     resources:
     - events
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - operator.openshift.io
+    resources:
+    - authentications
+    - consoles
+    - dnses
+    - etcds
+    - ingresscontrollers
+    - kubeapiservers
+    - kubecontrollermanagers
+    - kubeschedulers
+    - networks
+    - openshiftapiservers
+    - openshiftcontrollermanagers
+    - servicecas
+    - servicecatalogapiservers
+    - servicecatalogcontrollermanagers
     verbs:
     - get
     - list
