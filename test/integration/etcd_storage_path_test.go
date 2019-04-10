@@ -260,6 +260,11 @@ func TestEtcd3StoragePath(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// wait for RoleBindingRestriction CRD to be available
+	if err := testutil.WaitForRoleBindingRestrictionCRDAvailable(kubeConfig); err != nil {
+		t.Fatal(err)
+	}
+
 	mapper := restmapper.NewDeferredDiscoveryRESTMapper(discocache.NewMemCacheClient(kubeClient.Discovery()))
 	mapper.Reset()
 
