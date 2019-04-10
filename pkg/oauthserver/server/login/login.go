@@ -15,10 +15,9 @@ import (
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 
 	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
-	"github.com/openshift/origin/pkg/oauthserver/prometheus"
+	metrics "github.com/openshift/origin/pkg/oauthserver/prometheus"
 	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
 	"github.com/openshift/origin/pkg/oauthserver/server/errorpage"
-	"github.com/openshift/origin/pkg/oauthserver/server/headers"
 )
 
 const (
@@ -97,7 +96,6 @@ func (l *Login) Install(mux Mux, paths ...string) {
 }
 
 func (l *Login) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	headers.SetStandardHeaders(w)
 	switch req.Method {
 	case "GET":
 		l.handleLoginForm(w, req)
