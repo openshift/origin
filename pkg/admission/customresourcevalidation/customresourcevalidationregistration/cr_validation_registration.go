@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/origin/pkg/admission/customresourcevalidation/image"
 	"github.com/openshift/origin/pkg/admission/customresourcevalidation/oauth"
 	"github.com/openshift/origin/pkg/admission/customresourcevalidation/project"
+	"github.com/openshift/origin/pkg/admission/customresourcevalidation/rolebindingrestriction"
 	"github.com/openshift/origin/pkg/admission/customresourcevalidation/scheduler"
 	"github.com/openshift/origin/pkg/admission/customresourcevalidation/securitycontextconstraints"
 )
@@ -27,6 +28,7 @@ var AllCustomResourceValidators = []string{
 	scheduler.PluginName,
 	clusterresourcequota.PluginName,
 	securitycontextconstraints.PluginName,
+	rolebindingrestriction.PluginName,
 
 	// this one is special because we don't work without it.
 	securitycontextconstraints.DefaultingPluginName,
@@ -47,6 +49,8 @@ func RegisterCustomResourceValidation(plugins *admission.Plugins) {
 	clusterresourcequota.Register(plugins)
 	// This plugin validates the security.openshift.io/v1 SecurityContextConstraints resources.
 	securitycontextconstraints.Register(plugins)
+	// This plugin validates the authorization.openshift.io/v1 RoleBindingRestriction resources.
+	rolebindingrestriction.Register(plugins)
 
 	// this one is special because we don't work without it.
 	securitycontextconstraints.RegisterDefaulting(plugins)
