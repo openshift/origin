@@ -13,9 +13,9 @@ spec:
   subresources:
     status: {}
   versions:
-    - name: v1
-      served: true
-      storage: true
+  - name: v1
+    served: true
+    storage: true
   validation:
     openAPIV3Schema:
       properties:
@@ -46,9 +46,11 @@ spec:
               properties:
                 annotations:
                   description: AnnotationSelector is used to select projects by annotation.
+                  nullable: true
                   type: object
                 labels:
                   description: LabelSelector is used to select projects by label.
+                  nullable: true
                   type: object
               type: object
           type: object
@@ -70,6 +72,7 @@ spec:
                       by this project
                     type: object
                 type: object
+              nullable: true
               type: array
             total:
               description: Total defines the actual enforced quota and its current
