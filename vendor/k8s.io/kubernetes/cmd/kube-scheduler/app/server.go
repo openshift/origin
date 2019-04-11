@@ -67,7 +67,7 @@ import (
 )
 
 // NewSchedulerCommand creates a *cobra.Command object with default parameters
-func NewSchedulerCommand() *cobra.Command {
+func NewSchedulerCommand(stopCh <-chan struct{}) *cobra.Command {
 	opts, err := options.NewOptions()
 	if err != nil {
 		klog.Fatalf("unable to initialize command options: %v", err)
@@ -83,7 +83,7 @@ constraints, affinity and anti-affinity specifications, data locality, inter-wor
 interference, deadlines, and so on. Workload-specific requirements will be exposed
 through the API as necessary.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := runCommand(cmd, args, opts); err != nil {
+			if err := runCommand(cmd, args, opts, stopCh); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
@@ -114,7 +114,7 @@ through the API as necessary.`,
 }
 
 // runCommand runs the scheduler.
-func runCommand(cmd *cobra.Command, args []string, opts *options.Options) error {
+func runCommand(cmd *cobra.Command, args []string, opts *options.Options, stopCh <-chan struct{}) error {
 	verflag.PrintAndExitIfRequested()
 	utilflag.PrintFlags(cmd.Flags())
 
@@ -140,8 +140,6 @@ func runCommand(cmd *cobra.Command, args []string, opts *options.Options) error 
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
-
-	stopCh := make(chan struct{})
 
 	// Get the completed config
 	cc := c.Complete()
