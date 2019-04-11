@@ -29,6 +29,7 @@ import (
 	migratehpa "github.com/openshift/origin/pkg/oc/cli/admin/migrate/legacyhpa"
 	migratestorage "github.com/openshift/origin/pkg/oc/cli/admin/migrate/storage"
 	migratetemplateinstances "github.com/openshift/origin/pkg/oc/cli/admin/migrate/templateinstances"
+	"github.com/openshift/origin/pkg/oc/cli/admin/mustgather"
 	"github.com/openshift/origin/pkg/oc/cli/admin/network"
 	"github.com/openshift/origin/pkg/oc/cli/admin/node"
 	"github.com/openshift/origin/pkg/oc/cli/admin/policy"
@@ -62,6 +63,7 @@ func NewCommandAdmin(name, fullName string, f kcmdutil.Factory, streams genericc
 			Commands: []*cobra.Command{
 				upgrade.New(f, fullName, streams),
 				top.NewCommandTop(top.TopRecommendedName, fullName+" "+top.TopRecommendedName, f, streams),
+				mustgather.NewMustGatherCommand(f, streams),
 			},
 		},
 		{
