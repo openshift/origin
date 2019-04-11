@@ -280,7 +280,7 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 	s.installReadyz(stopCh)
 
 	// close socket after delayed stopCh
-	err := s.NonBlockingRun(delayedStopCh)
+	serverDoneCh, err := s.NonBlockingRun(delayedStopCh)
 	if err != nil {
 		return err
 	}
@@ -299,12 +299,15 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 	// Wait for all requests to finish, which are bounded by the RequestTimeout variable.
 	s.HandlerChainWaitGroup.Wait()
 
+	// wait for server listener to be closed
+	<-serverDoneCh
+
 	return nil
 }
 
 // NonBlockingRun spawns the secure http server. An error is
 // returned if the secure port cannot be listened on.
-func (s preparedGenericAPIServer) NonBlockingRun(stopCh <-chan struct{}) error {
+func (s preparedGenericAPIServer) NonBlockingRun(stopCh <-chan struct{}) (<-chan struct{}, error) {
 	// Use an stop channel to allow graceful shutdown without dropping audit events
 	// after http server shutdown.
 	auditStopCh := make(chan struct{})
@@ -313,7 +316,7 @@ func (s preparedGenericAPIServer) NonBlockingRun(stopCh <-chan struct{}) error {
 	// before http server start serving. Otherwise the Backend.ProcessEvents call might block.
 	if s.AuditBackend != nil {
 		if err := s.AuditBackend.Run(auditStopCh); err != nil {
-			return fmt.Errorf("failed to run the audit backend: %v", err)
+			return nil, fmt.Errorf("failed to run the audit backend: %v", err)
 		}
 	}
 
@@ -325,8 +328,12 @@ func (s preparedGenericAPIServer) NonBlockingRun(stopCh <-chan struct{}) error {
 		stoppedCh, err = s.SecureServingInfo.Serve(s.Handler, s.ShutdownTimeout, internalStopCh)
 		if err != nil {
 			close(internalStopCh)
-			return err
+			return nil, err
 		}
+	} else {
+		ch := make(chan struct{})
+		close(ch)
+		stoppedCh = ch
 	}
 
 	// Now that listener have bound successfully, it is the
@@ -349,7 +356,7 @@ func (s preparedGenericAPIServer) NonBlockingRun(stopCh <-chan struct{}) error {
 		klog.Errorf("Unable to send systemd daemon successful start message: %v\n", err)
 	}
 
-	return nil
+	return stoppedCh, nil
 }
 
 // installAPIResources is a private method for installing the REST storage backing each api groupversionresource
