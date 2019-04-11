@@ -163,6 +163,16 @@ func runCommand(cmd *cobra.Command, args []string, opts *options.Options, stopCh
 
 // Run executes the scheduler based on the given configuration. It only return on error or when stopCh is closed.
 func Run(cc schedulerserverconfig.CompletedConfig, stopCh <-chan struct{}) error {
+	ctx, cancel := context.WithCancel(context.TODO())
+	defer cancel()
+	go func() {
+		select {
+		case <-stopCh:
+			cancel()
+		case <-ctx.Done():
+		}
+	}()
+
 	var storageClassInformer storageinformers.StorageClassInformer
 	if utilfeature.DefaultFeatureGate.Enabled(features.VolumeScheduling) {
 		storageClassInformer = cc.InformerFactory.Storage().V1().StorageClasses()
@@ -220,10 +230,14 @@ func Run(cc schedulerserverconfig.CompletedConfig, stopCh <-chan struct{}) error
 	}
 	if cc.SecureServing != nil {
 		handler := buildHandlerChain(newHealthzHandler(&cc.ComponentConfig, false, checks...), cc.Authentication.Authenticator, cc.Authorization.Authorizer)
-		// TODO: handle stoppedCh returned by c.SecureServing.Serve
-		if _, err := cc.SecureServing.Serve(handler, 0, stopCh); err != nil {
+		if serverStoppedCh, err := cc.SecureServing.Serve(handler, 0, stopCh); err != nil {
 			// fail early for secure handlers, removing the old error loop from above
 			return fmt.Errorf("failed to start healthz server: %v", err)
+		} else {
+			defer func() {
+				cancel()
+				<-serverStoppedCh
+			}()
 		}
 	}
 
@@ -235,27 +249,12 @@ func Run(cc schedulerserverconfig.CompletedConfig, stopCh <-chan struct{}) error
 	cc.InformerFactory.WaitForCacheSync(stopCh)
 	controller.WaitForCacheSync("scheduler", stopCh, cc.PodInformer.Informer().HasSynced)
 
-	// Prepare a reusable runCommand function.
-	run := func(ctx context.Context) {
-		sched.Run()
-		<-ctx.Done()
-	}
-
-	ctx, cancel := context.WithCancel(context.TODO()) // TODO once Run() accepts a context, it should be used here
-	defer cancel()
-
-	go func() {
-		select {
-		case <-stopCh:
-			cancel()
-		case <-ctx.Done():
-		}
-	}()
-
 	// If leader election is enabled, runCommand via LeaderElector until done and exit.
 	if cc.LeaderElection != nil {
 		cc.LeaderElection.Callbacks = leaderelection.LeaderCallbacks{
-			OnStartedLeading: run,
+			OnStartedLeading: func(context.Context) {
+				sched.Run()
+			},
 			OnStoppedLeading: func() {
 				utilruntime.HandleError(fmt.Errorf("lost master"))
 			},
@@ -266,13 +265,12 @@ func Run(cc schedulerserverconfig.CompletedConfig, stopCh <-chan struct{}) error
 		}
 
 		leaderElector.Run(ctx)
-
-		return fmt.Errorf("lost lease")
+	} else {
+		// Leader election is disabled, so runCommand inline until done.
+		sched.Run()
 	}
 
-	// Leader election is disabled, so runCommand inline until done.
-	run(ctx)
-	return fmt.Errorf("finished without leader elect")
+	return nil
 }
 
 // buildHandlerChain wraps the given handler with the standard filters.
