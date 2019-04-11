@@ -3,13 +3,14 @@ package integration
 import (
 	"testing"
 
+	kapi "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	authorizationv1 "github.com/openshift/api/authorization/v1"
+	authorizationclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -24,7 +25,6 @@ func TestRestrictUsers(t *testing.T) {
 	masterConfig.KubernetesMasterConfig.APIServerArguments["enable-admission-plugins"] = append(
 		masterConfig.KubernetesMasterConfig.APIServerArguments["enable-admission-plugins"],
 		"authorization.openshift.io/RestrictSubjectBindings")
-
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(masterConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -39,13 +39,13 @@ func TestRestrictUsers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()
+	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(testutil.NonProtobufConfig(clusterAdminClientConfig))
 
 	if _, _, err := testserver.CreateNewProject(clusterAdminClientConfig, "namespace", "carol"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	role := &authorizationapi.Role{
+	role := &authorizationv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "namespace",
 			Name:      "role",
@@ -55,7 +55,7 @@ func TestRestrictUsers(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	rolebindingAlice := &authorizationapi.RoleBinding{
+	rolebindingAlice := &authorizationv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "namespace",
 			Name:      "rolebinding1",
@@ -75,13 +75,13 @@ func TestRestrictUsers(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	allowAlice := &authorizationapi.RoleBindingRestriction{
+	allowAlice := &authorizationv1.RoleBindingRestriction{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "match-users-alice",
 			Namespace: "namespace",
 		},
-		Spec: authorizationapi.RoleBindingRestrictionSpec{
-			UserRestriction: &authorizationapi.UserRestriction{
+		Spec: authorizationv1.RoleBindingRestrictionSpec{
+			UserRestriction: &authorizationv1.UserRestriction{
 				Users: []string{"alice"},
 			},
 		},
@@ -91,7 +91,7 @@ func TestRestrictUsers(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	rolebindingAliceDup := &authorizationapi.RoleBinding{
+	rolebindingAliceDup := &authorizationv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "namespace",
 			Name:      "rolebinding2",
@@ -111,7 +111,7 @@ func TestRestrictUsers(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	rolebindingBob := &authorizationapi.RoleBinding{
+	rolebindingBob := &authorizationv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "namespace",
 			Name:      "rolebinding3",
@@ -152,13 +152,13 @@ func TestRestrictUsers(t *testing.T) {
 		t.Fatalf("expected forbidden, got %v", err)
 	}
 
-	allowBob := &authorizationapi.RoleBindingRestriction{
+	allowBob := &authorizationv1.RoleBindingRestriction{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "match-users-bob",
 			Namespace: "namespace",
 		},
-		Spec: authorizationapi.RoleBindingRestrictionSpec{
-			UserRestriction: &authorizationapi.UserRestriction{
+		Spec: authorizationv1.RoleBindingRestrictionSpec{
+			UserRestriction: &authorizationv1.UserRestriction{
 				Users: []string{"bob"},
 			},
 		},
@@ -176,13 +176,13 @@ func TestRestrictUsers(t *testing.T) {
 
 	// Creating rolebindings that also contains "system non existing" users should
 	// not fail.
-	allowWithNonExisting := &authorizationapi.RoleBindingRestriction{
+	allowWithNonExisting := &authorizationv1.RoleBindingRestriction{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "match-users-eve-and-non-existing",
 			Namespace: "namespace",
 		},
-		Spec: authorizationapi.RoleBindingRestrictionSpec{
-			UserRestriction: &authorizationapi.UserRestriction{
+		Spec: authorizationv1.RoleBindingRestrictionSpec{
+			UserRestriction: &authorizationv1.UserRestriction{
 				Users: []string{"eve", "system:non-existing"},
 			},
 		},
@@ -192,7 +192,7 @@ func TestRestrictUsers(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	rolebindingEve := &authorizationapi.RoleBinding{
+	rolebindingEve := &authorizationv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "namespace",
 			Name:      "rolebinding4",
@@ -211,7 +211,7 @@ func TestRestrictUsers(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	rolebindingNonExisting := &authorizationapi.RoleBinding{
+	rolebindingNonExisting := &authorizationv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "namespace",
 			Name:      "rolebinding5",
