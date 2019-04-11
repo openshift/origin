@@ -319,9 +319,11 @@ func (s preparedGenericAPIServer) NonBlockingRun(stopCh <-chan struct{}) error {
 
 	// Use an internal stop channel to allow cleanup of the listeners on error.
 	internalStopCh := make(chan struct{})
-
+	var stoppedCh <-chan struct{}
 	if s.SecureServingInfo != nil && s.Handler != nil {
-		if err := s.SecureServingInfo.Serve(s.Handler, s.ShutdownTimeout, internalStopCh); err != nil {
+		var err error
+		stoppedCh, err = s.SecureServingInfo.Serve(s.Handler, s.ShutdownTimeout, internalStopCh)
+		if err != nil {
 			close(internalStopCh)
 			return err
 		}
@@ -334,6 +336,9 @@ func (s preparedGenericAPIServer) NonBlockingRun(stopCh <-chan struct{}) error {
 		<-stopCh
 
 		close(internalStopCh)
+		if stoppedCh != nil {
+			<-stoppedCh
+		}
 		s.HandlerChainWaitGroup.Wait()
 		close(auditStopCh)
 	}()
