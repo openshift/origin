@@ -15,7 +15,6 @@ import (
 	"github.com/openshift/origin/pkg/network/admission/restrictedendpoints"
 	quotaclusterresourcequota "github.com/openshift/origin/pkg/quota/apiserver/admission/clusterresourcequota"
 	ingressadmission "github.com/openshift/origin/pkg/route/apiserver/admission"
-	projectnodeenv "github.com/openshift/origin/pkg/scheduler/admission/nodeenv"
 	schedulerpodnodeconstraints "github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints"
 	securityadmission "github.com/openshift/origin/pkg/security/apiserver/admission/sccadmission"
 )
@@ -24,7 +23,6 @@ func RegisterOpenshiftKubeAdmissionPlugins(plugins *admission.Plugins) {
 	authorizationrestrictusers.Register(plugins)
 	imagepolicy.Register(plugins)
 	ingressadmission.Register(plugins)
-	projectnodeenv.Register(plugins)
 	quotaclusterresourceoverride.Register(plugins)
 	quotaclusterresourcequota.Register(plugins)
 	quotarunonceduration.Register(plugins)
@@ -55,7 +53,6 @@ var (
 		"authorization.openshift.io/RestrictSubjectBindings",
 		"autoscaling.openshift.io/RunOnceDuration",
 		"scheduling.openshift.io/PodNodeConstraints",
-		"scheduling.openshift.io/OriginPodNodeEnvironment",
 		"network.openshift.io/ExternalIPRanger",
 		"network.openshift.io/RestrictedEndpointsAdmission",
 		imagepolicyapiv1.PluginName, // "image.openshift.io/ImagePolicy"
