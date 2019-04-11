@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"reflect"
 	"sync/atomic"
 	"time"
@@ -245,7 +246,27 @@ func (c *certKeyFileContent) Equals(rhs *certKeyFileContent) bool {
 }
 
 // GetConfigForClient copied from tls.getCertificate
-func (c *runtimeDynamicLoader) GetConfigForClient(*tls.ClientHelloInfo) (*tls.Config, error) {
+func (c *runtimeDynamicLoader) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.Config, error) {
 	tlsConfigCopy := c.tlsConfig
+
+	// if the client set SNI information, just use our "normal" SNI flow
+	if len(hello.ServerName) > 0 {
+		return &tlsConfigCopy, nil
+	}
+
+	// if the client didn't set SNI, then we need to inspect the requested IP so that we can choose
+	// a certificate from our list if we specifically handle that IP
+	host, _, err := net.SplitHostPort(hello.Conn.LocalAddr().String())
+	if err != nil {
+		return &tlsConfigCopy, nil
+	}
+
+	ipCert, ok := tlsConfigCopy.NameToCertificate[host]
+	if !ok {
+		return &tlsConfigCopy, nil
+	}
+	tlsConfigCopy.Certificates = []tls.Certificate{*ipCert}
+	tlsConfigCopy.NameToCertificate = nil
+
 	return &tlsConfigCopy, nil
 }
