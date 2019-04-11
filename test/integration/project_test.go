@@ -71,7 +71,7 @@ func TestProjectIsNamespace(t *testing.T) {
 			Name: "new-project",
 			Annotations: map[string]string{
 				oapi.OpenShiftDisplayName:    "Hello World",
-				"openshift.io/node-selector": "env=test",
+				"scheduler.alpha.kubernetes.io/node-selector": "env=test",
 			},
 		},
 	}
@@ -91,8 +91,8 @@ func TestProjectIsNamespace(t *testing.T) {
 	if project.Annotations[oapi.OpenShiftDisplayName] != namespace.Annotations[oapi.OpenShiftDisplayName] {
 		t.Fatalf("Project display name did not match namespace annotation, project %v, namespace %v", project.Annotations[oapi.OpenShiftDisplayName], namespace.Annotations[oapi.OpenShiftDisplayName])
 	}
-	if project.Annotations["openshift.io/node-selector"] != namespace.Annotations["openshift.io/node-selector"] {
-		t.Fatalf("Project node selector did not match namespace node selector, project %v, namespace %v", project.Annotations["openshift.io/node-selector"], namespace.Annotations["openshift.io/node-selector"])
+	if project.Annotations["scheduler.alpha.kubernetes.io/node-selector"] != namespace.Annotations["scheduler.alpha.kubernetes.io/node-selector"] {
+		t.Fatalf("Project node selector did not match namespace node selector, project %v, namespace %v", project.Annotations["scheduler.alpha.kubernetes.io/node-selector"], namespace.Annotations["scheduler.alpha.kubernetes.io/node-selector"])
 	}
 }
 

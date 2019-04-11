@@ -297,7 +297,7 @@ func TestValidateProjectUpdate(t *testing.T) {
 				},
 			},
 			T: field.ErrorTypeInvalid,
-			F: "metadata.annotations[openshift.io/node-selector]",
+			F: "metadata.annotations[scheduler.alpha.kubernetes.io/node-selector]",
 		},
 		"delete annotation": {
 			A: projectapi.Project{
@@ -312,7 +312,7 @@ func TestValidateProjectUpdate(t *testing.T) {
 				},
 			},
 			T: field.ErrorTypeInvalid,
-			F: "metadata.annotations[openshift.io/node-selector]",
+			F: "metadata.annotations[scheduler.alpha.kubernetes.io/node-selector]",
 		},
 		"updating label": {
 			A: projectapi.Project{

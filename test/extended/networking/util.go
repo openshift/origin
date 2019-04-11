@@ -315,7 +315,7 @@ func makeNamespaceScheduleToAllNodes(f *e2e.Framework) {
 		if ns.Annotations == nil {
 			ns.Annotations = make(map[string]string)
 		}
-		ns.Annotations["openshift.io/node-selector"] = ""
+		ns.Annotations["scheduler.alpha.kubernetes.io/node-selector"] = ""
 		_, err = f.ClientSet.CoreV1().Namespaces().Update(ns)
 		if err == nil {
 			return

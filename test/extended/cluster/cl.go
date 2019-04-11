@@ -231,7 +231,7 @@ func newProject(nsName string) *projectapi.Project {
 			Name: nsName,
 			Annotations: map[string]string{
 				oapi.OpenShiftDisplayName: nsName,
-				//"openshift.io/node-selector": "purpose=test",
+				//"scheduler.alpha.kubernetes.io/node-selector": "purpose=test",
 			},
 		},
 	}
