@@ -205,13 +205,13 @@ func TestHandleBuild(t *testing.T) {
 			name:  "new with existing related pod",
 			build: build(buildv1.BuildPhaseNew),
 			pod:   withOwnerReference(pod(corev1.PodRunning), build(buildv1.BuildPhaseNew)),
-			/*expectUpdate: newUpdate().
-			phase(buildv1.BuildPhaseRunning).
-			reason("").
-			message("").
-			startTime(now).
-			podNameAnnotation(pod(corev1.PodRunning).Name).
-			update,*/
+			expectUpdate: newUpdate().
+				phase(buildv1.BuildPhaseRunning).
+				reason("").
+				message("").
+				startTime(now).
+				podNameAnnotation(pod(corev1.PodRunning).Name).
+				update,
 		},
 		{
 			name:  "new with existing unrelated pod",
@@ -400,6 +400,15 @@ func TestHandleBuild(t *testing.T) {
 			bc.runPolicies = []policy.RunPolicy{runPolicy}
 
 			err := bc.handleBuild(tc.build)
+			if err != nil {
+				if !tc.expectError {
+					t.Errorf("%s: unexpected error: %v", tc.name, err)
+				}
+			}
+			if tc.pod != nil {
+				err = bc.handlePod(tc.build, tc.pod)
+			}
+
 			if err != nil {
 				if !tc.expectError {
 					t.Errorf("%s: unexpected error: %v", tc.name, err)

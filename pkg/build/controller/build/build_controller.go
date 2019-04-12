@@ -365,7 +365,7 @@ func (bc *BuildController) podWork() bool {
 	}
 	defer bc.podQueue.Done(obj)
 	pod := obj.(*corev1.Pod)
-	err := bc.handlePod(pod)
+	err := bc.handlePod(nil, pod)
 	bc.handleQueueError(err, pod, bc.podQueue)
 	return false
 }
@@ -436,28 +436,8 @@ func parseBuildConfigKey(key string) (string, string, error) {
 	return parts[0], parts[1], nil
 }
 
-func (bc *BuildController) handlePod(pod *corev1.Pod) error {
-	var update *buildUpdate
-	var err, updateErr error
-	var build *buildv1.Build
-
-	build, err = bc.getBuildByKey(resourceName(pod.Namespace, getBuildName(pod)))
-	if err != nil {
-		return err
-	}
-	if shouldIgnore(build) {
-		return nil
-	}
-
-	switch {
-	case shouldCancel(build):
-		update, err = bc.cancelBuild(build)
-	case build.Status.Phase == buildv1.BuildPhaseNew:
-		update, err = bc.postPodCreateSetupCfgMapSecretAnnotation(build, pod)
-	default:
-		klog.V(0).Infof("GGM have non new build %#v for presumably added pod %#v", build, pod)
-		return nil
-	}
+func (bc *BuildController) processUpdateError(build *buildv1.Build, update *buildUpdate, pod *corev1.Pod, err error) error {
+	var updateErr error
 	if update != nil && !update.isEmpty() {
 		updateErr = bc.updateBuild(build, update, pod)
 	}
@@ -468,6 +448,85 @@ func (bc *BuildController) handlePod(pod *corev1.Pod) error {
 		return updateErr
 	}
 	return nil
+}
+
+func (bc *BuildController) handlePod(build *buildv1.Build, pod *corev1.Pod) error {
+	var update *buildUpdate
+	var err error
+
+	if build == nil {
+		build, err = bc.getBuildByKey(resourceName(pod.Namespace, getBuildName(pod)))
+		if err != nil {
+			return err
+		}
+	}
+	if shouldIgnore(build) {
+		return nil
+	}
+	if shouldCancel(build) {
+		err = bc.processUpdateError(build, update, pod, err)
+		if err != nil {
+			return err
+		}
+	}
+
+	logMsg := "build %s in uexpected state %s since pod %s is %s"
+	podPhase := pod.Status.Phase
+	switch podPhase {
+	case corev1.PodPending:
+		switch {
+		case build.Status.Phase == buildv1.BuildPhaseNew:
+			update, err = bc.postPodCreateSetupCfgMapSecretAnnotation(build, pod)
+		case build.Status.Phase == buildv1.BuildPhasePending:
+			update, err = bc.handleActiveBuild(build, pod)
+		default:
+			logMsg = fmt.Sprintf(logMsg, resourceName(build.Namespace, build.Name), string(build.Status.Phase), resourceName(pod.Namespace, pod.Name), string(pod.Status.Phase))
+			bc.recorder.Eventf(build, corev1.EventTypeWarning, "PossibleDuplicateLeader", logMsg)
+			return fmt.Errorf(logMsg)
+		}
+	case corev1.PodRunning:
+		switch {
+		case build.Status.Phase == buildv1.BuildPhaseNew:
+			// since we do not update a build from new to pending until we see the pod creation event,
+			// or if when we attempt to
+			// create the pod and the pod creation failed, including IsAlreadyExists
+			// we now should set the phase
+			// to buildv1.BuildPhaseError
+			// we should not be here
+
+			// So if we get here, either
+			// a) one those setup errors occurred, and we failed to patch update the build, in which case
+			// we now log an error in the build controller log and attempt to generate an event
+			// b) a duplicate leader scenario is in play, and we have multiple creaters of pods / writers
+			// of builds
+			// c) missed events / duplicate events / relist / unexplained
+			logMsg = fmt.Sprintf(logMsg, resourceName(build.Namespace, build.Name), string(build.Status.Phase), resourceName(pod.Namespace, pod.Name), string(pod.Status.Phase))
+			bc.recorder.Eventf(build, corev1.EventTypeWarning, "PossibleDuplicateLeader", logMsg)
+			// If a pod was not created by the current build, move the build to
+			// error.
+			if !strategy.HasOwnerReference(pod, build) {
+				update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonBuildPodExists, buildutil.StatusMessageBuildPodExists)
+			} else {
+				// maybe missed event, events out of order, or duplicate leader and a build update is coming ... try transition to running just in case
+				update = transitionToPhase(buildv1.BuildPhaseRunning, "", "")
+			}
+		case build.Status.Phase == buildv1.BuildPhasePending:
+			update, err = bc.handleActiveBuild(build, pod)
+		case build.Status.Phase == buildv1.BuildPhaseRunning:
+			update, err = bc.handleActiveBuild(build, pod)
+		default:
+			logMsg = fmt.Sprintf(logMsg, resourceName(build.Namespace, build.Name), string(build.Status.Phase), resourceName(pod.Namespace, pod.Name), string(pod.Status.Phase))
+			bc.recorder.Eventf(build, corev1.EventTypeWarning, "PossibleDuplicateLeader", logMsg)
+			return fmt.Errorf(logMsg)
+		}
+	case corev1.PodSucceeded:
+		update, err = bc.handleActiveBuild(build, pod)
+	case corev1.PodFailed:
+		update, err = bc.handleActiveBuild(build, pod)
+	}
+
+	err = bc.processUpdateError(build, update, pod, err)
+	return err
 }
 
 // handleBuild retrieves the build's corresponding pod and calls the appropriate
@@ -500,29 +559,21 @@ func (bc *BuildController) handleBuild(build *buildv1.Build) error {
 	}
 
 	var update *buildUpdate
-	var err, updateErr error
+	var err error
 
 	switch {
 	case shouldCancel(build):
 		update, err = bc.cancelBuild(build)
 	case build.Status.Phase == buildv1.BuildPhaseNew:
 		update, err = bc.handleNewBuild(build, pod)
-	case build.Status.Phase == buildv1.BuildPhasePending,
-		build.Status.Phase == buildv1.BuildPhaseRunning:
-		update, err = bc.handleActiveBuild(build, pod)
 	case buildutil.IsBuildComplete(build):
 		update, err = bc.handleCompletedBuild(build, pod)
+	case errors.IsNotFound(podErr):
+		klog.V(4).Infof("Failed to find the build pod for build %s. Moving it to Error state", buildDesc(build))
+		update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonBuildPodDeleted, buildutil.StatusMessageBuildPodDeleted)
 	}
-	if update != nil && !update.isEmpty() {
-		updateErr = bc.updateBuild(build, update, pod)
-	}
-	if err != nil {
-		return err
-	}
-	if updateErr != nil {
-		return updateErr
-	}
-	return nil
+	err = bc.processUpdateError(build, update, pod, err)
+	return err
 }
 
 // shouldIgnore returns true if a build should be ignored by the controller.
@@ -603,12 +654,9 @@ func (bc *BuildController) handleNewBuild(build *buildv1.Build, pod *corev1.Pod)
 		// c) duplicate events / relist ?!?!
 
 		if strategy.HasOwnerReference(pod, build) {
-			// if it is a), then recalling setup could with retrying updating the build with
-			// error information; if there are no errors, setup has no affect
-			// ... otherwise, we are b) or c) and we wait for the next
-			// pod event
-			_, update, err := bc.prePodCreateSetup(build)
-			return update, err
+			// means duplicate leader or missed event or events out of order ... go down primary path
+			err := bc.handlePod(build, pod)
+			return nil, err
 		}
 		// If a pod was not created by the current build, move the build to
 		// error.
@@ -1181,7 +1229,7 @@ func (bc *BuildController) handleActiveBuild(build *buildv1.Build, pod *corev1.P
 	var update *buildUpdate
 	// Pods don't report running until initcontainers are done, but from a build's perspective
 	// the pod is running as soon as the first init container has run.
-	if build.Status.Phase == buildv1.BuildPhasePending || build.Status.Phase == buildv1.BuildPhaseNew {
+	if build.Status.Phase == buildv1.BuildPhasePending {
 		for _, initContainer := range pod.Status.InitContainerStatuses {
 			if initContainer.Name == strategy.GitCloneContainer && initContainer.State.Running != nil {
 				podPhase = corev1.PodRunning
@@ -1475,7 +1523,7 @@ func (bc *BuildController) podUpdated(old, cur interface{}) {
 	}
 	if isBuildPod(curPod) {
 		klog.V(0).Infof("GGM podUpdated enqueing build %s for pod %s old status %#v new status %#v", resourceName(curPod.Namespace, getBuildName(curPod)), curPod.Name, oldPod.Status, curPod.Status)
-		bc.enqueueBuildForPod(curPod)
+		bc.enqueuePod(curPod)
 	}
 }
 
@@ -1483,7 +1531,7 @@ func (bc *BuildController) podAdded(obj interface{}) {
 	pod := obj.(*corev1.Pod)
 	if isBuildPod(pod) {
 		klog.V(0).Infof("GGM podAdded build %s for pod %s status %#v", resourceName(pod.Namespace, getBuildName(pod)), pod.Name, pod.Status)
-		bc.enqueueAddedPod(pod)
+		bc.enqueuePod(pod)
 	}
 }
 
@@ -1560,7 +1608,7 @@ func (bc *BuildController) enqueueBuildForPod(pod *corev1.Pod) {
 	bc.buildQueue.Add(resourceName(pod.Namespace, getBuildName(pod)))
 }
 
-func (bc *BuildController) enqueueAddedPod(pod *corev1.Pod) {
+func (bc *BuildController) enqueuePod(pod *corev1.Pod) {
 	bc.podQueue.Add(pod)
 }
 
