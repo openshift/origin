@@ -20,6 +20,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	openapicontroller "k8s.io/kube-aggregator/pkg/controllers/openapi"
+	openapiaggregator "k8s.io/kube-aggregator/pkg/controllers/openapi/aggregator"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -417,8 +418,8 @@ func (c *completedConfig) withOpenAPIAggregationController(delegatedAPIServer *g
 	// openapi fields that may have been previously set.
 	delegatedAPIServer.RemoveOpenAPIData()
 
-	specDownloader := openapicontroller.NewDownloader()
-	openAPIAggregator, err := openapicontroller.BuildAndRegisterAggregator(
+	specDownloader := openapiaggregator.NewDownloader()
+	openAPIAggregator, err := openapiaggregator.BuildAndRegisterAggregator(
 		&specDownloader,
 		delegatedAPIServer,
 		delegatedAPIServer.Handler.GoRestfulContainer.RegisteredWebServices(),
