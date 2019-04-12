@@ -24,22 +24,8 @@ RUN INSTALL_PKGS=" \
     mkdir -p /etc/sysconfig/cni/net.d && \
     yum clean all && rm -rf /var/cache/* 
 
-COPY ./images/sdn/scripts/iptables /usr/sbin/
-COPY ./images/sdn/scripts/iptables-save /usr/sbin/
-COPY ./images/sdn/scripts/iptables-restore /usr/sbin/
-COPY ./images/sdn/scripts/ip6tables /usr/sbin/
-COPY ./images/sdn/scripts/ip6tables-save /usr/sbin/
-COPY ./images/sdn/scripts/ip6tables-restore /usr/sbin/
-COPY ./images/sdn/scripts/iptables /usr/sbin/
-
-
-COPY ./images/sdn/scripts/iptables /
-COPY ./images/sdn/scripts/iptables-save /
-COPY ./images/sdn/scripts/iptables-restore /
-COPY ./images/sdn/scripts/ip6tables /
-COPY ./images/sdn/scripts/ip6tables-save /
-COPY ./images/sdn/scripts/ip6tables-restore /
-COPY ./images/sdn/scripts/iptables /
+COPY --from=builder /go/src/github.com/openshift/origin/images/sdn/scripts/* /usr/sbin/
+COPY --from=builder /go/src/github.com/openshift/origin/images/sdn/scripts/* /
 
 
 LABEL io.k8s.display-name="OpenShift SDN" \
