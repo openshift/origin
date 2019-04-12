@@ -21,9 +21,7 @@ var _ = Describe("[Feature:Platform][Smoke] Managed cluster", func() {
 	oc := exutil.NewCLIWithoutNamespace("operators")
 
 	It("should ensure pods use images from our release image with proper ImagePullPolicy", func() {
-		// TODO this should probably be in openshift-config and have a name like "openshift-pull-secret"
-		// get the image pull secret and write it to a temporary location
-		imagePullSecret, err := oc.KubeFramework().ClientSet.CoreV1().Secrets("kube-system").Get("coreos-pull-secret", metav1.GetOptions{})
+		imagePullSecret, err := oc.KubeFramework().ClientSet.CoreV1().Secrets("openshift-config").Get("pull-secret", metav1.GetOptions{})
 		if err != nil {
 			e2e.Failf("unable to get pull secret for cluster: %v", err)
 		}

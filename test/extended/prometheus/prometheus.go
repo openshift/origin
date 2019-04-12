@@ -379,12 +379,12 @@ func locatePrometheus(oc *exutil.CLI) (url, bearerToken string, ok bool) {
 }
 
 func hasPullSecret(client clientset.Interface, name string) bool {
-	scrt, err := client.CoreV1().Secrets("kube-system").Get("coreos-pull-secret", metav1.GetOptions{})
+	scrt, err := client.CoreV1().Secrets("openshift-config").Get("pull-secret", metav1.GetOptions{})
 	if err != nil {
 		if kapierrs.IsNotFound(err) {
 			return false
 		}
-		e2e.Failf("could not retrieve coreos-pull-secret: %v", err)
+		e2e.Failf("could not retrieve pull-secret: %v", err)
 	}
 
 	if scrt.Type != v1.SecretTypeDockerConfigJson {
@@ -398,7 +398,7 @@ func hasPullSecret(client clientset.Interface, name string) bool {
 	}{}
 
 	if err := json.Unmarshal(scrt.Data[v1.DockerConfigJsonKey], &ps); err != nil {
-		e2e.Failf("could not unmarshal pullSecret from coreos-pull-secret: %v", err)
+		e2e.Failf("could not unmarshal pullSecret from openshift-config/pull-secret: %v", err)
 	}
 	return len(ps.Auths[name].Auth) > 0
 }
