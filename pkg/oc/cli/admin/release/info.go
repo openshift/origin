@@ -439,7 +439,9 @@ func (o *InfoOptions) LoadReleaseInfo(image string, retrieveImages bool) (*Relea
 	opts.RegistryConfig = o.RegistryConfig
 
 	release := &ReleaseInfo{
-		Image:       image,
+		Image:    image,
+		ImageRef: ref,
+
 		RawMetadata: make(map[string][]byte),
 	}
 
@@ -806,12 +808,19 @@ func describeReleaseInfo(out io.Writer, release *ReleaseInfo, showCommit, pullSp
 	now := time.Now()
 	fmt.Fprintf(w, "Name:\t%s\n", release.PreferredName())
 	fmt.Fprintf(w, "Digest:\t%s\n", release.Digest)
-	fmt.Fprintf(w, "Created:\t%s\n", release.Config.Created.Local().Truncate(time.Second))
+	fmt.Fprintf(w, "Created:\t%s\n", release.Config.Created.UTC().Truncate(time.Second).Format(time.RFC3339))
 	fmt.Fprintf(w, "OS/Arch:\t%s/%s\n", release.Config.OS, release.Config.Architecture)
 	fmt.Fprintf(w, "Manifests:\t%d\n", len(release.ManifestFiles))
 	if len(release.UnknownFiles) > 0 {
 		fmt.Fprintf(w, "Unknown files:\t%d\n", len(release.UnknownFiles))
 	}
+
+	fmt.Fprintln(w)
+	refExact := release.ImageRef
+	refExact.Tag = ""
+	refExact.ID = release.Digest.String()
+	fmt.Fprintf(w, "Pull From:\t%s\n", refExact.String())
+
 	if m := release.Metadata; m != nil {
 		fmt.Fprintln(w)
 		fmt.Fprintf(w, "Release Metadata:\n")
