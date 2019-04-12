@@ -24,7 +24,7 @@ RUN INSTALL_PKGS=" \
     mkdir -p /etc/sysconfig/cni/net.d && \
     yum clean all && rm -rf /var/cache/*
 
-COPY images/sdn/scripts/* /usr/sbin/
+COPY ./images/sdn/scripts/* /usr/sbin/
 
 LABEL io.k8s.display-name="OpenShift SDN" \
       io.k8s.description="This is a component of OpenShift and contains the networking tool stack for the default SDN implementation." \
