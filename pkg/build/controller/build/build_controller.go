@@ -153,6 +153,7 @@ type BuildController struct {
 	kubeClient                  kubernetes.Interface
 
 	buildQueue            workqueue.RateLimitingInterface
+	podQueue              workqueue.RateLimitingInterface
 	imageStreamQueue      *resourceTriggerQueue
 	buildConfigQueue      workqueue.RateLimitingInterface
 	controllerConfigQueue workqueue.RateLimitingInterface
@@ -242,6 +243,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 		internalRegistryHostname: params.InternalRegistryHostname,
 
 		buildQueue:            workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		podQueue:              workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 		imageStreamQueue:      newResourceTriggerQueue(),
 		buildConfigQueue:      workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 		controllerConfigQueue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
@@ -295,6 +297,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 func (bc *BuildController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer bc.buildQueue.ShutDown()
+	defer bc.podQueue.ShutDown()
 	defer bc.buildConfigQueue.ShutDown()
 	defer bc.controllerConfigQueue.ShutDown()
 
@@ -337,10 +340,34 @@ func (bc *BuildController) Run(workers int, stopCh <-chan struct{}) {
 		go wait.Until(bc.buildConfigWorker, time.Second, stopCh)
 	}
 
+	for i := 0; i < workers; i++ {
+		go wait.Until(bc.podWorker, time.Second, stopCh)
+	}
+
 	metrics.IntializeMetricsCollector(bc.buildLister)
 
 	<-stopCh
 	klog.Infof("Shutting down build controller")
+}
+
+func (bc *BuildController) podWorker() {
+	for {
+		if quit := bc.podWork(); quit {
+			return
+		}
+	}
+}
+
+func (bc *BuildController) podWork() bool {
+	obj, quit := bc.podQueue.Get()
+	if quit {
+		return true
+	}
+	defer bc.podQueue.Done(obj)
+	pod := obj.(*corev1.Pod)
+	err := bc.handlePod(pod)
+	bc.handleQueueError(err, pod, bc.podQueue)
+	return false
 }
 
 func (bc *BuildController) buildWorker() {
@@ -362,7 +389,7 @@ func (bc *BuildController) buildWork() bool {
 
 	build, err := bc.getBuildByKey(key.(string))
 	if err != nil {
-		bc.handleBuildError(err, key)
+		bc.handleQueueError(err, key, bc.buildQueue)
 		return false
 	}
 	if build == nil {
@@ -370,7 +397,7 @@ func (bc *BuildController) buildWork() bool {
 	}
 
 	err = bc.handleBuild(build)
-	bc.handleBuildError(err, key)
+	bc.handleQueueError(err, key, bc.buildConfigQueue)
 	return false
 }
 
@@ -397,7 +424,7 @@ func (bc *BuildController) buildConfigWork() bool {
 	}
 
 	err = bc.handleBuildConfig(namespace, name)
-	bc.handleBuildConfigError(err, key)
+	bc.handleQueueError(err, key, bc.buildConfigQueue)
 	return false
 }
 
@@ -407,6 +434,40 @@ func parseBuildConfigKey(key string) (string, string, error) {
 		return "", "", fmt.Errorf("invalid build config key: %s", key)
 	}
 	return parts[0], parts[1], nil
+}
+
+func (bc *BuildController) handlePod(pod *corev1.Pod) error {
+	var update *buildUpdate
+	var err, updateErr error
+	var build *buildv1.Build
+
+	build, err = bc.getBuildByKey(resourceName(pod.Namespace, getBuildName(pod)))
+	if err != nil {
+		return err
+	}
+	if shouldIgnore(build) {
+		return nil
+	}
+
+	switch {
+	case shouldCancel(build):
+		update, err = bc.cancelBuild(build)
+	case build.Status.Phase == buildv1.BuildPhaseNew:
+		update, err = bc.postPodCreateSetupCfgMapSecretAnnotation(build, pod)
+	default:
+		klog.V(0).Infof("GGM have non new build %#v for presumably added pod %#v", build, pod)
+		return nil
+	}
+	if update != nil && !update.isEmpty() {
+		updateErr = bc.updateBuild(build, update, pod)
+	}
+	if err != nil {
+		return err
+	}
+	if updateErr != nil {
+		return updateErr
+	}
+	return nil
 }
 
 // handleBuild retrieves the build's corresponding pod and calls the appropriate
@@ -521,24 +582,26 @@ func (bc *BuildController) cancelBuild(build *buildv1.Build) (*buildUpdate, erro
 // for the build and returns an update to move it to the Pending phase
 func (bc *BuildController) handleNewBuild(build *buildv1.Build, pod *corev1.Pod) (*buildUpdate, error) {
 	if pod != nil {
-		// We're in phase New and a build pod already exists.  If the pod has an
+		bc.recorder.Eventf(build, corev1.EventTypeWarning, "PossibleDuplicateLeader", "Pod already exists: %s/%s", pod.Namespace, pod.Name)
+		// We're in phase New and a build pod already exists.
+		// now it used to be, if the pod has an
 		// owner reference to the build, we take that to mean that we created
-		// the pod but failed to update the build object afterwards.  In
-		// principle, we should re-run all the handleNewBuild/createBuildPod
-		// logic in this case.  At the moment, however, we short-cut straight to
-		// handleActiveBuild.  This is not ideal because we lose any updates we
-		// meant to make to the build object (apart from advancing the phase).
-		// On the other hand, as the code stands, re-running
-		// handleNewBuild/createBuildPod is also problematic.  The build policy
-		// code is not side-effect free, and the controller logic in general is
-		// dependent on lots of state stored outside of the build object.  The
-		// risk is that were we to re-run handleNewBuild/createBuildPod a second
-		// time, we'd make different decisions to those taken previously.
-		//
-		// TODO: fix this.  One route might be to add an additional phase into
-		// the build FSM: New -> X -> Pending -> Running, where all the pre-work
-		// is done in the transition New->X, and nothing more than the build pod
-		// creation is done in the transition X->Pending.
+		// the pod but failed to update the build object afterwards.
+
+		// However, now we only update the build as part of this controller's attempt to
+		// create the pod if the pod creation failed, including IsAlreadyExists
+		// Both result in the status.reason/message fields getting set and now should set the phase
+		// to buildv1.BuildPhaseError instead of the new phase
+		// Then we update the build push secret, phase, output ref, and pod annotation as needed
+		// once we get the pod added event
+
+		// So if we get here, either
+		// a) one those setup errors occurred, and we failed to patch update the build, in which case
+		// we now log an error in the build controller log and attempt to generate an event
+		// b) a duplicate leader scenario is in play, and we have multiple creaters of pods / writers
+		// of builds
+		// c) duplicate events / relist ?!?!
+
 		if strategy.HasOwnerReference(pod, build) {
 			return bc.handleActiveBuild(build, pod)
 		}
@@ -873,13 +936,10 @@ func (bc *BuildController) resolveImageReferences(build *buildv1.Build, update *
 	return nil
 }
 
-// createBuildPod creates a new pod to run a build
-func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, error) {
+func (bc *BuildController) prePodCreateSetup(build *buildv1.Build) (*buildv1.Build, *buildUpdate, error) {
 	update := &buildUpdate{}
 
 	// image reference resolution requires a copy of the build
-	var err error
-
 	// TODO: Rename this to buildCopy
 	build = build.DeepCopy()
 
@@ -888,9 +948,9 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 		// if we're waiting for an image stream to exist, we will get an update via the
 		// trigger, and thus don't need to be requeued.
 		if hasError(err, errors.IsNotFound, field.NewErrorTypeMatcher(field.ErrorTypeNotFound)) {
-			return update, nil
+			return build, update, nil
 		}
-		return update, err
+		return build, update, err
 	}
 
 	// Set the pushSecret that will be needed by the build to push the image to the registry
@@ -901,9 +961,8 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 		var err error
 		pushSecret, err = bc.resolveImageSecretAsReference(build, build.Spec.Output.To.Name)
 		if err != nil {
-			update.setReason(buildv1.StatusReasonCannotRetrieveServiceAccount)
-			update.setMessage(buildutil.StatusMessageCannotRetrieveServiceAccount)
-			return update, err
+			transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonCannotRetrieveServiceAccount, buildutil.StatusMessageCannotRetrieveServiceAccount)
+			return build, update, err
 		}
 	}
 	build.Spec.Output.PushSecret = pushSecret
@@ -932,9 +991,8 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 		var err error
 		pullSecret, err = bc.resolveImageSecretAsReference(build, imageName)
 		if err != nil {
-			update.setReason(buildv1.StatusReasonCannotRetrieveServiceAccount)
-			update.setMessage(buildutil.StatusMessageCannotRetrieveServiceAccount)
-			return update, err
+			update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonCannotRetrieveServiceAccount, buildutil.StatusMessageCannotRetrieveServiceAccount)
+			return build, update, err
 		}
 		if pullSecret != nil {
 			switch {
@@ -955,9 +1013,8 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 		}
 		imageInputPullSecret, err := bc.resolveImageSecretAsReference(build, s.From.Name)
 		if err != nil {
-			update.setReason(buildv1.StatusReasonCannotRetrieveServiceAccount)
-			update.setMessage(buildutil.StatusMessageCannotRetrieveServiceAccount)
-			return update, err
+			update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonCannotRetrieveServiceAccount, buildutil.StatusMessageCannotRetrieveServiceAccount)
+			return build, update, err
 		}
 		build.Spec.Source.Images[i].PullSecret = imageInputPullSecret
 	}
@@ -966,11 +1023,25 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 		buildutil.UpdateCustomImageEnv(build.Spec.Strategy.CustomStrategy, build.Spec.Strategy.CustomStrategy.From.Name)
 	}
 
+	return build, update, nil
+}
+
+// createBuildPod creates a new pod to run a build
+func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, error) {
+	build, update, err := bc.prePodCreateSetup(build)
+	if err != nil {
+		return update, err
+	}
+	if !update.isEmpty() {
+		return update, nil
+	}
+
 	// Indicate if the pod spec should mount the additional trusted CAs
 	includeAdditionalCA := false
 	if len(bc.additionalTrustedCAData) > 0 {
 		includeAdditionalCA = true
 	}
+
 	// Create the build pod spec
 	buildPod, err := bc.createPodSpec(build, includeAdditionalCA)
 	if err != nil {
@@ -979,9 +1050,7 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 			update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonUnresolvableEnvironmentVariable, fmt.Sprintf("%v, %v",
 				buildutil.StatusMessageUnresolvableEnvironmentVariable, err.Error()))
 		default:
-			update.setReason(buildv1.StatusReasonCannotCreateBuildPodSpec)
-			update.setMessage(buildutil.StatusMessageCannotCreateBuildPodSpec)
-
+			update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonCannotCreateBuildPodSpec, buildutil.StatusMessageCannotCreateBuildPodSpec)
 		}
 		// If an error occurred when creating the pod spec, it likely means
 		// that the build is something we don't understand. For example, it could
@@ -990,7 +1059,7 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 
 		// The error will be logged, but will not be returned to the caller
 		// to be retried. The reason is that there's really no external factor
-		// that could cause the pod creation to fail; therefore no reason
+		// that could cause the pod spec creation to fail; therefore no reason
 		// to immediately retry processing the build.
 		//
 		// A scenario where this would happen is that we've introduced a
@@ -998,16 +1067,16 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 		// is still running. We don't want the old controller to move the
 		// build to the error phase and we don't want it to keep actively retrying.
 		utilruntime.HandleError(err)
+		bc.recorder.Eventf(build, corev1.EventTypeWarning, "FailedCreate", "Pod spec error: %s/%s: %s", build.Namespace, build.Name, err.Error())
 		return update, nil
 	}
 
 	klog.V(4).Infof("Pod %s/%s for build %s is about to be created", build.Namespace, buildPod.Name, buildDesc(build))
-	pod, err := bc.podClient.Pods(build.Namespace).Create(buildPod)
+	_, err = bc.podClient.Pods(build.Namespace).Create(buildPod)
 	if err != nil && !errors.IsAlreadyExists(err) {
 		// Log an event if the pod is not created (most likely due to quota denial).
 		bc.recorder.Eventf(build, corev1.EventTypeWarning, "FailedCreate", "Error creating build pod: %v", err)
-		update.setReason(buildv1.StatusReasonCannotCreateBuildPod)
-		update.setMessage(buildutil.StatusMessageCannotCreateBuildPod)
+		update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonCannotCreateBuildPod, buildutil.StatusMessageCannotCreateBuildPod)
 		return update, fmt.Errorf("failed to create build pod: %v", err)
 
 	} else if err != nil {
@@ -1026,51 +1095,65 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 			return update, nil
 		}
 		klog.V(4).Infof("Recognised pod %s/%s as belonging to build %s", build.Namespace, buildPod.Name, buildDesc(build))
-		// Check if the existing pod has the CA ConfigMap properly attached
-		hasCAMap, err := bc.findOwnedConfigMap(existingPod, build.Namespace, buildapihelpers.GetBuildCAConfigMapName(build))
-		if err != nil {
-			return update, fmt.Errorf("could not find certificate authority for build: %v", err)
-		}
-		if !hasCAMap {
-			// Create the CA ConfigMap to mount certificate authorities to the existing build pod
-			update, err = bc.createBuildCAConfigMap(build, existingPod, update)
-			if err != nil {
-				return update, err
-			}
-		}
-		hasRegistryConf, err := bc.findOwnedConfigMap(existingPod, build.Namespace, buildapihelpers.GetBuildSystemConfigMapName(build))
-		if err != nil {
-			return update, fmt.Errorf("could not find registry config for build: %v", err)
-		}
-		if !hasRegistryConf {
-			// Create the registry config ConfigMap to mount the regsitry config to the existing build pod
-			update, err = bc.createBuildSystemConfConfigMap(build, existingPod, update)
-			if err != nil {
-				return update, err
-			}
-		}
 
 	} else {
 		klog.V(4).Infof("Created pod %s/%s for build %s", build.Namespace, buildPod.Name, buildDesc(build))
+	}
+
+	// so only update the build if an error occurs
+	return nil, nil
+}
+
+func (bc *BuildController) postPodCreateSetupCfgMapSecretAnnotation(build *buildv1.Build, pod *corev1.Pod) (*buildUpdate, error) {
+	build, update, err := bc.prePodCreateSetup(build)
+	if err != nil {
+		return update, err
+	}
+
+	// Check if the existing pod has the CA ConfigMap properly attached
+	hasCAMap, err := bc.findOwnedConfigMap(pod, build.Namespace, buildapihelpers.GetBuildCAConfigMapName(build))
+	if err != nil {
+		return update, fmt.Errorf("could not find certificate authority for build: %v", err)
+	}
+	if !hasCAMap {
 		// Create the CA ConfigMap to mount certificate authorities to the build pod
-		update, err = bc.createBuildCAConfigMap(build, pod, update)
+		// update is only changed by this method if an error occurs
+		update, err := bc.createBuildCAConfigMap(build, pod, update)
 		if err != nil {
 			return update, err
 		}
+
+	}
+	hasRegistryConf, err := bc.findOwnedConfigMap(pod, build.Namespace, buildapihelpers.GetBuildSystemConfigMapName(build))
+	if err != nil {
+		return update, fmt.Errorf("could not find registry config for build: %v", err)
+	}
+	if !hasRegistryConf {
 		// Create the registry config ConfigMap to mount the registry configuration into the build pod
+		// update is only changed by this method if an error occurs
 		update, err = bc.createBuildSystemConfConfigMap(build, pod, update)
 		if err != nil {
-			return nil, err
+			//FYI this used to return nil, err for some reason
+			return update, err
+		}
+	}
+
+	// Only look up a push secret if the user hasn't explicitly provided one.
+	if build.Spec.Output.PushSecret == nil && build.Spec.Output.To != nil && len(build.Spec.Output.To.Name) > 0 {
+		var err error
+		pushSecret, err := bc.resolveImageSecretAsReference(build, build.Spec.Output.To.Name)
+		if err != nil {
+			update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonCannotRetrieveServiceAccount, buildutil.StatusMessageCannotRetrieveServiceAccount)
+			return update, err
+		}
+		if pushSecret != nil {
+			update.setPushSecret(*pushSecret)
 		}
 	}
 
 	update = transitionToPhase(buildv1.BuildPhasePending, "", "")
 
-	if pushSecret != nil {
-		update.setPushSecret(*pushSecret)
-	}
-
-	update.setPodNameAnnotation(buildPod.Name)
+	update.setPodNameAnnotation(pod.Name)
 	if build.Spec.Output.To != nil {
 		update.setOutputRef(build.Spec.Output.To.Name)
 	}
@@ -1246,6 +1329,9 @@ func (bc *BuildController) updateBuild(build *buildv1.Build, update *buildUpdate
 
 	patchedBuild, err := bc.patchBuild(build, update)
 	if err != nil {
+		logStr := fmt.Sprintf("error patching build %s with update %#v:  %v", resourceName(build.Namespace, build.Name), update, err)
+		klog.Errorf(logStr)
+		bc.recorder.Eventf(build, corev1.EventTypeWarning, "BuildPatchFailure", logStr)
 		return err
 	}
 
@@ -1391,6 +1477,7 @@ func (bc *BuildController) podAdded(obj interface{}) {
 	pod := obj.(*corev1.Pod)
 	if isBuildPod(pod) {
 		klog.V(0).Infof("GGM podAdded build %s for pod %s status %#v", resourceName(pod.Namespace, getBuildName(pod)), pod.Name, pod.Status)
+		bc.enqueueAddedPod(pod)
 	}
 }
 
@@ -1419,7 +1506,7 @@ func (bc *BuildController) podDeleted(obj interface{}) {
 // is created
 func (bc *BuildController) buildAdded(obj interface{}) {
 	build := obj.(*buildv1.Build)
-	klog.V(0).Infof("GGM build %s added %#v", build.Name, build.Status)
+	klog.V(0).Infof("GGM build %s added %#v", resourceName(build.Namespace, build.Name), build.Status)
 	bc.enqueueBuild(build)
 }
 
@@ -1428,7 +1515,7 @@ func (bc *BuildController) buildAdded(obj interface{}) {
 func (bc *BuildController) buildUpdated(old, cur interface{}) {
 	oldbuild := old.(*buildv1.Build)
 	newbuild := cur.(*buildv1.Build)
-	klog.V(0).Infof("GGM build %s update old status %#v new status %#v", newbuild.Name, oldbuild.Status, newbuild.Status)
+	klog.V(0).Infof("GGM build %s update old status %#v new status %#v", resourceName(newbuild.Namespace, newbuild.Name), oldbuild.Status, newbuild.Status)
 	bc.enqueueBuild(newbuild)
 }
 
@@ -1467,6 +1554,10 @@ func (bc *BuildController) enqueueBuildForPod(pod *corev1.Pod) {
 	bc.buildQueue.Add(resourceName(pod.Namespace, getBuildName(pod)))
 }
 
+func (bc *BuildController) enqueueAddedPod(pod *corev1.Pod) {
+	bc.podQueue.Add(pod)
+}
+
 // imageStreamAdded queues any builds that have registered themselves for this image stream.
 // Because builds are level driven when resolving images, we are not concerned with duplicate
 // build events.
@@ -1480,6 +1571,29 @@ func (bc *BuildController) imageStreamAdded(obj interface{}) {
 // imageStreamUpdated queues any builds that have registered themselves for the image stream.
 func (bc *BuildController) imageStreamUpdated(old, cur interface{}) {
 	bc.imageStreamAdded(cur)
+}
+
+func (bc *BuildController) handleQueueError(err error, key interface{}, queue workqueue.RateLimitingInterface) {
+	if err == nil {
+		queue.Forget(key)
+		return
+	}
+
+	if strategy.IsFatal(err) {
+		klog.V(2).Infof("Will not retry fatal error for key %v: %v", key, err)
+		queue.Forget(key)
+		return
+	}
+
+	if bc.buildQueue.NumRequeues(key) < maxRetries {
+		klog.V(4).Infof("Retrying key %v: %v", key, err)
+		queue.AddRateLimited(key)
+		return
+	}
+
+	klog.V(2).Infof("Giving up retrying %v: %v", key, err)
+	queue.Forget(key)
+
 }
 
 // handleBuildError is called by the main work loop to check the return of calling handleBuild.
@@ -1532,8 +1646,7 @@ func (bc *BuildController) createBuildCAConfigMap(build *buildv1.Build, buildPod
 	configMap, err := bc.configMapClient.ConfigMaps(buildPod.Namespace).Create(configMapSpec)
 	if err != nil {
 		bc.recorder.Eventf(build, corev1.EventTypeWarning, "FailedCreate", "Error creating build certificate authority configMap: %v", err)
-		update.setReason("CannotCreateCAConfigMap")
-		update.setMessage(buildutil.StatusMessageCannotCreateCAConfigMap)
+		update = transitionToPhase(buildv1.BuildPhaseError, "CannotCreateCAConfigMap", buildutil.StatusMessageCannotCreateCAConfigMap)
 		return update, fmt.Errorf("failed to create build certificate authority configMap: %v", err)
 	}
 	klog.V(4).Infof("Created certificate authority configMap %s/%s for build %s", build.Namespace, configMap.Name, buildDesc(build))
@@ -1587,8 +1700,7 @@ func (bc *BuildController) createBuildSystemConfConfigMap(build *buildv1.Build, 
 	configMap, err := bc.configMapClient.ConfigMaps(build.Namespace).Create(configMapSpec)
 	if err != nil {
 		bc.recorder.Eventf(build, corev1.EventTypeWarning, "FailedCreate", "Error creating build system config configMap: %v", err)
-		update.setReason("CannotCreateBuildSysConfigMap")
-		update.setMessage(buildutil.StatusMessageCannotCreateBuildSysConfigMap)
+		update = transitionToPhase(buildv1.BuildPhaseError, "CannotCreateBuildSysConfigMap", buildutil.StatusMessageCannotCreateBuildSysConfigMap)
 		return update, fmt.Errorf("failed to create build system config configMap: %v", err)
 	}
 	klog.V(4).Infof("Created build system config configMap %s/%s for build %s", build.Namespace, configMap.Name, buildDesc(build))
