@@ -15,7 +15,6 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/klog"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
@@ -98,6 +97,10 @@ func (o *MustGatherOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 	if err != nil {
 		return err
 	}
+	o.PrinterDeleted, err = printers.NewTypeSetter(scheme.Scheme).WrapToPrinter(&printers.NamePrinter{Operation: "deleted"}, nil)
+	if err != nil {
+		return err
+	}
 	o.RsyncRshCmd = rsync.DefaultRsyncRemoteShellToUse(cmd.Parent())
 	return nil
 }
@@ -117,6 +120,7 @@ type MustGatherOptions struct {
 	RsyncRshCmd string
 
 	PrinterCreated printers.ResourcePrinter
+	PrinterDeleted printers.ResourcePrinter
 }
 
 // Run creates and runs a must-gather pod.d
@@ -142,24 +146,30 @@ func (o *MustGatherOptions) Run(rsyncCmd *cobra.Command) error {
 	if err != nil {
 		return err
 	}
+	o.PrinterCreated.PrintObj(ns, o.Out)
 	if !o.Keep {
 		defer func() {
-			err = o.Client.CoreV1().Namespaces().Delete(ns.Name, nil)
+			if err := o.Client.CoreV1().Namespaces().Delete(ns.Name, nil); err != nil {
+				fmt.Printf("%v", err)
+				return
+			}
+			o.PrinterDeleted.PrintObj(ns, o.Out)
 		}()
-	} else {
-		o.PrinterCreated.PrintObj(ns, o.Out)
 	}
 
 	clusterRoleBinding, err := o.Client.RbacV1().ClusterRoleBindings().Create(o.newClusterRoleBinding(ns.Name))
 	if err != nil {
 		return err
 	}
+	o.PrinterCreated.PrintObj(clusterRoleBinding, o.Out)
 	if !o.Keep {
 		defer func() {
-			err = o.Client.RbacV1().ClusterRoleBindings().Delete(clusterRoleBinding.Name, &metav1.DeleteOptions{})
+			if err := o.Client.RbacV1().ClusterRoleBindings().Delete(clusterRoleBinding.Name, &metav1.DeleteOptions{}); err != nil {
+				fmt.Printf("%v", err)
+				return
+			}
+			o.PrinterDeleted.PrintObj(clusterRoleBinding, o.Out)
 		}()
-	} else {
-		o.PrinterCreated.PrintObj(clusterRoleBinding, o.Out)
 	}
 
 	// create pod
@@ -199,7 +209,6 @@ func (o *MustGatherOptions) waitForPodRunning(pod *corev1.Pod) error {
 	err := wait.PollImmediate(time.Second, 10*time.Minute, func() (bool, error) {
 		var err error
 		if pod, err = o.Client.CoreV1().Pods(pod.Namespace).Get(pod.Name, metav1.GetOptions{}); err != nil {
-			klog.Error(err)
 			return false, nil
 		}
 		phase = pod.Status.Phase
