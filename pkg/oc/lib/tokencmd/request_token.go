@@ -79,16 +79,21 @@ func RequestToken(clientCfg *restclient.Config, reader io.Reader, defaultUsernam
 }
 
 func NewRequestTokenOptions(clientCfg *restclient.Config, reader io.Reader, defaultUsername string, defaultPassword string, tokenFlow bool) *RequestTokenOptions {
-	handlers := []ChallengeHandler{}
+	// priority ordered list of challenge handlers
+	// the SPNEGO ones must come before basic auth
+	var handlers []ChallengeHandler
+
 	if GSSAPIEnabled() {
+		klog.V(6).Info("GSSAPI Enabled")
 		handlers = append(handlers, NewNegotiateChallengeHandler(NewGSSAPINegotiator(defaultUsername)))
 	}
+
 	if SSPIEnabled() {
+		klog.V(6).Info("SSPI Enabled")
 		handlers = append(handlers, NewNegotiateChallengeHandler(NewSSPINegotiator(defaultUsername, defaultPassword, clientCfg.Host, reader)))
 	}
-	if BasicEnabled() {
-		handlers = append(handlers, &BasicChallengeHandler{Host: clientCfg.Host, Reader: reader, Username: defaultUsername, Password: defaultPassword})
-	}
+
+	handlers = append(handlers, &BasicChallengeHandler{Host: clientCfg.Host, Reader: reader, Username: defaultUsername, Password: defaultPassword})
 
 	var handler ChallengeHandler
 	if len(handlers) == 1 {
