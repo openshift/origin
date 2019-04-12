@@ -41,6 +41,7 @@ import (
 	authorizationv1typedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/library-go/pkg/crypto"
+
 	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver"
 	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
@@ -56,10 +57,11 @@ import (
 	newproject "github.com/openshift/origin/pkg/oc/cli/admin/project"
 	"github.com/openshift/origin/test/util"
 
-	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
 	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
+
+	// install all APIs
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 var (
@@ -667,7 +669,7 @@ func startKubernetesControllers(masterConfig *configapi.MasterConfig, adminKubeC
 	}
 
 	go func() {
-		cmd := kube_controller_manager.NewControllerManagerCommand()
+		cmd := kube_controller_manager.NewControllerManagerCommand(wait.NeverStop)
 		if err := cmd.ParseFlags(args); err != nil {
 			klog.Errorf("kube-controller-manager failed to parse flags: %v", err)
 			return
