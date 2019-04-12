@@ -603,7 +603,12 @@ func (bc *BuildController) handleNewBuild(build *buildv1.Build, pod *corev1.Pod)
 		// c) duplicate events / relist ?!?!
 
 		if strategy.HasOwnerReference(pod, build) {
-			return bc.handleActiveBuild(build, pod)
+			// if it is a), then recalling setup could with retrying updating the build with
+			// error information; if there are no errors, setup has no affect
+			// ... otherwise, we are b) or c) and we wait for the next
+			// pod event
+			_, update, err := bc.prePodCreateSetup(build)
+			return update, err
 		}
 		// If a pod was not created by the current build, move the build to
 		// error.
@@ -1095,6 +1100,7 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 			return update, nil
 		}
 		klog.V(4).Infof("Recognised pod %s/%s as belonging to build %s", build.Namespace, buildPod.Name, buildDesc(build))
+		bc.recorder.Eventf(build, corev1.EventTypeWarning, "PossibleDuplicateLeader", "Pod already exists: %s/%s", buildPod.Namespace, buildPod.Name)
 
 	} else {
 		klog.V(4).Infof("Created pod %s/%s for build %s", build.Namespace, buildPod.Name, buildDesc(build))
@@ -1185,7 +1191,7 @@ func (bc *BuildController) handleActiveBuild(build *buildv1.Build, pod *corev1.P
 	switch podPhase {
 	case corev1.PodPending:
 		if build.Status.Phase != buildv1.BuildPhasePending {
-			update = transitionToPhase(buildv1.BuildPhasePending, "", "")
+			return nil, fmt.Errorf("pod %s pending but build %s running; retry", resourceName(pod.Namespace, pod.Name), resourceName(build.Namespace, build.Name))
 		}
 		if secret := build.Spec.Output.PushSecret; secret != nil && build.Status.Reason != buildv1.StatusReasonMissingPushSecret {
 			if _, err := bc.secretStore.Secrets(build.Namespace).Get(secret.Name); err != nil && errors.IsNotFound(err) {
