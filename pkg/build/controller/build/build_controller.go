@@ -18,7 +18,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	kruntime "k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
@@ -367,6 +367,7 @@ func (bc *BuildController) podWork() bool {
 	pod := obj.(*corev1.Pod)
 	err := bc.handlePod(nil, pod)
 	bc.handleQueueError(err, pod, bc.podQueue)
+	klog.V(0).Infof("GGM pod queue len after processing pod is %d", bc.podQueue.Len())
 	return false
 }
 
@@ -397,7 +398,7 @@ func (bc *BuildController) buildWork() bool {
 	}
 
 	err = bc.handleBuild(build)
-	bc.handleQueueError(err, key, bc.buildConfigQueue)
+	bc.handleQueueError(err, key, bc.buildQueue)
 	return false
 }
 
@@ -459,6 +460,9 @@ func (bc *BuildController) handlePod(build *buildv1.Build, pod *corev1.Pod) erro
 		if err != nil {
 			return err
 		}
+		if build == nil {
+			return nil
+		}
 	}
 	if shouldIgnore(build) {
 		return nil
@@ -479,10 +483,27 @@ func (bc *BuildController) handlePod(build *buildv1.Build, pod *corev1.Pod) erro
 			update, err = bc.postPodCreateSetupCfgMapSecretAnnotation(build, pod)
 		case build.Status.Phase == buildv1.BuildPhasePending:
 			update, err = bc.handleActiveBuild(build, pod)
-		default:
+		case build.Status.Phase == buildv1.BuildPhaseRunning:
+			// first check if we are the init container runing situation
+			// that handleActiveBuild treats as podPhase == running
+			// presumably can happen even in a single leader situation
+			// if multiple pod events arrive prior to pod going running
+			for _, initContainer := range pod.Status.InitContainerStatuses {
+				if initContainer.Name == strategy.GitCloneContainer && initContainer.State.Running != nil {
+					klog.V(4).Infof("The pod %s is pending but init containers running so build %s in running OK", resourceName(pod.Namespace, pod.Name), resourceName(build.Namespace, build.Name))
+					return nil
+				}
+			}
+			// otherwise something unexpected see below
 			logMsg = fmt.Sprintf(logMsg, resourceName(build.Namespace, build.Name), string(build.Status.Phase), resourceName(pod.Namespace, pod.Name), string(pod.Status.Phase))
 			bc.recorder.Eventf(build, corev1.EventTypeWarning, "PossibleDuplicateLeader", logMsg)
-			return fmt.Errorf(logMsg)
+			klog.Errorf(logMsg)
+			return nil
+
+		default:
+			// terminal states ... simply ignore ... maybe failure on prior pending event, maybe
+			// duplicate leader/missed event, but not for certain
+			return nil
 		}
 	case corev1.PodRunning:
 		switch {
@@ -515,13 +536,15 @@ func (bc *BuildController) handlePod(build *buildv1.Build, pod *corev1.Pod) erro
 		case build.Status.Phase == buildv1.BuildPhaseRunning:
 			update, err = bc.handleActiveBuild(build, pod)
 		default:
-			logMsg = fmt.Sprintf(logMsg, resourceName(build.Namespace, build.Name), string(build.Status.Phase), resourceName(pod.Namespace, pod.Name), string(pod.Status.Phase))
-			bc.recorder.Eventf(build, corev1.EventTypeWarning, "PossibleDuplicateLeader", logMsg)
-			return fmt.Errorf(logMsg)
+			// terminal states ... simply ignore ... maybe failure on prior running event, maybe
+			// duplicate leader/missed event, but not for certain
+			return nil
 		}
 	case corev1.PodSucceeded:
 		update, err = bc.handleActiveBuild(build, pod)
 	case corev1.PodFailed:
+		update, err = bc.handleActiveBuild(build, pod)
+	case corev1.PodUnknown:
 		update, err = bc.handleActiveBuild(build, pod)
 	}
 
@@ -640,23 +663,33 @@ func (bc *BuildController) handleNewBuild(build *buildv1.Build, pod *corev1.Pod)
 		// the pod but failed to update the build object afterwards.
 
 		// However, now we only update the build as part of this controller's attempt to
-		// create the pod if the pod creation failed, including IsAlreadyExists
-		// Both result in the status.reason/message fields getting set and now should set the phase
-		// to buildv1.BuildPhaseError instead of the new phase
-		// Then we update the build push secret, phase, output ref, and pod annotation as needed
-		// once we get the pod added event
+		// create the pod if the pod creation failed
+		// If that happens the status.reason/message fields gets set and now should set the phase
+		// to buildv1.BuildPhaseError instead of leaving as the new phase
+		// If the pod is successfully created and we get the event,
+		// we then update the build push secret, phase, output ref, and pod annotation as needed
 
 		// So if we get here, either
-		// a) one those setup errors occurred, and we failed to patch update the build, in which case
-		// we now log an error in the build controller log and attempt to generate an event
+		// a) one those setup errors occurred, but the patch update of the build failed;  That failure should
+		// log an error in the build controller log and attempt to generate an event
 		// b) a duplicate leader scenario is in play, and we have multiple creaters of pods / writers
 		// of builds
-		// c) duplicate events / relist ?!?!
+		// c) duplicate events / missed events / events out of order / relist ?!?!
 
 		if strategy.HasOwnerReference(pod, build) {
-			// means duplicate leader or missed event or events out of order ... go down primary path
-			err := bc.handlePod(build, pod)
-			return nil, err
+			// means duplicate leader or missed event or events out of order
+			// just return, and we'll wait for a pod event of this "valid" pod
+			// vs. treating this build event (only build events trigger a call to this method)
+			// as a pod event ... eventual consistency
+			if pod.Status.Phase == corev1.PodPending || pod.Status.Phase == corev1.PodRunning {
+				return nil, nil
+			} else {
+				// if it is some sort of terminal state, either the pod got to that state very
+				// quickly, or we missed a bunch of events ... call handlePod to get build to
+				// terminal state
+				err := bc.handlePod(build, pod)
+				return nil, err
+			}
 		}
 		// If a pod was not created by the current build, move the build to
 		// error.
@@ -1147,6 +1180,9 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 			update = transitionToPhase(buildv1.BuildPhaseError, buildv1.StatusReasonBuildPodExists, buildutil.StatusMessageBuildPodExists)
 			return update, nil
 		}
+		// means duplicate leader or missed event or events out of order
+		// just return, and we'll wait for next event as this "valid" pod
+		// progresses
 		klog.V(4).Infof("Recognised pod %s/%s as belonging to build %s", build.Namespace, buildPod.Name, buildDesc(build))
 		bc.recorder.Eventf(build, corev1.EventTypeWarning, "PossibleDuplicateLeader", "Pod already exists: %s/%s", buildPod.Namespace, buildPod.Name)
 
@@ -1273,6 +1309,8 @@ func (bc *BuildController) handleActiveBuild(build *buildv1.Build, pod *corev1.P
 				}
 			}
 		}
+	case corev1.PodUnknown:
+		fallthrough
 	case corev1.PodFailed:
 		if isOOMKilled(pod) {
 			update = transitionToPhase(buildv1.BuildPhaseFailed, buildv1.StatusReasonOutOfMemoryKilled, buildutil.StatusMessageOutOfMemoryKilled)
@@ -1345,6 +1383,7 @@ func (bc *BuildController) updateBuild(build *buildv1.Build, update *buildUpdate
 	stateTransition := false
 	// Check whether we are transitioning to a different build phase
 	if update.phase != nil && (*update.phase) != build.Status.Phase {
+		klog.V(0).Infof("GGM moving build %s from %s phase to %s phase", build.Name, string(build.Status.Phase), string(*update.phase))
 		stateTransition = true
 	} else if build.Status.Phase == buildv1.BuildPhaseFailed && update.completionTime != nil {
 		// Treat a failed->failed update as a state transition when the completionTime is getting
@@ -1452,11 +1491,11 @@ func (bc *BuildController) handleBuildConfig(bcNamespace string, bcName string) 
 	return nil
 }
 func createBuildPatch(older, newer *buildv1.Build) ([]byte, error) {
-	newerJSON, err := runtime.Encode(buildscheme.Encoder, newer)
+	newerJSON, err := kruntime.Encode(buildscheme.Encoder, newer)
 	if err != nil {
 		return nil, fmt.Errorf("error encoding newer: %v", err)
 	}
-	olderJSON, err := runtime.Encode(buildscheme.Encoder, older)
+	olderJSON, err := kruntime.Encode(buildscheme.Encoder, older)
 	if err != nil {
 		return nil, fmt.Errorf("error encoding older: %v", err)
 	}
@@ -1753,9 +1792,13 @@ func (bc *BuildController) createBuildSystemConfConfigMap(build *buildv1.Build, 
 	configMapSpec := bc.createBuildSystemConfigMapSpec(build, buildPod)
 	configMap, err := bc.configMapClient.ConfigMaps(build.Namespace).Create(configMapSpec)
 	if err != nil {
+		// we can see concurrent pod updates ... do not sweath already exits
+		if errors.IsAlreadyExists(err) {
+			return update, nil
+		}
 		bc.recorder.Eventf(build, corev1.EventTypeWarning, "FailedCreate", "Error creating build system config configMap: %v", err)
 		update = transitionToPhase(buildv1.BuildPhaseError, "CannotCreateBuildSysConfigMap", buildutil.StatusMessageCannotCreateBuildSysConfigMap)
-		return update, fmt.Errorf("failed to create build system config configMap: %v", err)
+		return update, fmt.Errorf("failed to create build system config configMap %s/%s: %v", build.Namespace, configMap.Name, err)
 	}
 	klog.V(4).Infof("Created build system config configMap %s/%s for build %s", build.Namespace, configMap.Name, buildDesc(build))
 	return update, nil
