@@ -45,10 +45,8 @@ readonly OS_GOVET_BLACKLIST=(
 
 #If you update this list, be sure to get the images/origin/Dockerfile
 readonly OPENSHIFT_BINARY_SYMLINKS=(
-  ""
 )
 readonly OC_BINARY_SYMLINKS=(
-  ""
 )
 readonly OC_BINARY_COPY=(
   kubectl
