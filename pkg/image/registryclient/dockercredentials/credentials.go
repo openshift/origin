@@ -2,6 +2,9 @@ package dockercredentials
 
 import (
 	"net/url"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 
 	"k8s.io/klog"
@@ -21,8 +24,10 @@ var (
 // local configuration to find a valid authentication for registry
 // targets.
 func NewLocal() auth.CredentialStore {
+	keyring := &credentialprovider.BasicDockerKeyring{}
+	keyring.Add(defaultClientDockerConfig())
 	return &keyringCredentialStore{
-		DockerKeyring:     credentialprovider.NewDockerKeyring(),
+		DockerKeyring:     keyring,
 		RefreshTokenStore: registryclient.NewRefreshTokenStore(),
 	}
 }
@@ -103,4 +108,36 @@ func BasicFromKeyring(keyring credentialprovider.DockerKeyring, target *url.URL)
 	}
 	klog.V(5).Infof("Found secret to match %s (%s): %s", target, value, configs[0].ServerAddress)
 	return configs[0].Username, configs[0].Password
+}
+
+// defaultClientDockerConfig returns the credentials that the docker command line client would
+// return.
+func defaultClientDockerConfig() credentialprovider.DockerConfig {
+	// support the modern config file $HOME/.docker/config.json
+	if cfg, err := credentialprovider.ReadDockerConfigJSONFile(defaultPathsForCredentials()); err == nil {
+		return cfg
+	}
+	// support the legacy config file $HOME/.dockercfg
+	if cfg, err := credentialprovider.ReadDockercfgFile(defaultPathsForLegacyCredentials()); err == nil {
+		return cfg
+	}
+	return credentialprovider.DockerConfig{}
+}
+
+// defaultPathsForCredentials returns the correct search directories for a docker config
+//  file
+func defaultPathsForCredentials() []string {
+	if runtime.GOOS == "windows" { // Windows
+		return []string{filepath.Join(os.Getenv("USERPROFILE"), ".docker")}
+	}
+	return []string{filepath.Join(os.Getenv("HOME"), ".docker")}
+}
+
+// defaultPathsForCredentials returns the correct search directories for a docker config
+//  file
+func defaultPathsForLegacyCredentials() []string {
+	if runtime.GOOS == "windows" { // Windows
+		return []string{os.Getenv("USERPROFILE")}
+	}
+	return []string{os.Getenv("HOME")}
 }
