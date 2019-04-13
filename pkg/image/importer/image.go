@@ -30,11 +30,15 @@ func schema1ToImage(manifest *schema1.SignedManifest, d godigest.Digest) (*image
 		return nil, err
 	}
 
-	if len(d) > 0 {
-		dockerImage.ID = d.String()
-	} else {
-		dockerImage.ID = godigest.FromBytes(manifest.Canonical).String()
+	if len(manifest.Canonical) == 0 {
+		return nil, fmt.Errorf("unable to load canonical representation from schema1 manifest")
 	}
+	payloadDigest := godigest.FromBytes(manifest.Canonical)
+	if len(d) > 0 && payloadDigest != d {
+		return nil, fmt.Errorf("content integrity error: the schema 1 manifest retrieved with digest %s does not match the digest calculated from the content %s", d, payloadDigest)
+	}
+	dockerImage.ID = payloadDigest.String()
+
 	image := &imageapi.Image{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: dockerImage.ID,
@@ -58,11 +62,12 @@ func schema2ToImage(manifest *schema2.DeserializedManifest, imageConfig []byte, 
 	if err != nil {
 		return nil, err
 	}
-	if len(d) > 0 {
-		dockerImage.ID = d.String()
-	} else {
-		dockerImage.ID = godigest.FromBytes(payload).String()
+
+	payloadDigest := godigest.FromBytes(payload)
+	if len(d) > 0 && payloadDigest != d {
+		return nil, fmt.Errorf("content integrity error: the schema 2 manifest retrieved with digest %s does not match the digest calculated from the content %s", d, payloadDigest)
 	}
+	dockerImage.ID = payloadDigest.String()
 
 	image := &imageapi.Image{
 		ObjectMeta: metav1.ObjectMeta{

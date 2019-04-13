@@ -263,7 +263,10 @@ func ProcessManifestList(ctx context.Context, srcDigest digest.Digest, srcManife
 				return nil, nil, "", fmt.Errorf("unable to filter source image %s manifest list (bad payload): %v", ref, err)
 			}
 			manifestList = t
-			manifestDigest = srcDigest.Algorithm().FromBytes(body)
+			manifestDigest, err := registryclient.ContentDigestForManifest(t, srcDigest.Algorithm())
+			if err != nil {
+				return nil, nil, "", err
+			}
 			klog.V(5).Infof("Filtered manifest list to new digest %s:\n%s", manifestDigest, body)
 		}
 
@@ -277,11 +280,10 @@ func ProcessManifestList(ctx context.Context, srcDigest digest.Digest, srcManife
 
 		switch {
 		case len(srcManifests) == 1:
-			_, body, err := srcManifests[0].Payload()
+			manifestDigest, err := registryclient.ContentDigestForManifest(srcManifest, srcDigest.Algorithm())
 			if err != nil {
-				return nil, nil, "", fmt.Errorf("unable to convert source image %s manifest list to single manifest: %v", ref, err)
+				return nil, nil, "", err
 			}
-			manifestDigest := srcDigest.Algorithm().FromBytes(body)
 			klog.V(5).Infof("Used only one manifest from the list %s", manifestDigest)
 			return srcManifests, srcManifests[0], manifestDigest, nil
 		default:

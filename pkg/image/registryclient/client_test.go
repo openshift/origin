@@ -1,20 +1,23 @@
 package registryclient
 
 import (
+	"bytes"
+	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
-
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/api/errcode"
-	godigest "github.com/opencontainers/go-digest"
+	digest "github.com/opencontainers/go-digest"
+	"golang.org/x/net/context"
 )
 
 type mockRetriever struct {
@@ -47,10 +50,10 @@ func (r *mockRepository) Manifests(ctx context.Context, options ...distribution.
 	return r, r.repoErr
 }
 func (r *mockRepository) Blobs(ctx context.Context) distribution.BlobStore { return r.blobs }
-func (r *mockRepository) Exists(ctx context.Context, dgst godigest.Digest) (bool, error) {
+func (r *mockRepository) Exists(ctx context.Context, dgst digest.Digest) (bool, error) {
 	return false, r.getErr
 }
-func (r *mockRepository) Get(ctx context.Context, dgst godigest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
+func (r *mockRepository) Get(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
 	for _, option := range options {
 		if _, ok := option.(distribution.WithTagOption); ok {
 			return r.manifest, r.getByTagErr
@@ -58,10 +61,10 @@ func (r *mockRepository) Get(ctx context.Context, dgst godigest.Digest, options 
 	}
 	return r.manifest, r.getErr
 }
-func (r *mockRepository) Delete(ctx context.Context, dgst godigest.Digest) error {
+func (r *mockRepository) Delete(ctx context.Context, dgst digest.Digest) error {
 	return fmt.Errorf("not implemented")
 }
-func (r *mockRepository) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (godigest.Digest, error) {
+func (r *mockRepository) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (digest.Digest, error) {
 	return "", fmt.Errorf("not implemented")
 }
 func (r *mockRepository) Tags(ctx context.Context) distribution.TagService {
@@ -71,24 +74,24 @@ func (r *mockRepository) Tags(ctx context.Context) distribution.TagService {
 type mockBlobStore struct {
 	distribution.BlobStore
 
-	blobs map[godigest.Digest][]byte
+	blobs map[digest.Digest][]byte
 
 	statErr, serveErr, openErr error
 }
 
-func (r *mockBlobStore) Stat(ctx context.Context, dgst godigest.Digest) (distribution.Descriptor, error) {
+func (r *mockBlobStore) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
 	return distribution.Descriptor{}, r.statErr
 }
 
-func (r *mockBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, req *http.Request, dgst godigest.Digest) error {
+func (r *mockBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, req *http.Request, dgst digest.Digest) error {
 	return r.serveErr
 }
 
-func (r *mockBlobStore) Open(ctx context.Context, dgst godigest.Digest) (distribution.ReadSeekCloser, error) {
+func (r *mockBlobStore) Open(ctx context.Context, dgst digest.Digest) (distribution.ReadSeekCloser, error) {
 	return nil, r.openErr
 }
 
-func (r *mockBlobStore) Get(ctx context.Context, dgst godigest.Digest) ([]byte, error) {
+func (r *mockBlobStore) Get(ctx context.Context, dgst digest.Digest) ([]byte, error) {
 	b, exists := r.blobs[dgst]
 	if !exists {
 		return nil, distribution.ErrBlobUnknown
@@ -107,7 +110,7 @@ func (r *mockTagService) Get(ctx context.Context, tag string) (distribution.Desc
 	if !ok {
 		return distribution.Descriptor{}, r.repo.getTagErr
 	}
-	dgst, err := godigest.Parse(v)
+	dgst, err := digest.Parse(v)
 	if err != nil {
 		panic(err)
 	}
@@ -289,7 +292,7 @@ func TestRetryFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := m.Get(nil, godigest.Digest("foo")); err != repo.getErr || r.retries != 4 {
+	if _, err := m.Get(nil, digest.Digest("foo")); err != repo.getErr || r.retries != 4 {
 		t.Fatalf("unexpected: %v %v %#v", m, err, r)
 	}
 
@@ -307,7 +310,7 @@ func TestRetryFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 	r.retries = 2
-	if _, err := m.Get(nil, godigest.Digest("foo")); err != repo.getErr {
+	if _, err := m.Get(nil, digest.Digest("foo")); err != repo.getErr {
 		t.Fatalf("unexpected: %v %#v", err, r)
 	}
 	r.retries = 2
@@ -320,15 +323,301 @@ func TestRetryFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := b.Stat(nil, godigest.Digest("x")); err != repo.blobs.statErr {
+	if _, err := b.Stat(nil, digest.Digest("x")); err != repo.blobs.statErr {
 		t.Fatalf("unexpected: %v %#v", err, r)
 	}
 	r.retries = 2
-	if err := b.ServeBlob(nil, nil, nil, godigest.Digest("foo")); err != repo.blobs.serveErr {
+	if err := b.ServeBlob(nil, nil, nil, digest.Digest("foo")); err != repo.blobs.serveErr {
 		t.Fatalf("unexpected: %v %#v", err, r)
 	}
 	r.retries = 2
-	if _, err := b.Open(nil, godigest.Digest("foo")); err != repo.blobs.openErr {
+	if _, err := b.Open(nil, digest.Digest("foo")); err != repo.blobs.openErr {
 		t.Fatalf("unexpected: %v %#v", err, r)
 	}
+}
+
+func Test_verifyManifest_Get(t *testing.T) {
+	tests := []struct {
+		name     string
+		dgst     digest.Digest
+		err      error
+		manifest distribution.Manifest
+		options  []distribution.ManifestServiceOption
+		want     distribution.Manifest
+		wantErr  bool
+	}{
+		{
+			dgst:     payload1Digest,
+			manifest: &fakeManifest{payload: []byte(payload1)},
+			want:     &fakeManifest{payload: []byte(payload1)},
+		},
+		{
+			dgst:     payload2Digest,
+			manifest: &fakeManifest{payload: []byte(payload2)},
+			want:     &fakeManifest{payload: []byte(payload2)},
+		},
+		{
+			dgst:     payload1Digest,
+			manifest: &fakeManifest{payload: []byte(payload2)},
+			wantErr:  true,
+		},
+		{
+			dgst:     payload1Digest,
+			manifest: &fakeManifest{payload: []byte(payload1), err: fmt.Errorf("unknown")},
+			wantErr:  true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ms := &fakeManifestService{err: tt.err, manifest: tt.manifest}
+			m := manifestServiceVerifier{
+				ManifestService: ms,
+			}
+			ctx := context.Background()
+			got, err := m.Get(ctx, tt.dgst, tt.options...)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("verifyManifest.Get() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("verifyManifest.Get() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+const (
+	payload1 = `{"some":"content"}`
+	payload2 = `{"some":"content"} `
+)
+
+var (
+	payload1Digest = digest.SHA256.FromString(payload1)
+	payload2Digest = digest.SHA256.FromString(payload2)
+)
+
+type fakeManifest struct {
+	mediaType string
+	payload   []byte
+	err       error
+}
+
+func (m *fakeManifest) References() []distribution.Descriptor {
+	panic("not implemented")
+}
+
+func (m *fakeManifest) Payload() (mediaType string, payload []byte, err error) {
+	return m.mediaType, m.payload, m.err
+}
+
+type fakeManifestService struct {
+	manifest distribution.Manifest
+	err      error
+}
+
+func (s *fakeManifestService) Exists(ctx context.Context, dgst digest.Digest) (bool, error) {
+	panic("not implemented")
+}
+
+func (s *fakeManifestService) Get(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
+	return s.manifest, s.err
+}
+
+func (s *fakeManifestService) Put(ctx context.Context, manifest distribution.Manifest, options ...distribution.ManifestServiceOption) (digest.Digest, error) {
+	panic("not implemented")
+}
+
+func (s *fakeManifestService) Delete(ctx context.Context, dgst digest.Digest) error {
+	panic("not implemented")
+}
+
+func Test_blobStoreVerifier_Get(t *testing.T) {
+	tests := []struct {
+		name    string
+		bytes   []byte
+		err     error
+		dgst    digest.Digest
+		want    []byte
+		wantErr bool
+	}{
+		{
+			dgst:  payload1Digest,
+			bytes: []byte(payload1),
+			want:  []byte(payload1),
+		},
+		{
+			dgst:  payload2Digest,
+			bytes: []byte(payload2),
+			want:  []byte(payload2),
+		},
+		{
+			dgst:    payload1Digest,
+			bytes:   []byte(payload2),
+			wantErr: true,
+		},
+		{
+			dgst:    payload1Digest,
+			bytes:   []byte(payload1),
+			err:     fmt.Errorf("unknown"),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			bs := &fakeBlobStore{err: tt.err, bytes: tt.bytes}
+			b := blobStoreVerifier{
+				BlobStore: bs,
+			}
+			ctx := context.Background()
+			got, err := b.Get(ctx, tt.dgst)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("blobStoreVerifier.Get() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("blobStoreVerifier.Get() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_blobStoreVerifier_Open(t *testing.T) {
+	tests := []struct {
+		name    string
+		bytes   []byte
+		err     error
+		dgst    digest.Digest
+		want    func(t *testing.T, got distribution.ReadSeekCloser)
+		wantErr bool
+	}{
+		{
+			dgst:  payload1Digest,
+			bytes: []byte(payload1),
+			want: func(t *testing.T, got distribution.ReadSeekCloser) {
+				data, err := ioutil.ReadAll(got)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !bytes.Equal([]byte(payload1), data) {
+					t.Fatalf("contents not equal: %s", hex.Dump(data))
+				}
+			},
+		},
+		{
+			dgst:  payload2Digest,
+			bytes: []byte(payload2),
+			want: func(t *testing.T, got distribution.ReadSeekCloser) {
+				data, err := ioutil.ReadAll(got)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !bytes.Equal([]byte(payload2), data) {
+					t.Fatalf("contents not equal: %s", hex.Dump(data))
+				}
+			},
+		},
+		{
+			dgst:  payload1Digest,
+			bytes: []byte(payload2),
+			want: func(t *testing.T, got distribution.ReadSeekCloser) {
+				data, err := ioutil.ReadAll(got)
+				if err == nil || !strings.Contains(err.Error(), "content integrity error") || !strings.Contains(err.Error(), payload2Digest.String()) {
+					t.Fatal(err)
+				}
+				if !bytes.Equal([]byte(payload2), data) {
+					t.Fatalf("contents not equal: %s", hex.Dump(data))
+				}
+			},
+		},
+		{
+			dgst:  payload1Digest,
+			bytes: []byte(payload2),
+			want: func(t *testing.T, got distribution.ReadSeekCloser) {
+				_, err := got.Seek(0, 0)
+				if err == nil || err.Error() != "invoked seek" {
+					t.Fatal(err)
+				}
+				data, err := ioutil.ReadAll(got)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !bytes.Equal([]byte(payload2), data) {
+					t.Fatalf("contents not equal: %s", hex.Dump(data))
+				}
+			},
+		},
+		{
+			dgst:    payload1Digest,
+			bytes:   []byte(payload1),
+			err:     fmt.Errorf("unknown"),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			bs := &fakeBlobStore{err: tt.err, bytes: tt.bytes}
+			b := blobStoreVerifier{
+				BlobStore: bs,
+			}
+			ctx := context.Background()
+			got, err := b.Open(ctx, tt.dgst)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("blobStoreVerifier.Get() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if err != nil {
+				return
+			}
+			tt.want(t, got)
+		})
+	}
+}
+
+type fakeSeekCloser struct {
+	*bytes.Buffer
+}
+
+func (f fakeSeekCloser) Seek(offset int64, whence int) (int64, error) {
+	return 0, fmt.Errorf("invoked seek")
+}
+
+func (f fakeSeekCloser) Close() error {
+	return fmt.Errorf("not implemented")
+}
+
+type fakeBlobStore struct {
+	bytes []byte
+	err   error
+}
+
+func (s *fakeBlobStore) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
+	panic("not implemented")
+}
+
+func (s *fakeBlobStore) Get(ctx context.Context, dgst digest.Digest) ([]byte, error) {
+	return s.bytes, s.err
+}
+
+func (s *fakeBlobStore) Open(ctx context.Context, dgst digest.Digest) (distribution.ReadSeekCloser, error) {
+	return fakeSeekCloser{bytes.NewBuffer(s.bytes)}, s.err
+}
+
+func (s *fakeBlobStore) Put(ctx context.Context, mediaType string, p []byte) (distribution.Descriptor, error) {
+	panic("not implemented")
+}
+
+func (s *fakeBlobStore) Create(ctx context.Context, options ...distribution.BlobCreateOption) (distribution.BlobWriter, error) {
+	panic("not implemented")
+}
+
+func (s *fakeBlobStore) Resume(ctx context.Context, id string) (distribution.BlobWriter, error) {
+	panic("not implemented")
+}
+
+func (s *fakeBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, r *http.Request, dgst digest.Digest) error {
+	panic("not implemented")
+}
+
+func (s *fakeBlobStore) Delete(ctx context.Context, dgst digest.Digest) error {
+	panic("not implemented")
 }
