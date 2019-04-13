@@ -414,7 +414,7 @@ func (b OpenshiftControllerClientBuilder) OpenshiftSecurityClient(name string) (
 	if err != nil {
 		return nil, err
 	}
-	return securityclient.NewForConfig(clientConfig)
+	return securityclient.NewForConfig(nonProtobufConfig(clientConfig))
 }
 
 func (b OpenshiftControllerClientBuilder) OpenshiftSecurityClientOrDie(name string) securityclient.Interface {

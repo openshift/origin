@@ -190,7 +190,7 @@ func NewInformers(versionedInformers clientgoinformers.SharedInformerFactory, lo
 	if err != nil {
 		return nil, err
 	}
-	securityClient, err := securityv1client.NewForConfig(loopbackClientConfig)
+	securityClient, err := securityv1client.NewForConfig(jsonLoopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}
