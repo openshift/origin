@@ -33,14 +33,9 @@ func TestBootstrappedConstraints(t *testing.T) {
 		t.Errorf("unexpected number of constraints: found %d, wanted %d", len(bootstrappedConstraints), len(expectedConstraintNames))
 	}
 
-	bootstrappedConstraintsExternal, err := sccsort.ByPriorityConvert(bootstrappedConstraints)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	sort.Sort(sccsort.ByPriority(bootstrappedConstraints))
 
-	sort.Sort(bootstrappedConstraintsExternal)
-
-	for i, constraint := range bootstrappedConstraintsExternal {
+	for i, constraint := range bootstrappedConstraints {
 		if constraint.Name != expectedConstraintNames[i] {
 			t.Errorf("unexpected contraint no. %d (by priority).  Found %v, wanted %v", i, constraint.Name, expectedConstraintNames[i])
 		}

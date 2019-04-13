@@ -524,7 +524,6 @@
       "github.com/openshift/origin/pkg/project/generated",
       "github.com/openshift/origin/pkg/route/apis/route/v1",
       "github.com/openshift/origin/pkg/route/generated",
-      "github.com/openshift/origin/pkg/security/apis/security/v1",
       "github.com/openshift/origin/pkg/template/apis/template/v1",
       "github.com/openshift/origin/pkg/template/client/v1",
       "github.com/openshift/origin/pkg/user/generated",

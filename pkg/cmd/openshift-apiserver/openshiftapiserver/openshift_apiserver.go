@@ -30,6 +30,7 @@ import (
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	quotainformer "github.com/openshift/client-go/quota/informers/externalversions"
+	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
 	oappsapiserver "github.com/openshift/origin/pkg/apps/apiserver"
 	authorizationapiserver "github.com/openshift/origin/pkg/authorization/apiserver"
@@ -48,7 +49,6 @@ import (
 	routeapiserver "github.com/openshift/origin/pkg/route/apiserver"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	securityapiserver "github.com/openshift/origin/pkg/security/apiserver"
-	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	templateapiserver "github.com/openshift/origin/pkg/template/apiserver"
 	userapiserver "github.com/openshift/origin/pkg/user/apiserver"
 	"github.com/openshift/origin/pkg/version"
@@ -580,10 +580,10 @@ func (c *completedConfig) bootstrapSCC(context genericapiserver.PostStartHookCon
 	ns := bootstrappolicy.DefaultOpenShiftInfraNamespace
 	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess(ns)
 
-	var securityClient securityclient.Interface
+	var securityClient securityv1client.SecurityV1Interface
 	err := wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
 		var err error
-		securityClient, err = securityclient.NewForConfig(context.LoopbackClientConfig)
+		securityClient, err = securityv1client.NewForConfig(context.LoopbackClientConfig)
 		if err != nil {
 			utilruntime.HandleError(fmt.Errorf("unable to initialize client: %v", err))
 			return false, nil
@@ -596,7 +596,7 @@ func (c *completedConfig) bootstrapSCC(context genericapiserver.PostStartHookCon
 	}
 
 	for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers) {
-		_, err := securityClient.Security().SecurityContextConstraints().Create(scc)
+		_, err := securityClient.SecurityContextConstraints().Create(scc)
 		if kapierror.IsAlreadyExists(err) {
 			continue
 		}
