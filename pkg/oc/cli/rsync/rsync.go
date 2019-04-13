@@ -179,6 +179,14 @@ func (o *RsyncOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []s
 	}
 
 	var err error
+	if o.Config, err = f.ToRESTConfig(); err != nil {
+		return err
+	}
+
+	if o.Client, err = kubernetes.NewForConfig(o.Config); err != nil {
+		return err
+	}
+
 	namespace, _, err := f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
 		return err
