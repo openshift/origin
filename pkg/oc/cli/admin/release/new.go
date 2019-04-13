@@ -268,10 +268,11 @@ func (o *NewOptions) Validate() error {
 }
 
 type imageData struct {
-	Ref       imagereference.DockerImageReference
-	Config    *docker10.DockerImageConfig
-	Digest    digest.Digest
-	Directory string
+	Ref           imagereference.DockerImageReference
+	Config        *docker10.DockerImageConfig
+	Digest        digest.Digest
+	ContentDigest digest.Digest
+	Directory     string
 }
 
 func findStatusTagEvents(tags []imageapi.NamedTagEventList, name string) *imageapi.NamedTagEventList {
@@ -385,6 +386,7 @@ func (o *NewOptions) Run() error {
 			return fmt.Errorf("--from-release was not a valid pullspec: %v", err)
 		}
 
+		verifier := imagemanifest.NewVerifier()
 		var baseDigest string
 		var imageReferencesData, releaseMetadata []byte
 
@@ -398,7 +400,8 @@ func (o *NewOptions) Run() error {
 				From:     "release-manifests/",
 			},
 		}
-		extractOpts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {
+		extractOpts.ImageMetadataCallback = func(m *extract.Mapping, dgst, contentDigest digest.Digest, config *docker10.DockerImageConfig) {
+			verifier.Verify(dgst, contentDigest)
 			if config.Config != nil {
 				baseDigest = config.Config.Labels[annotationReleaseBaseImageDigest]
 				klog.V(4).Infof("Release image was built on top of %s", baseDigest)
@@ -428,6 +431,13 @@ func (o *NewOptions) Run() error {
 		}
 		if len(imageReferencesData) == 0 {
 			return fmt.Errorf("release image did not contain any image-references content")
+		}
+		if !verifier.Verified() {
+			err := fmt.Errorf("the input release image failed content verification and may have been tampered with")
+			if !o.SecurityOptions.SkipVerification {
+				return err
+			}
+			fmt.Fprintf(o.ErrOut, "warning: %v\n", err)
 		}
 
 		inputIS, err := readReleaseImageReferences(imageReferencesData)
@@ -855,19 +865,23 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 		fmt.Fprintf(o.ErrOut, "info: Manifests will be extracted to %s\n", dir)
 	}
 
+	verifier := imagemanifest.NewVerifier()
 	var lock sync.Mutex
 	opts := extract.NewOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
 	opts.SecurityOptions = o.SecurityOptions
 	opts.OnlyFiles = true
 	opts.ParallelOptions = o.ParallelOptions
-	opts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {
+	opts.ImageMetadataCallback = func(m *extract.Mapping, dgst, contentDigest digest.Digest, config *docker10.DockerImageConfig) {
+		verifier.Verify(dgst, contentDigest)
+
 		lock.Lock()
 		defer lock.Unlock()
 		metadata[m.Name] = imageData{
-			Directory: m.To,
-			Ref:       m.ImageRef,
-			Config:    config,
-			Digest:    dgst,
+			Directory:     m.To,
+			Ref:           m.ImageRef,
+			Config:        config,
+			Digest:        dgst,
+			ContentDigest: contentDigest,
 		}
 	}
 
@@ -907,7 +921,6 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 				if imageConfig.Config != nil {
 					labels = imageConfig.Config.Labels
 				}
-
 				if tag.Annotations == nil {
 					tag.Annotations = make(map[string]string)
 				}
@@ -949,6 +962,15 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 	if err := opts.Run(); err != nil {
 		return err
 	}
+
+	if !verifier.Verified() {
+		err := fmt.Errorf("one or more input images failed content verification and may have been tampered with")
+		if !o.SecurityOptions.SkipVerification {
+			return err
+		}
+		fmt.Fprintf(o.ErrOut, "warning: %v\n", err)
+	}
+
 	if len(is.Spec.Tags) > 0 {
 		if err := os.MkdirAll(dir, 0777); err != nil {
 			return err
@@ -1091,11 +1113,13 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 			}
 		}
 
+		verifier := imagemanifest.NewVerifier()
 		options := imageappend.NewAppendImageOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
 		options.SecurityOptions = o.SecurityOptions
 		options.DryRun = o.DryRun
 		options.From = toImageBase
-		options.ConfigurationCallback = func(dgst digest.Digest, config *docker10.DockerImageConfig) error {
+		options.ConfigurationCallback = func(dgst, contentDigest digest.Digest, config *docker10.DockerImageConfig) error {
+			verifier.Verify(dgst, contentDigest)
 			// reset any base image info
 			if len(config.OS) == 0 {
 				config.OS = "linux"
@@ -1125,6 +1149,14 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 		if err := options.Run(); err != nil {
 			return err
 		}
+		if !verifier.Verified() {
+			err := fmt.Errorf("the base image failed content verification and may have been tampered with")
+			if !o.SecurityOptions.SkipVerification {
+				return err
+			}
+			fmt.Fprintf(o.ErrOut, "warning: %v\n", err)
+		}
+
 	default:
 		fmt.Fprintf(o.ErrOut, "info: Extracting operator contents to disk without building a release artifact\n")
 		if _, err := io.Copy(ioutil.Discard, r); err != nil {

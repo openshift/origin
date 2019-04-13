@@ -30,6 +30,7 @@ import (
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 	"github.com/openshift/origin/pkg/image/dockerlayer"
 	"github.com/openshift/origin/pkg/image/dockerlayer/add"
+	"github.com/openshift/origin/pkg/image/registryclient"
 	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
 	"github.com/openshift/origin/pkg/oc/cli/image/workqueue"
 )
@@ -77,7 +78,9 @@ type AppendImageOptions struct {
 	ConfigPatch string
 	MetaPatch   string
 
-	ConfigurationCallback func(dgst digest.Digest, config *docker10.DockerImageConfig) error
+	ConfigurationCallback func(dgst, contentDigest digest.Digest, config *docker10.DockerImageConfig) error
+	// ToDigest is set after a new image is uploaded
+	ToDigest digest.Digest
 
 	DropHistory bool
 	CreatedAt   string
@@ -216,10 +219,11 @@ func (o *AppendImageOptions) Run() error {
 	}
 
 	var (
-		base       *docker10.DockerImageConfig
-		baseDigest digest.Digest
-		layers     []distribution.Descriptor
-		fromRepo   distribution.Repository
+		base              *docker10.DockerImageConfig
+		baseDigest        digest.Digest
+		baseContentDigest digest.Digest
+		layers            []distribution.Descriptor
+		fromRepo          distribution.Repository
 	)
 	if from != nil {
 		repo, err := fromContext.Repository(ctx, from.DockerClientDefaults().RegistryURL(), from.RepositoryName(), o.SecurityOptions.Insecure)
@@ -228,15 +232,22 @@ func (o *AppendImageOptions) Run() error {
 		}
 		fromRepo = repo
 
-		srcManifest, srcDigest, location, err := imagemanifest.FirstManifest(ctx, *from, repo, o.FilterOptions.Include)
+		srcManifest, manifestLocation, err := imagemanifest.FirstManifest(ctx, *from, repo, o.FilterOptions.Include)
 		if err != nil {
 			return fmt.Errorf("unable to read image %s: %v", from, err)
 		}
-		base, layers, err = imagemanifest.ManifestToImageConfig(ctx, srcManifest, repo.Blobs(ctx), location)
+		base, layers, err = imagemanifest.ManifestToImageConfig(ctx, srcManifest, repo.Blobs(ctx), manifestLocation)
 		if err != nil {
 			return fmt.Errorf("unable to parse image %s: %v", from, err)
 		}
-		baseDigest = srcDigest
+
+		contentDigest, err := registryclient.ContentDigestForManifest(srcManifest, manifestLocation.Manifest.Algorithm())
+		if err != nil {
+			return err
+		}
+
+		baseDigest = manifestLocation.Manifest
+		baseContentDigest = contentDigest
 
 	} else {
 		base = add.NewEmptyConfig()
@@ -249,7 +260,7 @@ func (o *AppendImageOptions) Run() error {
 	}
 
 	if o.ConfigurationCallback != nil {
-		if err := o.ConfigurationCallback(baseDigest, base); err != nil {
+		if err := o.ConfigurationCallback(baseDigest, baseContentDigest, base); err != nil {
 			return err
 		}
 	} else {
@@ -406,6 +417,7 @@ func (o *AppendImageOptions) Run() error {
 	if err != nil {
 		return fmt.Errorf("unable to convert the image to a compatible schema version: %v", err)
 	}
+	o.ToDigest = toDigest
 	fmt.Fprintf(o.Out, "Pushed image %s to %s\n", toDigest, to)
 	return nil
 }

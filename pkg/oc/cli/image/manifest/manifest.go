@@ -50,6 +50,35 @@ func (o *SecurityOptions) Bind(flags *pflag.FlagSet) {
 	flags.BoolVar(&o.SkipVerification, "skip-verification", o.SkipVerification, "Skip verifying the integrity of the retrieved content. This is not recommended, but may be necessary when importing images from older image registries. Only bypass verification if the registry is known to be trustworthy.")
 }
 
+type Verifier interface {
+	Verify(dgst, contentDgst digest.Digest)
+	Verified() bool
+}
+
+func NewVerifier() Verifier {
+	return &verifier{}
+}
+
+type verifier struct {
+	lock     sync.Mutex
+	hadError bool
+}
+
+func (v *verifier) Verify(dgst, contentDgst digest.Digest) {
+	if contentDgst == dgst {
+		return
+	}
+	v.lock.Lock()
+	defer v.lock.Unlock()
+	v.hadError = true
+}
+
+func (v *verifier) Verified() bool {
+	v.lock.Lock()
+	defer v.lock.Unlock()
+	return !v.hadError
+}
+
 func (o *SecurityOptions) Context() (*registryclient.Context, error) {
 	rt, err := rest.TransportFor(&rest.Config{})
 	if err != nil {
@@ -169,49 +198,62 @@ func AllManifests(ctx context.Context, from imagereference.DockerImageReference,
 	return ManifestsFromList(ctx, srcDigest, srcManifest, manifests, from)
 }
 
+type ManifestLocation struct {
+	Manifest     digest.Digest
+	ManifestList digest.Digest
+}
+
+func (m ManifestLocation) IsList() bool {
+	return len(m.ManifestList) > 0
+}
+
+func (m ManifestLocation) String() string {
+	if m.IsList() {
+		return fmt.Sprintf("manifest %s in manifest list %s", m.Manifest, m.ManifestList)
+	}
+	return fmt.Sprintf("manifest %s", m.Manifest)
+}
+
 // FirstManifest returns the first manifest at the request location that matches the filter function.
-func FirstManifest(ctx context.Context, from imagereference.DockerImageReference, repo distribution.Repository, filterFn FilterFunc) (distribution.Manifest, digest.Digest, string, error) {
+func FirstManifest(ctx context.Context, from imagereference.DockerImageReference, repo distribution.Repository, filterFn FilterFunc) (distribution.Manifest, ManifestLocation, error) {
 	var srcDigest digest.Digest
 	if len(from.Tag) > 0 {
 		desc, err := repo.Tags(ctx).Get(ctx, from.Tag)
 		if err != nil {
-			return nil, "", "", err
+			return nil, ManifestLocation{}, err
 		}
 		srcDigest = desc.Digest
 	} else if len(from.ID) > 0 {
 		srcDigest = digest.Digest(from.ID)
 	} else {
-		return nil, "", "", fmt.Errorf("no tag or digest specified")
+		return nil, ManifestLocation{}, fmt.Errorf("no tag or digest specified")
 	}
 	manifests, err := repo.Manifests(ctx)
 	if err != nil {
-		return nil, "", "", err
+		return nil, ManifestLocation{}, err
 	}
 	srcManifest, err := manifests.Get(ctx, srcDigest, PreferManifestList)
 	if err != nil {
-		return nil, "", "", err
+		return nil, ManifestLocation{}, err
 	}
 
 	originalSrcDigest := srcDigest
 	srcManifests, srcManifest, srcDigest, err := ProcessManifestList(ctx, srcDigest, srcManifest, manifests, from, filterFn)
 	if err != nil {
-		return nil, "", "", err
+		return nil, ManifestLocation{}, err
 	}
 	if len(srcManifests) == 0 {
-		return nil, "", "", fmt.Errorf("filtered all images from %s", from)
+		return nil, ManifestLocation{}, fmt.Errorf("filtered all images from manifest list")
 	}
 
-	var location string
-	if srcDigest == originalSrcDigest {
-		location = fmt.Sprintf("manifest %s", srcDigest)
-	} else {
-		location = fmt.Sprintf("manifest %s in manifest list %s", srcDigest, originalSrcDigest)
+	if srcDigest != originalSrcDigest {
+		return srcManifest, ManifestLocation{Manifest: srcDigest, ManifestList: originalSrcDigest}, nil
 	}
-	return srcManifest, srcDigest, location, nil
+	return srcManifest, ManifestLocation{Manifest: srcDigest}, nil
 }
 
 // ManifestToImageConfig takes an image manifest and converts it into a structured object.
-func ManifestToImageConfig(ctx context.Context, srcManifest distribution.Manifest, blobs distribution.BlobService, location string) (*docker10.DockerImageConfig, []distribution.Descriptor, error) {
+func ManifestToImageConfig(ctx context.Context, srcManifest distribution.Manifest, blobs distribution.BlobService, location ManifestLocation) (*docker10.DockerImageConfig, []distribution.Descriptor, error) {
 	switch t := srcManifest.(type) {
 	case *schema2.DeserializedManifest:
 		if t.Config.MediaType != schema2.MediaTypeImageConfig {
@@ -324,11 +366,11 @@ func ProcessManifestList(ctx context.Context, srcDigest digest.Digest, srcManife
 
 		switch {
 		case len(srcManifests) == 1:
-			manifestDigest, err := registryclient.ContentDigestForManifest(srcManifest, srcDigest.Algorithm())
+			manifestDigest, err := registryclient.ContentDigestForManifest(srcManifests[0], srcDigest.Algorithm())
 			if err != nil {
 				return nil, nil, "", err
 			}
-			klog.V(5).Infof("Used only one manifest from the list %s", manifestDigest)
+			klog.V(5).Infof("Used only one manifest from the list %s", srcDigest)
 			return srcManifests, srcManifests[0], manifestDigest, nil
 		default:
 			return append(srcManifests, manifestList), manifestList, manifestDigest, nil

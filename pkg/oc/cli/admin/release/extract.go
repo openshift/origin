@@ -99,7 +99,7 @@ type ExtractOptions struct {
 	Directory string
 	File      string
 
-	ImageMetadataCallback func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig)
+	ImageMetadataCallback func(m *extract.Mapping, dgst, contentDigest digest.Digest, config *docker10.DockerImageConfig)
 }
 
 func (o *ExtractOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
@@ -225,9 +225,11 @@ func (o *ExtractOptions) Run() error {
 				To:   dir,
 			},
 		}
-		opts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {
+		verifier := imagemanifest.NewVerifier()
+		opts.ImageMetadataCallback = func(m *extract.Mapping, dgst, contentDigest digest.Digest, config *docker10.DockerImageConfig) {
+			verifier.Verify(dgst, contentDigest)
 			if o.ImageMetadataCallback != nil {
-				o.ImageMetadataCallback(m, dgst, config)
+				o.ImageMetadataCallback(m, dgst, contentDigest, config)
 			}
 			if len(ref.ID) > 0 {
 				fmt.Fprintf(o.Out, "Extracted release payload created at %s\n", config.Created.Format(time.RFC3339))
@@ -235,7 +237,17 @@ func (o *ExtractOptions) Run() error {
 				fmt.Fprintf(o.Out, "Extracted release payload from digest %s created at %s\n", dgst, config.Created.Format(time.RFC3339))
 			}
 		}
-		return opts.Run()
+		if err := opts.Run(); err != nil {
+			return err
+		}
+		if !verifier.Verified() {
+			err := fmt.Errorf("the release image failed content verification and may have been tampered with")
+			if !o.SecurityOptions.SkipVerification {
+				return err
+			}
+			fmt.Fprintf(o.ErrOut, "warning: %v\n", err)
+		}
+		return nil
 	}
 }
 

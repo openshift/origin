@@ -383,12 +383,15 @@ type ReleaseManifestDiff struct {
 }
 
 type ReleaseInfo struct {
-	Image      string                              `json:"image"`
-	ImageRef   imagereference.DockerImageReference `json:"-"`
-	Digest     digest.Digest                       `json:"digest"`
-	Config     *docker10.DockerImageConfig         `json:"config"`
-	Metadata   *CincinnatiMetadata                 `json:"metadata"`
-	References *imageapi.ImageStream               `json:"references"`
+	Image         string                              `json:"image"`
+	ImageRef      imagereference.DockerImageReference `json:"-"`
+	Digest        digest.Digest                       `json:"digest"`
+	ContentDigest digest.Digest                       `json:"contentDigest"`
+	// TODO: return the list digest in the future
+	// ListDigest    digest.Digest                       `json:"listDigest"`
+	Config     *docker10.DockerImageConfig `json:"config"`
+	Metadata   *CincinnatiMetadata         `json:"metadata"`
+	References *imageapi.ImageStream       `json:"references"`
 
 	ComponentVersions map[string]string `json:"versions"`
 
@@ -402,12 +405,16 @@ type ReleaseInfo struct {
 }
 
 type Image struct {
-	Name      string                              `json:"name"`
-	Ref       imagereference.DockerImageReference `json:"-"`
-	Digest    digest.Digest                       `json:"digest"`
-	MediaType string                              `json:"mediaType"`
-	Layers    []distribution.Descriptor           `json:"layers"`
-	Config    *docker10.DockerImageConfig         `json:"config"`
+	Name          string                              `json:"name"`
+	Ref           imagereference.DockerImageReference `json:"-"`
+	Digest        digest.Digest                       `json:"digest"`
+	ContentDigest digest.Digest                       `json:"contentDigest"`
+	ListDigest    digest.Digest                       `json:"listDigest"`
+	MediaType     string                              `json:"mediaType"`
+	Layers        []distribution.Descriptor           `json:"layers"`
+	Config        *docker10.DockerImageConfig         `json:"config"`
+
+	Manifest distribution.Manifest `json:"-"`
 }
 
 func (i *ReleaseInfo) PreferredName() string {
@@ -434,6 +441,8 @@ func (o *InfoOptions) LoadReleaseInfo(image string, retrieveImages bool) (*Relea
 	if err != nil {
 		return nil, err
 	}
+
+	verifier := imagemanifest.NewVerifier()
 	opts := extract.NewOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
 	opts.SecurityOptions = o.SecurityOptions
 
@@ -444,8 +453,10 @@ func (o *InfoOptions) LoadReleaseInfo(image string, retrieveImages bool) (*Relea
 		RawMetadata: make(map[string][]byte),
 	}
 
-	opts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {
+	opts.ImageMetadataCallback = func(m *extract.Mapping, dgst, contentDigest digest.Digest, config *docker10.DockerImageConfig) {
+		verifier.Verify(dgst, contentDigest)
 		release.Digest = dgst
+		release.ContentDigest = contentDigest
 		release.Config = config
 	}
 	opts.OnlyFiles = true
@@ -511,6 +522,7 @@ func (o *InfoOptions) LoadReleaseInfo(image string, retrieveImages bool) (*Relea
 	if len(errs) > 0 {
 		return nil, fmt.Errorf("release image could not be read: %s", errorList(errs))
 	}
+
 	if release.References == nil {
 		return nil, fmt.Errorf("release image did not contain an image-references file")
 	}
@@ -528,6 +540,7 @@ func (o *InfoOptions) LoadReleaseInfo(image string, retrieveImages bool) (*Relea
 			SecurityOptions: o.SecurityOptions,
 			ParallelOptions: o.ParallelOptions,
 			ImageMetadataCallback: func(name string, image *imageinfo.Image, err error) error {
+				verifier.Verify(image.Digest, image.ContentDigest)
 				lock.Lock()
 				defer lock.Unlock()
 				if err != nil {
@@ -553,6 +566,14 @@ func (o *InfoOptions) LoadReleaseInfo(image string, retrieveImages bool) (*Relea
 		if err := r.Run(); err != nil {
 			return nil, err
 		}
+	}
+
+	if !verifier.Verified() {
+		err := fmt.Errorf("the release image failed content verification and may have been tampered with")
+		if !o.SecurityOptions.SkipVerification {
+			return nil, err
+		}
+		fmt.Fprintf(o.ErrOut, "warning: %v\n", err)
 	}
 
 	sort.Strings(release.Warnings)

@@ -204,6 +204,7 @@ func (o *MirrorOptions) Run() error {
 		return fmt.Errorf("when mirroring to multiple repositories, use the new release command with --from-release and --mirror")
 	}
 
+	verifier := imagemanifest.NewVerifier()
 	is := o.ImageStream
 	if is == nil {
 		o.ImageStream = &imagev1.ImageStream{}
@@ -212,7 +213,9 @@ func (o *MirrorOptions) Run() error {
 		buf := &bytes.Buffer{}
 		extractOpts := NewExtractOptions(genericclioptions.IOStreams{Out: buf, ErrOut: o.ErrOut})
 		extractOpts.SecurityOptions = o.SecurityOptions
-		extractOpts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {}
+		extractOpts.ImageMetadataCallback = func(m *extract.Mapping, dgst, contentDigest digest.Digest, config *docker10.DockerImageConfig) {
+			verifier.Verify(dgst, contentDigest)
+		}
 		extractOpts.From = o.From
 		extractOpts.File = "image-references"
 		if err := extractOpts.Run(); err != nil {
@@ -223,6 +226,13 @@ func (o *MirrorOptions) Run() error {
 		}
 		if is.Kind != "ImageStream" || is.APIVersion != "image.openshift.io/v1" {
 			return fmt.Errorf("unrecognized image-references in release payload")
+		}
+		if !verifier.Verified() {
+			err := fmt.Errorf("the release image failed content verification and may have been tampered with")
+			if !o.SecurityOptions.SkipVerification {
+				return err
+			}
+			fmt.Fprintf(o.ErrOut, "warning: %v\n", err)
 		}
 	}
 

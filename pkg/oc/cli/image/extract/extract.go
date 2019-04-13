@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/openshift/origin/pkg/image/registryclient"
+
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
 
@@ -111,7 +113,7 @@ type Options struct {
 
 	// ImageMetadataCallback is invoked once per image retrieved, and may be called in parallel if
 	// MaxPerRegistry is set higher than 1.
-	ImageMetadataCallback func(m *Mapping, dgst digest.Digest, imageConfig *docker10.DockerImageConfig)
+	ImageMetadataCallback func(m *Mapping, dgst, contentDigest digest.Digest, imageConfig *docker10.DockerImageConfig)
 	// TarEntryCallback, if set, is passed each entry in the viewed layers. Entries will be filtered
 	// by name and only the entry in the highest layer will be passed to the callback. Returning false
 	// will halt processing of the image.
@@ -320,7 +322,7 @@ func (o *Options) Run() error {
 					return fmt.Errorf("unable to connect to image repository %s: %v", from.Exact(), err)
 				}
 
-				srcManifest, srcDigest, location, err := imagemanifest.FirstManifest(ctx, from, repo, o.FilterOptions.Include)
+				srcManifest, location, err := imagemanifest.FirstManifest(ctx, from, repo, o.FilterOptions.Include)
 				if err != nil {
 					if imagemanifest.IsImageForbidden(err) {
 						var msg string
@@ -343,18 +345,23 @@ func (o *Options) Run() error {
 					return fmt.Errorf("unable to read image %s: %v", from, err)
 				}
 
+				contentDigest, err := registryclient.ContentDigestForManifest(srcManifest, location.Manifest.Algorithm())
+				if err != nil {
+					return err
+				}
+
 				imageConfig, layers, err := imagemanifest.ManifestToImageConfig(ctx, srcManifest, repo.Blobs(ctx), location)
 				if err != nil {
 					return fmt.Errorf("unable to parse image %s: %v", from, err)
 				}
 
 				if mapping.ConditionFn != nil {
-					ok, err := mapping.ConditionFn(&mapping, srcDigest, imageConfig)
+					ok, err := mapping.ConditionFn(&mapping, location.Manifest, imageConfig)
 					if err != nil {
 						return fmt.Errorf("unable to check whether to include image %s: %v", from, err)
 					}
 					if !ok {
-						klog.V(2).Infof("Filtered out image %s with digest %s from being extracted", from, srcDigest)
+						klog.V(2).Infof("Filtered out image %s with digest %s from being extracted", from, location.Manifest)
 						return nil
 					}
 				}
@@ -468,7 +475,7 @@ func (o *Options) Run() error {
 				}
 
 				if o.ImageMetadataCallback != nil {
-					o.ImageMetadataCallback(&mapping, srcDigest, imageConfig)
+					o.ImageMetadataCallback(&mapping, location.Manifest, contentDigest, imageConfig)
 				}
 				return nil
 			})

@@ -27,6 +27,7 @@ import (
 
 	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
+	"github.com/openshift/origin/pkg/image/registryclient"
 	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
 )
 
@@ -87,6 +88,7 @@ func (o *InfoOptions) Run() error {
 		return fmt.Errorf("must specify one or more images as arguments")
 	}
 
+	hadError := false
 	for _, location := range o.Images {
 		src, err := imagereference.Parse(location)
 		if err != nil {
@@ -107,7 +109,7 @@ func (o *InfoOptions) Run() error {
 			return err
 		}
 
-		srcManifest, srcDigest, _, err := imagemanifest.FirstManifest(ctx, src, repo, o.FilterOptions.IncludeAll)
+		srcManifest, manifestLocation, err := imagemanifest.FirstManifest(ctx, src, repo, o.FilterOptions.IncludeAll)
 		if err != nil {
 			return fmt.Errorf("unable to read image %s: %v", location, err)
 		}
@@ -124,20 +126,27 @@ func (o *InfoOptions) Run() error {
 			return fmt.Errorf("the image is a manifest list and contains multiple images - use --filter-by-os to select from:\n\n%s\n", buf.String())
 		}
 
-		imageConfig, layers, err := imagemanifest.ManifestToImageConfig(ctx, srcManifest, repo.Blobs(ctx), location)
+		imageConfig, layers, err := imagemanifest.ManifestToImageConfig(ctx, srcManifest, repo.Blobs(ctx), manifestLocation)
 		if err != nil {
 			return fmt.Errorf("unable to parse image %s: %v", location, err)
 		}
 
 		mediaType, _, _ := srcManifest.Payload()
+		contentDigest, err := registryclient.ContentDigestForManifest(srcManifest, manifestLocation.Manifest.Algorithm())
+		if err != nil {
+			return err
+		}
 
 		image := &Image{
-			Name:      location,
-			Ref:       src,
-			Config:    imageConfig,
-			Digest:    srcDigest,
-			MediaType: mediaType,
-			Layers:    layers,
+			Name:          location,
+			Ref:           src,
+			Config:        imageConfig,
+			Digest:        manifestLocation.Manifest,
+			ContentDigest: contentDigest,
+			ListDigest:    manifestLocation.ManifestList,
+			MediaType:     mediaType,
+			Layers:        layers,
+			Manifest:      srcManifest,
 		}
 
 		switch o.Output {
@@ -154,28 +163,48 @@ func (o *InfoOptions) Run() error {
 		}
 
 		if err := describeImage(o.Out, image); err != nil {
-			return err
+			hadError = true
+			if err != kcmdutil.ErrExit {
+				fmt.Fprintf(o.ErrOut, "error: %v", err)
+			}
 		}
+	}
+	if hadError {
+		return kcmdutil.ErrExit
 	}
 	return nil
 }
 
 type Image struct {
-	Name      string                              `json:"name"`
-	Ref       imagereference.DockerImageReference `json:"-"`
-	Digest    digest.Digest                       `json:"digest"`
-	MediaType string                              `json:"mediaType"`
-	Layers    []distribution.Descriptor           `json:"layers"`
-	Config    *docker10.DockerImageConfig         `json:"config"`
+	Name          string                              `json:"name"`
+	Ref           imagereference.DockerImageReference `json:"-"`
+	Digest        digest.Digest                       `json:"digest"`
+	ContentDigest digest.Digest                       `json:"contentDigest"`
+	ListDigest    digest.Digest                       `json:"listDigest"`
+	MediaType     string                              `json:"mediaType"`
+	Layers        []distribution.Descriptor           `json:"layers"`
+	Config        *docker10.DockerImageConfig         `json:"config"`
+
+	Manifest distribution.Manifest `json:"-"`
 }
 
 func describeImage(out io.Writer, image *Image) error {
+	var err error
+
 	w := tabwriter.NewWriter(out, 0, 4, 1, ' ', 0)
 	defer w.Flush()
 	fmt.Fprintf(w, "Name:\t%s\n", image.Name)
-	if len(image.Ref.ID) == 0 {
+	if len(image.Ref.ID) == 0 || image.Ref.ID != image.Digest.String() {
 		fmt.Fprintf(w, "Digest:\t%s\n", image.Digest)
 	}
+	if len(image.ListDigest) > 0 {
+		fmt.Fprintf(w, "Manifest List:\t%s\n", image.ListDigest)
+	}
+	if image.ContentDigest != image.Digest {
+		fmt.Fprintf(w, "Content Digest:\t%s\n\tERROR: the image contents do not match the requested digest, this image has been tampered with\n", image.ContentDigest)
+		err = kcmdutil.ErrExit
+	}
+
 	fmt.Fprintf(w, "Media Type:\t%s\n", image.MediaType)
 	if image.Config.Created.IsZero() {
 		fmt.Fprintf(w, "Created:\t%s\n", "<unknown>")
@@ -284,7 +313,7 @@ func describeImage(out io.Writer, image *Image) error {
 	}
 
 	fmt.Fprintln(w)
-	return nil
+	return err
 }
 
 func writeTabSection(out io.Writer, fn func(w io.Writer)) {
@@ -323,7 +352,7 @@ func (o *ImageRetriever) Run() error {
 					return fmt.Errorf("unable to connect to image repository %s: %v", from.Exact(), err)
 				}
 
-				allManifests, _, _, err := imagemanifest.AllManifests(ctx, from, repo)
+				allManifests, _, listDigest, err := imagemanifest.AllManifests(ctx, from, repo)
 				if err != nil {
 					if imagemanifest.IsImageForbidden(err) {
 						var msg string
@@ -346,24 +375,31 @@ func (o *ImageRetriever) Run() error {
 					return fmt.Errorf("unable to read image %s: %v", from, err)
 				}
 
-				for srcDigest, srcManifest := range allManifests {
-					imageConfig, layers, err := imagemanifest.ManifestToImageConfig(ctx, srcManifest, repo.Blobs(ctx), from.Exact())
-					if o.ImageMetadataCallback != nil {
+				if o.ImageMetadataCallback != nil {
+					for srcDigest, srcManifest := range allManifests {
+						imageConfig, layers, err := imagemanifest.ManifestToImageConfig(ctx, srcManifest, repo.Blobs(ctx), imagemanifest.ManifestLocation{ManifestList: listDigest, Manifest: srcDigest})
 						mediaType, _, _ := srcManifest.Payload()
-
-						if err := o.ImageMetadataCallback(name, &Image{
-							Name:      from.Exact(),
-							MediaType: mediaType,
-							Digest:    srcDigest,
-							Config:    imageConfig,
-							Layers:    layers,
-						}, err); err != nil {
-							return err
-						}
-					} else {
+						contentDigest, err := registryclient.ContentDigestForManifest(srcManifest, srcDigest.Algorithm())
 						if err != nil {
 							return err
 						}
+
+						if err := o.ImageMetadataCallback(name, &Image{
+							Name:          from.Exact(),
+							MediaType:     mediaType,
+							Digest:        srcDigest,
+							ContentDigest: contentDigest,
+							ListDigest:    listDigest,
+							Config:        imageConfig,
+							Layers:        layers,
+							Manifest:      srcManifest,
+						}, err); err != nil {
+							return err
+						}
+					}
+				} else {
+					if err != nil {
+						return err
 					}
 				}
 				return nil
