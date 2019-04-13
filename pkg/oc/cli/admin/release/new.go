@@ -37,12 +37,13 @@ import (
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 	imageappend "github.com/openshift/origin/pkg/oc/cli/image/append"
 	"github.com/openshift/origin/pkg/oc/cli/image/extract"
+	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
 )
 
 func NewNewOptions(streams genericclioptions.IOStreams) *NewOptions {
 	return &NewOptions{
-		IOStreams:      streams,
-		MaxPerRegistry: 4,
+		IOStreams:       streams,
+		ParallelOptions: imagemanifest.ParallelOptions{MaxPerRegistry: 4},
 		// TODO: only cluster-version-operator and maybe CLI should be in this list,
 		//   the others should always be referenced by the cluster-bootstrap or
 		//   another operator.
@@ -110,6 +111,8 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 		},
 	}
 	flags := cmd.Flags()
+	o.SecurityOptions.Bind(flags)
+	o.ParallelOptions.Bind(flags)
 
 	// image inputs
 	flags.StringSliceVar(&o.MappingFilenames, "mapping-file", o.MappingFilenames, "A file defining a mapping of input images to use to build the release")
@@ -143,16 +146,17 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 	flags.StringVar(&o.ToImageBaseTag, "to-image-base-tag", o.ToImageBaseTag, "If specified, the image tag in the input to add the release layer on top of. Defaults to cluster-version-operator.")
 
 	// misc
-	flags.StringVarP(&o.RegistryConfig, "registry-config", "a", o.RegistryConfig, "Path to your registry credentials (defaults to ~/.docker/config.json)")
 	flags.StringVarP(&o.Output, "output", "o", o.Output, "Output the mapping definition in this format.")
 	flags.StringVar(&o.Directory, "dir", o.Directory, "Directory to write release contents to, will default to a temporary directory.")
-	flags.IntVar(&o.MaxPerRegistry, "max-per-registry", o.MaxPerRegistry, "Number of concurrent images that will be extracted at a time.")
 
 	return cmd
 }
 
 type NewOptions struct {
 	genericclioptions.IOStreams
+
+	SecurityOptions imagemanifest.SecurityOptions
+	ParallelOptions imagemanifest.ParallelOptions
 
 	FromDirectory    string
 	Directory        string
@@ -186,9 +190,6 @@ type NewOptions struct {
 	ToImageBaseTag string
 
 	Mirror string
-
-	RegistryConfig string
-	MaxPerRegistry int
 
 	AllowMissingImages bool
 	SkipManifestCheck  bool
@@ -389,7 +390,7 @@ func (o *NewOptions) Run() error {
 
 		buf := &bytes.Buffer{}
 		extractOpts := extract.NewOptions(genericclioptions.IOStreams{Out: buf, ErrOut: o.ErrOut})
-		extractOpts.RegistryConfig = o.RegistryConfig
+		extractOpts.SecurityOptions = o.SecurityOptions
 		extractOpts.OnlyFiles = true
 		extractOpts.Mappings = []extract.Mapping{
 			{
@@ -856,9 +857,9 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 
 	var lock sync.Mutex
 	opts := extract.NewOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
-	opts.RegistryConfig = o.RegistryConfig
+	opts.SecurityOptions = o.SecurityOptions
 	opts.OnlyFiles = true
-	opts.MaxPerRegistry = o.MaxPerRegistry
+	opts.ParallelOptions = o.ParallelOptions
 	opts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {
 		lock.Lock()
 		defer lock.Unlock()
@@ -971,7 +972,7 @@ func (o *NewOptions) mirrorImages(is *imageapi.ImageStream) error {
 	opts.ImageStream = copied
 	opts.To = o.Mirror
 	opts.SkipRelease = true
-	opts.RegistryConfig = o.RegistryConfig
+	opts.SecurityOptions = o.SecurityOptions
 
 	if err := opts.Run(); err != nil {
 		return err
@@ -1091,7 +1092,7 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 		}
 
 		options := imageappend.NewAppendImageOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
-		options.RegistryConfig = o.RegistryConfig
+		options.SecurityOptions = o.SecurityOptions
 		options.DryRun = o.DryRun
 		options.From = toImageBase
 		options.ConfigurationCallback = func(dgst digest.Digest, config *docker10.DockerImageConfig) error {

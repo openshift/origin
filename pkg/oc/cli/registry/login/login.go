@@ -115,6 +115,7 @@ func NewRegistryLoginCmd(name string, f kcmdutil.Factory, streams genericcliopti
 	}
 
 	flag := cmd.Flags()
+	flag.StringVarP(&o.ConfigFile, "registry-config", "a", o.ConfigFile, "The location of the Docker config.json your credentials will be stored in.")
 	flag.StringVar(&o.ConfigFile, "to", o.ConfigFile, "The location of the Docker config.json your credentials will be stored in.")
 	flag.StringVarP(&o.ServiceAccount, "service-account", "z", o.ServiceAccount, "Log in as the specified service account name in the specified namespace.")
 	flag.StringVar(&o.HostPort, "registry", o.HostPort, "An alternate domain name and port to use for the registry, defaults to the cluster's configured external hostname.")

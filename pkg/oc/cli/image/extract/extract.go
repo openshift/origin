@@ -21,14 +21,11 @@ import (
 	digest "github.com/opencontainers/go-digest"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/rest"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
-	"github.com/openshift/origin/pkg/image/registryclient"
-	"github.com/openshift/origin/pkg/image/registryclient/dockercredentials"
 	"github.com/openshift/origin/pkg/oc/cli/image/archive"
 	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
 	"github.com/openshift/origin/pkg/oc/cli/image/workqueue"
@@ -97,21 +94,18 @@ type TarEntryFunc func(*tar.Header, LayerInfo, io.Reader) (cont bool, err error)
 type Options struct {
 	Mappings []Mapping
 
-	RegistryConfig string
-
 	Files []string
 	Paths []string
 
 	OnlyFiles           bool
 	PreservePermissions bool
 
-	FilterOptions imagemanifest.FilterOptions
+	SecurityOptions imagemanifest.SecurityOptions
+	FilterOptions   imagemanifest.FilterOptions
+	ParallelOptions imagemanifest.ParallelOptions
 
-	MaxPerRegistry int
-
-	Confirm  bool
-	DryRun   bool
-	Insecure bool
+	Confirm bool
+	DryRun  bool
 
 	genericclioptions.IOStreams
 
@@ -131,8 +125,8 @@ func NewOptions(streams genericclioptions.IOStreams) *Options {
 	return &Options{
 		Paths: []string{},
 
-		IOStreams:      streams,
-		MaxPerRegistry: 1,
+		IOStreams:       streams,
+		ParallelOptions: imagemanifest.ParallelOptions{MaxPerRegistry: 1},
 	}
 }
 
@@ -153,12 +147,11 @@ func New(name string, streams genericclioptions.IOStreams) *cobra.Command {
 	}
 
 	flag := cmd.Flags()
+	o.SecurityOptions.Bind(flag)
 	o.FilterOptions.Bind(flag)
 
-	flag.StringVarP(&o.RegistryConfig, "registry-config", "a", o.RegistryConfig, "Path to your registry credentials (defaults to ~/.docker/config.json)")
 	flag.BoolVar(&o.Confirm, "confirm", o.Confirm, "Pass to allow extracting to non-empty directories.")
 	flag.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the actions that would be taken and exit without writing any contents.")
-	flag.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow pull operations to registries to be made over HTTP")
 
 	flag.StringSliceVar(&o.Files, "file", o.Files, "Extract the specified files to the current directory.")
 	flag.StringSliceVar(&o.Paths, "path", o.Paths, "Extract only part of an image. Must be SRC:DST where SRC is the path within the image and DST a local directory. If not specified the default is to extract everything to the current directory.")
@@ -308,33 +301,21 @@ func (o *Options) Validate() error {
 }
 
 func (o *Options) Run() error {
-	rt, err := rest.TransportFor(&rest.Config{})
-	if err != nil {
-		return err
-	}
-	insecureRT, err := rest.TransportFor(&rest.Config{TLSClientConfig: rest.TLSClientConfig{Insecure: true}})
-	if err != nil {
-		return err
-	}
-	creds := dockercredentials.NewLocal()
-	if len(o.RegistryConfig) > 0 {
-		creds, err = dockercredentials.NewFromFile(o.RegistryConfig)
-		if err != nil {
-			return fmt.Errorf("unable to load --registry-config: %v", err)
-		}
-	}
 	ctx := context.Background()
-	fromContext := registryclient.NewContext(rt, insecureRT).WithCredentials(creds)
+	fromContext, err := o.SecurityOptions.Context()
+	if err != nil {
+		return err
+	}
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	q := workqueue.New(o.MaxPerRegistry, stopCh)
+	q := workqueue.New(o.ParallelOptions.MaxPerRegistry, stopCh)
 	return q.Try(func(q workqueue.Try) {
 		for i := range o.Mappings {
 			mapping := o.Mappings[i]
 			from := mapping.ImageRef
 			q.Try(func() error {
-				repo, err := fromContext.Repository(ctx, from.DockerClientDefaults().RegistryURL(), from.RepositoryName(), o.Insecure)
+				repo, err := fromContext.Repository(ctx, from.DockerClientDefaults().RegistryURL(), from.RepositoryName(), o.SecurityOptions.Insecure)
 				if err != nil {
 					return fmt.Errorf("unable to connect to image repository %s: %v", from.Exact(), err)
 				}

@@ -232,8 +232,8 @@ func (o *ExtractOptions) extractCommand(command string) error {
 
 	// will extract in parallel
 	opts := extract.NewOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
-	opts.MaxPerRegistry = 4
-	opts.RegistryConfig = o.RegistryConfig
+	opts.ParallelOptions = o.ParallelOptions
+	opts.SecurityOptions = o.SecurityOptions
 	opts.OnlyFiles = true
 
 	// create the mapping lookup of the valid targets

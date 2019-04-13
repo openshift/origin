@@ -40,12 +40,13 @@ import (
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 	"github.com/openshift/origin/pkg/oc/cli/image/extract"
 	imageinfo "github.com/openshift/origin/pkg/oc/cli/image/info"
+	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
 )
 
 func NewInfoOptions(streams genericclioptions.IOStreams) *InfoOptions {
 	return &InfoOptions{
-		IOStreams:      streams,
-		MaxPerRegistry: 4,
+		IOStreams:       streams,
+		ParallelOptions: imagemanifest.ParallelOptions{MaxPerRegistry: 4},
 	}
 }
 
@@ -65,9 +66,8 @@ func NewInfo(f kcmdutil.Factory, parentName string, streams genericclioptions.IO
 		},
 	}
 	flags := cmd.Flags()
-	flags.StringVarP(&o.RegistryConfig, "registry-config", "a", o.RegistryConfig, "Path to your registry credentials (defaults to ~/.docker/config.json)")
-	flags.IntVar(&o.MaxPerRegistry, "max-per-registry", o.MaxPerRegistry, "Number of concurrent requests allowed per registry when fetching image info.")
-	flags.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow image info operations to registries to be made over HTTP")
+	o.SecurityOptions.Bind(flags)
+	o.ParallelOptions.Bind(flags)
 
 	flags.StringVar(&o.From, "changes-from", o.From, "Show changes from this image to the requested image.")
 	flags.BoolVar(&o.ShowContents, "contents", o.ShowContents, "Display the contents of a release.")
@@ -98,9 +98,8 @@ type InfoOptions struct {
 	ChangelogDir string
 	BugsDir      string
 
-	RegistryConfig string
-	Insecure       bool
-	MaxPerRegistry int
+	ParallelOptions imagemanifest.ParallelOptions
+	SecurityOptions imagemanifest.SecurityOptions
 }
 
 func (o *InfoOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
@@ -436,7 +435,7 @@ func (o *InfoOptions) LoadReleaseInfo(image string, retrieveImages bool) (*Relea
 		return nil, err
 	}
 	opts := extract.NewOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
-	opts.RegistryConfig = o.RegistryConfig
+	opts.SecurityOptions = o.SecurityOptions
 
 	release := &ReleaseInfo{
 		Image:    image,
@@ -525,10 +524,9 @@ func (o *InfoOptions) LoadReleaseInfo(image string, retrieveImages bool) (*Relea
 		var lock sync.Mutex
 		release.Images = make(map[string]*Image)
 		r := &imageinfo.ImageRetriever{
-			Image:          make(map[string]imagereference.DockerImageReference),
-			RegistryConfig: o.RegistryConfig,
-			Insecure:       o.Insecure,
-			MaxPerRegistry: o.MaxPerRegistry,
+			Image:           make(map[string]imagereference.DockerImageReference),
+			SecurityOptions: o.SecurityOptions,
+			ParallelOptions: o.ParallelOptions,
 			ImageMetadataCallback: func(name string, image *imageinfo.Image, err error) error {
 				lock.Lock()
 				defer lock.Unlock()

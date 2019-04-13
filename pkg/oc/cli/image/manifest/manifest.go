@@ -20,12 +20,56 @@ import (
 
 	"github.com/docker/libtrust"
 	digest "github.com/opencontainers/go-digest"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 
 	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 	"github.com/openshift/origin/pkg/image/dockerlayer/add"
+	"github.com/openshift/origin/pkg/image/registryclient"
+	"github.com/openshift/origin/pkg/image/registryclient/dockercredentials"
 )
+
+type ParallelOptions struct {
+	MaxPerRegistry int
+}
+
+func (o *ParallelOptions) Bind(flags *pflag.FlagSet) {
+	flags.IntVar(&o.MaxPerRegistry, "max-per-registry", o.MaxPerRegistry, "Number of concurrent requests allowed per registry.")
+}
+
+type SecurityOptions struct {
+	RegistryConfig   string
+	Insecure         bool
+	SkipVerification bool
+}
+
+func (o *SecurityOptions) Bind(flags *pflag.FlagSet) {
+	flags.StringVarP(&o.RegistryConfig, "registry-config", "a", o.RegistryConfig, "Path to your registry credentials (defaults to ~/.docker/config.json)")
+	flags.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow push and pull operations to registries to be made over HTTP")
+	flags.BoolVar(&o.SkipVerification, "skip-verification", o.SkipVerification, "Skip verifying the integrity of the retrieved content. This is not recommended, but may be necessary when importing images from older image registries. Only bypass verification if the registry is known to be trustworthy.")
+}
+
+func (o *SecurityOptions) Context() (*registryclient.Context, error) {
+	rt, err := rest.TransportFor(&rest.Config{})
+	if err != nil {
+		return nil, err
+	}
+	insecureRT, err := rest.TransportFor(&rest.Config{TLSClientConfig: rest.TLSClientConfig{Insecure: true}})
+	if err != nil {
+		return nil, err
+	}
+	creds := dockercredentials.NewLocal()
+	if len(o.RegistryConfig) > 0 {
+		creds, err = dockercredentials.NewFromFile(o.RegistryConfig)
+		if err != nil {
+			return nil, fmt.Errorf("unable to load --registry-config: %v", err)
+		}
+	}
+	context := registryclient.NewContext(rt, insecureRT).WithCredentials(creds)
+	context.DisableDigestVerification = o.SkipVerification
+	return context, nil
+}
 
 // FilterOptions assist in filtering out unneeded manifests from ManifestList objects.
 type FilterOptions struct {

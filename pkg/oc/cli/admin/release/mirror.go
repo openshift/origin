@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 	"github.com/openshift/origin/pkg/oc/cli/image/extract"
+	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
 	"github.com/openshift/origin/pkg/oc/cli/image/mirror"
 )
 
@@ -71,7 +72,9 @@ func NewMirror(f kcmdutil.Factory, parentName string, streams genericclioptions.
 		},
 	}
 	flags := cmd.Flags()
-	flags.StringVarP(&o.RegistryConfig, "registry-config", "a", o.RegistryConfig, "Path to your registry credentials (defaults to ~/.docker/config.json)")
+	o.SecurityOptions.Bind(flags)
+	o.ParallelOptions.Bind(flags)
+
 	flags.StringVar(&o.From, "from", o.From, "Image containing the release payload.")
 	flags.StringVar(&o.To, "to", o.To, "An image repository to push to.")
 	flags.StringVar(&o.ToImageStream, "to-image-stream", o.ToImageStream, "An image stream to tag images into.")
@@ -85,6 +88,9 @@ func NewMirror(f kcmdutil.Factory, parentName string, streams genericclioptions.
 type MirrorOptions struct {
 	genericclioptions.IOStreams
 
+	SecurityOptions imagemanifest.SecurityOptions
+	ParallelOptions imagemanifest.ParallelOptions
+
 	From string
 
 	To            string
@@ -93,8 +99,7 @@ type MirrorOptions struct {
 	ToRelease   string
 	SkipRelease bool
 
-	RegistryConfig string
-	DryRun         bool
+	DryRun bool
 
 	ClientFn func() (imageclient.Interface, string, error)
 
@@ -206,7 +211,7 @@ func (o *MirrorOptions) Run() error {
 		// load image references
 		buf := &bytes.Buffer{}
 		extractOpts := NewExtractOptions(genericclioptions.IOStreams{Out: buf, ErrOut: o.ErrOut})
-		extractOpts.RegistryConfig = o.RegistryConfig
+		extractOpts.SecurityOptions = o.SecurityOptions
 		extractOpts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {}
 		extractOpts.From = o.From
 		extractOpts.File = "image-references"
@@ -379,7 +384,8 @@ func (o *MirrorOptions) Run() error {
 	fmt.Fprintf(os.Stderr, "info: Mirroring %d images to %s ...\n", len(mappings), dst)
 	var lock sync.Mutex
 	opts := mirror.NewMirrorImageOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
-	opts.RegistryConfig = o.RegistryConfig
+	opts.SecurityOptions = o.SecurityOptions
+	opts.ParallelOptions = o.ParallelOptions
 	opts.Mappings = mappings
 	opts.DryRun = o.DryRun
 	opts.ManifestUpdateCallback = func(registry string, manifests map[digest.Digest]digest.Digest) error {

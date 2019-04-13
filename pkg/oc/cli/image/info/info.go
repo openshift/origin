@@ -22,14 +22,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/duration"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/rest"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
-	"github.com/openshift/origin/pkg/image/registryclient"
-	"github.com/openshift/origin/pkg/image/registryclient/dockercredentials"
 	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
 )
 
@@ -57,23 +54,20 @@ func NewInfo(parentName string, streams genericclioptions.IOStreams) *cobra.Comm
 	}
 	flags := cmd.Flags()
 	o.FilterOptions.Bind(flags)
-	flags.StringVarP(&o.RegistryConfig, "registry-config", "a", o.RegistryConfig, "Path to your registry credentials (defaults to ~/.docker/config.json)")
+	o.SecurityOptions.Bind(flags)
 	flags.StringVarP(&o.Output, "output", "o", o.Output, "Print the image in an alternative format: json")
-	flags.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow push and pull operations to registries to be made over HTTP")
 	return cmd
 }
 
 type InfoOptions struct {
 	genericclioptions.IOStreams
 
-	RegistryConfig string
-
-	FilterOptions imagemanifest.FilterOptions
+	SecurityOptions imagemanifest.SecurityOptions
+	FilterOptions   imagemanifest.FilterOptions
 
 	Images []string
 
-	Output   string
-	Insecure bool
+	Output string
 }
 
 func (o *InfoOptions) Complete(cmd *cobra.Command, args []string) error {
@@ -102,25 +96,13 @@ func (o *InfoOptions) Run() error {
 			return fmt.Errorf("--from must point to an image ID or image tag")
 		}
 
-		rt, err := rest.TransportFor(&rest.Config{})
-		if err != nil {
-			return err
-		}
-		insecureRT, err := rest.TransportFor(&rest.Config{TLSClientConfig: rest.TLSClientConfig{Insecure: true}})
-		if err != nil {
-			return err
-		}
-		creds := dockercredentials.NewLocal()
-		if len(o.RegistryConfig) > 0 {
-			creds, err = dockercredentials.NewFromFile(o.RegistryConfig)
-			if err != nil {
-				return fmt.Errorf("unable to load --registry-config: %v", err)
-			}
-		}
 		ctx := context.Background()
-		context := registryclient.NewContext(rt, insecureRT).WithCredentials(creds)
+		context, err := o.SecurityOptions.Context()
+		if err != nil {
+			return err
+		}
 
-		repo, err := context.Repository(ctx, src.DockerClientDefaults().RegistryURL(), src.RepositoryName(), o.Insecure)
+		repo, err := context.Repository(ctx, src.DockerClientDefaults().RegistryURL(), src.RepositoryName(), o.SecurityOptions.Insecure)
 		if err != nil {
 			return err
 		}
@@ -312,10 +294,9 @@ func writeTabSection(out io.Writer, fn func(w io.Writer)) {
 }
 
 type ImageRetriever struct {
-	Image          map[string]imagereference.DockerImageReference
-	Insecure       bool
-	RegistryConfig string
-	MaxPerRegistry int
+	Image           map[string]imagereference.DockerImageReference
+	SecurityOptions imagemanifest.SecurityOptions
+	ParallelOptions imagemanifest.ParallelOptions
 	// ImageMetadataCallback is invoked once per image retrieved, and may be called in parallel if
 	// MaxPerRegistry is set higher than 1. If err is passed image is nil. If an error is returned
 	// execution will stop.
@@ -323,33 +304,21 @@ type ImageRetriever struct {
 }
 
 func (o *ImageRetriever) Run() error {
-	rt, err := rest.TransportFor(&rest.Config{})
-	if err != nil {
-		return err
-	}
-	insecureRT, err := rest.TransportFor(&rest.Config{TLSClientConfig: rest.TLSClientConfig{Insecure: true}})
-	if err != nil {
-		return err
-	}
-	creds := dockercredentials.NewLocal()
-	if len(o.RegistryConfig) > 0 {
-		creds, err = dockercredentials.NewFromFile(o.RegistryConfig)
-		if err != nil {
-			return fmt.Errorf("unable to load --registry-config: %v", err)
-		}
-	}
 	ctx := context.Background()
-	fromContext := registryclient.NewContext(rt, insecureRT).WithCredentials(creds)
+	fromContext, err := o.SecurityOptions.Context()
+	if err != nil {
+		return err
+	}
 
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	q := workqueue.New(o.MaxPerRegistry, stopCh)
+	q := workqueue.New(o.ParallelOptions.MaxPerRegistry, stopCh)
 	return q.Try(func(q workqueue.Try) {
 		for key := range o.Image {
 			name := key
 			from := o.Image[key]
 			q.Try(func() error {
-				repo, err := fromContext.Repository(ctx, from.DockerClientDefaults().RegistryURL(), from.RepositoryName(), o.Insecure)
+				repo, err := fromContext.Repository(ctx, from.DockerClientDefaults().RegistryURL(), from.RepositoryName(), o.SecurityOptions.Insecure)
 				if err != nil {
 					return fmt.Errorf("unable to connect to image repository %s: %v", from.Exact(), err)
 				}
