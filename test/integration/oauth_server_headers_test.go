@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/util/sets"
 	restclient "k8s.io/client-go/rest"
 
 	testutil "github.com/openshift/origin/test/util"
@@ -46,10 +47,15 @@ func TestOAuthServerHeaders(t *testing.T) {
 	}
 
 	for _, path := range []string{
+		// hit the root URL
+		// disabled until we move this test to e2e (root goes to kube API in integration tests)
+		// "/",
+
 		// hit the login URL for when there is only one IDP
-		// this is disabled since the OAuth server only handles this endpoint when
+		// the OAuth server only handles this endpoint when
 		// there is a single IDP but that is not true for the integration tests
-		// "/login",
+		// but, even our 404 page should have the correct headers
+		"/login",
 
 		// hit the login URL for the bootstrap IDP
 		"/login/kube:admin",
@@ -57,8 +63,20 @@ func TestOAuthServerHeaders(t *testing.T) {
 		// hit the login URL for the allow all IDP
 		"/login/anypassword",
 
+		// hit the logout URL
+		"/logout",
+
+		// hit the token URL
+		"/oauth/token",
+
+		// hit the authorize URL
+		"/oauth/authorize",
+
 		// hit the grant URL
 		"/oauth/authorize/approve",
+
+		// hit the token request URL
+		"/oauth/token/request",
 	} {
 		t.Run(path, func(t *testing.T) {
 			urlCopy := *baseURL
@@ -84,7 +102,7 @@ func checkNewReqHeaders(t *testing.T, rt http.RoundTripper, checkUrl string) {
 	allHeaders := http.Header{}
 	for key, val := range map[string]string{
 		// security related headers that we really care about, should not change
-		"Cache-Control":          "no-cache, no-store",
+		"Cache-Control":          "no-cache, no-store, max-age=0, must-revalidate",
 		"Pragma":                 "no-cache",
 		"Expires":                "0",
 		"Referrer-Policy":        "strict-origin-when-cross-origin",
@@ -95,7 +113,7 @@ func checkNewReqHeaders(t *testing.T, rt http.RoundTripper, checkUrl string) {
 
 		// non-security headers, should not change
 		// adding items here should be validated to make sure they do not conflict with any security headers
-		"Content-Type": "text/html; charset=utf-8",
+		// <no items currently>
 	} {
 		// use set so we get the canonical form of these headers
 		allHeaders.Set(key, val)
@@ -103,9 +121,20 @@ func checkNewReqHeaders(t *testing.T, rt http.RoundTripper, checkUrl string) {
 
 	// these headers can change per request and are not important to us
 	// only add items to this list if they cannot be statically checked above
-	ignoredHeaders := []string{"Audit-Id", "Date", "Content-Length", "Location"}
+	ignoredHeaders := []string{"Audit-Id", "Date", "Content-Type", "Content-Length", "Location"}
 	for _, h := range ignoredHeaders {
 		resp.Header.Del(h)
+	}
+
+	// tolerate additional header set by osin library code
+	expires := resp.Header["Expires"]
+	if len(expires) == 2 && expires[1] == "Fri, 01 Jan 1990 00:00:00 GMT" {
+		resp.Header["Expires"] = expires[:1]
+	}
+
+	// deduplicate headers (osin library code adds some duplicates)
+	for k, vv := range resp.Header {
+		resp.Header[k] = sets.NewString(vv...).List()
 	}
 
 	if !reflect.DeepEqual(allHeaders, resp.Header) {

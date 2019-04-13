@@ -22,7 +22,6 @@ import (
 	"github.com/openshift/origin/pkg/oauthserver"
 	"github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
-	"github.com/openshift/origin/pkg/oauthserver/server/headers"
 	"github.com/openshift/origin/pkg/oauthserver/server/redirect"
 )
 
@@ -109,8 +108,6 @@ func (l *Grant) Install(mux oauthserver.Mux, paths ...string) {
 }
 
 func (l *Grant) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	headers.SetStandardHeaders(w)
-
 	authResponse, ok, err := l.auth.AuthenticateRequest(req)
 	if err != nil || !ok {
 		l.redirect("You must reauthenticate before continuing", w, req)

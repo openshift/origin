@@ -9,7 +9,6 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 
 	"github.com/openshift/origin/pkg/oauthserver"
-	"github.com/openshift/origin/pkg/oauthserver/server/headers"
 	"github.com/openshift/origin/pkg/oauthserver/server/redirect"
 	"github.com/openshift/origin/pkg/oauthserver/server/session"
 	"github.com/openshift/origin/pkg/oauthserver/server/tokenrequest"
@@ -36,10 +35,6 @@ func (l *logout) Install(mux oauthserver.Mux, paths ...string) {
 }
 
 func (l *logout) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	// TODO this seems like something that should happen automatically at a higher level
-	// we also do not set these headers on the OAuth endpoints or the token request endpoint...
-	headers.SetStandardHeaders(w)
-
 	// TODO while having a POST provides some protection, this endpoint is invokable via JS.
 	// we could easily add CSRF protection, but then it would make it really hard for the console
 	// to actually use this endpoint.  we could have some alternative logout path that validates
