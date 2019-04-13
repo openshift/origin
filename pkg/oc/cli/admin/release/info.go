@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"sort"
 	"strconv"
@@ -56,7 +57,6 @@ func NewInfo(f kcmdutil.Factory, parentName string, streams genericclioptions.IO
 		Long: templates.LongDesc(`
 			Show information about an OpenShift release
 
-			Experimental: This command is under active development and may change without notice.
 		`),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
@@ -70,6 +70,7 @@ func NewInfo(f kcmdutil.Factory, parentName string, streams genericclioptions.IO
 	flags.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow image info operations to registries to be made over HTTP")
 
 	flags.StringVar(&o.From, "changes-from", o.From, "Show changes from this image to the requested image.")
+	flags.BoolVar(&o.ShowContents, "contents", o.ShowContents, "Display the contents of a release.")
 	flags.BoolVar(&o.ShowCommit, "commits", o.ShowCommit, "Display information about the source an image was created with.")
 	flags.BoolVar(&o.ShowPullSpec, "pullspecs", o.ShowPullSpec, "Display the pull spec of each image instead of the digest.")
 	flags.BoolVar(&o.ShowSize, "size", o.ShowSize, "Display the size of each image including overlap.")
@@ -88,6 +89,7 @@ type InfoOptions struct {
 
 	Output       string
 	ImageFor     string
+	ShowContents bool
 	ShowCommit   bool
 	ShowPullSpec bool
 	ShowSize     bool
@@ -139,15 +141,34 @@ func (o *InfoOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []st
 }
 
 func (o *InfoOptions) Validate() error {
+	count := 0
+	if len(o.ImageFor) > 0 {
+		count++
+	}
+	if o.ShowCommit {
+		count++
+	}
+	if o.ShowPullSpec {
+		count++
+	}
+	if o.ShowContents {
+		count++
+	}
+	if o.ShowSize {
+		count++
+	}
+	if o.Verify {
+		count++
+	}
+	if count > 1 {
+		return fmt.Errorf("only one of --commits, --pullspecs, --contents, --size, --verify may be specified")
+	}
 	if len(o.ImageFor) > 0 && len(o.Output) > 0 {
 		return fmt.Errorf("--output and --image-for may not both be specified")
 	}
 	if len(o.ChangelogDir) > 0 || len(o.BugsDir) > 0 {
 		if len(o.From) == 0 {
 			return fmt.Errorf("--changelog/--bugs require --from")
-		}
-		if len(o.ImageFor) > 0 || o.ShowCommit || o.ShowPullSpec || o.ShowSize || o.Verify {
-			return fmt.Errorf("--changelog/--bugs may not be specified with any other flag except --from")
 		}
 	}
 	if len(o.ChangelogDir) > 0 && len(o.BugsDir) > 0 {
@@ -184,6 +205,10 @@ func (o *InfoOptions) Validate() error {
 
 func (o *InfoOptions) Run() error {
 	if len(o.From) > 0 {
+		if o.ShowContents {
+			return diffContents(o.From, o.Images[0], o.Out)
+		}
+
 		var baseRelease *ReleaseInfo
 		var baseErr error
 		done := make(chan struct{})
@@ -201,6 +226,7 @@ func (o *InfoOptions) Run() error {
 		if baseErr != nil {
 			return baseErr
 		}
+
 		diff, err := calculateDiff(baseRelease, release)
 		if err != nil {
 			return err
@@ -216,7 +242,13 @@ func (o *InfoOptions) Run() error {
 
 	var exitErr error
 	for _, image := range o.Images {
-		if err := o.describeImage(image); err != nil {
+		release, err := o.LoadReleaseInfo(image, o.ShowSize)
+		if err != nil {
+			exitErr = kcmdutil.ErrExit
+			fmt.Fprintf(o.ErrOut, "error: %v\n", err)
+			continue
+		}
+		if err := o.describeImage(release); err != nil {
 			exitErr = kcmdutil.ErrExit
 			fmt.Fprintf(o.ErrOut, "error: %v\n", err)
 			continue
@@ -225,9 +257,20 @@ func (o *InfoOptions) Run() error {
 	return exitErr
 }
 
-func (o *InfoOptions) describeImage(image string) error {
-	release, err := o.LoadReleaseInfo(image, o.ShowSize)
-	if err != nil {
+func diffContents(a, b string, out io.Writer) error {
+	fmt.Fprintf(out, `To see the differences between these releases, run:
+
+  %[1]s adm release extract %[2]s --to=/tmp/old
+  %[1]s adm release extract %[3]s --to=/tmp/new
+  diff /tmp/old /tmp/new
+
+`, os.Args[0], a, b)
+	return nil
+}
+
+func (o *InfoOptions) describeImage(release *ReleaseInfo) error {
+	if o.ShowContents {
+		_, err := io.Copy(o.Out, newContentStreamForRelease(release))
 		return err
 	}
 	if len(o.Output) > 0 {
@@ -239,7 +282,7 @@ func (o *InfoOptions) describeImage(image string) error {
 		return nil
 	}
 	if len(o.ImageFor) > 0 {
-		spec, err := findImageSpec(release.References, o.ImageFor, image)
+		spec, err := findImageSpec(release.References, o.ImageFor, release.Image)
 		if err != nil {
 			return err
 		}
@@ -352,6 +395,7 @@ type ReleaseInfo struct {
 
 	Images map[string]*Image `json:"images"`
 
+	RawMetadata   map[string][]byte `json:"-"`
 	ManifestFiles map[string][]byte `json:"-"`
 	UnknownFiles  []string          `json:"-"`
 
@@ -395,7 +439,8 @@ func (o *InfoOptions) LoadReleaseInfo(image string, retrieveImages bool) (*Relea
 	opts.RegistryConfig = o.RegistryConfig
 
 	release := &ReleaseInfo{
-		Image: image,
+		Image:       image,
+		RawMetadata: make(map[string][]byte),
 	}
 
 	opts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {
@@ -421,6 +466,7 @@ func (o *InfoOptions) LoadReleaseInfo(image string, retrieveImages bool) (*Relea
 				errs = append(errs, fmt.Errorf("unable to read release image-references: %v", err))
 				return true, nil
 			}
+			release.RawMetadata[hdr.Name] = data
 			is, err := readReleaseImageReferences(data)
 			if err != nil {
 				errs = append(errs, err)
@@ -433,6 +479,7 @@ func (o *InfoOptions) LoadReleaseInfo(image string, retrieveImages bool) (*Relea
 				errs = append(errs, fmt.Errorf("unable to read release metadata: %v", err))
 				return true, nil
 			}
+			release.RawMetadata[hdr.Name] = data
 			m := &CincinnatiMetadata{}
 			if err := json.Unmarshal(data, m); err != nil {
 				errs = append(errs, fmt.Errorf("invalid release metadata: %v", err))
@@ -1402,4 +1449,73 @@ func orderedKeys(m map[string]string) []string {
 	}
 	sort.Strings(keys)
 	return keys
+}
+
+type contentStream struct {
+	current []byte
+	parts   [][]byte
+}
+
+func (s *contentStream) Read(p []byte) (int, error) {
+	remaining := len(p)
+	count := 0
+	for remaining > 0 {
+		// find the next buffer, if we have nothing
+		if len(s.current) == 0 {
+			if len(s.parts) == 0 {
+				return count, io.EOF
+			}
+			s.current = s.parts[0]
+			s.parts = s.parts[1:]
+		}
+
+		have := len(s.current)
+
+		// fill the buffer completely
+		if have >= remaining {
+			copy(p, s.current[:remaining])
+			s.current = s.current[remaining:]
+			return count + remaining, nil
+		}
+
+		// fill the buffer with whatever we have left
+		copy(p, s.current[:have])
+		s.current = nil
+		p = p[have:]
+		count += have
+		remaining -= have
+	}
+	return count, nil
+}
+
+func newContentStreamForRelease(image *ReleaseInfo) io.Reader {
+	names := make([]string, 0, len(image.ManifestFiles))
+	for name := range image.ManifestFiles {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	rawNames := make([]string, 0, len(image.RawMetadata))
+	for name := range image.RawMetadata {
+		rawNames = append(rawNames, name)
+	}
+	sort.Strings(rawNames)
+
+	data := make([][]byte, 0, (len(names)+len(rawNames))*3)
+
+	for _, name := range rawNames {
+		content := image.RawMetadata[name]
+		data = append(data, []byte(fmt.Sprintf("# %s\n", name)), content)
+		if len(content) > 0 && !bytes.HasSuffix(content, []byte("\n")) {
+			data = append(data, []byte("\n"))
+		}
+	}
+	for _, name := range names {
+		content := image.ManifestFiles[name]
+		data = append(data, []byte(fmt.Sprintf("# %s\n", name)), content)
+		if len(content) > 0 && !bytes.HasSuffix(content, []byte("\n")) {
+			data = append(data, []byte("\n"))
+		}
+	}
+	return &contentStream{parts: data}
 }

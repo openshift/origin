@@ -64,8 +64,6 @@ func NewMirror(f kcmdutil.Factory, parentName string, streams genericclioptions.
 			correct information to give to OpenShift to use that content offline. An alternate mode
 			is to specify --to-image-stream, which imports the images directly into an OpenShift
 			image stream.
-
-			Experimental: This command is under active development and may change without notice.
 		`),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(cmd, f, args))
