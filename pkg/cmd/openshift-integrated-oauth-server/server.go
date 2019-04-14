@@ -45,6 +45,8 @@ func newOAuthServerConfig(osinConfig *osinv1.OsinServerConfig) (*oauthserver.OAu
 	if err := servingOptions.ApplyTo(&genericConfig.Config.SecureServing, &genericConfig.Config.LoopbackClientConfig); err != nil {
 		return nil, err
 	}
+	// the oauth-server must only run in http1 to avoid http2 connection re-use problems when improperly re-using a wildcard certificate
+	genericConfig.Config.SecureServing.HTTP1Only = true
 
 	// TODO You need real overrides for rate limiting
 	kubeClientConfig, err := helpers.GetKubeConfigOrInClusterConfig(osinConfig.KubeClientConfig.KubeConfig, osinConfig.KubeClientConfig.ConnectionOverrides)
