@@ -14,10 +14,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/term"
 )
 
-func BasicEnabled() bool {
-	return true
-}
-
 type BasicChallengeHandler struct {
 	// Host is the server being authenticated to. Used only for displaying messages when prompting for username/password
 	Host string
