@@ -18,12 +18,18 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"syscall"
+
+	"golang.org/x/crypto/ssh/terminal"
+
+	"golang.org/x/crypto/openpgp"
 
 	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 
+	"github.com/MakeNowJust/heredoc"
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 	"github.com/openshift/origin/pkg/oc/cli/image/extract"
 )
@@ -105,6 +111,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 	}
 
 	// select the subset of targets based on command line input
+	var willArchive bool
 	var targets []extractTarget
 	if len(command) > 0 {
 		hasCommand := false
@@ -125,10 +132,47 @@ func (o *ExtractOptions) extractCommand(command string) error {
 			return fmt.Errorf("the supported commands are 'oc' and 'openshift-install'")
 		}
 	} else {
+		willArchive = true
 		targets = availableTargets
 		for i := range targets {
 			targets[i].AsArchive = true
 			targets[i].AsZip = targets[i].OS == "windows"
+		}
+	}
+
+	var hashFn = sha256.New
+	var signer *openpgp.Entity
+	if willArchive && len(o.SigningKey) > 0 {
+		key, err := ioutil.ReadFile(o.SigningKey)
+		if err != nil {
+			return err
+		}
+		keyring, err := openpgp.ReadArmoredKeyRing(bytes.NewBuffer(key))
+		if err != nil {
+			return err
+		}
+		for _, key := range keyring {
+			if !key.PrivateKey.CanSign() {
+				continue
+			}
+			fmt.Fprintf(o.Out, "Enter password for private key: ")
+			password, err := terminal.ReadPassword(int(syscall.Stdin))
+			fmt.Fprintln(o.Out)
+			if err != nil {
+				return err
+			}
+			if err := key.PrivateKey.Decrypt(password); err != nil {
+				return fmt.Errorf("unable to decrypt signing key: %v", err)
+			}
+			for i, subkey := range key.Subkeys {
+				if err := subkey.PrivateKey.Decrypt(password); err != nil {
+					return fmt.Errorf("unable to decrypt signing subkey %d: %v", i, err)
+				}
+			}
+			signer = key
+		}
+		if signer == nil {
+			return fmt.Errorf("no private key exists in %s capable of signing the output", o.SigningKey)
 		}
 	}
 
@@ -140,6 +184,10 @@ func (o *ExtractOptions) extractCommand(command string) error {
 		return err
 	}
 	releaseName := release.PreferredName()
+	refExact := release.ImageRef
+	refExact.Tag = ""
+	refExact.ID = release.Digest.String()
+	exactReleaseImage := refExact.String()
 
 	// resolve target image references to their pull specs
 	missing := sets.NewString()
@@ -162,6 +210,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 		target.Mapping.Image = spec
 		target.Mapping.ImageRef = ref
 		if target.AsArchive {
+			willArchive = true
 			target.Mapping.Name = fmt.Sprintf(target.ArchiveFormat, releaseName)
 			target.Mapping.To = filepath.Join(dir, target.Mapping.Name)
 		} else {
@@ -230,7 +279,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 		var hash hash.Hash
 		closeFn := func() error { return nil }
 		if target.AsArchive {
-			hash = sha256.New()
+			hash = hashFn()
 			w = io.MultiWriter(hash, w)
 			if target.AsZip {
 				klog.V(2).Infof("Writing %s as a ZIP archive %s", hdr.Name, layer.Mapping.To)
@@ -283,7 +332,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 		// copy the input to disk
 		if target.InjectReleaseImage {
 			var matched bool
-			matched, err = copyAndReplaceReleaseImage(w, r, 4*1024, o.From)
+			matched, err = copyAndReplaceReleaseImage(w, r, 4*1024, exactReleaseImage)
 			if !matched {
 				fmt.Fprintf(o.ErrOut, "warning: Unable to replace release image location into %s, installer will not be locked to the correct image\n", target.TargetName)
 			}
@@ -327,6 +376,34 @@ func (o *ExtractOptions) extractCommand(command string) error {
 		return err
 	}
 
+	if willArchive {
+		buf := &bytes.Buffer{}
+		fmt.Fprintf(buf, heredoc.Doc(`
+			Client tools for OpenShift
+			--------------------------
+			
+			These archives contain the client tooling for [OpenShift](https://docs.openshift.com).
+
+			To verify the contents of this directory, use the 'gpg' and 'shasum' tools to
+			ensure the archives you have downloaded match those published from this location.
+			
+			The openshift-install binary has been preconfigured to install the following release:
+
+			---
+			
+		`))
+		if err := describeReleaseInfo(buf, release, false, true, false); err != nil {
+			return err
+		}
+		filename := "release.txt"
+		if err := ioutil.WriteFile(filepath.Join(dir, filename), buf.Bytes(), 0644); err != nil {
+			return err
+		}
+		hash := hashFn()
+		hash.Write(buf.Bytes())
+		hashByTargetName[filename] = hex.EncodeToString(hash.Sum(nil))
+	}
+
 	// write a checksum of the tar files to disk as sha256sum.txt.asc
 	if len(hashByTargetName) > 0 {
 		var keys []string
@@ -339,9 +416,19 @@ func (o *ExtractOptions) extractCommand(command string) error {
 			hash := hashByTargetName[k]
 			lines = append(lines, fmt.Sprintf("%s  %s", hash, filepath.Base(k)))
 		}
-		filename := "sha256sum.txt.asc"
-		if err := ioutil.WriteFile(filepath.Join(dir, filename), []byte(strings.Join(lines, "\n")), 0644); err != nil {
+		data := []byte(strings.Join(lines, "\n"))
+		filename := "sha256sum.txt"
+		if err := ioutil.WriteFile(filepath.Join(dir, filename), data, 0644); err != nil {
 			return fmt.Errorf("unable to write checksum file: %v", err)
+		}
+		if signer != nil {
+			buf := &bytes.Buffer{}
+			if err := openpgp.ArmoredDetachSign(buf, signer, bytes.NewBuffer(data), nil); err != nil {
+				return fmt.Errorf("unable to sign the sha256sum.txt file: %v", err)
+			}
+			if err := ioutil.WriteFile(filepath.Join(dir, filename+".asc"), buf.Bytes(), 0644); err != nil {
+				return fmt.Errorf("unable to write signed manifest: %v", err)
+			}
 		}
 	}
 
