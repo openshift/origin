@@ -28,7 +28,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2017-12-01/compute"
 	"github.com/golang/glog"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/cloudprovider"
@@ -149,8 +149,6 @@ func (a *azureDiskAttacher) VolumesAreAttached(specs []*volume.Spec, nodeName ty
 }
 
 func (a *azureDiskAttacher) WaitForAttach(spec *volume.Spec, devicePath string, _ *v1.Pod, timeout time.Duration) (string, error) {
-	var err error
-
 	volumeSource, _, err := getVolumeSource(spec)
 	if err != nil {
 		return "", err
@@ -164,13 +162,21 @@ func (a *azureDiskAttacher) WaitForAttach(spec *volume.Spec, devicePath string, 
 	nodeName := types.NodeName(a.plugin.host.GetHostName())
 	diskName := volumeSource.DiskName
 
-	glog.V(5).Infof("azureDisk - WaitForAttach: begin to GetDiskLun by diskName(%s), DataDiskURI(%s), nodeName(%s), devicePath(%s)",
-		diskName, volumeSource.DataDiskURI, nodeName, devicePath)
-	lun, err := diskController.GetDiskLun(diskName, volumeSource.DataDiskURI, nodeName)
-	if err != nil {
-		return "", err
+	var lun int32
+	if runtime.GOOS == "windows" {
+		glog.V(2).Infof("azureDisk - WaitForAttach: begin to GetDiskLun by diskName(%s), DataDiskURI(%s), nodeName(%s), devicePath(%s)",
+			diskName, volumeSource.DataDiskURI, nodeName, devicePath)
+		lun, err = diskController.GetDiskLun(diskName, volumeSource.DataDiskURI, nodeName)
+		if err != nil {
+			return "", err
+		}
+		glog.V(2).Infof("azureDisk - WaitForAttach: GetDiskLun succeeded, got lun(%v)", lun)
+	} else {
+		lun, err = getDiskLUN(devicePath)
+		if err != nil {
+			return "", err
+		}
 	}
-	glog.V(5).Infof("azureDisk - WaitForAttach: GetDiskLun succeeded, got lun(%v)", lun)
 	exec := a.plugin.host.GetExec(a.plugin.GetPluginName())
 
 	io := &osIOHandler{}
