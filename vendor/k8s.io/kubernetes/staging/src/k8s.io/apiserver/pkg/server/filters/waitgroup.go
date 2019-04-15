@@ -18,6 +18,7 @@ package filters
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"k8s.io/api/core/v1"
@@ -44,9 +45,11 @@ func WithWaitGroup(handler http.Handler, longRunning apirequest.LongRunningReque
 			if err := wg.Add(1); err != nil {
 				// When apiserver is shutting down, signal clients to retry
 				w.Header().Add("Retry-After", "1")
-				w.Header().Add("Content-Type", runtime.ContentTypeJSON)
+				w.Header().Set("Content-Type", runtime.ContentTypeJSON)
+				w.Header().Set("X-Content-Type-Options", "nosniff")
 				statusErr := apierrors.NewServiceUnavailable("apiserver is shutting down").Status()
-				http.Error(w, runtime.EncodeOrDie(scheme.Codecs.LegacyCodec(v1.SchemeGroupVersion), &statusErr), int(statusErr.Code))
+				w.WriteHeader(int(statusErr.Code))
+				fmt.Fprintln(w, runtime.EncodeOrDie(scheme.Codecs.LegacyCodec(v1.SchemeGroupVersion), &statusErr))
 				return
 			}
 			defer wg.Done()
