@@ -16,7 +16,6 @@ import (
 	units "github.com/docker/go-units"
 	godigest "github.com/opencontainers/go-digest"
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -26,7 +25,6 @@ import (
 
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 	"github.com/openshift/origin/pkg/image/registryclient"
-	"github.com/openshift/origin/pkg/image/registryclient/dockercredentials"
 	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
 	"github.com/openshift/origin/pkg/oc/cli/image/workqueue"
 )
@@ -78,18 +76,17 @@ var (
 type MirrorImageOptions struct {
 	Mappings []Mapping
 
-	FilterOptions imagemanifest.FilterOptions
+	SecurityOptions imagemanifest.SecurityOptions
+	FilterOptions   imagemanifest.FilterOptions
 
 	DryRun             bool
-	Insecure           bool
 	SkipMount          bool
 	SkipMultipleScopes bool
 	SkipMissing        bool
 	Force              bool
 
-	RegistryConfig string
-	MaxRegistry    int
-	MaxPerRegistry int
+	MaxRegistry     int
+	ParallelOptions imagemanifest.ParallelOptions
 
 	AttemptS3BucketCopy []string
 
@@ -102,9 +99,9 @@ type MirrorImageOptions struct {
 
 func NewMirrorImageOptions(streams genericclioptions.IOStreams) *MirrorImageOptions {
 	return &MirrorImageOptions{
-		IOStreams:      streams,
-		MaxRegistry:    4,
-		MaxPerRegistry: 6,
+		IOStreams:       streams,
+		ParallelOptions: imagemanifest.ParallelOptions{MaxPerRegistry: 6},
+		MaxRegistry:     4,
 	}
 }
 
@@ -125,17 +122,16 @@ func NewCmdMirrorImage(name string, streams genericclioptions.IOStreams) *cobra.
 	}
 
 	flag := cmd.Flags()
+	o.SecurityOptions.Bind(flag)
 	o.FilterOptions.Bind(flag)
+	o.ParallelOptions.Bind(flag)
 
-	flag.StringVarP(&o.RegistryConfig, "registry-config", "a", o.RegistryConfig, "Path to your registry credentials (defaults to ~/.docker/config.json)")
 	flag.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the actions that would be taken and exit without writing to the destinations.")
-	flag.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow push and pull operations to registries to be made over HTTP")
 	flag.BoolVar(&o.SkipMissing, "skip-missing", o.SkipMissing, "If an input image is not found, skip them.")
 	flag.BoolVar(&o.SkipMount, "skip-mount", o.SkipMount, "Always push layers instead of cross-mounting them")
 	flag.BoolVar(&o.SkipMultipleScopes, "skip-multiple-scopes", o.SkipMultipleScopes, "Some registries do not support multiple scopes passed to the registry login.")
 	flag.BoolVar(&o.Force, "force", o.Force, "Attempt to write all layers and manifests even if they exist in the remote repository.")
 	flag.IntVar(&o.MaxRegistry, "max-registry", o.MaxRegistry, "Number of concurrent registries to connect to at any one time.")
-	flag.IntVar(&o.MaxPerRegistry, "max-per-registry", o.MaxPerRegistry, "Number of concurrent requests allowed per registry.")
 	flag.StringSliceVar(&o.AttemptS3BucketCopy, "s3-source-bucket", o.AttemptS3BucketCopy, "A list of bucket/path locations on S3 that may contain already uploaded blobs. Add [store] to the end to use the Docker registry path convention.")
 	flag.StringSliceVarP(&o.Filenames, "filename", "f", o.Filenames, "One or more files to read SRC=DST or SRC DST [DST ...] mappings from.")
 
@@ -178,14 +174,14 @@ func (o *MirrorImageOptions) Complete(cmd *cobra.Command, args []string) error {
 func (o *MirrorImageOptions) Repository(ctx context.Context, context *registryclient.Context, t DestinationType, ref imagereference.DockerImageReference) (distribution.Repository, error) {
 	switch t {
 	case DestinationRegistry:
-		return context.Repository(ctx, ref.DockerClientDefaults().RegistryURL(), ref.RepositoryName(), o.Insecure)
+		return context.Repository(ctx, ref.DockerClientDefaults().RegistryURL(), ref.RepositoryName(), o.SecurityOptions.Insecure)
 	case DestinationS3:
 		driver := &s3Driver{
 			Creds:    context.Credentials,
 			CopyFrom: o.AttemptS3BucketCopy,
 		}
 		url := ref.DockerClientDefaults().RegistryURL()
-		return driver.Repository(ctx, url, ref.RepositoryName(), o.Insecure)
+		return driver.Repository(ctx, url, ref.RepositoryName(), o.SecurityOptions.Insecure)
 	default:
 		return nil, fmt.Errorf("unrecognized destination type %s", t)
 	}
@@ -227,7 +223,7 @@ func (o *MirrorImageOptions) Run() error {
 	q := workqueue.New(o.MaxRegistry, stopCh)
 	registryWorkers := make(map[string]workqueue.Interface)
 	for name := range p.RegistryNames() {
-		registryWorkers[name] = workqueue.New(o.MaxPerRegistry, stopCh)
+		registryWorkers[name] = workqueue.New(o.ParallelOptions.MaxPerRegistry, stopCh)
 	}
 
 	next := time.Now()
@@ -315,24 +311,13 @@ func (o *MirrorImageOptions) Run() error {
 }
 
 func (o *MirrorImageOptions) plan() (*plan, error) {
-	rt, err := rest.TransportFor(&rest.Config{})
-	if err != nil {
-		return nil, err
-	}
-	insecureRT, err := rest.TransportFor(&rest.Config{TLSClientConfig: rest.TLSClientConfig{Insecure: true}})
-	if err != nil {
-		return nil, err
-	}
-	creds := dockercredentials.NewLocal()
-	if len(o.RegistryConfig) > 0 {
-		creds, err = dockercredentials.NewFromFile(o.RegistryConfig)
-		if err != nil {
-			return nil, fmt.Errorf("unable to load --registry-config: %v", err)
-		}
-	}
 	ctx := apirequest.NewContext()
-	fromContext := registryclient.NewContext(rt, insecureRT).WithCredentials(creds)
-	toContext := registryclient.NewContext(rt, insecureRT).WithActions("pull", "push").WithCredentials(creds)
+	context, err := o.SecurityOptions.Context()
+	if err != nil {
+		return nil, err
+	}
+	fromContext := context.Copy()
+	toContext := context.Copy().WithActions("pull", "push")
 	toContexts := make(map[string]*registryclient.Context)
 
 	tree := buildTargetTree(o.Mappings)
@@ -351,7 +336,7 @@ func (o *MirrorImageOptions) plan() (*plan, error) {
 	registryWorkers := make(map[string]workqueue.Interface)
 	for name := range tree {
 		if _, ok := registryWorkers[name.registry]; !ok {
-			registryWorkers[name.registry] = workqueue.New(o.MaxPerRegistry, stopCh)
+			registryWorkers[name.registry] = workqueue.New(o.ParallelOptions.MaxPerRegistry, stopCh)
 		}
 	}
 
@@ -360,7 +345,7 @@ func (o *MirrorImageOptions) plan() (*plan, error) {
 	for name := range tree {
 		src := tree[name]
 		q.Queue(func(_ workqueue.Work) {
-			srcRepo, err := fromContext.Repository(ctx, src.ref.DockerClientDefaults().RegistryURL(), src.ref.RepositoryName(), o.Insecure)
+			srcRepo, err := fromContext.Repository(ctx, src.ref.DockerClientDefaults().RegistryURL(), src.ref.RepositoryName(), o.SecurityOptions.Insecure)
 			if err != nil {
 				plan.AddError(retrieverError{err: fmt.Errorf("unable to connect to %s: %v", src.ref, err), src: src.ref})
 				return

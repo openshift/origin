@@ -153,11 +153,11 @@ func TestSchema1ToImage(t *testing.T) {
 	if err := json.Unmarshal([]byte(etcdManifest), m); err != nil {
 		t.Fatal(err)
 	}
-	image, err := schema1ToImage(m, godigest.Digest("sha256:test"))
+	image, err := schema1ToImage(m, godigest.Digest("sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if image.DockerImageMetadata.ID != "sha256:test" {
+	if image.DockerImageMetadata.ID != "sha256:958608f8ecc1dc62c93b6c610f3a834dae4220c9642e6e8b4e0f2b3ad7cbd238" {
 		t.Errorf("unexpected image: %#v", image.DockerImageMetadata.ID)
 	}
 }

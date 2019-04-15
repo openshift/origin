@@ -23,7 +23,6 @@ import (
 	digest "github.com/opencontainers/go-digest"
 
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/rest"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
@@ -32,7 +31,6 @@ import (
 	"github.com/openshift/origin/pkg/image/dockerlayer"
 	"github.com/openshift/origin/pkg/image/dockerlayer/add"
 	"github.com/openshift/origin/pkg/image/registryclient"
-	"github.com/openshift/origin/pkg/image/registryclient/dockercredentials"
 	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
 	"github.com/openshift/origin/pkg/oc/cli/image/workqueue"
 )
@@ -80,27 +78,27 @@ type AppendImageOptions struct {
 	ConfigPatch string
 	MetaPatch   string
 
-	ConfigurationCallback func(dgst digest.Digest, config *docker10.DockerImageConfig) error
+	ConfigurationCallback func(dgst, contentDigest digest.Digest, config *docker10.DockerImageConfig) error
+	// ToDigest is set after a new image is uploaded
+	ToDigest digest.Digest
 
 	DropHistory bool
 	CreatedAt   string
 
-	FilterOptions imagemanifest.FilterOptions
+	SecurityOptions imagemanifest.SecurityOptions
+	FilterOptions   imagemanifest.FilterOptions
+	ParallelOptions imagemanifest.ParallelOptions
 
-	RegistryConfig string
-	MaxPerRegistry int
-
-	DryRun   bool
-	Insecure bool
-	Force    bool
+	DryRun bool
+	Force  bool
 
 	genericclioptions.IOStreams
 }
 
 func NewAppendImageOptions(streams genericclioptions.IOStreams) *AppendImageOptions {
 	return &AppendImageOptions{
-		IOStreams:      streams,
-		MaxPerRegistry: 3,
+		IOStreams:       streams,
+		ParallelOptions: imagemanifest.ParallelOptions{MaxPerRegistry: 4},
 	}
 }
 
@@ -121,11 +119,11 @@ func NewCmdAppendImage(name string, streams genericclioptions.IOStreams) *cobra.
 	}
 
 	flag := cmd.Flags()
+	o.SecurityOptions.Bind(flag)
 	o.FilterOptions.Bind(flag)
+	o.ParallelOptions.Bind(flag)
 
-	flag.StringVarP(&o.RegistryConfig, "registry-config", "a", o.RegistryConfig, "Path to your registry credentials (defaults to ~/.docker/config.json)")
 	flag.BoolVar(&o.DryRun, "dry-run", o.DryRun, "Print the actions that would be taken and exit without writing to the destination.")
-	flag.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow push and pull operations to registries to be made over HTTP")
 
 	flag.StringVar(&o.From, "from", o.From, "The image to use as a base. If empty, a new scratch image is created.")
 	flag.StringVar(&o.To, "to", o.To, "The Docker repository tag to upload the appended image to.")
@@ -136,7 +134,6 @@ func NewCmdAppendImage(name string, streams genericclioptions.IOStreams) *cobra.
 	flag.StringVar(&o.CreatedAt, "created-at", o.CreatedAt, "The creation date for this image, in RFC3339 format or milliseconds from the Unix epoch.")
 
 	flag.BoolVar(&o.Force, "force", o.Force, "If set, the command will attempt to upload all layers instead of skipping those that are already uploaded.")
-	flag.IntVar(&o.MaxPerRegistry, "max-per-registry", o.MaxPerRegistry, "Number of concurrent requests allowed per registry.")
 
 	return cmd
 }
@@ -205,26 +202,14 @@ func (o *AppendImageOptions) Run() error {
 		return fmt.Errorf("--to may not point to an image by ID")
 	}
 
-	rt, err := rest.TransportFor(&rest.Config{})
-	if err != nil {
-		return err
-	}
-	insecureRT, err := rest.TransportFor(&rest.Config{TLSClientConfig: rest.TLSClientConfig{Insecure: true}})
-	if err != nil {
-		return err
-	}
-	creds := dockercredentials.NewLocal()
-	if len(o.RegistryConfig) > 0 {
-		creds, err = dockercredentials.NewFromFile(o.RegistryConfig)
-		if err != nil {
-			return fmt.Errorf("unable to load --registry-config: %v", err)
-		}
-	}
 	ctx := context.Background()
-	fromContext := registryclient.NewContext(rt, insecureRT).WithCredentials(creds)
-	toContext := registryclient.NewContext(rt, insecureRT).WithActions("pull", "push").WithCredentials(creds)
+	fromContext, err := o.SecurityOptions.Context()
+	if err != nil {
+		return err
+	}
+	toContext := fromContext.Copy().WithActions("pull", "push")
 
-	toRepo, err := toContext.Repository(ctx, to.DockerClientDefaults().RegistryURL(), to.RepositoryName(), o.Insecure)
+	toRepo, err := toContext.Repository(ctx, to.DockerClientDefaults().RegistryURL(), to.RepositoryName(), o.SecurityOptions.Insecure)
 	if err != nil {
 		return err
 	}
@@ -234,27 +219,35 @@ func (o *AppendImageOptions) Run() error {
 	}
 
 	var (
-		base       *docker10.DockerImageConfig
-		baseDigest digest.Digest
-		layers     []distribution.Descriptor
-		fromRepo   distribution.Repository
+		base              *docker10.DockerImageConfig
+		baseDigest        digest.Digest
+		baseContentDigest digest.Digest
+		layers            []distribution.Descriptor
+		fromRepo          distribution.Repository
 	)
 	if from != nil {
-		repo, err := fromContext.Repository(ctx, from.DockerClientDefaults().RegistryURL(), from.RepositoryName(), o.Insecure)
+		repo, err := fromContext.Repository(ctx, from.DockerClientDefaults().RegistryURL(), from.RepositoryName(), o.SecurityOptions.Insecure)
 		if err != nil {
 			return err
 		}
 		fromRepo = repo
 
-		srcManifest, srcDigest, location, err := imagemanifest.FirstManifest(ctx, *from, repo, o.FilterOptions.Include)
+		srcManifest, manifestLocation, err := imagemanifest.FirstManifest(ctx, *from, repo, o.FilterOptions.Include)
 		if err != nil {
 			return fmt.Errorf("unable to read image %s: %v", from, err)
 		}
-		base, layers, err = imagemanifest.ManifestToImageConfig(ctx, srcManifest, repo.Blobs(ctx), location)
+		base, layers, err = imagemanifest.ManifestToImageConfig(ctx, srcManifest, repo.Blobs(ctx), manifestLocation)
 		if err != nil {
 			return fmt.Errorf("unable to parse image %s: %v", from, err)
 		}
-		baseDigest = srcDigest
+
+		contentDigest, err := registryclient.ContentDigestForManifest(srcManifest, manifestLocation.Manifest.Algorithm())
+		if err != nil {
+			return err
+		}
+
+		baseDigest = manifestLocation.Manifest
+		baseContentDigest = contentDigest
 
 	} else {
 		base = add.NewEmptyConfig()
@@ -267,7 +260,7 @@ func (o *AppendImageOptions) Run() error {
 	}
 
 	if o.ConfigurationCallback != nil {
-		if err := o.ConfigurationCallback(baseDigest, base); err != nil {
+		if err := o.ConfigurationCallback(baseDigest, baseContentDigest, base); err != nil {
 			return err
 		}
 	} else {
@@ -347,7 +340,7 @@ func (o *AppendImageOptions) Run() error {
 	// upload base layers in parallel
 	stopCh := make(chan struct{})
 	defer close(stopCh)
-	q := workqueue.New(o.MaxPerRegistry, stopCh)
+	q := workqueue.New(o.ParallelOptions.MaxPerRegistry, stopCh)
 	err = q.Try(func(w workqueue.Try) {
 		for i := range layers[:numLayers] {
 			layer := &layers[i]
@@ -424,6 +417,7 @@ func (o *AppendImageOptions) Run() error {
 	if err != nil {
 		return fmt.Errorf("unable to convert the image to a compatible schema version: %v", err)
 	}
+	o.ToDigest = toDigest
 	fmt.Fprintf(o.Out, "Pushed image %s to %s\n", toDigest, to)
 	return nil
 }

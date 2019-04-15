@@ -40,12 +40,13 @@ import (
 	imagereference "github.com/openshift/origin/pkg/image/apis/image/reference"
 	"github.com/openshift/origin/pkg/oc/cli/image/extract"
 	imageinfo "github.com/openshift/origin/pkg/oc/cli/image/info"
+	imagemanifest "github.com/openshift/origin/pkg/oc/cli/image/manifest"
 )
 
 func NewInfoOptions(streams genericclioptions.IOStreams) *InfoOptions {
 	return &InfoOptions{
-		IOStreams:      streams,
-		MaxPerRegistry: 4,
+		IOStreams:       streams,
+		ParallelOptions: imagemanifest.ParallelOptions{MaxPerRegistry: 4},
 	}
 }
 
@@ -65,9 +66,8 @@ func NewInfo(f kcmdutil.Factory, parentName string, streams genericclioptions.IO
 		},
 	}
 	flags := cmd.Flags()
-	flags.StringVarP(&o.RegistryConfig, "registry-config", "a", o.RegistryConfig, "Path to your registry credentials (defaults to ~/.docker/config.json)")
-	flags.IntVar(&o.MaxPerRegistry, "max-per-registry", o.MaxPerRegistry, "Number of concurrent requests allowed per registry when fetching image info.")
-	flags.BoolVar(&o.Insecure, "insecure", o.Insecure, "Allow image info operations to registries to be made over HTTP")
+	o.SecurityOptions.Bind(flags)
+	o.ParallelOptions.Bind(flags)
 
 	flags.StringVar(&o.From, "changes-from", o.From, "Show changes from this image to the requested image.")
 	flags.BoolVar(&o.ShowContents, "contents", o.ShowContents, "Display the contents of a release.")
@@ -98,9 +98,8 @@ type InfoOptions struct {
 	ChangelogDir string
 	BugsDir      string
 
-	RegistryConfig string
-	Insecure       bool
-	MaxPerRegistry int
+	ParallelOptions imagemanifest.ParallelOptions
+	SecurityOptions imagemanifest.SecurityOptions
 }
 
 func (o *InfoOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
@@ -384,12 +383,15 @@ type ReleaseManifestDiff struct {
 }
 
 type ReleaseInfo struct {
-	Image      string                              `json:"image"`
-	ImageRef   imagereference.DockerImageReference `json:"-"`
-	Digest     digest.Digest                       `json:"digest"`
-	Config     *docker10.DockerImageConfig         `json:"config"`
-	Metadata   *CincinnatiMetadata                 `json:"metadata"`
-	References *imageapi.ImageStream               `json:"references"`
+	Image         string                              `json:"image"`
+	ImageRef      imagereference.DockerImageReference `json:"-"`
+	Digest        digest.Digest                       `json:"digest"`
+	ContentDigest digest.Digest                       `json:"contentDigest"`
+	// TODO: return the list digest in the future
+	// ListDigest    digest.Digest                       `json:"listDigest"`
+	Config     *docker10.DockerImageConfig `json:"config"`
+	Metadata   *CincinnatiMetadata         `json:"metadata"`
+	References *imageapi.ImageStream       `json:"references"`
 
 	ComponentVersions map[string]string `json:"versions"`
 
@@ -403,12 +405,16 @@ type ReleaseInfo struct {
 }
 
 type Image struct {
-	Name      string                              `json:"name"`
-	Ref       imagereference.DockerImageReference `json:"-"`
-	Digest    digest.Digest                       `json:"digest"`
-	MediaType string                              `json:"mediaType"`
-	Layers    []distribution.Descriptor           `json:"layers"`
-	Config    *docker10.DockerImageConfig         `json:"config"`
+	Name          string                              `json:"name"`
+	Ref           imagereference.DockerImageReference `json:"-"`
+	Digest        digest.Digest                       `json:"digest"`
+	ContentDigest digest.Digest                       `json:"contentDigest"`
+	ListDigest    digest.Digest                       `json:"listDigest"`
+	MediaType     string                              `json:"mediaType"`
+	Layers        []distribution.Descriptor           `json:"layers"`
+	Config        *docker10.DockerImageConfig         `json:"config"`
+
+	Manifest distribution.Manifest `json:"-"`
 }
 
 func (i *ReleaseInfo) PreferredName() string {
@@ -435,8 +441,10 @@ func (o *InfoOptions) LoadReleaseInfo(image string, retrieveImages bool) (*Relea
 	if err != nil {
 		return nil, err
 	}
+
+	verifier := imagemanifest.NewVerifier()
 	opts := extract.NewOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
-	opts.RegistryConfig = o.RegistryConfig
+	opts.SecurityOptions = o.SecurityOptions
 
 	release := &ReleaseInfo{
 		Image:    image,
@@ -445,8 +453,10 @@ func (o *InfoOptions) LoadReleaseInfo(image string, retrieveImages bool) (*Relea
 		RawMetadata: make(map[string][]byte),
 	}
 
-	opts.ImageMetadataCallback = func(m *extract.Mapping, dgst digest.Digest, config *docker10.DockerImageConfig) {
+	opts.ImageMetadataCallback = func(m *extract.Mapping, dgst, contentDigest digest.Digest, config *docker10.DockerImageConfig) {
+		verifier.Verify(dgst, contentDigest)
 		release.Digest = dgst
+		release.ContentDigest = contentDigest
 		release.Config = config
 	}
 	opts.OnlyFiles = true
@@ -512,6 +522,7 @@ func (o *InfoOptions) LoadReleaseInfo(image string, retrieveImages bool) (*Relea
 	if len(errs) > 0 {
 		return nil, fmt.Errorf("release image could not be read: %s", errorList(errs))
 	}
+
 	if release.References == nil {
 		return nil, fmt.Errorf("release image did not contain an image-references file")
 	}
@@ -525,11 +536,11 @@ func (o *InfoOptions) LoadReleaseInfo(image string, retrieveImages bool) (*Relea
 		var lock sync.Mutex
 		release.Images = make(map[string]*Image)
 		r := &imageinfo.ImageRetriever{
-			Image:          make(map[string]imagereference.DockerImageReference),
-			RegistryConfig: o.RegistryConfig,
-			Insecure:       o.Insecure,
-			MaxPerRegistry: o.MaxPerRegistry,
+			Image:           make(map[string]imagereference.DockerImageReference),
+			SecurityOptions: o.SecurityOptions,
+			ParallelOptions: o.ParallelOptions,
 			ImageMetadataCallback: func(name string, image *imageinfo.Image, err error) error {
+				verifier.Verify(image.Digest, image.ContentDigest)
 				lock.Lock()
 				defer lock.Unlock()
 				if err != nil {
@@ -555,6 +566,14 @@ func (o *InfoOptions) LoadReleaseInfo(image string, retrieveImages bool) (*Relea
 		if err := r.Run(); err != nil {
 			return nil, err
 		}
+	}
+
+	if !verifier.Verified() {
+		err := fmt.Errorf("the release image failed content verification and may have been tampered with")
+		if !o.SecurityOptions.SkipVerification {
+			return nil, err
+		}
+		fmt.Fprintf(o.ErrOut, "warning: %v\n", err)
 	}
 
 	sort.Strings(release.Warnings)
