@@ -392,4 +392,9 @@ os::cmd::expect_success_and_text "oc adm prune images" "Dry run enabled - no mod
 echo "images: ok"
 os::test::junit::declare_suite_end
 
+# oc adm must-gather
+os::test::junit::declare_suite_start "cmd/admin/must-gather"
+os::cmd::expect_success "oc adm must-gather --help"
+os::test::junit::declare_suite_end
+
 os::test::junit::declare_suite_end
