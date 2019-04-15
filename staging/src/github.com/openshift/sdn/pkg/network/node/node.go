@@ -3,6 +3,7 @@
 package node
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
@@ -19,17 +20,20 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kubeutilnet "k8s.io/apimachinery/pkg/util/net"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/retry"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/core/v1/helper"
 	kubeletapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
 	kruntimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/runtime/v1alpha2"
 	ktypes "k8s.io/kubernetes/pkg/kubelet/types"
 	kubeproxyconfig "k8s.io/kubernetes/pkg/proxy/apis/config"
+	taints "k8s.io/kubernetes/pkg/util/taints"
 	kexec "k8s.io/utils/exec"
 
 	networkapi "github.com/openshift/api/network/v1"
@@ -273,6 +277,89 @@ func GetLinkDetails(ip string) (netlink.Link, *net.IPNet, error) {
 	return nil, nil, ErrorNetworkInterfaceNotFound
 }
 
+func (node *OsdnNode) validateMTU() error {
+	klog.V(2).Infof("Checking default interface MTU")
+
+	// Get the interface with the default route
+	// TODO(cdc) handle v6-only nodes
+	routes, err := netlink.RouteList(nil, netlink.FAMILY_V4)
+	if err != nil {
+		return fmt.Errorf("could not list routes while validating MTU: %v", err)
+	}
+	if len(routes) == 0 {
+		return fmt.Errorf("got no routes while validating MTU")
+	}
+
+	const maxMTU = 65536
+	mtu := maxMTU + 1
+	for _, route := range routes {
+		// Skip non-default routes
+		if route.Dst != nil {
+			continue
+		}
+		link, err := netlink.LinkByIndex(route.LinkIndex)
+		if err != nil {
+			return fmt.Errorf("could not retrieve link id %d while validating MTU", route.LinkIndex)
+		}
+
+		newmtu := link.Attrs().MTU
+		if newmtu > 0 && newmtu < mtu {
+			mtu = newmtu
+		}
+	}
+	if mtu > maxMTU {
+		return fmt.Errorf("unable to determine MTU while performing validation")
+	}
+
+	if int(node.networkInfo.MTU) > mtu+50 {
+		resultErr := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+			klog.V(2).Infof("Configured node MTU is more than default interface MTU plus VXLAN overhead, tainting node...")
+			n, err := node.kClient.CoreV1().Nodes().Get(node.hostName, metav1.GetOptions{})
+
+			if err != nil {
+				return fmt.Errorf("could not get Kubernetes Node object by hostname: %v", err)
+			}
+
+			oldNode, err := json.Marshal(n)
+
+			if err != nil {
+				return fmt.Errorf("could not marshal old Node object: %v", err)
+			}
+
+			nodeClone := n.DeepCopy()
+
+			const MTUTaintKey string = "network.openshift.io/mtu-too-small"
+			taintedNode, _, err := taints.AddOrUpdateTaint(nodeClone, &corev1.Taint{Key: MTUTaintKey, Value: "value", Effect: "NoSchedule"})
+
+			if err != nil {
+				return fmt.Errorf("could not taint the node with key %s: %v", MTUTaintKey, err)
+			}
+
+			newNode, err := json.Marshal(taintedNode)
+
+			if err != nil {
+				return fmt.Errorf("could not marshal new Node object: %v", err)
+			}
+
+			patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldNode, newNode, corev1.Node{})
+
+			if err != nil {
+				return fmt.Errorf("could not create patch for object: %v", err)
+			}
+
+			_, err = node.kClient.CoreV1().Nodes().Patch(node.hostName, types.StrategicMergePatchType, patchBytes)
+
+			return err
+		})
+
+		if resultErr != nil {
+			return fmt.Errorf("could not update node with taint after many retries: %v", resultErr)
+		}
+	}
+
+	return nil
+}
+
 func (node *OsdnNode) Start() error {
 	klog.V(2).Infof("Starting openshift-sdn network plugin")
 
@@ -326,6 +413,10 @@ func (node *OsdnNode) Start() error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if err := node.validateMTU(); err != nil {
+		utilruntime.HandleError(err)
 	}
 
 	go kwait.Forever(node.policy.SyncVNIDRules, time.Hour)
