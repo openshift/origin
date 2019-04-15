@@ -154,6 +154,7 @@ func getExcludedChecks(r *http.Request) sets.String {
 // handleRootHealthz returns an http.HandlerFunc that serves the provided checks.
 func handleRootHealthz(checks ...HealthzChecker) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		glog.Infof("health check %s from %s", r.URL.Path, r.RemoteAddr)
 		failed := false
 		excluded := getExcludedChecks(r)
 		var verboseOut bytes.Buffer
