@@ -132,6 +132,9 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					g.By(fmt.Sprintf("verifying the build output is verbose"))
 					o.Expect(buildLog).To(o.ContainSubstring("Creating a new S2I builder"))
 					o.Expect(buildLog).To(o.ContainSubstring("openshift-builder v"))
+					// Bug 1694871: logging before flag.Parse error
+					g.By(fmt.Sprintf("verifying the build output has no error about flag.Parse"))
+					o.Expect(buildLog).NotTo(o.ContainSubstring("ERROR: logging before flag.Parse"))
 				})
 
 				g.It("BUILD_LOGLEVEL in buildconfig can be overridden by build-loglevel", func() {
