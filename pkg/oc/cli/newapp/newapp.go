@@ -1019,7 +1019,15 @@ func TransformRunError(err error, baseName, commandName, commandPath string, gro
 		// TODO: suggest things to the user
 		groups.Add("", "", "", UsageError(commandPath, newAppNoInput, baseName, commandName))
 	default:
-		groups.Add("", "", "", err)
+		if runtime.IsNotRegisteredError(err) {
+			useProcessMsg := fmt.Sprintf("The template contained an object type unknown to `oc new-app`.  Use `oc process | oc create` instead.  Error details: %v", err)
+			if len(config.ComponentInputs.TemplateFiles) > 0 {
+				useProcessMsg = fmt.Sprintf("The template contained an object type unknown to `oc new-app`.  Use `oc process -f %s | oc create -f -` instead.  Error details: %v", config.ComponentInputs.TemplateFiles[0], err)
+			}
+			groups.Add("", "", "", fmt.Errorf(useProcessMsg))
+		} else {
+			groups.Add("", "", "", err)
+		}
 	}
 	return
 }
