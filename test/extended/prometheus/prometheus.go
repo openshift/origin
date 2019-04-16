@@ -128,9 +128,12 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 					targets.Expect(labels{"job": "apiserver"}, "up", "^https://.*/metrics$"),
 					// TODO: add openshift api
 					// TODO: this should be https
-					// targets.Expect(labels{"job": "kube-controller-manager"}, "up", "^http://.*/metrics$"),
-					// TODO: check only for https after merging https://github.com/openshift/cluster-monitoring-operator/pull/308
-					targets.Expect(labels{"job": "scheduler"}, "up", "^(http|https)://.*/metrics$"),
+					// TODO: check control plane once the following PRs land:
+					//       - https://github.com/openshift/cluster-kube-scheduler-operator/pull/97
+					//       - https://github.com/openshift/installer/pull/1576
+					//       - https://github.com/openshift/cluster-monitoring-operator/pull/316
+					// targets.Expect(labels{"job": "kube-controller-manager"}, "up", "^https://.*/metrics$"),
+					// targets.Expect(labels{"job": "scheduler"}, "up", "^https://.*/metrics$"),
 					targets.Expect(labels{"job": "kube-state-metrics"}, "up", "^https://.*/metrics$"),
 					// TODO: should probably be https
 					targets.Expect(labels{"job": "cluster-version-operator"}, "up", "^http://.*/metrics$"),
