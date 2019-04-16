@@ -2,7 +2,12 @@ package util
 
 import (
 	"errors"
+	"fmt"
 	"net"
+	"os"
+	"strings"
+
+	"github.com/golang/glog"
 )
 
 // ErrorNoDefaultIP is returned when no suitable non-loopback address can be found.
@@ -58,4 +63,57 @@ func AllLocalIP4() ([]net.IP, error) {
 		}
 	}
 	return ret, nil
+}
+
+// Validate given node IP belongs to the current host
+// Copied from "k8s.io/kubernetes/pkg/kubelet" as this was an internal method.
+func ValidateNodeIP(nodeIP net.IP) error {
+	if nodeIP.To4() == nil && nodeIP.To16() == nil {
+		return fmt.Errorf("nodeIP must be a valid IP address")
+	}
+	if nodeIP.IsLoopback() {
+		return fmt.Errorf("nodeIP can't be loopback address")
+	}
+	if nodeIP.IsMulticast() {
+		return fmt.Errorf("nodeIP can't be a multicast address")
+	}
+	if nodeIP.IsLinkLocalUnicast() {
+		return fmt.Errorf("nodeIP can't be a link-local unicast address")
+	}
+	if nodeIP.IsUnspecified() {
+		return fmt.Errorf("nodeIP can't be an all zeros address")
+	}
+
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return err
+	}
+	for _, addr := range addrs {
+		var ip net.IP
+		switch v := addr.(type) {
+		case *net.IPNet:
+			ip = v.IP
+		case *net.IPAddr:
+			ip = v.IP
+		}
+		if ip != nil && ip.Equal(nodeIP) {
+			return nil
+		}
+	}
+	return fmt.Errorf("nodeIP %q not found in the host's network interfaces", nodeIP.String())
+}
+
+// GetHostname returns OS's hostname if 'hostnameOverride' is empty; otherwise, return 'hostnameOverride'.
+// Copied from "k8s.io/kubernetes/pkg/util/node" instead of import as that will significantly increase
+// the size of the openshift-node-config binary.
+func GetHostname(hostnameOverride string) string {
+	hostname := hostnameOverride
+	if hostname == "" {
+		nodename, err := os.Hostname()
+		if err != nil {
+			glog.Fatalf("couldn't determine hostname: %v", err)
+		}
+		hostname = nodename
+	}
+	return strings.ToLower(strings.TrimSpace(hostname))
 }

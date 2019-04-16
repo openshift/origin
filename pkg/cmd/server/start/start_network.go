@@ -12,6 +12,7 @@ import (
 	"github.com/coreos/go-systemd/daemon"
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
+	"github.com/openshift/origin/pkg/cmd/server/origin/node"
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -26,7 +27,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/common"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes/network"
 	networkoptions "github.com/openshift/origin/pkg/cmd/server/kubernetes/network/options"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	utilflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -148,15 +148,8 @@ func (o NetworkOptions) RunNetwork(stopCh <-chan struct{}) error {
 		nodeConfig.ServingInfo.BindAddress = addr.HostPort(o.NodeArgs.ListenArg.ListenAddr.DefaultPort)
 	}
 	// do a local resolution of node config DNS IP, supports bootstrapping cases
-	if nodeConfig.DNSIP == "0.0.0.0" {
-		glog.V(4).Infof("Defaulting to the DNSIP config to the node's IP")
-		nodeConfig.DNSIP = nodeConfig.NodeIP
-		// TODO: the Kubelet should do this defaulting (to the IP it recognizes)
-		if len(nodeConfig.DNSIP) == 0 {
-			if ip, err := cmdutil.DefaultLocalIP4(); err == nil {
-				nodeConfig.DNSIP = ip.String()
-			}
-		}
+	if err := node.SetDNSIP(nodeConfig); err != nil {
+		return err
 	}
 
 	var validationResults common.ValidationResults
