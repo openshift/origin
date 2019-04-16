@@ -7,12 +7,17 @@ RUN make build WHAT=" \
     vendor/github.com/containernetworking/plugins/plugins/ipam/host-local \
     vendor/github.com/containernetworking/plugins/plugins/main/loopback \
     "
+RUN mkdir -p /tmp/build; \
+    cp /go/src/github.com/openshift/origin/_output/local/bin/linux/$(go env GOARCH)/openshift-sdn /tmp/build/openshift-sdn; \
+    cp /go/src/github.com/openshift/origin/_output/local/bin/linux/$(go env GOARCH)/sdn-cni-plugin /tmp/build/sdn-cni-plugin; \
+    cp /go/src/github.com/openshift/origin/_output/local/bin/linux/$(go env GOARCH)/loopback /tmp/build/loopback; \
+    cp /go/src/github.com/openshift/origin/_output/local/bin/linux/$(go env GOARCH)/host-local /tmp/build/host-local
 
 FROM registry.svc.ci.openshift.org/ocp/4.0:base
-COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/openshift-sdn /usr/bin/
-COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/sdn-cni-plugin /opt/cni/bin/openshift-sdn
-COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/loopback /opt/cni/bin/
-COPY --from=builder /go/src/github.com/openshift/origin/_output/local/bin/linux/amd64/host-local /opt/cni/bin/
+COPY --from=builder /tmp/build/openshift-sdn /usr/bin/
+COPY --from=builder /tmp/build/sdn-cni-plugin /opt/cni/bin/openshift-sdn
+COPY --from=builder /tmp/build/loopback /opt/cni/bin/
+COPY --from=builder /tmp/build/host-local /opt/cni/bin/
 COPY images/sdn/scripts/* /usr/sbin/
 
 RUN INSTALL_PKGS=" \
