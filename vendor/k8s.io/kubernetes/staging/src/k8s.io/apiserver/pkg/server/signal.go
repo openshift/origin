@@ -19,6 +19,8 @@ package server
 import (
 	"os"
 	"os/signal"
+
+	"k8s.io/klog"
 )
 
 var onlyOneSignalHandler = make(chan struct{})
@@ -34,6 +36,7 @@ func SetupSignalHandler() <-chan struct{} {
 	signal.Notify(c, shutdownSignals...)
 	go func() {
 		<-c
+		klog.Infof("Got %s signal", c)
 		close(stop)
 		<-c
 		os.Exit(1) // second signal. Exit directly.

@@ -108,6 +108,7 @@ func InstallHandler(mux mux, checks ...HealthzChecker) {
 // InstallPathHandler more than once for the same path and mux will
 // result in a panic.
 func InstallPathHandler(mux mux, path string, checks ...HealthzChecker) {
+	name := strings.TrimLeft(path, "/")
 	if len(checks) == 0 {
 		klog.V(5).Info("No default health checks specified. Installing the ping handler.")
 		checks = []HealthzChecker{PingHealthz}
@@ -115,7 +116,7 @@ func InstallPathHandler(mux mux, path string, checks ...HealthzChecker) {
 
 	klog.V(5).Info("Installing healthz checkers:", formatQuoted(checkerNames(checks...)...))
 
-	mux.Handle(path, handleRootHealthz(checks...))
+	mux.Handle(path, handleRootHealthz(name, checks...))
 	for _, check := range checks {
 		mux.Handle(fmt.Sprintf("%s/%v", path, check.Name()), adaptCheckToHandler(check.Check))
 	}
@@ -152,7 +153,7 @@ func getExcludedChecks(r *http.Request) sets.String {
 }
 
 // handleRootHealthz returns an http.HandlerFunc that serves the provided checks.
-func handleRootHealthz(checks ...HealthzChecker) http.HandlerFunc {
+func handleRootHealthz(name string, checks ...HealthzChecker) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		failed := false
 		excluded := getExcludedChecks(r)
@@ -167,7 +168,7 @@ func handleRootHealthz(checks ...HealthzChecker) http.HandlerFunc {
 			if err := check.Check(r); err != nil {
 				// don't include the error since this endpoint is public.  If someone wants more detail
 				// they should have explicit permission to the detailed checks.
-				klog.V(6).Infof("healthz check %v failed: %v", check.Name(), err)
+				klog.V(6).Infof("%s check %v failed: %v", name, check.Name(), err)
 				fmt.Fprintf(&verboseOut, "[-]%v failed: reason withheld\n", check.Name())
 				failed = true
 			} else {
@@ -181,8 +182,8 @@ func handleRootHealthz(checks ...HealthzChecker) http.HandlerFunc {
 		}
 		// always be verbose on failure
 		if failed {
-			klog.V(2).Infof("%vhealthz check failed", verboseOut.String())
-			http.Error(w, fmt.Sprintf("%vhealthz check failed", verboseOut.String()), http.StatusInternalServerError)
+			klog.V(2).Infof("%v%s check failed", verboseOut.String(), name)
+			http.Error(w, fmt.Sprintf("%v%s check failed", verboseOut.String(), name), http.StatusInternalServerError)
 			return
 		}
 
@@ -192,7 +193,7 @@ func handleRootHealthz(checks ...HealthzChecker) http.HandlerFunc {
 		}
 
 		verboseOut.WriteTo(w)
-		fmt.Fprint(w, "healthz check passed\n")
+		fmt.Fprintf(w, "%s check passed\n", name)
 	})
 }
 

@@ -283,8 +283,13 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 	go func() {
 		defer close(delayedStopCh)
 		<-stopCh
+		klog.Infof("Got stop signal")
 
-		time.Sleep(s.MinimalShutdownDuration)
+		if s.MinimalShutdownDuration > 0 {
+			klog.Infof("Waiting minimal-shutdown-duration of %v", s.MinimalShutdownDuration)
+			time.Sleep(s.MinimalShutdownDuration)
+			klog.Info("Passed minimal-shutdown-duration, shutting down.")
+		}
 	}()
 
 	s.installReadyz(stopCh)
@@ -298,6 +303,7 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 	<-stopCh
 
 	// run shutdown hooks directly. This includes deregistering from the kubernetes endpoint in case of kube-apiserver.
+	klog.Info("Running pre-shutdown hooks")
 	err = s.RunPreShutdownHooks()
 	if err != nil {
 		return err
@@ -307,10 +313,13 @@ func (s preparedGenericAPIServer) Run(stopCh <-chan struct{}) error {
 	<-delayedStopCh
 
 	// Wait for all requests to finish, which are bounded by the RequestTimeout variable.
+	klog.Info("Waiting for requests in progress")
 	s.HandlerChainWaitGroup.Wait()
 
 	// wait for server listener to be closed
+	klog.Info("Waiting for the server to have finished shutdown")
 	<-serverDoneCh
+	klog.Info("Finished shutdown")
 
 	return nil
 }
