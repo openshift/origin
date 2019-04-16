@@ -159,11 +159,13 @@ func (sdn *OpenShiftSDN) ValidateAndParse() error {
 		return kerrors.NewInvalid(configapi.Kind("NodeConfig"), sdn.ConfigFilePath, validationResults.Errors)
 	}
 
+klog.V(1).Warningf("#### NodeConfig: %+v", *sdn.NodeConfig)
 	sdn.ProxyConfig, err = ProxyConfigFromNodeConfig(*sdn.NodeConfig)
 	if err != nil {
 		klog.V(4).Infof("Unable to build proxy config: %v", err)
 		return err
 	}
+klog.V(1).Warningf("#### ProxyConfig: %+v", sdn.ProxyConfig)
 
 	return nil
 }
