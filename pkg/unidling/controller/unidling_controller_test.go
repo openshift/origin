@@ -9,12 +9,15 @@ import (
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	kexternalfake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/restmapper"
+	scalefake "k8s.io/client-go/scale/fake"
 	clientgotesting "k8s.io/client-go/testing"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsfake "github.com/openshift/client-go/apps/clientset/versioned/fake"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,9 +31,10 @@ type fakeResults struct {
 	resEndpoints *corev1.Endpoints
 }
 
-func prepFakeClient(t *testing.T, nowTime time.Time, scales ...autoscalingv1.Scale) (*kexternalfake.Clientset, *appsfake.Clientset, *fakeResults) {
+func prepFakeClient(t *testing.T, nowTime time.Time, scales ...autoscalingv1.Scale) (*kexternalfake.Clientset, *appsfake.Clientset, *scalefake.FakeScaleClient, meta.RESTMapper, *fakeResults) {
 	fakeClient := &kexternalfake.Clientset{}
 	fakeDeployClient := &appsfake.Clientset{}
+	fakeScaleClient := &scalefake.FakeScaleClient{}
 
 	nowTimeStr := nowTime.Format(time.RFC3339)
 
@@ -179,17 +183,55 @@ func prepFakeClient(t *testing.T, nowTime time.Time, scales ...autoscalingv1.Sca
 		return true, obj, nil
 	})
 
-	return fakeClient, fakeDeployClient, res
+	fakeScaleClient.PrependReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		objName := action.(clientgotesting.GetAction).GetName()
+		for _, scale := range scales {
+			if scale.Kind == "DeploymentConfig" && objName == scale.Name {
+				return true, &autoscalingv1.Scale{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      objName,
+						Namespace: action.(clientgotesting.GetAction).GetNamespace(),
+					},
+					Spec: autoscalingv1.ScaleSpec{
+						Replicas: scale.Spec.Replicas,
+					},
+				}, nil
+			}
+		}
+
+		return true, nil, errors.NewNotFound(action.GetResource().GroupResource(), objName)
+	})
+
+	apiGroupResources := []*restmapper.APIGroupResources{
+		{
+			Group: metav1.APIGroup{
+				Versions: []metav1.GroupVersionForDiscovery{
+					{Version: "v1"},
+				},
+				PreferredVersion: metav1.GroupVersionForDiscovery{Version: "v1"},
+			},
+			VersionedResources: map[string][]metav1.APIResource{
+				"v1": {
+					{Name: "replicationcontrollers", Namespaced: true, Kind: "ReplicationController"},
+					{Name: "deploymentconfigs", Namespaced: true, Kind: "DeploymentConfig"},
+				},
+			},
+		},
+	}
+	mapper := restmapper.NewDiscoveryRESTMapper(apiGroupResources)
+
+	return fakeClient, fakeDeployClient, fakeScaleClient, mapper, res
 }
 
 func TestControllerHandlesStaleEvents(t *testing.T) {
-	t.Skip("failing because of missing client")
 	nowTime := time.Now().Truncate(time.Second)
-	fakeClient, fakeDeployClient, res := prepFakeClient(t, nowTime)
+	fakeClient, fakeDeployClient, fakeScaleClient, mapper, res := prepFakeClient(t, nowTime)
 	controller := &UnidlingController{
+		mapper:              mapper,
 		endpointsNamespacer: fakeClient.CoreV1(),
 		rcNamespacer:        fakeClient.CoreV1(),
 		dcNamespacer:        fakeDeployClient.AppsV1(),
+		scaleNamespacer:     fakeScaleClient,
 	}
 
 	retry, err := controller.handleRequest(types.NamespacedName{
@@ -211,7 +253,6 @@ func TestControllerHandlesStaleEvents(t *testing.T) {
 }
 
 func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
-	t.Skip("failing because of missing client")
 	// truncate to avoid conversion comparison issues
 	nowTime := time.Now().Truncate(time.Second)
 	baseScales := []autoscalingv1.Scale{
@@ -240,9 +281,11 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 	}
 
 	idledTime := nowTime.Add(-10 * time.Second)
-	fakeClient, fakeDeployClient, res := prepFakeClient(t, idledTime, baseScales...)
+	fakeClient, fakeDeployClient, fakeScaleClient, mapper, res := prepFakeClient(t, idledTime, baseScales...)
 
 	controller := &UnidlingController{
+		mapper:              mapper,
+		scaleNamespacer:     fakeScaleClient,
 		endpointsNamespacer: fakeClient.CoreV1(),
 		rcNamespacer:        fakeClient.CoreV1(),
 		dcNamespacer:        fakeDeployClient.AppsV1(),
@@ -324,7 +367,6 @@ func TestControllerIgnoresAlreadyScaledObjects(t *testing.T) {
 }
 
 func TestControllerUnidlesProperly(t *testing.T) {
-	t.Skip("failing because of missing client")
 	nowTime := time.Now().Truncate(time.Second)
 	baseScales := []autoscalingv1.Scale{
 		{
@@ -352,12 +394,14 @@ func TestControllerUnidlesProperly(t *testing.T) {
 		},
 	}
 
-	fakeClient, fakeDeployClient, res := prepFakeClient(t, nowTime.Add(-10*time.Second), baseScales...)
+	fakeClient, fakeDeployClient, fakeScaleClient, mapper, res := prepFakeClient(t, nowTime.Add(-10*time.Second), baseScales...)
 
 	controller := &UnidlingController{
+		mapper:              mapper,
 		endpointsNamespacer: fakeClient.CoreV1(),
 		rcNamespacer:        fakeClient.CoreV1(),
 		dcNamespacer:        fakeDeployClient.AppsV1(),
+		scaleNamespacer:     fakeScaleClient,
 	}
 
 	retry, err := controller.handleRequest(types.NamespacedName{
@@ -417,9 +461,10 @@ type failureTestInfo struct {
 	annotationsExpected map[string]string
 }
 
-func prepareFakeClientForFailureTest(test failureTestInfo) (*kexternalfake.Clientset, *appsfake.Clientset) {
+func prepareFakeClientForFailureTest(test failureTestInfo) (*kexternalfake.Clientset, *appsfake.Clientset, *scalefake.FakeScaleClient, meta.RESTMapper) {
 	fakeClient := &kexternalfake.Clientset{}
 	fakeDeployClient := &appsfake.Clientset{}
+	fakeScaleClient := &scalefake.FakeScaleClient{}
 
 	fakeClient.PrependReactor("get", "endpoints", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		objName := action.(clientgotesting.GetAction).GetName()
@@ -508,11 +553,41 @@ func prepareFakeClientForFailureTest(test failureTestInfo) (*kexternalfake.Clien
 		return true, obj, nil
 	})
 
-	return fakeClient, fakeDeployClient
+	apiGroupResources := []*restmapper.APIGroupResources{
+		{
+			Group: metav1.APIGroup{
+				Versions: []metav1.GroupVersionForDiscovery{
+					{Version: "v1"},
+				},
+				PreferredVersion: metav1.GroupVersionForDiscovery{Version: "v1"},
+			},
+			VersionedResources: map[string][]metav1.APIResource{
+				"v1": {
+					{Name: "replicationcontrollers", Namespaced: true, Kind: "ReplicationController"},
+				},
+			},
+		},
+		{
+			Group: metav1.APIGroup{
+				Name: "apps.openshift.io",
+				Versions: []metav1.GroupVersionForDiscovery{
+					{Version: "v1"},
+				},
+				PreferredVersion: metav1.GroupVersionForDiscovery{Version: "v1"},
+			},
+			VersionedResources: map[string][]metav1.APIResource{
+				"v1": {
+					{Name: "deploymentconfigs", Namespaced: true, Kind: "DeploymentConfig"},
+				},
+			},
+		},
+	}
+	mapper := restmapper.NewDiscoveryRESTMapper(apiGroupResources)
+
+	return fakeClient, fakeDeployClient, fakeScaleClient, mapper
 }
 
 func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
-	t.Skip("failing because of missing client")
 	nowTime := time.Now().Truncate(time.Second)
 
 	baseScalables := []unidlingapi.RecordedScaleReference{
@@ -693,11 +768,13 @@ func TestControllerPerformsCorrectlyOnFailures(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		fakeClient, fakeDeployClient := prepareFakeClientForFailureTest(test)
+		fakeClient, fakeDeployClient, fakeScaleClient, mapper := prepareFakeClientForFailureTest(test)
 		controller := &UnidlingController{
+			mapper:              mapper,
 			endpointsNamespacer: fakeClient.CoreV1(),
 			rcNamespacer:        fakeClient.CoreV1(),
 			dcNamespacer:        fakeDeployClient.AppsV1(),
+			scaleNamespacer:     fakeScaleClient,
 		}
 
 		var retry bool
