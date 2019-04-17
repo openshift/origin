@@ -18,7 +18,6 @@ COPY --from=builder /tmp/build/openshift-sdn /usr/bin/
 COPY --from=builder /tmp/build/sdn-cni-plugin /opt/cni/bin/openshift-sdn
 COPY --from=builder /tmp/build/loopback /opt/cni/bin/
 COPY --from=builder /tmp/build/host-local /opt/cni/bin/
-COPY images/sdn/scripts/* /usr/sbin/
 
 RUN INSTALL_PKGS=" \
       openvswitch2.11 container-selinux socat ethtool nmap-ncat \
@@ -29,6 +28,15 @@ RUN INSTALL_PKGS=" \
     yum install -y --setopt=tsflags=nodocs $INSTALL_PKGS && \
     mkdir -p /etc/sysconfig/cni/net.d && \
     yum clean all && rm -rf /var/cache/*
+
+COPY ./images/sdn/scripts/iptables /usr/sbin/
+COPY ./images/sdn/scripts/iptables-save /usr/sbin/
+COPY ./images/sdn/scripts/iptables-restore /usr/sbin/
+COPY ./images/sdn/scripts/ip6tables /usr/sbin/
+COPY ./images/sdn/scripts/ip6tables-save /usr/sbin/
+COPY ./images/sdn/scripts/ip6tables-restore /usr/sbin/
+COPY ./images/sdn/scripts/iptables /usr/sbin/
+
 LABEL io.k8s.display-name="OpenShift SDN" \
       io.k8s.description="This is a component of OpenShift and contains the networking tool stack for the default SDN implementation." \
       io.openshift.tags="openshift,sdn"
