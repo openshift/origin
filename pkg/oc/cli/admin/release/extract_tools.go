@@ -170,6 +170,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 				}
 			}
 			signer = key
+			break
 		}
 		if signer == nil {
 			return fmt.Errorf("no private key exists in %s capable of signing the output", o.SigningKey)
@@ -416,11 +417,17 @@ func (o *ExtractOptions) extractCommand(command string) error {
 			hash := hashByTargetName[k]
 			lines = append(lines, fmt.Sprintf("%s  %s", hash, filepath.Base(k)))
 		}
+		// ensure a trailing newline
+		if len(lines[len(lines)-1]) != 0 {
+			lines = append(lines, "")
+		}
+		// write the content manifest
 		data := []byte(strings.Join(lines, "\n"))
 		filename := "sha256sum.txt"
 		if err := ioutil.WriteFile(filepath.Join(dir, filename), data, 0644); err != nil {
 			return fmt.Errorf("unable to write checksum file: %v", err)
 		}
+		// sign the content manifest
 		if signer != nil {
 			buf := &bytes.Buffer{}
 			if err := openpgp.ArmoredDetachSign(buf, signer, bytes.NewBuffer(data), nil); err != nil {
