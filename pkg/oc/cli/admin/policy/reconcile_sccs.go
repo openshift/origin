@@ -25,7 +25,6 @@ import (
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1typedclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 )
 
 // ReconcileSCCRecommendedName is the recommended command name
@@ -215,15 +214,10 @@ func (o *ReconcileSCCOptions) ChangedSCCs() (
 	bootstrapSCCs := bootstrappolicy.GetBootstrapSecurityContextConstraints(groups, users)
 
 	for _, expectedSCC := range bootstrapSCCs {
-		expectedSCCExternal := &securityv1.SecurityContextConstraints{}
-		if err := securityapiv1.Convert_security_SecurityContextConstraints_To_v1_SecurityContextConstraints(expectedSCC, expectedSCCExternal, nil); err != nil {
-			return nil, nil, err
-		}
-
 		actualSCC, err := o.SCCClient.Get(expectedSCC.Name, metav1.GetOptions{})
 		// if not found it needs to be created
 		if kapierrors.IsNotFound(err) {
-			toCreateSCCs = append(toCreateSCCs, expectedSCCExternal)
+			toCreateSCCs = append(toCreateSCCs, expectedSCC)
 			continue
 		}
 		if err != nil {
@@ -231,7 +225,7 @@ func (o *ReconcileSCCOptions) ChangedSCCs() (
 		}
 
 		// if found then we need to diff to see if it needs updated
-		if updatedSCC, needsUpdating := o.computeUpdatedSCC(*expectedSCCExternal, *actualSCC); needsUpdating {
+		if updatedSCC, needsUpdating := o.computeUpdatedSCC(*expectedSCC, *actualSCC); needsUpdating {
 			toUpdateSCCs = append(toUpdateSCCs, updatedSCC)
 		}
 	}
