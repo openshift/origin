@@ -106,6 +106,15 @@ func mapMachineNameToNodeName(machines []objx.Map, nodes []corev1.Node) (map[str
 	return result, len(machines) == len(result)
 }
 
+func isNodeReady(node corev1.Node) bool {
+	for _, c := range node.Status.Conditions {
+		if c.Type == corev1.NodeReady {
+			return c.Status == corev1.ConditionTrue
+		}
+	}
+	return false
+}
+
 var _ = g.Describe("[Feature:Machines][Disruptive] Managed cluster should", func() {
 	defer g.GinkgoRecover()
 
@@ -182,6 +191,13 @@ var _ = g.Describe("[Feature:Machines][Disruptive] Managed cluster should", func
 				e2e.Logf("unable to map every machine to node.  machineToNode: %v\n, \tmachineNames: %v", machineToNode, machineNames(machines))
 				return false, nil
 			}
+			for _, node := range nodes.Items {
+				if !isNodeReady(node) {
+					e2e.Logf("node %q is not ready: %v", node.Name, node.Status)
+					return false, nil
+				}
+			}
+
 			return true, nil
 		}); pollErr != nil {
 			buf := &bytes.Buffer{}
@@ -204,7 +220,6 @@ var _ = g.Describe("[Feature:Machines][Disruptive] Managed cluster should", func
 			e2e.Failf("Worker machines were not replaced as expected: %v", pollErr)
 		}
 
-		// TODO: ensure all nodes are ready
 		// TODO: ensure no pods pending
 	})
 })
