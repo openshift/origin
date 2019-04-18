@@ -1096,24 +1096,37 @@ func (bc *BuildController) handleActiveBuild(build *buildv1.Build, pod *corev1.P
 	podPhase := pod.Status.Phase
 	var update *buildUpdate
 	// Pods don't report running until initcontainers are done, but from a build's perspective
-	// the pod is running as soon as the first init container has run.
-	if build.Status.Phase == buildv1.BuildPhasePending || build.Status.Phase == buildv1.BuildPhaseNew {
+	// the pod is running as soon as the first init container is running or terminated.
+	// note, the git-clone could be terminated, but a subsequent init container could be running;
+	// given delays in init container processing, a build may have been set to running from a prior
+	// pending pod event, but a subsequent pod event is still in phase==pending running an init container
+	// subsequent to git-clone; the git-clone itself could be slow and we see multiple events with its
+	// Running state as non-nil
+	if podPhase == corev1.PodPending {
 		for _, initContainer := range pod.Status.InitContainerStatuses {
-			if initContainer.Name == strategy.GitCloneContainer && initContainer.State.Running != nil {
+			if initContainer.Name == strategy.GitCloneContainer && (initContainer.State.Running != nil || initContainer.State.Terminated != nil) {
 				podPhase = corev1.PodRunning
 			}
 		}
 	}
 	switch podPhase {
 	case corev1.PodPending:
-		if build.Status.Phase != buildv1.BuildPhasePending {
+		// only move to pending if phase is new; if already at a subsequent phase, then we possibly have multiple leaders
+		// where someone else updated the build to running based on this event, or we have event ordering issues;
+		// but in either case log an event from debug but do not return an error and go down the retry path
+		switch {
+		case build.Status.Phase == buildv1.BuildPhaseNew:
 			update = transitionToPhase(buildv1.BuildPhasePending, "", "")
-		}
-		if secret := build.Spec.Output.PushSecret; secret != nil && build.Status.Reason != buildv1.StatusReasonMissingPushSecret {
-			if _, err := bc.secretStore.Secrets(build.Namespace).Get(secret.Name); err != nil && errors.IsNotFound(err) {
-				klog.V(4).Infof("Setting reason for pending build to %q due to missing secret for %s", build.Status.Reason, buildDesc(build))
-				update = transitionToPhase(buildv1.BuildPhasePending, buildv1.StatusReasonMissingPushSecret, buildutil.StatusMessageMissingPushSecret)
+			fallthrough
+		case build.Status.Phase == buildv1.BuildPhasePending:
+			if secret := build.Spec.Output.PushSecret; secret != nil && build.Status.Reason != buildv1.StatusReasonMissingPushSecret {
+				if _, err := bc.secretStore.Secrets(build.Namespace).Get(secret.Name); err != nil && errors.IsNotFound(err) {
+					klog.V(4).Infof("Setting reason for pending build to %q due to missing secret for %s", build.Status.Reason, buildDesc(build))
+					update = transitionToPhase(buildv1.BuildPhasePending, buildv1.StatusReasonMissingPushSecret, buildutil.StatusMessageMissingPushSecret)
+				}
 			}
+		default:
+			bc.recorder.Eventf(build, corev1.EventTypeWarning, "UnexpectedPodPhase", "Build %s received a pod in pending phase event while in %s phase", resourceName(build.Namespace, build.Name), string(build.Status.Phase))
 		}
 	case corev1.PodRunning:
 		if build.Status.Phase != buildv1.BuildPhaseRunning {
