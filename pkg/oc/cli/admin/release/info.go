@@ -53,11 +53,34 @@ func NewInfoOptions(streams genericclioptions.IOStreams) *InfoOptions {
 func NewInfo(f kcmdutil.Factory, parentName string, streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewInfoOptions(streams)
 	cmd := &cobra.Command{
-		Use:   "info IMAGE [--changes-from=IMAGE]",
+		Use:   "info IMAGE [--changes-from=IMAGE] [--verify|--commits|--pullspecs]",
 		Short: "Display information about a release",
 		Long: templates.LongDesc(`
 			Show information about an OpenShift release
 
+			This command retrieves, verifies, and formats the information describing an OpenShift update.
+			Updates are delivered as container images with metadata describing the component images and
+			the configuration necessary to install the system operators. A release image is usually
+			referenced via its content digest, which allows this command and the update infrastructure to
+			validate that updates have not been tampered with.
+
+			If no arguments are specified the release of the currently connected cluster is displayed.
+			Specify one or more images via pull spec to see details of each release image. The --commits
+			flag will display the Git commit IDs and repository URLs for the source of each component
+			image. The --pullspecs flag will display the full component image pull spec. --size will show
+			a breakdown of each image, their layers, and the total size of the payload. --contents shows
+			the configuration that will be applied to the cluster when the update is run. If you have
+			specified two images the difference between the first and second image will be shown.
+
+			The --verify flag will display one summary line per input release image and verify the
+			integrity of each. The command will return an error if the release has been tampered with.
+			Passing a pull spec with a digest (e.g. quay.io/openshift/release@sha256:a9bc...) instead of
+			a tag when verifying an image is recommended since it ensures an attacker cannot trick you
+			into installing an older, potentially vulnerable version.
+
+			The --bugs and --changelog flags will use git to clone the source of the release and display
+			the code changes that occurred between the two release arguments. This operation is slow
+			and requires sufficient disk space on the selected drive to clone all repositories.
 		`),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
@@ -70,6 +93,9 @@ func NewInfo(f kcmdutil.Factory, parentName string, streams genericclioptions.IO
 	o.ParallelOptions.Bind(flags)
 
 	flags.StringVar(&o.From, "changes-from", o.From, "Show changes from this image to the requested image.")
+
+	flags.BoolVar(&o.Verify, "verify", o.Verify, "Generate bug listings from the changelogs in the git repositories extracted to this path.")
+
 	flags.BoolVar(&o.ShowContents, "contents", o.ShowContents, "Display the contents of a release.")
 	flags.BoolVar(&o.ShowCommit, "commits", o.ShowCommit, "Display information about the source an image was created with.")
 	flags.BoolVar(&o.ShowPullSpec, "pullspecs", o.ShowPullSpec, "Display the pull spec of each image instead of the digest.")
@@ -132,7 +158,7 @@ func (o *InfoOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []st
 		return fmt.Errorf("info expects at least one argument, a release image pull spec")
 	}
 	o.Images = args
-	if len(o.From) == 0 && len(o.Images) == 2 {
+	if len(o.From) == 0 && len(o.Images) == 2 && !o.Verify {
 		o.From = o.Images[0]
 		o.Images = o.Images[1:]
 	}
@@ -203,7 +229,9 @@ func (o *InfoOptions) Validate() error {
 }
 
 func (o *InfoOptions) Run() error {
-	if len(o.From) > 0 {
+	fetchImages := o.ShowSize || o.Verify
+
+	if len(o.From) > 0 && !o.Verify {
 		if o.ShowContents {
 			return diffContents(o.From, o.Images[0], o.Out)
 		}
@@ -213,10 +241,10 @@ func (o *InfoOptions) Run() error {
 		done := make(chan struct{})
 		go func() {
 			defer close(done)
-			baseRelease, baseErr = o.LoadReleaseInfo(o.From, o.ShowSize)
+			baseRelease, baseErr = o.LoadReleaseInfo(o.From, fetchImages)
 		}()
 
-		release, err := o.LoadReleaseInfo(o.Images[0], o.ShowSize)
+		release, err := o.LoadReleaseInfo(o.Images[0], fetchImages)
 		if err != nil {
 			return err
 		}
@@ -241,10 +269,14 @@ func (o *InfoOptions) Run() error {
 
 	var exitErr error
 	for _, image := range o.Images {
-		release, err := o.LoadReleaseInfo(image, o.ShowSize)
+		release, err := o.LoadReleaseInfo(image, fetchImages)
 		if err != nil {
 			exitErr = kcmdutil.ErrExit
 			fmt.Fprintf(o.ErrOut, "error: %v\n", err)
+			continue
+		}
+		if o.Verify {
+			fmt.Fprintf(o.Out, "%s %s %s\n", release.Digest, release.References.CreationTimestamp.UTC().Format(time.RFC3339), release.PreferredName())
 			continue
 		}
 		if err := o.describeImage(release); err != nil {
