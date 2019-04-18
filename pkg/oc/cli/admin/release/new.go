@@ -685,7 +685,10 @@ func (o *NewOptions) Run() error {
 		})
 	}
 
-	if err := pruneUnreferencedImageStreams(o.ErrOut, is, metadata, o.AlwaysInclude); err != nil {
+	// any input image with content, referenced in AlwaysInclude, or referenced from image-references is
+	// included, which guarantees the content of a payload can be reproduced
+	forceInclude := append(append([]string{}, o.AlwaysInclude...), ordered...)
+	if err := pruneUnreferencedImageStreams(o.ErrOut, is, metadata, forceInclude); err != nil {
 		return err
 	}
 
