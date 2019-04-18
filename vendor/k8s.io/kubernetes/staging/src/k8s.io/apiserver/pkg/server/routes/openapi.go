@@ -41,11 +41,14 @@ func (oa OpenAPI) Install(c *restful.Container, mux *mux.PathRecorderMux) (*hand
 		klog.Fatalf("Failed to register open api spec for root: %v", err)
 	}
 
-	// we shadow ClustResourceQuotas with a CRD. This loop removes all CRQ paths
+	// we shadow ClustResourceQuotas, RoleBindingRestrictions, and SecurityContextContstraints
+	// with a CRD. This loop removes all CRQ,RBR, SCC paths
 	// from the OpenAPI spec such that they don't conflict with the CRD
 	// apiextensions-apiserver spec during merging.
 	for pth := range spec.Paths.Paths {
-		if strings.HasPrefix(pth, "/apis/quota.openshift.io/v1/clusterresourcequotas") {
+		if strings.HasPrefix(pth, "/apis/quota.openshift.io/v1/clusterresourcequotas") ||
+			strings.HasPrefix(pth, "/apis/authorization.openshift.io/v1/rolebindingrestrictions") ||
+			strings.HasPrefix(pth, "/apis/security.openshift.io/v1/securitycontextconstraints") {
 			delete(spec.Paths.Paths, pth)
 		}
 	}
