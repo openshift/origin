@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -494,7 +495,7 @@ func (o *NewOptions) Run() error {
 
 		var inputIS *imageapi.ImageStream
 		if len(o.FromImageStreamFile) > 0 {
-			data, err := ioutil.ReadFile(o.FromImageStreamFile)
+			data, err := filenameContents(o.FromImageStreamFile, o.IOStreams.In)
 			if os.IsNotExist(err) {
 				return err
 			}
@@ -646,7 +647,6 @@ func (o *NewOptions) Run() error {
 		if err := o.mirrorImages(is); err != nil {
 			return err
 		}
-
 	}
 
 	var verifiers []PayloadVerifier
@@ -1493,4 +1493,25 @@ func pruneUnreferencedImageStreams(out io.Writer, is *imageapi.ImageStream, meta
 		is.Spec.Tags = updated
 	}
 	return nil
+}
+
+func filenameContents(s string, in io.Reader) ([]byte, error) {
+	switch {
+	case s == "-":
+		return ioutil.ReadAll(in)
+	case strings.Index(s, "http://") == 0 || strings.Index(s, "https://") == 0:
+		resp, err := http.Get(s)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+		switch {
+		case resp.StatusCode >= 200 && resp.StatusCode < 300:
+			return ioutil.ReadAll(resp.Body)
+		default:
+			return nil, fmt.Errorf("unable to load URL: server returned %d: %s", resp.StatusCode, resp.Status)
+		}
+	default:
+		return ioutil.ReadFile(s)
+	}
 }
