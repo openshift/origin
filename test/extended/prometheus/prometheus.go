@@ -169,6 +169,18 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 
 			e2e.Logf("Watchdog alert is firing: %s", bearerToken)
 		})
+		g.It("should have non-Pod host cAdvisor metrics", func() {
+			oc.SetupProject()
+			ns := oc.Namespace()
+			execPodName := e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) { pod.Spec.Containers[0].Image = "centos:7" })
+			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+
+			tests := map[string][]metricTest{
+				// should have constantly firing a watchdog alert
+				`container_cpu_usage_seconds_total{id!~"/kubepods.slice/.*"}`: {metricTest{greaterThanEqual: true, value: 1}},
+			}
+			runQueries(tests, oc, ns, execPodName, url, bearerToken)
+		})
 	})
 })
 
