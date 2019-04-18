@@ -29,7 +29,7 @@ func init() {
 
 func main() {
 	var endpoint, keyFile, certFile, caFile string
-	flag.StringVar(&endpoint, "endpoint", "https://127.0.0.1:4001", "Etcd endpoint.")
+	flag.StringVar(&endpoint, "endpoint", "https://127.0.0.1:2379", "etcd endpoint.")
 	flag.StringVar(&keyFile, "key", "", "TLS client key.")
 	flag.StringVar(&certFile, "cert", "", "TLS client certificate.")
 	flag.StringVar(&caFile, "cacert", "", "Server TLS CA certificate.")
