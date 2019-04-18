@@ -47,7 +47,6 @@ var extendedResourceName string = "example.com/dongle"
 
 var _ = SIGDescribe("ResourceQuota", func() {
 	f := framework.NewDefaultFramework("resourcequota")
-
 	It("should create a ResourceQuota and ensure its status is promptly calculated.", func() {
 		By("Creating a ResourceQuota")
 		quotaName := "test-quota"
@@ -757,7 +756,9 @@ var _ = SIGDescribe("ResourceQuota", func() {
 
 var _ = SIGDescribe("ResourceQuota [Feature:ScopeSelectors]", func() {
 	f := framework.NewDefaultFramework("scope-selectors")
+
 	It("should verify ResourceQuota with best effort scope using scope-selectors.", func() {
+		framework.SkipUnlessResourceQuotaScopeSelectorsEnabled()
 		By("Creating a ResourceQuota with best effort scope")
 		resourceQuotaBestEffort, err := createResourceQuota(f.ClientSet, f.Namespace.Name, newTestResourceQuotaWithScopeSelector("quota-besteffort", v1.ResourceQuotaScopeBestEffort))
 		Expect(err).NotTo(HaveOccurred())
@@ -831,6 +832,7 @@ var _ = SIGDescribe("ResourceQuota [Feature:ScopeSelectors]", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 	It("should verify ResourceQuota with terminating scopes through scope selectors.", func() {
+		framework.SkipUnlessResourceQuotaScopeSelectorsEnabled()
 		By("Creating a ResourceQuota with terminating scope")
 		quotaTerminatingName := "quota-terminating"
 		resourceQuotaTerminating, err := createResourceQuota(f.ClientSet, f.Namespace.Name, newTestResourceQuotaWithScopeSelector(quotaTerminatingName, v1.ResourceQuotaScopeTerminating))
@@ -939,7 +941,7 @@ var _ = SIGDescribe("ResourceQuota [Feature:PodPriority]", func() {
 	f := framework.NewDefaultFramework("resourcequota-priorityclass")
 
 	It("should verify ResourceQuota's priority class scope (quota set to pod count: 1) against a pod with same priority class.", func() {
-
+		framework.SkipUnlessResourceQuotaScopeSelectorsEnabled()
 		_, err := f.ClientSet.SchedulingV1beta1().PriorityClasses().Create(&v1beta1.PriorityClass{ObjectMeta: metav1.ObjectMeta{Name: "pclass1"}, Value: int32(1000)})
 		Expect(err == nil || errors.IsAlreadyExists(err)).To(Equal(true))
 
@@ -978,7 +980,7 @@ var _ = SIGDescribe("ResourceQuota [Feature:PodPriority]", func() {
 	})
 
 	It("should verify ResourceQuota's priority class scope (quota set to pod count: 1) against 2 pods with same priority class.", func() {
-
+		framework.SkipUnlessResourceQuotaScopeSelectorsEnabled()
 		_, err := f.ClientSet.SchedulingV1beta1().PriorityClasses().Create(&v1beta1.PriorityClass{ObjectMeta: metav1.ObjectMeta{Name: "pclass2"}, Value: int32(1000)})
 		Expect(err == nil || errors.IsAlreadyExists(err)).To(Equal(true))
 
@@ -1023,7 +1025,7 @@ var _ = SIGDescribe("ResourceQuota [Feature:PodPriority]", func() {
 	})
 
 	It("should verify ResourceQuota's priority class scope (quota set to pod count: 1) against 2 pods with different priority class.", func() {
-
+		framework.SkipUnlessResourceQuotaScopeSelectorsEnabled()
 		_, err := f.ClientSet.SchedulingV1beta1().PriorityClasses().Create(&v1beta1.PriorityClass{ObjectMeta: metav1.ObjectMeta{Name: "pclass3"}, Value: int32(1000)})
 		Expect(err == nil || errors.IsAlreadyExists(err)).To(Equal(true))
 
@@ -1070,6 +1072,7 @@ var _ = SIGDescribe("ResourceQuota [Feature:PodPriority]", func() {
 	})
 
 	It("should verify ResourceQuota's multiple priority class scope (quota set to pod count: 2) against 2 pods with same priority classes.", func() {
+		framework.SkipUnlessResourceQuotaScopeSelectorsEnabled()
 		_, err := f.ClientSet.SchedulingV1beta1().PriorityClasses().Create(&v1beta1.PriorityClass{ObjectMeta: metav1.ObjectMeta{Name: "pclass5"}, Value: int32(1000)})
 		Expect(err == nil || errors.IsAlreadyExists(err)).To(Equal(true))
 
@@ -1124,7 +1127,7 @@ var _ = SIGDescribe("ResourceQuota [Feature:PodPriority]", func() {
 	})
 
 	It("should verify ResourceQuota's priority class scope (quota set to pod count: 1) against a pod with different priority class (ScopeSelectorOpNotIn).", func() {
-
+		framework.SkipUnlessResourceQuotaScopeSelectorsEnabled()
 		_, err := f.ClientSet.SchedulingV1beta1().PriorityClasses().Create(&v1beta1.PriorityClass{ObjectMeta: metav1.ObjectMeta{Name: "pclass7"}, Value: int32(1000)})
 		Expect(err == nil || errors.IsAlreadyExists(err)).To(Equal(true))
 
@@ -1158,7 +1161,7 @@ var _ = SIGDescribe("ResourceQuota [Feature:PodPriority]", func() {
 	})
 
 	It("should verify ResourceQuota's priority class scope (quota set to pod count: 1) against a pod with different priority class (ScopeSelectorOpExists).", func() {
-
+		framework.SkipUnlessResourceQuotaScopeSelectorsEnabled()
 		_, err := f.ClientSet.SchedulingV1beta1().PriorityClasses().Create(&v1beta1.PriorityClass{ObjectMeta: metav1.ObjectMeta{Name: "pclass8"}, Value: int32(1000)})
 		Expect(err == nil || errors.IsAlreadyExists(err)).To(Equal(true))
 
@@ -1197,7 +1200,7 @@ var _ = SIGDescribe("ResourceQuota [Feature:PodPriority]", func() {
 	})
 
 	It("should verify ResourceQuota's priority class scope (cpu, memory quota set) against a pod with same priority class.", func() {
-
+		framework.SkipUnlessResourceQuotaScopeSelectorsEnabled()
 		_, err := f.ClientSet.SchedulingV1beta1().PriorityClasses().Create(&v1beta1.PriorityClass{ObjectMeta: metav1.ObjectMeta{Name: "pclass9"}, Value: int32(1000)})
 		Expect(err == nil || errors.IsAlreadyExists(err)).To(Equal(true))
 
