@@ -253,6 +253,10 @@ func initProvider(provider string) error {
 	exutil.TestContext.MaxNodesToGather = 0
 	exutil.TestContext.Viper = os.Getenv("VIPERCONFIG")
 
+	// set defaults so these tests don't log
+	exutil.TestContext.LoggingSoak.Scale = 1
+	exutil.TestContext.LoggingSoak.MilliSecondsBetweenWaves = 5000
+
 	exutil.AnnotateTestSuite()
 	exutil.InitTest()
 	gomega.RegisterFailHandler(ginkgo.Fail)
