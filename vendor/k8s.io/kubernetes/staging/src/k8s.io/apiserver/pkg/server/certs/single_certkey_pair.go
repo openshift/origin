@@ -1,6 +1,7 @@
 package certs
 
 import (
+	"fmt"
 	"io/ioutil"
 	"sync/atomic"
 	"time"
@@ -80,9 +81,15 @@ func (c *DynamicCertKeyPairLoader) CheckCerts() error {
 	if err != nil {
 		return err
 	}
+	if len(servingCertBytes) == 0 {
+		return fmt.Errorf("cert %q must not be empty", c.fileReference.Cert)
+	}
 	servingKeyBytes, err := ioutil.ReadFile(c.fileReference.Key)
 	if err != nil {
 		return err
+	}
+	if len(servingKeyBytes) == 0 {
+		return fmt.Errorf("key %q must not be empty", c.fileReference.Key)
 	}
 	newContent := certKeyFileContent{Cert: servingCertBytes, Key: servingKeyBytes}
 
