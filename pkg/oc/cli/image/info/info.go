@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/duration"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/klog"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
@@ -88,6 +89,12 @@ func (o *InfoOptions) Run() error {
 		return fmt.Errorf("must specify one or more images as arguments")
 	}
 
+	// cache the context
+	_, err := o.SecurityOptions.Context()
+	if err != nil {
+		return err
+	}
+
 	hadError := false
 	for _, location := range o.Images {
 		src, err := imagereference.Parse(location)
@@ -98,55 +105,45 @@ func (o *InfoOptions) Run() error {
 			return fmt.Errorf("--from must point to an image ID or image tag")
 		}
 
-		ctx := context.Background()
-		context, err := o.SecurityOptions.Context()
-		if err != nil {
+		var image *Image
+		retriever := &ImageRetriever{
+			Image: map[string]imagereference.DockerImageReference{
+				location: src,
+			},
+			SecurityOptions: o.SecurityOptions,
+			ManifestListCallback: func(from string, list *manifestlist.DeserializedManifestList, all map[digest.Digest]distribution.Manifest) (map[digest.Digest]distribution.Manifest, error) {
+				filtered := make(map[digest.Digest]distribution.Manifest)
+				for _, manifest := range list.Manifests {
+					if !o.FilterOptions.Include(&manifest, len(list.Manifests) > 1) {
+						klog.V(5).Infof("Skipping image for %#v from %s", manifest.Platform, from)
+						continue
+					}
+					filtered[manifest.Digest] = all[manifest.Digest]
+				}
+				if len(filtered) == 1 {
+					return filtered, nil
+				}
+
+				buf := &bytes.Buffer{}
+				w := tabwriter.NewWriter(buf, 0, 0, 1, ' ', 0)
+				fmt.Fprintf(w, "  OS\tDIGEST\n")
+				for _, manifest := range list.Manifests {
+					fmt.Fprintf(w, "  %s\t%s\n", imagemanifest.PlatformSpecString(manifest.Platform), manifest.Digest)
+				}
+				w.Flush()
+				return nil, fmt.Errorf("the image is a manifest list and contains multiple images - use --filter-by-os to select from:\n\n%s\n", buf.String())
+			},
+
+			ImageMetadataCallback: func(from string, i *Image, err error) error {
+				if err != nil {
+					return err
+				}
+				image = i
+				return nil
+			},
+		}
+		if err := retriever.Run(); err != nil {
 			return err
-		}
-
-		repo, err := context.Repository(ctx, src.DockerClientDefaults().RegistryURL(), src.RepositoryName(), o.SecurityOptions.Insecure)
-		if err != nil {
-			return err
-		}
-
-		srcManifest, manifestLocation, err := imagemanifest.FirstManifest(ctx, src, repo, o.FilterOptions.IncludeAll)
-		if err != nil {
-			return fmt.Errorf("unable to read image %s: %v", location, err)
-		}
-
-		switch t := srcManifest.(type) {
-		case *manifestlist.DeserializedManifestList:
-			buf := &bytes.Buffer{}
-			w := tabwriter.NewWriter(buf, 0, 0, 1, ' ', 0)
-			fmt.Fprintf(w, "  OS\tDIGEST\n")
-			for _, manifest := range t.Manifests {
-				fmt.Fprintf(w, "  %s\t%s\n", imagemanifest.PlatformSpecString(manifest.Platform), manifest.Digest)
-			}
-			w.Flush()
-			return fmt.Errorf("the image is a manifest list and contains multiple images - use --filter-by-os to select from:\n\n%s\n", buf.String())
-		}
-
-		imageConfig, layers, err := imagemanifest.ManifestToImageConfig(ctx, srcManifest, repo.Blobs(ctx), manifestLocation)
-		if err != nil {
-			return fmt.Errorf("unable to parse image %s: %v", location, err)
-		}
-
-		mediaType, _, _ := srcManifest.Payload()
-		contentDigest, err := registryclient.ContentDigestForManifest(srcManifest, manifestLocation.Manifest.Algorithm())
-		if err != nil {
-			return err
-		}
-
-		image := &Image{
-			Name:          location,
-			Ref:           src,
-			Config:        imageConfig,
-			Digest:        manifestLocation.Manifest,
-			ContentDigest: contentDigest,
-			ListDigest:    manifestLocation.ManifestList,
-			MediaType:     mediaType,
-			Layers:        layers,
-			Manifest:      srcManifest,
 		}
 
 		switch o.Output {
@@ -168,6 +165,7 @@ func (o *InfoOptions) Run() error {
 				fmt.Fprintf(o.ErrOut, "error: %v", err)
 			}
 		}
+
 	}
 	if hadError {
 		return kcmdutil.ErrExit
@@ -330,6 +328,11 @@ type ImageRetriever struct {
 	// MaxPerRegistry is set higher than 1. If err is passed image is nil. If an error is returned
 	// execution will stop.
 	ImageMetadataCallback func(from string, image *Image, err error) error
+	// ManifestListCallback, if specified, is invoked if the root image is a manifest list. If an
+	// error returned processing stops. If zero manifests are returned the next item is rendered
+	// and no ImageMetadataCallback calls occur. If more than one manifest is returned
+	// ImageMetadataCallback will be invoked once for each item.
+	ManifestListCallback func(from string, list *manifestlist.DeserializedManifestList, all map[digest.Digest]distribution.Manifest) (map[digest.Digest]distribution.Manifest, error)
 }
 
 func (o *ImageRetriever) Run() error {
@@ -339,6 +342,12 @@ func (o *ImageRetriever) Run() error {
 		return err
 	}
 
+	callbackFn := o.ImageMetadataCallback
+	if callbackFn == nil {
+		callbackFn = func(_ string, _ *Image, err error) error {
+			return err
+		}
+	}
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 	q := workqueue.New(o.ParallelOptions.MaxPerRegistry, stopCh)
@@ -349,10 +358,10 @@ func (o *ImageRetriever) Run() error {
 			q.Try(func() error {
 				repo, err := fromContext.Repository(ctx, from.DockerClientDefaults().RegistryURL(), from.RepositoryName(), o.SecurityOptions.Insecure)
 				if err != nil {
-					return fmt.Errorf("unable to connect to image repository %s: %v", from.Exact(), err)
+					return callbackFn(name, nil, fmt.Errorf("unable to connect to image repository %s: %v", from.Exact(), err))
 				}
 
-				allManifests, _, listDigest, err := imagemanifest.AllManifests(ctx, from, repo)
+				allManifests, manifestList, listDigest, err := imagemanifest.AllManifests(ctx, from, repo)
 				if err != nil {
 					if imagemanifest.IsImageForbidden(err) {
 						var msg string
@@ -361,7 +370,7 @@ func (o *ImageRetriever) Run() error {
 						} else {
 							msg = fmt.Sprintf("image %q does not exist or you don't have permission to access the repository", from)
 						}
-						return imagemanifest.NewImageForbidden(msg, err)
+						return callbackFn(name, nil, imagemanifest.NewImageForbidden(msg, err))
 					}
 					if imagemanifest.IsImageNotFound(err) {
 						var msg string
@@ -370,35 +379,41 @@ func (o *ImageRetriever) Run() error {
 						} else {
 							msg = fmt.Sprintf("image %q does not exist", from)
 						}
-						return imagemanifest.NewImageNotFound(msg, err)
+						return callbackFn(name, nil, imagemanifest.NewImageNotFound(msg, err))
 					}
-					return fmt.Errorf("unable to read image %s: %v", from, err)
+					return callbackFn(name, nil, fmt.Errorf("unable to read image %s: %v", from, err))
 				}
 
-				if o.ImageMetadataCallback != nil {
-					for srcDigest, srcManifest := range allManifests {
-						imageConfig, layers, err := imagemanifest.ManifestToImageConfig(ctx, srcManifest, repo.Blobs(ctx), imagemanifest.ManifestLocation{ManifestList: listDigest, Manifest: srcDigest})
-						mediaType, _, _ := srcManifest.Payload()
-						contentDigest, err := registryclient.ContentDigestForManifest(srcManifest, srcDigest.Algorithm())
-						if err != nil {
-							return err
-						}
-
-						if err := o.ImageMetadataCallback(name, &Image{
-							Name:          from.Exact(),
-							MediaType:     mediaType,
-							Digest:        srcDigest,
-							ContentDigest: contentDigest,
-							ListDigest:    listDigest,
-							Config:        imageConfig,
-							Layers:        layers,
-							Manifest:      srcManifest,
-						}, err); err != nil {
-							return err
-						}
-					}
-				} else {
+				if o.ManifestListCallback != nil && manifestList != nil {
+					allManifests, err = o.ManifestListCallback(name, manifestList, allManifests)
 					if err != nil {
+						return err
+					}
+				}
+
+				if len(allManifests) == 0 {
+					return imagemanifest.NewImageNotFound(fmt.Sprintf("no manifests could be found for %q", from), nil)
+				}
+
+				for srcDigest, srcManifest := range allManifests {
+					contentDigest, contentErr := registryclient.ContentDigestForManifest(srcManifest, srcDigest.Algorithm())
+					if contentErr != nil {
+						return callbackFn(name, nil, contentErr)
+					}
+
+					imageConfig, layers, manifestErr := imagemanifest.ManifestToImageConfig(ctx, srcManifest, repo.Blobs(ctx), imagemanifest.ManifestLocation{ManifestList: listDigest, Manifest: srcDigest})
+					mediaType, _, _ := srcManifest.Payload()
+					if err := callbackFn(name, &Image{
+						Name:          from.Exact(),
+						Ref:           from,
+						MediaType:     mediaType,
+						Digest:        srcDigest,
+						ContentDigest: contentDigest,
+						ListDigest:    listDigest,
+						Config:        imageConfig,
+						Layers:        layers,
+						Manifest:      srcManifest,
+					}, manifestErr); err != nil {
 						return err
 					}
 				}
