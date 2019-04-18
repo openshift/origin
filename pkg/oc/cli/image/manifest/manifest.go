@@ -42,6 +42,8 @@ type SecurityOptions struct {
 	RegistryConfig   string
 	Insecure         bool
 	SkipVerification bool
+
+	CachedContext *registryclient.Context
 }
 
 func (o *SecurityOptions) Bind(flags *pflag.FlagSet) {
@@ -80,6 +82,15 @@ func (v *verifier) Verified() bool {
 }
 
 func (o *SecurityOptions) Context() (*registryclient.Context, error) {
+	if o.CachedContext != nil {
+		return o.CachedContext, nil
+	}
+	context, err := o.NewContext()
+	o.CachedContext = context
+	return context, err
+}
+
+func (o *SecurityOptions) NewContext() (*registryclient.Context, error) {
 	rt, err := rest.TransportFor(&rest.Config{})
 	if err != nil {
 		return nil, err
@@ -173,7 +184,7 @@ var PreferManifestList = distribution.WithManifestMediaTypes([]string{
 })
 
 // AllManifests returns all non-list manifests, the list manifest (if any), the digest the from refers to, or an error.
-func AllManifests(ctx context.Context, from imagereference.DockerImageReference, repo distribution.Repository) (map[digest.Digest]distribution.Manifest, distribution.Manifest, digest.Digest, error) {
+func AllManifests(ctx context.Context, from imagereference.DockerImageReference, repo distribution.Repository) (map[digest.Digest]distribution.Manifest, *manifestlist.DeserializedManifestList, digest.Digest, error) {
 	var srcDigest digest.Digest
 	if len(from.Tag) > 0 {
 		desc, err := repo.Tags(ctx).Get(ctx, from.Tag)
@@ -383,7 +394,7 @@ func ProcessManifestList(ctx context.Context, srcDigest digest.Digest, srcManife
 
 // ManifestsFromList returns a map of all image manifests for a given manifest. It returns the ManifestList and its digest if
 // srcManifest is a list, or an error.
-func ManifestsFromList(ctx context.Context, srcDigest digest.Digest, srcManifest distribution.Manifest, manifests distribution.ManifestService, ref imagereference.DockerImageReference) (map[digest.Digest]distribution.Manifest, distribution.Manifest, digest.Digest, error) {
+func ManifestsFromList(ctx context.Context, srcDigest digest.Digest, srcManifest distribution.Manifest, manifests distribution.ManifestService, ref imagereference.DockerImageReference) (map[digest.Digest]distribution.Manifest, *manifestlist.DeserializedManifestList, digest.Digest, error) {
 	switch t := srcManifest.(type) {
 	case *manifestlist.DeserializedManifestList:
 		allManifests := make(map[digest.Digest]distribution.Manifest)
