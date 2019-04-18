@@ -283,6 +283,9 @@ func decodeProviderTo(provider string, testContext *e2e.TestContextType) error {
 			return fmt.Errorf("provider must decode into the cloud config object: %v", err)
 		}
 	}
+	if len(testContext.Provider) == 0 {
+		testContext.Provider = "skeleton"
+	}
 	klog.V(2).Infof("Provider %s: %#v", testContext.Provider, testContext.CloudConfig)
 	return nil
 }
