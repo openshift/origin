@@ -16,6 +16,7 @@ import (
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/util/labelselector"
+	"strings"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -75,6 +76,14 @@ func (p *podNodeEnvironment) admit(a admission.Attributes, mutationAllowed bool)
 	// If scheduler.alpha.kubernetes.io/node-selector is set on the pod,
 	// do not process the pod further.
 	if _, ok := namespace.ObjectMeta.Annotations[kubeProjectNodeSelector]; ok {
+		return nil
+	}
+
+	// If it's a privileged namespace like openshift or openshift-* ignore those namespaces
+	// This is to ensure all the openshift-* namespaces don't have the defaultNodeSelector set
+	// TODO: @ravig Remove this in 4.2 and create PRs against individual openshift-* projects with
+	// scheduler.alpha.kubernetes.io/node-selector set to empty value.
+	if strings.HasPrefix(namespace.Name, "openshift-*") {
 		return nil
 	}
 

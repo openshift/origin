@@ -36,6 +36,7 @@ func TestPodAdmission(t *testing.T) {
 		ignoreProjectNodeSelector bool
 		admit                     bool
 		testName                  string
+		namespace                 string
 	}{
 		{
 			defaultNodeSelector:       "",
@@ -44,6 +45,7 @@ func TestPodAdmission(t *testing.T) {
 			ignoreProjectNodeSelector: true,
 			admit:                     true,
 			testName:                  "No node selectors",
+			namespace:                 "testProject",
 		},
 		{
 			defaultNodeSelector:       "infra = false",
@@ -52,6 +54,7 @@ func TestPodAdmission(t *testing.T) {
 			ignoreProjectNodeSelector: true,
 			admit:                     true,
 			testName:                  "Default node selector and no conflicts",
+			namespace:                 "testProject",
 		},
 		{
 			defaultNodeSelector: "",
@@ -60,6 +63,7 @@ func TestPodAdmission(t *testing.T) {
 			mergedNodeSelector:  map[string]string{"infra": "false"},
 			admit:               true,
 			testName:            "Project node selector and no conflicts",
+			namespace:           "testProject",
 		},
 		{
 			defaultNodeSelector: "infra = false",
@@ -68,6 +72,7 @@ func TestPodAdmission(t *testing.T) {
 			mergedNodeSelector:  map[string]string{},
 			admit:               true,
 			testName:            "Empty project node selector and no conflicts",
+			namespace:           "testProject",
 		},
 		{
 			defaultNodeSelector: "infra = false",
@@ -76,6 +81,7 @@ func TestPodAdmission(t *testing.T) {
 			mergedNodeSelector:  map[string]string{"infra": "true"},
 			admit:               true,
 			testName:            "Default and project node selector, no conflicts",
+			namespace:           "testProject",
 		},
 		{
 			defaultNodeSelector: "infra = false",
@@ -84,6 +90,7 @@ func TestPodAdmission(t *testing.T) {
 			mergedNodeSelector:  map[string]string{"infra": "true", "env": "test"},
 			admit:               true,
 			testName:            "Project and pod node selector, no conflicts",
+			namespace:           "testProject",
 		},
 		{
 			defaultNodeSelector: "env = test",
@@ -92,6 +99,7 @@ func TestPodAdmission(t *testing.T) {
 			mergedNodeSelector:  map[string]string{"infra": "false"},
 			admit:               false,
 			testName:            "Conflicting pod and project node selector, one label",
+			namespace:           "testProject",
 		},
 		{
 			defaultNodeSelector: "env=dev",
@@ -100,9 +108,29 @@ func TestPodAdmission(t *testing.T) {
 			mergedNodeSelector:  map[string]string{"env": "dev", "color": "blue"},
 			admit:               false,
 			testName:            "Conflicting pod and project node selector, multiple labels",
+			namespace:           "testProject",
+		},
+		{
+			defaultNodeSelector: "env=dev",
+			projectNodeSelector: "",
+			podNodeSelector:     map[string]string{"env": "dev", "color": "blue"},
+			mergedNodeSelector:  map[string]string{"env": "dev", "color": "blue"},
+			admit:               true,
+			testName:            "Openshift namespace, so we shouldn't see default node selector being applied",
+			namespace:           "openshift-dev",
+		},
+		{
+			defaultNodeSelector: "env=dev",
+			projectNodeSelector: "infra=false",
+			podNodeSelector:     map[string]string{"env": "dev", "color": "blue"},
+			mergedNodeSelector:  map[string]string{"env": "dev", "color": "blue", "infra": "false"},
+			admit:               true,
+			testName:            "Openshift namespace, so we shouldn't see default node selector being applied but allows merging projectNodeSelector",
+			namespace:           "openshift-dev",
 		},
 	}
 	for _, test := range tests {
+		namespace.Name = test.namespace
 		indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{})
 		indexer.Add(namespace)
 		handler.nsLister = corev1listers.NewNamespaceLister(indexer)
@@ -114,7 +142,7 @@ func TestPodAdmission(t *testing.T) {
 		}
 		pod.Spec = kapi.PodSpec{NodeSelector: test.podNodeSelector}
 
-		attrs := admission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), "testProject", namespace.ObjectMeta.Name, kapi.Resource("pods").WithVersion("version"), "", admission.Create, false, nil)
+		attrs := admission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), test.namespace, namespace.ObjectMeta.Name, kapi.Resource("pods").WithVersion("version"), "", admission.Create, false, nil)
 		err := handler.Admit(attrs)
 		if test.admit && err != nil {
 			t.Errorf("Test: %s, expected no error but got: %s", test.testName, err)
