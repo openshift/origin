@@ -74,7 +74,7 @@ func (c *DynamicCA) CheckCerts() error {
 		return err
 	}
 	if len(certBytes) == 0 {
-		return fmt.Errorf("not updating to an empty ca bundle from %q", c.caFile.Cert)
+		return fmt.Errorf("ca-bundle %q must not be empty", c.caFile.Cert)
 	}
 	newContent := caFileContent{Cert: certBytes}
 
