@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/time/rate"
+
 	"github.com/docker/distribution/manifest/schema1"
 
 	"golang.org/x/net/context"
@@ -73,6 +75,7 @@ type Context struct {
 	Actions           []string
 	Retries           int
 	Credentials       auth.CredentialStore
+	Limiter           *rate.Limiter
 
 	DisableDigestVerification bool
 
@@ -93,6 +96,7 @@ func (c *Context) Copy() *Context {
 		Actions:           c.Actions,
 		Retries:           c.Retries,
 		Credentials:       c.Credentials,
+		Limiter:           c.Limiter,
 
 		DisableDigestVerification: c.DisableDigestVerification,
 
@@ -103,6 +107,11 @@ func (c *Context) Copy() *Context {
 		copied.redirect[k] = v
 	}
 	return copied
+}
+
+func (c *Context) WithRateLimiter(limiter *rate.Limiter) *Context {
+	c.Limiter = limiter
+	return c
 }
 
 func (c *Context) WithScopes(scopes ...auth.Scope) *Context {
@@ -202,10 +211,11 @@ func (c *Context) Repository(ctx context.Context, registry *url.URL, repoName st
 	if !c.DisableDigestVerification {
 		repo = repositoryVerifier{Repository: repo}
 	}
-	if c.Retries > 0 {
-		return NewRetryRepository(repo, c.Retries, 3/2*time.Second), nil
+	limiter := c.Limiter
+	if limiter == nil {
+		limiter = rate.NewLimiter(rate.Limit(5), 5)
 	}
-	return repo, nil
+	return NewLimitedRetryRepository(repo, c.Retries, limiter), nil
 }
 
 func (c *Context) ping(registry url.URL, insecure bool, transport http.RoundTripper) (*url.URL, error) {
@@ -335,33 +345,37 @@ var nowFn = time.Now
 type retryRepository struct {
 	distribution.Repository
 
+	limiter *rate.Limiter
 	retries int
-	wait    time.Duration
+	sleepFn func(time.Duration)
 }
 
-// NewRetryRepository wraps a distribution.Repository with helpers that will retry authentication failures
-// over a limited time window and duration. This primarily avoids a DockerHub issue where public images
-// unexpectedly return a 401 error due to the JWT token created by the hub being created at the same second,
-// but another server being in the previous second.
-func NewRetryRepository(repo distribution.Repository, retries int, interval time.Duration) distribution.Repository {
-	var wait time.Duration
-	if retries > 1 {
-		wait = interval / time.Duration(retries-1)
-	}
+// NewLimitedRetryRepository wraps a distribution.Repository with helpers that will retry temporary failures
+// over a limited time window and duration, and also obeys a rate limit.
+func NewLimitedRetryRepository(repo distribution.Repository, retries int, limiter *rate.Limiter) distribution.Repository {
 	return &retryRepository{
 		Repository: repo,
 
+		limiter: limiter,
 		retries: retries,
-		wait:    wait,
+		sleepFn: time.Sleep,
 	}
 }
 
 // isTemporaryHTTPError returns true if the error indicates a temporary or partial HTTP failure
-func isTemporaryHTTPError(err error) bool {
-	if e, ok := err.(net.Error); ok && e != nil {
-		return e.Temporary() || e.Timeout()
+func isTemporaryHTTPError(err error) (time.Duration, bool) {
+	if err == nil {
+		return 0, false
 	}
-	return false
+	switch t := err.(type) {
+	case net.Error:
+		return time.Second, t.Temporary() || t.Timeout()
+	case *registryclient.UnexpectedHTTPResponseError:
+		if t.StatusCode == http.StatusTooManyRequests {
+			return 2 * time.Second, true
+		}
+	}
+	return 0, false
 }
 
 // shouldRetry returns true if the error was temporary and count is less than retries.
@@ -369,14 +383,14 @@ func (c *retryRepository) shouldRetry(count int, err error) bool {
 	if err == nil {
 		return false
 	}
-	if !isTemporaryHTTPError(err) {
+	retryAfter, ok := isTemporaryHTTPError(err)
+	if !ok {
 		return false
 	}
 	if count >= c.retries {
 		return false
 	}
-	// don't hot loop
-	time.Sleep(c.wait)
+	c.sleepFn(retryAfter)
 	klog.V(4).Infof("Retrying request to Docker registry after encountering error (%d attempts remaining): %v", count, err)
 	return true
 }
@@ -409,6 +423,9 @@ type retryManifest struct {
 // Exists returns true if the manifest exists.
 func (c retryManifest) Exists(ctx context.Context, dgst digest.Digest) (bool, error) {
 	for i := 0; ; i++ {
+		if err := c.repo.limiter.Wait(ctx); err != nil {
+			return false, err
+		}
 		exists, err := c.ManifestService.Exists(ctx, dgst)
 		if c.repo.shouldRetry(i, err) {
 			continue
@@ -420,6 +437,9 @@ func (c retryManifest) Exists(ctx context.Context, dgst digest.Digest) (bool, er
 // Get retrieves the manifest identified by the digest, if it exists.
 func (c retryManifest) Get(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
 	for i := 0; ; i++ {
+		if err := c.repo.limiter.Wait(ctx); err != nil {
+			return nil, err
+		}
 		m, err := c.ManifestService.Get(ctx, dgst, options...)
 		if c.repo.shouldRetry(i, err) {
 			continue
@@ -436,6 +456,9 @@ type retryBlobStore struct {
 
 func (c retryBlobStore) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
 	for i := 0; ; i++ {
+		if err := c.repo.limiter.Wait(ctx); err != nil {
+			return distribution.Descriptor{}, err
+		}
 		d, err := c.BlobStore.Stat(ctx, dgst)
 		if c.repo.shouldRetry(i, err) {
 			continue
@@ -446,6 +469,9 @@ func (c retryBlobStore) Stat(ctx context.Context, dgst digest.Digest) (distribut
 
 func (c retryBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, req *http.Request, dgst digest.Digest) error {
 	for i := 0; ; i++ {
+		if err := c.repo.limiter.Wait(ctx); err != nil {
+			return err
+		}
 		err := c.BlobStore.ServeBlob(ctx, w, req, dgst)
 		if c.repo.shouldRetry(i, err) {
 			continue
@@ -456,6 +482,9 @@ func (c retryBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, re
 
 func (c retryBlobStore) Open(ctx context.Context, dgst digest.Digest) (distribution.ReadSeekCloser, error) {
 	for i := 0; ; i++ {
+		if err := c.repo.limiter.Wait(ctx); err != nil {
+			return nil, err
+		}
 		rsc, err := c.BlobStore.Open(ctx, dgst)
 		if c.repo.shouldRetry(i, err) {
 			continue
@@ -471,6 +500,9 @@ type retryTags struct {
 
 func (c *retryTags) Get(ctx context.Context, tag string) (distribution.Descriptor, error) {
 	for i := 0; ; i++ {
+		if err := c.repo.limiter.Wait(ctx); err != nil {
+			return distribution.Descriptor{}, err
+		}
 		t, err := c.TagService.Get(ctx, tag)
 		if c.repo.shouldRetry(i, err) {
 			continue
@@ -481,6 +513,9 @@ func (c *retryTags) Get(ctx context.Context, tag string) (distribution.Descripto
 
 func (c *retryTags) All(ctx context.Context) ([]string, error) {
 	for i := 0; ; i++ {
+		if err := c.repo.limiter.Wait(ctx); err != nil {
+			return nil, err
+		}
 		t, err := c.TagService.All(ctx)
 		if c.repo.shouldRetry(i, err) {
 			continue
@@ -491,6 +526,9 @@ func (c *retryTags) All(ctx context.Context) ([]string, error) {
 
 func (c *retryTags) Lookup(ctx context.Context, digest distribution.Descriptor) ([]string, error) {
 	for i := 0; ; i++ {
+		if err := c.repo.limiter.Wait(ctx); err != nil {
+			return nil, err
+		}
 		t, err := c.TagService.Lookup(ctx, digest)
 		if c.repo.shouldRetry(i, err) {
 			continue
