@@ -24,7 +24,8 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 				continue
 			}
 			rv := events.ResourceVersion
-			for {
+
+			for expired := false; !expired; {
 				w, err := client.CoreV1().Events("").Watch(metav1.ListOptions{ResourceVersion: rv})
 				if err != nil {
 					if errors.IsResourceExpired(err) {
@@ -60,6 +61,10 @@ func startEventMonitoring(ctx context.Context, m Recorder, client kubernetes.Int
 						case watch.Error:
 							var message string
 							if status, ok := event.Object.(*metav1.Status); ok {
+								if err := errors.FromObject(status); err != nil && errors.IsResourceExpired(err) {
+									expired = true
+									return
+								}
 								message = status.Message
 							} else {
 								message = fmt.Sprintf("event object was not a Status: %T", event.Object)
