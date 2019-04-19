@@ -30,7 +30,7 @@ var rootDir string
 var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc                = exutil.NewCLI("cl", exutil.KubeConfigPath())
+		oc                = exutil.NewCLIWithoutNamespace("cl")
 		masterVertFixture = exutil.FixturePath("testdata", "cluster", "master-vert.yaml")
 		_                 = exutil.FixturePath("..", "..", "examples", "quickstarts", "cakephp-mysql.json")
 		_                 = exutil.FixturePath("..", "..", "examples", "quickstarts", "dancer-mysql.json")
@@ -78,7 +78,10 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 			}
 			for j := 0; j < p.Number; j++ {
 				var allArgs []string
-				allArgs = append(allArgs, "--skip-config-write")
+				if p.NodeSelector != "" {
+					allArgs = append(allArgs, "--node-selector")
+					allArgs = append(allArgs, p.NodeSelector)
+				}
 				nsName := fmt.Sprintf("%s%d", p.Basename, j)
 				allArgs = append(allArgs, nsName)
 
@@ -105,7 +108,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 					// do nothing
 				} else {
 					// Create namespaces as defined in Cluster Loader config
-					err = oc.Run("new-project").Args(allArgs...).Execute()
+					err = oc.Run("adm", "new-project").Args(allArgs...).Execute()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					e2e.Logf("%d/%d : Created new namespace: %v", j+1, p.Number, nsName)
 				}
@@ -186,14 +189,14 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 
 		// Wait for builds and deployments to complete
 		for _, ns := range namespaces {
-			buildList, err := oc.BuildClient().BuildV1().Builds(ns).List(metav1.ListOptions{})
+			buildList, err := oc.AsAdmin().BuildClient().BuildV1().Builds(ns).List(metav1.ListOptions{})
 			if err != nil {
 				e2e.Logf("Error listing builds: %v", err)
 			}
 			if len(buildList.Items) > 0 {
 				buildName := buildList.Items[0].Name
 				e2e.Logf("Waiting for build: %q", buildName)
-				err = exutil.WaitForABuild(oc.BuildClient().BuildV1().Builds(ns), buildName, nil, nil, nil)
+				err = exutil.WaitForABuild(oc.AsAdmin().BuildClient().BuildV1().Builds(ns), buildName, nil, nil, nil)
 				if err != nil {
 					exutil.DumpBuildLogs(buildName, oc)
 				}
