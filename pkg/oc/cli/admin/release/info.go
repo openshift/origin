@@ -572,7 +572,9 @@ func (o *InfoOptions) LoadReleaseInfo(image string, retrieveImages bool) (*Relea
 			SecurityOptions: o.SecurityOptions,
 			ParallelOptions: o.ParallelOptions,
 			ImageMetadataCallback: func(name string, image *imageinfo.Image, err error) error {
-				verifier.Verify(image.Digest, image.ContentDigest)
+				if image != nil {
+					verifier.Verify(image.Digest, image.ContentDigest)
+				}
 				lock.Lock()
 				defer lock.Unlock()
 				if err != nil {
@@ -938,6 +940,7 @@ func describeReleaseInfo(out io.Writer, release *ReleaseInfo, showCommit, pullSp
 				image, ok := release.Images[tag.Name]
 				if !ok {
 					fmt.Fprintf(w, "  %s\t\t\t\t\t\n", tag.Name)
+					continue
 				}
 
 				// create a column for a small number of unique base layers that visually indicates

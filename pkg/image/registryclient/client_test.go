@@ -13,6 +13,8 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/time/rate"
+
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/api/errcode"
@@ -232,6 +234,8 @@ func TestPing(t *testing.T) {
 	}
 }
 
+var unlimited = rate.NewLimiter(rate.Inf, 100)
+
 type temporaryError struct{}
 
 func (temporaryError) Error() string   { return "temporary" }
@@ -239,7 +243,9 @@ func (temporaryError) Timeout() bool   { return false }
 func (temporaryError) Temporary() bool { return true }
 
 func TestShouldRetry(t *testing.T) {
-	r := NewRetryRepository(nil, 1, 0).(*retryRepository)
+	r := NewLimitedRetryRepository(nil, 1, unlimited).(*retryRepository)
+	sleeps := 0
+	r.sleepFn = func(time.Duration) { sleeps++ }
 
 	// nil error doesn't consume retries
 	if r.shouldRetry(0, nil) {
@@ -255,44 +261,62 @@ func TestShouldRetry(t *testing.T) {
 	if r.shouldRetry(0, errcode.ErrorCodeDenied) {
 		t.Fatal(r)
 	}
+	if sleeps != 0 {
+		t.Fatal(sleeps)
+	}
 
 	now := time.Unix(1, 0)
 	nowFn = func() time.Time {
 		return now
 	}
 	// should retry a temporary error
-	r = NewRetryRepository(nil, 1, 0).(*retryRepository)
+	r = NewLimitedRetryRepository(nil, 1, unlimited).(*retryRepository)
+	sleeps = 0
+	r.sleepFn = func(time.Duration) { sleeps++ }
 	if !r.shouldRetry(0, temporaryError{}) {
 		t.Fatal(r)
 	}
 	if r.shouldRetry(1, temporaryError{}) {
 		t.Fatal(r)
 	}
+	if sleeps != 1 {
+		t.Fatal(sleeps)
+	}
 }
 
 func TestRetryFailure(t *testing.T) {
+	sleeps := 0
+	sleepFn := func(time.Duration) { sleeps++ }
+
+	ctx := context.Background()
 	// do not retry on Manifests()
 	repo := &mockRepository{repoErr: fmt.Errorf("does not support v2 API")}
-	r := NewRetryRepository(repo, 1, 0).(*retryRepository)
-	if m, err := r.Manifests(nil); m != nil || err != repo.repoErr || r.retries != 1 {
+	r := NewLimitedRetryRepository(repo, 1, unlimited).(*retryRepository)
+	sleeps = 0
+	r.sleepFn = sleepFn
+	if m, err := r.Manifests(ctx); m != nil || err != repo.repoErr || r.retries != 1 {
 		t.Fatalf("unexpected: %v %v %#v", m, err, r)
 	}
 
 	// do not retry on Manifests()
 	repo = &mockRepository{repoErr: temporaryError{}}
-	r = NewRetryRepository(repo, 4, 0).(*retryRepository)
-	if m, err := r.Manifests(nil); m != nil || err != repo.repoErr || r.retries != 4 {
+	r = NewLimitedRetryRepository(repo, 4, unlimited).(*retryRepository)
+	sleeps = 0
+	r.sleepFn = sleepFn
+	if m, err := r.Manifests(ctx); m != nil || err != repo.repoErr || r.retries != 4 {
 		t.Fatalf("unexpected: %v %v %#v", m, err, r)
 	}
 
 	// do not retry on non standard errors
 	repo = &mockRepository{getErr: fmt.Errorf("does not support v2 API")}
-	r = NewRetryRepository(repo, 4, 0).(*retryRepository)
-	m, err := r.Manifests(nil)
+	r = NewLimitedRetryRepository(repo, 4, unlimited).(*retryRepository)
+	sleeps = 0
+	r.sleepFn = sleepFn
+	m, err := r.Manifests(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := m.Get(nil, digest.Digest("foo")); err != repo.getErr || r.retries != 4 {
+	if _, err := m.Get(ctx, digest.Digest("foo")); err != repo.getErr || r.retries != 4 {
 		t.Fatalf("unexpected: %v %v %#v", m, err, r)
 	}
 
@@ -305,33 +329,38 @@ func TestRetryFailure(t *testing.T) {
 			openErr:  temporaryError{},
 		},
 	}
-	r = NewRetryRepository(repo, 4, 0).(*retryRepository)
-	if m, err = r.Manifests(nil); err != nil {
+	r = NewLimitedRetryRepository(repo, 4, unlimited).(*retryRepository)
+	sleeps = 0
+	r.sleepFn = sleepFn
+	if m, err = r.Manifests(ctx); err != nil {
 		t.Fatal(err)
 	}
 	r.retries = 2
-	if _, err := m.Get(nil, digest.Digest("foo")); err != repo.getErr {
+	if _, err := m.Get(ctx, digest.Digest("foo")); err != repo.getErr {
 		t.Fatalf("unexpected: %v %#v", err, r)
 	}
 	r.retries = 2
-	if m, err := m.Exists(nil, "foo"); m || err != repo.getErr {
+	if m, err := m.Exists(ctx, "foo"); m || err != repo.getErr {
 		t.Fatalf("unexpected: %v %v %#v", m, err, r)
+	}
+	if sleeps != 4 {
+		t.Fatal(sleeps)
 	}
 
 	r.retries = 2
-	b := r.Blobs(nil)
+	b := r.Blobs(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := b.Stat(nil, digest.Digest("x")); err != repo.blobs.statErr {
+	if _, err := b.Stat(ctx, digest.Digest("x")); err != repo.blobs.statErr {
 		t.Fatalf("unexpected: %v %#v", err, r)
 	}
 	r.retries = 2
-	if err := b.ServeBlob(nil, nil, nil, digest.Digest("foo")); err != repo.blobs.serveErr {
+	if err := b.ServeBlob(ctx, nil, nil, digest.Digest("foo")); err != repo.blobs.serveErr {
 		t.Fatalf("unexpected: %v %#v", err, r)
 	}
 	r.retries = 2
-	if _, err := b.Open(nil, digest.Digest("foo")); err != repo.blobs.openErr {
+	if _, err := b.Open(ctx, digest.Digest("foo")); err != repo.blobs.openErr {
 		t.Fatalf("unexpected: %v %#v", err, r)
 	}
 }
