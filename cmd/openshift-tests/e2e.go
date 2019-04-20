@@ -44,6 +44,15 @@ var staticSuites = []*ginkgo.TestSuite{
 		},
 	},
 	{
+		Name: "openshift/disruptive",
+		Description: templates.LongDesc(`
+		The disruptive test suite.
+		`),
+		Matches: func(name string) bool {
+			return !strings.Contains(name, "[Disabled") && strings.Contains(name, "[Disruptive]")
+		},
+	},
+	{
 		Name: "kubernetes/conformance",
 		Description: templates.LongDesc(`
 		The default Kubernetes conformance suite.

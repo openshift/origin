@@ -253,6 +253,10 @@ func initProvider(provider string) error {
 	exutil.TestContext.MaxNodesToGather = 0
 	exutil.TestContext.Viper = os.Getenv("VIPERCONFIG")
 
+	// set defaults so these tests don't log
+	exutil.TestContext.LoggingSoak.Scale = 1
+	exutil.TestContext.LoggingSoak.MilliSecondsBetweenWaves = 5000
+
 	exutil.AnnotateTestSuite()
 	exutil.InitTest()
 	gomega.RegisterFailHandler(ginkgo.Fail)
@@ -282,6 +286,9 @@ func decodeProviderTo(provider string, testContext *e2e.TestContextType) error {
 		if err := json.Unmarshal([]byte(provider), &testContext.CloudConfig); err != nil {
 			return fmt.Errorf("provider must decode into the cloud config object: %v", err)
 		}
+	}
+	if len(testContext.Provider) == 0 {
+		testContext.Provider = "skeleton"
 	}
 	klog.V(2).Infof("Provider %s: %#v", testContext.Provider, testContext.CloudConfig)
 	return nil
