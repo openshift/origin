@@ -94,7 +94,7 @@ func NewInfo(f kcmdutil.Factory, parentName string, streams genericclioptions.IO
 
 	flags.StringVar(&o.From, "changes-from", o.From, "Show changes from this image to the requested image.")
 
-	flags.BoolVar(&o.Verify, "verify", o.Verify, "Generate bug listings from the changelogs in the git repositories extracted to this path.")
+	flags.BoolVar(&o.Verify, "verify", o.Verify, "Verify the integrity of each release image and return an error if the release has been tampered with.")
 
 	flags.BoolVar(&o.ShowContents, "contents", o.ShowContents, "Display the contents of a release.")
 	flags.BoolVar(&o.ShowCommit, "commits", o.ShowCommit, "Display information about the source an image was created with.")
