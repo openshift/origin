@@ -389,7 +389,7 @@ func (o *NewOptions) Run() error {
 
 		verifier := imagemanifest.NewVerifier()
 		var baseDigest string
-		var imageReferencesData, releaseMetadata []byte
+		var imageReferencesData []byte
 
 		buf := &bytes.Buffer{}
 		extractOpts := extract.NewOptions(genericclioptions.IOStreams{Out: buf, ErrOut: o.ErrOut})
@@ -409,21 +409,10 @@ func (o *NewOptions) Run() error {
 			}
 		}
 		extractOpts.TarEntryCallback = func(hdr *tar.Header, _ extract.LayerInfo, r io.Reader) (bool, error) {
-			var err error
 			if hdr.Name == "image-references" {
+				var err error
 				imageReferencesData, err = ioutil.ReadAll(r)
-				if err != nil {
-					return false, err
-				}
-			}
-			if hdr.Name == "release-metadata" {
-				releaseMetadata, err = ioutil.ReadAll(r)
-				if err != nil {
-					return false, err
-				}
-			}
-			if len(imageReferencesData) > 0 && len(releaseMetadata) > 0 {
-				return false, nil
+				return false, err
 			}
 			return true, nil
 		}
