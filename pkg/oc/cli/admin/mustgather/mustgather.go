@@ -286,13 +286,7 @@ func (o *MustGatherOptions) newPod(node string) *corev1.Pod {
 				{
 					Name:    "gather",
 					Image:   o.Image,
-					Command: []string{"/bin/bash", "-c", "for resource in $RESOURCES ; do openshift-must-gather inspect ${resource} --base-dir /must-gather ; done"},
-					Env: []corev1.EnvVar{
-						{
-							Name:  "RESOURCES",
-							Value: "clusteroperators certificatesigningrequests nodes machines machineconfigs ns/default ns/openshift ns/kube-system persistentvolumes volumeattachments clusternetworks hostsubnets clusterautoscaler machineautoscaler",
-						},
-					},
+					Command: []string{"/usr/bin/gather"},
 					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      "must-gather-output",
