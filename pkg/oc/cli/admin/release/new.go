@@ -440,11 +440,6 @@ func (o *NewOptions) Run() error {
 		}
 		is.Annotations[annotationReleaseFromRelease] = o.FromReleaseImage
 
-		if inputIS.Annotations == nil {
-			inputIS.Annotations = make(map[string]string)
-		}
-		inputIS.Annotations[annotationBuildVersions] = extraComponentVersions.String()
-
 		for _, tag := range is.Spec.Tags {
 			ordered = append(ordered, tag.Name)
 		}
@@ -507,11 +502,6 @@ func (o *NewOptions) Run() error {
 			}
 			inputIS = is
 		}
-
-		if inputIS.Annotations == nil {
-			inputIS.Annotations = make(map[string]string)
-		}
-		inputIS.Annotations[annotationBuildVersions] = extraComponentVersions.String()
 
 		if err := resolveImageStreamTagsToReferenceMode(inputIS, is, o.ReferenceMode, exclude); err != nil {
 			return err
@@ -579,6 +569,7 @@ func (o *NewOptions) Run() error {
 	if is.Annotations == nil {
 		is.Annotations = make(map[string]string)
 	}
+	is.Annotations[annotationBuildVersions] = extraComponentVersions.String()
 
 	// update any custom mappings and then sort the spec tags
 	for _, m := range o.Mappings {
