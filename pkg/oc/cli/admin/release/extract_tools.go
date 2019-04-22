@@ -180,6 +180,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 	// load the release image
 	dir := o.Directory
 	infoOptions := NewInfoOptions(o.IOStreams)
+	infoOptions.SecurityOptions = o.SecurityOptions
 	release, err := infoOptions.LoadReleaseInfo(o.From, false)
 	if err != nil {
 		return err
