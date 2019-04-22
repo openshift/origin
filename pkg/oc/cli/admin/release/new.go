@@ -503,7 +503,7 @@ func (o *NewOptions) Run() error {
 			inputIS = is
 		}
 
-		if err := resolveImageStreamTagsToReferenceMode(inputIS, is, o.ReferenceMode, exclude); err != nil {
+		if err := resolveImageStreamTagsToReferenceMode(&is.Spec.Tags, inputIS, o.ReferenceMode, exclude); err != nil {
 			return err
 		}
 
@@ -704,7 +704,7 @@ func (o *NewOptions) Run() error {
 	return nil
 }
 
-func resolveImageStreamTagsToReferenceMode(inputIS, is *imageapi.ImageStream, referenceMode string, exclude sets.String) error {
+func resolveImageStreamTagsToReferenceMode(tags *[]imageapi.TagReference, inputIS *imageapi.ImageStream, referenceMode string, exclude sets.String) error {
 	switch referenceMode {
 	case "public", "", "source":
 		forceExternal := referenceMode == "public" || referenceMode == ""
@@ -748,7 +748,7 @@ func resolveImageStreamTagsToReferenceMode(inputIS, is *imageapi.ImageStream, re
 
 					ref := ref.DeepCopy()
 					ref.From = &corev1.ObjectReference{Kind: "DockerImage", Name: source}
-					is.Spec.Tags = append(is.Spec.Tags, *ref)
+					*tags = append(*tags, *ref)
 					covered.Insert(ref.Name)
 
 				case len(from.Tag) > 0:
@@ -774,7 +774,7 @@ func resolveImageStreamTagsToReferenceMode(inputIS, is *imageapi.ImageStream, re
 					source := externalFn(tag.Items[0].DockerImageReference, tag.Items[0].Image)
 					ref := ref.DeepCopy()
 					ref.From = &corev1.ObjectReference{Kind: "DockerImage", Name: source}
-					is.Spec.Tags = append(is.Spec.Tags, *ref)
+					*tags = append(*tags, *ref)
 					covered.Insert(ref.Name)
 				}
 				continue
@@ -822,7 +822,7 @@ func resolveImageStreamTagsToReferenceMode(inputIS, is *imageapi.ImageStream, re
 
 			ref := &imageapi.TagReference{Name: tag.Tag}
 			ref.From = &corev1.ObjectReference{Kind: "DockerImage", Name: source}
-			is.Spec.Tags = append(is.Spec.Tags, *ref)
+			*tags = append(*tags, *ref)
 		}
 		return nil
 	default:
