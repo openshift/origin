@@ -94,6 +94,7 @@ var _ = SIGDescribe("StatefulSet", func() {
 		// StorageClass and a dynamic provisioner.
 		It("should provide basic identity", func() {
 			By("Creating statefulset " + ssName + " in namespace " + ns)
+			framework.SkipIfNoDefaultStorageClass(c)
 			*(ss.Spec.Replicas) = 3
 			sst := framework.NewStatefulSetTester(c)
 			sst.PauseNewPods(ss)
@@ -133,6 +134,7 @@ var _ = SIGDescribe("StatefulSet", func() {
 		// StorageClass and a dynamic provisioner.
 		It("should adopt matching orphans and release non-matching pods", func() {
 			By("Creating statefulset " + ssName + " in namespace " + ns)
+			framework.SkipIfNoDefaultStorageClass(c)
 			*(ss.Spec.Replicas) = 1
 			sst := framework.NewStatefulSetTester(c)
 			sst.PauseNewPods(ss)
@@ -218,6 +220,7 @@ var _ = SIGDescribe("StatefulSet", func() {
 		// StorageClass and a dynamic provisioner.
 		It("should not deadlock when a pod's predecessor fails", func() {
 			By("Creating statefulset " + ssName + " in namespace " + ns)
+			framework.SkipIfNoDefaultStorageClass(c)
 			*(ss.Spec.Replicas) = 2
 			sst := framework.NewStatefulSetTester(c)
 			sst.PauseNewPods(ss)
@@ -254,6 +257,7 @@ var _ = SIGDescribe("StatefulSet", func() {
 		// StorageClass and a dynamic provisioner.
 		It("should perform rolling updates and roll backs of template modifications with PVCs", func() {
 			By("Creating a new StatefulSet with PVCs")
+			framework.SkipIfNoDefaultStorageClass(c)
 			*(ss.Spec.Replicas) = 3
 			rollbackTest(c, ns, ss)
 		})
