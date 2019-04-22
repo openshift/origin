@@ -3,6 +3,7 @@ package mustgather
 import (
 	"fmt"
 	"math/rand"
+	"path"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -66,6 +67,7 @@ func NewMustGatherCommand(f kcmdutil.Factory, streams genericclioptions.IOStream
 	cmd.Flags().StringVar(&o.NodeName, "node-name", o.NodeName, "Set a specific node to use - by default a random master will be used")
 	cmd.Flags().StringVar(&o.Image, "image", o.Image, "Set a specific image to use, by default the OpenShift's must-gather image will be used.")
 	cmd.Flags().StringVar(&o.DestDir, "dest-dir", o.DestDir, "Set a specific directory on the local machine to write gathered data to.")
+	cmd.Flags().StringVar(&o.SourceDir, "source-dir", o.SourceDir, "Set the specific directory on the pod copy the gathered data from.")
 	cmd.Flags().BoolVar(&o.Keep, "keep", o.Keep, "Do not delete temporary resources when command completes.")
 	cmd.Flags().MarkHidden("keep")
 
@@ -73,7 +75,10 @@ func NewMustGatherCommand(f kcmdutil.Factory, streams genericclioptions.IOStream
 }
 
 func NewMustGatherOptions(streams genericclioptions.IOStreams) *MustGatherOptions {
-	return &MustGatherOptions{IOStreams: streams}
+	return &MustGatherOptions{
+		SourceDir: "/must-gather/",
+		IOStreams: streams,
+	}
 }
 
 func (o *MustGatherOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
@@ -124,11 +129,12 @@ type MustGatherOptions struct {
 	Config *rest.Config
 	Client kubernetes.Interface
 
-	NodeName string
-	DestDir  string
-	Image    string
-	Command  []string
-	Keep     bool
+	NodeName  string
+	DestDir   string
+	SourceDir string
+	Image     string
+	Command   []string
+	Keep      bool
 
 	RsyncRshCmd string
 
@@ -204,7 +210,7 @@ func (o *MustGatherOptions) Run(rsyncCmd *cobra.Command) error {
 func (o *MustGatherOptions) copyFilesFromPod(pod *corev1.Pod) error {
 	rsyncOptions := &rsync.RsyncOptions{
 		Namespace:     pod.Namespace,
-		Source:        &rsync.PathSpec{PodName: pod.Name, Path: "/must-gather/"},
+		Source:        &rsync.PathSpec{PodName: pod.Name, Path: path.Clean(o.SourceDir) + "/"},
 		ContainerName: "copy",
 		Destination:   &rsync.PathSpec{PodName: "", Path: o.DestDir},
 		Client:        o.Client,
@@ -290,7 +296,7 @@ func (o *MustGatherOptions) newPod(node string) *corev1.Pod {
 					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      "must-gather-output",
-							MountPath: "/must-gather",
+							MountPath: path.Clean(o.SourceDir),
 							ReadOnly:  false,
 						},
 					},
@@ -304,7 +310,7 @@ func (o *MustGatherOptions) newPod(node string) *corev1.Pod {
 					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      "must-gather-output",
-							MountPath: "/must-gather",
+							MountPath: path.Clean(o.SourceDir),
 							ReadOnly:  false,
 						},
 					},
@@ -319,7 +325,7 @@ func (o *MustGatherOptions) newPod(node string) *corev1.Pod {
 		},
 	}
 	if len(o.Command) > 0 {
-		ret.Spec.Containers[0].Command = o.Command
+		ret.Spec.InitContainers[0].Command = o.Command
 	}
 	return ret
 }
