@@ -1,5 +1,5 @@
 reviewers:
-  - bparees
+  - adambkaplan
   - gabemontero
   - mfojtik
   - csrwng
@@ -7,7 +7,7 @@ reviewers:
   - sspeiche
   - jupierce
 approvers:
-  - bparees
+  - adambkaplan
   - mfojtik
   - csrwng
   - smarterclayton
