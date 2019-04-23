@@ -66,7 +66,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			}
 		}
 
-		host, err = waitForRouterMetricsIP(oc)
+		host, err = waitForRouterInternalIP(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		serviceIP, err = waitForRouterServiceIP(oc)

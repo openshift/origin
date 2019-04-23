@@ -10,7 +10,6 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -31,16 +30,8 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 	g.BeforeEach(func() {
 		var err error
 		routerIP, err = waitForRouterServiceIP(oc)
-		if kapierrs.IsNotFound(err) {
-			g.Skip("no router installed on the cluster")
-			return
-		}
 		o.Expect(err).NotTo(o.HaveOccurred())
-		metricsIP, err = waitForRouterMetricsIP(oc)
-		if kapierrs.IsNotFound(err) {
-			g.Skip("no router installed on the cluster")
-			return
-		}
+		metricsIP, err = waitForRouterInternalIP(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		if routerIP != metricsIP {

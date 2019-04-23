@@ -39,6 +39,7 @@ import (
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	configv1client "github.com/openshift/client-go/config/clientset/versioned"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
+	operatorv1client "github.com/openshift/client-go/operator/clientset/versioned"
 	templateclient "github.com/openshift/client-go/template/clientset/versioned"
 	_ "github.com/openshift/origin/pkg/api/install"
 	authorizationclientset "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
@@ -431,6 +432,14 @@ func (c *CLI) AdminConfigClient() configv1client.Interface {
 
 func (c *CLI) AdminImageClient() imagev1client.Interface {
 	client, err := imagev1client.NewForConfig(c.AdminConfig())
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
+func (c *CLI) AdminOperatorClient() operatorv1client.Interface {
+	client, err := operatorv1client.NewForConfig(c.AdminConfig())
 	if err != nil {
 		FatalErr(err)
 	}
