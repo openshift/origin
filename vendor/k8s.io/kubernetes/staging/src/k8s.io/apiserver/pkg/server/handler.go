@@ -93,10 +93,10 @@ func NewAPIServerHandler(name string, s runtime.NegotiatedSerializer, handlerCha
 	}
 
 	return &APIServerHandler{
-		FullHandlerChain:   handlerChainBuilder(director),
+		FullHandlerChain:   mux.WithDebug(handlerChainBuilder(director)),
 		GoRestfulContainer: gorestfulContainer,
 		NonGoRestfulMux:    nonGoRestfulMux,
-		Director:           director,
+		Director:           mux.WithDebug(director),
 	}
 }
 

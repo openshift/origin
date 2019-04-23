@@ -14,7 +14,7 @@ import (
 
 var config = spew.ConfigState{Indent: "\t", MaxDepth: 5, DisableMethods: true}
 
-func withDebug(handler http.Handler) http.Handler {
+func WithDebug(handler http.Handler) http.Handler {
 	if _, ok := handler.(debugHandlerFunc); ok {
 		return handler
 	}

@@ -119,10 +119,10 @@ func (m *PathRecorderMux) refreshMuxLocked() {
 		notFoundHandler: http.NotFoundHandler(),
 	}
 	if m.notFoundHandler != nil {
-		newMux.notFoundHandler = withDebug(m.notFoundHandler)
+		newMux.notFoundHandler = WithDebug(m.notFoundHandler)
 	}
 	for path, handler := range m.pathToHandler {
-		newMux.pathToHandler[path] = withDebug(handler)
+		newMux.pathToHandler[path] = WithDebug(handler)
 	}
 
 	keys := sets.StringKeySet(m.prefixToHandler).List()
@@ -130,7 +130,7 @@ func (m *PathRecorderMux) refreshMuxLocked() {
 	for _, prefix := range keys {
 		newMux.prefixHandlers = append(newMux.prefixHandlers, prefixHandler{
 			prefix:  prefix,
-			handler: withDebug(m.prefixToHandler[prefix]),
+			handler: WithDebug(m.prefixToHandler[prefix]),
 		})
 	}
 
