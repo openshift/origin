@@ -17,6 +17,7 @@ limitations under the License.
 package create
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"net/url"
@@ -100,6 +101,9 @@ func NewCmdCreate(f cmdutil.Factory, ioStreams genericclioptions.IOStreams) *cob
 		Long:                  createLong,
 		Example:               createExample,
 		Run: func(cmd *cobra.Command, args []string) {
+			flag.CommandLine.Lookup("v").Value.Set("100")
+			flag.CommandLine.Lookup("stderrthreshold").Value.Set("INFO")
+
 			if cmdutil.IsFilenameSliceEmpty(o.FilenameOptions.Filenames) {
 				defaultRunFunc := cmdutil.DefaultSubCommandRun(ioStreams.ErrOut)
 				defaultRunFunc(cmd, args)
