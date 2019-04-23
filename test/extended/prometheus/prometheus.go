@@ -145,6 +145,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 					targets.Expect(labels{"job": "alertmanager-main"}, "up", "^https://.*/metrics$"),
 					targets.Expect(labels{"job": "crio"}, "up", "^http://.*/metrics$"),
 					targets.Expect(labels{"job": "telemeter-client"}, "up", "^https://.*/metrics$"),
+					targets.Expect(labels{"job": "sdn"}, "up", "^http://.*/metrics$"),
 				)
 				if len(lastErrs) > 0 {
 					e2e.Logf("missing some targets: %v", lastErrs)
