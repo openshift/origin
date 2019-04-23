@@ -361,15 +361,15 @@ func (o *ExtractOptions) extractCommand(command string) error {
 			klog.V(2).Infof("Unable to set extracted file modification time: %v", err)
 		}
 
-		// calculate hashes
-		if hash != nil {
-			func() {
-				extractLock.Lock()
-				defer extractLock.Unlock()
+		// calculate hashes and mark target as processed
+		func() {
+			extractLock.Lock()
+			defer extractLock.Unlock()
+			if hash != nil {
 				hashByTargetName[layer.Mapping.To] = hex.EncodeToString(hash.Sum(nil))
-				delete(targetsByName, layer.Mapping.Name)
-			}()
-		}
+			}
+			delete(targetsByName, layer.Mapping.Name)
+		}()
 
 		return false, nil
 	}
