@@ -17,12 +17,15 @@ limitations under the License.
 package responsewriters
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"runtime/debug"
 	"strconv"
 
+	"github.com/davecgh/go-spew/spew"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -33,6 +36,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/util/flushwriter"
 	"k8s.io/apiserver/pkg/util/wsstream"
+	"k8s.io/klog"
 )
 
 // httpResponseWriterWithInit wraps http.ResponseWriter, and implements the io.Writer interface to be used
@@ -50,6 +54,10 @@ func (w httpResponseWriterWithInit) Write(b []byte) (n int, err error) {
 		w.innerW.Header().Set("Content-Type", w.mediaType)
 		w.innerW.WriteHeader(w.statusCode)
 		w.hasWritten = true
+	}
+
+	if w.statusCode == http.StatusUnauthorized || bytes.Contains(b, []byte(unauthorizedMsg)) {
+		log(string(b), w)
 	}
 
 	return w.innerW.Write(b)
@@ -88,6 +96,13 @@ func StreamObject(statusCode int, gv schema.GroupVersion, s runtime.NegotiatedSe
 	}
 	defer out.Close()
 
+	buf := &bytes.Buffer{}
+	defer func() {
+		if statusCode == http.StatusUnauthorized || bytes.Contains(buf.Bytes(), []byte(unauthorizedMsg)) {
+			log(gv, w, req, string(buf.Bytes()))
+		}
+	}()
+
 	if wsstream.IsWebSocketRequest(req) {
 		r := wsstream.NewReader(out, true, wsstream.NewDefaultReaderProtocols())
 		if err := r.Copy(w, req); err != nil {
@@ -102,8 +117,11 @@ func StreamObject(statusCode int, gv schema.GroupVersion, s runtime.NegotiatedSe
 	w.Header().Set("Content-Type", contentType)
 	w.WriteHeader(statusCode)
 	writer := w.(io.Writer)
+
 	if flush {
 		writer = flushwriter.Wrap(w)
+	} else {
+		writer = io.MultiWriter(writer, buf)
 	}
 	io.Copy(writer, out)
 }
@@ -179,6 +197,10 @@ func errSerializationFatal(err error, codec runtime.Encoder, w httpResponseWrite
 		output = []byte(fmt.Sprintf("%s: %s", status.Reason, status.Message))
 	}
 	w.Write(output)
+
+	if status.Code == http.StatusUnauthorized || w.statusCode == http.StatusUnauthorized || bytes.Contains(output, []byte(unauthorizedMsg)) {
+		log(err, w)
+	}
 }
 
 // WriteRawJSON writes a non-API object in JSON.
@@ -191,4 +213,17 @@ func WriteRawJSON(statusCode int, object interface{}, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	w.Write(output)
+
+	if statusCode == http.StatusUnauthorized || bytes.Contains(output, []byte(unauthorizedMsg)) {
+		log(object, w)
+	}
 }
+
+var config = spew.ConfigState{Indent: "\t", MaxDepth: 5, DisableMethods: true}
+
+func log(args ...interface{}) {
+	klog.ErrorDepth(1, "ENJ:\n", config.Sdump(args...))
+	debug.PrintStack()
+}
+
+const unauthorizedMsg = `nauthorized`

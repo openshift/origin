@@ -17,8 +17,13 @@ limitations under the License.
 package flushwriter
 
 import (
+	"bytes"
 	"io"
 	"net/http"
+	"runtime/debug"
+
+	"github.com/davecgh/go-spew/spew"
+	"k8s.io/klog"
 )
 
 // Wrap wraps an io.Writer into a writer that flushes after every write if
@@ -46,8 +51,19 @@ func (fw *flushWriter) Write(p []byte) (n int, err error) {
 	if err != nil {
 		return
 	}
+	if bytes.Contains(p, unauthorizedMsg) {
+		log(string(p))
+	}
 	if fw.flusher != nil {
 		fw.flusher.Flush()
 	}
 	return
 }
+
+func log(args ...interface{}) {
+	klog.ErrorDepth(1, "ENJ:\n", config.Sdump(args...))
+	debug.PrintStack()
+}
+
+var config = spew.ConfigState{Indent: "\t", MaxDepth: 5, DisableMethods: true}
+var unauthorizedMsg = []byte(`nauthorized`)
