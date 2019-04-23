@@ -15,7 +15,7 @@ func Test_journalArgs_Args(t *testing.T) {
 		args journalArgs
 		want []string
 	}{
-		{args: journalArgs{}, want: []string{"--utc", "--no-pager", "--boot"}},
+		{args: journalArgs{}, want: []string{"--utc", "--no-pager"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
