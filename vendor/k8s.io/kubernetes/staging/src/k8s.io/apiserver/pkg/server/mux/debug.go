@@ -89,14 +89,15 @@ func (a *auditResponseWriter) WriteHeader(code int) {
 	a.code = code
 }
 
-var unauthorizedMsg = []byte(`nauthorized`)
+var unauthorizedMsg1 = []byte(`{\"kind\":\"Status\",\"apiVersion\":\"v1\",\"metadata\":{},\"status\":\"Failure\",\"message\":\"Unauthorized\",\"reason\":\"Unauthorized\",\"code\":401}`)
+var unauthorizedMsg2 = []byte(`{"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"Unauthorized","reason":"Unauthorized","code":401}`)
 
 func (a *auditResponseWriter) shouldLog() bool {
 	if a.code == http.StatusUnauthorized {
 		return true
 	}
 
-	return bytes.Contains(a.buf.Bytes(), unauthorizedMsg)
+	return bytes.Contains(a.buf.Bytes(), unauthorizedMsg1) || bytes.Contains(a.buf.Bytes(), unauthorizedMsg2)
 }
 
 // fancyResponseWriterDelegator implements http.CloseNotifier, http.Flusher and

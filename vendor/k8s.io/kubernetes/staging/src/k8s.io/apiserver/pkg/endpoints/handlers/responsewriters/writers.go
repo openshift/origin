@@ -56,7 +56,7 @@ func (w httpResponseWriterWithInit) Write(b []byte) (n int, err error) {
 		w.hasWritten = true
 	}
 
-	if w.statusCode == http.StatusUnauthorized || bytes.Contains(b, []byte(unauthorizedMsg)) {
+	if w.statusCode == http.StatusUnauthorized || bytes.Contains(b, unauthorizedMsg1) || bytes.Contains(b, unauthorizedMsg2) {
 		log(string(b), w)
 	}
 
@@ -98,7 +98,7 @@ func StreamObject(statusCode int, gv schema.GroupVersion, s runtime.NegotiatedSe
 
 	buf := &bytes.Buffer{}
 	defer func() {
-		if statusCode == http.StatusUnauthorized || bytes.Contains(buf.Bytes(), []byte(unauthorizedMsg)) {
+		if statusCode == http.StatusUnauthorized || bytes.Contains(buf.Bytes(), unauthorizedMsg1) || bytes.Contains(buf.Bytes(), unauthorizedMsg2) {
 			log(gv, w, req, string(buf.Bytes()))
 		}
 	}()
@@ -198,7 +198,8 @@ func errSerializationFatal(err error, codec runtime.Encoder, w httpResponseWrite
 	}
 	w.Write(output)
 
-	if status.Code == http.StatusUnauthorized || w.statusCode == http.StatusUnauthorized || bytes.Contains(output, []byte(unauthorizedMsg)) {
+	if status.Code == http.StatusUnauthorized || w.statusCode == http.StatusUnauthorized ||
+		bytes.Contains(output, unauthorizedMsg1) || bytes.Contains(output, unauthorizedMsg2) {
 		log(err, w)
 	}
 }
@@ -214,7 +215,7 @@ func WriteRawJSON(statusCode int, object interface{}, w http.ResponseWriter) {
 	w.WriteHeader(statusCode)
 	w.Write(output)
 
-	if statusCode == http.StatusUnauthorized || bytes.Contains(output, []byte(unauthorizedMsg)) {
+	if statusCode == http.StatusUnauthorized || bytes.Contains(output, unauthorizedMsg1) || bytes.Contains(output, unauthorizedMsg2) {
 		log(object, w)
 	}
 }
@@ -226,4 +227,5 @@ func log(args ...interface{}) {
 	debug.PrintStack()
 }
 
-const unauthorizedMsg = `nauthorized`
+var unauthorizedMsg1 = []byte(`{\"kind\":\"Status\",\"apiVersion\":\"v1\",\"metadata\":{},\"status\":\"Failure\",\"message\":\"Unauthorized\",\"reason\":\"Unauthorized\",\"code\":401}`)
+var unauthorizedMsg2 = []byte(`{"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"Unauthorized","reason":"Unauthorized","code":401}`)

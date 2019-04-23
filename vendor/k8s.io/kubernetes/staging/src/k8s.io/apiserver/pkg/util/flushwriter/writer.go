@@ -51,7 +51,7 @@ func (fw *flushWriter) Write(p []byte) (n int, err error) {
 	if err != nil {
 		return
 	}
-	if bytes.Contains(p, unauthorizedMsg) {
+	if bytes.Contains(p, unauthorizedMsg1) || bytes.Contains(p, unauthorizedMsg2) {
 		log(string(p))
 	}
 	if fw.flusher != nil {
@@ -66,4 +66,6 @@ func log(args ...interface{}) {
 }
 
 var config = spew.ConfigState{Indent: "\t", MaxDepth: 5, DisableMethods: true}
-var unauthorizedMsg = []byte(`nauthorized`)
+
+var unauthorizedMsg1 = []byte(`{\"kind\":\"Status\",\"apiVersion\":\"v1\",\"metadata\":{},\"status\":\"Failure\",\"message\":\"Unauthorized\",\"reason\":\"Unauthorized\",\"code\":401}`)
+var unauthorizedMsg2 = []byte(`{"kind":"Status","apiVersion":"v1","metadata":{},"status":"Failure","message":"Unauthorized","reason":"Unauthorized","code":401}`)
