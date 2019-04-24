@@ -63,8 +63,11 @@ func decorateResponseWriter(responseWriter http.ResponseWriter) http.ResponseWri
 	_, cn := responseWriter.(http.CloseNotifier)
 	_, fl := responseWriter.(http.Flusher)
 	_, hj := responseWriter.(http.Hijacker)
-	if cn && fl && hj {
+	switch {
+	case cn && fl && hj:
 		return &fancyResponseWriterDelegator{delegate}
+	case cn:
+		return &closeResponseWriterDelegator{delegate}
 	}
 	return delegate
 }
@@ -122,3 +125,11 @@ func (f *fancyResponseWriterDelegator) Hijack() (net.Conn, *bufio.ReadWriter, er
 var _ http.CloseNotifier = &fancyResponseWriterDelegator{}
 var _ http.Flusher = &fancyResponseWriterDelegator{}
 var _ http.Hijacker = &fancyResponseWriterDelegator{}
+
+type closeResponseWriterDelegator struct {
+	*auditResponseWriter
+}
+
+func (f *closeResponseWriterDelegator) CloseNotify() <-chan bool {
+	return f.ResponseWriter.(http.CloseNotifier).CloseNotify()
+}
