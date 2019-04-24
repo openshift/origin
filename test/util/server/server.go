@@ -339,7 +339,7 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, stop
 		return "", err
 	}
 
-	if err := startOpenShiftControllers(masterConfig); err != nil {
+	if err := startOpenShiftControllers(masterConfig, stopCh); err != nil {
 		return "", err
 	}
 
@@ -685,7 +685,7 @@ func startKubernetesControllers(masterConfig *configapi.MasterConfig, adminKubeC
 	return nil
 }
 
-func startOpenShiftControllers(masterConfig *configapi.MasterConfig) error {
+func startOpenShiftControllers(masterConfig *configapi.MasterConfig, stopCh <-chan struct{}) error {
 	privilegedLoopbackConfig, err := configapi.GetClientConfig(masterConfig.MasterClients.OpenShiftLoopbackKubeConfig, masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
 		return err
@@ -723,8 +723,9 @@ func startOpenShiftControllers(masterConfig *configapi.MasterConfig) error {
 		return fmt.Errorf("couldn't find free address for OpenShift controller-manager: %v", err)
 	}
 	openshiftControllerConfig.ServingInfo.BindAddress = openshiftAddrStr
+
 	go func() {
-		if err := openshift_controller_manager.RunOpenShiftControllerManager(openshiftControllerConfig, privilegedLoopbackConfig); err != nil {
+		if err := openshift_controller_manager.RunOpenShiftControllerManager(openshiftControllerConfig, privilegedLoopbackConfig, stopCh); err != nil {
 			klog.Errorf("openshift-controller-manager terminated: %v", err)
 		}
 		// TODO: stop openshift-controller-manager on exit of the test

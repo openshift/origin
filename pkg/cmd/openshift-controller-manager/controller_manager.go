@@ -29,7 +29,7 @@ import (
 	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus"
 )
 
-func RunOpenShiftControllerManager(config *openshiftcontrolplanev1.OpenShiftControllerManagerConfig, clientConfig *rest.Config) error {
+func RunOpenShiftControllerManager(config *openshiftcontrolplanev1.OpenShiftControllerManagerConfig, clientConfig *rest.Config, stopCh <-chan struct{}) error {
 	util.InitLogrus()
 	kubeClient, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
@@ -93,7 +93,16 @@ func RunOpenShiftControllerManager(config *openshiftcontrolplanev1.OpenShiftCont
 	if err != nil {
 		return err
 	}
-	go leaderelection.RunOrDie(context.Background(),
+
+	ctx, cancel := context.WithCancel(context.TODO())
+	go func() {
+		select {
+		case <-stopCh:
+			cancel()
+		}
+	}()
+
+	go leaderelection.RunOrDie(ctx,
 		leaderelection.LeaderElectionConfig{
 			Lock:          rl,
 			LeaseDuration: config.LeaderElection.LeaseDuration.Duration,

@@ -43,7 +43,7 @@ type OpenShiftControllerManager struct {
 var longDescription = templates.LongDesc(`
 	Start the OpenShift controllers`)
 
-func NewOpenShiftControllerManagerCommand(name, basename string, out, errout io.Writer) *cobra.Command {
+func NewOpenShiftControllerManagerCommand(name, basename string, out, errout io.Writer, stopCh <-chan struct{}) *cobra.Command {
 	options := &OpenShiftControllerManager{Output: out}
 
 	cmd := &cobra.Command{
@@ -53,10 +53,9 @@ func NewOpenShiftControllerManagerCommand(name, basename string, out, errout io.
 		Run: func(c *cobra.Command, args []string) {
 			rest.CommandNameOverride = name
 			kcmdutil.CheckErr(options.Validate())
-
 			serviceability.StartProfiler()
 
-			if err := options.RunControllerManager(); err != nil {
+			if err := options.RunControllerManager(stopCh); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
 						fmt.Fprintf(errout, "Invalid %s %s\n", details.Kind, details.Name)
@@ -89,7 +88,7 @@ func (o *OpenShiftControllerManager) Validate() error {
 }
 
 // RunControllerManager takes the options and starts the controllers
-func (o *OpenShiftControllerManager) RunControllerManager() error {
+func (o *OpenShiftControllerManager) RunControllerManager(stopCh <-chan struct{}) error {
 	// try to decode into our new types first.  right now there is no validation, no file path resolution.  this unsticks the operator to start.
 	// TODO add those things
 	configContent, err := ioutil.ReadFile(o.ConfigFilePath)
@@ -129,7 +128,7 @@ func (o *OpenShiftControllerManager) RunControllerManager() error {
 		if err != nil {
 			return err
 		}
-		return RunOpenShiftControllerManager(config, clientConfig)
+		return RunOpenShiftControllerManager(config, clientConfig, stopCh)
 	}
 
 	masterConfig, err := configapilatest.ReadAndResolveMasterConfig(o.ConfigFilePath)
@@ -158,5 +157,11 @@ func (o *OpenShiftControllerManager) RunControllerManager() error {
 		return err
 	}
 
-	return RunOpenShiftControllerManager(config, clientConfig)
+	if err := RunOpenShiftControllerManager(config, clientConfig, stopCh); err != nil {
+		return err
+	}
+
+	<-stopCh
+
+	return nil
 }
