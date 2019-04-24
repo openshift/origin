@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/evanphx/json-patch"
+	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"k8s.io/klog"
@@ -65,7 +65,7 @@ func AddSourceToErr(verb string, source string, err error) error {
 		if statusError, ok := err.(kerrors.APIStatus); ok {
 			status := statusError.Status()
 			status.Message = fmt.Sprintf("error when %s %q: %v", verb, source, status.Message)
-			return &kerrors.StatusError{ErrStatus: status}
+			return (&kerrors.StatusErrorMo{ErrStatus: status}).WithNewStack()
 		}
 		return fmt.Errorf("error when %s %q: %v", verb, source, err)
 	}
@@ -132,7 +132,7 @@ func checkErr(err error, handleErr func(string, int)) {
 	case err == ErrExit:
 		handleErr("", DefaultErrorExitCode)
 	case kerrors.IsInvalid(err):
-		details := err.(*kerrors.StatusError).Status().Details
+		details := err.(*kerrors.StatusErrorMo).Status().Details
 		s := fmt.Sprintf("The %s %q is invalid", details.Kind, details.Name)
 		if len(details.Causes) > 0 {
 			errs := statusCausesToAggrError(details.Causes)
@@ -254,7 +254,7 @@ func MultilineError(prefix string, err error) string {
 // Returns true if a case exists to handle the error type, or false otherwise.
 func PrintErrorWithCauses(err error, errOut io.Writer) bool {
 	switch t := err.(type) {
-	case *kerrors.StatusError:
+	case *kerrors.StatusErrorMo:
 		errorDetails := t.Status().Details
 		if errorDetails != nil {
 			fmt.Fprintf(errOut, "error: %s %q is invalid\n\n", errorDetails.Kind, errorDetails.Name)

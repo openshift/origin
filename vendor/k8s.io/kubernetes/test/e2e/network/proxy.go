@@ -222,7 +222,7 @@ var _ = SIGDescribe("Proxy", func() {
 						body, status, d, err := doProxy(f, path, i)
 
 						if err != nil {
-							if serr, ok := err.(*errors.StatusError); ok {
+							if serr, ok := err.(*errors.StatusErrorMo); ok {
 								recordError(fmt.Sprintf("%v (%v; %v): path %v gave status error: %+v",
 									i, status, d, path, serr.Status()))
 							} else {

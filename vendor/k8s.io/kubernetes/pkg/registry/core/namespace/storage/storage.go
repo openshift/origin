@@ -197,7 +197,7 @@ func (r *REST) Delete(ctx context.Context, name string, options *metav1.DeleteOp
 		if err != nil {
 			err = storageerr.InterpretGetError(err, api.Resource("namespaces"), name)
 			err = storageerr.InterpretUpdateError(err, api.Resource("namespaces"), name)
-			if _, ok := err.(*apierrors.StatusError); !ok {
+			if _, ok := err.(*apierrors.StatusErrorMo); !ok {
 				err = apierrors.NewInternalError(err)
 			}
 			return nil, false, err

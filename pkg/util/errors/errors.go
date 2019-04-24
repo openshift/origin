@@ -31,7 +31,7 @@ func ErrorToSentence(err error) string {
 
 // IsTimeoutErr returns true if the error indicates timeout
 func IsTimeoutErr(err error) bool {
-	e, ok := err.(*kapierrors.StatusError)
+	e, ok := err.(*kapierrors.StatusErrorMo)
 	if !ok {
 		return false
 	}

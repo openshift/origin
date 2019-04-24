@@ -617,7 +617,7 @@ func TestInstantiateWithMissingImageStream(t *testing.T) {
 	g.Client = c
 
 	_, err := g.Instantiate(apirequest.NewDefaultContext(), &buildv1.BuildRequest{})
-	se, ok := err.(*errors.StatusError)
+	se, ok := err.(*errors.StatusErrorMo)
 
 	if !ok {
 		t.Fatalf("Expected errors.StatusError, got %T", err)

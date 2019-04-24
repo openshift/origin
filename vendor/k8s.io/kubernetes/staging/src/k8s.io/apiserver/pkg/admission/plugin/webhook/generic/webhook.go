@@ -139,7 +139,7 @@ func (a *Webhook) ValidateInitialization() error {
 }
 
 // ShouldCallHook makes a decision on whether to call the webhook or not by the attribute.
-func (a *Webhook) ShouldCallHook(h *v1beta1.Webhook, attr admission.Attributes) (bool, *apierrors.StatusError) {
+func (a *Webhook) ShouldCallHook(h *v1beta1.Webhook, attr admission.Attributes) (bool, *apierrors.StatusErrorMo) {
 	var matches bool
 	for _, r := range h.Rules {
 		m := rules.Matcher{Rule: r, Attr: attr}

@@ -757,7 +757,7 @@ func newErrWatcher(err error) *errWatcher {
 	switch err := err.(type) {
 	case runtime.Object:
 		errEvent.Object = err
-	case *errors.StatusError:
+	case *errors.StatusErrorMo:
 		errEvent.Object = &err.ErrStatus
 	default:
 		errEvent.Object = &metav1.Status{

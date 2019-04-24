@@ -77,7 +77,7 @@ type context struct {
 	stdinStream  io.ReadCloser
 	stdoutStream io.WriteCloser
 	stderrStream io.WriteCloser
-	writeStatus  func(status *apierrors.StatusError) error
+	writeStatus  func(status *apierrors.StatusErrorMo) error
 	resizeStream io.ReadCloser
 	resizeChan   chan remotecommand.TerminalSize
 	tty          bool
@@ -422,8 +422,8 @@ func handleResizeEvents(stream io.Reader, channel chan<- remotecommand.TerminalS
 	}
 }
 
-func v1WriteStatusFunc(stream io.Writer) func(status *apierrors.StatusError) error {
-	return func(status *apierrors.StatusError) error {
+func v1WriteStatusFunc(stream io.Writer) func(status *apierrors.StatusErrorMo) error {
+	return func(status *apierrors.StatusErrorMo) error {
 		if status.Status().Status == metav1.StatusSuccess {
 			return nil // send error messages
 		}
@@ -434,8 +434,8 @@ func v1WriteStatusFunc(stream io.Writer) func(status *apierrors.StatusError) err
 
 // v4WriteStatusFunc returns a WriteStatusFunc that marshals a given api Status
 // as json in the error channel.
-func v4WriteStatusFunc(stream io.Writer) func(status *apierrors.StatusError) error {
-	return func(status *apierrors.StatusError) error {
+func v4WriteStatusFunc(stream io.Writer) func(status *apierrors.StatusErrorMo) error {
+	return func(status *apierrors.StatusErrorMo) error {
 		bs, err := json.Marshal(status.Status())
 		if err != nil {
 			return err

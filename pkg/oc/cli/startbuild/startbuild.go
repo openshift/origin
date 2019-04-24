@@ -967,7 +967,7 @@ func WaitForBuildComplete(c buildv1client.BuildInterface, name string) error {
 
 func isInvalidSourceInputsError(err error) bool {
 	if err != nil {
-		if statusErr, ok := err.(*kerrors.StatusError); ok {
+		if statusErr, ok := err.(*kerrors.StatusErrorMo); ok {
 			if kerrors.IsInvalid(statusErr) {
 				for _, cause := range statusErr.ErrStatus.Details.Causes {
 					if cause.Field == "spec.source" {

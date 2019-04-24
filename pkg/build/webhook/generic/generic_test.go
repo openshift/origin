@@ -55,7 +55,7 @@ func GivenRequestWithRefsPayload(t *testing.T) *http.Request {
 }
 
 func matchWarning(t *testing.T, err error, message string) {
-	status, ok := err.(*errors.StatusError)
+	status, ok := err.(*errors.StatusErrorMo)
 	if !ok {
 		t.Errorf("Expected %v to be a StatusError object", err)
 		return

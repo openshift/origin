@@ -39,7 +39,7 @@ func WithTimeoutForNonLongRunningRequests(handler http.Handler, longRunning apir
 	if longRunning == nil {
 		return handler
 	}
-	timeoutFunc := func(req *http.Request) (*http.Request, <-chan time.Time, func(), *apierrors.StatusError) {
+	timeoutFunc := func(req *http.Request) (*http.Request, <-chan time.Time, func(), *apierrors.StatusErrorMo) {
 		// TODO unify this with apiserver.MaxInFlightLimit
 		ctx := req.Context()
 
@@ -65,7 +65,7 @@ func WithTimeoutForNonLongRunningRequests(handler http.Handler, longRunning apir
 	return WithTimeout(handler, timeoutFunc)
 }
 
-type timeoutFunc = func(*http.Request) (req *http.Request, timeout <-chan time.Time, postTimeoutFunc func(), err *apierrors.StatusError)
+type timeoutFunc = func(*http.Request) (req *http.Request, timeout <-chan time.Time, postTimeoutFunc func(), err *apierrors.StatusErrorMo)
 
 // WithTimeout returns an http.Handler that runs h with a timeout
 // determined by timeoutFunc. The new http.Handler calls h.ServeHTTP to handle
@@ -121,7 +121,7 @@ func (t *timeoutHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 type timeoutWriter interface {
 	http.ResponseWriter
-	timeout(*apierrors.StatusError)
+	timeout(*apierrors.StatusErrorMo)
 }
 
 func newTimeoutWriter(w http.ResponseWriter) timeoutWriter {
@@ -205,7 +205,7 @@ func (tw *baseTimeoutWriter) WriteHeader(code int) {
 	tw.w.WriteHeader(code)
 }
 
-func (tw *baseTimeoutWriter) timeout(err *apierrors.StatusError) {
+func (tw *baseTimeoutWriter) timeout(err *apierrors.StatusErrorMo) {
 	tw.mu.Lock()
 	defer tw.mu.Unlock()
 

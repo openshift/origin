@@ -72,7 +72,7 @@ func (r *Selector) Visit(fn VisitorFunc) error {
 				return err
 			}
 			if errors.IsBadRequest(err) || errors.IsNotFound(err) {
-				if se, ok := err.(*errors.StatusError); ok {
+				if se, ok := err.(*errors.StatusErrorMo); ok {
 					// modify the message without hiding this is an API error
 					if len(r.LabelSelector) == 0 && len(r.FieldSelector) == 0 {
 						se.ErrStatus.Message = fmt.Sprintf("Unable to list %q: %v", r.Mapping.Resource, se.ErrStatus.Message)

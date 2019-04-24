@@ -170,7 +170,7 @@ func TestEvents(t *testing.T) {
 		if err == nil {
 			t.Errorf("expected error too old")
 		}
-		if _, ok := err.(*errors.StatusError); !ok {
+		if _, ok := err.(*errors.StatusErrorMo); !ok {
 			t.Errorf("expected error to be of type StatusError")
 		}
 	}

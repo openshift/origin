@@ -337,7 +337,7 @@ func TestSampleAPIServer(f *framework.Framework, image string) {
 		request.SetHeader("Accept", "application/json")
 		_, err := request.DoRaw()
 		if err != nil {
-			status, ok := err.(*apierrs.StatusError)
+			status, ok := err.(*apierrs.StatusErrorMo)
 			if !ok {
 				return false, err
 			}

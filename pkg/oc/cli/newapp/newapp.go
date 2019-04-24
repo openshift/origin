@@ -787,7 +787,7 @@ func isInvalidTriggerError(err error) bool {
 	if !kapierrors.IsInvalid(err) {
 		return false
 	}
-	statusErr, ok := err.(*kapierrors.StatusError)
+	statusErr, ok := err.(*kapierrors.StatusErrorMo)
 	if !ok {
 		return false
 	}

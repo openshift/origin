@@ -801,7 +801,7 @@ func findDockerSecretAsInternalReference(secrets []corev1.Secret, image string) 
 
 func resolveError(kind string, namespace string, name string, err error) error {
 	msg := fmt.Sprintf("Error resolving %s %s in namespace %s: %v", kind, name, namespace, err)
-	return &errors.StatusError{ErrStatus: metav1.Status{
+	return (&errors.StatusErrorMo{ErrStatus: metav1.Status{
 		Status:  metav1.StatusFailure,
 		Code:    http.StatusUnprocessableEntity,
 		Reason:  metav1.StatusReasonInvalid,
@@ -814,7 +814,7 @@ func resolveError(kind string, namespace string, name string, err error) error {
 				Message: msg,
 			}},
 		},
-	}}
+	}}).WithNewStack()
 }
 
 // getNextBuildName returns name of the next build and increments BuildConfig's LastVersion.

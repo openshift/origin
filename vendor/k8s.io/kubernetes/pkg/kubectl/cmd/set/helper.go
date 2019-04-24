@@ -46,7 +46,7 @@ func selectContainers(containers []v1.Container, spec string) ([]*v1.Container, 
 
 // handlePodUpdateError prints a more useful error to the end user when mutating a pod.
 func handlePodUpdateError(out io.Writer, err error, resource string) {
-	if statusError, ok := err.(*errors.StatusError); ok && errors.IsInvalid(err) {
+	if statusError, ok := err.(*errors.StatusErrorMo); ok && errors.IsInvalid(err) {
 		errorDetails := statusError.Status().Details
 		if errorDetails.Kind == "Pod" {
 			all, match := true, false

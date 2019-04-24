@@ -52,12 +52,12 @@ func GitRefMatches(eventRef, configRef string, buildSource *buildv1.BuildSource)
 }
 
 // NewWarning returns an StatusError object with a http.StatusOK (200) code.
-func NewWarning(message string) *kerrors.StatusError {
-	return &kerrors.StatusError{ErrStatus: metav1.Status{
+func NewWarning(message string) *kerrors.StatusErrorMo {
+	return (&kerrors.StatusErrorMo{ErrStatus: metav1.Status{
 		Status:  metav1.StatusSuccess,
 		Code:    http.StatusOK,
 		Message: message,
-	}}
+	}}).WithNewStack()
 }
 
 // CheckSecret tests the user provided secret against the secrets for the webhook triggers, if a match is found

@@ -51,7 +51,7 @@ func main() {
 		_, err = clientset.CoreV1().Pods("default").Get("example-xxxxx", metav1.GetOptions{})
 		if errors.IsNotFound(err) {
 			fmt.Printf("Pod not found\n")
-		} else if statusError, isStatus := err.(*errors.StatusError); isStatus {
+		} else if statusError, isStatus := err.(*errors.StatusErrorMo); isStatus {
 			fmt.Printf("Error getting pod %v\n", statusError.ErrStatus.Message)
 		} else if err != nil {
 			panic(err.Error())

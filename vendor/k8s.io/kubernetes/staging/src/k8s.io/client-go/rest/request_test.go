@@ -795,7 +795,7 @@ func TestTransformUnstructuredError(t *testing.T) {
 			Req:   &http.Request{},
 			Res:   &http.Response{StatusCode: http.StatusBadRequest, Body: ioutil.NopCloser(bytes.NewReader([]byte(`{"kind":"Status","apiVersion":"v1","status":"Failure","code":404}`)))},
 			ErrFn: apierrors.IsBadRequest,
-			Transformed: &apierrors.StatusError{
+			Transformed: &apierrors.StatusErrorMo{
 				ErrStatus: metav1.Status{Status: metav1.StatusFailure, Code: http.StatusNotFound},
 			},
 		},
@@ -817,7 +817,7 @@ func TestTransformUnstructuredError(t *testing.T) {
 			Req:   &http.Request{},
 			Res:   &http.Response{StatusCode: http.StatusBadRequest, Body: ioutil.NopCloser(bytes.NewReader([]byte(`{"kind":"Status","status":"Failure","code":404}`)))},
 			ErrFn: apierrors.IsBadRequest,
-			Transformed: &apierrors.StatusError{
+			Transformed: &apierrors.StatusErrorMo{
 				ErrStatus: metav1.Status{Status: metav1.StatusFailure, Code: http.StatusNotFound},
 			},
 		},

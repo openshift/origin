@@ -186,7 +186,7 @@ func (r *RollbackREST) rollbackDeployment(ctx context.Context, deploymentID stri
 	if _, err := r.setDeploymentRollback(ctx, deploymentID, config, annotations, dryRun); err != nil {
 		err = storeerr.InterpretGetError(err, apps.Resource("deployments"), deploymentID)
 		err = storeerr.InterpretUpdateError(err, apps.Resource("deployments"), deploymentID)
-		if _, ok := err.(*errors.StatusError); !ok {
+		if _, ok := err.(*errors.StatusErrorMo); !ok {
 			err = errors.NewInternalError(err)
 		}
 		return err

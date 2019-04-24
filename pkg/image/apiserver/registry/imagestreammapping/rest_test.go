@@ -144,7 +144,7 @@ func TestCreateImageStreamNotFoundWithName(t *testing.T) {
 	if err == nil {
 		t.Fatal("Unexpected nil err")
 	}
-	e, ok := err.(*errors.StatusError)
+	e, ok := err.(*errors.StatusErrorMo)
 	if !ok {
 		t.Fatalf("expected StatusError, got %#v", err)
 	}

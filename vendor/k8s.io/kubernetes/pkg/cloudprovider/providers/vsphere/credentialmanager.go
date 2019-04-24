@@ -66,7 +66,7 @@ type SecretCredentialManager struct {
 func (secretCredentialManager *SecretCredentialManager) GetCredential(server string) (*Credential, error) {
 	err := secretCredentialManager.updateCredentialsMap()
 	if err != nil {
-		statusErr, ok := err.(*apierrors.StatusError)
+		statusErr, ok := err.(*apierrors.StatusErrorMo)
 		if (ok && statusErr.ErrStatus.Code != http.StatusNotFound) || !ok {
 			return nil, err
 		}

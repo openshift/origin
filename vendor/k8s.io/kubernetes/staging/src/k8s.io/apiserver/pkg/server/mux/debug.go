@@ -55,6 +55,7 @@ func (f debugHandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func log(args ...interface{}) {
 	klog.ErrorDepth(1, "ENJ:\n", config.Sdump(args...))
 	debug.PrintStack()
+	klog.Flush()
 }
 
 func decorateResponseWriter(responseWriter http.ResponseWriter) http.ResponseWriter {

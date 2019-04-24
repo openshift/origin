@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/evanphx/json-patch"
+	jsonpatch "github.com/evanphx/json-patch"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -283,7 +283,7 @@ func (t *tracker) Get(gvr schema.GroupVersionResource, ns, name string) (runtime
 	obj := matchingObjs[0].DeepCopyObject()
 	if status, ok := obj.(*metav1.Status); ok {
 		if status.Status != metav1.StatusSuccess {
-			return nil, &errors.StatusError{ErrStatus: *status}
+			return nil, (&errors.StatusErrorMo{ErrStatus: *status}).WithNewStack()
 		}
 	}
 

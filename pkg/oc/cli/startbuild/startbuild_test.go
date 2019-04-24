@@ -317,7 +317,7 @@ func TestStreamBuildLogs(t *testing.T) {
 			ExpectedErrMsg: "unable to stream the build logs",
 		},
 		{
-			RequestErr: &kerrors.StatusError{
+			RequestErr: &kerrors.StatusErrorMo{
 				ErrStatus: metav1.Status{
 					Reason:  metav1.StatusReasonTimeout,
 					Message: "timeout",

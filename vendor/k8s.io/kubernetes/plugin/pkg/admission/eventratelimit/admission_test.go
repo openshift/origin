@@ -513,7 +513,7 @@ func TestEventRateLimiting(t *testing.T) {
 					t.Fatalf("%v: Request %v should have been %v: %v", tc.name, rqIndex, expectedAction, err)
 				}
 				if err != nil {
-					statusErr, ok := err.(*errors.StatusError)
+					statusErr, ok := err.(*errors.StatusErrorMo)
 					if ok && statusErr.ErrStatus.Code != errors.StatusTooManyRequests {
 						t.Fatalf("%v: Request %v should yield a 429 response: %v", tc.name, rqIndex, err)
 					}

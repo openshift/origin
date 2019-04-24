@@ -92,7 +92,7 @@ func TestInternalVersionIsHandlerVersion(t *testing.T) {
 			if err != nil {
 				// work around "grpc: the client connection is closing" error
 				// TODO: fix the grpc error
-				if err, ok := err.(*errors.StatusError); ok && err.Status().Code == http.StatusInternalServerError {
+				if err, ok := err.(*errors.StatusErrorMo); ok && err.Status().Code == http.StatusInternalServerError {
 					return false, nil
 				}
 				return false, err
@@ -116,7 +116,7 @@ func TestInternalVersionIsHandlerVersion(t *testing.T) {
 
 			// work around "grpc: the client connection is closing" error
 			// TODO: fix the grpc error
-			if err, ok := err.(*errors.StatusError); ok && err.Status().Code == http.StatusInternalServerError {
+			if err, ok := err.(*errors.StatusErrorMo); ok && err.Status().Code == http.StatusInternalServerError {
 				return false, nil
 			}
 

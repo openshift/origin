@@ -20,60 +20,60 @@ func TestSyncStatusError(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		for _, test := range []struct {
 			name    string
-			errFunc func(gr1, gr2 *schema.GroupResource, gk1, gk2 *schema.GroupKind) (inputErr *apierrors.StatusError, expectedErr *apierrors.StatusError)
+			errFunc func(gr1, gr2 *schema.GroupResource, gk1, gk2 *schema.GroupKind) (inputErr *apierrors.StatusErrorMo, expectedErr *apierrors.StatusErrorMo)
 		}{
 			{
 				name: "NewNotFound",
-				errFunc: func(gr1, gr2 *schema.GroupResource, _, _ *schema.GroupKind) (*apierrors.StatusError, *apierrors.StatusError) {
+				errFunc: func(gr1, gr2 *schema.GroupResource, _, _ *schema.GroupKind) (*apierrors.StatusErrorMo, *apierrors.StatusErrorMo) {
 					return apierrors.NewNotFound(*gr1, "someval"), apierrors.NewNotFound(*gr2, "someval")
 				},
 			},
 			{
 				name: "NewAlreadyExists",
-				errFunc: func(gr1, gr2 *schema.GroupResource, _, _ *schema.GroupKind) (*apierrors.StatusError, *apierrors.StatusError) {
+				errFunc: func(gr1, gr2 *schema.GroupResource, _, _ *schema.GroupKind) (*apierrors.StatusErrorMo, *apierrors.StatusErrorMo) {
 					return apierrors.NewAlreadyExists(*gr1, "someval"), apierrors.NewAlreadyExists(*gr2, "someval")
 				},
 			},
 			{
 				name: "NewForbidden",
-				errFunc: func(gr1, gr2 *schema.GroupResource, _, _ *schema.GroupKind) (*apierrors.StatusError, *apierrors.StatusError) {
+				errFunc: func(gr1, gr2 *schema.GroupResource, _, _ *schema.GroupKind) (*apierrors.StatusErrorMo, *apierrors.StatusErrorMo) {
 					return apierrors.NewForbidden(*gr1, "someval", stderrors.New("someerr")), apierrors.NewForbidden(*gr2, "someval", stderrors.New("someerr"))
 				},
 			},
 			{
 				name: "NewConflict",
-				errFunc: func(gr1, gr2 *schema.GroupResource, _, _ *schema.GroupKind) (*apierrors.StatusError, *apierrors.StatusError) {
+				errFunc: func(gr1, gr2 *schema.GroupResource, _, _ *schema.GroupKind) (*apierrors.StatusErrorMo, *apierrors.StatusErrorMo) {
 					return apierrors.NewConflict(*gr1, "someval", stderrors.New("someerr")), apierrors.NewConflict(*gr2, "someval", stderrors.New("someerr"))
 				},
 			},
 			{
 				name: "NewInvalid",
-				errFunc: func(_, _ *schema.GroupResource, gk1, gk2 *schema.GroupKind) (*apierrors.StatusError, *apierrors.StatusError) {
+				errFunc: func(_, _ *schema.GroupResource, gk1, gk2 *schema.GroupKind) (*apierrors.StatusErrorMo, *apierrors.StatusErrorMo) {
 					return apierrors.NewInvalid(*gk1, "someval", field.ErrorList{field.NotFound(field.NewPath("foo"), "bar")}),
 						apierrors.NewInvalid(*gk2, "someval", field.ErrorList{field.NotFound(field.NewPath("foo"), "bar")})
 				},
 			},
 			{
 				name: "NewMethodNotSupported",
-				errFunc: func(gr1, gr2 *schema.GroupResource, _, _ *schema.GroupKind) (*apierrors.StatusError, *apierrors.StatusError) {
+				errFunc: func(gr1, gr2 *schema.GroupResource, _, _ *schema.GroupKind) (*apierrors.StatusErrorMo, *apierrors.StatusErrorMo) {
 					return apierrors.NewMethodNotSupported(*gr1, "someval"), apierrors.NewMethodNotSupported(*gr2, "someval")
 				},
 			},
 			{
 				name: "NewServerTimeout",
-				errFunc: func(gr1, gr2 *schema.GroupResource, _, _ *schema.GroupKind) (*apierrors.StatusError, *apierrors.StatusError) {
+				errFunc: func(gr1, gr2 *schema.GroupResource, _, _ *schema.GroupKind) (*apierrors.StatusErrorMo, *apierrors.StatusErrorMo) {
 					return apierrors.NewServerTimeout(*gr1, "someval", 1), apierrors.NewServerTimeout(*gr2, "someval", 1)
 				},
 			},
 			{
 				name: "NewServerTimeoutForKind",
-				errFunc: func(_, _ *schema.GroupResource, gk1, gk2 *schema.GroupKind) (*apierrors.StatusError, *apierrors.StatusError) {
+				errFunc: func(_, _ *schema.GroupResource, gk1, gk2 *schema.GroupKind) (*apierrors.StatusErrorMo, *apierrors.StatusErrorMo) {
 					return apierrors.NewServerTimeoutForKind(*gk1, "someval", 2), apierrors.NewServerTimeoutForKind(*gk2, "someval", 2)
 				},
 			},
 			{
 				name: "NewGenericServerResponse",
-				errFunc: func(gr1, gr2 *schema.GroupResource, _, _ *schema.GroupKind) (*apierrors.StatusError, *apierrors.StatusError) {
+				errFunc: func(gr1, gr2 *schema.GroupResource, _, _ *schema.GroupKind) (*apierrors.StatusErrorMo, *apierrors.StatusErrorMo) {
 					return apierrors.NewGenericServerResponse(401, "someval", *gr1, "someval", "someval", 3, true),
 						apierrors.NewGenericServerResponse(401, "someval", *gr2, "someval", "someval", 3, true)
 				},

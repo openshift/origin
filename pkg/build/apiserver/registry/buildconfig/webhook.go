@@ -154,7 +154,7 @@ func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Re
 		case webhook.MethodNotSupported:
 			return errors.NewMethodNotSupported(build.Resource("buildconfighook"), req.Method)
 		}
-		if _, ok := err.(*errors.StatusError); !ok && err != nil {
+		if _, ok := err.(*errors.StatusErrorMo); !ok && err != nil {
 			return errors.NewInternalError(fmt.Errorf("hook failed: %v", err))
 		}
 		return err

@@ -365,7 +365,7 @@ func (e *Store) Create(ctx context.Context, obj runtime.Object, createValidation
 			return nil, err
 		}
 		if accessor.GetDeletionTimestamp() != nil {
-			msg := &err.(*kubeerr.StatusError).ErrStatus.Message
+			msg := &err.(*kubeerr.StatusErrorMo).ErrStatus.Message
 			*msg = fmt.Sprintf("object is being deleted: %s", *msg)
 		}
 		return nil, err
@@ -441,7 +441,7 @@ func (e *Store) WaitForInitialized(ctx context.Context, obj runtime.Object) (run
 				return nil, kubeerr.NewInternalError(fmt.Errorf("object deleted while waiting for creation"))
 			case watch.Error:
 				if status, ok := event.Object.(*metav1.Status); ok {
-					return nil, &kubeerr.StatusError{ErrStatus: *status}
+					return nil, (&kubeerr.StatusErrorMo{ErrStatus: *status}).WithNewStack()
 				}
 				return nil, kubeerr.NewInternalError(fmt.Errorf("unexpected object in watch stream, can't complete initialization %T", event.Object))
 			case watch.Modified:

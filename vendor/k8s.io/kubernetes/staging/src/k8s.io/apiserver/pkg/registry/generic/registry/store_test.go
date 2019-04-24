@@ -373,7 +373,7 @@ func TestStoreCreate(t *testing.T) {
 	}
 
 	// check the 'alredy exists' msg was edited
-	msg := &err.(*errors.StatusError).ErrStatus.Message
+	msg := &err.(*errors.StatusErrorMo).ErrStatus.Message
 	if !strings.Contains(*msg, "object is being deleted:") {
 		t.Errorf("Unexpected error without the 'object is being deleted:' in message: %v", err)
 	}

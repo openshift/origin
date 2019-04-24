@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"runtime/debug"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,7 +38,7 @@ const (
 
 // StatusError is an error intended for consumption by a REST API server; it can also be
 // reconstructed by clients from a REST response. Public to allow easy type switches.
-type StatusError struct {
+type StatusErrorMo struct {
 	ErrStatus metav1.Status
 }
 
@@ -47,21 +48,49 @@ type APIStatus interface {
 	Status() metav1.Status
 }
 
-var _ error = &StatusError{}
+func (e *StatusErrorMo) WithNewStack() *StatusErrorMo {
+	e.addStackWithCause("NewStack")
+	return e
+}
+
+func (e *StatusErrorMo) addCaller() {
+	e.addStackWithCause("StatusCaller")
+}
+
+func (e *StatusErrorMo) addStackWithCause(causeType metav1.CauseType) {
+	if e == nil {
+		return
+	}
+	if e.ErrStatus.Details == nil {
+		e.ErrStatus.Details = &metav1.StatusDetails{}
+	}
+	e.ErrStatus.Details.Causes = append(e.ErrStatus.Details.Causes, metav1.StatusCause{
+		Type:    causeType,
+		Message: string(debug.Stack()),
+	})
+}
+
+var _ error = &StatusErrorMo{}
 
 // Error implements the Error interface.
-func (e *StatusError) Error() string {
+func (e *StatusErrorMo) Error() string {
+	e.addCaller()
+	if out, err := json.MarshalIndent(e.ErrStatus, "", "    "); err == nil {
+		return string(out)
+	}
 	return e.ErrStatus.Message
 }
 
 // Status allows access to e's status without having to know the detailed workings
 // of StatusError.
-func (e *StatusError) Status() metav1.Status {
+func (e *StatusErrorMo) Status() metav1.Status {
+	e.addCaller()
 	return e.ErrStatus
 }
 
 // DebugError reports extended info about the error to debug output.
-func (e *StatusError) DebugError() (string, []interface{}) {
+func (e *StatusErrorMo) DebugError() (string, []interface{}) {
+	e.addCaller()
 	if out, err := json.MarshalIndent(e.ErrStatus, "", "  "); err == nil {
 		return "server response object: %s", []interface{}{string(out)}
 	}
@@ -83,7 +112,7 @@ func (u *UnexpectedObjectError) Error() string {
 func FromObject(obj runtime.Object) error {
 	switch t := obj.(type) {
 	case *metav1.Status:
-		return &StatusError{ErrStatus: *t}
+		return (&StatusErrorMo{ErrStatus: *t}).WithNewStack()
 	case runtime.Unstructured:
 		var status metav1.Status
 		obj := t.UnstructuredContent()
@@ -96,14 +125,14 @@ func FromObject(obj runtime.Object) error {
 		if status.APIVersion != "v1" && status.APIVersion != "meta.k8s.io/v1" {
 			break
 		}
-		return &StatusError{ErrStatus: status}
+		return (&StatusErrorMo{ErrStatus: status}).WithNewStack()
 	}
 	return &UnexpectedObjectError{obj}
 }
 
 // NewNotFound returns a new error which indicates that the resource of the kind and the name was not found.
-func NewNotFound(qualifiedResource schema.GroupResource, name string) *StatusError {
-	return &StatusError{metav1.Status{
+func NewNotFound(qualifiedResource schema.GroupResource, name string) *StatusErrorMo {
+	return (&StatusErrorMo{ErrStatus: metav1.Status{
 		Status: metav1.StatusFailure,
 		Code:   http.StatusNotFound,
 		Reason: metav1.StatusReasonNotFound,
@@ -113,12 +142,12 @@ func NewNotFound(qualifiedResource schema.GroupResource, name string) *StatusErr
 			Name:  name,
 		},
 		Message: fmt.Sprintf("%s %q not found", qualifiedResource.String(), name),
-	}}
+	}}).WithNewStack()
 }
 
 // NewAlreadyExists returns an error indicating the item requested exists by that identifier.
-func NewAlreadyExists(qualifiedResource schema.GroupResource, name string) *StatusError {
-	return &StatusError{metav1.Status{
+func NewAlreadyExists(qualifiedResource schema.GroupResource, name string) *StatusErrorMo {
+	return (&StatusErrorMo{ErrStatus: metav1.Status{
 		Status: metav1.StatusFailure,
 		Code:   http.StatusConflict,
 		Reason: metav1.StatusReasonAlreadyExists,
@@ -128,26 +157,26 @@ func NewAlreadyExists(qualifiedResource schema.GroupResource, name string) *Stat
 			Name:  name,
 		},
 		Message: fmt.Sprintf("%s %q already exists", qualifiedResource.String(), name),
-	}}
+	}}).WithNewStack()
 }
 
 // NewUnauthorized returns an error indicating the client is not authorized to perform the requested
 // action.
-func NewUnauthorized(reason string) *StatusError {
+func NewUnauthorized(reason string) *StatusErrorMo {
 	message := reason
 	if len(message) == 0 {
 		message = "not authorized"
 	}
-	return &StatusError{metav1.Status{
+	return (&StatusErrorMo{ErrStatus: metav1.Status{
 		Status:  metav1.StatusFailure,
 		Code:    http.StatusUnauthorized,
 		Reason:  metav1.StatusReasonUnauthorized,
 		Message: message,
-	}}
+	}}).WithNewStack()
 }
 
 // NewForbidden returns an error indicating the requested action was forbidden
-func NewForbidden(qualifiedResource schema.GroupResource, name string, err error) *StatusError {
+func NewForbidden(qualifiedResource schema.GroupResource, name string, err error) *StatusErrorMo {
 	var message string
 	if qualifiedResource.Empty() {
 		message = fmt.Sprintf("forbidden: %v", err)
@@ -156,7 +185,7 @@ func NewForbidden(qualifiedResource schema.GroupResource, name string, err error
 	} else {
 		message = fmt.Sprintf("%s %q is forbidden: %v", qualifiedResource.String(), name, err)
 	}
-	return &StatusError{metav1.Status{
+	return (&StatusErrorMo{ErrStatus: metav1.Status{
 		Status: metav1.StatusFailure,
 		Code:   http.StatusForbidden,
 		Reason: metav1.StatusReasonForbidden,
@@ -166,12 +195,12 @@ func NewForbidden(qualifiedResource schema.GroupResource, name string, err error
 			Name:  name,
 		},
 		Message: message,
-	}}
+	}}).WithNewStack()
 }
 
 // NewConflict returns an error indicating the item can't be updated as provided.
-func NewConflict(qualifiedResource schema.GroupResource, name string, err error) *StatusError {
-	return &StatusError{metav1.Status{
+func NewConflict(qualifiedResource schema.GroupResource, name string, err error) *StatusErrorMo {
+	return (&StatusErrorMo{ErrStatus: metav1.Status{
 		Status: metav1.StatusFailure,
 		Code:   http.StatusConflict,
 		Reason: metav1.StatusReasonConflict,
@@ -181,32 +210,32 @@ func NewConflict(qualifiedResource schema.GroupResource, name string, err error)
 			Name:  name,
 		},
 		Message: fmt.Sprintf("Operation cannot be fulfilled on %s %q: %v", qualifiedResource.String(), name, err),
-	}}
+	}}).WithNewStack()
 }
 
 // NewGone returns an error indicating the item no longer available at the server and no forwarding address is known.
-func NewGone(message string) *StatusError {
-	return &StatusError{metav1.Status{
+func NewGone(message string) *StatusErrorMo {
+	return (&StatusErrorMo{ErrStatus: metav1.Status{
 		Status:  metav1.StatusFailure,
 		Code:    http.StatusGone,
 		Reason:  metav1.StatusReasonGone,
 		Message: message,
-	}}
+	}}).WithNewStack()
 }
 
 // NewResourceExpired creates an error that indicates that the requested resource content has expired from
 // the server (usually due to a resourceVersion that is too old).
-func NewResourceExpired(message string) *StatusError {
-	return &StatusError{metav1.Status{
+func NewResourceExpired(message string) *StatusErrorMo {
+	return (&StatusErrorMo{ErrStatus: metav1.Status{
 		Status:  metav1.StatusFailure,
 		Code:    http.StatusGone,
 		Reason:  metav1.StatusReasonExpired,
 		Message: message,
-	}}
+	}}).WithNewStack()
 }
 
 // NewInvalid returns an error indicating the item is invalid and cannot be processed.
-func NewInvalid(qualifiedKind schema.GroupKind, name string, errs field.ErrorList) *StatusError {
+func NewInvalid(qualifiedKind schema.GroupKind, name string, errs field.ErrorList) *StatusErrorMo {
 	causes := make([]metav1.StatusCause, 0, len(errs))
 	for i := range errs {
 		err := errs[i]
@@ -216,7 +245,7 @@ func NewInvalid(qualifiedKind schema.GroupKind, name string, errs field.ErrorLis
 			Field:   err.Field,
 		})
 	}
-	return &StatusError{metav1.Status{
+	return (&StatusErrorMo{ErrStatus: metav1.Status{
 		Status: metav1.StatusFailure,
 		Code:   http.StatusUnprocessableEntity,
 		Reason: metav1.StatusReasonInvalid,
@@ -227,24 +256,24 @@ func NewInvalid(qualifiedKind schema.GroupKind, name string, errs field.ErrorLis
 			Causes: causes,
 		},
 		Message: fmt.Sprintf("%s %q is invalid: %v", qualifiedKind.String(), name, errs.ToAggregate()),
-	}}
+	}}).WithNewStack()
 }
 
 // NewBadRequest creates an error that indicates that the request is invalid and can not be processed.
-func NewBadRequest(reason string) *StatusError {
-	return &StatusError{metav1.Status{
+func NewBadRequest(reason string) *StatusErrorMo {
+	return (&StatusErrorMo{ErrStatus: metav1.Status{
 		Status:  metav1.StatusFailure,
 		Code:    http.StatusBadRequest,
 		Reason:  metav1.StatusReasonBadRequest,
 		Message: reason,
-	}}
+	}}).WithNewStack()
 }
 
 // NewTooManyRequests creates an error that indicates that the client must try again later because
 // the specified endpoint is not accepting requests. More specific details should be provided
 // if client should know why the failure was limited4.
-func NewTooManyRequests(message string, retryAfterSeconds int) *StatusError {
-	return &StatusError{metav1.Status{
+func NewTooManyRequests(message string, retryAfterSeconds int) *StatusErrorMo {
+	return (&StatusErrorMo{ErrStatus: metav1.Status{
 		Status:  metav1.StatusFailure,
 		Code:    http.StatusTooManyRequests,
 		Reason:  metav1.StatusReasonTooManyRequests,
@@ -252,22 +281,22 @@ func NewTooManyRequests(message string, retryAfterSeconds int) *StatusError {
 		Details: &metav1.StatusDetails{
 			RetryAfterSeconds: int32(retryAfterSeconds),
 		},
-	}}
+	}}).WithNewStack()
 }
 
 // NewServiceUnavailable creates an error that indicates that the requested service is unavailable.
-func NewServiceUnavailable(reason string) *StatusError {
-	return &StatusError{metav1.Status{
+func NewServiceUnavailable(reason string) *StatusErrorMo {
+	return (&StatusErrorMo{ErrStatus: metav1.Status{
 		Status:  metav1.StatusFailure,
 		Code:    http.StatusServiceUnavailable,
 		Reason:  metav1.StatusReasonServiceUnavailable,
 		Message: reason,
-	}}
+	}}).WithNewStack()
 }
 
 // NewMethodNotSupported returns an error indicating the requested action is not supported on this kind.
-func NewMethodNotSupported(qualifiedResource schema.GroupResource, action string) *StatusError {
-	return &StatusError{metav1.Status{
+func NewMethodNotSupported(qualifiedResource schema.GroupResource, action string) *StatusErrorMo {
+	return (&StatusErrorMo{ErrStatus: metav1.Status{
 		Status: metav1.StatusFailure,
 		Code:   http.StatusMethodNotAllowed,
 		Reason: metav1.StatusReasonMethodNotAllowed,
@@ -276,13 +305,13 @@ func NewMethodNotSupported(qualifiedResource schema.GroupResource, action string
 			Kind:  qualifiedResource.Resource,
 		},
 		Message: fmt.Sprintf("%s is not supported on resources of kind %q", action, qualifiedResource.String()),
-	}}
+	}}).WithNewStack()
 }
 
 // NewServerTimeout returns an error indicating the requested action could not be completed due to a
 // transient error, and the client should try again.
-func NewServerTimeout(qualifiedResource schema.GroupResource, operation string, retryAfterSeconds int) *StatusError {
-	return &StatusError{metav1.Status{
+func NewServerTimeout(qualifiedResource schema.GroupResource, operation string, retryAfterSeconds int) *StatusErrorMo {
+	return (&StatusErrorMo{ErrStatus: metav1.Status{
 		Status: metav1.StatusFailure,
 		Code:   http.StatusInternalServerError,
 		Reason: metav1.StatusReasonServerTimeout,
@@ -293,18 +322,18 @@ func NewServerTimeout(qualifiedResource schema.GroupResource, operation string, 
 			RetryAfterSeconds: int32(retryAfterSeconds),
 		},
 		Message: fmt.Sprintf("The %s operation against %s could not be completed at this time, please try again.", operation, qualifiedResource.String()),
-	}}
+	}}).WithNewStack()
 }
 
 // NewServerTimeoutForKind should not exist.  Server timeouts happen when accessing resources, the Kind is just what we
 // happened to be looking at when the request failed.  This delegates to keep code sane, but we should work towards removing this.
-func NewServerTimeoutForKind(qualifiedKind schema.GroupKind, operation string, retryAfterSeconds int) *StatusError {
+func NewServerTimeoutForKind(qualifiedKind schema.GroupKind, operation string, retryAfterSeconds int) *StatusErrorMo {
 	return NewServerTimeout(schema.GroupResource{Group: qualifiedKind.Group, Resource: qualifiedKind.Kind}, operation, retryAfterSeconds)
 }
 
 // NewInternalError returns an error indicating the item is invalid and cannot be processed.
-func NewInternalError(err error) *StatusError {
-	return &StatusError{metav1.Status{
+func NewInternalError(err error) *StatusErrorMo {
+	return (&StatusErrorMo{ErrStatus: metav1.Status{
 		Status: metav1.StatusFailure,
 		Code:   http.StatusInternalServerError,
 		Reason: metav1.StatusReasonInternalError,
@@ -312,13 +341,13 @@ func NewInternalError(err error) *StatusError {
 			Causes: []metav1.StatusCause{{Message: err.Error()}},
 		},
 		Message: fmt.Sprintf("Internal error occurred: %v", err),
-	}}
+	}}).WithNewStack()
 }
 
 // NewTimeoutError returns an error indicating that a timeout occurred before the request
 // could be completed.  Clients may retry, but the operation may still complete.
-func NewTimeoutError(message string, retryAfterSeconds int) *StatusError {
-	return &StatusError{metav1.Status{
+func NewTimeoutError(message string, retryAfterSeconds int) *StatusErrorMo {
+	return (&StatusErrorMo{ErrStatus: metav1.Status{
 		Status:  metav1.StatusFailure,
 		Code:    http.StatusGatewayTimeout,
 		Reason:  metav1.StatusReasonTimeout,
@@ -326,34 +355,34 @@ func NewTimeoutError(message string, retryAfterSeconds int) *StatusError {
 		Details: &metav1.StatusDetails{
 			RetryAfterSeconds: int32(retryAfterSeconds),
 		},
-	}}
+	}}).WithNewStack()
 }
 
 // NewTooManyRequestsError returns an error indicating that the request was rejected because
 // the server has received too many requests. Client should wait and retry. But if the request
 // is perishable, then the client should not retry the request.
-func NewTooManyRequestsError(message string) *StatusError {
-	return &StatusError{metav1.Status{
+func NewTooManyRequestsError(message string) *StatusErrorMo {
+	return (&StatusErrorMo{ErrStatus: metav1.Status{
 		Status:  metav1.StatusFailure,
 		Code:    StatusTooManyRequests,
 		Reason:  metav1.StatusReasonTooManyRequests,
 		Message: fmt.Sprintf("Too many requests: %s", message),
-	}}
+	}}).WithNewStack()
 }
 
 // NewRequestEntityTooLargeError returns an error indicating that the request
 // entity was too large.
-func NewRequestEntityTooLargeError(message string) *StatusError {
-	return &StatusError{metav1.Status{
+func NewRequestEntityTooLargeError(message string) *StatusErrorMo {
+	return (&StatusErrorMo{ErrStatus: metav1.Status{
 		Status:  metav1.StatusFailure,
 		Code:    http.StatusRequestEntityTooLarge,
 		Reason:  metav1.StatusReasonRequestEntityTooLarge,
 		Message: fmt.Sprintf("Request entity too large: %s", message),
-	}}
+	}}).WithNewStack()
 }
 
 // NewGenericServerResponse returns a new error for server responses that are not in a recognizable form.
-func NewGenericServerResponse(code int, verb string, qualifiedResource schema.GroupResource, name, serverMessage string, retryAfterSeconds int, isUnexpectedResponse bool) *StatusError {
+func NewGenericServerResponse(code int, verb string, qualifiedResource schema.GroupResource, name, serverMessage string, retryAfterSeconds int, isUnexpectedResponse bool) *StatusErrorMo {
 	reason := metav1.StatusReasonUnknown
 	message := fmt.Sprintf("the server responded with the status code %d but did not return more information", code)
 	switch code {
@@ -423,7 +452,7 @@ func NewGenericServerResponse(code int, verb string, qualifiedResource schema.Gr
 	} else {
 		causes = nil
 	}
-	return &StatusError{metav1.Status{
+	return (&StatusErrorMo{ErrStatus: metav1.Status{
 		Status: metav1.StatusFailure,
 		Code:   int32(code),
 		Reason: reason,
@@ -436,7 +465,7 @@ func NewGenericServerResponse(code int, verb string, qualifiedResource schema.Gr
 			RetryAfterSeconds: int32(retryAfterSeconds),
 		},
 		Message: message,
-	}}
+	}}).WithNewStack()
 }
 
 // IsNotFound returns true if the specified error was created by NewNotFound.

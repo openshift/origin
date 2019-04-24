@@ -58,7 +58,7 @@ func NewOpenShiftControllerManagerCommand(name, basename string, out, errout io.
 
 			if err := options.StartControllerManager(); err != nil {
 				if kerrors.IsInvalid(err) {
-					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
+					if details := err.(*kerrors.StatusErrorMo).ErrStatus.Details; details != nil {
 						fmt.Fprintf(errout, "Invalid %s %s\n", details.Kind, details.Name)
 						for _, cause := range details.Causes {
 							fmt.Fprintf(errout, "  %s: %s\n", cause.Field, cause.Message)

@@ -123,14 +123,14 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 		actualErrors := []error{}
 		for _, err := range errs {
 			if kapierrors.IsForbidden(err) {
-				forbiddenErr := err.(*kapierrors.StatusError)
+				forbiddenErr := err.(*kapierrors.StatusErrorMo)
 				if (forbiddenErr.Status().Details != nil) && (len(forbiddenErr.Status().Details.Kind) > 0) {
 					forbiddenResources.Insert(forbiddenErr.Status().Details.Kind)
 				}
 				continue
 			}
 			if kapierrors.IsNotFound(err) {
-				notfoundErr := err.(*kapierrors.StatusError)
+				notfoundErr := err.(*kapierrors.StatusErrorMo)
 				if (notfoundErr.Status().Details != nil) && (len(notfoundErr.Status().Details.Kind) > 0) {
 					forbiddenResources.Insert(notfoundErr.Status().Details.Kind)
 				}

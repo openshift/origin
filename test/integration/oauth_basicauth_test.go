@@ -252,7 +252,7 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 		if !tc.ExpectSuccess {
 			if err == nil {
 				t.Errorf("%s: Expected error, got token=%v", k, accessToken)
-			} else if statusErr, ok := err.(*apierrs.StatusError); !ok {
+			} else if statusErr, ok := err.(*apierrs.StatusErrorMo); !ok {
 				t.Errorf("%s: expected status error, got %#v", k, err)
 			} else if statusErr.ErrStatus.Code != tc.ExpectErrStatus {
 				t.Errorf("%s: expected error status %d, got %#v", k, tc.ExpectErrStatus, statusErr)

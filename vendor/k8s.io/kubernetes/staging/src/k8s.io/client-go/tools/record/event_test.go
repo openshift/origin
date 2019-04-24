@@ -396,7 +396,7 @@ func TestWriteEventError(t *testing.T) {
 		"giveUp2": {
 			timesToSendError: 1000,
 			attemptsWanted:   1,
-			err:              &errors.StatusError{},
+			err:              &errors.StatusErrorMo{},
 		},
 		"retry1": {
 			timesToSendError: 1000,
@@ -447,7 +447,7 @@ func TestUpdateExpiredEvent(t *testing.T) {
 
 	sink := &testEventSink{
 		OnPatch: func(*v1.Event, []byte) (*v1.Event, error) {
-			return nil, &errors.StatusError{
+			return nil, &errors.StatusErrorMo{
 				ErrStatus: metav1.Status{
 					Code:   http.StatusNotFound,
 					Reason: metav1.StatusReasonNotFound,

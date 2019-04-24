@@ -63,6 +63,7 @@ func (fw *flushWriter) Write(p []byte) (n int, err error) {
 func log(args ...interface{}) {
 	klog.ErrorDepth(1, "ENJ:\n", config.Sdump(args...))
 	debug.PrintStack()
+	klog.Flush()
 }
 
 var config = spew.ConfigState{Indent: "\t", MaxDepth: 5, DisableMethods: true}

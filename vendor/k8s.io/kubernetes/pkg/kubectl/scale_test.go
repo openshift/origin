@@ -33,7 +33,7 @@ import (
 )
 
 func TestReplicationControllerScaleRetry(t *testing.T) {
-	verbsOnError := map[string]*kerrors.StatusError{
+	verbsOnError := map[string]*kerrors.StatusErrorMo{
 		"update": kerrors.NewConflict(api.Resource("Status"), "foo", nil),
 	}
 	scaleClientExpectedAction := []string{"get", "update", "get"}
@@ -70,7 +70,7 @@ func TestReplicationControllerScaleRetry(t *testing.T) {
 }
 
 func TestReplicationControllerScaleInvalid(t *testing.T) {
-	verbsOnError := map[string]*kerrors.StatusError{
+	verbsOnError := map[string]*kerrors.StatusErrorMo{
 		"update": kerrors.NewInvalid(api.Kind("Status"), "foo", nil),
 	}
 	scaleClientExpectedAction := []string{"get", "update"}
@@ -146,7 +146,7 @@ func TestReplicationControllerScaleFailsPreconditions(t *testing.T) {
 }
 
 func TestDeploymentScaleRetry(t *testing.T) {
-	verbsOnError := map[string]*kerrors.StatusError{
+	verbsOnError := map[string]*kerrors.StatusErrorMo{
 		"update": kerrors.NewConflict(api.Resource("Status"), "foo", nil),
 	}
 	scaleClientExpectedAction := []string{"get", "update", "get"}
@@ -206,7 +206,7 @@ func TestDeploymentScale(t *testing.T) {
 
 func TestDeploymentScaleInvalid(t *testing.T) {
 	scaleClientExpectedAction := []string{"get", "update"}
-	verbsOnError := map[string]*kerrors.StatusError{
+	verbsOnError := map[string]*kerrors.StatusErrorMo{
 		"update": kerrors.NewInvalid(api.Kind("Status"), "foo", nil),
 	}
 	scaleClient := createFakeScaleClient("deployments", "foo", 2, verbsOnError)
@@ -281,7 +281,7 @@ func TestStatefulSetScale(t *testing.T) {
 
 func TestStatefulSetScaleRetry(t *testing.T) {
 	scaleClientExpectedAction := []string{"get", "update", "get"}
-	verbsOnError := map[string]*kerrors.StatusError{
+	verbsOnError := map[string]*kerrors.StatusErrorMo{
 		"update": kerrors.NewConflict(api.Resource("Status"), "foo", nil),
 	}
 	scaleClient := createFakeScaleClient("statefulsets", "foo", 2, verbsOnError)
@@ -318,7 +318,7 @@ func TestStatefulSetScaleRetry(t *testing.T) {
 
 func TestStatefulSetScaleInvalid(t *testing.T) {
 	scaleClientExpectedAction := []string{"get", "update"}
-	verbsOnError := map[string]*kerrors.StatusError{
+	verbsOnError := map[string]*kerrors.StatusErrorMo{
 		"update": kerrors.NewInvalid(api.Kind("Status"), "foo", nil),
 	}
 	scaleClient := createFakeScaleClient("statefulsets", "foo", 2, verbsOnError)
@@ -392,7 +392,7 @@ func TestReplicaSetScale(t *testing.T) {
 }
 
 func TestReplicaSetScaleRetry(t *testing.T) {
-	verbsOnError := map[string]*kerrors.StatusError{
+	verbsOnError := map[string]*kerrors.StatusErrorMo{
 		"update": kerrors.NewConflict(api.Resource("Status"), "foo", nil),
 	}
 	scaleClientExpectedAction := []string{"get", "update", "get"}
@@ -429,7 +429,7 @@ func TestReplicaSetScaleRetry(t *testing.T) {
 }
 
 func TestReplicaSetScaleInvalid(t *testing.T) {
-	verbsOnError := map[string]*kerrors.StatusError{
+	verbsOnError := map[string]*kerrors.StatusErrorMo{
 		"update": kerrors.NewInvalid(api.Kind("Status"), "foo", nil),
 	}
 	scaleClientExpectedAction := []string{"get", "update"}
@@ -631,12 +631,12 @@ func TestGenericScale(t *testing.T) {
 	}
 }
 
-func createFakeScaleClient(resource string, resourceName string, replicas int, errorsOnVerb map[string]*kerrors.StatusError) *fakescale.FakeScaleClient {
-	shouldReturnAnError := func(verb string) (*kerrors.StatusError, bool) {
+func createFakeScaleClient(resource string, resourceName string, replicas int, errorsOnVerb map[string]*kerrors.StatusErrorMo) *fakescale.FakeScaleClient {
+	shouldReturnAnError := func(verb string) (*kerrors.StatusErrorMo, bool) {
 		if anError, anErrorExists := errorsOnVerb[verb]; anErrorExists {
 			return anError, true
 		}
-		return &kerrors.StatusError{}, false
+		return &kerrors.StatusErrorMo{}, false
 	}
 	newReplicas := int32(replicas)
 	scaleClient := &fakescale.FakeScaleClient{}

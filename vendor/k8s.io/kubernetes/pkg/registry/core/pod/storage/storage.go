@@ -195,7 +195,7 @@ func (r *BindingREST) assignPod(ctx context.Context, podID string, machine strin
 	if _, err = r.setPodHostAndAnnotations(ctx, podID, "", machine, annotations, dryRun); err != nil {
 		err = storeerr.InterpretGetError(err, api.Resource("pods"), podID)
 		err = storeerr.InterpretUpdateError(err, api.Resource("pods"), podID)
-		if _, ok := err.(*errors.StatusError); !ok {
+		if _, ok := err.(*errors.StatusErrorMo); !ok {
 			err = errors.NewConflict(api.Resource("pods/binding"), podID, err)
 		}
 	}

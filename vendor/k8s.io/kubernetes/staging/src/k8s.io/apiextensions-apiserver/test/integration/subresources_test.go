@@ -547,7 +547,7 @@ func TestValidateOnlyStatus(t *testing.T) {
 			if err == nil {
 				t.Fatal("expected error, but got none")
 			}
-			statusError, isStatus := err.(*apierrors.StatusError)
+			statusError, isStatus := err.(*apierrors.StatusErrorMo)
 			if !isStatus || statusError == nil {
 				t.Fatalf("expected status error, got %T: %v", err, err)
 			}

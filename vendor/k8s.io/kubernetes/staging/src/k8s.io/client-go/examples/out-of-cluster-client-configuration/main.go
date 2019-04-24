@@ -67,7 +67,7 @@ func main() {
 		_, err = clientset.CoreV1().Pods(namespace).Get(pod, metav1.GetOptions{})
 		if errors.IsNotFound(err) {
 			fmt.Printf("Pod %s in namespace %s not found\n", pod, namespace)
-		} else if statusError, isStatus := err.(*errors.StatusError); isStatus {
+		} else if statusError, isStatus := err.(*errors.StatusErrorMo); isStatus {
 			fmt.Printf("Error getting pod %s in namespace %s: %v\n",
 				pod, namespace, statusError.ErrStatus.Message)
 		} else if err != nil {

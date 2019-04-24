@@ -60,7 +60,7 @@ func NewCmdLogin(fullName string, f kcmdutil.Factory, streams genericclioptions.
 				fmt.Fprintln(streams.Out, "Login failed (401 Unauthorized)")
 				fmt.Fprintln(streams.Out, "Verify you have provided correct credentials.")
 
-				if err, isStatusErr := err.(*kapierrors.StatusError); isStatusErr {
+				if err, isStatusErr := err.(*kapierrors.StatusErrorMo); isStatusErr {
 					if details := err.Status().Details; details != nil {
 						for _, cause := range details.Causes {
 							fmt.Fprintln(streams.Out, cause.Message)

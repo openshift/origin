@@ -84,7 +84,7 @@ func TestValidate(t *testing.T) {
 				t.Errorf("%s: expected an error saying %q, but got %v", tt.Name, tt.ErrorContains, err)
 			}
 		}
-		if _, isStatusErr := err.(*errors.StatusError); err != nil && !isStatusErr {
+		if _, isStatusErr := err.(*errors.StatusErrorMo); err != nil && !isStatusErr {
 			t.Errorf("%s: expected a StatusError, got %T", tt.Name, err)
 		}
 		fakeAttr, ok := attr.(*webhooktesting.FakeAttributes)

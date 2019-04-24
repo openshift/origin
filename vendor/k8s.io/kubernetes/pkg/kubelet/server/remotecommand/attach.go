@@ -52,7 +52,7 @@ func ServeAttach(w http.ResponseWriter, req *http.Request, attacher Attacher, po
 		runtime.HandleError(err)
 		ctx.writeStatus(apierrors.NewInternalError(err))
 	} else {
-		ctx.writeStatus(&apierrors.StatusError{ErrStatus: metav1.Status{
+		ctx.writeStatus(&apierrors.StatusErrorMo{ErrStatus: metav1.Status{
 			Status: metav1.StatusSuccess,
 		}})
 	}

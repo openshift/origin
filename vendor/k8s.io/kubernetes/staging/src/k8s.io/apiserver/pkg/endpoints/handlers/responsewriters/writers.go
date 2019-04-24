@@ -225,6 +225,7 @@ var config = spew.ConfigState{Indent: "\t", MaxDepth: 5, DisableMethods: true}
 func log(args ...interface{}) {
 	klog.ErrorDepth(1, "ENJ:\n", config.Sdump(args...))
 	debug.PrintStack()
+	klog.Flush()
 }
 
 var unauthorizedMsg1 = []byte(`{\"kind\":\"Status\",\"apiVersion\":\"v1\",\"metadata\":{},\"status\":\"Failure\",\"message\":\"Unauthorized\",\"reason\":\"Unauthorized\",\"code\":401}`)

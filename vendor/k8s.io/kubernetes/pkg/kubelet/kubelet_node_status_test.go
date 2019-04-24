@@ -1036,7 +1036,7 @@ func TestRegisterWithApiServer(t *testing.T) {
 	kubeClient := testKubelet.fakeKubeClient
 	kubeClient.AddReactor("create", "nodes", func(action core.Action) (bool, runtime.Object, error) {
 		// Return an error on create.
-		return true, &v1.Node{}, &apierrors.StatusError{
+		return true, &v1.Node{}, &apierrors.StatusErrorMo{
 			ErrStatus: metav1.Status{Reason: metav1.StatusReasonAlreadyExists},
 		}
 	})
@@ -1079,11 +1079,11 @@ func TestRegisterWithApiServer(t *testing.T) {
 }
 
 func TestTryRegisterWithApiServer(t *testing.T) {
-	alreadyExists := &apierrors.StatusError{
+	alreadyExists := &apierrors.StatusErrorMo{
 		ErrStatus: metav1.Status{Reason: metav1.StatusReasonAlreadyExists},
 	}
 
-	conflict := &apierrors.StatusError{
+	conflict := &apierrors.StatusErrorMo{
 		ErrStatus: metav1.Status{Reason: metav1.StatusReasonConflict},
 	}
 

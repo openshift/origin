@@ -268,7 +268,7 @@ func (o *ProcessOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args [
 		o.templateProcessor = func(template *templatev1.Template) (*templatev1.Template, error) {
 			t, err := templateProcessorClient.Process(template)
 			if err != nil {
-				if err, ok := err.(*errors.StatusError); ok && err.ErrStatus.Details != nil {
+				if err, ok := err.(*errors.StatusErrorMo); ok && err.ErrStatus.Details != nil {
 					errstr := "unable to process template\n"
 					for _, cause := range err.ErrStatus.Details.Causes {
 						errstr += fmt.Sprintf("  %s\n", cause.Message)

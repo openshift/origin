@@ -86,7 +86,7 @@ func (m *Matcher) GetNamespaceLabels(attr admission.Attributes) (map[string]stri
 
 // MatchNamespaceSelector decideds whether the request matches the
 // namespaceSelctor of the webhook. Only when they match, the webhook is called.
-func (m *Matcher) MatchNamespaceSelector(h *v1beta1.Webhook, attr admission.Attributes) (bool, *apierrors.StatusError) {
+func (m *Matcher) MatchNamespaceSelector(h *v1beta1.Webhook, attr admission.Attributes) (bool, *apierrors.StatusErrorMo) {
 	namespaceName := attr.GetNamespace()
 	if len(namespaceName) == 0 && attr.GetResource().Resource != "namespaces" {
 		// If the request is about a cluster scoped resource, and it is not a
@@ -103,7 +103,7 @@ func (m *Matcher) MatchNamespaceSelector(h *v1beta1.Webhook, attr admission.Attr
 		if !ok {
 			return false, apierrors.NewInternalError(err)
 		}
-		return false, &apierrors.StatusError{status.Status()}
+		return false, (&apierrors.StatusErrorMo{status.Status()}).WithNewStack()
 	}
 	if err != nil {
 		return false, apierrors.NewInternalError(err)

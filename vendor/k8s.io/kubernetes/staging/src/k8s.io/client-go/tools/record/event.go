@@ -158,7 +158,7 @@ func recordToSink(sink EventSink, event *v1.Event, eventCorrelator *EventCorrela
 }
 
 func isKeyNotFoundError(err error) bool {
-	statusErr, _ := err.(*errors.StatusError)
+	statusErr, _ := err.(*errors.StatusErrorMo)
 
 	if statusErr != nil && statusErr.Status().Code == http.StatusNotFound {
 		return true
@@ -196,7 +196,7 @@ func recordEvent(sink EventSink, event *v1.Event, patch []byte, updateExistingEv
 		// We will construct the request the same next time, so don't keep trying.
 		klog.Errorf("Unable to construct event '%#v': '%v' (will not retry!)", event, err)
 		return true
-	case *errors.StatusError:
+	case *errors.StatusErrorMo:
 		if errors.IsAlreadyExists(err) {
 			klog.V(5).Infof("Server rejected event '%#v': '%v' (will not retry!)", event, err)
 		} else {

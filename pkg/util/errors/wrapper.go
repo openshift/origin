@@ -32,5 +32,5 @@ func SyncStatusError(ctx context.Context, err error) error {
 	status.Message = strings.Replace(status.Message, oldGR, newGR, 1)
 	status.Details.Group = info.APIGroup
 	status.Details.Kind = info.Resource // Yes we set Kind field to resource.
-	return &apierrors.StatusError{ErrStatus: status}
+	return (&apierrors.StatusErrorMo{ErrStatus: status}).WithNewStack()
 }

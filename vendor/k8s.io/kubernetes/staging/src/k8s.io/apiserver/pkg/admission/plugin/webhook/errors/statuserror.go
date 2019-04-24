@@ -24,7 +24,7 @@ import (
 )
 
 // ToStatusErr returns a StatusError with information about the webhook plugin
-func ToStatusErr(webhookName string, result *metav1.Status) *apierrors.StatusError {
+func ToStatusErr(webhookName string, result *metav1.Status) *apierrors.StatusErrorMo {
 	deniedBy := fmt.Sprintf("admission webhook %q denied the request", webhookName)
 	const noExp = "without explanation"
 
@@ -41,13 +41,13 @@ func ToStatusErr(webhookName string, result *metav1.Status) *apierrors.StatusErr
 		result.Message = fmt.Sprintf("%s %s", deniedBy, noExp)
 	}
 
-	return &apierrors.StatusError{
+	return (&apierrors.StatusErrorMo{
 		ErrStatus: *result,
-	}
+	}).WithNewStack()
 }
 
 // NewDryRunUnsupportedErr returns a StatusError with information about the webhook plugin
-func NewDryRunUnsupportedErr(webhookName string) *apierrors.StatusError {
+func NewDryRunUnsupportedErr(webhookName string) *apierrors.StatusErrorMo {
 	reason := fmt.Sprintf("admission webhook %q does not support dry run", webhookName)
 	return apierrors.NewBadRequest(reason)
 }
