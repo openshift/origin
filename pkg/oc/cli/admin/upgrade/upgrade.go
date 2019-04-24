@@ -240,7 +240,7 @@ func (o *Options) Run() error {
 		return nil
 
 	default:
-		if c := findCondition(cv.Status.Conditions, configv1.OperatorFailing); c != nil && c.Status == configv1.ConditionTrue {
+		if c := findCondition(cv.Status.Conditions, configv1.OperatorDegraded); c != nil && c.Status == configv1.ConditionTrue {
 			prefix := "No upgrade is possible due to an error"
 			if c := findCondition(cv.Status.Conditions, configv1.OperatorProgressing); c != nil && c.Status == configv1.ConditionTrue && len(c.Message) > 0 {
 				prefix = c.Message
@@ -380,7 +380,7 @@ func checkForUpgrade(cv *configv1.ClusterVersion) error {
 	if c := findCondition(cv.Status.Conditions, "Invalid"); c != nil && c.Status == configv1.ConditionTrue {
 		return fmt.Errorf("The cluster version object is invalid, you must correct the invalid state first.\n\n  Reason: %s\n  Message: %s\n\n", c.Reason, c.Message)
 	}
-	if c := findCondition(cv.Status.Conditions, configv1.OperatorFailing); c != nil && c.Status == configv1.ConditionTrue {
+	if c := findCondition(cv.Status.Conditions, configv1.OperatorDegraded); c != nil && c.Status == configv1.ConditionTrue {
 		return fmt.Errorf("The cluster is experiencing an upgrade-blocking error, use --force to upgrade anyway.\n\n  Reason: %s\n  Message: %s\n\n", c.Reason, c.Message)
 	}
 	if c := findCondition(cv.Status.Conditions, configv1.OperatorProgressing); c != nil && c.Status == configv1.ConditionTrue {

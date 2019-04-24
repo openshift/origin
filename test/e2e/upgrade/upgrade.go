@@ -244,7 +244,10 @@ func getUpgradeContext(c configv1client.Interface, upgradeTarget, upgradeImage s
 			return nil, fmt.Errorf("cluster is already being upgraded, cannot start a test: %s", versionString(*cv.Spec.DesiredUpdate))
 		}
 	}
-	if c := findCondition(cv.Status.Conditions, configv1.OperatorFailing); c != nil && c.Status == configv1.ConditionTrue {
+	if c := findCondition(cv.Status.Conditions, configv1.OperatorDegraded); c != nil && c.Status == configv1.ConditionTrue {
+		return nil, fmt.Errorf("cluster is reporting a degraded condition, cannot continue: %v", c.Message)
+	}
+	if c := findCondition(cv.Status.Conditions, configv1.ClusterStatusConditionType("Failing")); c != nil && c.Status == configv1.ConditionTrue {
 		return nil, fmt.Errorf("cluster is reporting a failing condition, cannot continue: %v", c.Message)
 	}
 	if c := findCondition(cv.Status.Conditions, configv1.OperatorProgressing); c == nil || c.Status != configv1.ConditionFalse {
@@ -357,7 +360,13 @@ func clusterUpgrade(c configv1client.Interface, version upgrades.VersionContext)
 			}
 		}
 
-		if c := findCondition(cv.Status.Conditions, configv1.OperatorFailing); c != nil {
+		if c := findCondition(cv.Status.Conditions, configv1.OperatorDegraded); c != nil {
+			if c.Status == configv1.ConditionTrue {
+				framework.Logf("cluster upgrade is degraded: %v", c.Message)
+			}
+		}
+
+		if c := findCondition(cv.Status.Conditions, configv1.ClusterStatusConditionType("Failing")); c != nil {
 			if c.Status == configv1.ConditionTrue {
 				framework.Logf("cluster upgrade is failing: %v", c.Message)
 			}
@@ -377,7 +386,12 @@ func clusterUpgrade(c configv1client.Interface, version upgrades.VersionContext)
 				return false, fmt.Errorf("cluster version was Progressing=true after completion: %v", cv.Status.Conditions)
 			}
 		}
-		if c := findCondition(cv.Status.Conditions, configv1.OperatorFailing); c != nil {
+		if c := findCondition(cv.Status.Conditions, configv1.OperatorDegraded); c != nil {
+			if c.Status == configv1.ConditionTrue {
+				return false, fmt.Errorf("cluster version was Degraded=true after completion: %v", cv.Status.Conditions)
+			}
+		}
+		if c := findCondition(cv.Status.Conditions, configv1.ClusterStatusConditionType("Failing")); c != nil {
 			if c.Status == configv1.ConditionTrue {
 				return false, fmt.Errorf("cluster version was Failing=true after completion: %v", cv.Status.Conditions)
 			}
@@ -398,7 +412,7 @@ func clusterUpgrade(c configv1client.Interface, version upgrades.VersionContext)
 					"%s\t%s %s %s\t%s\t%s\n",
 					item.Name,
 					findConditionShortStatus(item.Status.Conditions, configv1.OperatorAvailable, configv1.ConditionTrue),
-					findConditionShortStatus(item.Status.Conditions, configv1.OperatorFailing, configv1.ConditionFalse),
+					findConditionShortStatus(item.Status.Conditions, configv1.OperatorDegraded, configv1.ConditionFalse),
 					findConditionShortStatus(item.Status.Conditions, configv1.OperatorProgressing, configv1.ConditionFalse),
 					findVersion(item.Status.Versions, "operator", oldVersion, lastCV.Status.Desired.Version),
 					findConditionMessage(item.Status.Conditions, configv1.OperatorProgressing),

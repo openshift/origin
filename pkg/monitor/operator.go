@@ -50,7 +50,10 @@ func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client conf
 						msg = fmt.Sprintf("changed %s to %s", s.Type, s.Status)
 					}
 					level := Warning
-					if s.Type == configv1.OperatorFailing && s.Status == configv1.ConditionTrue {
+					if s.Type == configv1.OperatorDegraded && s.Status == configv1.ConditionTrue {
+						level = Error
+					}
+					if s.Type == configv1.ClusterStatusConditionType("Failing") && s.Status == configv1.ConditionTrue {
 						level = Error
 					}
 					conditions = append(conditions, Condition{
@@ -188,7 +191,10 @@ func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client conf
 						msg = fmt.Sprintf("changed %s to %s", s.Type, s.Status)
 					}
 					level := Warning
-					if s.Type == configv1.OperatorFailing && s.Status == configv1.ConditionTrue {
+					if s.Type == configv1.OperatorDegraded && s.Status == configv1.ConditionTrue {
+						level = Error
+					}
+					if s.Type == configv1.ClusterStatusConditionType("Failing") && s.Status == configv1.ConditionTrue {
 						level = Error
 					}
 					conditions = append(conditions, Condition{
