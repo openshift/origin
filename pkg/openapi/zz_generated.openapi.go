@@ -476,13 +476,10 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/operator/v1.OpenShiftControllerManagerSpec":                                         schema_openshift_api_operator_v1_OpenShiftControllerManagerSpec(ref),
 		"github.com/openshift/api/operator/v1.OpenShiftControllerManagerStatus":                                       schema_openshift_api_operator_v1_OpenShiftControllerManagerStatus(ref),
 		"github.com/openshift/api/operator/v1.OpenShiftSDNConfig":                                                     schema_openshift_api_operator_v1_OpenShiftSDNConfig(ref),
-		"github.com/openshift/api/operator/v1.OperandContainerSpec":                                                   schema_openshift_api_operator_v1_OperandContainerSpec(ref),
-		"github.com/openshift/api/operator/v1.OperandSpec":                                                            schema_openshift_api_operator_v1_OperandSpec(ref),
 		"github.com/openshift/api/operator/v1.OperatorCondition":                                                      schema_openshift_api_operator_v1_OperatorCondition(ref),
 		"github.com/openshift/api/operator/v1.OperatorSpec":                                                           schema_openshift_api_operator_v1_OperatorSpec(ref),
 		"github.com/openshift/api/operator/v1.OperatorStatus":                                                         schema_openshift_api_operator_v1_OperatorStatus(ref),
 		"github.com/openshift/api/operator/v1.ProxyConfig":                                                            schema_openshift_api_operator_v1_ProxyConfig(ref),
-		"github.com/openshift/api/operator/v1.ResourcePatch":                                                          schema_openshift_api_operator_v1_ResourcePatch(ref),
 		"github.com/openshift/api/operator/v1.ServiceCA":                                                              schema_openshift_api_operator_v1_ServiceCA(ref),
 		"github.com/openshift/api/operator/v1.ServiceCAList":                                                          schema_openshift_api_operator_v1_ServiceCAList(ref),
 		"github.com/openshift/api/operator/v1.ServiceCASpec":                                                          schema_openshift_api_operator_v1_ServiceCASpec(ref),
@@ -8237,7 +8234,7 @@ func schema_openshift_api_config_v1_ClusterVersionStatus(ref common.ReferenceCal
 					},
 					"conditions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions provides information about the cluster version. The condition \"Available\" is set to true if the desiredUpdate has been reached. The condition \"Progressing\" is set to true if an update is being applied. The condition \"Failing\" is set to true if an update is currently blocked by a temporary or permanent error. Conditions are only valid for the current desiredUpdate when metadata.generation is equal to status.generation.",
+							Description: "conditions provides information about the cluster version. The condition \"Available\" is set to true if the desiredUpdate has been reached. The condition \"Progressing\" is set to true if an update is being applied. The condition \"Degraded\" is set to true if an update is currently blocked by a temporary or permanent error. Conditions are only valid for the current desiredUpdate when metadata.generation is equal to status.generation.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -9878,7 +9875,7 @@ func schema_openshift_api_config_v1_InfrastructureStatus(ref common.ReferenceCal
 					},
 					"platform": {
 						SchemaProps: spec.SchemaProps{
-							Description: "platform is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are \"AWS\", \"Azure\", \"GCP\", \"Libvirt\", \"OpenStack\", \"VSphere\", and \"None\". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform.",
+							Description: "platform is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are \"AWS\", \"Azure\", \"BareMetal\", \"GCP\", \"Libvirt\", \"OpenStack\", \"VSphere\", and \"None\". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -11824,6 +11821,13 @@ func schema_openshift_api_config_v1_Update(ref common.ReferenceCallback) common.
 							Format:      "",
 						},
 					},
+					"force": {
+						SchemaProps: spec.SchemaProps{
+							Description: "force allows an administrator to update to an image that has failed verification, does not appear in the availableUpdates list, or otherwise would be blocked by normal protections on update. This option should only be used when the authenticity of the provided image has been verified out of band because the provided image will run with full administrative access to the cluster. Do not use this flag with images that comes from unknown or potentially malicious sources.\n\nThis flag does not override other forms of consistency checking that are required before a new update is deployed.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},
@@ -11870,8 +11874,15 @@ func schema_openshift_api_config_v1_UpdateHistory(ref common.ReferenceCallback) 
 							Format:      "",
 						},
 					},
+					"verified": {
+						SchemaProps: spec.SchemaProps{
+							Description: "verified indicates whether the provided update was properly verified before it was installed. If this is false the cluster may not be trusted.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 				},
-				Required: []string{"state", "startedTime", "completionTime", "image"},
+				Required: []string{"state", "startedTime", "completionTime", "image", "verified"},
 			},
 		},
 		Dependencies: []string{
@@ -21198,17 +21209,11 @@ func schema_openshift_api_operator_v1_AuthenticationSpec(ref common.ReferenceCal
 							Format:      "",
 						},
 					},
-					"operandSpecs": {
+					"operatorLogLevel": {
 						SchemaProps: spec.SchemaProps{
-							Description: "operandSpecs provide customization for functional units within the component",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
-									},
-								},
-							},
+							Description: "operatorLogLevel is an intent based logging for the operator itself.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for themselves.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"unsupportedConfigOverrides": {
@@ -21228,7 +21233,7 @@ func schema_openshift_api_operator_v1_AuthenticationSpec(ref common.ReferenceCal
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -21455,17 +21460,11 @@ func schema_openshift_api_operator_v1_ConsoleSpec(ref common.ReferenceCallback) 
 							Format:      "",
 						},
 					},
-					"operandSpecs": {
+					"operatorLogLevel": {
 						SchemaProps: spec.SchemaProps{
-							Description: "operandSpecs provide customization for functional units within the component",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
-									},
-								},
-							},
+							Description: "operatorLogLevel is an intent based logging for the operator itself.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for themselves.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"unsupportedConfigOverrides": {
@@ -21491,7 +21490,7 @@ func schema_openshift_api_operator_v1_ConsoleSpec(ref common.ReferenceCallback) 
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.ConsoleCustomization", "github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"github.com/openshift/api/operator/v1.ConsoleCustomization", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -21880,17 +21879,11 @@ func schema_openshift_api_operator_v1_EtcdSpec(ref common.ReferenceCallback) com
 							Format:      "",
 						},
 					},
-					"operandSpecs": {
+					"operatorLogLevel": {
 						SchemaProps: spec.SchemaProps{
-							Description: "operandSpecs provide customization for functional units within the component",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
-									},
-								},
-							},
+							Description: "operatorLogLevel is an intent based logging for the operator itself.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for themselves.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"unsupportedConfigOverrides": {
@@ -21903,6 +21896,13 @@ func schema_openshift_api_operator_v1_EtcdSpec(ref common.ReferenceCallback) com
 						SchemaProps: spec.SchemaProps{
 							Description: "observedConfig holds a sparse config that controller has observed from the cluster state.  It exists in spec because it is an input to the level for the operator",
 							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+					"forceRedeploymentReason": {
+						SchemaProps: spec.SchemaProps{
+							Description: "forceRedeploymentReason can be used to force the redeployment of the operand by providing a unique string. This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work this time instead of failing again on the same config.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"failedRevisionLimit": {
@@ -21919,19 +21919,12 @@ func schema_openshift_api_operator_v1_EtcdSpec(ref common.ReferenceCallback) com
 							Format:      "int32",
 						},
 					},
-					"forceRedeploymentReason": {
-						SchemaProps: spec.SchemaProps{
-							Description: "forceRedeploymentReason can be used to force the redeployment of the kube-apiserver by providing a unique string. This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work this time instead of failing again on the same config.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
 				},
 				Required: []string{"managementState", "forceRedeploymentReason"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -22395,17 +22388,11 @@ func schema_openshift_api_operator_v1_KubeAPIServerSpec(ref common.ReferenceCall
 							Format:      "",
 						},
 					},
-					"operandSpecs": {
+					"operatorLogLevel": {
 						SchemaProps: spec.SchemaProps{
-							Description: "operandSpecs provide customization for functional units within the component",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
-									},
-								},
-							},
+							Description: "operatorLogLevel is an intent based logging for the operator itself.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for themselves.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"unsupportedConfigOverrides": {
@@ -22418,6 +22405,13 @@ func schema_openshift_api_operator_v1_KubeAPIServerSpec(ref common.ReferenceCall
 						SchemaProps: spec.SchemaProps{
 							Description: "observedConfig holds a sparse config that controller has observed from the cluster state.  It exists in spec because it is an input to the level for the operator",
 							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+					"forceRedeploymentReason": {
+						SchemaProps: spec.SchemaProps{
+							Description: "forceRedeploymentReason can be used to force the redeployment of the operand by providing a unique string. This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work this time instead of failing again on the same config.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"failedRevisionLimit": {
@@ -22434,19 +22428,12 @@ func schema_openshift_api_operator_v1_KubeAPIServerSpec(ref common.ReferenceCall
 							Format:      "int32",
 						},
 					},
-					"forceRedeploymentReason": {
-						SchemaProps: spec.SchemaProps{
-							Description: "forceRedeploymentReason can be used to force the redeployment of the kube-apiserver by providing a unique string. This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work this time instead of failing again on the same config.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
 				},
 				Required: []string{"managementState", "forceRedeploymentReason"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -22646,17 +22633,11 @@ func schema_openshift_api_operator_v1_KubeControllerManagerSpec(ref common.Refer
 							Format:      "",
 						},
 					},
-					"operandSpecs": {
+					"operatorLogLevel": {
 						SchemaProps: spec.SchemaProps{
-							Description: "operandSpecs provide customization for functional units within the component",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
-									},
-								},
-							},
+							Description: "operatorLogLevel is an intent based logging for the operator itself.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for themselves.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"unsupportedConfigOverrides": {
@@ -22669,6 +22650,13 @@ func schema_openshift_api_operator_v1_KubeControllerManagerSpec(ref common.Refer
 						SchemaProps: spec.SchemaProps{
 							Description: "observedConfig holds a sparse config that controller has observed from the cluster state.  It exists in spec because it is an input to the level for the operator",
 							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+					"forceRedeploymentReason": {
+						SchemaProps: spec.SchemaProps{
+							Description: "forceRedeploymentReason can be used to force the redeployment of the operand by providing a unique string. This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work this time instead of failing again on the same config.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"failedRevisionLimit": {
@@ -22685,19 +22673,12 @@ func schema_openshift_api_operator_v1_KubeControllerManagerSpec(ref common.Refer
 							Format:      "int32",
 						},
 					},
-					"forceRedeploymentReason": {
-						SchemaProps: spec.SchemaProps{
-							Description: "forceRedeploymentReason can be used to force the redeployment of the kube-controller-manager by providing a unique string. This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work this time instead of failing again on the same config.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
 				},
 				Required: []string{"managementState", "forceRedeploymentReason"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -22897,17 +22878,11 @@ func schema_openshift_api_operator_v1_KubeSchedulerSpec(ref common.ReferenceCall
 							Format:      "",
 						},
 					},
-					"operandSpecs": {
+					"operatorLogLevel": {
 						SchemaProps: spec.SchemaProps{
-							Description: "operandSpecs provide customization for functional units within the component",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
-									},
-								},
-							},
+							Description: "operatorLogLevel is an intent based logging for the operator itself.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for themselves.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"unsupportedConfigOverrides": {
@@ -22920,6 +22895,13 @@ func schema_openshift_api_operator_v1_KubeSchedulerSpec(ref common.ReferenceCall
 						SchemaProps: spec.SchemaProps{
 							Description: "observedConfig holds a sparse config that controller has observed from the cluster state.  It exists in spec because it is an input to the level for the operator",
 							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+					"forceRedeploymentReason": {
+						SchemaProps: spec.SchemaProps{
+							Description: "forceRedeploymentReason can be used to force the redeployment of the operand by providing a unique string. This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work this time instead of failing again on the same config.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"failedRevisionLimit": {
@@ -22936,19 +22918,12 @@ func schema_openshift_api_operator_v1_KubeSchedulerSpec(ref common.ReferenceCall
 							Format:      "int32",
 						},
 					},
-					"forceRedeploymentReason": {
-						SchemaProps: spec.SchemaProps{
-							Description: "forceRedeploymentReason can be used to force the redeployment of the kube-scheduler by providing a unique string. This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work this time instead of failing again on the same config.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
 				},
 				Required: []string{"managementState", "forceRedeploymentReason"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -23099,17 +23074,11 @@ func schema_openshift_api_operator_v1_MyOperatorResourceSpec(ref common.Referenc
 							Format:      "",
 						},
 					},
-					"operandSpecs": {
+					"operatorLogLevel": {
 						SchemaProps: spec.SchemaProps{
-							Description: "operandSpecs provide customization for functional units within the component",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
-									},
-								},
-							},
+							Description: "operatorLogLevel is an intent based logging for the operator itself.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for themselves.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"unsupportedConfigOverrides": {
@@ -23129,7 +23098,7 @@ func schema_openshift_api_operator_v1_MyOperatorResourceSpec(ref common.Referenc
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -23392,11 +23361,24 @@ func schema_openshift_api_operator_v1_NodePlacement(ref common.ReferenceCallback
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
 						},
 					},
+					"tolerations": {
+						SchemaProps: spec.SchemaProps{
+							Description: "tolerations is a list of tolerations applied to ingress controller deployments.\n\nThe default is an empty list.\n\nSee https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/api/core/v1.Toleration"),
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
+			"k8s.io/api/core/v1.Toleration", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
 	}
 }
 
@@ -23590,17 +23572,11 @@ func schema_openshift_api_operator_v1_OpenShiftAPIServerSpec(ref common.Referenc
 							Format:      "",
 						},
 					},
-					"operandSpecs": {
+					"operatorLogLevel": {
 						SchemaProps: spec.SchemaProps{
-							Description: "operandSpecs provide customization for functional units within the component",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
-									},
-								},
-							},
+							Description: "operatorLogLevel is an intent based logging for the operator itself.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for themselves.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"unsupportedConfigOverrides": {
@@ -23620,7 +23596,7 @@ func schema_openshift_api_operator_v1_OpenShiftAPIServerSpec(ref common.Referenc
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -23800,17 +23776,11 @@ func schema_openshift_api_operator_v1_OpenShiftControllerManagerSpec(ref common.
 							Format:      "",
 						},
 					},
-					"operandSpecs": {
+					"operatorLogLevel": {
 						SchemaProps: spec.SchemaProps{
-							Description: "operandSpecs provide customization for functional units within the component",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
-									},
-								},
-							},
+							Description: "operatorLogLevel is an intent based logging for the operator itself.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for themselves.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"unsupportedConfigOverrides": {
@@ -23830,7 +23800,7 @@ func schema_openshift_api_operator_v1_OpenShiftControllerManagerSpec(ref common.
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -23938,83 +23908,6 @@ func schema_openshift_api_operator_v1_OpenShiftSDNConfig(ref common.ReferenceCal
 	}
 }
 
-func schema_openshift_api_operator_v1_OperandContainerSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Type: []string{"object"},
-				Properties: map[string]spec.Schema{
-					"name": {
-						SchemaProps: spec.SchemaProps{
-							Description: "name is the name of the container to modify",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"resources": {
-						SchemaProps: spec.SchemaProps{
-							Description: "resources are the requests and limits to place in the container.  Nil means to accept the defaults.",
-							Ref:         ref("k8s.io/api/core/v1.ResourceRequirements"),
-						},
-					},
-				},
-				Required: []string{"name"},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/api/core/v1.ResourceRequirements"},
-	}
-}
-
-func schema_openshift_api_operator_v1_OperandSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "OperandSpec holds information for customization of a particular functional unit - logically maps to a workload",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"name": {
-						SchemaProps: spec.SchemaProps{
-							Description: "name is the name of this unit.  The operator must be aware of it.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"operandContainerSpecs": {
-						SchemaProps: spec.SchemaProps{
-							Description: "operandContainerSpecs are per-container options",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/operator/v1.OperandContainerSpec"),
-									},
-								},
-							},
-						},
-					},
-					"unsupportedResourcePatches": {
-						SchemaProps: spec.SchemaProps{
-							Description: "unsupportedResourcePatches are applied to the workload resource for this unit. This is an unsupported workaround if anything needs to be modified on the workload that is not otherwise configurable.",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/operator/v1.ResourcePatch"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"name"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.OperandContainerSpec", "github.com/openshift/api/operator/v1.ResourcePatch"},
-	}
-}
-
 func schema_openshift_api_operator_v1_OperatorCondition(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -24081,17 +23974,11 @@ func schema_openshift_api_operator_v1_OperatorSpec(ref common.ReferenceCallback)
 							Format:      "",
 						},
 					},
-					"operandSpecs": {
+					"operatorLogLevel": {
 						SchemaProps: spec.SchemaProps{
-							Description: "operandSpecs provide customization for functional units within the component",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
-									},
-								},
-							},
+							Description: "operatorLogLevel is an intent based logging for the operator itself.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for themselves.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"unsupportedConfigOverrides": {
@@ -24111,7 +23998,7 @@ func schema_openshift_api_operator_v1_OperatorSpec(ref common.ReferenceCallback)
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -24226,34 +24113,6 @@ func schema_openshift_api_operator_v1_ProxyConfig(ref common.ReferenceCallback) 
 	}
 }
 
-func schema_openshift_api_operator_v1_ResourcePatch(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "ResourcePatch is a way to represent the patch you would issue to `kubectl patch` in the API",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"type": {
-						SchemaProps: spec.SchemaProps{
-							Description: "type is the type of patch to apply: jsonmerge, strategicmerge",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"patch": {
-						SchemaProps: spec.SchemaProps{
-							Description: "patch the patch itself",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"type", "patch"},
-			},
-		},
-	}
-}
-
 func schema_openshift_api_operator_v1_ServiceCA(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -24282,12 +24141,14 @@ func schema_openshift_api_operator_v1_ServiceCA(ref common.ReferenceCallback) co
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/openshift/api/operator/v1.ServiceCASpec"),
+							Description: "spec holds user settable values for configuration",
+							Ref:         ref("github.com/openshift/api/operator/v1.ServiceCASpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/openshift/api/operator/v1.ServiceCAStatus"),
+							Description: "status holds observed values from the cluster. They may not be overridden.",
+							Ref:         ref("github.com/openshift/api/operator/v1.ServiceCAStatus"),
 						},
 					},
 				},
@@ -24368,17 +24229,11 @@ func schema_openshift_api_operator_v1_ServiceCASpec(ref common.ReferenceCallback
 							Format:      "",
 						},
 					},
-					"operandSpecs": {
+					"operatorLogLevel": {
 						SchemaProps: spec.SchemaProps{
-							Description: "operandSpecs provide customization for functional units within the component",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
-									},
-								},
-							},
+							Description: "operatorLogLevel is an intent based logging for the operator itself.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for themselves.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"unsupportedConfigOverrides": {
@@ -24398,7 +24253,7 @@ func schema_openshift_api_operator_v1_ServiceCASpec(ref common.ReferenceCallback
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -24578,17 +24433,11 @@ func schema_openshift_api_operator_v1_ServiceCatalogAPIServerSpec(ref common.Ref
 							Format:      "",
 						},
 					},
-					"operandSpecs": {
+					"operatorLogLevel": {
 						SchemaProps: spec.SchemaProps{
-							Description: "operandSpecs provide customization for functional units within the component",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
-									},
-								},
-							},
+							Description: "operatorLogLevel is an intent based logging for the operator itself.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for themselves.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"unsupportedConfigOverrides": {
@@ -24608,7 +24457,7 @@ func schema_openshift_api_operator_v1_ServiceCatalogAPIServerSpec(ref common.Ref
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -24788,17 +24637,11 @@ func schema_openshift_api_operator_v1_ServiceCatalogControllerManagerSpec(ref co
 							Format:      "",
 						},
 					},
-					"operandSpecs": {
+					"operatorLogLevel": {
 						SchemaProps: spec.SchemaProps{
-							Description: "operandSpecs provide customization for functional units within the component",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
-									},
-								},
-							},
+							Description: "operatorLogLevel is an intent based logging for the operator itself.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for themselves.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"unsupportedConfigOverrides": {
@@ -24818,7 +24661,7 @@ func schema_openshift_api_operator_v1_ServiceCatalogControllerManagerSpec(ref co
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -24905,17 +24748,11 @@ func schema_openshift_api_operator_v1_StaticPodOperatorSpec(ref common.Reference
 							Format:      "",
 						},
 					},
-					"operandSpecs": {
+					"operatorLogLevel": {
 						SchemaProps: spec.SchemaProps{
-							Description: "operandSpecs provide customization for functional units within the component",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
-									},
-								},
-							},
+							Description: "operatorLogLevel is an intent based logging for the operator itself.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for themselves.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"unsupportedConfigOverrides": {
@@ -24928,6 +24765,13 @@ func schema_openshift_api_operator_v1_StaticPodOperatorSpec(ref common.Reference
 						SchemaProps: spec.SchemaProps{
 							Description: "observedConfig holds a sparse config that controller has observed from the cluster state.  It exists in spec because it is an input to the level for the operator",
 							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+					"forceRedeploymentReason": {
+						SchemaProps: spec.SchemaProps{
+							Description: "forceRedeploymentReason can be used to force the redeployment of the operand by providing a unique string. This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work this time instead of failing again on the same config.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"failedRevisionLimit": {
@@ -24945,11 +24789,11 @@ func schema_openshift_api_operator_v1_StaticPodOperatorSpec(ref common.Reference
 						},
 					},
 				},
-				Required: []string{"managementState"},
+				Required: []string{"managementState", "forceRedeploymentReason"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -27542,9 +27386,16 @@ func schema_openshift_api_route_v1_RouteSpec(ref common.ReferenceCallback) commo
 							Format:      "",
 						},
 					},
+					"subdomain": {
+						SchemaProps: spec.SchemaProps{
+							Description: "subdomain is a DNS subdomain that is requested within the ingress controller's domain (as a subdomain). If host is set this field is ignored. An ingress controller may choose to ignore this suggested name, in which case the controller will report the assigned name in the status.ingress array or refuse to admit the route. If this value is set and the server does not support this field host will be populated automatically. Otherwise host is left empty. The field may have multiple parts separated by a dot, but not all ingress controllers may honor the request. This field may not be changed after creation except by a user with the update routes/custom-host permission.\n\nExample: subdomain `frontend` automatically receives the router subdomain `apps.mycluster.com` to have a full hostname `frontend.apps.mycluster.com`.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"path": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Path that the router watches for, to route traffic for to the service. Optional",
+							Description: "path that the router watches for, to route traffic for to the service. Optional",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -28916,17 +28767,11 @@ func schema_openshift_api_servicecertsigner_v1alpha1_ServiceCertSignerOperatorCo
 							Format:      "",
 						},
 					},
-					"operandSpecs": {
+					"operatorLogLevel": {
 						SchemaProps: spec.SchemaProps{
-							Description: "operandSpecs provide customization for functional units within the component",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/openshift/api/operator/v1.OperandSpec"),
-									},
-								},
-							},
+							Description: "operatorLogLevel is an intent based logging for the operator itself.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for themselves.",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"unsupportedConfigOverrides": {
@@ -28964,7 +28809,7 @@ func schema_openshift_api_servicecertsigner_v1alpha1_ServiceCertSignerOperatorCo
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.OperandSpec", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
