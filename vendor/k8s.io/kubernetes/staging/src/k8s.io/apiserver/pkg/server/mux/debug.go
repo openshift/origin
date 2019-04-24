@@ -61,18 +61,21 @@ func decorateResponseWriter(responseWriter http.ResponseWriter) http.ResponseWri
 	// check if the ResponseWriter we're wrapping is the fancy one we need
 	// or if the basic is sufficient
 	_, cn := responseWriter.(http.CloseNotifier)
-	_, fl := responseWriter.(http.Flusher)
 	_, hj := responseWriter.(http.Hijacker)
 	switch {
-	case cn && fl && hj:
+	case cn && hj:
 		return &fancyResponseWriterDelegator{delegate}
 	case cn:
 		return &closeResponseWriterDelegator{delegate}
+	case hj:
+		return &hijacResponseWriterDelegator{delegate}
+	default:
+		return delegate
 	}
-	return delegate
 }
 
 var _ http.ResponseWriter = &auditResponseWriter{}
+var _ http.Flusher = &auditResponseWriter{}
 
 // auditResponseWriter intercepts WriteHeader, sets it in the event. If the sink is set, it will
 // create immediately an event (for long running requests).
@@ -90,6 +93,12 @@ func (a *auditResponseWriter) Write(bs []byte) (int, error) {
 func (a *auditResponseWriter) WriteHeader(code int) {
 	a.ResponseWriter.WriteHeader(code)
 	a.code = code
+}
+
+func (a *auditResponseWriter) Flush() {
+	if fl, ok := a.ResponseWriter.(http.Flusher); ok {
+		fl.Flush()
+	}
 }
 
 var unauthorizedMsg1 = []byte(`{\"kind\":\"Status\",\"apiVersion\":\"v1\",\"metadata\":{},\"status\":\"Failure\",\"message\":\"Unauthorized\",\"reason\":\"Unauthorized\",\"code\":401}`)
@@ -114,10 +123,6 @@ func (f *fancyResponseWriterDelegator) CloseNotify() <-chan bool {
 	return f.ResponseWriter.(http.CloseNotifier).CloseNotify()
 }
 
-func (f *fancyResponseWriterDelegator) Flush() {
-	f.ResponseWriter.(http.Flusher).Flush()
-}
-
 func (f *fancyResponseWriterDelegator) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return f.ResponseWriter.(http.Hijacker).Hijack()
 }
@@ -132,4 +137,12 @@ type closeResponseWriterDelegator struct {
 
 func (f *closeResponseWriterDelegator) CloseNotify() <-chan bool {
 	return f.ResponseWriter.(http.CloseNotifier).CloseNotify()
+}
+
+type hijacResponseWriterDelegator struct {
+	*auditResponseWriter
+}
+
+func (f *hijacResponseWriterDelegator) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return f.ResponseWriter.(http.Hijacker).Hijack()
 }
