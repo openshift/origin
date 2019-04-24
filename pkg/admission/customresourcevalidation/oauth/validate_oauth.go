@@ -116,15 +116,11 @@ func validateOAuthSpec(spec configv1.OAuthSpec) field.ErrorList {
 	specPath := field.NewPath("spec")
 
 	providerNames := sets.NewString()
-	redirectingIdentityProviders := []string{}
 
 	challengeIssuingIdentityProviders := []string{}
 	challengeRedirectingIdentityProviders := []string{}
 
 	for i, identityProvider := range spec.IdentityProviders {
-		if isUsedAsLogin(identityProvider.IdentityProviderConfig) {
-			redirectingIdentityProviders = append(redirectingIdentityProviders, identityProvider.Name)
-		}
 
 		if isUsedAsChallenger(identityProvider.IdentityProviderConfig) {
 			// RequestHeaderIdentityProvider is special, it can only react to challenge clients by redirecting them
@@ -147,9 +143,6 @@ func validateOAuthSpec(spec configv1.OAuthSpec) field.ErrorList {
 		}
 	}
 
-	if len(redirectingIdentityProviders) == 0 {
-		errs = append(errs, field.Invalid(specPath.Child("identityProviders"), "login", "no identity providers are configured to handle logins"))
-	}
 	if len(challengeRedirectingIdentityProviders) > 1 {
 		errs = append(errs, field.Forbidden(specPath.Child("identityProviders"), fmt.Sprintf("only one identity provider can redirect clients requesting an authentication challenge, found: %v", strings.Join(challengeRedirectingIdentityProviders, ", "))))
 	}
@@ -256,25 +249,6 @@ func ValidateOAuthIdentityProvider(clientID string, clientSecretRef configv1.Sec
 	allErrs = append(allErrs, crvalidation.ValidateSecretReference(fieldPath.Child("clientSecret"), clientSecretRef, true)...)
 
 	return allErrs
-}
-
-func isUsedAsLogin(idp configv1.IdentityProviderConfig) bool {
-	switch idp.Type {
-	// whitelist all the IdPs that we set `UseAsLogin: true` in cluster-authentication-operator
-	case configv1.IdentityProviderTypeBasicAuth, configv1.IdentityProviderTypeGitHub,
-		configv1.IdentityProviderTypeGitLab, configv1.IdentityProviderTypeGoogle,
-		configv1.IdentityProviderTypeHTPasswd, configv1.IdentityProviderTypeKeystone,
-		configv1.IdentityProviderTypeLDAP, configv1.IdentityProviderTypeOpenID:
-		return true
-	case configv1.IdentityProviderTypeRequestHeader:
-		if idp.RequestHeader == nil {
-			// this is an error reported elsewhere
-			return false
-		}
-		return len(idp.RequestHeader.LoginURL) > 0
-	default:
-		return false
-	}
 }
 
 func isUsedAsChallenger(idp configv1.IdentityProviderConfig) bool {
