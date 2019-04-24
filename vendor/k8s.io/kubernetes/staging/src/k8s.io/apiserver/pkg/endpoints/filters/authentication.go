@@ -18,9 +18,12 @@ package filters
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/klog"
 
@@ -95,9 +98,12 @@ func Unauthorized(s runtime.NegotiatedSerializer, supportsBasicAuth bool) http.H
 		}
 
 		gv := schema.GroupVersion{Group: requestInfo.APIGroup, Version: requestInfo.APIVersion}
-		responsewriters.ErrorNegotiated(apierrors.NewUnauthorized("Unauthorized"), s, gv, w, req)
+		logs := fmt.Sprintf("\nENJ:\n%s", config.Sdump(requestInfo, os.Environ(), req, w))
+		responsewriters.ErrorNegotiated(apierrors.NewUnauthorized("Unauthorized"+logs), s, gv, w, req)
 	})
 }
+
+var config = spew.ConfigState{Indent: "\t", MaxDepth: 5, DisableMethods: true}
 
 // compressUsername maps all possible usernames onto a small set of categories
 // of usernames. This is done both to limit the cardinality of the
