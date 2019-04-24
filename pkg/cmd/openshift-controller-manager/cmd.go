@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/coreos/go-systemd/daemon"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
@@ -26,6 +25,7 @@ import (
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/library-go/pkg/serviceability"
+
 	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager/configdefault"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
@@ -56,7 +56,7 @@ func NewOpenShiftControllerManagerCommand(name, basename string, out, errout io.
 
 			serviceability.StartProfiler()
 
-			if err := options.StartControllerManager(); err != nil {
+			if err := options.RunControllerManager(); err != nil {
 				if kerrors.IsInvalid(err) {
 					if details := err.(*kerrors.StatusError).ErrStatus.Details; details != nil {
 						fmt.Fprintf(errout, "Invalid %s %s\n", details.Kind, details.Name)
@@ -86,16 +86,6 @@ func (o *OpenShiftControllerManager) Validate() error {
 	}
 
 	return nil
-}
-
-// StartControllerManager calls RunControllerManager and then waits forever
-func (o *OpenShiftControllerManager) StartControllerManager() error {
-	if err := o.RunControllerManager(); err != nil {
-		return err
-	}
-
-	go daemon.SdNotify(false, "READY=1")
-	select {}
 }
 
 // RunControllerManager takes the options and starts the controllers
