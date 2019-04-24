@@ -230,6 +230,9 @@ func SyncConfigMap(client coreclientv1.ConfigMapsGetter, recorder events.Recorde
 	switch {
 	case apierrors.IsNotFound(err):
 		deleteErr := client.ConfigMaps(targetNamespace).Delete(targetName, nil)
+		if _, getErr := client.ConfigMaps(targetNamespace).Get(targetName, metav1.GetOptions{}); getErr != nil && apierrors.IsNotFound(getErr) {
+			return nil, true, nil
+		}
 		if apierrors.IsNotFound(deleteErr) {
 			return nil, false, nil
 		}
@@ -253,6 +256,9 @@ func SyncSecret(client coreclientv1.SecretsGetter, recorder events.Recorder, sou
 	source, err := client.Secrets(sourceNamespace).Get(sourceName, metav1.GetOptions{})
 	switch {
 	case apierrors.IsNotFound(err):
+		if _, getErr := client.Secrets(targetNamespace).Get(targetName, metav1.GetOptions{}); getErr != nil && apierrors.IsNotFound(getErr) {
+			return nil, true, nil
+		}
 		deleteErr := client.Secrets(targetNamespace).Delete(targetName, nil)
 		if apierrors.IsNotFound(deleteErr) {
 			return nil, false, nil

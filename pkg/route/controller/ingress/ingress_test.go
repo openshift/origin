@@ -761,7 +761,7 @@ func TestController_sync(t *testing.T) {
 			wantPatches: []clientgotesting.PatchActionImpl{
 				{
 					Name:  "1-abcdef",
-					Patch: []byte(`[{"op":"replace","path":"/spec","value":{"host":"test.com","path":"/","to":{"kind":"","name":"service-1","weight":null},"port":{"targetPort":8080}}}]`),
+					Patch: []byte(`[{"op":"replace","path":"/spec","value":{"host":"test.com","subdomain":"","path":"/","to":{"kind":"","name":"service-1","weight":null},"port":{"targetPort":8080}}}]`),
 				},
 			},
 		},
@@ -1025,7 +1025,7 @@ func TestController_sync(t *testing.T) {
 			wantPatches: []clientgotesting.PatchActionImpl{
 				{
 					Name:  "1-abcdef",
-					Patch: []byte(`[{"op":"replace","path":"/spec","value":{"host":"test.com","path":"/","to":{"kind":"","name":"service-1","weight":null},"port":{"targetPort":8080}}}]`),
+					Patch: []byte(`[{"op":"replace","path":"/spec","value":{"host":"test.com","subdomain":"","path":"/","to":{"kind":"","name":"service-1","weight":null},"port":{"targetPort":8080}}}]`),
 				},
 			},
 		},
@@ -1087,7 +1087,7 @@ func TestController_sync(t *testing.T) {
 			wantPatches: []clientgotesting.PatchActionImpl{
 				{
 					Name:  "1-abcdef",
-					Patch: []byte(`[{"op":"replace","path":"/spec","value":{"host":"test.com","path":"/","to":{"kind":"","name":"service-1","weight":null},"port":{"targetPort":8080},"tls":{"termination":"edge","certificate":"cert","key":"key","insecureEdgeTerminationPolicy":"Redirect"}}}]`),
+					Patch: []byte(`[{"op":"replace","path":"/spec","value":{"host":"test.com","subdomain":"","path":"/","to":{"kind":"","name":"service-1","weight":null},"port":{"targetPort":8080},"tls":{"termination":"edge","certificate":"cert","key":"key","insecureEdgeTerminationPolicy":"Redirect"}}}]`),
 				},
 			},
 		},
@@ -1154,7 +1154,7 @@ func TestController_sync(t *testing.T) {
 			wantPatches: []clientgotesting.PatchActionImpl{
 				{
 					Name:  "1-abcdef",
-					Patch: []byte(`[{"op":"replace","path":"/spec","value":{"host":"test.com","path":"/","to":{"kind":"","name":"service-1","weight":null},"port":{"targetPort":8080},"tls":{"termination":"edge","certificate":"cert","key":"key2"}}}]`),
+					Patch: []byte(`[{"op":"replace","path":"/spec","value":{"host":"test.com","subdomain":"","path":"/","to":{"kind":"","name":"service-1","weight":null},"port":{"targetPort":8080},"tls":{"termination":"edge","certificate":"cert","key":"key2"}}}]`),
 				},
 			},
 		},

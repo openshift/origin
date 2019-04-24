@@ -154,7 +154,7 @@ func TestBackingResourceController(t *testing.T) {
 			),
 			expectSyncError: `test error`,
 			validateStatus: func(t *testing.T, status *operatorv1.OperatorStatus) {
-				if status.Conditions[0].Type != operatorStatusBackingResourceControllerFailing {
+				if status.Conditions[0].Type != operatorStatusBackingResourceControllerDegraded {
 					t.Errorf("expected status condition to be failing, got %v", status.Conditions[0].Type)
 				}
 				if status.Conditions[0].Reason != "Error" {

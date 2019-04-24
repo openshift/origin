@@ -794,7 +794,7 @@ func newSigningCertificateTemplateForDuration(subject pkix.Name, caLifetime time
 
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
-		IsCA: true,
+		IsCA:                  true,
 	}
 }
 

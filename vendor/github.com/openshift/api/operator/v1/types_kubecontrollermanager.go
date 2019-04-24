@@ -14,18 +14,13 @@ type KubeControllerManager struct {
 	metav1.ObjectMeta `json:"metadata"`
 
 	// +required
-	Spec   KubeControllerManagerSpec   `json:"spec"`
+	Spec KubeControllerManagerSpec `json:"spec"`
 	// +optional
 	Status KubeControllerManagerStatus `json:"status"`
 }
 
 type KubeControllerManagerSpec struct {
 	StaticPodOperatorSpec `json:",inline"`
-
-	// forceRedeploymentReason can be used to force the redeployment of the kube-controller-manager by providing a unique string.
-	// This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work
-	// this time instead of failing again on the same config.
-	ForceRedeploymentReason string `json:"forceRedeploymentReason"`
 }
 
 type KubeControllerManagerStatus struct {

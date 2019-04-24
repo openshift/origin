@@ -163,3 +163,24 @@ func TestGetControllerReferenceForCurrentPod(t *testing.T) {
 		t.Errorf("expected objectReference to be Deployment, got %q", objectReference.GroupVersionKind().String())
 	}
 }
+
+func TestGetControllerReferenceForCurrentPodFallbackNamespace(t *testing.T) {
+	client := fake.NewSimpleClientset()
+
+	podNameEnvFunc = func() string {
+		return "test"
+	}
+
+	objectReference, err := GetControllerReferenceForCurrentPod(client, "test", nil)
+	if err == nil {
+		t.Fatalf("expected error: %v", err)
+	}
+
+	if objectReference.Name != "test" {
+		t.Errorf("expected objectReference name to be 'test', got %q", objectReference.Name)
+	}
+
+	if objectReference.GroupVersionKind().String() != "/v1, Kind=Namespace" {
+		t.Errorf("expected objectReference to be Namespace, got %q", objectReference.GroupVersionKind().String())
+	}
+}

@@ -83,12 +83,12 @@ func TestOperatorManagementStateController(t *testing.T) {
 
 			_, result, _, _ := statusClient.GetOperatorState()
 
-			if tc.expectedFailingStatus && result.Conditions[0].Type == "ManagementStateFailing" && result.Conditions[0].Status == operatorv1.ConditionFalse {
+			if tc.expectedFailingStatus && result.Conditions[0].Type == "ManagementStateDegraded" && result.Conditions[0].Status == operatorv1.ConditionFalse {
 				t.Errorf("expected failing conditions")
 				return
 			}
 
-			if !tc.expectedFailingStatus && result.Conditions[0].Type == "ManagementStateFailing" && result.Conditions[0].Status != operatorv1.ConditionFalse {
+			if !tc.expectedFailingStatus && result.Conditions[0].Type == "ManagementStateDegraded" && result.Conditions[0].Status != operatorv1.ConditionFalse {
 				t.Errorf("unexpected failing conditions: %#v", result.Conditions)
 				return
 			}

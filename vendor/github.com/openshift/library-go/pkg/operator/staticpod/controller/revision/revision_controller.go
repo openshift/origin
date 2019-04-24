@@ -25,7 +25,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
-const operatorStatusRevisionControllerFailing = "RevisionControllerFailing"
+const operatorStatusRevisionControllerDegraded = "RevisionControllerDegraded"
 const revisionControllerWorkQueueKey = "key"
 
 // RevisionController is a controller that watches a set of configmaps and secrets and them against a revision snapshot
@@ -39,13 +39,12 @@ type RevisionController struct {
 	// secrets is a list of secrets that are directly copied for the current values.  A different actor/controller modifies these.
 	secrets []RevisionResource
 
-	operatorConfigClient v1helpers.StaticPodOperatorClient
-	configMapGetter      corev1client.ConfigMapsGetter
-	secretGetter         corev1client.SecretsGetter
+	operatorClient  v1helpers.StaticPodOperatorClient
+	configMapGetter corev1client.ConfigMapsGetter
+	secretGetter    corev1client.SecretsGetter
 
-	// queue only ever has one item, but it has nice error handling backoff/retry semantics
-	queue workqueue.RateLimitingInterface
-
+	cachesToSync  []cache.InformerSynced
+	queue         workqueue.RateLimitingInterface
 	eventRecorder events.Recorder
 }
 
@@ -60,7 +59,7 @@ func NewRevisionController(
 	configMaps []RevisionResource,
 	secrets []RevisionResource,
 	kubeInformersForTargetNamespace informers.SharedInformerFactory,
-	operatorConfigClient v1helpers.StaticPodOperatorClient,
+	operatorClient v1helpers.StaticPodOperatorClient,
 	configMapGetter corev1client.ConfigMapsGetter,
 	secretGetter corev1client.SecretsGetter,
 	eventRecorder events.Recorder,
@@ -70,17 +69,21 @@ func NewRevisionController(
 		configMaps:      configMaps,
 		secrets:         secrets,
 
-		operatorConfigClient: operatorConfigClient,
-		configMapGetter:      configMapGetter,
-		secretGetter:         secretGetter,
-		eventRecorder:        eventRecorder.WithComponentSuffix("revision-controller"),
+		operatorClient:  operatorClient,
+		configMapGetter: configMapGetter,
+		secretGetter:    secretGetter,
+		eventRecorder:   eventRecorder.WithComponentSuffix("revision-controller"),
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "RevisionController"),
 	}
 
-	operatorConfigClient.Informer().AddEventHandler(c.eventHandler())
+	operatorClient.Informer().AddEventHandler(c.eventHandler())
 	kubeInformersForTargetNamespace.Core().V1().ConfigMaps().Informer().AddEventHandler(c.eventHandler())
 	kubeInformersForTargetNamespace.Core().V1().Secrets().Informer().AddEventHandler(c.eventHandler())
+
+	c.cachesToSync = append(c.cachesToSync, operatorClient.Informer().HasSynced)
+	c.cachesToSync = append(c.cachesToSync, kubeInformersForTargetNamespace.Core().V1().ConfigMaps().Informer().HasSynced)
+	c.cachesToSync = append(c.cachesToSync, kubeInformersForTargetNamespace.Core().V1().Secrets().Informer().HasSynced)
 
 	return c
 }
@@ -102,12 +105,12 @@ func (c RevisionController) createRevisionIfNeeded(operatorSpec *operatorv1.Stat
 	c.eventRecorder.Eventf("RevisionTriggered", "new revision %d triggered by %q", nextRevision, reason)
 	if err := c.createNewRevision(nextRevision); err != nil {
 		cond := operatorv1.OperatorCondition{
-			Type:    "RevisionControllerFailing",
+			Type:    "RevisionControllerDegraded",
 			Status:  operatorv1.ConditionTrue,
 			Reason:  "ContentCreationError",
 			Message: err.Error(),
 		}
-		if _, _, updateError := v1helpers.UpdateStaticPodStatus(c.operatorConfigClient, v1helpers.UpdateStaticPodConditionFn(cond)); updateError != nil {
+		if _, _, updateError := v1helpers.UpdateStaticPodStatus(c.operatorClient, v1helpers.UpdateStaticPodConditionFn(cond)); updateError != nil {
 			c.eventRecorder.Warningf("RevisionCreateFailed", "Failed to create revision %d: %v", nextRevision, err.Error())
 			return true, updateError
 		}
@@ -115,10 +118,10 @@ func (c RevisionController) createRevisionIfNeeded(operatorSpec *operatorv1.Stat
 	}
 
 	cond := operatorv1.OperatorCondition{
-		Type:   "RevisionControllerFailing",
+		Type:   "RevisionControllerDegraded",
 		Status: operatorv1.ConditionFalse,
 	}
-	if _, updated, updateError := v1helpers.UpdateStaticPodStatus(c.operatorConfigClient, v1helpers.UpdateStaticPodConditionFn(cond), func(operatorStatus *operatorv1.StaticPodOperatorStatus) error {
+	if _, updated, updateError := v1helpers.UpdateStaticPodStatus(c.operatorClient, v1helpers.UpdateStaticPodConditionFn(cond), func(operatorStatus *operatorv1.StaticPodOperatorStatus) error {
 		if operatorStatus.LatestAvailableRevision == nextRevision {
 			klog.Warningf("revision %d is unexpectedly already the latest available revision. This is a possible race!", nextRevision)
 			return fmt.Errorf("conflicting latestAvailableRevision %d", operatorStatus.LatestAvailableRevision)
@@ -246,7 +249,7 @@ func (c RevisionController) createNewRevision(revision int32) error {
 }
 
 func (c RevisionController) sync() error {
-	operatorSpec, originalOperatorStatus, resourceVersion, err := c.operatorConfigClient.GetStaticPodOperatorStateWithQuorum()
+	operatorSpec, originalOperatorStatus, resourceVersion, err := c.operatorClient.GetStaticPodOperatorStateWithQuorum()
 	if err != nil {
 		return err
 	}
@@ -264,7 +267,7 @@ func (c RevisionController) sync() error {
 
 	// update failing condition
 	cond := operatorv1.OperatorCondition{
-		Type:   operatorStatusRevisionControllerFailing,
+		Type:   operatorStatusRevisionControllerDegraded,
 		Status: operatorv1.ConditionFalse,
 	}
 	if err != nil {
@@ -272,7 +275,7 @@ func (c RevisionController) sync() error {
 		cond.Reason = "Error"
 		cond.Message = err.Error()
 	}
-	if _, _, updateError := v1helpers.UpdateStaticPodStatus(c.operatorConfigClient, v1helpers.UpdateStaticPodConditionFn(cond)); updateError != nil {
+	if _, _, updateError := v1helpers.UpdateStaticPodStatus(c.operatorClient, v1helpers.UpdateStaticPodConditionFn(cond)); updateError != nil {
 		if err == nil {
 			return updateError
 		}
@@ -288,6 +291,9 @@ func (c *RevisionController) Run(workers int, stopCh <-chan struct{}) {
 
 	klog.Infof("Starting RevisionController")
 	defer klog.Infof("Shutting down RevisionController")
+	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
+		return
+	}
 
 	// doesn't matter what workers say, only start one.
 	go wait.Until(c.runWorker, time.Second, stopCh)

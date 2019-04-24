@@ -66,6 +66,8 @@ import:
 - package: k8s.io/kube-openapi
   repo: https://github.com/openshift/kube-openapi.git
   version: origin-4.0-kubernetes-master-d7c86cd # bumped to match k8s version we've had and then additionally with changes for openapi CRD (we should pick that back around k8s 1.14)
+- package: k8s.io/klog
+  version: 8139d8cb77af419532b33dfa7dd09fbc5f1d344f # recent klog bump broke glog flags test in k8s.io/apiserver, pin
 - package: github.com/coreos/etcd
   version: v3.3.10
 - package: google.golang.org/grpc

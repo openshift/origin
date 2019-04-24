@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/version"
@@ -76,6 +77,26 @@ func (c *ControllerCommandConfig) NewCommand() *cobra.Command {
 	return cmd
 }
 
+// Config returns the configuration of this command. Use StartController if you don't need to customize the default operator.
+// This method does not modify the receiver.
+func (c *ControllerCommandConfig) Config() (*unstructured.Unstructured, *operatorv1alpha1.GenericOperatorConfig, []byte, error) {
+	configContent, unstructuredConfig, err := c.basicFlags.ToConfigObj()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	config := &operatorv1alpha1.GenericOperatorConfig{}
+	if unstructuredConfig != nil {
+		// make a copy we can mutate
+		configCopy := unstructuredConfig.DeepCopy()
+		// force the config to our version to read it
+		configCopy.SetGroupVersionKind(operatorv1alpha1.GroupVersion.WithKind("GenericOperatorConfig"))
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(configCopy.Object, config); err != nil {
+			return nil, nil, nil, err
+		}
+	}
+	return unstructuredConfig, config, configContent, nil
+}
+
 func hasServiceServingCerts(certDir string) bool {
 	if _, err := os.Stat(filepath.Join(certDir, "tls.crt")); os.IsNotExist(err) {
 		return false
@@ -86,23 +107,10 @@ func hasServiceServingCerts(certDir string) bool {
 	return true
 }
 
-// StartController runs the controller
-func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
-	configContent, unstructuredConfig, err := c.basicFlags.ToConfigObj()
-	if err != nil {
-		return err
-	}
-	config := &operatorv1alpha1.GenericOperatorConfig{}
-	if unstructuredConfig != nil {
-		// make a copy we can mutate
-		configCopy := unstructuredConfig.DeepCopy()
-		// force the config to our version to read it
-		configCopy.SetGroupVersionKind(operatorv1alpha1.GroupVersion.WithKind("GenericOperatorConfig"))
-		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(configCopy.Object, config); err != nil {
-			return err
-		}
-	}
-
+// AddDefaultRotationToConfig starts the provided builder with the default rotation set (config + serving info). Use StartController if
+// you do not need to customize the controller builder. This method modifies config with self-signed default cert locations if
+// necessary.
+func (c *ControllerCommandConfig) AddDefaultRotationToConfig(config *operatorv1alpha1.GenericOperatorConfig, configContent []byte) (map[string][]byte, []string, error) {
 	certDir := "/var/run/secrets/serving-cert"
 
 	observedFiles := []string{
@@ -134,7 +142,7 @@ func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
 			klog.Warningf("Using insecure, self-signed certificates")
 			temporaryCertDir, err := ioutil.TempDir("", "serving-cert-")
 			if err != nil {
-				return err
+				return nil, nil, err
 			}
 			signerName := fmt.Sprintf("%s-signer@%d", c.componentName, time.Now().Unix())
 			ca, err := crypto.MakeSelfSignedCA(
@@ -145,7 +153,7 @@ func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
 				0,
 			)
 			if err != nil {
-				return err
+				return nil, nil, err
 			}
 			certDir = temporaryCertDir
 
@@ -155,15 +163,15 @@ func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
 			// nothing can trust this, so we don't really care about hostnames
 			servingCert, err := ca.MakeServerCert(sets.NewString("localhost"), 30)
 			if err != nil {
-				return err
+				return nil, nil, err
 			}
 			if err := servingCert.WriteCertConfigFile(config.ServingInfo.CertFile, config.ServingInfo.KeyFile); err != nil {
-				return err
+				return nil, nil, err
 			}
 			crtContent := &bytes.Buffer{}
 			keyContent := &bytes.Buffer{}
 			if err := servingCert.WriteCertConfig(crtContent, keyContent); err != nil {
-				return err
+				return nil, nil, err
 			}
 
 			// If we generate our own certificates, then we want to specify empty content to avoid a starting race.  This way,
@@ -172,9 +180,23 @@ func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
 			startingFileContent[filepath.Join(certDir, "tls.key")] = keyContent.Bytes()
 		}
 	}
+	return startingFileContent, observedFiles, nil
+}
+
+// StartController runs the controller. This is the recommend entrypoint when you don't need
+// to customize the builder.
+func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
+	unstructuredConfig, config, configContent, err := c.Config()
+	if err != nil {
+		return err
+	}
+
+	startingFileContent, observedFiles, err := c.AddDefaultRotationToConfig(config, configContent)
+	if err != nil {
+		return err
+	}
 
 	exitOnChangeReactorCh := make(chan struct{})
-	ctx2 := context.Background()
 	ctx2, cancel := context.WithCancel(ctx)
 	go func() {
 		select {
@@ -185,10 +207,11 @@ func (c *ControllerCommandConfig) StartController(ctx context.Context) error {
 		}
 	}()
 
-	return NewController(c.componentName, c.startFunc).
+	builder := NewController(c.componentName, c.startFunc).
 		WithKubeConfigFile(c.basicFlags.KubeConfigFile, nil).
 		WithLeaderElection(config.LeaderElection, "", c.componentName+"-lock").
 		WithServer(config.ServingInfo, config.Authentication, config.Authorization).
-		WithRestartOnChange(exitOnChangeReactorCh, startingFileContent, observedFiles...).
-		Run(unstructuredConfig, ctx2)
+		WithRestartOnChange(exitOnChangeReactorCh, startingFileContent, observedFiles...)
+
+	return builder.Run(unstructuredConfig, ctx2)
 }

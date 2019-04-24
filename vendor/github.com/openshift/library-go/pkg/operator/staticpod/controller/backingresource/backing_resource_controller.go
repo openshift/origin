@@ -27,58 +27,54 @@ import (
 )
 
 const (
-	operatorStatusBackingResourceControllerFailing = "BackingResourceControllerFailing"
-	controllerWorkQueueKey                         = "key"
-	manifestDir                                    = "pkg/operator/staticpod/controller/backingresource"
+	operatorStatusBackingResourceControllerDegraded = "BackingResourceControllerDegraded"
+	controllerWorkQueueKey                          = "key"
+	manifestDir                                     = "pkg/operator/staticpod/controller/backingresource"
 )
 
 // BackingResourceController is a controller that watches the operator config and updates
 // service accounts and RBAC rules in the target namespace according to the bindata manifests
 // (templated with the config) if they differ.
 type BackingResourceController struct {
-	targetNamespace      string
-	operatorConfigClient v1helpers.OperatorClient
+	targetNamespace string
 
-	saListerSynced cache.InformerSynced
-	saLister       corelisterv1.ServiceAccountLister
+	operatorClient           v1helpers.OperatorClient
+	saLister                 corelisterv1.ServiceAccountLister
+	clusterRoleBindingLister rbaclisterv1.ClusterRoleBindingLister
+	kubeClient               kubernetes.Interface
 
-	clusterRoleBindingLister       rbaclisterv1.ClusterRoleBindingLister
-	clusterRoleBindingListerSynced cache.InformerSynced
-
-	// queue only ever has one item, but it has nice error handling backoff/retry semantics
-	queue workqueue.RateLimitingInterface
-
-	kubeClient    kubernetes.Interface
+	cachesToSync  []cache.InformerSynced
+	queue         workqueue.RateLimitingInterface
 	eventRecorder events.Recorder
 }
 
 // NewBackingResourceController creates a new backing resource controller.
 func NewBackingResourceController(
 	targetNamespace string,
-	operatorConfigClient v1helpers.OperatorClient,
+	operatorClient v1helpers.OperatorClient,
 	kubeInformersForTargetNamespace informers.SharedInformerFactory,
 	kubeClient kubernetes.Interface,
 	eventRecorder events.Recorder,
 ) *BackingResourceController {
 	c := &BackingResourceController{
-		targetNamespace:      targetNamespace,
-		operatorConfigClient: operatorConfigClient,
-		eventRecorder:        eventRecorder.WithComponentSuffix("backing-resource-controller"),
+		targetNamespace: targetNamespace,
+		operatorClient:  operatorClient,
 
-		saListerSynced: kubeInformersForTargetNamespace.Core().V1().ServiceAccounts().Informer().HasSynced,
-		saLister:       kubeInformersForTargetNamespace.Core().V1().ServiceAccounts().Lister(),
+		saLister:                 kubeInformersForTargetNamespace.Core().V1().ServiceAccounts().Lister(),
+		clusterRoleBindingLister: kubeInformersForTargetNamespace.Rbac().V1().ClusterRoleBindings().Lister(),
+		kubeClient:               kubeClient,
 
-		clusterRoleBindingListerSynced: kubeInformersForTargetNamespace.Core().V1().ServiceAccounts().Informer().HasSynced,
-		clusterRoleBindingLister:       kubeInformersForTargetNamespace.Rbac().V1().ClusterRoleBindings().Lister(),
-
-		queue:      workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "BackingResourceController"),
-		kubeClient: kubeClient,
+		queue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "BackingResourceController"),
+		eventRecorder: eventRecorder.WithComponentSuffix("backing-resource-controller"),
 	}
 
-	operatorConfigClient.Informer().AddEventHandler(c.eventHandler())
-
+	operatorClient.Informer().AddEventHandler(c.eventHandler())
 	kubeInformersForTargetNamespace.Core().V1().ServiceAccounts().Informer().AddEventHandler(c.eventHandler())
 	kubeInformersForTargetNamespace.Rbac().V1().ClusterRoleBindings().Informer().AddEventHandler(c.eventHandler())
+
+	c.cachesToSync = append(c.cachesToSync, operatorClient.Informer().HasSynced)
+	c.cachesToSync = append(c.cachesToSync, kubeInformersForTargetNamespace.Core().V1().ServiceAccounts().Informer().HasSynced)
+	c.cachesToSync = append(c.cachesToSync, kubeInformersForTargetNamespace.Rbac().V1().ClusterRoleBindings().Informer().HasSynced)
 
 	return c
 }
@@ -93,7 +89,7 @@ func (c BackingResourceController) mustTemplateAsset(name string) ([]byte, error
 }
 
 func (c BackingResourceController) sync() error {
-	operatorSpec, _, _, err := c.operatorConfigClient.GetOperatorState()
+	operatorSpec, _, _, err := c.operatorClient.GetOperatorState()
 	if err != nil {
 		return err
 	}
@@ -117,7 +113,7 @@ func (c BackingResourceController) sync() error {
 
 	// update failing condition
 	cond := operatorv1.OperatorCondition{
-		Type:   operatorStatusBackingResourceControllerFailing,
+		Type:   operatorStatusBackingResourceControllerDegraded,
 		Status: operatorv1.ConditionFalse,
 	}
 	if err != nil {
@@ -125,7 +121,7 @@ func (c BackingResourceController) sync() error {
 		cond.Reason = "Error"
 		cond.Message = err.Error()
 	}
-	if _, _, updateError := v1helpers.UpdateStatus(c.operatorConfigClient, v1helpers.UpdateConditionFn(cond)); updateError != nil {
+	if _, _, updateError := v1helpers.UpdateStatus(c.operatorClient, v1helpers.UpdateConditionFn(cond)); updateError != nil {
 		if err == nil {
 			return updateError
 		}
@@ -141,10 +137,7 @@ func (c *BackingResourceController) Run(workers int, stopCh <-chan struct{}) {
 
 	klog.Infof("Starting BackingResourceController")
 	defer klog.Infof("Shutting down BackingResourceController")
-	if !cache.WaitForCacheSync(stopCh, c.saListerSynced) {
-		return
-	}
-	if !cache.WaitForCacheSync(stopCh, c.clusterRoleBindingListerSynced) {
+	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
 		return
 	}
 

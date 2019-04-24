@@ -59,6 +59,7 @@ type SecurityContextConstraints struct {
 	// Flexvolumes may be used.  This parameter is effective only when the usage of the Flexvolumes
 	// is allowed in the "Volumes" field.
 	// +optional
+	// +nullable
 	AllowedFlexVolumes []AllowedFlexVolume `json:"allowedFlexVolumes,omitempty" protobuf:"bytes,21,rep,name=allowedFlexVolumes"`
 	// AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
 	AllowHostNetwork bool `json:"allowHostNetwork" protobuf:"varint,9,opt,name=allowHostNetwork"`
@@ -71,10 +72,12 @@ type SecurityContextConstraints struct {
 	// DefaultAllowPrivilegeEscalation controls the default setting for whether a
 	// process can gain more privileges than its parent process.
 	// +optional
+	// +nullable
 	DefaultAllowPrivilegeEscalation *bool `json:"defaultAllowPrivilegeEscalation,omitempty" protobuf:"varint,22,rep,name=defaultAllowPrivilegeEscalation"`
 	// AllowPrivilegeEscalation determines if a pod can request to allow
 	// privilege escalation. If unspecified, defaults to true.
 	// +optional
+	// +nullable
 	AllowPrivilegeEscalation *bool `json:"allowPrivilegeEscalation,omitempty" protobuf:"varint,23,rep,name=allowPrivilegeEscalation"`
 	// SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
 	SELinuxContext SELinuxContextStrategyOptions `json:"seLinuxContext,omitempty" protobuf:"bytes,13,opt,name=seLinuxContext"`
@@ -93,9 +96,11 @@ type SecurityContextConstraints struct {
 
 	// The users who have permissions to use this security context constraints
 	// +optional
+	// +nullable
 	Users []string `json:"users" protobuf:"bytes,18,rep,name=users"`
 	// The groups that have permission to use this security context constraints
 	// +optional
+	// +nullable
 	Groups []string `json:"groups" protobuf:"bytes,19,rep,name=groups"`
 
 	// SeccompProfiles lists the allowed profiles that may be set for the pod or
@@ -114,6 +119,7 @@ type SecurityContextConstraints struct {
 	// e.g. "foo/*" allows "foo/bar", "foo/baz", etc.
 	// e.g. "foo.*" allows "foo.bar", "foo.baz", etc.
 	// +optional
+	// +nullable
 	AllowedUnsafeSysctls []string `json:"allowedUnsafeSysctls,omitempty" protobuf:"bytes,24,rep,name=allowedUnsafeSysctls"`
 	// ForbiddenSysctls is a list of explicitly forbidden sysctls, defaults to none.
 	// Each entry is either a plain sysctl name or ends in "*" in which case it is considered
@@ -123,6 +129,7 @@ type SecurityContextConstraints struct {
 	// e.g. "foo/*" forbids "foo/bar", "foo/baz", etc.
 	// e.g. "foo.*" forbids "foo.bar", "foo.baz", etc.
 	// +optional
+	// +nullable
 	ForbiddenSysctls []string `json:"forbiddenSysctls,omitempty" protobuf:"bytes,25,rep,name=forbiddenSysctls"`
 }
 

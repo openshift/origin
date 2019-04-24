@@ -2,15 +2,16 @@ package helpers
 
 import (
 	"io/ioutil"
-	"net"
-	"net/http"
-	"time"
 
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/library-go/pkg/config/client"
 )
+
+// TODO this file needs to collapse with pkg/config/client.  We cannot safely delegate from this file because this one
+// TODO uses JSON and other uses protobuf.
 
 // GetKubeClientConfig loads in-cluster config if kubeConfigFile is empty or the file if not, then applies overrides.
 func GetKubeClientConfig(kubeClientConnection configv1.KubeClientConfig) (*rest.Config, error) {
@@ -29,7 +30,7 @@ func GetKubeConfigOrInClusterConfig(kubeConfigFile string, overrides configv1.Cl
 		return nil, err
 	}
 	applyClientConnectionOverrides(overrides, clientConfig)
-	clientConfig.WrapTransport = DefaultClientTransport
+	clientConfig.WrapTransport = client.ClientTransportOverrides{WrapTransport: clientConfig.WrapTransport}.DefaultClientTransport
 
 	return clientConfig, nil
 }
@@ -48,7 +49,7 @@ func GetClientConfig(kubeConfigFile string, overrides configv1.ClientConnectionO
 		return nil, err
 	}
 	applyClientConnectionOverrides(overrides, clientConfig)
-	clientConfig.WrapTransport = DefaultClientTransport
+	clientConfig.WrapTransport = client.ClientTransportOverrides{WrapTransport: clientConfig.WrapTransport}.DefaultClientTransport
 
 	return clientConfig, nil
 }
@@ -67,24 +68,4 @@ func applyClientConnectionOverrides(overrides configv1.ClientConnectionOverrides
 	if len(overrides.ContentType) != 0 {
 		kubeConfig.ContentConfig.ContentType = overrides.ContentType
 	}
-}
-
-// DefaultClientTransport sets defaults for a client Transport that are suitable
-// for use by infrastructure components.
-func DefaultClientTransport(rt http.RoundTripper) http.RoundTripper {
-	transport, ok := rt.(*http.Transport)
-	if !ok {
-		return rt
-	}
-
-	// TODO: this should be configured by the caller, not in this method.
-	dialer := &net.Dialer{
-		Timeout:   30 * time.Second,
-		KeepAlive: 30 * time.Second,
-	}
-	transport.Dial = dialer.Dial
-	// Hold open more internal idle connections
-	// TODO: this should be configured by the caller, not in this method.
-	transport.MaxIdleConnsPerHost = 100
-	return transport
 }

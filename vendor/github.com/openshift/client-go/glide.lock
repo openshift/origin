@@ -1,5 +1,5 @@
 hash: c28d9721958d348280bb01aa0ce5eac67c2466b33fdd6ef2f8867866c8edb354
-updated: 2019-04-02T10:03:17.957026307-04:00
+updated: 2019-04-09T11:21:59.220356961-05:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
@@ -47,7 +47,7 @@ imports:
 - name: github.com/modern-go/reflect2
   version: 94122c33edd36123c84d5368cfb2b69df93a0ec8
 - name: github.com/openshift/api
-  version: d2f01e7b77a6fc78b328db20285423838419fef7
+  version: 275768afc8f66b79aeb12debf94ffc85255104ad
   subpackages:
   - apps/v1
   - authorization/v1
@@ -113,7 +113,7 @@ imports:
   subpackages:
   - imports
 - name: google.golang.org/appengine
-  version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
+  version: 54a98f90d1c46b7731eb8fb305d2a321c30ef610
   subpackages:
   - internal
   - internal/base
@@ -237,7 +237,7 @@ imports:
   - util/integer
   - util/retry
 - name: k8s.io/code-generator
-  version: 2bf47b06188b89cc41d68422aa52509f2cbb4cc8
+  version: b7d0f818cc1e1fc12b9acc529a1c27835609cdf4
   repo: https://github.com/openshift/kubernetes-code-generator.git
 - name: k8s.io/gengo
   version: 51747d6e00da1fc578d5a333a93bb2abcbce7a95

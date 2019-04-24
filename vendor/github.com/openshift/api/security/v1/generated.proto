@@ -222,6 +222,7 @@ message SecurityContextConstraints {
   // Flexvolumes may be used.  This parameter is effective only when the usage of the Flexvolumes
   // is allowed in the "Volumes" field.
   // +optional
+  // +nullable
   repeated AllowedFlexVolume allowedFlexVolumes = 21;
 
   // AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
@@ -239,11 +240,13 @@ message SecurityContextConstraints {
   // DefaultAllowPrivilegeEscalation controls the default setting for whether a
   // process can gain more privileges than its parent process.
   // +optional
+  // +nullable
   optional bool defaultAllowPrivilegeEscalation = 22;
 
   // AllowPrivilegeEscalation determines if a pod can request to allow
   // privilege escalation. If unspecified, defaults to true.
   // +optional
+  // +nullable
   optional bool allowPrivilegeEscalation = 23;
 
   // SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
@@ -267,10 +270,12 @@ message SecurityContextConstraints {
 
   // The users who have permissions to use this security context constraints
   // +optional
+  // +nullable
   repeated string users = 18;
 
   // The groups that have permission to use this security context constraints
   // +optional
+  // +nullable
   repeated string groups = 19;
 
   // SeccompProfiles lists the allowed profiles that may be set for the pod or
@@ -289,6 +294,7 @@ message SecurityContextConstraints {
   // e.g. "foo/*" allows "foo/bar", "foo/baz", etc.
   // e.g. "foo.*" allows "foo.bar", "foo.baz", etc.
   // +optional
+  // +nullable
   repeated string allowedUnsafeSysctls = 24;
 
   // ForbiddenSysctls is a list of explicitly forbidden sysctls, defaults to none.
@@ -299,6 +305,7 @@ message SecurityContextConstraints {
   // e.g. "foo/*" forbids "foo/bar", "foo/baz", etc.
   // e.g. "foo.*" forbids "foo.bar", "foo.baz", etc.
   // +optional
+  // +nullable
   repeated string forbiddenSysctls = 25;
 }
 

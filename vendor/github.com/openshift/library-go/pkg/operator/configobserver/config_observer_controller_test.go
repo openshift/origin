@@ -103,7 +103,7 @@ func TestSyncStatus(t *testing.T) {
 				"baz": "three",
 			}},
 			expectedCondition: &operatorv1.OperatorCondition{
-				Type:   operatorStatusTypeConfigObservationFailing,
+				Type:   operatorStatusTypeConfigObservationDegraded,
 				Status: operatorv1.ConditionFalse,
 			},
 		},
@@ -136,7 +136,7 @@ func TestSyncStatus(t *testing.T) {
 				"bar": "two",
 			}},
 			expectedCondition: &operatorv1.OperatorCondition{
-				Type:    operatorStatusTypeConfigObservationFailing,
+				Type:    operatorStatusTypeConfigObservationDegraded,
 				Status:  operatorv1.ConditionTrue,
 				Reason:  "Error",
 				Message: "some failure",
@@ -163,7 +163,7 @@ func TestSyncStatus(t *testing.T) {
 			expectError:            true,
 			expectedObservedConfig: nil,
 			expectedCondition: &operatorv1.OperatorCondition{
-				Type:    operatorStatusTypeConfigObservationFailing,
+				Type:    operatorStatusTypeConfigObservationDegraded,
 				Status:  operatorv1.ConditionTrue,
 				Reason:  "Error",
 				Message: "error writing updated observed config: update spec failure",
@@ -190,7 +190,7 @@ func TestSyncStatus(t *testing.T) {
 
 			expectError: true,
 			expectedCondition: &operatorv1.OperatorCondition{
-				Type:    operatorStatusTypeConfigObservationFailing,
+				Type:    operatorStatusTypeConfigObservationDegraded,
 				Status:  operatorv1.ConditionTrue,
 				Reason:  "Error",
 				Message: "non-deterministic config observation detected",
@@ -204,10 +204,10 @@ func TestSyncStatus(t *testing.T) {
 			eventClient := fake.NewSimpleClientset()
 
 			configObserver := ConfigObserver{
-				listers:              &fakeLister{},
-				operatorConfigClient: operatorConfigClient,
-				observers:            tc.observers,
-				eventRecorder:        events.NewRecorder(eventClient.CoreV1().Events("test"), "test-operator", &corev1.ObjectReference{}),
+				listers:        &fakeLister{},
+				operatorClient: operatorConfigClient,
+				observers:      tc.observers,
+				eventRecorder:  events.NewRecorder(eventClient.CoreV1().Events("test"), "test-operator", &corev1.ObjectReference{}),
 			}
 			err := configObserver.sync()
 			if tc.expectError && err == nil {
@@ -250,7 +250,7 @@ func TestSyncStatus(t *testing.T) {
 			case tc.expectedCondition != nil && operatorConfigClient.status == nil:
 				t.Error("missing expected status")
 			case tc.expectedCondition != nil:
-				condition := v1helpers.FindOperatorCondition(operatorConfigClient.status.Conditions, operatorStatusTypeConfigObservationFailing)
+				condition := v1helpers.FindOperatorCondition(operatorConfigClient.status.Conditions, operatorStatusTypeConfigObservationDegraded)
 				condition.LastTransitionTime = tc.expectedCondition.LastTransitionTime
 				if !reflect.DeepEqual(tc.expectedCondition, condition) {
 					t.Fatalf("\n===== condition expected:\n%v\n===== condition actual:\n%v", toYAML(tc.expectedCondition), toYAML(condition))

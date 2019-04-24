@@ -105,10 +105,6 @@ func TestNewNodeController(t *testing.T) {
 			fakeLister := v1helpers.NewFakeNodeLister(kubeClient)
 			kubeInformers := informers.NewSharedInformerFactory(kubeClient, 1*time.Minute)
 			fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(
-				&operatorv1.OperatorSpec{
-					ManagementState: operatorv1.Managed,
-				},
-				&operatorv1.OperatorStatus{},
 				&operatorv1.StaticPodOperatorSpec{
 					OperatorSpec: operatorv1.OperatorSpec{
 						ManagementState: operatorv1.Managed,
@@ -118,6 +114,7 @@ func TestNewNodeController(t *testing.T) {
 					LatestAvailableRevision: 1,
 					NodeStatuses:            test.startNodeStatus,
 				},
+				nil,
 				nil,
 			)
 

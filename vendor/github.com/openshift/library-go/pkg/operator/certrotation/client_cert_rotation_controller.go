@@ -43,10 +43,8 @@ type CertRotationController struct {
 	TargetRotation   TargetRotation
 	OperatorClient   v1helpers.StaticPodOperatorClient
 
-	cachesSynced []cache.InformerSynced
-
-	// queue only ever has one item, but it has nice error handling backoff/retry semantics
-	queue workqueue.RateLimitingInterface
+	cachesToSync []cache.InformerSynced
+	queue        workqueue.RateLimitingInterface
 }
 
 func NewCertRotationController(
@@ -56,7 +54,7 @@ func NewCertRotationController(
 	targetRotation TargetRotation,
 	operatorClient v1helpers.StaticPodOperatorClient,
 ) (*CertRotationController, error) {
-	ret := &CertRotationController{
+	c := &CertRotationController{
 		name: name,
 
 		SigningRotation:  signingRotation,
@@ -64,27 +62,25 @@ func NewCertRotationController(
 		TargetRotation:   targetRotation,
 		OperatorClient:   operatorClient,
 
-		cachesSynced: []cache.InformerSynced{
-			signingRotation.Informer.Informer().HasSynced,
-			caBundleRotation.Informer.Informer().HasSynced,
-			targetRotation.Informer.Informer().HasSynced,
-		},
-
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), name),
 	}
 
-	signingRotation.Informer.Informer().AddEventHandler(ret.eventHandler())
-	caBundleRotation.Informer.Informer().AddEventHandler(ret.eventHandler())
-	targetRotation.Informer.Informer().AddEventHandler(ret.eventHandler())
+	signingRotation.Informer.Informer().AddEventHandler(c.eventHandler())
+	caBundleRotation.Informer.Informer().AddEventHandler(c.eventHandler())
+	targetRotation.Informer.Informer().AddEventHandler(c.eventHandler())
 
-	return ret, nil
+	c.cachesToSync = append(c.cachesToSync, signingRotation.Informer.Informer().HasSynced)
+	c.cachesToSync = append(c.cachesToSync, caBundleRotation.Informer.Informer().HasSynced)
+	c.cachesToSync = append(c.cachesToSync, targetRotation.Informer.Informer().HasSynced)
+
+	return c, nil
 }
 
 func (c CertRotationController) sync() error {
 	syncErr := c.syncWorker()
 
 	condition := operatorv1.OperatorCondition{
-		Type:   "CertRotation_" + c.name + "_Failing",
+		Type:   "CertRotation_" + c.name + "_Degraded",
 		Status: operatorv1.ConditionFalse,
 	}
 	if syncErr != nil {
@@ -123,8 +119,7 @@ func (c *CertRotationController) Run(workers int, stopCh <-chan struct{}) {
 
 	klog.Infof("Starting CertRotationController - %q", c.name)
 	defer klog.Infof("Shutting down CertRotationController - %q", c.name)
-
-	if !cache.WaitForCacheSync(stopCh, c.cachesSynced...) {
+	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
 		utilruntime.HandleError(fmt.Errorf("caches did not sync"))
 		return
 	}

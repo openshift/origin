@@ -257,7 +257,7 @@ func (RecreateDeploymentStrategyParams) SwaggerDoc() map[string]string {
 }
 
 var map_RollingDeploymentStrategyParams = map[string]string{
-	"": "RollingDeploymentStrategyParams are the input to the Rolling deployment strategy.",
+	"":                    "RollingDeploymentStrategyParams are the input to the Rolling deployment strategy.",
 	"updatePeriodSeconds": "UpdatePeriodSeconds is the time to wait between individual pod updates. If the value is nil, a default will be used.",
 	"intervalSeconds":     "IntervalSeconds is the time to wait between polling deployment status after update. If the value is nil, a default will be used.",
 	"timeoutSeconds":      "TimeoutSeconds is the time to wait for updates before giving up. If the value is nil, a default will be used.",

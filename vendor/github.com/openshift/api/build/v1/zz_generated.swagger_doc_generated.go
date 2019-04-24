@@ -367,10 +367,10 @@ func (GenericWebHookCause) SwaggerDoc() map[string]string {
 }
 
 var map_GenericWebHookEvent = map[string]string{
-	"":     "GenericWebHookEvent is the payload expected for a generic webhook post",
-	"type": "type is the type of source repository",
-	"git":  "git is the git information if the Type is BuildSourceGit",
-	"env":  "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
+	"":                      "GenericWebHookEvent is the payload expected for a generic webhook post",
+	"type":                  "type is the type of source repository",
+	"git":                   "git is the git information if the Type is BuildSourceGit",
+	"env":                   "env contains additional environment variables you want to pass into a builder container. ValueFrom is not supported.",
 	"dockerStrategyOptions": "DockerStrategyOptions contains additional docker-strategy specific options for the build",
 }
 
@@ -446,7 +446,7 @@ func (ImageChangeCause) SwaggerDoc() map[string]string {
 }
 
 var map_ImageChangeTrigger = map[string]string{
-	"": "ImageChangeTrigger allows builds to be triggered when an ImageStream changes",
+	"":                     "ImageChangeTrigger allows builds to be triggered when an ImageStream changes",
 	"lastTriggeredImageID": "lastTriggeredImageID is used internally by the ImageChangeController to save last used image ID for build",
 	"from":                 "from is a reference to an ImageStreamTag that will trigger a build when updated It is optional. If no From is specified, the From image from the build strategy will be used. Only one ImageChangeTrigger with an empty From reference is allowed in a build configuration.",
 	"paused":               "paused is true if this trigger is temporarily disabled. Optional.",

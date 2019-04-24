@@ -43,6 +43,9 @@ func TestEnsureSigningCertKeyPair(t *testing.T) {
 				}
 
 				actual := actions[1].(clienttesting.CreateAction).GetObject().(*corev1.Secret)
+				if certType, _ := CertificateTypeFromObject(actual); certType != CertificateTypeSigner {
+					t.Errorf("expected certificate type 'signer', got: %v", certType)
+				}
 				if len(actual.Data["tls.crt"]) == 0 || len(actual.Data["tls.key"]) == 0 {
 					t.Error(actual.Data)
 				}
@@ -65,6 +68,9 @@ func TestEnsureSigningCertKeyPair(t *testing.T) {
 				}
 
 				actual := actions[1].(clienttesting.UpdateAction).GetObject().(*corev1.Secret)
+				if certType, _ := CertificateTypeFromObject(actual); certType != CertificateTypeSigner {
+					t.Errorf("expected certificate type 'signer', got: %v", certType)
+				}
 				if len(actual.Data["tls.crt"]) == 0 || len(actual.Data["tls.key"]) == 0 {
 					t.Error(actual.Data)
 				}

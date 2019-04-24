@@ -232,10 +232,10 @@ func (ImageStreamSpec) SwaggerDoc() map[string]string {
 }
 
 var map_ImageStreamStatus = map[string]string{
-	"": "ImageStreamStatus contains information about the state of this image stream.",
+	"":                            "ImageStreamStatus contains information about the state of this image stream.",
 	"dockerImageRepository":       "DockerImageRepository represents the effective location this stream may be accessed at. May be empty until the server determines where the repository is located",
 	"publicDockerImageRepository": "PublicDockerImageRepository represents the public location from where the image can be pulled outside the cluster. This field may be empty if the administrator has not exposed the integrated registry externally.",
-	"tags": "Tags are a historical record of images associated with each tag. The first entry in the TagEvent array is the currently tagged image.",
+	"tags":                        "Tags are a historical record of images associated with each tag. The first entry in the TagEvent array is the currently tagged image.",
 }
 
 func (ImageStreamStatus) SwaggerDoc() map[string]string {

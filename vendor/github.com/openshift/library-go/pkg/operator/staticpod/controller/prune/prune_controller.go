@@ -34,20 +34,21 @@ type PruneController struct {
 	targetNamespace, podResourcePrefix string
 	// command is the string to use for the pruning pod command
 	command []string
-	// queue only ever has one item, but it has nice error handling backoff/retry semantics
-	queue workqueue.RateLimitingInterface
 
 	// prunerPodImageFn returns the image name for the pruning pod
 	prunerPodImageFn func() string
 	// ownerRefsFn sets the ownerrefs on the pruner pod
 	ownerRefsFn func(revision int32) ([]metav1.OwnerReference, error)
 
-	operatorConfigClient v1helpers.StaticPodOperatorClient
+	operatorClient v1helpers.StaticPodOperatorClient
 
 	configMapGetter corev1client.ConfigMapsGetter
 	secretGetter    corev1client.SecretsGetter
 	podGetter       corev1client.PodsGetter
-	eventRecorder   events.Recorder
+
+	cachesToSync  []cache.InformerSynced
+	queue         workqueue.RateLimitingInterface
+	eventRecorder events.Recorder
 }
 
 const (
@@ -64,7 +65,7 @@ func NewPruneController(
 	configMapGetter corev1client.ConfigMapsGetter,
 	secretGetter corev1client.SecretsGetter,
 	podGetter corev1client.PodsGetter,
-	operatorConfigClient v1helpers.StaticPodOperatorClient,
+	operatorClient v1helpers.StaticPodOperatorClient,
 	eventRecorder events.Recorder,
 ) *PruneController {
 	c := &PruneController{
@@ -72,7 +73,7 @@ func NewPruneController(
 		podResourcePrefix: podResourcePrefix,
 		command:           command,
 
-		operatorConfigClient: operatorConfigClient,
+		operatorClient: operatorClient,
 
 		configMapGetter: configMapGetter,
 		secretGetter:    secretGetter,
@@ -84,7 +85,10 @@ func NewPruneController(
 	}
 
 	c.ownerRefsFn = c.setOwnerRefs
-	operatorConfigClient.Informer().AddEventHandler(c.eventHandler())
+
+	operatorClient.Informer().AddEventHandler(c.eventHandler())
+
+	c.cachesToSync = append(c.cachesToSync, operatorClient.Informer().HasSynced)
 
 	return c
 }
@@ -280,6 +284,9 @@ func (c *PruneController) Run(workers int, stopCh <-chan struct{}) {
 
 	klog.Infof("Starting PruneController")
 	defer klog.Infof("Shutting down PruneController")
+	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
+		return
+	}
 
 	// doesn't matter what workers say, only start one.
 	go wait.Until(c.runWorker, time.Second, stopCh)
@@ -313,7 +320,7 @@ func (c *PruneController) processNextWorkItem() bool {
 
 func (c *PruneController) sync() error {
 	klog.V(5).Info("Syncing revision pruner")
-	operatorSpec, operatorStatus, _, err := c.operatorConfigClient.GetStaticPodOperatorState()
+	operatorSpec, operatorStatus, _, err := c.operatorClient.GetStaticPodOperatorState()
 	if err != nil {
 		return err
 	}

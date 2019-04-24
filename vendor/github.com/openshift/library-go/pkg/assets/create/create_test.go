@@ -132,7 +132,7 @@ func TestEnsureManifestsCreated(t *testing.T) {
 	if !strings.Contains(out.String(), `no matches for kind "KubeAPIServerOperatorConfig"`) {
 		t.Fatalf("expected error logged to output when verbose is on, got: %s\n", out.String())
 	}
-	if !strings.Contains(out.String(), `Created apiextensions.k8s.io/v1beta1`) {
+	if !strings.Contains(out.String(), `Created "0000_10_kube-apiserver-operator_01_config.crd.yaml" customresourcedefinitions.v1beta1.apiextensions.k8s.io`) {
 		t.Fatalf("expected success logged to output when verbose is on, got: %s\n", out.String())
 	}
 }

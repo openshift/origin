@@ -35,6 +35,8 @@ func Run() error {
 	manifestDir := flag.String("manifests-dir", "manifests", "the directory with existing CRD manifests")
 	outputDir := flag.String("output-dir", "", "optional directory to output the kubebuilder CRDs. By default a temporary directory is used.")
 	verifyOnly := flag.Bool("verify-only", false, "do not write files, only compare and return with return code 1 if dirty")
+	domain := flag.String("domain", "", "the domain appended to group names.")
+	repo := flag.String("repo", "", "the repository package name (optional).")
 
 	flag.Parse()
 
@@ -54,6 +56,23 @@ func Run() error {
 		return fmt.Errorf("error creating temp directory: %v\n", err)
 	}
 	defer os.RemoveAll(tmpDir)
+	relTmpDir := tmpDir[len(pwd)+1:]
+
+	// find repo in GOPATH
+	sep := string([]rune{os.PathSeparator})
+	GOPATH := strings.TrimRight(os.Getenv("GOPATH"), sep)
+	if len(*repo) == 0 && len(GOPATH) > 0 && strings.HasPrefix(pwd, filepath.Join(GOPATH, "src")+sep) {
+		*repo = pwd[len(filepath.Join(GOPATH, "src")+sep):]
+		fmt.Printf("Derived repo %q from GOPATH and working directory.\n", *repo)
+	}
+
+	// validate params
+	if len(*repo) == 0 {
+		return fmt.Errorf("repo cannot be empty. Run crd-schema-gen in GOPATH or specify repo explicitly.")
+	}
+	if len(*domain) == 0 {
+		return fmt.Errorf("domain cannot be empty.")
+	}
 
 	// copy APIs to temp dir
 	fmt.Printf("Copying vendor/github.com/openshift/api/config to temporary pkg/apis...\n")
@@ -66,11 +85,16 @@ func Run() error {
 		fmt.Print(string(out))
 		return err
 	}
+	if err := ioutil.WriteFile(filepath.Join(tmpDir, "PROJECT"), []byte(fmt.Sprintf(`
+domain: %s
+repo: %s/%s
+`, *domain, *repo, relTmpDir)), 0644); err != nil {
+		return err
+	}
 
 	// generate kubebuilder KindGroupYaml manifests into temp dir
 	g := crdgenerator.Generator{
 		RootPath:          tmpDir,
-		Domain:            "openshift.io",
 		OutputDir:         filepath.Join(tmpDir, "manifests"),
 		SkipMapValidation: true,
 	}
@@ -105,11 +129,13 @@ func Run() error {
 
 	// update existing manifests with validations of kubebuilder output
 	dirty := false
+	noneFound := true
 	for fn, withValidation := range fromKubebuilder {
 		existingFileName, ok := existingFileNames[withValidation.KindGroup]
 		if !ok {
 			continue
 		}
+		noneFound = false
 
 		crd := existing[existingFileName]
 
@@ -199,6 +225,18 @@ func Run() error {
 				dirty = true
 			}
 		}
+	}
+
+	if noneFound {
+		fmt.Printf("None of the found API types has a corresponding CRD manifest. These API types where found:\n\n")
+		for _, withValidation := range fromKubebuilder {
+			fmt.Printf("  %s\n", withValidation.KindGroup)
+		}
+		fmt.Printf("These CRDs were found:\n\n")
+		for existingKindGroup := range existingFileNames {
+			fmt.Printf("  %s\n", existingKindGroup)
+		}
+		return fmt.Errorf("no API type for found CRD manifests")
 	}
 
 	if *verifyOnly && dirty {
