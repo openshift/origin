@@ -30,6 +30,10 @@ func WithDebug(handler http.Handler) http.Handler {
 			final = t
 		case *fancyResponseWriterDelegator:
 			final = t.auditResponseWriter
+		case *closeResponseWriterDelegator:
+			final = t.auditResponseWriter
+		case *hijacResponseWriterDelegator:
+			final = t.auditResponseWriter
 		default:
 			panic(config.Sdump("ENJ:", "unknown type:", d))
 		}
