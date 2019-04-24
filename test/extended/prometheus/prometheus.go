@@ -125,16 +125,16 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 
 				g.By("verifying all expected jobs have a working target")
 				lastErrs = all(
+					// The OpenShift control plane
+					targets.Expect(labels{"job": "api"}, "up", "^https://.*/metrics$"),
+					targets.Expect(labels{"job": "controller-manager"}, "up", "^https://.*/metrics$"),
+
+					// The kube control plane
 					targets.Expect(labels{"job": "apiserver"}, "up", "^https://.*/metrics$"),
-					// TODO: add openshift api
-					// TODO: this should be https
-					// TODO: check control plane once the following PRs land:
-					//       - https://github.com/openshift/cluster-kube-scheduler-operator/pull/97
-					//       - https://github.com/openshift/installer/pull/1576
-					//       - https://github.com/openshift/cluster-monitoring-operator/pull/316
-					// targets.Expect(labels{"job": "kube-controller-manager"}, "up", "^https://.*/metrics$"),
-					// targets.Expect(labels{"job": "scheduler"}, "up", "^https://.*/metrics$"),
+					targets.Expect(labels{"job": "kube-controller-manager"}, "up", "^https://.*/metrics$"),
+					targets.Expect(labels{"job": "scheduler"}, "up", "^https://.*/metrics$"),
 					targets.Expect(labels{"job": "kube-state-metrics"}, "up", "^https://.*/metrics$"),
+
 					// TODO: should probably be https
 					targets.Expect(labels{"job": "cluster-version-operator"}, "up", "^http://.*/metrics$"),
 					targets.Expect(labels{"job": "prometheus-k8s", "namespace": "openshift-monitoring", "pod": "prometheus-k8s-0"}, "up", "^https://.*/metrics$"),
