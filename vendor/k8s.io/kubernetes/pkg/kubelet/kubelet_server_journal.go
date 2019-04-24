@@ -105,7 +105,6 @@ func (a *journalArgs) Args() []string {
 	args := []string{
 		"--utc",
 		"--no-pager",
-		"--boot",
 	}
 	if len(a.Since) > 0 {
 		args = append(args, "--since="+a.Since)
@@ -135,13 +134,29 @@ func (a *journalArgs) Args() []string {
 // args to the provided writer, timing out at a.Timeout. If an error occurs a line
 // is written to the output.
 func (a *journalArgs) Copy(w io.Writer) {
-	cmd := exec.Command("journalctl", a.Args()...)
+	// set the deadline to the maximum across both runs
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Duration(a.Timeout)*time.Second))
+	defer cancel()
+	// show the previous boot if possible, eating errors
+	a.copyForBoot(ctx, w, 1)
+	// show the current boot
+	a.copyForBoot(ctx, w, 0)
+}
+
+// copyForBoot invokes the provided args for a named boot record. If previousBoot is != 0, then
+// errors are silently ignored.
+func (a *journalArgs) copyForBoot(ctx context.Context, w io.Writer, previousBoot int) {
+	if ctx.Err() != nil {
+		return
+	}
+
+	args := a.Args()
+	args = append(args, "--boot", fmt.Sprintf("-%d", previousBoot))
+	cmd := exec.Command("journalctl", args...)
 	cmd.Stdout = w
 	cmd.Stderr = w
 
 	// force termination
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(a.Timeout)*time.Second)
-	defer cancel()
 	go func() {
 		<-ctx.Done()
 		if p := cmd.Process; p != nil {
@@ -153,8 +168,11 @@ func (a *journalArgs) Copy(w io.Writer) {
 		if _, ok := err.(*exec.ExitError); ok {
 			return
 		}
-		fmt.Fprintf(w, "error: journal output not available\n")
+		if previousBoot == 0 {
+			fmt.Fprintf(w, "error: journal output not available\n")
+		}
 	}
+
 }
 
 func stringInSlice(s string, allowed ...string) (string, error) {
