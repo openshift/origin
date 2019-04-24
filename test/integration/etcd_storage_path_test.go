@@ -153,10 +153,6 @@ var openshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageD
 	// --
 
 	// github.com/openshift/origin/pkg/security/apis/security/v1
-	gvr("security.openshift.io", "v1", "securitycontextconstraints"): {
-		Stub:             `{"allowPrivilegedContainer": true, "fsGroup": {"type": "RunAsAny"}, "metadata": {"name": "scc2"}, "runAsUser": {"type": "RunAsAny"}, "seLinuxContext": {"type": "MustRunAs"}, "supplementalGroups": {"type": "RunAsAny"}}`,
-		ExpectedEtcdPath: "openshift.io/securitycontextconstraints/scc2",
-	},
 	gvr("security.openshift.io", "v1", "rangeallocations"): {
 		Stub:             `{"metadata": {"name": "scc2"}}`,
 		ExpectedEtcdPath: "openshift.io/rangeallocations/scc2",
@@ -200,7 +196,9 @@ var openshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageD
 var kindWhiteList = sets.NewString(
 	"ImageStreamTag",
 	"UserIdentityMapping",
+	// these are now served using CRDs
 	"ClusterResourceQuota",
+	"SecurityContextConstraints",
 )
 
 // namespace used for all tests, do not change this

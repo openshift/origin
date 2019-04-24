@@ -248,6 +248,17 @@ function localup::start_kubecontrollermanager() {
     os::log::debug "Waiting for kube-controller-manager to come up"
     kube::util::wait_for_url "http://localhost:10252/healthz" "kube-controller-manager: " 1 ${WAIT_FOR_URL_API_SERVER} ${MAX_TIME_FOR_URL_API_SERVER} \
         || { os::log::error "check kube-controller-manager logs: ${KUBE_CONTROLLER_MANAGER_LOG}" ; exit 1 ; }
+
+    # we need SCCs as they are part of the OpenShift apiserver bootstrap process
+    echo "Waiting for the SCCs to appear"
+    tstamp=$(date +%s)
+    set +e
+    while (( $(date +%s) - $tstamp < 160 )); do
+        oc get --config="${LOCALUP_CONFIG}/kube-apiserver/admin.kubeconfig" --raw /apis/security.openshift.io/v1/securitycontextconstraints 2>/dev/null 1>&2 && break
+        sleep 0.25
+    done
+    set -e
+    oc get --config="${LOCALUP_CONFIG}/kube-apiserver/admin.kubeconfig" --raw /apis/security.openshift.io/v1/securitycontextconstraints 2>/dev/null 1>&2 || bash
 }
 
 function localup::start_openshiftapiserver() {
