@@ -43,9 +43,9 @@ import (
 	"github.com/openshift/library-go/pkg/crypto"
 
 	"github.com/openshift/origin/pkg/api/legacy"
-	"github.com/openshift/origin/pkg/cmd/openshift-apiserver"
-	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
-	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
+	openshiftapiserver "github.com/openshift/origin/pkg/cmd/openshift-apiserver"
+	openshiftcontrollermanager "github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
+	openshiftkubeapiserver "github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -331,6 +331,9 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, stop
 		return "", err
 	}
 
+	// SCCs are required for OpenShift apiserver bootstrap process
+	util.WaitForSecurityContextConstraintsCRDAvailable(clientConfig)
+
 	if err := startOpenShiftAPIServer(masterConfig, clientConfig, stopCh); err != nil {
 		return "", err
 	}
@@ -439,7 +442,7 @@ func startKubernetesAPIServer(masterConfig *configapi.MasterConfig, clientConfig
 	kubeAPIServerConfig.APIServerArguments["enable-aggregator-routing"] = kubecontrolplanev1.Arguments{"true"}
 	kubeAPIServerConfig.APIServerArguments["audit-log-format"] = kubecontrolplanev1.Arguments{"json"}
 	go func() {
-		if err := openshift_kube_apiserver.RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig, stopCh); err != nil {
+		if err := openshiftkubeapiserver.RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig, stopCh); err != nil {
 			klog.Errorf("openshift-kube-apiserver terminated: %v", err)
 		} else {
 			klog.Info("openshift-kube-apiserver terminated cleanly")
@@ -504,7 +507,7 @@ func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig 
 	}
 	openshiftAPIServerConfig.ServingInfo.BindAddress = openshiftAddrStr
 	go func() {
-		if err := openshift_apiserver.RunOpenShiftAPIServer(openshiftAPIServerConfig, stopCh); err != nil {
+		if err := openshiftapiserver.RunOpenShiftAPIServer(openshiftAPIServerConfig, stopCh); err != nil {
 			klog.Errorf("openshift-apiserver terminated: %v", err)
 		} else {
 			klog.Info("openshift-apiserver terminated cleanly")
@@ -718,14 +721,14 @@ func startOpenShiftControllers(masterConfig *configapi.MasterConfig) error {
 		return err
 	}
 
-	openshiftControllerConfig := openshift_controller_manager.ConvertMasterConfigToOpenshiftControllerConfig(externalMasterConfig)
+	openshiftControllerConfig := openshiftcontrollermanager.ConvertMasterConfigToOpenshiftControllerConfig(externalMasterConfig)
 	openshiftAddrStr, err := FindAvailableBindAddress(10000, 29999)
 	if err != nil {
 		return fmt.Errorf("couldn't find free address for OpenShift controller-manager: %v", err)
 	}
 	openshiftControllerConfig.ServingInfo.BindAddress = openshiftAddrStr
 	go func() {
-		if err := openshift_controller_manager.RunOpenShiftControllerManager(openshiftControllerConfig, privilegedLoopbackConfig); err != nil {
+		if err := openshiftcontrollermanager.RunOpenShiftControllerManager(openshiftControllerConfig, privilegedLoopbackConfig); err != nil {
 			klog.Errorf("openshift-controller-manager terminated: %v", err)
 		}
 		// TODO: stop openshift-controller-manager on exit of the test

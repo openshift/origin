@@ -210,15 +210,27 @@ func GetClientForServiceAccount(adminClient kubernetes.Interface, clientConfig r
 }
 
 func WaitForClusterResourceQuotaCRDAvailable(clusterAdminClientConfig *rest.Config) error {
+	return WaitForCRDAvailable(clusterAdminClientConfig, schema.GroupVersionResource{
+		Version:  "v1",
+		Group:    "quota.openshift.io",
+		Resource: "clusterresourcequotas",
+	})
+}
+
+func WaitForSecurityContextConstraintsCRDAvailable(clusterAdminClientConfig *rest.Config) error {
+	return WaitForCRDAvailable(clusterAdminClientConfig, schema.GroupVersionResource{
+		Version:  "v1",
+		Group:    "security.openshift.io",
+		Resource: "securitycontextconstraints",
+	})
+}
+
+func WaitForCRDAvailable(clusterAdminClientConfig *rest.Config, gvr schema.GroupVersionResource) error {
 	dynamicClient := dynamic.NewForConfigOrDie(clusterAdminClientConfig)
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 	err := wait.PollImmediateUntil(1*time.Minute, func() (done bool, err error) {
-		_, listErr := dynamicClient.Resource(schema.GroupVersionResource{
-			Version:  "v1",
-			Group:    "quota.openshift.io",
-			Resource: "clusterresourcequotas",
-		}).List(metav1.ListOptions{})
+		_, listErr := dynamicClient.Resource(gvr).List(metav1.ListOptions{})
 		return listErr == nil, nil
 	}, stopCh)
 	if err != nil {
