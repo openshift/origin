@@ -175,7 +175,7 @@ func newAuthenticator(
 		// wrap with short cache on success.
 		// this means a revoked service account token or access token will be valid for up to 10 seconds.
 		// it also means group membership changes on users may take up to 10 seconds to become effective.
-		tokenAuth = tokencache.New(tokenAuth, true, 10*time.Second, 0)
+		tokenAuth = tokencache.New(tokenAuth, false, 10*time.Second, 0)
 
 		authenticators = append(authenticators,
 			bearertoken.New(tokenAuth),
