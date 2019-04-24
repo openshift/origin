@@ -415,6 +415,9 @@ var (
 			`CSI Volumes CSI attach test using HostPath driver`,
 			`CSI Volumes CSI plugin test using CSI driver: hostPath`,
 			`Volume metrics should create volume metrics in Volume Manager`,
+			// TODO: Enable the following tests once resource quota is enabled in
+			`\[Feature:ScopeSelectors\]`, // @ravig - sig-pod
+			`\[Feature:PodPriority\]`,    // @ravig - sig-pod
 		},
 		// tests too slow to be part of conformance
 		"[Slow]": {
