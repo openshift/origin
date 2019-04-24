@@ -18,7 +18,6 @@ import (
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver"
 	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager"
-	"github.com/openshift/origin/pkg/cmd/openshift-etcd"
 	"github.com/openshift/origin/pkg/cmd/openshift-integrated-oauth-server"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver"
 	"github.com/openshift/origin/pkg/cmd/openshift-network-controller"
@@ -58,11 +57,6 @@ func NewHyperShiftCommand(stopCh <-chan struct{}) *cobra.Command {
 			os.Exit(1)
 		},
 	}
-
-	startEtcd, _ := openshift_etcd.NewCommandStartEtcdServer(openshift_etcd.RecommendedStartEtcdServerName, "hypershift", os.Stdout, os.Stderr)
-	startEtcd.Deprecated = "will be removed in 3.10"
-	startEtcd.Hidden = true
-	cmd.AddCommand(startEtcd)
 
 	startOpenShiftAPIServer := openshift_apiserver.NewOpenShiftAPIServerCommand(openshift_apiserver.RecommendedStartAPIServerName, "hypershift", os.Stdout, os.Stderr, stopCh)
 	cmd.AddCommand(startOpenShiftAPIServer)
