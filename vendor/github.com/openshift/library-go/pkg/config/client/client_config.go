@@ -8,6 +8,8 @@ import (
 
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	configv1 "github.com/openshift/api/config/v1"
 )
 
 // GetKubeConfigOrInClusterConfig loads in-cluster config if kubeConfigFile is empty or the file if not,
@@ -24,11 +26,11 @@ func GetKubeConfigOrInClusterConfig(kubeConfigFile string, overrides *ClientConn
 
 	applyClientConnectionOverrides(overrides, clientConfig)
 
-	t := &clientTransportOverrides{}
+	t := ClientTransportOverrides{WrapTransport: clientConfig.WrapTransport}
 	if overrides != nil {
-		t.maxIdleConnsPerHost = overrides.MaxIdleConnsPerHost
+		t.MaxIdleConnsPerHost = overrides.MaxIdleConnsPerHost
 	}
-	clientConfig.WrapTransport = t.defaultClientTransport
+	clientConfig.WrapTransport = t.DefaultClientTransport
 
 	return clientConfig, nil
 }
@@ -49,11 +51,11 @@ func GetClientConfig(kubeConfigFile string, overrides *ClientConnectionOverrides
 	}
 	applyClientConnectionOverrides(overrides, clientConfig)
 
-	t := &clientTransportOverrides{}
+	t := ClientTransportOverrides{WrapTransport: clientConfig.WrapTransport}
 	if overrides != nil {
-		t.maxIdleConnsPerHost = overrides.MaxIdleConnsPerHost
+		t.MaxIdleConnsPerHost = overrides.MaxIdleConnsPerHost
 	}
-	clientConfig.WrapTransport = t.defaultClientTransport
+	clientConfig.WrapTransport = t.DefaultClientTransport
 
 	return clientConfig, nil
 }
@@ -76,6 +78,7 @@ func applyClientConnectionOverrides(overrides *ClientConnectionOverrides, kubeCo
 		kubeConfig.ContentConfig.ContentType = overrides.ContentType
 	}
 
+	// TODO both of these default values look wrong
 	// if we have no preferences at this point, claim that we accept both proto and json.  We will get proto if the server supports it.
 	// this is a slightly niggly thing.  If the server has proto and our client does not (possible, but not super likely) then this fails.
 	if len(kubeConfig.ContentConfig.AcceptContentTypes) == 0 {
@@ -86,12 +89,13 @@ func applyClientConnectionOverrides(overrides *ClientConnectionOverrides, kubeCo
 	}
 }
 
-type clientTransportOverrides struct {
-	maxIdleConnsPerHost int
+type ClientTransportOverrides struct {
+	WrapTransport       func(rt http.RoundTripper) http.RoundTripper
+	MaxIdleConnsPerHost int
 }
 
 // defaultClientTransport sets defaults for a client Transport that are suitable for use by infrastructure components.
-func (c *clientTransportOverrides) defaultClientTransport(rt http.RoundTripper) http.RoundTripper {
+func (c ClientTransportOverrides) DefaultClientTransport(rt http.RoundTripper) http.RoundTripper {
 	transport, ok := rt.(*http.Transport)
 	if !ok {
 		return rt
@@ -104,29 +108,24 @@ func (c *clientTransportOverrides) defaultClientTransport(rt http.RoundTripper) 
 
 	// Hold open more internal idle connections
 	transport.MaxIdleConnsPerHost = 100
-	if c.maxIdleConnsPerHost > 0 {
-		transport.MaxIdleConnsPerHost = c.maxIdleConnsPerHost
+	if c.MaxIdleConnsPerHost > 0 {
+		transport.MaxIdleConnsPerHost = c.MaxIdleConnsPerHost
 	}
 
-	return transport
+	if c.WrapTransport == nil {
+		return transport
+
+	}
+	return c.WrapTransport(transport)
 }
 
 // ClientConnectionOverrides allows overriding values for rest.Config not held in a kubeconfig.  Most commonly used
 // for QPS.  Empty values are not used.
 type ClientConnectionOverrides struct {
-	// AcceptContentTypes defines the Accept header sent by clients when connecting to a server, overriding the
-	// default value of 'application/json'. This field will control all connections to the server used by a particular
-	// client.
-	AcceptContentTypes string
-	// ContentType is the content type used when sending data to the server from this client.
-	ContentType string
-
-	// QPS controls the number of queries per second allowed for this connection.
-	QPS float32
-	// Burst allows extra queries to accumulate when a client is exceeding its rate.
-	Burst int32
+	configv1.ClientConnectionOverrides
 
 	// MaxIdleConnsPerHost, if non-zero, controls the maximum idle (keep-alive) connections to keep per-host:port.
 	// If zero, DefaultMaxIdleConnsPerHost is used.
+	// TODO roll this into the connection overrides in api
 	MaxIdleConnsPerHost int
 }

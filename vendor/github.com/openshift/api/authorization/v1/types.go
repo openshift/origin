@@ -460,12 +460,15 @@ type RoleBindingRestriction struct {
 // field must be non-nil.
 type RoleBindingRestrictionSpec struct {
 	// UserRestriction matches against user subjects.
+	// +nullable
 	UserRestriction *UserRestriction `json:"userrestriction" protobuf:"bytes,1,opt,name=userrestriction"`
 
 	// GroupRestriction matches against group subjects.
+	// +nullable
 	GroupRestriction *GroupRestriction `json:"grouprestriction" protobuf:"bytes,2,opt,name=grouprestriction"`
 
 	// ServiceAccountRestriction matches against service-account subjects.
+	// +nullable
 	ServiceAccountRestriction *ServiceAccountRestriction `json:"serviceaccountrestriction" protobuf:"bytes,3,opt,name=serviceaccountrestriction"`
 }
 

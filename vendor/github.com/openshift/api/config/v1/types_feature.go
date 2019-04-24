@@ -66,7 +66,7 @@ type FeatureGateEnabledDisabled struct {
 //
 // If you put an item in either of these lists, put your area and name on it so we can find owners.
 var FeatureSets = map[FeatureSet]*FeatureGateEnabledDisabled{
-	Default: &FeatureGateEnabledDisabled{
+	Default: {
 		Enabled: []string{
 			"ExperimentalCriticalPodAnnotation", // sig-pod, sjenning
 			"RotateKubeletServerCertificate",    // sig-pod, sjenning
@@ -76,11 +76,12 @@ var FeatureSets = map[FeatureSet]*FeatureGateEnabledDisabled{
 			"LocalStorageCapacityIsolation", // sig-pod, sjenning
 		},
 	},
-	TechPreviewNoUpgrade: &FeatureGateEnabledDisabled{
+	TechPreviewNoUpgrade: {
 		Enabled: []string{
 			"ExperimentalCriticalPodAnnotation", // sig-pod, sjenning
 			"RotateKubeletServerCertificate",    // sig-pod, sjenning
 			"SupportPodPidsLimit",               // sig-pod, sjenning
+			"CSIBlockVolume",                    // sig-storage, j-griffith
 		},
 		Disabled: []string{
 			"LocalStorageCapacityIsolation", // sig-pod, sjenning

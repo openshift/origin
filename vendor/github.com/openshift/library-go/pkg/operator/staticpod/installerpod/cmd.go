@@ -336,15 +336,16 @@ func (o *InstallOptions) copyContent(ctx context.Context) error {
 func (o *InstallOptions) Run(ctx context.Context) error {
 	var eventTarget *corev1.ObjectReference
 
-	if err := retry.RetryOnConnectionErrors(ctx, func(context.Context) (bool, error) {
+	err := retry.RetryOnConnectionErrors(ctx, func(context.Context) (bool, error) {
 		var clientErr error
 		eventTarget, clientErr = events.GetControllerReferenceForCurrentPod(o.KubeClient, o.Namespace, nil)
 		if clientErr != nil {
 			return false, clientErr
 		}
 		return true, nil
-	}); err != nil {
-		return fmt.Errorf("failed to get self-reference: %v", err)
+	})
+	if err != nil {
+		klog.Warningf("unable to get owner reference (falling back to namespace): %v", err)
 	}
 
 	recorder := events.NewRecorder(o.KubeClient.CoreV1().Events(o.Namespace), "static-pod-installer", eventTarget)

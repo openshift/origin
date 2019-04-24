@@ -24,7 +24,7 @@ import (
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
-const operatorStatusTypeConfigObservationFailing = "ConfigObservationFailing"
+const operatorStatusTypeConfigObservationDegraded = "ConfigObservationDegraded"
 const configObserverWorkKey = "key"
 
 // Listers is an interface which will be passed to the config observer funcs.  It is expected to be hard-cast to the "correct" type
@@ -41,18 +41,17 @@ type Listers interface {
 type ObserveConfigFunc func(listers Listers, recorder events.Recorder, existingConfig map[string]interface{}) (observedConfig map[string]interface{}, errs []error)
 
 type ConfigObserver struct {
-	operatorConfigClient v1helpers.OperatorClient
-	eventRecorder        events.Recorder
-
-	// queue only ever has one item, but it has nice error handling backoff/retry semantics
-	queue workqueue.RateLimitingInterface
 
 	// observers are called in an undefined order and their results are merged to
 	// determine the observed configuration.
 	observers []ObserveConfigFunc
 
+	operatorClient v1helpers.OperatorClient
 	// listers are used by config observers to retrieve necessary resources
 	listers Listers
+
+	queue         workqueue.RateLimitingInterface
+	eventRecorder events.Recorder
 }
 
 func NewConfigObserver(
@@ -62,8 +61,8 @@ func NewConfigObserver(
 	observers ...ObserveConfigFunc,
 ) *ConfigObserver {
 	return &ConfigObserver{
-		operatorConfigClient: operatorClient,
-		eventRecorder:        eventRecorder.WithComponentSuffix("config-observer"),
+		operatorClient: operatorClient,
+		eventRecorder:  eventRecorder.WithComponentSuffix("config-observer"),
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ConfigObserver"),
 
@@ -75,7 +74,7 @@ func NewConfigObserver(
 // sync reacts to a change in prereqs by finding information that is required to match another value in the cluster. This
 // must be information that is logically "owned" by another component.
 func (c ConfigObserver) sync() error {
-	originalSpec, _, _, err := c.operatorConfigClient.GetOperatorState()
+	originalSpec, _, _, err := c.operatorClient.GetOperatorState()
 	if err != nil {
 		return err
 	}
@@ -116,7 +115,7 @@ func (c ConfigObserver) sync() error {
 
 	if !equality.Semantic.DeepEqual(existingConfig, mergedObservedConfig) {
 		c.eventRecorder.Eventf("ObservedConfigChanged", "Writing updated observed config: %v", diff.ObjectDiff(existingConfig, mergedObservedConfig))
-		if _, _, err := v1helpers.UpdateSpec(c.operatorConfigClient, v1helpers.UpdateObservedConfigFn(mergedObservedConfig)); err != nil {
+		if _, _, err := v1helpers.UpdateSpec(c.operatorClient, v1helpers.UpdateObservedConfigFn(mergedObservedConfig)); err != nil {
 			// At this point we failed to write the updated config. If we are permanently broken, do not pile the errors from observers
 			// but instead reset the errors and only report single error condition.
 			errs = []error{fmt.Errorf("error writing updated observed config: %v", err)}
@@ -127,7 +126,7 @@ func (c ConfigObserver) sync() error {
 
 	// update failing condition
 	cond := operatorv1.OperatorCondition{
-		Type:   operatorStatusTypeConfigObservationFailing,
+		Type:   operatorStatusTypeConfigObservationDegraded,
 		Status: operatorv1.ConditionFalse,
 	}
 	if configError != nil {
@@ -135,7 +134,7 @@ func (c ConfigObserver) sync() error {
 		cond.Reason = "Error"
 		cond.Message = configError.Error()
 	}
-	if _, _, updateError := v1helpers.UpdateStatus(c.operatorConfigClient, v1helpers.UpdateConditionFn(cond)); updateError != nil {
+	if _, _, updateError := v1helpers.UpdateStatus(c.operatorClient, v1helpers.UpdateConditionFn(cond)); updateError != nil {
 		return updateError
 	}
 
@@ -148,7 +147,6 @@ func (c *ConfigObserver) Run(workers int, stopCh <-chan struct{}) {
 
 	klog.Infof("Starting ConfigObserver")
 	defer klog.Infof("Shutting down ConfigObserver")
-
 	if !cache.WaitForCacheSync(stopCh, c.listers.PreRunHasSynced()...) {
 		utilruntime.HandleError(fmt.Errorf("caches did not sync"))
 		return

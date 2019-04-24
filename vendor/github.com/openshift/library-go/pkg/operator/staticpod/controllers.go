@@ -3,6 +3,8 @@ package staticpod
 import (
 	"fmt"
 
+	"github.com/openshift/library-go/pkg/operator/loglevel"
+
 	"github.com/openshift/library-go/pkg/operator/unsupportedconfigoverridescontroller"
 
 	"k8s.io/apimachinery/pkg/util/errors"
@@ -162,6 +164,7 @@ func (b *staticPodOperatorControllerBuilder) ToControllers() (*staticPodOperator
 			operandInformers,
 			b.staticPodOperatorClient,
 			configMapClient,
+			secretClient,
 			podClient,
 			eventRecorder,
 		).WithCerts(
@@ -227,6 +230,7 @@ func (b *staticPodOperatorControllerBuilder) ToControllers() (*staticPodOperator
 	}
 
 	controllers.unsupportedConfigOverridesController = unsupportedconfigoverridescontroller.NewUnsupportedConfigOverridesController(b.staticPodOperatorClient, eventRecorder)
+	controllers.logLevelController = loglevel.NewClusterOperatorLoggingController(b.staticPodOperatorClient, eventRecorder)
 
 	errs := []error{}
 	if controllers.revisionController == nil {
@@ -257,6 +261,7 @@ type staticPodOperatorControllers struct {
 	backingResourceController            *backingresource.BackingResourceController
 	monitoringResourceController         *monitoring.MonitoringResourceController
 	unsupportedConfigOverridesController *unsupportedconfigoverridescontroller.UnsupportedConfigOverridesController
+	logLevelController                   *loglevel.LogLevelController
 }
 
 func (o *staticPodOperatorControllers) WithInstallerPodMutationFn(installerPodMutationFn installer.InstallerPodMutationFunc) *staticPodOperatorControllers {
@@ -273,6 +278,7 @@ func (o *staticPodOperatorControllers) Run(stopCh <-chan struct{}) {
 	go o.backingResourceController.Run(1, stopCh)
 	go o.monitoringResourceController.Run(1, stopCh)
 	go o.unsupportedConfigOverridesController.Run(1, stopCh)
+	go o.logLevelController.Run(1, stopCh)
 
 	<-stopCh
 }

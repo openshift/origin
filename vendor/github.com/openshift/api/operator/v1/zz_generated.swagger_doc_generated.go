@@ -46,26 +46,6 @@ func (NodeStatus) SwaggerDoc() map[string]string {
 	return map_NodeStatus
 }
 
-var map_OperandContainerSpec = map[string]string{
-	"name":      "name is the name of the container to modify",
-	"resources": "resources are the requests and limits to place in the container.  Nil means to accept the defaults.",
-}
-
-func (OperandContainerSpec) SwaggerDoc() map[string]string {
-	return map_OperandContainerSpec
-}
-
-var map_OperandSpec = map[string]string{
-	"":                           "OperandSpec holds information for customization of a particular functional unit - logically maps to a workload",
-	"name":                       "name is the name of this unit.  The operator must be aware of it.",
-	"operandContainerSpecs":      "operandContainerSpecs are per-container options",
-	"unsupportedResourcePatches": "unsupportedResourcePatches are applied to the workload resource for this unit. This is an unsupported workaround if anything needs to be modified on the workload that is not otherwise configurable.",
-}
-
-func (OperandSpec) SwaggerDoc() map[string]string {
-	return map_OperandSpec
-}
-
 var map_OperatorCondition = map[string]string{
 	"": "OperatorCondition is just the standard condition fields.",
 }
@@ -78,7 +58,7 @@ var map_OperatorSpec = map[string]string{
 	"":                           "OperatorSpec contains common fields operators need.  It is intended to be anonymous included inside of the Spec struct for your particular operator.",
 	"managementState":            "managementState indicates whether and how the operator should manage the component",
 	"logLevel":                   "logLevel is an intent based logging for an overall component.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for their operands.",
-	"operandSpecs":               "operandSpecs provide customization for functional units within the component",
+	"operatorLogLevel":           "operatorLogLevel is an intent based logging for the operator itself.  It does not give fine grained control, but it is a simple way to manage coarse grained logging choices that operators have to interpret for themselves.",
 	"unsupportedConfigOverrides": "unsupportedConfigOverrides holds a sparse config that will override any previously set options.  It only needs to be the fields to override it will end up overlaying in the following order: 1. hardcoded defaults 2. observedConfig 3. unsupportedConfigOverrides",
 	"observedConfig":             "observedConfig holds a sparse config that controller has observed from the cluster state.  It exists in spec because it is an input to the level for the operator",
 }
@@ -99,20 +79,11 @@ func (OperatorStatus) SwaggerDoc() map[string]string {
 	return map_OperatorStatus
 }
 
-var map_ResourcePatch = map[string]string{
-	"":      "ResourcePatch is a way to represent the patch you would issue to `kubectl patch` in the API",
-	"type":  "type is the type of patch to apply: jsonmerge, strategicmerge",
-	"patch": "patch the patch itself",
-}
-
-func (ResourcePatch) SwaggerDoc() map[string]string {
-	return map_ResourcePatch
-}
-
 var map_StaticPodOperatorSpec = map[string]string{
-	"": "StaticPodOperatorSpec is spec for controllers that manage static pods.",
-	"failedRevisionLimit":    "failedRevisionLimit is the number of failed static pod installer revisions to keep on disk and in the api -1 = unlimited, 0 or unset = 5 (default)",
-	"succeededRevisionLimit": "succeededRevisionLimit is the number of successful static pod installer revisions to keep on disk and in the api -1 = unlimited, 0 or unset = 5 (default)",
+	"":                        "StaticPodOperatorSpec is spec for controllers that manage static pods.",
+	"forceRedeploymentReason": "forceRedeploymentReason can be used to force the redeployment of the operand by providing a unique string. This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work this time instead of failing again on the same config.",
+	"failedRevisionLimit":     "failedRevisionLimit is the number of failed static pod installer revisions to keep on disk and in the api -1 = unlimited, 0 or unset = 5 (default)",
+	"succeededRevisionLimit":  "succeededRevisionLimit is the number of successful static pod installer revisions to keep on disk and in the api -1 = unlimited, 0 or unset = 5 (default)",
 }
 
 func (StaticPodOperatorSpec) SwaggerDoc() map[string]string {
@@ -120,7 +91,7 @@ func (StaticPodOperatorSpec) SwaggerDoc() map[string]string {
 }
 
 var map_StaticPodOperatorStatus = map[string]string{
-	"": "StaticPodOperatorStatus is status for controllers that manage static pods.  There are different needs because individual node status must be tracked.",
+	"":                        "StaticPodOperatorStatus is status for controllers that manage static pods.  There are different needs because individual node status must be tracked.",
 	"latestAvailableRevision": "latestAvailableRevision is the deploymentID of the most recent deployment",
 	"nodeStatuses":            "nodeStatuses track the deployment values and errors across individual nodes",
 }
@@ -217,14 +188,6 @@ func (EtcdList) SwaggerDoc() map[string]string {
 	return map_EtcdList
 }
 
-var map_EtcdSpec = map[string]string{
-	"forceRedeploymentReason": "forceRedeploymentReason can be used to force the redeployment of the kube-apiserver by providing a unique string. This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work this time instead of failing again on the same config.",
-}
-
-func (EtcdSpec) SwaggerDoc() map[string]string {
-	return map_EtcdSpec
-}
-
 var map_EndpointPublishingStrategy = map[string]string{
 	"":     "EndpointPublishingStrategy is a way to publish the endpoints of an IngressController, and represents the type and any additional configuration for a specific type.",
 	"type": "type is the publishing strategy to use. Valid values are:\n\n* LoadBalancerService\n\nPublishes the ingress controller using a Kubernetes LoadBalancer Service.\n\nIn this configuration, the ingress controller deployment uses container networking. A LoadBalancer Service is created to publish the deployment.\n\nSee: https://kubernetes.io/docs/concepts/services-networking/#loadbalancer\n\nIf domain is set, a wildcard DNS record will be managed to point at the LoadBalancer Service's external name. DNS records are managed only in DNS zones defined by dns.config.openshift.io/cluster .spec.publicZone and .spec.privateZone.\n\nWildcard DNS management is currently supported only on the AWS platform.\n\n* HostNetwork\n\nPublishes the ingress controller on node ports where the ingress controller is deployed.\n\nIn this configuration, the ingress controller deployment uses host networking, bound to node ports 80 and 443. The user is responsible for configuring an external load balancer to publish the ingress controller via the node ports.\n\n* Private\n\nDoes not publish the ingress controller.\n\nIn this configuration, the ingress controller deployment uses container networking, and is not explicitly published. The user must manually publish the ingress controller.",
@@ -283,6 +246,7 @@ func (IngressControllerStatus) SwaggerDoc() map[string]string {
 var map_NodePlacement = map[string]string{
 	"":             "NodePlacement describes node scheduling configuration for an ingress controller.",
 	"nodeSelector": "nodeSelector is the node selector applied to ingress controller deployments.\n\nIf unset, the default is:\n\n  beta.kubernetes.io/os: linux\n  node-role.kubernetes.io/worker: ''\n\nIf set, the specified selector is used and replaces the default.",
+	"tolerations":  "tolerations is a list of tolerations applied to ingress controller deployments.\n\nThe default is an empty list.\n\nSee https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/",
 }
 
 func (NodePlacement) SwaggerDoc() map[string]string {
@@ -307,14 +271,6 @@ func (KubeAPIServerList) SwaggerDoc() map[string]string {
 	return map_KubeAPIServerList
 }
 
-var map_KubeAPIServerSpec = map[string]string{
-	"forceRedeploymentReason": "forceRedeploymentReason can be used to force the redeployment of the kube-apiserver by providing a unique string. This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work this time instead of failing again on the same config.",
-}
-
-func (KubeAPIServerSpec) SwaggerDoc() map[string]string {
-	return map_KubeAPIServerSpec
-}
-
 var map_KubeControllerManager = map[string]string{
 	"": "KubeControllerManager provides information to configure an operator to manage kube-controller-manager.",
 }
@@ -331,14 +287,6 @@ var map_KubeControllerManagerList = map[string]string{
 
 func (KubeControllerManagerList) SwaggerDoc() map[string]string {
 	return map_KubeControllerManagerList
-}
-
-var map_KubeControllerManagerSpec = map[string]string{
-	"forceRedeploymentReason": "forceRedeploymentReason can be used to force the redeployment of the kube-controller-manager by providing a unique string. This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work this time instead of failing again on the same config.",
-}
-
-func (KubeControllerManagerSpec) SwaggerDoc() map[string]string {
-	return map_KubeControllerManagerSpec
 }
 
 var map_AdditionalNetworkDefinition = map[string]string{
@@ -420,10 +368,10 @@ func (OVNKubernetesConfig) SwaggerDoc() map[string]string {
 }
 
 var map_OpenShiftSDNConfig = map[string]string{
-	"":          "OpenShiftSDNConfig configures the three openshift-sdn plugins",
-	"mode":      "mode is one of \"Multitenant\", \"Subnet\", or \"NetworkPolicy\"",
-	"vxlanPort": "vxlanPort is the port to use for all vxlan packets. The default is 4789.",
-	"mtu":       "mtu is the mtu to use for the tunnel interface. Defaults to 1450 if unset. This must be 50 bytes smaller than the machine's uplink.",
+	"":                       "OpenShiftSDNConfig configures the three openshift-sdn plugins",
+	"mode":                   "mode is one of \"Multitenant\", \"Subnet\", or \"NetworkPolicy\"",
+	"vxlanPort":              "vxlanPort is the port to use for all vxlan packets. The default is 4789.",
+	"mtu":                    "mtu is the mtu to use for the tunnel interface. Defaults to 1450 if unset. This must be 50 bytes smaller than the machine's uplink.",
 	"useExternalOpenvswitch": "useExternalOpenvswitch tells the operator not to install openvswitch, because it will be provided separately. If set, you must provide it yourself.",
 }
 
@@ -496,16 +444,10 @@ func (KubeSchedulerList) SwaggerDoc() map[string]string {
 	return map_KubeSchedulerList
 }
 
-var map_KubeSchedulerSpec = map[string]string{
-	"forceRedeploymentReason": "forceRedeploymentReason can be used to force the redeployment of the kube-scheduler by providing a unique string. This provides a mechanism to kick a previously failed deployment and provide a reason why you think it will work this time instead of failing again on the same config.",
-}
-
-func (KubeSchedulerSpec) SwaggerDoc() map[string]string {
-	return map_KubeSchedulerSpec
-}
-
 var map_ServiceCA = map[string]string{
-	"": "ServiceCA provides information to configure an operator to manage the service cert controllers",
+	"":       "ServiceCA provides information to configure an operator to manage the service cert controllers",
+	"spec":   "spec holds user settable values for configuration",
+	"status": "status holds observed values from the cluster. They may not be overridden.",
 }
 
 func (ServiceCA) SwaggerDoc() map[string]string {

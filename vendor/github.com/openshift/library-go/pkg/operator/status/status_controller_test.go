@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
@@ -13,91 +14,214 @@ import (
 	operatorv1 "github.com/openshift/api/operator/v1"
 	"github.com/openshift/client-go/config/clientset/versioned/fake"
 	configv1listers "github.com/openshift/client-go/config/listers/config/v1"
+
 	"github.com/openshift/library-go/pkg/config/clusteroperator/v1helpers"
 	"github.com/openshift/library-go/pkg/operator/events"
 )
 
-func TestFailing(t *testing.T) {
+func TestDegraded(t *testing.T) {
+
+	twoMinutesAgo := metav1.NewTime(time.Now().Add(-2 * time.Minute))
+	fiveSecondsAgo := metav1.NewTime(time.Now().Add(-2 * time.Second))
+	yesterday := metav1.NewTime(time.Now().Add(-24 * time.Hour))
 
 	testCases := []struct {
-		name                  string
-		conditions            []operatorv1.OperatorCondition
-		expectedFailingStatus configv1.ConditionStatus
-		expectedMessages      []string
-		expectedReason        string
+		name             string
+		conditions       []operatorv1.OperatorCondition
+		expectedType     configv1.ClusterStatusConditionType
+		expectedStatus   configv1.ConditionStatus
+		expectedMessages []string
+		expectedReason   string
 	}{
 		{
-			name:                  "no data",
-			conditions:            []operatorv1.OperatorCondition{},
-			expectedFailingStatus: configv1.ConditionUnknown,
-			expectedReason:        "NoData",
+			name:           "no data",
+			conditions:     []operatorv1.OperatorCondition{},
+			expectedStatus: configv1.ConditionUnknown,
+			expectedReason: "NoData",
 		},
 		{
-			name: "one failing false",
+			name: "one not failing/within threshold",
 			conditions: []operatorv1.OperatorCondition{
-				{Type: "TypeAFailing", Status: operatorv1.ConditionFalse},
+				{Type: "TypeADegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: fiveSecondsAgo, Message: "a message from type a"},
 			},
-			expectedFailingStatus: configv1.ConditionFalse,
-			expectedReason:        "AsExpected",
-		},
-		{
-			name: "one failing true",
-			conditions: []operatorv1.OperatorCondition{
-				{Type: "TypeAFailing", Status: operatorv1.ConditionTrue},
-			},
-			expectedFailingStatus: configv1.ConditionTrue,
-			expectedReason:        "TypeAFailing",
-		},
-		{
-			name: "two present, one failing",
-			conditions: []operatorv1.OperatorCondition{
-				{Type: "TypeAFailing", Status: operatorv1.ConditionTrue, Message: "a message from type a"},
-				{Type: "TypeBFailing", Status: operatorv1.ConditionFalse},
-			},
-			expectedFailingStatus: configv1.ConditionTrue,
-			expectedReason:        "TypeAFailing",
+			expectedStatus: configv1.ConditionFalse,
+			expectedReason: "AsExpected",
 			expectedMessages: []string{
-				"TypeAFailing: a message from type a",
+				"TypeADegraded: a message from type a",
 			},
 		},
 		{
-			name: "two present, second one failing",
+			name: "one not failing/beyond threshold",
 			conditions: []operatorv1.OperatorCondition{
-				{Type: "TypeAFailing", Status: operatorv1.ConditionFalse},
-				{Type: "TypeBFailing", Status: operatorv1.ConditionTrue, Message: "a message from type b"},
+				{Type: "TypeADegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: twoMinutesAgo, Message: "a message from type a"},
 			},
-			expectedFailingStatus: configv1.ConditionTrue,
-			expectedReason:        "TypeBFailing",
+			expectedStatus: configv1.ConditionFalse,
+			expectedReason: "AsExpected",
 			expectedMessages: []string{
-				"TypeBFailing: a message from type b",
+				"TypeADegraded: a message from type a",
 			},
 		},
 		{
-			name: "many present, some failing",
+			name: "one failing/within threshold",
 			conditions: []operatorv1.OperatorCondition{
-				{Type: "TypeAFailing", Status: operatorv1.ConditionFalse},
-				{Type: "TypeBFailing", Status: operatorv1.ConditionTrue, Message: "a message from type b\nanother message from type b"},
-				{Type: "TypeCFailing", Status: operatorv1.ConditionFalse, Message: "a message from type c"},
-				{Type: "TypeDFailing", Status: operatorv1.ConditionTrue, Message: "a message from type d"},
+				{Type: "TypeADegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: fiveSecondsAgo, Message: "a message from type a"},
 			},
-			expectedFailingStatus: configv1.ConditionTrue,
-			expectedReason:        "MultipleConditionsMatching",
+			expectedStatus: configv1.ConditionFalse,
+			expectedReason: "AsExpected",
 			expectedMessages: []string{
-				"TypeBFailing: a message from type b",
-				"TypeBFailing: another message from type b",
-				"TypeDFailing: a message from type d",
+				"TypeADegraded: a message from type a",
+			},
+		},
+		{
+			name: "one failing/beyond threshold",
+			conditions: []operatorv1.OperatorCondition{
+				{Type: "TypeADegraded", Status: operatorv1.ConditionTrue, Message: "a message from type a", LastTransitionTime: twoMinutesAgo},
+			},
+			expectedStatus: configv1.ConditionTrue,
+			expectedReason: "TypeADegraded",
+			expectedMessages: []string{
+				"TypeADegraded: a message from type a",
+			},
+		},
+		{
+			name: "two present/one failing/within threshold",
+			conditions: []operatorv1.OperatorCondition{
+				{Type: "TypeADegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: fiveSecondsAgo, Message: "a message from type a"},
+				{Type: "TypeBDegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: yesterday},
+			},
+			expectedStatus: configv1.ConditionFalse,
+			expectedReason: "AsExpected",
+			expectedMessages: []string{
+				"TypeADegraded: a message from type a",
+			},
+		},
+		{
+			name: "two present/one failing/beyond threshold",
+			conditions: []operatorv1.OperatorCondition{
+				{Type: "TypeADegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: twoMinutesAgo, Message: "a message from type a"},
+				{Type: "TypeBDegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: yesterday},
+			},
+			expectedStatus: configv1.ConditionTrue,
+			expectedReason: "TypeADegraded",
+			expectedMessages: []string{
+				"TypeADegraded: a message from type a",
+			},
+		},
+		{
+			name: "two present/second one failing/within threshold",
+			conditions: []operatorv1.OperatorCondition{
+				{Type: "TypeADegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: yesterday},
+				{Type: "TypeBDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: fiveSecondsAgo, Message: "a message from type b"},
+			},
+			expectedStatus: configv1.ConditionFalse,
+			expectedReason: "AsExpected",
+			expectedMessages: []string{
+				"TypeBDegraded: a message from type b",
+			},
+		},
+		{
+			name: "two present/second one failing/beyond threshold",
+			conditions: []operatorv1.OperatorCondition{
+				{Type: "TypeADegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: yesterday},
+				{Type: "TypeBDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: twoMinutesAgo, Message: "a message from type b"},
+			},
+			expectedStatus: configv1.ConditionTrue,
+			expectedReason: "TypeBDegraded",
+			expectedMessages: []string{
+				"TypeBDegraded: a message from type b",
+			},
+		},
+		{
+			name: "many present/some failing/all within threshold",
+			conditions: []operatorv1.OperatorCondition{
+				{Type: "TypeADegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: yesterday},
+				{Type: "TypeBDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: fiveSecondsAgo, Message: "a message from type b\nanother message from type b"},
+				{Type: "TypeCDegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: twoMinutesAgo, Message: "a message from type c"},
+				{Type: "TypeDDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: fiveSecondsAgo, Message: "a message from type d"},
+			},
+			expectedStatus: configv1.ConditionFalse,
+			expectedReason: "AsExpected",
+			expectedMessages: []string{
+				"TypeBDegraded: a message from type b",
+				"TypeBDegraded: another message from type b",
+				"TypeCDegraded: a message from type c",
+				"TypeDDegraded: a message from type d",
+			},
+		},
+		{
+			name: "many present/some failing some/within threshold",
+			conditions: []operatorv1.OperatorCondition{
+				{Type: "TypeADegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: yesterday},
+				{Type: "TypeBDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: fiveSecondsAgo, Message: "a message from type b\nanother message from type b"},
+				{Type: "TypeCDegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: twoMinutesAgo, Message: "a message from type c"},
+				{Type: "TypeDDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: twoMinutesAgo, Message: "a message from type d"},
+			},
+			expectedStatus: configv1.ConditionTrue,
+			expectedReason: "MultipleConditionsMatching",
+			expectedMessages: []string{
+				"TypeBDegraded: a message from type b",
+				"TypeBDegraded: another message from type b",
+				"TypeDDegraded: a message from type d",
+			},
+		},
+		{
+			name: "many present/some failing/all beyond threshold",
+			conditions: []operatorv1.OperatorCondition{
+				{Type: "TypeADegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: yesterday},
+				{Type: "TypeBDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: twoMinutesAgo, Message: "a message from type b\nanother message from type b"},
+				{Type: "TypeCDegraded", Status: operatorv1.ConditionFalse, LastTransitionTime: twoMinutesAgo, Message: "a message from type c"},
+				{Type: "TypeDDegraded", Status: operatorv1.ConditionTrue, LastTransitionTime: twoMinutesAgo, Message: "a message from type d"},
+			},
+			expectedStatus: configv1.ConditionTrue,
+			expectedReason: "MultipleConditionsMatching",
+			expectedMessages: []string{
+				"TypeBDegraded: a message from type b",
+				"TypeBDegraded: another message from type b",
+				"TypeDDegraded: a message from type d",
+			},
+		},
+		{
+			name: "one progressing/within threshold",
+			conditions: []operatorv1.OperatorCondition{
+				{Type: "TypeAProgressing", Status: operatorv1.ConditionTrue, LastTransitionTime: fiveSecondsAgo, Message: "a message from type a"},
+			},
+			expectedType:   configv1.OperatorProgressing,
+			expectedStatus: configv1.ConditionTrue,
+			expectedReason: "TypeAProgressing",
+			expectedMessages: []string{
+				"TypeAProgressing: a message from type a",
+			},
+		},
+		{
+			name: "one not available/within threshold",
+			conditions: []operatorv1.OperatorCondition{
+				{Type: "TypeAAvailable", Status: operatorv1.ConditionFalse, LastTransitionTime: fiveSecondsAgo, Message: "a message from type a"},
+			},
+			expectedType:   configv1.OperatorAvailable,
+			expectedStatus: configv1.ConditionFalse,
+			expectedReason: "TypeAAvailable",
+			expectedMessages: []string{
+				"TypeAAvailable: a message from type a",
 			},
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			clusteroperator := &configv1.ClusterOperator{
+			for _, condition := range tc.conditions {
+				if condition.LastTransitionTime == (metav1.Time{}) {
+					t.Fatal("LastTransitionTime not set.")
+				}
+			}
+			if tc.expectedType == "" {
+				tc.expectedType = configv1.OperatorDegraded
+			}
+			clusterOperator := &configv1.ClusterOperator{
 				ObjectMeta: metav1.ObjectMeta{Name: "OPERATOR_NAME", ResourceVersion: "12"},
 			}
-			clusterOperatorClient := fake.NewSimpleClientset(clusteroperator)
+			clusterOperatorClient := fake.NewSimpleClientset(clusterOperator)
 
 			indexer := cache.NewIndexer(cache.MetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-			indexer.Add(clusteroperator)
+			indexer.Add(clusterOperator)
 
 			statusClient := &statusClient{
 				t: t,
@@ -120,10 +244,10 @@ func TestFailing(t *testing.T) {
 			result, _ := clusterOperatorClient.ConfigV1().ClusterOperators().Get("OPERATOR_NAME", metav1.GetOptions{})
 
 			var expectedCondition *configv1.ClusterOperatorStatusCondition
-			if tc.expectedFailingStatus != "" {
+			if tc.expectedStatus != "" {
 				expectedCondition = &configv1.ClusterOperatorStatusCondition{
-					Type:   configv1.OperatorFailing,
-					Status: configv1.ConditionStatus(string(tc.expectedFailingStatus)),
+					Type:   tc.expectedType,
+					Status: configv1.ConditionStatus(string(tc.expectedStatus)),
 				}
 				if len(tc.expectedMessages) > 0 {
 					expectedCondition.Message = strings.Join(tc.expectedMessages, "\n")
@@ -137,7 +261,7 @@ func TestFailing(t *testing.T) {
 				result.Status.Conditions[i].LastTransitionTime = metav1.Time{}
 			}
 
-			actual := v1helpers.FindStatusCondition(result.Status.Conditions, "Failing")
+			actual := v1helpers.FindStatusCondition(result.Status.Conditions, tc.expectedType)
 			if !reflect.DeepEqual(expectedCondition, actual) {
 				t.Error(diff.ObjectDiff(expectedCondition, actual))
 			}

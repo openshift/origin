@@ -127,10 +127,10 @@ const (
 	// operator (eg: openshift-apiserver for the openshift-apiserver-operator).
 	OperatorProgressing ClusterStatusConditionType = "Progressing"
 
-	// Failing indicates that the operator has encountered an error that is preventing it from working properly.
-	// The binary maintained by the operator (eg: openshift-apiserver for the openshift-apiserver-operator) may still be
-	// available, but the user intent cannot be fulfilled.
-	OperatorFailing ClusterStatusConditionType = "Failing"
+	// Degraded indicates that the operand is not functioning completely. An example of a degraded state
+	// would be if there should be 5 copies of the operand running but only 4 are running. It may still be available,
+	// but it is degraded
+	OperatorDegraded ClusterStatusConditionType = "Degraded"
 
 	// Upgradeable indicates whether the operator is in a state that is safe to upgrade. When status is `False`
 	// administrators should not upgrade their cluster and the message field should contain a human readable description

@@ -14,7 +14,7 @@ type OpenShiftAPIServer struct {
 	metav1.ObjectMeta `json:"metadata"`
 
 	// +required
-	Spec   OpenShiftAPIServerSpec   `json:"spec"`
+	Spec OpenShiftAPIServerSpec `json:"spec"`
 	// +optional
 	Status OpenShiftAPIServerStatus `json:"status"`
 }

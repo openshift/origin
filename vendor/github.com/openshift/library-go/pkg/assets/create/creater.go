@@ -158,7 +158,7 @@ func create(ctx context.Context, manifests map[string]*unstructured.Unstructured
 		gvk := manifests[path].GetObjectKind().GroupVersionKind()
 		mappings, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 		if err != nil {
-			errs[path] = fmt.Errorf("unable to get REST mapping: %v", err)
+			errs[path] = fmt.Errorf("unable to get REST mapping for %q: %v", path, err)
 			reloadDiscovery = true
 			continue
 		}
@@ -169,11 +169,13 @@ func create(ctx context.Context, manifests map[string]*unstructured.Unstructured
 			_, err = client.Resource(mappings.Resource).Namespace(manifests[path].GetNamespace()).Create(manifests[path], metav1.CreateOptions{})
 		}
 
+		resourceString := mappings.Resource.Resource + "." + mappings.Resource.Version + "." + mappings.Resource.Group + "/" + manifests[path].GetName() + " -n " + manifests[path].GetNamespace()
+
 		// Resource already exists means we already succeeded
 		// This should never happen as we remove already created items from the manifest list, unless the resource existed beforehand.
 		if kerrors.IsAlreadyExists(err) {
 			if options.Verbose {
-				fmt.Fprintf(options.StdErr, "Skipped %s as it already exists\n", mappings.Resource.String())
+				fmt.Fprintf(options.StdErr, "Skipped %q %s as it already exists\n", path, resourceString)
 			}
 			delete(manifests, path)
 			continue
@@ -181,14 +183,14 @@ func create(ctx context.Context, manifests map[string]*unstructured.Unstructured
 
 		if err != nil {
 			if options.Verbose {
-				fmt.Fprintf(options.StdErr, "Failed to create %s: %v\n", mappings.Resource.String(), err)
+				fmt.Fprintf(options.StdErr, "Failed to create %q %s: %v\n", path, resourceString, err)
 			}
 			errs[path] = fmt.Errorf("failed to create: %v", err)
 			continue
 		}
 
 		if options.Verbose {
-			fmt.Fprintf(options.StdErr, "Created %s\n", mappings.Resource.String())
+			fmt.Fprintf(options.StdErr, "Created %q %s\n", path, resourceString)
 		}
 
 		// Creation succeeded lets remove the manifest from the list to avoid creating it second time

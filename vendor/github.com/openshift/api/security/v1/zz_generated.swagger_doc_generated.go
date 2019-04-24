@@ -61,7 +61,7 @@ func (PodSecurityPolicyReviewSpec) SwaggerDoc() map[string]string {
 }
 
 var map_PodSecurityPolicyReviewStatus = map[string]string{
-	"": "PodSecurityPolicyReviewStatus represents the status of PodSecurityPolicyReview.",
+	"":                       "PodSecurityPolicyReviewStatus represents the status of PodSecurityPolicyReview.",
 	"allowedServiceAccounts": "allowedServiceAccounts returns the list of service accounts in *this* namespace that have the power to create the PodTemplateSpec.",
 }
 

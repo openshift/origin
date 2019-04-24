@@ -59,26 +59,26 @@ func (fakeSharedIndexInformer) GetIndexer() cache.Indexer {
 }
 
 // NewFakeStaticPodOperatorClient returns a fake operator client suitable to use in static pod controller unit tests.
-func NewFakeStaticPodOperatorClient(spec *operatorv1.OperatorSpec, status *operatorv1.OperatorStatus,
+func NewFakeStaticPodOperatorClient(
 	staticPodSpec *operatorv1.StaticPodOperatorSpec, staticPodStatus *operatorv1.StaticPodOperatorStatus,
-	triggerErr func(rv string, status *operatorv1.StaticPodOperatorStatus) error) StaticPodOperatorClient {
+	triggerStatusErr func(rv string, status *operatorv1.StaticPodOperatorStatus) error,
+	triggerSpecErr func(rv string, spec *operatorv1.StaticPodOperatorSpec) error) StaticPodOperatorClient {
 	return &fakeStaticPodOperatorClient{
-		fakeOperatorSpec:            spec,
-		fakeOperatorStatus:          status,
 		fakeStaticPodOperatorSpec:   staticPodSpec,
 		fakeStaticPodOperatorStatus: staticPodStatus,
 		resourceVersion:             "0",
-		triggerStatusUpdateError:    triggerErr,
+		triggerStatusUpdateError:    triggerStatusErr,
+		triggerSpecUpdateError:      triggerSpecErr,
 	}
 }
 
 type fakeStaticPodOperatorClient struct {
-	fakeOperatorSpec            *operatorv1.OperatorSpec
 	fakeOperatorStatus          *operatorv1.OperatorStatus
 	fakeStaticPodOperatorSpec   *operatorv1.StaticPodOperatorSpec
 	fakeStaticPodOperatorStatus *operatorv1.StaticPodOperatorStatus
 	resourceVersion             string
 	triggerStatusUpdateError    func(rv string, status *operatorv1.StaticPodOperatorStatus) error
+	triggerSpecUpdateError      func(rv string, status *operatorv1.StaticPodOperatorSpec) error
 }
 
 func (c *fakeStaticPodOperatorClient) Informer() cache.SharedIndexInformer {
@@ -111,8 +111,26 @@ func (c *fakeStaticPodOperatorClient) UpdateStaticPodOperatorStatus(resourceVers
 	return c.fakeStaticPodOperatorStatus, nil
 }
 
+func (c *fakeStaticPodOperatorClient) UpdateStaticPodOperatorSpec(resourceVersion string, spec *operatorv1.StaticPodOperatorSpec) (*operatorv1.StaticPodOperatorSpec, string, error) {
+	if c.resourceVersion != resourceVersion {
+		return nil, "", errors.NewConflict(schema.GroupResource{Group: operatorv1.GroupName, Resource: "TestOperatorConfig"}, "instance", fmt.Errorf("invalid resourceVersion"))
+	}
+	rv, err := strconv.Atoi(resourceVersion)
+	if err != nil {
+		return nil, "", err
+	}
+	c.resourceVersion = strconv.Itoa(rv + 1)
+	if c.triggerSpecUpdateError != nil {
+		if err := c.triggerSpecUpdateError(resourceVersion, spec); err != nil {
+			return nil, "", err
+		}
+	}
+	c.fakeStaticPodOperatorSpec = spec
+	return c.fakeStaticPodOperatorSpec, c.resourceVersion, nil
+}
+
 func (c *fakeStaticPodOperatorClient) GetOperatorState() (*operatorv1.OperatorSpec, *operatorv1.OperatorStatus, string, error) {
-	panic("not supported")
+	return &c.fakeStaticPodOperatorSpec.OperatorSpec, &c.fakeStaticPodOperatorStatus.OperatorStatus, "", nil
 }
 func (c *fakeStaticPodOperatorClient) UpdateOperatorSpec(string, *operatorv1.OperatorSpec) (spec *operatorv1.OperatorSpec, resourceVersion string, err error) {
 	panic("not supported")

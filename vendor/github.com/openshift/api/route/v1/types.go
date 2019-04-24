@@ -70,7 +70,23 @@ type RouteSpec struct {
 	// chosen.
 	// Must follow DNS952 subdomain conventions.
 	Host string `json:"host" protobuf:"bytes,1,opt,name=host"`
-	// Path that the router watches for, to route traffic for to the service. Optional
+	// subdomain is a DNS subdomain that is requested within the ingress controller's
+	// domain (as a subdomain). If host is set this field is ignored. An ingress
+	// controller may choose to ignore this suggested name, in which case the controller
+	// will report the assigned name in the status.ingress array or refuse to admit the
+	// route. If this value is set and the server does not support this field host will
+	// be populated automatically. Otherwise host is left empty. The field may have
+	// multiple parts separated by a dot, but not all ingress controllers may honor
+	// the request. This field may not be changed after creation except by a user with
+	// the update routes/custom-host permission.
+	//
+	// Example: subdomain `frontend` automatically receives the router subdomain
+	// `apps.mycluster.com` to have a full hostname `frontend.apps.mycluster.com`.
+	//
+	// +optional
+	Subdomain string `json:"subdomain" protobuf:"bytes,8,opt,name=subdomain"`
+
+	// path that the router watches for, to route traffic for to the service. Optional
 	Path string `json:"path,omitempty" protobuf:"bytes,2,opt,name=path"`
 
 	// to is an object the route should use as the primary backend. Only the Service kind

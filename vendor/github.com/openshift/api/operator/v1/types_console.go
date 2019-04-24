@@ -11,7 +11,7 @@ type Console struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// +required
-	Spec   ConsoleSpec   `json:"spec,omitempty"`
+	Spec ConsoleSpec `json:"spec,omitempty"`
 	// +optional
 	Status ConsoleStatus `json:"status,omitempty"`
 }

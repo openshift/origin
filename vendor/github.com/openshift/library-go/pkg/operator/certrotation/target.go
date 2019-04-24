@@ -70,6 +70,8 @@ func (c TargetRotation) ensureTargetCertKeyPair(signingCertKeyPair *crypto.CA, c
 			return err
 		}
 
+		LabelAsManagedSecret(targetCertKeyPairSecret, CertificateTypeTarget)
+
 		actualTargetCertKeyPairSecret, _, err := resourceapply.ApplySecret(c.Client, c.EventRecorder, targetCertKeyPairSecret)
 		if err != nil {
 			return err

@@ -14,7 +14,7 @@ type ServiceCatalogAPIServer struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// +required
-	Spec   ServiceCatalogAPIServerSpec   `json:"spec"`
+	Spec ServiceCatalogAPIServerSpec `json:"spec"`
 	// +optional
 	Status ServiceCatalogAPIServerStatus `json:"status"`
 }

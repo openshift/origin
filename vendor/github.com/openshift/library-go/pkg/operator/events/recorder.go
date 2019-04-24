@@ -44,6 +44,8 @@ var podNameEnvFunc = func() string {
 
 // GetControllerReferenceForCurrentPod provides an object reference to a controller managing the pod/container where this process runs.
 // The pod name must be provided via the POD_NAME name.
+// Even if this method returns an error, it always return valid reference to the namespace. It allows the callers to control the logging
+// and decide to fail or accept the namespace.
 func GetControllerReferenceForCurrentPod(client kubernetes.Interface, targetNamespace string, reference *corev1.ObjectReference) (*corev1.ObjectReference, error) {
 	if reference == nil {
 		// Try to get the pod name via POD_NAME environment variable
@@ -54,7 +56,10 @@ func GetControllerReferenceForCurrentPod(client kubernetes.Interface, targetName
 		// If that fails, lets try to guess the pod by listing all pods in namespaces and using the first pod in the list
 		reference, err := guessControllerReferenceForNamespace(client.CoreV1().Pods(targetNamespace))
 		if err != nil {
-			return nil, err
+			// If this fails, do not give up with error but instead use the namespace as controller reference for the pod
+			// NOTE: This is last resort, if we see this often it might indicate something is wrong in the cluster.
+			//       In some cases this might help with flakes.
+			return getControllerReferenceForNamespace(targetNamespace), err
 		}
 		return GetControllerReferenceForCurrentPod(client, targetNamespace, reference)
 	}
@@ -63,7 +68,7 @@ func GetControllerReferenceForCurrentPod(client kubernetes.Interface, targetName
 	case "Pod":
 		pod, err := client.CoreV1().Pods(reference.Namespace).Get(reference.Name, metav1.GetOptions{})
 		if err != nil {
-			return nil, err
+			return getControllerReferenceForNamespace(reference.Namespace), err
 		}
 		if podController := metav1.GetControllerOf(pod); podController != nil {
 			return GetControllerReferenceForCurrentPod(client, targetNamespace, makeObjectReference(podController, targetNamespace))
@@ -73,7 +78,7 @@ func GetControllerReferenceForCurrentPod(client kubernetes.Interface, targetName
 	case "ReplicaSet":
 		rs, err := client.AppsV1().ReplicaSets(reference.Namespace).Get(reference.Name, metav1.GetOptions{})
 		if err != nil {
-			return nil, err
+			return getControllerReferenceForNamespace(reference.Namespace), err
 		}
 		if rsController := metav1.GetControllerOf(rs); rsController != nil {
 			return GetControllerReferenceForCurrentPod(client, targetNamespace, makeObjectReference(rsController, targetNamespace))
@@ -82,6 +87,16 @@ func GetControllerReferenceForCurrentPod(client kubernetes.Interface, targetName
 		return reference, nil
 	default:
 		return reference, nil
+	}
+}
+
+// getControllerReferenceForNamespace returns an object reference to the given namespace.
+func getControllerReferenceForNamespace(targetNamespace string) *corev1.ObjectReference {
+	return &corev1.ObjectReference{
+		Kind:       "Namespace",
+		Namespace:  targetNamespace,
+		Name:       targetNamespace,
+		APIVersion: "v1",
 	}
 }
 

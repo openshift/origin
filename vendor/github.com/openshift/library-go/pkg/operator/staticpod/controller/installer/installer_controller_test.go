@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -28,23 +28,19 @@ import (
 func TestNewNodeStateForInstallInProgress(t *testing.T) {
 	kubeClient := fake.NewSimpleClientset()
 
-	var installerPod *v1.Pod
+	var installerPod *corev1.Pod
 
 	kubeClient.PrependReactor("create", "pods", func(action ktesting.Action) (handled bool, ret runtime.Object, err error) {
 		if installerPod != nil {
 			return true, nil, errors.NewAlreadyExists(schema.GroupResource{Resource: "pods"}, installerPod.Name)
 		}
-		installerPod = action.(ktesting.CreateAction).GetObject().(*v1.Pod)
+		installerPod = action.(ktesting.CreateAction).GetObject().(*corev1.Pod)
 		kubeClient.PrependReactor("get", "pods", getPodsReactor(installerPod))
 		return true, installerPod, nil
 	})
 
 	kubeInformers := informers.NewSharedInformerFactoryWithOptions(kubeClient, 1*time.Minute, informers.WithNamespace("test"))
 	fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(
-		&operatorv1.OperatorSpec{
-			ManagementState: operatorv1.Managed,
-		},
-		&operatorv1.OperatorStatus{},
 		&operatorv1.StaticPodOperatorSpec{
 			OperatorSpec: operatorv1.OperatorSpec{
 				ManagementState: operatorv1.Managed,
@@ -61,9 +57,10 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 			},
 		},
 		nil,
+		nil,
 	)
 
-	eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &v1.ObjectReference{})
+	eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &corev1.ObjectReference{})
 	podCommand := []string{"/bin/true", "--foo=test", "--bar"}
 	c := NewInstallerController(
 		"test", "test-pod",
@@ -72,6 +69,7 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 		podCommand,
 		kubeInformers,
 		fakeStaticPodOperatorClient,
+		kubeClient.CoreV1(),
 		kubeClient.CoreV1(),
 		kubeClient.CoreV1(),
 		eventRecorder,
@@ -140,7 +138,7 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 	}
 
 	t.Log("installer succeeded")
-	installerPod.Status.Phase = v1.PodSucceeded
+	installerPod.Status.Phase = corev1.PodSucceeded
 
 	if err := c.sync(); err != nil {
 		t.Fatal(err)
@@ -152,21 +150,21 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 	}
 
 	t.Log("static pod launched, but is not ready")
-	staticPod := &v1.Pod{
+	staticPod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-pod-test-node-1",
 			Namespace: "test",
 			Labels:    map[string]string{"revision": "1"},
 		},
-		Spec: v1.PodSpec{},
-		Status: v1.PodStatus{
-			Conditions: []v1.PodCondition{
+		Spec: corev1.PodSpec{},
+		Status: corev1.PodStatus{
+			Conditions: []corev1.PodCondition{
 				{
-					Status: v1.ConditionFalse,
-					Type:   v1.PodReady,
+					Status: corev1.ConditionFalse,
+					Type:   corev1.PodReady,
 				},
 			},
-			Phase: v1.PodRunning,
+			Phase: corev1.PodRunning,
 		},
 	}
 	kubeClient.PrependReactor("get", "pods", getPodsReactor(staticPod))
@@ -181,7 +179,7 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 	}
 
 	t.Log("static pod is ready")
-	staticPod.Status.Conditions[0].Status = v1.ConditionTrue
+	staticPod.Status.Conditions[0].Status = corev1.ConditionTrue
 
 	if err := c.sync(); err != nil {
 		t.Fatal(err)
@@ -199,12 +197,12 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 	fakeStaticPodOperatorClient.UpdateStaticPodOperatorStatus("1", currStatus)
 
 	installerPod.Name = "installer-2-test-node-1"
-	installerPod.Status.Phase = v1.PodFailed
-	installerPod.Status.ContainerStatuses = []v1.ContainerStatus{
+	installerPod.Status.Phase = corev1.PodFailed
+	installerPod.Status.ContainerStatuses = []corev1.ContainerStatus{
 		{
 			Name: "installer",
-			State: v1.ContainerState{
-				Terminated: &v1.ContainerStateTerminated{Message: "fake death"},
+			State: corev1.ContainerState{
+				Terminated: &corev1.ContainerStateTerminated{Message: "fake death"},
 			},
 		},
 	}
@@ -233,7 +231,7 @@ func TestNewNodeStateForInstallInProgress(t *testing.T) {
 	}
 }
 
-func getPodsReactor(pods ...*v1.Pod) ktesting.ReactionFunc {
+func getPodsReactor(pods ...*corev1.Pod) ktesting.ReactionFunc {
 	return func(action ktesting.Action) (handled bool, ret runtime.Object, err error) {
 		podName := action.(ktesting.GetAction).GetName()
 		for _, p := range pods {
@@ -248,18 +246,14 @@ func getPodsReactor(pods ...*v1.Pod) ktesting.ReactionFunc {
 func TestCreateInstallerPod(t *testing.T) {
 	kubeClient := fake.NewSimpleClientset()
 
-	var installerPod *v1.Pod
+	var installerPod *corev1.Pod
 	kubeClient.PrependReactor("create", "pods", func(action ktesting.Action) (handled bool, ret runtime.Object, err error) {
-		installerPod = action.(ktesting.CreateAction).GetObject().(*v1.Pod)
+		installerPod = action.(ktesting.CreateAction).GetObject().(*corev1.Pod)
 		return false, nil, nil
 	})
 	kubeInformers := informers.NewSharedInformerFactoryWithOptions(kubeClient, 1*time.Minute, informers.WithNamespace("test"))
 
 	fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(
-		&operatorv1.OperatorSpec{
-			ManagementState: operatorv1.Managed,
-		},
-		&operatorv1.OperatorStatus{},
 		&operatorv1.StaticPodOperatorSpec{
 			OperatorSpec: operatorv1.OperatorSpec{
 				ManagementState: operatorv1.Managed,
@@ -276,8 +270,9 @@ func TestCreateInstallerPod(t *testing.T) {
 			},
 		},
 		nil,
+		nil,
 	)
-	eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &v1.ObjectReference{})
+	eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &corev1.ObjectReference{})
 
 	c := NewInstallerController(
 		"test", "test-pod",
@@ -286,6 +281,7 @@ func TestCreateInstallerPod(t *testing.T) {
 		[]string{"/bin/true"},
 		kubeInformers,
 		fakeStaticPodOperatorClient,
+		kubeClient.CoreV1(),
 		kubeClient.CoreV1(),
 		kubeClient.CoreV1(),
 		eventRecorder,
@@ -327,7 +323,7 @@ func TestCreateInstallerPod(t *testing.T) {
 	}
 
 	expectedArgs := []string{
-		"-v=4",
+		"-v=2",
 		"--revision=1",
 		"--namespace=test",
 		"--pod=test-config",
@@ -359,7 +355,7 @@ func TestEnsureInstallerPod(t *testing.T) {
 		{
 			name: "normal",
 			expectedArgs: []string{
-				"-v=4",
+				"-v=2",
 				"--revision=1",
 				"--namespace=test",
 				"--pod=test-config",
@@ -374,7 +370,7 @@ func TestEnsureInstallerPod(t *testing.T) {
 		{
 			name: "optional",
 			expectedArgs: []string{
-				"-v=4",
+				"-v=2",
 				"--revision=1",
 				"--namespace=test",
 				"--pod=test-config",
@@ -399,7 +395,7 @@ func TestEnsureInstallerPod(t *testing.T) {
 		{
 			name: "first-cm-not-optional",
 			expectedArgs: []string{
-				"-v=4",
+				"-v=2",
 				"--revision=1",
 				"--namespace=test",
 				"--pod=test-config",
@@ -417,18 +413,14 @@ func TestEnsureInstallerPod(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			kubeClient := fake.NewSimpleClientset()
 
-			var installerPod *v1.Pod
+			var installerPod *corev1.Pod
 			kubeClient.PrependReactor("create", "pods", func(action ktesting.Action) (handled bool, ret runtime.Object, err error) {
-				installerPod = action.(ktesting.CreateAction).GetObject().(*v1.Pod)
+				installerPod = action.(ktesting.CreateAction).GetObject().(*corev1.Pod)
 				return false, nil, nil
 			})
 			kubeInformers := informers.NewSharedInformerFactoryWithOptions(kubeClient, 1*time.Minute, informers.WithNamespace("test"))
 
 			fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(
-				&operatorv1.OperatorSpec{
-					ManagementState: operatorv1.Managed,
-				},
-				&operatorv1.OperatorStatus{},
 				&operatorv1.StaticPodOperatorSpec{
 					OperatorSpec: operatorv1.OperatorSpec{
 						ManagementState: operatorv1.Managed,
@@ -445,8 +437,9 @@ func TestEnsureInstallerPod(t *testing.T) {
 					},
 				},
 				nil,
+				nil,
 			)
-			eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &v1.ObjectReference{})
+			eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &corev1.ObjectReference{})
 
 			c := NewInstallerController(
 				"test", "test-pod",
@@ -457,12 +450,13 @@ func TestEnsureInstallerPod(t *testing.T) {
 				fakeStaticPodOperatorClient,
 				kubeClient.CoreV1(),
 				kubeClient.CoreV1(),
+				kubeClient.CoreV1(),
 				eventRecorder,
 			)
 			c.ownerRefsFn = func(revision int32) ([]metav1.OwnerReference, error) {
 				return []metav1.OwnerReference{}, nil
 			}
-			err := c.ensureInstallerPod("test-node-1", nil, 1)
+			err := c.ensureInstallerPod("test-node-1", &operatorv1.StaticPodOperatorSpec{}, 1)
 			if err != nil {
 				if tt.expectedErr == "" {
 					t.Errorf("InstallerController.ensureInstallerPod() expected no error, got = %v", err)
@@ -492,23 +486,23 @@ func TestEnsureInstallerPod(t *testing.T) {
 }
 
 func TestCreateInstallerPodMultiNode(t *testing.T) {
-	newStaticPod := func(name string, revision int, phase v1.PodPhase, ready bool) *v1.Pod {
-		condStatus := v1.ConditionTrue
+	newStaticPod := func(name string, revision int, phase corev1.PodPhase, ready bool) *corev1.Pod {
+		condStatus := corev1.ConditionTrue
 		if !ready {
-			condStatus = v1.ConditionFalse
+			condStatus = corev1.ConditionFalse
 		}
-		return &v1.Pod{
+		return &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      name,
 				Namespace: "test",
 				Labels:    map[string]string{"revision": strconv.Itoa(revision)},
 			},
-			Spec: v1.PodSpec{},
-			Status: v1.PodStatus{
-				Conditions: []v1.PodCondition{
+			Spec: corev1.PodSpec{},
+			Status: corev1.PodStatus{
+				Conditions: []corev1.PodCondition{
 					{
 						Status: condStatus,
-						Type:   v1.PodReady,
+						Type:   corev1.PodReady,
 					},
 				},
 				Phase: phase,
@@ -519,7 +513,7 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 	tests := []struct {
 		name                    string
 		nodeStatuses            []operatorv1.NodeStatus
-		staticPods              []*v1.Pod
+		staticPods              []*corev1.Pod
 		latestAvailableRevision int32
 		expectedUpgradeOrder    []int
 		expectedSyncError       []bool
@@ -527,7 +521,7 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 		numOfInstallersOOM      int
 	}{
 		{
-			name: "three fresh nodes",
+			name:                    "three fresh nodes",
 			latestAvailableRevision: 1,
 			nodeStatuses: []operatorv1.NodeStatus{
 				{
@@ -543,7 +537,7 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 			expectedUpgradeOrder: []int{0, 1, 2},
 		},
 		{
-			name: "three nodes with current revision, all static pods ready",
+			name:                    "three nodes with current revision, all static pods ready",
 			latestAvailableRevision: 2,
 			nodeStatuses: []operatorv1.NodeStatus{
 				{
@@ -559,15 +553,15 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 					CurrentRevision: 1,
 				},
 			},
-			staticPods: []*v1.Pod{
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 1, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 1, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, v1.PodRunning, true),
+			staticPods: []*corev1.Pod{
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 1, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 1, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, corev1.PodRunning, true),
 			},
 			expectedUpgradeOrder: []int{0, 1, 2},
 		},
 		{
-			name: "one node already transitioning",
+			name:                    "one node already transitioning",
 			latestAvailableRevision: 2,
 			nodeStatuses: []operatorv1.NodeStatus{
 				{
@@ -584,15 +578,15 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 					CurrentRevision: 1,
 				},
 			},
-			staticPods: []*v1.Pod{
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 1, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 1, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, v1.PodRunning, true),
+			staticPods: []*corev1.Pod{
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 1, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 1, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, corev1.PodRunning, true),
 			},
 			expectedUpgradeOrder: []int{1, 0, 2},
 		},
 		{
-			name: "one node already transitioning, although it is newer",
+			name:                    "one node already transitioning, although it is newer",
 			latestAvailableRevision: 3,
 			nodeStatuses: []operatorv1.NodeStatus{
 				{
@@ -609,15 +603,15 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 					CurrentRevision: 1,
 				},
 			},
-			staticPods: []*v1.Pod{
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 1, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 2, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, v1.PodRunning, true),
+			staticPods: []*corev1.Pod{
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 1, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 2, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, corev1.PodRunning, true),
 			},
 			expectedUpgradeOrder: []int{1, 0, 2},
 		},
 		{
-			name: "three nodes, 2 not updated, one with failure in last revision",
+			name:                    "three nodes, 2 not updated, one with failure in last revision",
 			latestAvailableRevision: 2,
 			nodeStatuses: []operatorv1.NodeStatus{
 				{
@@ -634,15 +628,15 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 					CurrentRevision: 1,
 				},
 			},
-			staticPods: []*v1.Pod{
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 1, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 2, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, v1.PodRunning, true),
+			staticPods: []*corev1.Pod{
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 1, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 2, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, corev1.PodRunning, true),
 			},
 			expectedUpgradeOrder: []int{},
 		},
 		{
-			name: "three nodes, 2 not updated, one with failure in old revision",
+			name:                    "three nodes, 2 not updated, one with failure in old revision",
 			latestAvailableRevision: 3,
 			nodeStatuses: []operatorv1.NodeStatus{
 				{
@@ -659,15 +653,15 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 					CurrentRevision: 2,
 				},
 			},
-			staticPods: []*v1.Pod{
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 2, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 2, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 2, v1.PodRunning, true),
+			staticPods: []*corev1.Pod{
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 2, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 2, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 2, corev1.PodRunning, true),
 			},
 			expectedUpgradeOrder: []int{0, 1, 2},
 		},
 		{
-			name: "three nodes with outdated current revision, second static pods unready",
+			name:                    "three nodes with outdated current revision, second static pods unready",
 			latestAvailableRevision: 2,
 			nodeStatuses: []operatorv1.NodeStatus{
 				{
@@ -683,15 +677,15 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 					CurrentRevision: 1,
 				},
 			},
-			staticPods: []*v1.Pod{
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 1, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 1, v1.PodRunning, false),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, v1.PodRunning, true),
+			staticPods: []*corev1.Pod{
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 1, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 1, corev1.PodRunning, false),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, corev1.PodRunning, true),
 			},
 			expectedUpgradeOrder: []int{1, 0, 2},
 		},
 		{
-			name: "four nodes with outdated current revision, installer of 2nd was OOM killed, two more OOM happen, then success",
+			name:                    "four nodes with outdated current revision, installer of 2nd was OOM killed, two more OOM happen, then success",
 			latestAvailableRevision: 2,
 			nodeStatuses: []operatorv1.NodeStatus{
 				{
@@ -707,10 +701,10 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 					CurrentRevision: 1,
 				},
 			},
-			staticPods: []*v1.Pod{
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 2, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 1, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, v1.PodRunning, true),
+			staticPods: []*corev1.Pod{
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 2, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 1, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, corev1.PodRunning, true),
 			},
 			// we call sync 2*3 times:
 			// 1. notice update of node 1
@@ -723,7 +717,7 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 			numOfInstallersOOM:   2,
 		},
 		{
-			name: "three nodes with outdated current revision, 2nd & 3rd static pods unready",
+			name:                    "three nodes with outdated current revision, 2nd & 3rd static pods unready",
 			latestAvailableRevision: 2,
 			nodeStatuses: []operatorv1.NodeStatus{
 				{
@@ -739,15 +733,15 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 					CurrentRevision: 1,
 				},
 			},
-			staticPods: []*v1.Pod{
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 1, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 1, v1.PodRunning, false),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, v1.PodRunning, false),
+			staticPods: []*corev1.Pod{
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 1, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 1, corev1.PodRunning, false),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, corev1.PodRunning, false),
 			},
 			expectedUpgradeOrder: []int{1, 2, 0},
 		},
 		{
-			name: "updated node unready and newer version available, but updated again before older nodes are touched",
+			name:                    "updated node unready and newer version available, but updated again before older nodes are touched",
 			latestAvailableRevision: 3,
 			nodeStatuses: []operatorv1.NodeStatus{
 				{
@@ -763,15 +757,15 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 					CurrentRevision: 1,
 				},
 			},
-			staticPods: []*v1.Pod{
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 1, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 2, v1.PodRunning, false),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, v1.PodRunning, true),
+			staticPods: []*corev1.Pod{
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 1, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 2, corev1.PodRunning, false),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, corev1.PodRunning, true),
 			},
 			expectedUpgradeOrder: []int{1, 0, 2},
 		},
 		{
-			name: "two nodes on revision 1 and one node on revision 4",
+			name:                    "two nodes on revision 1 and one node on revision 4",
 			latestAvailableRevision: 5,
 			nodeStatuses: []operatorv1.NodeStatus{
 				{
@@ -787,15 +781,15 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 					CurrentRevision: 1,
 				},
 			},
-			staticPods: []*v1.Pod{
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 4, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 1, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, v1.PodRunning, true),
+			staticPods: []*corev1.Pod{
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 4, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 1, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, corev1.PodRunning, true),
 			},
 			expectedUpgradeOrder: []int{1, 2, 0},
 		},
 		{
-			name: "two nodes 2 revisions behind and 1 node on latest available revision",
+			name:                    "two nodes 2 revisions behind and 1 node on latest available revision",
 			latestAvailableRevision: 3,
 			nodeStatuses: []operatorv1.NodeStatus{
 				{
@@ -811,15 +805,15 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 					CurrentRevision: 1,
 				},
 			},
-			staticPods: []*v1.Pod{
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 3, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 1, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, v1.PodSucceeded, true),
+			staticPods: []*corev1.Pod{
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 3, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 1, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, corev1.PodSucceeded, true),
 			},
 			expectedUpgradeOrder: []int{1, 2},
 		},
 		{
-			name: "two nodes at different revisions behind and 1 node on latest available revision",
+			name:                    "two nodes at different revisions behind and 1 node on latest available revision",
 			latestAvailableRevision: 3,
 			nodeStatuses: []operatorv1.NodeStatus{
 				{
@@ -835,15 +829,15 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 					CurrentRevision: 1,
 				},
 			},
-			staticPods: []*v1.Pod{
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 3, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 2, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, v1.PodSucceeded, true),
+			staticPods: []*corev1.Pod{
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 3, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 2, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 1, corev1.PodSucceeded, true),
 			},
 			expectedUpgradeOrder: []int{2, 1},
 		},
 		{
-			name: "second node with old static pod than current revision",
+			name:                    "second node with old static pod than current revision",
 			latestAvailableRevision: 3,
 			nodeStatuses: []operatorv1.NodeStatus{
 				{
@@ -859,15 +853,15 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 					CurrentRevision: 2,
 				},
 			},
-			staticPods: []*v1.Pod{
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 2, v1.PodRunning, true),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 1, v1.PodRunning, false),
-				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 2, v1.PodRunning, false),
+			staticPods: []*corev1.Pod{
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-1"), 2, corev1.PodRunning, true),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-2"), 1, corev1.PodRunning, false),
+				newStaticPod(mirrorPodNameForNode("test-pod", "test-node-3"), 2, corev1.PodRunning, false),
 			},
 			expectedUpgradeOrder: []int{1, 2, 0},
 		},
 		{
-			name: "first update status fails",
+			name:                    "first update status fails",
 			latestAvailableRevision: 2,
 			nodeStatuses: []operatorv1.NodeStatus{
 				{
@@ -882,9 +876,9 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			createdInstallerPods := []*v1.Pod{}
-			installerPods := map[string]*v1.Pod{}
-			updatedStaticPods := map[string]*v1.Pod{}
+			createdInstallerPods := []*corev1.Pod{}
+			installerPods := map[string]*corev1.Pod{}
+			updatedStaticPods := map[string]*corev1.Pod{}
 
 			installerNodeAndID := func(installerName string) (string, int) {
 				ss := strings.SplitN(strings.TrimPrefix(installerName, "installer-"), "-", 2)
@@ -897,21 +891,21 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 
 			kubeClient := fake.NewSimpleClientset()
 			kubeClient.PrependReactor("create", "pods", func(action ktesting.Action) (handled bool, ret runtime.Object, err error) {
-				createdPod := action.(ktesting.CreateAction).GetObject().(*v1.Pod)
+				createdPod := action.(ktesting.CreateAction).GetObject().(*corev1.Pod)
 				createdInstallerPods = append(createdInstallerPods, createdPod)
 				if _, found := installerPods[createdPod.Name]; found {
-					return false, nil, errors.NewAlreadyExists(v1.SchemeGroupVersion.WithResource("pods").GroupResource(), createdPod.Name)
+					return false, nil, errors.NewAlreadyExists(corev1.SchemeGroupVersion.WithResource("pods").GroupResource(), createdPod.Name)
 				}
 				installerPods[createdPod.Name] = createdPod
 				if test.numOfInstallersOOM > 0 {
 					test.numOfInstallersOOM--
 
-					createdPod.Status.Phase = v1.PodFailed
-					createdPod.Status.ContainerStatuses = []v1.ContainerStatus{
+					createdPod.Status.Phase = corev1.PodFailed
+					createdPod.Status.ContainerStatuses = []corev1.ContainerStatus{
 						{
 							Name: "container",
-							State: v1.ContainerState{
-								Terminated: &v1.ContainerStateTerminated{
+							State: corev1.ContainerState{
+								Terminated: &corev1.ContainerStateTerminated{
 									ExitCode: 1,
 									Reason:   "OOMKilled",
 									Message:  "killed by OOM",
@@ -924,12 +918,12 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 					// Once the installer pod is created, set its status to succeeded.
 					// Note that in reality, this will probably take couple sync cycles to happen, however it is useful to do this fast
 					// to rule out timing bugs.
-					createdPod.Status.Phase = v1.PodSucceeded
+					createdPod.Status.Phase = corev1.PodSucceeded
 
 					nodeName, id := installerNodeAndID(createdPod.Name)
 					staticPodName := mirrorPodNameForNode("test-pod", nodeName)
 
-					updatedStaticPods[staticPodName] = newStaticPod(staticPodName, id, v1.PodRunning, true)
+					updatedStaticPods[staticPodName] = newStaticPod(staticPodName, id, corev1.PodRunning, true)
 				}
 
 				return true, nil, nil
@@ -974,10 +968,6 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 				return err
 			}
 			fakeStaticPodOperatorClient := v1helpers.NewFakeStaticPodOperatorClient(
-				&operatorv1.OperatorSpec{
-					ManagementState: operatorv1.Managed,
-				},
-				&operatorv1.OperatorStatus{},
 				&operatorv1.StaticPodOperatorSpec{
 					OperatorSpec: operatorv1.OperatorSpec{
 						ManagementState: operatorv1.Managed,
@@ -988,9 +978,10 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 					NodeStatuses:            test.nodeStatuses,
 				},
 				statusUpdateErrorFunc,
+				nil,
 			)
 
-			eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &v1.ObjectReference{})
+			eventRecorder := events.NewRecorder(kubeClient.CoreV1().Events("test"), "test-operator", &corev1.ObjectReference{})
 
 			c := NewInstallerController(
 				fmt.Sprintf("test-%d", i), "test-pod",
@@ -999,6 +990,7 @@ func TestCreateInstallerPodMultiNode(t *testing.T) {
 				[]string{"/bin/true"},
 				kubeInformers,
 				fakeStaticPodOperatorClient,
+				kubeClient.CoreV1(),
 				kubeClient.CoreV1(),
 				kubeClient.CoreV1(),
 				eventRecorder,
@@ -1070,17 +1062,17 @@ func TestInstallerController_manageInstallationPods(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := &InstallerController{
-				targetNamespace:      tt.fields.targetNamespace,
-				staticPodName:        tt.fields.staticPodName,
-				configMaps:           tt.fields.configMaps,
-				secrets:              tt.fields.secrets,
-				command:              tt.fields.command,
-				operatorConfigClient: tt.fields.operatorConfigClient,
-				configMapsGetter:     tt.fields.kubeClient.CoreV1(),
-				podsGetter:           tt.fields.kubeClient.CoreV1(),
-				eventRecorder:        tt.fields.eventRecorder,
-				queue:                tt.fields.queue,
-				installerPodImageFn:  tt.fields.installerPodImageFn,
+				targetNamespace:     tt.fields.targetNamespace,
+				staticPodName:       tt.fields.staticPodName,
+				configMaps:          tt.fields.configMaps,
+				secrets:             tt.fields.secrets,
+				command:             tt.fields.command,
+				operatorClient:      tt.fields.operatorConfigClient,
+				configMapsGetter:    tt.fields.kubeClient.CoreV1(),
+				podsGetter:          tt.fields.kubeClient.CoreV1(),
+				eventRecorder:       tt.fields.eventRecorder,
+				queue:               tt.fields.queue,
+				installerPodImageFn: tt.fields.installerPodImageFn,
 			}
 			got, err := c.manageInstallationPods(tt.args.operatorSpec, tt.args.originalOperatorStatus, tt.args.resourceVersion)
 			if (err != nil) != tt.wantErr {
@@ -1290,7 +1282,7 @@ func TestSetConditions(t *testing.T) {
 	}
 
 	testCases := []TestCase{
-		testCase("AvailableProgressingFailing", true, true, true, 1, 2, 2, 1, 2, 1),
+		testCase("AvailableProgressingDegraded", true, true, true, 1, 2, 2, 1, 2, 1),
 		testCase("AvailableProgressing", true, true, false, 0, 2, 2, 1, 2, 1),
 		testCase("AvailableNotProgressing", true, false, false, 0, 2, 2, 2, 2),
 		testCase("NotAvailableProgressing", false, true, false, 0, 2, 0, 0),
@@ -1322,7 +1314,7 @@ func TestSetConditions(t *testing.T) {
 				t.Errorf("Progressing condition: expected status %v, actual status %v", tc.expectedProgressingStatus, pendingCondition.Status)
 			}
 
-			failingCondition := v1helpers.FindOperatorCondition(status.Conditions, nodeInstallerFailing)
+			failingCondition := v1helpers.FindOperatorCondition(status.Conditions, nodeInstallerDegraded)
 			if failingCondition == nil {
 				t.Error("Failing condition: not found")
 			} else if failingCondition.Status != tc.expectedFailingStatus {
@@ -1331,4 +1323,77 @@ func TestSetConditions(t *testing.T) {
 		})
 	}
 
+}
+
+func TestEnsureCert(t *testing.T) {
+	tests := []struct {
+		name           string
+		certConfigMaps []revision.RevisionResource
+		certSecrets    []revision.RevisionResource
+
+		startingResources []runtime.Object
+		expectedErr       string
+	}{
+		{
+			name: "none",
+		},
+		{
+			name: "skip-optional",
+			certConfigMaps: []revision.RevisionResource{
+				{Name: "foo-cm", Optional: true},
+			},
+			certSecrets: []revision.RevisionResource{
+				{Name: "foo-s", Optional: true},
+			},
+		},
+		{
+			name: "wait-required",
+			certConfigMaps: []revision.RevisionResource{
+				{Name: "foo-cm"},
+			},
+			certSecrets: []revision.RevisionResource{
+				{Name: "foo-s"},
+			},
+			expectedErr: "configmaps/foo-cm,secrets/foo-s",
+		},
+		{
+			name: "found-required",
+			certConfigMaps: []revision.RevisionResource{
+				{Name: "foo-cm"},
+			},
+			certSecrets: []revision.RevisionResource{
+				{Name: "foo-s"},
+			},
+			startingResources: []runtime.Object{
+				&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: "ns", Name: "foo-cm"}},
+				&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: "ns", Name: "foo-s"}},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			client := fake.NewSimpleClientset(test.startingResources...)
+			c := &InstallerController{
+				targetNamespace: "ns",
+				certConfigMaps:  test.certConfigMaps,
+				certSecrets:     test.certSecrets,
+
+				configMapsGetter: client.CoreV1(),
+				secretsGetter:    client.CoreV1(),
+			}
+
+			actual := c.ensureCerts()
+			switch {
+			case len(test.expectedErr) == 0 && actual == nil:
+			case len(test.expectedErr) == 0 && actual != nil:
+				t.Fatal(actual)
+			case len(test.expectedErr) != 0 && actual == nil:
+				t.Fatal(actual)
+			case len(test.expectedErr) != 0 && actual != nil && !strings.Contains(actual.Error(), test.expectedErr):
+				t.Fatal(actual)
+			}
+
+		})
+	}
 }

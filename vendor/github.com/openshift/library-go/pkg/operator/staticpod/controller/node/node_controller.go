@@ -26,39 +26,40 @@ const nodeControllerWorkQueueKey = "key"
 
 // NodeController watches for new master nodes and adds them to the node status list in the operator config status.
 type NodeController struct {
-	operatorConfigClient v1helpers.StaticPodOperatorClient
-	eventRecorder        events.Recorder
+	operatorClient v1helpers.StaticPodOperatorClient
 
-	nodeListerSynced cache.InformerSynced
-	nodeLister       corelisterv1.NodeLister
+	nodeLister corelisterv1.NodeLister
 
-	// queue only ever has one item, but it has nice error handling backoff/retry semantics
-	queue workqueue.RateLimitingInterface
+	cachesToSync  []cache.InformerSynced
+	queue         workqueue.RateLimitingInterface
+	eventRecorder events.Recorder
 }
 
 // NewNodeController creates a new node controller.
 func NewNodeController(
-	operatorConfigClient v1helpers.StaticPodOperatorClient,
+	operatorClient v1helpers.StaticPodOperatorClient,
 	kubeInformersClusterScoped informers.SharedInformerFactory,
 	eventRecorder events.Recorder,
 ) *NodeController {
 	c := &NodeController{
-		operatorConfigClient: operatorConfigClient,
-		eventRecorder:        eventRecorder.WithComponentSuffix("node-controller"),
-		nodeListerSynced:     kubeInformersClusterScoped.Core().V1().Nodes().Informer().HasSynced,
-		nodeLister:           kubeInformersClusterScoped.Core().V1().Nodes().Lister(),
+		operatorClient: operatorClient,
+		eventRecorder:  eventRecorder.WithComponentSuffix("node-controller"),
+		nodeLister:     kubeInformersClusterScoped.Core().V1().Nodes().Lister(),
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "NodeController"),
 	}
 
-	operatorConfigClient.Informer().AddEventHandler(c.eventHandler())
+	operatorClient.Informer().AddEventHandler(c.eventHandler())
 	kubeInformersClusterScoped.Core().V1().Nodes().Informer().AddEventHandler(c.eventHandler())
+
+	c.cachesToSync = append(c.cachesToSync, operatorClient.Informer().HasSynced)
+	c.cachesToSync = append(c.cachesToSync, kubeInformersClusterScoped.Core().V1().Nodes().Informer().HasSynced)
 
 	return c
 }
 
 func (c NodeController) sync() error {
-	_, originalOperatorStatus, resourceVersion, err := c.operatorConfigClient.GetStaticPodOperatorState()
+	_, originalOperatorStatus, resourceVersion, err := c.operatorClient.GetStaticPodOperatorState()
 	if err != nil {
 		return err
 	}
@@ -107,7 +108,7 @@ func (c NodeController) sync() error {
 
 	operatorStatus.NodeStatuses = newTargetNodeStates
 	if !equality.Semantic.DeepEqual(originalOperatorStatus, operatorStatus) {
-		if _, updateError := c.operatorConfigClient.UpdateStaticPodOperatorStatus(resourceVersion, operatorStatus); updateError != nil {
+		if _, updateError := c.operatorClient.UpdateStaticPodOperatorStatus(resourceVersion, operatorStatus); updateError != nil {
 			return updateError
 		}
 	}
@@ -122,7 +123,7 @@ func (c *NodeController) Run(workers int, stopCh <-chan struct{}) {
 
 	klog.Infof("Starting NodeController")
 	defer klog.Infof("Shutting down NodeController")
-	if !cache.WaitForCacheSync(stopCh, c.nodeListerSynced) {
+	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
 		return
 	}
 

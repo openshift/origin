@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	staticPodStateControllerFailing      = "StaticPodsFailing"
+	staticPodStateControllerDegraded     = "StaticPodsDegraded"
 	staticPodStateControllerWorkQueueKey = "key"
 )
 
@@ -36,14 +36,14 @@ type StaticPodStateController struct {
 	operandName       string
 	operatorNamespace string
 
-	operatorConfigClient v1helpers.StaticPodOperatorClient
-	configMapGetter      corev1client.ConfigMapsGetter
-	podsGetter           corev1client.PodsGetter
-	versionRecorder      status.VersionGetter
-	eventRecorder        events.Recorder
+	operatorClient  v1helpers.StaticPodOperatorClient
+	configMapGetter corev1client.ConfigMapsGetter
+	podsGetter      corev1client.PodsGetter
+	versionRecorder status.VersionGetter
 
-	// queue only ever has one item, but it has nice error handling backoff/retry semantics
-	queue workqueue.RateLimitingInterface
+	cachesToSync  []cache.InformerSynced
+	queue         workqueue.RateLimitingInterface
+	eventRecorder events.Recorder
 }
 
 // NewStaticPodStateController creates a controller that watches static pods and will produce a failing status if the
@@ -51,7 +51,7 @@ type StaticPodStateController struct {
 func NewStaticPodStateController(
 	targetNamespace, staticPodName, operatorNamespace, operandName string,
 	kubeInformersForTargetNamespace informers.SharedInformerFactory,
-	operatorConfigClient v1helpers.StaticPodOperatorClient,
+	operatorClient v1helpers.StaticPodOperatorClient,
 	configMapGetter corev1client.ConfigMapsGetter,
 	podsGetter corev1client.PodsGetter,
 	versionRecorder status.VersionGetter,
@@ -63,23 +63,26 @@ func NewStaticPodStateController(
 		operandName:       operandName,
 		operatorNamespace: operatorNamespace,
 
-		operatorConfigClient: operatorConfigClient,
-		configMapGetter:      configMapGetter,
-		podsGetter:           podsGetter,
-		versionRecorder:      versionRecorder,
-		eventRecorder:        eventRecorder.WithComponentSuffix("static-pod-state-controller"),
+		operatorClient:  operatorClient,
+		configMapGetter: configMapGetter,
+		podsGetter:      podsGetter,
+		versionRecorder: versionRecorder,
+		eventRecorder:   eventRecorder.WithComponentSuffix("static-pod-state-controller"),
 
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "StaticPodStateController"),
 	}
 
-	operatorConfigClient.Informer().AddEventHandler(c.eventHandler())
+	operatorClient.Informer().AddEventHandler(c.eventHandler())
 	kubeInformersForTargetNamespace.Core().V1().Pods().Informer().AddEventHandler(c.eventHandler())
+
+	c.cachesToSync = append(c.cachesToSync, operatorClient.Informer().HasSynced)
+	c.cachesToSync = append(c.cachesToSync, kubeInformersForTargetNamespace.Core().V1().Pods().Informer().HasSynced)
 
 	return c
 }
 
 func (c *StaticPodStateController) sync() error {
-	operatorSpec, originalOperatorStatus, _, err := c.operatorConfigClient.GetStaticPodOperatorState()
+	operatorSpec, originalOperatorStatus, _, err := c.operatorClient.GetStaticPodOperatorState()
 	if err != nil {
 		return err
 	}
@@ -130,13 +133,13 @@ func (c *StaticPodStateController) sync() error {
 	} else {
 		c.versionRecorder.SetVersion(
 			c.operandName,
-			status.VersionForOperand(c.operatorNamespace, images.List()[0], c.configMapGetter, c.eventRecorder),
+			status.VersionForOperandFromEnv(),
 		)
 	}
 
 	// update failing condition
 	cond := operatorv1.OperatorCondition{
-		Type:   staticPodStateControllerFailing,
+		Type:   staticPodStateControllerDegraded,
 		Status: operatorv1.ConditionFalse,
 	}
 	// Failing errors
@@ -150,7 +153,7 @@ func (c *StaticPodStateController) sync() error {
 		cond.Reason = "Error"
 		cond.Message = v1helpers.NewMultiLineAggregate(errs).Error()
 	}
-	if _, _, updateError := v1helpers.UpdateStaticPodStatus(c.operatorConfigClient, v1helpers.UpdateStaticPodConditionFn(cond), v1helpers.UpdateStaticPodConditionFn(cond)); updateError != nil {
+	if _, _, updateError := v1helpers.UpdateStaticPodStatus(c.operatorClient, v1helpers.UpdateStaticPodConditionFn(cond), v1helpers.UpdateStaticPodConditionFn(cond)); updateError != nil {
 		if err == nil {
 			return updateError
 		}
@@ -170,6 +173,9 @@ func (c *StaticPodStateController) Run(workers int, stopCh <-chan struct{}) {
 
 	klog.Infof("Starting StaticPodStateController")
 	defer klog.Infof("Shutting down StaticPodStateController")
+	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
+		return
+	}
 
 	// doesn't matter what workers say, only start one.
 	go wait.Until(c.runWorker, time.Second, stopCh)

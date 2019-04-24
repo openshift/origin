@@ -333,12 +333,15 @@ message RoleBindingRestrictionList {
 // field must be non-nil.
 message RoleBindingRestrictionSpec {
   // UserRestriction matches against user subjects.
+  // +nullable
   optional UserRestriction userrestriction = 1;
 
   // GroupRestriction matches against group subjects.
+  // +nullable
   optional GroupRestriction grouprestriction = 2;
 
   // ServiceAccountRestriction matches against service-account subjects.
+  // +nullable
   optional ServiceAccountRestriction serviceaccountrestriction = 3;
 }
 
