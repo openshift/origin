@@ -1,8 +1,6 @@
 package openshift_kube_apiserver
 
 import (
-	"fmt"
-
 	"k8s.io/klog"
 
 	"k8s.io/apiserver/pkg/admission"
@@ -69,5 +67,5 @@ func RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig *kubecontrolplanev1.Kub
 		return err
 	}
 
-	return fmt.Errorf("`kube-apiserver %v` exited", args)
+	return nil
 }

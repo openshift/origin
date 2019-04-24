@@ -70,6 +70,9 @@ func NewOpenShiftKubeAPIServerServerCommand(name, basename string, out, errout i
 				}
 				klog.Fatal(err)
 			}
+			// When no error is returned, always return with zero exit code.
+			// This is here to make sure the container that run apiserver won't get accidentally restarted
+			// when the pod runs with restart on failure.
 		},
 	}
 
