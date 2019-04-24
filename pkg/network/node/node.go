@@ -385,7 +385,7 @@ func (node *OsdnNode) reattachPods(existingPods map[string]podNetworkInfo) error
 			klog.Warningf("Could not find sandbox for existing pod with IP %s; it may be in an inconsistent state", podInfo.ip)
 			continue
 		}
-		if _, err := node.oc.ovs.GetOFPort(podInfo.vethName); err != nil {
+		if _, err := netlink.LinkByName(podInfo.vethName); err != nil {
 			klog.Infof("Interface %s for pod '%s/%s' no longer exists", podInfo.vethName, sandbox.Metadata.Namespace, sandbox.Metadata.Name)
 			failed = append(failed, sandbox)
 			continue
