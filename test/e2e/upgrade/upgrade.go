@@ -317,6 +317,7 @@ func clusterUpgrade(c configv1client.Interface, version upgrades.VersionContext)
 	desired := configv1.Update{
 		Version: version.Version.String(),
 		Image:   version.NodeImage,
+		Force:   true,
 	}
 	cv.Spec.DesiredUpdate = &desired
 	updated, err := c.ConfigV1().ClusterVersions().Update(cv)
@@ -347,7 +348,7 @@ func clusterUpgrade(c configv1client.Interface, version upgrades.VersionContext)
 
 	framework.Logf("Cluster version operator acknowledged upgrade request")
 
-	if err := wait.PollImmediate(5*time.Second, 45*time.Minute, func() (bool, error) {
+	if err := wait.PollImmediate(5*time.Second, 75*time.Minute, func() (bool, error) {
 		cv, err := c.ConfigV1().ClusterVersions().Get("version", metav1.GetOptions{})
 		if err != nil {
 			framework.Logf("unable to retrieve cluster version during upgrade: %v", err)
