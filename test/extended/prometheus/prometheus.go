@@ -182,6 +182,18 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			}
 			runQueries(tests, oc, ns, execPodName, url, bearerToken)
 		})
+		g.It("should be able to get the sdn ovs flows", func() {
+			oc.SetupProject()
+			ns := oc.Namespace()
+			execPodName := e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) { pod.Spec.Containers[0].Image = "centos:7" })
+			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+
+			tests := map[string][]metricTest{
+				//something
+				`openshift_sdn_ovs_flows`: {metricTest{greaterThanEqual: true, value: 1}},
+			}
+			runQueries(tests, oc, ns, execPodName, url, bearerToken)
+		})
 	})
 })
 
