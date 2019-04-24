@@ -295,7 +295,8 @@ func (o *CopyOptions) copyFromPod(src, dest fileSpec) error {
 
 	go func() {
 		defer outStream.Close()
-		o.execute(options)
+		err := o.execute(options)
+		cmdutil.CheckErr(err)
 	}()
 	prefix := getPrefix(src.File)
 	prefix = path.Clean(prefix)
