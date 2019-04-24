@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/origin/pkg/admission/customresourcevalidation/oauth"
 	"github.com/openshift/origin/pkg/admission/customresourcevalidation/project"
 	"github.com/openshift/origin/pkg/admission/customresourcevalidation/scheduler"
+	"github.com/openshift/origin/pkg/admission/customresourcevalidation/securitycontextconstraints"
 )
 
 // AllCustomResourceValidators are the names of all custom resource validators that should be registered
@@ -25,6 +26,7 @@ var AllCustomResourceValidators = []string{
 	config.PluginName,
 	scheduler.PluginName,
 	clusterresourcequota.PluginName,
+	securitycontextconstraints.PluginName,
 }
 
 func RegisterCustomResourceValidation(plugins *admission.Plugins) {
@@ -40,4 +42,6 @@ func RegisterCustomResourceValidation(plugins *admission.Plugins) {
 	// This plugin validates the quota.openshift.io/v1 ClusterResourceQuota resources.
 	// NOTE: This is only allowed because it is required to get a running control plane operator.
 	clusterresourcequota.Register(plugins)
+	// This plugin validates the security.openshift.io/v1 SecurityContextConstraints resources.
+	securitycontextconstraints.Register(plugins)
 }
