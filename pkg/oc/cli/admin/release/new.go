@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/pkg/version"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
@@ -145,6 +146,7 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 	flags.StringVar(&o.ToImage, "to-image", o.ToImage, "The location to upload the release image to.")
 	flags.StringVar(&o.ToImageBase, "to-image-base", o.ToImageBase, "If specified, the image to add the release layer on top of.")
 	flags.StringVar(&o.ToImageBaseTag, "to-image-base-tag", o.ToImageBaseTag, "If specified, the image tag in the input to add the release layer on top of. Defaults to cluster-version-operator.")
+	flags.StringVar(&o.ToSignature, "to-signature", o.ToSignature, "If specified, output a message that can be signed that describes this release. Requires --to-image.")
 
 	// misc
 	flags.StringVarP(&o.Output, "output", "o", o.Output, "Output the mapping definition in this format.")
@@ -189,6 +191,7 @@ type NewOptions struct {
 	ToImage        string
 	ToImageBase    string
 	ToImageBaseTag string
+	ToSignature    string
 
 	Mirror string
 
@@ -261,6 +264,9 @@ func (o *NewOptions) Validate() error {
 		if len(o.Mappings) == 0 {
 			return fmt.Errorf("must specify image mappings when no other source is defined")
 		}
+	}
+	if len(o.ToSignature) > 0 && len(o.ToImage) == 0 {
+		return fmt.Errorf("--to-signature requires --to-image")
 	}
 	if len(o.Mirror) > 0 && o.ReferenceMode != "" && o.ReferenceMode != "public" {
 		return fmt.Errorf("--reference-mode must be public or empty when using --mirror")
@@ -1158,6 +1164,22 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 				return err
 			}
 			fmt.Fprintf(o.ErrOut, "warning: %v\n", err)
+		}
+
+		// TODO: support a dry run that doesn't push the image, but requires append to have a dry-run mode
+		toRefWithDigest := toRef
+		toRefWithDigest.Tag = ""
+		toRefWithDigest.ID = options.ToDigest.String()
+		msg, err := createReleaseSignatureMessage(fmt.Sprintf("oc-adm-release-new/%s", version.Get().GitCommit), now, options.ToDigest.String(), toRefWithDigest.Exact())
+		if err != nil {
+			return err
+		}
+		if len(o.ToSignature) > 0 {
+			if err := ioutil.WriteFile(o.ToSignature, msg, 0644); err != nil {
+				return fmt.Errorf("unable to write signature file: %v", err)
+			}
+		} else {
+			klog.V(2).Infof("Signature for output:\n%s", string(msg))
 		}
 
 	default:
