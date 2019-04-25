@@ -64,6 +64,7 @@ func WithAuthentication(handler http.Handler, auth authenticator.Request, failed
 		}
 		resp, ok, err := auth.AuthenticateRequest(req)
 		if err != nil || !ok {
+			req.Header.Add("ENJ authn error", config.Sdump(err))
 			if err != nil {
 				klog.Errorf("Unable to authenticate the request due to an error: %v", err)
 			}
@@ -103,7 +104,7 @@ func Unauthorized(s runtime.NegotiatedSerializer, supportsBasicAuth bool) http.H
 	})
 }
 
-var config = spew.ConfigState{Indent: "\t", MaxDepth: 5, DisableMethods: true}
+var config = spew.ConfigState{Indent: "\t", MaxDepth: 3, DisableMethods: true}
 
 // compressUsername maps all possible usernames onto a small set of categories
 // of usernames. This is done both to limit the cardinality of the
