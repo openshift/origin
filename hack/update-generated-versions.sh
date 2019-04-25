@@ -7,7 +7,7 @@ verify="${VERIFY:-}"
 
 os::build::version::kubernetes_vars
 if [[ "${KUBE_GIT_VERSION}" =~ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
-	version_kubernetes=${BASH_REMATCH[1]}
+	version_kubernetes="${BASH_REMATCH[1]}+$(git rev-parse --short HEAD)"
 else
   os::log::fatal "Unable to find kubernetes version from ${KUBE_GIT_VERSION}"
 fi
