@@ -62,4 +62,23 @@ var _ = g.Describe("[cli] oc adm must-gather", func() {
 		}
 
 	})
+
+	g.It("runs successfully with options", func() {
+		tempDir, err := ioutil.TempDir("", "test.oc-adm-must-gather.")
+		o.Expect(err).ToNot(o.HaveOccurred())
+		defer os.RemoveAll(tempDir)
+		args := []string{
+			"--dest-dir", tempDir,
+			"--source-dir", "/artifacts",
+			"--",
+			"/bin/bash", "-c",
+			"ls -l > /artifacts/ls.log",
+		}
+		o.Expect(oc.Run("adm", "must-gather").Args(args...).Execute()).To(o.Succeed())
+		expectedFilePath := path.Join(tempDir, "ls.log")
+		o.Expect(expectedFilePath).To(o.BeAnExistingFile())
+		stat, err := os.Stat(expectedFilePath)
+		o.Expect(err).ToNot(o.HaveOccurred())
+		o.Expect(stat.Size()).To(o.BeNumerically(">", 0))
+	})
 })
