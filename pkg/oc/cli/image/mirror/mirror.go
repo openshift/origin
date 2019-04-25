@@ -44,7 +44,8 @@ var (
 		blobs (instead of uploading). The source bucket also supports the suffix "/[store]", which
 		will transform blob identifiers into the form the Docker registry uses on disk, allowing
 		you to mirror directly from an existing S3-backed Docker registry. Credentials for S3
-		may be stored in your docker credential file and looked up by host.
+		may be stored in your docker credential file and looked up by host, or loaded via the normal
+		AWS client locations for ENV or file.
 
 		Images in manifest list format will be copied as-is unless you use --filter-by-os to restrict
 		the allowed images to copy in a manifest list. This flag has no effect on regular images.
@@ -540,6 +541,10 @@ func copyBlob(ctx context.Context, plan *workPlan, c *repositoryBlobCopy, blob d
 		}
 		plan.BytesCopied(blob.Size)
 		return nil
+	}
+
+	if c.destinationType == DestinationS3 {
+		options = append(options, WithDescriptor(blob))
 	}
 
 	w, err := c.to.Create(ctx, options...)
