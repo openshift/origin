@@ -26,7 +26,7 @@ var upgradeSuites = []*ginkgo.TestSuite{
 		Matches: func(name string) bool { return strings.Contains(name, "[Feature:ClusterUpgrade]") },
 
 		Init:        func() error { return filterUpgrade(upgrade.AllTests(), func(name string) bool { return true }) },
-		TestTimeout: 60 * time.Minute,
+		TestTimeout: 120 * time.Minute,
 	},
 }
 
