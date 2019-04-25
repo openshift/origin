@@ -1909,7 +1909,13 @@ func describeSecurityContextConstraints(scc *securityapi.SecurityContextConstrai
 
 		fmt.Fprintf(out, "Settings:\t\n")
 		fmt.Fprintf(out, "  Allow Privileged:\t%t\n", scc.AllowPrivilegedContainer)
-		fmt.Fprintf(out, "  Allow Privilege Escalation:\t%v\n", scc.AllowPrivilegeEscalation)
+
+		allowPrivilegeEscalation := ""
+		if scc.AllowPrivilegeEscalation != nil {
+			allowPrivilegeEscalation = strconv.FormatBool(*scc.AllowPrivilegeEscalation)
+		}
+		fmt.Fprintf(out, "  Allow Privilege Escalation:\t%s\n", stringOrNone(allowPrivilegeEscalation))
+
 		fmt.Fprintf(out, "  Default Add Capabilities:\t%s\n", capsToString(scc.DefaultAddCapabilities))
 		fmt.Fprintf(out, "  Required Drop Capabilities:\t%s\n", capsToString(scc.RequiredDropCapabilities))
 		fmt.Fprintf(out, "  Allowed Capabilities:\t%s\n", capsToString(scc.AllowedCapabilities))
