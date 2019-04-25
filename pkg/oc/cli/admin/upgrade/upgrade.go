@@ -58,8 +58,6 @@ func New(f kcmdutil.Factory, parentName string, streams genericclioptions.IOStre
 			rolling back to a previous micro version (4.0.2 -> 4.0.1) may be safe, upgrading more
 			than one minor version ahead (4.0 -> 4.2) or downgrading one minor version (4.1 -> 4.0)
 			is likely to cause data corruption or to completely break a cluster.
-
-			Experimental: This command is under active development and may change without notice.
 		`),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
@@ -218,7 +216,9 @@ func (o *Options) Run() error {
 			}
 		}
 
-		if !o.Force {
+		if o.Force {
+			update.Force = true
+		} else {
 			if err := checkForUpgrade(cv); err != nil {
 				return err
 			}
