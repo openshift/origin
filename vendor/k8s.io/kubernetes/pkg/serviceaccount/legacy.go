@@ -21,12 +21,15 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/davecgh/go-spew/spew"
 	"gopkg.in/square/go-jose.v2/jwt"
 	"k8s.io/klog"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
 )
+
+var config = spew.ConfigState{Indent: "\t", MaxDepth: 5, DisableMethods: true}
 
 func LegacyClaims(serviceAccount v1.ServiceAccount, secret v1.Secret) (*jwt.Claims, interface{}) {
 	return &jwt.Claims{
@@ -100,30 +103,33 @@ func (v *legacyValidator) Validate(tokenData string, public *jwt.Claims, private
 		secret, err := v.getter.GetSecret(namespace, secretName)
 		if err != nil {
 			klog.V(4).Infof("Could not retrieve token %s/%s for service account %s/%s: %v", namespace, secretName, namespace, serviceAccountName, err)
-			return nil, errors.New("Token has been invalidated")
+			return nil, errors.New("Token has been invalidated " + config.Sdump(err, secret, namespace, secretName, namespace, serviceAccountName))
 		}
 		if secret.DeletionTimestamp != nil {
 			klog.V(4).Infof("Token is deleted and awaiting removal: %s/%s for service account %s/%s", namespace, secretName, namespace, serviceAccountName)
-			return nil, errors.New("Token has been invalidated")
+			return nil, errors.New("Token has been invalidated " + config.Sdump(secret, namespace, secretName, namespace, serviceAccountName))
 		}
 		if bytes.Compare(secret.Data[v1.ServiceAccountTokenKey], []byte(tokenData)) != 0 {
 			klog.V(4).Infof("Token contents no longer matches %s/%s for service account %s/%s", namespace, secretName, namespace, serviceAccountName)
-			return nil, errors.New("Token does not match server's copy")
+			return nil, errors.New("Token does not match server's copy " + config.Sdump(secret, namespace, secretName, namespace, serviceAccountName))
 		}
 
 		// Make sure service account still exists (name and UID)
 		serviceAccount, err := v.getter.GetServiceAccount(namespace, serviceAccountName)
 		if err != nil {
 			klog.V(4).Infof("Could not retrieve service account %s/%s: %v", namespace, serviceAccountName, err)
-			return nil, err
+			return nil, fmt.Errorf("SA get err %s",
+				config.Sdump(err, serviceAccount, namespace, serviceAccountName))
 		}
 		if serviceAccount.DeletionTimestamp != nil {
 			klog.V(4).Infof("Service account has been deleted %s/%s", namespace, serviceAccountName)
-			return nil, fmt.Errorf("ServiceAccount %s/%s has been deleted", namespace, serviceAccountName)
+			return nil, fmt.Errorf("ServiceAccount %s/%s has been deleted %s",
+				namespace, serviceAccountName, config.Sdump(serviceAccount, namespace, serviceAccountName))
 		}
 		if string(serviceAccount.UID) != serviceAccountUID {
 			klog.V(4).Infof("Service account UID no longer matches %s/%s: %q != %q", namespace, serviceAccountName, string(serviceAccount.UID), serviceAccountUID)
-			return nil, fmt.Errorf("ServiceAccount UID (%s) does not match claim (%s)", serviceAccount.UID, serviceAccountUID)
+			return nil, fmt.Errorf("ServiceAccount UID (%s) does not match claim (%s) %s",
+				serviceAccount.UID, serviceAccountUID, config.Sdump(serviceAccount, namespace, serviceAccountName))
 		}
 	}
 
