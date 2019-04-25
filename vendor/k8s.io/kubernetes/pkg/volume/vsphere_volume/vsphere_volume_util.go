@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	cloudprovider "k8s.io/cloud-provider"
 	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/vsphere"
@@ -92,11 +92,12 @@ func (util *VsphereDiskUtil) CreateVolume(v *vsphereVolumeProvisioner) (volSpec 
 
 	capacity := v.options.PVC.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]
 	volSizeBytes := capacity.Value()
-	// vSphere works with kilobytes, convert to KiB with rounding up
-	volSizeKiB, err := volumeutil.RoundUpSizeInt(volSizeBytes, 1024)
+	// vSphere works with KiB, but its minimum allocation unit is 1 MiB
+	volSizeMiB, err := volumeutil.RoundUpSizeInt(volSizeBytes, 1024*1024)
 	if err != nil {
 		return nil, err
 	}
+	volSizeKiB := volSizeMiB * 1024
 	name := volumeutil.GenerateVolumeName(v.options.ClusterName, v.options.PVName, 255)
 	volumeOptions := &vclib.VolumeOptions{
 		CapacityKB: volSizeKiB,
