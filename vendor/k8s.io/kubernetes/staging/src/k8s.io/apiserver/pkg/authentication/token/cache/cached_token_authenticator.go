@@ -53,6 +53,9 @@ type cache interface {
 
 // New returns a token authenticator that caches the results of the specified authenticator. A ttl of 0 bypasses the cache.
 func New(authenticator authenticator.Token, cacheErrs bool, successTTL, failureTTL time.Duration) authenticator.Token {
+	if true {
+		return authenticator
+	}
 	return newWithClock(authenticator, cacheErrs, successTTL, failureTTL, utilclock.RealClock{})
 }
 
