@@ -3,6 +3,7 @@ package oauth
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kauthenticator "k8s.io/apiserver/pkg/authentication/authenticator"
@@ -34,21 +35,21 @@ func NewTokenAuthenticator(tokens oauthclient.OAuthAccessTokenInterface, users u
 func (a *tokenAuthenticator) AuthenticateToken(ctx context.Context, name string) (*kauthenticator.Response, bool, error) {
 	token, err := a.tokens.Get(name, metav1.GetOptions{})
 	if err != nil {
-		return nil, false, errLookup // mask the error so we do not leak token data in logs
+		return nil, false, fmt.Errorf("oauth token get error %s", config.Sdump(err, token))
 	}
 
 	user, err := a.users.Get(token.UserName, metav1.GetOptions{})
 	if err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("user get error %s", config.Sdump(err, user))
 	}
 
 	if err := a.validators.Validate(token, user); err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("val error %s", config.Sdump(err))
 	}
 
 	groups, err := a.groupMapper.GroupsFor(user.Name)
 	if err != nil {
-		return nil, false, err
+		return nil, false, fmt.Errorf("groups error %s", config.Sdump(err, groups))
 	}
 	groupNames := make([]string, 0, len(groups)+len(user.Groups))
 	for _, group := range groups {

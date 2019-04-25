@@ -2,6 +2,7 @@ package oauth
 
 import (
 	"context"
+	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -32,7 +33,7 @@ func NewBootstrapAuthenticator(tokens oauthclient.OAuthAccessTokenInterface, get
 func (a *bootstrapAuthenticator) AuthenticateToken(ctx context.Context, name string) (*kauthenticator.Response, bool, error) {
 	token, err := a.tokens.Get(name, metav1.GetOptions{})
 	if err != nil {
-		return nil, false, errLookup // mask the error so we do not leak token data in logs
+		return nil, false, fmt.Errorf("oauth token get error %s", config.Sdump(err, token))
 	}
 
 	if token.UserName != bootstrap.BootstrapUser {
