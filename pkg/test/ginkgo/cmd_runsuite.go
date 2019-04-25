@@ -159,7 +159,12 @@ func (opt *Options) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	status := newTestStatus(opt.Out, opt.IncludeSuccessOutput, len(tests), timeout, m)
+	// if we run a single test, always include success output
+	includeSuccess := opt.IncludeSuccessOutput
+	if len(tests) == 1 {
+		includeSuccess = true
+	}
+	status := newTestStatus(opt.Out, includeSuccess, len(tests), timeout, m)
 
 	smoke, normal := splitTests(tests, func(t *testCase) bool {
 		return strings.Contains(t.name, "[Smoke]")
