@@ -204,7 +204,7 @@ func (m *DefaultRESTMapper) ResourcesFor(input schema.GroupVersionResource) ([]s
 		// fully qualified.  Find the exact match
 		for plural, singular := range m.pluralToSingular {
 			if singular == resource {
-				ret = append(ret, plural)
+				ret = append(ret, singular)
 				break
 			}
 			if plural == resource {
@@ -220,7 +220,7 @@ func (m *DefaultRESTMapper) ResourcesFor(input schema.GroupVersionResource) ([]s
 		for plural, singular := range m.pluralToSingular {
 			if singular.GroupResource() == requestedGroupResource {
 				foundExactMatch = true
-				ret = append(ret, plural)
+				ret = append(ret, singular)
 			}
 			if plural.GroupResource() == requestedGroupResource {
 				foundExactMatch = true
@@ -236,7 +236,7 @@ func (m *DefaultRESTMapper) ResourcesFor(input schema.GroupVersionResource) ([]s
 					continue
 				}
 				if singular.Resource == requestedGroupResource.Resource {
-					ret = append(ret, plural)
+					ret = append(ret, singular)
 				}
 				if plural.Resource == requestedGroupResource.Resource {
 					ret = append(ret, plural)
@@ -248,7 +248,7 @@ func (m *DefaultRESTMapper) ResourcesFor(input schema.GroupVersionResource) ([]s
 	case hasVersion:
 		for plural, singular := range m.pluralToSingular {
 			if singular.Version == resource.Version && singular.Resource == resource.Resource {
-				ret = append(ret, plural)
+				ret = append(ret, singular)
 			}
 			if plural.Version == resource.Version && plural.Resource == resource.Resource {
 				ret = append(ret, plural)
@@ -258,7 +258,7 @@ func (m *DefaultRESTMapper) ResourcesFor(input schema.GroupVersionResource) ([]s
 	default:
 		for plural, singular := range m.pluralToSingular {
 			if singular.Resource == resource.Resource {
-				ret = append(ret, plural)
+				ret = append(ret, singular)
 			}
 			if plural.Resource == resource.Resource {
 				ret = append(ret, plural)
