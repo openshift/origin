@@ -50,6 +50,7 @@ type journalArgs struct {
 	Tail          int
 	Timeout       int
 	Format        string
+	Boot          *int
 	Units         []string
 	Pattern       string
 	CaseSensitive bool
@@ -76,6 +77,13 @@ func newJournalArgsFromURL(query url.Values) (*journalArgs, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parameter 'unit' is invalid: %v", err)
 	}
+	var boot *int
+	if bootStr := query.Get("boot"); len(bootStr) > 0 {
+		boot, err = validIntRange(bootStr, -100, 0)
+		if err != nil {
+			return nil, fmt.Errorf("parameter 'boot' is invalid: %v", err)
+		}
+	}
 	pattern, err := safeString(query.Get("grep"))
 	if err != nil {
 		return nil, fmt.Errorf("parameter 'grep' is invalid: %v", err)
@@ -90,6 +98,7 @@ func newJournalArgsFromURL(query url.Values) (*journalArgs, error) {
 		Since: since,
 		Until: until,
 		Tail:  boundedIntegerOrDefault(query.Get("tail"), 0, 100000, 0),
+		Boot:  boot,
 
 		Timeout: boundedIntegerOrDefault(query.Get("timeout"), 1, 60, 30),
 
@@ -137,10 +146,14 @@ func (a *journalArgs) Copy(w io.Writer) {
 	// set the deadline to the maximum across both runs
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Duration(a.Timeout)*time.Second))
 	defer cancel()
-	// show the previous boot if possible, eating errors
-	a.copyForBoot(ctx, w, 1)
-	// show the current boot
-	a.copyForBoot(ctx, w, 0)
+	if a.Boot != nil {
+		a.copyForBoot(ctx, w, *a.Boot)
+	} else {
+		// show the previous boot if possible, eating errors
+		a.copyForBoot(ctx, w, -1)
+		// show the current boot
+		a.copyForBoot(ctx, w, 0)
+	}
 }
 
 // copyForBoot invokes the provided args for a named boot record. If previousBoot is != 0, then
@@ -151,7 +164,7 @@ func (a *journalArgs) copyForBoot(ctx context.Context, w io.Writer, previousBoot
 	}
 
 	args := a.Args()
-	args = append(args, "--boot", fmt.Sprintf("-%d", previousBoot))
+	args = append(args, "--boot", fmt.Sprintf("%d", previousBoot))
 	cmd := exec.Command("journalctl", args...)
 	cmd.Stdout = w
 	cmd.Stderr = w
@@ -172,7 +185,6 @@ func (a *journalArgs) copyForBoot(ctx context.Context, w io.Writer, previousBoot
 			fmt.Fprintf(w, "error: journal output not available\n")
 		}
 	}
-
 }
 
 func stringInSlice(s string, allowed ...string) (string, error) {
@@ -192,6 +204,17 @@ func boolean(s string, defaultValue bool) bool {
 		return true
 	}
 	return false
+}
+
+func validIntRange(s string, min, max int) (*int, error) {
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		return nil, err
+	}
+	if i < min || i > max {
+		return nil, fmt.Errorf("integer must be in range [%d, %d]", min, max)
+	}
+	return &i, nil
 }
 
 func boundedIntegerOrDefault(s string, min, max, defaultValue int) int {

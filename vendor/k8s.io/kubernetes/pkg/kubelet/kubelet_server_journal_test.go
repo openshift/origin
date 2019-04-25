@@ -82,6 +82,18 @@ func Test_newJournalArgsFromURL(t *testing.T) {
 
 		{name: "long unit", query: url.Values{"unit": []string{strings.Repeat("abc", 100)}}, wantErr: true},
 		{name: "total unit", query: url.Values{"unit": repeatString(strings.Repeat("a", 100), 11)}, wantErr: true},
+
+		{query: url.Values{"boot": []string{"0"}}, want: &journalArgs{Boot: intPtr(0), Timeout: 30, CaseSensitive: true}},
+		{query: url.Values{"boot": []string{"-23"}}, want: &journalArgs{Boot: intPtr(-23), Timeout: 30, CaseSensitive: true}},
+		{query: url.Values{"boot": []string{"-100"}}, want: &journalArgs{Boot: intPtr(-100), Timeout: 30, CaseSensitive: true}},
+		{name: "empty value", query: url.Values{"boot": []string{""}}, want: &journalArgs{Timeout: 30, CaseSensitive: true}},
+		{name: "boot below range", query: url.Values{"boot": []string{"-101"}}, wantErr: true},
+		{name: "boot above range", query: url.Values{"boot": []string{"1"}}, wantErr: true},
+		{name: "boot below range", query: url.Values{"boot": []string{"-9999"}}, wantErr: true},
+		{name: "boot above range", query: url.Values{"boot": []string{"9999"}}, wantErr: true},
+		{name: "boot not int", query: url.Values{"boot": []string{"a"}}, wantErr: true},
+		{name: "boot", query: url.Values{"boot": []string{"x"}}, wantErr: true},
+		{name: "boot", query: url.Values{"boot": []string{" "}}, wantErr: true},
 	}
 	for _, tt := range tests {
 		name := tt.name
@@ -99,4 +111,8 @@ func Test_newJournalArgsFromURL(t *testing.T) {
 			}
 		})
 	}
+}
+
+func intPtr(i int) *int {
+	return &i
 }
