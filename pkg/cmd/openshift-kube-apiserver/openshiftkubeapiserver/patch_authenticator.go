@@ -12,7 +12,6 @@ import (
 	"k8s.io/apiserver/pkg/authentication/request/union"
 	"k8s.io/apiserver/pkg/authentication/request/websocket"
 	x509request "k8s.io/apiserver/pkg/authentication/request/x509"
-	"k8s.io/apiserver/pkg/authentication/token/cache"
 	tokencache "k8s.io/apiserver/pkg/authentication/token/cache"
 	tokenunion "k8s.io/apiserver/pkg/authentication/token/union"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -164,7 +163,7 @@ func newAuthenticator(
 		if err != nil {
 			return nil, nil, fmt.Errorf("Failed to create webhook token authenticator for ConfigFile=%q: %v", wta.ConfigFile, err)
 		}
-		cachingTokenAuth := cache.New(webhookTokenAuthenticator, false, ttl, ttl)
+		cachingTokenAuth := tokencache.New(webhookTokenAuthenticator, false, ttl, ttl)
 		tokenAuthenticators = append(tokenAuthenticators, cachingTokenAuth)
 	}
 
