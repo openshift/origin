@@ -162,6 +162,10 @@ func validateOAuthSpec(spec configv1.OAuthSpec) field.ErrorList {
 				oauthvalidation.MinimumInactivityTimeoutSeconds)))
 	}
 
+	if tokenMaxAge := spec.TokenConfig.AccessTokenMaxAgeSeconds; tokenMaxAge < 0 {
+		errs = append(errs, field.Invalid(specPath.Child("tokenConfig", "accessTokenMaxAgeSeconds"), tokenMaxAge, "must be a positive integer or 0"))
+	}
+
 	emptyTemplates := configv1.OAuthTemplates{}
 	if spec.Templates != emptyTemplates {
 		errs = append(errs, crvalidation.ValidateSecretReference(specPath.Child("templates", "login"), spec.Templates.Login, false)...)
