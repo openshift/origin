@@ -326,7 +326,7 @@ func clusterUpgrade(c configv1client.Interface, version upgrades.VersionContext)
 	}
 
 	var lastCV *configv1.ClusterVersion
-	if err := wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
+	if err := wait.PollImmediate(5*time.Second, 5*time.Minute, func() (bool, error) {
 		cv, err := c.ConfigV1().ClusterVersions().Get("version", metav1.GetOptions{})
 		if err != nil {
 			return false, err
