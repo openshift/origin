@@ -105,6 +105,25 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 					Locator: locatePod(pod),
 					Message: fmt.Sprintf("pod moved to the Unknown phase"),
 				})
+			case new == corev1.PodFailed && old != corev1.PodFailed:
+				for _, s := range pod.Status.InitContainerStatuses {
+					if t := s.State.Terminated; t != nil && t.ExitCode != 0 {
+						conditions = append(conditions, Condition{
+							Level:   Error,
+							Locator: locatePodContainer(pod, s.Name),
+							Message: fmt.Sprintf("container exited with code %d: %s", t.ExitCode, t.Message),
+						})
+					}
+				}
+				for _, s := range pod.Status.ContainerStatuses {
+					if t := s.State.Terminated; t != nil && t.ExitCode != 0 {
+						conditions = append(conditions, Condition{
+							Level:   Error,
+							Locator: locatePodContainer(pod, s.Name),
+							Message: fmt.Sprintf("init container exited with code %d: %s", t.ExitCode, t.Message),
+						})
+					}
+				}
 			}
 			return conditions
 		},
@@ -136,6 +155,13 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 				if previous == nil {
 					continue
 				}
+				if t := s.State.Terminated; t != nil && previous.State.Terminated == nil && t.ExitCode != 0 {
+					conditions = append(conditions, Condition{
+						Level:   Error,
+						Locator: locatePodContainer(pod, s.Name),
+						Message: fmt.Sprintf("container exited with code %d: %s", t.ExitCode, t.Message),
+					})
+				}
 				if s.RestartCount != previous.RestartCount {
 					conditions = append(conditions, Condition{
 						Level:   Warning,
@@ -143,11 +169,32 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 						Message: "container restarted",
 					})
 				}
-				if previous.Ready && !s.Ready {
+				if s.State.Terminated == nil && previous.Ready && !s.Ready {
 					conditions = append(conditions, Condition{
 						Level:   Warning,
 						Locator: locatePodContainer(pod, s.Name),
 						Message: "container stopped being ready",
+					})
+				}
+			}
+			for i := range pod.Status.InitContainerStatuses {
+				s := &pod.Status.InitContainerStatuses[i]
+				previous := findContainerStatus(oldPod.Status.InitContainerStatuses, s.Name, i)
+				if previous == nil {
+					continue
+				}
+				if t := s.State.Terminated; t != nil && previous.State.Terminated == nil && t.ExitCode != 0 {
+					conditions = append(conditions, Condition{
+						Level:   Error,
+						Locator: locatePodContainer(pod, s.Name),
+						Message: fmt.Sprintf("init container exited with code %d: %s", t.ExitCode, t.Message),
+					})
+				}
+				if s.RestartCount != previous.RestartCount {
+					conditions = append(conditions, Condition{
+						Level:   Warning,
+						Locator: locatePodContainer(pod, s.Name),
+						Message: "init container restarted",
 					})
 				}
 			}
