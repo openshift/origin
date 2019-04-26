@@ -2,6 +2,7 @@ package openshiftkubeapiserver
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"k8s.io/apiserver/pkg/authentication/authenticator"
@@ -24,6 +25,7 @@ import (
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
+	"github.com/davecgh/go-spew/spew"
 	configv1 "github.com/openshift/api/config/v1"
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
@@ -118,6 +120,8 @@ func newAuthenticator(
 		)
 		tokenAuthenticators = append(tokenAuthenticators, serviceAccountTokenAuthenticator)
 	}
+
+	_ = os.Setenv("ENJ AUTHN CONFIG", dumper.Sdump(oauthConfig, authConfig))
 
 	// OAuth token
 	// this looks weird because it no longer belongs here (needs to be a remote token auth backed by osin)
@@ -226,3 +230,5 @@ func newAuthenticator(
 
 	return group.NewAuthenticatedGroupAdder(union.NewFailOnError(topLevelAuthenticators...)), postStartHooks, nil
 }
+
+var dumper = spew.ConfigState{Indent: "\t", MaxDepth: 3, DisableMethods: true}
