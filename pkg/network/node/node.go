@@ -331,7 +331,6 @@ func (node *OsdnNode) Start() error {
 	}
 
 	if networkChanged && len(existingPods) > 0 {
-		klog.Infof("OVS bridge has been recreated. Will reattach %d existing pods...", len(existingPods))
 		err := node.reattachPods(existingPods)
 		if err != nil {
 			return err
@@ -382,7 +381,7 @@ func (node *OsdnNode) reattachPods(existingPods map[string]podNetworkInfo) error
 	for sandboxID, podInfo := range existingPods {
 		sandbox, ok := sandboxes[sandboxID]
 		if !ok {
-			klog.Warningf("Could not find sandbox for existing pod with IP %s; it may be in an inconsistent state", podInfo.ip)
+			klog.V(5).Infof("Sandbox for pod with IP %s no longer exists", podInfo.ip)
 			continue
 		}
 		if _, err := netlink.LinkByName(podInfo.vethName); err != nil {
@@ -400,6 +399,7 @@ func (node *OsdnNode) reattachPods(existingPods map[string]podNetworkInfo) error
 			AssignedIP:   podInfo.ip,
 			Result:       make(chan *cniserver.PodResult),
 		}
+		klog.Infof("Reattaching pod '%s/%s' to SDN", req.PodNamespace, req.PodName)
 		// NB: we don't need to worry about locking here because the cniserver
 		// isn't running for real yet.
 		if _, err := node.podManager.handleCNIRequest(req); err != nil {
@@ -421,7 +421,7 @@ func (node *OsdnNode) killFailedPods(failed []*kruntimeapi.PodSandbox) {
 		podRef := &corev1.ObjectReference{Kind: "Pod", Name: sandbox.Metadata.Name, Namespace: sandbox.Metadata.Namespace, UID: types.UID(sandbox.Metadata.Uid)}
 		node.recorder.Eventf(podRef, corev1.EventTypeWarning, "NetworkFailed", "The pod's network interface has been lost and the pod will be stopped.")
 
-		klog.V(5).Infof("Killing pod '%s/%s' sandbox due to failed restart", podRef.Namespace, podRef.Name)
+		klog.V(5).Infof("Killing pod '%s/%s' sandbox", podRef.Namespace, podRef.Name)
 		if err := node.runtimeService.StopPodSandbox(sandbox.Id); err != nil {
 			klog.Warningf("Failed to kill pod '%s/%s' sandbox: %v", podRef.Namespace, podRef.Name, err)
 		}
