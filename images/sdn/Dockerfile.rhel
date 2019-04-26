@@ -1,4 +1,4 @@
-FROM registry.svc.ci.openshift.org/ocp/builder:golang-1.10 AS builder
+FROM registry.svc.ci.openshift.org/ocp/builder:golang-1.11 AS builder
 WORKDIR /go/src/github.com/openshift/origin
 COPY . .
 RUN make build WHAT=" \
@@ -13,7 +13,7 @@ RUN mkdir -p /tmp/build; \
     cp /go/src/github.com/openshift/origin/_output/local/bin/linux/$(go env GOARCH)/loopback /tmp/build/loopback; \
     cp /go/src/github.com/openshift/origin/_output/local/bin/linux/$(go env GOARCH)/host-local /tmp/build/host-local
 
-FROM registry.svc.ci.openshift.org/ocp/4.0:base
+FROM registry.svc.ci.openshift.org/ocp/4.1:base
 COPY --from=builder /tmp/build/openshift-sdn /usr/bin/
 COPY --from=builder /tmp/build/sdn-cni-plugin /opt/cni/bin/openshift-sdn
 COPY --from=builder /tmp/build/loopback /opt/cni/bin/
