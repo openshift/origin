@@ -758,7 +758,7 @@ func (o *DebugOptions) approximatePodTemplateForObject(object runtime.Object) (*
 			}
 		}
 		if len(o.Image) == 0 {
-			image = "registry.access.redhat.com/rhel7/rhel-tools"
+			image = "registry.redhat.io/rhel7/support-tools"
 		}
 		zero := int64(0)
 		isTrue := true
