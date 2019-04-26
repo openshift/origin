@@ -58,13 +58,14 @@ func WithAuthentication(handler http.Handler, auth authenticator.Request, failed
 		klog.Warningf("Authentication is disabled")
 		return handler
 	}
+	ss := config.Sdump(auth)
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if len(apiAuds) > 0 {
 			req = req.WithContext(authenticator.WithAudiences(req.Context(), apiAuds))
 		}
 		resp, ok, err := auth.AuthenticateRequest(req)
 		if err != nil || !ok {
-			req.Header.Add("ENJ authn error", config.Sdump(err))
+			req.Header.Add("ENJ authn error", config.Sdump(err, auth, ss))
 			if err != nil {
 				klog.Errorf("Unable to authenticate the request due to an error: %v", err)
 			}
