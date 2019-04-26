@@ -22,6 +22,7 @@ import (
 	"time"
 
 	authentication "k8s.io/api/authentication/v1beta1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
@@ -120,7 +121,7 @@ func (w *WebhookTokenAuthenticator) AuthenticateToken(ctx context.Context, token
 
 	r.Status = result.Status
 	if !r.Status.Authenticated {
-		return nil, false, nil
+		return nil, false, errors.NewUnauthorized("ENJ: token review error:\n" + r.Status.Error)
 	}
 
 	var extra map[string][]string
