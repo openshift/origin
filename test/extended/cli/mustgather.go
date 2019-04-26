@@ -47,6 +47,10 @@ var _ = g.Describe("[cli] oc adm must-gather", func() {
 			{tempDir, "cluster-scoped-resources", "config.openshift.io", "schedulers.yaml"},
 			{tempDir, "namespaces", "openshift-kube-apiserver", "core", "configmaps.yaml"},
 			{tempDir, "namespaces", "openshift-kube-apiserver", "core", "secrets.yaml"},
+			{tempDir, "audit_logs", "kube-apiserver.audit_logs_listing"},
+			{tempDir, "audit_logs", "openshift-apiserver.audit_logs_listing"},
+			{tempDir, "host_service_logs", "masters", "crio_service.log"},
+			{tempDir, "host_service_logs", "masters", "kubelet_service.log"},
 		}
 
 		for _, expectedDirectory := range expectedDirectories {
