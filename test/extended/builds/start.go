@@ -350,7 +350,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 					buildLog, err := br.Logs()
 					o.Expect(err).NotTo(o.HaveOccurred())
 					g.By("verifying the build completed with a warning.")
-					o.Expect(buildLog).To(o.ContainSubstring("One or more build-args [bar] were not consumed"))
+					o.Expect(buildLog).To(o.Or(o.ContainSubstring("One or more build-args [bar] were not consumed"), o.ContainSubstring("one or more build args were not consumed: [bar]")))
 				})
 			})
 
