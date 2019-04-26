@@ -34,7 +34,8 @@ import (
 // NewMirrorOptions creates the options for mirroring a release.
 func NewMirrorOptions(streams genericclioptions.IOStreams) *MirrorOptions {
 	return &MirrorOptions{
-		IOStreams: streams,
+		IOStreams:       streams,
+		ParallelOptions: imagemanifest.ParallelOptions{MaxPerRegistry: 6},
 	}
 }
 
@@ -153,7 +154,7 @@ func (o *MirrorOptions) Run() error {
 
 	var recreateRequired bool
 	var hasPrefix bool
-	var targetFn func(name string) imagereference.DockerImageReference
+	var targetFn func(name string) mirror.MirrorReference
 	var dst string
 	if len(o.ToImageStream) > 0 {
 		dst = imagereference.DockerImageReference{
@@ -167,13 +168,13 @@ func (o *MirrorOptions) Run() error {
 
 	if strings.Contains(dst, "${component}") {
 		format := strings.Replace(dst, "${component}", replaceComponentMarker, -1)
-		dstRef, err := imagereference.Parse(format)
+		dstRef, err := mirror.ParseMirrorReference(format)
 		if err != nil {
 			return fmt.Errorf("--to must be a valid image reference: %v", err)
 		}
-		targetFn = func(name string) imagereference.DockerImageReference {
+		targetFn = func(name string) mirror.MirrorReference {
 			value := strings.Replace(dst, "${component}", name, -1)
-			ref, err := imagereference.Parse(value)
+			ref, err := mirror.ParseMirrorReference(value)
 			if err != nil {
 				klog.Fatalf("requested component %q could not be injected into %s: %v", name, dst, err)
 			}
@@ -183,14 +184,14 @@ func (o *MirrorOptions) Run() error {
 		recreateRequired = replaceCount > 1 || (replaceCount == 1 && !strings.Contains(dstRef.Tag, replaceComponentMarker))
 
 	} else {
-		ref, err := imagereference.Parse(dst)
+		ref, err := mirror.ParseMirrorReference(dst)
 		if err != nil {
 			return fmt.Errorf("--to must be a valid image repository: %v", err)
 		}
 		if len(ref.ID) > 0 || len(ref.Tag) > 0 {
 			return fmt.Errorf("--to must be to an image repository and may not contain a tag or digest")
 		}
-		targetFn = func(name string) imagereference.DockerImageReference {
+		targetFn = func(name string) mirror.MirrorReference {
 			copied := ref
 			copied.Tag = name
 			return copied
@@ -198,7 +199,10 @@ func (o *MirrorOptions) Run() error {
 		hasPrefix = true
 	}
 
-	o.TargetFn = targetFn
+	o.TargetFn = func(name string) imagereference.DockerImageReference {
+		ref := targetFn(name)
+		return ref.DockerImageReference
+	}
 
 	if recreateRequired {
 		return fmt.Errorf("when mirroring to multiple repositories, use the new release command with --from-release and --mirror")
@@ -255,10 +259,11 @@ func (o *MirrorOptions) Run() error {
 				Name:        o.ToRelease,
 			})
 		} else if !o.SkipRelease {
+			dstRef := targetFn("release")
 			mappings = append(mappings, mirror.Mapping{
-				Type:        mirror.DestinationRegistry,
 				Source:      srcRef,
-				Destination: targetFn("release"),
+				Type:        dstRef.Type(),
+				Destination: dstRef.Combined(),
 				Name:        "release",
 			})
 		}
@@ -278,10 +283,11 @@ func (o *MirrorOptions) Run() error {
 			return fmt.Errorf("image-references should only contain pointers to images by digest: %s", tag.From.Name)
 		}
 
+		dstMirrorRef := targetFn(tag.Name)
 		mappings = append(mappings, mirror.Mapping{
-			Type:        mirror.DestinationRegistry,
 			Source:      from,
-			Destination: targetFn(tag.Name),
+			Type:        dstMirrorRef.Type(),
+			Destination: dstMirrorRef.Combined(),
 			Name:        tag.Name,
 		})
 		klog.V(2).Infof("Mapping %#v", mappings[len(mappings)-1])

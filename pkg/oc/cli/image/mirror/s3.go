@@ -73,14 +73,19 @@ func (d *s3Driver) newObject(server *url.URL, region string, insecure bool, secu
 	creds = credentials.NewChainCredentials([]credentials.Provider{
 		&s3CredentialStore{store: d.Creds, url: securityDomain},
 		&credentials.EnvProvider{},
+		&credentials.SharedCredentialsProvider{},
 	})
 
-	awsConfig.WithS3ForcePathStyle(true)
-	awsConfig.WithEndpoint(server.String())
 	awsConfig.WithCredentials(creds)
 	awsConfig.WithRegion(region)
 	awsConfig.WithDisableSSL(insecure)
-	if klog.V(6) {
+
+	switch {
+	case bool(klog.V(10)):
+		awsConfig.WithLogLevel(aws.LogDebugWithHTTPBody | aws.LogDebugWithRequestErrors | aws.LogDebugWithSigning)
+	case bool(klog.V(8)):
+		awsConfig.WithLogLevel(aws.LogDebugWithRequestErrors)
+	case bool(klog.V(6)):
 		awsConfig.WithLogLevel(aws.LogDebug)
 	}
 
@@ -110,10 +115,16 @@ func (d *s3Driver) Repository(ctx context.Context, server *url.URL, repoName str
 	if err != nil {
 		return nil, err
 	}
-	named, err := reference.ParseNamed(parts[2])
+
+	ref, err := reference.Parse(parts[2])
 	if err != nil {
 		return nil, err
 	}
+	named, ok := ref.(reference.Named)
+	if !ok {
+		return nil, fmt.Errorf("%s is not a valid repository name", parts[2])
+	}
+
 	repo := &s3Repository{
 		ctx:      ctx,
 		s3:       s3obj,
