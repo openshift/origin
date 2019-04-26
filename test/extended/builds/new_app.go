@@ -73,9 +73,17 @@ var _ = g.Describe("[Feature:Builds][Conformance] oc new-app", func() {
 		})
 
 		g.It("should fail with a --name longer than 58 characters", func() {
-			g.Skip("TODO: disabled due to https://bugzilla.redhat.com/show_bug.cgi?id=1702743")
+			g.By("dumping nodejs image stream")
+			out, err := oc.Run("get").Args("imagestream", "nodejs", "-n", "openshift", "-o", "yaml").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			e2e.Logf("nodejs imagestream:\n%s", out)
+
+			g.By("dumping cluster image config")
+			out, err = oc.AsAdmin().Run("get").Args("image.config.openshift.io/cluster", "-o", "yaml").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			e2e.Logf("cluster image config:\n%s", out)
 			g.By("calling oc new-app")
-			out, err := oc.Run("new-app").Args("https://github.com/sclorg/nodejs-ex", "--name", a59).Output()
+			out, err = oc.Run("new-app").Args("https://github.com/sclorg/nodejs-ex", "--name", a59).Output()
 			o.Expect(err).To(o.HaveOccurred())
 			o.Expect(out).To(o.ContainSubstring("error: invalid name: "))
 		})
