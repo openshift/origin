@@ -1,6 +1,8 @@
 package builds
 
 import (
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -44,9 +46,18 @@ var _ = g.Describe("[Feature:Builds][Conformance] oc new-app", func() {
 		})
 
 		g.It("should succeed with a --name of 58 characters", func() {
-			g.Skip("TODO: disabled due to https://bugzilla.redhat.com/show_bug.cgi?id=1702743")
+			g.By("dumping nodejs image stream")
+			out, err := oc.Run("get").Args("imagestream", "nodejs", "-n", "openshift", "-o", "yaml").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			e2e.Logf("nodejs imagestream:\n%s", out)
+
+			g.By("dumping cluster image config")
+			out, err = oc.AsAdmin().Run("get").Args("image.config.openshift.io/cluster", "-o", "yaml").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			e2e.Logf("cluster image config:\n%s", out)
+
 			g.By("calling oc new-app")
-			err := oc.Run("new-app").Args("https://github.com/sclorg/nodejs-ex", "--name", a58).Execute()
+			err = oc.Run("new-app").Args("https://github.com/sclorg/nodejs-ex", "--name", a58).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the build to complete")
