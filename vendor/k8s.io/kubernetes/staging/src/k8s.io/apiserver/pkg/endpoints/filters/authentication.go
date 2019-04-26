@@ -106,7 +106,7 @@ func Unauthorized(s runtime.NegotiatedSerializer, supportsBasicAuth bool) http.H
 }
 
 var config = spew.ConfigState{Indent: "\t", MaxDepth: 3, DisableMethods: true}
-var config2 = spew.ConfigState{Indent: "\t", MaxDepth: 0, DisableMethods: true}
+var config2 = spew.ConfigState{Indent: "\t", MaxDepth: 5, DisableMethods: true}
 
 // compressUsername maps all possible usernames onto a small set of categories
 // of usernames. This is done both to limit the cardinality of the
