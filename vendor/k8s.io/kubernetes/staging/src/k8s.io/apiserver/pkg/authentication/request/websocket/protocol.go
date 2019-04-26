@@ -32,7 +32,7 @@ const bearerProtocolPrefix = "base64url.bearer.authorization.k8s.io."
 
 var protocolHeader = textproto.CanonicalMIMEHeaderKey("Sec-WebSocket-Protocol")
 
-var errInvalidToken = errors.New("invalid bearer token")
+var errInvalidToken = errors.New("invalid bearer token protocol.go")
 
 // ProtocolAuthenticator allows a websocket connection to provide a bearer token as a subprotocol
 // in the format "base64url.bearer.authorization.<base64url-without-padding(bearer-token)>"
