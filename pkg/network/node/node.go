@@ -344,7 +344,6 @@ func (node *OsdnNode) Start() error {
 	}
 
 	if networkChanged && len(existingOFPodNetworks) > 0 {
-		glog.Infof("OVS bridge has been recreated. Will reattach %d existing pods...", len(existingOFPodNetworks))
 		err := node.reattachPods(existingSandboxPods, existingOFPodNetworks)
 		if err != nil {
 			return err
@@ -391,7 +390,12 @@ func (node *OsdnNode) reattachPods(existingPodSandboxes map[string]*kruntimeapi.
 	for sandboxID, podInfo := range existingOFPodNetworks {
 		sandbox, ok := existingPodSandboxes[sandboxID]
 		if !ok {
-			glog.Warningf("Could not find sandbox for existing pod with IP %s; it may be in an inconsistent state", podInfo.ip)
+			glog.V(5).Infof("Sandbox for pod with IP %s no longer exists", podInfo.ip)
+			continue
+		}
+		if _, err := netlink.LinkByName(podInfo.vethName); err != nil {
+			glog.Infof("Interface %s for pod '%s/%s' no longer exists", podInfo.vethName, sandbox.Metadata.Namespace, sandbox.Metadata.Name)
+			failed = append(failed, sandbox)
 			continue
 		}
 
@@ -404,6 +408,9 @@ func (node *OsdnNode) reattachPods(existingPodSandboxes map[string]*kruntimeapi.
 			AssignedIP:   podInfo.ip,
 			Result:       make(chan *cniserver.PodResult),
 		}
+		glog.Infof("Reattaching pod '%s/%s' to SDN", req.PodNamespace, req.PodName)
+		// NB: we don't need to worry about locking here because the cniserver
+		// isn't running for real yet.
 		if _, err := node.podManager.handleCNIRequest(req); err != nil {
 			glog.Warningf("Could not reattach pod '%s/%s' to SDN: %v", req.PodNamespace, req.PodName, err)
 			failed = append(failed, sandbox)
@@ -416,7 +423,7 @@ func (node *OsdnNode) reattachPods(existingPodSandboxes map[string]*kruntimeapi.
 		podRef := &v1.ObjectReference{Kind: "Pod", Name: sandbox.Metadata.Name, Namespace: sandbox.Metadata.Namespace, UID: types.UID(sandbox.Metadata.Uid)}
 		node.recorder.Eventf(podRef, v1.EventTypeWarning, "NetworkFailed", "The pod's network interface has been lost and the pod will be stopped.")
 
-		glog.V(5).Infof("Killing pod '%s/%s' sandbox due to failed restart", podRef.Namespace, podRef.Name)
+		glog.V(5).Infof("Killing pod '%s/%s' sandbox", podRef.Namespace, podRef.Name)
 		if err := node.runtimeService.StopPodSandbox(sandbox.Id); err != nil {
 			glog.Warningf("Failed to kill pod '%s/%s' sandbox: %v", podRef.Namespace, podRef.Name, err)
 		}
