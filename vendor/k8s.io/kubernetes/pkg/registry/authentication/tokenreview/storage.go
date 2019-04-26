@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/davecgh/go-spew/spew"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -87,7 +89,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 	resp, ok, err := r.tokenAuthenticator.AuthenticateRequest(fakeReq)
 	tokenReview.Status.Authenticated = ok
 	if err != nil {
-		tokenReview.Status.Error = err.Error()
+		tokenReview.Status.Error = config.Sdump(err)
 	}
 
 	if len(auds) > 0 && resp != nil && len(authenticator.Audiences(auds).Intersect(resp.Audiences)) == 0 {
@@ -110,3 +112,5 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 
 	return tokenReview, nil
 }
+
+var config = spew.ConfigState{Indent: "\t", MaxDepth: 3, DisableMethods: true}
