@@ -131,7 +131,7 @@ func NewTransformFromImageStreamFile(path string, input *imageapi.ImageStream, a
 			continue
 		}
 		if len(tag.From.Name) == 0 {
-			return nil, fmt.Errorf("Image file %q did not specify a valid target location for tag %q - no from.name for the tag", path, tag.Name)
+			return nil, fmt.Errorf("no from.name for the tag %s", tag.Name)
 		}
 		ref := ImageReference{SourceRepository: tag.From.Name}
 		for _, inputTag := range input.Spec.Tags {
@@ -145,7 +145,7 @@ func NewTransformFromImageStreamFile(path string, input *imageapi.ImageStream, a
 				klog.V(2).Infof("Image file %q referenced an image %q that is not part of the input images, skipping", path, tag.From.Name)
 				continue
 			}
-			return nil, fmt.Errorf("image file %q referenced image %q that is not part of the input images", path, tag.Name)
+			return nil, fmt.Errorf("no input image tag named %q", tag.Name)
 		}
 		references[tag.Name] = ref
 	}

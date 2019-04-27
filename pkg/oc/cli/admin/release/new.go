@@ -724,7 +724,7 @@ func (o *NewOptions) Run() error {
 	case len(operators) == 0:
 		fmt.Fprintf(o.ErrOut, "warning: No operator metadata was found, no operators will be part of the release.\n")
 	default:
-		fmt.Fprintf(o.Out, "Built release image from %d operators\n", len(operators))
+		fmt.Fprintf(o.ErrOut, "info: Built release image from %d operators\n", len(operators))
 	}
 
 	return nil
@@ -871,7 +871,7 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 			return err
 		}
 		o.cleanupFns = append(o.cleanupFns, func() { os.RemoveAll(dir) })
-		fmt.Fprintf(o.ErrOut, "info: Manifests will be extracted to %s\n", dir)
+		klog.V(2).Infof("Manifests will be extracted to %s\n", dir)
 	}
 
 	verifier := imagemanifest.NewVerifier()
@@ -959,9 +959,9 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 					return false, err
 				}
 				if custom {
-					fmt.Fprintf(o.Out, "Loading override manifests from %s: %s ...\n", tag.Name, m.ImageRef.Exact())
+					fmt.Fprintf(o.ErrOut, "info: Loading override %s %s\n", m.ImageRef.Exact(), tag.Name)
 				} else {
-					fmt.Fprintf(o.Out, "Loading manifests from %s: %s ...\n", tag.Name, m.ImageRef.ID)
+					fmt.Fprintf(o.ErrOut, "info: Loading %s %s\n", m.ImageRef.ID, tag.Name)
 				}
 				return true, nil
 			},
@@ -1291,7 +1291,7 @@ func writePayload(w io.Writer, is *imageapi.ImageStream, cm *CincinnatiMetadata,
 			klog.V(2).Infof("Perform image replacement based on inclusion of %s", path)
 			transform, err = NewTransformFromImageStreamFile(path, is, allowMissingImages)
 			if err != nil {
-				return fmt.Errorf("operator %q failed to map images: %s", name, err)
+				return fmt.Errorf("operator %q contained an invalid image-references file: %s", name, err)
 			}
 		}
 
@@ -1511,7 +1511,7 @@ func pruneUnreferencedImageStreams(out io.Writer, is *imageapi.ImageStream, meta
 		updated = append(updated, tag)
 	}
 	if len(updated) != len(is.Spec.Tags) {
-		fmt.Fprintf(out, "info: Included %d referenced images into the payload\n", len(updated))
+		fmt.Fprintf(out, "info: Included %d images in the release\n", len(updated))
 		is.Spec.Tags = updated
 	}
 	return nil
