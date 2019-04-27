@@ -64,11 +64,38 @@ func (f *fakeDefaultRegistry) DefaultRegistry() (string, bool) {
 	return f.registry, len(f.registry) > 0
 }
 
-type fakeSubjectAccessReviewRegistry struct {
+type subjectAccessReviewRecord struct {
 	err              error
 	allow            bool
 	request          *authorizationv1.SubjectAccessReview
 	requestNamespace string
+}
+
+type fakeMultiSubjectAccessReviewRegistry struct {
+	records map[identifier]subjectAccessReviewRecord
+}
+
+func (f *fakeMultiSubjectAccessReviewRegistry) Create(subjectAccessReview *authorizationv1.SubjectAccessReview) (*authorizationv1.SubjectAccessReview, error) {
+	id := identifier{name: subjectAccessReview.Spec.ResourceAttributes.Name, namespace: subjectAccessReview.Spec.ResourceAttributes.Namespace}
+	if record, exists := f.records[id]; exists {
+		if record.request != nil {
+			return nil, fmt.Errorf("SAR created more than once for %s/%s", id.namespace, id.name)
+		}
+		record.request = subjectAccessReview
+		record.requestNamespace = subjectAccessReview.Spec.ResourceAttributes.Namespace
+		f.records[id] = record
+		return &authorizationv1.SubjectAccessReview{
+			Status: authorizationv1.SubjectAccessReviewStatus{
+				Allowed: record.allow,
+			},
+		}, record.err
+	} else {
+		return nil, fmt.Errorf("no such SAR recorded for %s/%s", id.namespace, id.name)
+	}
+}
+
+type fakeSubjectAccessReviewRegistry struct {
+	subjectAccessReviewRecord
 }
 
 func (f *fakeSubjectAccessReviewRegistry) Create(subjectAccessReview *authorizationv1.SubjectAccessReview) (*authorizationv1.SubjectAccessReview, error) {
@@ -193,14 +220,16 @@ func TestDockerImageRepository(t *testing.T) {
 	}
 }
 
+type identifier struct {
+	name, namespace string
+}
+
 func TestTagVerifier(t *testing.T) {
 	tests := map[string]struct {
-		oldTags    map[string]imageapi.TagReference
-		newTags    map[string]imageapi.TagReference
-		sarError   error
-		sarAllowed bool
-		expectSar  bool
-		expected   field.ErrorList
+		oldTags  map[string]imageapi.TagReference
+		newTags  map[string]imageapi.TagReference
+		sars     map[identifier]subjectAccessReviewRecord
+		expected field.ErrorList
 	}{
 		"old nil, no tags": {},
 		"old nil, all tags are new": {
@@ -213,8 +242,7 @@ func TestTagVerifier(t *testing.T) {
 					},
 				},
 			},
-			expectSar:  true,
-			sarAllowed: true,
+			sars: map[identifier]subjectAccessReviewRecord{{name: "otherstream", namespace: "otherns"}: {allow: true}},
 		},
 		"nil from": {
 			newTags: map[string]imageapi.TagReference{
@@ -225,7 +253,7 @@ func TestTagVerifier(t *testing.T) {
 					},
 				},
 			},
-			expectSar: false,
+			sars: map[identifier]subjectAccessReviewRecord{},
 		},
 		"same namespace": {
 			newTags: map[string]imageapi.TagReference{
@@ -257,7 +285,7 @@ func TestTagVerifier(t *testing.T) {
 					},
 				},
 			},
-			expectSar: false,
+			sars: map[identifier]subjectAccessReviewRecord{},
 		},
 		"invalid from name": {
 			newTags: map[string]imageapi.TagReference{
@@ -283,8 +311,74 @@ func TestTagVerifier(t *testing.T) {
 					},
 				},
 			},
-			expectSar: true,
-			sarError:  errors.New("foo"),
+			sars: map[identifier]subjectAccessReviewRecord{{name: "otherstream", namespace: "otherns"}: {err: errors.New("foo")}},
+			expected: field.ErrorList{
+				field.Forbidden(field.NewPath("spec", "tags").Key("latest").Child("from"), `otherns/otherstream: "" ""- foo`),
+			},
+		},
+		"sar error propagates to all tags sharing a SAR": {
+			newTags: map[string]imageapi.TagReference{
+				imageapi.DefaultImageTag: {
+					From: &coreapi.ObjectReference{
+						Kind:      "ImageStreamTag",
+						Namespace: "otherns",
+						Name:      "otherstream:latest",
+					},
+				},
+				"other": {
+					From: &coreapi.ObjectReference{
+						Kind:      "ImageStreamTag",
+						Namespace: "otherns",
+						Name:      "otherstream:latest",
+					},
+				},
+				"third": {
+					From: &coreapi.ObjectReference{
+						Kind:      "ImageStreamTag",
+						Namespace: "secondns",
+						Name:      "something:latest",
+					},
+				},
+				"fourth": {
+					From: &coreapi.ObjectReference{
+						Kind:      "ImageStreamTag",
+						Namespace: "secondns",
+						Name:      "something:latest",
+					},
+				},
+			},
+			sars: map[identifier]subjectAccessReviewRecord{
+				{name: "otherstream", namespace: "otherns"}: {err: errors.New("foo")},
+				{name: "something", namespace: "secondns"}:  {err: errors.New("bar")},
+			},
+			expected: field.ErrorList{
+				field.Forbidden(field.NewPath("spec", "tags").Key("latest").Child("from"), `otherns/otherstream: "" ""- foo`),
+				field.Forbidden(field.NewPath("spec", "tags").Key("other").Child("from"), `otherns/otherstream: "" ""- foo`),
+				field.Forbidden(field.NewPath("spec", "tags").Key("third").Child("from"), `secondns/something: "" ""- bar`),
+				field.Forbidden(field.NewPath("spec", "tags").Key("fourth").Child("from"), `secondns/something: "" ""- bar`),
+			},
+		},
+		"sar error propagates only to tags sharing a SAR": {
+			newTags: map[string]imageapi.TagReference{
+				imageapi.DefaultImageTag: {
+					From: &coreapi.ObjectReference{
+						Kind:      "ImageStreamTag",
+						Namespace: "otherns",
+						Name:      "otherstream:latest",
+					},
+				},
+				"other": {
+					From: &coreapi.ObjectReference{
+						Kind:      "ImageStreamTag",
+						Namespace: "thirdns",
+						Name:      "something:latest",
+					},
+				},
+			},
+			sars: map[identifier]subjectAccessReviewRecord{
+				{name: "otherstream", namespace: "otherns"}: {err: errors.New("foo")},
+				{name: "something", namespace: "thirdns"}:   {allow: true},
+			},
 			expected: field.ErrorList{
 				field.Forbidden(field.NewPath("spec", "tags").Key("latest").Child("from"), `otherns/otherstream: "" ""- foo`),
 			},
@@ -299,8 +393,7 @@ func TestTagVerifier(t *testing.T) {
 					},
 				},
 			},
-			expectSar:  true,
-			sarAllowed: false,
+			sars: map[identifier]subjectAccessReviewRecord{{name: "otherstream", namespace: "otherns"}: {allow: false}},
 			expected: field.ErrorList{
 				field.Forbidden(field.NewPath("spec", "tags").Key("latest").Child("from"), `otherns/otherstream: "" ""`),
 			},
@@ -324,15 +417,35 @@ func TestTagVerifier(t *testing.T) {
 					},
 				},
 			},
-			expectSar:  true,
-			sarAllowed: true,
+			sars: map[identifier]subjectAccessReviewRecord{{name: "otherstream", namespace: "otherns"}: {allow: true}},
+		},
+		"multiple sars to multiple namespaces": {
+			newTags: map[string]imageapi.TagReference{
+				imageapi.DefaultImageTag: {
+					From: &coreapi.ObjectReference{
+						Kind:      "ImageStreamTag",
+						Namespace: "otherns",
+						Name:      "otherstream:latest",
+					},
+				},
+				"second": {
+					From: &coreapi.ObjectReference{
+						Kind:      "ImageStreamTag",
+						Namespace: "secondns",
+						Name:      "otherstream:latest",
+					},
+				},
+			},
+			sars: map[identifier]subjectAccessReviewRecord{
+				{name: "otherstream", namespace: "otherns"}:  {allow: true},
+				{name: "otherstream", namespace: "secondns"}: {allow: true},
+			},
 		},
 	}
 
 	for name, test := range tests {
-		sar := &fakeSubjectAccessReviewRegistry{
-			err:   test.sarError,
-			allow: test.sarAllowed,
+		sar := &fakeMultiSubjectAccessReviewRegistry{
+			records: test.sars,
 		}
 
 		old := &imageapi.ImageStream{
@@ -354,34 +467,36 @@ func TestTagVerifier(t *testing.T) {
 		tagVerifier := &TagVerifier{sar}
 		errs := tagVerifier.Verify(old, stream, &fakeUser{})
 
-		sarCalled := sar.request != nil
-		if e, a := test.expectSar, sarCalled; e != a {
-			t.Errorf("%s: expected SAR request=%t, got %t", name, e, a)
-		}
-		if test.expectSar {
-			if e, a := "otherns", sar.requestNamespace; e != a {
+		for id, record := range test.sars {
+			if e, a := id.namespace, record.requestNamespace; e != a {
 				t.Errorf("%s: sar namespace: expected %v, got %v", name, e, a)
 			}
 			expectedSar := &authorizationv1.SubjectAccessReview{
 				Spec: authorizationv1.SubjectAccessReviewSpec{
 					ResourceAttributes: &authorizationv1.ResourceAttributes{
-						Namespace:   "otherns",
+						Namespace:   id.namespace,
 						Verb:        "get",
 						Group:       "image.openshift.io",
 						Resource:    "imagestreams",
 						Subresource: "layers",
-						Name:        "otherstream",
+						Name:        id.name,
 					},
 					User:   "user",
 					Groups: []string{"group1"},
 					Extra:  map[string]authorizationv1.ExtraValue{oauthorizationapi.ScopesKey: {"a", "b"}},
 				},
 			}
-			if e, a := expectedSar, sar.request; !reflect.DeepEqual(e, a) {
+			if e, a := expectedSar, record.request; !reflect.DeepEqual(e, a) {
 				t.Errorf("%s: unexpected SAR request: %s", name, diff.ObjectDiff(e, a))
 			}
 		}
 
+		sort.Slice(test.expected, func(i, j int) bool {
+			return test.expected[i].Field < test.expected[j].Field
+		})
+		sort.Slice(errs, func(i, j int) bool {
+			return errs[i].Field < errs[j].Field
+		})
 		if e, a := test.expected, errs; !reflect.DeepEqual(e, a) {
 			t.Errorf("%s: unexpected validation errors: %s", name, diff.ObjectDiff(e, a))
 		}
@@ -568,9 +683,8 @@ func TestLimitVerifier(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		sar := &fakeSubjectAccessReviewRegistry{
-			allow: true,
-		}
+		sar := &fakeSubjectAccessReviewRegistry{}
+		sar.allow = true
 		tagVerifier := &TagVerifier{sar}
 		fakeRegistry := &fakeDefaultRegistry{}
 		s := &Strategy{
