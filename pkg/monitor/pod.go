@@ -111,7 +111,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 						conditions = append(conditions, Condition{
 							Level:   Error,
 							Locator: locatePodContainer(pod, s.Name),
-							Message: fmt.Sprintf("container exited with code %d: %s", t.ExitCode, t.Message),
+							Message: fmt.Sprintf("container exited with code %d (%s): %s", t.ExitCode, t.Reason, t.Message),
 						})
 					}
 				}
@@ -120,7 +120,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 						conditions = append(conditions, Condition{
 							Level:   Error,
 							Locator: locatePodContainer(pod, s.Name),
-							Message: fmt.Sprintf("init container exited with code %d: %s", t.ExitCode, t.Message),
+							Message: fmt.Sprintf("init container exited with code %d (%s): %s", t.ExitCode, t.Reason, t.Message),
 						})
 					}
 				}
@@ -159,7 +159,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 					conditions = append(conditions, Condition{
 						Level:   Error,
 						Locator: locatePodContainer(pod, s.Name),
-						Message: fmt.Sprintf("container exited with code %d: %s", t.ExitCode, t.Message),
+						Message: fmt.Sprintf("container exited with code %d (%s): %s", t.ExitCode, t.Reason, t.Message),
 					})
 				}
 				if s.RestartCount != previous.RestartCount {
@@ -187,7 +187,7 @@ func startPodMonitoring(ctx context.Context, m Recorder, client kubernetes.Inter
 					conditions = append(conditions, Condition{
 						Level:   Error,
 						Locator: locatePodContainer(pod, s.Name),
-						Message: fmt.Sprintf("init container exited with code %d: %s", t.ExitCode, t.Message),
+						Message: fmt.Sprintf("init container exited with code %d (%s): %s", t.ExitCode, t.Reason, t.Message),
 					})
 				}
 				if s.RestartCount != previous.RestartCount {
