@@ -62,13 +62,13 @@ func startClusterOperatorMonitoring(ctx context.Context, m Recorder, client conf
 						Message: msg,
 					})
 				}
-				if changes := findOperatorVersionChange(oldCO.Status.Versions, co.Status.Versions); len(changes) > 0 {
-					conditions = append(conditions, Condition{
-						Level:   Info,
-						Locator: locateClusterOperator(co),
-						Message: fmt.Sprintf("versions: %v", strings.Join(changes, ", ")),
-					})
-				}
+			}
+			if changes := findOperatorVersionChange(oldCO.Status.Versions, co.Status.Versions); len(changes) > 0 {
+				conditions = append(conditions, Condition{
+					Level:   Info,
+					Locator: locateClusterOperator(co),
+					Message: fmt.Sprintf("versions: %v", strings.Join(changes, ", ")),
+				})
 			}
 			return conditions
 		},
@@ -296,7 +296,7 @@ func findOperatorVersionChange(old, new []configv1.OperandVersion) []string {
 				continue
 			}
 			if old[p].Version == new[i].Version {
-				continue
+				break
 			}
 			changed = append(changed, fmt.Sprintf("%s %s -> %s", new[i].Name, old[p].Version, new[i].Version))
 			break
