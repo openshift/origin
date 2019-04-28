@@ -96,15 +96,18 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 		`),
 		Example: templates.Examples(fmt.Sprintf(`
 			# Create a release from the latest origin images and push to a DockerHub repo
-			%[1]s new --from-image-stream=origin-v4.0 -n openshift --to-image docker.io/mycompany/myrepo:latest
+			%[1]s new --from-image-stream=4.1 -n origin --to-image docker.io/mycompany/myrepo:latest
 
 			# Create a new release with updated metadata from a previous release
-			%[1]s new --from-release registry.svc.ci.openshift.org/openshift/origin-release:v4.0 --name 4.0.1 \
-				--previous 4.0.0 --metadata ... --to-image docker.io/mycompany/myrepo:latest
+			%[1]s new --from-release registry.svc.ci.openshift.org/origin/release:v4.1 --name 4.1.1 \
+				--previous 4.1.0 --metadata ... --to-image docker.io/mycompany/myrepo:latest
 
 			# Create a new release and override a single image
-			%[1]s new --from-release registry.svc.ci.openshift.org/openshift/origin-release:v4.0 \
-			  cli=docker.io/mycompany/cli:latest
+			%[1]s new --from-release registry.svc.ci.openshift.org/origin/release:v4.1 \
+				cli=docker.io/mycompany/cli:latest --to-image docker.io/mycompany/myrepo:latest
+
+			# Run a verification pass to ensure the release can be reproduced
+			%[1]s new --from-release registry.svc.ci.openshift.org/origin/release:v4.1
 				`, parentName)),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
@@ -201,6 +204,8 @@ type NewOptions struct {
 	Mappings []Mapping
 
 	ImageClient imageclient.Interface
+
+	VerifyOutputFn func(dgst digest.Digest) error
 
 	cleanupFns []func()
 }
@@ -330,52 +335,27 @@ func (o *NewOptions) cleanup() {
 func (o *NewOptions) Run() error {
 	defer o.cleanup()
 
+	// check parameters
 	extraComponentVersions, err := parseComponentVersionsLabel(o.ExtraComponentVersions)
 	if err != nil {
 		return fmt.Errorf("--component-versions is invalid: %v", err)
 	}
-
-	now := time.Now().UTC()
-	name := o.Name
-	if len(name) == 0 {
-		name = "0.0.1-" + now.Format("2006-01-02-150405")
-	}
-
-	var cm *CincinnatiMetadata
-	// TODO: remove this once all code creates semantic versions
-	if _, err := semver.Parse(name); err == nil {
-		o.ForceManifest = true
-	}
-	if len(o.PreviousVersions) > 0 || len(o.ReleaseMetadata) > 0 || o.ForceManifest {
-		cm = &CincinnatiMetadata{Kind: "cincinnati-metadata-v0"}
-		semverName, err := semver.Parse(name)
-		if err != nil {
-			return fmt.Errorf("when release metadata is added, the --name must be a semantic version")
+	if len(o.Name) > 0 {
+		if _, err := semver.Parse(o.Name); err != nil {
+			return fmt.Errorf("--name must be a semantic version: %v", err)
 		}
-		cm.Version = semverName.String()
 	}
 	if len(o.ReleaseMetadata) > 0 {
-		if err := json.Unmarshal([]byte(o.ReleaseMetadata), &cm.Metadata); err != nil {
+		if err := json.Unmarshal([]byte(o.ReleaseMetadata), &CincinnatiMetadata{}); err != nil {
 			return fmt.Errorf("invalid --metadata: %v", err)
 		}
 	}
-	if cm != nil {
-		for _, previous := range o.PreviousVersions {
-			if len(previous) == 0 {
-				continue
-			}
-			v, err := semver.Parse(previous)
-			if err != nil {
-				return fmt.Errorf("%q is not a valid semantic version: %v", previous, err)
-			}
-			cm.Previous = append(cm.Previous, v.String())
-		}
-		sort.Strings(cm.Previous)
-		if cm.Previous == nil {
-			cm.Previous = []string{}
-		}
-	}
-	klog.V(4).Infof("Release metadata:\n%s", toJSONString(cm))
+
+	hasMetadataOverrides := len(o.Name) > 0 &&
+		len(o.ReleaseMetadata) > 0 &&
+		len(o.PreviousVersions) > 0 &&
+		len(o.ToImageBase) > 0 &&
+		len(o.ExtraComponentVersions) > 0
 
 	exclude := sets.NewString()
 	for _, s := range o.Exclude {
@@ -385,6 +365,7 @@ func (o *NewOptions) Run() error {
 	metadata := make(map[string]imageData)
 	var ordered []string
 	var is *imageapi.ImageStream
+	now := time.Now().UTC().Truncate(time.Second)
 
 	switch {
 	case len(o.FromReleaseImage) > 0:
@@ -394,6 +375,7 @@ func (o *NewOptions) Run() error {
 		}
 
 		verifier := imagemanifest.NewVerifier()
+		var releaseDigest digest.Digest
 		var baseDigest string
 		var imageReferencesData, releaseMetadata []byte
 
@@ -409,6 +391,7 @@ func (o *NewOptions) Run() error {
 		}
 		extractOpts.ImageMetadataCallback = func(m *extract.Mapping, dgst, contentDigest digest.Digest, config *docker10.DockerImageConfig) {
 			verifier.Verify(dgst, contentDigest)
+			releaseDigest = contentDigest
 			if config.Config != nil {
 				baseDigest = config.Config.Labels[annotationReleaseBaseImageDigest]
 				klog.V(4).Infof("Release image was built on top of %s", baseDigest)
@@ -451,16 +434,12 @@ func (o *NewOptions) Run() error {
 		if err != nil {
 			return fmt.Errorf("unable to load image-references from release contents: %v", err)
 		}
-		is = inputIS.DeepCopy()
-		if is.Annotations == nil {
-			is.Annotations = map[string]string{}
+		var cm CincinnatiMetadata
+		if err := json.Unmarshal(releaseMetadata, &cm); err != nil {
+			return fmt.Errorf("unable to load release-metadata from release contents: %v", err)
 		}
-		is.Annotations[annotationReleaseFromRelease] = o.FromReleaseImage
 
-		if inputIS.Annotations == nil {
-			inputIS.Annotations = make(map[string]string)
-		}
-		inputIS.Annotations[annotationBuildVersions] = extraComponentVersions.String()
+		is = inputIS.DeepCopy()
 
 		for _, tag := range is.Spec.Tags {
 			ordered = append(ordered, tag.Name)
@@ -489,8 +468,42 @@ func (o *NewOptions) Run() error {
 		if len(o.Name) == 0 {
 			o.Name = is.Name
 		}
+		if len(o.ReleaseMetadata) == 0 && cm.Metadata != nil {
+			data, err := json.Marshal(cm.Metadata)
+			if err != nil {
+				return fmt.Errorf("unable to marshal release metadata: %v", err)
+			}
+			o.ReleaseMetadata = string(data)
+		}
+		if o.PreviousVersions == nil {
+			o.PreviousVersions = cm.Previous
+		}
 
-		fmt.Fprintf(o.ErrOut, "info: Found %d images in release\n", len(is.Spec.Tags))
+		if hasMetadataOverrides {
+			if is.Annotations == nil {
+				is.Annotations = map[string]string{}
+			}
+			is.Annotations[annotationReleaseFromRelease] = o.FromReleaseImage
+			fmt.Fprintf(o.ErrOut, "info: Found %d images in release\n", len(is.Spec.Tags))
+
+		} else {
+			klog.V(2).Infof("No metadata changes, building canonical release")
+			now = is.CreationTimestamp.Time.UTC()
+			if o.VerifyOutputFn == nil {
+				o.VerifyOutputFn = func(actual digest.Digest) error {
+					// TODO: check contents, digests, image stream, the layers, and the manifest
+					if actual != releaseDigest {
+						return fmt.Errorf("the release could not be reproduced from its inputs")
+					}
+					return nil
+				}
+			}
+			if len(ref.Tag) > 0 {
+				fmt.Fprintf(o.ErrOut, "info: Release %s built from %d images\n", releaseDigest, len(is.Spec.Tags))
+			} else {
+				fmt.Fprintf(o.ErrOut, "info: Release built from %d images\n", len(is.Spec.Tags))
+			}
+		}
 
 	case len(o.FromImageStream) > 0, len(o.FromImageStreamFile) > 0:
 		is = &imageapi.ImageStream{}
@@ -529,7 +542,6 @@ func (o *NewOptions) Run() error {
 			inputIS.Annotations = make(map[string]string)
 		}
 		inputIS.Annotations[annotationBuildVersions] = extraComponentVersions.String()
-
 		if err := resolveImageStreamTagsToReferenceMode(inputIS, is, o.ReferenceMode, exclude); err != nil {
 			return err
 		}
@@ -583,6 +595,38 @@ func (o *NewOptions) Run() error {
 			ordered = append(ordered, m.Source)
 		}
 	}
+
+	name := o.Name
+	if len(name) == 0 {
+		name = "0.0.1-" + now.Format("2006-01-02-150405")
+	}
+
+	cm := &CincinnatiMetadata{Kind: "cincinnati-metadata-v0"}
+	semverName, err := semver.Parse(name)
+	if err != nil {
+		return fmt.Errorf("--name must be a semantic version")
+	}
+	cm.Version = semverName.String()
+	if len(o.ReleaseMetadata) > 0 {
+		if err := json.Unmarshal([]byte(o.ReleaseMetadata), &cm.Metadata); err != nil {
+			return fmt.Errorf("invalid --metadata: %v", err)
+		}
+	}
+	for _, previous := range o.PreviousVersions {
+		if len(previous) == 0 {
+			continue
+		}
+		v, err := semver.Parse(previous)
+		if err != nil {
+			return fmt.Errorf("%q is not a valid semantic version: %v", previous, err)
+		}
+		cm.Previous = append(cm.Previous, v.String())
+	}
+	sort.Strings(cm.Previous)
+	if cm.Previous == nil {
+		cm.Previous = []string{}
+	}
+	klog.V(4).Infof("Release metadata:\n%s", toJSONString(cm))
 
 	if is == nil {
 		is = &imageapi.ImageStream{
@@ -723,8 +767,6 @@ func (o *NewOptions) Run() error {
 	case operators == nil:
 	case len(operators) == 0:
 		fmt.Fprintf(o.ErrOut, "warning: No operator metadata was found, no operators will be part of the release.\n")
-	default:
-		fmt.Fprintf(o.ErrOut, "info: Built release image from %d operators\n", len(operators))
 	}
 
 	return nil
@@ -988,7 +1030,7 @@ func (o *NewOptions) extractManifests(is *imageapi.ImageStream, name string, met
 		if err != nil {
 			return err
 		}
-		if err := ioutil.WriteFile(filepath.Join(dir, "image-references"), data, 0640); err != nil {
+		if err := ioutil.WriteFile(filepath.Join(dir, "image-references"), data, 0644); err != nil {
 			return err
 		}
 	}
@@ -1036,6 +1078,7 @@ func (o *NewOptions) mirrorImages(is *imageapi.ImageStream) error {
 }
 
 func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time) error {
+	var exitErr error
 	switch {
 	case len(o.ToDir) > 0:
 		klog.V(4).Infof("Writing release contents to directory %s", o.ToDir)
@@ -1062,7 +1105,8 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 			if strings.Count(name, "/") > 0 || name == "." || name == ".." || len(name) == 0 {
 				continue
 			}
-			f, err := os.OpenFile(filepath.Join(o.ToDir, name), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+			itemPath := filepath.Join(o.ToDir, name)
+			f, err := os.OpenFile(itemPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 			if err != nil {
 				return err
 			}
@@ -1072,6 +1116,9 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 			}
 			if err := f.Close(); err != nil {
 				return err
+			}
+			if err := os.Chtimes(itemPath, hdr.ModTime, hdr.ModTime); err != nil {
+				klog.V(2).Infof("Unable to update extracted file time: %v", err)
 			}
 		}
 	case len(o.ToFile) > 0:
@@ -1098,7 +1145,11 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 				klog.V(2).Infof("Unable to set timestamps on output file: %v", err)
 			}
 		}
-	case len(o.ToImage) > 0:
+	default:
+		if len(o.ToImage) == 0 {
+			o.DryRun = true
+			o.ToImage = "release:latest"
+		}
 		klog.V(4).Infof("Writing release contents to image %s", o.ToImage)
 		toRef, err := imagereference.Parse(o.ToImage)
 		if err != nil {
@@ -1123,7 +1174,7 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 		}
 
 		verifier := imagemanifest.NewVerifier()
-		options := imageappend.NewAppendImageOptions(genericclioptions.IOStreams{Out: o.Out, ErrOut: o.ErrOut})
+		options := imageappend.NewAppendImageOptions(genericclioptions.IOStreams{Out: ioutil.Discard, ErrOut: o.ErrOut})
 		options.SecurityOptions = o.SecurityOptions
 		options.DryRun = o.DryRun
 		options.From = toImageBase
@@ -1145,7 +1196,7 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 			// explicitly set release info
 			config.Config.Labels["io.openshift.release"] = is.Name
 			config.History = []docker10.DockerConfigHistory{
-				{Comment: "Release image for OpenShift", Created: is.CreationTimestamp.Time},
+				{Comment: "Release image for OpenShift", Created: now},
 			}
 			if len(dgst) > 0 {
 				config.Config.Labels[annotationReleaseBaseImageDigest] = dgst.String()
@@ -1165,8 +1216,19 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 			}
 			fmt.Fprintf(o.ErrOut, "warning: %v\n", err)
 		}
+		if !o.DryRun {
+			fmt.Fprintf(o.ErrOut, "info: Pushed to %s\n", o.ToImage)
+		}
 
-		// TODO: support a dry run that doesn't push the image, but requires append to have a dry-run mode
+		if o.VerifyOutputFn != nil {
+			if err := o.VerifyOutputFn(options.ToDigest); err != nil {
+				if o.DryRun {
+					return err
+				}
+				exitErr = err
+			}
+		}
+
 		toRefWithDigest := toRef
 		toRefWithDigest.Tag = ""
 		toRefWithDigest.ID = options.ToDigest.String()
@@ -1182,13 +1244,9 @@ func (o *NewOptions) write(r io.Reader, is *imageapi.ImageStream, now time.Time)
 			klog.V(2).Infof("Signature for output:\n%s", string(msg))
 		}
 
-	default:
-		fmt.Fprintf(o.ErrOut, "info: Extracting operator contents to disk without building a release artifact\n")
-		if _, err := io.Copy(ioutil.Discard, r); err != nil {
-			return err
-		}
+		fmt.Fprintf(o.Out, "%s %s %s\n", options.ToDigest.String(), is.Name, is.CreationTimestamp.Format(time.RFC3339))
 	}
-	return nil
+	return exitErr
 }
 
 func toJSONString(obj interface{}) string {
@@ -1245,7 +1303,6 @@ func writePayload(w io.Writer, is *imageapi.ImageStream, cm *CincinnatiMetadata,
 		return nil, err
 	}
 	newest = newest.UTC().Truncate(time.Second)
-	is.CreationTimestamp.Time = newest
 	klog.V(4).Infof("Most recent content has date %s", newest.Format(time.RFC3339))
 
 	gw := gzip.NewWriter(w)
@@ -1511,7 +1568,7 @@ func pruneUnreferencedImageStreams(out io.Writer, is *imageapi.ImageStream, meta
 		updated = append(updated, tag)
 	}
 	if len(updated) != len(is.Spec.Tags) {
-		fmt.Fprintf(out, "info: Included %d images in the release\n", len(updated))
+		fmt.Fprintf(out, "info: Included %d images from %d input operators into the release\n", len(updated), len(metadata))
 		is.Spec.Tags = updated
 	}
 	return nil
