@@ -70,7 +70,9 @@ func (node *OsdnNode) getPodSandboxes() (map[string]*kruntimeapi.PodSandbox, err
 		return nil, err
 	}
 
-	podSandboxList, err := runtimeService.ListPodSandbox(&kruntimeapi.PodSandboxFilter{})
+	podSandboxList, err := runtimeService.ListPodSandbox(&kruntimeapi.PodSandboxFilter{
+		State: &kruntimeapi.PodSandboxStateValue{State: kruntimeapi.PodSandboxState_SANDBOX_READY},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pod sandboxes: %v", err)
 	}
