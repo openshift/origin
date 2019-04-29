@@ -14,14 +14,13 @@ import (
 
 func TestBootstrappedConstraints(t *testing.T) {
 	// ordering of expectedConstraintNames is important, we check it against scc.ByPriority
-	// TODO: Fix/Check order, changed HostNS,HostNetwork
 	expectedConstraintNames := []string{
 		SecurityContextConstraintsAnyUID,
 		SecurityContextConstraintRestricted,
 		SecurityContextConstraintNonRoot,
 		SecurityContextConstraintHostMountAndAnyUID,
-		SecurityContextConstraintHostNS,
 		SecurityContextConstraintsHostNetwork,
+		SecurityContextConstraintHostNS,
 		SecurityContextConstraintPrivileged,
 	}
 	expectedGroups, expectedUsers := getExpectedAccess()

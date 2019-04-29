@@ -206,8 +206,7 @@ os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/tes
 # In the past system:admin only had access to a few SCCs, so the following command resulted in the privileged SCC being used
 # Since SCCs are now authorized via RBAC, and system:admin can perform all RBAC actions == system:admin can access all SCCs now
 # Thus the following command now results in the use of the hostnetwork SCC which is the most restrictive SCC that still allows the pod to run
-# TODO: SWITCHED hostnetwork to hostaccess??? OK???
-os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/nginx_pod.yaml -o=jsonpath={.status.allowedBy.name}' 'hostaccess'
+os::cmd::expect_success_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/nginx_pod.yaml -o=jsonpath={.status.allowedBy.name}' 'hostnetwork'
 # Make sure that the legacy ungroupified objects continue to work by directly doing a create
 os::cmd::expect_success_and_text 'oc create -f ${OS_ROOT}/test/testdata/legacy_ungroupified_psp_review.yaml -o=jsonpath={.status.allowedBy.name}' 'restricted'
 os::cmd::expect_success "oc login -u bob -p bobpassword"
