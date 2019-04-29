@@ -20,7 +20,7 @@ import (
 	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
-	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
+	securityv1informer "github.com/openshift/client-go/security/informers/externalversions/security/v1"
 	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	allocator "github.com/openshift/origin/pkg/security"
@@ -241,8 +241,8 @@ func shouldIgnore(a admission.Attributes) (bool, error) {
 }
 
 // SetSecurityInformers implements WantsSecurityInformer interface for constraint.
-func (c *constraint) SetSecurityInformers(informers securityv1informer.SharedInformerFactory) {
-	c.sccLister = informers.Security().V1().SecurityContextConstraints().Lister()
+func (c *constraint) SetSecurityInformers(informers securityv1informer.SecurityContextConstraintsInformer) {
+	c.sccLister = informers.Lister()
 }
 
 func (c *constraint) SetExternalKubeClientSet(client kubernetes.Interface) {
