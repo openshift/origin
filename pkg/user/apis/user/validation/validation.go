@@ -136,14 +136,14 @@ func ValidateIdentity(identity *userapi.Identity) field.ErrorList {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("providerUserName"), identity.ProviderUserName, strings.Join(reasons, ", ")))
 	}
 
-	userPath := field.NewPath("user")
 	if len(identity.ProviderName) > 0 && len(identity.ProviderUserName) > 0 {
 		expectedIdentityName := identity.ProviderName + ":" + identity.ProviderUserName
 		if identity.Name != expectedIdentityName {
-			allErrs = append(allErrs, field.Invalid(userPath.Child("name"), identity.User.Name, fmt.Sprintf("must be %s", expectedIdentityName)))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("metadata", "name"), identity.Name, fmt.Sprintf("must be %s", expectedIdentityName)))
 		}
 	}
 
+	userPath := field.NewPath("user")
 	if reasons := ValidateUserName(identity.User.Name, false); len(reasons) != 0 {
 		allErrs = append(allErrs, field.Invalid(userPath.Child("name"), identity.User.Name, strings.Join(reasons, ", ")))
 	}
@@ -153,6 +153,7 @@ func ValidateIdentity(identity *userapi.Identity) field.ErrorList {
 	if len(identity.User.Name) != 0 && len(identity.User.UID) == 0 {
 		allErrs = append(allErrs, field.Required(userPath.Child("uid"), "uid is required when username is provided"))
 	}
+
 	return allErrs
 }
 
@@ -176,13 +177,16 @@ func ValidateUserIdentityMapping(mapping *userapi.UserIdentityMapping) field.Err
 	identityPath := field.NewPath("identity")
 	if len(mapping.Identity.Name) == 0 {
 		allErrs = append(allErrs, field.Required(identityPath.Child("name"), ""))
-	}
-	if mapping.Identity.Name != mapping.Name {
+	} else if mapping.Identity.Name != mapping.Name {
 		allErrs = append(allErrs, field.Invalid(identityPath.Child("name"), mapping.Identity.Name, "must match metadata.name"))
 	}
+
 	if len(mapping.User.Name) == 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("user", "name"), ""))
+	} else if reasons := ValidateUserName(mapping.User.Name, false); len(reasons) != 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("user", "name"), mapping.User.Name, strings.Join(reasons, ", ")))
 	}
+
 	return allErrs
 }
 
