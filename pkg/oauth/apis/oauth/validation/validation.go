@@ -82,8 +82,7 @@ func ValidateAccessToken(accessToken *oauthapi.OAuthAccessToken) field.ErrorList
 	}
 	// negative values are not allowed
 	if accessToken.InactivityTimeoutSeconds < 0 {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("inactivityTimeoutSeconds"),
-			accessToken.InactivityTimeoutSeconds, "cannot be a negative value"))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("inactivityTimeoutSeconds"), accessToken.InactivityTimeoutSeconds, "cannot be a negative value"))
 	}
 	if ok, msg := ValidateRedirectURI(accessToken.RedirectURI); !ok {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("redirectURI"), accessToken.RedirectURI, msg))
@@ -179,22 +178,44 @@ func ValidateClient(client *oauthapi.OAuthClient) field.ErrorList {
 		}
 	}
 
+	for i, secret := range client.AdditionalSecrets {
+		if len(secret) == 0 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("additionalSecrets").Index(i), "", "may not be empty"))
+		}
+	}
+
 	for i, restriction := range client.ScopeRestrictions {
 		allErrs = append(allErrs, ValidateScopeRestriction(restriction, field.NewPath("scopeRestrictions").Index(i))...)
+	}
+
+	if accessTokenMaxAgeSeconds := client.AccessTokenMaxAgeSeconds; accessTokenMaxAgeSeconds != nil {
+		if *accessTokenMaxAgeSeconds < 0 {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("accessTokenMaxAgeSeconds"), *accessTokenMaxAgeSeconds, "value cannot be negative"))
+		}
 	}
 
 	if client.AccessTokenInactivityTimeoutSeconds != nil {
 		timeout := *client.AccessTokenInactivityTimeoutSeconds
 		if timeout > 0 && timeout < MinimumInactivityTimeoutSeconds {
-			allErrs = append(allErrs, field.Invalid(
-				field.NewPath("accessTokenInactivityTimeoutSeconds"),
-				client.AccessTokenInactivityTimeoutSeconds,
-				fmt.Sprintf("The minimum valid timeout value is %d seconds", MinimumInactivityTimeoutSeconds)))
+			msg := fmt.Sprintf("The minimum valid timeout value is %d seconds", MinimumInactivityTimeoutSeconds)
+			allErrs = append(allErrs, field.Invalid(field.NewPath("accessTokenInactivityTimeoutSeconds"), timeout, msg))
 		}
 		if timeout < 0 {
-			allErrs = append(allErrs, field.Invalid(
-				field.NewPath("accessTokenInactivityTimeoutSeconds"),
-				client.AccessTokenInactivityTimeoutSeconds, "value cannot be negative"))
+			allErrs = append(allErrs, field.Invalid(field.NewPath("accessTokenInactivityTimeoutSeconds"), timeout, "value cannot be negative"))
+		}
+	}
+
+	if len(client.GrantMethod) == 0 {
+		allErrs = append(allErrs, field.Required(field.NewPath("grantMethod"),
+			fmt.Sprintf("must be %s or %s", oauthapi.GrantHandlerAuto, oauthapi.GrantHandlerPrompt)))
+	} else {
+		switch client.GrantMethod {
+		case oauthapi.GrantHandlerAuto, oauthapi.GrantHandlerPrompt:
+			// valid grant methods
+		default:
+			allErrs = append(allErrs, field.NotSupported(field.NewPath("grantMethod"), string(client.GrantMethod),
+				[]string{string(oauthapi.GrantHandlerAuto), string(oauthapi.GrantHandlerPrompt)},
+			))
 		}
 	}
 
