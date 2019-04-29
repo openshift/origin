@@ -26,9 +26,10 @@ func TestValidateScopeRestrictions(t *testing.T) {
 			client: &oauthapi.OAuthClient{},
 		},
 		{
-			name:   "unrestricted allows none",
-			scopes: []string{},
-			client: &oauthapi.OAuthClient{},
+			name:           "missing scopes check precedes unrestricted",
+			scopes:         []string{},
+			client:         &oauthapi.OAuthClient{},
+			expectedErrors: []string{"may not request unscoped tokens"},
 		},
 		{
 			name:   "simple literal",
