@@ -1723,7 +1723,7 @@ func (c *Cloud) getMountDevice(
 		deviceMappings[mountDevice(name)] = EBSVolumeID(aws.StringValue(blockDevice.Ebs.VolumeId))
 	}
 	// De-flaking https://bugzilla.redhat.com/show_bug.cgi?id=1698829
-	klog.V(4).Infof("Device mappings from EC2 Instance: %+v", deviceMappings)
+	klog.V(2).Infof("volume ID: %s: device mappings from EC2 Instance: %+v", volumeID, deviceMappings)
 
 	// We lock to prevent concurrent mounts from conflicting
 	// We may still conflict if someone calls the API concurrently,
@@ -1735,7 +1735,7 @@ func (c *Cloud) getMountDevice(
 		deviceMappings[mountDevice] = volume
 	}
 	// De-flaking https://bugzilla.redhat.com/show_bug.cgi?id=1698829
-	klog.V(4).Infof("Full device mappings: %+v", deviceMappings)
+	klog.V(2).Infof("volume ID: %s: Full device mappings: %+v", volumeID, deviceMappings)
 
 	// Check to see if this volume is already assigned a device on this machine
 	for mountDevice, mappingVolumeID := range deviceMappings {
@@ -2098,7 +2098,7 @@ func (c *Cloud) AttachDisk(diskName KubernetesVolumeID, nodeName types.NodeName)
 		return "", fmt.Errorf("error finding instance %s: %q", nodeName, err)
 	}
 	// De-flaking https://bugzilla.redhat.com/show_bug.cgi?id=1698829
-	klog.V(4).Infof("AttachDisk got AWS instance %+v", info.BlockDeviceMappings)
+	klog.V(2).Infof("volumeID: %s, AttachDisk got AWS instance %+v", disk.awsID, info.BlockDeviceMappings)
 
 	// mountDevice will hold the device where we should try to attach the disk
 	var mountDevice mountDevice
@@ -2253,9 +2253,9 @@ func (c *Cloud) DetachDisk(diskName KubernetesVolumeID, nodeName types.NodeName)
 	// De-flaking https://bugzilla.redhat.com/show_bug.cgi?id=1698829
 	_, info, err2 := c.getFullInstance(nodeName)
 	if err2 != nil {
-		klog.V(4).Infof("error finding instance %s: %q", nodeName, err2)
+		klog.V(2).Infof("volume ID: %s: error finding instance %s: %q", diskInfo.disk.awsID, nodeName, err2)
 	}
-	klog.V(4).Infof("DetachDisk: instance after detach: %+v", info.BlockDeviceMappings)
+	klog.V(2).Infof("volume ID: %s: DetachDisk: instance after detach: %+v", diskInfo.disk.awsID, info.BlockDeviceMappings)
 
 	hostDevicePath := "/dev/xvd" + string(mountDevice)
 	return hostDevicePath, err
