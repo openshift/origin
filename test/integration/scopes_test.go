@@ -66,12 +66,13 @@ func TestScopedTokens(t *testing.T) {
 	}
 
 	whoamiOnlyToken := &oauthapi.OAuthAccessToken{
-		ObjectMeta: metav1.ObjectMeta{Name: "whoami-token-plus-some-padding-here-to-make-the-limit"},
-		ClientName: "openshift-challenging-client",
-		ExpiresIn:  200,
-		Scopes:     []string{scope.UserInfo},
-		UserName:   userName,
-		UserUID:    string(haroldUser.UID),
+		ObjectMeta:  metav1.ObjectMeta{Name: "whoami-token-plus-some-padding-here-to-make-the-limit"},
+		ClientName:  "openshift-challenging-client",
+		ExpiresIn:   200,
+		Scopes:      []string{scope.UserInfo},
+		UserName:    userName,
+		UserUID:     string(haroldUser.UID),
+		RedirectURI: "https://localhost:8443/oauth/token/implicit",
 	}
 	if _, err := oauthclient.NewForConfigOrDie(clusterAdminClientConfig).OAuthAccessTokens().Create(whoamiOnlyToken); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -170,12 +171,13 @@ func TestScopeEscalations(t *testing.T) {
 	}
 
 	nonEscalatingEditToken := &oauthapi.OAuthAccessToken{
-		ObjectMeta: metav1.ObjectMeta{Name: "non-escalating-edit-plus-some-padding-here-to-make-the-limit"},
-		ClientName: "openshift-challenging-client",
-		ExpiresIn:  200,
-		Scopes:     []string{scope.ClusterRoleIndicator + "edit:*"},
-		UserName:   userName,
-		UserUID:    string(haroldUser.UID),
+		ObjectMeta:  metav1.ObjectMeta{Name: "non-escalating-edit-plus-some-padding-here-to-make-the-limit"},
+		ClientName:  "openshift-challenging-client",
+		ExpiresIn:   200,
+		Scopes:      []string{scope.ClusterRoleIndicator + "edit:*"},
+		UserName:    userName,
+		UserUID:     string(haroldUser.UID),
+		RedirectURI: "https://localhost:8443/oauth/token/implicit",
 	}
 	if _, err := clusterAdminOAuthClient.OAuthAccessTokens().Create(nonEscalatingEditToken); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -193,12 +195,13 @@ func TestScopeEscalations(t *testing.T) {
 	}
 
 	escalatingEditToken := &oauthapi.OAuthAccessToken{
-		ObjectMeta: metav1.ObjectMeta{Name: "escalating-edit-plus-some-padding-here-to-make-the-limit"},
-		ClientName: "openshift-challenging-client",
-		ExpiresIn:  200,
-		Scopes:     []string{scope.ClusterRoleIndicator + "edit:*:!"},
-		UserName:   userName,
-		UserUID:    string(haroldUser.UID),
+		ObjectMeta:  metav1.ObjectMeta{Name: "escalating-edit-plus-some-padding-here-to-make-the-limit"},
+		ClientName:  "openshift-challenging-client",
+		ExpiresIn:   200,
+		Scopes:      []string{scope.ClusterRoleIndicator + "edit:*:!"},
+		UserName:    userName,
+		UserUID:     string(haroldUser.UID),
+		RedirectURI: "https://localhost:8443/oauth/token/implicit",
 	}
 	if _, err := clusterAdminOAuthClient.OAuthAccessTokens().Create(escalatingEditToken); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -241,6 +244,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 				},
 			},
 		},
+		GrantMethod: oauthapi.GrantHandlerAuto,
 	}
 	if _, err := clusterAdminOAuthClient.OAuthClients().Create(client); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -314,42 +318,46 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			name: "no scopes",
 			fail: true,
 			obj: &oauthapi.OAuthAccessToken{
-				ObjectMeta: metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
-				ClientName: client.Name,
-				UserName:   "name",
-				UserUID:    "uid",
+				ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ClientName:  client.Name,
+				UserName:    "name",
+				UserUID:     "uid",
+				RedirectURI: "https://localhost:8443/oauth/token/implicit",
 			},
 		},
 		{
 			name: "denied literal",
 			fail: true,
 			obj: &oauthapi.OAuthAccessToken{
-				ObjectMeta: metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
-				ClientName: client.Name,
-				UserName:   "name",
-				UserUID:    "uid",
-				Scopes:     []string{"user:info", "user:check-access"},
+				ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ClientName:  client.Name,
+				UserName:    "name",
+				UserUID:     "uid",
+				Scopes:      []string{"user:info", "user:check-access"},
+				RedirectURI: "https://localhost:8443/oauth/token/implicit",
 			},
 		},
 		{
 			name: "denied role",
 			fail: true,
 			obj: &oauthapi.OAuthAccessToken{
-				ObjectMeta: metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
-				ClientName: client.Name,
-				UserName:   "name",
-				UserUID:    "uid",
-				Scopes:     []string{"role:one:*"},
+				ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ClientName:  client.Name,
+				UserName:    "name",
+				UserUID:     "uid",
+				Scopes:      []string{"role:one:*"},
+				RedirectURI: "https://localhost:8443/oauth/token/implicit",
 			},
 		},
 		{
 			name: "ok role",
 			obj: &oauthapi.OAuthAccessToken{
-				ObjectMeta: metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
-				ClientName: client.Name,
-				UserName:   "name",
-				UserUID:    "uid",
-				Scopes:     []string{"role:one:bravo"},
+				ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ClientName:  client.Name,
+				UserName:    "name",
+				UserUID:     "uid",
+				Scopes:      []string{"role:one:bravo"},
+				RedirectURI: "https://localhost:8443/oauth/token/implicit",
 			},
 		},
 	}
@@ -373,46 +381,50 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			name: "no scopes",
 			fail: true,
 			obj: &oauthapi.OAuthAuthorizeToken{
-				ObjectMeta: metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
-				ClientName: client.Name,
-				ExpiresIn:  86400,
-				UserName:   "name",
-				UserUID:    "uid",
+				ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ClientName:  client.Name,
+				ExpiresIn:   86400,
+				UserName:    "name",
+				UserUID:     "uid",
+				RedirectURI: "https://localhost:8443/oauth/token/implicit",
 			},
 		},
 		{
 			name: "denied literal",
 			fail: true,
 			obj: &oauthapi.OAuthAuthorizeToken{
-				ObjectMeta: metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
-				ClientName: client.Name,
-				ExpiresIn:  86400,
-				UserName:   "name",
-				UserUID:    "uid",
-				Scopes:     []string{"user:info", "user:check-access"},
+				ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ClientName:  client.Name,
+				ExpiresIn:   86400,
+				UserName:    "name",
+				UserUID:     "uid",
+				Scopes:      []string{"user:info", "user:check-access"},
+				RedirectURI: "https://localhost:8443/oauth/token/implicit",
 			},
 		},
 		{
 			name: "denied role",
 			fail: true,
 			obj: &oauthapi.OAuthAuthorizeToken{
-				ObjectMeta: metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
-				ClientName: client.Name,
-				ExpiresIn:  86400,
-				UserName:   "name",
-				UserUID:    "uid",
-				Scopes:     []string{"role:one:*"},
+				ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ClientName:  client.Name,
+				ExpiresIn:   86400,
+				UserName:    "name",
+				UserUID:     "uid",
+				Scopes:      []string{"role:one:*"},
+				RedirectURI: "https://localhost:8443/oauth/token/implicit",
 			},
 		},
 		{
 			name: "ok role",
 			obj: &oauthapi.OAuthAuthorizeToken{
-				ObjectMeta: metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
-				ClientName: client.Name,
-				ExpiresIn:  86400,
-				UserName:   "name",
-				UserUID:    "uid",
-				Scopes:     []string{"role:one:bravo"},
+				ObjectMeta:  metav1.ObjectMeta{Name: "tokenlongenoughtobecreatedwithoutfailing"},
+				ClientName:  client.Name,
+				ExpiresIn:   86400,
+				UserName:    "name",
+				UserUID:     "uid",
+				Scopes:      []string{"role:one:bravo"},
+				RedirectURI: "https://localhost:8443/oauth/token/implicit",
 			},
 		},
 	}

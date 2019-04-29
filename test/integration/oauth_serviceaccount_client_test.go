@@ -160,26 +160,8 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 			t.Fatalf("Unexpected error: %v", err)
 		} else if !reflect.DeepEqual(clientAuth.Scopes, []string{"user:full"}) {
 			t.Fatalf("Unexpected scopes: %v", clientAuth.Scopes)
-		} else {
-			// update the authorization to not contain any approved scopes
-			clientAuth.Scopes = nil
-			if _, err := clusterAdminOAuthClient.OAuthClientAuthorizations().Update(clientAuth); err != nil {
-				t.Fatalf("Unexpected error: %v", err)
-			}
 		}
-		// approval steps are needed again for unscoped access
-		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, true, []string{
-			"GET /oauth/authorize",
-			"received challenge",
-			"GET /oauth/authorize",
-			"redirect to /oauth/authorize/approve",
-			"form",
-			"POST /oauth/authorize/approve",
-			"redirect to /oauth/authorize",
-			"redirect to /oauthcallback",
-			"code",
-			"scope:user:full",
-		})
+
 		// with the authorization stored, approval steps are skipped
 		runOAuthFlow(t, clusterAdminClientConfig, projectName, oauthClientConfig, nil, authorizationCodes, authorizationErrors, true, true, []string{
 			"GET /oauth/authorize",

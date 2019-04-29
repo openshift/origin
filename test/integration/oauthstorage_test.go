@@ -94,6 +94,7 @@ func TestOAuthStorage(t *testing.T) {
 	oaclientConfig := &osincli.ClientConfig{
 		ClientId:     testClient,
 		ClientSecret: testClientSecret0,
+		Scope:        "user:full",
 		RedirectUrl:  assertServer.URL + testClientRedirect,
 		AuthorizeUrl: server.URL + authorizePath,
 		TokenUrl:     server.URL + tokenPath,
@@ -112,6 +113,7 @@ func TestOAuthStorage(t *testing.T) {
 			ObjectMeta:        metav1.ObjectMeta{Name: testClient},
 			Secret:            testClientSecret0,
 			AdditionalSecrets: []string{testClientSecret1},
+			GrantMethod:       oauthapi.GrantHandlerAuto,
 			RedirectURIs:      []string{assertServer.URL + testClientRedirect},
 		}); err != nil {
 			t.Fatal(err)

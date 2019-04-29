@@ -97,7 +97,8 @@ func GetClientForUser(clusterAdminConfig *restclient.Config, username string) (k
 	}
 
 	oauthClientObj := &oauthapi.OAuthClient{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-integration-client"},
+		ObjectMeta:  metav1.ObjectMeta{Name: "test-integration-client"},
+		GrantMethod: oauthapi.GrantHandlerAuto,
 	}
 	if _, err := oauthClient.Oauth().OAuthClients().Create(oauthClientObj); err != nil && !kerrs.IsAlreadyExists(err) {
 		return nil, nil, err
@@ -110,10 +111,12 @@ func GetClientForUser(clusterAdminConfig *restclient.Config, username string) (k
 		accesstoken += "A"
 	}
 	token := &oauthapi.OAuthAccessToken{
-		ObjectMeta: metav1.ObjectMeta{Name: accesstoken},
-		ClientName: oauthClientObj.Name,
-		UserName:   username,
-		UserUID:    string(user.UID),
+		ObjectMeta:  metav1.ObjectMeta{Name: accesstoken},
+		ClientName:  oauthClientObj.Name,
+		UserName:    username,
+		UserUID:     string(user.UID),
+		Scopes:      []string{"user:full"},
+		RedirectURI: "https://localhost:8443/oauth/token/implicit",
 	}
 	if _, err := oauthClient.Oauth().OAuthAccessTokens().Create(token); err != nil {
 		return nil, nil, err
