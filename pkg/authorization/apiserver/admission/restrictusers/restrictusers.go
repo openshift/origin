@@ -68,11 +68,18 @@ func (q *restrictUsersAdmission) SetExternalKubeClientSet(c kubernetes.Interface
 
 func (q *restrictUsersAdmission) SetRESTClientConfig(restClientConfig rest.Config) {
 	var err error
-	q.roleBindingRestrictionsGetter, err = authorizationtypedclient.NewForConfig(&restClientConfig)
+
+	// RoleBindingRestriction is served using CRD resource any status update must use JSON
+	jsonClientConfig := rest.CopyConfig(&restClientConfig)
+	jsonClientConfig.ContentConfig.AcceptContentTypes = "application/json"
+	jsonClientConfig.ContentConfig.ContentType = "application/json"
+
+	q.roleBindingRestrictionsGetter, err = authorizationtypedclient.NewForConfig(jsonClientConfig)
 	if err != nil {
 		utilruntime.HandleError(err)
 		return
 	}
+
 	q.userClient, err = userclient.NewForConfig(&restClientConfig)
 	if err != nil {
 		utilruntime.HandleError(err)
