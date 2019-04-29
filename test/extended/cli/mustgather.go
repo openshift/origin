@@ -1,9 +1,11 @@
 package cli
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -57,12 +59,18 @@ var _ = g.Describe("[cli] oc adm must-gather", func() {
 			o.Expect(path.Join(expectedDirectory...)).To(o.BeADirectory())
 		}
 
+		emptyFiles := []string{}
 		for _, expectedFile := range expectedFiles {
 			expectedFilePath := path.Join(expectedFile...)
 			o.Expect(expectedFilePath).To(o.BeAnExistingFile())
 			stat, err := os.Stat(expectedFilePath)
 			o.Expect(err).ToNot(o.HaveOccurred())
-			o.Expect(stat.Size()).To(o.BeNumerically(">=", 100))
+			if size := stat.Size(); size < 100 {
+				emptyFiles = append(emptyFiles, expectedFilePath)
+			}
+		}
+		if len(emptyFiles) > 0 {
+			o.Expect(fmt.Errorf("expected files should not be empty: %s", strings.Join(emptyFiles, ","))).NotTo(o.HaveOccurred())
 		}
 
 	})
