@@ -40,13 +40,15 @@ var _ = g.Describe("[Feature:Machines][Smoke] Managed cluster should", func() {
 		// TODO: skip if platform != aws
 		skipUnlessMachineAPIOperator(c.CoreV1().Namespaces())
 
-		g.By("ensuring every node is linked to a machine api resource")
-		allNodes, err := c.CoreV1().Nodes().List(metav1.ListOptions{})
+		g.By("ensuring every worker node is linked to a machine api resource")
+		allWorkerNodes, err := c.CoreV1().Nodes().List(metav1.ListOptions{
+			LabelSelector: nodeLabelSelectorWorker,
+		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		nodeNames := sets.NewString()
-		for i := range allNodes.Items {
-			node := &allNodes.Items[i]
+		for i := range allWorkerNodes.Items {
+			node := &allWorkerNodes.Items[i]
 			nodeNames.Insert(node.ObjectMeta.Name)
 		}
 
