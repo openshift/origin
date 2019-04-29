@@ -57,7 +57,7 @@ func init() {
 // GetBootstrapSecurityContextConstraints returns the slice of default SecurityContextConstraints
 // for system bootstrapping.  This method takes additional users and groups that should be added
 // to the strategies.  Use GetBoostrapSCCAccess to produce the default set of mappings.
-func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string][]string, sccNameToAdditionalUsers map[string][]string) []*securityapi.SecurityContextConstraints {
+func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string][]string, sccNameToAdditionalUsers map[string][]string) []*securityapiv1.SecurityContextConstraints {
 	// define priorities here and reference them below so it is easy to see, at a glance
 	// what we're setting
 	var (
@@ -66,7 +66,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 		securityContextConstraintsAnyUIDPriority = int32(10)
 	)
 
-	constraints := []*securityapi.SecurityContextConstraints{
+	internalConstraints := []*securityapi.SecurityContextConstraints{
 		// SecurityContextConstraintPrivileged allows all access for every field
 		{
 			ObjectMeta: metav1.ObjectMeta{
@@ -283,19 +283,24 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 		},
 	}
 
+	constraints := []*securityapiv1.SecurityContextConstraints{}
 	// add default access
-	for i := range constraints {
+	for i := range internalConstraints {
 		// round trip to external, apply defaults, to ensure we match what we compare against the server
 		v1constraint := &securityapiv1.SecurityContextConstraints{}
 		constraint := &securityapi.SecurityContextConstraints{}
-		if err := bootstrapSCCScheme.Convert(constraints[i], v1constraint, nil); err != nil {
+		if err := bootstrapSCCScheme.Convert(internalConstraints[i], v1constraint, nil); err != nil {
 			panic(err)
 		}
 		bootstrapSCCScheme.Default(v1constraint)
 		if err := bootstrapSCCScheme.Convert(v1constraint, constraint, nil); err != nil {
 			panic(err)
 		}
-		constraints[i] = constraint
+		finalExternalConstraint := &securityapiv1.SecurityContextConstraints{}
+		if err := bootstrapSCCScheme.Convert(constraint, finalExternalConstraint, nil); err != nil {
+			panic(err)
+		}
+		constraints = append(constraints, finalExternalConstraint)
 
 		if usersToAdd, ok := sccNameToAdditionalUsers[constraint.Name]; ok {
 			constraints[i].Users = append(constraints[i].Users, usersToAdd...)

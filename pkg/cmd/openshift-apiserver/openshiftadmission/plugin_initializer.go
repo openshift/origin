@@ -128,7 +128,7 @@ func NewPluginInitializer(
 		ClusterResourceQuotaInformer: informers.GetOpenshiftQuotaInformers().Quota().V1().ClusterResourceQuotas(),
 		ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
 		RegistryHostnameRetriever:    registryHostnameRetriever,
-		SecurityInformers:            informers.GetOpenshiftSecurityInformers(),
+		SecurityInformers:            informers.GetOpenshiftSecurityInformers().Security().V1().SecurityContextConstraints(),
 		UserInformers:                informers.GetOpenshiftUserInformers(),
 	}
 

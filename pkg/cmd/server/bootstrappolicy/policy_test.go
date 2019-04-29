@@ -16,6 +16,7 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	api "k8s.io/kubernetes/pkg/apis/core"
 
+	securityapiv1 "github.com/openshift/api/security/v1"
 	"github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -106,6 +107,17 @@ func TestBootstrapClusterRoles(t *testing.T) {
 	testObjects(t, list, "bootstrap_cluster_roles.yaml")
 }
 
+func TestBootstrapSCCs(t *testing.T) {
+	ns := bootstrappolicy.DefaultOpenShiftInfraNamespace
+	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess(ns)
+	sccs := bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers)
+	list := &api.List{}
+	for i := range sccs {
+		list.Items = append(list.Items, sccs[i])
+	}
+	testObjects(t, list, "bootstrap_security_context_constraints.yaml")
+}
+
 func testObjects(t *testing.T, list *api.List, fixtureFilename string) {
 	filename := filepath.Join("../../../../test/testdata/bootstrappolicy", fixtureFilename)
 	expectedYAML, err := ioutil.ReadFile(filename)
@@ -113,11 +125,11 @@ func testObjects(t *testing.T, list *api.List, fixtureFilename string) {
 		t.Fatal(err)
 	}
 
-	if err := runtime.EncodeList(fileEncodingCodecFactory.LegacyCodec(rbacv1.SchemeGroupVersion, legacy.GroupVersion), list.Items); err != nil {
+	if err := runtime.EncodeList(fileEncodingCodecFactory.LegacyCodec(rbacv1.SchemeGroupVersion, securityapiv1.GroupVersion, legacy.GroupVersion), list.Items); err != nil {
 		t.Fatal(err)
 	}
 
-	jsonData, err := runtime.Encode(fileEncodingCodecFactory.LegacyCodec(rbacv1.SchemeGroupVersion, legacy.GroupVersion), list)
+	jsonData, err := runtime.Encode(fileEncodingCodecFactory.LegacyCodec(rbacv1.SchemeGroupVersion, securityapiv1.GroupVersion, legacy.GroupVersion), list)
 	if err != nil {
 		t.Fatal(err)
 	}

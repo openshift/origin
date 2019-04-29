@@ -110,7 +110,7 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 			ClusterResourceQuotaInformer: kubeAPIServerInformers.GetOpenshiftQuotaInformers().Quota().V1().ClusterResourceQuotas(),
 			ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
 			RegistryHostnameRetriever:    registryHostnameRetriever,
-			SecurityInformers:            kubeAPIServerInformers.GetOpenshiftSecurityInformers(),
+			SecurityInformers:            kubeAPIServerInformers.GetOpenshiftSecurityInformers().Security().V1().SecurityContextConstraints(),
 			UserInformers:                kubeAPIServerInformers.GetOpenshiftUserInformers(),
 		}
 		*pluginInitializers = append(*pluginInitializers, openshiftPluginInitializer)
@@ -190,7 +190,7 @@ func NewInformers(versionedInformers clientgoinformers.SharedInformerFactory, lo
 	if err != nil {
 		return nil, err
 	}
-	securityClient, err := securityv1client.NewForConfig(loopbackClientConfig)
+	securityClient, err := securityv1client.NewForConfig(jsonLoopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}

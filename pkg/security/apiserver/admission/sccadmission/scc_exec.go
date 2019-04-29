@@ -12,7 +12,7 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	coreapiv1conversions "k8s.io/kubernetes/pkg/apis/core/v1"
 
-	securityv1informers "github.com/openshift/client-go/security/informers/externalversions"
+	securityv1informers "github.com/openshift/client-go/security/informers/externalversions/security/v1"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 )
 
@@ -85,7 +85,7 @@ func (d *sccExecRestrictions) SetExternalKubeClientSet(c kubernetes.Interface) {
 	d.constraintAdmission.SetExternalKubeClientSet(c)
 }
 
-func (d *sccExecRestrictions) SetSecurityInformers(informers securityv1informers.SharedInformerFactory) {
+func (d *sccExecRestrictions) SetSecurityInformers(informers securityv1informers.SecurityContextConstraintsInformer) {
 	d.constraintAdmission.SetSecurityInformers(informers)
 }
 

@@ -6,7 +6,7 @@ import (
 	quota "k8s.io/kubernetes/pkg/quota/v1"
 
 	quotainformer "github.com/openshift/client-go/quota/informers/externalversions/quota/v1"
-	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
+	securityv1informer "github.com/openshift/client-go/security/informers/externalversions/security/v1"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 	"github.com/openshift/origin/pkg/project/cache"
@@ -21,7 +21,7 @@ type PluginInitializer struct {
 	ClusterResourceQuotaInformer quotainformer.ClusterResourceQuotaInformer
 	ClusterQuotaMapper           clusterquotamapping.ClusterQuotaMapper
 	RegistryHostnameRetriever    registryhostname.RegistryHostnameRetriever
-	SecurityInformers            securityv1informer.SharedInformerFactory
+	SecurityInformers            securityv1informer.SecurityContextConstraintsInformer
 	UserInformers                userinformer.SharedInformerFactory
 }
 
