@@ -55,7 +55,6 @@ var (
 		"build.openshift.io/BuildByStrategy",
 		"image.openshift.io/ImageLimitRange",
 		"image.openshift.io/ImagePolicy",
-		"scheduling.openshift.io/PodNodeConstraints",
 		"quota.openshift.io/ClusterResourceQuota",
 
 		// the rest of the kube chain goes here

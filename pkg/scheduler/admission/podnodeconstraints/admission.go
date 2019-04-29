@@ -7,33 +7,19 @@ import (
 
 	"k8s.io/klog"
 
-	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
-	"k8s.io/kubernetes/pkg/apis/apps"
-	"k8s.io/kubernetes/pkg/apis/batch"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/extensions"
+	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 
-	oapps "github.com/openshift/api/apps"
-	"github.com/openshift/api/security"
-	"github.com/openshift/origin/pkg/api/imagereferencemutators"
-	"github.com/openshift/origin/pkg/api/legacy"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 )
 
 const PluginName = "scheduling.openshift.io/PodNodeConstraints"
-
-// kindsToIgnore is a list of kinds that contain a PodSpec that
-// we choose not to handle in this plugin
-var kindsToIgnore = []schema.GroupKind{
-	extensions.Kind("DaemonSet"),
-}
 
 func Register(plugins *admission.Plugins) {
 	plugins.Register(PluginName,
@@ -81,11 +67,6 @@ func shouldCheckResource(resource schema.GroupResource, kind schema.GroupKind) (
 	if !shouldCheck {
 		return false, nil
 	}
-	for _, ignore := range kindsToIgnore {
-		if ignore == expectedKind {
-			return false, nil
-		}
-	}
 	if expectedKind != kind {
 		return false, fmt.Errorf("Unexpected resource kind %v for resource %v", &kind, &resource)
 	}
@@ -94,28 +75,7 @@ func shouldCheckResource(resource schema.GroupResource, kind schema.GroupKind) (
 
 // resourcesToCheck is a map of resources and corresponding kinds of things that we want handled in this plugin
 var resourcesToCheck = map[schema.GroupResource]schema.GroupKind{
-	kapi.Resource("pods"):                   kapi.Kind("Pod"),
-	kapi.Resource("podtemplates"):           kapi.Kind("PodTemplate"),
-	kapi.Resource("replicationcontrollers"): kapi.Kind("ReplicationController"),
-	batch.Resource("jobs"):                  batch.Kind("Job"),
-	batch.Resource("jobtemplates"):          batch.Kind("JobTemplate"),
-
-	batch.Resource("cronjobs"):         batch.Kind("CronJob"),
-	extensions.Resource("deployments"): extensions.Kind("Deployment"),
-	extensions.Resource("replicasets"): extensions.Kind("ReplicaSet"),
-	apps.Resource("deployments"):       apps.Kind("Deployment"),
-	apps.Resource("replicasets"):       apps.Kind("ReplicaSet"),
-	apps.Resource("statefulsets"):      apps.Kind("StatefulSet"),
-
-	legacy.Resource("deploymentconfigs"):                   legacy.Kind("DeploymentConfig"),
-	legacy.Resource("podsecuritypolicysubjectreviews"):     legacy.Kind("PodSecurityPolicySubjectReview"),
-	legacy.Resource("podsecuritypolicyselfsubjectreviews"): legacy.Kind("PodSecurityPolicySelfSubjectReview"),
-	legacy.Resource("podsecuritypolicyreviews"):            legacy.Kind("PodSecurityPolicyReview"),
-
-	oapps.Resource("deploymentconfigs"):                      oapps.Kind("DeploymentConfig"),
-	security.Resource("podsecuritypolicysubjectreviews"):     security.Kind("PodSecurityPolicySubjectReview"),
-	security.Resource("podsecuritypolicyselfsubjectreviews"): security.Kind("PodSecurityPolicySelfSubjectReview"),
-	security.Resource("podsecuritypolicyreviews"):            security.Kind("PodSecurityPolicyReview"),
+	coreapi.Resource("pods"): coreapi.Kind("Pod"),
 }
 
 func readConfig(reader io.Reader) (*podnodeconstraints.PodNodeConstraintsConfig, error) {
@@ -151,28 +111,15 @@ func (o *podNodeConstraints) Validate(attr admission.Attributes) error {
 		return nil
 	}
 	// Only check Create operation on pods
-	if attr.GetResource().GroupResource() == kapi.Resource("pods") && attr.GetOperation() != admission.Create {
+	if attr.GetResource().GroupResource() == coreapi.Resource("pods") && attr.GetOperation() != admission.Create {
 		return nil
 	}
-	ps, err := o.getPodSpec(attr)
-	if err != nil {
-		return err
-	}
 
-	return o.validatePodSpec(attr, ps)
-}
-
-// extract the PodSpec from the pod templates for each object we care about
-func (o *podNodeConstraints) getPodSpec(attr admission.Attributes) (kapi.PodSpec, error) {
-	spec, _, err := imagereferencemutators.GetPodSpec(attr.GetObject())
-	if err != nil {
-		return kapi.PodSpec{}, kapierrors.NewInternalError(err)
-	}
-	return *spec, nil
+	return o.validatePodSpec(attr, attr.GetObject().(*coreapi.Pod).Spec)
 }
 
 // validate PodSpec if NodeName or NodeSelector are specified
-func (o *podNodeConstraints) validatePodSpec(attr admission.Attributes, ps kapi.PodSpec) error {
+func (o *podNodeConstraints) validatePodSpec(attr admission.Attributes, ps coreapi.PodSpec) error {
 	// a node creating a mirror pod that targets itself is allowed
 	// see the NodeRestriction plugin for further details
 	if o.isNodeSelfTargetWithMirrorPod(attr, ps.NodeName) {
@@ -228,10 +175,10 @@ func (o *podNodeConstraints) checkPodsBindAccess(attr admission.Attributes) (boo
 		Namespace:       attr.GetNamespace(),
 		Resource:        "pods",
 		Subresource:     "binding",
-		APIGroup:        kapi.GroupName,
+		APIGroup:        coreapi.GroupName,
 		ResourceRequest: true,
 	}
-	if attr.GetResource().GroupResource() == kapi.Resource("pods") {
+	if attr.GetResource().GroupResource() == coreapi.Resource("pods") {
 		authzAttr.Name = attr.GetName()
 	}
 	authorized, _, err := o.authorizer.Authorize(authzAttr)
@@ -244,14 +191,14 @@ func (o *podNodeConstraints) isNodeSelfTargetWithMirrorPod(attr admission.Attrib
 		return false
 	}
 	// this check specifically requires the object to be pod (unlike the other checks where we want any pod spec)
-	pod, ok := attr.GetObject().(*kapi.Pod)
+	pod, ok := attr.GetObject().(*coreapi.Pod)
 	if !ok {
 		return false
 	}
 	// note that anyone can create a mirror pod, but they are not privileged in any way
 	// they are actually highly constrained since they cannot reference secrets
 	// nodes can only create and delete them, and they will delete any "orphaned" mirror pods
-	if _, isMirrorPod := pod.Annotations[kapi.MirrorPodAnnotationKey]; !isMirrorPod {
+	if _, isMirrorPod := pod.Annotations[coreapi.MirrorPodAnnotationKey]; !isMirrorPod {
 		return false
 	}
 	// we are targeting a node with a mirror pod
