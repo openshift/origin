@@ -41,7 +41,16 @@ var _ = g.Describe("[Feature:Platform] Managed cluster should", func() {
 				pending = make(map[string]*corev1.Pod)
 				for _, pod := range pods {
 					if pod.Status.Phase == corev1.PodPending {
-						pending[fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)] = pod
+						hasInitContainerRunning := false
+						for _, initContainerStatus := range pod.Status.InitContainerStatuses {
+							if initContainerStatus.State.Running != nil {
+								hasInitContainerRunning = true
+								break
+							}
+						}
+						if !hasInitContainerRunning {
+							pending[fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)] = pod
+						}
 					}
 				}
 			} else {
