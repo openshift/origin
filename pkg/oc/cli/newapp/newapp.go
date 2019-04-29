@@ -47,7 +47,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/print"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	"github.com/openshift/origin/pkg/oc/lib/newapp"
+	generate "github.com/openshift/origin/pkg/oc/lib/newapp"
 	newapp "github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	newcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
 	dockerutil "github.com/openshift/origin/pkg/oc/lib/newapp/docker"
@@ -355,6 +355,20 @@ func (o *AppOptions) RunNewApp() error {
 	result, err := config.Run()
 	if err := HandleError(err, o.BaseName, o.CommandName, o.CommandPath, config, TransformRunError); err != nil {
 		return err
+	}
+	// this hack provides what `obj, err := runtime.Decode(scheme.Codecs.UniversalDeserializer(), raw.Raw)` provides in
+	// 4.x, where backporting the "externalization" of newapp via https://github.com/openshift/origin/pull/20645 is
+	// untenable
+	for i := range result.List.Items {
+		item := result.List.Items[i].DeepCopyObject()
+		unstructuredObj, ok := item.(*unstructured.Unstructured)
+		if ok {
+			kind := unstructuredObj.GetKind()
+			if strings.HasPrefix(kind, "CustomResourceDefinition") {
+				err := runtime.NewNotRegisteredErrForKind(o.Action.Bulk.Scheme.Name(), unstructuredObj.GroupVersionKind())
+				return HandleError(err, o.BaseName, o.CommandName, o.CommandPath, config, TransformRunError)
+			}
+		}
 	}
 
 	// set labels explicitly supplied by the user on the command line
@@ -1006,7 +1020,11 @@ func TransformRunError(err error, baseName, commandName, commandPath string, gro
 		// TODO: suggest things to the user
 		groups.Add("", "", "", UsageError(commandPath, newAppNoInput, baseName, commandName))
 	default:
-		groups.Add("", "", "", err)
+		if runtime.IsNotRegisteredError(err) {
+			groups.Add("", "", "", fmt.Errorf(fmt.Sprintf("The template contained an object type unknown to `oc new-app`.  Use `oc process -f <template> | oc create -f -` instead.  Error details: %v", err)))
+		} else {
+			groups.Add("", "", "", err)
+		}
 	}
 	return
 }
