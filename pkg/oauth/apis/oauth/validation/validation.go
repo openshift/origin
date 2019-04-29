@@ -329,6 +329,10 @@ func ValidateUserNameField(value string, fldPath *field.Path) field.ErrorList {
 func ValidateScopes(scopes []string, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
+	if len(scopes) == 0 {
+		allErrs = append(allErrs, field.Required(fldPath, "may not be empty"))
+	}
+
 	for i, scope := range scopes {
 		illegalCharacter := false
 		// https://tools.ietf.org/html/rfc6749#section-3.3 (full list of allowed chars is %x21 / %x23-5B / %x5D-7E)

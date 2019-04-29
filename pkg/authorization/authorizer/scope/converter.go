@@ -483,11 +483,12 @@ func removeEscalatingResources(in rbacv1.PolicyRule) rbacv1.PolicyRule {
 }
 
 func ValidateScopeRestrictions(client *oauthapi.OAuthClient, scopes ...string) error {
+	if len(scopes) == 0 {
+		return fmt.Errorf("%s may not request unscoped tokens", client.Name)
+	}
+
 	if len(client.ScopeRestrictions) == 0 {
 		return nil
-	}
-	if len(scopes) == 0 {
-		return fmt.Errorf("%v may not request unscoped tokens", client.Name)
 	}
 
 	errs := []error{}
@@ -502,10 +503,6 @@ func ValidateScopeRestrictions(client *oauthapi.OAuthClient, scopes ...string) e
 
 func validateScopeRestrictions(client *oauthapi.OAuthClient, scope string) error {
 	errs := []error{}
-
-	if len(client.ScopeRestrictions) == 0 {
-		return nil
-	}
 
 	for _, restriction := range client.ScopeRestrictions {
 		if len(restriction.ExactValues) > 0 {
