@@ -39,7 +39,7 @@ type InformerHolder struct {
 
 // NewInformers is only exposed for the build's integration testing until it can be fixed more appropriately.
 func NewInformers(kubeInformers kexternalinformers.SharedInformerFactory, kubeClientConfig *rest.Config, loopbackClientConfig *rest.Config) (*InformerHolder, error) {
-	authorizationClient, err := authorizationv1client.NewForConfig(loopbackClientConfig)
+	authorizationClient, err := authorizationv1client.NewForConfig(nonProtobufConfig(kubeClientConfig))
 	if err != nil {
 		return nil, err
 	}
