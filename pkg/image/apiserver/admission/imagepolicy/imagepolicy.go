@@ -27,11 +27,11 @@ import (
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	internalimagereferencemutators "github.com/openshift/origin/pkg/api/imagereferencemutators/internalversion"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagepolicy "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/validation"
+	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/internalimagereferencemutators"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/rules"
 	imageinternalclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"k8s.io/client-go/rest"
