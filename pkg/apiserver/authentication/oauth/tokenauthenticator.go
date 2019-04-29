@@ -50,11 +50,10 @@ func (a *tokenAuthenticator) AuthenticateToken(ctx context.Context, name string)
 	if err != nil {
 		return nil, false, err
 	}
-	groupNames := make([]string, 0, len(groups)+len(user.Groups))
+	groupNames := make([]string, 0, len(groups))
 	for _, group := range groups {
 		groupNames = append(groupNames, group.Name)
 	}
-	groupNames = append(groupNames, user.Groups...)
 
 	return &kauthenticator.Response{
 		User: &kuser.DefaultInfo{

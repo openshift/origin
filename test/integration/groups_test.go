@@ -42,12 +42,12 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 	valerieProjectClient := projectclient.NewForConfigOrDie(valerieConfig).Project()
 
 	// make sure we don't get back system groups
-	firstValerie, err := clusterAdminUserClient.Users().Get("valerie", metav1.GetOptions{})
+	userValerie, err := clusterAdminUserClient.Users().Get("valerie", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(firstValerie.Groups) != 0 {
-		t.Errorf("unexpected groups: %v", firstValerie.Groups)
+	if len(userValerie.Groups) != 0 {
+		t.Errorf("unexpected groups: %v", userValerie.Groups)
 	}
 
 	// make sure that user/~ returns groups for unbacked users
@@ -60,21 +60,12 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 		t.Errorf("expected %v, got %v", expectedClusterAdminGroups, clusterAdminUser.Groups)
 	}
 
-	valerieGroups := []string{"theGroup"}
-	firstValerie.Groups = append(firstValerie.Groups, valerieGroups...)
-	_, err = clusterAdminUserClient.Users().Update(firstValerie)
+	theGroup := &userapi.Group{}
+	theGroup.Name = "theGroup"
+	theGroup.Users = append(theGroup.Users, "valerie")
+	_, err = clusterAdminUserClient.Groups().Create(theGroup)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
-	}
-
-	// make sure that user/~ returns system groups for backed users when it merges
-	expectedValerieGroups := append([]string{"system:authenticated", "system:authenticated:oauth"}, valerieGroups...)
-	secondValerie, err := userclient.NewForConfigOrDie(valerieConfig).Users().Get("~", metav1.GetOptions{})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if !reflect.DeepEqual(secondValerie.Groups, expectedValerieGroups) {
-		t.Errorf("expected %v, got %v", expectedValerieGroups, secondValerie.Groups)
 	}
 
 	_, err = valerieProjectClient.Projects().Get("empty", metav1.GetOptions{})
@@ -92,7 +83,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 	roleBinding := &authorizationapi.RoleBinding{}
 	roleBinding.Name = "admins"
 	roleBinding.RoleRef.Name = "admin"
-	roleBinding.Subjects = authorizationapi.BuildSubjects([]string{}, valerieGroups)
+	roleBinding.Subjects = authorizationapi.BuildSubjects([]string{}, []string{theGroup.Name})
 	_, err = authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization().RoleBindings("empty").Create(roleBinding)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

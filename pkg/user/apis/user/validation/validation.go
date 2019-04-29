@@ -107,16 +107,9 @@ func ValidateUser(user *userapi.User) field.ErrorList {
 		}
 	}
 
-	groupsPath := field.NewPath("groups")
-	for index, group := range user.Groups {
-		idxPath := groupsPath.Index(index)
-		if len(group) == 0 {
-			allErrs = append(allErrs, field.Invalid(idxPath, group, "may not be empty"))
-			continue
-		}
-		if reasons := ValidateGroupName(group, false); len(reasons) != 0 {
-			allErrs = append(allErrs, field.Invalid(idxPath, group, strings.Join(reasons, ", ")))
-		}
+	// our strategy should prevent us from ever hitting this case
+	if len(user.Groups) != 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("groups"), user.Groups, "is deprecated and cannot be set"))
 	}
 
 	return allErrs
