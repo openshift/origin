@@ -2,6 +2,7 @@ package integration
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -52,6 +53,7 @@ func TestOAuthLDAP(t *testing.T) {
 		myUserName     = "My User, Jr."
 		myUserEmail    = "myuser@example.com"
 		myUserDN       = searchAttr + "=" + myUserUID + "," + searchDN
+		myUserDNBase64 = base64.RawURLEncoding.EncodeToString([]byte(myUserDN))
 		myUserPassword = "myuser-password-" + randomSuffix
 	)
 
@@ -246,11 +248,11 @@ func TestOAuthLDAP(t *testing.T) {
 	}
 
 	// Make sure the identity got created and contained the mapped attributes
-	identity, err := userclient.NewForConfigOrDie(clusterAdminClientConfig).Identities().Get(fmt.Sprintf("%s:%s", providerName, myUserDN), metav1.GetOptions{})
+	identity, err := userclient.NewForConfigOrDie(clusterAdminClientConfig).Identities().Get(fmt.Sprintf("%s:%s", providerName, myUserDNBase64), metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
-	if identity.ProviderUserName != myUserDN {
+	if identity.ProviderUserName != myUserDNBase64 {
 		t.Errorf("Expected %q, got %q", myUserDN, identity.ProviderUserName)
 	}
 	if v := identity.Extra[authapi.IdentityDisplayNameKey]; v != myUserName {
