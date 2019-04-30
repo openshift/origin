@@ -1,12 +1,14 @@
 package ginkgo
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"sort"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -18,6 +20,7 @@ type testStatus struct {
 	out     io.Writer
 	timeout time.Duration
 	monitor monitor.Interface
+	env     []string
 
 	includeSuccessfulOutput bool
 
@@ -27,12 +30,13 @@ type testStatus struct {
 	total    int
 }
 
-func newTestStatus(out io.Writer, includeSuccessfulOutput bool, total int, timeout time.Duration, m monitor.Interface) *testStatus {
+func newTestStatus(out io.Writer, includeSuccessfulOutput bool, total int, timeout time.Duration, m monitor.Interface, testEnv []string) *testStatus {
 	return &testStatus{
 		out:     out,
 		total:   total,
 		timeout: timeout,
 		monitor: m,
+		env:     testEnv,
 
 		includeSuccessfulOutput: includeSuccessfulOutput,
 	}
@@ -51,6 +55,17 @@ func (s *testStatus) Fprintf(format string) {
 		s.index++
 	}
 	fmt.Fprintf(s.out, format, s.failures, s.index, s.total)
+}
+
+// OutputCommand prints to stdout what would have been executed.
+func (s *testStatus) OutputCommand(ctx context.Context, test *testCase) {
+	buf := &bytes.Buffer{}
+	for _, env := range s.env {
+		parts := strings.SplitN(env, "=", 2)
+		fmt.Fprintf(buf, "%s=%q ", parts[0], parts[1])
+	}
+	fmt.Fprintf(buf, "%s %s %q", os.Args[0], "run-test", test.name)
+	fmt.Fprintln(s.out, buf.String())
 }
 
 func (s *testStatus) Run(ctx context.Context, test *testCase) {
@@ -94,6 +109,7 @@ func (s *testStatus) Run(ctx context.Context, test *testCase) {
 
 	test.start = time.Now()
 	c := exec.Command(os.Args[0], "run-test", test.name)
+	c.Env = append(os.Environ(), s.env...)
 	s.Fprintf(fmt.Sprintf("started: (%s) %q\n\n", "%d/%d/%d", test.name))
 	out, err := runWithTimeout(ctx, c, s.timeout)
 	test.end = time.Now()

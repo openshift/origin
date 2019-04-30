@@ -116,7 +116,6 @@ func newRunCommand() *cobra.Command {
 				if err := initProvider(opt.Provider); err != nil {
 					return err
 				}
-				os.Setenv("TEST_PROVIDER", opt.Provider)
 				e2e.AfterReadingAllFlags(exutil.TestContext)
 				return opt.Run(args)
 			})
@@ -142,9 +141,18 @@ func newRunUpgradeCommand() *cobra.Command {
 		If you specify the --dry-run argument, the actions the suite will take will be printed to the
 		output.
 
+		Supported options:
+
+		* abort-at=NUMBER - Set to a number between 0 and 100 to control the percent of operators
+		at which to stop the current upgrade and roll back to the current version.
+		* disrupt-reboot=POLICY - During upgrades, periodically reboot master nodes. If set to 'graceful'
+		the reboot will allow the node to shut down services in an orderly fashion. If set to 'force' the
+		machine will terminate immediately without clean shutdown.
+
 		`) + testginkgo.SuitesString(opt.Suites, "\n\nAvailable upgrade suites:\n\n"),
 
-		SilenceUsage: true,
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return mirrorToFile(opt, func() error {
 				if len(upgradeOpt.ToImage) == 0 {
@@ -156,7 +164,11 @@ func newRunUpgradeCommand() *cobra.Command {
 						if suite.Name == args[0] {
 							upgradeOpt.Suite = suite.Name
 							upgradeOpt.JUnitDir = opt.JUnitDir
-							os.Setenv("TEST_UPGRADE", upgradeOpt.ToEnv())
+							value := upgradeOpt.ToEnv()
+							if err := initUpgrade(value); err != nil {
+								return err
+							}
+							opt.SuiteOptions = value
 							break
 						}
 					}
@@ -165,7 +177,6 @@ func newRunUpgradeCommand() *cobra.Command {
 				if err := initProvider(opt.Provider); err != nil {
 					return err
 				}
-				os.Setenv("TEST_PROVIDER", opt.Provider)
 				e2e.AfterReadingAllFlags(exutil.TestContext)
 				return opt.Run(args)
 			})
@@ -198,7 +209,7 @@ func newRunTestCommand() *cobra.Command {
 			if err := initProvider(os.Getenv("TEST_PROVIDER")); err != nil {
 				return err
 			}
-			if err := initUpgrade(os.Getenv("TEST_UPGRADE")); err != nil {
+			if err := initUpgrade(os.Getenv("TEST_SUITE_OPTIONS")); err != nil {
 				return err
 			}
 			e2e.AfterReadingAllFlags(exutil.TestContext)
@@ -236,6 +247,7 @@ func mirrorToFile(opt *testginkgo.Options, fn func() error) error {
 
 func bindOptions(opt *testginkgo.Options, flags *pflag.FlagSet) {
 	flags.BoolVar(&opt.DryRun, "dry-run", opt.DryRun, "Print the tests to run without executing them.")
+	flags.BoolVar(&opt.PrintCommands, "print-commands", opt.PrintCommands, "Print the sub-commands that would be executed instead.")
 	flags.StringVar(&opt.JUnitDir, "junit-dir", opt.JUnitDir, "The directory to write test reports to.")
 	flags.StringVar(&opt.Provider, "provider", opt.Provider, "The cluster infrastructure provider. Will automatically default to the correct value.")
 	flags.StringVarP(&opt.TestFile, "file", "f", opt.TestFile, "Create a suite from the newline-delimited test names in this file.")
