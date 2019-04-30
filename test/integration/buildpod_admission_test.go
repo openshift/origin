@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	watchapi "k8s.io/apimachinery/pkg/watch"
@@ -120,14 +120,14 @@ func TestBuildDefaultAnnotations(t *testing.T) {
 }
 
 func TestBuildOverrideTolerations(t *testing.T) {
-	tolerations := []kapi.Toleration{
-		{
+	tolerations := map[string]v1.Toleration{
+		"myKey1": {
 			Key:      "mykey1",
 			Value:    "myvalue1",
 			Effect:   "NoSchedule",
 			Operator: "Equal",
 		},
-		{
+		"mykey2": {
 			Key:      "mykey2",
 			Value:    "myvalue2",
 			Effect:   "NoSchedule",
@@ -135,20 +135,30 @@ func TestBuildOverrideTolerations(t *testing.T) {
 		},
 	}
 
+	overrideTolerations := []kapi.Toleration{}
+	for _, v := range tolerations {
+		coreToleration := kapi.Toleration{}
+		err := kapiv1.Convert_v1_Toleration_To_core_Toleration(&v, &coreToleration, nil)
+		if err != nil {
+			t.Errorf("Unable to convert v1.Toleration to core.Toleration: %v", err)
+		} else {
+			overrideTolerations = append(overrideTolerations, coreToleration)
+		}
+	}
+
 	oclient, kclientset, fn := setupBuildOverridesAdmissionTest(t, &configapi.BuildOverridesConfig{
-		Tolerations: tolerations,
+		Tolerations: overrideTolerations,
 	})
 
 	defer fn()
 
 	_, pod := runBuildPodAdmissionTest(t, oclient, kclientset, buildPodAdmissionTestDockerBuild())
-	for i, toleration := range tolerations {
-		tol := v1.Toleration{}
-		if err := kapiv1.Convert_core_Toleration_To_v1_Toleration(&toleration, &tol, nil); err != nil {
-			t.Errorf("Unable to convert core.Toleration to v1.Toleration: %v", err)
-		}
-		if !reflect.DeepEqual(pod.Spec.Tolerations[i], tol) {
-			t.Errorf("Resulting pod did not get expected tolerations, expected: %#v, actual: %#v", toleration, pod.Spec.Tolerations[i])
+	for _, podToleration := range pod.Spec.Tolerations {
+		expectedTol, ok := tolerations[podToleration.Key]
+		if !ok {
+			t.Logf("Toleration %s found on pod, but is not in required list of tolerations", podToleration.Key)
+		} else if !reflect.DeepEqual(expectedTol, podToleration) {
+			t.Errorf("Resulting pod did not get expected tolerations, expected: %#v, actual: %#v", expectedTol, podToleration)
 		}
 	}
 }
