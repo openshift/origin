@@ -7,7 +7,6 @@ import (
 	"time"
 
 	restful "github.com/emicklei/go-restful"
-	"k8s.io/klog"
 
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,8 +16,9 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericmux "k8s.io/apiserver/pkg/server/mux"
 	kubeinformers "k8s.io/client-go/informers"
-	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
+	"k8s.io/klog"
 	openapicontroller "k8s.io/kube-aggregator/pkg/controllers/openapi"
 	openapiaggregator "k8s.io/kube-aggregator/pkg/controllers/openapi/aggregator"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -61,7 +61,7 @@ type OpenshiftAPIExtraConfig struct {
 	// we phrase it like this so we can build the post-start-hook, but no one can take more indirect dependencies on informers
 	InformerStart func(stopCh <-chan struct{})
 
-	KubeAPIServerClientConfig *restclient.Config
+	KubeAPIServerClientConfig *rest.Config
 	KubeInformers             kubeinformers.SharedInformerFactory
 
 	QuotaInformers    quotainformer.SharedInformerFactory
@@ -580,10 +580,15 @@ func (c *completedConfig) bootstrapSCC(context genericapiserver.PostStartHookCon
 	ns := bootstrappolicy.DefaultOpenShiftInfraNamespace
 	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess(ns)
 
+	// ClusterResourceQuota is served using CRD resource any status update must use JSON
+	jsonLoopbackClientConfig := rest.CopyConfig(c.ExtraConfig.KubeAPIServerClientConfig)
+	jsonLoopbackClientConfig.ContentConfig.AcceptContentTypes = "application/json"
+	jsonLoopbackClientConfig.ContentConfig.ContentType = "application/json"
+
 	var securityClient securityv1client.SecurityV1Interface
 	err := wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
 		var err error
-		securityClient, err = securityv1client.NewForConfig(context.LoopbackClientConfig)
+		securityClient, err = securityv1client.NewForConfig(jsonLoopbackClientConfig)
 		if err != nil {
 			utilruntime.HandleError(fmt.Errorf("unable to initialize client: %v", err))
 			return false, nil
@@ -606,6 +611,26 @@ func (c *completedConfig) bootstrapSCC(context genericapiserver.PostStartHookCon
 		}
 		klog.Infof("Created default security context constraint %s", scc.Name)
 	}
+
+	// until we only use the CRD, this has to be done twice.  Once for CRD creation, once when aggregated APIs take over.  Remove after we
+	// switch
+	go func() {
+		wait.PollUntil(10*time.Second, func() (bool, error) {
+			for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers) {
+				_, err := securityClient.SecurityContextConstraints().Create(scc)
+				if kapierror.IsAlreadyExists(err) {
+					continue
+				}
+				if err != nil {
+					utilruntime.HandleError(fmt.Errorf("unable to create default security context constraint %s.  Got error: %v", scc.Name, err))
+					continue
+				}
+				klog.Infof("Created default security context constraint %s", scc.Name)
+			}
+			return false, nil
+		}, context.StopCh)
+	}()
+
 	return nil
 }
 
