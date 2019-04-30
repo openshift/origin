@@ -12,11 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	genericapifilters "k8s.io/apiserver/pkg/endpoints/filters"
-	"k8s.io/apiserver/pkg/features"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	genericfilters "k8s.io/apiserver/pkg/server/filters"
-	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	kclientset "k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
@@ -47,7 +43,7 @@ func init() {
 
 // TODO we need to switch the oauth server to an external type, but that can be done after we get our externally facing flag values fixed
 // TODO remaining bits involve the session file, LDAP util code, validation, ...
-func NewOAuthServerConfig(oauthConfig osinv1.OAuthConfig, userClientConfig *rest.Config) (*OAuthServerConfig, error) {
+func NewOAuthServerConfig(oauthConfig osinv1.OAuthConfig, userClientConfig *rest.Config, genericConfig *genericapiserver.RecommendedConfig) (*OAuthServerConfig, error) {
 	// TODO: there is probably some better way to do this
 	decoder := codecs.UniversalDecoder(osinv1.GroupVersion)
 	for i, idp := range oauthConfig.IdentityProviders {
@@ -62,7 +58,11 @@ func NewOAuthServerConfig(oauthConfig osinv1.OAuthConfig, userClientConfig *rest
 		oauthConfig.IdentityProviders[i].Provider.Object = idpObject
 	}
 
-	genericConfig := genericapiserver.NewRecommendedConfig(codecs)
+	// this leaves the embedded OAuth server code path alone
+	if genericConfig == nil {
+		genericConfig = genericapiserver.NewRecommendedConfig(codecs)
+	}
+
 	genericConfig.LoopbackClientConfig = userClientConfig
 
 	userClient, err := userclient.NewForConfig(userClientConfig)
@@ -277,21 +277,26 @@ func (c completedOAuthConfig) New(delegationTarget genericapiserver.DelegationTa
 }
 
 func (c *OAuthServerConfig) buildHandlerChainForOAuth(startingHandler http.Handler, genericConfig *genericapiserver.Config) http.Handler {
+	// add OAuth handlers on top of the generic API server handlers
 	handler, err := c.WithOAuth(startingHandler)
 	if err != nil {
-		// the existing errors all cause the server to die anyway
+		// the existing errors all cause the OAuth server to die anyway
 		panic(err)
 	}
-	if utilfeature.DefaultFeatureGate.Enabled(features.AdvancedAuditing) {
-		handler = genericapifilters.WithAudit(handler, genericConfig.AuditBackend, genericConfig.AuditPolicyChecker, genericConfig.LongRunningFunc)
-	}
 
-	handler = genericfilters.WithMaxInFlightLimit(handler, genericConfig.MaxRequestsInFlight, genericConfig.MaxMutatingRequestsInFlight, genericConfig.LongRunningFunc)
-	handler = genericfilters.WithCORS(handler, genericConfig.CorsAllowedOriginList, nil, nil, nil, "true")
-	handler = genericfilters.WithTimeoutForNonLongRunningRequests(handler, genericConfig.LongRunningFunc, genericConfig.RequestTimeout)
-	handler = genericapifilters.WithRequestInfo(handler, genericapiserver.NewRequestInfoResolver(genericConfig))
+	// add back the Authorization header so that WithOAuth can use it even after WithAuthentication deletes it
+	// WithOAuth sees users' passwords and can mint tokens so this is not really an issue
+	handler = headers.WithRestoreAuthorizationHeader(handler)
+
+	// this is the normal kube handler chain
+	handler = genericapiserver.DefaultBuildHandlerChain(handler, genericConfig)
+
+	// store a copy of the Authorization header for later use
+	handler = headers.WithPreserveAuthorizationHeader(handler)
+
+	// protected endpoints should not be cached
 	handler = headers.WithStandardHeaders(handler)
-	handler = genericfilters.WithPanicRecovery(handler)
+
 	return handler
 }
 
