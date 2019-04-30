@@ -21,7 +21,18 @@ func AddAlwaysLocalDelegateForPrefix(prefix string) {
 	alwaysLocalDelegatePathPrefixes.Insert(prefix)
 }
 
+var overlappingGroupVersion = map[schema.GroupVersion]bool{}
+
+// AddOverlappingGroupVersion will stop the CRD registration controller from trying to manage an APIService.
+func AddOverlappingGroupVersion(groupVersion schema.GroupVersion) {
+	overlappingGroupVersion[groupVersion] = true
+}
+
 func APIServiceAlreadyExists(groupVersion schema.GroupVersion) bool {
+	if overlappingGroupVersion[groupVersion] {
+		return true
+	}
+
 	testPrefix := fmt.Sprintf("/apis/%s/%s/", groupVersion.Group, groupVersion.Version)
 	for _, prefix := range alwaysLocalDelegatePathPrefixes.List() {
 		if strings.HasPrefix(prefix, testPrefix) {
