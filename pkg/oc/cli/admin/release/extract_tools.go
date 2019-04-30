@@ -46,6 +46,8 @@ type extractTarget struct {
 	ArchiveFormat string
 	AsArchive     bool
 	AsZip         bool
+	Readme        string
+	LinkTo        []string
 
 	Mapping extract.Mapping
 }
@@ -54,6 +56,86 @@ type extractTarget struct {
 func (o *ExtractOptions) extractTools() error {
 	return o.extractCommand("")
 }
+
+var (
+	readmeInstallUnix = heredoc.Doc(`
+	# OpenShift Install
+
+	The OpenShift installer \u0060openshift-install\u0060 makes it easy to get a cluster
+	running on the public cloud or your local infrastructure.
+
+	To learn more about installing OpenShift, visit [docs.openshift.com](https://docs.openshift.com)
+	and select the version of OpenShift you are using.
+
+	## Installing the tools
+
+	After extracting this archive, you can move the \u0060openshift-install\u0060 binary
+	to a location on your PATH such as \u0060/usr/local/bin\u0060, or keep it in a temporary
+	directory and reference it via \u0060./openshift-install\u0060.
+
+	## License
+
+	OpenShift is licensed under the Apache Public License 2.0. The source code for this
+	program is [located on github](https://github.com/openshift/installer).
+	`)
+
+	readmeCLIUnix = heredoc.Doc(`
+	# OpenShift Clients
+
+	The OpenShift client \u0060oc\u0060 simplifies working with Kubernetes and OpenShift
+	clusters, offering a number of advantages over \u0060kubectl\u0060 such as easy login,
+	kube config file management, and access to developer tools. The \u0060kubectl\u0060
+	binary is included alongside for when strict Kubernetes compliance is necessary.
+
+	To learn more about OpenShift, visit [docs.openshift.com](https://docs.openshift.com)
+	and select the version of OpenShift you are using.
+
+	## Installing the tools
+
+	After extracting this archive, move the \u0060oc\u0060 and \u0060kubectl\u0060 binaries
+	to a location on your PATH such as \u0060/usr/local/bin\u0060. Then run:
+
+	    oc login [API_URL]
+
+	to start a session against an OpenShift cluster. After login, run \u0060oc\u0060 and
+	\u0060oc help\u0060 to learn more about how to get started with OpenShift.
+
+	## License
+
+	OpenShift is licensed under the Apache Public License 2.0. The source code for this
+	program is [located on github](https://github.com/openshift/origin).
+	`)
+
+	readmeCLIWindows = heredoc.Doc(`
+	# OpenShift Clients
+
+	The OpenShift client \u0060oc.exe\u0060 simplifies working with Kubernetes and OpenShift
+	clusters, offering a number of advantages over \u0060kubectl.exe\u0060 such as easy login,
+	kube config file management, and access to developer tools.
+
+	To learn more about OpenShift, visit [docs.openshift.com](https://docs.openshift.com)
+	and select the version of OpenShift you are using.
+
+	## Installing the tools
+
+	After extracting this archive, move the \u0060oc.exe\u0060 binary	to a location on your
+	PATH. Then run:
+
+	    oc login [API_URL]
+
+	to start a session against an OpenShift cluster. After login, run \u0060oc.exe\u0060 and
+	\u0060oc.exe help\u0060 to learn more about how to get started with OpenShift.
+
+	If you would like to use \u0060kubectl.exe\u0060 instead, copy the \u0060oc.exe\u0060 file
+	and rename it to \u0060kubectl.exe\u0060. The interface will follow the conventions of that
+	CLI.
+
+	## License
+
+	OpenShift is licensed under the Apache Public License 2.0. The source code for this
+	program is [located on github](https://github.com/openshift/origin).
+	`)
+)
 
 // extractTools extracts specific commands out of images referenced by the release image.
 // TODO: in the future the metadata this command contains might be loaded from the release
@@ -67,6 +149,8 @@ func (o *ExtractOptions) extractCommand(command string) error {
 			Command: "oc",
 			Mapping: extract.Mapping{Image: "cli-artifacts", From: "usr/share/openshift/mac/oc"},
 
+			LinkTo:        []string{"kubectl"},
+			Readme:        readmeCLIUnix,
 			ArchiveFormat: "openshift-client-mac-%s.tar.gz",
 		},
 		{
@@ -74,6 +158,8 @@ func (o *ExtractOptions) extractCommand(command string) error {
 			Command: "oc",
 			Mapping: extract.Mapping{Image: "cli", From: "usr/bin/oc"},
 
+			LinkTo:        []string{"kubectl"},
+			Readme:        readmeCLIUnix,
 			ArchiveFormat: "openshift-client-linux-%s.tar.gz",
 		},
 		{
@@ -81,6 +167,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 			Command: "oc",
 			Mapping: extract.Mapping{Image: "cli-artifacts", From: "usr/share/openshift/windows/oc.exe"},
 
+			Readme:        readmeCLIWindows,
 			ArchiveFormat: "openshift-client-windows-%s.zip",
 			AsZip:         true,
 		},
@@ -89,6 +176,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 			Command: "openshift-install",
 			Mapping: extract.Mapping{Image: "installer-artifacts", From: "usr/share/openshift/mac/openshift-install"},
 
+			Readme:             readmeInstallUnix,
 			InjectReleaseImage: true,
 			ArchiveFormat:      "openshift-install-mac-%s.tar.gz",
 		},
@@ -97,6 +185,7 @@ func (o *ExtractOptions) extractCommand(command string) error {
 			Command: "openshift-install",
 			Mapping: extract.Mapping{Image: "installer", From: "usr/bin/openshift-install"},
 
+			Readme:             readmeInstallUnix,
 			InjectReleaseImage: true,
 			ArchiveFormat:      "openshift-install-linux-%s.tar.gz",
 		},
@@ -280,11 +369,31 @@ func (o *ExtractOptions) extractCommand(command string) error {
 		var hash hash.Hash
 		closeFn := func() error { return nil }
 		if target.AsArchive {
+			text := strings.Replace(target.Readme, `\u0060`, "`", -1)
 			hash = hashFn()
 			w = io.MultiWriter(hash, w)
 			if target.AsZip {
 				klog.V(2).Infof("Writing %s as a ZIP archive %s", hdr.Name, layer.Mapping.To)
 				zw := zip.NewWriter(w)
+
+				if len(text) > 0 {
+					text = strings.Replace(text, "\n", "\r\n", -1)
+					zh := &zip.FileHeader{
+						Method:             zip.Deflate,
+						Name:               "README.md",
+						UncompressedSize64: uint64(len(text)),
+						Modified:           hdr.ModTime,
+					}
+					zh.SetMode(os.FileMode(0755))
+
+					fw, err := zw.CreateHeader(zh)
+					if err != nil {
+						return false, err
+					}
+					if _, err := fmt.Fprintf(fw, text); err != nil {
+						return false, err
+					}
+				}
 
 				zh := &zip.FileHeader{
 					Method:             zip.Deflate,
@@ -310,6 +419,21 @@ func (o *ExtractOptions) extractCommand(command string) error {
 				}
 				tw := tar.NewWriter(gw)
 
+				if len(text) > 0 {
+					if err := tw.WriteHeader(&tar.Header{
+						Name:     "README.md",
+						Mode:     int64(os.FileMode(0644).Perm()),
+						Size:     int64(len(text)),
+						Typeflag: tar.TypeReg,
+						ModTime:  hdr.ModTime,
+					}); err != nil {
+						return false, err
+					}
+					if _, err := fmt.Fprintf(tw, text); err != nil {
+						return false, err
+					}
+				}
+
 				if err := tw.WriteHeader(&tar.Header{
 					Name:     hdr.Name,
 					Mode:     int64(os.FileMode(0755).Perm()),
@@ -322,6 +446,18 @@ func (o *ExtractOptions) extractCommand(command string) error {
 
 				w = tw
 				closeFn = func() error {
+					for _, link := range target.LinkTo {
+						if err := tw.WriteHeader(&tar.Header{
+							Name:     link,
+							Mode:     int64(os.FileMode(0755).Perm()),
+							Size:     0,
+							Typeflag: tar.TypeLink,
+							ModTime:  hdr.ModTime,
+							Linkname: hdr.Name,
+						}); err != nil {
+							return err
+						}
+					}
 					if err := tw.Close(); err != nil {
 						return err
 					}

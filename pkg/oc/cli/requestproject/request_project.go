@@ -57,9 +57,12 @@ const (
 	requestProjectNewAppOutput = `
 You can add applications to this project with the 'new-app' command. For example, try:
 
-    %[1]s new-app centos/ruby-25-centos7~https://github.com/sclorg/ruby-ex.git
+    %[1]s new-app django-psql-example
 
-to build a new example application in Ruby.
+to build a new example application in Python. Or use kubectl to deploy a simple Kubernetes application:
+
+    kubectl create deployment hello-node --image=gcr.io/hello-minikube-zero-install/hello-node
+
 `
 	requestProjectSwitchProjectOutput = `Project %[2]q created on server %[3]q.
 
