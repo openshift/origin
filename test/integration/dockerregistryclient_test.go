@@ -142,7 +142,7 @@ func TestRegistryClientDockerHubV2(t *testing.T) {
 
 	var image *dockerregistry.Image
 	err = retryWhenUnreachable(t, func() error {
-		image, err = conn.ImageByTag("kubernetes", "guestbook", "latest")
+		image, err = conn.ImageByTag("openshift", "hello-openshift", "latest")
 		return err
 	})
 	if err != nil {
@@ -163,7 +163,7 @@ func TestRegistryClientDockerHubV1(t *testing.T) {
 
 	var image *dockerregistry.Image
 	err = retryWhenUnreachable(t, func() error {
-		image, err = conn.ImageByTag("kubernetes", "guestbook", "latest")
+		image, err = conn.ImageByTag("openshift", "hello-openshift", "latest")
 		return err
 	})
 	if err != nil {
