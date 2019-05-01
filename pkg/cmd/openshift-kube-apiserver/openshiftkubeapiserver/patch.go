@@ -4,6 +4,11 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/kube-aggregator/pkg/apiserver"
+
+	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/admission"
 	admissionmetrics "k8s.io/apiserver/pkg/admission/metrics"
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -152,6 +157,26 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 
 		patchContext.informerStartFuncs = append(patchContext.informerStartFuncs, kubeAPIServerInformers.Start)
 		patchContext.initialized = true
+
+		patchContext.postStartHooks["toggle-scc"] = func(context genericapiserver.PostStartHookContext) error {
+			crdClient, err := v1beta1.NewForConfig(genericConfig.LoopbackClientConfig)
+			go func() {
+				_ = wait.PollUntil(1*time.Second, func() (bool, error) {
+					if err != nil {
+						return false, nil
+					}
+					_, err = crdClient.CustomResourceDefinitions().Get("securitycontextconstraints.security.openshift.io", metav1.GetOptions{})
+					if err == nil {
+						fmt.Printf("Swapping to CRD storage for SCC\n")
+						apiserver.AddAlwaysLocalDelegateForPrefix("/apis/security.openshift.io/v1/securitycontextconstraints")
+						return true, nil
+					}
+					return false, nil
+				}, context.StopCh)
+			}()
+
+			return nil
+		}
 
 		return openshiftNonAPIServer.GenericAPIServer, nil
 	}, patchContext
