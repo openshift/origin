@@ -11,7 +11,7 @@ import (
 // TODO this is taking a very large config for a small piece of it.  The information must be broken up at some point so that
 // we can run this in a pod.  This is an indication of leaky abstraction because it spent too much time in openshift start
 func NewOAuthServerConfigFromMasterConfig(genericConfig *genericapiserver.Config, oauthConfig *osinv1.OAuthConfig) (*oauthserver.OAuthServerConfig, error) {
-	oauthServerConfig, err := oauthserver.NewOAuthServerConfig(*oauthConfig, genericConfig.LoopbackClientConfig)
+	oauthServerConfig, err := oauthserver.NewOAuthServerConfig(*oauthConfig, genericConfig.LoopbackClientConfig, nil)
 	if err != nil {
 		return nil, err
 	}
