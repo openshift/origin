@@ -104,6 +104,7 @@ func NewInfo(f kcmdutil.Factory, parentName string, streams genericclioptions.IO
 	flags.StringVarP(&o.Output, "output", "o", o.Output, "Display the release info in an alternative format: json")
 	flags.StringVar(&o.ChangelogDir, "changelog", o.ChangelogDir, "Generate changelog output from the git directories extracted to this path.")
 	flags.StringVar(&o.BugsDir, "bugs", o.BugsDir, "Generate bug listings from the changelogs in the git repositories extracted to this path.")
+	flags.BoolVar(&o.IncludeImages, "include-images", o.IncludeImages, "When displaying JSON output of a release output the images the release references.")
 	return cmd
 }
 
@@ -113,13 +114,14 @@ type InfoOptions struct {
 	Images []string
 	From   string
 
-	Output       string
-	ImageFor     string
-	ShowContents bool
-	ShowCommit   bool
-	ShowPullSpec bool
-	ShowSize     bool
-	Verify       bool
+	Output        string
+	ImageFor      string
+	IncludeImages bool
+	ShowContents  bool
+	ShowCommit    bool
+	ShowPullSpec  bool
+	ShowSize      bool
+	Verify        bool
 
 	ChangelogDir string
 	BugsDir      string
@@ -229,7 +231,7 @@ func (o *InfoOptions) Validate() error {
 }
 
 func (o *InfoOptions) Run() error {
-	fetchImages := o.ShowSize || o.Verify
+	fetchImages := o.ShowSize || o.Verify || o.IncludeImages
 
 	if len(o.From) > 0 && !o.Verify {
 		if o.ShowContents {
@@ -264,7 +266,7 @@ func (o *InfoOptions) Run() error {
 		if len(o.ChangelogDir) > 0 {
 			return describeChangelog(o.Out, o.ErrOut, diff, o.ChangelogDir)
 		}
-		return describeReleaseDiff(o.Out, diff, o.ShowCommit)
+		return describeReleaseDiff(o.Out, diff, o.ShowCommit, o.Output)
 	}
 
 	var exitErr error
@@ -396,22 +398,25 @@ func calculateDiff(from, to *ReleaseInfo) (*ReleaseDiff, error) {
 }
 
 type ReleaseDiff struct {
-	From, To *ReleaseInfo
+	From *ReleaseInfo `json:"from"`
+	To   *ReleaseInfo `json:"to"`
 
-	ChangedImages    map[string]*ImageReferenceDiff
-	ChangedManifests map[string]*ReleaseManifestDiff
+	ChangedImages    map[string]*ImageReferenceDiff  `json:"changedImages"`
+	ChangedManifests map[string]*ReleaseManifestDiff `json:"changedManifests"`
 }
 
 type ImageReferenceDiff struct {
-	Name string
+	Name string `json:"name"`
 
-	From, To *imageapi.TagReference
+	From *imageapi.TagReference `json:"from"`
+	To   *imageapi.TagReference `json:"to"`
 }
 
 type ReleaseManifestDiff struct {
-	Filename string
+	Filename string `json:"filename"`
 
-	From, To []byte
+	From []byte `json:"from"`
+	To   []byte `json:"to"`
 }
 
 type ReleaseInfo struct {
@@ -672,7 +677,20 @@ func stringArrContains(arr []string, s string) bool {
 	return false
 }
 
-func describeReleaseDiff(out io.Writer, diff *ReleaseDiff, showCommit bool) error {
+func describeReleaseDiff(out io.Writer, diff *ReleaseDiff, showCommit bool, outputMode string) error {
+	switch outputMode {
+	case "json":
+		data, err := json.MarshalIndent(diff, "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Fprintln(out, string(data))
+		return nil
+	case "":
+		// print human readable output
+	default:
+		return fmt.Errorf("unrecognized output mode: %s", outputMode)
+	}
 	if diff.To.Digest == diff.From.Digest {
 		fmt.Fprintf(out, "Releases are identical\n")
 		return nil
