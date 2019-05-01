@@ -8,8 +8,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	"k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -101,7 +101,12 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
-			err := cli.Run("create").Args("-f", templatefixture).Execute()
+			// Tests that push to an ImageStreamTag need to wait for the internal registry hostname
+			// HACK - wait for OpenShift namespace imagestreams to ensure apiserver has right hostname
+			err := exutil.WaitForOpenShiftNamespaceImageStreams(cli)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			err = cli.Run("create").Args("-f", templatefixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			template, err = cli.TemplateClient().TemplateV1().Templates(cli.Namespace()).Get("simple-example", metav1.GetOptions{})
