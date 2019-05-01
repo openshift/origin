@@ -618,25 +618,6 @@ func (c *completedConfig) bootstrapSCC(context genericapiserver.PostStartHookCon
 		return err
 	}
 
-	// until we only use the CRD, this has to be done twice.  Once for CRD creation, once when aggregated APIs take over.  Remove after we
-	// switch
-	go func() {
-		wait.PollUntil(5*time.Second, func() (bool, error) {
-			for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers) {
-				_, err := securityClient.SecurityContextConstraints().Create(scc)
-				if kapierror.IsAlreadyExists(err) {
-					continue
-				}
-				if err != nil {
-					utilruntime.HandleError(fmt.Errorf("unable to create default security context constraint %s.  Got error: %v", scc.Name, err))
-					continue
-				}
-				klog.Infof("Created default security context constraint %s", scc.Name)
-			}
-			return false, nil
-		}, context.StopCh)
-	}()
-
 	return nil
 }
 
