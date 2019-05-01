@@ -220,6 +220,11 @@ function localup::start_kubeapiserver() {
     for filename in ${OS_ROOT}/hack/local-up-master/kube-apiserver-manifests/*.yaml; do
        oc --config=${LOCALUP_CONFIG}/kube-apiserver/admin.kubeconfig apply -f ${filename}
     done
+
+    NON_LOOPBACK_IPV4=$(ip -o -4 addr show up primary scope global | awk '{print $4}' | cut -f1 -d'/' | head -n1)
+    for filename in ${OS_ROOT}/hack/local-up-master/openshift-apiserver-manifests/*.yaml; do
+        sed "s/NON_LOOPBACK_HOST/${NON_LOOPBACK_IPV4}/g" ${filename} | oc --config=${LOCALUP_CONFIG}/kube-apiserver/admin.kubeconfig apply -f -
+    done
 }
 
 function localup::start_kubecontrollermanager() {
@@ -264,10 +269,6 @@ function localup::start_openshiftapiserver() {
     kube::util::wait_for_url "https://${API_HOST_IP}:8444/healthz" "openshift-apiserver: " 1 ${WAIT_FOR_URL_API_SERVER} ${MAX_TIME_FOR_URL_API_SERVER} \
         || { os::log::error "check kube-apiserver logs: ${OPENSHIFT_APISERVER_LOG}" ; exit 1 ; }
 
-    NON_LOOPBACK_IPV4=$(ip -o -4 addr show up primary scope global | awk '{print $4}' | cut -f1 -d'/' | head -n1)
-    for filename in ${OS_ROOT}/hack/local-up-master/openshift-apiserver-manifests/*.yaml; do
-        sed "s/NON_LOOPBACK_HOST/${NON_LOOPBACK_IPV4}/g" ${filename} | oc --config=${LOCALUP_CONFIG}/openshift-apiserver/openshift-apiserver.kubeconfig apply -f -
-    done
 }
 
 function localup::start_openshiftcontrollermanager() {
