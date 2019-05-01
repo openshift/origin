@@ -8,9 +8,8 @@ import (
 	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	ktypedclient "k8s.io/client-go/kubernetes/typed/core/v1"
+	v1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 	credentialprovidersecrets "k8s.io/kubernetes/pkg/credentialprovider/secrets"
 
@@ -266,14 +265,14 @@ func FindDockerSecretAsReference(secrets []corev1.Secret, image string) *corev1.
 
 // FetchServiceAccountSecrets retrieves the Secrets used for pushing and pulling
 // images from private Docker registries.
-func FetchServiceAccountSecrets(client ktypedclient.CoreV1Interface, namespace, serviceAccount string) ([]corev1.Secret, error) {
+func FetchServiceAccountSecrets(secretStore v1lister.SecretLister, serviceAccountStore v1lister.ServiceAccountLister, namespace, serviceAccount string) ([]corev1.Secret, error) {
 	var result []corev1.Secret
-	sa, err := client.ServiceAccounts(namespace).Get(serviceAccount, metav1.GetOptions{})
+	sa, err := serviceAccountStore.ServiceAccounts(namespace).Get(serviceAccount)
 	if err != nil {
 		return result, fmt.Errorf("Error getting push/pull secrets for service account %s/%s: %v", namespace, serviceAccount, err)
 	}
 	for _, ref := range sa.Secrets {
-		secret, err := client.Secrets(namespace).Get(ref.Name, metav1.GetOptions{})
+		secret, err := secretStore.Secrets(namespace).Get(ref.Name)
 		if err != nil {
 			continue
 		}

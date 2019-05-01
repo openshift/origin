@@ -159,6 +159,7 @@ type BuildController struct {
 
 	buildStore                    buildv1lister.BuildLister
 	secretStore                   v1lister.SecretLister
+	serviceAccountStore           v1lister.ServiceAccountLister
 	podStore                      v1lister.PodLister
 	imageStreamStore              imagev1lister.ImageStreamLister
 	openShiftConfigConfigMapStore v1lister.ConfigMapLister
@@ -171,6 +172,7 @@ type BuildController struct {
 	imageConfigStoreSynced           cache.InformerSynced
 	podStoreSynced                   cache.InformerSynced
 	secretStoreSynced                cache.InformerSynced
+	serviceAccountStoreSynced        cache.InformerSynced
 	imageStreamStoreSynced           cache.InformerSynced
 	configMapStoreSynced             cache.InformerSynced
 
@@ -196,6 +198,7 @@ type BuildControllerParams struct {
 	ImageStreamInformer              imagev1informer.ImageStreamInformer
 	PodInformer                      kubeinformers.PodInformer
 	SecretInformer                   kubeinformers.SecretInformer
+	ServiceAccountInformer           kubeinformers.ServiceAccountInformer
 	OpenshiftConfigConfigMapInformer kubeinformers.ConfigMapInformer
 	KubeClient                       kubernetes.Interface
 	BuildClient                      buildv1client.Interface
@@ -223,6 +226,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 		buildControllerConfigLister:   params.BuildControllerConfigInformer.Lister(),
 		imageConfigLister:             params.ImageConfigInformer.Lister(),
 		secretStore:                   params.SecretInformer.Lister(),
+		serviceAccountStore:           params.ServiceAccountInformer.Lister(),
 		podClient:                     params.KubeClient.CoreV1(),
 		configMapClient:               params.KubeClient.CoreV1(),
 		openShiftConfigConfigMapStore: params.OpenshiftConfigConfigMapInformer.Lister(),
@@ -282,6 +286,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 	c.buildStoreSynced = c.buildInformer.HasSynced
 	c.podStoreSynced = c.podInformer.HasSynced
 	c.secretStoreSynced = params.SecretInformer.Informer().HasSynced
+	c.serviceAccountStoreSynced = params.ServiceAccountInformer.Informer().HasSynced
 	c.imageStreamStoreSynced = params.ImageStreamInformer.Informer().HasSynced
 	c.buildControllerConfigStoreSynced = params.BuildControllerConfigInformer.Informer().HasSynced
 	c.imageConfigStoreSynced = params.ImageConfigInformer.Informer().HasSynced
@@ -302,6 +307,7 @@ func (bc *BuildController) Run(workers int, stopCh <-chan struct{}) {
 		bc.buildStoreSynced,
 		bc.podStoreSynced,
 		bc.secretStoreSynced,
+		bc.serviceAccountStoreSynced,
 		bc.imageStreamStoreSynced,
 		bc.configMapStoreSynced) {
 		utilruntime.HandleError(fmt.Errorf("timed out waiting for caches to sync"))
@@ -614,7 +620,7 @@ func (bc *BuildController) resolveImageSecretAsReference(build *buildv1.Build, i
 	if len(serviceAccount) == 0 {
 		serviceAccount = buildutil.BuilderServiceAccountName
 	}
-	builderSecrets, err := buildutil.FetchServiceAccountSecrets(bc.kubeClient.CoreV1(), build.Namespace, serviceAccount)
+	builderSecrets, err := buildutil.FetchServiceAccountSecrets(bc.secretStore, bc.serviceAccountStore, build.Namespace, serviceAccount)
 	if err != nil {
 		return nil, fmt.Errorf("Error getting push/pull secrets for service account %s/%s: %v", build.Namespace, serviceAccount, err)
 	}
