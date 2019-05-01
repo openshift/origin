@@ -580,42 +580,48 @@ func (c *completedConfig) bootstrapSCC(context genericapiserver.PostStartHookCon
 	ns := bootstrappolicy.DefaultOpenShiftInfraNamespace
 	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess(ns)
 
-	// ClusterResourceQuota is served using CRD resource any status update must use JSON
+	// SCC is served using CRD resource any status update must use JSON
 	jsonLoopbackClientConfig := rest.CopyConfig(c.ExtraConfig.KubeAPIServerClientConfig)
 	jsonLoopbackClientConfig.ContentConfig.AcceptContentTypes = "application/json"
 	jsonLoopbackClientConfig.ContentConfig.ContentType = "application/json"
-
-	var securityClient securityv1client.SecurityV1Interface
-	err := wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
-		var err error
-		securityClient, err = securityv1client.NewForConfig(jsonLoopbackClientConfig)
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("unable to initialize client: %v", err))
-			return false, nil
-		}
-		return true, nil
-	})
+	securityClient, err := securityv1client.NewForConfig(jsonLoopbackClientConfig)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("error getting client: %v", err))
 		return err
 	}
 
-	for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers) {
-		_, err := securityClient.SecurityContextConstraints().Create(scc)
-		if kapierror.IsAlreadyExists(err) {
+	// all SCC must exist before we report success
+	err = wait.PollUntil(1*time.Second, func() (bool, error) {
+		anySCCMissing := false
+		for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers) {
+			_, err := securityClient.SecurityContextConstraints().Create(scc)
+			if err == nil {
+				klog.Infof("Created default security context constraint %s", scc.Name)
+				continue
+			}
+			if kapierror.IsAlreadyExists(err) {
+				klog.V(4).Infof("default security context constraint %s, already exists", scc.Name)
+				continue
+			}
+			anySCCMissing = true
+			utilruntime.HandleError(fmt.Errorf("unable to create default security context constraint %s; %v", scc.Name, err))
 			continue
 		}
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("unable to create default security context constraint %s.  Got error: %v", scc.Name, err))
-			continue
+		if anySCCMissing {
+			return false, nil
 		}
-		klog.Infof("Created default security context constraint %s", scc.Name)
+
+		return true, nil
+	}, context.StopCh)
+	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("error creating SCC: %v", err))
+		return err
 	}
 
 	// until we only use the CRD, this has to be done twice.  Once for CRD creation, once when aggregated APIs take over.  Remove after we
 	// switch
 	go func() {
-		wait.PollUntil(10*time.Second, func() (bool, error) {
+		wait.PollUntil(5*time.Second, func() (bool, error) {
 			for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers) {
 				_, err := securityClient.SecurityContextConstraints().Create(scc)
 				if kapierror.IsAlreadyExists(err) {
