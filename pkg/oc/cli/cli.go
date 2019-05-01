@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/MakeNowJust/heredoc"
+
 	"k8s.io/kubernetes/pkg/kubectl/cmd/diff"
 
 	"github.com/spf13/cobra"
@@ -66,34 +68,38 @@ import (
 const productName = `OpenShift`
 
 var (
-	cliLong = ktemplates.LongDesc(`
+	cliLong = heredoc.Doc(`
     ` + productName + ` Client
 
     This client helps you develop, build, deploy, and run your applications on any
-    OpenShift or Kubernetes compatible platform. It also includes the administrative
+    OpenShift or Kubernetes cluster. It also includes the administrative
     commands for managing a cluster under the 'adm' subcommand.`)
 
-	cliExplain = ktemplates.LongDesc(`
-    To create a new application, login to your server and then run new-app:
+	cliExplain = heredoc.Doc(`
+    To familiarize yourself with OpenShift, login to your cluster and try creating a sample application:
 
-        %[1]s login https://mycluster.mycompany.com
-        %[1]s new-app centos/ruby-25-centos7~https://github.com/sclorg/ruby-ex.git
-        %[1]s logs -f bc/ruby-ex
+        %[1]s login mycluster.mycompany.com
+        %[1]s new-project my-example
+        %[1]s new-app django-psql-example
+        %[1]s logs -f bc/django-psql-example
 
-    This will create an application based on the Docker image 'centos/ruby-25-centos7' that builds the source code from GitHub. A build will start automatically, push the resulting image to the registry, and a deployment will roll that change out in your project.
-
-    Once your application is deployed, use the status, describe, and get commands to see more about the created components:
+    To see what has been created, run:
 
         %[1]s status
-        %[1]s describe deploymentconfig ruby-ex
-        %[1]s get pods
 
-    To make this application visible outside of the cluster, use the expose command on the service we just created to create a 'route' (which will connect your application over the HTTP port to a public domain name).
+    and get a command shell inside one of the created containers with:
 
-        %[1]s expose svc/ruby-ex
-        %[1]s status
+        %[1]s rsh dc/postgresql
 
-    You should now see the URL the application can be reached at.
+    To see the list of available toolchains for building applications, run:
+
+        %[1]s new-app -L
+
+    Since OpenShift runs on top of Kubernetes, your favorite kubectl commands are also present in oc,
+    allowing you to quickly switch between development and debugging. You can also run kubectl directly
+    against any OpenShift cluster using the kubeconfig file created by 'oc login'.
+
+    For more on OpenShift, see the documentation at https://docs.openshift.com.
 
     To see the full list of commands supported, run '%[1]s --help'.`)
 )
