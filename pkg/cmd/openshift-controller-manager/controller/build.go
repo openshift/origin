@@ -45,20 +45,22 @@ func RunBuildController(ctx *ControllerContext) (bool, error) {
 	serviceAccountInformer := ctx.KubernetesInformers.Core().V1().ServiceAccounts()
 	controllerConfigInformer := ctx.ConfigInformers.Config().V1().Builds()
 	imageConfigInformer := ctx.ConfigInformers.Config().V1().Images()
-	configMapInformer := ctx.OpenshiftConfigKubernetesInformers.Core().V1().ConfigMaps()
+	openshiftConfigConfigMapInformer := ctx.OpenshiftConfigKubernetesInformers.Core().V1().ConfigMaps()
+	controllerManagerConfigMapInformer := ctx.ControllerManagerKubeInformers.Core().V1().ConfigMaps()
 
 	buildControllerParams := &buildcontroller.BuildControllerParams{
-		BuildInformer:                    buildInformer,
-		BuildConfigInformer:              buildConfigInformer,
-		BuildControllerConfigInformer:    controllerConfigInformer,
-		ImageConfigInformer:              imageConfigInformer,
-		ImageStreamInformer:              imageStreamInformer,
-		PodInformer:                      podInformer,
-		SecretInformer:                   secretInformer,
-		ServiceAccountInformer:           serviceAccountInformer,
-		OpenshiftConfigConfigMapInformer: configMapInformer,
-		KubeClient:                       externalKubeClient,
-		BuildClient:                      buildClient,
+		BuildInformer:                      buildInformer,
+		BuildConfigInformer:                buildConfigInformer,
+		BuildControllerConfigInformer:      controllerConfigInformer,
+		ImageConfigInformer:                imageConfigInformer,
+		ImageStreamInformer:                imageStreamInformer,
+		PodInformer:                        podInformer,
+		SecretInformer:                     secretInformer,
+		ServiceAccountInformer:             serviceAccountInformer,
+		OpenshiftConfigConfigMapInformer:   openshiftConfigConfigMapInformer,
+		ControllerManagerConfigMapInformer: controllerManagerConfigMapInformer,
+		KubeClient:                         externalKubeClient,
+		BuildClient:                        buildClient,
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
 			Image: imageTemplate.ExpandOrDie("docker-builder"),
 		},
