@@ -1201,7 +1201,7 @@ func TestCreateBuildCAConfigMap(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			bc := newFakeBuildController(nil, nil, nil, nil, nil)
-			bc.additionalTrustedCAData = tc.addlCAData
+			bc.setAdditionalTrustedCas(tc.addlCAData)
 			defer bc.stop()
 			build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{}))
 			pod := mockBuildPod(build)
@@ -1456,48 +1456,53 @@ func TestHandleControllerConfig(t *testing.T) {
 				t.Fatalf("error handling controller config change: %v", msgs)
 			}
 
+			defaults := bc.defaults()
 			if tc.build == nil {
-				if bc.buildDefaults.DefaultProxy != nil {
-					t.Errorf("expected no default proxy, got %v", bc.buildDefaults.DefaultProxy)
+				if defaults.DefaultProxy != nil {
+					t.Errorf("expected no default proxy, got %v", defaults.DefaultProxy)
 				}
 			} else {
-				if !reflect.DeepEqual(tc.build.Spec.BuildDefaults.DefaultProxy, bc.buildDefaults.DefaultProxy) {
+				if !reflect.DeepEqual(tc.build.Spec.BuildDefaults.DefaultProxy, defaults.DefaultProxy) {
 					t.Errorf("expected default proxy %v, got %v",
 						tc.build.Spec.BuildDefaults.DefaultProxy,
-						bc.buildDefaults.DefaultProxy)
+						defaults.DefaultProxy)
 				}
 			}
 
 			// Test additional certificate authorities
+			certAuthorities := bc.additionalTrustedCAs()
 			if tc.image == nil {
-				if len(bc.additionalTrustedCAData) > 0 {
-					t.Errorf("expected empty additional CAs data, got %v", bc.additionalTrustedCAData)
+				if len(certAuthorities) > 0 {
+					t.Errorf("expected empty additional CAs data, got %v", certAuthorities)
 				}
-				if len(bc.registryConfData) > 0 {
-					t.Errorf("expected empty registries config, got %v", bc.registryConfData)
+				registryConf := bc.registryConfTOML()
+				if len(registryConf) > 0 {
+					t.Errorf("expected empty registries config, got %v", registryConf)
 				}
-				if len(bc.signaturePolicyData) > 0 {
-					t.Errorf("expected empty signature policy config, got %v", bc.signaturePolicyData)
+				signatureJSON := bc.signaturePolicyJSON()
+				if len(signatureJSON) > 0 {
+					t.Errorf("expected empty signature policy config, got %v", signatureJSON)
 				}
 				return
 			}
 
 			if tc.casMap == nil {
-				if len(bc.additionalTrustedCAData) > 0 {
-					t.Errorf("expected empty additional CAs data, got %v", bc.additionalTrustedCAData)
+				if len(certAuthorities) > 0 {
+					t.Errorf("expected empty additional CAs data, got %v", certAuthorities)
 				}
-			} else if tc.image != nil && !reflect.DeepEqual(tc.casMap.Data, bc.additionalTrustedCAData) {
-				t.Errorf("expected ca data:\n  %v\ngot:\n  %v", tc.casMap.Data, bc.additionalTrustedCAData)
+			} else if tc.image != nil && !reflect.DeepEqual(tc.casMap.Data, certAuthorities) {
+				t.Errorf("expected ca data:\n  %v\ngot:\n  %v", tc.casMap.Data, certAuthorities)
 			}
 
 			buildRegistriesConfig := tc.image.Spec.RegistrySources
 
+			registryConfTOML := bc.registryConfTOML()
 			if isRegistryConfigEmpty(buildRegistriesConfig) {
-				if len(bc.registryConfData) > 0 {
-					t.Errorf("expected empty registries config, got %s", bc.registryConfData)
+				if len(registryConfTOML) > 0 {
+					t.Errorf("expected empty registries config, got %s", registryConfTOML)
 				}
 			}
-			registriesConfig, err := decodeRegistries(bc.registryConfData)
+			registriesConfig, err := decodeRegistries(registryConfTOML)
 			if err != nil {
 				t.Errorf("unexpected error decoding registries config: %v", err)
 			}
@@ -1521,20 +1526,21 @@ func TestHandleControllerConfig(t *testing.T) {
 					registriesConfig.Registries.Search.Registries)
 			}
 
+			signatureJSON := bc.signaturePolicyJSON()
 			if isSignaturePolicyConfigEmpty(buildRegistriesConfig) {
-				if len(bc.signaturePolicyData) > 0 {
-					t.Errorf("expected empty signature policy config, got %s", bc.signaturePolicyData)
+				if len(signatureJSON) > 0 {
+					t.Errorf("expected empty signature policy config, got %s", signatureJSON)
 				}
 				return
 			}
 			if len(buildRegistriesConfig.AllowedRegistries) > 0 && len(buildRegistriesConfig.BlockedRegistries) > 0 {
 				// Condition is not allowed - no policy should be set
-				if len(bc.signaturePolicyData) > 0 {
-					t.Errorf("signature policy should be empty if both allowed and blocked registries are set, got %v", bc.signaturePolicyData)
+				if len(signatureJSON) > 0 {
+					t.Errorf("signature policy should be empty if both allowed and blocked registries are set, got %v", signatureJSON)
 				}
 				return
 			}
-			policy, err := decodePolicyConfig(bc.signaturePolicyData)
+			policy, err := decodePolicyConfig(signatureJSON)
 			if err != nil {
 				t.Fatalf("unexpected error decoding signature policy config: %v", err)
 			}
@@ -1642,7 +1648,7 @@ func (e *errorConfigMapLister) ConfigMaps(namespace string) v1lister.ConfigMapNa
 
 func TestCreateBuildRegistryConfConfigMap(t *testing.T) {
 	bc := newFakeBuildController(nil, nil, nil, nil, nil)
-	bc.registryConfData = dummyRegistryConf
+	bc.setRegistryConfTOML(dummyRegistryConf)
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{}))
 	pod := mockBuildPod(build)

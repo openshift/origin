@@ -186,6 +186,7 @@ type BuildController struct {
 	registryConfData        string
 	signaturePolicyData     string
 	additionalTrustedCAData map[string]string
+	configLock              sync.Mutex
 }
 
 // BuildControllerParams is the set of parameters needed to
@@ -293,6 +294,70 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 	c.configMapStoreSynced = params.OpenshiftConfigConfigMapInformer.Informer().HasSynced
 
 	return c
+}
+
+// additionalTrustedCAs returns a copy of the additional trusted certificate authorities
+// to be used by the build pod
+func (bc *BuildController) additionalTrustedCAs() map[string]string {
+	bc.configLock.Lock()
+	defer bc.configLock.Unlock()
+	caData := make(map[string]string)
+	if bc.additionalTrustedCAData == nil {
+		return caData
+	}
+	for k, v := range bc.additionalTrustedCAData {
+		caData[k] = v
+	}
+	return caData
+}
+
+func (bc *BuildController) setAdditionalTrustedCas(value map[string]string) {
+	bc.configLock.Lock()
+	defer bc.configLock.Unlock()
+	bc.additionalTrustedCAData = value
+}
+
+// registryConfTOML returns the contents of the registries.conf TOML file used by the build pod
+func (bc *BuildController) registryConfTOML() string {
+	bc.configLock.Lock()
+	defer bc.configLock.Unlock()
+	return bc.registryConfData
+}
+
+func (bc *BuildController) setRegistryConfTOML(toml string) {
+	bc.configLock.Lock()
+	defer bc.configLock.Unlock()
+	bc.registryConfData = toml
+}
+
+// signaturePolicyJSON returns the contents of the policy.json file used by the build pod
+func (bc *BuildController) signaturePolicyJSON() string {
+	bc.configLock.Lock()
+	defer bc.configLock.Unlock()
+	return bc.signaturePolicyData
+}
+
+func (bc *BuildController) setSignaturePolicyJSON(json string) {
+	bc.configLock.Lock()
+	defer bc.configLock.Unlock()
+	bc.signaturePolicyData = json
+}
+
+// defaults returns a copy of the buildDefaults to be applied to a build pod.
+func (bc *BuildController) defaults() builddefaults.BuildDefaults {
+	bc.configLock.Lock()
+	defer bc.configLock.Unlock()
+	copy := builddefaults.BuildDefaults{
+		Config:       bc.buildDefaults.Config.DeepCopy(),
+		DefaultProxy: bc.buildDefaults.DefaultProxy.DeepCopy(),
+	}
+	return copy
+}
+
+func (bc *BuildController) setBuildDefaultProxy(spec *configv1.ProxySpec) {
+	bc.configLock.Lock()
+	defer bc.configLock.Unlock()
+	bc.buildDefaults.DefaultProxy = spec
 }
 
 // Run begins watching and syncing.
@@ -572,7 +637,7 @@ func (bc *BuildController) handleNewBuild(build *buildv1.Build, pod *corev1.Pod)
 }
 
 // createPodSpec creates a pod spec for the given build, with all references already resolved.
-func (bc *BuildController) createPodSpec(build *buildv1.Build, includeAdditionalCA bool) (*corev1.Pod, error) {
+func (bc *BuildController) createPodSpec(build *buildv1.Build) (*corev1.Pod, error) {
 	if build.Spec.Output.To != nil {
 		build.Status.OutputDockerImageReference = build.Spec.Output.To.Name
 	}
@@ -585,14 +650,14 @@ func (bc *BuildController) createPodSpec(build *buildv1.Build, includeAdditional
 	build.Status.Message = ""
 
 	// Invoke the strategy to create a build pod.
-	podSpec, err := bc.createStrategy.CreateBuildPod(build, bc.additionalTrustedCAData, bc.internalRegistryHostname)
+	podSpec, err := bc.createStrategy.CreateBuildPod(build, bc.additionalTrustedCAs(), bc.internalRegistryHostname)
 	if err != nil {
 		if strategy.IsFatal(err) {
 			return nil, &strategy.FatalError{Reason: fmt.Sprintf("failed to create a build pod spec for build %s/%s: %v", build.Namespace, build.Name, err)}
 		}
 		return nil, fmt.Errorf("failed to create a build pod spec for build %s/%s: %v", build.Namespace, build.Name, err)
 	}
-	if err := bc.buildDefaults.ApplyDefaults(podSpec); err != nil {
+	if err := bc.defaults().ApplyDefaults(podSpec); err != nil {
 		return nil, fmt.Errorf("failed to apply build defaults for build %s/%s: %v", build.Namespace, build.Name, err)
 	}
 	if err := bc.buildOverrides.ApplyOverrides(podSpec); err != nil {
@@ -977,13 +1042,8 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 		buildutil.UpdateCustomImageEnv(build.Spec.Strategy.CustomStrategy, build.Spec.Strategy.CustomStrategy.From.Name)
 	}
 
-	// Indicate if the pod spec should mount the additional trusted CAs
-	includeAdditionalCA := false
-	if len(bc.additionalTrustedCAData) > 0 {
-		includeAdditionalCA = true
-	}
 	// Create the build pod spec
-	buildPod, err := bc.createPodSpec(build, includeAdditionalCA)
+	buildPod, err := bc.createPodSpec(build)
 	if err != nil {
 		switch err.(type) {
 		case common.ErrEnvVarResolver:
@@ -1571,7 +1631,7 @@ func (bc *BuildController) createBuildCAConfigMapSpec(build *buildv1.Build, buil
 				"service.alpha.openshift.io/inject-cabundle": "true",
 			},
 		},
-		Data: bc.additionalTrustedCAData,
+		Data: bc.additionalTrustedCAs(),
 	}
 
 	if cm.Data == nil {
@@ -1618,11 +1678,13 @@ func (bc *BuildController) createBuildSystemConfigMapSpec(build *buildv1.Build, 
 		},
 		Data: make(map[string]string),
 	}
-	if len(bc.registryConfData) > 0 {
-		cm.Data[buildutil.RegistryConfKey] = bc.registryConfData
+	registryConf := bc.registryConfTOML()
+	if len(registryConf) > 0 {
+		cm.Data[buildutil.RegistryConfKey] = registryConf
 	}
-	if len(bc.signaturePolicyData) > 0 {
-		cm.Data[buildutil.SignaturePolicyKey] = bc.signaturePolicyData
+	signaturePolicy := bc.signaturePolicyJSON()
+	if len(signaturePolicy) > 0 {
+		cm.Data[buildutil.SignaturePolicyKey] = signaturePolicy
 	}
 	return cm
 }
@@ -1673,7 +1735,7 @@ func (bc *BuildController) readClusterBuildControllerConfig() error {
 	if err != nil && !errors.IsNotFound(err) {
 		return err
 	} else if buildConfig == nil {
-		bc.buildDefaults.DefaultProxy = nil
+		bc.setBuildDefaultProxy(nil)
 		return nil
 	}
 
@@ -1683,7 +1745,7 @@ func (bc *BuildController) readClusterBuildControllerConfig() error {
 			klog.Infof("build controller config: %s", string(configJSON))
 		}
 	}
-	bc.buildDefaults.DefaultProxy = buildConfig.Spec.BuildDefaults.DefaultProxy
+	bc.setBuildDefaultProxy(buildConfig.Spec.BuildDefaults.DefaultProxy)
 
 	return nil
 }
@@ -1700,9 +1762,9 @@ func (bc *BuildController) readClusterImageConfig() []error {
 		configErrs = append(configErrs, err)
 		return configErrs
 	} else if imageConfig == nil {
-		bc.additionalTrustedCAData = nil
-		bc.registryConfData = ""
-		bc.signaturePolicyData = ""
+		bc.setAdditionalTrustedCas(nil)
+		bc.setRegistryConfTOML("")
+		bc.setSignaturePolicyJSON("")
 		return configErrs
 	}
 
@@ -1717,26 +1779,27 @@ func (bc *BuildController) readClusterImageConfig() []error {
 	if err != nil {
 		configErrs = append(configErrs, err)
 	} else {
-		bc.additionalTrustedCAData = additionalCAs
+		bc.setAdditionalTrustedCas(additionalCAs)
 	}
 
 	registriesTOML, regErr := bc.createBuildRegistriesConfigData(imageConfig)
 	if regErr != nil {
 		configErrs = append(configErrs, regErr)
 	} else {
-		bc.registryConfData = registriesTOML
+		bc.setRegistryConfTOML(registriesTOML)
 	}
 
 	signatureJSON, sigErr := bc.createBuildSignaturePolicyData(imageConfig)
 	if sigErr != nil {
 		configErrs = append(configErrs, sigErr)
 	} else {
-		bc.signaturePolicyData = signatureJSON
+		bc.setSignaturePolicyJSON(signatureJSON)
 	}
 
 	return configErrs
 }
 
+// getAdditionalTrustedCAData reads the additional trusted CA certificates from the cluster image config
 func (bc *BuildController) getAdditionalTrustedCAData(config *configv1.Image) (map[string]string, error) {
 	if len(config.Spec.AdditionalTrustedCA.Name) == 0 {
 		klog.V(4).Info("additional certificate authorities for builds not specified")
