@@ -1313,7 +1313,7 @@ items:
   rules:
   - nonResourceURLs:
     - /healthz
-    - /healthz/*
+    - /healthz/
     verbs:
     - get
   - nonResourceURLs:
