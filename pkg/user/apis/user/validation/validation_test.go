@@ -84,7 +84,6 @@ func TestValidateUser(t *testing.T) {
 				Name: "myname",
 			},
 			Identities: []string{"myprovider:mylogin"},
-			Groups:     []string{"mygroup"},
 		}
 	}
 
@@ -104,15 +103,15 @@ func TestValidateUser(t *testing.T) {
 		t.Errorf("Expected error, got none")
 	}
 
-	emptyGroup := validObj()
-	emptyGroup.Groups = []string{""}
-	if errs := ValidateUser(emptyGroup); len(errs) == 0 {
+	emptyGroupIsSet := validObj()
+	emptyGroupIsSet.Groups = []string{""}
+	if errs := ValidateUser(emptyGroupIsSet); len(errs) == 0 {
 		t.Errorf("Expected error, got none")
 	}
 
-	invalidGroup := validObj()
-	invalidGroup.Groups = []string{"bad:group:name"}
-	if errs := ValidateUser(invalidGroup); len(errs) == 0 {
+	groupIsSet := validObj()
+	groupIsSet.Groups = []string{"suchGroup"}
+	if errs := ValidateUser(groupIsSet); len(errs) == 0 {
 		t.Errorf("Expected error, got none")
 	}
 }
@@ -126,7 +125,6 @@ func TestValidateUserUpdate(t *testing.T) {
 				ResourceVersion: "1",
 			},
 			Identities: []string{"myprovider:mylogin"},
-			Groups:     []string{"mygroup"},
 		}
 	}
 
@@ -148,15 +146,15 @@ func TestValidateUserUpdate(t *testing.T) {
 		t.Errorf("Expected error, got none")
 	}
 
-	emptyGroup := validObj()
-	emptyGroup.Groups = []string{""}
-	if errs := ValidateUserUpdate(emptyGroup, oldObj); len(errs) == 0 {
+	emptyGroupIsSet := validObj()
+	emptyGroupIsSet.Groups = []string{""}
+	if errs := ValidateUserUpdate(emptyGroupIsSet, oldObj); len(errs) == 0 {
 		t.Errorf("Expected error, got none")
 	}
 
-	invalidGroup := validObj()
-	invalidGroup.Groups = []string{"bad:group:name"}
-	if errs := ValidateUserUpdate(invalidGroup, oldObj); len(errs) == 0 {
+	groupIsSet := validObj()
+	groupIsSet.Groups = []string{"suchGroup"}
+	if errs := ValidateUserUpdate(groupIsSet, oldObj); len(errs) == 0 {
 		t.Errorf("Expected error, got none")
 	}
 

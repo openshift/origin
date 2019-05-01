@@ -1,6 +1,7 @@
 package ldaputil
 
 import (
+	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -87,7 +88,8 @@ func (d *LDAPUserAttributeDefiner) PreferredUsername(user *ldap.Entry) string {
 
 // ID extracts the ID value from an LDAP user entry
 func (d *LDAPUserAttributeDefiner) ID(user *ldap.Entry) string {
-	return GetAttributeValue(user, d.attributeMapping.ID)
+	// support binary ID fields as those the only stable identifiers in some environments
+	return GetRawAttributeValue(user, d.attributeMapping.ID)
 }
 
 // GetAttributeValue finds the first attribute of those given that the LDAP entry has, and
@@ -106,6 +108,24 @@ func GetAttributeValue(entry *ldap.Entry, attributes []string) string {
 		// Otherwise get an attribute and return it if present
 		if v := entry.GetAttributeValue(k); len(v) > 0 {
 			return v
+		}
+	}
+	return ""
+}
+
+func GetRawAttributeValue(entry *ldap.Entry, attributes []string) string {
+	for _, k := range attributes {
+		// Ignore empty attributes
+		if len(k) == 0 {
+			continue
+		}
+		// Special-case DN, since it's not an attribute
+		if strings.ToLower(k) == "dn" {
+			return base64.RawURLEncoding.EncodeToString([]byte(entry.DN))
+		}
+		// Otherwise get an attribute and return it if present
+		if v := entry.GetRawAttributeValue(k); len(v) > 0 {
+			return base64.RawURLEncoding.EncodeToString(v)
 		}
 	}
 	return ""

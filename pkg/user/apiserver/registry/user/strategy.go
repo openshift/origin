@@ -27,7 +27,11 @@ func (userStrategy) DefaultGarbageCollectionPolicy(ctx context.Context) rest.Gar
 	return rest.Unsupported
 }
 
-func (userStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {}
+func (userStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
+	// persisting this field is no longer allowed
+	// it solely exists to echo back the user's current groups via the ~ virtual user
+	obj.(*userapi.User).Groups = nil
+}
 
 // NamespaceScoped is false for users
 func (userStrategy) NamespaceScoped() bool {
@@ -39,6 +43,9 @@ func (userStrategy) GenerateName(base string) string {
 }
 
 func (userStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
+	// persisting this field is no longer allowed
+	// it solely exists to echo back the user's current groups via the ~ virtual user
+	obj.(*userapi.User).Groups = nil
 }
 
 // Validate validates a new user

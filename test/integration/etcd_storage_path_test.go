@@ -112,27 +112,27 @@ var openshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageD
 		},
 	},
 	gvr("oauth.openshift.io", "v1", "oauthaccesstokens"): {
-		Stub:             `{"clientName": "client1g", "metadata": {"name": "tokenneedstobelongenoughelseitwontworkg"}, "userName": "user", "userUID": "cannot be empty"}`,
+		Stub:             `{"clientName": "client1g", "metadata": {"name": "tokenneedstobelongenoughelseitwontworkg"}, "userName": "user", "scopes": ["user:info"], "redirectURI": "https://something.com/", "userUID": "cannot be empty"}`,
 		ExpectedEtcdPath: "openshift.io/oauth/accesstokens/tokenneedstobelongenoughelseitwontworkg",
 		Prerequisites: []etcddata.Prerequisite{
 			{
 				GvrData: gvr("oauth.openshift.io", "v1", "oauthclients"),
-				Stub:    `{"metadata": {"name": "client1g"}}`,
+				Stub:    `{"metadata": {"name": "client1g"}, "grantMethod": "prompt"}`,
 			},
 		},
 	},
 	gvr("oauth.openshift.io", "v1", "oauthauthorizetokens"): {
-		Stub:             `{"clientName": "client0g", "metadata": {"name": "tokenneedstobelongenoughelseitwontworkg"}, "userName": "user", "userUID": "cannot be empty", "expiresIn": 86400}`,
+		Stub:             `{"clientName": "client0g", "metadata": {"name": "tokenneedstobelongenoughelseitwontworkg"}, "userName": "user", "scopes": ["user:info"], "redirectURI": "https://something.com/", "userUID": "cannot be empty", "expiresIn": 86400}`,
 		ExpectedEtcdPath: "openshift.io/oauth/authorizetokens/tokenneedstobelongenoughelseitwontworkg",
 		Prerequisites: []etcddata.Prerequisite{
 			{
 				GvrData: gvr("oauth.openshift.io", "v1", "oauthclients"),
-				Stub:    `{"metadata": {"name": "client0g"}}`,
+				Stub:    `{"metadata": {"name": "client0g"}, "grantMethod": "auto"}`,
 			},
 		},
 	},
 	gvr("oauth.openshift.io", "v1", "oauthclients"): {
-		Stub:             `{"metadata": {"name": "clientg"}}`,
+		Stub:             `{"metadata": {"name": "clientg"}, "grantMethod": "prompt"}`,
 		ExpectedEtcdPath: "openshift.io/oauth/clients/clientg",
 	},
 	// --
