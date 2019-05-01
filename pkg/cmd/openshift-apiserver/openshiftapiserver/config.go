@@ -126,7 +126,7 @@ func NewOpenshiftAPIConfig(config *openshiftcontrolplanev1.OpenShiftAPIServerCon
 	if err := authenticationOptions.ApplyTo(&genericConfig.Authentication, genericConfig.SecureServing, genericConfig.OpenAPIConfig); err != nil {
 		return nil, err
 	}
-	authorizationOptions := genericapiserveroptions.NewDelegatingAuthorizationOptions().WithAlwaysAllowPaths("/healthz", "/healthz/").WithAlwaysAllowGroups("system:masters")
+	authorizationOptions := genericapiserveroptions.NewDelegatingAuthorizationOptions().WithAlwaysAllowPaths("/healthz", "/healthz/*").WithAlwaysAllowGroups("system:masters")
 	authorizationOptions.RemoteKubeConfigFile = config.KubeClientConfig.KubeConfig
 	if err := authorizationOptions.ApplyTo(&genericConfig.Authorization); err != nil {
 		return nil, err
