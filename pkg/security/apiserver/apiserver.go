@@ -1,8 +1,12 @@
 package apiserver
 
 import (
+	"fmt"
 	"sync"
 
+	"github.com/openshift/origin/pkg/security/apiserver/registry/securitycontextconstraints/disabledetcd"
+
+	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -106,7 +110,24 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 		return nil, err
 	}
 
-	sccStorage := sccstorage.NewREST(c.GenericConfig.RESTOptionsGetter)
+	v1Storage := map[string]rest.Storage{}
+
+	// TODO this collapses down after CRDS are the only way.
+	crdClient, err := v1beta1.NewForConfig(c.ExtraConfig.KubeAPIServerClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	_, err = crdClient.CustomResourceDefinitions().Get("securitycontextconstraints.security.openshift.io", metav1.GetOptions{})
+	if err == nil {
+		fmt.Printf("Disabling etcd storage\n")
+		sccStorage := disabledetcd.NewREST()
+		v1Storage["securityContextConstraints"] = sccStorage
+	} else {
+		fmt.Printf("using legacy etcd storage\n")
+		sccStorage := sccstorage.NewREST(c.GenericConfig.RESTOptionsGetter)
+		v1Storage["securityContextConstraints"] = sccStorage
+	}
+
 	sccMatcher := oscc.NewDefaultSCCMatcher(c.ExtraConfig.SecurityInformers.Security().V1().SecurityContextConstraints().Lister(), c.ExtraConfig.Authorizer)
 	podSecurityPolicyReviewStorage := podsecuritypolicyreview.NewREST(
 		sccMatcher,
@@ -123,8 +144,6 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	)
 	uidRangeStorage := rangeallocations.NewREST(c.GenericConfig.RESTOptionsGetter)
 
-	v1Storage := map[string]rest.Storage{}
-	v1Storage["securityContextConstraints"] = sccStorage
 	v1Storage["podSecurityPolicyReviews"] = podSecurityPolicyReviewStorage
 	v1Storage["podSecurityPolicySubjectReviews"] = podSecurityPolicySubjectStorage
 	v1Storage["podSecurityPolicySelfSubjectReviews"] = podSecurityPolicySelfSubjectReviewStorage
