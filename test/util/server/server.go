@@ -515,11 +515,8 @@ func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig 
 	if err != nil {
 		return err
 	}
-	if err := waitForServerHealthy(openshiftAddr); err != nil {
-		return fmt.Errorf("Waiting for OpenShift API /healthz failed with: %v", err)
-	}
-
 	targetPort := intstr.Parse(openshiftAddr.Port())
+
 	kubeClient, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
 		return err
@@ -596,6 +593,10 @@ func startOpenShiftAPIServer(masterConfig *configapi.MasterConfig, clientConfig 
 		if _, err := apiregistrationclient.APIServices().Create(obj); err != nil {
 			return err
 		}
+	}
+
+	if err := waitForServerHealthy(openshiftAddr); err != nil {
+		return fmt.Errorf("Waiting for OpenShift API /healthz failed with: %v", err)
 	}
 
 	err = wait.Poll(time.Second, 3*time.Minute, func() (bool, error) {
