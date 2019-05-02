@@ -24,10 +24,11 @@ import (
 func RunOpenShiftKubeAPIServerServer(kubeAPIServerConfig *kubecontrolplanev1.KubeAPIServerConfig, stopCh <-chan struct{}) error {
 	// This allows to move cluster resource quota to CRD
 	apiserver.AddAlwaysLocalDelegateForPrefix("/apis/quota.openshift.io/v1/clusterresourcequotas")
+	// This allows to move SCC to CRD
+	apiserver.AddAlwaysLocalDelegateForPrefix("/apis/security.openshift.io/v1/securitycontextconstraints")
 
 	// This allows the CRD registration to avoid fighting with the APIService from the operator
 	apiserver.AddOverlappingGroupVersion(schema.GroupVersion{Group: "authorization.openshift.io", Version: "v1"})
-	apiserver.AddOverlappingGroupVersion(schema.GroupVersion{Group: "security.openshift.io", Version: "v1"})
 
 	// Allow privileged containers
 	capabilities.Initialize(capabilities.Capabilities{

@@ -1,6 +1,7 @@
 package customresourcevalidationregistration
 
 import (
+	"github.com/openshift/origin/pkg/admission/customresourcevalidation/securitycontextconstraints"
 	"k8s.io/apiserver/pkg/admission"
 
 	"github.com/openshift/origin/pkg/admission/customresourcevalidation/authentication"
@@ -25,6 +26,9 @@ var AllCustomResourceValidators = []string{
 	config.PluginName,
 	scheduler.PluginName,
 	clusterresourcequota.PluginName,
+
+	// this one is special because we don't work without it.
+	securitycontextconstraints.DefaultingPluginName,
 }
 
 func RegisterCustomResourceValidation(plugins *admission.Plugins) {
@@ -40,4 +44,7 @@ func RegisterCustomResourceValidation(plugins *admission.Plugins) {
 	// This plugin validates the quota.openshift.io/v1 ClusterResourceQuota resources.
 	// NOTE: This is only allowed because it is required to get a running control plane operator.
 	clusterresourcequota.Register(plugins)
+
+	// this one is special because we don't work without it.
+	securitycontextconstraints.RegisterDefaulting(plugins)
 }

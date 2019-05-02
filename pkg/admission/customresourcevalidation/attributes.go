@@ -7,6 +7,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	quotav1 "github.com/openshift/api/quota/v1"
+	securityv1 "github.com/openshift/api/security/v1"
 )
 
 // unstructuredUnpackingAttributes tries to convert to a real object in the config scheme
@@ -46,4 +47,5 @@ var supportedObjectsScheme = runtime.NewScheme()
 func init() {
 	utilruntime.Must(configv1.Install(supportedObjectsScheme))
 	utilruntime.Must(quotav1.Install(supportedObjectsScheme))
+	utilruntime.Must(securityv1.Install(supportedObjectsScheme))
 }
