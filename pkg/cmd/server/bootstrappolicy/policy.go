@@ -436,7 +436,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 			},
 			Rules: []rbacv1.PolicyRule{
 				// Health
-				rbacv1helpers.NewRule("get").URLs("/healthz", "/healthz/*").RuleOrDie(),
+				rbacv1helpers.NewRule("get").URLs("/healthz", "/healthz/").RuleOrDie(),
 				authorizationapi.DiscoveryRule,
 			},
 		},
