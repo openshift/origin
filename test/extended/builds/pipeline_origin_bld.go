@@ -211,6 +211,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 	g.Context("jenkins-client-plugin tests", func() {
 
 		g.It("using the ephemeral template", func() {
+			g.Skip("disabled until crio /etc/passwd logic is fixed")
 			defer cleanup(jenkinsEphemeralTemplatePath)
 			setupJenkins(jenkinsEphemeralTemplatePath)
 
@@ -334,6 +335,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 	g.Context("Sync plugin tests", func() {
 
 		g.It("using the ephemeral template", func() {
+			g.Skip("disabled until crio /etc/passwd logic is fixed")
 			defer cleanup(jenkinsEphemeralTemplatePath)
 			setupJenkins(jenkinsEphemeralTemplatePath)
 
