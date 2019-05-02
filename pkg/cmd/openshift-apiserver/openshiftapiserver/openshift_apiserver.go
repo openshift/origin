@@ -498,7 +498,6 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget,
 	s.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", c.EnsureOpenShiftInfraNamespace)
 	s.GenericAPIServer.AddPostStartHookOrDie("project.openshift.io-projectcache", c.startProjectCache)
 	s.GenericAPIServer.AddPostStartHookOrDie("project.openshift.io-projectauthorizationcache", c.startProjectAuthorizationCache)
-	s.GenericAPIServer.AddPostStartHookOrDie("security.openshift.io-bootstrapscc", c.bootstrapSCC)
 	s.GenericAPIServer.AddPostStartHookOrDie("openshift.io-startinformers", func(context genericapiserver.PostStartHookContext) error {
 		c.ExtraConfig.InformerStart(context.StopCh)
 		return nil
