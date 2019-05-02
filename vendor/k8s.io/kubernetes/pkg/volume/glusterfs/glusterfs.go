@@ -799,7 +799,7 @@ func (p *glusterfsVolumeProvisioner) CreateVolume(gid int) (r *v1.GlusterfsVolum
 	// of volume creation.
 	epServiceName := dynamicEpSvcPrefix + string(p.options.PVC.UID)
 	epNamespace := p.options.PVC.Namespace
-	endpoint, service, err := p.createEndpointService(epNamespace, epServiceName, dynamicHostIps, p.options.PVC.Name)
+	endpoint, service, err := p.createEndpointService(epNamespace, epServiceName, dynamicHostIps, p.options.PVC)
 	if err != nil {
 		glog.Errorf("failed to create endpoint/service %v/%v: %v", epNamespace, epServiceName, err)
 		deleteErr := cli.VolumeDelete(volume.Id)
@@ -816,8 +816,13 @@ func (p *glusterfsVolumeProvisioner) CreateVolume(gid int) (r *v1.GlusterfsVolum
 	}, sz, volID, nil
 }
 
-func (p *glusterfsVolumeProvisioner) createEndpointService(namespace string, epServiceName string, hostips []string, pvcname string) (endpoint *v1.Endpoints, service *v1.Service, err error) {
-
+func (p *glusterfsVolumeProvisioner) createEndpointService(namespace string, epServiceName string, hostips []string, pvc *v1.PersistentVolumeClaim) (endpoint *v1.Endpoints, service *v1.Service, err error) {
+	pvcNameOrID := ""
+	if len(pvc.Name) >= 63 {
+		pvcNameOrID = string(pvc.UID)
+	} else {
+		pvcNameOrID = pvc.Name
+	}
 	addrlist := make([]v1.EndpointAddress, len(hostips))
 	for i, v := range hostips {
 		addrlist[i].IP = v
@@ -827,7 +832,7 @@ func (p *glusterfsVolumeProvisioner) createEndpointService(namespace string, epS
 			Namespace: namespace,
 			Name:      epServiceName,
 			Labels: map[string]string{
-				"gluster.kubernetes.io/provisioned-for-pvc": pvcname,
+				"gluster.kubernetes.io/provisioned-for-pvc": pvcNameOrID,
 			},
 		},
 		Subsets: []v1.EndpointSubset{{
@@ -853,7 +858,7 @@ func (p *glusterfsVolumeProvisioner) createEndpointService(namespace string, epS
 			Name:      epServiceName,
 			Namespace: namespace,
 			Labels: map[string]string{
-				"gluster.kubernetes.io/provisioned-for-pvc": pvcname,
+				"gluster.kubernetes.io/provisioned-for-pvc": pvcNameOrID,
 			},
 		},
 		Spec: v1.ServiceSpec{
