@@ -21,7 +21,7 @@ func ValidateRemoteConnectionInfo(remoteConnectionInfo configv1.OAuthRemoteConne
 	if len(remoteConnectionInfo.URL) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("url"), ""))
 	} else {
-		_, urlErrs := common.ValidateURL(remoteConnectionInfo.URL, fldPath.Child("url"))
+		_, urlErrs := common.ValidateSecureURL(remoteConnectionInfo.URL, fldPath.Child("url"))
 		allErrs = append(allErrs, urlErrs...)
 	}
 
