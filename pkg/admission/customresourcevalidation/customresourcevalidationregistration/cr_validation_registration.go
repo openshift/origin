@@ -27,6 +27,9 @@ var AllCustomResourceValidators = []string{
 	scheduler.PluginName,
 	clusterresourcequota.PluginName,
 	securitycontextconstraints.PluginName,
+
+	// this one is special because we don't work without it.
+	securitycontextconstraints.DefaultingPluginName,
 }
 
 func RegisterCustomResourceValidation(plugins *admission.Plugins) {
@@ -44,4 +47,7 @@ func RegisterCustomResourceValidation(plugins *admission.Plugins) {
 	clusterresourcequota.Register(plugins)
 	// This plugin validates the security.openshift.io/v1 SecurityContextConstraints resources.
 	securitycontextconstraints.Register(plugins)
+
+	// this one is special because we don't work without it.
+	securitycontextconstraints.RegisterDefaulting(plugins)
 }
