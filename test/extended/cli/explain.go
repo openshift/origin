@@ -43,24 +43,23 @@ var (
 	crdTypes = []schema.GroupVersionResource{
 		{Group: "operators.coreos.com", Version: "v1", Resource: "catalogsourceconfigs"},
 		// FIXME:
-		// schema.GroupVersionResource{Group: "operators.coreos.com", Version: "v1", Resource: "catalogsources"},
-		// schema.GroupVersionResource{Group: "operators.coreos.com", Version: "v1", Resource: "clusterserviceversions"},
-		// schema.GroupVersionResource{Group: "operators.coreos.com", Version: "v1", Resource: "installplans"},
+		// {Group: "operators.coreos.com", Version: "v1", Resource: "catalogsources"},
+		// {Group: "operators.coreos.com", Version: "v1", Resource: "clusterserviceversions"},
+		// {Group: "operators.coreos.com", Version: "v1", Resource: "installplans"},
 		{Group: "operators.coreos.com", Version: "v1", Resource: "operatorgroups"},
 		{Group: "operators.coreos.com", Version: "v1", Resource: "operatorsources"},
 		// FIXME:
-		// schema.GroupVersionResource{Group: "operators.coreos.com", Version: "v1", Resource: "subscriptions"},
+		// {Group: "operators.coreos.com", Version: "v1", Resource: "subscriptions"},
 
 		{Group: "autoscaling.openshift.io", Version: "v1", Resource: "clusterautoscalers"},
 		// FIXME:
-		// schema.GroupVersionResource{Group: "autoscaling.openshift.io", Version: "v1", Resource: "machineautoscalers"},
+		// {Group: "autoscaling.openshift.io", Version: "v1", Resource: "machineautoscalers"},
 
 		{Group: "config.openshift.io", Version: "v1", Resource: "apiservers"},
 		{Group: "config.openshift.io", Version: "v1", Resource: "authentications"},
 		{Group: "config.openshift.io", Version: "v1", Resource: "builds"},
-		// fixed in https://github.com/openshift/cluster-version-operator/pull/168
-		// schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "clusteroperators"},
-		// schema.GroupVersionResource{Group: "config.openshift.io", Version: "v1", Resource: "clusterversions"},
+		{Group: "config.openshift.io", Version: "v1", Resource: "clusteroperators"},
+		{Group: "config.openshift.io", Version: "v1", Resource: "clusterversions"},
 		{Group: "config.openshift.io", Version: "v1", Resource: "consoles"},
 		{Group: "config.openshift.io", Version: "v1", Resource: "dnses"},
 		{Group: "config.openshift.io", Version: "v1", Resource: "featuregates"},
@@ -75,8 +74,8 @@ var (
 		{Group: "cloudcredential.openshift.io", Version: "v1", Resource: "credentialsrequests"},
 
 		// FIXME
-		// schema.GroupVersionResource{Group: "healthchecking.openshift.io", Version: "v1", Resource: "machinehealthchecks"},
-		// schema.GroupVersionResource{Group: "imageregistry.operator.openshift", Version: "v1", Resource: "configs"},
+		// {Group: "healthchecking.openshift.io", Version: "v1", Resource: "machinehealthchecks"},
+		// {Group: "imageregistry.operator.openshift", Version: "v1", Resource: "configs"},
 
 		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machines"},
 		{Group: "machine.openshift.io", Version: "v1beta1", Resource: "machinesets"},
@@ -87,12 +86,12 @@ var (
 		{Group: "monitoring.coreos.com", Version: "v1", Resource: "servicemonitors"},
 
 		// FIXME
-		// schema.GroupVersionResource{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "containerruntimeconfigs"},
-		// schema.GroupVersionResource{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "controllerconfigs"},
-		// schema.GroupVersionResource{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "kubeletconfigs"},
-		// schema.GroupVersionResource{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigpools"},
-		// schema.GroupVersionResource{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigs"},
-		// schema.GroupVersionResource{Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "mcoconfigs"},
+		// {Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "containerruntimeconfigs"},
+		// {Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "controllerconfigs"},
+		// {Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "kubeletconfigs"},
+		// {Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigpools"},
+		// {Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "machineconfigs"},
+		// {Group: "machineconfiguration.openshift.io", Version: "v1", Resource: "mcoconfigs"},
 
 		{Group: "network.openshift.io", Version: "v1", Resource: "egressnetworkpolicies"},
 
@@ -113,7 +112,7 @@ var (
 		{Group: "quota.openshift.io", Version: "v1", Resource: "clusterresourcequotas"},
 
 		// FIXME
-		// schema.GroupVersionResource{Group: "samples.operator.openshift.io", Version: "v1", Resource: "configs"},
+		// {Group: "samples.operator.openshift.io", Version: "v1", Resource: "configs"},
 
 		{Group: "tuned.openshift.io", Version: "v1", Resource: "tuneds"},
 	}
