@@ -881,6 +881,14 @@ func (o *DebugOptions) approximatePodTemplateForObject(object runtime.Object) (*
 	case *kappsv1.Deployment:
 		return setNodeName(&t.Spec.Template, o.NodeName), nil
 
+	// StatefulSet
+	case *kappsv1.StatefulSet:
+		return setNodeName(&t.Spec.Template, o.NodeName), nil
+	case *kappsv1beta2.StatefulSet:
+		return setNodeName(&t.Spec.Template, o.NodeName), nil
+	case *kappsv1beta1.StatefulSet:
+		return setNodeName(&t.Spec.Template, o.NodeName), nil
+
 	// DaemonSet
 	case *extensionsv1beta1.DaemonSet:
 		return setNodeName(&t.Spec.Template, o.NodeName), nil
