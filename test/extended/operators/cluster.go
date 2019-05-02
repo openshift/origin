@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"syscall"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -151,7 +152,7 @@ func hasImagePullError(pod *corev1.Pod) bool {
 
 func hasFailingContainer(pod *corev1.Pod) bool {
 	for _, status := range append(append([]corev1.ContainerStatus{}, pod.Status.InitContainerStatuses...), pod.Status.ContainerStatuses...) {
-		if status.State.Terminated != nil && status.State.Terminated.ExitCode != 0 {
+		if status.State.Terminated != nil && status.State.Terminated.ExitCode != 0 && syscall.Signal(status.State.Terminated.Signal) != syscall.SIGTERM {
 			pod.Status.Message = status.State.Terminated.Message
 			if len(pod.Status.Message) == 0 {
 				pod.Status.Message = fmt.Sprintf("container %s exited with non-zero exit code", status.Name)
