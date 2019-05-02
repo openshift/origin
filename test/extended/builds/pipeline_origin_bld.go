@@ -34,7 +34,7 @@ const (
 	envVarsPipelineGitRepoBuildConfig    = "test-build-app-pipeline"
 )
 
-var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
+var _ = g.Describe("[Feature:Builds][Feature:Jenkins][Slow] openshift pipeline build", func() {
 	defer g.GinkgoRecover()
 
 	var (
