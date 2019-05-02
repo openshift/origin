@@ -9,6 +9,7 @@ import (
 	"k8s.io/klog"
 
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
@@ -133,6 +134,16 @@ func (c *constraint) computeSecurityContext(a admission.Attributes, pod *coreapi
 	if err != nil {
 		return nil, "", nil, admission.NewForbidden(a, err)
 	}
+	if len(constraints) == 0 {
+		sccs, err := c.sccLister.List(labels.Everything())
+		if err != nil {
+			return nil, "", nil, admission.NewForbidden(a, err)
+		}
+		if len(sccs) == 0 {
+			return nil, "", nil, admission.NewForbidden(a, fmt.Errorf("no SecurityContextConstraints found in cluster"))
+		}
+		return nil, "", nil, admission.NewForbidden(a, fmt.Errorf("no SecurityContextConstraints found in namespace %s", a.GetNamespace()))
+	}
 
 	// If mutation is not allowed and validatedSCCHint is provided, check the validated policy first.
 	// Keep the other the same for everything else
@@ -152,7 +163,7 @@ func (c *constraint) computeSecurityContext(a admission.Attributes, pod *coreapi
 	logProviders(pod, providers, errs)
 
 	if len(providers) == 0 {
-		return nil, "", nil, admission.NewForbidden(a, fmt.Errorf("no providers available to validate pod request"))
+		return nil, "", nil, admission.NewForbidden(a, fmt.Errorf("no SecurityContextConstraintsProvider available to validate pod request"))
 	}
 
 	// all containers in a single pod must validate under a single provider or we will reject the request
