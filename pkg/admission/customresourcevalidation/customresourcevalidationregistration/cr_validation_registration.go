@@ -29,6 +29,8 @@ var AllCustomResourceValidators = []string{
 
 	// this one is special because we don't work without it.
 	securitycontextconstraints.DefaultingPluginName,
+
+	securitycontextconstraints.ValidatePluginName,
 }
 
 func RegisterCustomResourceValidation(plugins *admission.Plugins) {
@@ -47,4 +49,6 @@ func RegisterCustomResourceValidation(plugins *admission.Plugins) {
 
 	// this one is special because we don't work without it.
 	securitycontextconstraints.RegisterDefaulting(plugins)
+
+	securitycontextconstraints.RegisterValidating(plugins)
 }
