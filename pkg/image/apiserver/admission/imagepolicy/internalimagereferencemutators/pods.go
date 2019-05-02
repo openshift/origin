@@ -1,4 +1,4 @@
-package internalversion
+package internalimagereferencemutators
 
 import (
 	"fmt"

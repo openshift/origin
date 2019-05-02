@@ -12,20 +12,13 @@ import (
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
-	"k8s.io/kubernetes/pkg/apis/apps"
-	"k8s.io/kubernetes/pkg/apis/batch"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
-	oapps "github.com/openshift/api/apps"
-	"github.com/openshift/api/security"
 	_ "github.com/openshift/origin/pkg/api/install"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
 func TestPodNodeConstraints(t *testing.T) {
@@ -183,131 +176,6 @@ func TestPodNodeConstraintsNonHandledResources(t *testing.T) {
 	checkAdmitError(t, err, expectedError, errPrefix)
 }
 
-func TestPodNodeConstraintsResources(t *testing.T) {
-	ns := metav1.NamespaceDefault
-	testconfigs := []struct {
-		config         *podnodeconstraints.PodNodeConstraintsConfig
-		userinfo       user.Info
-		reviewResponse *authorizationapi.SubjectAccessReviewResponse
-	}{
-		{
-			config:         testConfig(),
-			userinfo:       serviceaccount.UserInfo("", "", ""),
-			reviewResponse: reviewResponse(false, ""),
-		},
-	}
-	testresources := []struct {
-		resource      func(bool) runtime.Object
-		kind          schema.GroupKind
-		groupresource schema.GroupResource
-		prefix        string
-	}{
-		{
-			resource:      replicationController,
-			kind:          kapi.Kind("ReplicationController"),
-			groupresource: kapi.Resource("replicationcontrollers"),
-			prefix:        "ReplicationController",
-		},
-		{
-			resource:      deployment,
-			kind:          extensions.Kind("Deployment"),
-			groupresource: extensions.Resource("deployments"),
-			prefix:        "Deployment",
-		},
-		{
-			resource:      replicaSet,
-			kind:          extensions.Kind("ReplicaSet"),
-			groupresource: extensions.Resource("replicasets"),
-			prefix:        "ReplicaSet",
-		},
-		{
-			resource:      job,
-			kind:          batch.Kind("Job"),
-			groupresource: batch.Resource("jobs"),
-			prefix:        "Job",
-		},
-		{
-			resource:      deploymentConfig,
-			kind:          oapps.Kind("DeploymentConfig"),
-			groupresource: oapps.Resource("deploymentconfigs"),
-			prefix:        "DeploymentConfig",
-		},
-		{
-			resource:      podTemplate,
-			kind:          kapi.Kind("PodTemplate"),
-			groupresource: kapi.Resource("podtemplates"),
-			prefix:        "PodTemplate",
-		},
-		{
-			resource:      podSecurityPolicySubjectReview,
-			kind:          security.Kind("PodSecurityPolicySubjectReview"),
-			groupresource: security.Resource("podsecuritypolicysubjectreviews"),
-			prefix:        "PodSecurityPolicy",
-		},
-		{
-			resource:      podSecurityPolicySelfSubjectReview,
-			kind:          security.Kind("PodSecurityPolicySelfSubjectReview"),
-			groupresource: security.Resource("podsecuritypolicyselfsubjectreviews"),
-			prefix:        "PodSecurityPolicy",
-		},
-		{
-			resource:      podSecurityPolicyReview,
-			kind:          security.Kind("PodSecurityPolicyReview"),
-			groupresource: security.Resource("podsecuritypolicyreviews"),
-			prefix:        "PodSecurityPolicy",
-		},
-	}
-	testparams := []struct {
-		nodeselector     bool
-		expectedErrorMsg string
-		prefix           string
-	}{
-		{
-			nodeselector:     true,
-			expectedErrorMsg: "node selection by label(s) [bogus] is prohibited by policy for your role",
-			prefix:           "with nodeSelector",
-		},
-		{
-			nodeselector:     false,
-			expectedErrorMsg: "",
-			prefix:           "without nodeSelector",
-		},
-	}
-	testops := []struct {
-		operation admission.Operation
-	}{
-		{
-			operation: admission.Create,
-		},
-		{
-			operation: admission.Update,
-		},
-	}
-	for _, tc := range testconfigs {
-		for _, tr := range testresources {
-			for _, tp := range testparams {
-				for _, top := range testops {
-					var expectedError error
-					errPrefix := fmt.Sprintf("%s; %s; %s", tr.prefix, tp.prefix, top.operation)
-					prc := NewPodNodeConstraints(tc.config, nodeidentifier.NewDefaultNodeIdentifier())
-					prc.(initializer.WantsAuthorizer).SetAuthorizer(fakeAuthorizer(t))
-					err := prc.(admission.InitializationValidator).ValidateInitialization()
-					if err != nil {
-						checkAdmitError(t, err, expectedError, errPrefix)
-						continue
-					}
-					attrs := admission.NewAttributesRecord(tr.resource(tp.nodeselector), nil, tr.kind.WithVersion("version"), ns, "test", tr.groupresource.WithVersion("version"), "", top.operation, false, tc.userinfo)
-					if tp.expectedErrorMsg != "" {
-						expectedError = admission.NewForbidden(attrs, fmt.Errorf(tp.expectedErrorMsg))
-					}
-					err = prc.(admission.ValidationInterface).Validate(attrs)
-					checkAdmitError(t, err, expectedError, errPrefix)
-				}
-			}
-		}
-	}
-}
-
 func emptyConfig() *podnodeconstraints.PodNodeConstraintsConfig {
 	return &podnodeconstraints.PodNodeConstraintsConfig{}
 }
@@ -320,14 +188,6 @@ func testConfig() *podnodeconstraints.PodNodeConstraintsConfig {
 
 func defaultPod() *kapi.Pod {
 	pod := &kapi.Pod{}
-	return pod
-}
-
-func pod(ns bool) runtime.Object {
-	pod := &kapi.Pod{}
-	if ns {
-		pod.Spec.NodeSelector = map[string]string{"bogus": "frank"}
-	}
 	return pod
 }
 
@@ -357,85 +217,9 @@ func nodeSelectorPod() *kapi.Pod {
 	return pod
 }
 
-func emptyNodeSelectorPod() *kapi.Pod {
-	pod := &kapi.Pod{}
-	pod.Spec.NodeSelector = map[string]string{}
-	return pod
-}
-
-func podSpec(setNodeSelector bool) *kapi.PodSpec {
-	ps := &kapi.PodSpec{}
-	if setNodeSelector {
-		ps.NodeSelector = map[string]string{"bogus": "frank"}
-	}
-	return ps
-}
-
-func podTemplateSpec(setNodeSelector bool) *kapi.PodTemplateSpec {
-	pts := &kapi.PodTemplateSpec{}
-	if setNodeSelector {
-		pts.Spec.NodeSelector = map[string]string{"bogus": "frank"}
-	}
-	return pts
-}
-
-func podTemplate(setNodeSelector bool) runtime.Object {
-	pt := &kapi.PodTemplate{}
-	pt.Template = *podTemplateSpec(setNodeSelector)
-	return pt
-}
-
-func replicationController(setNodeSelector bool) runtime.Object {
-	rc := &kapi.ReplicationController{}
-	rc.Spec.Template = podTemplateSpec(setNodeSelector)
-	return rc
-}
-
-func deployment(setNodeSelector bool) runtime.Object {
-	d := &apps.Deployment{}
-	d.Spec.Template = *podTemplateSpec(setNodeSelector)
-	return d
-}
-
-func replicaSet(setNodeSelector bool) runtime.Object {
-	rs := &apps.ReplicaSet{}
-	rs.Spec.Template = *podTemplateSpec(setNodeSelector)
-	return rs
-}
-
-func job(setNodeSelector bool) runtime.Object {
-	j := &batch.Job{}
-	j.Spec.Template = *podTemplateSpec(setNodeSelector)
-	return j
-}
-
 func resourceQuota() runtime.Object {
 	rq := &kapi.ResourceQuota{}
 	return rq
-}
-
-func deploymentConfig(setNodeSelector bool) runtime.Object {
-	dc := &appsapi.DeploymentConfig{}
-	dc.Spec.Template = podTemplateSpec(setNodeSelector)
-	return dc
-}
-
-func podSecurityPolicySubjectReview(setNodeSelector bool) runtime.Object {
-	pspsr := &securityapi.PodSecurityPolicySubjectReview{}
-	pspsr.Spec.Template.Spec = *podSpec(setNodeSelector)
-	return pspsr
-}
-
-func podSecurityPolicySelfSubjectReview(setNodeSelector bool) runtime.Object {
-	pspssr := &securityapi.PodSecurityPolicySelfSubjectReview{}
-	pspssr.Spec.Template.Spec = *podSpec(setNodeSelector)
-	return pspssr
-}
-
-func podSecurityPolicyReview(setNodeSelector bool) runtime.Object {
-	pspr := &securityapi.PodSecurityPolicyReview{}
-	pspr.Spec.Template.Spec = *podSpec(setNodeSelector)
-	return pspr
 }
 
 func checkAdmitError(t *testing.T, err error, expectedError error, prefix string) {

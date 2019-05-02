@@ -3,17 +3,13 @@ package integration
 import (
 	"testing"
 
-	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	"k8s.io/client-go/kubernetes"
 	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 
-	oappsv1 "github.com/openshift/api/apps/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -165,68 +161,6 @@ func testPodNodeConstraintsPod(nodeName string, nodeSelector map[string]string) 
 	return pod
 }
 
-func testPodNodeConstraintsReplicationController(nodeName string, nodeSelector map[string]string) *corev1.ReplicationController {
-	rc := &corev1.ReplicationController{}
-	rc.Name = "testrc"
-	rc.Spec.Replicas = int32Ptr(1)
-	rc.Spec.Selector = map[string]string{"foo": "bar"}
-	rc.Spec.Template = &corev1.PodTemplateSpec{}
-	rc.Spec.Template.Labels = map[string]string{"foo": "bar"}
-	rc.Spec.Template.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)
-	return rc
-}
-
-func int32Ptr(in int32) *int32 {
-	return &in
-}
-
-func testPodNodeConstraintsDeployment(nodeName string, nodeSelector map[string]string) *appsv1.Deployment {
-	d := &appsv1.Deployment{}
-	d.Name = "testdeployment"
-	d.Spec.Replicas = int32Ptr(1)
-	d.Spec.Template.Labels = map[string]string{"foo": "bar"}
-	d.Spec.Template.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)
-	d.Spec.Selector = &metav1.LabelSelector{
-		MatchLabels: map[string]string{"foo": "bar"},
-	}
-	return d
-}
-
-func testPodNodeConstraintsReplicaSet(nodeName string, nodeSelector map[string]string) *appsv1.ReplicaSet {
-	rs := &appsv1.ReplicaSet{}
-	rs.Name = "testrs"
-	rs.Spec.Replicas = int32Ptr(1)
-	rs.Spec.Template = corev1.PodTemplateSpec{}
-	rs.Spec.Template.Labels = map[string]string{"foo": "bar"}
-	rs.Spec.Template.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)
-	rs.Spec.Selector = &metav1.LabelSelector{
-		MatchLabels: map[string]string{"foo": "bar"},
-	}
-	return rs
-}
-
-func testPodNodeConstraintsJob(nodeName string, nodeSelector map[string]string) *batchv1.Job {
-	job := &batchv1.Job{}
-	job.Name = "testjob"
-	job.Spec.Template.Labels = map[string]string{"foo": "bar"}
-	job.Spec.Template.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)
-	job.Spec.Template.Spec.RestartPolicy = corev1.RestartPolicyNever
-	// Matching selector is now generated automatically
-	// job.Spec.Selector = ...
-	return job
-}
-
-func testPodNodeConstraintsDeploymentConfig(nodeName string, nodeSelector map[string]string) *oappsv1.DeploymentConfig {
-	dc := &oappsv1.DeploymentConfig{}
-	dc.Name = "testdc"
-	dc.Spec.Replicas = 1
-	dc.Spec.Template = &corev1.PodTemplateSpec{}
-	dc.Spec.Template.Labels = map[string]string{"foo": "bar"}
-	dc.Spec.Template.Spec = testPodNodeConstraintsPodSpec(nodeName, nodeSelector)
-	dc.Spec.Selector = map[string]string{"foo": "bar"}
-	return dc
-}
-
 // testPodNodeConstraintsObjectCreationWithPodTemplate attempts to create different object types that contain pod templates
 // using the passed in nodeName and nodeSelector. It will use the expectError flag to determine if an error should be returned or not
 func testPodNodeConstraintsObjectCreationWithPodTemplate(t *testing.T, name string, kclientset kubernetes.Interface, appsClient appsclient.Interface, nodeName string, nodeSelector map[string]string, expectError bool) {
@@ -249,30 +183,4 @@ func testPodNodeConstraintsObjectCreationWithPodTemplate(t *testing.T, name stri
 	pod := testPodNodeConstraintsPod(nodeName, nodeSelector)
 	_, err := kclientset.CoreV1().Pods(testutil.Namespace()).Create(pod)
 	checkForbiddenErr("pod", err)
-
-	// ReplicationController
-	rc := testPodNodeConstraintsReplicationController(nodeName, nodeSelector)
-	_, err = kclientset.CoreV1().ReplicationControllers(testutil.Namespace()).Create(rc)
-	checkForbiddenErr("rc", err)
-
-	// TODO: Enable when the deployments endpoint is supported in Origin
-	// Deployment
-	// d := testPodNodeConstraintsDeployment(nodeName, nodeSelector)
-	// _, err = kclientset.Extensions().Deployments(testutil.Namespace()).Create(d)
-	// checkForbiddenErr("deployment", err)
-
-	// ReplicaSet
-	rs := testPodNodeConstraintsReplicaSet(nodeName, nodeSelector)
-	_, err = kclientset.AppsV1().ReplicaSets(testutil.Namespace()).Create(rs)
-	checkForbiddenErr("replicaset", err)
-
-	// Job
-	job := testPodNodeConstraintsJob(nodeName, nodeSelector)
-	_, err = kclientset.BatchV1().Jobs(testutil.Namespace()).Create(job)
-	checkForbiddenErr("job", err)
-
-	// DeploymentConfig
-	dc := testPodNodeConstraintsDeploymentConfig(nodeName, nodeSelector)
-	_, err = appsClient.AppsV1().DeploymentConfigs(testutil.Namespace()).Create(dc)
-	checkForbiddenErr("dc", err)
 }
