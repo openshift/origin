@@ -11,7 +11,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 
 	configv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation"
+	crvalidation "github.com/openshift/origin/pkg/admission/customresourcevalidation"
 )
 
 const PluginName = "config.openshift.io/ValidateOAuth"
@@ -19,11 +19,11 @@ const PluginName = "config.openshift.io/ValidateOAuth"
 // Register registers a plugin
 func Register(plugins *admission.Plugins) {
 	plugins.Register(PluginName, func(config io.Reader) (admission.Interface, error) {
-		return customresourcevalidation.NewValidator(
+		return crvalidation.NewValidator(
 			map[schema.GroupResource]bool{
 				configv1.GroupVersion.WithResource("oauths").GroupResource(): true,
 			},
-			map[schema.GroupVersionKind]customresourcevalidation.ObjectValidator{
+			map[schema.GroupVersionKind]crvalidation.ObjectValidator{
 				configv1.GroupVersion.WithKind("OAuth"): oauthV1{},
 			})
 	})
@@ -54,8 +54,8 @@ func (oauthV1) ValidateCreate(uncastObj runtime.Object) field.ErrorList {
 		return errs
 	}
 
-	errs = append(errs, validation.ValidateObjectMeta(&obj.ObjectMeta, false, customresourcevalidation.RequireNameCluster, field.NewPath("metadata"))...)
-	errs = append(errs, validateOAuthSpec(obj.Spec)...)
+	errs = append(errs, validation.ValidateObjectMeta(&obj.ObjectMeta, false, crvalidation.RequireNameCluster, field.NewPath("metadata"))...)
+	errs = append(errs, validateOAuthSpecCreate(obj.Spec)...)
 
 	return errs
 }
@@ -71,7 +71,7 @@ func (oauthV1) ValidateUpdate(uncastObj runtime.Object, uncastOldObj runtime.Obj
 	}
 
 	errs = append(errs, validation.ValidateObjectMetaUpdate(&obj.ObjectMeta, &oldObj.ObjectMeta, field.NewPath("metadata"))...)
-	errs = append(errs, validateOAuthSpec(obj.Spec)...)
+	errs = append(errs, validateOAuthSpecUpdate(obj.Spec, oldObj.Spec)...)
 
 	return errs
 }
@@ -93,12 +93,12 @@ func (oauthV1) ValidateStatusUpdate(uncastObj runtime.Object, uncastOldObj runti
 	return errs
 }
 
-func validateOAuthSpec(spec configv1.OAuthSpec) field.ErrorList {
-	errs := field.ErrorList{}
+func validateOAuthSpecCreate(spec configv1.OAuthSpec) field.ErrorList {
+	return validateOAuthSpec(spec)
+}
 
-	// TODO
-
-	return errs
+func validateOAuthSpecUpdate(newspec, oldspec configv1.OAuthSpec) field.ErrorList {
+	return validateOAuthSpec(newspec)
 }
 
 func validateOAuthStatus(status configv1.OAuthStatus) field.ErrorList {
