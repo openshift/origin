@@ -15,6 +15,8 @@ import (
 	kappsv1beta1 "k8s.io/api/apps/v1beta1"
 	kappsv1beta2 "k8s.io/api/apps/v1beta2"
 	batchv1 "k8s.io/api/batch/v1"
+	batchv1beta1 "k8s.io/api/batch/v1beta1"
+	batchv2alpha1 "k8s.io/api/batch/v2alpha1"
 	corev1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -890,6 +892,12 @@ func (o *DebugOptions) approximatePodTemplateForObject(object runtime.Object) (*
 	// Job
 	case *batchv1.Job:
 		return setNodeName(&t.Spec.Template, o.NodeName), nil
+
+	// CronJob
+	case *batchv1beta1.CronJob:
+		return setNodeName(&t.Spec.JobTemplate.Spec.Template, o.NodeName), nil
+	case *batchv2alpha1.CronJob:
+		return setNodeName(&t.Spec.JobTemplate.Spec.Template, o.NodeName), nil
 	}
 
 	return nil, fmt.Errorf("unable to extract pod template from type %v", reflect.TypeOf(object))
