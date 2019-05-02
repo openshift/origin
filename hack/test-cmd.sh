@@ -99,6 +99,8 @@ os::cmd::try_until_success "oc get service kubernetes --namespace default --conf
 os::cmd::try_until_success "oc login --server=${KUBERNETES_MASTER} --certificate-authority ${MASTER_CONFIG_DIR}/server-ca.crt -u test-user -p anything" $(( 160 * second )) 0.25
 # wait for the CRD to be available
 os::cmd::try_until_success "oc get clusterresourcequotas --config='${ADMIN_KUBECONFIG}'" $(( 160 * second )) 0.25
+os::cmd::try_until_success "oc get scc --config='${ADMIN_KUBECONFIG}'" $(( 160 * second )) 0.25
+os::cmd::expect_success "oc apply -R -f ${OS_ROOT}/hack/local-up-master/bootstrap-manifests/ --config='${ADMIN_KUBECONFIG}'"
 os::test::junit::declare_suite_end
 os::log::debug "localup server health checks done at: $( date )"
 

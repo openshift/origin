@@ -332,7 +332,9 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, stop
 	}
 
 	// SCCs are required for OpenShift apiserver bootstrap process
-	util.WaitForSecurityContextConstraintsCRDAvailable(clientConfig)
+	if err := util.WaitForSecurityContextConstraintsCRDAvailable(clientConfig); err != nil {
+		return "", err
+	}
 
 	if err := startOpenShiftAPIServer(masterConfig, clientConfig, stopCh); err != nil {
 		return "", err
@@ -377,6 +379,20 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, stop
 	})
 	if err != nil {
 		return "", fmt.Errorf("Waiting for roles failed with: %v", err)
+	}
+
+	// create the bootstrap manifests (SCCs)
+	ctx, cancel := context.WithTimeout(context.TODO(), 30*time.Second)
+	defer cancel()
+
+	bootstrapManifestsDir := "../../hack/local-up-master/bootstrap-manifests"
+	if _, err := os.Stat(bootstrapManifestsDir); os.IsNotExist(err) {
+		return "", fmt.Errorf("directory with bootstrap manifests %q not found", bootstrapManifestsDir)
+	}
+	if err := create.EnsureManifestsCreated(ctx, bootstrapManifestsDir, clientConfig, create.CreateOptions{
+		Verbose: true,
+	}); err != nil {
+		return "", err
 	}
 
 	return adminKubeConfigFile, nil
