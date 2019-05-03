@@ -47,7 +47,7 @@ func (oa OpenAPI) Install(c *restful.Container, mux *mux.PathRecorderMux) (*hand
 	// apiextensions-apiserver spec during merging.
 	for pth := range spec.Paths.Paths {
 		if strings.HasPrefix(pth, "/apis/quota.openshift.io/v1/clusterresourcequotas") ||
-			strings.HasPrefix(pth, "/apis/authorization.openshift.io/v1/rolebindingrestrictions") ||
+			strings.Contains(pth, "rolebindingrestrictions") ||
 			strings.HasPrefix(pth, "/apis/security.openshift.io/v1/securitycontextconstraints") {
 			delete(spec.Paths.Paths, pth)
 		}
