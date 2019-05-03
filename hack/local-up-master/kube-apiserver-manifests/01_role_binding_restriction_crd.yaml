@@ -11,7 +11,7 @@ spec:
     singular: rolebindingrestriction
   subresources:
     status: {}
-  scope: Cluster
+  scope: Namespaced
   versions:
   - name: v1
     served: true
@@ -46,12 +46,14 @@ spec:
                   items:
                     type: string
                   type: array
+                  nullable: true
                 labels:
                   description: Selectors specifies a list of label selectors over
                     group labels.
                   items:
                     type: object
                   type: array
+                  nullable: true
               type: object
             serviceaccountrestriction:
               description: ServiceAccountRestriction matches against service-account
@@ -90,12 +92,14 @@ spec:
                   items:
                     type: string
                   type: array
+                  nullable: true
                 labels:
                   description: Selectors specifies a list of label selectors over
                     user labels.
                   items:
                     type: object
                   type: array
+                  nullable: true
                 users:
                   description: Users specifies a list of literal user names.
                   items:

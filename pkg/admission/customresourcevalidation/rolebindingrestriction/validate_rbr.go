@@ -56,7 +56,7 @@ func (roleBindingRestrictionV1) ValidateCreate(obj runtime.Object) field.ErrorLi
 		return errs
 	}
 
-	errs = append(errs, validation.ValidateObjectMeta(&roleBindingRestrictionObj.ObjectMeta, false, validation.NameIsDNSSubdomain, field.NewPath("metadata"))...)
+	errs = append(errs, validation.ValidateObjectMeta(&roleBindingRestrictionObj.ObjectMeta, true, validation.NameIsDNSSubdomain, field.NewPath("metadata"))...)
 	errs = append(errs, rbrvalidation.ValidateRoleBindingRestriction(roleBindingRestrictionObj)...)
 
 	return errs
@@ -72,7 +72,7 @@ func (roleBindingRestrictionV1) ValidateUpdate(obj runtime.Object, oldObj runtim
 		return errs
 	}
 
-	errs = append(errs, validation.ValidateObjectMeta(&roleBindingRestrictionObj.ObjectMeta, false, validation.NameIsDNSSubdomain, field.NewPath("metadata"))...)
+	errs = append(errs, validation.ValidateObjectMeta(&roleBindingRestrictionObj.ObjectMeta, true, validation.NameIsDNSSubdomain, field.NewPath("metadata"))...)
 	errs = append(errs, rbrvalidation.ValidateRoleBindingRestrictionUpdate(roleBindingRestrictionObj, roleBindingRestrictionOldObj)...)
 
 	return errs
