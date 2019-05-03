@@ -385,7 +385,7 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f kcmdutil.Factory, cmd *co
 	}
 
 	o.ToPrinter = func(operation string) (printers.ResourcePrinter, error) {
-		o.PrintFlags.NamePrintFlags.Operation = getSuccessMessage(o.DryRun, operation, o.Targets)
+		o.PrintFlags.NamePrintFlags.Operation = getRolesSuccessMessage(o.DryRun, operation, o.Targets)
 		return o.PrintFlags.ToPrinter()
 	}
 
@@ -407,7 +407,7 @@ func (o *RoleModificationOptions) Complete(f kcmdutil.Factory, cmd *cobra.Comman
 	}
 
 	o.ToPrinter = func(operation string) (printers.ResourcePrinter, error) {
-		o.PrintFlags.NamePrintFlags.Operation = getSuccessMessage(o.DryRun, operation, o.Targets)
+		o.PrintFlags.NamePrintFlags.Operation = getRolesSuccessMessage(o.DryRun, operation, o.Targets)
 		return o.PrintFlags.ToPrinter()
 	}
 
@@ -754,7 +754,7 @@ existingLoop:
 	return newSubjects, found
 }
 
-func getSuccessMessage(dryRun bool, operation string, targets []string) string {
+func getRolesSuccessMessage(dryRun bool, operation string, targets []string) string {
 	allTargets := fmt.Sprintf("%q", targets)
 	if len(targets) == 1 {
 		allTargets = fmt.Sprintf("%q", targets[0])

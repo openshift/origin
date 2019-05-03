@@ -6,15 +6,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
-	securityv1typedclient "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
+	rbacv1client "k8s.io/client-go/kubernetes/typed/rbac/v1"
 )
 
 const (
@@ -22,6 +21,7 @@ const (
 	AddSCCToUserRecommendedName       = "add-scc-to-user"
 	RemoveSCCFromGroupRecommendedName = "remove-scc-from-group"
 	RemoveSCCFromUserRecommendedName  = "remove-scc-from-user"
+	RBACNamesFmt                      = "system:openshift:scc:%s"
 )
 
 var (
@@ -42,12 +42,12 @@ type SCCModificationOptions struct {
 
 	ToPrinter func(string) (printers.ResourcePrinter, error)
 
-	SCCName      string
-	SCCInterface securityv1typedclient.SecurityContextConstraintsInterface
-	SANames      []string
+	SCCName    string
+	RbacClient rbacv1client.RbacV1Interface
+	SANames    []string
 
 	DefaultSubjectNamespace string
-	Subjects                []corev1.ObjectReference
+	Subjects                []rbacv1.Subject
 
 	IsGroup bool
 	DryRun  bool
@@ -154,12 +154,8 @@ func (o *SCCModificationOptions) CompleteUsers(f kcmdutil.Factory, cmd *cobra.Co
 	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 
-	o.ToPrinter = func(message string) (printers.ResourcePrinter, error) {
-		o.PrintFlags.NamePrintFlags.Operation = message
-		if o.DryRun {
-			o.PrintFlags.Complete("%s (dry run)")
-		}
-
+	o.ToPrinter = func(operation string) (printers.ResourcePrinter, error) {
+		o.PrintFlags.NamePrintFlags.Operation = getRolesSuccessMessage(o.DryRun, operation, o.getSubjectNames())
 		return o.PrintFlags.ToPrinter()
 	}
 
@@ -167,11 +163,10 @@ func (o *SCCModificationOptions) CompleteUsers(f kcmdutil.Factory, cmd *cobra.Co
 	if err != nil {
 		return err
 	}
-	securityClient, err := securityv1typedclient.NewForConfig(clientConfig)
+	o.RbacClient, err = rbacv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.SCCInterface = securityClient.SecurityContextConstraints()
 
 	o.DefaultSubjectNamespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
@@ -179,7 +174,7 @@ func (o *SCCModificationOptions) CompleteUsers(f kcmdutil.Factory, cmd *cobra.Co
 	}
 
 	for _, sa := range o.SANames {
-		o.Subjects = append(o.Subjects, corev1.ObjectReference{Namespace: o.DefaultSubjectNamespace, Name: sa, Kind: "ServiceAccount"})
+		o.Subjects = append(o.Subjects, rbacv1.Subject{Namespace: o.DefaultSubjectNamespace, Name: sa, Kind: "ServiceAccount"})
 	}
 
 	return nil
@@ -193,28 +188,23 @@ func (o *SCCModificationOptions) CompleteGroups(f kcmdutil.Factory, cmd *cobra.C
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
 
-	o.ToPrinter = func(message string) (printers.ResourcePrinter, error) {
-		o.PrintFlags.NamePrintFlags.Operation = message
-		if o.DryRun {
-			o.PrintFlags.Complete("%s (dry run)")
-		}
-
-		return o.PrintFlags.ToPrinter()
-	}
-
 	o.IsGroup = true
 	o.SCCName = args[0]
 	o.Subjects = buildSubjects([]string{}, args[1:])
+
+	o.ToPrinter = func(operation string) (printers.ResourcePrinter, error) {
+		o.PrintFlags.NamePrintFlags.Operation = getRolesSuccessMessage(o.DryRun, operation, o.getSubjectNames())
+		return o.PrintFlags.ToPrinter()
+	}
 
 	clientConfig, err := f.ToRESTConfig()
 	if err != nil {
 		return err
 	}
-	securityClient, err := securityv1typedclient.NewForConfig(clientConfig)
+	o.RbacClient, err = rbacv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
-	o.SCCInterface = securityClient.SecurityContextConstraints()
 
 	o.DefaultSubjectNamespace, _, err = f.ToRawKubeConfigLoader().Namespace()
 	if err != nil {
@@ -225,105 +215,51 @@ func (o *SCCModificationOptions) CompleteGroups(f kcmdutil.Factory, cmd *cobra.C
 }
 
 func (o *SCCModificationOptions) AddSCC() error {
-	scc, err := o.SCCInterface.Get(o.SCCName, metav1.GetOptions{})
-	if err != nil {
-		return err
+	addSubjects := RoleModificationOptions{
+		RoleKind:        "ClusterRole",
+		RoleName:        fmt.Sprintf(RBACNamesFmt, o.SCCName),
+		RoleBindingName: fmt.Sprintf(RBACNamesFmt, o.SCCName),
+
+		RbacClient: o.RbacClient,
+
+		Subjects: o.Subjects,
+		Targets:  o.getSubjectNames(),
+
+		PrintFlags: o.PrintFlags,
+		ToPrinter:  o.ToPrinter,
+
+		DryRun: o.DryRun,
 	}
+	addSubjects.IOStreams = o.IOStreams
 
-	users, groups := stringSubjectsFor(o.DefaultSubjectNamespace, o.Subjects)
-	usersToAdd, _ := diff(users, scc.Users)
-	groupsToAdd, _ := diff(groups, scc.Groups)
-
-	scc.Users = append(scc.Users, usersToAdd...)
-	scc.Groups = append(scc.Groups, groupsToAdd...)
-
-	message := successMessage(true, o.IsGroup, users, groups)
-
-	p, err := o.ToPrinter(message)
-	if err != nil {
-		return err
-	}
-
-	if o.DryRun {
-		return p.PrintObj(scc, o.Out)
-	}
-
-	_, err = o.SCCInterface.Update(scc)
-	if err != nil {
-		return err
-	}
-
-	return p.PrintObj(scc, o.Out)
+	return addSubjects.AddRole()
 }
 
 func (o *SCCModificationOptions) RemoveSCC() error {
-	scc, err := o.SCCInterface.Get(o.SCCName, metav1.GetOptions{})
-	if err != nil {
-		return err
+	removeSubjects := RoleModificationOptions{
+		RoleKind:        "ClusterRole",
+		RoleName:        fmt.Sprintf(RBACNamesFmt, o.SCCName),
+		RoleBindingName: fmt.Sprintf(RBACNamesFmt, o.SCCName),
+
+		RbacClient: o.RbacClient,
+
+		Subjects: o.Subjects,
+		Targets:  o.getSubjectNames(),
+
+		PrintFlags: o.PrintFlags,
+		ToPrinter:  o.ToPrinter,
+
+		DryRun: o.DryRun,
 	}
+	removeSubjects.IOStreams = o.IOStreams
 
-	users, groups := stringSubjectsFor(o.DefaultSubjectNamespace, o.Subjects)
-	_, remainingUsers := diff(users, scc.Users)
-	_, remainingGroups := diff(groups, scc.Groups)
-
-	scc.Users = remainingUsers
-	scc.Groups = remainingGroups
-
-	message := successMessage(false, o.IsGroup, users, groups)
-
-	p, err := o.ToPrinter(message)
-	if err != nil {
-		return err
-	}
-
-	if o.DryRun {
-		return p.PrintObj(scc, o.Out)
-	}
-
-	_, err = o.SCCInterface.Update(scc)
-	if err != nil {
-		return err
-	}
-
-	return p.PrintObj(scc, o.Out)
+	return removeSubjects.RemoveRole()
 }
 
-func diff(lhsSlice, rhsSlice []string) (lhsOnly []string, rhsOnly []string) {
-	return singleDiff(lhsSlice, rhsSlice), singleDiff(rhsSlice, lhsSlice)
-}
-
-func singleDiff(lhsSlice, rhsSlice []string) (lhsOnly []string) {
-	for _, lhs := range lhsSlice {
-		found := false
-		for _, rhs := range rhsSlice {
-			if lhs == rhs {
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			lhsOnly = append(lhsOnly, lhs)
-		}
+func (o *SCCModificationOptions) getSubjectNames() []string {
+	targets := make([]string, 0, len(o.Subjects))
+	for _, s := range o.Subjects {
+		targets = append(targets, s.Name)
 	}
-
-	return lhsOnly
-}
-
-// generate affirmative output
-func successMessage(didAdd bool, isGroup bool, usersToAdd, groupsToAdd []string) string {
-	verb := "removed from"
-	allTargets := fmt.Sprintf("%q", usersToAdd)
-
-	if isGroup {
-		allTargets = fmt.Sprintf("%q", groupsToAdd)
-	}
-	if didAdd {
-		verb = "added to"
-	}
-	if isGroup {
-		verb += " groups"
-	}
-
-	return fmt.Sprintf("%s: %s", verb, allTargets)
+	return targets
 }

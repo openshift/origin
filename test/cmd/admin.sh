@@ -126,23 +126,23 @@ os::cmd::expect_success_and_not_text 'oc adm policy remove-cluster-role-from-gro
 os::cmd::expect_success 'oc adm policy add-cluster-role-to-group --rolebinding-name=self-provisioners self-provisioner system:authenticated:oauth'
 
 os::cmd::expect_success 'oc adm policy add-scc-to-user privileged fake-user'
-os::cmd::expect_success_and_text 'oc get scc/privileged -o yaml' 'fake-user'
+os::cmd::expect_success_and_text 'oc get clusterrolebinding/system:openshift:scc:privileged -o jsonpath={.subjects}' 'fake-user'
 os::cmd::expect_success 'oc adm policy add-scc-to-user privileged -z fake-sa'
-os::cmd::expect_success_and_text 'oc get scc/privileged -o yaml' "system:serviceaccount:$(oc project -q):fake-sa"
+os::cmd::expect_success_and_text 'oc get clusterrolebinding/system:openshift:scc:privileged -o jsonpath={.subjects}' "fake-sa"
 os::cmd::expect_success 'oc adm policy add-scc-to-group privileged fake-group'
-os::cmd::expect_success_and_text 'oc get scc/privileged -o yaml' 'fake-group'
+os::cmd::expect_success_and_text 'oc get clusterrolebinding/system:openshift:scc:privileged -o jsonpath={.subjects}' 'fake-group'
 os::cmd::expect_success 'oc adm policy remove-scc-from-user privileged fake-user'
-os::cmd::expect_success_and_not_text 'oc get scc/privileged -o yaml' 'fake-user'
+os::cmd::expect_success_and_not_text 'oc get clusterrolebinding/system:openshift:scc:privileged -o jsonpath={.subjects}' 'fake-user'
 os::cmd::expect_success 'oc adm policy remove-scc-from-user privileged -z fake-sa'
-os::cmd::expect_success_and_not_text 'oc get scc/privileged -o yaml' "system:serviceaccount:$(oc project -q):fake-sa"
+os::cmd::expect_success_and_not_text 'oc get clusterrolebinding/system:openshift:scc:privileged -o jsonpath={.subjects}' "fake-sa"
 os::cmd::expect_success 'oc adm policy remove-scc-from-group privileged fake-group'
-os::cmd::expect_success_and_not_text 'oc get scc/privileged -o yaml' 'fake-group'
+os::cmd::expect_failure_and_text 'oc get clusterrolebinding/system:openshift:scc:privileged -o jsonpath={.subjects}' 'clusterrolebindings.authorization.openshift.io "system:openshift:scc:privileged" not found$'
 
 # check pruning
 os::cmd::expect_success 'oc adm policy add-scc-to-user privileged fake-user'
-os::cmd::expect_success_and_text 'oc adm prune auth users/fake-user' 'securitycontextconstraints.security.openshift.io/privileged updated'
+os::cmd::expect_success_and_text 'oc adm prune auth users/fake-user' 'clusterrolebinding.rbac.authorization.k8s.io/system:openshift:scc:privileged updated'
 os::cmd::expect_success 'oc adm policy add-scc-to-group privileged fake-group'
-os::cmd::expect_success_and_text 'oc adm prune auth groups/fake-group' 'securitycontextconstraints.security.openshift.io/privileged updated'
+os::cmd::expect_success_and_text 'oc adm prune auth groups/fake-group' 'clusterrolebinding.rbac.authorization.k8s.io/system:openshift:scc:privileged updated'
 echo "admin-scc: ok"
 os::test::junit::declare_suite_end
 
@@ -237,41 +237,6 @@ os::cmd::expect_success_and_text 'oc status -o dot' '"example"'
 echo "complex-scenarios: ok"
 os::test::junit::declare_suite_end
 
-os::test::junit::declare_suite_start "cmd/admin/reconcile-security-context-constraints"
-# Test reconciling SCCs
-os::cmd::expect_success 'oc delete scc/restricted'
-os::cmd::expect_failure 'oc get scc/restricted'
-os::cmd::expect_success 'oc adm policy reconcile-sccs'
-os::cmd::expect_failure 'oc get scc/restricted'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm'
-os::cmd::expect_success 'oc get scc/restricted'
-
-os::cmd::expect_success 'oc adm policy add-scc-to-user restricted my-restricted-user'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'my-restricted-user'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'my-restricted-user'
-
-os::cmd::expect_success 'oc adm policy remove-scc-from-group restricted system:authenticated'
-os::cmd::expect_success_and_not_text 'oc get scc/restricted -o yaml' 'system:authenticated'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'system:authenticated'
-
-os::cmd::expect_success 'oc label scc/restricted foo=bar'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'foo: bar'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm --additive-only=true'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'foo: bar'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm --additive-only=false'
-os::cmd::expect_success_and_not_text 'oc get scc/restricted -o yaml' 'foo: bar'
-
-os::cmd::expect_success 'oc annotate scc/restricted topic="my-foo-bar"'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'topic: my-foo-bar'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm --additive-only=true'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'topic: my-foo-bar'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm --additive-only=false'
-os::cmd::expect_success_and_not_text 'oc get scc/restricted -o yaml' 'topic: my-foo-bar'
-echo "reconcile-scc: ok"
-os::test::junit::declare_suite_end
-
 os::test::junit::declare_suite_start "cmd/admin/rolebinding-allowed"
 # Admin can bind local roles without cluster-admin permissions
 os::cmd::expect_success "oc create -f test/extended/testdata/roles/empty-role.yaml -n '${project}'"
@@ -323,12 +288,12 @@ os::cmd::expect_success 'oc get identities/alwaysallow:orphaned-user'
 # Verify orphaned user references are left
 os::cmd::expect_success_and_text     "oc get clusterrolebindings/cluster-admins clusterrolebindings/cluster-admin -o jsonpath='{ .items[*].subjects }'" 'orphaned-user'
 os::cmd::expect_success_and_text     "oc get rolebindings/cluster-admin         --template='{{.subjects}}' -n default" 'orphaned-user'
-os::cmd::expect_success_and_text     "oc get scc/restricted                     --template='{{.users}}'"               'orphaned-user'
+os::cmd::expect_success_and_text     "oc get clusterrolebinding/system:openshift:scc:restricted                     --template='{{.subjects}}'"               'orphaned-user'
 os::cmd::expect_success_and_text     "oc get group/cascaded-group               --template='{{.users}}'"               'orphaned-user'
 # Verify cascaded user references are removed
 os::cmd::expect_success_and_not_text "oc get clusterrolebindings/cluster-admins clusterrolebindings/cluster-admin -o jsonpath='{ .items[*].subjects }'" 'cascaded-user'
 os::cmd::expect_success_and_not_text "oc get rolebindings/cluster-admin         --template='{{.subjects}}' -n default" 'cascaded-user'
-os::cmd::expect_success_and_not_text "oc get scc/restricted                     --template='{{.users}}'"               'cascaded-user'
+os::cmd::expect_success_and_not_text "oc get clusterrolebindings/system:openshift:scc:restricted                     --template='{{.subjects}}'"               'cascaded-user'
 os::cmd::expect_success_and_not_text "oc get group/cascaded-group               --template='{{.users}}'"               'cascaded-user'
 
 # Delete groups
@@ -338,11 +303,11 @@ os::cmd::expect_success 'oc delete group orphaned-group --cascade=false'
 # Verify orphaned group references are left
 os::cmd::expect_success_and_text     "oc get clusterrolebindings/cluster-admins clusterrolebindings/cluster-admin -o jsonpath='{ .items[*].subjects }'" 'orphaned-group'
 os::cmd::expect_success_and_text     "oc get rolebindings/cluster-admin         --template='{{.subjects}}' -n default" 'orphaned-group'
-os::cmd::expect_success_and_text     "oc get scc/restricted                     --template='{{.groups}}'"              'orphaned-group'
+os::cmd::expect_success_and_text     "oc get clusterrolebindings/system:openshift:scc:restricted                     --template='{{.subjects}}'"              'orphaned-group'
 # Verify cascaded group references are removed
 os::cmd::expect_success_and_not_text "oc get clusterrolebindings/cluster-admins clusterrolebindings/cluster-admin -o jsonpath='{ .items[*].subjects }'" 'cascaded-group'
 os::cmd::expect_success_and_not_text "oc get rolebindings/cluster-admin         --template='{{.subjects}}' -n default" 'cascaded-group'
-os::cmd::expect_success_and_not_text "oc get scc/restricted                     --template='{{.groups}}'"              'cascaded-group'
+os::cmd::expect_success_and_not_text "oc get clusterrolebindings/system:openshift:scc:restricted                     --template='{{.subjects}}'"              'cascaded-group'
 echo "user-group-cascade: ok"
 os::test::junit::declare_suite_end
 

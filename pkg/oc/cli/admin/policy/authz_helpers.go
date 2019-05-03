@@ -2,24 +2,25 @@ package policy
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 )
 
-func buildSubjects(users, groups []string) []corev1.ObjectReference {
-	subjects := []corev1.ObjectReference{}
+func buildSubjects(users, groups []string) []rbacv1.Subject {
+	subjects := []rbacv1.Subject{}
 
 	for _, user := range users {
 		saNamespace, saName, err := serviceaccount.SplitUsername(user)
 		if err == nil {
-			subjects = append(subjects, corev1.ObjectReference{Kind: "ServiceAccount", Namespace: saNamespace, Name: saName})
+			subjects = append(subjects, rbacv1.Subject{Kind: "ServiceAccount", Namespace: saNamespace, Name: saName})
 			continue
 		}
 
-		subjects = append(subjects, corev1.ObjectReference{Kind: "User", Name: user})
+		subjects = append(subjects, rbacv1.Subject{Kind: "User", Name: user})
 	}
 
 	for _, group := range groups {
-		subjects = append(subjects, corev1.ObjectReference{Kind: "Group", Name: group})
+		subjects = append(subjects, rbacv1.Subject{Kind: "Group", Name: group})
 	}
 
 	return subjects

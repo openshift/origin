@@ -1,6 +1,8 @@
 package bootstrappolicy
 
 import (
+	"fmt"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -716,6 +718,13 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 				rbacv1helpers.NewRule("get", "put", "update", "delete").URLs(templateapi.ServiceBrokerRoot + "/*").RuleOrDie(),
 			},
 		},
+		clusterRoleForSCC("anyuid"),
+		clusterRoleForSCC("hostaccess"),
+		clusterRoleForSCC("hostmount"),
+		clusterRoleForSCC("hostnetwork"),
+		clusterRoleForSCC("nonroot"),
+		clusterRoleForSCC("privileged"),
+		clusterRoleForSCC("restricted"),
 	}
 	for i := range clusterRoles {
 		clusterRole := &clusterRoles[i]
@@ -744,6 +753,17 @@ func newOriginClusterBinding(bindingName, roleName string) *rbacv1helpers.Cluste
 	builder := rbacv1helpers.NewClusterBinding(roleName)
 	builder.ClusterRoleBinding.Name = bindingName
 	return builder
+}
+
+func clusterRoleForSCC(sccName string) rbacv1.ClusterRole {
+	return rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("system:openshift:scc:%s", sccName),
+		},
+		Rules: []rbacv1.PolicyRule{
+			rbacv1helpers.NewRule("use").Groups(securityGroup).Resources("securitycontextconstraints").Names(sccName).RuleOrDie(),
+		},
+	}
 }
 
 func GetOpenshiftBootstrapClusterRoleBindings() []rbacv1.ClusterRoleBinding {
@@ -816,6 +836,7 @@ func GetOpenshiftBootstrapClusterRoleBindings() []rbacv1.ClusterRoleBinding {
 			Groups(AuthenticatedGroup, UnauthenticatedGroup).
 			BindingOrDie(),
 	}
+
 	for i := range clusterRoleBindings {
 		clusterRoleBinding := &clusterRoleBindings[i]
 		addDefaultMetadata(clusterRoleBinding)

@@ -131,18 +131,25 @@ __EOF__' 'allowedServiceAccounts: null'
 os::cmd::expect_success_and_text 'oc adm policy add-role-to-group view testgroup -o yaml' 'name: view'
 os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-group cluster-reader testgroup -o yaml' 'name: testgroup'
 os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-user cluster-reader namespaced-user -o yaml' 'name: namespaced\-user'
+os::cmd::expect_success_and_text 'oc adm policy add-scc-to-user anyuid namespaced-user -o yaml' 'name: namespaced\-user'
+os::cmd::expect_success_and_text 'oc adm policy add-scc-to-group anyuid testgroup -o yaml' 'name: testgroup'
 
 os::cmd::expect_success_and_text 'oc adm policy add-role-to-group view testgroup --dry-run' 'rolebinding.rbac.authorization.k8s.io/view added: "testgroup" \(dry run\)'
 os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-group cluster-reader testgroup --dry-run' 'clusterrolebinding.rbac.authorization.k8s.io/cluster-reader added: "testgroup" \(dry run\)'
 os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-user cluster-reader namespaced-user --dry-run' 'clusterrolebinding.rbac.authorization.k8s.io/cluster-reader added: "namespaced-user" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy add-scc-to-user anyuid namespaced-user --dry-run' 'clusterrolebinding.rbac.authorization.k8s.io/system:openshift:scc:anyuid added: "namespaced-user" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy add-scc-to-group anyuid testgroup --dry-run' 'clusterrolebinding.rbac.authorization.k8s.io/system:openshift:scc:anyuid added: "testgroup" \(dry run\)'
 
 os::cmd::expect_success 'oc adm policy add-role-to-group view testgroup'
 os::cmd::expect_success 'oc adm policy add-cluster-role-to-group cluster-reader testgroup'
 os::cmd::expect_success 'oc adm policy add-cluster-role-to-user cluster-reader namespaced-user'
+os::cmd::expect_success 'oc adm policy add-scc-to-user anyuid namespaced-user'
+os::cmd::expect_success 'oc adm policy add-scc-to-group anyuid testgroup'
 
 # ensure that removing missing target causes error.
 os::cmd::expect_failure_and_text 'oc adm policy remove-cluster-role-from-user admin ghost' 'error: unable to find target \[ghost\]'
 os::cmd::expect_failure_and_text 'oc adm policy remove-cluster-role-from-user admin -z ghost' 'error: unable to find target \[ghost\]'
+os::cmd::expect_failure_and_text 'oc adm policy remove-scc-from-user anyuid -z ghost' 'error: unable to find target \[ghost\]'
 
 os::cmd::expect_success_and_not_text 'oc adm policy remove-role-from-group view testgroup -o yaml' 'subjects: '
 os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group cluster-reader testgroup -o yaml' 'name: cluster\-readers'
@@ -152,20 +159,14 @@ os::cmd::expect_success_and_text 'oc adm policy remove-role-from-group view test
 os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group cluster-reader testgroup --dry-run' 'clusterrole.rbac.authorization.k8s.io/cluster-reader removed: "testgroup" \(dry run\)'
 os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-user cluster-reader namespaced-user --dry-run' 'clusterrole.rbac.authorization.k8s.io/cluster-reader removed: "namespaced-user" \(dry run\)'
 
+os::cmd::expect_success_and_not_text 'oc adm policy remove-scc-from-user anyuid namespaced-user -o yaml' 'name: namespaced\-user'
+os::cmd::expect_success_and_text 'oc adm policy remove-scc-from-user anyuid namespaced-user --dry-run' 'clusterrole.rbac.authorization.k8s.io/system:openshift:scc:anyuid removed: "namespaced-user" \(dry run\)'
+
+os::cmd::expect_success_and_not_text 'oc adm policy remove-scc-from-group anyuid testgroup -o yaml' 'name: testgroup'
+os::cmd::expect_success_and_text 'oc adm policy remove-scc-from-group anyuid testgroup --dry-run' 'clusterrole.rbac.authorization.k8s.io/system:openshift:scc:anyuid removed: "testgroup" \(dry run\)'
+
 os::cmd::expect_success_and_text 'oc adm policy remove-user namespaced-user -o yaml' "namespace: ${project}"
 os::cmd::expect_success_and_text 'oc adm policy remove-user namespaced-user --dry-run' "Removing admin from users \[namespaced\-user\] in project ${project}"
-
-os::cmd::expect_success_and_text 'oc adm policy add-scc-to-user anyuid namespaced-user -o yaml' '\- namespaced\-user'
-os::cmd::expect_success_and_text 'oc adm policy add-scc-to-user anyuid namespaced-user --dry-run' 'securitycontextconstraints.security.openshift.io/anyuid added to: \["namespaced\-user"\] \(dry run\)'
-
-os::cmd::expect_success_and_text 'oc adm policy add-scc-to-group anyuid testgroup -o yaml' '\- testgroup'
-os::cmd::expect_success_and_text 'oc adm policy add-scc-to-group anyuid testgroup --dry-run' 'securitycontextconstraints.security.openshift.io/anyuid added to groups: \["testgroup"\] \(dry run\)'
-
-os::cmd::expect_success_and_not_text 'oc adm policy remove-scc-from-user anyuid namespaced-user -o yaml' '\- namespaced\-user'
-os::cmd::expect_success_and_text 'oc adm policy remove-scc-from-user anyuid namespaced-user --dry-run' 'securitycontextconstraints.security.openshift.io/anyuid removed from: \["namespaced\-user"\] \(dry run\)'
-
-os::cmd::expect_success_and_not_text 'oc adm policy remove-scc-from-group anyuid testgroup -o yaml' '\- testgroup'
-os::cmd::expect_success_and_text 'oc adm policy remove-scc-from-group anyuid testgroup --dry-run' 'securitycontextconstraints.security.openshift.io/anyuid removed from groups: \["testgroup"\] \(dry run\)'
 
 # ensure system:authenticated users can not create custom builds by default, but can if explicitly granted access
 os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/custom' 'system:authenticated'
