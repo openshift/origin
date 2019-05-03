@@ -118,6 +118,7 @@ func newRunCommand() *cobra.Command {
 				}
 				os.Setenv("TEST_PROVIDER", opt.Provider)
 				e2e.AfterReadingAllFlags(exutil.TestContext)
+				exutil.TestContext.DumpLogsOnFailure = true
 				return opt.Run(args)
 			})
 		},
@@ -167,6 +168,7 @@ func newRunUpgradeCommand() *cobra.Command {
 				}
 				os.Setenv("TEST_PROVIDER", opt.Provider)
 				e2e.AfterReadingAllFlags(exutil.TestContext)
+				exutil.TestContext.DumpLogsOnFailure = true
 				return opt.Run(args)
 			})
 		},
@@ -202,6 +204,7 @@ func newRunTestCommand() *cobra.Command {
 				return err
 			}
 			e2e.AfterReadingAllFlags(exutil.TestContext)
+			exutil.TestContext.DumpLogsOnFailure = true
 			return testOpt.Run(args)
 		},
 	}
