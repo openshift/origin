@@ -113,6 +113,7 @@ Provides:       atomic-openshift-node
 %package clients
 Summary:        %{product_name} Client binaries for Linux
 Provides:       atomic-openshift-clients
+Obsoletes:      atomic-openshift-clients
 Requires:       bash-completion
 
 %description clients
@@ -122,6 +123,7 @@ Requires:       bash-completion
 %package clients-redistributable
 Summary:        %{product_name} Client binaries for Linux, Mac OSX, and Windows
 Provides:       atomic-openshift-clients-redistributable
+Obsoletes:      atomic-openshift-clients-redistributable
 BuildRequires:  goversioninfo
 
 %description clients-redistributable
