@@ -48,8 +48,43 @@ import (
 const pvPrefix = "pv-"
 const nfsPrefix = "nfs-"
 
+// WaitForInternalRegistryHostname waits for the internal registry hostname to be made available to the cluster.
+func WaitForInternalRegistryHostname(oc *CLI) (string, error) {
+	e2e.Logf("Waiting up to 2 minutes for the internal registry hostname to be published")
+	var registryHostname string
+	err := wait.Poll(2*time.Second, 2*time.Minute, func() (bool, error) {
+		imageConfig, err := oc.AsAdmin().AdminConfigClient().ConfigV1().Images().Get("cluster", metav1.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		if imageConfig == nil {
+			return false, nil
+		}
+		registryHostname = imageConfig.Status.InternalRegistryHostname
+		if len(registryHostname) == 0 {
+			return false, nil
+		}
+		return true, nil
+	})
+	if err == wait.ErrWaitTimeout {
+		return "", fmt.Errorf("Timed out waiting for internal registry hostname to be published")
+	}
+	if err != nil {
+		return "", err
+	}
+	return registryHostname, nil
+}
+
 // WaitForOpenShiftNamespaceImageStreams waits for the standard set of imagestreams to be imported
 func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
+	// First wait for the internal registry hostname to be published
+	registryHostname, err := WaitForInternalRegistryHostname(oc)
+	if err != nil {
+		return err
+	}
 	langs := []string{"ruby", "nodejs", "perl", "php", "python", "mysql", "postgresql", "mongodb", "jenkins"}
 	scan := func() bool {
 		for _, lang := range langs {
@@ -57,6 +92,10 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 			is, err := oc.ImageClient().Image().ImageStreams("openshift").Get(lang, metav1.GetOptions{})
 			if err != nil {
 				e2e.Logf("ImageStream Error: %#v \n", err)
+				return false
+			}
+			if !strings.HasPrefix(is.Status.DockerImageRepository, registryHostname) {
+				e2e.Logf("ImageStream repository %s does not match expected host %s \n", is.Status.DockerImageRepository, registryHostname)
 				return false
 			}
 			for tag := range is.Spec.Tags {
@@ -70,7 +109,6 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 		return true
 	}
 
-	success := false
 	// with the move to ocp/rhel as the default for the samples in 4.0, there are alot more imagestreams;
 	// if by some chance this path runs very soon after the cluster has come up, the original time out would
 	// not be sufficient;
@@ -79,15 +117,12 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	// have proven less reliable that docker.io)
 	// we've also determined that e2e-aws-image-ecosystem can be started before all the operators have completed; while
 	// that is getting sorted out, the longer time will help there as well
-	for i := 0; i < 15; i++ {
-		e2e.Logf("Running scan #%v \n", i)
+	e2e.Logf("Scanning openshift ImageStreams \n")
+	success := false
+	wait.Poll(10*time.Second, 150*time.Second, func() (bool, error) {
 		success = scan()
-		if success {
-			break
-		}
-		e2e.Logf("Sleeping for 10 seconds \n")
-		time.Sleep(10 * time.Second)
-	}
+		return success, nil
+	})
 	if success {
 		e2e.Logf("Success! \n")
 		return nil

@@ -28,6 +28,11 @@ var _ = g.Describe("[Feature:ImageQuota][registry][Serial][Suite:openshift/regis
 
 	var oc = exutil.NewCLI("limitrange-admission", exutil.KubeConfigPath())
 
+	g.BeforeEach(func() {
+		_, err := exutil.WaitForInternalRegistryHostname(oc)
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+
 	g.It(fmt.Sprintf("should deny a push of built image exceeding %s limit", imageapi.LimitTypeImage), func() {
 		_, err := createLimitRangeOfType(oc, imageapi.LimitTypeImage, kapi.ResourceList{
 			kapi.ResourceStorage: resource.MustParse("10Ki"),
