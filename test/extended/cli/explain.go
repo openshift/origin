@@ -111,6 +111,7 @@ var (
 		{Group: "operator.openshift.io", Version: "v1", Resource: "servicecatalogcontrollermanagers"},
 
 		{Group: "quota.openshift.io", Version: "v1", Resource: "clusterresourcequotas"},
+		{Group: "authorization.openshift.io", Version: "v1", Resource: "rolebindingrestrictions"},
 
 		// FIXME
 		// schema.GroupVersionResource{Group: "samples.operator.openshift.io", Version: "v1", Resource: "configs"},
