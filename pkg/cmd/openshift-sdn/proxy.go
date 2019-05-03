@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	"k8s.io/api/core/v1"
@@ -127,8 +128,9 @@ func (sdn *OpenShiftSDN) initProxy() error {
 	return err
 }
 
-// runProxy starts the configured proxy process.
-func (sdn *OpenShiftSDN) runProxy() {
+// runProxy starts the configured proxy process and closes the provided channel
+// when the proxy has initialized
+func (sdn *OpenShiftSDN) runProxy(waitChan chan<- bool) {
 	protocol := utiliptables.ProtocolIpv4
 	bindAddr := net.ParseIP(sdn.ProxyConfig.BindAddress)
 	if bindAddr.To4() == nil {
@@ -270,10 +272,6 @@ func (sdn *OpenShiftSDN) runProxy() {
 		proxier = hybridProxier
 	}
 
-	iptInterface.AddReloadFunc(proxier.Sync)
-	serviceConfig.RegisterEventHandler(servicesHandler)
-	go serviceConfig.Run(utilwait.NeverStop)
-
 	endpointsConfig := pconfig.NewEndpointsConfig(
 		sdn.informers.KubeInformers.Core().V1().Endpoints(),
 		sdn.ProxyConfig.ConfigSyncPeriod.Duration,
@@ -283,7 +281,15 @@ func (sdn *OpenShiftSDN) runProxy() {
 		klog.Fatalf("error: node proxy plugin startup failed: %v", err)
 	}
 	endpointsHandler = sdn.OsdnProxy
-	endpointsConfig.RegisterEventHandler(endpointsHandler)
+
+	// Wrap the proxy to know when it finally initializes
+	waitingProxy := newWaitingProxyHandler(servicesHandler, endpointsHandler, waitChan)
+
+	iptInterface.AddReloadFunc(proxier.Sync)
+	serviceConfig.RegisterEventHandler(waitingProxy)
+	go serviceConfig.Run(utilwait.NeverStop)
+
+	endpointsConfig.RegisterEventHandler(waitingProxy)
 	go endpointsConfig.Run(utilwait.NeverStop)
 
 	// Start up healthz server
@@ -345,4 +351,74 @@ func getNodeIP(client kv1core.CoreV1Interface, hostname string) (net.IP, error) 
 	}
 
 	return nodeIP, nil
+}
+
+type waitingProxyHandler struct {
+	sync.Mutex
+
+	// waitChan will be closed when both services and endpoints have
+	// been synced in the proxy
+	waitChan    chan<- bool
+	initialized bool
+
+	serviceChild    pconfig.ServiceHandler
+	serviceSynced   bool
+	endpointsChild  pconfig.EndpointsHandler
+	endpointsSynced bool
+}
+
+func newWaitingProxyHandler(serviceChild pconfig.ServiceHandler, endpointsChild pconfig.EndpointsHandler, waitChan chan<- bool) *waitingProxyHandler {
+	return &waitingProxyHandler{
+		serviceChild:   serviceChild,
+		endpointsChild: endpointsChild,
+		waitChan:       waitChan,
+	}
+}
+
+func (wph *waitingProxyHandler) checkInitialized() {
+	if !wph.initialized && wph.serviceSynced && wph.endpointsSynced {
+		klog.V(2).Info("openshift-sdn proxy services and endpoints initialized")
+		wph.initialized = true
+		close(wph.waitChan)
+	}
+}
+
+func (wph *waitingProxyHandler) OnServiceAdd(service *v1.Service) {
+	wph.serviceChild.OnServiceAdd(service)
+}
+
+func (wph *waitingProxyHandler) OnServiceUpdate(oldService, service *v1.Service) {
+	wph.serviceChild.OnServiceUpdate(oldService, service)
+}
+
+func (wph *waitingProxyHandler) OnServiceDelete(service *v1.Service) {
+	wph.serviceChild.OnServiceDelete(service)
+}
+
+func (wph *waitingProxyHandler) OnServiceSynced() {
+	wph.serviceChild.OnServiceSynced()
+	wph.Lock()
+	defer wph.Unlock()
+	wph.serviceSynced = true
+	wph.checkInitialized()
+}
+
+func (wph *waitingProxyHandler) OnEndpointsAdd(endpoints *v1.Endpoints) {
+	wph.endpointsChild.OnEndpointsAdd(endpoints)
+}
+
+func (wph *waitingProxyHandler) OnEndpointsUpdate(oldEndpoints, endpoints *v1.Endpoints) {
+	wph.endpointsChild.OnEndpointsUpdate(oldEndpoints, endpoints)
+}
+
+func (wph *waitingProxyHandler) OnEndpointsDelete(endpoints *v1.Endpoints) {
+	wph.endpointsChild.OnEndpointsDelete(endpoints)
+}
+
+func (wph *waitingProxyHandler) OnEndpointsSynced() {
+	wph.endpointsChild.OnEndpointsSynced()
+	wph.Lock()
+	defer wph.Unlock()
+	wph.endpointsSynced = true
+	wph.checkInitialized()
 }
