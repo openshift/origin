@@ -41,6 +41,8 @@ type OpenShiftSDN struct {
 	informers *informers
 	OsdnNode  *sdnnode.OsdnNode
 	OsdnProxy *sdnproxy.OsdnProxy
+
+	proxyReadyChan chan struct{}
 }
 
 var networkLong = `
@@ -194,15 +196,20 @@ func (sdn *OpenShiftSDN) Init() error {
 
 // Start starts the network, proxy, and informers, then returns.
 func (sdn *OpenShiftSDN) Start(stopCh <-chan struct{}) error {
-	klog.Infof("Starting node networking (%s)", version.Get().String())
+	klog.Infof("Starting node service proxy (%s)", version.Get().String())
 
 	serviceability.StartProfiler()
+	sdn.runProxy()
+	sdn.informers.start(stopCh)
+
+	klog.Infof("Waiting for proxy rules to sync...")
+	<-sdn.proxyReadyChan
+
+	klog.Infof("Proxy rules successfully synced, starting node networking")
 	err := sdn.runSDN()
 	if err != nil {
 		return err
 	}
-	sdn.runProxy()
-	sdn.informers.start(stopCh)
 
 	return nil
 }

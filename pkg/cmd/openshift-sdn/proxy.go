@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -153,7 +153,7 @@ func (sdn *OpenShiftSDN) runProxy() {
 	var proxier proxy.ProxyProvider
 	var servicesHandler pconfig.ServiceHandler
 	var endpointsHandler pconfig.EndpointsHandler
-	var healthzServer *healthcheck.HealthzServer
+	var healthzServer *NotifyingHealthzServer
 	if len(sdn.ProxyConfig.HealthzBindAddress) > 0 {
 		nodeRef := &v1.ObjectReference{
 			Kind:      "Node",
@@ -161,8 +161,13 @@ func (sdn *OpenShiftSDN) runProxy() {
 			UID:       types.UID(hostname),
 			Namespace: "",
 		}
-		healthzServer = healthcheck.NewDefaultHealthzServer(sdn.ProxyConfig.HealthzBindAddress, 2*sdn.ProxyConfig.IPTables.SyncPeriod.Duration, recorder, nodeRef)
+		healthzServer = NewNotifyingHealthzServer(
+			healthcheck.NewDefaultHealthzServer(sdn.ProxyConfig.HealthzBindAddress, 2*sdn.ProxyConfig.IPTables.SyncPeriod.Duration, recorder, nodeRef),
+		)
+	} else {
+		healthzServer = NewNotifyingHealthzServer(nil)
 	}
+	sdn.proxyReadyChan = healthzServer.UpdatedOnce
 
 	switch sdn.ProxyConfig.Mode {
 	case kubeproxyconfig.ProxyModeIPTables:
