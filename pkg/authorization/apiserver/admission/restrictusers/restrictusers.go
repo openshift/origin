@@ -171,7 +171,7 @@ func (q *restrictUsersAdmission) Validate(a admission.Attributes) (err error) {
 	roleBindingRestrictionList, err := q.roleBindingRestrictionsGetter.RoleBindingRestrictions(ns).
 		List(metav1.ListOptions{})
 	if err != nil {
-		return admission.NewForbidden(a, err)
+		return admission.NewForbidden(a, fmt.Errorf("failed getting rolebinding restrictions: %v", err))
 	}
 	if len(roleBindingRestrictionList.Items) == 0 {
 		klog.V(4).Infof("No rolebinding restrictions specified; admitting")

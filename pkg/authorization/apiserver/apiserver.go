@@ -1,7 +1,6 @@
 package apiserver
 
 import (
-	"fmt"
 	"sync"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -120,10 +119,7 @@ func (c *completedConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	resourceAccessReviewStorage := resourceaccessreview.NewREST(c.GenericConfig.Authorization.Authorizer, c.ExtraConfig.SubjectLocator)
 	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
 	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
-	roleBindingRestrictionStorage, err := rolebindingrestrictionetcd.NewREST()
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
+	roleBindingRestrictionStorage := rolebindingrestrictionetcd.NewREST()
 
 	v1Storage := map[string]rest.Storage{}
 	v1Storage["resourceAccessReviews"] = resourceAccessReviewStorage

@@ -23,8 +23,8 @@ var _ rest.StandardStorage = &REST{}
 var _ rest.Scoper = &REST{}
 
 // NewREST returns a RESTStorage object that will work against nodes.
-func NewREST() (*REST, error) {
-	return &REST{}, nil
+func NewREST() (*REST) {
+	return &REST{}
 }
 
 func (r *REST) NamespaceScoped() bool {
