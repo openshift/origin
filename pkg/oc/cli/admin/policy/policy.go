@@ -84,12 +84,6 @@ func NewCmdPolicy(name, fullName string, f cmdutil.Factory, streams genericcliop
 				NewCmdRemoveSCCFromGroup(RemoveSCCFromGroupRecommendedName, fullName+" "+RemoveSCCFromGroupRecommendedName, f, streams),
 			},
 		},
-		{
-			Message: "Upgrade and repair system policy:",
-			Commands: []*cobra.Command{
-				NewCmdReconcileSCC(ReconcileSCCRecommendedName, fullName+" "+ReconcileSCCRecommendedName, f, streams),
-			},
-		},
 	}
 	groups.Add(cmds)
 	templates.ActsAsRootCommand(cmds, []string{"options"}, groups...)

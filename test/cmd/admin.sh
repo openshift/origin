@@ -232,41 +232,6 @@ os::cmd::expect_success_and_text 'oc status -o dot' '"example"'
 echo "complex-scenarios: ok"
 os::test::junit::declare_suite_end
 
-os::test::junit::declare_suite_start "cmd/admin/reconcile-security-context-constraints"
-# Test reconciling SCCs
-os::cmd::expect_success 'oc delete scc/restricted'
-os::cmd::expect_failure 'oc get scc/restricted'
-os::cmd::expect_success 'oc adm policy reconcile-sccs'
-os::cmd::expect_failure 'oc get scc/restricted'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm'
-os::cmd::expect_success 'oc get scc/restricted'
-
-os::cmd::expect_success 'oc adm policy add-scc-to-user restricted my-restricted-user'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'my-restricted-user'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'my-restricted-user'
-
-os::cmd::expect_success 'oc adm policy remove-scc-from-group restricted system:authenticated'
-os::cmd::expect_success_and_not_text 'oc get scc/restricted -o yaml' 'system:authenticated'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'system:authenticated'
-
-os::cmd::expect_success 'oc label scc/restricted foo=bar'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'foo: bar'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm --additive-only=true'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'foo: bar'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm --additive-only=false'
-os::cmd::expect_success_and_not_text 'oc get scc/restricted -o yaml' 'foo: bar'
-
-os::cmd::expect_success 'oc annotate scc/restricted topic="my-foo-bar"'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'topic: my-foo-bar'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm --additive-only=true'
-os::cmd::expect_success_and_text 'oc get scc/restricted -o yaml' 'topic: my-foo-bar'
-os::cmd::expect_success 'oc adm policy reconcile-sccs --confirm --additive-only=false'
-os::cmd::expect_success_and_not_text 'oc get scc/restricted -o yaml' 'topic: my-foo-bar'
-echo "reconcile-scc: ok"
-os::test::junit::declare_suite_end
-
 os::test::junit::declare_suite_start "cmd/admin/rolebinding-allowed"
 # Admin can bind local roles without cluster-admin permissions
 os::cmd::expect_success "oc create -f test/extended/testdata/roles/empty-role.yaml -n '${project}'"
