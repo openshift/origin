@@ -30,7 +30,6 @@ import (
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	quotainformer "github.com/openshift/client-go/quota/informers/externalversions"
-	securityv1client "github.com/openshift/client-go/security/clientset/versioned/typed/security/v1"
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
 	oappsapiserver "github.com/openshift/origin/pkg/apps/apiserver"
 	authorizationapiserver "github.com/openshift/origin/pkg/authorization/apiserver"
@@ -572,51 +571,6 @@ func (c *completedConfig) startProjectCache(context genericapiserver.PostStartHo
 func (c *completedConfig) startProjectAuthorizationCache(context genericapiserver.PostStartHookContext) error {
 	period := 1 * time.Second
 	c.ExtraConfig.ProjectAuthorizationCache.Run(period)
-	return nil
-}
-
-func (c *completedConfig) bootstrapSCC(context genericapiserver.PostStartHookContext) error {
-	ns := bootstrappolicy.DefaultOpenShiftInfraNamespace
-	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess(ns)
-
-	// SCC is served using CRD resource any status update must use JSON
-	jsonLoopbackClientConfig := rest.CopyConfig(c.ExtraConfig.KubeAPIServerClientConfig)
-	jsonLoopbackClientConfig.ContentConfig.AcceptContentTypes = "application/json"
-	jsonLoopbackClientConfig.ContentConfig.ContentType = "application/json"
-	securityClient, err := securityv1client.NewForConfig(jsonLoopbackClientConfig)
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("error getting client: %v", err))
-		return err
-	}
-
-	// all SCC must exist before we report success
-	err = wait.PollUntil(1*time.Second, func() (bool, error) {
-		anySCCMissing := false
-		for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers) {
-			_, err := securityClient.SecurityContextConstraints().Create(scc)
-			if err == nil {
-				klog.Infof("Created default security context constraint %s", scc.Name)
-				continue
-			}
-			if kapierror.IsAlreadyExists(err) {
-				klog.V(4).Infof("default security context constraint %s, already exists", scc.Name)
-				continue
-			}
-			anySCCMissing = true
-			utilruntime.HandleError(fmt.Errorf("unable to create default security context constraint %s; %v", scc.Name, err))
-			continue
-		}
-		if anySCCMissing {
-			return false, nil
-		}
-
-		return true, nil
-	}, context.StopCh)
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("error creating SCC: %v", err))
-		return err
-	}
-
 	return nil
 }
 

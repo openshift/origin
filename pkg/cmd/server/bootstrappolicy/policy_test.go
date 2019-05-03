@@ -107,17 +107,6 @@ func TestBootstrapClusterRoles(t *testing.T) {
 	testObjects(t, list, "bootstrap_cluster_roles.yaml")
 }
 
-func TestBootstrapSCCs(t *testing.T) {
-	ns := bootstrappolicy.DefaultOpenShiftInfraNamespace
-	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess(ns)
-	sccs := bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers)
-	list := &api.List{}
-	for i := range sccs {
-		list.Items = append(list.Items, sccs[i])
-	}
-	testObjects(t, list, "bootstrap_security_context_constraints.yaml")
-}
-
 func testObjects(t *testing.T, list *api.List, fixtureFilename string) {
 	filename := filepath.Join("../../../../test/testdata/bootstrappolicy", fixtureFilename)
 	expectedYAML, err := ioutil.ReadFile(filename)
