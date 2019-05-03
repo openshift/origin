@@ -1,22 +1,25 @@
 package upgrade
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"encoding/xml"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"sync"
-	"text/tabwriter"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/kubernetes/test/e2e/chaosmonkey"
 	"k8s.io/kubernetes/test/e2e/framework"
 	"k8s.io/kubernetes/test/e2e/framework/ginkgowrapper"
@@ -50,10 +53,57 @@ func AllTests() []upgrades.Test {
 	}
 }
 
-var upgradeTests = []upgrades.Test{}
+var (
+	upgradeTests               = []upgrades.Test{}
+	upgradeAbortAt             int
+	upgradeDisruptRebootPolicy string
+)
 
+// upgradeAbortAtRandom is a special value indicating the abort should happen at a random percentage
+// between (0,100].
+const upgradeAbortAtRandom = -1
+
+// SetTests controls the list of tests to run during an upgrade. See AllTests for the supported
+// suite.
 func SetTests(tests []upgrades.Test) {
 	upgradeTests = tests
+}
+
+func SetUpgradeDisruptReboot(policy string) error {
+	switch policy {
+	case "graceful", "force":
+		upgradeDisruptRebootPolicy = policy
+		return nil
+	default:
+		upgradeDisruptRebootPolicy = ""
+		return fmt.Errorf("disrupt-reboot must be empty, 'graceful', or 'force'")
+	}
+}
+
+// SetUpgradeAbortAt defines abort behavior during an upgrade. Allowed values are:
+//
+// * empty string - do not abort
+// * integer between 0-100 - once this percentage of operators have updated, rollback to the previous version
+//
+func SetUpgradeAbortAt(policy string) error {
+	if len(policy) == 0 {
+		upgradeAbortAt = 0
+	}
+	if policy == "random" {
+		upgradeAbortAt = upgradeAbortAtRandom
+	}
+	if val, err := strconv.Atoi(policy); err == nil {
+		if val < 0 || val > 100 {
+			return fmt.Errorf("abort-at must be empty or an integer in [0,100], inclusive")
+		}
+		if val == 0 {
+			upgradeAbortAt = 1
+		} else {
+			upgradeAbortAt = val
+		}
+		return nil
+	}
+	return fmt.Errorf("abort-at must be empty or an integer in [0,100], inclusive")
 }
 
 var _ = g.Describe("[Disruptive]", func() {
@@ -80,7 +130,7 @@ var _ = g.Describe("[Disruptive]", func() {
 			upgradeFunc := func() {
 				start := time.Now()
 				defer finalizeUpgradeTest(start, clusterUpgradeTest)
-				framework.ExpectNoError(clusterUpgrade(client, upgCtx.Versions[1]), "during upgrade")
+				framework.ExpectNoError(clusterUpgrade(client, config, upgCtx.Versions[1]), "during upgrade")
 			}
 			runUpgradeSuite(f, upgradeTests, testFrameworks, testSuite, upgCtx, upgrades.ClusterUpgrade, upgradeFunc)
 		})
@@ -212,6 +262,13 @@ func runUpgradeSuite(
 	cm.Do()
 }
 
+func latestHistory(history []configv1.UpdateHistory) *configv1.UpdateHistory {
+	if len(history) > 0 {
+		return &history[0]
+	}
+	return nil
+}
+
 func latestCompleted(history []configv1.UpdateHistory) (*configv1.Update, bool) {
 	for _, version := range history {
 		if version.State == configv1.CompletedUpdate {
@@ -298,7 +355,9 @@ func getUpgradeContext(c configv1client.Interface, upgradeTarget, upgradeImage s
 	return upgCtx, nil
 }
 
-func clusterUpgrade(c configv1client.Interface, version upgrades.VersionContext) error {
+var errControlledAbort = fmt.Errorf("beginning abort")
+
+func clusterUpgrade(c configv1client.Interface, config *rest.Config, version upgrades.VersionContext) error {
 	fmt.Fprintf(os.Stderr, "\n\n\n")
 	defer func() { fmt.Fprintf(os.Stderr, "\n\n\n") }()
 
@@ -308,11 +367,32 @@ func clusterUpgrade(c configv1client.Interface, version upgrades.VersionContext)
 		return nil
 	}
 
+	kubeClient := kubernetes.NewForConfigOrDie(config)
+
+	maximumDuration := 75 * time.Minute
+
 	framework.Logf("Starting upgrade to version=%s image=%s", version.Version.String(), version.NodeImage)
+
+	// decide whether to abort at a percent
+	abortAt := upgradeAbortAt
+	switch abortAt {
+	case 0:
+		// no abort
+	case upgradeAbortAtRandom:
+		abortAt = int(rand.Int31n(100) + 1)
+		maximumDuration *= 2
+		framework.Logf("Upgrade will be aborted and the cluster will roll back to the current version after %d%% of operators have upgraded (chosen randomly)", upgradeAbortAt)
+	default:
+		maximumDuration *= 2
+		framework.Logf("Upgrade will be aborted and the cluster will roll back to the current version after %d%% of operators have upgraded", upgradeAbortAt)
+	}
+
+	// trigger the update
 	cv, err := c.ConfigV1().ClusterVersions().Get("version", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
+	oldImage := cv.Status.Desired.Image
 	oldVersion := cv.Status.Desired.Version
 	desired := configv1.Update{
 		Version: version.Version.String(),
@@ -325,181 +405,68 @@ func clusterUpgrade(c configv1client.Interface, version upgrades.VersionContext)
 		return err
 	}
 
-	var lastCV *configv1.ClusterVersion
-	if err := wait.PollImmediate(5*time.Second, 5*time.Minute, func() (bool, error) {
-		cv, err := c.ConfigV1().ClusterVersions().Get("version", metav1.GetOptions{})
-		if err != nil {
+	monitor := versionMonitor{
+		client:     c,
+		oldVersion: oldVersion,
+	}
+
+	// wait until the cluster acknowledges the update
+	if err := wait.PollImmediate(5*time.Second, 2*time.Minute, func() (bool, error) {
+		cv, err := monitor.Check(updated.Generation, desired)
+		if err != nil || cv == nil {
 			return false, err
 		}
-		lastCV = cv
-		if cv.Status.ObservedGeneration > updated.Generation {
-			if cv.Spec.DesiredUpdate == nil || desired != *cv.Spec.DesiredUpdate {
-				return false, fmt.Errorf("desired cluster version was changed by someone else: %v", cv.Spec.DesiredUpdate)
-			}
-		}
-		return cv.Status.ObservedGeneration == updated.Generation, nil
+		return cv.Status.ObservedGeneration >= updated.Generation, nil
+
 	}); err != nil {
-		if lastCV != nil {
-			data, _ := json.MarshalIndent(lastCV, "", "  ")
-			framework.Logf("Current cluster version:\n%s", data)
-		}
+		monitor.Output()
 		return fmt.Errorf("Cluster did not acknowledge request to upgrade in a reasonable time: %v", err)
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go monitor.Disrupt(ctx, kubeClient, upgradeDisruptRebootPolicy)
+
+	// observe the upgrade, taking action as necessary
 	framework.Logf("Cluster version operator acknowledged upgrade request")
+	aborted := false
+	if err := wait.PollImmediate(10*time.Second, maximumDuration, func() (bool, error) {
+		cv, err := monitor.Check(updated.Generation, desired)
+		if err != nil || cv == nil {
+			return false, err
+		}
 
-	if err := wait.PollImmediate(5*time.Second, 75*time.Minute, func() (bool, error) {
-		cv, err := c.ConfigV1().ClusterVersions().Get("version", metav1.GetOptions{})
-		if err != nil {
-			framework.Logf("unable to retrieve cluster version during upgrade: %v", err)
+		if !aborted && monitor.ShouldUpgradeAbort(abortAt) {
+			framework.Logf("Instructing the cluster to return to %s / %s", oldVersion, oldImage)
+			desired = configv1.Update{
+				Image: oldImage,
+				Force: true,
+			}
+			if err := retry.RetryOnConflict(wait.Backoff{Steps: 10, Duration: time.Second}, func() error {
+				cv, err := c.ConfigV1().ClusterVersions().Get("version", metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				cv.Spec.DesiredUpdate = &desired
+				cv, err = c.ConfigV1().ClusterVersions().Update(cv)
+				if err == nil {
+					updated = cv
+				}
+				return err
+			}); err != nil {
+				return false, err
+			}
+			aborted = true
 			return false, nil
 		}
-		lastCV = cv
-		if cv.Status.ObservedGeneration > updated.Generation {
-			if cv.Spec.DesiredUpdate == nil || desired != *cv.Spec.DesiredUpdate {
-				return false, fmt.Errorf("desired cluster version was changed by someone else: %v", cv.Spec.DesiredUpdate)
-			}
-		}
 
-		if c := findCondition(cv.Status.Conditions, configv1.OperatorDegraded); c != nil {
-			if c.Status == configv1.ConditionTrue {
-				framework.Logf("cluster upgrade is degraded: %v", c.Message)
-			}
-		}
+		return monitor.Reached(cv, desired)
 
-		if c := findCondition(cv.Status.Conditions, configv1.ClusterStatusConditionType("Failing")); c != nil {
-			if c.Status == configv1.ConditionTrue {
-				framework.Logf("cluster upgrade is failing: %v", c.Message)
-			}
-		}
-
-		if target, ok := latestCompleted(cv.Status.History); !ok || !equivalentUpdates(*target, cv.Status.Desired) {
-			return false, nil
-		}
-
-		if c := findCondition(cv.Status.Conditions, configv1.OperatorAvailable); c != nil {
-			if c.Status != configv1.ConditionTrue {
-				return false, fmt.Errorf("cluster version was Available=false after completion: %v", cv.Status.Conditions)
-			}
-		}
-		if c := findCondition(cv.Status.Conditions, configv1.OperatorProgressing); c != nil {
-			if c.Status == configv1.ConditionTrue {
-				return false, fmt.Errorf("cluster version was Progressing=true after completion: %v", cv.Status.Conditions)
-			}
-		}
-		if c := findCondition(cv.Status.Conditions, configv1.OperatorDegraded); c != nil {
-			if c.Status == configv1.ConditionTrue {
-				return false, fmt.Errorf("cluster version was Degraded=true after completion: %v", cv.Status.Conditions)
-			}
-		}
-		if c := findCondition(cv.Status.Conditions, configv1.ClusterStatusConditionType("Failing")); c != nil {
-			if c.Status == configv1.ConditionTrue {
-				return false, fmt.Errorf("cluster version was Failing=true after completion: %v", cv.Status.Conditions)
-			}
-		}
-
-		return true, nil
 	}); err != nil {
-		if lastCV != nil {
-			data, _ := json.MarshalIndent(lastCV, "", "  ")
-			framework.Logf("Cluster version:\n%s", data)
-		}
-		if coList, err := c.ConfigV1().ClusterOperators().List(metav1.ListOptions{}); err == nil {
-			buf := &bytes.Buffer{}
-			tw := tabwriter.NewWriter(buf, 0, 2, 1, ' ', 0)
-			fmt.Fprintf(tw, "NAME\tA F P\tVERSION\tMESSAGE\n")
-			for _, item := range coList.Items {
-				fmt.Fprintf(tw,
-					"%s\t%s %s %s\t%s\t%s\n",
-					item.Name,
-					findConditionShortStatus(item.Status.Conditions, configv1.OperatorAvailable, configv1.ConditionTrue),
-					findConditionShortStatus(item.Status.Conditions, configv1.OperatorDegraded, configv1.ConditionFalse),
-					findConditionShortStatus(item.Status.Conditions, configv1.OperatorProgressing, configv1.ConditionFalse),
-					findVersion(item.Status.Versions, "operator", oldVersion, lastCV.Status.Desired.Version),
-					findConditionMessage(item.Status.Conditions, configv1.OperatorProgressing),
-				)
-			}
-			tw.Flush()
-			framework.Logf("Cluster operators:\n%s", buf.String())
-		}
-
+		monitor.Output()
 		return fmt.Errorf("Cluster did not complete upgrade: %v", err)
 	}
 
 	framework.Logf("Completed upgrade to %s", versionString(desired))
 	return nil
-}
-
-func findVersion(versions []configv1.OperandVersion, name string, oldVersion, newVersion string) string {
-	for _, version := range versions {
-		if version.Name == name {
-			if len(oldVersion) > 0 && version.Version == oldVersion {
-				return "<old>"
-			}
-			if len(newVersion) > 0 && version.Version == newVersion {
-				return "<new>"
-			}
-			return version.Version
-		}
-	}
-	return ""
-}
-
-func findConditionShortStatus(conditions []configv1.ClusterOperatorStatusCondition, name configv1.ClusterStatusConditionType, unless configv1.ConditionStatus) string {
-	if c := findCondition(conditions, name); c != nil {
-		switch c.Status {
-		case configv1.ConditionTrue:
-			if unless == c.Status {
-				return " "
-			}
-			return "T"
-		case configv1.ConditionFalse:
-			if unless == c.Status {
-				return " "
-			}
-			return "F"
-		default:
-			return "U"
-		}
-	}
-	return " "
-}
-
-func findConditionMessage(conditions []configv1.ClusterOperatorStatusCondition, name configv1.ClusterStatusConditionType) string {
-	if c := findCondition(conditions, name); c != nil {
-		return c.Message
-	}
-	return ""
-}
-
-func findCondition(conditions []configv1.ClusterOperatorStatusCondition, name configv1.ClusterStatusConditionType) *configv1.ClusterOperatorStatusCondition {
-	for i := range conditions {
-		if name == conditions[i].Type {
-			return &conditions[i]
-		}
-	}
-	return nil
-}
-
-func equivalentUpdates(a, b configv1.Update) bool {
-	if len(a.Image) > 0 && len(b.Image) > 0 {
-		return a.Image == b.Image
-	}
-	if len(a.Version) > 0 && len(b.Version) > 0 {
-		return a.Version == b.Version
-	}
-	return false
-}
-
-func versionString(update configv1.Update) string {
-	switch {
-	case len(update.Version) > 0 && len(update.Image) > 0:
-		return fmt.Sprintf("%s (%s)", update.Version, update.Image)
-	case len(update.Image) > 0:
-		return update.Image
-	case len(update.Version) > 0:
-		return update.Version
-	default:
-		return "<empty>"
-	}
 }

@@ -63,7 +63,7 @@ type TestSuite struct {
 
 	// Init should be run once before a test in this suite is run. Not called by
 	// methods in this package.
-	Init func() error
+	Init func(map[string]string) error
 
 	Parallelism int
 	// The number of flakes that may occur before this test is marked as a failure.
