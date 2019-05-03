@@ -44,7 +44,6 @@ var _ = g.Describe("[Feature:Builds][Conformance] oc new-app", func() {
 		})
 
 		g.It("should succeed with a --name of 58 characters", func() {
-			g.Skip("TODO: disabled due to https://bugzilla.redhat.com/show_bug.cgi?id=1702743")
 			g.By("calling oc new-app")
 			err := oc.Run("new-app").Args("https://github.com/sclorg/nodejs-ex", "--name", a58).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -62,7 +61,6 @@ var _ = g.Describe("[Feature:Builds][Conformance] oc new-app", func() {
 		})
 
 		g.It("should fail with a --name longer than 58 characters", func() {
-			g.Skip("TODO: disabled due to https://bugzilla.redhat.com/show_bug.cgi?id=1702743")
 			g.By("calling oc new-app")
 			out, err := oc.Run("new-app").Args("https://github.com/sclorg/nodejs-ex", "--name", a59).Output()
 			o.Expect(err).To(o.HaveOccurred())
