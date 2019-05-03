@@ -108,7 +108,8 @@ func (o *MustGatherOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 		}
 		var ok bool
 		if o.Image, ok = util.ResolveLatestTaggedImage(imageStream, "latest"); !ok {
-			return fmt.Errorf("unable to to resolve must-gather image")
+			o.Image = "quay.io/openshift/origin-must-gather:latest"
+			fmt.Fprintf(o.Out, "Unable to resolve the openshift imagestream tag must-gather:latest; Using %s image instead.", o.Image)
 		}
 	}
 	o.PrinterCreated, err = printers.NewTypeSetter(scheme.Scheme).WrapToPrinter(&printers.NamePrinter{Operation: "created"}, nil)
