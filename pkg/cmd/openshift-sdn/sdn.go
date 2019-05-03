@@ -1,6 +1,7 @@
 package openshift_sdn
 
 import (
+	"io/ioutil"
 	"strings"
 
 	kclientv1 "k8s.io/api/core/v1"
@@ -26,10 +27,6 @@ func (sdn *OpenShiftSDN) initSDN() error {
 	if val, ok := sdn.NodeConfig.KubeletArguments["cni-bin-dir"]; ok && len(val) == 1 {
 		cniBinDir = val[0]
 	}
-	cniConfDir := "/etc/cni/net.d"
-	if val, ok := sdn.NodeConfig.KubeletArguments["cni-conf-dir"]; ok && len(val) == 1 {
-		cniConfDir = val[0]
-	}
 
 	// dockershim + kube CNI driver delegates hostport handling to plugins,
 	// while CRI-O handles hostports itself. Thus we need to disable the
@@ -38,7 +35,7 @@ func (sdn *OpenShiftSDN) initSDN() error {
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&kv1core.EventSinkImpl{Interface: sdn.informers.KubeClient.CoreV1().Events("")})
-	eventRecorder := eventBroadcaster.NewRecorder(scheme.Scheme, kclientv1.EventSource{Component: "openshift-sdn", Host: sdn.NodeConfig.NodeName})
+	sdn.sdnRecorder = eventBroadcaster.NewRecorder(scheme.Scheme, kclientv1.EventSource{Component: "openshift-sdn", Host: sdn.NodeConfig.NodeName})
 
 	var err error
 	sdn.OsdnNode, err = sdnnode.New(&sdnnode.OsdnNodeConfig{
@@ -47,7 +44,6 @@ func (sdn *OpenShiftSDN) initSDN() error {
 		SelfIP:             sdn.NodeConfig.NodeIP,
 		RuntimeEndpoint:    runtimeEndpoint,
 		CNIBinDir:          cniBinDir,
-		CNIConfDir:         cniConfDir,
 		MTU:                sdn.NodeConfig.NetworkConfig.MTU,
 		NetworkClient:      sdn.informers.NetworkClient,
 		KClient:            sdn.informers.KubeClient,
@@ -57,7 +53,7 @@ func (sdn *OpenShiftSDN) initSDN() error {
 		MasqueradeBit:      sdn.ProxyConfig.IPTables.MasqueradeBit,
 		ProxyMode:          sdn.ProxyConfig.Mode,
 		EnableHostports:    enableHostports,
-		Recorder:           eventRecorder,
+		Recorder:           sdn.sdnRecorder,
 	})
 	return err
 }
@@ -65,4 +61,19 @@ func (sdn *OpenShiftSDN) initSDN() error {
 // runSDN starts the sdn node process. Returns.
 func (sdn *OpenShiftSDN) runSDN() error {
 	return sdn.OsdnNode.Start()
+}
+
+func (sdn *OpenShiftSDN) writeConfigFile() error {
+	// Make an event that openshift-sdn started
+	sdn.sdnRecorder.Eventf(&kclientv1.ObjectReference{Kind: "Node", Name: sdn.NodeConfig.NodeName}, kclientv1.EventTypeNormal, "Starting", "openshift-sdn done initializing node networking.")
+
+	// Write our CNI config file out to disk to signal to kubelet that
+	// our network plugin is ready
+	return ioutil.WriteFile(sdn.cniConfFile, []byte(`
+{
+  "cniVersion": "0.3.1",
+  "name": "openshift-sdn",
+  "type": "openshift-sdn"
+}
+`), 0644)
 }

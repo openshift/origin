@@ -4,10 +4,7 @@ package node
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -47,10 +44,7 @@ import (
 	"github.com/openshift/origin/pkg/util/ovs"
 )
 
-const (
-	openshiftCNIFile = "80-openshift-network.conf"
-	hostLocalDataDir = "/var/lib/cni/networks"
-)
+const hostLocalDataDir = "/var/lib/cni/networks"
 
 type osdnPolicy interface {
 	Name() string
@@ -77,7 +71,6 @@ type OsdnNodeConfig struct {
 	MTU             uint32
 	EnableHostports bool
 	CNIBinDir       string
-	CNIConfDir      string
 
 	NetworkClient networkclient.Interface
 	KClient       kubernetes.Interface
@@ -105,7 +98,6 @@ type OsdnNode struct {
 	useConnTrack       bool
 	iptablesSyncPeriod time.Duration
 	mtu                uint32
-	cniDirPath         string
 
 	// Synchronizes operations on egressPolicies
 	egressPoliciesLock sync.Mutex
@@ -151,10 +143,6 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		return nil, fmt.Errorf("%q plugin is not compatible with proxy-mode %q", c.PluginName, c.ProxyMode)
 	}
 
-	// If our CNI config file exists, remove it so that kubelet doesn't think
-	// we're ready yet
-	os.Remove(filepath.Join(c.CNIConfDir, openshiftCNIFile))
-
 	if err := c.setNodeIP(); err != nil {
 		return nil, err
 	}
@@ -182,7 +170,6 @@ func New(c *OsdnNodeConfig) (*OsdnNode, error) {
 		kubeInformers:      c.KubeInformers,
 		networkInformers:   c.NetworkInformers,
 		egressIP:           newEgressIPWatcher(oc, c.SelfIP, c.MasqueradeBit),
-		cniDirPath:         c.CNIConfDir,
 
 		runtimeEndpoint: c.RuntimeEndpoint,
 		// 2 minutes is the current default value used in kubelet
@@ -337,34 +324,11 @@ func (node *OsdnNode) Start() error {
 		}
 	}
 
-	if err := os.MkdirAll(node.cniDirPath, 0755); err != nil {
-		return err
-	}
-
 	go kwait.Forever(node.policy.SyncVNIDRules, time.Hour)
 	go kwait.Forever(func() {
 		gatherPeriodicMetrics(node.oc.ovs)
 	}, time.Minute*2)
 
-	klog.V(2).Infof("openshift-sdn network plugin registering startup")
-
-	// Make an event that openshift-sdn started
-	node.recorder.Eventf(&corev1.ObjectReference{Kind: "Node", Name: node.hostName}, corev1.EventTypeNormal, "Starting", "Starting openshift-sdn.")
-
-	// Write our CNI config file out to disk to signal to kubelet that
-	// our network plugin is ready
-	err = ioutil.WriteFile(filepath.Join(node.cniDirPath, openshiftCNIFile), []byte(`
-{
-  "cniVersion": "0.3.1",
-  "name": "openshift-sdn",
-  "type": "openshift-sdn"
-}
-`), 0644)
-	if err != nil {
-		return err
-	}
-
-	klog.V(2).Infof("openshift-sdn network plugin ready")
 	return nil
 }
 
