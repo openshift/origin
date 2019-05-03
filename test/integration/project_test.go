@@ -210,13 +210,13 @@ func TestProjectWatchWithSelectionPredicate(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// we are only watching ns-01, we should not receive events for other projects
-	waitForNoEvent(w, t)
+	waitForNoEvent(w, "ns-01", t)
 
 	if err := bobProjectClient.Projects().Delete("ns-03", nil); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// we are only watching ns-01, we should not receive events for other projects
-	waitForNoEvent(w, t)
+	waitForNoEvent(w, "ns-01", t)
 
 	// test the "start from beginning watch"
 	beginningWatch, err := bobProjectClient.Projects().Watch(metav1.ListOptions{
@@ -236,14 +236,30 @@ func TestProjectWatchWithSelectionPredicate(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// since we are only watching for events from "ns-01", and no projects are being modified, we should not receive any events here
-	waitForNoEvent(fromNowWatch, t)
+	waitForNoEvent(fromNowWatch, "ns-01", t)
 }
 
-func waitForNoEvent(w watch.Interface, t *testing.T) {
-	select {
-	case event := <-w.ResultChan():
-		t.Fatalf("unexpected event %v with object %#v", event, event.Object)
-	case <-time.After(3 * time.Second):
+// waitForNoEvent ensures no stray events come in.  skipProject allows modify events only for the named project
+func waitForNoEvent(w watch.Interface, skipProject string, t *testing.T) {
+	for {
+		select {
+		case event := <-w.ResultChan():
+			if event.Type != watch.Modified {
+				t.Fatalf("unexpected event %v with object %#v", event, event.Object)
+			}
+			project, ok := event.Object.(*projectapi.Project)
+			if !ok {
+				t.Fatalf("unexpected event %v with object %#v", event, event.Object)
+			}
+			t.Logf("got %#v %#v", event, project)
+			if project.Name != skipProject {
+				t.Fatalf("unexpected event %v with object %#v", event, event.Object)
+			}
+
+			continue
+		case <-time.After(3 * time.Second):
+			return
+		}
 	}
 }
 
@@ -277,6 +293,7 @@ func waitForAdd(projectName string, w watch.Interface, t *testing.T) {
 		}
 	}
 }
+
 func waitForOnlyAdd(projectName string, w watch.Interface, t *testing.T) {
 	for {
 		select {
