@@ -13,6 +13,7 @@ trap os::test::junit::reconcile_output EXIT
 os::test::junit::declare_suite_start "cmd/whoami"
 # This test validates the whoami command's --show-server flag
 os::cmd::expect_success_and_text 'oc whoami --show-server' 'http(s)?:\/\/localhost\:[0-9]+'
+os::cmd::expect_success_and_text 'oc whoami --show-console' 'http(s)?:\/\/localhost\:[0-9]+'
 
 echo "whoami: ok"
 os::test::junit::declare_suite_end
