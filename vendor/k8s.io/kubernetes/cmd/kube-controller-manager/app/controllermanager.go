@@ -27,6 +27,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -108,12 +109,24 @@ controller, and serviceaccounts controller.`,
 				os.Exit(1)
 			}
 
-			if err := ShimForOpenShift(s, c); err != nil {
+			stopOnce := sync.Once{}
+			localStopOnceCh := make(chan struct{})
+			localStop := func() {
+				stopOnce.Do(func() {
+					close(localStopOnceCh)
+				})
+			}
+			go func() {
+				<- stopCh
+				localStop()
+			}()
+
+			if err := ShimForOpenShift(s, c, localStop); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
 
-			if err := Run(c.Complete(), stopCh); err != nil {
+			if err := Run(c.Complete(), localStopOnceCh); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
 				os.Exit(1)
 			}
