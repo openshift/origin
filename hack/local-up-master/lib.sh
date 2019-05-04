@@ -258,7 +258,7 @@ function localup::start_kubecontrollermanager() {
         sleep 0.25
     done
     set -e
-    oc get --config="${LOCALUP_CONFIG}/kube-apiserver/admin.kubeconfig" --raw /apis/security.openshift.io/v1/securitycontextconstraints 2>/dev/null 1>&2 || bash
+    oc get --config="${LOCALUP_CONFIG}/kube-apiserver/admin.kubeconfig" --raw /apis/security.openshift.io/v1/securitycontextconstraints 1>&2 2>/dev/null || { os::log::error "SCCs did not come up" ; exit 1 ; }
 }
 
 function localup::start_openshiftapiserver() {
