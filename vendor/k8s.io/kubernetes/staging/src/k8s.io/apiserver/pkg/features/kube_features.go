@@ -102,7 +102,7 @@ var defaultKubernetesFeatureGates = map[utilfeature.Feature]utilfeature.FeatureS
 	ValidateProxyRedirects:  {Default: false, PreRelease: utilfeature.Alpha},
 	AdvancedAuditing:        {Default: true, PreRelease: utilfeature.GA},
 	DynamicAuditing:         {Default: false, PreRelease: utilfeature.Alpha},
-	APIResponseCompression:  {Default: false, PreRelease: utilfeature.Alpha},
+	APIResponseCompression:  {Default: true, PreRelease: utilfeature.Alpha},
 	Initializers:            {Default: false, PreRelease: utilfeature.Alpha},
 	APIListChunking:         {Default: true, PreRelease: utilfeature.Beta},
 	DryRun:                  {Default: true, PreRelease: utilfeature.Beta},
