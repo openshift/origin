@@ -42,7 +42,6 @@ var (
 	SkipRunLevelZeroPlugins = sets.NewString()
 	// these are admission plugins that cannot be applied until after the openshiftapiserver apiserver starts.
 	SkipRunLevelOnePlugins = sets.NewString(
-		"authorization.openshift.io/RestrictSubjectBindings",
 		imagepolicyapiv1.PluginName, // "image.openshift.io/ImagePolicy"
 		"quota.openshift.io/ClusterResourceQuota",
 		"security.openshift.io/SecurityContextConstraint",
