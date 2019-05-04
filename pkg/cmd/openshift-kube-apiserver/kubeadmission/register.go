@@ -45,8 +45,6 @@ var (
 		"authorization.openshift.io/RestrictSubjectBindings",
 		imagepolicyapiv1.PluginName, // "image.openshift.io/ImagePolicy"
 		"quota.openshift.io/ClusterResourceQuota",
-		"security.openshift.io/SecurityContextConstraint",
-		"security.openshift.io/SCCExecRestrictions",
 	)
 
 	// AfterKubeAdmissionPlugins are the admission plugins to add after kube admission, before mutating webhooks
