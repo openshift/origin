@@ -114,6 +114,7 @@ func NewControllerContext(
 		},
 		KubernetesInformers:                informers.NewSharedInformerFactory(kubeClient, defaultInformerResyncPeriod),
 		OpenshiftConfigKubernetesInformers: informers.NewSharedInformerFactoryWithOptions(kubeClient, defaultInformerResyncPeriod, informers.WithNamespace("openshift-config")),
+		ControllerManagerKubeInformers:     informers.NewSharedInformerFactoryWithOptions(kubeClient, defaultInformerResyncPeriod, informers.WithNamespace("openshift-controller-manager")),
 		AppsInformers:                      appsinformer.NewSharedInformerFactory(appsClient, defaultInformerResyncPeriod),
 		BuildInformers:                     buildinformer.NewSharedInformerFactory(buildClient, defaultInformerResyncPeriod),
 		ConfigInformers:                    configinformer.NewSharedInformerFactory(configClient, defaultInformerResyncPeriod),
@@ -170,6 +171,7 @@ type ControllerContext struct {
 
 	KubernetesInformers                informers.SharedInformerFactory
 	OpenshiftConfigKubernetesInformers informers.SharedInformerFactory
+	ControllerManagerKubeInformers     informers.SharedInformerFactory
 
 	TemplateInformers templateinformer.SharedInformerFactory
 	QuotaInformers    quotainformer.SharedInformerFactory
@@ -197,6 +199,7 @@ type ControllerContext struct {
 func (c *ControllerContext) StartInformers(stopCh <-chan struct{}) {
 	c.KubernetesInformers.Start(stopCh)
 	c.OpenshiftConfigKubernetesInformers.Start(stopCh)
+	c.ControllerManagerKubeInformers.Start(stopCh)
 
 	c.AppsInformers.Start(stopCh)
 	c.BuildInformers.Start(stopCh)

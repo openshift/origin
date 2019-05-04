@@ -68,6 +68,21 @@ const (
 	`
 )
 
+// registryCAConfigMap is created by the openshift-controller-manager-operator, serving as a placeholder
+// for the service-ca-operator to inject the internal registry's certificate authority
+var registryCAConfigMap = &corev1.ConfigMap{
+	ObjectMeta: metav1.ObjectMeta{
+		Name:      "openshift-service-ca",
+		Namespace: "openshift-controller-manager",
+		Annotations: map[string]string{
+			"service.beta.openshift.io/inject-cabundle": "true",
+		},
+	},
+	Data: map[string]string{
+		buildutil.ServiceCAKey: dummyCA,
+	},
+}
+
 // TestHandleBuild is the main test for build updates through the controller
 func TestHandleBuild(t *testing.T) {
 
@@ -351,9 +366,9 @@ func TestHandleBuild(t *testing.T) {
 				})
 			var kubeClient kubernetes.Interface
 			if tc.pod != nil {
-				kubeClient = fakeKubeExternalClientSet(tc.pod)
+				kubeClient = fakeKubeExternalClientSet(tc.pod, registryCAConfigMap)
 			} else {
-				kubeClient = fakeKubeExternalClientSet()
+				kubeClient = fakeKubeExternalClientSet(registryCAConfigMap)
 			}
 			podCreated := false
 			var newPod *corev1.Pod
@@ -475,7 +490,7 @@ func TestWorkWithNewBuild(t *testing.T) {
 }
 
 func TestCreateBuildPod(t *testing.T) {
-	kubeClient := fakeKubeExternalClientSet()
+	kubeClient := fakeKubeExternalClientSet(registryCAConfigMap)
 	bc := newFakeBuildController(nil, nil, kubeClient, nil, nil)
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{}))
@@ -671,7 +686,7 @@ func TestCreateBuildPodWithExistingRelatedPod(t *testing.T) {
 		},
 	}
 
-	kubeClient := fakeKubeExternalClientSet(existingPod)
+	kubeClient := fakeKubeExternalClientSet(existingPod, registryCAConfigMap)
 	errorReaction := func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, nil, errors.NewAlreadyExists(schema.GroupResource{Group: "", Resource: "pods"}, existingPod.Name)
 	}
@@ -714,7 +729,7 @@ func TestCreateBuildPodWithExistingRelatedPodMissingCA(t *testing.T) {
 		},
 	}
 	caMapName := buildapihelpers.GetBuildCAConfigMapName(build)
-	kubeClient := fakeKubeExternalClientSet(existingPod)
+	kubeClient := fakeKubeExternalClientSet(existingPod, registryCAConfigMap)
 	errorReaction := func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, nil, errors.NewAlreadyExists(schema.GroupResource{Group: "", Resource: "pods"}, existingPod.Name)
 	}
@@ -776,7 +791,7 @@ func TestCreateBuildPodWithExistingRelatedPodBadCA(t *testing.T) {
 			},
 		},
 	}
-	kubeClient := fakeKubeExternalClientSet(existingPod)
+	kubeClient := fakeKubeExternalClientSet(existingPod, registryCAConfigMap)
 	errorReaction := func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, nil, errors.NewAlreadyExists(schema.GroupResource{Group: "", Resource: "pods"}, existingPod.Name)
 	}
@@ -810,7 +825,7 @@ func TestCreateBuildPodWithExistingUnrelatedPod(t *testing.T) {
 		},
 	}
 
-	kubeClient := fakeKubeExternalClientSet(existingPod)
+	kubeClient := fakeKubeExternalClientSet(existingPod, registryCAConfigMap)
 	errorReaction := func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, nil, errors.NewAlreadyExists(schema.GroupResource{Group: "", Resource: "pods"}, existingPod.Name)
 	}
@@ -832,7 +847,7 @@ func TestCreateBuildPodWithExistingUnrelatedPod(t *testing.T) {
 }
 
 func TestCreateBuildPodWithPodCreationError(t *testing.T) {
-	kubeClient := fakeKubeExternalClientSet()
+	kubeClient := fakeKubeExternalClientSet(registryCAConfigMap)
 	errorReaction := func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, nil, fmt.Errorf("error")
 	}
@@ -854,7 +869,7 @@ func TestCreateBuildPodWithPodCreationError(t *testing.T) {
 }
 
 func TestCreateBuildPodWithCACreationError(t *testing.T) {
-	kubeClient := fakeKubeExternalClientSet()
+	kubeClient := fakeKubeExternalClientSet(registryCAConfigMap)
 	errorReaction := func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, nil, fmt.Errorf("error")
 	}
@@ -1179,7 +1194,8 @@ func TestCreateBuildCAConfigMap(t *testing.T) {
 		addlCAData map[string]string
 	}{
 		{
-			name: "no CAs",
+			name:       "no CAs",
+			addlCAData: map[string]string{},
 		},
 		{
 			name: "addl CA data",
@@ -1201,11 +1217,11 @@ func TestCreateBuildCAConfigMap(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			bc := newFakeBuildController(nil, nil, nil, nil, nil)
-			bc.additionalTrustedCAData = tc.addlCAData
+			bc.setAdditionalTrustedCAs(tc.addlCAData)
 			defer bc.stop()
 			build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{}))
 			pod := mockBuildPod(build)
-			caMap := bc.createBuildCAConfigMapSpec(build, pod)
+			caMap := bc.createBuildCAConfigMapSpec(build, pod, tc.addlCAData)
 			if caMap == nil {
 				t.Error("certificate authority configMap was not created")
 			}
@@ -1213,26 +1229,12 @@ func TestCreateBuildCAConfigMap(t *testing.T) {
 				t.Error("build CA configMap is missing owner ref to the build pod")
 			}
 
-			injectAnnotation := "service.alpha.openshift.io/inject-cabundle"
-			val, exists := caMap.Annotations[injectAnnotation]
-			if !exists {
-				t.Errorf("expected CA configMap to have annotation %s", injectAnnotation)
-			}
-			if val != "true" {
-				t.Errorf("expected annotation %s to be %s; got %s", injectAnnotation, "true", val)
-			}
-
 			expectedData := make(map[string]string)
 			for k, v := range tc.addlCAData {
 				expectedData[k] = v
 			}
-
-			if len(expectedData) == 0 {
-				if len(caMap.Data) != 0 {
-					t.Errorf("expected empty CA configMap, got %v", caMap.Data)
-				}
-				return
-			}
+			// Add registry CA
+			expectedData[buildutil.ServiceCAKey] = dummyCA
 
 			if !reflect.DeepEqual(expectedData, caMap.Data) {
 				t.Errorf("expected CA configMap %v\ngot:\n%v", expectedData, caMap.Data)
@@ -1418,9 +1420,9 @@ func TestHandleControllerConfig(t *testing.T) {
 			configClient = fakeConfigClient(objs...)
 			var kubeClient kubernetes.Interface
 			if tc.casMap != nil {
-				kubeClient = fakeKubeExternalClientSet(tc.casMap)
+				kubeClient = fakeKubeExternalClientSet(tc.casMap, registryCAConfigMap)
 			} else {
-				kubeClient = fakeKubeExternalClientSet()
+				kubeClient = fakeKubeExternalClientSet(registryCAConfigMap)
 			}
 			if tc.errorGetCA {
 				kubeClient.(*fake.Clientset).PrependReactor("get", "configmaps", func(action clientgotesting.Action) (bool, runtime.Object, error) {
@@ -1456,48 +1458,53 @@ func TestHandleControllerConfig(t *testing.T) {
 				t.Fatalf("error handling controller config change: %v", msgs)
 			}
 
+			defaults := bc.defaults()
 			if tc.build == nil {
-				if bc.buildDefaults.DefaultProxy != nil {
-					t.Errorf("expected no default proxy, got %v", bc.buildDefaults.DefaultProxy)
+				if defaults.DefaultProxy != nil {
+					t.Errorf("expected no default proxy, got %v", defaults.DefaultProxy)
 				}
 			} else {
-				if !reflect.DeepEqual(tc.build.Spec.BuildDefaults.DefaultProxy, bc.buildDefaults.DefaultProxy) {
+				if !reflect.DeepEqual(tc.build.Spec.BuildDefaults.DefaultProxy, defaults.DefaultProxy) {
 					t.Errorf("expected default proxy %v, got %v",
 						tc.build.Spec.BuildDefaults.DefaultProxy,
-						bc.buildDefaults.DefaultProxy)
+						defaults.DefaultProxy)
 				}
 			}
 
 			// Test additional certificate authorities
+			certAuthorities := bc.additionalTrustedCAs()
 			if tc.image == nil {
-				if len(bc.additionalTrustedCAData) > 0 {
-					t.Errorf("expected empty additional CAs data, got %v", bc.additionalTrustedCAData)
+				if len(certAuthorities) > 0 {
+					t.Errorf("expected empty additional CAs data, got %v", certAuthorities)
 				}
-				if len(bc.registryConfData) > 0 {
-					t.Errorf("expected empty registries config, got %v", bc.registryConfData)
+				registryConf := bc.registryConfTOML()
+				if len(registryConf) > 0 {
+					t.Errorf("expected empty registries config, got %v", registryConf)
 				}
-				if len(bc.signaturePolicyData) > 0 {
-					t.Errorf("expected empty signature policy config, got %v", bc.signaturePolicyData)
+				signatureJSON := bc.signaturePolicyJSON()
+				if len(signatureJSON) > 0 {
+					t.Errorf("expected empty signature policy config, got %v", signatureJSON)
 				}
 				return
 			}
 
 			if tc.casMap == nil {
-				if len(bc.additionalTrustedCAData) > 0 {
-					t.Errorf("expected empty additional CAs data, got %v", bc.additionalTrustedCAData)
+				if len(certAuthorities) > 0 {
+					t.Errorf("expected empty additional CAs data, got %v", certAuthorities)
 				}
-			} else if tc.image != nil && !reflect.DeepEqual(tc.casMap.Data, bc.additionalTrustedCAData) {
-				t.Errorf("expected ca data:\n  %v\ngot:\n  %v", tc.casMap.Data, bc.additionalTrustedCAData)
+			} else if tc.image != nil && !reflect.DeepEqual(tc.casMap.Data, certAuthorities) {
+				t.Errorf("expected ca data:\n  %v\ngot:\n  %v", tc.casMap.Data, certAuthorities)
 			}
 
 			buildRegistriesConfig := tc.image.Spec.RegistrySources
 
+			registryConfTOML := bc.registryConfTOML()
 			if isRegistryConfigEmpty(buildRegistriesConfig) {
-				if len(bc.registryConfData) > 0 {
-					t.Errorf("expected empty registries config, got %s", bc.registryConfData)
+				if len(registryConfTOML) > 0 {
+					t.Errorf("expected empty registries config, got %s", registryConfTOML)
 				}
 			}
-			registriesConfig, err := decodeRegistries(bc.registryConfData)
+			registriesConfig, err := decodeRegistries(registryConfTOML)
 			if err != nil {
 				t.Errorf("unexpected error decoding registries config: %v", err)
 			}
@@ -1521,20 +1528,21 @@ func TestHandleControllerConfig(t *testing.T) {
 					registriesConfig.Registries.Search.Registries)
 			}
 
+			signatureJSON := bc.signaturePolicyJSON()
 			if isSignaturePolicyConfigEmpty(buildRegistriesConfig) {
-				if len(bc.signaturePolicyData) > 0 {
-					t.Errorf("expected empty signature policy config, got %s", bc.signaturePolicyData)
+				if len(signatureJSON) > 0 {
+					t.Errorf("expected empty signature policy config, got %s", signatureJSON)
 				}
 				return
 			}
 			if len(buildRegistriesConfig.AllowedRegistries) > 0 && len(buildRegistriesConfig.BlockedRegistries) > 0 {
 				// Condition is not allowed - no policy should be set
-				if len(bc.signaturePolicyData) > 0 {
-					t.Errorf("signature policy should be empty if both allowed and blocked registries are set, got %v", bc.signaturePolicyData)
+				if len(signatureJSON) > 0 {
+					t.Errorf("signature policy should be empty if both allowed and blocked registries are set, got %v", signatureJSON)
 				}
 				return
 			}
-			policy, err := decodePolicyConfig(bc.signaturePolicyData)
+			policy, err := decodePolicyConfig(signatureJSON)
 			if err != nil {
 				t.Fatalf("unexpected error decoding signature policy config: %v", err)
 			}
@@ -1642,7 +1650,7 @@ func (e *errorConfigMapLister) ConfigMaps(namespace string) v1lister.ConfigMapNa
 
 func TestCreateBuildRegistryConfConfigMap(t *testing.T) {
 	bc := newFakeBuildController(nil, nil, nil, nil, nil)
-	bc.registryConfData = dummyRegistryConf
+	bc.setRegistryConfTOML(dummyRegistryConf)
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildv1.BuildPhaseNew, buildv1.BuildOutput{}))
 	pod := mockBuildPod(build)
@@ -1771,7 +1779,8 @@ func (c *fakeBuildController) start() {
 		c.imageStreamStoreSynced,
 		c.buildControllerConfigStoreSynced,
 		c.imageConfigStoreSynced,
-		c.configMapStoreSynced) {
+		c.openshiftConfigConfigMapStoreSynced,
+		c.controllerManagerConfigMapStoreSynced) {
 		panic("cannot sync cache")
 	}
 }
@@ -1788,7 +1797,7 @@ func newFakeBuildController(buildClient buildv1client.Interface, imageClient ima
 		imageClient = fakeImageClient()
 	}
 	if kubeExternalClient == nil {
-		kubeExternalClient = fakeKubeExternalClientSet()
+		kubeExternalClient = fakeKubeExternalClientSet(registryCAConfigMap)
 	}
 
 	if configClient == nil {
@@ -1804,16 +1813,18 @@ func newFakeBuildController(buildClient buildv1client.Interface, imageClient ima
 	// For tests, use the kubeExternalInformers for pods, secrets, and configMaps.
 	// The actual build controller uses a separate informer for configMaps that is namespaced to `openshif-config`
 	params := &BuildControllerParams{
-		BuildInformer:                    buildInformers.Build().V1().Builds(),
-		BuildConfigInformer:              buildInformers.Build().V1().BuildConfigs(),
-		ImageStreamInformer:              imageInformers.Image().V1().ImageStreams(),
-		PodInformer:                      kubeExternalInformers.Core().V1().Pods(),
-		SecretInformer:                   kubeExternalInformers.Core().V1().Secrets(),
-		OpenshiftConfigConfigMapInformer: kubeExternalInformers.Core().V1().ConfigMaps(),
-		BuildControllerConfigInformer:    configInformers.Config().V1().Builds(),
-		ImageConfigInformer:              configInformers.Config().V1().Images(),
-		KubeClient:                       kubeExternalClient,
-		BuildClient:                      buildClient,
+		BuildInformer:                      buildInformers.Build().V1().Builds(),
+		BuildConfigInformer:                buildInformers.Build().V1().BuildConfigs(),
+		ImageStreamInformer:                imageInformers.Image().V1().ImageStreams(),
+		PodInformer:                        kubeExternalInformers.Core().V1().Pods(),
+		SecretInformer:                     kubeExternalInformers.Core().V1().Secrets(),
+		ServiceAccountInformer:             kubeExternalInformers.Core().V1().ServiceAccounts(),
+		OpenshiftConfigConfigMapInformer:   kubeExternalInformers.Core().V1().ConfigMaps(),
+		ControllerManagerConfigMapInformer: kubeExternalInformers.Core().V1().ConfigMaps(),
+		BuildControllerConfigInformer:      configInformers.Config().V1().Builds(),
+		ImageConfigInformer:                configInformers.Config().V1().Images(),
+		KubeClient:                         kubeExternalClient,
+		BuildClient:                        buildClient,
 		DockerBuildStrategy: &strategy.DockerBuildStrategy{
 			Image: "test/image:latest",
 		},

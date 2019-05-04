@@ -157,22 +157,26 @@ type BuildController struct {
 	buildConfigQueue      workqueue.RateLimitingInterface
 	controllerConfigQueue workqueue.RateLimitingInterface
 
-	buildStore                    buildv1lister.BuildLister
-	secretStore                   v1lister.SecretLister
-	podStore                      v1lister.PodLister
-	imageStreamStore              imagev1lister.ImageStreamLister
-	openShiftConfigConfigMapStore v1lister.ConfigMapLister
+	buildStore                      buildv1lister.BuildLister
+	secretStore                     v1lister.SecretLister
+	serviceAccountStore             v1lister.ServiceAccountLister
+	podStore                        v1lister.PodLister
+	imageStreamStore                imagev1lister.ImageStreamLister
+	openShiftConfigConfigMapStore   v1lister.ConfigMapLister
+	controllerManagerConfigMapStore v1lister.ConfigMapLister
 
 	podInformer   cache.SharedIndexInformer
 	buildInformer cache.SharedIndexInformer
 
-	buildStoreSynced                 cache.InformerSynced
-	buildControllerConfigStoreSynced cache.InformerSynced
-	imageConfigStoreSynced           cache.InformerSynced
-	podStoreSynced                   cache.InformerSynced
-	secretStoreSynced                cache.InformerSynced
-	imageStreamStoreSynced           cache.InformerSynced
-	configMapStoreSynced             cache.InformerSynced
+	buildStoreSynced                      cache.InformerSynced
+	buildControllerConfigStoreSynced      cache.InformerSynced
+	imageConfigStoreSynced                cache.InformerSynced
+	podStoreSynced                        cache.InformerSynced
+	secretStoreSynced                     cache.InformerSynced
+	serviceAccountStoreSynced             cache.InformerSynced
+	imageStreamStoreSynced                cache.InformerSynced
+	openshiftConfigConfigMapStoreSynced   cache.InformerSynced
+	controllerManagerConfigMapStoreSynced cache.InformerSynced
 
 	runPolicies              []policy.RunPolicy
 	createStrategy           buildPodCreationStrategy
@@ -184,27 +188,30 @@ type BuildController struct {
 	registryConfData        string
 	signaturePolicyData     string
 	additionalTrustedCAData map[string]string
+	configLock              sync.Mutex
 }
 
 // BuildControllerParams is the set of parameters needed to
 // create a new BuildController
 type BuildControllerParams struct {
-	BuildInformer                    buildv1informer.BuildInformer
-	BuildConfigInformer              buildv1informer.BuildConfigInformer
-	BuildControllerConfigInformer    configv1informer.BuildInformer
-	ImageConfigInformer              configv1informer.ImageInformer
-	ImageStreamInformer              imagev1informer.ImageStreamInformer
-	PodInformer                      kubeinformers.PodInformer
-	SecretInformer                   kubeinformers.SecretInformer
-	OpenshiftConfigConfigMapInformer kubeinformers.ConfigMapInformer
-	KubeClient                       kubernetes.Interface
-	BuildClient                      buildv1client.Interface
-	DockerBuildStrategy              *strategy.DockerBuildStrategy
-	SourceBuildStrategy              *strategy.SourceBuildStrategy
-	CustomBuildStrategy              *strategy.CustomBuildStrategy
-	BuildDefaults                    builddefaults.BuildDefaults
-	BuildOverrides                   buildoverrides.BuildOverrides
-	InternalRegistryHostname         string
+	BuildInformer                      buildv1informer.BuildInformer
+	BuildConfigInformer                buildv1informer.BuildConfigInformer
+	BuildControllerConfigInformer      configv1informer.BuildInformer
+	ImageConfigInformer                configv1informer.ImageInformer
+	ImageStreamInformer                imagev1informer.ImageStreamInformer
+	PodInformer                        kubeinformers.PodInformer
+	SecretInformer                     kubeinformers.SecretInformer
+	ServiceAccountInformer             kubeinformers.ServiceAccountInformer
+	OpenshiftConfigConfigMapInformer   kubeinformers.ConfigMapInformer
+	ControllerManagerConfigMapInformer kubeinformers.ConfigMapInformer
+	KubeClient                         kubernetes.Interface
+	BuildClient                        buildv1client.Interface
+	DockerBuildStrategy                *strategy.DockerBuildStrategy
+	SourceBuildStrategy                *strategy.SourceBuildStrategy
+	CustomBuildStrategy                *strategy.CustomBuildStrategy
+	BuildDefaults                      builddefaults.BuildDefaults
+	BuildOverrides                     buildoverrides.BuildOverrides
+	InternalRegistryHostname           string
 }
 
 // NewBuildController creates a new BuildController.
@@ -216,22 +223,24 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 	buildLister := params.BuildInformer.Lister()
 	buildConfigGetter := params.BuildConfigInformer.Lister()
 	c := &BuildController{
-		buildPatcher:                  buildClient,
-		buildLister:                   buildLister,
-		buildConfigGetter:             buildConfigGetter,
-		buildDeleter:                  buildClient,
-		buildControllerConfigLister:   params.BuildControllerConfigInformer.Lister(),
-		imageConfigLister:             params.ImageConfigInformer.Lister(),
-		secretStore:                   params.SecretInformer.Lister(),
-		podClient:                     params.KubeClient.CoreV1(),
-		configMapClient:               params.KubeClient.CoreV1(),
-		openShiftConfigConfigMapStore: params.OpenshiftConfigConfigMapInformer.Lister(),
-		kubeClient:                    params.KubeClient,
-		podInformer:                   params.PodInformer.Informer(),
-		podStore:                      params.PodInformer.Lister(),
-		buildInformer:                 params.BuildInformer.Informer(),
-		buildStore:                    params.BuildInformer.Lister(),
-		imageStreamStore:              params.ImageStreamInformer.Lister(),
+		buildPatcher:                    buildClient,
+		buildLister:                     buildLister,
+		buildConfigGetter:               buildConfigGetter,
+		buildDeleter:                    buildClient,
+		buildControllerConfigLister:     params.BuildControllerConfigInformer.Lister(),
+		imageConfigLister:               params.ImageConfigInformer.Lister(),
+		secretStore:                     params.SecretInformer.Lister(),
+		serviceAccountStore:             params.ServiceAccountInformer.Lister(),
+		podClient:                       params.KubeClient.CoreV1(),
+		configMapClient:                 params.KubeClient.CoreV1(),
+		openShiftConfigConfigMapStore:   params.OpenshiftConfigConfigMapInformer.Lister(),
+		controllerManagerConfigMapStore: params.ControllerManagerConfigMapInformer.Lister(),
+		kubeClient:                      params.KubeClient,
+		podInformer:                     params.PodInformer.Informer(),
+		podStore:                        params.PodInformer.Lister(),
+		buildInformer:                   params.BuildInformer.Informer(),
+		buildStore:                      params.BuildInformer.Lister(),
+		imageStreamStore:                params.ImageStreamInformer.Lister(),
 		createStrategy: &typeBasedFactoryStrategy{
 			dockerBuildStrategy: params.DockerBuildStrategy,
 			sourceBuildStrategy: params.SourceBuildStrategy,
@@ -282,12 +291,78 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 	c.buildStoreSynced = c.buildInformer.HasSynced
 	c.podStoreSynced = c.podInformer.HasSynced
 	c.secretStoreSynced = params.SecretInformer.Informer().HasSynced
+	c.serviceAccountStoreSynced = params.ServiceAccountInformer.Informer().HasSynced
 	c.imageStreamStoreSynced = params.ImageStreamInformer.Informer().HasSynced
 	c.buildControllerConfigStoreSynced = params.BuildControllerConfigInformer.Informer().HasSynced
 	c.imageConfigStoreSynced = params.ImageConfigInformer.Informer().HasSynced
-	c.configMapStoreSynced = params.OpenshiftConfigConfigMapInformer.Informer().HasSynced
+	c.openshiftConfigConfigMapStoreSynced = params.OpenshiftConfigConfigMapInformer.Informer().HasSynced
+	c.controllerManagerConfigMapStoreSynced = params.ControllerManagerConfigMapInformer.Informer().HasSynced
 
 	return c
+}
+
+// additionalTrustedCAs returns a copy of the additional trusted certificate authorities
+// to be used by the build pod
+func (bc *BuildController) additionalTrustedCAs() map[string]string {
+	bc.configLock.Lock()
+	defer bc.configLock.Unlock()
+	caData := make(map[string]string)
+	if bc.additionalTrustedCAData == nil {
+		return caData
+	}
+	for k, v := range bc.additionalTrustedCAData {
+		caData[k] = v
+	}
+	return caData
+}
+
+func (bc *BuildController) setAdditionalTrustedCAs(value map[string]string) {
+	bc.configLock.Lock()
+	defer bc.configLock.Unlock()
+	bc.additionalTrustedCAData = value
+}
+
+// registryConfTOML returns the contents of the registries.conf TOML file used by the build pod
+func (bc *BuildController) registryConfTOML() string {
+	bc.configLock.Lock()
+	defer bc.configLock.Unlock()
+	return bc.registryConfData
+}
+
+func (bc *BuildController) setRegistryConfTOML(toml string) {
+	bc.configLock.Lock()
+	defer bc.configLock.Unlock()
+	bc.registryConfData = toml
+}
+
+// signaturePolicyJSON returns the contents of the policy.json file used by the build pod
+func (bc *BuildController) signaturePolicyJSON() string {
+	bc.configLock.Lock()
+	defer bc.configLock.Unlock()
+	return bc.signaturePolicyData
+}
+
+func (bc *BuildController) setSignaturePolicyJSON(json string) {
+	bc.configLock.Lock()
+	defer bc.configLock.Unlock()
+	bc.signaturePolicyData = json
+}
+
+// defaults returns a copy of the buildDefaults to be applied to a build pod.
+func (bc *BuildController) defaults() builddefaults.BuildDefaults {
+	bc.configLock.Lock()
+	defer bc.configLock.Unlock()
+	copy := builddefaults.BuildDefaults{
+		Config:       bc.buildDefaults.Config.DeepCopy(),
+		DefaultProxy: bc.buildDefaults.DefaultProxy.DeepCopy(),
+	}
+	return copy
+}
+
+func (bc *BuildController) setBuildDefaultProxy(spec *configv1.ProxySpec) {
+	bc.configLock.Lock()
+	defer bc.configLock.Unlock()
+	bc.buildDefaults.DefaultProxy = spec
 }
 
 // Run begins watching and syncing.
@@ -302,8 +377,10 @@ func (bc *BuildController) Run(workers int, stopCh <-chan struct{}) {
 		bc.buildStoreSynced,
 		bc.podStoreSynced,
 		bc.secretStoreSynced,
+		bc.serviceAccountStoreSynced,
 		bc.imageStreamStoreSynced,
-		bc.configMapStoreSynced) {
+		bc.openshiftConfigConfigMapStoreSynced,
+		bc.controllerManagerConfigMapStoreSynced) {
 		utilruntime.HandleError(fmt.Errorf("timed out waiting for caches to sync"))
 		return
 	}
@@ -566,7 +643,7 @@ func (bc *BuildController) handleNewBuild(build *buildv1.Build, pod *corev1.Pod)
 }
 
 // createPodSpec creates a pod spec for the given build, with all references already resolved.
-func (bc *BuildController) createPodSpec(build *buildv1.Build, includeAdditionalCA bool) (*corev1.Pod, error) {
+func (bc *BuildController) createPodSpec(build *buildv1.Build, caData map[string]string) (*corev1.Pod, error) {
 	if build.Spec.Output.To != nil {
 		build.Status.OutputDockerImageReference = build.Spec.Output.To.Name
 	}
@@ -579,14 +656,14 @@ func (bc *BuildController) createPodSpec(build *buildv1.Build, includeAdditional
 	build.Status.Message = ""
 
 	// Invoke the strategy to create a build pod.
-	podSpec, err := bc.createStrategy.CreateBuildPod(build, bc.additionalTrustedCAData, bc.internalRegistryHostname)
+	podSpec, err := bc.createStrategy.CreateBuildPod(build, caData, bc.internalRegistryHostname)
 	if err != nil {
 		if strategy.IsFatal(err) {
 			return nil, &strategy.FatalError{Reason: fmt.Sprintf("failed to create a build pod spec for build %s/%s: %v", build.Namespace, build.Name, err)}
 		}
 		return nil, fmt.Errorf("failed to create a build pod spec for build %s/%s: %v", build.Namespace, build.Name, err)
 	}
-	if err := bc.buildDefaults.ApplyDefaults(podSpec); err != nil {
+	if err := bc.defaults().ApplyDefaults(podSpec); err != nil {
 		return nil, fmt.Errorf("failed to apply build defaults for build %s/%s: %v", build.Namespace, build.Name, err)
 	}
 	if err := bc.buildOverrides.ApplyOverrides(podSpec); err != nil {
@@ -614,7 +691,7 @@ func (bc *BuildController) resolveImageSecretAsReference(build *buildv1.Build, i
 	if len(serviceAccount) == 0 {
 		serviceAccount = buildutil.BuilderServiceAccountName
 	}
-	builderSecrets, err := buildutil.FetchServiceAccountSecrets(bc.kubeClient.CoreV1(), build.Namespace, serviceAccount)
+	builderSecrets, err := buildutil.FetchServiceAccountSecrets(bc.secretStore, bc.serviceAccountStore, build.Namespace, serviceAccount)
 	if err != nil {
 		return nil, fmt.Errorf("Error getting push/pull secrets for service account %s/%s: %v", build.Namespace, serviceAccount, err)
 	}
@@ -971,13 +1048,12 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 		buildutil.UpdateCustomImageEnv(build.Spec.Strategy.CustomStrategy, build.Spec.Strategy.CustomStrategy.From.Name)
 	}
 
-	// Indicate if the pod spec should mount the additional trusted CAs
-	includeAdditionalCA := false
-	if len(bc.additionalTrustedCAData) > 0 {
-		includeAdditionalCA = true
-	}
+	// Get a copy of the additional trusted CAs
+	// We want to wire the same copy of the CA data through to avoid data races.
+	additionalCAs := bc.additionalTrustedCAs()
+
 	// Create the build pod spec
-	buildPod, err := bc.createPodSpec(build, includeAdditionalCA)
+	buildPod, err := bc.createPodSpec(build, additionalCAs)
 	if err != nil {
 		switch err.(type) {
 		case common.ErrEnvVarResolver:
@@ -1038,7 +1114,7 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 		}
 		if !hasCAMap {
 			// Create the CA ConfigMap to mount certificate authorities to the existing build pod
-			update, err = bc.createBuildCAConfigMap(build, existingPod, update)
+			update, err = bc.createBuildCAConfigMap(build, existingPod, update, additionalCAs)
 			if err != nil {
 				return update, err
 			}
@@ -1058,7 +1134,7 @@ func (bc *BuildController) createBuildPod(build *buildv1.Build) (*buildUpdate, e
 	} else {
 		klog.V(4).Infof("Created pod %s/%s for build %s", build.Namespace, buildPod.Name, buildDesc(build))
 		// Create the CA ConfigMap to mount certificate authorities to the build pod
-		update, err = bc.createBuildCAConfigMap(build, pod, update)
+		update, err = bc.createBuildCAConfigMap(build, pod, update, additionalCAs)
 		if err != nil {
 			return update, err
 		}
@@ -1534,8 +1610,8 @@ func (bc *BuildController) handleBuildConfigError(err error, key interface{}) {
 }
 
 // createBuildCAConfigMap creates a ConfigMap containing certificate authorities used by the build pod.
-func (bc *BuildController) createBuildCAConfigMap(build *buildv1.Build, buildPod *corev1.Pod, update *buildUpdate) (*buildUpdate, error) {
-	configMapSpec := bc.createBuildCAConfigMapSpec(build, buildPod)
+func (bc *BuildController) createBuildCAConfigMap(build *buildv1.Build, buildPod *corev1.Pod, update *buildUpdate, additionalCAs map[string]string) (*buildUpdate, error) {
+	configMapSpec := bc.createBuildCAConfigMapSpec(build, buildPod, additionalCAs)
 	configMap, err := bc.configMapClient.ConfigMaps(buildPod.Namespace).Create(configMapSpec)
 	if err != nil {
 		bc.recorder.Eventf(build, corev1.EventTypeWarning, "FailedCreate", "Error creating build certificate authority configMap: %v", err)
@@ -1551,27 +1627,39 @@ func (bc *BuildController) createBuildCAConfigMap(build *buildv1.Build, buildPod
 // used by the build pod.
 // The returned ConfigMap has an owner reference to the provided pod, ensuring proper
 // garbage collection.
-func (bc *BuildController) createBuildCAConfigMapSpec(build *buildv1.Build, buildPod *corev1.Pod) *corev1.ConfigMap {
-	// Create a ConfigMap with the `inject-cabundle` annotation, which tells the service cert signing controller
-	// to add the service-ca.crt entry to this map.
-	// See https://github.com/openshift/service-serving-cert-signer
+func (bc *BuildController) createBuildCAConfigMapSpec(build *buildv1.Build, buildPod *corev1.Pod, caData map[string]string) *corev1.ConfigMap {
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: buildapihelpers.GetBuildCAConfigMapName(build),
 			OwnerReferences: []metav1.OwnerReference{
 				makeBuildPodOwnerRef(buildPod),
 			},
-			Annotations: map[string]string{
-				"service.alpha.openshift.io/inject-cabundle": "true",
-			},
 		},
-		Data: bc.additionalTrustedCAData,
+		Data: caData,
 	}
 
-	if cm.Data == nil {
-		cm.Data = make(map[string]string)
+	// Fetch the registry's certificate authority stored in the openshift-service-ca ConfigMap
+	registryCAMap, err := bc.controllerManagerConfigMapStore.ConfigMaps("openshift-controller-manager").Get("openshift-service-ca")
+	// If we can't find the CA for the registry, pull from/push to the registry within a build will fail
+	// Logging warnings/errors because the origin/integration tests fail if we raise an error
+	if errors.IsNotFound(err) {
+		klog.V(2).Infof("WARNING - certificate authority for the internal registry could not be found. Image pulls/pushes to the internal registry within build %s/%s will fail.", build.Namespace, build.Name)
+		return cm
 	}
-
+	if err != nil {
+		klog.V(1).Infof("ERROR - failed to read the internal registry's certificate authority. Image pulls/pushes to the internal registry within build %s/%s will fail. Error: %v", build.Namespace, build.Name, err)
+		return cm
+	}
+	if registryCAMap == nil || len(registryCAMap.Data) == 0 {
+		klog.V(2).Infof("WARNING - certificate authority for the internal registry not available. Image pulls/pushes to the internal registry within build %s/%s will fail.", build.Namespace, build.Name)
+		return cm
+	}
+	registryCAData, exists := registryCAMap.Data[buildutil.ServiceCAKey]
+	if !exists {
+		klog.V(2).Infof("WARNING - certificate authority for the internal registry is missing. Image pulls/pushes to the internal registry within build %s/%s will fail.", build.Namespace, build.Name)
+		return cm
+	}
+	cm.Data[buildutil.ServiceCAKey] = registryCAData
 	return cm
 }
 
@@ -1612,11 +1700,13 @@ func (bc *BuildController) createBuildSystemConfigMapSpec(build *buildv1.Build, 
 		},
 		Data: make(map[string]string),
 	}
-	if len(bc.registryConfData) > 0 {
-		cm.Data[buildutil.RegistryConfKey] = bc.registryConfData
+	registryConf := bc.registryConfTOML()
+	if len(registryConf) > 0 {
+		cm.Data[buildutil.RegistryConfKey] = registryConf
 	}
-	if len(bc.signaturePolicyData) > 0 {
-		cm.Data[buildutil.SignaturePolicyKey] = bc.signaturePolicyData
+	signaturePolicy := bc.signaturePolicyJSON()
+	if len(signaturePolicy) > 0 {
+		cm.Data[buildutil.SignaturePolicyKey] = signaturePolicy
 	}
 	return cm
 }
@@ -1667,7 +1757,7 @@ func (bc *BuildController) readClusterBuildControllerConfig() error {
 	if err != nil && !errors.IsNotFound(err) {
 		return err
 	} else if buildConfig == nil {
-		bc.buildDefaults.DefaultProxy = nil
+		bc.setBuildDefaultProxy(nil)
 		return nil
 	}
 
@@ -1677,7 +1767,7 @@ func (bc *BuildController) readClusterBuildControllerConfig() error {
 			klog.Infof("build controller config: %s", string(configJSON))
 		}
 	}
-	bc.buildDefaults.DefaultProxy = buildConfig.Spec.BuildDefaults.DefaultProxy
+	bc.setBuildDefaultProxy(buildConfig.Spec.BuildDefaults.DefaultProxy)
 
 	return nil
 }
@@ -1694,9 +1784,9 @@ func (bc *BuildController) readClusterImageConfig() []error {
 		configErrs = append(configErrs, err)
 		return configErrs
 	} else if imageConfig == nil {
-		bc.additionalTrustedCAData = nil
-		bc.registryConfData = ""
-		bc.signaturePolicyData = ""
+		bc.setAdditionalTrustedCAs(nil)
+		bc.setRegistryConfTOML("")
+		bc.setSignaturePolicyJSON("")
 		return configErrs
 	}
 
@@ -1711,26 +1801,27 @@ func (bc *BuildController) readClusterImageConfig() []error {
 	if err != nil {
 		configErrs = append(configErrs, err)
 	} else {
-		bc.additionalTrustedCAData = additionalCAs
+		bc.setAdditionalTrustedCAs(additionalCAs)
 	}
 
 	registriesTOML, regErr := bc.createBuildRegistriesConfigData(imageConfig)
 	if regErr != nil {
 		configErrs = append(configErrs, regErr)
 	} else {
-		bc.registryConfData = registriesTOML
+		bc.setRegistryConfTOML(registriesTOML)
 	}
 
 	signatureJSON, sigErr := bc.createBuildSignaturePolicyData(imageConfig)
 	if sigErr != nil {
 		configErrs = append(configErrs, sigErr)
 	} else {
-		bc.signaturePolicyData = signatureJSON
+		bc.setSignaturePolicyJSON(signatureJSON)
 	}
 
 	return configErrs
 }
 
+// getAdditionalTrustedCAData reads the additional trusted CA certificates from the cluster image config
 func (bc *BuildController) getAdditionalTrustedCAData(config *configv1.Image) (map[string]string, error) {
 	if len(config.Spec.AdditionalTrustedCA.Name) == 0 {
 		klog.V(4).Info("additional certificate authorities for builds not specified")
