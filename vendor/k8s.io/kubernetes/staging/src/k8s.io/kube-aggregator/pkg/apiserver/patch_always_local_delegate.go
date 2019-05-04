@@ -28,6 +28,12 @@ func AddOverlappingGroupVersion(groupVersion schema.GroupVersion) {
 	overlappingGroupVersion[groupVersion] = true
 }
 
+var alwaysLocalDelegateGroupResource = map[schema.GroupResource]bool{}
+
+func AddAlwaysLocalDelegateGroupResource(groupResource schema.GroupResource) {
+	alwaysLocalDelegateGroupResource[groupResource] = true
+}
+
 func APIServiceAlreadyExists(groupVersion schema.GroupVersion) bool {
 	if overlappingGroupVersion[groupVersion] {
 		return true

@@ -225,6 +225,14 @@ func WaitForSecurityContextConstraintsCRDAvailable(clusterAdminClientConfig *res
 	})
 }
 
+func WaitForRoleBindingRestrictionCRDAvailable(clusterAdminClientConfig *rest.Config) error {
+	return WaitForCRDAvailable(clusterAdminClientConfig, schema.GroupVersionResource{
+		Version:  "v1",
+		Group:    "authorization.openshift.io",
+		Resource: "rolebindingrestrictions",
+	})
+}
+
 func WaitForCRDAvailable(clusterAdminClientConfig *rest.Config, gvr schema.GroupVersionResource) error {
 	dynamicClient := dynamic.NewForConfigOrDie(clusterAdminClientConfig)
 	stopCh := make(chan struct{})

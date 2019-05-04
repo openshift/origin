@@ -61,10 +61,6 @@ var openshiftEtcdStorageData = map[schema.GroupVersionResource]etcddata.StorageD
 		ExpectedEtcdPath: "kubernetes.io/clusterrolebindings/crb1a1o2",
 		ExpectedGVK:      gvkP("rbac.authorization.k8s.io", "v1", "ClusterRoleBinding"), // proxy to RBAC
 	},
-	gvr("authorization.openshift.io", "v1", "rolebindingrestrictions"): {
-		Stub:             `{"metadata": {"name": "rbrg"}, "spec": {"serviceaccountrestriction": {"serviceaccounts": [{"name": "sa"}]}}}`,
-		ExpectedEtcdPath: "openshift.io/rolebindingrestrictions/etcdstoragepathtestnamespace/rbrg",
-	},
 	// --
 
 	// github.com/openshift/origin/pkg/build/apis/build/v1
@@ -199,6 +195,7 @@ var kindWhiteList = sets.NewString(
 	// these are now served using CRDs
 	"ClusterResourceQuota",
 	"SecurityContextConstraints",
+	"RoleBindingRestriction",
 )
 
 // namespace used for all tests, do not change this
@@ -257,6 +254,11 @@ func TestEtcd3StoragePath(t *testing.T) {
 
 	// wait for cluster resource quota CRD to be available
 	if err := testutil.WaitForClusterResourceQuotaCRDAvailable(kubeConfig); err != nil {
+		t.Fatal(err)
+	}
+
+	// wait for RoleBindingRestriction CRD to be available
+	if err := testutil.WaitForRoleBindingRestrictionCRDAvailable(kubeConfig); err != nil {
 		t.Fatal(err)
 	}
 

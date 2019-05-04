@@ -41,6 +41,10 @@ func TestRestrictUsers(t *testing.T) {
 	}
 	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(testutil.NonProtobufConfig(clusterAdminClientConfig))
 
+	if err := testutil.WaitForRoleBindingRestrictionCRDAvailable(clusterAdminClientConfig); err != nil {
+		t.Fatal(err)
+	}
+
 	if _, _, err := testserver.CreateNewProject(clusterAdminClientConfig, "namespace", "carol"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
