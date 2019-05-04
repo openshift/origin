@@ -146,6 +146,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 					targets.Expect(labels{"job": "alertmanager-main"}, "up", "^https://.*/metrics$"),
 					targets.Expect(labels{"job": "crio"}, "up", "^http://.*/metrics$"),
 					targets.Expect(labels{"job": "telemeter-client"}, "up", "^https://.*/metrics$"),
+					targets.Expect(labels{"job": "sdn"}, "up", "^http://.*/metrics$"),
 				)
 				if len(lastErrs) > 0 {
 					e2e.Logf("missing some targets: %v", lastErrs)
@@ -179,6 +180,18 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 			tests := map[string][]metricTest{
 				// should have constantly firing a watchdog alert
 				`container_cpu_usage_seconds_total{id!~"/kubepods.slice/.*"}`: {metricTest{greaterThanEqual: true, value: 1}},
+			}
+			runQueries(tests, oc, ns, execPodName, url, bearerToken)
+		})
+		g.It("should be able to get the sdn ovs flows", func() {
+			oc.SetupProject()
+			ns := oc.Namespace()
+			execPodName := e2e.CreateExecPodOrFail(oc.AdminKubeClient(), ns, "execpod", func(pod *v1.Pod) { pod.Spec.Containers[0].Image = "centos:7" })
+			defer func() { oc.AdminKubeClient().CoreV1().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
+
+			tests := map[string][]metricTest{
+				//something
+				`openshift_sdn_ovs_flows`: {metricTest{greaterThanEqual: true, value: 1}},
 			}
 			runQueries(tests, oc, ns, execPodName, url, bearerToken)
 		})
