@@ -195,7 +195,13 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 			// add a route to that via the SDN
 			var addrs []netlink.Addr
 			err = hostNS.Do(func(ns.NetNS) error {
-				parent, err := netlink.LinkByIndex(link.Attrs().ParentIndex)
+				// workaround for https://bugzilla.redhat.com/show_bug.cgi?id=1705686
+				parentIndex := link.Attrs().ParentIndex
+				if parentIndex == 0 {
+					parentIndex = link.Attrs().Index
+				}
+
+				parent, err := netlink.LinkByIndex(parentIndex)
 				if err != nil {
 					return err
 				}
