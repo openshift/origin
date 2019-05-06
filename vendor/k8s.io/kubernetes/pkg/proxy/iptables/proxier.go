@@ -650,7 +650,7 @@ func (proxier *Proxier) syncProxyRules() {
 	start := time.Now()
 	defer func() {
 		metrics.SyncProxyRulesLatency.Observe(metrics.SinceInMicroseconds(start))
-		klog.V(4).Infof("syncProxyRules took %v", time.Since(start))
+		klog.V(2).Infof("syncProxyRules took %v", time.Since(start))
 	}()
 	// don't sync rules till we've received services and endpoints
 	if !proxier.endpointsSynced || !proxier.servicesSynced {
@@ -676,7 +676,7 @@ func (proxier *Proxier) syncProxyRules() {
 		}
 	}
 
-	klog.V(3).Info("Syncing iptables rules")
+	klog.V(2).Info("Syncing iptables rules")
 
 	// Create and link the kube chains.
 	for _, chain := range iptablesJumpChains {
@@ -1344,7 +1344,7 @@ func (proxier *Proxier) syncProxyRules() {
 	proxier.iptablesData.Write(proxier.natChains.Bytes())
 	proxier.iptablesData.Write(proxier.natRules.Bytes())
 
-	klog.V(5).Infof("Restoring iptables rules: %s", proxier.iptablesData.Bytes())
+	klog.V(2).Infof("Restoring iptables rules: %s", proxier.iptablesData.Bytes())
 	err = proxier.iptables.RestoreAll(proxier.iptablesData.Bytes(), utiliptables.NoFlushTables, utiliptables.RestoreCounters)
 	if err != nil {
 		klog.Errorf("Failed to execute iptables-restore: %v", err)
