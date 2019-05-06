@@ -206,7 +206,7 @@ func (o *Options) Run() error {
 			}
 		}
 		if len(o.ToImage) > 0 {
-			if o.ToImage == cv.Status.Desired.Image {
+			if o.ToImage == cv.Status.Desired.Image && !o.Force {
 				fmt.Fprintf(o.Out, "info: Cluster is already using release image %s\n", o.ToImage)
 				return nil
 			}
