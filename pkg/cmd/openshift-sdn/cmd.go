@@ -116,7 +116,6 @@ func (sdn *OpenShiftSDN) Run(c *cobra.Command, errout io.Writer, stopCh chan str
 
 	<-stopCh
 	time.Sleep(500 * time.Millisecond) // gracefully shut down
-	os.Exit(1)
 }
 
 // ValidateAndParse validates the command line options, parses the node
