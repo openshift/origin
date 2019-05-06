@@ -208,18 +208,29 @@ function localup::start_kubeapiserver() {
       --config=${LOCALUP_CONFIG}/kube-apiserver/kube-apiserver.yaml >"${KUBE_APISERVER_LOG}" 2>&1 &
     KUBE_APISERVER_PID=$!
 
-    # Wait for kube-apiserver to come up before launching the rest of the components.
-    os::log::debug "Waiting for kube-apiserver to come up"
-    kube::util::wait_for_url "https://${API_HOST_IP}:${API_SECURE_PORT}/healthz" "kube-apiserver: " 1 ${WAIT_FOR_URL_API_SERVER} ${MAX_TIME_FOR_URL_API_SERVER} \
-        || { os::log::error "check kube-apiserver logs: ${KUBE_APISERVER_LOG}" ; exit 1 ; }
-
     # Create kubeconfigs for all components, using client certs
     kube::util::write_client_kubeconfig "${CONTROLPLANE_SUDO}" "${CERT_DIR}" "${ROOT_CA_FILE}" "${API_HOST}" "${API_SECURE_PORT}" admin
     chown "${USER:-$(id -u)}" "${CERT_DIR}/client-admin.key" # make readable for kubectl
 
+    echo "Waiting for KAS to be mostly healthy so that bootstrap manifests can be applied"
+    tstamp=$(date +%s)
+    set +e
+    while (( $(date +%s) - $tstamp < 160 )); do
+        [ "$(oc get --config="${LOCALUP_CONFIG}/kube-apiserver/admin.kubeconfig" --raw /healthz 2>&1 | grep -c 'failed:')" == "1" ] && break
+        sleep 0.25
+    done
+    set -e
+    [ "$(oc get --config="${LOCALUP_CONFIG}/kube-apiserver/admin.kubeconfig" --raw /healthz 2>&1 | grep -c 'failed:')" == "1" ] \
+        || { os::log::error "check kube-apiserver logs: ${KUBE_APISERVER_LOG}" ; exit 1 ; }
+
     for filename in ${OS_ROOT}/hack/local-up-master/kube-apiserver-manifests/*.yaml; do
        oc --config=${LOCALUP_CONFIG}/kube-apiserver/admin.kubeconfig apply -f ${filename}
     done
+
+    # Wait for kube-apiserver to come up before launching the rest of the components.
+    os::log::debug "Waiting for kube-apiserver to come up"
+    kube::util::wait_for_url "https://${API_HOST_IP}:${API_SECURE_PORT}/healthz" "kube-apiserver: " 1 ${WAIT_FOR_URL_API_SERVER} ${MAX_TIME_FOR_URL_API_SERVER} \
+        || { os::log::error "check kube-apiserver logs: ${KUBE_APISERVER_LOG}" ; exit 1 ; }
 
     NON_LOOPBACK_IPV4=$(ip -o -4 addr show up primary scope global | awk '{print $4}' | cut -f1 -d'/' | head -n1)
     for filename in ${OS_ROOT}/hack/local-up-master/openshift-apiserver-manifests/*.yaml; do
