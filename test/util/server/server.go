@@ -332,7 +332,12 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, stop
 	}
 
 	// SCCs are required for OpenShift apiserver bootstrap process
-	util.WaitForSecurityContextConstraintsCRDAvailable(clientConfig)
+	if err := util.WaitForSecurityContextConstraintsCRDAvailable(clientConfig); err != nil {
+		return "", err
+	}
+	if err := util.WaitForRoleBindingRestrictionCRDAvailable(clientConfig); err != nil {
+		return "", err
+	}
 
 	if err := startOpenShiftAPIServer(masterConfig, clientConfig, stopCh); err != nil {
 		return "", err

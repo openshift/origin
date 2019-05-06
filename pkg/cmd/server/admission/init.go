@@ -5,6 +5,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	quota "k8s.io/kubernetes/pkg/quota/v1"
 
+	authorizationinformer "github.com/openshift/client-go/authorization/informers/externalversions/authorization/v1"
 	quotainformer "github.com/openshift/client-go/quota/informers/externalversions/quota/v1"
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions/security/v1"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
@@ -23,6 +24,7 @@ type PluginInitializer struct {
 	RegistryHostnameRetriever    registryhostname.RegistryHostnameRetriever
 	SecurityInformers            securityv1informer.SecurityContextConstraintsInformer
 	UserInformers                userinformer.SharedInformerFactory
+	AuthorizationInformers       authorizationinformer.Interface
 }
 
 // Initialize will check the initialization interfaces implemented by each plugin
@@ -51,6 +53,9 @@ func (i *PluginInitializer) Initialize(plugin admission.Interface) {
 	}
 	if wantsUserInformer, ok := plugin.(WantsUserInformer); ok {
 		wantsUserInformer.SetUserInformer(i.UserInformers)
+	}
+	if wantsAuthorizationInformer, ok := plugin.(WantsAuthorizationInformer); ok {
+		wantsAuthorizationInformer.SetAuthorizationInformer(i.AuthorizationInformers)
 	}
 }
 

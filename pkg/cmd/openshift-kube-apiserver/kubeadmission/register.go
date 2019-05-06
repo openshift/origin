@@ -95,6 +95,8 @@ func NewDefaultOffPluginsFunc(kubeDefaultOffAdmission sets.String) func() sets.S
 		kubeOff.Delete(additionalDefaultOnPlugins.List()...)
 		kubeOff.Delete(openshiftAdmissionPluginsForKube...)
 		kubeOff.Delete(customresourcevalidationregistration.AllCustomResourceValidators...)
+		// TODO: Why is this necessary?
+		kubeOff.Insert("authorization.openshift.io/RestrictSubjectBindings")
 		return kubeOff
 	}
 }

@@ -19,6 +19,8 @@ import (
 	"k8s.io/kubernetes/pkg/quota/v1/install"
 
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
+	authzclient "github.com/openshift/client-go/authorization/clientset/versioned"
+	authzinformer "github.com/openshift/client-go/authorization/informers/externalversions"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned"
 	oauthinformer "github.com/openshift/client-go/oauth/informers/externalversions"
 	quotaclient "github.com/openshift/client-go/quota/clientset/versioned"
@@ -112,6 +114,7 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 			RegistryHostnameRetriever:    registryHostnameRetriever,
 			SecurityInformers:            kubeAPIServerInformers.GetOpenshiftSecurityInformers().Security().V1().SecurityContextConstraints(),
 			UserInformers:                kubeAPIServerInformers.GetOpenshiftUserInformers(),
+			AuthorizationInformers:       kubeAPIServerInformers.GetOpenshiftAuthzInformers().Authorization().V1(),
 		}
 		*pluginInitializers = append(*pluginInitializers, openshiftPluginInitializer)
 
@@ -177,12 +180,16 @@ func (c *KubeAPIServerServerPatchContext) PatchServer(server *master.Master) err
 
 // NewInformers is only exposed for the build's integration testing until it can be fixed more appropriately.
 func NewInformers(versionedInformers clientgoinformers.SharedInformerFactory, loopbackClientConfig *rest.Config) (*KubeAPIServerInformers, error) {
-	// ClusterResourceQuota is served using CRD resource any status update must use JSON
+	// ClusterResourceQuota, RoleBindingRestrictions (Authorization) is served using CRD resource any status update must use JSON
 	jsonLoopbackClientConfig := rest.CopyConfig(loopbackClientConfig)
 	jsonLoopbackClientConfig.ContentConfig.AcceptContentTypes = "application/json"
 	jsonLoopbackClientConfig.ContentConfig.ContentType = "application/json"
 
 	oauthClient, err := oauthclient.NewForConfig(loopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	authzClient, err := authzclient.NewForConfig(jsonLoopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -209,6 +216,7 @@ func NewInformers(versionedInformers clientgoinformers.SharedInformerFactory, lo
 		OpenshiftQuotaInformers:    quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod),
 		OpenshiftSecurityInformers: securityv1informer.NewSharedInformerFactory(securityClient, defaultInformerResyncPeriod),
 		OpenshiftUserInformers:     userinformer.NewSharedInformerFactory(userClient, defaultInformerResyncPeriod),
+		OpenshiftAuthzInformers:    authzinformer.NewSharedInformerFactory(authzClient, defaultInformerResyncPeriod),
 	}
 	if err := ret.OpenshiftUserInformers.User().V1().Groups().Informer().AddIndexers(cache.Indexers{
 		usercache.ByUserIndexName: usercache.ByUserIndexKeys,
@@ -225,6 +233,7 @@ type KubeAPIServerInformers struct {
 	OpenshiftQuotaInformers    quotainformer.SharedInformerFactory
 	OpenshiftSecurityInformers securityv1informer.SharedInformerFactory
 	OpenshiftUserInformers     userinformer.SharedInformerFactory
+	OpenshiftAuthzInformers    authzinformer.SharedInformerFactory
 }
 
 func (i *KubeAPIServerInformers) GetKubernetesInformers() kexternalinformers.SharedInformerFactory {
@@ -239,6 +248,9 @@ func (i *KubeAPIServerInformers) GetOpenshiftSecurityInformers() securityv1infor
 func (i *KubeAPIServerInformers) GetOpenshiftUserInformers() userinformer.SharedInformerFactory {
 	return i.OpenshiftUserInformers
 }
+func (i *KubeAPIServerInformers) GetOpenshiftAuthzInformers() authzinformer.SharedInformerFactory {
+	return i.OpenshiftAuthzInformers
+}
 
 func (i *KubeAPIServerInformers) Start(stopCh <-chan struct{}) {
 	i.KubernetesInformers.Start(stopCh)
@@ -246,4 +258,5 @@ func (i *KubeAPIServerInformers) Start(stopCh <-chan struct{}) {
 	i.OpenshiftQuotaInformers.Start(stopCh)
 	i.OpenshiftSecurityInformers.Start(stopCh)
 	i.OpenshiftUserInformers.Start(stopCh)
+	i.OpenshiftAuthzInformers.Start(stopCh)
 }
