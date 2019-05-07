@@ -2418,7 +2418,7 @@ var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "internal-image",
+        "name": "incremental-image",
         "creationTimestamp": null
       },
       "spec": {}
@@ -2427,10 +2427,10 @@ var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
       "kind": "BuildConfig",
       "apiVersion": "v1",
       "metadata": {
-        "name": "initial-build",
+        "name": "incremental-build",
         "creationTimestamp": null,
         "labels": {
-          "name": "initial-build"
+          "name": "incremental-build"
         }
       },
       "spec": {
@@ -2452,50 +2452,6 @@ var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "centos/ruby-22-centos7:latest"
-            }
-          }
-        },
-        "output": {
-          "to": {
-            "kind": "ImageStreamTag",
-            "name": "internal-image:latest"
-          }
-        },
-        "resources": {}
-      },
-      "status": {
-        "lastVersion": 0
-      }
-    },
-    {
-      "kind": "BuildConfig",
-      "apiVersion": "v1",
-      "metadata": {
-        "name": "internal-build",
-        "creationTimestamp": null,
-        "labels": {
-          "name": "internal-build"
-        }
-      },
-      "spec": {
-        "source": {
-          "type": "Git",
-          "git": {
-            "uri": "https://github.com/openshift/incremental-app.git"
-          }
-        },
-        "strategy": {
-          "type": "Source",
-          "sourceStrategy": {
-            "env": [
-              {
-                "name": "BUILD_LOGLEVEL",
-                "value": "5"
-              }
-            ],
-            "from": {
-              "kind": "ImageStreamTag",
-              "name": "internal-image:latest"
             },
             "incremental": true
           }
@@ -2503,7 +2459,7 @@ var _testExtendedTestdataBuildsIncrementalAuthBuildJson = []byte(`{
         "output": {
           "to": {
             "kind": "ImageStreamTag",
-            "name": "internal-image:latest"
+            "name": "incremental-image:latest"
           }
         }
       }

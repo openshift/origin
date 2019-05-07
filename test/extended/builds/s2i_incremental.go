@@ -48,15 +48,15 @@ var _ = g.Describe("[Feature:Builds][Slow] incremental s2i build", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("starting a test build")
-				br, _ := exutil.StartBuildAndWait(oc, "initial-build")
+				br, _ := exutil.StartBuildAndWait(oc, "incremental-build")
 				br.AssertSuccess()
 
 				g.By("starting a test build using the image produced by the last build")
-				br2, _ := exutil.StartBuildAndWait(oc, "internal-build")
+				br2, _ := exutil.StartBuildAndWait(oc, "incremental-build")
 				br2.AssertSuccess()
 
 				g.By("getting the Docker image reference from ImageStream")
-				imageName, err := exutil.GetDockerImageReference(oc.ImageClient().Image().ImageStreams(oc.Namespace()), "internal-image", "latest")
+				imageName, err := exutil.GetDockerImageReference(oc.ImageClient().Image().ImageStreams(oc.Namespace()), "incremental-image", "latest")
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("instantiating a pod and service with the new image")
