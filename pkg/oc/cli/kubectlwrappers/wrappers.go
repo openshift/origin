@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/annotate"
@@ -40,19 +39,19 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/run"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/scale"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/version"
 	kwait "k8s.io/kubernetes/pkg/kubectl/cmd/wait"
-	"k8s.io/kubernetes/pkg/kubectl/util/i18n"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/create"
 )
 
-func adjustCmdExamples(cmd *cobra.Command, parentName string, name string) {
+func adjustCmdExamples(cmd *cobra.Command, fullName string, name string) {
 	for _, subCmd := range cmd.Commands() {
-		adjustCmdExamples(subCmd, parentName, cmd.Name())
+		adjustCmdExamples(subCmd, fullName, cmd.Name())
 	}
-	cmd.Example = strings.Replace(cmd.Example, "kubectl", parentName, -1)
+	cmd.Example = strings.Replace(cmd.Example, "kubectl", fullName, -1)
 	tabbing := "  "
 	examples := []string{}
 	scanner := bufio.NewScanner(strings.NewReader(cmd.Example))
@@ -62,183 +61,46 @@ func adjustCmdExamples(cmd *cobra.Command, parentName string, name string) {
 	cmd.Example = strings.Join(examples, "\n")
 }
 
-var (
-	getLong = templates.LongDesc(`
-		Display one or many resources
-
-		Possible resources include builds, buildConfigs, services, pods, etc. To see
-		a complete list of resources, use '%[1]s api-resources'. Some resources may omit advanced
-		details that you can see with '-o wide'.  If you want an even more detailed
-		view, use '%[1]s describe'.`)
-
-	getExample = templates.Examples(`
-		# List all pods in ps output format.
-		%[1]s get pods
-
-		# List a single replication controller with specified ID in ps output format.
-		%[1]s get rc redis
-
-		# List all pods and show more details about them.
-		%[1]s get -o wide pods
-
-		# List a single pod in JSON output format.
-		%[1]s get -o json pod redis-pod
-
-		# Return only the status value of the specified pod.
-		%[1]s get -o template pod redis-pod --template={{.currentState.status}}`)
-)
-
 // NewCmdGet is a wrapper for the Kubernetes cli get command
 func NewCmdGet(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kget.NewCmdGet(fullName, f, streams)
-	cmd.Long = fmt.Sprintf(getLong, fullName)
-	cmd.Example = fmt.Sprintf(getExample, fullName)
-	cmd.SuggestFor = []string{"list"}
-	return cmd
+	return cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(kget.NewCmdGet(fullName, f, streams)))
 }
-
-var (
-	replaceLong = templates.LongDesc(`
-		Replace a resource by filename or stdin
-
-		JSON and YAML formats are accepted.`)
-
-	replaceExample = templates.Examples(`
-		# Replace a pod using the data in pod.json.
-	  %[1]s replace -f pod.json
-
-	  # Replace a pod based on the JSON passed into stdin.
-	  cat pod.json | %[1]s replace -f -
-
-	  # Force replace, delete and then re-create the resource
-	  %[1]s replace --force -f pod.json`)
-)
 
 // NewCmdReplace is a wrapper for the Kubernetes cli replace command
 func NewCmdReplace(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := replace.NewCmdReplace(f, streams)
-	cmd.Long = replaceLong
-	cmd.Example = fmt.Sprintf(replaceExample, fullName)
-	return cmd
+	return cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(replace.NewCmdReplace(f, streams)))
 }
-
-var (
-	clusterInfoLong = templates.LongDesc(`
-		Display addresses of the master and services with label kubernetes.io/cluster-service=true
-  		To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.`)
-
-	clusterinfoExample = templates.Examples(i18n.T(`
-		# Print the address of the master and cluster services
-		%[1]s cluster-info`))
-)
 
 func NewCmdClusterInfo(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := clusterinfo.NewCmdClusterInfo(f, streams)
-	cmd.Long = clusterInfoLong
-	cmd.Example = fmt.Sprintf(clusterinfoExample, fullName)
-	return cmd
+	return cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(clusterinfo.NewCmdClusterInfo(f, streams)))
 }
-
-var (
-	patchLong = templates.LongDesc(`
-		Update field(s) of a resource using strategic merge patch
-
-		JSON and YAML formats are accepted.`)
-
-	patchExample = templates.Examples(`
-		# Partially update a node using strategic merge patch
-  	%[1]s patch node k8s-node-1 -p '{"spec":{"unschedulable":true}}'`)
-)
 
 // NewCmdPatch is a wrapper for the Kubernetes cli patch command
 func NewCmdPatch(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := patch.NewCmdPatch(f, streams)
-	cmd.Long = patchLong
-	cmd.Example = fmt.Sprintf(patchExample, fullName)
-	return cmd
+	return cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(patch.NewCmdPatch(f, streams)))
 }
-
-var (
-	deleteLong = templates.LongDesc(`
-		Delete a resource
-
-		JSON and YAML formats are accepted.
-
-		If both a filename and command line arguments are passed, the command line
-		arguments are used and the filename is ignored.
-
-		Note that the delete command does NOT do resource version checks, so if someone
-		submits an update to a resource right when you submit a delete, their update
-		will be lost along with the rest of the resource.`)
-
-	deleteExample = templates.Examples(`
-		# Delete a pod using the type and ID specified in pod.json.
-	  %[1]s delete -f pod.json
-
-	  # Delete a pod based on the type and ID in the JSON passed into stdin.
-	  cat pod.json | %[1]s delete -f -
-
-	  # Delete pods and services with label name=myLabel.
-	  %[1]s delete pods,services -l name=myLabel
-
-	  # Delete a pod with name node-1-vsjnm.
-	  %[1]s delete pod node-1-vsjnm
-
-	  # Delete all resources associated with a running app, includes
-	  # buildconfig,deploymentconfig,service,imagestream,route and pod,
-	  # where 'appName' is listed in 'Labels' of 'oc describe [resource] [resource name]' output.
-	  %[1]s delete all -l app=appName
-
-	  # Delete all pods
-	  %[1]s delete pods --all`)
-)
 
 // NewCmdDelete is a wrapper for the Kubernetes cli delete command
 func NewCmdDelete(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := delete.NewCmdDelete(f, streams)
-	cmd.Long = deleteLong
-	cmd.Short = "Delete one or more resources"
-	cmd.Example = fmt.Sprintf(deleteExample, fullName)
-	cmd.SuggestFor = []string{"remove", "stop"}
-	return cmd
+	return cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(delete.NewCmdDelete(f, streams)))
 }
 
-var (
-	createLong = templates.LongDesc(`
-		Create a resource by filename or stdin
-
-		JSON and YAML formats are accepted.`)
-
-	createExample = templates.Examples(`
-		# Create a pod using the data in pod.json.
-	  %[1]s create -f pod.json
-
-	  # Create a pod based on the JSON passed into stdin.
-	  cat pod.json | %[1]s create -f -`)
-)
-
 // NewCmdCreate is a wrapper for the Kubernetes cli create command
-func NewCmdCreate(parentName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := kcreate.NewCmdCreate(f, streams)
-	cmd.Long = createLong
-	cmd.Example = fmt.Sprintf(createExample, parentName)
-
-	// normalize long descs and examples
-	// TODO remove when normalization is moved upstream
-	templates.NormalizeAll(cmd)
+func NewCmdCreate(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	cmd := cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(kcreate.NewCmdCreate(f, streams)))
 
 	// create subcommands
-	cmd.AddCommand(create.NewCmdCreateRoute(parentName, f, streams))
-	cmd.AddCommand(create.NewCmdCreateDeploymentConfig(create.DeploymentConfigRecommendedName, parentName+" create "+create.DeploymentConfigRecommendedName, f, streams))
-	cmd.AddCommand(create.NewCmdCreateClusterQuota(create.ClusterQuotaRecommendedName, parentName+" create "+create.ClusterQuotaRecommendedName, f, streams))
+	cmd.AddCommand(create.NewCmdCreateRoute(fullName, f, streams))
+	cmd.AddCommand(create.NewCmdCreateDeploymentConfig(create.DeploymentConfigRecommendedName, fullName+" create "+create.DeploymentConfigRecommendedName, f, streams))
+	cmd.AddCommand(create.NewCmdCreateClusterQuota(create.ClusterQuotaRecommendedName, fullName+" create "+create.ClusterQuotaRecommendedName, f, streams))
 
-	cmd.AddCommand(create.NewCmdCreateUser(create.UserRecommendedName, parentName+" create "+create.UserRecommendedName, f, streams))
-	cmd.AddCommand(create.NewCmdCreateIdentity(create.IdentityRecommendedName, parentName+" create "+create.IdentityRecommendedName, f, streams))
-	cmd.AddCommand(create.NewCmdCreateUserIdentityMapping(create.UserIdentityMappingRecommendedName, parentName+" create "+create.UserIdentityMappingRecommendedName, f, streams))
-	cmd.AddCommand(create.NewCmdCreateImageStream(create.ImageStreamRecommendedName, parentName+" create "+create.ImageStreamRecommendedName, f, streams))
-	cmd.AddCommand(create.NewCmdCreateImageStreamTag(create.ImageStreamTagRecommendedName, parentName+" create "+create.ImageStreamTagRecommendedName, f, streams))
+	cmd.AddCommand(create.NewCmdCreateUser(create.UserRecommendedName, fullName+" create "+create.UserRecommendedName, f, streams))
+	cmd.AddCommand(create.NewCmdCreateIdentity(create.IdentityRecommendedName, fullName+" create "+create.IdentityRecommendedName, f, streams))
+	cmd.AddCommand(create.NewCmdCreateUserIdentityMapping(create.UserIdentityMappingRecommendedName, fullName+" create "+create.UserIdentityMappingRecommendedName, f, streams))
+	cmd.AddCommand(create.NewCmdCreateImageStream(create.ImageStreamRecommendedName, fullName+" create "+create.ImageStreamRecommendedName, f, streams))
+	cmd.AddCommand(create.NewCmdCreateImageStreamTag(create.ImageStreamTagRecommendedName, fullName+" create "+create.ImageStreamTagRecommendedName, f, streams))
 
-	adjustCmdExamples(cmd, parentName, "create")
+	adjustCmdExamples(cmd, fullName, "create")
 
 	return cmd
 }
@@ -306,50 +168,16 @@ func hideGlobalFlags(c *cobra.Command, fs *flag.FlagSet) {
 	}
 }
 
-var (
-	execLong = templates.LongDesc(`Execute a command in a container`)
-
-	execExample = templates.Examples(`
-	# Get output from running 'date' in ruby-container from pod 'mypod'
-  %[1]s exec mypod -c ruby-container date
-
-  # Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 'mypod' and sends stdout/stderr from 'bash' back to the client
-  %[1]s exec mypod -c ruby-container -i -t -- bash -il`)
-)
-
 // NewCmdExec is a wrapper for the Kubernetes cli exec command
 func NewCmdExec(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := exec.NewCmdExec(f, streams)
+	cmd := cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(exec.NewCmdExec(f, streams)))
 	cmd.Use = "exec [flags] POD [-c CONTAINER] -- COMMAND [args...]"
-	cmd.Long = execLong
-	cmd.Example = fmt.Sprintf(execExample, fullName)
-	cmd.Flag("pod").Usage = cmd.Flag("pod").Usage + " (deprecated)"
 	return cmd
 }
 
-var (
-	portForwardLong = templates.LongDesc(`Forward 1 or more local ports to a pod`)
-
-	portForwardExample = templates.Examples(`
-		# Listens on ports 5000 and 6000 locally, forwarding data to/from ports 5000 and 6000 in the pod
-	  %[1]s port-forward mypod 5000 6000
-
-	  # Listens on port 8888 locally, forwarding to 5000 in the pod
-	  %[1]s port-forward mypod 8888:5000
-
-	  # Listens on a random port locally, forwarding to 5000 in the pod
-	  %[1]s port-forward mypod :5000
-
-	  # Listens on a random port locally, forwarding to 5000 in the pod
-	  %[1]s port-forward mypod 0:5000`)
-)
-
 // NewCmdPortForward is a wrapper for the Kubernetes cli port-forward command
 func NewCmdPortForward(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := portforward.NewCmdPortForward(f, streams)
-	cmd.Long = portForwardLong
-	cmd.Example = fmt.Sprintf(portForwardExample, fullName)
-	return cmd
+	return cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(portforward.NewCmdPortForward(f, streams)))
 }
 
 var (
@@ -375,28 +203,9 @@ func NewCmdDescribe(fullName string, f kcmdutil.Factory, streams genericclioptio
 	return cmd
 }
 
-var (
-	proxyLong = templates.LongDesc(`Run a proxy to the API server`)
-
-	proxyExample = templates.Examples(`
-		# Run a proxy to the api server on port 8011, serving static content from ./local/www/
-	  %[1]s proxy --port=8011 --www=./local/www/
-
-	  # Run a proxy to the api server on an arbitrary local port.
-	  # The chosen port for the server will be output to stdout.
-	  %[1]s proxy --port=0
-
-	  # Run a proxy to the api server, changing the api prefix to my-api
-	  # This makes e.g. the pods api available at localhost:8011/my-api/api/v1/pods/
-	  %[1]s proxy --api-prefix=/my-api`)
-)
-
 // NewCmdProxy is a wrapper for the Kubernetes cli proxy command
 func NewCmdProxy(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := proxy.NewCmdProxy(f, streams)
-	cmd.Long = proxyLong
-	cmd.Example = fmt.Sprintf(proxyExample, fullName)
-	return cmd
+	return cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(proxy.NewCmdProxy(f, streams)))
 }
 
 var (
@@ -522,188 +331,34 @@ func NewCmdRun(fullName string, f kcmdutil.Factory, streams genericclioptions.IO
 	return cmd
 }
 
-var (
-	attachLong = templates.LongDesc(`
-		Attach to a running container
-
-		Attach the current shell to a remote container, returning output or setting up a full
-		terminal session. Can be used to debug containers and invoke interactive commands.`)
-
-	attachExample = templates.Examples(`
-		# Get output from running pod 123456-7890, using the first container by default
-	  %[1]s attach 123456-7890
-
-	  # Get output from ruby-container from pod 123456-7890
-	  %[1]s attach 123456-7890 -c ruby-container
-
-	  # Switch to raw terminal mode, sends stdin to 'bash' in ruby-container from pod 123456-780
-	  # and sends stdout/stderr from 'bash' back to the client
-	  %[1]s attach 123456-7890 -c ruby-container -i -t`)
-)
-
 // NewCmdAttach is a wrapper for the Kubernetes cli attach command
 func NewCmdAttach(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := attach.NewCmdAttach(f, streams)
-	cmd.Long = attachLong
-	cmd.Example = fmt.Sprintf(attachExample, fullName)
-	return cmd
+	return cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(attach.NewCmdAttach(f, streams)))
 }
-
-var (
-	annotateLong = templates.LongDesc(`
-		Update the annotations on one or more resources
-
-		An annotation is a key/value pair that can hold larger (compared to a label),
-		and possibly not human-readable, data. It is intended to store non-identifying
-		auxiliary data, especially data manipulated by tools and system extensions. If
-		--overwrite is true, then existing annotations can be overwritten, otherwise
-		attempting to overwrite an annotation will result in an error. If
-		--resource-version is specified, then updates will use this resource version,
-		otherwise the existing resource-version will be used.
-
-		Run '%[1]s types' for a list of valid resources.`)
-
-	annotateExample = templates.Examples(`
-		# Update pod 'foo' with the annotation 'description' and the value 'my frontend'.
-	  # If the same annotation is set multiple times, only the last value will be applied
-	  %[1]s annotate pods foo description='my frontend'
-
-	  # Update pod 'foo' with the annotation 'description' and the value
-	  # 'my frontend running nginx', overwriting any existing value.
-	  %[1]s annotate --overwrite pods foo description='my frontend running nginx'
-
-	  # Update all pods in the namespace
-	  %[1]s annotate pods --all description='my frontend running nginx'
-
-	  # Update pod 'foo' only if the resource is unchanged from version 1.
-	  %[1]s annotate pods foo description='my frontend running nginx' --resource-version=1
-
-	  # Update pod 'foo' by removing an annotation named 'description' if it exists.
-	  # Does not require the --overwrite flag.
-	  %[1]s annotate pods foo description-`)
-)
 
 // NewCmdAnnotate is a wrapper for the Kubernetes cli annotate command
 func NewCmdAnnotate(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := annotate.NewCmdAnnotate(fullName, f, streams)
-	cmd.Long = fmt.Sprintf(annotateLong, fullName)
-	cmd.Example = fmt.Sprintf(annotateExample, fullName)
-	return cmd
+	return cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(annotate.NewCmdAnnotate(fullName, f, streams)))
 }
-
-var (
-	labelLong = templates.LongDesc(`
-		Update the labels on one or more resources
-
-		A valid label value is consisted of letters and/or numbers with a max length of %[1]d
-		characters. If --overwrite is true, then existing labels can be overwritten, otherwise
-		attempting to overwrite a label will result in an error. If --resource-version is
-		specified, then updates will use this resource version, otherwise the existing
-		resource-version will be used.`)
-
-	labelExample = templates.Examples(`
-		# Update pod 'foo' with the label 'unhealthy' and the value 'true'.
-	  %[1]s label pods foo unhealthy=true
-
-	  # Update pod 'foo' with the label 'status' and the value 'unhealthy', overwriting any existing value.
-	  %[1]s label --overwrite pods foo status=unhealthy
-
-	  # Update all pods in the namespace
-	  %[1]s label pods --all status=unhealthy
-
-	  # Update pod 'foo' only if the resource is unchanged from version 1.
-	  %[1]s label pods foo status=unhealthy --resource-version=1
-
-	  # Update pod 'foo' by removing a label named 'bar' if it exists.
-	  # Does not require the --overwrite flag.
-	  %[1]s label pods foo bar-`)
-)
 
 // NewCmdLabel is a wrapper for the Kubernetes cli label command
 func NewCmdLabel(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := label.NewCmdLabel(f, streams)
-	cmd.Long = fmt.Sprintf(labelLong, kvalidation.LabelValueMaxLength)
-	cmd.Example = fmt.Sprintf(labelExample, fullName)
-	return cmd
+	return cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(label.NewCmdLabel(f, streams)))
 }
-
-var (
-	applyLong = templates.LongDesc(`
-		Apply a configuration to a resource by filename or stdin.
-
-		JSON and YAML formats are accepted.`)
-
-	applyExample = templates.Examples(`
-		# Apply the configuration in pod.json to a pod.
-		%[1]s apply -f ./pod.json
-
-		# Apply the JSON passed into stdin to a pod.
-		cat pod.json | %[1]s apply -f -`)
-)
 
 // NewCmdApply is a wrapper for the Kubernetes cli apply command
 func NewCmdApply(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := apply.NewCmdApply(fullName, f, streams)
-	cmd.Long = applyLong
-	cmd.Example = fmt.Sprintf(applyExample, fullName)
-	return cmd
+	return cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(apply.NewCmdApply(fullName, f, streams)))
 }
-
-var (
-	explainLong = templates.LongDesc(`
-		Documentation of resources.
-
-		Possible resource types include: pods (po), services (svc),
-		replicationcontrollers (rc), nodes (no), events (ev), componentstatuses (cs),
-		limitranges (limits), persistentvolumes (pv), persistentvolumeclaims (pvc),
-		resourcequotas (quota), namespaces (ns) or endpoints (ep).`)
-
-	explainExample = templates.Examples(`
-		# Get the documentation of the resource and its fields
-		%[1]s explain pods
-
-		# Get the documentation of a specific field of a resource
-		%[1]s explain pods.spec.containers`)
-)
 
 // NewCmdExplain is a wrapper for the Kubernetes cli explain command
 func NewCmdExplain(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := explain.NewCmdExplain(fullName, f, streams)
-	cmd.Long = explainLong
-	cmd.Example = fmt.Sprintf(explainExample, fullName)
-	return cmd
+	return cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(explain.NewCmdExplain(fullName, f, streams)))
 }
-
-var (
-	convertLong = templates.LongDesc(`
-		Convert config files between different API versions. Both YAML
-		and JSON formats are accepted.
-
-		The command takes filename, directory, or URL as input, and convert it into format
-		of version specified by --output-version flag. If target version is not specified or
-		not supported, convert to latest version.
-
-		The default output will be printed to stdout in YAML format. One can use -o option
-		to change to output destination.`)
-
-	convertExample = templates.Examples(`
-		# Convert 'pod.yaml' to latest version and print to stdout.
-	  %[1]s convert -f pod.yaml
-
-	  # Convert the live state of the resource specified by 'pod.yaml' to the latest version
-	  # and print to stdout in json format.
-	  %[1]s convert -f pod.yaml --local -o json
-
-	  # Convert all files under current directory to latest version and create them all.
-	  %[1]s convert -f . | %[1]s create -f -`)
-)
 
 // NewCmdConvert is a wrapper for the Kubernetes cli convert command
 func NewCmdConvert(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := convert.NewCmdConvert(f, streams)
-	cmd.Long = convertLong
-	cmd.Example = fmt.Sprintf(convertExample, fullName)
-	return cmd
+	return cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(convert.NewCmdConvert(f, streams)))
 }
 
 var (
@@ -769,7 +424,7 @@ var (
 )
 
 // NewCmdConfig is a wrapper for the Kubernetes cli config command
-func NewCmdConfig(parentName, name string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+func NewCmdConfig(fullName, name string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
 	pathOptions := &kclientcmd.PathOptions{
 		GlobalFile:       kclientcmd.RecommendedHomeFile,
 		EnvVar:           kclientcmd.RecommendedConfigPathEnvVar,
@@ -784,38 +439,17 @@ func NewCmdConfig(parentName, name string, f kcmdutil.Factory, streams genericcl
 	cmd := config.NewCmdConfig(f, pathOptions, streams)
 	cmd.Short = "Change configuration files for the client"
 	cmd.Long = configLong
-	cmd.Example = fmt.Sprintf(configExample, parentName, name)
+	cmd.Example = fmt.Sprintf(configExample, fullName, name)
 	// normalize long descs and examples
 	// TODO remove when normalization is moved upstream
 	templates.NormalizeAll(cmd)
-	adjustCmdExamples(cmd, parentName, name)
+	adjustCmdExamples(cmd, fullName, name)
 	return cmd
 }
 
-var (
-	cpExample = templates.Examples(`
-	    # !!!Important Note!!!
-	    # Requires that the 'tar' binary is present in your container
-	    # image.  If 'tar' is not present, 'oc cp' will fail.
-
-	    # Copy /tmp/foo_dir local directory to /tmp/bar_dir in a remote pod in the default namespace
-		%[1]s cp /tmp/foo_dir <some-pod>:/tmp/bar_dir
-
-        # Copy /tmp/foo local file to /tmp/bar in a remote pod in a specific container
-		%[1]s cp /tmp/foo <some-pod>:/tmp/bar -c <specific-container>
-
-		# Copy /tmp/foo local file to /tmp/bar in a remote pod in namespace <some-namespace>
-		%[1]s cp /tmp/foo <some-namespace>/<some-pod>:/tmp/bar
-
-		# Copy /tmp/foo from a remote pod to /tmp/bar locally
-		%[1]s cp <some-namespace>/<some-pod>:/tmp/foo /tmp/bar`)
-)
-
 // NewCmdCp is a wrapper for the Kubernetes cli cp command
 func NewCmdCp(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := cp.NewCmdCp(f, streams)
-	cmd.Example = fmt.Sprintf(cpExample, fullName)
-	return cmd
+	return cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(cp.NewCmdCp(f, streams)))
 }
 
 func NewCmdWait(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
@@ -823,8 +457,7 @@ func NewCmdWait(fullName string, f kcmdutil.Factory, streams genericclioptions.I
 }
 
 func NewCmdAuth(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(kcmdauth.NewCmdAuth(f, streams)))
-	return cmd
+	return cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(kcmdauth.NewCmdAuth(f, streams)))
 }
 
 func NewCmdPlugin(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
@@ -835,38 +468,14 @@ func NewCmdPlugin(fullName string, f kcmdutil.Factory, streams genericclioptions
 	return plugin.NewCmdPlugin(f, streams)
 }
 
-var (
-	apiresourcesExample = templates.Examples(`
-		# Print the supported API Resources
-		%[1]s api-resources
-
-		# Print the supported API Resources with more information
-		%[1]s api-resources -o wide
-
-		# Print the supported namespaced resources
-		%[1]s api-resources --namespaced=true
-
-		# Print the supported non-namespaced resources
-		%[1]s api-resources --namespaced=false
-
-		# Print the supported API Resources with specific APIGroup
-		%[1]s api-resources --api-group=extensions`)
-)
-
 func NewCmdApiResources(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := apiresources.NewCmdAPIResources(f, streams)
-	cmd.Example = fmt.Sprintf(apiresourcesExample, fullName)
-	return cmd
+	return cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(apiresources.NewCmdAPIResources(f, streams)))
 }
 
-var (
-	apiversionsExample = templates.Examples(i18n.T(`
-		# Print the supported API versions
-		%[1]s api-versions`))
-)
-
 func NewCmdApiVersions(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	cmd := apiresources.NewCmdAPIVersions(f, streams)
-	cmd.Example = fmt.Sprintf(apiversionsExample, fullName)
-	return cmd
+	return cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(apiresources.NewCmdAPIVersions(f, streams)))
+}
+
+func NewCmdVersion(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	return cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(version.NewCmdVersion(f, streams)))
 }
