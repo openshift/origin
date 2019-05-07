@@ -351,10 +351,10 @@ func (o *NewOptions) Run() error {
 		}
 	}
 
-	hasMetadataOverrides := len(o.Name) > 0 &&
-		len(o.ReleaseMetadata) > 0 &&
-		len(o.PreviousVersions) > 0 &&
-		len(o.ToImageBase) > 0 &&
+	hasMetadataOverrides := len(o.Name) > 0 ||
+		len(o.ReleaseMetadata) > 0 ||
+		len(o.PreviousVersions) > 0 ||
+		len(o.ToImageBase) > 0 ||
 		len(o.ExtraComponentVersions) > 0
 
 	exclude := sets.NewString()
