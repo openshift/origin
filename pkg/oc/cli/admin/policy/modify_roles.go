@@ -671,42 +671,22 @@ func (o *RoleModificationOptions) RemoveRole() error {
 			return fmt.Errorf("unable to find target %v", o.Targets)
 		}
 
-		var updated *unstructured.UnstructuredList
-		if len(o.RoleBindingNamespace) > 0 {
-			updatedBindings := &unstructured.UnstructuredList{
-				Object: map[string]interface{}{
-					"kind":       "List",
-					"apiVersion": "v1",
-					"metadata":   map[string]interface{}{},
-				},
+		updatedBindings := &unstructured.UnstructuredList{
+			Object: map[string]interface{}{
+				"kind":       "List",
+				"apiVersion": "v1",
+				"metadata":   map[string]interface{}{},
+			},
+		}
+		for _, binding := range roleBindings {
+			obj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(binding.Object())
+			if err != nil {
+				return err
 			}
-			for _, binding := range roleBindings {
-				obj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(binding.Object())
-				if err != nil {
-					return err
-				}
-				updatedBindings.Items = append(updatedBindings.Items, unstructured.Unstructured{Object: obj})
-			}
-			updated = updatedBindings
-		} else {
-			updatedBindings := &unstructured.UnstructuredList{
-				Object: map[string]interface{}{
-					"kind":       "List",
-					"apiVersion": "v1",
-					"metadata":   map[string]interface{}{},
-				},
-			}
-			for _, binding := range roleBindings {
-				obj, err := runtime.DefaultUnstructuredConverter.ToUnstructured(binding.Object())
-				if err != nil {
-					return err
-				}
-				updatedBindings.Items = append(updatedBindings.Items, unstructured.Unstructured{Object: obj})
-			}
-			updated = updatedBindings
+			updatedBindings.Items = append(updatedBindings.Items, unstructured.Unstructured{Object: obj})
 		}
 
-		return p.PrintObj(updated, o.Out)
+		return p.PrintObj(updatedBindings, o.Out)
 	}
 
 	roleToPrint := o.roleObjectToPrint()
