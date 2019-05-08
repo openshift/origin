@@ -15,16 +15,16 @@ import (
 )
 
 type PluginInitializer struct {
-	ProjectCache                 *cache.ProjectCache
-	DefaultNodeSelector          string
-	OriginQuotaRegistry          quota.Registry
-	RESTClientConfig             restclient.Config
-	ClusterResourceQuotaInformer quotainformer.ClusterResourceQuotaInformer
-	ClusterQuotaMapper           clusterquotamapping.ClusterQuotaMapper
-	RegistryHostnameRetriever    registryhostname.RegistryHostnameRetriever
-	SecurityInformers            securityv1informer.SecurityContextConstraintsInformer
-	UserInformers                userinformer.SharedInformerFactory
-	AuthorizationInformers       authorizationinformer.Interface
+	ProjectCache                    *cache.ProjectCache
+	DefaultNodeSelector             string
+	OriginQuotaRegistry             quota.Registry
+	RESTClientConfig                restclient.Config
+	ClusterResourceQuotaInformer    quotainformer.ClusterResourceQuotaInformer
+	ClusterQuotaMapper              clusterquotamapping.ClusterQuotaMapper
+	RegistryHostnameRetriever       registryhostname.RegistryHostnameRetriever
+	SecurityInformers               securityv1informer.SecurityContextConstraintsInformer
+	UserInformers                   userinformer.SharedInformerFactory
+	RoleBindingRestrictionInformers authorizationinformer.RoleBindingRestrictionInformer
 }
 
 // Initialize will check the initialization interfaces implemented by each plugin
@@ -54,8 +54,8 @@ func (i *PluginInitializer) Initialize(plugin admission.Interface) {
 	if wantsUserInformer, ok := plugin.(WantsUserInformer); ok {
 		wantsUserInformer.SetUserInformer(i.UserInformers)
 	}
-	if wantsAuthorizationInformer, ok := plugin.(WantsAuthorizationInformer); ok {
-		wantsAuthorizationInformer.SetAuthorizationInformer(i.AuthorizationInformers)
+	if wantsRoleBindingRestrictionInformer, ok := plugin.(WantsRoleBindingRestrictionInformer); ok {
+		wantsRoleBindingRestrictionInformer.SetRoleBindingRestrictionInformer(i.RoleBindingRestrictionInformers)
 	}
 }
 

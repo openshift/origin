@@ -106,15 +106,15 @@ func NewOpenShiftKubeAPIServerConfigPatch(delegateAPIServer genericapiserver.Del
 		// TODO make a union registry
 		quotaRegistry := generic.NewRegistry(install.NewQuotaConfigurationForAdmission().Evaluators())
 		openshiftPluginInitializer := &oadmission.PluginInitializer{
-			DefaultNodeSelector:          kubeAPIServerConfig.ProjectConfig.DefaultNodeSelector,
-			OriginQuotaRegistry:          quotaRegistry,
-			RESTClientConfig:             *genericConfig.LoopbackClientConfig,
-			ClusterResourceQuotaInformer: kubeAPIServerInformers.GetOpenshiftQuotaInformers().Quota().V1().ClusterResourceQuotas(),
-			ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
-			RegistryHostnameRetriever:    registryHostnameRetriever,
-			SecurityInformers:            kubeAPIServerInformers.GetOpenshiftSecurityInformers().Security().V1().SecurityContextConstraints(),
-			UserInformers:                kubeAPIServerInformers.GetOpenshiftUserInformers(),
-			AuthorizationInformers:       kubeAPIServerInformers.GetOpenshiftAuthzInformers().Authorization().V1(),
+			DefaultNodeSelector:             kubeAPIServerConfig.ProjectConfig.DefaultNodeSelector,
+			OriginQuotaRegistry:             quotaRegistry,
+			RESTClientConfig:                *genericConfig.LoopbackClientConfig,
+			ClusterResourceQuotaInformer:    kubeAPIServerInformers.GetOpenshiftQuotaInformers().Quota().V1().ClusterResourceQuotas(),
+			ClusterQuotaMapper:              clusterQuotaMappingController.GetClusterQuotaMapper(),
+			RegistryHostnameRetriever:       registryHostnameRetriever,
+			SecurityInformers:               kubeAPIServerInformers.GetOpenshiftSecurityInformers().Security().V1().SecurityContextConstraints(),
+			UserInformers:                   kubeAPIServerInformers.GetOpenshiftUserInformers(),
+			RoleBindingRestrictionInformers: kubeAPIServerInformers.GetOpenshiftAuthzInformers().Authorization().V1().RoleBindingRestrictions(),
 		}
 		*pluginInitializers = append(*pluginInitializers, openshiftPluginInitializer)
 

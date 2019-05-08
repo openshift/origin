@@ -61,7 +61,7 @@ type WantsUserInformer interface {
 	admission.InitializationValidator
 }
 
-type WantsAuthorizationInformer interface {
-	SetAuthorizationInformer(authorizationinformer.Interface)
+type WantsRoleBindingRestrictionInformer interface {
+	SetRoleBindingRestrictionInformer(authorizationinformer.RoleBindingRestrictionInformer)
 	admission.InitializationValidator
 }

@@ -52,7 +52,7 @@ type restrictUsersAdmission struct {
 
 var _ = oadmission.WantsRESTClientConfig(&restrictUsersAdmission{})
 var _ = oadmission.WantsUserInformer(&restrictUsersAdmission{})
-var _ = oadmission.WantsAuthorizationInformer(&restrictUsersAdmission{})
+var _ = oadmission.WantsRoleBindingRestrictionInformer(&restrictUsersAdmission{})
 var _ = initializer.WantsExternalKubeClientSet(&restrictUsersAdmission{})
 var _ = admission.ValidationInterface(&restrictUsersAdmission{})
 
@@ -82,10 +82,9 @@ func (q *restrictUsersAdmission) SetRESTClientConfig(restClientConfig rest.Confi
 	}
 }
 
-// SetAuthorizationInformers implements WantsAuthorizationInformer interface.
-func (q *restrictUsersAdmission) SetAuthorizationInformer(informers authorizationv1informer.Interface) {
-	q.rbrLister = informers.RoleBindingRestrictions().Lister()
-	q.rbrSynced = informers.RoleBindingRestrictions().Informer().HasSynced
+func (q *restrictUsersAdmission) SetRoleBindingRestrictionInformer(informers authorizationv1informer.RoleBindingRestrictionInformer) {
+	q.rbrLister = informers.Lister()
+	q.rbrSynced = informers.Informer().HasSynced
 }
 
 func (q *restrictUsersAdmission) SetUserInformer(userInformers userinformer.SharedInformerFactory) {
