@@ -15,6 +15,7 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/record"
 	kubeproxyconfig "k8s.io/kubernetes/pkg/proxy/apis/config"
 	"k8s.io/kubernetes/pkg/util/interrupt"
 
@@ -28,19 +29,23 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
+const openshiftCNIFile string = "80-openshift-network.conf"
+
 // OpenShiftSDN stores the variables needed to initialize the real networking
 // processess from the command line.
 type OpenShiftSDN struct {
 	ConfigFilePath            string
 	KubeConfigFilePath        string
 	URLOnlyKubeConfigFilePath string
+	cniConfFile               string
 
 	NodeConfig  *configapi.NodeConfig
 	ProxyConfig *kubeproxyconfig.KubeProxyConfiguration
 
-	informers *informers
-	OsdnNode  *sdnnode.OsdnNode
-	OsdnProxy *sdnproxy.OsdnProxy
+	informers   *informers
+	OsdnNode    *sdnnode.OsdnNode
+	sdnRecorder record.EventRecorder
+	OsdnProxy   *sdnproxy.OsdnProxy
 }
 
 var networkLong = `
@@ -94,6 +99,11 @@ func (sdn *OpenShiftSDN) Run(c *cobra.Command, errout io.Writer, stopCh chan str
 				os.Exit(255)
 			}
 		}
+		klog.Fatal(err)
+	}
+
+	// Exit early if we can't create the CNI config file directory
+	if err := os.MkdirAll(filepath.Base(sdn.cniConfFile), 0755); err != nil {
 		klog.Fatal(err)
 	}
 
@@ -164,6 +174,12 @@ func (sdn *OpenShiftSDN) ValidateAndParse() error {
 		return err
 	}
 
+	cniConfDir := "/etc/cni/net.d"
+	if val, ok := sdn.NodeConfig.KubeletArguments["cni-conf-dir"]; ok && len(val) == 1 {
+		cniConfDir = val[0]
+	}
+	sdn.cniConfFile = filepath.Join(cniConfDir, openshiftCNIFile)
+
 	return nil
 }
 
@@ -200,9 +216,17 @@ func (sdn *OpenShiftSDN) Start(stopCh <-chan struct{}) error {
 	if err != nil {
 		return err
 	}
-	sdn.runProxy()
+	proxyInitChan := make(chan bool)
+	sdn.runProxy(proxyInitChan)
 	sdn.informers.start(stopCh)
 
+	klog.V(2).Infof("openshift-sdn network plugin waiting for proxy startup to comlete")
+	<-proxyInitChan
+	klog.V(2).Infof("openshift-sdn network plugin registering startup")
+	if err := sdn.writeConfigFile(); err != nil {
+		klog.Fatal(err)
+	}
+	klog.V(2).Infof("openshift-sdn network plugin ready")
 	return nil
 }
 
