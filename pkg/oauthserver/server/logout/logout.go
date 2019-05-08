@@ -11,12 +11,11 @@ import (
 	"github.com/openshift/origin/pkg/oauthserver"
 	"github.com/openshift/origin/pkg/oauthserver/server/redirect"
 	"github.com/openshift/origin/pkg/oauthserver/server/session"
-	"github.com/openshift/origin/pkg/oauthserver/server/tokenrequest"
 )
 
 const thenParam = "then"
 
-func NewLogout(invalidator session.SessionInvalidator, redirect string) tokenrequest.Endpoints {
+func NewLogout(invalidator session.SessionInvalidator, redirect string) oauthserver.Endpoints {
 	return &logout{
 		invalidator: invalidator,
 		redirect:    redirect,
@@ -28,10 +27,8 @@ type logout struct {
 	redirect    string
 }
 
-func (l *logout) Install(mux oauthserver.Mux, paths ...string) {
-	for _, path := range paths {
-		mux.Handle(path, l)
-	}
+func (l *logout) Install(mux oauthserver.Mux, prefix string) {
+	mux.Handle(prefix, l)
 }
 
 func (l *logout) ServeHTTP(w http.ResponseWriter, req *http.Request) {
