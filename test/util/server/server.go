@@ -379,6 +379,13 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, stop
 		return "", fmt.Errorf("Waiting for roles failed with: %v", err)
 	}
 
+	// the openshift controller manager creates its lease object in this
+	// namespace, so we have to ensure it exists.
+	kubeClient, err := kubernetes.NewForConfig(clientConfig)
+	ns := &corev1.Namespace{}
+	ns.Name = "openshift-controller-manager"
+	kubeClient.CoreV1().Namespaces().Create(ns)
+
 	return adminKubeConfigFile, nil
 }
 
