@@ -263,7 +263,7 @@ func TestListGroups(t *testing.T) {
 				},
 			),
 			groupUIDAttribute: "cn",
-			expectedError:     fmt.Errorf("unable to find LDAP group UID for %s", newTestGroup("", "cn=testUser,ou=users,dc=example,dc=com")),
+			expectedError:     fmt.Errorf("unable to find LDAP group UID for %s", newTestGroup("", "cn=testUser,ou=users,dc=example,dc=com").DN),
 			expectedGroups:    nil,
 		},
 		{
