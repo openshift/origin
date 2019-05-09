@@ -397,6 +397,32 @@ func TestGetObjectIgnoreNotFound(t *testing.T) {
 	}
 }
 
+func TestEmptyResult(t *testing.T) {
+	cmdtesting.InitTestErrorHandler(t)
+
+	tf := cmdtesting.NewTestFactory().WithNamespace("test")
+	defer tf.Cleanup()
+	codec := scheme.Codecs.LegacyCodec(scheme.Scheme.PrioritizedVersionsAllGroups()...)
+
+	tf.UnstructuredClient = &fake.RESTClient{
+		NegotiatedSerializer: resource.UnstructuredPlusDefaultContentConfig().NegotiatedSerializer,
+		Client: fake.CreateHTTPClient(func(req *http.Request) (*http.Response, error) {
+			return &http.Response{StatusCode: 200, Header: cmdtesting.DefaultHeader(), Body: cmdtesting.ObjBody(codec, &corev1.PodList{})}, nil
+		}),
+	}
+
+	streams, _, _, errbuf := genericclioptions.NewTestIOStreams()
+	cmd := NewCmdGet("kubectl", tf, streams)
+	// we're assuming that an empty file is being passed from stdin
+	cmd.Flags().Set("f", "-")
+	cmd.Flags().Set("output", "name")
+	cmd.Run(cmd, []string{"pods"})
+
+	if !strings.Contains(errbuf.String(), "No resources found") {
+		t.Errorf("unexpected output: %q", errbuf.String())
+	}
+}
+
 func TestGetSortedObjects(t *testing.T) {
 	pods := &corev1.PodList{
 		ListMeta: metav1.ListMeta{
@@ -723,7 +749,7 @@ func TestGetListComponentStatus(t *testing.T) {
 	cmd.Run(cmd, []string{"componentstatuses"})
 
 	expected := `NAME            STATUS      MESSAGE   ERROR
-servergood      Healthy     ok        
+servergood      Healthy     ok
 serverbad       Unhealthy             bad status: 500
 serverunknown   Unhealthy             fizzbuzz error
 `
@@ -1055,7 +1081,7 @@ func TestGetMultipleTypeObjectsWithDirectReference(t *testing.T) {
 	expected := `NAME          TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
 service/baz   ClusterIP   <none>       <none>        <none>    <unknown>
 NAME       STATUS    ROLES    AGE         VERSION
-node/foo   Unknown   <none>   <unknown>   
+node/foo   Unknown   <none>   <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
 		t.Errorf("expected\n%v\ngot\n%v", e, a)

@@ -759,7 +759,8 @@ func (o *GetOptions) printGeneric(r *resource.Result) error {
 		errs = append(errs, err)
 	}
 
-	if len(infos) == 0 && o.IgnoreNotFound {
+	if len(infos) == 0 {
+		fmt.Fprintln(o.ErrOut, "No resources found.")
 		return utilerrors.Reduce(utilerrors.Flatten(utilerrors.NewAggregate(errs)))
 	}
 
