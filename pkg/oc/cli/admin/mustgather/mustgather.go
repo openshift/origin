@@ -1,6 +1,7 @@
 package mustgather
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"path"
@@ -16,11 +17,14 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/logs"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	"github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/operator/resource/retry"
 
 	"github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/cli/rsync"
@@ -87,6 +91,7 @@ func (o *MustGatherOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 	} else {
 		o.Command = args
 	}
+	o.RESTClientGetter = f
 	var err error
 	if o.Config, err = f.ToRESTConfig(); err != nil {
 		return err
@@ -127,8 +132,9 @@ func (o *MustGatherOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 type MustGatherOptions struct {
 	genericclioptions.IOStreams
 
-	Config *rest.Config
-	Client kubernetes.Interface
+	Config           *rest.Config
+	Client           kubernetes.Interface
+	RESTClientGetter genericclioptions.RESTClientGetter
 
 	NodeName  string
 	DestDir   string
@@ -198,6 +204,16 @@ func (o *MustGatherOptions) Run(rsyncCmd *cobra.Command) error {
 		return err
 	}
 
+	// wait for gather container to be running (gather is running)
+	if err := o.waitForGatherContainerRunning(pod); err != nil {
+		return err
+	}
+
+	// stream gather container logs
+	if err := o.getInitContainerLogs(pod); err != nil {
+		fmt.Fprintf(o.Out, "container logs unavailable: %v", err)
+	}
+
 	// wait for pod to be running (gather has completed)
 	if err := o.waitForPodRunning(pod); err != nil {
 		return err
@@ -224,6 +240,22 @@ func (o *MustGatherOptions) copyFilesFromPod(pod *corev1.Pod) error {
 
 }
 
+func (o *MustGatherOptions) getInitContainerLogs(pod *corev1.Pod) error {
+	return (&logs.LogsOptions{
+		Namespace:   pod.Namespace,
+		ResourceArg: pod.Name,
+		Options: &corev1.PodLogOptions{
+			Follow:    true,
+			Container: pod.Spec.InitContainers[0].Name,
+		},
+		RESTClientGetter: o.RESTClientGetter,
+		Object:           pod,
+		ConsumeRequestFn: logs.DefaultConsumeRequest,
+		LogsForObject:    polymorphichelpers.LogsForObjectFn,
+		IOStreams:        genericclioptions.IOStreams{Out: o.Out},
+	}).RunLogs()
+}
+
 func (o *MustGatherOptions) waitForPodRunning(pod *corev1.Pod) error {
 	phase := pod.Status.Phase
 	err := wait.PollImmediate(time.Second, 10*time.Minute, func() (bool, error) {
@@ -241,6 +273,22 @@ func (o *MustGatherOptions) waitForPodRunning(pod *corev1.Pod) error {
 		return fmt.Errorf("pod is not running: %v", phase)
 	}
 	return nil
+}
+
+func (o *MustGatherOptions) waitForGatherContainerRunning(pod *corev1.Pod) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+	return retry.RetryOnConnectionErrors(ctx, func(ctx context.Context) (bool, error) {
+		var err error
+		if pod, err := o.Client.CoreV1().Pods(pod.Namespace).Get(pod.Name, metav1.GetOptions{}); err == nil {
+			if len(pod.Status.InitContainerStatuses) == 0 {
+				return false, nil
+			}
+			state := pod.Status.InitContainerStatuses[0].State
+			return (state.Running != nil) || (state.Terminated != nil), nil
+		}
+		return false, err
+	})
 }
 
 func (o *MustGatherOptions) newClusterRoleBinding(ns string) *rbacv1.ClusterRoleBinding {
