@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -118,6 +119,13 @@ func (p *cniPlugin) testCmdAdd(args *skel.CmdArgs) (types.Result, error) {
 	return convertToRequestedVersion(args.StdinData, result)
 }
 
+var iptablesCommands = [][]string{
+	{"-A", "OUTPUT", "-p", "tcp", "-m", "tcp", "--dport", "22623", "-j", "REJECT"},
+	{"-A", "OUTPUT", "-p", "tcp", "-m", "tcp", "--dport", "22624", "-j", "REJECT"},
+	{"-A", "FORWARD", "-p", "tcp", "-m", "tcp", "--dport", "22623", "-j", "REJECT"},
+	{"-A", "FORWARD", "-p", "tcp", "-m", "tcp", "--dport", "22624", "-j", "REJECT"},
+}
+
 func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 	req := newCNIRequest(args)
 	config, err := cniserver.ReadConfig(cniserver.CNIServerConfigFilePath)
@@ -223,6 +231,14 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 				if err := netlink.RouteAdd(route); err != nil && !os.IsExist(err) {
 					return fmt.Errorf("failed to add route to dst: %v via SDN: %v", dst, err)
 				}
+			}
+		}
+
+		// HACK: block access to MCS until we can secure it properly
+		for _, args := range iptablesCommands {
+			out, err := exec.Command("iptables", args...).CombinedOutput()
+			if err != nil {
+				return fmt.Errorf("could not set up pod iptables rules: %s", string(out))
 			}
 		}
 
