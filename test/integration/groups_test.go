@@ -68,6 +68,16 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
+	// make sure that user/~ returns system groups for backed users when it merges
+	expectedValerieGroups := []string{"system:authenticated", "system:authenticated:oauth"}
+	secondValerie, err := userclient.NewForConfigOrDie(valerieConfig).Users().Get("~", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !reflect.DeepEqual(secondValerie.Groups, expectedValerieGroups) {
+		t.Errorf("expected %v, got %v", expectedValerieGroups, secondValerie.Groups)
+	}
+
 	_, err = valerieProjectClient.Projects().Get("empty", metav1.GetOptions{})
 	if err == nil {
 		t.Fatalf("expected error")
