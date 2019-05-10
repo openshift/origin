@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy"
 	"github.com/openshift/origin/pkg/network/admission/externalipranger"
 	"github.com/openshift/origin/pkg/network/admission/restrictedendpoints"
+	"github.com/openshift/origin/pkg/pod/admission/rejectbadstatus"
 	quotaclusterresourcequota "github.com/openshift/origin/pkg/quota/apiserver/admission/clusterresourcequota"
 	ingressadmission "github.com/openshift/origin/pkg/route/apiserver/admission"
 	projectnodeenv "github.com/openshift/origin/pkg/scheduler/admission/nodeenv"
@@ -33,6 +34,7 @@ func RegisterOpenshiftKubeAdmissionPlugins(plugins *admission.Plugins) {
 	securityadmission.RegisterSCCExecRestrictions(plugins)
 	externalipranger.RegisterExternalIP(plugins)
 	restrictedendpoints.RegisterRestrictedEndpoints(plugins)
+	rejectbadstatus.Register(plugins)
 }
 
 var (
@@ -50,6 +52,7 @@ var (
 
 	// AfterKubeAdmissionPlugins are the admission plugins to add after kube admission, before mutating webhooks
 	openshiftAdmissionPluginsForKube = []string{
+		"kubelet.openshift.io/RejectBadPodStatusUpdates",
 		"autoscaling.openshift.io/ClusterResourceOverride",
 		"authorization.openshift.io/RestrictSubjectBindings",
 		"autoscaling.openshift.io/RunOnceDuration",
