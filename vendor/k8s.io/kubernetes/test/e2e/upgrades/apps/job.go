@@ -55,6 +55,11 @@ func (t *JobUpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgr
 	By("Ensuring active pods == parallelism")
 	running, err := framework.CheckForAllJobPodsRunning(f.ClientSet, t.namespace, t.job.Name, 2)
 	Expect(err).NotTo(HaveOccurred())
+
+	if !running {
+		framework.DumpAllNamespaceInfo(f.ClientSet, t.namespace)
+	}
+
 	Expect(running).To(BeTrue())
 }
 
