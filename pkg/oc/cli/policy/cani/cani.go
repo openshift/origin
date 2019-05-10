@@ -116,7 +116,7 @@ func (o *CanIOptions) Complete(cmd *cobra.Command, f kcmdutil.Factory, args []st
 			return err
 		}
 		o.Verb = args[0]
-		o.Resource = policy.ResourceFor(restMapper, args[1])
+		o.Resource = policy.ResourceFor(restMapper, args[1], o.ErrOut)
 	default:
 		if !o.ListAll {
 			return errors.New("you must specify two or three arguments: verb, resource, and optional resourceName")
