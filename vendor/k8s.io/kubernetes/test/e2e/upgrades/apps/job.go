@@ -45,7 +45,7 @@ func (t *JobUpgradeTest) Setup(f *framework.Framework) {
 	Expect(err).NotTo(HaveOccurred())
 
 	By("Ensuring active pods == parallelism")
-	err = framework.WaitForAllJobPodsRunning(f.ClientSet, t.namespace, job.Name, 2)
+	err = framework.EnsureAllJobPodsRunning(f.ClientSet, t.namespace, t.job.Name, 2)
 	Expect(err).NotTo(HaveOccurred())
 }
 
@@ -53,14 +53,11 @@ func (t *JobUpgradeTest) Setup(f *framework.Framework) {
 func (t *JobUpgradeTest) Test(f *framework.Framework, done <-chan struct{}, upgrade upgrades.UpgradeType) {
 	<-done
 	By("Ensuring active pods == parallelism")
-	running, err := framework.CheckForAllJobPodsRunning(f.ClientSet, t.namespace, t.job.Name, 2)
-	Expect(err).NotTo(HaveOccurred())
-
-	if !running {
+	err := framework.EnsureAllJobPodsRunning(f.ClientSet, t.namespace, t.job.Name, 2)
+	if err != nil {
 		framework.DumpAllNamespaceInfo(f.ClientSet, t.namespace)
 	}
-
-	Expect(running).To(BeTrue())
+	Expect(err).NotTo(HaveOccurred())
 }
 
 // Teardown cleans up any remaining resources.
