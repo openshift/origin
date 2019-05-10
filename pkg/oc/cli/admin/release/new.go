@@ -27,6 +27,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/pkg/version"
@@ -135,6 +136,7 @@ func NewRelease(f kcmdutil.Factory, parentName string, streams genericclioptions
 	flags.BoolVar(&o.ForceManifest, "release-manifest", o.ForceManifest, "If true, a release manifest will be created using --name as the semantic version.")
 
 	// validation
+	flags.BoolVar(&o.AllowInconsistentSources, "allow-inconsistent-sources", o.AllowInconsistentSources, "If true, allow new releases to reference images built from different commits of a single Git repository.")
 	flags.BoolVar(&o.AllowMissingImages, "allow-missing-images", o.AllowMissingImages, "Ignore errors when an operator references a release image that is not included.")
 	flags.BoolVar(&o.SkipManifestCheck, "skip-manifest-check", o.SkipManifestCheck, "Ignore errors when an operator includes a yaml/yml/json file that is not parseable.")
 
@@ -198,8 +200,9 @@ type NewOptions struct {
 
 	Mirror string
 
-	AllowMissingImages bool
-	SkipManifestCheck  bool
+	AllowInconsistentSources bool
+	AllowMissingImages       bool
+	SkipManifestCheck        bool
 
 	Mappings []Mapping
 
@@ -740,6 +743,13 @@ func (o *NewOptions) Run() error {
 	forceInclude := append(append([]string{}, o.AlwaysInclude...), ordered...)
 	if err := pruneUnreferencedImageStreams(o.ErrOut, is, metadata, forceInclude); err != nil {
 		return err
+	}
+
+	if err := ensureConsistentSources(is); err != nil {
+		if !o.AllowInconsistentSources {
+			return err
+		}
+		fmt.Fprintf(o.ErrOut, "warning: %s\n", err.Error())
 	}
 
 	// use a stable ordering for operators
@@ -1464,6 +1474,35 @@ func pruneEmptyDirectories(dir string) error {
 		klog.V(4).Infof("Component %s does not have any manifests", path)
 		return os.Remove(path)
 	})
+}
+
+// ensureConsistentSources checks that images built from the same Git repository are from the same Git commit.
+func ensureConsistentSources(is *imageapi.ImageStream) error {
+	errs := []error{}
+	tags := make(map[string]*imageapi.TagReference, len(is.Spec.Tags))
+	for _, tag := range is.Spec.Tags {
+		location := tag.Annotations[annotationBuildSourceLocation]
+		if location == "" {
+			continue
+		}
+		previousTag, ok := tags[location]
+		if !ok {
+			tags[location] = &tag
+			continue
+		}
+		if tag.Annotations[annotationBuildSourceCommit] != previousTag.Annotations[annotationBuildSourceCommit] {
+			errs = append(errs, fmt.Errorf(
+				"images built from %s use different commits: %s was build from %s, while %s was built from %s",
+				location,
+				previousTag.Name,
+				previousTag.Annotations[annotationBuildSourceCommit],
+				tag.Name,
+				tag.Annotations[annotationBuildSourceCommit],
+			))
+		}
+	}
+
+	return errors.NewAggregate(errs)
 }
 
 type Mapping struct {

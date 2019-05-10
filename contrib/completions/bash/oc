@@ -4401,6 +4401,8 @@ _oc_adm_release_new()
     flags_with_completion=()
     flags_completion=()
 
+    flags+=("--allow-inconsistent-sources")
+    local_nonpersistent_flags+=("--allow-inconsistent-sources")
     flags+=("--allow-missing-images")
     local_nonpersistent_flags+=("--allow-missing-images")
     flags+=("--component-versions=")
