@@ -19,12 +19,13 @@ package status
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
 	clientset "k8s.io/client-go/kubernetes"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -283,6 +284,9 @@ func (m *manager) TerminatePod(pod *v1.Pod) {
 			Terminated: &v1.ContainerStateTerminated{},
 		}
 	}
+	if strings.Contains(pod.Name, "deployment-simple") {
+		klog.V(3).Infof("DEBUG: TerminatePod %s clear container status: init=%#v reg=%#v", pod.UID, status.InitContainerStatuses, status.ContainerStatuses)
+	}
 	m.updateStatusInternal(pod, status, true)
 }
 
@@ -371,17 +375,20 @@ func (m *manager) updateStatusInternal(pod *v1.Pod, status v1.PodStatus, forceUp
 		podName:      pod.Name,
 		podNamespace: pod.Namespace,
 	}
+	if strings.Contains(pod.Name, "deployment-simple") {
+		klog.V(2).Infof("DEBUG: Setting pod status to %#v", newStatus)
+	}
 	m.podStatuses[pod.UID] = newStatus
 
 	select {
 	case m.podStatusChannel <- podStatusSyncRequest{pod.UID, newStatus}:
-		klog.V(5).Infof("Status Manager: adding pod: %q, with status: (%q, %v) to podStatusChannel",
+		klog.V(3).Infof("Status Manager: adding pod: %q, with status: (%q, %v) to podStatusChannel",
 			pod.UID, newStatus.version, newStatus.status)
 		return true
 	default:
 		// Let the periodic syncBatch handle the update if the channel is full.
 		// We can't block, since we hold the mutex lock.
-		klog.V(4).Infof("Skipping the status update for pod %q for now because the channel is full; status: %+v",
+		klog.V(3).Infof("Skipping the status update for pod %q for now because the channel is full; status: %+v",
 			format.Pod(pod), status)
 		return false
 	}
@@ -406,6 +413,11 @@ func updateLastTransitionTime(status, oldStatus *v1.PodStatus, conditionType v1.
 func (m *manager) deletePodStatus(uid types.UID) {
 	m.podStatusesLock.Lock()
 	defer m.podStatusesLock.Unlock()
+	if existing, ok := m.podStatuses[uid]; ok {
+		if strings.Contains(existing.podName, "deployment-simple") {
+			klog.V(2).Infof("DEBUG: deletePodStatus for %s", uid)
+		}
+	}
 	delete(m.podStatuses, uid)
 }
 
@@ -416,6 +428,11 @@ func (m *manager) RemoveOrphanedStatuses(podUIDs map[types.UID]bool) {
 	for key := range m.podStatuses {
 		if _, ok := podUIDs[key]; !ok {
 			klog.V(5).Infof("Removing %q from status map.", key)
+			if existing, ok := m.podStatuses[key]; ok {
+				if strings.Contains(existing.podName, "deployment-simple") {
+					klog.V(2).Infof("DEBUG: RemoveOrphanedStatuses for %s", key)
+				}
+			}
 			delete(m.podStatuses, key)
 		}
 	}
@@ -434,6 +451,7 @@ func (m *manager) syncBatch() {
 			_, hasPod := m.podStatuses[types.UID(uid)]
 			_, hasMirror := mirrorToPod[uid]
 			if !hasPod && !hasMirror {
+				klog.V(2).Infof("DEBUG: syncBatch remove orphaned pod status %s", uid)
 				delete(m.apiStatusVersions, uid)
 			}
 		}
@@ -450,6 +468,9 @@ func (m *manager) syncBatch() {
 			if m.needsUpdate(types.UID(syncedUID), status) {
 				updatedStatuses = append(updatedStatuses, podStatusSyncRequest{uid, status})
 			} else if m.needsReconcile(uid, status.status) {
+				if strings.Contains(status.podName, "deployment-simple") {
+					klog.V(2).Infof("DEBUG: Removing status version of %s/%s for pod %s/%s", uid, syncedUID, status.podNamespace, status.podName)
+				}
 				// Delete the apiStatusVersions here to force an update on the pod status
 				// In most cases the deleted apiStatusVersions here should be filled
 				// soon after the following syncPod() [If the syncPod() sync an update

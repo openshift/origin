@@ -374,7 +374,7 @@ func (g *GenericPLEG) updateCache(pod *kubecontainer.Pod, pid types.UID) error {
 	if pod == nil {
 		// The pod is missing in the current relist. This means that
 		// the pod has no visible (active or inactive) containers.
-		klog.V(4).Infof("PLEG: Delete status for pod %q", string(pid))
+		klog.V(2).Infof("PLEG: Delete status for pod %q", string(pid))
 		g.cache.Delete(pid)
 		return nil
 	}
