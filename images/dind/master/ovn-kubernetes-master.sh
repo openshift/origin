@@ -18,6 +18,9 @@ function ovn-kubernetes-master() {
   apiserver=$(awk '/server:/ { print $2; exit }' ${kube_config})
   ovn_master_ip=$(echo -n ${apiserver} | cut -d "/" -f 3 | cut -d ":" -f 1)
 
+  ovn-nbctl set-connection ptcp:6641
+  ovn-sbctl set-connection ptcp:6642
+
   echo "Enabling and start ovn-kubernetes master services"
   /usr/local/bin/ovnkube \
 	--k8s-apiserver "${apiserver}" \
