@@ -64,6 +64,7 @@ type restrictedEndpointsAdmission struct {
 
 	authorizer         authorizer.Authorizer
 	restrictedNetworks []*net.IPNet
+	restrictedPorts    []kapi.EndpointPort
 }
 
 var _ = initializer.WantsAuthorizer(&restrictedEndpointsAdmission{})
@@ -86,6 +87,10 @@ func NewRestrictedEndpointsAdmission(restrictedNetworks []*net.IPNet) *restricte
 	return &restrictedEndpointsAdmission{
 		Handler:            admission.NewHandler(admission.Create, admission.Update),
 		restrictedNetworks: restrictedNetworks,
+		restrictedPorts: []kapi.EndpointPort{
+			{Protocol: kapi.ProtocolTCP, Port: 22623},
+			{Protocol: kapi.ProtocolTCP, Port: 22624},
+		},
 	}
 }
 
@@ -100,7 +105,7 @@ func (r *restrictedEndpointsAdmission) ValidateInitialization() error {
 	return nil
 }
 
-func (r *restrictedEndpointsAdmission) findRestrictedIP(ep *kapi.Endpoints) string {
+func (r *restrictedEndpointsAdmission) findRestrictedIP(ep *kapi.Endpoints) error {
 	for _, subset := range ep.Subsets {
 		for _, addr := range subset.Addresses {
 			ip := net.ParseIP(addr.IP)
@@ -109,12 +114,25 @@ func (r *restrictedEndpointsAdmission) findRestrictedIP(ep *kapi.Endpoints) stri
 			}
 			for _, net := range r.restrictedNetworks {
 				if net.Contains(ip) {
-					return addr.IP
+					return fmt.Errorf("endpoint address %s is not allowed", addr.IP)
 				}
 			}
 		}
 	}
-	return ""
+	return nil
+}
+
+func (r *restrictedEndpointsAdmission) findRestrictedPort(ep *kapi.Endpoints) error {
+	for _, subset := range ep.Subsets {
+		for _, port := range subset.Ports {
+			for _, restricted := range r.restrictedPorts {
+				if port.Protocol == restricted.Protocol && port.Port == restricted.Port {
+					return fmt.Errorf("endpoint port %s:%d is not allowed", string(port.Protocol), port.Port)
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (r *restrictedEndpointsAdmission) checkAccess(attr admission.Attributes) (bool, error) {
@@ -146,8 +164,11 @@ func (r *restrictedEndpointsAdmission) Validate(a admission.Attributes) error {
 		return nil
 	}
 
-	restrictedIP := r.findRestrictedIP(ep)
-	if restrictedIP == "" {
+	restrictedErr := r.findRestrictedIP(ep)
+	if restrictedErr == nil {
+		restrictedErr = r.findRestrictedPort(ep)
+	}
+	if restrictedErr == nil {
 		return nil
 	}
 
@@ -156,7 +177,7 @@ func (r *restrictedEndpointsAdmission) Validate(a admission.Attributes) error {
 		return err
 	}
 	if !allow {
-		return admission.NewForbidden(a, fmt.Errorf("endpoint address %s is not allowed", restrictedIP))
+		return admission.NewForbidden(a, restrictedErr)
 	}
 	return nil
 }

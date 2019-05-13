@@ -219,6 +219,29 @@ func (n *NodeIPTables) getNodeIPTablesChains() []Chain {
 			},
 		)
 	}
+
+	// HACK: block access to MCS until we can secure it properly. Note that we share
+	// the same chain between OUTPUT and FORWARD.
+	chainArray = append(chainArray,
+		Chain{
+			table:    "filter",
+			name:     "OPENSHIFT-BLOCK-OUTPUT",
+			srcChain: "OUTPUT",
+			srcRule:  []string{"-m", "comment", "--comment", "firewall overrides"},
+			rules: [][]string{
+				{"-p", "tcp", "-m", "tcp", "--dport", "22623", "-j", "REJECT"},
+				{"-p", "tcp", "-m", "tcp", "--dport", "22624", "-j", "REJECT"},
+			},
+		},
+		Chain{
+			table:    "filter",
+			name:     "OPENSHIFT-BLOCK-OUTPUT",
+			srcChain: "FORWARD",
+			srcRule:  []string{"-m", "comment", "--comment", "firewall overrides"},
+			rules:    nil,
+		},
+	)
+
 	return chainArray
 }
 
