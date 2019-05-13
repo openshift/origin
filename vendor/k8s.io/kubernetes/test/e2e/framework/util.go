@@ -404,12 +404,6 @@ func SkipUnlessTaintBasedEvictionsEnabled() {
 	}
 }
 
-func SkipUnlessResourceQuotaScopeSelectorsEnabled() {
-	if !utilfeature.DefaultFeatureGate.Enabled(features.ResourceQuotaScopeSelectors) {
-		skipInternalf(1, "Only supported when %v feature is enabled", features.ResourceQuotaScopeSelectors)
-	}
-}
-
 func SkipIfContainerRuntimeIs(runtimes ...string) {
 	for _, runtime := range runtimes {
 		if runtime == TestContext.ContainerRuntime {
