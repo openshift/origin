@@ -95,7 +95,7 @@ function localup::healthcheck() {
 }
 
 function localup::warning_log() {
-  os::log::info/warning/error/fatal "$1" "W$(date "+%m%d %H:%M:%S")]" 1
+  os::log::warning "$1" "W$(date "+%m%d %H:%M:%S")]" 1
 }
 
 
