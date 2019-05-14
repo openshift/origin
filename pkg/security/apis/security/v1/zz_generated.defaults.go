@@ -118,6 +118,9 @@ func SetObjectDefaults_PodSecurityPolicyReview(in *v1.PodSecurityPolicyReview) {
 				}
 			}
 		}
+		if a.SecurityContext != nil {
+			corev1.SetDefaults_SecurityContext(a.SecurityContext)
+		}
 	}
 	for i := range in.Spec.Template.Spec.Containers {
 		a := &in.Spec.Template.Spec.Containers[i]
@@ -159,6 +162,9 @@ func SetObjectDefaults_PodSecurityPolicyReview(in *v1.PodSecurityPolicyReview) {
 					corev1.SetDefaults_HTTPGetAction(a.Lifecycle.PreStop.HTTPGet)
 				}
 			}
+		}
+		if a.SecurityContext != nil {
+			corev1.SetDefaults_SecurityContext(a.SecurityContext)
 		}
 	}
 	for i := range in.Status.AllowedServiceAccounts {
@@ -256,6 +262,9 @@ func SetObjectDefaults_PodSecurityPolicyReview(in *v1.PodSecurityPolicyReview) {
 					}
 				}
 			}
+			if b.SecurityContext != nil {
+				corev1.SetDefaults_SecurityContext(b.SecurityContext)
+			}
 		}
 		for j := range a.PodSecurityPolicySubjectReviewStatus.Template.Spec.Containers {
 			b := &a.PodSecurityPolicySubjectReviewStatus.Template.Spec.Containers[j]
@@ -297,6 +306,9 @@ func SetObjectDefaults_PodSecurityPolicyReview(in *v1.PodSecurityPolicyReview) {
 						corev1.SetDefaults_HTTPGetAction(b.Lifecycle.PreStop.HTTPGet)
 					}
 				}
+			}
+			if b.SecurityContext != nil {
+				corev1.SetDefaults_SecurityContext(b.SecurityContext)
 			}
 		}
 	}
@@ -396,6 +408,9 @@ func SetObjectDefaults_PodSecurityPolicySelfSubjectReview(in *v1.PodSecurityPoli
 				}
 			}
 		}
+		if a.SecurityContext != nil {
+			corev1.SetDefaults_SecurityContext(a.SecurityContext)
+		}
 	}
 	for i := range in.Spec.Template.Spec.Containers {
 		a := &in.Spec.Template.Spec.Containers[i]
@@ -437,6 +452,9 @@ func SetObjectDefaults_PodSecurityPolicySelfSubjectReview(in *v1.PodSecurityPoli
 					corev1.SetDefaults_HTTPGetAction(a.Lifecycle.PreStop.HTTPGet)
 				}
 			}
+		}
+		if a.SecurityContext != nil {
+			corev1.SetDefaults_SecurityContext(a.SecurityContext)
 		}
 	}
 	corev1.SetDefaults_PodSpec(&in.Status.Template.Spec)
@@ -532,6 +550,9 @@ func SetObjectDefaults_PodSecurityPolicySelfSubjectReview(in *v1.PodSecurityPoli
 				}
 			}
 		}
+		if a.SecurityContext != nil {
+			corev1.SetDefaults_SecurityContext(a.SecurityContext)
+		}
 	}
 	for i := range in.Status.Template.Spec.Containers {
 		a := &in.Status.Template.Spec.Containers[i]
@@ -573,6 +594,9 @@ func SetObjectDefaults_PodSecurityPolicySelfSubjectReview(in *v1.PodSecurityPoli
 					corev1.SetDefaults_HTTPGetAction(a.Lifecycle.PreStop.HTTPGet)
 				}
 			}
+		}
+		if a.SecurityContext != nil {
+			corev1.SetDefaults_SecurityContext(a.SecurityContext)
 		}
 	}
 }
@@ -671,6 +695,9 @@ func SetObjectDefaults_PodSecurityPolicySubjectReview(in *v1.PodSecurityPolicySu
 				}
 			}
 		}
+		if a.SecurityContext != nil {
+			corev1.SetDefaults_SecurityContext(a.SecurityContext)
+		}
 	}
 	for i := range in.Spec.Template.Spec.Containers {
 		a := &in.Spec.Template.Spec.Containers[i]
@@ -712,6 +739,9 @@ func SetObjectDefaults_PodSecurityPolicySubjectReview(in *v1.PodSecurityPolicySu
 					corev1.SetDefaults_HTTPGetAction(a.Lifecycle.PreStop.HTTPGet)
 				}
 			}
+		}
+		if a.SecurityContext != nil {
+			corev1.SetDefaults_SecurityContext(a.SecurityContext)
 		}
 	}
 	corev1.SetDefaults_PodSpec(&in.Status.Template.Spec)
@@ -807,6 +837,9 @@ func SetObjectDefaults_PodSecurityPolicySubjectReview(in *v1.PodSecurityPolicySu
 				}
 			}
 		}
+		if a.SecurityContext != nil {
+			corev1.SetDefaults_SecurityContext(a.SecurityContext)
+		}
 	}
 	for i := range in.Status.Template.Spec.Containers {
 		a := &in.Status.Template.Spec.Containers[i]
@@ -848,6 +881,9 @@ func SetObjectDefaults_PodSecurityPolicySubjectReview(in *v1.PodSecurityPolicySu
 					corev1.SetDefaults_HTTPGetAction(a.Lifecycle.PreStop.HTTPGet)
 				}
 			}
+		}
+		if a.SecurityContext != nil {
+			corev1.SetDefaults_SecurityContext(a.SecurityContext)
 		}
 	}
 }

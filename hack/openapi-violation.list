@@ -36,6 +36,7 @@ API rule violation: names_match,github.com/openshift/api/config/v1,GenericAPISer
 API rule violation: names_match,github.com/openshift/api/config/v1,IdentityProviderConfig,GitHub
 API rule violation: names_match,github.com/openshift/api/config/v1,IdentityProviderConfig,GitLab
 API rule violation: names_match,github.com/openshift/api/config/v1,IdentityProviderConfig,HTPasswd
+API rule violation: names_match,github.com/openshift/api/config/v1,InfrastructureStatus,APIServerInternalURL
 API rule violation: names_match,github.com/openshift/api/config/v1,RequestHeaderIdentityProvider,ClientCA
 API rule violation: names_match,github.com/openshift/api/image/v1,DockerImageReference,ID
 API rule violation: names_match,github.com/openshift/api/image/v1,DockerImageReference,Name
@@ -259,3 +260,4 @@ API rule violation: names_match,k8s.io/kubernetes/cmd/cloud-controller-manager/a
 API rule violation: names_match,k8s.io/metrics/pkg/apis/custom_metrics/v1beta1,MetricValue,WindowSeconds
 API rule violation: names_match,k8s.io/metrics/pkg/apis/external_metrics/v1beta1,ExternalMetricValue,WindowSeconds
 API rule violation: omitempty_match_case,github.com/openshift/api/operator/v1,StaticPodOperatorStatus,LatestAvailableRevision
+API rule violation: omitempty_match_case,github.com/openshift/api/operator/v1,StaticPodOperatorStatus,LatestAvailableRevisionReason
