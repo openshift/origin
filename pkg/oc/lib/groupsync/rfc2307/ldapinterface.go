@@ -142,7 +142,7 @@ func (e *LDAPInterface) ListGroups() ([]string, error) {
 	for _, group := range groups {
 		ldapGroupUID := ldaputil.GetAttributeValue(group, []string{e.groupQuery.QueryAttribute})
 		if len(ldapGroupUID) == 0 {
-			return nil, fmt.Errorf("unable to find LDAP group UID for %s", group)
+			return nil, fmt.Errorf("unable to find LDAP group UID for %s", group.DN)
 		}
 		e.cachedGroups[ldapGroupUID] = group
 		ldapGroupUIDs = append(ldapGroupUIDs, ldapGroupUID)
