@@ -15,8 +15,11 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/util/retry"
@@ -120,6 +123,7 @@ var _ = g.Describe("[Disruptive]", func() {
 			config, err := framework.LoadConfig()
 			framework.ExpectNoError(err)
 			client := configv1client.NewForConfigOrDie(config)
+			dynamicClient := dynamic.NewForConfigOrDie(config)
 
 			upgCtx, err := getUpgradeContext(client, framework.TestContext.UpgradeTarget, framework.TestContext.UpgradeImage)
 			framework.ExpectNoError(err, "determining what to upgrade to version=%s image=%s", framework.TestContext.UpgradeTarget, framework.TestContext.UpgradeImage)
@@ -130,7 +134,7 @@ var _ = g.Describe("[Disruptive]", func() {
 			upgradeFunc := func() {
 				start := time.Now()
 				defer finalizeUpgradeTest(start, clusterUpgradeTest)
-				framework.ExpectNoError(clusterUpgrade(client, config, upgCtx.Versions[1]), "during upgrade")
+				framework.ExpectNoError(clusterUpgrade(client, dynamicClient, config, upgCtx.Versions[1]), "during upgrade")
 			}
 			runUpgradeSuite(f, upgradeTests, testFrameworks, testSuite, upgCtx, upgrades.ClusterUpgrade, upgradeFunc)
 		})
@@ -357,7 +361,7 @@ func getUpgradeContext(c configv1client.Interface, upgradeTarget, upgradeImage s
 
 var errControlledAbort = fmt.Errorf("beginning abort")
 
-func clusterUpgrade(c configv1client.Interface, config *rest.Config, version upgrades.VersionContext) error {
+func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *rest.Config, version upgrades.VersionContext) error {
 	fmt.Fprintf(os.Stderr, "\n\n\n")
 	defer func() { fmt.Fprintf(os.Stderr, "\n\n\n") }()
 
@@ -468,5 +472,79 @@ func clusterUpgrade(c configv1client.Interface, config *rest.Config, version upg
 	}
 
 	framework.Logf("Completed upgrade to %s", versionString(desired))
+
+	framework.Logf("Waiting on pools to be upgraded")
+	if err := wait.PollImmediate(10*time.Second, 30*time.Minute, func() (bool, error) {
+		mcps := dc.Resource(schema.GroupVersionResource{
+			Group:    "machineconfiguration.openshift.io",
+			Version:  "v1",
+			Resource: "machineconfigpools",
+		})
+		pools, err := mcps.List(metav1.ListOptions{})
+		if err != nil {
+			framework.Logf("error getting pools %v", err)
+			return false, nil
+		}
+		allUpdated := true
+		for _, p := range pools.Items {
+			updated, err := isPoolUpdated(mcps, p.GetName())
+			if err != nil {
+				framework.Logf("error checking pool %s: %v", p.GetName(), err)
+				return false, nil
+			}
+			allUpdated = allUpdated && updated
+		}
+		return allUpdated, nil
+	}); err != nil {
+		return fmt.Errorf("Pools did not complete upgrade: %v", err)
+	}
+	framework.Logf("All pools completed upgrade")
+
 	return nil
+}
+
+// TODO(runcom): drop this when MCO types are in openshift/api and we can use the typed client directly
+func isPoolUpdated(dc dynamic.NamespaceableResourceInterface, name string) (bool, error) {
+	pool, err := dc.Get(name, metav1.GetOptions{})
+	if err != nil {
+		framework.Logf("error getting pool %s: %v", name, err)
+		return false, nil
+	}
+	conditions, found, err := unstructured.NestedFieldNoCopy(pool.Object, "status", "conditions")
+	if err != nil || !found {
+		return false, nil
+	}
+	original, ok := conditions.([]interface{})
+	if !ok {
+		return false, nil
+	}
+	var updated, updating, degraded bool
+	for _, obj := range original {
+		o, ok := obj.(map[string]interface{})
+		if !ok {
+			return false, nil
+		}
+		t, found, err := unstructured.NestedString(o, "type")
+		if err != nil || !found {
+			return false, nil
+		}
+		s, found, err := unstructured.NestedString(o, "status")
+		if err != nil || !found {
+			return false, nil
+		}
+		if t == "Updated" && s == "True" {
+			updated = true
+		}
+		if t == "Updating" && s == "True" {
+			updating = true
+		}
+		if t == "Degraded" && s == "True" {
+			degraded = true
+		}
+	}
+	if updated && !updating && !degraded {
+		return true, nil
+	}
+	framework.Logf("Pool %s is still reporting (Updated: %v, Updating: %v, Degraded: %v)", name, updated, updating, degraded)
+	return false, nil
 }
