@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -136,15 +137,19 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 
 				// Create templates as defined
 				for _, template := range p.Templates {
-					err := CreateTemplates(oc, c, nsName, template, tuning)
+					err := CreateTemplates(oc, c, nsName, e2e.TestContext.Viper, template, tuning)
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 
 				// This is too familiar, create pods
 				for _, pod := range p.Pods {
 					// Parse Pod file into struct
-					config, err := ParsePods(mkPath(pod.File))
+					path, err := mkPath(pod.File, e2e.TestContext.Viper)
 					o.Expect(err).NotTo(o.HaveOccurred())
+
+					config, err := ParsePods(path)
+					o.Expect(err).NotTo(o.HaveOccurred())
+
 					// Check if environment variables are defined in CL config
 					if pod.Parameters == nil {
 						e2e.Logf("Pod environment variables will not be modified.")
@@ -241,16 +246,34 @@ func newProject(nsName string) *projectapi.Project {
 	}
 }
 
-// mkPath returns fully qualfied file location as a string
-func mkPath(file string) string {
+// mkPath returns fully qualfied file path as a string
+func mkPath(filename, config string) (string, error) {
+	// Use absolute path if provided in config
+	if filepath.IsAbs(filename) {
+		return filename, nil
+	}
 	// Handle an empty filename.
-	if file == "" {
-		e2e.Failf("No template file defined!")
+	if filename == "" {
+		return "", fmt.Errorf("No template file defined!\n")
 	}
-	if rootDir == "" {
-		rootDir = "content"
+
+	var searchPaths []string
+	workingDir, err := os.Getwd()
+	if err != nil {
+		return "", err
 	}
-	return filepath.Join(rootDir+"/", file)
+	configDir := filepath.Dir(config)
+
+	searchPaths = append(searchPaths, filepath.Join(workingDir, filename))
+	searchPaths = append(searchPaths, filepath.Join(configDir, filename))
+
+	for _, v := range searchPaths {
+		if _, err := os.Stat(v); err == nil {
+			return v, nil
+		}
+	}
+
+	return "", fmt.Errorf("Unable to find pod/template file %s\n", filename)
 }
 
 // appendIntToString appends an integer i to string s
