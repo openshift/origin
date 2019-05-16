@@ -8,64 +8,54 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/clients"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
-
-func TestPolicyList(t *testing.T) {
-	client, err := clients.NewNetworkV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a network client: %v", err)
-	}
-
-	allPages, err := policies.List(client, nil).AllPages()
-	if err != nil {
-		t.Fatalf("Unable to list policies: %v", err)
-	}
-
-	allPolicies, err := policies.ExtractPolicies(allPages)
-	if err != nil {
-		t.Fatalf("Unable to extract policies: %v", err)
-	}
-
-	for _, policy := range allPolicies {
-		tools.PrintResource(t, policy)
-	}
-}
 
 func TestPolicyCRUD(t *testing.T) {
 	client, err := clients.NewNetworkV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a network client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	rule, err := CreateRule(t, client)
-	if err != nil {
-		t.Fatalf("Unable to create rule: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteRule(t, client, rule.ID)
 
 	tools.PrintResource(t, rule)
 
 	policy, err := CreatePolicy(t, client, rule.ID)
-	if err != nil {
-		t.Fatalf("Unable to create policy: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeletePolicy(t, client, policy.ID)
 
 	tools.PrintResource(t, policy)
 
+	name := ""
+	description := ""
 	updateOpts := policies.UpdateOpts{
-		Description: "Some policy description",
+		Name:        &name,
+		Description: &description,
 	}
 
 	_, err = policies.Update(client, policy.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatalf("Unable to update policy: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	newPolicy, err := policies.Get(client, policy.ID).Extract()
-	if err != nil {
-		t.Fatalf("Unable to get policy: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, newPolicy)
+	th.AssertEquals(t, newPolicy.Name, name)
+	th.AssertEquals(t, newPolicy.Description, description)
+
+	allPages, err := policies.List(client, nil).AllPages()
+	th.AssertNoErr(t, err)
+
+	allPolicies, err := policies.ExtractPolicies(allPages)
+	th.AssertNoErr(t, err)
+
+	var found bool
+	for _, policy := range allPolicies {
+		if policy.ID == newPolicy.ID {
+			found = true
+		}
+	}
+
+	th.AssertEquals(t, found, true)
 }

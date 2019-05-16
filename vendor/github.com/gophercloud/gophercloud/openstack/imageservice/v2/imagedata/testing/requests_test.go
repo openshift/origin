@@ -25,6 +25,20 @@ func TestUpload(t *testing.T) {
 	th.AssertNoErr(t, err)
 }
 
+func TestStage(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	HandleStageImageDataSuccessfully(t)
+
+	err := imagedata.Stage(
+		fakeclient.ServiceClient(),
+		"da3b75d9-3f4a-40e7-8a2c-bfab23927dea",
+		readSeekerOfBytes([]byte{5, 3, 7, 24})).ExtractErr()
+
+	th.AssertNoErr(t, err)
+}
+
 func readSeekerOfBytes(bs []byte) io.ReadSeeker {
 	return &RS{bs: bs}
 }

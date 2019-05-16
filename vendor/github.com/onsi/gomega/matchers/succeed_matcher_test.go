@@ -2,10 +2,10 @@ package matchers_test
 
 import (
 	"errors"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/matchers"
+	"regexp"
 )
 
 func Erroring() error {
@@ -24,39 +24,49 @@ func Invalid() *AnyType {
 
 var _ = Describe("Succeed", func() {
 	It("should succeed if the function succeeds", func() {
-		Ω(NotErroring()).Should(Succeed())
+		Expect(NotErroring()).Should(Succeed())
 	})
 
 	It("should succeed (in the negated) if the function errored", func() {
-		Ω(Erroring()).ShouldNot(Succeed())
+		Expect(Erroring()).ShouldNot(Succeed())
 	})
 
 	It("should not if passed a non-error", func() {
 		success, err := (&SucceedMatcher{}).Match(Invalid())
-		Ω(success).Should(BeFalse())
-		Ω(err).Should(MatchError("Expected an error-type.  Got:\n    <*matchers_test.AnyType | 0x0>: nil"))
+		Expect(success).Should(BeFalse())
+		Expect(err).Should(MatchError("Expected an error-type.  Got:\n    <*matchers_test.AnyType | 0x0>: nil"))
 	})
 
 	It("doesn't support non-error type", func() {
 		success, err := (&SucceedMatcher{}).Match(AnyType{})
-		Ω(success).Should(BeFalse())
-		Ω(err).Should(MatchError("Expected an error-type.  Got:\n    <matchers_test.AnyType>: {}"))
+		Expect(success).Should(BeFalse())
+		Expect(err).Should(MatchError("Expected an error-type.  Got:\n    <matchers_test.AnyType>: {}"))
 	})
 
 	It("doesn't support non-error pointer type", func() {
 		success, err := (&SucceedMatcher{}).Match(&AnyType{})
-		Ω(success).Should(BeFalse())
-		Ω(err).Should(MatchError(MatchRegexp(`Expected an error-type.  Got:\n    <*matchers_test.AnyType | 0x[[:xdigit:]]+>: {}`)))
+		Expect(success).Should(BeFalse())
+		Expect(err).Should(MatchError(MatchRegexp(`Expected an error-type.  Got:\n    <*matchers_test.AnyType | 0x[[:xdigit:]]+>: {}`)))
 	})
 
 	It("should not succeed with pointer types that conform to error interface", func() {
 		err := &CustomErr{"ohai"}
-		Ω(err).ShouldNot(Succeed())
+		Expect(err).ShouldNot(Succeed())
 	})
 
 	It("should succeed with nil pointers to types that conform to error interface", func() {
 		var err *CustomErr = nil
-		Ω(err).Should(Succeed())
+		Expect(err).Should(Succeed())
 	})
 
+	It("builds failure message", func() {
+		actual := Succeed().FailureMessage(errors.New("oops"))
+		actual = regexp.MustCompile(" 0x.*>").ReplaceAllString(actual, " 0x00000000>")
+		Expect(actual).To(Equal("Expected success, but got an error:\n    <*errors.errorString | 0x00000000>: {s: \"oops\"}\n    oops"))
+	})
+
+	It("builds negated failure message", func() {
+		actual := Succeed().NegatedFailureMessage(123)
+		Expect(actual).To(Equal("Expected failure, but got no error."))
+	})
 })

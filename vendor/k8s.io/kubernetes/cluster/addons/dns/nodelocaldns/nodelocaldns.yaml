@@ -34,7 +34,10 @@ data:
   Corefile: |
     __PILLAR__DNS__DOMAIN__:53 {
         errors
-        cache 30
+        cache {
+                success 9984 30
+                denial 9984 5
+        }
         reload
         loop
         bind __PILLAR__LOCAL__DNS__
@@ -84,7 +87,7 @@ metadata:
   name: node-local-dns
   namespace: kube-system
   labels:
-    k8s-app: kube-dns
+    k8s-app: node-local-dns
     kubernetes.io/cluster-service: "true"
     addonmanager.kubernetes.io/mode: Reconcile
 spec:

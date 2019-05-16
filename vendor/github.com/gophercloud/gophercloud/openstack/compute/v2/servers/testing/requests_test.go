@@ -283,6 +283,20 @@ func TestChangeServerAdminPassword(t *testing.T) {
 	th.AssertNoErr(t, res.Err)
 }
 
+func TestShowConsoleOutput(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+	HandleShowConsoleOutputSuccessfully(t, ConsoleOutputBody)
+
+	outputOpts := &servers.ShowConsoleOutputOpts{
+		Length: 50,
+	}
+	actual, err := servers.ShowConsoleOutput(client.ServiceClient(), "1234asdf", outputOpts).Extract()
+
+	th.AssertNoErr(t, err)
+	th.AssertByteArrayEquals(t, []byte(ConsoleOutput), []byte(actual))
+}
+
 func TestGetPassword(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()
@@ -297,7 +311,7 @@ func TestRebootServer(t *testing.T) {
 	defer th.TeardownHTTP()
 	HandleRebootSuccessfully(t)
 
-	res := servers.Reboot(client.ServiceClient(), "1234asdf", &servers.RebootOpts{
+	res := servers.Reboot(client.ServiceClient(), "1234asdf", servers.RebootOpts{
 		Type: servers.SoftReboot,
 	})
 	th.AssertNoErr(t, res.Err)
@@ -367,20 +381,6 @@ func TestRevertResize(t *testing.T) {
 
 	res := servers.RevertResize(client.ServiceClient(), "1234asdf")
 	th.AssertNoErr(t, res.Err)
-}
-
-func TestRescue(t *testing.T) {
-	th.SetupHTTP()
-	defer th.TeardownHTTP()
-
-	HandleServerRescueSuccessfully(t)
-
-	res := servers.Rescue(client.ServiceClient(), "1234asdf", servers.RescueOpts{
-		AdminPass: "1234567890",
-	})
-	th.AssertNoErr(t, res.Err)
-	adminPass, _ := res.Extract()
-	th.AssertEquals(t, "1234567890", adminPass)
 }
 
 func TestGetMetadatum(t *testing.T) {

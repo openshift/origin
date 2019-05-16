@@ -7,8 +7,8 @@
 [![Travis](https://travis-ci.org/openshift/source-to-image.svg?branch=master)](https://travis-ci.org/openshift/source-to-image)
 [![License](https://img.shields.io/github/license/openshift/source-to-image.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
-Source-to-Image (S2I) is a toolkit and workflow for building reproducible Docker images from source code. S2I produces
-ready-to-run images by injecting source code into a Docker container and letting the container prepare that source code for execution. By creating self-assembling **builder images**, you can version and control your build environments exactly like you use Docker images to version your runtime environments.
+Source-to-Image (S2I) is a toolkit and workflow for building reproducible container images from source code. S2I produces
+ready-to-run images by injecting source code into a container image and letting the container prepare that source code for execution. By creating self-assembling **builder images**, you can version and control your build environments exactly like you use container images to version your runtime environments.
 
 For a deep dive on S2I you can view [this presentation](https://www.youtube.com/watch?v=flI6zx9wH6M).
 
@@ -19,7 +19,7 @@ Want to try it right now?  Download the [latest release](https://github.com/open
 
 Now browse to http://localhost:8080 to see the running application.
 
-You've just built and run a new Docker application image from source code in a git repository, no Dockerfile necessary.
+You've just built and run a new container image from source code in a git repository, no Dockerfile necessary.
 
 ### How Source-to-Image works
 
@@ -43,7 +43,7 @@ By placing our build logic inside of images, and by combining the images into mu
 ## Goals
 
 ### Reproducibility
-Allow build environments to be tightly versioned by encapsulating them within a Docker image and defining a simple interface (injected source code) for callers. Reproducible builds are a key requirement to enabling security updates and continuous integration in containerized infrastructure, and builder images help ensure repeatability as well as the ability to swap runtimes.
+Allow build environments to be tightly versioned by encapsulating them within a container image and defining a simple interface (injected source code) for callers. Reproducible builds are a key requirement to enabling security updates and continuous integration in containerized infrastructure, and builder images help ensure repeatability as well as the ability to swap runtimes.
 
 ### Flexibility
 Any existing build system that can run on Linux can be run inside of a container, and each individual builder can also be part of a larger pipeline. In addition, the scripts that process the application source code can be injected into the builder image, allowing authors to adapt existing images to enable source handling.
@@ -134,9 +134,9 @@ In this case, the value of `FOO` environment variable will be set to `bar`.
 
 ## Using ONBUILD images
 
-In case you want to use one of the official Docker language stack images for
+In case you want to use one of the official Dockerfile language stack images for
 your build you don't have do anything extra. S2I is capable of recognizing the
-Docker image with [ONBUILD](https://docs.docker.com/engine/reference/builder/#/onbuild) instructions and choosing the OnBuild strategy. This
+container image with [ONBUILD](https://docs.docker.com/engine/reference/builder/#/onbuild) instructions and choosing the OnBuild strategy. This
 strategy will trigger all ONBUILD instructions and execute the assemble script
 (if it exists) as the last instruction.
 
@@ -155,7 +155,7 @@ an entrypoint in that case.
 
 If a `save-artifacts` script exists, a prior image already exists, and the `--incremental=true` option is used, the workflow is as follows:
 
-1. `s2i` creates a new Docker container from the prior build image
+1. `s2i` creates a new container image from the prior build image
 1. `s2i` runs `save-artifacts` in this container - this script is responsible for streaming out
    a tar of the artifacts to stdout
 1. `s2i` builds the new output image:

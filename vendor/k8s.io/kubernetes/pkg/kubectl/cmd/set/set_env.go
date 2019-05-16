@@ -25,14 +25,14 @@ import (
 
 	"github.com/spf13/cobra"
 
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/cli-runtime/pkg/genericclioptions/printers"
-	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
+	"k8s.io/cli-runtime/pkg/printers"
+	"k8s.io/cli-runtime/pkg/resource"
 	"k8s.io/client-go/kubernetes"
 	envutil "k8s.io/kubernetes/pkg/kubectl/cmd/set/env"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -97,6 +97,7 @@ var (
 	  env | grep RAILS_ | kubectl set env -e - deployment/registry`)
 )
 
+// EnvOptions holds values for 'set env' command-lone options
 type EnvOptions struct {
 	PrintFlags *genericclioptions.PrintFlags
 	resource.FilenameOptions
@@ -202,6 +203,7 @@ func contains(key string, keyList []string) bool {
 	return false
 }
 
+// Complete completes all required options
 func (o *EnvOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []string) error {
 	if o.All && len(o.Selector) > 0 {
 		return fmt.Errorf("cannot set --all and --selector at the same time")
@@ -242,6 +244,7 @@ func (o *EnvOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args []stri
 	return nil
 }
 
+// Validate makes sure provided values for EnvOptions are valid
 func (o *EnvOptions) Validate() error {
 	if len(o.Filenames) == 0 && len(o.resources) < 1 {
 		return fmt.Errorf("one or more resources must be specified as <resource> <name> or <resource>/<name>")
@@ -490,7 +493,7 @@ func (o *EnvOptions) RunEnv() error {
 
 		actual, err := resource.NewHelper(info.Client, info.Mapping).Patch(info.Namespace, info.Name, types.StrategicMergePatchType, patch.Patch, nil)
 		if err != nil {
-			allErrs = append(allErrs, fmt.Errorf("failed to patch env update to pod template: %v\n", err))
+			allErrs = append(allErrs, fmt.Errorf("failed to patch env update to pod template: %v", err))
 			continue
 		}
 

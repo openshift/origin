@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"mime"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -84,84 +83,6 @@ func NewOpenAPIService(spec *spec.Swagger) (*OpenAPIService, error) {
 		return nil, err
 	}
 	return o, nil
-}
-
-// NOTE: [DEPRECATION] We will announce deprecation for format-separated endpoints for OpenAPI spec,
-// and switch to a single /openapi/v2 endpoint in Kubernetes 1.10. The design doc and deprecation process
-// are tracked at: https://docs.google.com/document/d/19lEqE9lc4yHJ3WJAJxS_G7TcORIJXGHyq3wpwcH28nU.
-//
-// BuildAndRegisterOpenAPIService builds the spec and registers a handler to provide access to it.
-// Use this method if your OpenAPI spec is static. If you want to update the spec, use BuildOpenAPISpec then RegisterOpenAPIService.
-func BuildAndRegisterOpenAPIService(servePath string, webServices []*restful.WebService, config *common.Config, handler common.PathHandler) (*OpenAPIService, error) {
-	spec, err := builder.BuildOpenAPISpec(webServices, config)
-	if err != nil {
-		return nil, err
-	}
-	o, err := NewOpenAPIService(spec)
-	if err != nil {
-		return nil, err
-	}
-	return o, o.RegisterOpenAPIService(servePath, handler)
-}
-
-// NOTE: [DEPRECATION] We will announce deprecation for format-separated endpoints for OpenAPI spec,
-// and switch to a single /openapi/v2 endpoint in Kubernetes 1.10. The design doc and deprecation process
-// are tracked at: https://docs.google.com/document/d/19lEqE9lc4yHJ3WJAJxS_G7TcORIJXGHyq3wpwcH28nU.
-//
-// RegisterOpenAPIService registers a handler to provide access to provided swagger spec.
-// Note: servePath should end with ".json" as the RegisterOpenAPIService assume it is serving a
-// json file and will also serve .pb and .gz files.
-//
-// Deprecated: use OpenAPIService.RegisterOpenAPIService instead.
-func RegisterOpenAPIService(spec *spec.Swagger, servePath string, handler common.PathHandler) (*OpenAPIService, error) {
-	o, err := NewOpenAPIService(spec)
-	if err != nil {
-		return nil, err
-	}
-	return o, o.RegisterOpenAPIService(servePath, handler)
-}
-
-// NOTE: [DEPRECATION] We will announce deprecation for format-separated endpoints for OpenAPI spec,
-// and switch to a single /openapi/v2 endpoint in Kubernetes 1.10. The design doc and deprecation process
-// are tracked at: https://docs.google.com/document/d/19lEqE9lc4yHJ3WJAJxS_G7TcORIJXGHyq3wpwcH28nU.
-//
-// RegisterOpenAPIService registers a handler to provide access to provided swagger spec.
-// Note: servePath should end with ".json" as the RegisterOpenAPIService assume it is serving a
-// json file and will also serve .pb and .gz files.
-func (o *OpenAPIService) RegisterOpenAPIService(servePath string, handler common.PathHandler) error {
-	if !strings.HasSuffix(servePath, jsonExt) {
-		return fmt.Errorf("serving path must end with \"%s\"", jsonExt)
-	}
-
-	servePathBase := strings.TrimSuffix(servePath, jsonExt)
-
-	type fileInfo struct {
-		ext            string
-		getDataAndETag func() ([]byte, string, time.Time)
-	}
-
-	files := []fileInfo{
-		{".json", o.getSwaggerBytes},
-		{"-2.0.0.json", o.getSwaggerBytes},
-		{"-2.0.0.pb-v1", o.getSwaggerPbBytes},
-		{"-2.0.0.pb-v1.gz", o.getSwaggerPbGzBytes},
-	}
-
-	for _, file := range files {
-		path := servePathBase + file.ext
-		getDataAndETag := file.getDataAndETag
-		handler.Handle(path, gziphandler.GzipHandler(http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
-				data, etag, lastModified := getDataAndETag()
-				w.Header().Set("Etag", etag)
-
-				// ServeContent will take care of caching using eTag.
-				http.ServeContent(w, r, path, lastModified, bytes.NewReader(data))
-			}),
-		))
-	}
-
-	return nil
 }
 
 func (o *OpenAPIService) getSwaggerBytes() ([]byte, string, time.Time) {

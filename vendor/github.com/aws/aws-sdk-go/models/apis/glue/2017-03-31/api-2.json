@@ -6,6 +6,7 @@
     "jsonVersion":"1.1",
     "protocol":"json",
     "serviceFullName":"AWS Glue",
+    "serviceId":"Glue",
     "signatureVersion":"v4",
     "targetPrefix":"AWSGlue",
     "uid":"glue-2017-03-31"
@@ -25,7 +26,8 @@
         {"shape":"ResourceNumberLimitExceededException"},
         {"shape":"InternalServiceException"},
         {"shape":"EntityNotFoundException"},
-        {"shape":"OperationTimeoutException"}
+        {"shape":"OperationTimeoutException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "BatchDeleteConnection":{
@@ -98,7 +100,8 @@
         {"shape":"InvalidInputException"},
         {"shape":"EntityNotFoundException"},
         {"shape":"OperationTimeoutException"},
-        {"shape":"InternalServiceException"}
+        {"shape":"InternalServiceException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "BatchStopJobRun":{
@@ -141,7 +144,8 @@
         {"shape":"AlreadyExistsException"},
         {"shape":"InvalidInputException"},
         {"shape":"OperationTimeoutException"},
-        {"shape":"ResourceNumberLimitExceededException"}
+        {"shape":"ResourceNumberLimitExceededException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "CreateCrawler":{
@@ -172,7 +176,8 @@
         {"shape":"AlreadyExistsException"},
         {"shape":"ResourceNumberLimitExceededException"},
         {"shape":"InternalServiceException"},
-        {"shape":"OperationTimeoutException"}
+        {"shape":"OperationTimeoutException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "CreateDevEndpoint":{
@@ -226,7 +231,8 @@
         {"shape":"ResourceNumberLimitExceededException"},
         {"shape":"InternalServiceException"},
         {"shape":"EntityNotFoundException"},
-        {"shape":"OperationTimeoutException"}
+        {"shape":"OperationTimeoutException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "CreateScript":{
@@ -243,6 +249,22 @@
         {"shape":"OperationTimeoutException"}
       ]
     },
+    "CreateSecurityConfiguration":{
+      "name":"CreateSecurityConfiguration",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"CreateSecurityConfigurationRequest"},
+      "output":{"shape":"CreateSecurityConfigurationResponse"},
+      "errors":[
+        {"shape":"AlreadyExistsException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"InternalServiceException"},
+        {"shape":"OperationTimeoutException"},
+        {"shape":"ResourceNumberLimitExceededException"}
+      ]
+    },
     "CreateTable":{
       "name":"CreateTable",
       "http":{
@@ -257,7 +279,8 @@
         {"shape":"EntityNotFoundException"},
         {"shape":"ResourceNumberLimitExceededException"},
         {"shape":"InternalServiceException"},
-        {"shape":"OperationTimeoutException"}
+        {"shape":"OperationTimeoutException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "CreateTrigger":{
@@ -292,7 +315,8 @@
         {"shape":"InternalServiceException"},
         {"shape":"EntityNotFoundException"},
         {"shape":"OperationTimeoutException"},
-        {"shape":"ResourceNumberLimitExceededException"}
+        {"shape":"ResourceNumberLimitExceededException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "DeleteClassifier":{
@@ -388,6 +412,37 @@
       },
       "input":{"shape":"DeletePartitionRequest"},
       "output":{"shape":"DeletePartitionResponse"},
+      "errors":[
+        {"shape":"EntityNotFoundException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"InternalServiceException"},
+        {"shape":"OperationTimeoutException"}
+      ]
+    },
+    "DeleteResourcePolicy":{
+      "name":"DeleteResourcePolicy",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteResourcePolicyRequest"},
+      "output":{"shape":"DeleteResourcePolicyResponse"},
+      "errors":[
+        {"shape":"EntityNotFoundException"},
+        {"shape":"InternalServiceException"},
+        {"shape":"OperationTimeoutException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"ConditionCheckFailureException"}
+      ]
+    },
+    "DeleteSecurityConfiguration":{
+      "name":"DeleteSecurityConfiguration",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteSecurityConfigurationRequest"},
+      "output":{"shape":"DeleteSecurityConfigurationResponse"},
       "errors":[
         {"shape":"EntityNotFoundException"},
         {"shape":"InvalidInputException"},
@@ -503,7 +558,9 @@
       "output":{"shape":"GetConnectionResponse"},
       "errors":[
         {"shape":"EntityNotFoundException"},
-        {"shape":"OperationTimeoutException"}
+        {"shape":"OperationTimeoutException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "GetConnections":{
@@ -516,7 +573,9 @@
       "output":{"shape":"GetConnectionsResponse"},
       "errors":[
         {"shape":"EntityNotFoundException"},
-        {"shape":"OperationTimeoutException"}
+        {"shape":"OperationTimeoutException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "GetCrawler":{
@@ -556,6 +615,20 @@
         {"shape":"OperationTimeoutException"}
       ]
     },
+    "GetDataCatalogEncryptionSettings":{
+      "name":"GetDataCatalogEncryptionSettings",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetDataCatalogEncryptionSettingsRequest"},
+      "output":{"shape":"GetDataCatalogEncryptionSettingsResponse"},
+      "errors":[
+        {"shape":"InternalServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"OperationTimeoutException"}
+      ]
+    },
     "GetDatabase":{
       "name":"GetDatabase",
       "http":{
@@ -568,7 +641,8 @@
         {"shape":"InvalidInputException"},
         {"shape":"EntityNotFoundException"},
         {"shape":"InternalServiceException"},
-        {"shape":"OperationTimeoutException"}
+        {"shape":"OperationTimeoutException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "GetDatabases":{
@@ -582,7 +656,8 @@
       "errors":[
         {"shape":"InvalidInputException"},
         {"shape":"InternalServiceException"},
-        {"shape":"OperationTimeoutException"}
+        {"shape":"OperationTimeoutException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "GetDataflowGraph":{
@@ -716,7 +791,8 @@
         {"shape":"EntityNotFoundException"},
         {"shape":"InvalidInputException"},
         {"shape":"InternalServiceException"},
-        {"shape":"OperationTimeoutException"}
+        {"shape":"OperationTimeoutException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "GetPartitions":{
@@ -731,7 +807,8 @@
         {"shape":"EntityNotFoundException"},
         {"shape":"InvalidInputException"},
         {"shape":"OperationTimeoutException"},
-        {"shape":"InternalServiceException"}
+        {"shape":"InternalServiceException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "GetPlan":{
@@ -743,6 +820,51 @@
       "input":{"shape":"GetPlanRequest"},
       "output":{"shape":"GetPlanResponse"},
       "errors":[
+        {"shape":"InvalidInputException"},
+        {"shape":"InternalServiceException"},
+        {"shape":"OperationTimeoutException"}
+      ]
+    },
+    "GetResourcePolicy":{
+      "name":"GetResourcePolicy",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetResourcePolicyRequest"},
+      "output":{"shape":"GetResourcePolicyResponse"},
+      "errors":[
+        {"shape":"EntityNotFoundException"},
+        {"shape":"InternalServiceException"},
+        {"shape":"OperationTimeoutException"},
+        {"shape":"InvalidInputException"}
+      ]
+    },
+    "GetSecurityConfiguration":{
+      "name":"GetSecurityConfiguration",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetSecurityConfigurationRequest"},
+      "output":{"shape":"GetSecurityConfigurationResponse"},
+      "errors":[
+        {"shape":"EntityNotFoundException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"InternalServiceException"},
+        {"shape":"OperationTimeoutException"}
+      ]
+    },
+    "GetSecurityConfigurations":{
+      "name":"GetSecurityConfigurations",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"GetSecurityConfigurationsRequest"},
+      "output":{"shape":"GetSecurityConfigurationsResponse"},
+      "errors":[
+        {"shape":"EntityNotFoundException"},
         {"shape":"InvalidInputException"},
         {"shape":"InternalServiceException"},
         {"shape":"OperationTimeoutException"}
@@ -760,7 +882,8 @@
         {"shape":"EntityNotFoundException"},
         {"shape":"InvalidInputException"},
         {"shape":"InternalServiceException"},
-        {"shape":"OperationTimeoutException"}
+        {"shape":"OperationTimeoutException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "GetTableVersion":{
@@ -775,7 +898,8 @@
         {"shape":"EntityNotFoundException"},
         {"shape":"InvalidInputException"},
         {"shape":"InternalServiceException"},
-        {"shape":"OperationTimeoutException"}
+        {"shape":"OperationTimeoutException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "GetTableVersions":{
@@ -790,7 +914,8 @@
         {"shape":"EntityNotFoundException"},
         {"shape":"InvalidInputException"},
         {"shape":"InternalServiceException"},
-        {"shape":"OperationTimeoutException"}
+        {"shape":"OperationTimeoutException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "GetTables":{
@@ -805,7 +930,8 @@
         {"shape":"EntityNotFoundException"},
         {"shape":"InvalidInputException"},
         {"shape":"OperationTimeoutException"},
-        {"shape":"InternalServiceException"}
+        {"shape":"InternalServiceException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "GetTrigger":{
@@ -850,7 +976,8 @@
         {"shape":"EntityNotFoundException"},
         {"shape":"InvalidInputException"},
         {"shape":"InternalServiceException"},
-        {"shape":"OperationTimeoutException"}
+        {"shape":"OperationTimeoutException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "GetUserDefinedFunctions":{
@@ -865,7 +992,8 @@
         {"shape":"EntityNotFoundException"},
         {"shape":"InvalidInputException"},
         {"shape":"OperationTimeoutException"},
-        {"shape":"InternalServiceException"}
+        {"shape":"InternalServiceException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "ImportCatalogToGlue":{
@@ -879,6 +1007,36 @@
       "errors":[
         {"shape":"InternalServiceException"},
         {"shape":"OperationTimeoutException"}
+      ]
+    },
+    "PutDataCatalogEncryptionSettings":{
+      "name":"PutDataCatalogEncryptionSettings",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"PutDataCatalogEncryptionSettingsRequest"},
+      "output":{"shape":"PutDataCatalogEncryptionSettingsResponse"},
+      "errors":[
+        {"shape":"InternalServiceException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"OperationTimeoutException"}
+      ]
+    },
+    "PutResourcePolicy":{
+      "name":"PutResourcePolicy",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"PutResourcePolicyRequest"},
+      "output":{"shape":"PutResourcePolicyResponse"},
+      "errors":[
+        {"shape":"EntityNotFoundException"},
+        {"shape":"InternalServiceException"},
+        {"shape":"OperationTimeoutException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"ConditionCheckFailureException"}
       ]
     },
     "ResetJobBookmark":{
@@ -1032,7 +1190,9 @@
       "errors":[
         {"shape":"InvalidInputException"},
         {"shape":"EntityNotFoundException"},
-        {"shape":"OperationTimeoutException"}
+        {"shape":"OperationTimeoutException"},
+        {"shape":"InvalidInputException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "UpdateCrawler":{
@@ -1079,7 +1239,8 @@
         {"shape":"EntityNotFoundException"},
         {"shape":"InvalidInputException"},
         {"shape":"InternalServiceException"},
-        {"shape":"OperationTimeoutException"}
+        {"shape":"OperationTimeoutException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "UpdateDevEndpoint":{
@@ -1126,7 +1287,8 @@
         {"shape":"EntityNotFoundException"},
         {"shape":"InvalidInputException"},
         {"shape":"InternalServiceException"},
-        {"shape":"OperationTimeoutException"}
+        {"shape":"OperationTimeoutException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "UpdateTable":{
@@ -1143,7 +1305,8 @@
         {"shape":"InternalServiceException"},
         {"shape":"OperationTimeoutException"},
         {"shape":"ConcurrentModificationException"},
-        {"shape":"ResourceNumberLimitExceededException"}
+        {"shape":"ResourceNumberLimitExceededException"},
+        {"shape":"GlueEncryptionException"}
       ]
     },
     "UpdateTrigger":{
@@ -1174,7 +1337,8 @@
         {"shape":"EntityNotFoundException"},
         {"shape":"InvalidInputException"},
         {"shape":"InternalServiceException"},
-        {"shape":"OperationTimeoutException"}
+        {"shape":"OperationTimeoutException"},
+        {"shape":"GlueEncryptionException"}
       ]
     }
   },
@@ -1192,7 +1356,8 @@
         "JobName":{"shape":"NameString"},
         "Arguments":{"shape":"GenericMap"},
         "Timeout":{"shape":"Timeout"},
-        "NotificationProperty":{"shape":"NotificationProperty"}
+        "NotificationProperty":{"shape":"NotificationProperty"},
+        "SecurityConfiguration":{"shape":"NameString"}
       }
     },
     "ActionList":{
@@ -1401,6 +1566,13 @@
       "max":100,
       "min":0
     },
+    "CatalogEncryptionMode":{
+      "type":"string",
+      "enum":[
+        "DISABLED",
+        "SSE-KMS"
+      ]
+    },
     "CatalogEntries":{
       "type":"list",
       "member":{"shape":"CatalogEntry"}
@@ -1446,6 +1618,20 @@
     "ClassifierNameList":{
       "type":"list",
       "member":{"shape":"NameString"}
+    },
+    "CloudWatchEncryption":{
+      "type":"structure",
+      "members":{
+        "CloudWatchEncryptionMode":{"shape":"CloudWatchEncryptionMode"},
+        "KmsKeyArn":{"shape":"KmsKeyArn"}
+      }
+    },
+    "CloudWatchEncryptionMode":{
+      "type":"string",
+      "enum":[
+        "DISABLED",
+        "SSE-KMS"
+      ]
     },
     "CodeGenArgName":{"type":"string"},
     "CodeGenArgValue":{"type":"string"},
@@ -1552,6 +1738,13 @@
         "State":{"shape":"JobRunState"}
       }
     },
+    "ConditionCheckFailureException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"MessageString"}
+      },
+      "exception":true
+    },
     "ConditionList":{
       "type":"list",
       "member":{"shape":"Condition"}
@@ -1591,6 +1784,14 @@
       "member":{"shape":"Connection"}
     },
     "ConnectionName":{"type":"string"},
+    "ConnectionPasswordEncryption":{
+      "type":"structure",
+      "required":["ReturnConnectionPasswordEncrypted"],
+      "members":{
+        "ReturnConnectionPasswordEncrypted":{"shape":"Boolean"},
+        "AwsKmsKeyId":{"shape":"NameString"}
+      }
+    },
     "ConnectionProperties":{
       "type":"map",
       "key":{"shape":"ConnectionPropertyKey"},
@@ -1605,13 +1806,15 @@
         "PORT",
         "USERNAME",
         "PASSWORD",
+        "ENCRYPTED_PASSWORD",
         "JDBC_DRIVER_JAR_URI",
         "JDBC_DRIVER_CLASS_NAME",
         "JDBC_ENGINE",
         "JDBC_ENGINE_VERSION",
         "CONFIG_FILES",
         "INSTANCE_ID",
-        "JDBC_CONNECTION_URL"
+        "JDBC_CONNECTION_URL",
+        "JDBC_ENFORCE_SSL"
       ]
     },
     "ConnectionType":{
@@ -1645,7 +1848,8 @@
         "LastUpdated":{"shape":"Timestamp"},
         "LastCrawl":{"shape":"LastCrawlInfo"},
         "Version":{"shape":"VersionId"},
-        "Configuration":{"shape":"CrawlerConfiguration"}
+        "Configuration":{"shape":"CrawlerConfiguration"},
+        "CrawlerSecurityConfiguration":{"shape":"CrawlerSecurityConfiguration"}
       }
     },
     "CrawlerConfiguration":{"type":"string"},
@@ -1690,6 +1894,11 @@
       },
       "exception":true
     },
+    "CrawlerSecurityConfiguration":{
+      "type":"string",
+      "max":128,
+      "min":0
+    },
     "CrawlerState":{
       "type":"string",
       "enum":[
@@ -1709,7 +1918,8 @@
       "type":"structure",
       "members":{
         "S3Targets":{"shape":"S3TargetList"},
-        "JdbcTargets":{"shape":"JdbcTargetList"}
+        "JdbcTargets":{"shape":"JdbcTargetList"},
+        "DynamoDBTargets":{"shape":"DynamoDBTargetList"}
       }
     },
     "CreateClassifierRequest":{
@@ -1756,7 +1966,8 @@
         "Classifiers":{"shape":"ClassifierNameList"},
         "TablePrefix":{"shape":"TablePrefix"},
         "SchemaChangePolicy":{"shape":"SchemaChangePolicy"},
-        "Configuration":{"shape":"CrawlerConfiguration"}
+        "Configuration":{"shape":"CrawlerConfiguration"},
+        "CrawlerSecurityConfiguration":{"shape":"CrawlerSecurityConfiguration"}
       }
     },
     "CreateCrawlerResponse":{
@@ -1789,9 +2000,11 @@
         "SecurityGroupIds":{"shape":"StringList"},
         "SubnetId":{"shape":"GenericString"},
         "PublicKey":{"shape":"GenericString"},
+        "PublicKeys":{"shape":"PublicKeysList"},
         "NumberOfNodes":{"shape":"IntegerValue"},
         "ExtraPythonLibsS3Path":{"shape":"GenericString"},
-        "ExtraJarsS3Path":{"shape":"GenericString"}
+        "ExtraJarsS3Path":{"shape":"GenericString"},
+        "SecurityConfiguration":{"shape":"NameString"}
       }
     },
     "CreateDevEndpointResponse":{
@@ -1810,6 +2023,7 @@
         "ExtraPythonLibsS3Path":{"shape":"GenericString"},
         "ExtraJarsS3Path":{"shape":"GenericString"},
         "FailureReason":{"shape":"GenericString"},
+        "SecurityConfiguration":{"shape":"NameString"},
         "CreatedTimestamp":{"shape":"TimestampValue"}
       }
     },
@@ -1844,9 +2058,15 @@
         "DefaultArguments":{"shape":"GenericMap"},
         "Connections":{"shape":"ConnectionsList"},
         "MaxRetries":{"shape":"MaxRetries"},
-        "AllocatedCapacity":{"shape":"IntegerValue"},
+        "AllocatedCapacity":{
+          "shape":"IntegerValue",
+          "deprecated":true,
+          "deprecatedMessage":"This property is deprecated, use MaxCapacity instead."
+        },
         "Timeout":{"shape":"Timeout"},
-        "NotificationProperty":{"shape":"NotificationProperty"}
+        "MaxCapacity":{"shape":"NullableDouble"},
+        "NotificationProperty":{"shape":"NotificationProperty"},
+        "SecurityConfiguration":{"shape":"NameString"}
       }
     },
     "CreateJobResponse":{
@@ -1898,6 +2118,24 @@
       "members":{
         "PythonScript":{"shape":"PythonScript"},
         "ScalaCode":{"shape":"ScalaCode"}
+      }
+    },
+    "CreateSecurityConfigurationRequest":{
+      "type":"structure",
+      "required":[
+        "Name",
+        "EncryptionConfiguration"
+      ],
+      "members":{
+        "Name":{"shape":"NameString"},
+        "EncryptionConfiguration":{"shape":"EncryptionConfiguration"}
+      }
+    },
+    "CreateSecurityConfigurationResponse":{
+      "type":"structure",
+      "members":{
+        "Name":{"shape":"NameString"},
+        "CreatedTimestamp":{"shape":"TimestampValue"}
       }
     },
     "CreateTableRequest":{
@@ -1983,6 +2221,13 @@
     "DagNodes":{
       "type":"list",
       "member":{"shape":"CodeGenNode"}
+    },
+    "DataCatalogEncryptionSettings":{
+      "type":"structure",
+      "members":{
+        "EncryptionAtRest":{"shape":"EncryptionAtRest"},
+        "ConnectionPasswordEncryption":{"shape":"ConnectionPasswordEncryption"}
+      }
     },
     "Database":{
       "type":"structure",
@@ -2118,6 +2363,29 @@
       "members":{
       }
     },
+    "DeleteResourcePolicyRequest":{
+      "type":"structure",
+      "members":{
+        "PolicyHashCondition":{"shape":"HashString"}
+      }
+    },
+    "DeleteResourcePolicyResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "DeleteSecurityConfigurationRequest":{
+      "type":"structure",
+      "required":["Name"],
+      "members":{
+        "Name":{"shape":"NameString"}
+      }
+    },
+    "DeleteSecurityConfigurationResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
     "DeleteTableRequest":{
       "type":"structure",
       "required":[
@@ -2217,7 +2485,9 @@
         "LastUpdateStatus":{"shape":"GenericString"},
         "CreatedTimestamp":{"shape":"TimestampValue"},
         "LastModifiedTimestamp":{"shape":"TimestampValue"},
-        "PublicKey":{"shape":"GenericString"}
+        "PublicKey":{"shape":"GenericString"},
+        "PublicKeys":{"shape":"PublicKeysList"},
+        "SecurityConfiguration":{"shape":"NameString"}
       }
     },
     "DevEndpointCustomLibraries":{
@@ -2230,6 +2500,32 @@
     "DevEndpointList":{
       "type":"list",
       "member":{"shape":"DevEndpoint"}
+    },
+    "DynamoDBTarget":{
+      "type":"structure",
+      "members":{
+        "Path":{"shape":"Path"}
+      }
+    },
+    "DynamoDBTargetList":{
+      "type":"list",
+      "member":{"shape":"DynamoDBTarget"}
+    },
+    "EncryptionAtRest":{
+      "type":"structure",
+      "required":["CatalogEncryptionMode"],
+      "members":{
+        "CatalogEncryptionMode":{"shape":"CatalogEncryptionMode"},
+        "SseAwsKmsKeyId":{"shape":"NameString"}
+      }
+    },
+    "EncryptionConfiguration":{
+      "type":"structure",
+      "members":{
+        "S3Encryption":{"shape":"S3EncryptionList"},
+        "CloudWatchEncryption":{"shape":"CloudWatchEncryption"},
+        "JobBookmarksEncryption":{"shape":"JobBookmarksEncryption"}
+      }
     },
     "EntityNotFoundException":{
       "type":"structure",
@@ -2258,6 +2554,14 @@
       }
     },
     "ExecutionTime":{"type":"integer"},
+    "ExistCondition":{
+      "type":"string",
+      "enum":[
+        "MUST_EXIST",
+        "NOT_EXIST",
+        "NONE"
+      ]
+    },
     "FieldType":{"type":"string"},
     "FilterString":{
       "type":"string",
@@ -2320,7 +2624,8 @@
       "required":["Name"],
       "members":{
         "CatalogId":{"shape":"CatalogIdString"},
-        "Name":{"shape":"NameString"}
+        "Name":{"shape":"NameString"},
+        "HidePassword":{"shape":"Boolean"}
       }
     },
     "GetConnectionResponse":{
@@ -2341,6 +2646,7 @@
       "members":{
         "CatalogId":{"shape":"CatalogIdString"},
         "Filter":{"shape":"GetConnectionsFilter"},
+        "HidePassword":{"shape":"Boolean"},
         "NextToken":{"shape":"Token"},
         "MaxResults":{"shape":"PageSize"}
       }
@@ -2392,6 +2698,18 @@
       "members":{
         "Crawlers":{"shape":"CrawlerList"},
         "NextToken":{"shape":"Token"}
+      }
+    },
+    "GetDataCatalogEncryptionSettingsRequest":{
+      "type":"structure",
+      "members":{
+        "CatalogId":{"shape":"CatalogIdString"}
+      }
+    },
+    "GetDataCatalogEncryptionSettingsResponse":{
+      "type":"structure",
+      "members":{
+        "DataCatalogEncryptionSettings":{"shape":"DataCatalogEncryptionSettings"}
       }
     },
     "GetDatabaseRequest":{
@@ -2605,6 +2923,47 @@
         "ScalaCode":{"shape":"ScalaCode"}
       }
     },
+    "GetResourcePolicyRequest":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "GetResourcePolicyResponse":{
+      "type":"structure",
+      "members":{
+        "PolicyInJson":{"shape":"PolicyJsonString"},
+        "PolicyHash":{"shape":"HashString"},
+        "CreateTime":{"shape":"Timestamp"},
+        "UpdateTime":{"shape":"Timestamp"}
+      }
+    },
+    "GetSecurityConfigurationRequest":{
+      "type":"structure",
+      "required":["Name"],
+      "members":{
+        "Name":{"shape":"NameString"}
+      }
+    },
+    "GetSecurityConfigurationResponse":{
+      "type":"structure",
+      "members":{
+        "SecurityConfiguration":{"shape":"SecurityConfiguration"}
+      }
+    },
+    "GetSecurityConfigurationsRequest":{
+      "type":"structure",
+      "members":{
+        "MaxResults":{"shape":"PageSize"},
+        "NextToken":{"shape":"GenericString"}
+      }
+    },
+    "GetSecurityConfigurationsResponse":{
+      "type":"structure",
+      "members":{
+        "SecurityConfigurations":{"shape":"SecurityConfigurationList"},
+        "NextToken":{"shape":"GenericString"}
+      }
+    },
     "GetTableRequest":{
       "type":"structure",
       "required":[
@@ -2752,6 +3111,13 @@
         "NextToken":{"shape":"Token"}
       }
     },
+    "GlueEncryptionException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"MessageString"}
+      },
+      "exception":true
+    },
     "GrokClassifier":{
       "type":"structure",
       "required":[
@@ -2774,6 +3140,12 @@
       "max":2048,
       "min":1,
       "pattern":"[\\u0020-\\uD7FF\\uE000-\\uFFFD\\uD800\\uDC00-\\uDBFF\\uDFFF\\r\\t]*"
+    },
+    "HashString":{
+      "type":"string",
+      "max":255,
+      "min":1,
+      "pattern":"[\\u0020-\\uD7FF\\uE000-\\uFFFD\\uD800\\uDC00-\\uDBFF\\uDFFF\\t]*"
     },
     "IdString":{
       "type":"string",
@@ -2847,9 +3219,15 @@
         "DefaultArguments":{"shape":"GenericMap"},
         "Connections":{"shape":"ConnectionsList"},
         "MaxRetries":{"shape":"MaxRetries"},
-        "AllocatedCapacity":{"shape":"IntegerValue"},
+        "AllocatedCapacity":{
+          "shape":"IntegerValue",
+          "deprecated":true,
+          "deprecatedMessage":"This property is deprecated, use MaxCapacity instead."
+        },
         "Timeout":{"shape":"Timeout"},
-        "NotificationProperty":{"shape":"NotificationProperty"}
+        "MaxCapacity":{"shape":"NullableDouble"},
+        "NotificationProperty":{"shape":"NotificationProperty"},
+        "SecurityConfiguration":{"shape":"NameString"}
       }
     },
     "JobBookmarkEntry":{
@@ -2861,6 +3239,20 @@
         "Attempt":{"shape":"IntegerValue"},
         "JobBookmark":{"shape":"JsonValue"}
       }
+    },
+    "JobBookmarksEncryption":{
+      "type":"structure",
+      "members":{
+        "JobBookmarksEncryptionMode":{"shape":"JobBookmarksEncryptionMode"},
+        "KmsKeyArn":{"shape":"KmsKeyArn"}
+      }
+    },
+    "JobBookmarksEncryptionMode":{
+      "type":"string",
+      "enum":[
+        "DISABLED",
+        "CSE-KMS"
+      ]
     },
     "JobCommand":{
       "type":"structure",
@@ -2889,10 +3281,17 @@
         "Arguments":{"shape":"GenericMap"},
         "ErrorMessage":{"shape":"ErrorString"},
         "PredecessorRuns":{"shape":"PredecessorList"},
-        "AllocatedCapacity":{"shape":"IntegerValue"},
+        "AllocatedCapacity":{
+          "shape":"IntegerValue",
+          "deprecated":true,
+          "deprecatedMessage":"This property is deprecated, use MaxCapacity instead."
+        },
         "ExecutionTime":{"shape":"ExecutionTime"},
         "Timeout":{"shape":"Timeout"},
-        "NotificationProperty":{"shape":"NotificationProperty"}
+        "MaxCapacity":{"shape":"NullableDouble"},
+        "NotificationProperty":{"shape":"NotificationProperty"},
+        "SecurityConfiguration":{"shape":"NameString"},
+        "LogGroupName":{"shape":"GenericString"}
       }
     },
     "JobRunList":{
@@ -2922,9 +3321,15 @@
         "DefaultArguments":{"shape":"GenericMap"},
         "Connections":{"shape":"ConnectionsList"},
         "MaxRetries":{"shape":"MaxRetries"},
-        "AllocatedCapacity":{"shape":"IntegerValue"},
+        "AllocatedCapacity":{
+          "shape":"IntegerValue",
+          "deprecated":true,
+          "deprecatedMessage":"This property is deprecated, use MaxCapacity instead."
+        },
         "Timeout":{"shape":"Timeout"},
-        "NotificationProperty":{"shape":"NotificationProperty"}
+        "MaxCapacity":{"shape":"NullableDouble"},
+        "NotificationProperty":{"shape":"NotificationProperty"},
+        "SecurityConfiguration":{"shape":"NameString"}
       }
     },
     "JsonClassifier":{
@@ -2948,6 +3353,10 @@
       "max":255,
       "min":1,
       "pattern":"[\\u0020-\\uD7FF\\uE000-\\uFFFD\\uD800\\uDC00-\\uDBFF\\uDFFF\\t]*"
+    },
+    "KmsKeyArn":{
+      "type":"string",
+      "pattern":"arn:aws:kms:.*"
     },
     "Language":{
       "type":"string",
@@ -2979,7 +3388,8 @@
       "type":"structure",
       "members":{
         "Jdbc":{"shape":"CodeGenNodeArgs"},
-        "S3":{"shape":"CodeGenNodeArgs"}
+        "S3":{"shape":"CodeGenNodeArgs"},
+        "DynamoDB":{"shape":"CodeGenNodeArgs"}
       }
     },
     "LocationMap":{
@@ -3082,6 +3492,10 @@
       "box":true,
       "min":1
     },
+    "NullableDouble":{
+      "type":"double",
+      "box":true
+    },
     "OperationTimeoutException":{
       "type":"structure",
       "members":{
@@ -3183,6 +3597,11 @@
         "AvailabilityZone":{"shape":"NameString"}
       }
     },
+    "PolicyJsonString":{
+      "type":"string",
+      "max":10240,
+      "min":2
+    },
     "Predecessor":{
       "type":"structure",
       "members":{
@@ -3214,6 +3633,39 @@
         "ROLE",
         "GROUP"
       ]
+    },
+    "PublicKeysList":{
+      "type":"list",
+      "member":{"shape":"GenericString"},
+      "max":5
+    },
+    "PutDataCatalogEncryptionSettingsRequest":{
+      "type":"structure",
+      "required":["DataCatalogEncryptionSettings"],
+      "members":{
+        "CatalogId":{"shape":"CatalogIdString"},
+        "DataCatalogEncryptionSettings":{"shape":"DataCatalogEncryptionSettings"}
+      }
+    },
+    "PutDataCatalogEncryptionSettingsResponse":{
+      "type":"structure",
+      "members":{
+      }
+    },
+    "PutResourcePolicyRequest":{
+      "type":"structure",
+      "required":["PolicyInJson"],
+      "members":{
+        "PolicyInJson":{"shape":"PolicyJsonString"},
+        "PolicyHashCondition":{"shape":"HashString"},
+        "PolicyExistsCondition":{"shape":"ExistCondition"}
+      }
+    },
+    "PutResourcePolicyResponse":{
+      "type":"structure",
+      "members":{
+        "PolicyHash":{"shape":"HashString"}
+      }
     },
     "PythonScript":{"type":"string"},
     "ResetJobBookmarkRequest":{
@@ -3264,6 +3716,25 @@
     },
     "RoleString":{"type":"string"},
     "RowTag":{"type":"string"},
+    "S3Encryption":{
+      "type":"structure",
+      "members":{
+        "S3EncryptionMode":{"shape":"S3EncryptionMode"},
+        "KmsKeyArn":{"shape":"KmsKeyArn"}
+      }
+    },
+    "S3EncryptionList":{
+      "type":"list",
+      "member":{"shape":"S3Encryption"}
+    },
+    "S3EncryptionMode":{
+      "type":"string",
+      "enum":[
+        "DISABLED",
+        "SSE-KMS",
+        "SSE-S3"
+      ]
+    },
     "S3Target":{
       "type":"structure",
       "members":{
@@ -3321,6 +3792,18 @@
     },
     "SchemaPathString":{"type":"string"},
     "ScriptLocationString":{"type":"string"},
+    "SecurityConfiguration":{
+      "type":"structure",
+      "members":{
+        "Name":{"shape":"NameString"},
+        "CreatedTimeStamp":{"shape":"TimestampValue"},
+        "EncryptionConfiguration":{"shape":"EncryptionConfiguration"}
+      }
+    },
+    "SecurityConfigurationList":{
+      "type":"list",
+      "member":{"shape":"SecurityConfiguration"}
+    },
     "SecurityGroupIdList":{
       "type":"list",
       "member":{"shape":"NameString"},
@@ -3385,9 +3868,15 @@
         "JobName":{"shape":"NameString"},
         "JobRunId":{"shape":"IdString"},
         "Arguments":{"shape":"GenericMap"},
-        "AllocatedCapacity":{"shape":"IntegerValue"},
+        "AllocatedCapacity":{
+          "shape":"IntegerValue",
+          "deprecated":true,
+          "deprecatedMessage":"This property is deprecated, use MaxCapacity instead."
+        },
         "Timeout":{"shape":"Timeout"},
-        "NotificationProperty":{"shape":"NotificationProperty"}
+        "MaxCapacity":{"shape":"NullableDouble"},
+        "NotificationProperty":{"shape":"NotificationProperty"},
+        "SecurityConfiguration":{"shape":"NameString"}
       }
     },
     "StartJobRunResponse":{
@@ -3668,7 +4157,8 @@
         "Classifiers":{"shape":"ClassifierNameList"},
         "TablePrefix":{"shape":"TablePrefix"},
         "SchemaChangePolicy":{"shape":"SchemaChangePolicy"},
-        "Configuration":{"shape":"CrawlerConfiguration"}
+        "Configuration":{"shape":"CrawlerConfiguration"},
+        "CrawlerSecurityConfiguration":{"shape":"CrawlerSecurityConfiguration"}
       }
     },
     "UpdateCrawlerResponse":{
@@ -3712,6 +4202,8 @@
       "members":{
         "EndpointName":{"shape":"GenericString"},
         "PublicKey":{"shape":"GenericString"},
+        "AddPublicKeys":{"shape":"PublicKeysList"},
+        "DeletePublicKeys":{"shape":"PublicKeysList"},
         "CustomLibraries":{"shape":"DevEndpointCustomLibraries"},
         "UpdateEtlLibraries":{"shape":"BooleanValue"}
       }

@@ -106,8 +106,9 @@ func TestUpdate(t *testing.T) {
 	MockUpdateResponse(t)
 
 	var isPublic = true
+	var name = "vol-type-002"
 	options := volumetypes.UpdateOpts{
-		Name:     "vol-type-002",
+		Name:     &name,
 		IsPublic: &isPublic,
 	}
 

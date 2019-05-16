@@ -1,6 +1,9 @@
 package projects
 
 import (
+	"net/url"
+	"strings"
+
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/pagination"
 )
@@ -28,11 +31,30 @@ type ListOpts struct {
 
 	// ParentID filters the response by projects of a given parent project.
 	ParentID string `q:"parent_id"`
+
+	// Filters filters the response by custom filters such as
+	// 'name__contains=foo'
+	Filters map[string]string `q:"-"`
 }
 
 // ToProjectListQuery formats a ListOpts into a query string.
 func (opts ListOpts) ToProjectListQuery() (string, error) {
 	q, err := gophercloud.BuildQueryString(opts)
+	if err != nil {
+		return "", err
+	}
+
+	params := q.Query()
+	for k, v := range opts.Filters {
+		i := strings.Index(k, "__")
+		if i > 0 && i < len(k)-2 {
+			params.Add(k, v)
+		} else {
+			return "", InvalidListFilter{FilterName: k}
+		}
+	}
+
+	q = &url.URL{RawQuery: params.Encode()}
 	return q.String(), err
 }
 
@@ -130,7 +152,7 @@ type UpdateOpts struct {
 	ParentID string `json:"parent_id,omitempty"`
 
 	// Description is the description of the project.
-	Description string `json:"description,omitempty"`
+	Description *string `json:"description,omitempty"`
 }
 
 // ToUpdateCreateMap formats a UpdateOpts into an update request.

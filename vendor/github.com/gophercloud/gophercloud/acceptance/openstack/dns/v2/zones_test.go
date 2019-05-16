@@ -8,53 +8,48 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/clients"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/dns/v2/zones"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
-func TestZonesList(t *testing.T) {
-	client, err := clients.NewDNSV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a DNS client: %v", err)
-	}
-
-	var allZones []zones.Zone
-	allPages, err := zones.List(client, nil).AllPages()
-	if err != nil {
-		t.Fatalf("Unable to retrieve zones: %v", err)
-	}
-
-	allZones, err = zones.ExtractZones(allPages)
-	if err != nil {
-		t.Fatalf("Unable to extract zones: %v", err)
-	}
-
-	for _, zone := range allZones {
-		tools.PrintResource(t, &zone)
-	}
-}
-
 func TestZonesCRUD(t *testing.T) {
+	clients.RequireDNS(t)
+
 	client, err := clients.NewDNSV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create a DNS client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	zone, err := CreateZone(t, client)
-	if err != nil {
-		t.Fatal(err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteZone(t, client, zone)
 
 	tools.PrintResource(t, &zone)
 
+	allPages, err := zones.List(client, nil).AllPages()
+	th.AssertNoErr(t, err)
+
+	allZones, err := zones.ExtractZones(allPages)
+	th.AssertNoErr(t, err)
+
+	var found bool
+	for _, z := range allZones {
+		tools.PrintResource(t, &z)
+
+		if zone.Name == z.Name {
+			found = true
+		}
+	}
+
+	th.AssertEquals(t, found, true)
+
+	description := ""
 	updateOpts := zones.UpdateOpts{
-		Description: "New description",
+		Description: &description,
 		TTL:         0,
 	}
 
 	newZone, err := zones.Update(client, zone.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatal(err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, &newZone)
+
+	th.AssertEquals(t, newZone.Description, description)
 }

@@ -38,7 +38,7 @@ type OpenAPI struct {
 func (oa OpenAPI) Install(c *restful.Container, mux *mux.PathRecorderMux) (*handler.OpenAPIService, *spec.Swagger) {
 	spec, err := builder.BuildOpenAPISpec(c.RegisteredWebServices(), oa.Config)
 	if err != nil {
-		klog.Fatalf("Failed to register open api spec for root: %v", err)
+		klog.Fatalf("Failed to build open api spec for root: %v", err)
 	}
 
 	// we shadow ClustResourceQuotas, RoleBindingRestrictions, and SecurityContextContstraints

@@ -139,6 +139,13 @@ type IoTAnalyticsAPI interface {
 	ListChannelsPages(*iotanalytics.ListChannelsInput, func(*iotanalytics.ListChannelsOutput, bool) bool) error
 	ListChannelsPagesWithContext(aws.Context, *iotanalytics.ListChannelsInput, func(*iotanalytics.ListChannelsOutput, bool) bool, ...request.Option) error
 
+	ListDatasetContents(*iotanalytics.ListDatasetContentsInput) (*iotanalytics.ListDatasetContentsOutput, error)
+	ListDatasetContentsWithContext(aws.Context, *iotanalytics.ListDatasetContentsInput, ...request.Option) (*iotanalytics.ListDatasetContentsOutput, error)
+	ListDatasetContentsRequest(*iotanalytics.ListDatasetContentsInput) (*request.Request, *iotanalytics.ListDatasetContentsOutput)
+
+	ListDatasetContentsPages(*iotanalytics.ListDatasetContentsInput, func(*iotanalytics.ListDatasetContentsOutput, bool) bool) error
+	ListDatasetContentsPagesWithContext(aws.Context, *iotanalytics.ListDatasetContentsInput, func(*iotanalytics.ListDatasetContentsOutput, bool) bool, ...request.Option) error
+
 	ListDatasets(*iotanalytics.ListDatasetsInput) (*iotanalytics.ListDatasetsOutput, error)
 	ListDatasetsWithContext(aws.Context, *iotanalytics.ListDatasetsInput, ...request.Option) (*iotanalytics.ListDatasetsOutput, error)
 	ListDatasetsRequest(*iotanalytics.ListDatasetsInput) (*request.Request, *iotanalytics.ListDatasetsOutput)

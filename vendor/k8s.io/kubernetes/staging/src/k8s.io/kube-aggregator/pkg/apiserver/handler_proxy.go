@@ -39,6 +39,8 @@ import (
 	apiregistrationapi "k8s.io/kube-aggregator/pkg/apis/apiregistration"
 )
 
+const aggregatorComponent string = "aggregator"
+
 type certFunc func() []byte
 
 // proxyHandler provides a http.Handler which will proxy traffic to locations
@@ -90,7 +92,7 @@ func proxyError(w http.ResponseWriter, req *http.Request, error string, code int
 		return
 	}
 	// TODO: record long-running request differently? The long-running check func does not necessarily match the one of the aggregated apiserver
-	endpointmetrics.Record(req, info, "", code, 0, 0)
+	endpointmetrics.Record(req, info, aggregatorComponent, "", code, 0, 0)
 }
 
 func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -150,6 +152,7 @@ func (r *proxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	newReq := req.WithContext(context.Background())
 	newReq.Header = utilnet.CloneHeader(req.Header)
 	newReq.URL = location
+	newReq.Host = location.Host
 
 	if handlingInfo.proxyRoundTripper == nil {
 		proxyError(w, req, "", http.StatusNotFound)

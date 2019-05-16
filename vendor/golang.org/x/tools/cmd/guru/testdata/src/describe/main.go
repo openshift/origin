@@ -8,8 +8,13 @@ package describe // @describe pkgdecl "describe"
 
 import (
 	"lib"
-	_ "unsafe" // @describe unsafe "unsafe"
+	"nosuchpkg"            // @describe badimport1 "nosuchpkg"
+	nosuchpkg2 "nosuchpkg" // @describe badimport2 "nosuchpkg2"
+	_ "unsafe"             // @describe unsafe "unsafe"
 )
+
+var _ nosuchpkg.T
+var _ nosuchpkg2.T
 
 type cake float64 // @describe type-ref-builtin "float64"
 
@@ -23,14 +28,15 @@ var global = new(string) // NB: ssa.Global is indirect, i.e. **string
 
 func main() { // @describe func-def-main "main"
 	// func objects
-	_ = main   // @describe func-ref-main "main"
-	_ = (*C).f // @describe func-ref-*C.f "..C..f"
-	_ = D.f    // @describe func-ref-D.f "D.f"
-	_ = I.f    // @describe func-ref-I.f "I.f"
-	var d D    // @describe type-D "D"
-	var i I    // @describe type-I "I"
-	_ = d.f    // @describe func-ref-d.f "d.f"
-	_ = i.f    // @describe func-ref-i.f "i.f"
+	_ = main      // @describe func-ref-main "main"
+	_ = (*C).f    // @describe func-ref-*C.f "..C..f"
+	_ = D.f       // @describe func-ref-D.f "D.f"
+	_ = I.f       // @describe func-ref-I.f "I.f"
+	var d D       // @describe type-D "D"
+	var i I       // @describe type-I "I"
+	_ = d.f       // @describe func-ref-d.f "d.f"
+	_ = i.f       // @describe func-ref-i.f "i.f"
+	var slice []D // @describe slice-of-D "slice"
 
 	var dptr *D // @describe ptr-with-nonptr-methods "dptr"
 	_ = dptr
@@ -85,6 +91,11 @@ func main() { // @describe func-def-main "main"
 
 	var _ lib.Outer // @describe lib-outer "Outer"
 
+	var mmm map[C]D // @describe var-map-of-C-D "mmm"
+
+	d := newD().ThirdField // @describe field-access "ThirdField"
+
+	astCopy := ast
 	unknown() // @describe call-unknown "\\("
 }
 
@@ -96,7 +107,10 @@ type C int
 type D struct {
 	Field        int
 	AnotherField string
+	ThirdField   C
 }
 
 func (c *C) f() {}
 func (d D) f()  {}
+
+func newD() D { return D{} }

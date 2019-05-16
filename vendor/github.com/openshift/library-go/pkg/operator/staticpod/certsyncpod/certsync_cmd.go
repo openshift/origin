@@ -49,7 +49,7 @@ func NewCertSyncControllerCommand(configmaps, secrets []revision.RevisionResourc
 	}
 
 	cmd.Flags().StringVar(&o.DestinationDir, "destination-dir", o.DestinationDir, "Directory to write to")
-	cmd.Flags().StringVarP(&o.Namespace, "namespace", "n", o.Namespace, "Namespace to read from")
+	cmd.Flags().StringVarP(&o.Namespace, "namespace", "n", o.Namespace, "Namespace to read from (default to 'POD_NAMESPACE' environment variable)")
 	cmd.Flags().StringVar(&o.KubeConfigFile, "kubeconfig", o.KubeConfigFile, "Location of the master configuration file to run from.")
 
 	return cmd
@@ -102,6 +102,10 @@ func (o *CertSyncControllerOptions) Complete() error {
 	kubeConfig, err := client.GetKubeConfigOrInClusterConfig(o.KubeConfigFile, nil)
 	if err != nil {
 		return err
+	}
+
+	if len(o.Namespace) == 0 && len(os.Getenv("POD_NAMESPACE")) > 0 {
+		o.Namespace = os.Getenv("POD_NAMESPACE")
 	}
 
 	protoKubeConfig := rest.CopyConfig(kubeConfig)

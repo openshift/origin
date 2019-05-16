@@ -35,8 +35,31 @@ EXCLUDED_PATTERNS=(
   "verify-linkcheck.sh"          # runs in separate Jenkins job once per day due to high network usage
   "verify-test-owners.sh"        # TODO(rmmh): figure out how to avoid endless conflicts
   "verify-*-dockerized.sh"       # Don't run any scripts that intended to be run dockerized
-  "verify-typecheck.sh"          # runs in separate typecheck job
   )
+
+# Exclude typecheck in certain cases, if they're running in a separate job.
+if [[ ${EXCLUDE_TYPECHECK:-} =~ ^[yY]$ ]]; then
+  EXCLUDED_PATTERNS+=(
+    "verify-typecheck.sh"          # runs in separate typecheck job
+    )
+fi
+
+
+# Exclude godep checks in certain cases, if they're running in a separate job.
+if [[ ${EXCLUDE_GODEP:-} =~ ^[yY]$ ]]; then
+  EXCLUDED_PATTERNS+=(
+    "verify-godeps.sh"             # runs in separate godeps job
+    "verify-staging-godeps.sh"     # runs in separate godeps job
+    "verify-godep-licenses.sh"     # runs in separate godeps job
+    )
+fi
+
+# Exclude readonly package check in certain cases, aka, in periodic jobs we don't care and a readonly package won't be touched
+if [[ ${EXCLUDE_READONLY_PACKAGE:-} =~ ^[yY]$ ]]; then
+  EXCLUDED_PATTERNS+=(
+    "verify-readonly-packages.sh"  # skip in CI, if env is set
+    )
+fi
 
 # Only run whitelisted fast checks in quick mode.
 # These run in <10s each on enisoc's workstation, assuming that
@@ -53,6 +76,7 @@ QUICK_PATTERNS+=(
   "verify-spelling.sh"
   "verify-staging-client-go.sh"
   "verify-staging-meta-files.sh"
+  "verify-test-featuregates.sh"
   "verify-test-images.sh"
   "verify-test-owners.sh"
 )
@@ -62,7 +86,7 @@ QUICK_CHECKS=$(ls ${QUICK_PATTERNS[@]/#/${KUBE_ROOT}\/hack\/} 2>/dev/null || tru
 
 function is-excluded {
   for e in ${EXCLUDED_CHECKS[@]}; do
-    if [[ $1 -ef "$e" ]]; then
+    if [[ $1 -ef "${e}" ]]; then
       return
     fi
   done
@@ -71,7 +95,7 @@ function is-excluded {
 
 function is-quick {
   for e in ${QUICK_CHECKS[@]}; do
-    if [[ $1 -ef "$e" ]]; then
+    if [[ $1 -ef "${e}" ]]; then
       return
     fi
   done
@@ -82,7 +106,7 @@ function is-explicitly-chosen {
   local name="${1#verify-}"
   name="${name%.*}"
   for e in ${WHAT}; do
-    if [[ $e == "$name" ]]; then
+    if [[ "${e}" == "${name}" ]]; then
       return
     fi
   done

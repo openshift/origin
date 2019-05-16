@@ -393,7 +393,7 @@ func TestDisassociate(t *testing.T) {
     `)
 	})
 
-	ip, err := floatingips.Update(fake.ServiceClient(), "2f245a7b-796b-4f26-9cf9-9e82d248fda7", floatingips.UpdateOpts{PortID: nil}).Extract()
+	ip, err := floatingips.Update(fake.ServiceClient(), "2f245a7b-796b-4f26-9cf9-9e82d248fda7", floatingips.UpdateOpts{PortID: new(string)}).Extract()
 	th.AssertNoErr(t, err)
 
 	th.AssertDeepEquals(t, "", ip.FixedIP)

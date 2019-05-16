@@ -38,11 +38,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/util/workqueue"
-	genericcontrollermanager "k8s.io/kubernetes/cmd/controller-manager/app"
 	"k8s.io/kubernetes/pkg/controller"
-	_ "k8s.io/kubernetes/pkg/util/reflector/prometheus" // for reflector metric registration
-	// install the prometheus plugin
-	_ "k8s.io/kubernetes/pkg/util/workqueue/prometheus"
 	// import known versions
 	_ "k8s.io/client-go/kubernetes"
 )
@@ -165,7 +161,7 @@ type resettableRESTMapper interface {
 // Note that discoveryClient should NOT be shared with gc.restMapper, otherwise
 // the mapper's underlying discovery client will be unnecessarily reset during
 // the course of detecting new resources.
-func (gc *GarbageCollector) Sync(discoveryClient discovery.DiscoveryInterface, period time.Duration, stopCh <-chan struct{}) {
+func (gc *GarbageCollector) Sync(discoveryClient discovery.ServerResourcesInterface, period time.Duration, stopCh <-chan struct{}) {
 	oldResources := make(map[schema.GroupVersionResource]struct{})
 	wait.Until(func() {
 		// Get the current resource list from discovery.
@@ -641,7 +637,7 @@ func (gc *GarbageCollector) GraphHasUID(UIDs []types.UID) bool {
 // All discovery errors are considered temporary. Upon encountering any error,
 // GetDeletableResources will log and return any discovered resources it was
 // able to process (which may be none).
-func getDeletableResources(discoveryClient discovery.ServerResourcesInterface) map[schema.GroupVersionResource]struct{} {
+func GetDeletableResources(discoveryClient discovery.ServerResourcesInterface) map[schema.GroupVersionResource]struct{} {
 	preferredResources, err := discoveryClient.ServerPreferredResources()
 	if err != nil {
 		if discovery.IsGroupDiscoveryFailedError(err) {
@@ -670,22 +666,4 @@ func getDeletableResources(discoveryClient discovery.ServerResourcesInterface) m
 	}
 
 	return deletableGroupVersionResources
-}
-
-func GetDeletableResources(discoveryClient discovery.DiscoveryInterface) map[schema.GroupVersionResource]struct{} {
-	// What if the kube-apiserver goes down and comes back up.  We then run this call, but the kube-apiserver isn't healthy.
-	// Since we wire against localhost, we can connect *before* we're healthy and the kube-apiserver can be bounced independently.
-	// In such a case, the kube-apiserver health check is false because not all APIServices are available, so some resources
-	// appear to disappear.
-
-	// If apiserver is not running we should wait for some time and fail only then. This is particularly
-	// important when we start apiserver and controller manager at the same time.
-	if discoveryClient.RESTClient() != nil {
-		if err := genericcontrollermanager.WaitForAPIServer(discoveryClient.RESTClient(), 10*time.Second); err != nil {
-			utilruntime.HandleError(fmt.Errorf("failed to discover preferred resources: %v", err))
-			return map[schema.GroupVersionResource]struct{}{}
-		}
-	}
-
-	return getDeletableResources(discoveryClient)
 }

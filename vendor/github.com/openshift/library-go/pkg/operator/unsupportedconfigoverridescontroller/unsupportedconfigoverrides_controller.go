@@ -17,14 +17,14 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	operatorv1 "github.com/openshift/api/operator/v1"
+	"github.com/openshift/library-go/pkg/operator/condition"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/management"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 const (
-	unsupportedConfigOverridesControllerUpgradeable = "UnsupportedConfigOverridesUpgradeable"
-	controllerWorkQueueKey                          = "key"
+	controllerWorkQueueKey = "key"
 )
 
 // UnsupportedConfigOverridesController is a controller that will copy source configmaps and secrets to their destinations.
@@ -67,7 +67,7 @@ func (c *UnsupportedConfigOverridesController) sync() error {
 	}
 
 	cond := operatorv1.OperatorCondition{
-		Type:   unsupportedConfigOverridesControllerUpgradeable,
+		Type:   condition.UnsupportedConfigOverridesUpgradeableConditionType,
 		Status: operatorv1.ConditionTrue,
 		Reason: "NoUnsupportedConfigOverrides",
 	}

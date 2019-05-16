@@ -246,9 +246,11 @@ func TestUpdate(t *testing.T) {
     `)
 	})
 
+	var name = "policy"
+	var description = "Firewall policy"
 	options := policies.UpdateOpts{
-		Name:        "policy",
-		Description: "Firewall policy",
+		Name:        &name,
+		Description: &description,
 		Rules: []string{
 			"98a58c87-76be-ae7c-a74e-b77fffb88d95",
 			"11a58c87-76be-ae7c-a74e-b77fffb88a32",

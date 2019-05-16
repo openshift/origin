@@ -32,7 +32,7 @@
   "description": "Views and manages your Google Analytics data.",
   "discoveryVersion": "v1",
   "documentationLink": "https://developers.google.com/analytics/",
-  "etag": "\"Zkyw9ACJZUvcYmlFaKGChzhmtnE/AHLSBPz3If26VBakaAZdjeRmPvY\"",
+  "etag": "\"J3WqvAcMk4eQjJXvfSI4Yr8VouA/ICz6S7dLg1NqZR9DoI37oXz6hEo\"",
   "icons": {
     "x16": "https://www.google.com/images/icons/product/analytics-16.png",
     "x32": "https://www.google.com/images/icons/product/analytics-32.png"
@@ -563,6 +563,26 @@
               },
               "scopes": [
                 "https://www.googleapis.com/auth/analytics",
+                "https://www.googleapis.com/auth/analytics.edit",
+                "https://www.googleapis.com/auth/analytics.readonly"
+              ]
+            }
+          }
+        },
+        "clientId": {
+          "methods": {
+            "hashClientId": {
+              "description": "Hashes the given Client ID.",
+              "httpMethod": "POST",
+              "id": "analytics.management.clientId.hashClientId",
+              "path": "management/clientId:hashClientId",
+              "request": {
+                "$ref": "HashClientIdRequest"
+              },
+              "response": {
+                "$ref": "HashClientIdResponse"
+              },
+              "scopes": [
                 "https://www.googleapis.com/auth/analytics.edit",
                 "https://www.googleapis.com/auth/analytics.readonly"
               ]
@@ -3785,7 +3805,6 @@
       }
     }
   },
-  "revision": "20180514",
   "rootUrl": "https://www.googleapis.com/",
   "schemas": {
     "Account": {
@@ -5858,6 +5877,43 @@
       },
       "type": "object"
     },
+    "HashClientIdRequest": {
+      "description": "JSON template for a hash Client Id request resource.",
+      "id": "HashClientIdRequest",
+      "properties": {
+        "clientId": {
+          "type": "string"
+        },
+        "kind": {
+          "default": "analytics#hashClientIdRequest",
+          "type": "string"
+        },
+        "webPropertyId": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "HashClientIdResponse": {
+      "description": "JSON template for a hash Client Id response resource.",
+      "id": "HashClientIdResponse",
+      "properties": {
+        "clientId": {
+          "type": "string"
+        },
+        "hashedClientId": {
+          "type": "string"
+        },
+        "kind": {
+          "default": "analytics#hashClientIdResponse",
+          "type": "string"
+        },
+        "webPropertyId": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "IncludeConditions": {
       "description": "JSON template for an Analytics Remarketing Include Conditions.",
       "id": "IncludeConditions",
@@ -7125,6 +7181,7 @@
         "deletionRequestTime": {
           "description": "This marks the point in time for which all user data before should be deleted",
           "format": "date-time",
+          "readOnly": true,
           "type": "string"
         },
         "firebaseProjectId": {

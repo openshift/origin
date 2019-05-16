@@ -35,3 +35,15 @@ func TestListPolicyTypes(t *testing.T) {
 		t.Errorf("Expected 1 page, got %d", count)
 	}
 }
+
+func TestGetPolicyType(t *testing.T) {
+	th.SetupHTTP()
+	defer th.TeardownHTTP()
+
+	HandlePolicyTypeGet(t)
+
+	actual, err := policytypes.Get(fake.ServiceClient(), FakePolicyTypetoGet).Extract()
+	th.AssertNoErr(t, err)
+
+	th.AssertDeepEquals(t, ExpectedPolicyTypeDetail, actual)
+}

@@ -42,7 +42,7 @@ var _ = utils.SIGDescribe("[Serial] Volume metrics", func() {
 		c              clientset.Interface
 		ns             string
 		pvc            *v1.PersistentVolumeClaim
-		metricsGrabber *metrics.MetricsGrabber
+		metricsGrabber *metrics.Grabber
 	)
 	f := framework.NewDefaultFramework("pv")
 
@@ -425,7 +425,7 @@ var _ = utils.SIGDescribe("[Serial] Volume metrics", func() {
 	})
 })
 
-func waitForDetachAndGrabMetrics(oldMetrics map[string]int64, metricsGrabber *metrics.MetricsGrabber) map[string]int64 {
+func waitForDetachAndGrabMetrics(oldMetrics map[string]int64, metricsGrabber *metrics.Grabber) map[string]int64 {
 	backoff := wait.Backoff{
 		Duration: 10 * time.Second,
 		Factor:   1.2,
@@ -530,7 +530,7 @@ func findVolumeStatMetric(metricKeyName string, namespace string, pvcName string
 }
 
 // Wait for the count of a pv controller's metric specified by metricName and dimension bigger than zero.
-func waitForPVControllerSync(metricsGrabber *metrics.MetricsGrabber, metricName, dimension string) {
+func waitForPVControllerSync(metricsGrabber *metrics.Grabber, metricName, dimension string) {
 	backoff := wait.Backoff{
 		Duration: 10 * time.Second,
 		Factor:   1.2,
@@ -611,7 +611,7 @@ func getStatesMetrics(metricKey string, givenMetrics metrics.Metrics) map[string
 	return states
 }
 
-func waitForADControllerStatesMetrics(metricsGrabber *metrics.MetricsGrabber, metricName string, dimensions []string, stateNames []string) {
+func waitForADControllerStatesMetrics(metricsGrabber *metrics.Grabber, metricName string, dimensions []string, stateNames []string) {
 	backoff := wait.Backoff{
 		Duration: 10 * time.Second,
 		Factor:   1.2,

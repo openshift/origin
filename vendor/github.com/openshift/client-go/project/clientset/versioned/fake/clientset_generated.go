@@ -59,8 +59,3 @@ var _ clientset.Interface = &Clientset{}
 func (c *Clientset) ProjectV1() projectv1.ProjectV1Interface {
 	return &fakeprojectv1.FakeProjectV1{Fake: &c.Fake}
 }
-
-// Project retrieves the ProjectV1Client
-func (c *Clientset) Project() projectv1.ProjectV1Interface {
-	return &fakeprojectv1.FakeProjectV1{Fake: &c.Fake}
-}

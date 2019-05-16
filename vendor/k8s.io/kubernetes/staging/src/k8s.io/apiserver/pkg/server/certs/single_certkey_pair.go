@@ -6,10 +6,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"k8s.io/klog"
+
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/cert"
-	"k8s.io/klog"
 )
 
 // ReactionFunc is a func that can be called on a cert change

@@ -15,7 +15,7 @@ const opGenerateDataSet = "GenerateDataSet"
 // GenerateDataSetRequest generates a "aws/request.Request" representing the
 // client's request for the GenerateDataSet operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -103,7 +103,7 @@ const opStartSupportDataExport = "StartSupportDataExport"
 // StartSupportDataExportRequest generates a "aws/request.Request" representing the
 // client's request for the StartSupportDataExport operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -204,7 +204,7 @@ type GenerateDataSetInput struct {
 	// granularity for the desired month (the day value will be ignored).
 	//
 	// DataSetPublicationDate is a required field
-	DataSetPublicationDate *time.Time `locationName:"dataSetPublicationDate" type:"timestamp" timestampFormat:"unix" required:"true"`
+	DataSetPublicationDate *time.Time `locationName:"dataSetPublicationDate" type:"timestamp" required:"true"`
 
 	// The desired data set type.
 	//
@@ -486,7 +486,7 @@ type StartSupportDataExportInput struct {
 	// only affects the customer_support_contacts_data data set type.
 	//
 	// FromDate is a required field
-	FromDate *time.Time `locationName:"fromDate" type:"timestamp" timestampFormat:"unix" required:"true"`
+	FromDate *time.Time `locationName:"fromDate" type:"timestamp" required:"true"`
 
 	// The Amazon Resource Name (ARN) of the Role with an attached permissions policy
 	// to interact with the provided AWS services.

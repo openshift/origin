@@ -183,3 +183,17 @@ func BenchmarkHistogramNoLabels(b *testing.B) {
 		m.Observe(3.1415)
 	}
 }
+
+func BenchmarkParallelCounter(b *testing.B) {
+	c := NewCounter(CounterOpts{
+		Name: "benchmark_counter",
+		Help: "A Counter to benchmark it.",
+	})
+	b.ReportAllocs()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			c.Inc()
+		}
+	})
+}

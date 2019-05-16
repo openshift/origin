@@ -108,6 +108,10 @@ type AdditionalNetworkDefinition struct {
 	// This must be unique.
 	Name string `json:"name"`
 
+	// namespace is the namespace of the network. This will be populated in the resulting CRD
+	// If not given the network will be created in the default namespace.
+	Namespace string `json:"namespace,omitempty"`
+
 	// rawCNIConfig is the raw CNI configuration json to create in the
 	// NetworkAttachmentDefinition CRD
 	RawCNIConfig string `json:"rawCNIConfig"`

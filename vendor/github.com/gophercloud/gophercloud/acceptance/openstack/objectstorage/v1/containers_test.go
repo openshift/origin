@@ -86,7 +86,11 @@ func TestContainers(t *testing.T) {
 	}()
 
 	// Retrieve a container's metadata.
-	cm, err := containers.Get(client, cNames[0]).ExtractMetadata()
+	getOpts := containers.GetOpts{
+		Newest: true,
+	}
+
+	cm, err := containers.Get(client, cNames[0], getOpts).ExtractMetadata()
 	th.AssertNoErr(t, err)
 	for k := range metadata {
 		if cm[k] != metadata[strings.Title(k)] {

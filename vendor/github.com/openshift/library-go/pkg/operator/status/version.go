@@ -18,7 +18,8 @@ type versionGetter struct {
 }
 
 const (
-	operandImageVersionEnvVarName = "OPERAND_IMAGE_VERSION"
+	operandImageVersionEnvVarName  = "OPERAND_IMAGE_VERSION"
+	operatorImageVersionEnvVarName = "OPERATOR_IMAGE_VERSION"
 )
 
 func NewVersionGetter() VersionGetter {
@@ -64,6 +65,10 @@ func (v *versionGetter) VersionChangedChannel() <-chan struct{} {
 
 func VersionForOperandFromEnv() string {
 	return os.Getenv(operandImageVersionEnvVarName)
+}
+
+func VersionForOperatorFromEnv() string {
+	return os.Getenv(operatorImageVersionEnvVarName)
 }
 
 func VersionForOperand(namespace, imagePullSpec string, configMapGetter corev1client.ConfigMapsGetter, eventRecorder events.Recorder) string {

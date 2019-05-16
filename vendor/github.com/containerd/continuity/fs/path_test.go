@@ -183,6 +183,51 @@ func TestRootPath(t *testing.T) {
 	t.Run("SymlinkEmpty", testRootPathSymlinkEmpty)
 }
 
+func TestDirectoryCompare(t *testing.T) {
+	for i, tc := range []struct {
+		p1 string
+		p2 string
+		r  int
+	}{
+		{"", "", 0},
+		{"", "/", -1},
+		{"/", "", 1},
+		{"/", "/", 0},
+		{"", "", 0},
+		{"/dir1", "/dir1/", -1},
+		{"/dir1", "/dir1", 0},
+		{"/dir1/", "/dir1", 1},
+		{"/dir1", "/dir2", -1},
+		{"/dir2", "/dir1", 1},
+		{"/dir1/1", "/dir1-1", -1},
+		{"/dir1-1", "/dir1/1", 1},
+		{"/dir1/dir2", "/dir1/dir2", 0},
+		{"/dir1/dir2", "/dir1/dir2/", -1},
+		{"/dir1/dir2", "/dir1/dir2/f1", -1},
+		{"/dir1/dir2/", "/dir1/dir2", 1},
+		{"/dir1/dir2/f1", "/dir1/dir2", 1},
+		{"/dir1/dir2-f1", "/dir1/dir2", 1},
+		{"/dir1/dir2-f1", "/dir1/dir2/", 1},
+		{"/dir1/dir2/", "/dir1/dir2/", 0},
+		{"/dir1/dir2你", "/dir1/dir2a", 1},
+		{"/dir1/dir2你", "/dir1/dir2", 1},
+		{"/dir1/dir2你", "/dir1/dir2/", 1},
+		{"/dir1/dir2你/", "/dir1/dir2/", 1},
+		{"/dir1/dir2你/", "/dir1/dir2你/", 0},
+		{"/dir1/dir2你/", "/dir1/dir2你好/", -1},
+		{"/dir1/dir2你/", "/dir1/dir2你-好/", -1},
+		{"/dir1/dir2你/", "/dir1/dir2好/", -1},
+		{"/dir1/dir2/f1", "/dir1/dir2/f1", 0},
+		{"/d1/d2/d3/d4/d5/d6/d7/d8/d9/d10", "/d1/d2/d3/d4/d5/d6/d7/d8/d9/d10", 0},
+		{"/d1/d2/d3/d4/d5/d6/d7/d8/d9/d10", "/d1/d2/d3/d4/d5/d6/d7/d8/d9/d11", -1},
+	} {
+		r := directoryCompare(tc.p1, tc.p2)
+		if r != tc.r {
+			t.Errorf("[%d] Test case failed, %q <> %q = %d, expected %d", i, tc.p1, tc.p2, r, tc.r)
+		}
+	}
+}
+
 func testRootPathSymlinkRootScope(t *testing.T) {
 	tmpdir, err := ioutil.TempDir("", "TestFollowSymlinkRootScope")
 	if err != nil {
@@ -202,6 +247,7 @@ func testRootPathSymlinkRootScope(t *testing.T) {
 		t.Fatalf("expected %q got %q", expected, rewrite)
 	}
 }
+
 func testRootPathSymlinkEmpty(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {

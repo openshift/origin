@@ -59,8 +59,3 @@ var _ clientset.Interface = &Clientset{}
 func (c *Clientset) OperatorV1() operatorv1.OperatorV1Interface {
 	return &fakeoperatorv1.FakeOperatorV1{Fake: &c.Fake}
 }
-
-// Operator retrieves the OperatorV1Client
-func (c *Clientset) Operator() operatorv1.OperatorV1Interface {
-	return &fakeoperatorv1.FakeOperatorV1{Fake: &c.Fake}
-}

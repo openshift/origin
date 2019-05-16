@@ -41,6 +41,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	networkingv1 "k8s.io/api/networking/v1"
+	networkingv1beta1 "k8s.io/api/networking/v1beta1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	schedulingv1beta1 "k8s.io/api/scheduling/v1beta1"
@@ -174,6 +175,7 @@ func describerMap(clientConfig *rest.Config) (map[schema.GroupKind]describe.Desc
 		{Group: extensionsv1beta1.GroupName, Kind: "DaemonSet"}:                   &DaemonSetDescriber{c},
 		{Group: extensionsv1beta1.GroupName, Kind: "Deployment"}:                  &DeploymentDescriber{c},
 		{Group: extensionsv1beta1.GroupName, Kind: "Ingress"}:                     &IngressDescriber{c},
+		{Group: networkingv1beta1.GroupName, Kind: "Ingress"}:                     &IngressDescriber{c},
 		{Group: batchv1.GroupName, Kind: "Job"}:                                   &JobDescriber{c},
 		{Group: batchv1.GroupName, Kind: "CronJob"}:                               &CronJobDescriber{c},
 		{Group: appsv1.GroupName, Kind: "StatefulSet"}:                            &StatefulSetDescriber{c},
@@ -221,7 +223,7 @@ func GenericDescriberFor(mapping *meta.RESTMapping, clientConfig *rest.Config) (
 	if err != nil {
 		return nil, false
 	}
-	eventsClient := clientSet.Core()
+	eventsClient := clientSet.CoreV1()
 
 	return &genericDescriber{mapping, dynamicClient, eventsClient}, true
 }
@@ -356,11 +358,11 @@ type NamespaceDescriber struct {
 }
 
 func (d *NamespaceDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	ns, err := d.Core().Namespaces().Get(name, metav1.GetOptions{})
+	ns, err := d.CoreV1().Namespaces().Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
-	resourceQuotaList, err := d.Core().ResourceQuotas(name).List(metav1.ListOptions{})
+	resourceQuotaList, err := d.CoreV1().ResourceQuotas(name).List(metav1.ListOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Server does not support resource quotas.
@@ -370,7 +372,7 @@ func (d *NamespaceDescriber) Describe(namespace, name string, describerSettings 
 			return "", err
 		}
 	}
-	limitRangeList, err := d.Core().LimitRanges(name).List(metav1.ListOptions{})
+	limitRangeList, err := d.CoreV1().LimitRanges(name).List(metav1.ListOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Server does not support limit ranges.
@@ -529,7 +531,7 @@ type LimitRangeDescriber struct {
 }
 
 func (d *LimitRangeDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	lr := d.Core().LimitRanges(namespace)
+	lr := d.CoreV1().LimitRanges(namespace)
 
 	limitRange, err := lr.Get(name, metav1.GetOptions{})
 	if err != nil {
@@ -556,7 +558,7 @@ type ResourceQuotaDescriber struct {
 }
 
 func (d *ResourceQuotaDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	rq := d.Core().ResourceQuotas(namespace)
+	rq := d.CoreV1().ResourceQuotas(namespace)
 
 	resourceQuota, err := rq.Get(name, metav1.GetOptions{})
 	if err != nil {
@@ -626,10 +628,10 @@ type PodDescriber struct {
 }
 
 func (d *PodDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	pod, err := d.Core().Pods(namespace).Get(name, metav1.GetOptions{})
+	pod, err := d.CoreV1().Pods(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		if describerSettings.ShowEvents {
-			eventsInterface := d.Core().Events(namespace)
+			eventsInterface := d.CoreV1().Events(namespace)
 			selector := eventsInterface.GetFieldSelector(&name, &namespace, nil, nil)
 			options := metav1.ListOptions{FieldSelector: selector.String()}
 			events, err2 := eventsInterface.List(options)
@@ -651,7 +653,10 @@ func (d *PodDescriber) Describe(namespace, name string, describerSettings descri
 			klog.Errorf("Unable to construct reference to '%#v': %v", pod, err)
 		} else {
 			ref.Kind = ""
-			events, _ = d.Core().Events(namespace).Search(scheme.Scheme, ref)
+			if _, isMirrorPod := pod.Annotations[corev1.MirrorPodAnnotationKey]; isMirrorPod {
+				ref.UID = types.UID(pod.Annotations[corev1.MirrorPodAnnotationKey])
+			}
+			events, _ = d.CoreV1().Events(namespace).Search(scheme.Scheme, ref)
 		}
 	}
 
@@ -678,7 +683,7 @@ func describePod(pod *corev1.Pod, events *corev1.EventList) (string, error) {
 		printLabelsMultiline(w, "Labels", pod.Labels)
 		printAnnotationsMultiline(w, "Annotations", pod.Annotations)
 		if pod.DeletionTimestamp != nil {
-			w.Write(LEVEL_0, "Status:\tTerminating (lasts %s)\n", translateTimestampUntil(*pod.DeletionTimestamp))
+			w.Write(LEVEL_0, "Status:\tTerminating (lasts %s)\n", translateTimestampSince(*pod.DeletionTimestamp))
 			w.Write(LEVEL_0, "Termination Grace Period:\t%ds\n", *pod.DeletionGracePeriodSeconds)
 		} else {
 			w.Write(LEVEL_0, "Status:\t%s\n", string(pod.Status.Phase))
@@ -831,8 +836,16 @@ func printHostPathVolumeSource(hostPath *corev1.HostPathVolumeSource, w PrefixWr
 }
 
 func printEmptyDirVolumeSource(emptyDir *corev1.EmptyDirVolumeSource, w PrefixWriter) {
+	var sizeLimit string
+	if emptyDir.SizeLimit != nil && emptyDir.SizeLimit.Cmp(resource.Quantity{}) > 0 {
+		sizeLimit = fmt.Sprintf("%v", emptyDir.SizeLimit)
+	} else {
+		sizeLimit = "<unset>"
+	}
 	w.Write(LEVEL_2, "Type:\tEmptyDir (a temporary directory that shares a pod's lifetime)\n"+
-		"    Medium:\t%v\n", emptyDir.Medium)
+		"    Medium:\t%v\n"+
+		"    SizeLimit:\t%v\n",
+		emptyDir.Medium, sizeLimit)
 }
 
 func printGCEPersistentDiskVolumeSource(gce *corev1.GCEPersistentDiskVolumeSource, w PrefixWriter) {
@@ -890,8 +903,8 @@ func printProjectedVolumeSource(projected *corev1.ProjectedVolumeSource, w Prefi
 				"    ConfigMapOptional:\t%v\n",
 				source.ConfigMap.Name, source.ConfigMap.Optional)
 		} else if source.ServiceAccountToken != nil {
-			w.Write(LEVEL_2, "TokenExpirationSeconds:\t%v\n",
-				source.ServiceAccountToken.ExpirationSeconds)
+			w.Write(LEVEL_2, "TokenExpirationSeconds:\t%d\n",
+				*source.ServiceAccountToken.ExpirationSeconds)
 		}
 	}
 }
@@ -1050,18 +1063,18 @@ func printCinderVolumeSource(cinder *corev1.CinderVolumeSource, w PrefixWriter) 
 	w.Write(LEVEL_2, "Type:\tCinder (a Persistent Disk resource in OpenStack)\n"+
 		"    VolumeID:\t%v\n"+
 		"    FSType:\t%v\n"+
-		"    ReadOnly:\t%v\n",
-		"    SecretRef:\t%v\n"+
-			cinder.VolumeID, cinder.FSType, cinder.ReadOnly, cinder.SecretRef)
+		"    ReadOnly:\t%v\n"+
+		"    SecretRef:\t%v\n",
+		cinder.VolumeID, cinder.FSType, cinder.ReadOnly, cinder.SecretRef)
 }
 
 func printCinderPersistentVolumeSource(cinder *corev1.CinderPersistentVolumeSource, w PrefixWriter) {
 	w.Write(LEVEL_2, "Type:\tCinder (a Persistent Disk resource in OpenStack)\n"+
 		"    VolumeID:\t%v\n"+
 		"    FSType:\t%v\n"+
-		"    ReadOnly:\t%v\n",
-		"    SecretRef:\t%v\n"+
-			cinder.VolumeID, cinder.SecretRef, cinder.FSType, cinder.ReadOnly, cinder.SecretRef)
+		"    ReadOnly:\t%v\n"+
+		"    SecretRef:\t%v\n",
+		cinder.VolumeID, cinder.FSType, cinder.ReadOnly, cinder.SecretRef)
 }
 
 func printScaleIOVolumeSource(sio *corev1.ScaleIOVolumeSource, w PrefixWriter) {
@@ -1259,7 +1272,7 @@ type PersistentVolumeDescriber struct {
 }
 
 func (d *PersistentVolumeDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	c := d.Core().PersistentVolumes()
+	c := d.CoreV1().PersistentVolumes()
 
 	pv, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
@@ -1268,7 +1281,7 @@ func (d *PersistentVolumeDescriber) Describe(namespace, name string, describerSe
 
 	var events *corev1.EventList
 	if describerSettings.ShowEvents {
-		events, _ = d.Core().Events(namespace).Search(scheme.Scheme, pv)
+		events, _ = d.CoreV1().Events(namespace).Search(scheme.Scheme, pv)
 	}
 
 	return describePersistentVolume(pv, events)
@@ -1325,7 +1338,7 @@ func describePersistentVolume(pv *corev1.PersistentVolume, events *corev1.EventL
 		w.Write(LEVEL_0, "Finalizers:\t%v\n", pv.ObjectMeta.Finalizers)
 		w.Write(LEVEL_0, "StorageClass:\t%s\n", storageutil.GetPersistentVolumeClass(pv))
 		if pv.ObjectMeta.DeletionTimestamp != nil {
-			w.Write(LEVEL_0, "Status:\tTerminating (lasts %s)\n", translateTimestampUntil(*pv.ObjectMeta.DeletionTimestamp))
+			w.Write(LEVEL_0, "Status:\tTerminating (lasts %s)\n", translateTimestampSince(*pv.ObjectMeta.DeletionTimestamp))
 		} else {
 			w.Write(LEVEL_0, "Status:\t%v\n", pv.Status.Phase)
 		}
@@ -1407,21 +1420,21 @@ type PersistentVolumeClaimDescriber struct {
 }
 
 func (d *PersistentVolumeClaimDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	c := d.Core().PersistentVolumeClaims(namespace)
+	c := d.CoreV1().PersistentVolumeClaims(namespace)
 
 	pvc, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
 
-	pc := d.Core().Pods(namespace)
+	pc := d.CoreV1().Pods(namespace)
 
 	mountPods, err := getMountPods(pc, pvc.Name)
 	if err != nil {
 		return "", err
 	}
 
-	events, _ := d.Core().Events(namespace).Search(scheme.Scheme, pvc)
+	events, _ := d.CoreV1().Events(namespace).Search(scheme.Scheme, pvc)
 
 	return describePersistentVolumeClaim(pvc, events, mountPods)
 }
@@ -1466,7 +1479,7 @@ func describePersistentVolumeClaim(pvc *corev1.PersistentVolumeClaim, events *co
 		w.Write(LEVEL_0, "Namespace:\t%s\n", pvc.Namespace)
 		w.Write(LEVEL_0, "StorageClass:\t%s\n", storageutil.GetPersistentVolumeClaimClass(pvc))
 		if pvc.ObjectMeta.DeletionTimestamp != nil {
-			w.Write(LEVEL_0, "Status:\tTerminating (lasts %s)\n", translateTimestampUntil(*pvc.ObjectMeta.DeletionTimestamp))
+			w.Write(LEVEL_0, "Status:\tTerminating (lasts %s)\n", translateTimestampSince(*pvc.ObjectMeta.DeletionTimestamp))
 		} else {
 			w.Write(LEVEL_0, "Status:\t%v\n", pvc.Status.Phase)
 		}
@@ -1656,12 +1669,12 @@ func describeContainerVolumes(container corev1.Container, w PrefixWriter) {
 	sort.Sort(SortableVolumeMounts(container.VolumeMounts))
 	for _, mount := range container.VolumeMounts {
 		flags := []string{}
-		switch {
-		case mount.ReadOnly:
+		if mount.ReadOnly {
 			flags = append(flags, "ro")
-		case !mount.ReadOnly:
+		} else {
 			flags = append(flags, "rw")
-		case len(mount.SubPath) > 0:
+		}
+		if len(mount.SubPath) > 0 {
 			flags = append(flags, fmt.Sprintf("path=%q", mount.SubPath))
 		}
 		w.Write(LEVEL_3, "%s from %s (%s)\n", mount.MountPath, mount.Name, strings.Join(flags, ","))
@@ -1868,8 +1881,8 @@ type ReplicationControllerDescriber struct {
 }
 
 func (d *ReplicationControllerDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	rc := d.Core().ReplicationControllers(namespace)
-	pc := d.Core().Pods(namespace)
+	rc := d.CoreV1().ReplicationControllers(namespace)
+	pc := d.CoreV1().Pods(namespace)
 
 	controller, err := rc.Get(name, metav1.GetOptions{})
 	if err != nil {
@@ -1883,7 +1896,7 @@ func (d *ReplicationControllerDescriber) Describe(namespace, name string, descri
 
 	var events *corev1.EventList
 	if describerSettings.ShowEvents {
-		events, _ = d.Core().Events(namespace).Search(scheme.Scheme, controller)
+		events, _ = d.CoreV1().Events(namespace).Search(scheme.Scheme, controller)
 	}
 
 	return describeReplicationController(controller, events, running, waiting, succeeded, failed)
@@ -1940,8 +1953,8 @@ type ReplicaSetDescriber struct {
 }
 
 func (d *ReplicaSetDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	rsc := d.Apps().ReplicaSets(namespace)
-	pc := d.Core().Pods(namespace)
+	rsc := d.AppsV1().ReplicaSets(namespace)
+	pc := d.CoreV1().Pods(namespace)
 
 	rs, err := rsc.Get(name, metav1.GetOptions{})
 	if err != nil {
@@ -1957,7 +1970,7 @@ func (d *ReplicaSetDescriber) Describe(namespace, name string, describerSettings
 
 	var events *corev1.EventList
 	if describerSettings.ShowEvents {
-		events, _ = d.Core().Events(namespace).Search(scheme.Scheme, rs)
+		events, _ = d.CoreV1().Events(namespace).Search(scheme.Scheme, rs)
 	}
 
 	return describeReplicaSet(rs, events, running, waiting, succeeded, failed, getPodErr)
@@ -2002,14 +2015,14 @@ type JobDescriber struct {
 }
 
 func (d *JobDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	job, err := d.Batch().Jobs(namespace).Get(name, metav1.GetOptions{})
+	job, err := d.BatchV1().Jobs(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
 
 	var events *corev1.EventList
 	if describerSettings.ShowEvents {
-		events, _ = d.Core().Events(namespace).Search(scheme.Scheme, job)
+		events, _ = d.CoreV1().Events(namespace).Search(scheme.Scheme, job)
 	}
 
 	return describeJob(job, events)
@@ -2082,6 +2095,16 @@ func describeCronJob(cronJob *batchv1beta1.CronJob, events *corev1.EventList) (s
 		w.Write(LEVEL_0, "Schedule:\t%s\n", cronJob.Spec.Schedule)
 		w.Write(LEVEL_0, "Concurrency Policy:\t%s\n", cronJob.Spec.ConcurrencyPolicy)
 		w.Write(LEVEL_0, "Suspend:\t%s\n", printBoolPtr(cronJob.Spec.Suspend))
+		if cronJob.Spec.SuccessfulJobsHistoryLimit != nil {
+			w.Write(LEVEL_0, "Successful Job History Limit:\t%d\n", cronJob.Spec.SuccessfulJobsHistoryLimit)
+		} else {
+			w.Write(LEVEL_0, "Successful Job History Limit:\t<unset>\n")
+		}
+		if cronJob.Spec.FailedJobsHistoryLimit != nil {
+			w.Write(LEVEL_0, "Failed Job History Limit:\t%d\n", *cronJob.Spec.FailedJobsHistoryLimit)
+		} else {
+			w.Write(LEVEL_0, "Failed Job History Limit:\t<unset>\n")
+		}
 		if cronJob.Spec.StartingDeadlineSeconds != nil {
 			w.Write(LEVEL_0, "Starting Deadline Seconds:\t%ds\n", *cronJob.Spec.StartingDeadlineSeconds)
 		} else {
@@ -2146,8 +2169,8 @@ type DaemonSetDescriber struct {
 }
 
 func (d *DaemonSetDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	dc := d.Apps().DaemonSets(namespace)
-	pc := d.Core().Pods(namespace)
+	dc := d.AppsV1().DaemonSets(namespace)
+	pc := d.CoreV1().Pods(namespace)
 
 	daemon, err := dc.Get(name, metav1.GetOptions{})
 	if err != nil {
@@ -2165,7 +2188,7 @@ func (d *DaemonSetDescriber) Describe(namespace, name string, describerSettings 
 
 	var events *corev1.EventList
 	if describerSettings.ShowEvents {
-		events, _ = d.Core().Events(namespace).Search(scheme.Scheme, daemon)
+		events, _ = d.CoreV1().Events(namespace).Search(scheme.Scheme, daemon)
 	}
 
 	return describeDaemonSet(daemon, events, running, waiting, succeeded, failed)
@@ -2204,7 +2227,7 @@ type SecretDescriber struct {
 }
 
 func (d *SecretDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	c := d.Core().Secrets(namespace)
+	c := d.CoreV1().Secrets(namespace)
 
 	secret, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
@@ -2244,7 +2267,7 @@ type IngressDescriber struct {
 }
 
 func (i *IngressDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	c := i.Extensions().Ingresses(namespace)
+	c := i.ExtensionsV1beta1().Ingresses(namespace)
 	ing, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
@@ -2253,8 +2276,8 @@ func (i *IngressDescriber) Describe(namespace, name string, describerSettings de
 }
 
 func (i *IngressDescriber) describeBackend(ns string, backend *extensionsv1beta1.IngressBackend) string {
-	endpoints, _ := i.Core().Endpoints(ns).Get(backend.ServiceName, metav1.GetOptions{})
-	service, _ := i.Core().Services(ns).Get(backend.ServiceName, metav1.GetOptions{})
+	endpoints, _ := i.CoreV1().Endpoints(ns).Get(backend.ServiceName, metav1.GetOptions{})
+	service, _ := i.CoreV1().Services(ns).Get(backend.ServiceName, metav1.GetOptions{})
 	spName := ""
 	for i := range service.Spec.Ports {
 		sp := &service.Spec.Ports[i]
@@ -2307,7 +2330,7 @@ func (i *IngressDescriber) describeIngress(ing *extensionsv1beta1.Ingress, descr
 			}
 			w.Write(LEVEL_1, "%s\t\n", host)
 			for _, path := range rules.HTTP.Paths {
-				w.Write(LEVEL_2, "\t%s \t%s (%s)\n", path.Path, backendStringer(&path.Backend), i.describeBackend(ns, &path.Backend))
+				w.Write(LEVEL_2, "\t%s \t%s (%s)\n", path.Path, backendStringer(&path.Backend), i.describeBackend(ing.Namespace, &path.Backend))
 			}
 		}
 		if count == 0 {
@@ -2316,7 +2339,7 @@ func (i *IngressDescriber) describeIngress(ing *extensionsv1beta1.Ingress, descr
 		describeIngressAnnotations(w, ing.Annotations)
 
 		if describerSettings.ShowEvents {
-			events, _ := i.Core().Events(ing.Namespace).Search(scheme.Scheme, ing)
+			events, _ := i.CoreV1().Events(ing.Namespace).Search(scheme.Scheme, ing)
 			if events != nil {
 				DescribeEvents(events, w)
 			}
@@ -2352,17 +2375,17 @@ type ServiceDescriber struct {
 }
 
 func (d *ServiceDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	c := d.Core().Services(namespace)
+	c := d.CoreV1().Services(namespace)
 
 	service, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
 
-	endpoints, _ := d.Core().Endpoints(namespace).Get(name, metav1.GetOptions{})
+	endpoints, _ := d.CoreV1().Endpoints(namespace).Get(name, metav1.GetOptions{})
 	var events *corev1.EventList
 	if describerSettings.ShowEvents {
-		events, _ = d.Core().Events(namespace).Search(scheme.Scheme, service)
+		events, _ = d.CoreV1().Events(namespace).Search(scheme.Scheme, service)
 	}
 	return describeService(service, endpoints, events)
 }
@@ -2450,7 +2473,7 @@ type EndpointsDescriber struct {
 }
 
 func (d *EndpointsDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	c := d.Core().Endpoints(namespace)
+	c := d.CoreV1().Endpoints(namespace)
 
 	ep, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
@@ -2459,7 +2482,7 @@ func (d *EndpointsDescriber) Describe(namespace, name string, describerSettings 
 
 	var events *corev1.EventList
 	if describerSettings.ShowEvents {
-		events, _ = d.Core().Events(namespace).Search(scheme.Scheme, ep)
+		events, _ = d.CoreV1().Events(namespace).Search(scheme.Scheme, ep)
 	}
 
 	return describeEndpoints(ep, events)
@@ -2525,7 +2548,7 @@ type ServiceAccountDescriber struct {
 }
 
 func (d *ServiceAccountDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	c := d.Core().ServiceAccounts(namespace)
+	c := d.CoreV1().ServiceAccounts(namespace)
 
 	serviceAccount, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
@@ -2537,7 +2560,7 @@ func (d *ServiceAccountDescriber) Describe(namespace, name string, describerSett
 	// missingSecrets is the set of all secrets present in the
 	// serviceAccount but not present in the set of existing secrets.
 	missingSecrets := sets.NewString()
-	secrets, err := d.Core().Secrets(namespace).List(metav1.ListOptions{})
+	secrets, err := d.CoreV1().Secrets(namespace).List(metav1.ListOptions{})
 
 	// errors are tolerated here in order to describe the serviceAccount with all
 	// of the secrets that it references, even if those secrets cannot be fetched.
@@ -2571,7 +2594,7 @@ func (d *ServiceAccountDescriber) Describe(namespace, name string, describerSett
 
 	var events *corev1.EventList
 	if describerSettings.ShowEvents {
-		events, _ = d.Core().Events(namespace).Search(scheme.Scheme, serviceAccount)
+		events, _ = d.CoreV1().Events(namespace).Search(scheme.Scheme, serviceAccount)
 	}
 
 	return describeServiceAccount(serviceAccount, tokens, missingSecrets, events)
@@ -2642,7 +2665,7 @@ type RoleDescriber struct {
 }
 
 func (d *RoleDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	role, err := d.Rbac().Roles(namespace).Get(name, metav1.GetOptions{})
+	role, err := d.RbacV1().Roles(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -2668,7 +2691,7 @@ func (d *RoleDescriber) Describe(namespace, name string, describerSettings descr
 		w.Write(LEVEL_1, "Resources\tNon-Resource URLs\tResource Names\tVerbs\n")
 		w.Write(LEVEL_1, "---------\t-----------------\t--------------\t-----\n")
 		for _, r := range compactRules {
-			w.Write(LEVEL_1, "%s\t%v\t%v\t%v\n", combineResourceGroup(r.Resources, r.APIGroups), r.NonResourceURLs, r.ResourceNames, r.Verbs)
+			w.Write(LEVEL_1, "%s\t%v\t%v\t%v\n", CombineResourceGroup(r.Resources, r.APIGroups), r.NonResourceURLs, r.ResourceNames, r.Verbs)
 		}
 
 		return nil
@@ -2681,7 +2704,7 @@ type ClusterRoleDescriber struct {
 }
 
 func (d *ClusterRoleDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	role, err := d.Rbac().ClusterRoles().Get(name, metav1.GetOptions{})
+	role, err := d.RbacV1().ClusterRoles().Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -2707,14 +2730,14 @@ func (d *ClusterRoleDescriber) Describe(namespace, name string, describerSetting
 		w.Write(LEVEL_1, "Resources\tNon-Resource URLs\tResource Names\tVerbs\n")
 		w.Write(LEVEL_1, "---------\t-----------------\t--------------\t-----\n")
 		for _, r := range compactRules {
-			w.Write(LEVEL_1, "%s\t%v\t%v\t%v\n", combineResourceGroup(r.Resources, r.APIGroups), r.NonResourceURLs, r.ResourceNames, r.Verbs)
+			w.Write(LEVEL_1, "%s\t%v\t%v\t%v\n", CombineResourceGroup(r.Resources, r.APIGroups), r.NonResourceURLs, r.ResourceNames, r.Verbs)
 		}
 
 		return nil
 	})
 }
 
-func combineResourceGroup(resource, group []string) string {
+func CombineResourceGroup(resource, group []string) string {
 	if len(resource) == 0 {
 		return ""
 	}
@@ -2737,7 +2760,7 @@ type RoleBindingDescriber struct {
 }
 
 func (d *RoleBindingDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	binding, err := d.Rbac().RoleBindings(namespace).Get(name, metav1.GetOptions{})
+	binding, err := d.RbacV1().RoleBindings(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -2769,7 +2792,7 @@ type ClusterRoleBindingDescriber struct {
 }
 
 func (d *ClusterRoleBindingDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	binding, err := d.Rbac().ClusterRoleBindings().Get(name, metav1.GetOptions{})
+	binding, err := d.RbacV1().ClusterRoleBindings().Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -2801,7 +2824,7 @@ type NodeDescriber struct {
 }
 
 func (d *NodeDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	mc := d.Core().Nodes()
+	mc := d.CoreV1().Nodes()
 	node, err := mc.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
@@ -2814,7 +2837,7 @@ func (d *NodeDescriber) Describe(namespace, name string, describerSettings descr
 	// in a policy aware setting, users may have access to a node, but not all pods
 	// in that case, we note that the user does not have access to the pods
 	canViewPods := true
-	nodeNonTerminatedPodsList, err := d.Core().Pods(namespace).List(metav1.ListOptions{FieldSelector: fieldSelector.String()})
+	nodeNonTerminatedPodsList, err := d.CoreV1().Pods(namespace).List(metav1.ListOptions{FieldSelector: fieldSelector.String()})
 	if err != nil {
 		if !errors.IsForbidden(err) {
 			return "", err
@@ -2829,7 +2852,7 @@ func (d *NodeDescriber) Describe(namespace, name string, describerSettings descr
 		} else {
 			// TODO: We haven't decided the namespace for Node object yet.
 			ref.UID = types.UID(ref.Name)
-			events, _ = d.Core().Events("").Search(scheme.Scheme, ref)
+			events, _ = d.CoreV1().Events("").Search(scheme.Scheme, ref)
 		}
 	}
 
@@ -2925,11 +2948,11 @@ type StatefulSetDescriber struct {
 }
 
 func (p *StatefulSetDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	ps, err := p.client.Apps().StatefulSets(namespace).Get(name, metav1.GetOptions{})
+	ps, err := p.client.AppsV1().StatefulSets(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
-	pc := p.client.Core().Pods(namespace)
+	pc := p.client.CoreV1().Pods(namespace)
 
 	selector, err := metav1.LabelSelectorAsSelector(ps.Spec.Selector)
 	if err != nil {
@@ -2943,7 +2966,7 @@ func (p *StatefulSetDescriber) Describe(namespace, name string, describerSetting
 
 	var events *corev1.EventList
 	if describerSettings.ShowEvents {
-		events, _ = p.client.Core().Events(namespace).Search(scheme.Scheme, ps)
+		events, _ = p.client.CoreV1().Events(namespace).Search(scheme.Scheme, ps)
 	}
 
 	return describeStatefulSet(ps, selector, events, running, waiting, succeeded, failed)
@@ -2958,7 +2981,7 @@ func describeStatefulSet(ps *appsv1.StatefulSet, selector labels.Selector, event
 		w.Write(LEVEL_0, "Selector:\t%s\n", selector)
 		printLabelsMultiline(w, "Labels", ps.Labels)
 		printAnnotationsMultiline(w, "Annotations", ps.Annotations)
-		w.Write(LEVEL_0, "Replicas:\t%d desired | %d total\n", ps.Spec.Replicas, ps.Status.Replicas)
+		w.Write(LEVEL_0, "Replicas:\t%d desired | %d total\n", *ps.Spec.Replicas, ps.Status.Replicas)
 		w.Write(LEVEL_0, "Update Strategy:\t%s\n", ps.Spec.UpdateStrategy.Type)
 		if ps.Spec.UpdateStrategy.RollingUpdate != nil {
 			ru := ps.Spec.UpdateStrategy.RollingUpdate
@@ -2983,7 +3006,7 @@ type CertificateSigningRequestDescriber struct {
 }
 
 func (p *CertificateSigningRequestDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	csr, err := p.client.Certificates().CertificateSigningRequests().Get(name, metav1.GetOptions{})
+	csr, err := p.client.CertificatesV1beta1().CertificateSigningRequests().Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -2999,7 +3022,7 @@ func (p *CertificateSigningRequestDescriber) Describe(namespace, name string, de
 
 	var events *corev1.EventList
 	if describerSettings.ShowEvents {
-		events, _ = p.client.Core().Events(namespace).Search(scheme.Scheme, csr)
+		events, _ = p.client.CoreV1().Events(namespace).Search(scheme.Scheme, csr)
 	}
 
 	return describeCertificateSigningRequest(csr, cr, status, events)
@@ -3067,7 +3090,7 @@ func (d *HorizontalPodAutoscalerDescriber) Describe(namespace, name string, desc
 
 	var events *corev1.EventList
 	if describerSettings.ShowEvents {
-		events, _ = d.client.Core().Events(namespace).Search(scheme.Scheme, hpa)
+		events, _ = d.client.CoreV1().Events(namespace).Search(scheme.Scheme, hpa)
 	}
 
 	return describeHorizontalPodAutoscaler(hpa, events, d)
@@ -3110,11 +3133,20 @@ func describeHorizontalPodAutoscaler(hpa *autoscalingv2beta2.HorizontalPodAutosc
 				}
 				w.Write(LEVEL_1, "%q on pods:\t%s / %s\n", metric.Pods.Metric.Name, current, metric.Pods.Target.AverageValue.String())
 			case autoscalingv2beta2.ObjectMetricSourceType:
-				current := "<unknown>"
-				if len(hpa.Status.CurrentMetrics) > i && hpa.Status.CurrentMetrics[i].Object != nil {
-					current = hpa.Status.CurrentMetrics[i].Object.Current.Value.String()
+				w.Write(LEVEL_1, "\"%s\" on %s/%s ", metric.Object.Metric.Name, metric.Object.DescribedObject.Kind, metric.Object.DescribedObject.Name)
+				if metric.Object.Target.Type == autoscalingv2beta2.AverageValueMetricType {
+					current := "<unknown>"
+					if len(hpa.Status.CurrentMetrics) > i && hpa.Status.CurrentMetrics[i].Object != nil {
+						current = hpa.Status.CurrentMetrics[i].Object.Current.AverageValue.String()
+					}
+					w.Write(LEVEL_0, "(target average value):\t%s / %s\n", current, metric.Object.Target.AverageValue.String())
+				} else {
+					current := "<unknown>"
+					if len(hpa.Status.CurrentMetrics) > i && hpa.Status.CurrentMetrics[i].Object != nil {
+						current = hpa.Status.CurrentMetrics[i].Object.Current.Value.String()
+					}
+					w.Write(LEVEL_0, "(target value):\t%s / %s\n", current, metric.Object.Target.Value.String())
 				}
-				w.Write(LEVEL_1, "%q on %s/%s:\t%s / %s\n", metric.Object.Metric.Name, metric.Object.DescribedObject.Kind, metric.Object.DescribedObject.Name, current, metric.Object.Target.Value.String())
 			case autoscalingv2beta2.ResourceMetricSourceType:
 				w.Write(LEVEL_1, "resource %s on pods", string(metric.Resource.Name))
 				if metric.Resource.Target.AverageValue != nil {
@@ -3388,7 +3420,7 @@ type ConfigMapDescriber struct {
 }
 
 func (d *ConfigMapDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	c := d.Core().ConfigMaps(namespace)
+	c := d.CoreV1().ConfigMaps(namespace)
 
 	configMap, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
@@ -3408,7 +3440,7 @@ func (d *ConfigMapDescriber) Describe(namespace, name string, describerSettings 
 			w.Write(LEVEL_0, "%s\n", string(v))
 		}
 		if describerSettings.ShowEvents {
-			events, err := d.Core().Events(namespace).Search(scheme.Scheme, configMap)
+			events, err := d.CoreV1().Events(namespace).Search(scheme.Scheme, configMap)
 			if err != nil {
 				return err
 			}
@@ -3426,7 +3458,7 @@ type NetworkPolicyDescriber struct {
 }
 
 func (d *NetworkPolicyDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	c := d.Networking().NetworkPolicies(namespace)
+	c := d.NetworkingV1().NetworkPolicies(namespace)
 
 	networkPolicy, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
@@ -3557,14 +3589,14 @@ type StorageClassDescriber struct {
 }
 
 func (s *StorageClassDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	sc, err := s.Storage().StorageClasses().Get(name, metav1.GetOptions{})
+	sc, err := s.StorageV1().StorageClasses().Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
 
 	var events *corev1.EventList
 	if describerSettings.ShowEvents {
-		events, _ = s.Core().Events(namespace).Search(scheme.Scheme, sc)
+		events, _ = s.CoreV1().Events(namespace).Search(scheme.Scheme, sc)
 	}
 
 	return describeStorageClass(sc, events)
@@ -3641,14 +3673,14 @@ type PodDisruptionBudgetDescriber struct {
 }
 
 func (p *PodDisruptionBudgetDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	pdb, err := p.Policy().PodDisruptionBudgets(namespace).Get(name, metav1.GetOptions{})
+	pdb, err := p.PolicyV1beta1().PodDisruptionBudgets(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
 
 	var events *corev1.EventList
 	if describerSettings.ShowEvents {
-		events, _ = p.Core().Events(namespace).Search(scheme.Scheme, pdb)
+		events, _ = p.CoreV1().Events(namespace).Search(scheme.Scheme, pdb)
 	}
 
 	return describePodDisruptionBudget(pdb, events)
@@ -3690,14 +3722,14 @@ type PriorityClassDescriber struct {
 }
 
 func (s *PriorityClassDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	pc, err := s.Scheduling().PriorityClasses().Get(name, metav1.GetOptions{})
+	pc, err := s.SchedulingV1beta1().PriorityClasses().Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
 
 	var events *corev1.EventList
 	if describerSettings.ShowEvents {
-		events, _ = s.Core().Events(namespace).Search(scheme.Scheme, pc)
+		events, _ = s.CoreV1().Events(namespace).Search(scheme.Scheme, pc)
 	}
 
 	return describePriorityClass(pc, events)
@@ -3726,7 +3758,7 @@ type PodSecurityPolicyDescriber struct {
 }
 
 func (d *PodSecurityPolicyDescriber) Describe(namespace, name string, describerSettings describe.DescriberSettings) (string, error) {
-	psp, err := d.Policy().PodSecurityPolicies().Get(name, metav1.GetOptions{})
+	psp, err := d.PolicyV1beta1().PodSecurityPolicies().Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}

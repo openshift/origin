@@ -10,6 +10,7 @@
 package godoc // import "golang.org/x/tools/godoc"
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"go/ast"
@@ -61,6 +62,7 @@ func (p *Presentation) initFuncMap() {
 		// various helpers
 		"filename": filenameFunc,
 		"repeat":   strings.Repeat,
+		"since":    p.Corpus.pkgAPIInfo.sinceVersionFunc,
 
 		// access to FileInfos (directory listings)
 		"fileInfoName": fileInfoNameFunc,
@@ -75,19 +77,19 @@ func (p *Presentation) initFuncMap() {
 		"node":         p.nodeFunc,
 		"node_html":    p.node_htmlFunc,
 		"comment_html": comment_htmlFunc,
-		"comment_text": comment_textFunc,
 		"sanitize":     sanitizeFunc,
 
 		// support for URL attributes
-		"pkgLink":     pkgLinkFunc,
-		"srcLink":     srcLinkFunc,
-		"posLink_url": newPosLink_urlFunc(srcPosLinkFunc),
-		"docLink":     docLinkFunc,
-		"queryLink":   queryLinkFunc,
+		"pkgLink":       pkgLinkFunc,
+		"srcLink":       srcLinkFunc,
+		"posLink_url":   newPosLink_urlFunc(srcPosLinkFunc),
+		"docLink":       docLinkFunc,
+		"queryLink":     queryLinkFunc,
+		"srcBreadcrumb": srcBreadcrumbFunc,
+		"srcToPkgLink":  srcToPkgLinkFunc,
 
 		// formatting of Examples
 		"example_html":   p.example_htmlFunc,
-		"example_text":   p.example_textFunc,
 		"example_name":   p.example_nameFunc,
 		"example_suffix": p.example_suffixFunc,
 
@@ -104,6 +106,12 @@ func (p *Presentation) initFuncMap() {
 
 		// formatting of PageInfoMode query string
 		"modeQueryString": modeQueryString,
+
+		// check whether to display third party section or not
+		"hasThirdParty": hasThirdParty,
+
+		// get the no. of columns to split the toc in search page
+		"tocColCount": tocColCount,
 	}
 	if p.URLForSrc != nil {
 		p.funcMap["srcLink"] = p.URLForSrc
@@ -182,13 +190,13 @@ func (p *Presentation) infoSnippet_htmlFunc(info SpotInfo) string {
 
 func (p *Presentation) nodeFunc(info *PageInfo, node interface{}) string {
 	var buf bytes.Buffer
-	p.writeNode(&buf, info.FSet, node)
+	p.writeNode(&buf, info, info.FSet, node)
 	return buf.String()
 }
 
 func (p *Presentation) node_htmlFunc(info *PageInfo, node interface{}, linkify bool) string {
 	var buf1 bytes.Buffer
-	p.writeNode(&buf1, info.FSet, node)
+	p.writeNode(&buf1, info, info.FSet, node)
 
 	var buf2 bytes.Buffer
 	if n, _ := node.(ast.Node); n != nil && linkify && p.DeclLinks {
@@ -365,15 +373,6 @@ func containsOnlySpace(buf []byte) bool {
 	return bytes.IndexFunc(buf, isNotSpace) == -1
 }
 
-func comment_textFunc(comment, indent, preIndent string) string {
-	var buf bytes.Buffer
-	doc.ToText(&buf, comment, indent, preIndent, punchCardWidth-2*len(indent))
-	if containsOnlySpace(buf.Bytes()) {
-		return ""
-	}
-	return buf.String()
-}
-
 // sanitizeFunc sanitizes the argument src by replacing newlines with
 // blanks, removing extra blanks, and by removing trailing whitespace
 // and commas before closing parentheses.
@@ -419,9 +418,9 @@ func sanitizeFunc(src string) string {
 }
 
 type PageInfo struct {
-	Dirname string // directory containing the package
-	Err     error  // error or nil
-	Share   bool   // show share button on examples
+	Dirname  string // directory containing the package
+	Err      error  // error or nil
+	GoogleCN bool   // page is being served from golang.google.cn
 
 	Mode PageInfoMode // display metadata from query string
 
@@ -457,6 +456,48 @@ func pkgLinkFunc(path string) string {
 	path = strings.TrimPrefix(path, "src/")
 	path = strings.TrimPrefix(path, "pkg/")
 	return "pkg/" + path
+}
+
+// srcToPkgLinkFunc builds an <a> tag linking to the package
+// documentation of relpath.
+func srcToPkgLinkFunc(relpath string) string {
+	relpath = pkgLinkFunc(relpath)
+	relpath = pathpkg.Dir(relpath)
+	if relpath == "pkg" {
+		return `<a href="/pkg">Index</a>`
+	}
+	return fmt.Sprintf(`<a href="/%s">%s</a>`, relpath, relpath[len("pkg/"):])
+}
+
+// srcBreadcrumbFun converts each segment of relpath to a HTML <a>.
+// Each segment links to its corresponding src directories.
+func srcBreadcrumbFunc(relpath string) string {
+	segments := strings.Split(relpath, "/")
+	var buf bytes.Buffer
+	var selectedSegment string
+	var selectedIndex int
+
+	if strings.HasSuffix(relpath, "/") {
+		// relpath is a directory ending with a "/".
+		// Selected segment is the segment before the last slash.
+		selectedIndex = len(segments) - 2
+		selectedSegment = segments[selectedIndex] + "/"
+	} else {
+		selectedIndex = len(segments) - 1
+		selectedSegment = segments[selectedIndex]
+	}
+
+	for i := range segments[:selectedIndex] {
+		buf.WriteString(fmt.Sprintf(`<a href="/%s">%s</a>/`,
+			strings.Join(segments[:i+1], "/"),
+			segments[i],
+		))
+	}
+
+	buf.WriteString(`<span class="text-muted">`)
+	buf.WriteString(selectedSegment)
+	buf.WriteString(`</span>`)
+	return buf.String()
 }
 
 func newPosLink_urlFunc(srcPosLinkFunc func(s string, line, low, high int) string) func(info *PageInfo, n interface{}) string {
@@ -540,50 +581,6 @@ func docLinkFunc(s string, ident string) string {
 	return pathpkg.Clean("/pkg/"+s) + "/#" + ident
 }
 
-func (p *Presentation) example_textFunc(info *PageInfo, funcName, indent string) string {
-	if !p.ShowExamples {
-		return ""
-	}
-
-	var buf bytes.Buffer
-	first := true
-	for _, eg := range info.Examples {
-		name := stripExampleSuffix(eg.Name)
-		if name != funcName {
-			continue
-		}
-
-		if !first {
-			buf.WriteString("\n")
-		}
-		first = false
-
-		// print code
-		cnode := &printer.CommentedNode{Node: eg.Code, Comments: eg.Comments}
-		config := &printer.Config{Mode: printer.UseSpaces, Tabwidth: p.TabWidth}
-		var buf1 bytes.Buffer
-		config.Fprint(&buf1, info.FSet, cnode)
-		code := buf1.String()
-
-		// Additional formatting if this is a function body. Unfortunately, we
-		// can't print statements individually because we would lose comments
-		// on later statements.
-		if n := len(code); n >= 2 && code[0] == '{' && code[n-1] == '}' {
-			// remove surrounding braces
-			code = code[1 : n-1]
-			// unindent
-			code = replaceLeadingIndentation(code, strings.Repeat(" ", p.TabWidth), indent)
-		}
-		code = strings.Trim(code, "\n")
-
-		buf.WriteString(indent)
-		buf.WriteString("Example:\n")
-		buf.WriteString(code)
-		buf.WriteString("\n\n")
-	}
-	return buf.String()
-}
-
 func (p *Presentation) example_htmlFunc(info *PageInfo, funcName string) string {
 	var buf bytes.Buffer
 	for _, eg := range info.Examples {
@@ -617,6 +614,7 @@ func (p *Presentation) example_htmlFunc(info *PageInfo, funcName string) string 
 		play := ""
 		if eg.Play != nil && p.ShowPlayground {
 			var buf bytes.Buffer
+			eg.Play.Comments = filterOutBuildAnnotations(eg.Play.Comments)
 			if err := format.Node(&buf, info.FSet, eg.Play); err != nil {
 				log.Print(err)
 			} else {
@@ -636,13 +634,30 @@ func (p *Presentation) example_htmlFunc(info *PageInfo, funcName string) string 
 
 		err := p.ExampleHTML.Execute(&buf, struct {
 			Name, Doc, Code, Play, Output string
-			Share                         bool
-		}{eg.Name, eg.Doc, code, play, out, info.Share})
+			GoogleCN                      bool
+		}{eg.Name, eg.Doc, code, play, out, info.GoogleCN})
 		if err != nil {
 			log.Print(err)
 		}
 	}
 	return buf.String()
+}
+
+func filterOutBuildAnnotations(cg []*ast.CommentGroup) []*ast.CommentGroup {
+	if len(cg) == 0 {
+		return cg
+	}
+
+	for i := range cg {
+		if !strings.HasPrefix(cg[i].Text(), "+build ") {
+			// Found the first non-build tag, return from here until the end
+			// of the slice.
+			return cg[i:]
+		}
+	}
+
+	// There weren't any non-build tags, return an empty slice.
+	return []*ast.CommentGroup{}
 }
 
 // example_nameFunc takes an example function name and returns its display
@@ -843,8 +858,12 @@ func replaceLeadingIndentation(body, oldIndent, newIndent string) string {
 	return buf.String()
 }
 
-// Write an AST node to w.
-func (p *Presentation) writeNode(w io.Writer, fset *token.FileSet, x interface{}) {
+// writeNode writes the AST node x to w.
+//
+// The provided fset must be non-nil. The pageInfo is optional. If
+// present, the pageInfo is used to add comments to struct fields to
+// say which version of Go introduced them.
+func (p *Presentation) writeNode(w io.Writer, pageInfo *PageInfo, fset *token.FileSet, x interface{}) {
 	// convert trailing tabs into spaces using a tconv filter
 	// to ensure a good outcome in most browsers (there may still
 	// be tabs in comments and strings, but converting those into
@@ -853,15 +872,88 @@ func (p *Presentation) writeNode(w io.Writer, fset *token.FileSet, x interface{}
 	// TODO(gri) rethink printer flags - perhaps tconv can be eliminated
 	//           with an another printer mode (which is more efficiently
 	//           implemented in the printer than here with another layer)
+
+	var pkgName, structName string
+	var apiInfo pkgAPIVersions
+	if gd, ok := x.(*ast.GenDecl); ok && pageInfo != nil && pageInfo.PDoc != nil &&
+		p.Corpus != nil &&
+		gd.Tok == token.TYPE && len(gd.Specs) != 0 {
+		pkgName = pageInfo.PDoc.ImportPath
+		if ts, ok := gd.Specs[0].(*ast.TypeSpec); ok {
+			if _, ok := ts.Type.(*ast.StructType); ok {
+				structName = ts.Name.Name
+			}
+		}
+		apiInfo = p.Corpus.pkgAPIInfo[pkgName]
+	}
+
+	var out = w
+	var buf bytes.Buffer
+	if structName != "" {
+		out = &buf
+	}
+
 	mode := printer.TabIndent | printer.UseSpaces
-	err := (&printer.Config{Mode: mode, Tabwidth: p.TabWidth}).Fprint(&tconv{p: p, output: w}, fset, x)
+	err := (&printer.Config{Mode: mode, Tabwidth: p.TabWidth}).Fprint(&tconv{p: p, output: out}, fset, x)
 	if err != nil {
 		log.Print(err)
 	}
+
+	// Add comments to struct fields saying which Go version introducd them.
+	if structName != "" {
+		fieldSince := apiInfo.fieldSince[structName]
+		typeSince := apiInfo.typeSince[structName]
+		// Add/rewrite comments on struct fields to note which Go version added them.
+		var buf2 bytes.Buffer
+		buf2.Grow(buf.Len() + len(" // Added in Go 1.n")*10)
+		bs := bufio.NewScanner(&buf)
+		for bs.Scan() {
+			line := bs.Bytes()
+			field := firstIdent(line)
+			var since string
+			if field != "" {
+				since = fieldSince[field]
+				if since != "" && since == typeSince {
+					// Don't highlight field versions if they were the
+					// same as the struct itself.
+					since = ""
+				}
+			}
+			if since == "" {
+				buf2.Write(line)
+			} else {
+				if bytes.Contains(line, slashSlash) {
+					line = bytes.TrimRight(line, " \t.")
+					buf2.Write(line)
+					buf2.WriteString("; added in Go ")
+				} else {
+					buf2.Write(line)
+					buf2.WriteString(" // Go ")
+				}
+				buf2.WriteString(since)
+			}
+			buf2.WriteByte('\n')
+		}
+		w.Write(buf2.Bytes())
+	}
 }
+
+var slashSlash = []byte("//")
 
 // WriteNode writes x to w.
 // TODO(bgarcia) Is this method needed? It's just a wrapper for p.writeNode.
 func (p *Presentation) WriteNode(w io.Writer, fset *token.FileSet, x interface{}) {
-	p.writeNode(w, fset, x)
+	p.writeNode(w, nil, fset, x)
+}
+
+// firstIdent returns the first identifier in x.
+// This actually parses "identifiers" that begin with numbers too, but we
+// never feed it such input, so it's fine.
+func firstIdent(x []byte) string {
+	x = bytes.TrimSpace(x)
+	i := bytes.IndexFunc(x, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsNumber(r) })
+	if i == -1 {
+		return string(x)
+	}
+	return string(x[:i])
 }

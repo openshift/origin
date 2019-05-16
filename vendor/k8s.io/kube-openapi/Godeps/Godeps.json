@@ -438,6 +438,10 @@
 			"Rev": "0689ccc1d7d65d9dd1bedcc3b0b1ed7df91ba266"
 		},
 		{
+			"ImportPath": "k8s.io/klog",
+			"Rev": "b9b56d5dfc9208f60ea747056670942d8b0afdc8"
+		},
+		{
 			"ImportPath": "sigs.k8s.io/structured-merge-diff/schema",
 			"Rev": "d43a45b8663b01dd7d86e7cc1656dd8651280ed7"
 		}

@@ -11,15 +11,17 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/version"
-	"k8s.io/apiserver/pkg/util/logs"
+	"k8s.io/apiserver/pkg/server"
+	"k8s.io/component-base/logs"
+	"k8s.io/klog"
 
 	operatorv1alpha1 "github.com/openshift/api/operator/v1alpha1"
+
 	"github.com/openshift/library-go/pkg/config/configdefaults"
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/library-go/pkg/serviceability"
@@ -51,22 +53,42 @@ func NewControllerCommandConfig(componentName string, version version.Info, star
 
 // NewCommand returns a new command that a caller must set the Use and Descriptions on.  It wires default log, profiling,
 // leader election and other "normal" behaviors.
+// Deprecated: Use the NewCommandWithContext instead, this is here to be less disturbing for existing usages.
 func (c *ControllerCommandConfig) NewCommand() *cobra.Command {
+	return c.NewCommandWithContext(context.TODO())
+
+}
+
+// NewCommandWithContext returns a new command that a caller must set the Use and Descriptions on.  It wires default log, profiling,
+// leader election and other "normal" behaviors.
+// The context passed will be passed down to controller loops and observers and cancelled on SIGTERM and SIGINT signals.
+func (c *ControllerCommandConfig) NewCommandWithContext(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Run: func(cmd *cobra.Command, args []string) {
 			// boiler plate for the "normal" command
 			rand.Seed(time.Now().UTC().UnixNano())
 			logs.InitLogs()
+
+			// handle SIGTERM and SIGINT by cancelling the context.
+			shutdownCtx, cancel := context.WithCancel(ctx)
+			shutdownHandler := server.SetupSignalHandler()
+			go func() {
+				defer cancel()
+				<-shutdownHandler
+				klog.Infof("Received SIGTERM or SIGINT signal, shutting down controller.")
+			}()
+
 			defer logs.FlushLogs()
 			defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"), c.version)()
 			defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
+
 			serviceability.StartProfiler()
 
 			if err := c.basicFlags.Validate(); err != nil {
 				klog.Fatal(err)
 			}
 
-			if err := c.StartController(context.Background()); err != nil {
+			if err := c.StartController(shutdownCtx); err != nil {
 				klog.Fatal(err)
 			}
 		},

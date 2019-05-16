@@ -62,6 +62,13 @@ var _ = Describe("MatchYAMLMatcher", func() {
 			Expect(err).Should(HaveOccurred())
 			Expect(err.Error()).Should(ContainSubstring("Expected 'good:\nbad' should be valid YAML"))
 		})
+
+		It("errors when passed directly to Message", func() {
+			Expect(func() {
+				matcher := MatchYAMLMatcher{YAMLToMatch: "good"}
+				matcher.FailureMessage("good:\nbad")
+			}).To(Panic())
+		})
 	})
 
 	Context("when the expected is neither a string nor a stringer nor a byte array", func() {

@@ -118,7 +118,8 @@
       "errors":[
         {"shape":"ResourceNotFoundException"},
         {"shape":"InvalidOperationException"},
-        {"shape":"InternalErrorException"}
+        {"shape":"InternalErrorException"},
+        {"shape":"InvalidTypeException"}
       ]
     },
     "ListComplianceStatus":{
@@ -129,6 +130,19 @@
       },
       "input":{"shape":"ListComplianceStatusRequest"},
       "output":{"shape":"ListComplianceStatusResponse"},
+      "errors":[
+        {"shape":"ResourceNotFoundException"},
+        {"shape":"InternalErrorException"}
+      ]
+    },
+    "ListMemberAccounts":{
+      "name":"ListMemberAccounts",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"ListMemberAccountsRequest"},
+      "output":{"shape":"ListMemberAccountsResponse"},
       "errors":[
         {"shape":"ResourceNotFoundException"},
         {"shape":"InternalErrorException"}
@@ -174,7 +188,9 @@
         {"shape":"ResourceNotFoundException"},
         {"shape":"InvalidOperationException"},
         {"shape":"InvalidInputException"},
-        {"shape":"InternalErrorException"}
+        {"shape":"LimitExceededException"},
+        {"shape":"InternalErrorException"},
+        {"shape":"InvalidTypeException"}
       ]
     }
   },
@@ -183,6 +199,16 @@
       "type":"string",
       "max":1024,
       "min":1
+    },
+    "AccountRoleStatus":{
+      "type":"string",
+      "enum":[
+        "READY",
+        "CREATING",
+        "PENDING_DELETION",
+        "DELETING",
+        "DELETED"
+      ]
     },
     "AssociateAdminAccountRequest":{
       "type":"structure",
@@ -204,6 +230,24 @@
       "type":"list",
       "member":{"shape":"ComplianceViolator"}
     },
+    "CustomerPolicyScopeId":{
+      "type":"string",
+      "max":1024,
+      "min":1
+    },
+    "CustomerPolicyScopeIdList":{
+      "type":"list",
+      "member":{"shape":"CustomerPolicyScopeId"}
+    },
+    "CustomerPolicyScopeIdType":{
+      "type":"string",
+      "enum":["ACCOUNT"]
+    },
+    "CustomerPolicyScopeMap":{
+      "type":"map",
+      "key":{"shape":"CustomerPolicyScopeIdType"},
+      "value":{"shape":"CustomerPolicyScopeIdList"}
+    },
     "DeleteNotificationChannelRequest":{
       "type":"structure",
       "members":{
@@ -213,8 +257,21 @@
       "type":"structure",
       "required":["PolicyId"],
       "members":{
-        "PolicyId":{"shape":"PolicyId"}
+        "PolicyId":{"shape":"PolicyId"},
+        "DeleteAllPolicyResources":{"shape":"Boolean"}
       }
+    },
+    "DependentServiceName":{
+      "type":"string",
+      "enum":[
+        "AWSCONFIG",
+        "AWSWAF"
+      ]
+    },
+    "DetailedInfo":{
+      "type":"string",
+      "max":1024,
+      "min":1
     },
     "DisassociateAdminAccountRequest":{
       "type":"structure",
@@ -242,7 +299,8 @@
     "GetAdminAccountResponse":{
       "type":"structure",
       "members":{
-        "AdminAccount":{"shape":"AWSAccountId"}
+        "AdminAccount":{"shape":"AWSAccountId"},
+        "RoleStatus":{"shape":"AccountRoleStatus"}
       }
     },
     "GetComplianceDetailRequest":{
@@ -309,6 +367,18 @@
       },
       "exception":true
     },
+    "InvalidTypeException":{
+      "type":"structure",
+      "members":{
+        "Message":{"shape":"ErrorMessage"}
+      },
+      "exception":true
+    },
+    "IssueInfoMap":{
+      "type":"map",
+      "key":{"shape":"DependentServiceName"},
+      "value":{"shape":"DetailedInfo"}
+    },
     "LimitExceededException":{
       "type":"structure",
       "members":{
@@ -332,6 +402,20 @@
         "NextToken":{"shape":"PaginationToken"}
       }
     },
+    "ListMemberAccountsRequest":{
+      "type":"structure",
+      "members":{
+        "NextToken":{"shape":"PaginationToken"},
+        "MaxResults":{"shape":"PaginationMaxResults"}
+      }
+    },
+    "ListMemberAccountsResponse":{
+      "type":"structure",
+      "members":{
+        "MemberAccounts":{"shape":"MemberAccounts"},
+        "NextToken":{"shape":"PaginationToken"}
+      }
+    },
     "ListPoliciesRequest":{
       "type":"structure",
       "members":{
@@ -350,6 +434,10 @@
       "type":"string",
       "max":1024,
       "min":1
+    },
+    "MemberAccounts":{
+      "type":"list",
+      "member":{"shape":"AWSAccountId"}
     },
     "PaginationMaxResults":{
       "type":"integer",
@@ -377,7 +465,9 @@
         "ResourceType":{"shape":"ResourceType"},
         "ResourceTags":{"shape":"ResourceTags"},
         "ExcludeResourceTags":{"shape":"Boolean"},
-        "RemediationEnabled":{"shape":"Boolean"}
+        "RemediationEnabled":{"shape":"Boolean"},
+        "IncludeMap":{"shape":"CustomerPolicyScopeMap"},
+        "ExcludeMap":{"shape":"CustomerPolicyScopeMap"}
       }
     },
     "PolicyComplianceDetail":{
@@ -388,7 +478,8 @@
         "MemberAccount":{"shape":"AWSAccountId"},
         "Violators":{"shape":"ComplianceViolators"},
         "EvaluationLimitExceeded":{"shape":"Boolean"},
-        "ExpiredAt":{"shape":"TimeStamp"}
+        "ExpiredAt":{"shape":"TimeStamp"},
+        "IssueInfoMap":{"shape":"IssueInfoMap"}
       }
     },
     "PolicyComplianceStatus":{
@@ -399,7 +490,8 @@
         "PolicyName":{"shape":"ResourceName"},
         "MemberAccount":{"shape":"AWSAccountId"},
         "EvaluationResults":{"shape":"EvaluationResults"},
-        "LastUpdated":{"shape":"TimeStamp"}
+        "LastUpdated":{"shape":"TimeStamp"},
+        "IssueInfoMap":{"shape":"IssueInfoMap"}
       }
     },
     "PolicyComplianceStatusList":{

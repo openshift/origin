@@ -12,8 +12,85 @@ import (
 	"go/types"
 
 	"golang.org/x/tools/go/loader"
+	"golang.org/x/tools/go/packages"
 	"golang.org/x/tools/go/ssa"
 )
+
+// Packages creates an SSA program for a set of packages.
+//
+// The packages must have been loaded from source syntax using the
+// golang.org/x/tools/go/packages.Load function in LoadSyntax or
+// LoadAllSyntax mode.
+//
+// Packages creates an SSA package for each well-typed package in the
+// initial list, plus all their dependencies. The resulting list of
+// packages corresponds to the list of initial packages, and may contain
+// a nil if SSA code could not be constructed for the corresponding initial
+// package due to type errors.
+//
+// Code for bodies of functions is not built until Build is called on
+// the resulting Program. SSA code is constructed only for the initial
+// packages with well-typed syntax trees.
+//
+// The mode parameter controls diagnostics and checking during SSA construction.
+//
+func Packages(initial []*packages.Package, mode ssa.BuilderMode) (*ssa.Program, []*ssa.Package) {
+	return doPackages(initial, mode, false)
+}
+
+// AllPackages creates an SSA program for a set of packages plus all
+// their dependencies.
+//
+// The packages must have been loaded from source syntax using the
+// golang.org/x/tools/go/packages.Load function in LoadAllSyntax mode.
+//
+// AllPackages creates an SSA package for each well-typed package in the
+// initial list, plus all their dependencies. The resulting list of
+// packages corresponds to the list of intial packages, and may contain
+// a nil if SSA code could not be constructed for the corresponding
+// initial package due to type errors.
+//
+// Code for bodies of functions is not built until Build is called on
+// the resulting Program. SSA code is constructed for all packages with
+// well-typed syntax trees.
+//
+// The mode parameter controls diagnostics and checking during SSA construction.
+//
+func AllPackages(initial []*packages.Package, mode ssa.BuilderMode) (*ssa.Program, []*ssa.Package) {
+	return doPackages(initial, mode, true)
+}
+
+func doPackages(initial []*packages.Package, mode ssa.BuilderMode, deps bool) (*ssa.Program, []*ssa.Package) {
+
+	var fset *token.FileSet
+	if len(initial) > 0 {
+		fset = initial[0].Fset
+	}
+
+	prog := ssa.NewProgram(fset, mode)
+
+	isInitial := make(map[*packages.Package]bool, len(initial))
+	for _, p := range initial {
+		isInitial[p] = true
+	}
+
+	ssamap := make(map[*packages.Package]*ssa.Package)
+	packages.Visit(initial, nil, func(p *packages.Package) {
+		if p.Types != nil && !p.IllTyped {
+			var files []*ast.File
+			if deps || isInitial[p] {
+				files = p.Syntax
+			}
+			ssamap[p] = prog.CreatePackage(p.Types, files, p.TypesInfo, true)
+		}
+	})
+
+	var ssapkgs []*ssa.Package
+	for _, p := range initial {
+		ssapkgs = append(ssapkgs, ssamap[p]) // may be nil
+	}
+	return prog, ssapkgs
+}
 
 // CreateProgram returns a new program in SSA form, given a program
 // loaded from source.  An SSA package is created for each transitively
@@ -22,7 +99,10 @@ import (
 // Code for bodies of functions is not built until Build is called
 // on the result.
 //
-// mode controls diagnostics and checking during SSA construction.
+// The mode parameter controls diagnostics and checking during SSA construction.
+//
+// Deprecated: use golang.org/x/tools/go/packages and the Packages
+// function instead; see ssa.ExampleLoadPackages.
 //
 func CreateProgram(lprog *loader.Program, mode ssa.BuilderMode) *ssa.Program {
 	prog := ssa.NewProgram(lprog.Fset, mode)

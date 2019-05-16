@@ -31,8 +31,7 @@ func ExampleRounder() {
 		{"RoundHalfEven", inf.RoundHalfEven}, {"RoundExact", inf.RoundExact},
 	}
 
-	fmt.Println("The results of new(inf.Dec).Round(x, s, inf.RoundXXX):")
-	fmt.Println()
+	fmt.Println("The results of new(inf.Dec).Round(x, s, inf.RoundXXX):\n")
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', tabwriter.AlignRight)
 	fmt.Fprint(w, "x\ts\t|\t")
 	for _, r := range rounders {

@@ -12,11 +12,34 @@ func RequireAdmin(t *testing.T) {
 	}
 }
 
+// RequireNonAdmin will restrict a test to only be run by non-admin users.
+func RequireNonAdmin(t *testing.T) {
+	if os.Getenv("OS_USERNAME") == "admin" {
+		t.Skip("must be a non-admin to run this test")
+	}
+}
+
+// RequireDNS will restrict a test to only be run in environments
+// that support DNSaaS.
+func RequireDNS(t *testing.T) {
+	if os.Getenv("OS_DNS_ENVIRONMENT") == "" {
+		t.Skip("this test requires DNSaaS")
+	}
+}
+
 // RequireGuestAgent will restrict a test to only be run in
 // environments that support the QEMU guest agent.
 func RequireGuestAgent(t *testing.T) {
 	if os.Getenv("OS_GUEST_AGENT") == "" {
 		t.Skip("this test requires support for qemu guest agent and to set OS_GUEST_AGENT to 1")
+	}
+}
+
+// RequireIdentityV2 will restrict a test to only be run in
+// environments that support the Identity V2 API.
+func RequireIdentityV2(t *testing.T) {
+	if os.Getenv("OS_IDENTITY_API_VERSION") != "2.0" {
+		t.Skip("this test requires support for the identity v2 API")
 	}
 }
 
@@ -40,5 +63,13 @@ func RequireLong(t *testing.T) {
 func RequireNovaNetwork(t *testing.T) {
 	if os.Getenv("OS_NOVANET") == "" {
 		t.Skip("this test requires nova-network and to set OS_NOVANET to 1")
+	}
+}
+
+// SkipRelease will have the test be skipped on a certain
+// release. Releases are named such as 'stable/mitaka', master, etc.
+func SkipRelease(t *testing.T, release string) {
+	if os.Getenv("OS_BRANCH") == release {
+		t.Skipf("this is not supported in %s", release)
 	}
 }

@@ -36,7 +36,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
+	cloudvolume "k8s.io/cloud-provider/volume"
 )
 
 const TestClusterID = "clusterid.test"
@@ -226,8 +226,8 @@ func TestOverridesActiveConfig(t *testing.T) {
 		{
 			"No overrides",
 			strings.NewReader(`
-                                [global]
-                                `),
+				[global]
+				`),
 			nil,
 			false, false,
 			[]ServiceDescriptor{},
@@ -314,14 +314,14 @@ func TestOverridesActiveConfig(t *testing.T) {
                 [Global]
                  vpc = vpc-abc1234567
 
-                                [ServiceOverride "1"]
+				[ServiceOverride "1"]
                   Service=s3
                   Region=sregion1
                   URL=https://s3.foo.bar
                   SigningRegion=sregion1
                   SigningMethod = v4
 
-                                [ServiceOverride "2"]
+				[ServiceOverride "2"]
                   Service=ec2
                   Region=sregion2
                   URL=https://ec2.foo.bar
@@ -338,14 +338,14 @@ func TestOverridesActiveConfig(t *testing.T) {
                 [Global]
                  vpc = vpc-abc1234567
 
-                                [ServiceOverride "1"]
+				[ServiceOverride "1"]
                   Service=s3
                   Region=sregion1
                   URL=https://s3.foo.bar
                   SigningRegion=sregion
                   SigningMethod = sign
 
-                                [ServiceOverride "2"]
+				[ServiceOverride "2"]
                   Service=s3
                   Region=sregion1
                   URL=https://s3.foo.bar
@@ -360,13 +360,13 @@ func TestOverridesActiveConfig(t *testing.T) {
 			strings.NewReader(`
                  [global]
 
-                                [ServiceOverride "1"]
+				[ServiceOverride "1"]
                  Service=s3
                  Region=region1
                  URL=https://s3.foo.bar
                  SigningRegion=sregion1
 
-                                [ServiceOverride "2"]
+				[ServiceOverride "2"]
                  Service=ec2
                  Region=region2
                  URL=https://ec2.foo.bar
@@ -383,19 +383,19 @@ func TestOverridesActiveConfig(t *testing.T) {
 			strings.NewReader(`
                  [global]
 
-                                [ServiceOverride "1"]
+				[ServiceOverride "1"]
                 Service=s3
                 Region=region1
                 URL=https://s3.foo.bar
                 SigningRegion=sregion1
                 SigningMethod = v3
 
-                                [ServiceOverride "2"]
+				[ServiceOverride "2"]
                  Service=s3
                  Region=region2
                  URL=https://s3.foo.bar
                  SigningRegion=sregion1
-                                 SigningMethod = v4
+				 SigningMethod = v4
                  SigningName = "name"
                  `),
 			nil,
@@ -1210,9 +1210,101 @@ func TestGetVolumeLabels(t *testing.T) {
 
 	assert.Nil(t, err, "Error creating Volume %v", err)
 	assert.Equal(t, map[string]string{
-		kubeletapis.LabelZoneFailureDomain: "us-east-1a",
-		kubeletapis.LabelZoneRegion:        "us-east-1"}, labels)
+		v1.LabelZoneFailureDomain: "us-east-1a",
+		v1.LabelZoneRegion:        "us-east-1"}, labels)
 	awsServices.ec2.(*MockedFakeEC2).AssertExpectations(t)
+}
+
+func TestGetLabelsForVolume(t *testing.T) {
+	defaultVolume := EBSVolumeID("vol-VolumeId").awsString()
+	tests := []struct {
+		name               string
+		pv                 *v1.PersistentVolume
+		expectedVolumeID   *string
+		expectedEC2Volumes []*ec2.Volume
+		expectedLabels     map[string]string
+		expectedError      error
+	}{
+		{
+			"not an EBS volume",
+			&v1.PersistentVolume{
+				Spec: v1.PersistentVolumeSpec{},
+			},
+			nil,
+			nil,
+			nil,
+			nil,
+		},
+		{
+			"volume which is being provisioned",
+			&v1.PersistentVolume{
+				Spec: v1.PersistentVolumeSpec{
+					PersistentVolumeSource: v1.PersistentVolumeSource{
+						AWSElasticBlockStore: &v1.AWSElasticBlockStoreVolumeSource{
+							VolumeID: cloudvolume.ProvisionedVolumeName,
+						},
+					},
+				},
+			},
+			nil,
+			nil,
+			nil,
+			nil,
+		},
+		{
+			"no volumes found",
+			&v1.PersistentVolume{
+				Spec: v1.PersistentVolumeSpec{
+					PersistentVolumeSource: v1.PersistentVolumeSource{
+						AWSElasticBlockStore: &v1.AWSElasticBlockStoreVolumeSource{
+							VolumeID: "vol-VolumeId",
+						},
+					},
+				},
+			},
+			defaultVolume,
+			nil,
+			nil,
+			fmt.Errorf("no volumes found"),
+		},
+		{
+			"correct labels for volume",
+			&v1.PersistentVolume{
+				Spec: v1.PersistentVolumeSpec{
+					PersistentVolumeSource: v1.PersistentVolumeSource{
+						AWSElasticBlockStore: &v1.AWSElasticBlockStoreVolumeSource{
+							VolumeID: "vol-VolumeId",
+						},
+					},
+				},
+			},
+			defaultVolume,
+			[]*ec2.Volume{{
+				VolumeId:         defaultVolume,
+				AvailabilityZone: aws.String("us-east-1a"),
+			}},
+			map[string]string{
+				v1.LabelZoneFailureDomain: "us-east-1a",
+				v1.LabelZoneRegion:        "us-east-1",
+			},
+			nil,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			awsServices := newMockedFakeAWSServices(TestClusterID)
+			expectedVolumeRequest := &ec2.DescribeVolumesInput{VolumeIds: []*string{test.expectedVolumeID}}
+			awsServices.ec2.(*MockedFakeEC2).On("DescribeVolumes", expectedVolumeRequest).Return(test.expectedEC2Volumes)
+
+			c, err := newAWSCloud(CloudConfig{}, awsServices)
+			assert.Nil(t, err, "Error building aws cloud: %v", err)
+
+			l, err := c.GetLabelsForVolume(context.TODO(), test.pv)
+			assert.Equal(t, test.expectedLabels, l)
+			assert.Equal(t, test.expectedError, err)
+		})
+
+	}
 }
 
 func TestDescribeLoadBalancerOnDelete(t *testing.T) {

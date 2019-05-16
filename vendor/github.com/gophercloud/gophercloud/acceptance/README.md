@@ -75,7 +75,8 @@ to set them manually.
 #### Shared file systems
 |Name|Description|
 |---|---|
-|`OS_SHARE_NETWORK_ID`| The share network ID to use when creating shares|
+|`OS_NETWORK_ID`| The network ID to use when creating shared network|
+|`OS_SUBNET_ID`| The subnet ID to use when creating shared network|
 
 ### 3. Run the test suite
 

@@ -43,6 +43,38 @@ func TestListGroupsAllPages(t *testing.T) {
 	th.AssertEquals(t, ExpectedGroupsSlice[1].Extra["email"], "support@example.com")
 }
 
+func TestListGroupsFiltersCheck(t *testing.T) {
+	type test struct {
+		filterName string
+		wantErr    bool
+	}
+	tests := []test{
+		{"foo__contains", false},
+		{"foo", true},
+		{"foo_contains", true},
+		{"foo__", true},
+		{"__foo", true},
+	}
+
+	var listOpts groups.ListOpts
+	for _, _test := range tests {
+		listOpts.Filters = map[string]string{_test.filterName: "bar"}
+		_, err := listOpts.ToGroupListQuery()
+
+		if !_test.wantErr {
+			th.AssertNoErr(t, err)
+		} else {
+			switch _t := err.(type) {
+			case nil:
+				t.Fatal("error expected but got a nil")
+			case groups.InvalidListFilter:
+			default:
+				t.Fatalf("unexpected error type: [%T]", _t)
+			}
+		}
+	}
+}
+
 func TestGetGroup(t *testing.T) {
 	th.SetupHTTP()
 	defer th.TeardownHTTP()
@@ -79,8 +111,9 @@ func TestUpdateGroup(t *testing.T) {
 	defer th.TeardownHTTP()
 	HandleUpdateGroupSuccessfully(t)
 
+	var description = "L2 Support Team"
 	updateOpts := groups.UpdateOpts{
-		Description: "L2 Support Team",
+		Description: &description,
 		Extra: map[string]interface{}{
 			"email": "supportteam@example.com",
 		},

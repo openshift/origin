@@ -1,5 +1,5 @@
-hash: c19b0353e3baeabcaea05bf4bdff602f9424cc40532eb32bd5caff7c8385f498
-updated: 2019-04-24T01:23:22.917178542-04:00
+hash: 7a9743a1ddd4422e2fb49715f7f2ad907ae072d0f192ba710fee09f515770c9b
+updated: 2019-05-17T16:13:05.062921004+02:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -19,7 +19,7 @@ imports:
 - name: github.com/asaskevich/govalidator
   version: f9ffefc3facfbe0caee3fea233cbb6e8208f4541
 - name: github.com/aws/aws-sdk-go
-  version: fde4ded7becdeae4d26bf1212916aabba79349b4
+  version: 81f3829f5a9d041041bdf56e55926691309d7699
   subpackages:
   - aws
   - aws/awserr
@@ -30,6 +30,7 @@ imports:
   - aws/credentials
   - aws/credentials/ec2rolecreds
   - aws/credentials/endpointcreds
+  - aws/credentials/processcreds
   - aws/credentials/stscreds
   - aws/csm
   - aws/defaults
@@ -38,8 +39,11 @@ imports:
   - aws/request
   - aws/session
   - aws/signer/v4
+  - internal/ini
+  - internal/s3err
   - internal/sdkio
   - internal/sdkrand
+  - internal/sdkuri
   - internal/shareddefaults
   - private/protocol
   - private/protocol/ec2query
@@ -178,7 +182,7 @@ imports:
   subpackages:
   - types/v1
 - name: github.com/container-storage-interface/spec
-  version: ed0bb0e1557548aa028307f48728767cfe8f6345
+  version: f750e6765f5f6b4ac0e13e95214d58901290fb4b
   subpackages:
   - lib/go/csi
 - name: github.com/containerd/console
@@ -196,7 +200,7 @@ imports:
   - errdefs
   - namespaces
 - name: github.com/containerd/continuity
-  version: 004b46473808b3e7a4a3049c20e4376c91eb966d
+  version: aaeac12a7ffcd198ae25440a9dff125c2e2703a7
   subpackages:
   - pathdriver
 - name: github.com/containernetworking/cni
@@ -346,7 +350,7 @@ imports:
 - name: github.com/d2g/dhcp4client
   version: 6e570ed0a266b730a860ba1068090f683b2c213a
 - name: github.com/davecgh/go-spew
-  version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
+  version: 782f4967f2dc4564575ca782fe2d04090b5faca8
   subpackages:
   - spew
 - name: github.com/daviddengcn/go-colortext
@@ -431,16 +435,12 @@ imports:
   version: 449fdfce4d962303d702fec724ef0ad181c92528
   subpackages:
   - spdy
-- name: github.com/elazarl/go-bindata-assetfs
-  version: 38087fe4dafb822e541b3f7955075cc1c30bd294
 - name: github.com/elazarl/goproxy
   version: c4fc26588b6ef8af07a191fcb6476387bdd46711
 - name: github.com/emicklei/go-restful
   version: ff4f55a206334ef123e4f79bbf348980da81ca46
   subpackages:
   - log
-- name: github.com/emicklei/go-restful-swagger12
-  version: 7524189396c68dc4b04d53852f9edc00f816b123
 - name: github.com/euank/go-kmsg-parser
   version: 5ba4d492e455a77d25dcf0d2c4acc9f2afebef4e
   subpackages:
@@ -464,8 +464,6 @@ imports:
   subpackages:
   - bson
   - internal/json
-- name: github.com/go-ini/ini
-  version: 300e940a926eb277d3901b20bdfcc54928ad3642
 - name: github.com/go-openapi/analysis
   version: c701774f4e604d952e4e8c56dee260be696e33c3
   subpackages:
@@ -481,7 +479,7 @@ imports:
 - name: github.com/go-openapi/runtime
   version: 231d7876b7019dbcbfc97a7ba764379497b67c1d
 - name: github.com/go-openapi/spec
-  version: 9d9763c0ce87242cb4611b52b8601987f01eb4ed
+  version: 5bae59e25b21498baea7f9d46e9c147ec106a42e
 - name: github.com/go-openapi/strfmt
   version: 35fe47352985e13cc75f13120d70d26fd764ed51
 - name: github.com/go-openapi/swag
@@ -619,7 +617,7 @@ imports:
   - x509
   - x509/pkix
 - name: github.com/google/gofuzz
-  version: f140a6486e521aad38f5917de355cbf147cc0496
+  version: 24818f796faf91cd76ec7bddd72458fbced7a6c1
 - name: github.com/google/uuid
   version: 8c31c18f31ede9fc8eae72290a7e7a8064e9b3e3
 - name: github.com/googleapis/gnostic
@@ -628,8 +626,15 @@ imports:
   - OpenAPIv2
   - compiler
   - extensions
+- name: github.com/GoogleCloudPlatform/k8s-cloud-provider
+  version: f8e99590510076aa1e3ff07df946f05220c50fb4
+  subpackages:
+  - pkg/cloud
+  - pkg/cloud/filter
+  - pkg/cloud/meta
+  - pkg/cloud/mock
 - name: github.com/gophercloud/gophercloud
-  version: 781450b3c4fcb4f5182bcc5133adb4b2e4a09d1d
+  version: c818fa66e4c88b30db28038fe3f18f2f4a0db9a8
   subpackages:
   - openstack
   - openstack/blockstorage/extensions/volumeactions
@@ -650,6 +655,7 @@ imports:
   - openstack/networking/v2/extensions/external
   - openstack/networking/v2/extensions/layer3/floatingips
   - openstack/networking/v2/extensions/layer3/routers
+  - openstack/networking/v2/extensions/lbaas_v2/l7policies
   - openstack/networking/v2/extensions/lbaas_v2/listeners
   - openstack/networking/v2/extensions/lbaas_v2/loadbalancers
   - openstack/networking/v2/extensions/lbaas_v2/monitors
@@ -676,7 +682,7 @@ imports:
   subpackages:
   - diskcache
 - name: github.com/grpc-ecosystem/go-grpc-middleware
-  version: 498ae206fc3cfe81cd82e48c1d4354026fa5f9ec
+  version: cfaf5686ec79ff8344257723b6f5ba1ae0ffeb4d
 - name: github.com/grpc-ecosystem/go-grpc-prometheus
   version: 2500245aa6110c562d17020fb31a2c133d737799
 - name: github.com/grpc-ecosystem/grpc-gateway
@@ -686,7 +692,7 @@ imports:
   - runtime/internal
   - utilities
 - name: github.com/hashicorp/golang-lru
-  version: a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4
+  version: 20f1fb78b0740ba8c3cb143a61e86ba5c8669768
   subpackages:
   - simplelru
 - name: github.com/hashicorp/hcl
@@ -750,6 +756,10 @@ imports:
   - pkg/parser
   - pkg/units
   - volume
+- name: github.com/liggitt/tabwriter
+  version: 89fcab3d43de07060e4fd4c1547430ed57e87f24
+- name: github.com/lithammer/dedent
+  version: 8478954c3bc893cf36c5ee7c822266b993a3b3ee
 - name: github.com/magiconair/properties
   version: 61b492c03cf472e0c6419be5899b8e0dc28b1b88
 - name: github.com/mailru/easyjson
@@ -786,9 +796,28 @@ imports:
   - api/v1/lib/recordio
   - api/v1/lib/roles
 - name: github.com/Microsoft/go-winio
-  version: 78439966b38d69bf38227fbf57ac8a6fee70f69a
+  version: 97e4973ce50b2ff5f09635a57e2b88a037aae829
 - name: github.com/Microsoft/hcsshim
-  version: 800683ae704ac360b2f3f47fa88f3a6c8c9091b5
+  version: 69ac8d3f7fc10a0623f3a2655958a1a5bb71f58f
+  subpackages:
+  - hcn
+  - internal/cni
+  - internal/guestrequest
+  - internal/guid
+  - internal/hcs
+  - internal/hcserror
+  - internal/hns
+  - internal/interop
+  - internal/logfields
+  - internal/longpath
+  - internal/mergemaps
+  - internal/regstate
+  - internal/runhcs
+  - internal/safefile
+  - internal/schema1
+  - internal/schema2
+  - internal/timeout
+  - internal/wclayer
 - name: github.com/miekg/dns
   version: 5a2b9fab83ff0f8bfc99684bd5f43a37abe560f1
 - name: github.com/mindprince/gonvml
@@ -846,7 +875,7 @@ imports:
   - reporters/stenographer/support/go-isatty
   - types
 - name: github.com/onsi/gomega
-  version: d59fa0ac68bb5dd932ee8d24eed631cdd519efc3
+  version: 5533ce8a0da374da682cd53d70ddcc54adf1a710
   subpackages:
   - format
   - gstruct
@@ -898,7 +927,7 @@ imports:
   - go-selinux
   - go-selinux/label
 - name: github.com/openshift/api
-  version: f969221e02d73f8ecacf32ce24c12872ff8e0819
+  version: d5b34b957e91dbf64013a866951c3ed5770db0b5
   subpackages:
   - apps
   - apps/v1
@@ -944,7 +973,7 @@ imports:
   - webconsole
   - webconsole/v1
 - name: github.com/openshift/client-go
-  version: 0255926f53935175fe90b8e7672c4c06c17d79e6
+  version: f4b242dfe08529a11803996e325ab6dc127d4e1d
   subpackages:
   - apps/clientset/versioned
   - apps/clientset/versioned/fake
@@ -1073,7 +1102,7 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: 04e2bf481415af9b2583c71f584f1075d0b9960c
+  version: e11c2bc2e9adf1607a765b64add4294ac6e58496
   subpackages:
   - pkg/assets
   - pkg/assets/create
@@ -1090,9 +1119,10 @@ imports:
   - pkg/operator/events
   - pkg/operator/resource/resourceapply
   - pkg/operator/resource/resourcemerge
+  - pkg/operator/resource/retry
   - pkg/serviceability
 - name: github.com/openshift/source-to-image
-  version: 2ba8a349386aff03c26729096b0225a691355fe9
+  version: 77426434711c634f9988dac083fbfe7f272491ff
   subpackages:
   - pkg/api
   - pkg/api/constants
@@ -1107,7 +1137,7 @@ imports:
   - pkg/util/status
   - pkg/util/user
 - name: github.com/pborman/uuid
-  version: 8b1b92947f46224e3b97bb1a3a5b0382be00d31e
+  version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
 - name: github.com/pelletier/go-toml
   version: c01d1270ff3e442a8a57cddc1c92dc1138598194
 - name: github.com/peterbourgon/diskv
@@ -1119,7 +1149,7 @@ imports:
 - name: github.com/pkg/sftp
   version: 4d0e916071f68db74f8a73926335f809396d6b42
 - name: github.com/pmezard/go-difflib
-  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
+  version: 5d4384ee4fb2527b0a1256a821ebfc92f91efefc
   subpackages:
   - difflib
 - name: github.com/pquerna/cachecontrol
@@ -1132,16 +1162,17 @@ imports:
   - fflib/v1
   - fflib/v1/internal
 - name: github.com/prometheus/client_golang
-  version: e7e903064f5e9eb5da98208bae10b475d4db0f8c
+  version: 505eaef017263e299324067d40ca2c48f6a2cf50
   subpackages:
   - prometheus
+  - prometheus/internal
   - prometheus/promhttp
 - name: github.com/prometheus/client_model
   version: fa8ad6fec33561be4280a8f0514318c79d7f6cb6
   subpackages:
   - go
 - name: github.com/prometheus/common
-  version: 13ba4ddd0caa9c28ca7b7bffe1dfa9ed8d5ef207
+  version: cfeb6f9992ffa54aaa4f2170ade4067ee478b250
   subpackages:
   - expfmt
   - internal/bitbucket.org/ww/goautoneg
@@ -1155,7 +1186,7 @@ imports:
 - name: github.com/PuerkitoBio/urlesc
   version: 5bd2802263f21d8788851d5305584c82a5c75d7e
 - name: github.com/quobyte/api
-  version: 206ef832283c1a0144bbc762be2634d49987b5ff
+  version: 9cfd29338dd9fdaaf956b7082e5550aab5fe3841
 - name: github.com/rancher/go-rancher
   version: 09693a8743ba5ee58c58c1b1e8a4abd17af00d45
   subpackages:
@@ -1166,8 +1197,6 @@ imports:
 - name: github.com/RangelReale/osincli
   version: fababb0555f21315d1a34af6615a16eaab44396b
   repo: https://github.com/openshift/osincli.git
-- name: github.com/renstrom/dedent
-  version: 020d11c3b9c0c7a3c2efcc8e5cf5b9ef7bcea21f
 - name: github.com/Rican7/retry
   version: 272ad122d6e5ce1be757544007cf8bcd1c9c9ab0
   subpackages:
@@ -1210,7 +1239,7 @@ imports:
 - name: github.com/spf13/viper
   version: 7fb2782df3d83e0036cc89f461ed0422628776f4
 - name: github.com/storageos/go-api
-  version: 3a4032328d99c1b43fbda3d85bd3c80fa06e1707
+  version: 343b3eff91fcc84b0165e252eb843f5fd720fa4e
   subpackages:
   - netutil
   - serror
@@ -1337,22 +1366,24 @@ imports:
   - ssh
   - ssh/terminal
 - name: golang.org/x/net
-  version: 0ed95abb35c445290478a5348a7b38bb154135fd
+  version: 65e2d4e15006aab9813ff8769e768bbf4bb667a0
   subpackages:
   - bpf
   - context
   - context/ctxhttp
   - html
   - html/atom
+  - html/charset
+  - http/httpguts
   - http2
   - http2/hpack
   - idna
   - internal/iana
   - internal/socket
+  - internal/socks
   - internal/timeseries
   - ipv4
   - ipv6
-  - lex/httplex
   - proxy
   - trace
   - websocket
@@ -1375,8 +1406,14 @@ imports:
   subpackages:
   - cases
   - encoding
+  - encoding/charmap
+  - encoding/htmlindex
   - encoding/internal
   - encoding/internal/identifier
+  - encoding/japanese
+  - encoding/korean
+  - encoding/simplifiedchinese
+  - encoding/traditionalchinese
   - encoding/unicode
   - internal
   - internal/tag
@@ -1394,15 +1431,22 @@ imports:
   subpackages:
   - rate
 - name: golang.org/x/tools
-  version: 2382e3994d48b1d22acc2c86bcad0a2aff028e32
+  version: 7f7074d5bcfd282eb16bc382b0bb3da762461985
   subpackages:
   - benchmark/parse
   - container/intsets
   - go/ast/astutil
   - go/gcexportdata
-  - go/gcimporter15
+  - go/internal/cgo
+  - go/internal/gcimporter
+  - go/internal/packagesdriver
+  - go/packages
   - go/vcs
   - imports
+  - internal/fastwalk
+  - internal/gopathwalk
+  - internal/module
+  - internal/semver
 - name: gonum.org/v1/gonum
   version: cebdade430ccb61c1feba4878085f6cf8cb3320e
   repo: https://github.com/gonum/gonum.git
@@ -1434,7 +1478,7 @@ imports:
   - lapack/lapack64
   - mat
 - name: google.golang.org/api
-  version: 3639d6d93f377f39a1de765fa4ef37b3c7ca8bd9
+  version: 583d854617af4d2080b5d2a24d72f7fc5a128ab2
   subpackages:
   - compute/v0.alpha
   - compute/v0.beta
@@ -1501,11 +1545,11 @@ imports:
   - token
   - types
 - name: gopkg.in/inf.v0
-  version: d2d2541c53f18d2a059457998ce2876cc8e67cbf
+  version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/ldap.v2
   version: bb7a9ca6e4fbc2129e3db588a34bc970ffe811a9
 - name: gopkg.in/natefinch/lumberjack.v2
-  version: a96e63847dc3c67d17befa69c303767e2f84e54f
+  version: 20b71e5b60d756d3d2f80def009790325acc2b23
 - name: gopkg.in/square/go-jose.v2
   version: 89060dee6a84df9a4dae49f676f0c755037834f1
   subpackages:
@@ -1517,11 +1561,10 @@ imports:
 - name: gopkg.in/yaml.v2
   version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
 - name: k8s.io/api
-  version: 91a629a47dd4b8816f5d974f41ae0335b6468ec1
+  version: ad7a9273e344ff5e5c1da8dabbaa092268ac9d63
   repo: https://github.com/openshift/kubernetes-api.git
   subpackages:
   - admission/v1beta1
-  - admissionregistration/v1alpha1
   - admissionregistration/v1beta1
   - apps/v1
   - apps/v1beta1
@@ -1538,16 +1581,21 @@ imports:
   - batch/v1beta1
   - batch/v2alpha1
   - certificates/v1beta1
+  - coordination/v1
   - coordination/v1beta1
   - core/v1
   - events/v1beta1
   - extensions/v1beta1
   - imagepolicy/v1alpha1
   - networking/v1
+  - networking/v1beta1
+  - node/v1alpha1
+  - node/v1beta1
   - policy/v1beta1
   - rbac/v1
   - rbac/v1alpha1
   - rbac/v1beta1
+  - scheduling/v1
   - scheduling/v1alpha1
   - scheduling/v1beta1
   - settings/v1alpha1
@@ -1555,7 +1603,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 3c74db8dd172051b029f91536c681a1b43694809
+  version: 24a12c96ddf6b6d588163d93fd164371425d35f2
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apis/apiextensions
@@ -1596,7 +1644,7 @@ imports:
   - test/integration
   - test/integration/fixtures
 - name: k8s.io/apimachinery
-  version: f9b69888dcd7c45ba7b718862a9d21684a991aac
+  version: eab709b58ad6d98573ce6daddb9f6d17487efe6c
   repo: https://github.com/openshift/kubernetes-apimachinery.git
   subpackages:
   - pkg/api/apitesting
@@ -1610,8 +1658,6 @@ imports:
   - pkg/api/resource
   - pkg/api/validation
   - pkg/api/validation/path
-  - pkg/apis/config
-  - pkg/apis/config/v1alpha1
   - pkg/apis/meta/fuzzer
   - pkg/apis/meta/internalversion
   - pkg/apis/meta/v1
@@ -1641,7 +1687,6 @@ imports:
   - pkg/util/framer
   - pkg/util/httpstream
   - pkg/util/httpstream/spdy
-  - pkg/util/initialization
   - pkg/util/intstr
   - pkg/util/json
   - pkg/util/jsonmergepatch
@@ -1667,14 +1712,13 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 0064af82c693aad900dfffb117f91d31ac88c357
+  version: 7595c46de8b11959352e9c20a3d45324805d6589
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
   - pkg/admission/configuration
   - pkg/admission/initializer
   - pkg/admission/metrics
-  - pkg/admission/plugin/initialization
   - pkg/admission/plugin/namespace/lifecycle
   - pkg/admission/plugin/webhook/config
   - pkg/admission/plugin/webhook/config/apis/webhookadmission
@@ -1699,7 +1743,6 @@ imports:
   - pkg/apis/audit/validation
   - pkg/apis/config
   - pkg/apis/config/v1
-  - pkg/apis/config/v1alpha1
   - pkg/audit
   - pkg/audit/event
   - pkg/audit/policy
@@ -1726,6 +1769,8 @@ imports:
   - pkg/endpoints/discovery
   - pkg/endpoints/filters
   - pkg/endpoints/handlers
+  - pkg/endpoints/handlers/fieldmanager
+  - pkg/endpoints/handlers/fieldmanager/internal
   - pkg/endpoints/handlers/negotiation
   - pkg/endpoints/handlers/responsewriters
   - pkg/endpoints/metrics
@@ -1748,7 +1793,6 @@ imports:
   - pkg/server/options/encryptionconfig
   - pkg/server/resourceconfig
   - pkg/server/routes
-  - pkg/server/routes/data/swagger
   - pkg/server/storage
   - pkg/storage
   - pkg/storage/cacher
@@ -1773,13 +1817,10 @@ imports:
   - pkg/storage/value/encrypt/secretbox
   - pkg/util/dryrun
   - pkg/util/feature
-  - pkg/util/flag
   - pkg/util/flushwriter
-  - pkg/util/globalflag
-  - pkg/util/logs
   - pkg/util/openapi
   - pkg/util/proxy
-  - pkg/util/trace
+  - pkg/util/term
   - pkg/util/webhook
   - pkg/util/wsstream
   - plugin/pkg/audit/buffered
@@ -1794,25 +1835,35 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/cli-runtime
-  version: a4a70814eb00a17b29dd59a8816444650687cd4c
+  version: 6b345c1bbbead039802acd86149a3a633a66a511
   repo: https://github.com/openshift/kubernetes-cli-runtime.git
   subpackages:
   - pkg/genericclioptions
   - pkg/genericclioptions/openshiftpatch
-  - pkg/genericclioptions/printers
-  - pkg/genericclioptions/resource
+  - pkg/kustomize
+  - pkg/kustomize/k8sdeps
+  - pkg/kustomize/k8sdeps/configmapandsecret
+  - pkg/kustomize/k8sdeps/kunstruct
+  - pkg/kustomize/k8sdeps/kv
+  - pkg/kustomize/k8sdeps/transformer
+  - pkg/kustomize/k8sdeps/transformer/hash
+  - pkg/kustomize/k8sdeps/transformer/patch
+  - pkg/kustomize/k8sdeps/validator
+  - pkg/printers
+  - pkg/resource
 - name: k8s.io/client-go
-  version: e7e9d19af44cca1c3aacd92448ed662ce65d5312
+  version: 2ba7d9757d55d68c4302f4ae153823fdd2205952
   repo: https://github.com/openshift/kubernetes-client-go.git
   subpackages:
   - discovery
   - discovery/cached
+  - discovery/cached/disk
+  - discovery/cached/memory
   - discovery/fake
   - dynamic
   - dynamic/fake
   - informers
   - informers/admissionregistration
-  - informers/admissionregistration/v1alpha1
   - informers/admissionregistration/v1beta1
   - informers/apps
   - informers/apps/v1
@@ -1831,6 +1882,7 @@ imports:
   - informers/certificates
   - informers/certificates/v1beta1
   - informers/coordination
+  - informers/coordination/v1
   - informers/coordination/v1beta1
   - informers/core
   - informers/core/v1
@@ -1841,6 +1893,10 @@ imports:
   - informers/internalinterfaces
   - informers/networking
   - informers/networking/v1
+  - informers/networking/v1beta1
+  - informers/node
+  - informers/node/v1alpha1
+  - informers/node/v1beta1
   - informers/policy
   - informers/policy/v1beta1
   - informers/rbac
@@ -1848,6 +1904,7 @@ imports:
   - informers/rbac/v1alpha1
   - informers/rbac/v1beta1
   - informers/scheduling
+  - informers/scheduling/v1
   - informers/scheduling/v1alpha1
   - informers/scheduling/v1beta1
   - informers/settings
@@ -1859,8 +1916,6 @@ imports:
   - kubernetes
   - kubernetes/fake
   - kubernetes/scheme
-  - kubernetes/typed/admissionregistration/v1alpha1
-  - kubernetes/typed/admissionregistration/v1alpha1/fake
   - kubernetes/typed/admissionregistration/v1beta1
   - kubernetes/typed/admissionregistration/v1beta1/fake
   - kubernetes/typed/apps/v1
@@ -1893,6 +1948,8 @@ imports:
   - kubernetes/typed/batch/v2alpha1/fake
   - kubernetes/typed/certificates/v1beta1
   - kubernetes/typed/certificates/v1beta1/fake
+  - kubernetes/typed/coordination/v1
+  - kubernetes/typed/coordination/v1/fake
   - kubernetes/typed/coordination/v1beta1
   - kubernetes/typed/coordination/v1beta1/fake
   - kubernetes/typed/core/v1
@@ -1903,6 +1960,12 @@ imports:
   - kubernetes/typed/extensions/v1beta1/fake
   - kubernetes/typed/networking/v1
   - kubernetes/typed/networking/v1/fake
+  - kubernetes/typed/networking/v1beta1
+  - kubernetes/typed/networking/v1beta1/fake
+  - kubernetes/typed/node/v1alpha1
+  - kubernetes/typed/node/v1alpha1/fake
+  - kubernetes/typed/node/v1beta1
+  - kubernetes/typed/node/v1beta1/fake
   - kubernetes/typed/policy/v1beta1
   - kubernetes/typed/policy/v1beta1/fake
   - kubernetes/typed/rbac/v1
@@ -1911,6 +1974,8 @@ imports:
   - kubernetes/typed/rbac/v1alpha1/fake
   - kubernetes/typed/rbac/v1beta1
   - kubernetes/typed/rbac/v1beta1/fake
+  - kubernetes/typed/scheduling/v1
+  - kubernetes/typed/scheduling/v1/fake
   - kubernetes/typed/scheduling/v1alpha1
   - kubernetes/typed/scheduling/v1alpha1/fake
   - kubernetes/typed/scheduling/v1beta1
@@ -1923,7 +1988,6 @@ imports:
   - kubernetes/typed/storage/v1alpha1/fake
   - kubernetes/typed/storage/v1beta1
   - kubernetes/typed/storage/v1beta1/fake
-  - listers/admissionregistration/v1alpha1
   - listers/admissionregistration/v1beta1
   - listers/apps/v1
   - listers/apps/v1beta1
@@ -1936,15 +2000,20 @@ imports:
   - listers/batch/v1beta1
   - listers/batch/v2alpha1
   - listers/certificates/v1beta1
+  - listers/coordination/v1
   - listers/coordination/v1beta1
   - listers/core/v1
   - listers/events/v1beta1
   - listers/extensions/v1beta1
   - listers/networking/v1
+  - listers/networking/v1beta1
+  - listers/node/v1alpha1
+  - listers/node/v1beta1
   - listers/policy/v1beta1
   - listers/rbac/v1
   - listers/rbac/v1alpha1
   - listers/rbac/v1beta1
+  - listers/scheduling/v1
   - listers/scheduling/v1alpha1
   - listers/scheduling/v1beta1
   - listers/settings/v1alpha1
@@ -1988,12 +2057,12 @@ imports:
   - tools/pager
   - tools/portforward
   - tools/record
+  - tools/record/util
   - tools/reference
   - tools/remotecommand
   - tools/watch
   - transport
   - transport/spdy
-  - util/buffer
   - util/cert
   - util/certificate
   - util/certificate/csr
@@ -2001,34 +2070,47 @@ imports:
   - util/exec
   - util/flowcontrol
   - util/homedir
-  - util/integer
   - util/jsonpath
+  - util/keyutil
   - util/retry
   - util/testing
   - util/workqueue
 - name: k8s.io/cloud-provider
-  version: 029ecc113e6d819f75bde3705b0ff3fafb52d397
+  version: c892ea32361a3655e7bd8c06f2d02dd8ce73dd78
+  repo: https://github.com/openshift/kubernetes-cloud-provider.git
+  subpackages:
+  - features
+  - node/helpers
+  - service/helpers
+  - volume
+  - volume/errors
+  - volume/helpers
 - name: k8s.io/cluster-bootstrap
-  version: 9f4676fa25619bddda9a767ee734a3478ecf34c3
+  version: 50662da99b70008aa395937d09b9da52a9edd041
+  repo: https://github.com/openshift/kubernetes-cluster-bootstrap.git
   subpackages:
   - token/api
   - token/util
 - name: k8s.io/code-generator
-  version: b7d0f818cc1e1fc12b9acc529a1c27835609cdf4
+  version: f40157d9638d05ebf65421a9bbad5a7f68878b65
   repo: https://github.com/openshift/kubernetes-code-generator.git
-- name: k8s.io/csi-api
-  version: 9d860736995cc6f848fece5c5b2abcd1a695a7bd
-  repo: https://github.com/openshift/kubernetes-csi-api.git
+- name: k8s.io/component-base
+  version: 4a91899592f42b2f5859587cc5a676a5b94d2ee3
+  repo: https://github.com/openshift/kubernetes-component-base.git
   subpackages:
-  - pkg/apis/csi/v1alpha1
-  - pkg/client/clientset/versioned
-  - pkg/client/clientset/versioned/scheme
-  - pkg/client/clientset/versioned/typed/csi/v1alpha1
-  - pkg/client/informers/externalversions
-  - pkg/client/informers/externalversions/csi
-  - pkg/client/informers/externalversions/csi/v1alpha1
-  - pkg/client/informers/externalversions/internalinterfaces
-  - pkg/client/listers/csi/v1alpha1
+  - cli/flag
+  - cli/globalflag
+  - config
+  - config/v1alpha1
+  - logs
+- name: k8s.io/csi-api
+  version: 693d387aa133c41adc69c717981d40df2b5c797a
+  repo: https://github.com/openshift/kubernetes-csi-api.git
+- name: k8s.io/csi-translation-lib
+  version: ce92c5cfdd61987ea4ce3b8c279cec25d109f366
+  repo: https://github.com/openshift/kubernetes-csi-translation-lib.git
+  subpackages:
+  - plugins
 - name: k8s.io/gengo
   version: 51747d6e00da1fc578d5a333a93bb2abcbce7a95
 - name: k8s.io/heapster
@@ -2038,7 +2120,7 @@ imports:
 - name: k8s.io/klog
   version: 8139d8cb77af419532b33dfa7dd09fbc5f1d344f
 - name: k8s.io/kube-aggregator
-  version: d054841b60b8d23b66472fbd8fe78bf512aee522
+  version: 3e723305ab4936409469c909a1787e76b4f47e5f
   repo: https://github.com/openshift/kubernetes-kube-aggregator.git
   subpackages:
   - pkg/apis/apiregistration
@@ -2069,37 +2151,37 @@ imports:
   - pkg/registry/apiservice/etcd
   - pkg/registry/apiservice/rest
 - name: k8s.io/kube-controller-manager
-  version: 3f43d9caee53ceb3afbd9f58c2b3a1ff5b27b82d
+  version: 97ed623e38350ab8a3cce36d6003ff9ab27f6669
   repo: https://github.com/openshift/kubernetes-kube-controller-manager.git
   subpackages:
   - config/v1alpha1
 - name: k8s.io/kube-openapi
-  version: 1fddd894a3d3e4eb9f4a20d5849e44102f30a419
-  repo: https://github.com/openshift/kube-openapi.git
+  version: b3a7cee44a305be0a69e1b9ac03018307287e1b0
   subpackages:
   - pkg/aggregator
   - pkg/builder
   - pkg/common
   - pkg/handler
+  - pkg/schemaconv
   - pkg/util
   - pkg/util/proto
   - pkg/util/proto/testing
   - pkg/util/proto/validation
 - name: k8s.io/kube-proxy
-  version: 9a78b562076bf2bd5369b835543eeaee2cbfce76
+  version: 4d735c31b05439ef4136b5ee8454e62e854fac1f
   repo: https://github.com/openshift/kubernetes-kube-proxy.git
   subpackages:
   - config/v1alpha1
 - name: k8s.io/kube-scheduler
-  version: b912abf0dded52946a76d048567df62f0334f0cb
+  version: b74e9e79538d3a93ad1d1f391b9461c04a20c84e
   repo: https://github.com/openshift/kubernetes-kube-scheduler.git
 - name: k8s.io/kubelet
-  version: e283b92471f6e196920a6a95ceac4d54d058b8b1
+  version: f6da02f583256d1a15cc44a101c80bfa2080a46f
   repo: https://github.com/openshift/kubernetes-kubelet.git
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 8735f4df8055ba913ca37deedad27cbc3e576400
+  version: 8035dfe056cb74d279209fbacaf8356c8aff65b9
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config
@@ -2117,6 +2199,7 @@ imports:
   - cmd/kubeadm/app/apis/kubeadm
   - cmd/kubeadm/app/constants
   - cmd/kubeadm/app/util
+  - cmd/kubeadm/app/util/pkiutil
   - cmd/kubelet/app
   - cmd/kubelet/app/options
   - pkg/api/endpoints
@@ -2126,11 +2209,11 @@ imports:
   - pkg/api/pod
   - pkg/api/podsecuritypolicy
   - pkg/api/ref
+  - pkg/api/resourcequota
   - pkg/api/service
   - pkg/api/testapi
   - pkg/api/testing
   - pkg/api/v1/endpoints
-  - pkg/api/v1/node
   - pkg/api/v1/persistentvolume
   - pkg/api/v1/pod
   - pkg/api/v1/resource
@@ -2145,7 +2228,6 @@ imports:
   - pkg/apis/admissionregistration
   - pkg/apis/admissionregistration/fuzzer
   - pkg/apis/admissionregistration/install
-  - pkg/apis/admissionregistration/v1alpha1
   - pkg/apis/admissionregistration/v1beta1
   - pkg/apis/admissionregistration/validation
   - pkg/apis/apps
@@ -2191,6 +2273,7 @@ imports:
   - pkg/apis/certificates/validation
   - pkg/apis/coordination
   - pkg/apis/coordination/install
+  - pkg/apis/coordination/v1
   - pkg/apis/coordination/v1beta1
   - pkg/apis/coordination/validation
   - pkg/apis/core
@@ -2211,7 +2294,6 @@ imports:
   - pkg/apis/extensions/fuzzer
   - pkg/apis/extensions/install
   - pkg/apis/extensions/v1beta1
-  - pkg/apis/extensions/validation
   - pkg/apis/imagepolicy
   - pkg/apis/imagepolicy/install
   - pkg/apis/imagepolicy/v1alpha1
@@ -2219,7 +2301,13 @@ imports:
   - pkg/apis/networking/fuzzer
   - pkg/apis/networking/install
   - pkg/apis/networking/v1
+  - pkg/apis/networking/v1beta1
   - pkg/apis/networking/validation
+  - pkg/apis/node
+  - pkg/apis/node/install
+  - pkg/apis/node/v1alpha1
+  - pkg/apis/node/v1beta1
+  - pkg/apis/node/validation
   - pkg/apis/policy
   - pkg/apis/policy/fuzzer
   - pkg/apis/policy/install
@@ -2234,6 +2322,7 @@ imports:
   - pkg/apis/rbac/validation
   - pkg/apis/scheduling
   - pkg/apis/scheduling/install
+  - pkg/apis/scheduling/v1
   - pkg/apis/scheduling/v1alpha1
   - pkg/apis/scheduling/v1beta1
   - pkg/apis/scheduling/validation
@@ -2268,6 +2357,7 @@ imports:
   - pkg/client/clientset_generated/internalclientset/typed/events/internalversion
   - pkg/client/clientset_generated/internalclientset/typed/extensions/internalversion
   - pkg/client/clientset_generated/internalclientset/typed/networking/internalversion
+  - pkg/client/clientset_generated/internalclientset/typed/node/internalversion
   - pkg/client/clientset_generated/internalclientset/typed/policy/internalversion
   - pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion
   - pkg/client/clientset_generated/internalclientset/typed/scheduling/internalversion
@@ -2282,10 +2372,6 @@ imports:
   - pkg/cloudprovider/providers/azure/auth
   - pkg/cloudprovider/providers/cloudstack
   - pkg/cloudprovider/providers/gce
-  - pkg/cloudprovider/providers/gce/cloud
-  - pkg/cloudprovider/providers/gce/cloud/filter
-  - pkg/cloudprovider/providers/gce/cloud/meta
-  - pkg/cloudprovider/providers/gce/cloud/mock
   - pkg/cloudprovider/providers/openstack
   - pkg/cloudprovider/providers/ovirt
   - pkg/cloudprovider/providers/photon
@@ -2294,6 +2380,7 @@ imports:
   - pkg/cloudprovider/providers/vsphere/vclib/diskmanagers
   - pkg/controller
   - pkg/controller/apis/config
+  - pkg/controller/apis/config/scheme
   - pkg/controller/apis/config/v1alpha1
   - pkg/controller/bootstrap
   - pkg/controller/certificates
@@ -2301,6 +2388,7 @@ imports:
   - pkg/controller/certificates/cleaner
   - pkg/controller/certificates/rootcacertpublisher
   - pkg/controller/certificates/signer
+  - pkg/controller/cloud
   - pkg/controller/clusterroleaggregation
   - pkg/controller/cronjob
   - pkg/controller/daemon
@@ -2359,7 +2447,6 @@ imports:
   - pkg/generated/openapi
   - pkg/kubeapiserver
   - pkg/kubeapiserver/admission
-  - pkg/kubeapiserver/admission/util
   - pkg/kubeapiserver/authenticator
   - pkg/kubeapiserver/authorizer
   - pkg/kubeapiserver/authorizer/modes
@@ -2390,6 +2477,7 @@ imports:
   - pkg/kubectl/cmd/explain
   - pkg/kubectl/cmd/expose
   - pkg/kubectl/cmd/get
+  - pkg/kubectl/cmd/kustomize
   - pkg/kubectl/cmd/label
   - pkg/kubectl/cmd/logs
   - pkg/kubectl/cmd/options
@@ -2417,6 +2505,7 @@ imports:
   - pkg/kubectl/cmd/wait
   - pkg/kubectl/describe
   - pkg/kubectl/describe/versioned
+  - pkg/kubectl/drain
   - pkg/kubectl/explain
   - pkg/kubectl/generate
   - pkg/kubectl/generate/versioned
@@ -2454,6 +2543,7 @@ imports:
   - pkg/kubelet/apis/pluginregistration/v1
   - pkg/kubelet/apis/podresources
   - pkg/kubelet/apis/podresources/v1alpha1
+  - pkg/kubelet/apis/resourcemetrics/v1alpha1
   - pkg/kubelet/apis/stats/v1alpha1
   - pkg/kubelet/cadvisor
   - pkg/kubelet/certificate
@@ -2527,6 +2617,7 @@ imports:
   - pkg/kubelet/server/stats
   - pkg/kubelet/server/streaming
   - pkg/kubelet/stats
+  - pkg/kubelet/stats/pidlimit
   - pkg/kubelet/status
   - pkg/kubelet/sysctl
   - pkg/kubelet/token
@@ -2562,6 +2653,7 @@ imports:
   - pkg/probe/http
   - pkg/probe/tcp
   - pkg/proxy
+  - pkg/proxy/apis
   - pkg/proxy/apis/config
   - pkg/proxy/apis/config/scheme
   - pkg/proxy/apis/config/v1alpha1
@@ -2579,8 +2671,6 @@ imports:
   - pkg/quota/v1/evaluator/core
   - pkg/quota/v1/generic
   - pkg/quota/v1/install
-  - pkg/registry/admissionregistration/initializerconfiguration
-  - pkg/registry/admissionregistration/initializerconfiguration/storage
   - pkg/registry/admissionregistration/mutatingwebhookconfiguration
   - pkg/registry/admissionregistration/mutatingwebhookconfiguration/storage
   - pkg/registry/admissionregistration/rest
@@ -2666,12 +2756,15 @@ imports:
   - pkg/registry/core/serviceaccount/storage
   - pkg/registry/events/rest
   - pkg/registry/extensions/controller/storage
-  - pkg/registry/extensions/ingress
-  - pkg/registry/extensions/ingress/storage
   - pkg/registry/extensions/rest
+  - pkg/registry/networking/ingress
+  - pkg/registry/networking/ingress/storage
   - pkg/registry/networking/networkpolicy
   - pkg/registry/networking/networkpolicy/storage
   - pkg/registry/networking/rest
+  - pkg/registry/node/rest
+  - pkg/registry/node/runtimeclass
+  - pkg/registry/node/runtimeclass/storage
   - pkg/registry/policy/poddisruptionbudget
   - pkg/registry/policy/poddisruptionbudget/storage
   - pkg/registry/policy/podsecuritypolicy
@@ -2700,6 +2793,10 @@ imports:
   - pkg/registry/settings/podpreset
   - pkg/registry/settings/podpreset/storage
   - pkg/registry/settings/rest
+  - pkg/registry/storage/csidriver
+  - pkg/registry/storage/csidriver/storage
+  - pkg/registry/storage/csinode
+  - pkg/registry/storage/csinode/storage
   - pkg/registry/storage/rest
   - pkg/registry/storage/storageclass
   - pkg/registry/storage/storageclass/storage
@@ -2710,8 +2807,8 @@ imports:
   - pkg/scheduler/algorithm/predicates
   - pkg/scheduler/algorithm/priorities/util
   - pkg/scheduler/api
-  - pkg/scheduler/cache
   - pkg/scheduler/metrics
+  - pkg/scheduler/nodeinfo
   - pkg/scheduler/util
   - pkg/scheduler/volumebinder
   - pkg/security/apparmor
@@ -2735,7 +2832,6 @@ imports:
   - pkg/util/dbus
   - pkg/util/ebtables
   - pkg/util/env
-  - pkg/util/file
   - pkg/util/filesystem
   - pkg/util/flag
   - pkg/util/flock
@@ -2743,21 +2839,16 @@ imports:
   - pkg/util/goroutinemap/exponentialbackoff
   - pkg/util/hash
   - pkg/util/interrupt
-  - pkg/util/io
   - pkg/util/ipconfig
   - pkg/util/ipset
   - pkg/util/iptables
   - pkg/util/ipvs
-  - pkg/util/keymutex
   - pkg/util/labels
   - pkg/util/maps
   - pkg/util/metrics
   - pkg/util/mount
-  - pkg/util/net
-  - pkg/util/net/sets
   - pkg/util/netsh
   - pkg/util/node
-  - pkg/util/nsenter
   - pkg/util/oom
   - pkg/util/parsers
   - pkg/util/pod
@@ -2769,7 +2860,6 @@ imports:
   - pkg/util/rlimit
   - pkg/util/selinux
   - pkg/util/slice
-  - pkg/util/strings
   - pkg/util/sysctl
   - pkg/util/system
   - pkg/util/tail
@@ -2814,6 +2904,7 @@ imports:
   - pkg/volume/util/nestedpendingoperations
   - pkg/volume/util/operationexecutor
   - pkg/volume/util/recyclerclient
+  - pkg/volume/util/subpath
   - pkg/volume/util/types
   - pkg/volume/util/volumepathhandler
   - pkg/volume/validation
@@ -2881,6 +2972,8 @@ imports:
   - test/e2e/framework/providers/azure
   - test/e2e/framework/providers/gce
   - test/e2e/framework/providers/kubemark
+  - test/e2e/framework/providers/openstack
+  - test/e2e/framework/providers/vsphere
   - test/e2e/framework/testfiles
   - test/e2e/framework/timer
   - test/e2e/generated
@@ -2914,6 +3007,7 @@ imports:
   - test/integration/etcd
   - test/integration/framework
   - test/utils
+  - test/utils/crd
   - test/utils/image
   - test/utils/junit
   - third_party/forked/golang/expansion
@@ -2922,7 +3016,7 @@ imports:
   - third_party/forked/gonum/graph/simple
   - third_party/forked/gonum/graph/traverse
 - name: k8s.io/metrics
-  version: 093b5bb370eafdd1f3c88e6a6ae6675186a39809
+  version: 1bd6a4002213382a0afb4f0b96717926e5413646
   repo: https://github.com/openshift/kubernetes-metrics.git
   subpackages:
   - pkg/apis/custom_metrics
@@ -2941,26 +3035,68 @@ imports:
   - pkg/client/custom_metrics/scheme
   - pkg/client/external_metrics
 - name: k8s.io/sample-apiserver
-  version: 8023f632fb5fc9424c2bd5f69282d1549029ffcd
+  version: 236f85ce49e5a88a9b0a4eff066c5c61f51a1d95
   repo: https://github.com/openshift/kubernetes-sample-apiserver.git
   subpackages:
   - pkg/apis/wardle
   - pkg/apis/wardle/v1alpha1
 - name: k8s.io/sample-cli-plugin
-  version: 9a5b06ebe01fd257c8f66745b06182e91d8ba3cc
+  version: 59043b4d4f841e1240827a0a30aab14cdc8e4e08
   repo: https://github.com/openshift/kubernetes-sample-cli-plugin.git
 - name: k8s.io/sample-controller
-  version: 867a7679da98dcfaedecc8f486d90ee324eb4b5e
+  version: 324336050c979273816000d5d2c6df1ff1be9ea6
   repo: https://github.com/openshift/kubernetes-sample-controller.git
 - name: k8s.io/utils
-  version: 66066c83e385e385ccc3c964b44fd7dcd413d0ed
+  version: c2654d5206da6b7b6ace12841e8f359bb89b443c
   subpackages:
+  - buffer
   - clock
   - exec
   - exec/testing
+  - integer
+  - io
+  - keymutex
+  - net
+  - nsenter
+  - path
   - pointer
+  - strings
+  - trace
+- name: sigs.k8s.io/kustomize
+  version: a6f65144121d1955266b0cd836ce954c04122dc8
+  subpackages:
+  - pkg/commands/build
+  - pkg/constants
+  - pkg/expansion
+  - pkg/factory
+  - pkg/fs
+  - pkg/git
+  - pkg/gvk
+  - pkg/ifc
+  - pkg/ifc/transformer
+  - pkg/image
+  - pkg/internal/error
+  - pkg/loader
+  - pkg/patch
+  - pkg/patch/transformer
+  - pkg/resid
+  - pkg/resmap
+  - pkg/resource
+  - pkg/target
+  - pkg/transformers
+  - pkg/transformers/config
+  - pkg/transformers/config/defaultconfig
+  - pkg/types
+- name: sigs.k8s.io/structured-merge-diff
+  version: e85c7b244fd2cc57bb829d73a061f93a441e63ce
+  subpackages:
+  - fieldpath
+  - merge
+  - schema
+  - typed
+  - value
 - name: sigs.k8s.io/yaml
-  version: 199c9c29c4e4f08dc72163605467ab691a004022
+  version: fd68e9863619f6ec2fdd8625fe1f02e7c877e480
 - name: vbom.ml/util
   version: db5cfe13f5cc80a4990d98e2e1b0707a4d1a5394
   subpackages:

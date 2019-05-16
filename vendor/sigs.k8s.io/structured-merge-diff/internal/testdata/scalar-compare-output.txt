@@ -1,0 +1,4 @@
+- Merged Object:
+{types=[{name="scalar";scalar="numeric"}]}
+- Modified Fields:
+.types[name="scalar"].scalar

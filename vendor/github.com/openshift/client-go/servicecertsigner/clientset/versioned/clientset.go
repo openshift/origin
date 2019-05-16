@@ -12,8 +12,6 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	ServicecertsignerV1alpha1() servicecertsignerv1alpha1.ServicecertsignerV1alpha1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Servicecertsigner() servicecertsignerv1alpha1.ServicecertsignerV1alpha1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -25,12 +23,6 @@ type Clientset struct {
 
 // ServicecertsignerV1alpha1 retrieves the ServicecertsignerV1alpha1Client
 func (c *Clientset) ServicecertsignerV1alpha1() servicecertsignerv1alpha1.ServicecertsignerV1alpha1Interface {
-	return c.servicecertsignerV1alpha1
-}
-
-// Deprecated: Servicecertsigner retrieves the default version of ServicecertsignerClient.
-// Please explicitly pick a version.
-func (c *Clientset) Servicecertsigner() servicecertsignerv1alpha1.ServicecertsignerV1alpha1Interface {
 	return c.servicecertsignerV1alpha1
 }
 

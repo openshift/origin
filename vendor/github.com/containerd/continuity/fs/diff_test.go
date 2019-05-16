@@ -135,6 +135,26 @@ func TestRemoveDirectoryTree(t *testing.T) {
 	}
 }
 
+func TestRemoveDirectoryTreeWithDash(t *testing.T) {
+	l1 := fstest.Apply(
+		fstest.CreateDir("/dir1/dir2/dir3", 0755),
+		fstest.CreateFile("/dir1/f1", []byte("f1"), 0644),
+		fstest.CreateFile("/dir1/dir2/f2", []byte("f2"), 0644),
+		fstest.CreateDir("/dir1-before", 0755),
+		fstest.CreateFile("/dir1-before/f2", []byte("f2"), 0644),
+	)
+	l2 := fstest.Apply(
+		fstest.RemoveAll("/dir1"),
+	)
+	diff := []TestChange{
+		Delete("/dir1"),
+	}
+
+	if err := testDiffWithBase(l1, l2, diff); err != nil {
+		t.Fatalf("Failed diff with base: %+v", err)
+	}
+}
+
 func TestFileReplace(t *testing.T) {
 	l1 := fstest.Apply(
 		fstest.CreateFile("/dir1", []byte("a file, not a directory"), 0644),

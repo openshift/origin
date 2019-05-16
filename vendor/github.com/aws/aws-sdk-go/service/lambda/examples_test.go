@@ -84,7 +84,7 @@ func ExampleLambda_CreateFunction_shared00() {
 		MemorySize:   aws.Int64(128),
 		Publish:      aws.Bool(true),
 		Role:         aws.String("arn:aws:iam::123456789012:role/service-role/role-name"),
-		Runtime:      aws.String("nodejs4.3"),
+		Runtime:      aws.String("nodejs8.10"),
 		Timeout:      aws.Int64(15),
 		VpcConfig:    &lambda.VpcConfig{},
 	}
@@ -174,6 +174,8 @@ func ExampleLambda_DeleteEventSourceMapping_shared00() {
 				fmt.Println(lambda.ErrCodeInvalidParameterValueException, aerr.Error())
 			case lambda.ErrCodeTooManyRequestsException:
 				fmt.Println(lambda.ErrCodeTooManyRequestsException, aerr.Error())
+			case lambda.ErrCodeResourceInUseException:
+				fmt.Println(lambda.ErrCodeResourceInUseException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}
@@ -797,6 +799,8 @@ func ExampleLambda_UpdateEventSourceMapping_shared00() {
 				fmt.Println(lambda.ErrCodeTooManyRequestsException, aerr.Error())
 			case lambda.ErrCodeResourceConflictException:
 				fmt.Println(lambda.ErrCodeResourceConflictException, aerr.Error())
+			case lambda.ErrCodeResourceInUseException:
+				fmt.Println(lambda.ErrCodeResourceInUseException, aerr.Error())
 			default:
 				fmt.Println(aerr.Error())
 			}

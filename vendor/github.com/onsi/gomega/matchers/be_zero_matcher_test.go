@@ -6,25 +6,35 @@ import (
 )
 
 var _ = Describe("BeZero", func() {
-	It("should succeed if the passed in object is the zero value for its type", func() {
-		Ω(nil).Should(BeZero())
+	It("succeeds for zero values for its type", func() {
+		Expect(nil).Should(BeZero())
 
-		Ω("").Should(BeZero())
-		Ω(" ").ShouldNot(BeZero())
+		Expect("").Should(BeZero())
+		Expect(" ").ShouldNot(BeZero())
 
-		Ω(0).Should(BeZero())
-		Ω(1).ShouldNot(BeZero())
+		Expect(0).Should(BeZero())
+		Expect(1).ShouldNot(BeZero())
 
-		Ω(0.0).Should(BeZero())
-		Ω(0.1).ShouldNot(BeZero())
+		Expect(0.0).Should(BeZero())
+		Expect(0.1).ShouldNot(BeZero())
 
-		// Ω([]int{}).Should(BeZero())
-		Ω([]int{1}).ShouldNot(BeZero())
+		// Expect([]int{}).Should(BeZero())
+		Expect([]int{1}).ShouldNot(BeZero())
 
-		// Ω(map[string]int{}).Should(BeZero())
-		Ω(map[string]int{"a": 1}).ShouldNot(BeZero())
+		// Expect(map[string]int{}).Should(BeZero())
+		Expect(map[string]int{"a": 1}).ShouldNot(BeZero())
 
-		Ω(myCustomType{}).Should(BeZero())
-		Ω(myCustomType{s: "a"}).ShouldNot(BeZero())
+		Expect(myCustomType{}).Should(BeZero())
+		Expect(myCustomType{s: "a"}).ShouldNot(BeZero())
+	})
+
+	It("builds failure message", func() {
+		actual := BeZero().FailureMessage(123)
+		Expect(actual).To(Equal("Expected\n    <int>: 123\nto be zero-valued"))
+	})
+
+	It("builds negated failure message", func() {
+		actual := BeZero().NegatedFailureMessage(123)
+		Expect(actual).To(Equal("Expected\n    <int>: 123\nnot to be zero-valued"))
 	})
 })
