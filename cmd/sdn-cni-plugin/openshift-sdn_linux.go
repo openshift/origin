@@ -120,10 +120,15 @@ func (p *cniPlugin) testCmdAdd(args *skel.CmdArgs) (types.Result, error) {
 }
 
 var iptablesCommands = [][]string{
+	// Block MCS
 	{"-A", "OUTPUT", "-p", "tcp", "-m", "tcp", "--dport", "22623", "-j", "REJECT"},
 	{"-A", "OUTPUT", "-p", "tcp", "-m", "tcp", "--dport", "22624", "-j", "REJECT"},
 	{"-A", "FORWARD", "-p", "tcp", "-m", "tcp", "--dport", "22623", "-j", "REJECT"},
 	{"-A", "FORWARD", "-p", "tcp", "-m", "tcp", "--dport", "22624", "-j", "REJECT"},
+
+	// Block cloud metadata IP
+	{"-A", "OUTPUT", "-d", "169.254.169.254", "-j", "REJECT"},
+	{"-A", "FORWARD", "-d", "169.254.169.254", "-j", "REJECT"},
 }
 
 func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
@@ -234,7 +239,7 @@ func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) error {
 			}
 		}
 
-		// HACK: block access to MCS until we can secure it properly
+		// Block access to certain things
 		for _, args := range iptablesCommands {
 			out, err := exec.Command("iptables", args...).CombinedOutput()
 			if err != nil {
