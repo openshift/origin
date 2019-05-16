@@ -64,7 +64,6 @@ type restrictedEndpointsAdmission struct {
 
 	authorizer         authorizer.Authorizer
 	restrictedNetworks []*net.IPNet
-	restrictedPorts    []kapi.EndpointPort
 }
 
 var _ = initializer.WantsAuthorizer(&restrictedEndpointsAdmission{})
@@ -87,10 +86,6 @@ func NewRestrictedEndpointsAdmission(restrictedNetworks []*net.IPNet) *restricte
 	return &restrictedEndpointsAdmission{
 		Handler:            admission.NewHandler(admission.Create, admission.Update),
 		restrictedNetworks: restrictedNetworks,
-		restrictedPorts: []kapi.EndpointPort{
-			{Protocol: kapi.ProtocolTCP, Port: 22623},
-			{Protocol: kapi.ProtocolTCP, Port: 22624},
-		},
 	}
 }
 
@@ -105,14 +100,26 @@ func (r *restrictedEndpointsAdmission) ValidateInitialization() error {
 	return nil
 }
 
-func (r *restrictedEndpointsAdmission) findRestrictedIP(ep *kapi.Endpoints) error {
+var (
+	defaultRestrictedPorts = []kapi.EndpointPort{
+		// MCS ports
+		{Protocol: kapi.ProtocolTCP, Port: 22623},
+		{Protocol: kapi.ProtocolTCP, Port: 22624},
+	}
+	defaultRestrictedNetworks = []*net.IPNet{
+		// IPv4 link-local range 169.254.0.0/16 (including cloud metadata IP)
+		{IP: net.ParseIP("169.254.0.0"), Mask: net.CIDRMask(16, 32)},
+	}
+)
+
+func (r *restrictedEndpointsAdmission) findRestrictedIP(ep *kapi.Endpoints, restricted []*net.IPNet) error {
 	for _, subset := range ep.Subsets {
 		for _, addr := range subset.Addresses {
 			ip := net.ParseIP(addr.IP)
 			if ip == nil {
 				continue
 			}
-			for _, net := range r.restrictedNetworks {
+			for _, net := range restricted {
 				if net.Contains(ip) {
 					return fmt.Errorf("endpoint address %s is not allowed", addr.IP)
 				}
@@ -122,10 +129,10 @@ func (r *restrictedEndpointsAdmission) findRestrictedIP(ep *kapi.Endpoints) erro
 	return nil
 }
 
-func (r *restrictedEndpointsAdmission) findRestrictedPort(ep *kapi.Endpoints) error {
+func (r *restrictedEndpointsAdmission) findRestrictedPort(ep *kapi.Endpoints, restricted []kapi.EndpointPort) error {
 	for _, subset := range ep.Subsets {
 		for _, port := range subset.Ports {
-			for _, restricted := range r.restrictedPorts {
+			for _, restricted := range restricted {
 				if port.Protocol == restricted.Protocol && port.Port == restricted.Port {
 					return fmt.Errorf("endpoint port %s:%d is not allowed", string(port.Protocol), port.Port)
 				}
@@ -164,9 +171,12 @@ func (r *restrictedEndpointsAdmission) Validate(a admission.Attributes) error {
 		return nil
 	}
 
-	restrictedErr := r.findRestrictedIP(ep)
+	restrictedErr := r.findRestrictedIP(ep, r.restrictedNetworks)
 	if restrictedErr == nil {
-		restrictedErr = r.findRestrictedPort(ep)
+		restrictedErr = r.findRestrictedIP(ep, defaultRestrictedNetworks)
+	}
+	if restrictedErr == nil {
+		restrictedErr = r.findRestrictedPort(ep, defaultRestrictedPorts)
 	}
 	if restrictedErr == nil {
 		return nil

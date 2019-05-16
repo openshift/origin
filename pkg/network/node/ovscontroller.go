@@ -160,6 +160,9 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR []string, serviceNetworkCID
 		otx.AddFlow("table=30, priority=100, ip, nw_dst=%s, actions=goto_table:90", clusterCIDR)
 	}
 
+	// Link-local traffic
+	otx.AddFlow("table=30, priority=75, ip, nw_dst=169.254.0.0/16, actions=drop")
+
 	// Multicast coming from the VXLAN
 	otx.AddFlow("table=30, priority=50, in_port=1, ip, nw_dst=224.0.0.0/4, actions=goto_table:120")
 	// Multicast coming from local pods
