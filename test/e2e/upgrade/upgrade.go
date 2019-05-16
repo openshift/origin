@@ -50,6 +50,7 @@ func AllTests() []upgrades.Test {
 		// &upgrades.MySqlUpgradeTest{},
 		// &upgrades.EtcdUpgradeTest{},
 		// &upgrades.CassandraUpgradeTest{},
+		&IngressControllerUpgradeTest{},
 	}
 }
 
