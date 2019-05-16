@@ -7,17 +7,21 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	jsonserializer "k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/pkg/transport"
+	"github.com/json-iterator/go"
 
 	// install all APIs
-	install "github.com/openshift/origin/pkg/api/install"
+	"github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/api/legacy"
 )
 
@@ -36,7 +40,7 @@ func main() {
 	flag.Parse()
 
 	if flag.NArg() == 0 {
-		fmt.Fprint(os.Stderr, "ERROR: you need to specify action: dump or ls [<key>] or get <key>\n")
+		fmt.Fprint(os.Stderr, "ERROR: you need to specify action: dump or save [dumpfile] or ls [<key>] or get <key>\n")
 		os.Exit(1)
 	}
 	if flag.Arg(0) == "get" && flag.NArg() == 1 {
@@ -47,6 +51,11 @@ func main() {
 		fmt.Fprint(os.Stderr, "ERROR: you cannot specify positional arguments with dump\n")
 		os.Exit(1)
 	}
+	if flag.Arg(0) == "save" && flag.NArg() < 2 {
+		fmt.Fprint(os.Stderr, "ERROR: File path arguments missing with save\n")
+		os.Exit(1)
+	}
+
 	action := flag.Arg(0)
 	key := ""
 	if flag.NArg() > 1 {
@@ -87,6 +96,8 @@ func main() {
 		err = getKey(client, key)
 	case "dump":
 		err = dump(client)
+	case "save":
+		err = save(client, flag.Args()[1])
 	default:
 		fmt.Fprintf(os.Stderr, "ERROR: invalid action: %s\n", action)
 		os.Exit(1)
@@ -154,7 +165,7 @@ func dump(client *clientv3.Client) error {
 	objJSON := &bytes.Buffer{}
 
 	for _, kv := range response.Kvs {
-		obj, _, err := decoder.Decode(kv.Value, nil, nil)
+		obj, gkv, err := decoder.Decode(kv.Value, nil, nil)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "WARN: error decoding value %q: %v\n", string(kv.Value), err)
 			continue
@@ -164,11 +175,16 @@ func dump(client *clientv3.Client) error {
 			fmt.Fprintf(os.Stderr, "WARN: error encoding object %#v as JSON: %v", obj, err)
 			continue
 		}
+		gkvByte, err := jsoniter.Marshal(gkv)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "WARN: error encoding gkv %#v as JSON: %v", gkv, err)
+		}
 		kvData = append(
 			kvData,
 			etcd3kv{
 				Key:            string(kv.Key),
 				Value:          string(objJSON.Bytes()),
+				Gkv:            string(gkvByte),
 				CreateRevision: kv.CreateRevision,
 				ModRevision:    kv.ModRevision,
 				Version:        kv.Version,
@@ -187,9 +203,59 @@ func dump(client *clientv3.Client) error {
 	return nil
 }
 
+func save(client *clientv3.Client, path string) error {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	var units []etcd3kv
+
+	if err := json.Unmarshal(data, &units); err != nil {
+		fmt.Printf("decode by json err:%v \n,exit!", err)
+		return err
+	}
+
+	defaultContentType := `application/vnd.kubernetes.protobuf`
+	encoder := jsonserializer.NewSerializer(jsonserializer.DefaultMetaFactory, scheme.Scheme, scheme.Scheme, false)
+
+	for _, unit := range units {
+		gkv := &schema.GroupVersionKind{}
+		err := jsoniter.UnmarshalFromString(unit.Gkv, gkv)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "WARN: error decoding gkv %#v as JSON: %v", gkv, err)
+			continue
+		}
+		ob, err := scheme.Scheme.New(*gkv)
+		_, _, err = encoder.Decode([]byte(unit.Value), gkv, ob)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "WARN: error decoding string %#v as gkv: %v", gkv, err)
+			continue
+		}
+		buf := &bytes.Buffer{}
+		info, _ := runtime.SerializerInfoForMediaType(scheme.Codecs.SupportedMediaTypes(), defaultContentType)
+		enc := scheme.Codecs.EncoderForVersion(info.Serializer, gkv.GroupVersion())
+		err = enc.Encode(ob, buf)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "serializer encode err:%v , object:%v", err)
+			continue
+		}
+
+		res, err := client.Put(context.Background(), unit.Key, buf.String())
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "put data to etcd err:%v ,res:%v", err, res)
+		}
+
+	}
+	fmt.Println("save success!")
+
+	return nil
+}
+
 type etcd3kv struct {
 	Key            string `json:"key,omitempty"`
 	Value          string `json:"value,omitempty"`
+	Gkv            string `json:"gkv,omitempty"`
 	CreateRevision int64  `json:"create_revision,omitempty"`
 	ModRevision    int64  `json:"mod_revision,omitempty"`
 	Version        int64  `json:"version,omitempty"`
