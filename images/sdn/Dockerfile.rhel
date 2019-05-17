@@ -13,7 +13,7 @@ RUN mkdir -p /tmp/build; \
     cp /go/src/github.com/openshift/origin/_output/local/bin/linux/$(go env GOARCH)/loopback /tmp/build/loopback; \
     cp /go/src/github.com/openshift/origin/_output/local/bin/linux/$(go env GOARCH)/host-local /tmp/build/host-local
 
-FROM registry.svc.ci.openshift.org/ocp/4.1:base
+FROM registry.svc.ci.openshift.org/ocp/4.2:base
 COPY --from=builder /tmp/build/openshift-sdn /usr/bin/
 COPY --from=builder /tmp/build/sdn-cni-plugin /opt/cni/bin/openshift-sdn
 COPY --from=builder /tmp/build/loopback /opt/cni/bin/
