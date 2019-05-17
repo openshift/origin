@@ -876,26 +876,26 @@ metadata:
 			}
 		})
 
-		ginkgo.It("should create/apply a valid CR with arbitrary-extra properties for CRD with partially-specified validation schema", func() {
-			ginkgo.By("prepare CRD with partially-specified validation schema")
-			crd, err := crd.CreateTestCRD(f)
-			if err != nil {
-				framework.Failf("failed to create test CRD: %v", err)
-			}
-			defer crd.CleanUp()
-			if err := crd.PatchSchema(schemaFoo); err != nil {
-				framework.Failf("%v", err)
-			}
+		// ginkgo.It("should create/apply a valid CR with arbitrary-extra properties for CRD with partially-specified validation schema", func() {
+		// 	ginkgo.By("prepare CRD with partially-specified validation schema")
+		// 	crd, err := crd.CreateTestCRD(f)
+		// 	if err != nil {
+		// 		framework.Failf("failed to create test CRD: %v", err)
+		// 	}
+		// 	defer crd.CleanUp()
+		// 	if err := crd.PatchSchema(schemaFoo); err != nil {
+		// 		framework.Failf("%v", err)
+		// 	}
 
-			ginkgo.By("sleep for 10s to wait for potential crd openapi publishing alpha feature")
-			time.Sleep(10 * time.Second)
+		// 	ginkgo.By("sleep for 10s to wait for potential crd openapi publishing alpha feature")
+		// 	time.Sleep(10 * time.Second)
 
-			meta := fmt.Sprintf(metaPattern, crd.Kind, crd.APIGroup, crd.Versions[0].Name, "test-cr")
-			validArbitraryCR := fmt.Sprintf(`{%s,"spec":{"bars":[{"name":"test-bar"}],"extraProperty":"arbitrary-value"}}`, meta)
-			if err := createApplyCustomResource(validArbitraryCR, f.Namespace.Name, "test-cr", crd); err != nil {
-				framework.Failf("%v", err)
-			}
-		})
+		// 	meta := fmt.Sprintf(metaPattern, crd.Kind, crd.APIGroup, crd.Versions[0].Name, "test-cr")
+		// 	validArbitraryCR := fmt.Sprintf(`{%s,"spec":{"bars":[{"name":"test-bar"}],"extraProperty":"arbitrary-value"}}`, meta)
+		// 	if err := createApplyCustomResource(validArbitraryCR, f.Namespace.Name, "test-cr", crd); err != nil {
+		// 		framework.Failf("%v", err)
+		// 	}
+		// })
 
 	})
 
