@@ -394,6 +394,8 @@ var (
 
 			`Services should be able to create a functioning NodePort service`, // https://github.com/openshift/origin/issues/21708
 
+			`should check kube-proxy urls`, // previously this test was skipped b/c we reported -1 as the number of nodes, now we report proper number and test fails
+
 			`SSH`,                // TRIAGE
 			`SELinux relabeling`, // https://github.com/openshift/origin/issues/7287 still broken
 			`Volumes CephFS`,     // permission denied, selinux?
