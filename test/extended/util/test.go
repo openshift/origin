@@ -396,6 +396,8 @@ var (
 
 			`should check kube-proxy urls`, // previously this test was skipped b/c we reported -1 as the number of nodes, now we report proper number and test fails
 
+			`extremely long build/bc names are not problematic`, // there's a problem in kubelet when creating log directory in vendor/k8s.io/kubernetes/pkg/kubelet/kuberuntime/helpers.go:181, this changed in https://github.com/kubernetes/kubernetes/pull/74441
+
 			`SSH`,                // TRIAGE
 			`SELinux relabeling`, // https://github.com/openshift/origin/issues/7287 still broken
 			`Volumes CephFS`,     // permission denied, selinux?
