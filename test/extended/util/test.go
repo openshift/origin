@@ -430,6 +430,8 @@ var (
 			`\[Feature:PodPriority\]`,    // @ravig - sig-pod
 
 			`provisioning should access volume from different nodes`, // has bad assumptions about hostname labels.  sig-storage/@wongma7
+
+			`NodeLease when the NodeLease feature is enabled the kubelet should create and update a lease in the kube-node-lease namespace`, // disabled until RHCOS gets kubelet 1.14
 		},
 		// tests too slow to be part of conformance
 		"[Slow]": {
