@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/openshift/library-go/pkg/operator/condition"
 	"github.com/openshift/library-go/pkg/operator/management"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 
@@ -27,9 +28,8 @@ import (
 )
 
 const (
-	operatorStatusBackingResourceControllerDegraded = "BackingResourceControllerDegraded"
-	controllerWorkQueueKey                          = "key"
-	manifestDir                                     = "pkg/operator/staticpod/controller/backingresource"
+	controllerWorkQueueKey = "key"
+	manifestDir            = "pkg/operator/staticpod/controller/backingresource"
 )
 
 // BackingResourceController is a controller that watches the operator config and updates
@@ -113,7 +113,7 @@ func (c BackingResourceController) sync() error {
 
 	// update failing condition
 	cond := operatorv1.OperatorCondition{
-		Type:   operatorStatusBackingResourceControllerDegraded,
+		Type:   condition.BackingResourceControllerDegradedConditionType,
 		Status: operatorv1.ConditionFalse,
 	}
 	if err != nil {

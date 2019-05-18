@@ -57,6 +57,7 @@ var (
 	coordinationGroup          = coordination.GroupName
 	extensionsGroup            = extensions.GroupName
 	networkingGroup            = "networking.k8s.io"
+	nodeGroup                  = "node.k8s.io"
 	policyGroup                = policy.GroupName
 	rbacGroup                  = rbac.GroupName
 	storageGroup               = storage.GroupName
@@ -158,13 +159,17 @@ func GetOpenshiftBootstrapClusterRoles() []rbacv1.ClusterRole {
 
 				rbacv1helpers.NewRule(read...).Groups(eventsGroup).Resources("events").RuleOrDie(),
 
+				rbacv1helpers.NewRule(read...).Groups(networkingGroup).Resources("ingresses/status").RuleOrDie(),
+
+				rbacv1helpers.NewRule(read...).Groups(nodeGroup).Resources("runtimeclasses").RuleOrDie(),
+
 				rbacv1helpers.NewRule(read...).Groups(policyGroup).Resources("podsecuritypolicies", "poddisruptionbudgets/status").RuleOrDie(),
 
 				rbacv1helpers.NewRule(read...).Groups(rbacGroup).Resources("roles", "rolebindings", "clusterroles", "clusterrolebindings").RuleOrDie(),
 
 				rbacv1helpers.NewRule(read...).Groups(settingsGroup).Resources("podpresets").RuleOrDie(),
 
-				rbacv1helpers.NewRule(read...).Groups(storageGroup).Resources("storageclasses", "volumeattachments", "volumeattachments/status").RuleOrDie(),
+				rbacv1helpers.NewRule(read...).Groups(storageGroup).Resources("csidrivers", "csinodes", "storageclasses", "volumeattachments", "volumeattachments/status").RuleOrDie(),
 
 				rbacv1helpers.NewRule(read...).Groups(schedulingGroup).Resources("priorityclasses").RuleOrDie(),
 

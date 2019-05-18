@@ -1,36 +1,34 @@
 package v1helpers
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
-	"github.com/ghodss/yaml"
-
 	"k8s.io/apimachinery/pkg/api/equality"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/util/retry"
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
 )
 
-func SetOperandVersion(versions *[]configv1.OperandVersion, operandVersion configv1.OperandVersion) {
+// SetOperandVersion sets the new version and returns the previous value.
+func SetOperandVersion(versions *[]configv1.OperandVersion, operandVersion configv1.OperandVersion) string {
 	if versions == nil {
 		versions = &[]configv1.OperandVersion{}
 	}
 	existingVersion := FindOperandVersion(*versions, operandVersion.Name)
 	if existingVersion == nil {
 		*versions = append(*versions, operandVersion)
-		return
+		return ""
 	}
+
+	previous := existingVersion.Version
 	existingVersion.Version = operandVersion.Version
+	return previous
 }
 
 func FindOperandVersion(versions []configv1.OperandVersion, name string) *configv1.OperandVersion {
@@ -106,33 +104,6 @@ func IsOperatorConditionPresentAndEqual(conditions []operatorv1.OperatorConditio
 	return false
 }
 
-func EnsureOperatorConfigExists(client dynamic.Interface, operatorConfigBytes []byte, gvr schema.GroupVersionResource) {
-	configJson, err := yaml.YAMLToJSON(operatorConfigBytes)
-	if err != nil {
-		panic(err)
-	}
-	operatorConfigObj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, configJson)
-	if err != nil {
-		panic(err)
-	}
-
-	requiredOperatorConfig, ok := operatorConfigObj.(*unstructured.Unstructured)
-	if !ok {
-		panic(fmt.Sprintf("unexpected object in %t", operatorConfigObj))
-	}
-
-	_, err = client.Resource(gvr).Get(requiredOperatorConfig.GetName(), metav1.GetOptions{})
-	if errors.IsNotFound(err) {
-		if _, err := client.Resource(gvr).Create(requiredOperatorConfig, metav1.CreateOptions{}); err != nil {
-			panic(err)
-		}
-		return
-	}
-	if err != nil {
-		panic(err)
-	}
-}
-
 // UpdateOperatorSpecFunc is a func that mutates an operator spec.
 type UpdateOperatorSpecFunc func(spec *operatorv1.OperatorSpec) error
 
@@ -194,6 +165,8 @@ func UpdateStatus(client OperatorClient, updateFuncs ...UpdateStatusFunc) (*oper
 		}
 
 		if equality.Semantic.DeepEqual(oldStatus, newStatus) {
+			// We return the newStatus which is a deep copy of oldStatus but with all update funcs applied.
+			updatedOperatorStatus = newStatus
 			return nil
 		}
 

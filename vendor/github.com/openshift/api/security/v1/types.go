@@ -20,6 +20,7 @@ var AllowAllCapabilities corev1.Capability = "*"
 // That exposure is deprecated and will be removed in a future release - users
 // should instead use the security.openshift.io group to manage
 // SecurityContextConstraints.
+// +kubebuilder:singular=securitycontextconstraint
 type SecurityContextConstraints struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
@@ -32,6 +33,7 @@ type SecurityContextConstraints struct {
 	// for multiple SCCs are equal they will be sorted from most restrictive to
 	// least restrictive. If both priorities and restrictions are equal the
 	// SCCs will be sorted by name.
+	// +nullable
 	Priority *int32 `json:"priority" protobuf:"varint,2,opt,name=priority"`
 
 	// AllowPrivilegedContainer determines if a container can request to be run as privileged.
@@ -39,14 +41,17 @@ type SecurityContextConstraints struct {
 	// DefaultAddCapabilities is the default set of capabilities that will be added to the container
 	// unless the pod spec specifically drops the capability.  You may not list a capabiility in both
 	// DefaultAddCapabilities and RequiredDropCapabilities.
+	// +nullable
 	DefaultAddCapabilities []corev1.Capability `json:"defaultAddCapabilities" protobuf:"bytes,4,rep,name=defaultAddCapabilities,casttype=Capability"`
 	// RequiredDropCapabilities are the capabilities that will be dropped from the container.  These
 	// are required to be dropped and cannot be added.
+	// +nullable
 	RequiredDropCapabilities []corev1.Capability `json:"requiredDropCapabilities" protobuf:"bytes,5,rep,name=requiredDropCapabilities,casttype=Capability"`
 	// AllowedCapabilities is a list of capabilities that can be requested to add to the container.
 	// Capabilities in this field maybe added at the pod author's discretion.
 	// You must not list a capability in both AllowedCapabilities and RequiredDropCapabilities.
 	// To allow all capabilities you may use '*'.
+	// +nullable
 	AllowedCapabilities []corev1.Capability `json:"allowedCapabilities" protobuf:"bytes,6,rep,name=allowedCapabilities,casttype=Capability"`
 	// AllowHostDirVolumePlugin determines if the policy allow containers to use the HostDir volume plugin
 	// +k8s:conversion-gen=false
@@ -54,6 +59,7 @@ type SecurityContextConstraints struct {
 	// Volumes is a white list of allowed volume plugins.  FSType corresponds directly with the field names
 	// of a VolumeSource (azureFile, configMap, emptyDir).  To allow all volumes you may use "*".
 	// To allow no volumes, set to ["none"].
+	// +nullable
 	Volumes []FSType `json:"volumes" protobuf:"bytes,8,rep,name=volumes,casttype=FSType"`
 	// AllowedFlexVolumes is a whitelist of allowed Flexvolumes.  Empty or nil indicates that all
 	// Flexvolumes may be used.  This parameter is effective only when the usage of the Flexvolumes
@@ -80,12 +86,16 @@ type SecurityContextConstraints struct {
 	// +nullable
 	AllowPrivilegeEscalation *bool `json:"allowPrivilegeEscalation,omitempty" protobuf:"varint,23,rep,name=allowPrivilegeEscalation"`
 	// SELinuxContext is the strategy that will dictate what labels will be set in the SecurityContext.
+	// +nullable
 	SELinuxContext SELinuxContextStrategyOptions `json:"seLinuxContext,omitempty" protobuf:"bytes,13,opt,name=seLinuxContext"`
 	// RunAsUser is the strategy that will dictate what RunAsUser is used in the SecurityContext.
+	// +nullable
 	RunAsUser RunAsUserStrategyOptions `json:"runAsUser,omitempty" protobuf:"bytes,14,opt,name=runAsUser"`
 	// SupplementalGroups is the strategy that will dictate what supplemental groups are used by the SecurityContext.
+	// +nullable
 	SupplementalGroups SupplementalGroupsStrategyOptions `json:"supplementalGroups,omitempty" protobuf:"bytes,15,opt,name=supplementalGroups"`
 	// FSGroup is the strategy that will dictate what fs group is used by the SecurityContext.
+	// +nullable
 	FSGroup FSGroupStrategyOptions `json:"fsGroup,omitempty" protobuf:"bytes,16,opt,name=fsGroup"`
 	// ReadOnlyRootFilesystem when set to true will force containers to run with a read only root file
 	// system.  If the container specifically requests to run with a non-read only root file system
@@ -108,6 +118,7 @@ type SecurityContextConstraints struct {
 	// be specifid by the pod or container.	The wildcard '*' may be used to allow all profiles.  When
 	// used to generate a value for a pod the first non-wildcard profile will be used as
 	// the default.
+	// +nullable
 	SeccompProfiles []string `json:"seccompProfiles,omitempty" protobuf:"bytes,20,opt,name=seccompProfiles"`
 
 	// AllowedUnsafeSysctls is a list of explicitly allowed unsafe sysctls, defaults to none.
@@ -164,6 +175,7 @@ var (
 	FSPortworxVolume            FSType = "portworxVolume"
 	FSScaleIO                   FSType = "scaleIO"
 	FSStorageOS                 FSType = "storageOS"
+	FSTypeCSI                   FSType = "csi"
 	FSTypeAll                   FSType = "*"
 	FSTypeNone                  FSType = "none"
 )

@@ -9,6 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/private/protocol"
+	"github.com/aws/aws-sdk-go/private/protocol/jsonrpc"
 )
 
 const opAcceptQualificationRequest = "AcceptQualificationRequest"
@@ -16,7 +18,7 @@ const opAcceptQualificationRequest = "AcceptQualificationRequest"
 // AcceptQualificationRequestRequest generates a "aws/request.Request" representing the
 // client's request for the AcceptQualificationRequest operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -50,6 +52,7 @@ func (c *MTurk) AcceptQualificationRequestRequest(input *AcceptQualificationRequ
 
 	output = &AcceptQualificationRequestOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -106,7 +109,7 @@ const opApproveAssignment = "ApproveAssignment"
 // ApproveAssignmentRequest generates a "aws/request.Request" representing the
 // client's request for the ApproveAssignment operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -140,6 +143,7 @@ func (c *MTurk) ApproveAssignmentRequest(input *ApproveAssignmentInput) (req *re
 
 	output = &ApproveAssignmentOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -207,7 +211,7 @@ const opAssociateQualificationWithWorker = "AssociateQualificationWithWorker"
 // AssociateQualificationWithWorkerRequest generates a "aws/request.Request" representing the
 // client's request for the AssociateQualificationWithWorker operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -241,6 +245,7 @@ func (c *MTurk) AssociateQualificationWithWorkerRequest(input *AssociateQualific
 
 	output = &AssociateQualificationWithWorkerOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -302,7 +307,7 @@ const opCreateAdditionalAssignmentsForHIT = "CreateAdditionalAssignmentsForHIT"
 // CreateAdditionalAssignmentsForHITRequest generates a "aws/request.Request" representing the
 // client's request for the CreateAdditionalAssignmentsForHIT operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -336,6 +341,7 @@ func (c *MTurk) CreateAdditionalAssignmentsForHITRequest(input *CreateAdditional
 
 	output = &CreateAdditionalAssignmentsForHITOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -399,7 +405,7 @@ const opCreateHIT = "CreateHIT"
 // CreateHITRequest generates a "aws/request.Request" representing the
 // client's request for the CreateHIT operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -503,7 +509,7 @@ const opCreateHITType = "CreateHITType"
 // CreateHITTypeRequest generates a "aws/request.Request" representing the
 // client's request for the CreateHITType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -589,7 +595,7 @@ const opCreateHITWithHITType = "CreateHITWithHITType"
 // CreateHITWithHITTypeRequest generates a "aws/request.Request" representing the
 // client's request for the CreateHITWithHITType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -684,7 +690,7 @@ const opCreateQualificationType = "CreateQualificationType"
 // CreateQualificationTypeRequest generates a "aws/request.Request" representing the
 // client's request for the CreateQualificationType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -768,7 +774,7 @@ const opCreateWorkerBlock = "CreateWorkerBlock"
 // CreateWorkerBlockRequest generates a "aws/request.Request" representing the
 // client's request for the CreateWorkerBlock operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -802,6 +808,7 @@ func (c *MTurk) CreateWorkerBlockRequest(input *CreateWorkerBlockInput) (req *re
 
 	output = &CreateWorkerBlockOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -853,7 +860,7 @@ const opDeleteHIT = "DeleteHIT"
 // DeleteHITRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteHIT operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -887,6 +894,7 @@ func (c *MTurk) DeleteHITRequest(input *DeleteHITInput) (req *request.Request, o
 
 	output = &DeleteHITOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -954,7 +962,7 @@ const opDeleteQualificationType = "DeleteQualificationType"
 // DeleteQualificationTypeRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteQualificationType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -988,6 +996,7 @@ func (c *MTurk) DeleteQualificationTypeRequest(input *DeleteQualificationTypeInp
 
 	output = &DeleteQualificationTypeOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1049,7 +1058,7 @@ const opDeleteWorkerBlock = "DeleteWorkerBlock"
 // DeleteWorkerBlockRequest generates a "aws/request.Request" representing the
 // client's request for the DeleteWorkerBlock operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1083,6 +1092,7 @@ func (c *MTurk) DeleteWorkerBlockRequest(input *DeleteWorkerBlockInput) (req *re
 
 	output = &DeleteWorkerBlockOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1137,7 +1147,7 @@ const opDisassociateQualificationFromWorker = "DisassociateQualificationFromWork
 // DisassociateQualificationFromWorkerRequest generates a "aws/request.Request" representing the
 // client's request for the DisassociateQualificationFromWorker operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1171,6 +1181,7 @@ func (c *MTurk) DisassociateQualificationFromWorkerRequest(input *DisassociateQu
 
 	output = &DisassociateQualificationFromWorkerOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -1224,7 +1235,7 @@ const opGetAccountBalance = "GetAccountBalance"
 // GetAccountBalanceRequest generates a "aws/request.Request" representing the
 // client's request for the GetAccountBalance operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1308,7 +1319,7 @@ const opGetAssignment = "GetAssignment"
 // GetAssignmentRequest generates a "aws/request.Request" representing the
 // client's request for the GetAssignment operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1391,7 +1402,7 @@ const opGetFileUploadURL = "GetFileUploadURL"
 // GetFileUploadURLRequest generates a "aws/request.Request" representing the
 // client's request for the GetFileUploadURL operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1484,7 +1495,7 @@ const opGetHIT = "GetHIT"
 // GetHITRequest generates a "aws/request.Request" representing the
 // client's request for the GetHIT operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1567,7 +1578,7 @@ const opGetQualificationScore = "GetQualificationScore"
 // GetQualificationScoreRequest generates a "aws/request.Request" representing the
 // client's request for the GetQualificationScore operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1658,7 +1669,7 @@ const opGetQualificationType = "GetQualificationType"
 // GetQualificationTypeRequest generates a "aws/request.Request" representing the
 // client's request for the GetQualificationType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1742,7 +1753,7 @@ const opListAssignmentsForHIT = "ListAssignmentsForHIT"
 // ListAssignmentsForHITRequest generates a "aws/request.Request" representing the
 // client's request for the ListAssignmentsForHIT operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -1901,7 +1912,7 @@ const opListBonusPayments = "ListBonusPayments"
 // ListBonusPaymentsRequest generates a "aws/request.Request" representing the
 // client's request for the ListBonusPayments operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2041,7 +2052,7 @@ const opListHITs = "ListHITs"
 // ListHITsRequest generates a "aws/request.Request" representing the
 // client's request for the ListHITs operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2182,7 +2193,7 @@ const opListHITsForQualificationType = "ListHITsForQualificationType"
 // ListHITsForQualificationTypeRequest generates a "aws/request.Request" representing the
 // client's request for the ListHITsForQualificationType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2324,7 +2335,7 @@ const opListQualificationRequests = "ListQualificationRequests"
 // ListQualificationRequestsRequest generates a "aws/request.Request" representing the
 // client's request for the ListQualificationRequests operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2466,7 +2477,7 @@ const opListQualificationTypes = "ListQualificationTypes"
 // ListQualificationTypesRequest generates a "aws/request.Request" representing the
 // client's request for the ListQualificationTypes operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2606,7 +2617,7 @@ const opListReviewPolicyResultsForHIT = "ListReviewPolicyResultsForHIT"
 // ListReviewPolicyResultsForHITRequest generates a "aws/request.Request" representing the
 // client's request for the ListReviewPolicyResultsForHIT operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2749,7 +2760,7 @@ const opListReviewableHITs = "ListReviewableHITs"
 // ListReviewableHITsRequest generates a "aws/request.Request" representing the
 // client's request for the ListReviewableHITs operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -2890,7 +2901,7 @@ const opListWorkerBlocks = "ListWorkerBlocks"
 // ListWorkerBlocksRequest generates a "aws/request.Request" representing the
 // client's request for the ListWorkerBlocks operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3030,7 +3041,7 @@ const opListWorkersWithQualificationType = "ListWorkersWithQualificationType"
 // ListWorkersWithQualificationTypeRequest generates a "aws/request.Request" representing the
 // client's request for the ListWorkersWithQualificationType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3170,7 +3181,7 @@ const opNotifyWorkers = "NotifyWorkers"
 // NotifyWorkersRequest generates a "aws/request.Request" representing the
 // client's request for the NotifyWorkers operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3257,7 +3268,7 @@ const opRejectAssignment = "RejectAssignment"
 // RejectAssignmentRequest generates a "aws/request.Request" representing the
 // client's request for the RejectAssignment operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3291,6 +3302,7 @@ func (c *MTurk) RejectAssignmentRequest(input *RejectAssignmentInput) (req *requ
 
 	output = &RejectAssignmentOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3348,7 +3360,7 @@ const opRejectQualificationRequest = "RejectQualificationRequest"
 // RejectQualificationRequestRequest generates a "aws/request.Request" representing the
 // client's request for the RejectQualificationRequest operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3382,6 +3394,7 @@ func (c *MTurk) RejectQualificationRequestRequest(input *RejectQualificationRequ
 
 	output = &RejectQualificationRequestOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3434,7 +3447,7 @@ const opSendBonus = "SendBonus"
 // SendBonusRequest generates a "aws/request.Request" representing the
 // client's request for the SendBonus operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3468,6 +3481,7 @@ func (c *MTurk) SendBonusRequest(input *SendBonusInput) (req *request.Request, o
 
 	output = &SendBonusOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3525,7 +3539,7 @@ const opSendTestEventNotification = "SendTestEventNotification"
 // SendTestEventNotificationRequest generates a "aws/request.Request" representing the
 // client's request for the SendTestEventNotification operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3559,6 +3573,7 @@ func (c *MTurk) SendTestEventNotificationRequest(input *SendTestEventNotificatio
 
 	output = &SendTestEventNotificationOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3613,7 +3628,7 @@ const opUpdateExpirationForHIT = "UpdateExpirationForHIT"
 // UpdateExpirationForHITRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateExpirationForHIT operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3647,6 +3662,7 @@ func (c *MTurk) UpdateExpirationForHITRequest(input *UpdateExpirationForHITInput
 
 	output = &UpdateExpirationForHITOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3698,7 +3714,7 @@ const opUpdateHITReviewStatus = "UpdateHITReviewStatus"
 // UpdateHITReviewStatusRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateHITReviewStatus operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3732,6 +3748,7 @@ func (c *MTurk) UpdateHITReviewStatusRequest(input *UpdateHITReviewStatusInput) 
 
 	output = &UpdateHITReviewStatusOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3783,7 +3800,7 @@ const opUpdateHITTypeOfHIT = "UpdateHITTypeOfHIT"
 // UpdateHITTypeOfHITRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateHITTypeOfHIT operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3817,6 +3834,7 @@ func (c *MTurk) UpdateHITTypeOfHITRequest(input *UpdateHITTypeOfHITInput) (req *
 
 	output = &UpdateHITTypeOfHITOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3869,7 +3887,7 @@ const opUpdateNotificationSettings = "UpdateNotificationSettings"
 // UpdateNotificationSettingsRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateNotificationSettings operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -3903,6 +3921,7 @@ func (c *MTurk) UpdateNotificationSettingsRequest(input *UpdateNotificationSetti
 
 	output = &UpdateNotificationSettingsOutput{}
 	req = c.newRequest(op, input, output)
+	req.Handlers.Unmarshal.Swap(jsonrpc.UnmarshalHandler.Name, protocol.UnmarshalDiscardBodyHandler)
 	return
 }
 
@@ -3961,7 +3980,7 @@ const opUpdateQualificationType = "UpdateQualificationType"
 // UpdateQualificationTypeRequest generates a "aws/request.Request" representing the
 // client's request for the UpdateQualificationType operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -4215,7 +4234,7 @@ type Assignment struct {
 	_ struct{} `type:"structure"`
 
 	// The date and time the Worker accepted the assignment.
-	AcceptTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	AcceptTime *time.Time `type:"timestamp"`
 
 	// The Worker's answers submitted for the HIT contained in a QuestionFormAnswers
 	// document, if the Worker provides an answer. If the Worker does not provide
@@ -4227,7 +4246,7 @@ type Assignment struct {
 	// ApprovalTime is the date and time the Requester approved the results. This
 	// value is omitted from the assignment if the Requester has not yet approved
 	// the results.
-	ApprovalTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	ApprovalTime *time.Time `type:"timestamp"`
 
 	// A unique identifier for the assignment.
 	AssignmentId *string `min:"1" type:"string"`
@@ -4241,19 +4260,19 @@ type Assignment struct {
 	// This value is derived from the auto-approval delay specified by the Requester
 	// in the HIT. This value is omitted from the assignment if the Worker has not
 	// yet submitted results.
-	AutoApprovalTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	AutoApprovalTime *time.Time `type:"timestamp"`
 
 	// The date and time of the deadline for the assignment. This value is derived
 	// from the deadline specification for the HIT and the date and time the Worker
 	// accepted the HIT.
-	Deadline *time.Time `type:"timestamp" timestampFormat:"unix"`
+	Deadline *time.Time `type:"timestamp"`
 
 	// The ID of the HIT.
 	HITId *string `min:"1" type:"string"`
 
 	// If the Worker has submitted results and the Requester has rejected the results,
 	// RejectionTime is the date and time the Requester rejected the results.
-	RejectionTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	RejectionTime *time.Time `type:"timestamp"`
 
 	// The feedback string included with the call to the ApproveAssignment operation
 	// or the RejectAssignment operation, if the Requester approved or rejected
@@ -4263,7 +4282,7 @@ type Assignment struct {
 	// If the Worker has submitted results, SubmitTime is the date and time the
 	// assignment was submitted. This value is omitted from the assignment if the
 	// Worker has not yet submitted results.
-	SubmitTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	SubmitTime *time.Time `type:"timestamp"`
 
 	// The ID of the Worker who accepted the HIT.
 	WorkerId *string `min:"1" type:"string"`
@@ -4455,7 +4474,7 @@ type BonusPayment struct {
 	BonusAmount *string `type:"string"`
 
 	// The date and time of when the bonus was granted.
-	GrantTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	GrantTime *time.Time `type:"timestamp"`
 
 	// The Reason text given when the bonus was granted, if any.
 	Reason *string `type:"string"`
@@ -6209,13 +6228,13 @@ type HIT struct {
 	AutoApprovalDelayInSeconds *int64 `type:"long"`
 
 	// The date and time the HIT was created.
-	CreationTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationTime *time.Time `type:"timestamp"`
 
 	// A general description of the HIT.
 	Description *string `type:"string"`
 
 	// The date and time the HIT expires.
-	Expiration *time.Time `type:"timestamp" timestampFormat:"unix"`
+	Expiration *time.Time `type:"timestamp"`
 
 	// The ID of the HIT Group of this HIT.
 	HITGroupId *string `min:"1" type:"string"`
@@ -8011,7 +8030,7 @@ type Qualification struct {
 	// Qualification was revoked, and then re-granted based on a new Qualification
 	// request, GrantTime is the date and time of the last call to the AcceptQualificationRequest
 	// operation.
-	GrantTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	GrantTime *time.Time `type:"timestamp"`
 
 	// The value (score) of the Qualification, if the Qualification has an integer
 	// value.
@@ -8098,7 +8117,7 @@ type QualificationRequest struct {
 	// is either the time the Worker submitted answers for a Qualification test,
 	// or the time the Worker requested the Qualification if the Qualification type
 	// does not have a test.
-	SubmitTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	SubmitTime *time.Time `type:"timestamp"`
 
 	// The contents of the Qualification test that was presented to the Worker,
 	// if the type has a test and the Worker has submitted answers. This value is
@@ -8227,6 +8246,8 @@ type QualificationRequirement struct {
 	// HIT, the Worker will be allowed to preview the HIT's question data, but will
 	// not be allowed to accept and complete the HIT. The default is false. This
 	// should not be used in combination with the ActionsGuarded field.
+	//
+	// Deprecated: RequiredToPreview has been deprecated
 	RequiredToPreview *bool `deprecated:"true" type:"boolean"`
 }
 
@@ -8323,7 +8344,7 @@ type QualificationType struct {
 	AutoGrantedValue *int64 `type:"integer"`
 
 	// The date and time the Qualification type was created.
-	CreationTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CreationTime *time.Time `type:"timestamp"`
 
 	// A long description for the Qualification type.
 	Description *string `type:"string"`
@@ -8608,7 +8629,7 @@ type ReviewActionDetail struct {
 	ActionName *string `type:"string"`
 
 	// The date when the action was completed.
-	CompleteTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	CompleteTime *time.Time `type:"timestamp"`
 
 	// Present only when the Results have a FAILED Status.
 	ErrorCode *string `type:"string"`
@@ -9046,7 +9067,7 @@ type UpdateExpirationForHITInput struct {
 	// The date and time at which you want the HIT to expire
 	//
 	// ExpireAt is a required field
-	ExpireAt *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+	ExpireAt *time.Time `type:"timestamp" required:"true"`
 
 	// The HIT to update.
 	//

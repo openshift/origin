@@ -68,6 +68,7 @@ type IngressControllerSpec struct {
 	// infrastructure.config.openshift.io/cluster .status.platform:
 	//
 	//   AWS:      LoadBalancerService
+	//   Azure:    LoadBalancerService
 	//   Libvirt:  HostNetwork
 	//
 	// Any other platform types (including None) default to HostNetwork.

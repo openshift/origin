@@ -18,8 +18,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var spec = Swagger{
@@ -51,15 +52,15 @@ var spec = Swagger{
 			{"internalApiKey": {}},
 		},
 		Tags:         []Tag{NewTag("pets", "", nil)},
-		ExternalDocs: &ExternalDocumentation{Description: "the name", URL: "the url"},
+		ExternalDocs: &ExternalDocumentation{"the name", "the url"},
 	},
-	VendorExtensible: VendorExtensible{Extensions: map[string]interface{}{
+	VendorExtensible: VendorExtensible{map[string]interface{}{
 		"x-some-extension": "vendor",
 		"x-schemes":        []interface{}{"unix", "amqp"},
 	}},
 }
 
-const specJSON = `{
+var specJSON = `{
 	"id": "http://localhost:3849/api-docs",
 	"consumes": ["application/json", "application/x-yaml"],
 	"produces": ["application/json"],
@@ -70,8 +71,7 @@ const specJSON = `{
 			"name": "wordnik api team",
 			"url": "http://developer.wordnik.com"
 		},
-		"description": "A sample API that uses a petstore as an example to demonstrate features in the swagger-2.0` +
-	` specification",
+		"description": "A sample API that uses a petstore as an example to demonstrate features in the swagger-2.0 specification",
 		"license": {
 			"name": "Creative Commons 4.0 International",
 			"url": "http://creativecommons.org/licenses/by/4.0/"
@@ -239,7 +239,7 @@ func assertSpecJSON(t testing.TB, specJSON []byte) bool {
 
 func TestSwaggerSpec_Serialize(t *testing.T) {
 	expected := make(map[string]interface{})
-	_ = json.Unmarshal([]byte(specJSON), &expected)
+	json.Unmarshal([]byte(specJSON), &expected)
 	b, err := json.MarshalIndent(spec, "", "  ")
 	if assert.NoError(t, err) {
 		var actual map[string]interface{}
@@ -329,7 +329,8 @@ func TestOptionalSwaggerProps_Serialize(t *testing.T) {
 	}
 }
 
-var minimalJSONSpec = []byte(`{
+func TestSecurityRequirements(t *testing.T) {
+	minimalJSONSpec := []byte(`{
 		"swagger": "2.0",
 		"info": {
 			"version": "0.0.0",
@@ -374,7 +375,6 @@ var minimalJSONSpec = []byte(`{
 		}
 	}`)
 
-func TestSecurityRequirements(t *testing.T) {
 	var minimalSpec Swagger
 	err := json.Unmarshal(minimalJSONSpec, &minimalSpec)
 	if assert.NoError(t, err) {
@@ -386,20 +386,4 @@ func TestSecurityRequirements(t *testing.T) {
 		assert.Empty(t, sec[1])
 		assert.Contains(t, sec[2], "queryKey")
 	}
-}
-
-func TestSwaggerGobEncoding(t *testing.T) {
-	doTestSwaggerGobEncoding(t, specJSON)
-
-	doTestSwaggerGobEncoding(t, string(minimalJSONSpec))
-}
-
-func doTestSwaggerGobEncoding(t *testing.T, fixture string) {
-	var src, dst Swagger
-
-	if !assert.NoError(t, json.Unmarshal([]byte(fixture), &src)) {
-		t.FailNow()
-	}
-
-	doTestAnyGobEncoding(t, &src, &dst)
 }

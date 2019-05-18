@@ -12,8 +12,6 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	SecurityV1() securityv1.SecurityV1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Security() securityv1.SecurityV1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -25,12 +23,6 @@ type Clientset struct {
 
 // SecurityV1 retrieves the SecurityV1Client
 func (c *Clientset) SecurityV1() securityv1.SecurityV1Interface {
-	return c.securityV1
-}
-
-// Deprecated: Security retrieves the default version of SecurityClient.
-// Please explicitly pick a version.
-func (c *Clientset) Security() securityv1.SecurityV1Interface {
 	return c.securityV1
 }
 

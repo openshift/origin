@@ -29,10 +29,16 @@ import (
 )
 
 func TestSigner(t *testing.T) {
+	testNow := time.Now()
+	testNowFn := func() time.Time {
+		return testNow
+	}
+
 	s, err := newCFSSLSigner("./testdata/ca.crt", "./testdata/ca.key", nil, 1*time.Hour)
 	if err != nil {
 		t.Fatalf("failed to create signer: %v", err)
 	}
+	s.nowFn = testNowFn
 
 	csrb, err := ioutil.ReadFile("./testdata/kubelet.csr")
 	if err != nil {
@@ -81,6 +87,13 @@ func TestSigner(t *testing.T) {
 	}
 	if !reflect.DeepEqual(crt.ExtKeyUsage, []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth}) {
 		t.Errorf("bad extended key usage")
+	}
+
+	expectedTime := testNow.Add(1 * time.Hour)
+	// there is some jitter that we need to tolerate
+	diff := expectedTime.Sub(crt.NotAfter)
+	if diff > 10*time.Minute || diff < -10*time.Minute {
+		t.Fatal(crt.NotAfter)
 	}
 }
 

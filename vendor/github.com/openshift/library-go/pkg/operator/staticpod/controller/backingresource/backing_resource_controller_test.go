@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/library-go/pkg/operator/condition"
 	"github.com/openshift/library-go/pkg/operator/v1helpers"
 
 	"k8s.io/api/core/v1"
@@ -154,7 +155,7 @@ func TestBackingResourceController(t *testing.T) {
 			),
 			expectSyncError: `test error`,
 			validateStatus: func(t *testing.T, status *operatorv1.OperatorStatus) {
-				if status.Conditions[0].Type != operatorStatusBackingResourceControllerDegraded {
+				if status.Conditions[0].Type != condition.BackingResourceControllerDegradedConditionType {
 					t.Errorf("expected status condition to be failing, got %v", status.Conditions[0].Type)
 				}
 				if status.Conditions[0].Reason != "Error" {

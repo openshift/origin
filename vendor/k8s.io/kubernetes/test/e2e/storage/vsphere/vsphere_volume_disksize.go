@@ -67,7 +67,7 @@ var _ = utils.SIGDescribe("Volume Disk Size [Feature:vsphere]", func() {
 		expectedDiskSize := "1Mi"
 
 		By("Creating Storage Class")
-		storageclass, err := client.StorageV1().StorageClasses().Create(getVSphereStorageClassSpec(DiskSizeSCName, scParameters))
+		storageclass, err := client.StorageV1().StorageClasses().Create(getVSphereStorageClassSpec(DiskSizeSCName, scParameters, nil))
 		framework.ExpectNoError(err)
 		defer client.StorageV1().StorageClasses().Delete(storageclass.Name, nil)
 

@@ -8,27 +8,24 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/clients"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/identity/v3/regions"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 func TestRegionsList(t *testing.T) {
+	clients.RequireAdmin(t)
+
 	client, err := clients.NewIdentityV3Client()
-	if err != nil {
-		t.Fatalf("Unable to obtain an identity client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	listOpts := regions.ListOpts{
 		ParentRegionID: "RegionOne",
 	}
 
 	allPages, err := regions.List(client, listOpts).AllPages()
-	if err != nil {
-		t.Fatalf("Unable to list regions: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	allRegions, err := regions.ExtractRegions(allPages)
-	if err != nil {
-		t.Fatalf("Unable to extract regions: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	for _, region := range allRegions {
 		tools.PrintResource(t, region)
@@ -36,35 +33,31 @@ func TestRegionsList(t *testing.T) {
 }
 
 func TestRegionsGet(t *testing.T) {
+	clients.RequireAdmin(t)
+
 	client, err := clients.NewIdentityV3Client()
-	if err != nil {
-		t.Fatalf("Unable to obtain an identity client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	allPages, err := regions.List(client, nil).AllPages()
-	if err != nil {
-		t.Fatalf("Unable to list regions: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	allRegions, err := regions.ExtractRegions(allPages)
-	if err != nil {
-		t.Fatalf("Unable to extract regions: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	region := allRegions[0]
 	p, err := regions.Get(client, region.ID).Extract()
-	if err != nil {
-		t.Fatalf("Unable to get region: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, p)
+
+	th.AssertEquals(t, region.ID, p.ID)
 }
 
 func TestRegionsCRUD(t *testing.T) {
+	clients.RequireAdmin(t)
+
 	client, err := clients.NewIdentityV3Client()
-	if err != nil {
-		t.Fatalf("Unable to obtain an identity client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	createOpts := regions.CreateOpts{
 		ID:          "testregion",
@@ -76,16 +69,15 @@ func TestRegionsCRUD(t *testing.T) {
 
 	// Create region in the default domain
 	region, err := CreateRegion(t, client, &createOpts)
-	if err != nil {
-		t.Fatalf("Unable to create region: %v", err)
-	}
+	th.AssertNoErr(t, err)
 	defer DeleteRegion(t, client, region.ID)
 
 	tools.PrintResource(t, region)
 	tools.PrintResource(t, region.Extra)
 
+	var description = ""
 	updateOpts := regions.UpdateOpts{
-		Description: "Region A for testing",
+		Description: &description,
 		/*
 			// Due to a bug in Keystone, the Extra column of the Region table
 			// is not updatable, see: https://bugs.launchpad.net/keystone/+bug/1729933
@@ -98,10 +90,10 @@ func TestRegionsCRUD(t *testing.T) {
 	}
 
 	newRegion, err := regions.Update(client, region.ID, updateOpts).Extract()
-	if err != nil {
-		t.Fatalf("Unable to update region: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, newRegion)
 	tools.PrintResource(t, newRegion.Extra)
+
+	th.AssertEquals(t, newRegion.Description, description)
 }

@@ -3,9 +3,9 @@
 #
 # The standard name for this image is openshift/sti-release
 #
-FROM openshift/origin-base
+FROM registry.redhat.io/ubi8/ubi
 
-ENV VERSION=1.7.4 \
+ENV VERSION=1.10.8 \
     GOARM=5 \
     GOPATH=/go \
     GOROOT=/usr/local/go \

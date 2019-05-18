@@ -78,6 +78,8 @@ func TestListWithExtensions(t *testing.T) {
 
 	th.AssertEquals(t, allNetworks[0].Status, "ACTIVE")
 	th.AssertEquals(t, allNetworks[0].PortSecurityEnabled, true)
+	th.AssertEquals(t, allNetworks[0].Subnets[0], "54d6f61d-db07-451c-9ab3-b9609b6b6f0b")
+	th.AssertEquals(t, allNetworks[1].Subnets[0], "08eae331-0402-425a-923c-34f7cfe39c1b")
 }
 
 func TestGet(t *testing.T) {

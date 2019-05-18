@@ -5,14 +5,17 @@
 package ssautil_test
 
 import (
+	"bytes"
 	"go/ast"
 	"go/importer"
 	"go/parser"
 	"go/token"
 	"go/types"
 	"os"
+	"strings"
 	"testing"
 
+	"golang.org/x/tools/go/packages"
 	"golang.org/x/tools/go/ssa/ssautil"
 )
 
@@ -49,6 +52,45 @@ func TestBuildPackage(t *testing.T) {
 	}
 }
 
+func TestPackages(t *testing.T) {
+	cfg := &packages.Config{Mode: packages.LoadSyntax}
+	initial, err := packages.Load(cfg, "bytes")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if packages.PrintErrors(initial) > 0 {
+		t.Fatal("there were errors")
+	}
+
+	prog, pkgs := ssautil.Packages(initial, 0)
+	bytesNewBuffer := pkgs[0].Func("NewBuffer")
+	bytesNewBuffer.Pkg.Build()
+
+	// We'll dump the SSA of bytes.NewBuffer because it is small and stable.
+	out := new(bytes.Buffer)
+	bytesNewBuffer.WriteTo(out)
+
+	// For determinism, sanitize the location.
+	location := prog.Fset.Position(bytesNewBuffer.Pos()).String()
+	got := strings.Replace(out.String(), location, "$GOROOT/src/bytes/buffer.go:1", -1)
+
+	want := `
+# Name: bytes.NewBuffer
+# Package: bytes
+# Location: $GOROOT/src/bytes/buffer.go:1
+func NewBuffer(buf []byte) *Buffer:
+0:                                                                entry P:0 S:0
+	t0 = new Buffer (complit)                                       *Buffer
+	t1 = &t0.buf [#0]                                               *[]byte
+	*t1 = buf
+	return t0
+
+`[1:]
+	if got != want {
+		t.Errorf("bytes.NewBuffer SSA = <<%s>>, want <<%s>>", got, want)
+	}
+}
+
 func TestBuildPackage_MissingImport(t *testing.T) {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, "bad.go", `package bad; import "missing"`, 0)
@@ -61,4 +103,18 @@ func TestBuildPackage_MissingImport(t *testing.T) {
 	if err == nil || ssapkg != nil {
 		t.Fatal("BuildPackage succeeded unexpectedly")
 	}
+}
+
+func TestIssue28106(t *testing.T) {
+	// In go1.10, go/packages loads all packages from source, not
+	// export data, but does not type check function bodies of
+	// imported packages. This test ensures that we do not attempt
+	// to run the SSA builder on functions without type information.
+	cfg := &packages.Config{Mode: packages.LoadSyntax}
+	pkgs, err := packages.Load(cfg, "runtime")
+	if err != nil {
+		t.Fatal(err)
+	}
+	prog, _ := ssautil.Packages(pkgs, 0)
+	prog.Build() // no crash
 }

@@ -68,7 +68,7 @@ var staticSuites = []*ginkgo.TestSuite{
 		Tests that exercise the OpenShift build functionality.
 		`),
 		Matches: func(name string) bool {
-			return strings.Contains(name, "[Feature:Builds]")
+			return !strings.Contains(name, "[Disabled") && strings.Contains(name, "[Feature:Builds]")
 		},
 		Parallelism: 7,
 		// TODO: Builds are really flaky right now, remove when we land perf updates and fix io on workers

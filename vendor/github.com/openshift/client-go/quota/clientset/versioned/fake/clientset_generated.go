@@ -59,8 +59,3 @@ var _ clientset.Interface = &Clientset{}
 func (c *Clientset) QuotaV1() quotav1.QuotaV1Interface {
 	return &fakequotav1.FakeQuotaV1{Fake: &c.Fake}
 }
-
-// Quota retrieves the QuotaV1Client
-func (c *Clientset) Quota() quotav1.QuotaV1Interface {
-	return &fakequotav1.FakeQuotaV1{Fake: &c.Fake}
-}

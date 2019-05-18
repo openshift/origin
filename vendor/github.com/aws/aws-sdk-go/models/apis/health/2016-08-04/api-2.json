@@ -7,6 +7,7 @@
     "protocol":"json",
     "serviceAbbreviation":"AWSHealth",
     "serviceFullName":"AWS Health APIs and Notifications",
+    "serviceId":"Health",
     "signatureVersion":"v4",
     "targetPrefix":"AWSHealth_20160804",
     "uid":"health-2016-08-04"
@@ -98,6 +99,7 @@
         "entityArn":{"shape":"entityArn"},
         "eventArn":{"shape":"eventArn"},
         "entityValue":{"shape":"entityValue"},
+        "entityUrl":{"shape":"entityUrl"},
         "awsAccountId":{"shape":"accountId"},
         "lastUpdatedTime":{"shape":"timestamp"},
         "statusCode":{"shape":"entityStatusCode"},
@@ -405,6 +407,10 @@
       "max":3,
       "min":1
     },
+    "entityUrl":{
+      "type":"string",
+      "pattern":"https?://.+\\.(amazon\\.com|amazonaws\\.com|amazonaws\\.cn|c2s\\.ic\\.gov|sc2s\\.sgov\\.gov|amazonaws-us-gov.com)/.*"
+    },
     "entityValue":{
       "type":"string",
       "max":256
@@ -422,7 +428,7 @@
     "eventArn":{
       "type":"string",
       "max":1600,
-      "pattern":"arn:aws:health:[^:]*:[^:]*:event/[\\w-]+"
+      "pattern":"arn:aws:health:[^:]*:[^:]*:event(?:/[\\w-]+){3}"
     },
     "eventArnList":{
       "type":"list",

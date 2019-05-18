@@ -46,7 +46,7 @@ func TestDefaultingHappens(t *testing.T) {
 
 	attributes := admission.NewAttributesRecord(inputUnstructured, nil, schema.GroupVersionKind{}, "", "", schema.GroupVersionResource{Group: "security.openshift.io", Resource: "securitycontextconstraints"}, "", admission.Create, false, nil)
 	defaulter := NewDefaulter()
-	if err := defaulter.(*defaultSCC).Admit(attributes); err != nil {
+	if err := defaulter.(*defaultSCC).Admit(attributes, nil); err != nil {
 		t.Fatal(err)
 	}
 

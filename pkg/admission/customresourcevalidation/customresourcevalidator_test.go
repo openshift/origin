@@ -229,7 +229,7 @@ func TestCustomResourceValidator(t *testing.T) {
 				tc.userInfo,
 			)
 
-			err = validator.Validate(attributes)
+			err = validator.Validate(attributes, nil)
 			switch {
 			case tc.expectError && err == nil:
 				t.Error("Error expected")

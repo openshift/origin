@@ -198,7 +198,7 @@ func TestSyncConfigMap(t *testing.T) {
 			"operator":       operatorInformers,
 		}),
 		v1helpers.CachedSecretGetter(kubeClient.CoreV1(), kubeInformersForNamespaces),
-		v1helpers.CachedConfigMapGetter(kubeClient.Core(), kubeInformersForNamespaces),
+		v1helpers.CachedConfigMapGetter(kubeClient.CoreV1(), kubeInformersForNamespaces),
 		eventRecorder,
 	)
 	c.configMapGetter = kubeClient.CoreV1()

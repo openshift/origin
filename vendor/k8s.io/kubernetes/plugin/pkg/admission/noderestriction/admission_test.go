@@ -33,11 +33,11 @@ import (
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	corev1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
-	csiv1alpha1 "k8s.io/csi-api/pkg/apis/csi/v1alpha1"
 	authenticationapi "k8s.io/kubernetes/pkg/apis/authentication"
 	"k8s.io/kubernetes/pkg/apis/coordination"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/policy"
+	storage "k8s.io/kubernetes/pkg/apis/storage"
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 	"k8s.io/kubernetes/pkg/features"
 	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
@@ -306,14 +306,14 @@ func Test_nodePlugin_Admit(t *testing.T) {
 			},
 		}
 
-		csiNodeInfoResource = csiv1alpha1.Resource("csinodeinfos").WithVersion("v1alpha1")
-		csiNodeInfoKind     = schema.GroupVersionKind{Group: "csi.storage.k8s.io", Version: "v1alpha1", Kind: "CSINodeInfo"}
-		nodeInfo            = &csiv1alpha1.CSINodeInfo{
+		csiNodeResource = storage.Resource("csinodes").WithVersion("v1beta1")
+		csiNodeKind     = schema.GroupVersionKind{Group: "storage.k8s.io", Version: "v1beta1", Kind: "CSINode"}
+		nodeInfo        = &storage.CSINode{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "mynode",
 			},
-			Spec: csiv1alpha1.CSINodeInfoSpec{
-				Drivers: []csiv1alpha1.CSIDriverInfoSpec{
+			Spec: storage.CSINodeSpec{
+				Drivers: []storage.CSINodeDriver{
 					{
 						Name:         "com.example.csi/mydriver",
 						NodeID:       "com.example.csi/mynode",
@@ -321,35 +321,17 @@ func Test_nodePlugin_Admit(t *testing.T) {
 					},
 				},
 			},
-			Status: csiv1alpha1.CSINodeInfoStatus{
-				Drivers: []csiv1alpha1.CSIDriverInfoStatus{
-					{
-						Name:                  "com.example.csi/mydriver",
-						Available:             true,
-						VolumePluginMechanism: csiv1alpha1.VolumePluginMechanismInTree,
-					},
-				},
-			},
 		}
-		nodeInfoWrongName = &csiv1alpha1.CSINodeInfo{
+		nodeInfoWrongName = &storage.CSINode{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "foo",
 			},
-			Spec: csiv1alpha1.CSINodeInfoSpec{
-				Drivers: []csiv1alpha1.CSIDriverInfoSpec{
+			Spec: storage.CSINodeSpec{
+				Drivers: []storage.CSINodeDriver{
 					{
 						Name:         "com.example.csi/mydriver",
 						NodeID:       "com.example.csi/foo",
 						TopologyKeys: []string{"com.example.csi/zone"},
-					},
-				},
-			},
-			Status: csiv1alpha1.CSINodeInfoStatus{
-				Drivers: []csiv1alpha1.CSIDriverInfoStatus{
-					{
-						Name:                  "com.example.csi/mydriver",
-						Available:             true,
-						VolumePluginMechanism: csiv1alpha1.VolumePluginMechanismInTree,
 					},
 				},
 			},
@@ -868,7 +850,7 @@ func Test_nodePlugin_Admit(t *testing.T) {
 			name:       "forbid create of my node with forbidden labels",
 			podsGetter: noExistingPods,
 			attributes: admission.NewAttributesRecord(setForbiddenCreateLabels(mynodeObj, ""), nil, nodeKind, mynodeObj.Namespace, "", nodeResource, "", admission.Create, false, mynode),
-			err:        `cannot set labels: foo.node-restriction.kubernetes.io/foo, node-restriction.kubernetes.io/foo`,
+			err:        `is not allowed to set the following labels: foo.node-restriction.kubernetes.io/foo, node-restriction.kubernetes.io/foo`,
 		},
 		{
 			name:       "allow update of my node",
@@ -892,7 +874,7 @@ func Test_nodePlugin_Admit(t *testing.T) {
 			name:       "forbid create of my node with non-nil configSource",
 			podsGetter: noExistingPods,
 			attributes: admission.NewAttributesRecord(mynodeObjConfigA, nil, nodeKind, mynodeObj.Namespace, mynodeObj.Name, nodeResource, "", admission.Create, false, mynode),
-			err:        "create with non-nil configSource",
+			err:        "is not allowed to create pods with a non-nil configSource",
 		},
 		{
 			name:       "forbid update of my node: nil configSource to new non-nil configSource",
@@ -964,37 +946,37 @@ func Test_nodePlugin_Admit(t *testing.T) {
 			name:       "forbid update of my node: add taints",
 			podsGetter: existingPods,
 			attributes: admission.NewAttributesRecord(mynodeObjTaintA, mynodeObj, nodeKind, mynodeObj.Namespace, mynodeObj.Name, nodeResource, "", admission.Update, false, mynode),
-			err:        "cannot modify taints",
+			err:        "is not allowed to modify taints",
 		},
 		{
 			name:       "forbid update of my node: remove taints",
 			podsGetter: existingPods,
 			attributes: admission.NewAttributesRecord(mynodeObj, mynodeObjTaintA, nodeKind, mynodeObj.Namespace, mynodeObj.Name, nodeResource, "", admission.Update, false, mynode),
-			err:        "cannot modify taints",
+			err:        "is not allowed to modify taints",
 		},
 		{
 			name:       "forbid update of my node: change taints",
 			podsGetter: existingPods,
 			attributes: admission.NewAttributesRecord(mynodeObjTaintA, mynodeObjTaintB, nodeKind, mynodeObj.Namespace, mynodeObj.Name, nodeResource, "", admission.Update, false, mynode),
-			err:        "cannot modify taints",
+			err:        "is not allowed to modify taints",
 		},
 		{
 			name:       "forbid update of my node: add labels",
 			podsGetter: existingPods,
 			attributes: admission.NewAttributesRecord(setForbiddenUpdateLabels(mynodeObj, ""), mynodeObj, nodeKind, mynodeObj.Namespace, mynodeObj.Name, nodeResource, "", admission.Update, false, mynode),
-			err:        `cannot modify labels: foo.node-restriction.kubernetes.io/foo, node-restriction.kubernetes.io/foo, other.k8s.io/foo, other.kubernetes.io/foo`,
+			err:        `is not allowed to modify labels: foo.node-restriction.kubernetes.io/foo, node-restriction.kubernetes.io/foo, other.k8s.io/foo, other.kubernetes.io/foo`,
 		},
 		{
 			name:       "forbid update of my node: remove labels",
 			podsGetter: existingPods,
 			attributes: admission.NewAttributesRecord(mynodeObj, setForbiddenUpdateLabels(mynodeObj, ""), nodeKind, mynodeObj.Namespace, mynodeObj.Name, nodeResource, "", admission.Update, false, mynode),
-			err:        `cannot modify labels: foo.node-restriction.kubernetes.io/foo, node-restriction.kubernetes.io/foo, other.k8s.io/foo, other.kubernetes.io/foo`,
+			err:        `is not allowed to modify labels: foo.node-restriction.kubernetes.io/foo, node-restriction.kubernetes.io/foo, other.k8s.io/foo, other.kubernetes.io/foo`,
 		},
 		{
 			name:       "forbid update of my node: change labels",
 			podsGetter: existingPods,
 			attributes: admission.NewAttributesRecord(setForbiddenUpdateLabels(mynodeObj, "new"), setForbiddenUpdateLabels(mynodeObj, "old"), nodeKind, mynodeObj.Namespace, mynodeObj.Name, nodeResource, "", admission.Update, false, mynode),
-			err:        `cannot modify labels: foo.node-restriction.kubernetes.io/foo, node-restriction.kubernetes.io/foo, other.k8s.io/foo, other.kubernetes.io/foo`,
+			err:        `is not allowed to modify labels: foo.node-restriction.kubernetes.io/foo, node-restriction.kubernetes.io/foo, other.k8s.io/foo, other.kubernetes.io/foo`,
 		},
 
 		// Other node object
@@ -1002,31 +984,31 @@ func Test_nodePlugin_Admit(t *testing.T) {
 			name:       "forbid create of other node",
 			podsGetter: noExistingPods,
 			attributes: admission.NewAttributesRecord(othernodeObj, nil, nodeKind, othernodeObj.Namespace, othernodeObj.Name, nodeResource, "", admission.Create, false, mynode),
-			err:        "cannot modify node",
+			err:        "is not allowed to modify node",
 		},
 		{
 			name:       "forbid create of other node pulling name from object",
 			podsGetter: noExistingPods,
 			attributes: admission.NewAttributesRecord(othernodeObj, nil, nodeKind, othernodeObj.Namespace, "", nodeResource, "", admission.Create, false, mynode),
-			err:        "cannot modify node",
+			err:        "is not allowed to modify node",
 		},
 		{
 			name:       "forbid update of other node",
 			podsGetter: existingPods,
 			attributes: admission.NewAttributesRecord(othernodeObj, othernodeObj, nodeKind, othernodeObj.Namespace, othernodeObj.Name, nodeResource, "", admission.Update, false, mynode),
-			err:        "cannot modify node",
+			err:        "is not allowed to modify node",
 		},
 		{
 			name:       "forbid delete of other node",
 			podsGetter: existingPods,
 			attributes: admission.NewAttributesRecord(nil, nil, nodeKind, othernodeObj.Namespace, othernodeObj.Name, nodeResource, "", admission.Delete, false, mynode),
-			err:        "cannot modify node",
+			err:        "is not allowed to modify node",
 		},
 		{
 			name:       "forbid update of other node status",
 			podsGetter: existingPods,
 			attributes: admission.NewAttributesRecord(othernodeObj, othernodeObj, nodeKind, othernodeObj.Namespace, othernodeObj.Name, nodeResource, "status", admission.Update, false, mynode),
-			err:        "cannot modify node",
+			err:        "is not allowed to modify node",
 		},
 
 		// Service accounts
@@ -1183,46 +1165,46 @@ func Test_nodePlugin_Admit(t *testing.T) {
 			features:   leaseEnabledFeature,
 			err:        "",
 		},
-		// CSINodeInfo
+		// CSINode
 		{
-			name:       "disallowed create CSINodeInfo - feature disabled",
-			attributes: admission.NewAttributesRecord(nodeInfo, nil, csiNodeInfoKind, nodeInfo.Namespace, nodeInfo.Name, csiNodeInfoResource, "", admission.Create, false, mynode),
+			name:       "disallowed create CSINode - feature disabled",
+			attributes: admission.NewAttributesRecord(nodeInfo, nil, csiNodeKind, nodeInfo.Namespace, nodeInfo.Name, csiNodeResource, "", admission.Create, false, mynode),
 			features:   csiNodeInfoDisabledFeature,
 			err:        fmt.Sprintf("forbidden: disabled by feature gates %s and %s", features.KubeletPluginsWatcher, features.CSINodeInfo),
 		},
 		{
-			name:       "disallowed create another node's CSINodeInfo - feature enabled",
-			attributes: admission.NewAttributesRecord(nodeInfoWrongName, nil, csiNodeInfoKind, nodeInfoWrongName.Namespace, nodeInfoWrongName.Name, csiNodeInfoResource, "", admission.Create, false, mynode),
+			name:       "disallowed create another node's CSINode - feature enabled",
+			attributes: admission.NewAttributesRecord(nodeInfoWrongName, nil, csiNodeKind, nodeInfoWrongName.Namespace, nodeInfoWrongName.Name, csiNodeResource, "", admission.Create, false, mynode),
 			features:   csiNodeInfoEnabledFeature,
 			err:        "forbidden: ",
 		},
 		{
-			name:       "disallowed update another node's CSINodeInfo - feature enabled",
-			attributes: admission.NewAttributesRecord(nodeInfoWrongName, nodeInfoWrongName, csiNodeInfoKind, nodeInfoWrongName.Namespace, nodeInfoWrongName.Name, csiNodeInfoResource, "", admission.Update, false, mynode),
+			name:       "disallowed update another node's CSINode - feature enabled",
+			attributes: admission.NewAttributesRecord(nodeInfoWrongName, nodeInfoWrongName, csiNodeKind, nodeInfoWrongName.Namespace, nodeInfoWrongName.Name, csiNodeResource, "", admission.Update, false, mynode),
 			features:   csiNodeInfoEnabledFeature,
 			err:        "forbidden: ",
 		},
 		{
-			name:       "disallowed delete another node's CSINodeInfo - feature enabled",
-			attributes: admission.NewAttributesRecord(nil, nil, csiNodeInfoKind, nodeInfoWrongName.Namespace, nodeInfoWrongName.Name, csiNodeInfoResource, "", admission.Delete, false, mynode),
+			name:       "disallowed delete another node's CSINode - feature enabled",
+			attributes: admission.NewAttributesRecord(nil, nil, csiNodeKind, nodeInfoWrongName.Namespace, nodeInfoWrongName.Name, csiNodeResource, "", admission.Delete, false, mynode),
 			features:   csiNodeInfoEnabledFeature,
 			err:        "forbidden: ",
 		},
 		{
-			name:       "allowed create node CSINodeInfo - feature enabled",
-			attributes: admission.NewAttributesRecord(nodeInfo, nil, csiNodeInfoKind, nodeInfo.Namespace, nodeInfo.Name, csiNodeInfoResource, "", admission.Create, false, mynode),
+			name:       "allowed create node CSINode - feature enabled",
+			attributes: admission.NewAttributesRecord(nodeInfo, nil, csiNodeKind, nodeInfo.Namespace, nodeInfo.Name, csiNodeResource, "", admission.Create, false, mynode),
 			features:   csiNodeInfoEnabledFeature,
 			err:        "",
 		},
 		{
-			name:       "allowed update node CSINodeInfo - feature enabled",
-			attributes: admission.NewAttributesRecord(nodeInfo, nodeInfo, csiNodeInfoKind, nodeInfo.Namespace, nodeInfo.Name, csiNodeInfoResource, "", admission.Update, false, mynode),
+			name:       "allowed update node CSINode - feature enabled",
+			attributes: admission.NewAttributesRecord(nodeInfo, nodeInfo, csiNodeKind, nodeInfo.Namespace, nodeInfo.Name, csiNodeResource, "", admission.Update, false, mynode),
 			features:   csiNodeInfoEnabledFeature,
 			err:        "",
 		},
 		{
-			name:       "allowed delete node CSINodeInfo - feature enabled",
-			attributes: admission.NewAttributesRecord(nil, nil, csiNodeInfoKind, nodeInfo.Namespace, nodeInfo.Name, csiNodeInfoResource, "", admission.Delete, false, mynode),
+			name:       "allowed delete node CSINode - feature enabled",
+			attributes: admission.NewAttributesRecord(nil, nil, csiNodeKind, nodeInfo.Namespace, nodeInfo.Name, csiNodeResource, "", admission.Delete, false, mynode),
 			features:   csiNodeInfoEnabledFeature,
 			err:        "",
 		},
@@ -1234,7 +1216,7 @@ func Test_nodePlugin_Admit(t *testing.T) {
 				c.features = tt.features
 			}
 			c.podsGetter = tt.podsGetter
-			err := c.Admit(tt.attributes)
+			err := c.Admit(tt.attributes, nil)
 			if (err == nil) != (len(tt.err) == 0) {
 				t.Errorf("nodePlugin.Admit() error = %v, expected %v", err, tt.err)
 				return

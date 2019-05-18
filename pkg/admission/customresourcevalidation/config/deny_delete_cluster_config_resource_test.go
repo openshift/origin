@@ -63,7 +63,7 @@ func TestAdmissionPlugin_Validate(t *testing.T) {
 			err := newAdmissionPlugin().Validate(admission.NewAttributesRecord(
 				nil, nil, schema.GroupVersionKind{}, "",
 				tc.name, schema.GroupVersionResource{Group: tc.group, Resource: tc.resource},
-				"", admission.Delete, false, nil))
+				"", admission.Delete, false, nil), nil)
 			if tc.denyDelete != (err != nil) {
 				t.Error(tc.denyDelete, err)
 			}

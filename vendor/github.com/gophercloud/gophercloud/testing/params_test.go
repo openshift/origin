@@ -39,7 +39,7 @@ func TestBuildQueryString(t *testing.T) {
 	iFalse := false
 	opts := struct {
 		J  int               `q:"j"`
-		R  string            `q:"r,required"`
+		R  string            `q:"r" required:"true"`
 		C  bool              `q:"c"`
 		S  []string          `q:"s"`
 		TS []testVar         `q:"ts"`
@@ -65,7 +65,7 @@ func TestBuildQueryString(t *testing.T) {
 
 	opts = struct {
 		J  int               `q:"j"`
-		R  string            `q:"r,required"`
+		R  string            `q:"r" required:"true"`
 		C  bool              `q:"c"`
 		S  []string          `q:"s"`
 		TS []testVar         `q:"ts"`
@@ -91,7 +91,7 @@ func TestBuildQueryString(t *testing.T) {
 func TestBuildHeaders(t *testing.T) {
 	testStruct := struct {
 		Accept string `h:"Accept"`
-		Num    int    `h:"Number,required"`
+		Num    int    `h:"Number" required:"true"`
 		Style  bool   `h:"Style"`
 	}{
 		Accept: "application/json",

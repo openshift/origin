@@ -16,7 +16,7 @@ const opDescribeDimensionKeys = "DescribeDimensionKeys"
 // DescribeDimensionKeysRequest generates a "aws/request.Request" representing the
 // client's request for the DescribeDimensionKeys operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -101,7 +101,7 @@ const opGetResourceMetrics = "GetResourceMetrics"
 // GetResourceMetricsRequest generates a "aws/request.Request" representing the
 // client's request for the GetResourceMetrics operation. The "output" return
 // value will be populated with the request's response once the request completes
-// successfuly.
+// successfully.
 //
 // Use "Send" method on the returned Request to send the API call to the service.
 // the "output" return value is not valid until after Send returns without error.
@@ -191,7 +191,7 @@ type DataPoint struct {
 	// The time, in epoch format, associated with a particular Value.
 	//
 	// Timestamp is a required field
-	Timestamp *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+	Timestamp *time.Time `type:"timestamp" required:"true"`
 
 	// The actual value associated with a particular Timestamp.
 	//
@@ -231,7 +231,7 @@ type DescribeDimensionKeysInput struct {
 	// The value for EndTime must be later than the value for StartTime.
 	//
 	// EndTime is a required field
-	EndTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+	EndTime *time.Time `type:"timestamp" required:"true"`
 
 	// One or more filters to apply in the request. Restrictions:
 	//
@@ -318,7 +318,7 @@ type DescribeDimensionKeysInput struct {
 	// The value for StartTime must be earlier than the value for EndTime.
 	//
 	// StartTime is a required field
-	StartTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+	StartTime *time.Time `type:"timestamp" required:"true"`
 }
 
 // String returns the string representation
@@ -441,12 +441,12 @@ type DescribeDimensionKeysOutput struct {
 	// The end time for the returned dimension keys, after alignment to a granular
 	// boundary (as specified by PeriodInSeconds). AlignedEndTime will be greater
 	// than or equal to the value of the user-specified Endtime.
-	AlignedEndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	AlignedEndTime *time.Time `type:"timestamp"`
 
 	// The start time for the returned dimension keys, after alignment to a granular
 	// boundary (as specified by PeriodInSeconds). AlignedStartTime will be less
 	// than or equal to the value of the user-specified StartTime.
-	AlignedStartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	AlignedStartTime *time.Time `type:"timestamp"`
 
 	// The dimension keys that were requested.
 	Keys []*DimensionKeyDescription `type:"list"`
@@ -665,7 +665,7 @@ type GetResourceMetricsInput struct {
 	// The value for EndTime must be later than the value for StartTime.
 	//
 	// EndTime is a required field
-	EndTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+	EndTime *time.Time `type:"timestamp" required:"true"`
 
 	// An immutable, AWS Region-unique identifier for a data source. Performance
 	// Insights gathers metrics from this data source.
@@ -724,7 +724,7 @@ type GetResourceMetricsInput struct {
 	// The value for StartTime must be earlier than the value for EndTime.
 	//
 	// StartTime is a required field
-	StartTime *time.Time `type:"timestamp" timestampFormat:"unix" required:"true"`
+	StartTime *time.Time `type:"timestamp" required:"true"`
 }
 
 // String returns the string representation
@@ -829,12 +829,12 @@ type GetResourceMetricsOutput struct {
 	// The end time for the returned metrics, after alignment to a granular boundary
 	// (as specified by PeriodInSeconds). AlignedEndTime will be greater than or
 	// equal to the value of the user-specified Endtime.
-	AlignedEndTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	AlignedEndTime *time.Time `type:"timestamp"`
 
 	// The start time for the returned metrics, after alignment to a granular boundary
 	// (as specified by PeriodInSeconds). AlignedStartTime will be less than or
 	// equal to the value of the user-specified StartTime.
-	AlignedStartTime *time.Time `type:"timestamp" timestampFormat:"unix"`
+	AlignedStartTime *time.Time `type:"timestamp"`
 
 	// An immutable, AWS Region-unique identifier for a data source. Performance
 	// Insights gathers metrics from this data source.

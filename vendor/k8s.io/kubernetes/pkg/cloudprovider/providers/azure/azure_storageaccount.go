@@ -64,8 +64,8 @@ func (az *Cloud) getStorageAccounts(matchingAccountType, matchingAccountKind, re
 	return accounts, nil
 }
 
-// getStorageAccesskey gets the storage account access key
-func (az *Cloud) getStorageAccesskey(account, resourceGroup string) (string, error) {
+// GetStorageAccesskey gets the storage account access key
+func (az *Cloud) GetStorageAccesskey(account, resourceGroup string) (string, error) {
 	ctx, cancel := getContextWithCancel()
 	defer cancel()
 
@@ -89,8 +89,8 @@ func (az *Cloud) getStorageAccesskey(account, resourceGroup string) (string, err
 	return "", fmt.Errorf("no valid keys")
 }
 
-// ensureStorageAccount search storage account, create one storage account(with genAccountNamePrefix) if not found, return accountName, accountKey
-func (az *Cloud) ensureStorageAccount(accountName, accountType, accountKind, resourceGroup, location, genAccountNamePrefix string) (string, string, error) {
+// EnsureStorageAccount search storage account, create one storage account(with genAccountNamePrefix) if not found, return accountName, accountKey
+func (az *Cloud) EnsureStorageAccount(accountName, accountType, accountKind, resourceGroup, location, genAccountNamePrefix string) (string, string, error) {
 	if len(accountName) == 0 {
 		// find a storage account that matches accountType
 		accounts, err := az.getStorageAccounts(accountType, accountKind, resourceGroup, location)
@@ -137,7 +137,7 @@ func (az *Cloud) ensureStorageAccount(accountName, accountType, accountKind, res
 	}
 
 	// find the access key with this account
-	accountKey, err := az.getStorageAccesskey(accountName, resourceGroup)
+	accountKey, err := az.GetStorageAccesskey(accountName, resourceGroup)
 	if err != nil {
 		return "", "", fmt.Errorf("could not get storage key for storage account %s: %v", accountName, err)
 	}

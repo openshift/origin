@@ -7,4 +7,4 @@ RUN INSTALL_PKGS="iptables conntrack-tools" && \
 LABEL io.k8s.display-name="Kubernetes kube-proxy" \
       io.k8s.description="Provides kube-proxy for external CNI plugins" \
       io.openshift.tags="openshift,kube-proxy" \
-      io.openshift.build.versions="kubernetes=1.13.4"
+      io.openshift.build.versions="kubernetes=1.14.0"

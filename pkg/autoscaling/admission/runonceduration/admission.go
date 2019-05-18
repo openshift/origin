@@ -11,8 +11,8 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/client-go/informers"
-	"k8s.io/client-go/util/integer"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
+	"k8s.io/utils/integer"
 
 	"github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration"
 	"github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration/validation"
@@ -70,7 +70,7 @@ type runOnceDuration struct {
 
 var _ = initializer.WantsExternalKubeInformerFactory(&runOnceDuration{})
 
-func (a *runOnceDuration) Admit(attributes admission.Attributes) error {
+func (a *runOnceDuration) Admit(attributes admission.Attributes, _ admission.ObjectInterfaces) error {
 	switch {
 	case a.config == nil,
 		attributes.GetResource().GroupResource() != kapi.Resource("pods"),

@@ -30,7 +30,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	batchv1beta1 "k8s.io/api/batch/v1beta1"
 	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
-	coordinationv1beta1 "k8s.io/api/coordination/v1beta1"
+	coordinationv1 "k8s.io/api/coordination/v1"
 	apiv1 "k8s.io/api/core/v1"
 	extensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
@@ -52,8 +52,8 @@ import (
 	"k8s.io/kubernetes/pkg/apis/coordination"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/core/helper"
-	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/networking"
+	nodeapi "k8s.io/kubernetes/pkg/apis/node"
 	"k8s.io/kubernetes/pkg/apis/policy"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	"k8s.io/kubernetes/pkg/apis/scheduling"
@@ -373,7 +373,7 @@ func AddKubeHandlers(h printers.PrintHandler) {
 		{Name: "Age", Type: "string", Description: metav1.ObjectMeta{}.SwaggerDoc()["creationTimestamp"]},
 		{Name: "Role", Type: "string", Priority: 1, Description: rbacv1beta1.RoleBinding{}.SwaggerDoc()["roleRef"]},
 		{Name: "Users", Type: "string", Priority: 1, Description: "Users in the roleBinding"},
-		{Name: "Groups", Type: "string", Priority: 1, Description: "Gruops in the roleBinding"},
+		{Name: "Groups", Type: "string", Priority: 1, Description: "Groups in the roleBinding"},
 		{Name: "ServiceAccounts", Type: "string", Priority: 1, Description: "ServiceAccounts in the roleBinding"},
 	}
 	h.TableHandler(roleBindingsColumnDefinitions, printRoleBinding)
@@ -383,9 +383,9 @@ func AddKubeHandlers(h printers.PrintHandler) {
 		{Name: "Name", Type: "string", Format: "name", Description: metav1.ObjectMeta{}.SwaggerDoc()["name"]},
 		{Name: "Age", Type: "string", Description: metav1.ObjectMeta{}.SwaggerDoc()["creationTimestamp"]},
 		{Name: "Role", Type: "string", Priority: 1, Description: rbacv1beta1.ClusterRoleBinding{}.SwaggerDoc()["roleRef"]},
-		{Name: "Users", Type: "string", Priority: 1, Description: "Users in the roleBinding"},
-		{Name: "Groups", Type: "string", Priority: 1, Description: "Gruops in the roleBinding"},
-		{Name: "ServiceAccounts", Type: "string", Priority: 1, Description: "ServiceAccounts in the roleBinding"},
+		{Name: "Users", Type: "string", Priority: 1, Description: "Users in the clusterRoleBinding"},
+		{Name: "Groups", Type: "string", Priority: 1, Description: "Groups in the clusterRoleBinding"},
+		{Name: "ServiceAccounts", Type: "string", Priority: 1, Description: "ServiceAccounts in the clusterRoleBinding"},
 	}
 	h.TableHandler(clusterRoleBindingsColumnDefinitions, printClusterRoleBinding)
 	h.TableHandler(clusterRoleBindingsColumnDefinitions, printClusterRoleBindingList)
@@ -401,7 +401,7 @@ func AddKubeHandlers(h printers.PrintHandler) {
 
 	leaseColumnDefinitions := []metav1beta1.TableColumnDefinition{
 		{Name: "Name", Type: "string", Format: "name", Description: metav1.ObjectMeta{}.SwaggerDoc()["name"]},
-		{Name: "Holder", Type: "string", Description: coordinationv1beta1.LeaseSpec{}.SwaggerDoc()["holderIdentity"]},
+		{Name: "Holder", Type: "string", Description: coordinationv1.LeaseSpec{}.SwaggerDoc()["holderIdentity"]},
 		{Name: "Age", Type: "string", Description: metav1.ObjectMeta{}.SwaggerDoc()["creationTimestamp"]},
 	}
 	h.TableHandler(leaseColumnDefinitions, printLease)
@@ -450,6 +450,14 @@ func AddKubeHandlers(h printers.PrintHandler) {
 	}
 	h.TableHandler(priorityClassColumnDefinitions, printPriorityClass)
 	h.TableHandler(priorityClassColumnDefinitions, printPriorityClassList)
+
+	runtimeClassColumnDefinitions := []metav1beta1.TableColumnDefinition{
+		{Name: "Name", Type: "string", Format: "name", Description: metav1.ObjectMeta{}.SwaggerDoc()["name"]},
+		{Name: "Handler", Type: "string", Description: metav1.ObjectMeta{}.SwaggerDoc()["handler"]},
+		{Name: "Age", Type: "string", Description: metav1.ObjectMeta{}.SwaggerDoc()["creationTimestamp"]},
+	}
+	h.TableHandler(runtimeClassColumnDefinitions, printRuntimeClass)
+	h.TableHandler(runtimeClassColumnDefinitions, printRuntimeClassList)
 
 	AddDefaultHandlers(h)
 }
@@ -995,14 +1003,14 @@ func printServiceList(list *api.ServiceList, options printers.PrintOptions) ([]m
 }
 
 // backendStringer behaves just like a string interface and converts the given backend to a string.
-func backendStringer(backend *extensions.IngressBackend) string {
+func backendStringer(backend *networking.IngressBackend) string {
 	if backend == nil {
 		return ""
 	}
 	return fmt.Sprintf("%v:%v", backend.ServiceName, backend.ServicePort.String())
 }
 
-func formatHosts(rules []extensions.IngressRule) string {
+func formatHosts(rules []networking.IngressRule) string {
 	list := []string{}
 	max := 3
 	more := false
@@ -1024,14 +1032,14 @@ func formatHosts(rules []extensions.IngressRule) string {
 	return ret
 }
 
-func formatPorts(tls []extensions.IngressTLS) string {
+func formatPorts(tls []networking.IngressTLS) string {
 	if len(tls) != 0 {
 		return "80, 443"
 	}
 	return "80"
 }
 
-func printIngress(obj *extensions.Ingress, options printers.PrintOptions) ([]metav1beta1.TableRow, error) {
+func printIngress(obj *networking.Ingress, options printers.PrintOptions) ([]metav1beta1.TableRow, error) {
 	row := metav1beta1.TableRow{
 		Object: runtime.RawExtension{Object: obj},
 	}
@@ -1043,7 +1051,7 @@ func printIngress(obj *extensions.Ingress, options printers.PrintOptions) ([]met
 	return []metav1beta1.TableRow{row}, nil
 }
 
-func printIngressList(list *extensions.IngressList, options printers.PrintOptions) ([]metav1beta1.TableRow, error) {
+func printIngressList(list *networking.IngressList, options printers.PrintOptions) ([]metav1beta1.TableRow, error) {
 	rows := make([]metav1beta1.TableRow, 0, len(list.Items))
 	for i := range list.Items {
 		r, err := printIngress(&list.Items[i], options)
@@ -1967,6 +1975,30 @@ func printPriorityClassList(list *scheduling.PriorityClassList, options printers
 	rows := make([]metav1beta1.TableRow, 0, len(list.Items))
 	for i := range list.Items {
 		r, err := printPriorityClass(&list.Items[i], options)
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, r...)
+	}
+	return rows, nil
+}
+
+func printRuntimeClass(obj *nodeapi.RuntimeClass, options printers.PrintOptions) ([]metav1beta1.TableRow, error) {
+	row := metav1beta1.TableRow{
+		Object: runtime.RawExtension{Object: obj},
+	}
+
+	name := obj.Name
+	handler := obj.Handler
+	row.Cells = append(row.Cells, name, handler, translateTimestampSince(obj.CreationTimestamp))
+
+	return []metav1beta1.TableRow{row}, nil
+}
+
+func printRuntimeClassList(list *nodeapi.RuntimeClassList, options printers.PrintOptions) ([]metav1beta1.TableRow, error) {
+	rows := make([]metav1beta1.TableRow, 0, len(list.Items))
+	for i := range list.Items {
+		r, err := printRuntimeClass(&list.Items[i], options)
 		if err != nil {
 			return nil, err
 		}

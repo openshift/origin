@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	kappsv1 "k8s.io/api/apps/v1"
 	kappsv1beta1 "k8s.io/api/apps/v1beta1"
 	kappsv1beta2 "k8s.io/api/apps/v1beta2"
 	kbatchv1 "k8s.io/api/batch/v1"
 	kbatchv1beta1 "k8s.io/api/batch/v1beta1"
 	kbatchv2alpha1 "k8s.io/api/batch/v2alpha1"
 	kapiv1 "k8s.io/api/core/v1"
-	kextensionsv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
@@ -61,16 +61,16 @@ func RunImageTriggerController(ctx *ControllerContext) (bool, error) {
 		Reactor:   triggerbuildconfigs.NewBuildConfigReactor(bcInstantiator, kclient.CoreV1().RESTClient()),
 	})
 	sources = append(sources, imagetriggercontroller.TriggerSource{
-		Resource:  schema.GroupResource{Group: "extensions", Resource: "deployments"},
-		Informer:  ctx.KubernetesInformers.Extensions().V1beta1().Deployments().Informer(),
-		Store:     ctx.KubernetesInformers.Extensions().V1beta1().Deployments().Informer().GetIndexer(),
+		Resource:  schema.GroupResource{Group: "apps", Resource: "deployments"},
+		Informer:  ctx.KubernetesInformers.Apps().V1().Deployments().Informer(),
+		Store:     ctx.KubernetesInformers.Apps().V1().Deployments().Informer().GetIndexer(),
 		TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
 		Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
 	})
 	sources = append(sources, imagetriggercontroller.TriggerSource{
-		Resource:  schema.GroupResource{Group: "extensions", Resource: "daemonsets"},
-		Informer:  ctx.KubernetesInformers.Extensions().V1beta1().DaemonSets().Informer(),
-		Store:     ctx.KubernetesInformers.Extensions().V1beta1().DaemonSets().Informer().GetIndexer(),
+		Resource:  schema.GroupResource{Group: "apps", Resource: "daemonsets"},
+		Informer:  ctx.KubernetesInformers.Apps().V1().DaemonSets().Informer(),
+		Store:     ctx.KubernetesInformers.Apps().V1().DaemonSets().Informer().GetIndexer(),
 		TriggerFn: triggerannotations.NewAnnotationTriggerIndexer,
 		Reactor:   &triggerannotations.AnnotationReactor{Updater: updater},
 	})
@@ -104,11 +104,11 @@ type podSpecUpdater struct {
 
 func (u podSpecUpdater) Update(obj runtime.Object) error {
 	switch t := obj.(type) {
-	case *kextensionsv1beta1.DaemonSet:
-		_, err := u.kclient.ExtensionsV1beta1().DaemonSets(t.Namespace).Update(t)
+	case *kappsv1.DaemonSet:
+		_, err := u.kclient.AppsV1().DaemonSets(t.Namespace).Update(t)
 		return err
-	case *kextensionsv1beta1.Deployment:
-		_, err := u.kclient.ExtensionsV1beta1().Deployments(t.Namespace).Update(t)
+	case *kappsv1.Deployment:
+		_, err := u.kclient.AppsV1().Deployments(t.Namespace).Update(t)
 		return err
 	case *kappsv1beta1.Deployment:
 		_, err := u.kclient.AppsV1beta1().Deployments(t.Namespace).Update(t)

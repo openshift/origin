@@ -318,6 +318,10 @@ type DeviceFarmAPI interface {
 	ScheduleRunWithContext(aws.Context, *devicefarm.ScheduleRunInput, ...request.Option) (*devicefarm.ScheduleRunOutput, error)
 	ScheduleRunRequest(*devicefarm.ScheduleRunInput) (*request.Request, *devicefarm.ScheduleRunOutput)
 
+	StopJob(*devicefarm.StopJobInput) (*devicefarm.StopJobOutput, error)
+	StopJobWithContext(aws.Context, *devicefarm.StopJobInput, ...request.Option) (*devicefarm.StopJobOutput, error)
+	StopJobRequest(*devicefarm.StopJobInput) (*request.Request, *devicefarm.StopJobOutput)
+
 	StopRemoteAccessSession(*devicefarm.StopRemoteAccessSessionInput) (*devicefarm.StopRemoteAccessSessionOutput, error)
 	StopRemoteAccessSessionWithContext(aws.Context, *devicefarm.StopRemoteAccessSessionInput, ...request.Option) (*devicefarm.StopRemoteAccessSessionOutput, error)
 	StopRemoteAccessSessionRequest(*devicefarm.StopRemoteAccessSessionInput) (*request.Request, *devicefarm.StopRemoteAccessSessionOutput)
@@ -345,6 +349,10 @@ type DeviceFarmAPI interface {
 	UpdateProject(*devicefarm.UpdateProjectInput) (*devicefarm.UpdateProjectOutput, error)
 	UpdateProjectWithContext(aws.Context, *devicefarm.UpdateProjectInput, ...request.Option) (*devicefarm.UpdateProjectOutput, error)
 	UpdateProjectRequest(*devicefarm.UpdateProjectInput) (*request.Request, *devicefarm.UpdateProjectOutput)
+
+	UpdateUpload(*devicefarm.UpdateUploadInput) (*devicefarm.UpdateUploadOutput, error)
+	UpdateUploadWithContext(aws.Context, *devicefarm.UpdateUploadInput, ...request.Option) (*devicefarm.UpdateUploadOutput, error)
+	UpdateUploadRequest(*devicefarm.UpdateUploadInput) (*request.Request, *devicefarm.UpdateUploadOutput)
 
 	UpdateVPCEConfiguration(*devicefarm.UpdateVPCEConfigurationInput) (*devicefarm.UpdateVPCEConfigurationOutput, error)
 	UpdateVPCEConfigurationWithContext(aws.Context, *devicefarm.UpdateVPCEConfigurationInput, ...request.Option) (*devicefarm.UpdateVPCEConfigurationOutput, error)

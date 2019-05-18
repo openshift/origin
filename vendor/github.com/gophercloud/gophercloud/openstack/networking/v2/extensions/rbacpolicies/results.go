@@ -69,6 +69,9 @@ type RBACPolicy struct {
 
 	// ProjectID is the ID of the project.
 	ProjectID string `json:"project_id"`
+
+	// Tags optionally set via extensions/attributestags
+	Tags []string `json:"tags"`
 }
 
 // RBACPolicyPage is the page returned by a pager when traversing over a

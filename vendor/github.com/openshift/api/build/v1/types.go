@@ -902,11 +902,13 @@ type BuildConfigSpec struct {
 	CommonSpec `json:",inline" protobuf:"bytes,3,opt,name=commonSpec"`
 
 	// successfulBuildsHistoryLimit is the number of old successful builds to retain.
-	// If not specified, all successful builds are retained.
+	// When a BuildConfig is created, the 5 most recent successful builds are retained unless this value is set.
+	// If removed after the BuildConfig has been created, all successful builds are retained.
 	SuccessfulBuildsHistoryLimit *int32 `json:"successfulBuildsHistoryLimit,omitempty" protobuf:"varint,4,opt,name=successfulBuildsHistoryLimit"`
 
 	// failedBuildsHistoryLimit is the number of old failed builds to retain.
-	// If not specified, all failed builds are retained.
+	// When a BuildConfig is created, the 5 most recent failed builds are retained unless this value is set.
+	// If removed after the BuildConfig has been created, all failed builds are retained.
 	FailedBuildsHistoryLimit *int32 `json:"failedBuildsHistoryLimit,omitempty" protobuf:"varint,5,opt,name=failedBuildsHistoryLimit"`
 }
 

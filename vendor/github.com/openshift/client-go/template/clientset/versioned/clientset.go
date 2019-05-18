@@ -12,8 +12,6 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	TemplateV1() templatev1.TemplateV1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Template() templatev1.TemplateV1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -25,12 +23,6 @@ type Clientset struct {
 
 // TemplateV1 retrieves the TemplateV1Client
 func (c *Clientset) TemplateV1() templatev1.TemplateV1Interface {
-	return c.templateV1
-}
-
-// Deprecated: Template retrieves the default version of TemplateClient.
-// Please explicitly pick a version.
-func (c *Clientset) Template() templatev1.TemplateV1Interface {
 	return c.templateV1
 }
 

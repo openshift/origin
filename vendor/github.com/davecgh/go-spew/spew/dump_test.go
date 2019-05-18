@@ -768,7 +768,7 @@ func addUintptrDumpTests() {
 
 func addUnsafePointerDumpTests() {
 	// Null pointer.
-	v := unsafe.Pointer(nil)
+	v := unsafe.Pointer(uintptr(0))
 	nv := (*unsafe.Pointer)(nil)
 	pv := &v
 	vAddr := fmt.Sprintf("%p", pv)

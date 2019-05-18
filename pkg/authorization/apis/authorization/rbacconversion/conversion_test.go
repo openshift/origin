@@ -2,22 +2,36 @@ package rbacconversion
 
 import (
 	"fmt"
+	"math/rand"
 	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/apitesting"
+	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	metafuzzer "k8s.io/apimachinery/pkg/apis/meta/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
-	api "k8s.io/kubernetes/pkg/apis/core"
+	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
+	fuzz "github.com/google/gofuzz"
+	"github.com/openshift/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
-
-	"github.com/google/gofuzz"
 )
+
+func init() {
+	_, codecFactory := apitesting.SchemeForOrDie(api.Install, authorizationapi.Install)
+	customFuzzer = fuzzer.FuzzerFor(
+		fuzzer.MergeFuzzerFuncs(metafuzzer.Funcs),
+		rand.NewSource(rand.Int63()),
+		codecFactory,
+	).Funcs(customFuzzerFuncs...).NilChance(0)
+
+}
 
 // make sure rbac <-> origin round trip does not lose any data
 
@@ -26,7 +40,7 @@ func TestOriginClusterRoleFidelity(t *testing.T) {
 		ocr := &authorizationapi.ClusterRole{}
 		ocr2 := &authorizationapi.ClusterRole{}
 		rcr := &rbac.ClusterRole{}
-		fuzzer.Fuzz(ocr)
+		customFuzzer.Fuzz(ocr)
 		if err := Convert_authorization_ClusterRole_To_rbac_ClusterRole(ocr, rcr, nil); err != nil {
 			t.Fatal(err)
 		}
@@ -44,7 +58,7 @@ func TestOriginRoleFidelity(t *testing.T) {
 		or := &authorizationapi.Role{}
 		or2 := &authorizationapi.Role{}
 		rr := &rbac.Role{}
-		fuzzer.Fuzz(or)
+		customFuzzer.Fuzz(or)
 		if err := Convert_authorization_Role_To_rbac_Role(or, rr, nil); err != nil {
 			t.Fatal(err)
 		}
@@ -62,7 +76,7 @@ func TestOriginClusterRoleBindingFidelity(t *testing.T) {
 		ocrb := &authorizationapi.ClusterRoleBinding{}
 		ocrb2 := &authorizationapi.ClusterRoleBinding{}
 		rcrb := &rbac.ClusterRoleBinding{}
-		fuzzer.Fuzz(ocrb)
+		customFuzzer.Fuzz(ocrb)
 		if err := Convert_authorization_ClusterRoleBinding_To_rbac_ClusterRoleBinding(ocrb, rcrb, nil); err != nil {
 			t.Fatal(err)
 		}
@@ -80,7 +94,7 @@ func TestOriginRoleBindingFidelity(t *testing.T) {
 		orb := &authorizationapi.RoleBinding{}
 		orb2 := &authorizationapi.RoleBinding{}
 		rrb := &rbac.RoleBinding{}
-		fuzzer.Fuzz(orb)
+		customFuzzer.Fuzz(orb)
 		if err := Convert_authorization_RoleBinding_To_rbac_RoleBinding(orb, rrb, nil); err != nil {
 			t.Fatal(err)
 		}
@@ -98,7 +112,7 @@ func TestRBACClusterRoleFidelity(t *testing.T) {
 		rcr := &rbac.ClusterRole{}
 		rcr2 := &rbac.ClusterRole{}
 		ocr := &authorizationapi.ClusterRole{}
-		fuzzer.Fuzz(rcr)
+		customFuzzer.Fuzz(rcr)
 		if err := Convert_rbac_ClusterRole_To_authorization_ClusterRole(rcr, ocr, nil); err != nil {
 			t.Fatal(err)
 		}
@@ -116,7 +130,7 @@ func TestRBACRoleFidelity(t *testing.T) {
 		rr := &rbac.Role{}
 		rr2 := &rbac.Role{}
 		or := &authorizationapi.Role{}
-		fuzzer.Fuzz(rr)
+		customFuzzer.Fuzz(rr)
 		if err := Convert_rbac_Role_To_authorization_Role(rr, or, nil); err != nil {
 			t.Fatal(err)
 		}
@@ -134,7 +148,7 @@ func TestRBACClusterRoleBindingFidelity(t *testing.T) {
 		rcrb := &rbac.ClusterRoleBinding{}
 		rcrb2 := &rbac.ClusterRoleBinding{}
 		ocrb := &authorizationapi.ClusterRoleBinding{}
-		fuzzer.Fuzz(rcrb)
+		customFuzzer.Fuzz(rcrb)
 		if err := Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(rcrb, ocrb, nil); err != nil {
 			t.Fatal(err)
 		}
@@ -152,7 +166,7 @@ func TestRBACRoleBindingFidelity(t *testing.T) {
 		rrb := &rbac.RoleBinding{}
 		rrb2 := &rbac.RoleBinding{}
 		orb := &authorizationapi.RoleBinding{}
-		fuzzer.Fuzz(rrb)
+		customFuzzer.Fuzz(rrb)
 		if err := Convert_rbac_RoleBinding_To_authorization_RoleBinding(rrb, orb, nil); err != nil {
 			t.Fatal(err)
 		}
@@ -177,7 +191,7 @@ func TestConversionErrors(t *testing.T) {
 			f: func() error {
 				return Convert_authorization_RoleBinding_To_rbac_RoleBinding(&authorizationapi.RoleBinding{
 					ObjectMeta: metav1.ObjectMeta{Name: "rolebindingname", Namespace: "ns0"},
-					RoleRef:    api.ObjectReference{Namespace: "ns1"},
+					RoleRef:    coreapi.ObjectReference{Namespace: "ns1"},
 				}, &rbac.RoleBinding{}, nil)
 			},
 		},
@@ -186,7 +200,7 @@ func TestConversionErrors(t *testing.T) {
 			expected: `invalid kind for origin subject: "fancyuser"`,
 			f: func() error {
 				return Convert_authorization_ClusterRoleBinding_To_rbac_ClusterRoleBinding(&authorizationapi.ClusterRoleBinding{
-					Subjects: []api.ObjectReference{
+					Subjects: []coreapi.ObjectReference{
 						{Kind: "fancyuser"},
 					},
 				}, &rbac.ClusterRoleBinding{}, nil)
@@ -198,7 +212,7 @@ func TestConversionErrors(t *testing.T) {
 			f: func() error {
 				return Convert_authorization_ClusterRoleBinding_To_rbac_ClusterRoleBinding(&authorizationapi.ClusterRoleBinding{
 					ObjectMeta: metav1.ObjectMeta{Name: "clusterrolebindingname"},
-					RoleRef: api.ObjectReference{
+					RoleRef: coreapi.ObjectReference{
 						Namespace: "fancyns",
 					},
 				}, &rbac.ClusterRoleBinding{}, nil)
@@ -346,7 +360,7 @@ func TestAnnotationsConversion(t *testing.T) {
 	}
 }
 
-var fuzzer = fuzz.New().NilChance(0).Funcs(
+var customFuzzerFuncs = []interface{}{
 	func(*metav1.TypeMeta, fuzz.Continue) {}, // Ignore TypeMeta
 	func(*runtime.Object, fuzz.Continue) {},  // Ignore AttributeRestrictions since they are deprecated
 	func(ocrb *authorizationapi.ClusterRoleBinding, c fuzz.Continue) {
@@ -383,7 +397,8 @@ var fuzzer = fuzz.New().NilChance(0).Funcs(
 		setRBACRuleType(rcr.Rules, c.RandBool())
 		sortAndDeduplicateRBACRulesFields(rcr.Rules) // []string <-> sets.String
 	},
-)
+}
+var customFuzzer *fuzz.Fuzzer
 
 func setOriginRuleType(in []authorizationapi.PolicyRule, isResourceRule bool) {
 	if isResourceRule {
@@ -442,7 +457,7 @@ func setValidRBACKindAndNamespace(subject *rbac.Subject, i int, c fuzz.Continue)
 	}
 }
 
-func setRandomOriginRoleBindingData(subjects []api.ObjectReference, roleRef *api.ObjectReference, namespace string, c fuzz.Continue) {
+func setRandomOriginRoleBindingData(subjects []coreapi.ObjectReference, roleRef *coreapi.ObjectReference, namespace string, c fuzz.Continue) {
 	for i := range subjects {
 		subject := &subjects[i]
 		unsetUnusedOriginFields(subject)
@@ -461,7 +476,7 @@ func getRandomScope(namespace string, c fuzz.Continue) string {
 	return namespace
 }
 
-func setValidOriginKindAndNamespace(subject *api.ObjectReference, i int, c fuzz.Continue) {
+func setValidOriginKindAndNamespace(subject *coreapi.ObjectReference, i int, c fuzz.Continue) {
 	kinds := []string{authorizationapi.UserKind, authorizationapi.SystemUserKind, authorizationapi.GroupKind, authorizationapi.SystemGroupKind, authorizationapi.ServiceAccountKind}
 	kind := kinds[c.Intn(len(kinds))]
 	subject.Kind = kind
@@ -495,7 +510,7 @@ func setValidOriginKindAndNamespace(subject *api.ObjectReference, i int, c fuzz.
 	}
 }
 
-func unsetUnusedOriginFields(ref *api.ObjectReference) {
+func unsetUnusedOriginFields(ref *coreapi.ObjectReference) {
 	ref.UID = ""
 	ref.ResourceVersion = ""
 	ref.FieldPath = ""

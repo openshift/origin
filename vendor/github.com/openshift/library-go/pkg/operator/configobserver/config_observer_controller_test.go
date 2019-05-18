@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/openshift/library-go/pkg/operator/condition"
 	"github.com/openshift/library-go/pkg/operator/resourcesynccontroller"
 
 	"github.com/davecgh/go-spew/spew"
@@ -103,7 +104,7 @@ func TestSyncStatus(t *testing.T) {
 				"baz": "three",
 			}},
 			expectedCondition: &operatorv1.OperatorCondition{
-				Type:   operatorStatusTypeConfigObservationDegraded,
+				Type:   condition.ConfigObservationDegradedConditionType,
 				Status: operatorv1.ConditionFalse,
 			},
 		},
@@ -136,7 +137,7 @@ func TestSyncStatus(t *testing.T) {
 				"bar": "two",
 			}},
 			expectedCondition: &operatorv1.OperatorCondition{
-				Type:    operatorStatusTypeConfigObservationDegraded,
+				Type:    condition.ConfigObservationDegradedConditionType,
 				Status:  operatorv1.ConditionTrue,
 				Reason:  "Error",
 				Message: "some failure",
@@ -163,7 +164,7 @@ func TestSyncStatus(t *testing.T) {
 			expectError:            true,
 			expectedObservedConfig: nil,
 			expectedCondition: &operatorv1.OperatorCondition{
-				Type:    operatorStatusTypeConfigObservationDegraded,
+				Type:    condition.ConfigObservationDegradedConditionType,
 				Status:  operatorv1.ConditionTrue,
 				Reason:  "Error",
 				Message: "error writing updated observed config: update spec failure",
@@ -190,7 +191,7 @@ func TestSyncStatus(t *testing.T) {
 
 			expectError: true,
 			expectedCondition: &operatorv1.OperatorCondition{
-				Type:    operatorStatusTypeConfigObservationDegraded,
+				Type:    condition.ConfigObservationDegradedConditionType,
 				Status:  operatorv1.ConditionTrue,
 				Reason:  "Error",
 				Message: "non-deterministic config observation detected",
@@ -250,7 +251,7 @@ func TestSyncStatus(t *testing.T) {
 			case tc.expectedCondition != nil && operatorConfigClient.status == nil:
 				t.Error("missing expected status")
 			case tc.expectedCondition != nil:
-				condition := v1helpers.FindOperatorCondition(operatorConfigClient.status.Conditions, operatorStatusTypeConfigObservationDegraded)
+				condition := v1helpers.FindOperatorCondition(operatorConfigClient.status.Conditions, condition.ConfigObservationDegradedConditionType)
 				condition.LastTransitionTime = tc.expectedCondition.LastTransitionTime
 				if !reflect.DeepEqual(tc.expectedCondition, condition) {
 					t.Fatalf("\n===== condition expected:\n%v\n===== condition actual:\n%v", toYAML(tc.expectedCondition), toYAML(condition))

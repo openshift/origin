@@ -35,11 +35,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	coreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	scaleclient "k8s.io/client-go/scale"
-	"k8s.io/client-go/util/integer"
 	"k8s.io/client-go/util/retry"
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/utils/integer"
 )
 
 // ControllerHasDesiredReplicas returns a condition that will be true if and only if

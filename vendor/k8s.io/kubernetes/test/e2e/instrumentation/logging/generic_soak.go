@@ -31,11 +31,6 @@ import (
 	imageutils "k8s.io/kubernetes/test/utils/image"
 )
 
-var loggingSoak struct {
-	Scale            int           `default:"1" usage:"number of waves of pods"`
-	TimeBetweenWaves time.Duration `default:"5000ms" usage:"time to wait before dumping the next wave of pods"`
-}
-
 var _ = instrumentation.SIGDescribe("Logging soak [Performance] [Slow] [Disruptive]", func() {
 
 	f := framework.NewDefaultFramework("logging-soak")
@@ -50,11 +45,11 @@ var _ = instrumentation.SIGDescribe("Logging soak [Performance] [Slow] [Disrupti
 	// scenarios.  TODO jayunit100 add this to the kube CI in a follow on infra patch.
 
 	ginkgo.It(fmt.Sprintf("should survive logging 1KB every %v seconds, for a duration of %v", kbRateInSeconds, totalLogTime), func() {
-		ginkgo.By(fmt.Sprintf("scaling up to %v pods per node", loggingSoak.Scale))
+		ginkgo.By(fmt.Sprintf("scaling up to %v pods per node", framework.TestContext.LoggingSoak.Scale))
 		defer ginkgo.GinkgoRecover()
 		var wg sync.WaitGroup
-		wg.Add(loggingSoak.Scale)
-		for i := 0; i < loggingSoak.Scale; i++ {
+		wg.Add(framework.TestContext.LoggingSoak.Scale)
+		for i := 0; i < framework.TestContext.LoggingSoak.Scale; i++ {
 			go func() {
 				defer wg.Done()
 				defer ginkgo.GinkgoRecover()
@@ -64,9 +59,9 @@ var _ = instrumentation.SIGDescribe("Logging soak [Performance] [Slow] [Disrupti
 				framework.Logf("Completed logging soak, wave %v", i)
 			}()
 			// Niceness.
-			time.Sleep(loggingSoak.TimeBetweenWaves)
+			time.Sleep(time.Duration(framework.TestContext.LoggingSoak.MilliSecondsBetweenWaves))
 		}
-		framework.Logf("Waiting on all %v logging soak waves to complete", loggingSoak.Scale)
+		framework.Logf("Waiting on all %v logging soak waves to complete", framework.TestContext.LoggingSoak.Scale)
 		wg.Wait()
 	})
 })

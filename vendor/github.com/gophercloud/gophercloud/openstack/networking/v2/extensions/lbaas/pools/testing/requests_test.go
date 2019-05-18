@@ -252,7 +252,8 @@ func TestUpdate(t *testing.T) {
 		`)
 	})
 
-	options := pools.UpdateOpts{Name: "SuperPool", LBMethod: pools.LBMethodLeastConnections}
+	var name = "SuperPool"
+	options := pools.UpdateOpts{Name: &name, LBMethod: pools.LBMethodLeastConnections}
 
 	n, err := pools.Update(fake.ServiceClient(), "332abe93-f488-41ba-870b-2ac66be7f853", options).Extract()
 	th.AssertNoErr(t, err)

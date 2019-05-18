@@ -78,7 +78,7 @@ func CreateVolumeFromImage(t *testing.T, client *gophercloud.ServiceClient) (*vo
 // DeleteVolume will delete a volume. A fatal error will occur if the volume
 // failed to be deleted. This works best when used as a deferred function.
 func DeleteVolume(t *testing.T, client *gophercloud.ServiceClient, volume *volumes.Volume) {
-	err := volumes.Delete(client, volume.ID).ExtractErr()
+	err := volumes.Delete(client, volume.ID, volumes.DeleteOpts{}).ExtractErr()
 	if err != nil {
 		t.Fatalf("Unable to delete volume %s: %v", volume.ID, err)
 	}

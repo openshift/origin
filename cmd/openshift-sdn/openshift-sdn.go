@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"k8s.io/apiserver/pkg/util/logs"
+	"k8s.io/component-base/logs"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/openshift-sdn"

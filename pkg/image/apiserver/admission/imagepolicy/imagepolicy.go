@@ -157,12 +157,12 @@ func (a *imagePolicyPlugin) ValidateInitialization() error {
 }
 
 // Admit attempts to apply the image policy to the incoming resource.
-func (a *imagePolicyPlugin) Admit(attr admission.Attributes) error {
+func (a *imagePolicyPlugin) Admit(attr admission.Attributes, _ admission.ObjectInterfaces) error {
 	return a.admit(attr, true)
 }
 
 // Validate attempts to apply the image policy to the incoming resource.
-func (a *imagePolicyPlugin) Validate(attr admission.Attributes) error {
+func (a *imagePolicyPlugin) Validate(attr admission.Attributes, _ admission.ObjectInterfaces) error {
 	return a.admit(attr, false)
 }
 

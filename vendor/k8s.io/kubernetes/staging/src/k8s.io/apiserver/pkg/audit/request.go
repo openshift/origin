@@ -117,6 +117,7 @@ func LogRequestObject(ae *auditinternal.Event, obj runtime.Object, gvr schema.Gr
 	if ae.ObjectRef == nil {
 		ae.ObjectRef = &auditinternal.ObjectReference{}
 	}
+
 	// meta.Accessor is more general than ObjectMetaAccessor, but if it fails, we can just skip setting these bits
 	if meta, err := meta.Accessor(obj); err == nil {
 		if len(ae.ObjectRef.Namespace) == 0 {

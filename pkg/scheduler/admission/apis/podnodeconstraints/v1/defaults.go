@@ -1,14 +1,14 @@
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
 )
 
 func SetDefaults_PodNodeConstraintsConfig(obj *PodNodeConstraintsConfig) {
 	if obj.NodeSelectorLabelBlacklist == nil {
 		obj.NodeSelectorLabelBlacklist = []string{
-			kubeletapis.LabelHostname,
+			corev1.LabelHostname,
 		}
 	}
 }

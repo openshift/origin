@@ -16,7 +16,7 @@ import (
 	"github.com/spf13/pflag"
 	"k8s.io/klog"
 
-	"k8s.io/apiserver/pkg/util/logs"
+	"k8s.io/component-base/logs"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 

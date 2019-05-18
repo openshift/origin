@@ -4,14 +4,16 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/klog"
-
-	operatorv1 "github.com/openshift/api/operator/v1"
-	"github.com/openshift/library-go/pkg/operator/v1helpers"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog"
+
+	operatorv1 "github.com/openshift/api/operator/v1"
+
+	"github.com/openshift/library-go/pkg/operator/condition"
+	"github.com/openshift/library-go/pkg/operator/v1helpers"
 )
 
 const (
@@ -79,16 +81,16 @@ func NewCertRotationController(
 func (c CertRotationController) sync() error {
 	syncErr := c.syncWorker()
 
-	condition := operatorv1.OperatorCondition{
-		Type:   "CertRotation_" + c.name + "_Degraded",
+	newCondition := operatorv1.OperatorCondition{
+		Type:   fmt.Sprintf(condition.CertRotationDegradedConditionTypeFmt, c.name),
 		Status: operatorv1.ConditionFalse,
 	}
 	if syncErr != nil {
-		condition.Status = operatorv1.ConditionTrue
-		condition.Reason = "RotationError"
-		condition.Message = syncErr.Error()
+		newCondition.Status = operatorv1.ConditionTrue
+		newCondition.Reason = "RotationError"
+		newCondition.Message = syncErr.Error()
 	}
-	if _, _, updateErr := v1helpers.UpdateStaticPodStatus(c.OperatorClient, v1helpers.UpdateStaticPodConditionFn(condition)); updateErr != nil {
+	if _, _, updateErr := v1helpers.UpdateStaticPodStatus(c.OperatorClient, v1helpers.UpdateStaticPodConditionFn(newCondition)); updateErr != nil {
 		return updateErr
 	}
 
@@ -113,16 +115,29 @@ func (c CertRotationController) syncWorker() error {
 	return nil
 }
 
+func (c *CertRotationController) WaitForReady(stopCh <-chan struct{}) {
+	klog.Infof("Waiting for CertRotationController - %q", c.name)
+	defer klog.Infof("Finished waiting for CertRotationController - %q", c.name)
+
+	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
+		utilruntime.HandleError(fmt.Errorf("caches did not sync"))
+		return
+	}
+}
+
+// RunOnce will run the cert rotation logic, but will not try to update the static pod status.
+// This eliminates the need to pass an OperatorClient and avoids dubious writes and status.
+func (c *CertRotationController) RunOnce() error {
+	return c.syncWorker()
+}
+
 func (c *CertRotationController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
 	klog.Infof("Starting CertRotationController - %q", c.name)
 	defer klog.Infof("Shutting down CertRotationController - %q", c.name)
-	if !cache.WaitForCacheSync(stopCh, c.cachesToSync...) {
-		utilruntime.HandleError(fmt.Errorf("caches did not sync"))
-		return
-	}
+	c.WaitForReady(stopCh)
 
 	// doesn't matter what workers say, only start one.
 	go wait.Until(c.runWorker, time.Second, stopCh)

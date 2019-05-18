@@ -59,8 +59,3 @@ var _ clientset.Interface = &Clientset{}
 func (c *Clientset) BuildV1() buildv1.BuildV1Interface {
 	return &fakebuildv1.FakeBuildV1{Fake: &c.Fake}
 }
-
-// Build retrieves the BuildV1Client
-func (c *Clientset) Build() buildv1.BuildV1Interface {
-	return &fakebuildv1.FakeBuildV1{Fake: &c.Fake}
-}

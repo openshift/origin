@@ -12,8 +12,6 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	ImageV1() imagev1.ImageV1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Image() imagev1.ImageV1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -25,12 +23,6 @@ type Clientset struct {
 
 // ImageV1 retrieves the ImageV1Client
 func (c *Clientset) ImageV1() imagev1.ImageV1Interface {
-	return c.imageV1
-}
-
-// Deprecated: Image retrieves the default version of ImageClient.
-// Please explicitly pick a version.
-func (c *Clientset) Image() imagev1.ImageV1Interface {
 	return c.imageV1
 }
 

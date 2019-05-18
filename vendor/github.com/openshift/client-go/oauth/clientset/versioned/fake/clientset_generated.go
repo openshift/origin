@@ -59,8 +59,3 @@ var _ clientset.Interface = &Clientset{}
 func (c *Clientset) OauthV1() oauthv1.OauthV1Interface {
 	return &fakeoauthv1.FakeOauthV1{Fake: &c.Fake}
 }
-
-// Oauth retrieves the OauthV1Client
-func (c *Clientset) Oauth() oauthv1.OauthV1Interface {
-	return &fakeoauthv1.FakeOauthV1{Fake: &c.Fake}
-}

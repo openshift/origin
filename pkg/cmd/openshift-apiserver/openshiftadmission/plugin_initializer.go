@@ -15,7 +15,6 @@ import (
 	kubeclientgoclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/pkg/quota/v1/generic"
 	"k8s.io/kubernetes/pkg/quota/v1/install"
@@ -92,7 +91,6 @@ func NewPluginInitializer(
 		kubeClient,
 		informers.GetKubernetesInformers(),
 		authorizer,
-		legacyscheme.Scheme,
 	)
 	kubePluginInitializer := kadmission.NewPluginInitializer(
 		cloudConfig,

@@ -59,8 +59,3 @@ var _ clientset.Interface = &Clientset{}
 func (c *Clientset) SecurityV1() securityv1.SecurityV1Interface {
 	return &fakesecurityv1.FakeSecurityV1{Fake: &c.Fake}
 }
-
-// Security retrieves the SecurityV1Client
-func (c *Clientset) Security() securityv1.SecurityV1Interface {
-	return &fakesecurityv1.FakeSecurityV1{Fake: &c.Fake}
-}

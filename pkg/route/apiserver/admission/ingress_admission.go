@@ -7,6 +7,8 @@ import (
 	"io"
 	"reflect"
 
+	"k8s.io/kubernetes/pkg/apis/networking"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -81,11 +83,11 @@ func (r *ingressAdmission) ValidateInitialization() error {
 	return nil
 }
 
-func (r *ingressAdmission) Validate(a admission.Attributes) error {
+func (r *ingressAdmission) Validate(a admission.Attributes, _ admission.ObjectInterfaces) error {
 	if a.GetResource().GroupResource() == kextensions.Resource("ingresses") {
 		switch a.GetOperation() {
 		case admission.Create:
-			if ingress, ok := a.GetObject().(*kextensions.Ingress); ok {
+			if ingress, ok := a.GetObject().(*networking.Ingress); ok {
 				// if any rules have a host, check whether the user has permission to set them
 				for i, rule := range ingress.Spec.Rules {
 					if len(rule.Host) > 0 {
@@ -112,11 +114,11 @@ func (r *ingressAdmission) Validate(a admission.Attributes) error {
 			}
 		case admission.Update:
 			if r.config == nil || r.config.AllowHostnameChanges == false {
-				oldIngress, ok := a.GetOldObject().(*kextensions.Ingress)
+				oldIngress, ok := a.GetOldObject().(*networking.Ingress)
 				if !ok {
 					return nil
 				}
-				newIngress, ok := a.GetObject().(*kextensions.Ingress)
+				newIngress, ok := a.GetObject().(*networking.Ingress)
 				if !ok {
 					return nil
 				}
@@ -147,7 +149,7 @@ func (r *ingressAdmission) Validate(a admission.Attributes) error {
 	return nil
 }
 
-func haveHostnamesChanged(oldIngress, newIngress *kextensions.Ingress) bool {
+func haveHostnamesChanged(oldIngress, newIngress *networking.Ingress) bool {
 	hostnameSet := sets.NewString()
 	for _, element := range oldIngress.Spec.Rules {
 		hostnameSet.Insert(element.Host)

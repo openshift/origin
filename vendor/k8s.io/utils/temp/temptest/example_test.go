@@ -45,11 +45,11 @@ func Example() {
 	}
 
 	if dir.Deleted == false {
-		panic(errors.New("Directory should have been deleted."))
+		panic(errors.New("Directory should have been deleted"))
 	}
 
 	if dir.Files["filename"] == nil {
-		panic(errors.New(`"filename" should have been created.`))
+		panic(errors.New(`"filename" should have been created`))
 	}
 
 	fmt.Println(dir.Files["filename"].Buffer.String())

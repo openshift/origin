@@ -145,6 +145,7 @@ var (
 	FSPortworxVolume            FSType = "portworxVolume"
 	FSScaleIO                   FSType = "scaleIO"
 	FSStorageOS                 FSType = "storageOS"
+	FSTypeCSI                   FSType = "csi"
 	FSTypeAll                   FSType = "*"
 	FSTypeNone                  FSType = "none"
 )

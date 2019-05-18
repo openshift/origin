@@ -317,7 +317,7 @@ func (c *CLI) Verbose() *CLI {
 }
 
 func (c *CLI) RESTMapper() meta.RESTMapper {
-	ret := restmapper.NewDeferredDiscoveryRESTMapper(cached.NewMemCacheClient(c.KubeClient().Discovery()))
+	ret := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(c.KubeClient().Discovery()))
 	ret.Reset()
 	return ret
 }

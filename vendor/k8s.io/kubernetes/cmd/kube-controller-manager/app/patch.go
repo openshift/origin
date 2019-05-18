@@ -3,9 +3,8 @@ package app
 import (
 	"path"
 
-	"github.com/golang/glog"
-
 	"k8s.io/client-go/informers"
+	"k8s.io/klog"
 	"k8s.io/kubernetes/cmd/kube-controller-manager/app/config"
 	"k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	utilflag "k8s.io/kubernetes/pkg/util/flag"
@@ -63,7 +62,7 @@ func ShimFlagsForOpenShift(controllerManagerOptions *options.KubeControllerManag
 	}
 
 	for name, fs := range controllerManagerOptions.Flags(KnownControllers(), ControllersDisabledByDefault.List()).FlagSets {
-		glog.V(1).Infof("FLAGSET: %s", name)
+		klog.V(1).Infof("FLAGSET: %s", name)
 		utilflag.PrintFlags(fs)
 	}
 

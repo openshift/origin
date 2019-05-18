@@ -6,6 +6,7 @@
     "jsonVersion":"1.1",
     "protocol":"json",
     "serviceFullName":"Amazon Transcribe Service",
+    "serviceId":"Transcribe",
     "signatureVersion":"v4",
     "signingName":"transcribe",
     "targetPrefix":"Transcribe",
@@ -27,6 +28,19 @@
         {"shape":"ConflictException"}
       ]
     },
+    "DeleteTranscriptionJob":{
+      "name":"DeleteTranscriptionJob",
+      "http":{
+        "method":"POST",
+        "requestUri":"/"
+      },
+      "input":{"shape":"DeleteTranscriptionJobRequest"},
+      "errors":[
+        {"shape":"LimitExceededException"},
+        {"shape":"BadRequestException"},
+        {"shape":"InternalFailureException"}
+      ]
+    },
     "DeleteVocabulary":{
       "name":"DeleteVocabulary",
       "http":{
@@ -37,6 +51,7 @@
       "errors":[
         {"shape":"NotFoundException"},
         {"shape":"LimitExceededException"},
+        {"shape":"BadRequestException"},
         {"shape":"InternalFailureException"}
       ]
     },
@@ -125,7 +140,8 @@
         {"shape":"BadRequestException"},
         {"shape":"LimitExceededException"},
         {"shape":"InternalFailureException"},
-        {"shape":"NotFoundException"}
+        {"shape":"NotFoundException"},
+        {"shape":"ConflictException"}
       ]
     }
   },
@@ -169,6 +185,13 @@
       }
     },
     "DateTime":{"type":"timestamp"},
+    "DeleteTranscriptionJobRequest":{
+      "type":"structure",
+      "required":["TranscriptionJobName"],
+      "members":{
+        "TranscriptionJobName":{"shape":"TranscriptionJobName"}
+      }
+    },
     "DeleteVocabularyRequest":{
       "type":"structure",
       "required":["VocabularyName"],
@@ -220,7 +243,14 @@
       "type":"string",
       "enum":[
         "en-US",
-        "es-US"
+        "es-US",
+        "en-AU",
+        "fr-CA",
+        "en-GB",
+        "de-DE",
+        "pt-BR",
+        "fr-FR",
+        "it-IT"
       ]
     },
     "LimitExceededException":{
@@ -305,6 +335,17 @@
       },
       "exception":true
     },
+    "OutputBucketName":{
+      "type":"string",
+      "pattern":"[a-z0-9][\\.\\-a-z0-9]{1,61}[a-z0-9]"
+    },
+    "OutputLocationType":{
+      "type":"string",
+      "enum":[
+        "CUSTOMER_BUCKET",
+        "SERVICE_BUCKET"
+      ]
+    },
     "Phrase":{
       "type":"string",
       "max":256,
@@ -319,7 +360,8 @@
       "members":{
         "VocabularyName":{"shape":"VocabularyName"},
         "ShowSpeakerLabels":{"shape":"Boolean"},
-        "MaxSpeakerLabels":{"shape":"MaxSpeakers"}
+        "MaxSpeakerLabels":{"shape":"MaxSpeakers"},
+        "ChannelIdentification":{"shape":"Boolean"}
       }
     },
     "StartTranscriptionJobRequest":{
@@ -336,6 +378,7 @@
         "MediaSampleRateHertz":{"shape":"MediaSampleRateHertz"},
         "MediaFormat":{"shape":"MediaFormat"},
         "Media":{"shape":"Media"},
+        "OutputBucketName":{"shape":"OutputBucketName"},
         "Settings":{"shape":"Settings"}
       }
     },
@@ -394,7 +437,8 @@
         "CompletionTime":{"shape":"DateTime"},
         "LanguageCode":{"shape":"LanguageCode"},
         "TranscriptionJobStatus":{"shape":"TranscriptionJobStatus"},
-        "FailureReason":{"shape":"FailureReason"}
+        "FailureReason":{"shape":"FailureReason"},
+        "OutputLocationType":{"shape":"OutputLocationType"}
       }
     },
     "UpdateVocabularyRequest":{

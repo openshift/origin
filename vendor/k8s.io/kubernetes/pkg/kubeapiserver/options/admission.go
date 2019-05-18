@@ -22,7 +22,6 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/server"
@@ -108,19 +107,20 @@ func (a *AdmissionOptions) ApplyTo(
 	c *server.Config,
 	informers informers.SharedInformerFactory,
 	kubeAPIServerClientConfig *rest.Config,
-	scheme *runtime.Scheme,
 	pluginInitializers ...admission.PluginInitializer,
 ) error {
 	if a == nil {
 		return nil
 	}
 
+	a.GenericAdmission.Decorators = append(a.GenericAdmission.Decorators, Decorators...)
+
 	if a.PluginNames != nil {
 		// pass PluginNames to generic AdmissionOptions
 		a.GenericAdmission.EnablePlugins, a.GenericAdmission.DisablePlugins = computePluginNames(a.PluginNames, a.GenericAdmission.RecommendedPluginOrder)
 	}
 
-	return a.GenericAdmission.ApplyTo(c, informers, kubeAPIServerClientConfig, scheme, pluginInitializers...)
+	return a.GenericAdmission.ApplyTo(c, informers, kubeAPIServerClientConfig, pluginInitializers...)
 }
 
 // explicitly disable all plugins that are not in the enabled list

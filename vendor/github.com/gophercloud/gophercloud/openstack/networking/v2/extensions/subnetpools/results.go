@@ -111,6 +111,9 @@ type SubnetPool struct {
 
 	// RevisionNumber is the revision number of the subnetpool.
 	RevisionNumber int `json:"revision_number"`
+
+	// Tags optionally set via extensions/attributestags
+	Tags []string `json:"tags"`
 }
 
 func (r *SubnetPool) UnmarshalJSON(b []byte) error {

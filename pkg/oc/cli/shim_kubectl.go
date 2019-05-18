@@ -28,7 +28,6 @@ func shimKubectlForOc() {
 
 	// update polymorphic helpers
 	polymorphichelpers.AttachablePodForObjectFn = originpolymorphichelpers.NewAttachablePodForObjectFn(polymorphichelpers.AttachablePodForObjectFn)
-	polymorphichelpers.CanBeAutoscaledFn = originpolymorphichelpers.NewCanBeAutoscaledFn(polymorphichelpers.CanBeAutoscaledFn)
 	polymorphichelpers.CanBeExposedFn = originpolymorphichelpers.NewCanBeExposedFn(polymorphichelpers.CanBeExposedFn)
 	polymorphichelpers.HistoryViewerFn = originpolymorphichelpers.NewHistoryViewerFn(polymorphichelpers.HistoryViewerFn)
 	polymorphichelpers.LogsForObjectFn = originpolymorphichelpers.NewLogsForObjectFn(polymorphichelpers.LogsForObjectFn)

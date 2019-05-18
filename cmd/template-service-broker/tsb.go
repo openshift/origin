@@ -11,7 +11,7 @@ import (
 	"k8s.io/klog"
 
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	"k8s.io/apiserver/pkg/util/logs"
+	"k8s.io/component-base/logs"
 
 	"github.com/openshift/library-go/pkg/serviceability"
 	tsbcmd "github.com/openshift/origin/pkg/templateservicebroker/cmd/server"

@@ -25,9 +25,9 @@ import (
 	"testing"
 	"time"
 
-	openapi_v2 "github.com/googleapis/gnostic/OpenAPIv2"
+	"github.com/googleapis/gnostic/OpenAPIv2"
 
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -45,7 +45,7 @@ import (
 )
 
 const (
-	topPathPrefix           = baseMetricsAddress + "/" + metricsApiVersion
+	topPathPrefix           = baseMetricsAddress + "/" + metricsAPIVersion
 	topMetricsAPIPathPrefix = "/apis/metrics.k8s.io/v1beta1"
 	apibody                 = `{
 	"kind": "APIVersions",
@@ -446,7 +446,7 @@ func (d *fakeDiscovery) RESTClient() restclient.Interface {
 func TestTopPodCustomDefaults(t *testing.T) {
 	customBaseHeapsterServiceAddress := "/api/v1/namespaces/custom-namespace/services/https:custom-heapster-service:/proxy"
 	customBaseMetricsAddress := customBaseHeapsterServiceAddress + "/apis/metrics"
-	customTopPathPrefix := customBaseMetricsAddress + "/" + metricsApiVersion
+	customTopPathPrefix := customBaseMetricsAddress + "/" + metricsAPIVersion
 
 	testNS := "custom-namespace"
 	testCases := []struct {

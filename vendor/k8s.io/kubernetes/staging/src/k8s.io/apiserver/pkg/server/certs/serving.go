@@ -11,11 +11,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"k8s.io/klog"
+
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/cert"
-	"k8s.io/klog"
 )
 
 // LoopbackClientServerNameOverride is passed to the apiserver from the loopback client in order to

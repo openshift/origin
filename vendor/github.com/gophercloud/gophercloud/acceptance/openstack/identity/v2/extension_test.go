@@ -8,39 +8,42 @@ import (
 	"github.com/gophercloud/gophercloud/acceptance/clients"
 	"github.com/gophercloud/gophercloud/acceptance/tools"
 	"github.com/gophercloud/gophercloud/openstack/identity/v2/extensions"
+	th "github.com/gophercloud/gophercloud/testhelper"
 )
 
 func TestExtensionsList(t *testing.T) {
+	clients.RequireIdentityV2(t)
+	clients.RequireAdmin(t)
+
 	client, err := clients.NewIdentityV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create an identity client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	allPages, err := extensions.List(client).AllPages()
-	if err != nil {
-		t.Fatalf("Unable to list extensions: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	allExtensions, err := extensions.ExtractExtensions(allPages)
-	if err != nil {
-		t.Fatalf("Unable to extract extensions: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
+	var found bool
 	for _, extension := range allExtensions {
 		tools.PrintResource(t, extension)
+		if extension.Name == "OS-KSCRUD" {
+			found = true
+		}
 	}
+
+	th.AssertEquals(t, found, true)
 }
 
 func TestExtensionsGet(t *testing.T) {
+	clients.RequireIdentityV2(t)
+	clients.RequireAdmin(t)
+
 	client, err := clients.NewIdentityV2Client()
-	if err != nil {
-		t.Fatalf("Unable to create an identity client: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	extension, err := extensions.Get(client, "OS-KSCRUD").Extract()
-	if err != nil {
-		t.Fatalf("Unable to get extension OS-KSCRUD: %v", err)
-	}
+	th.AssertNoErr(t, err)
 
 	tools.PrintResource(t, extension)
 }

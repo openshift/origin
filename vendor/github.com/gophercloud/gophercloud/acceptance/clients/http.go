@@ -73,8 +73,6 @@ func (lrt *LogRoundTripper) logRequest(original io.ReadCloser, contentType strin
 	if strings.HasPrefix(contentType, "application/json") {
 		debugInfo := lrt.formatJSON(bs.Bytes())
 		log.Printf("[DEBUG] OpenStack Request Body: %s", debugInfo)
-	} else {
-		log.Printf("[DEBUG] OpenStack Request Body: %s", bs.String())
 	}
 
 	return ioutil.NopCloser(strings.NewReader(bs.String())), nil

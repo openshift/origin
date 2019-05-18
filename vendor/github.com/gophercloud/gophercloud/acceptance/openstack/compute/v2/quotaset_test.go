@@ -16,6 +16,10 @@ import (
 )
 
 func TestQuotasetGet(t *testing.T) {
+	clients.SkipRelease(t, "master")
+	clients.SkipRelease(t, "stable/queens")
+	clients.SkipRelease(t, "stable/rocky")
+
 	client, err := clients.NewComputeV2Client()
 	th.AssertNoErr(t, err)
 
@@ -100,6 +104,10 @@ var UpdatedQuotas = quotasets.QuotaSet{
 }
 
 func TestQuotasetUpdateDelete(t *testing.T) {
+	clients.SkipRelease(t, "master")
+	clients.SkipRelease(t, "stable/queens")
+	clients.SkipRelease(t, "stable/rocky")
+
 	clients.RequireAdmin(t)
 
 	client, err := clients.NewComputeV2Client()

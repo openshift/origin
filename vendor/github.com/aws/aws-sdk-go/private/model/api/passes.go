@@ -71,14 +71,6 @@ type referenceResolver struct {
 	visited map[*ShapeRef]bool
 }
 
-var jsonvalueShape = &Shape{
-	ShapeName: "JSONValue",
-	Type:      "jsonvalue",
-	ValueRef: ShapeRef{
-		JSONValue: true,
-	},
-}
-
 // resolveReference updates a shape reference to reference the API and
 // its shape definition. All other nested references are also resolved.
 func (r *referenceResolver) resolveReference(ref *ShapeRef) {
@@ -89,12 +81,20 @@ func (r *referenceResolver) resolveReference(ref *ShapeRef) {
 	shape, ok := r.API.Shapes[ref.ShapeName]
 	if !ok {
 		panic(fmt.Sprintf("unable resolve reference, %s", ref.ShapeName))
-		return
 	}
 
 	if ref.JSONValue {
 		ref.ShapeName = "JSONValue"
-		r.API.Shapes[ref.ShapeName] = jsonvalueShape
+		if _, ok := r.API.Shapes[ref.ShapeName]; !ok {
+			r.API.Shapes[ref.ShapeName] = &Shape{
+				API:       r.API,
+				ShapeName: "JSONValue",
+				Type:      "jsonvalue",
+				ValueRef: ShapeRef{
+					JSONValue: true,
+				},
+			}
+		}
 	}
 
 	ref.API = r.API   // resolve reference back to API
@@ -119,40 +119,6 @@ func (r *referenceResolver) resolveShape(shape *Shape) {
 	r.resolveReference(&shape.ValueRef)
 	for _, m := range shape.MemberRefs {
 		r.resolveReference(m)
-	}
-}
-
-// renameToplevelShapes renames all top level shapes of an API to their
-// exportable variant. The shapes are also updated to include notations
-// if they are Input or Outputs.
-func (a *API) renameToplevelShapes() {
-	for _, v := range a.OperationList() {
-		if v.HasInput() {
-			name := v.ExportedName + "Input"
-			switch {
-			case a.Shapes[name] == nil:
-				if service, ok := shamelist[a.name]; ok {
-					if check, ok := service[v.Name]; ok && check.input {
-						break
-					}
-				}
-				v.InputRef.Shape.Rename(name)
-			}
-		}
-		if v.HasOutput() {
-			name := v.ExportedName + "Output"
-			switch {
-			case a.Shapes[name] == nil:
-				if service, ok := shamelist[a.name]; ok {
-					if check, ok := service[v.Name]; ok && check.output {
-						break
-					}
-				}
-				v.OutputRef.Shape.Rename(name)
-			}
-		}
-		v.InputRef.Payload = a.ExportableName(v.InputRef.Payload)
-		v.OutputRef.Payload = a.ExportableName(v.OutputRef.Payload)
 	}
 }
 
@@ -206,6 +172,10 @@ func (a *API) renameExportable() {
 		}
 
 		for mName, member := range s.MemberRefs {
+			ref := s.MemberRefs[mName]
+			ref.OrigShapeName = mName
+			s.MemberRefs[mName] = ref
+
 			newName := a.ExportableName(mName)
 			if newName != mName {
 				delete(s.MemberRefs, mName)
@@ -255,28 +225,26 @@ func (a *API) renameCollidingFields() {
 	for _, v := range a.Shapes {
 		namesWithSet := map[string]struct{}{}
 		for k, field := range v.MemberRefs {
-			if strings.HasPrefix(k, "Set") {
-				namesWithSet[k] = struct{}{}
+			if _, ok := v.MemberRefs["Set"+k]; ok {
+				namesWithSet["Set"+k] = struct{}{}
 			}
 
-			if collides(k) {
+			if collides(k) || (v.Exception && exceptionCollides(k)) {
 				renameCollidingField(k, v, field)
 			}
 		}
 
 		// checks if any field names collide with setters.
 		for name := range namesWithSet {
-			if field, ok := v.MemberRefs["Set"+name]; ok {
-				renameCollidingField(name, v, field)
-			}
+			field := v.MemberRefs[name]
+			renameCollidingField(name, v, field)
 		}
 	}
-
 }
 
 func renameCollidingField(name string, v *Shape, field *ShapeRef) {
 	newName := name + "_"
-	fmt.Printf("Shape %s's field %q renamed to %q\n", v.ShapeName, name, newName)
+	debugLogger.Logf("Shape %s's field %q renamed to %q", v.ShapeName, name, newName)
 	delete(v.MemberRefs, name)
 	v.MemberRefs[newName] = field
 }
@@ -288,8 +256,32 @@ func collides(name string) bool {
 		"GoString",
 		"Validate":
 		return true
-	default:
-		return false
+	}
+	return false
+}
+
+func exceptionCollides(name string) bool {
+	switch name {
+	case "Code",
+		"Message",
+		"OrigErr":
+		return true
+	}
+	return false
+}
+
+func (a *API) applyShapeNameAliases() {
+	service, ok := shapeNameAliases[a.name]
+	if !ok {
+		return
+	}
+
+	// Generic Shape Aliases
+	for name, s := range a.Shapes {
+		if alias, ok := service[name]; ok {
+			s.Rename(alias)
+			s.AliasedShapeName = true
+		}
 	}
 }
 
@@ -298,13 +290,45 @@ func collides(name string) bool {
 // have an input and output structure in the signature.
 func (a *API) createInputOutputShapes() {
 	for _, op := range a.Operations {
-		if !op.HasInput() {
-			setAsPlacholderShape(&op.InputRef, op.ExportedName+"Input", a)
-		}
-		if !op.HasOutput() {
-			setAsPlacholderShape(&op.OutputRef, op.ExportedName+"Output", a)
-		}
+		createAPIParamShape(a, op.Name, &op.InputRef, op.ExportedName+"Input",
+			shamelist.Input,
+		)
+		createAPIParamShape(a, op.Name, &op.OutputRef, op.ExportedName+"Output",
+			shamelist.Output,
+		)
 	}
+}
+
+func (a *API) renameAPIPayloadShapes() {
+	for _, op := range a.Operations {
+		op.InputRef.Payload = a.ExportableName(op.InputRef.Payload)
+		op.OutputRef.Payload = a.ExportableName(op.OutputRef.Payload)
+	}
+}
+
+func createAPIParamShape(a *API, opName string, ref *ShapeRef, shapeName string, shamelistLookup func(string, string) bool) {
+	if len(ref.ShapeName) == 0 {
+		setAsPlacholderShape(ref, shapeName, a)
+		return
+	}
+
+	// nothing to do if already the correct name.
+	if s := ref.Shape; s.AliasedShapeName || s.ShapeName == shapeName || shamelistLookup(a.name, opName) {
+		return
+	}
+
+	if s, ok := a.Shapes[shapeName]; ok {
+		panic(fmt.Sprintf(
+			"attempting to create duplicate API parameter shape, %v, %v, %v, %v\n",
+			shapeName, opName, ref.ShapeName, s.OrigShapeName,
+		))
+	}
+
+	ref.Shape.removeRef(ref)
+	ref.OrigShapeName = shapeName
+	ref.ShapeName = shapeName
+	ref.Shape = ref.Shape.Clone(shapeName)
+	ref.Shape.refs = append(ref.Shape.refs, ref)
 }
 
 func setAsPlacholderShape(tgtShapeRef *ShapeRef, name string, a *API) {
@@ -351,5 +375,32 @@ func (a *API) setMetadataEndpointsKey() {
 		a.Metadata.EndpointsID = v
 	} else {
 		a.Metadata.EndpointsID = a.Metadata.EndpointPrefix
+	}
+}
+
+// Suppress event stream must be run before setup event stream
+func (a *API) suppressHTTP2EventStreams() {
+	if a.Metadata.ProtocolSettings.HTTP2 != "eventstream" {
+		return
+	}
+
+	for name, op := range a.Operations {
+		outbound := hasEventStream(op.InputRef.Shape)
+		inbound := hasEventStream(op.OutputRef.Shape)
+
+		if !(outbound || inbound) {
+			continue
+		}
+
+		a.removeOperation(name)
+	}
+}
+
+func (a *API) findEndpointDiscoveryOp() {
+	for _, op := range a.Operations {
+		if op.IsEndpointDiscoveryOp {
+			a.EndpointDiscoveryOp = op
+			return
+		}
 	}
 }

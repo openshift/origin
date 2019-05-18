@@ -43,7 +43,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/cli-runtime/pkg/genericclioptions/resource"
+	"k8s.io/cli-runtime/pkg/resource"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/rest/fake"
 	restclientwatch "k8s.io/client-go/rest/watch"
@@ -1211,8 +1211,8 @@ func TestWatchLabelSelector(t *testing.T) {
 	expected := `NAME   READY   STATUS   RESTARTS   AGE
 bar    0/0              0          <unknown>
 foo    0/0              0          <unknown>
-foo   0/0         0     <unknown>
-foo   0/0         0     <unknown>
+foo    0/0              0          <unknown>
+foo    0/0              0          <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
 		t.Errorf("expected\n%v\ngot\n%v", e, a)
@@ -1262,8 +1262,8 @@ func TestWatchFieldSelector(t *testing.T) {
 	expected := `NAME   READY   STATUS   RESTARTS   AGE
 bar    0/0              0          <unknown>
 foo    0/0              0          <unknown>
-foo   0/0         0     <unknown>
-foo   0/0         0     <unknown>
+foo    0/0              0          <unknown>
+foo    0/0              0          <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
 		t.Errorf("expected\n%v\ngot\n%v", e, a)
@@ -1305,8 +1305,8 @@ func TestWatchResource(t *testing.T) {
 
 	expected := `NAME   READY   STATUS   RESTARTS   AGE
 foo    0/0              0          <unknown>
-foo   0/0         0     <unknown>
-foo   0/0         0     <unknown>
+foo    0/0              0          <unknown>
+foo    0/0              0          <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
 		t.Errorf("expected\n%v\ngot\n%v", e, a)
@@ -1349,8 +1349,8 @@ func TestWatchResourceIdentifiedByFile(t *testing.T) {
 
 	expected := `NAME   READY   STATUS   RESTARTS   AGE
 foo    0/0              0          <unknown>
-foo   0/0         0     <unknown>
-foo   0/0         0     <unknown>
+foo    0/0              0          <unknown>
+foo    0/0              0          <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
 		t.Errorf("expected\n%v\ngot\n%v", e, a)
@@ -1392,7 +1392,7 @@ func TestWatchOnlyResource(t *testing.T) {
 
 	expected := `NAME   READY   STATUS   RESTARTS   AGE
 foo    0/0              0          <unknown>
-foo   0/0         0     <unknown>
+foo    0/0              0          <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
 		t.Errorf("expected\n%v\ngot\n%v", e, a)
@@ -1437,7 +1437,7 @@ func TestWatchOnlyList(t *testing.T) {
 
 	expected := `NAME   READY   STATUS   RESTARTS   AGE
 foo    0/0              0          <unknown>
-foo   0/0         0     <unknown>
+foo    0/0              0          <unknown>
 `
 	if e, a := expected, buf.String(); e != a {
 		t.Errorf("expected\n%v\ngot\n%v", e, a)

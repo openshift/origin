@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	apiserverflag "k8s.io/apiserver/pkg/util/flag"
+	apiserverflag "k8s.io/component-base/cli/flag"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"

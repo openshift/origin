@@ -13,7 +13,7 @@ func TestLookupInvalidSid(t *testing.T) {
 func TestLookupValidSid(t *testing.T) {
 	sid, err := LookupSidByName("Everyone")
 	if err != nil || sid != "S-1-1-0" {
-		t.Fatal("expected S-1-1-0, got %s, %s", sid, err)
+		t.Fatalf("expected S-1-1-0, got %s, %s", sid, err)
 	}
 }
 

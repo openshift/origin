@@ -47,6 +47,7 @@ func ToConfigMapLeaderElection(clientConfig *rest.Config, config configv1.Leader
 		config.Namespace,
 		config.Name,
 		kubeClient.CoreV1(),
+		kubeClient.CoordinationV1(),
 		resourcelock.ResourceLockConfig{
 			Identity:      identity,
 			EventRecorder: eventRecorder,

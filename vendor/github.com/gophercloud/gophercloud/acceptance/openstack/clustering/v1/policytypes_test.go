@@ -41,3 +41,24 @@ func TestPolicyTypeList_v_1_5(t *testing.T) {
 		tools.PrintResource(t, v)
 	}
 }
+
+func TestPolicyTypeGet(t *testing.T) {
+	client, err := clients.NewClusteringV1Client()
+	th.AssertNoErr(t, err)
+
+	policyType, err := policytypes.Get(client, "senlin.policy.batch-1.0").Extract()
+	th.AssertNoErr(t, err)
+
+	tools.PrintResource(t, policyType)
+}
+
+func TestPolicyTypeGet_v_1_5(t *testing.T) {
+	client, err := clients.NewClusteringV1Client()
+	th.AssertNoErr(t, err)
+
+	client.Microversion = "1.5"
+	policyType, err := policytypes.Get(client, "senlin.policy.batch-1.0").Extract()
+	th.AssertNoErr(t, err)
+
+	tools.PrintResource(t, policyType)
+}

@@ -6,6 +6,7 @@ package grpc_retry
 import (
 	"time"
 
+	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 )
@@ -22,7 +23,9 @@ var (
 		perCallTimeout: 0, // disabled
 		includeHeader:  true,
 		codes:          DefaultRetriableCodes,
-		backoffFunc:    BackoffLinearWithJitter(50*time.Millisecond /*jitter*/, 0.10),
+		backoffFunc: BackoffFuncContext(func(ctx context.Context, attempt uint) time.Duration {
+			return BackoffLinearWithJitter(50*time.Millisecond /*jitter*/, 0.10)(attempt)
+		}),
 	}
 )
 
@@ -33,6 +36,14 @@ var (
 // the deadline of the request takes precedence and the wait will be interrupted before proceeding
 // with the next iteration.
 type BackoffFunc func(attempt uint) time.Duration
+
+// BackoffFuncContext denotes a family of functions that control the backoff duration between call retries.
+//
+// They are called with an identifier of the attempt, and should return a time the system client should
+// hold off for. If the time returned is longer than the `context.Context.Deadline` of the request
+// the deadline of the request takes precedence and the wait will be interrupted before proceeding
+// with the next iteration. The context can be used to extract request scoped metadata and context values.
+type BackoffFuncContext func(ctx context.Context, attempt uint) time.Duration
 
 // Disable disables the retry behaviour on this call, or this interceptor.
 //
@@ -48,8 +59,17 @@ func WithMax(maxRetries uint) CallOption {
 	}}
 }
 
-// WithBackoff sets the `BackoffFunc `used to control time between retries.
+// WithBackoff sets the `BackoffFunc` used to control time between retries.
 func WithBackoff(bf BackoffFunc) CallOption {
+	return CallOption{applyFunc: func(o *options) {
+		o.backoffFunc = BackoffFuncContext(func(ctx context.Context, attempt uint) time.Duration {
+			return bf(attempt)
+		})
+	}}
+}
+
+// WithBackoffContext sets the `BackoffFuncContext` used to control time between retries.
+func WithBackoffContext(bf BackoffFuncContext) CallOption {
 	return CallOption{applyFunc: func(o *options) {
 		o.backoffFunc = bf
 	}}
@@ -87,7 +107,7 @@ type options struct {
 	perCallTimeout time.Duration
 	includeHeader  bool
 	codes          []codes.Code
-	backoffFunc    BackoffFunc
+	backoffFunc    BackoffFuncContext
 }
 
 // CallOption is a grpc.CallOption that is local to grpc_retry.

@@ -45,6 +45,7 @@ import (
 	// Initialize all known client auth plugins.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 	certutil "k8s.io/client-go/util/cert"
+	"k8s.io/client-go/util/keyutil"
 	"k8s.io/kubernetes/pkg/features"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 )
@@ -239,7 +240,7 @@ func (config Config) New() (authenticator.Request, *spec.SecurityDefinitions, ma
 
 // IsValidServiceAccountKeyFile returns true if a valid public RSA key can be read from the given file
 func IsValidServiceAccountKeyFile(file string) bool {
-	_, err := certutil.PublicKeysFromFile(file)
+	_, err := keyutil.PublicKeysFromFile(file)
 	return err == nil
 }
 
@@ -292,7 +293,7 @@ func newAuthenticatorFromOIDCIssuerURL(opts oidc.Options) (authenticator.Token, 
 func newLegacyServiceAccountAuthenticator(keyfiles []string, lookup bool, apiAudiences authenticator.Audiences, serviceAccountGetter serviceaccount.ServiceAccountTokenGetter) (authenticator.Token, error) {
 	allPublicKeys := []interface{}{}
 	for _, keyfile := range keyfiles {
-		publicKeys, err := certutil.PublicKeysFromFile(keyfile)
+		publicKeys, err := keyutil.PublicKeysFromFile(keyfile)
 		if err != nil {
 			return nil, err
 		}
@@ -307,7 +308,7 @@ func newLegacyServiceAccountAuthenticator(keyfiles []string, lookup bool, apiAud
 func newServiceAccountAuthenticator(iss string, keyfiles []string, apiAudiences authenticator.Audiences, serviceAccountGetter serviceaccount.ServiceAccountTokenGetter) (authenticator.Token, error) {
 	allPublicKeys := []interface{}{}
 	for _, keyfile := range keyfiles {
-		publicKeys, err := certutil.PublicKeysFromFile(keyfile)
+		publicKeys, err := keyutil.PublicKeysFromFile(keyfile)
 		if err != nil {
 			return nil, err
 		}

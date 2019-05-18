@@ -215,7 +215,7 @@ func (o *InstallOptions) copySecretsAndConfigMaps(ctx context.Context, resourceD
 		for filename, content := range secret.Data {
 			// TODO fix permissions
 			klog.Infof("Writing secret manifest %q ...", path.Join(contentDir, filename))
-			if err := ioutil.WriteFile(path.Join(contentDir, filename), content, 0644); err != nil {
+			if err := ioutil.WriteFile(path.Join(contentDir, filename), content, 0600); err != nil {
 				return err
 			}
 		}

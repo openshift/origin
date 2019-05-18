@@ -27,7 +27,7 @@ func newAdmissionPlugin() *admissionPlugin {
 }
 
 // Validate returns an error if there is an attempt to delete a cluster configuration resource.
-func (p *admissionPlugin) Validate(attributes admission.Attributes) error {
+func (p *admissionPlugin) Validate(attributes admission.Attributes, _ admission.ObjectInterfaces) error {
 	if len(attributes.GetSubresource()) > 0 {
 		return nil
 	}

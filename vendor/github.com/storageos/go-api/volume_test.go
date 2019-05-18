@@ -351,6 +351,6 @@ func TestVolumeUnmount(t *testing.T) {
 	path, _ := namespacedRefPath(namespace, VolumeAPIPrefix, name)
 	u, _ := url.Parse(client.getAPIPath(path+"/unmount", url.Values{}, false))
 	if req.URL.Path != u.Path {
-		t.Errorf("VolumeUnount(%q): Wrong request path. Want %q. Got %q.", name, u.Path, req.URL.Path)
+		t.Errorf("VolumeUnmount(%q): Wrong request path. Want %q. Got %q.", name, u.Path, req.URL.Path)
 	}
 }

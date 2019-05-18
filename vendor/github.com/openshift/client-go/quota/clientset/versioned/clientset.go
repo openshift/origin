@@ -12,8 +12,6 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	QuotaV1() quotav1.QuotaV1Interface
-	// Deprecated: please explicitly pick a version if possible.
-	Quota() quotav1.QuotaV1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -25,12 +23,6 @@ type Clientset struct {
 
 // QuotaV1 retrieves the QuotaV1Client
 func (c *Clientset) QuotaV1() quotav1.QuotaV1Interface {
-	return c.quotaV1
-}
-
-// Deprecated: Quota retrieves the default version of QuotaClient.
-// Please explicitly pick a version.
-func (c *Clientset) Quota() quotav1.QuotaV1Interface {
 	return c.quotaV1
 }
 

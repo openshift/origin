@@ -1,5 +1,5 @@
-hash: 0774e6b638f20bd2ebf8d85eacf08a3420bc61b550edcfadefc6509b42a30657
-updated: 2019-04-01T11:16:38.87088471-04:00
+hash: a29f2b5f7c3f859a271de51fbe7a4d5db1fb18b1246e854ccb1899e566331d80
+updated: 2019-05-14T12:30:40.800373111+02:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
@@ -15,7 +15,7 @@ imports:
   subpackages:
   - proto
 - name: github.com/google/gofuzz
-  version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
+  version: 24818f796faf91cd76ec7bddd72458fbced7a6c1
 - name: github.com/json-iterator/go
   version: ab8a2e0c74be9d3be70b3184d9acc634935ded82
 - name: github.com/modern-go/concurrent
@@ -25,12 +25,12 @@ imports:
 - name: github.com/spf13/pflag
   version: 583c0c0531f06d5278b7d917446061adc344b5cd
 - name: golang.org/x/net
-  version: 0ed95abb35c445290478a5348a7b38bb154135fd
+  version: 65e2d4e15006aab9813ff8769e768bbf4bb667a0
   subpackages:
+  - http/httpguts
   - http2
   - http2/hpack
   - idna
-  - lex/httplex
 - name: golang.org/x/text
   version: b19bf474d317b857955b12035d2c5acb57ce8b01
   subpackages:
@@ -38,15 +38,17 @@ imports:
   - transform
   - unicode/bidi
   - unicode/norm
+- name: gonum.org/v1/gonum
+  version: cebdade430ccb61c1feba4878085f6cf8cb3320e
+  repo: https://github.com/gonum/gonum.git
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/yaml.v2
   version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
 - name: k8s.io/api
-  version: 5cb15d34447165a97c76ed5a60e4e99c8a01ecfe
+  version: 40a48860b5abbba9aa891b02b32da429b08d96a0
   subpackages:
   - admission/v1beta1
-  - admissionregistration/v1alpha1
   - admissionregistration/v1beta1
   - apps/v1
   - apps/v1beta1
@@ -77,7 +79,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apimachinery
-  version: 86fb29eff6288413d76bd8506874fddd9fccdff0
+  version: d7deff9243b165ee192f5551710ea4285dcfd615
   subpackages:
   - pkg/api/apitesting
   - pkg/api/apitesting/fuzzer
@@ -117,12 +119,12 @@ imports:
   - pkg/watch
   - third_party/forked/golang/reflect
 - name: k8s.io/code-generator
-  version: 2bf47b06188b89cc41d68422aa52509f2cbb4cc8
-  repo: git@github.com:openshift/kubernetes-code-generator
+  version: f40157d9638d05ebf65421a9bbad5a7f68878b65
+  repo: https://github.com/openshift/kubernetes-code-generator
 - name: k8s.io/gengo
   version: 51747d6e00da1fc578d5a333a93bb2abcbce7a95
 - name: k8s.io/klog
-  version: 8139d8cb77af419532b33dfa7dd09fbc5f1d344f
+  version: 8e90cee79f823779174776412c13478955131846
 - name: sigs.k8s.io/yaml
   version: fd68e9863619f6ec2fdd8625fe1f02e7c877e480
 testImports: []

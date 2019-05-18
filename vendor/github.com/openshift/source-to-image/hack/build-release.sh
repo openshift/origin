@@ -18,7 +18,7 @@ cd "${S2I_ROOT}"
 
 # Build the images
 echo "++ Building openshift/sti-release"
-docker build -q --tag openshift/sti-release "${S2I_ROOT}/images/release"
+podman build -q --tag openshift/sti-release "${S2I_ROOT}/images/release"
 
 context="${S2I_ROOT}/_output/buildenv-context"
 
@@ -26,7 +26,7 @@ context="${S2I_ROOT}/_output/buildenv-context"
 rm -rf "${S2I_LOCAL_RELEASEPATH}"
 rm -rf "${context}"
 mkdir -p "${context}"
-mkdir -p "${S2I_OUTPUT}"
+mkdir -p "${S2I_LOCAL_RELEASEPATH}"
 
 # Generate version definitions.
 # You can commit a specific version by specifying S2I_GIT_COMMIT="" prior to build
@@ -40,9 +40,9 @@ git archive --format=tar -o "${context}/archive.tar" "${S2I_GIT_COMMIT}"
 tar -rf "${context}/archive.tar" -C "${context}" sti-version-defs
 gzip -f "${context}/archive.tar"
 
-# Perform the build and release in Docker.
-cat "${context}/archive.tar.gz" | docker run -i --cidfile="${context}/cid" -e RELEASE_LDFLAGS="-w -s" openshift/sti-release
-docker cp $(cat ${context}/cid):/go/src/github.com/openshift/source-to-image/_output/local/releases "${S2I_OUTPUT}"
+# Perform the build and release in podman.
+cat "${context}/archive.tar.gz" | podman run -i --cidfile="${context}/cid" -e RELEASE_LDFLAGS="-w -s" openshift/sti-release
+podman cp $(cat ${context}/cid):/go/src/github.com/openshift/source-to-image/_output/local/releases "${S2I_LOCAL_RELEASEPATH}"
 echo "${S2I_GIT_COMMIT}" > "${S2I_LOCAL_RELEASEPATH}/.commit"
 
 ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
