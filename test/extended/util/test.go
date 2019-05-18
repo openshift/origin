@@ -409,6 +409,10 @@ var (
 
 			`should idle the service and DeploymentConfig properly`, // idling with a single service and DeploymentConfig [Conformance]
 
+			// requires a 1.14 kubelet
+			"when the NodeLease feature is enabled",
+			"RuntimeClass should reject",
+
 			`\[Feature:Volumes\]`,    // storage team to investigate it post-rebase
 			`\[Driver: csi-hostpath`, // storage team to investigate it post-rebase. @hekumar
 			`TaintBasedEvictions`,    // scheduler tests failing serial. sig-pod/@ravig
