@@ -94,10 +94,11 @@ func SetUpgradeAbortAt(policy string) error {
 	}
 	if policy == "random" {
 		upgradeAbortAt = upgradeAbortAtRandom
+		return nil
 	}
 	if val, err := strconv.Atoi(policy); err == nil {
 		if val < 0 || val > 100 {
-			return fmt.Errorf("abort-at must be empty or an integer in [0,100], inclusive")
+			return fmt.Errorf("abort-at must be empty, set to 'random', or an integer in [0,100], inclusive")
 		}
 		if val == 0 {
 			upgradeAbortAt = 1
@@ -106,7 +107,7 @@ func SetUpgradeAbortAt(policy string) error {
 		}
 		return nil
 	}
-	return fmt.Errorf("abort-at must be empty or an integer in [0,100], inclusive")
+	return fmt.Errorf("abort-at must be empty, set to 'random', or an integer in [0,100], inclusive")
 }
 
 var _ = g.Describe("[Disruptive]", func() {
