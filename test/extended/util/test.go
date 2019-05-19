@@ -434,6 +434,8 @@ var (
 			`\[Feature:PodPriority\]`,    // @ravig - sig-pod
 
 			`provisioning should access volume from different nodes`, // has bad assumptions about hostname labels.  sig-storage/@wongma7
+
+			`Probing container should \*not\* be restarted with a non-local redirect http liveness probe`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711687
 		},
 		// tests too slow to be part of conformance
 		"[Slow]": {
