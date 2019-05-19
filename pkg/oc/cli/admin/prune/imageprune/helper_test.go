@@ -43,12 +43,6 @@ func TestDefaultImagePinger(t *testing.T) {
 
 	type statusForPath map[string]int
 
-	rt := knet.SetTransportDefaults(&http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	})
-	insecureClient := http.Client{Transport: rt}
-	secureClient := http.Client{}
-
 	for _, tc := range []struct {
 		name                   string
 		schemePrefix           string
@@ -81,7 +75,7 @@ func TestDefaultImagePinger(t *testing.T) {
 			securedRegistry:        true,
 			insecure:               true,
 			statusForPath:          statusForPath{"/": http.StatusOK},
-			expectedErrorSubstring: "malformed HTTP response",
+			expectedErrorSubstring: "unexpected status: 400 Bad Request", // https://github.com/golang/go/issues/23689
 		},
 
 		{
@@ -150,8 +144,14 @@ func TestDefaultImagePinger(t *testing.T) {
 			expectedRequests:       []string{"/", "/healthz"},
 		},
 	} {
-		func() {
+		t.Run(tc.name, func(t *testing.T) {
 			defer rs.clear()
+
+			rt := knet.SetTransportDefaults(&http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			})
+			insecureClient := http.Client{Transport: rt}
+			secureClient := http.Client{}
 
 			handler := func(w http.ResponseWriter, r *http.Request) {
 				rs.addRequest(r)
@@ -212,6 +212,6 @@ func TestDefaultImagePinger(t *testing.T) {
 			if a := rs.getRequests(); !reflect.DeepEqual(a, ers) {
 				t.Errorf("[%s] got unexpected requests: %s", tc.name, diff.ObjectDiff(a, ers))
 			}
-		}()
+		})
 	}
 }
