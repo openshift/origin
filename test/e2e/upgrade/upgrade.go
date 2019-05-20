@@ -386,7 +386,7 @@ func clusterUpgrade(c configv1client.Interface, dc dynamic.Interface, config *re
 	case upgradeAbortAtRandom:
 		abortAt = int(rand.Int31n(100) + 1)
 		maximumDuration *= 2
-		framework.Logf("Upgrade will be aborted and the cluster will roll back to the current version after %d%% of operators have upgraded (chosen randomly)", upgradeAbortAt)
+		framework.Logf("Upgrade will be aborted and the cluster will roll back to the current version after %d%% of operators have upgraded (picked randomly)", abortAt)
 	default:
 		maximumDuration *= 2
 		framework.Logf("Upgrade will be aborted and the cluster will roll back to the current version after %d%% of operators have upgraded", upgradeAbortAt)
