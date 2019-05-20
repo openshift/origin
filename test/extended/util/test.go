@@ -315,16 +315,13 @@ var (
 		},
 		// alpha features that are not gated
 		"[Disabled:Alpha]": {
-			`\[Feature:Initializers\]`,                       // admission controller disabled
-			`\[Feature:PodPreemption\]`,                      // flag gate is off
-			`\[Feature:RunAsGroup\]`,                         // flag gate is off
+			`\[Feature:Initializers\]`,     // admission controller disabled
+			`\[Feature:TTLAfterFinished\]`, // flag gate is off
+			`\[Feature:GPUDevicePlugin\]`,  // GPU node needs to be available
+			`\[Feature:ExpandCSIVolumes\]`, // off by default .  sig-storage
+			`\[Feature:DynamicAudit\]`,     // off by default.  sig-master
+
 			`\[NodeAlphaFeature:VolumeSubpathEnvExpansion\]`, // flag gate is off
-			`AdmissionWebhook`,                               // needs to be enabled
-			`\[NodeAlphaFeature:NodeLease\]`,                 // flag gate is off
-			`\[Feature:TTLAfterFinished\]`,                   // flag gate is off
-			`\[Feature:GPUDevicePlugin\]`,                    // GPU node needs to be available
-			`\[Feature:ExpandCSIVolumes\]`,                   // off by default .  sig-storage
-			`\[Feature:DynamicAudit\]`,                       // off by default.  sig-master
 		},
 		// tests for features that are not implemented in openshift
 		"[Disabled:Unimplemented]": {
@@ -360,82 +357,50 @@ var (
 			// See the CanSupport implementation in upstream to determine wether these work.
 			`Ceph RBD`,                              // Works if ceph-common Binary installed (but we can't guarantee this on all clusters).
 			`GlusterFS`,                             // May work if /sbin/mount.glusterfs to be installed for plugin to work (also possibly blocked by serial pulling)
-			`Horizontal pod autoscaling`,            // needs heapster
 			`authentication: OpenLDAP`,              // needs separate setup and bucketing for openldap bootstrapping
 			`NodeProblemDetector`,                   // requires a non-master node to run on
 			`Advanced Audit should audit API calls`, // expects to be able to call /logs
-
-			`Metadata Concealment`, // TODO: would be good to use
 
 			`Firewall rule should have correct firewall rules for e2e cluster`, // Upstream-install specific
 		},
 		// tests that are known broken and need to be fixed upstream or in openshift
 		// always add an issue here
 		"[Disabled:Broken]": {
-			`\[Feature:BlockVolume\]`,                                        // directory failure https://bugzilla.redhat.com/show_bug.cgi?id=1622193
-			`\[Feature:Example\]`,                                            // has cleanup issues
-			`mount an API token into pods`,                                   // We add 6 secrets, not 1
-			`ServiceAccounts should ensure a single API token exists`,        // We create lots of secrets
-			`should test kube-proxy`,                                         // needs 2 nodes
-			`unchanging, static URL paths for kubernetes api services`,       // the test needs to exclude URLs that are not part of conformance (/logs)
-			"PersistentVolumes NFS when invoking the Recycle reclaim policy", // failing for some reason
-			`should propagate mounts to the host`,                            // https://github.com/openshift/origin/issues/18931
-			`Simple pod should handle in-cluster config`,                     // kubectl cp is not preserving executable bit
-			`Services should be able to up and down services`,                // we don't have wget installed on nodes
-			`Network should set TCP CLOSE_WAIT timeout`,                      // possibly some difference between ubuntu and fedora
-			`should allow ingress access on one named port`,                  // broken even with network policy on
-			`should answer endpoint and wildcard queries for the cluster`,    // currently not supported by dns operator https://github.com/openshift/cluster-dns-operator/issues/43
-
-			`\[NodeFeature:Sysctls\]`, // needs SCC support
-
-			`validates that there is no conflict between pods with same hostPort but different hostIP and protocol`, // https://github.com/kubernetes/kubernetes/issues/61018
-
-			`Pod should perfer to scheduled to nodes pod can tolerate`, // broken due to multi-zone cluster in 1.11, enable in 1.12
-
-			`Services should be able to create a functioning NodePort service`, // https://github.com/openshift/origin/issues/21708
-
-			`should check kube-proxy urls`, // previously this test was skipped b/c we reported -1 as the number of nodes, now we report proper number and test fails
-
-			`extremely long build/bc names are not problematic`, // there's a problem in kubelet when creating log directory in vendor/k8s.io/kubernetes/pkg/kubelet/kuberuntime/helpers.go:181, this changed in https://github.com/kubernetes/kubernetes/pull/74441
-
-			`SSH`,                // TRIAGE
-			`SELinux relabeling`, // https://github.com/openshift/origin/issues/7287 still broken
-			`Volumes CephFS`,     // permission denied, selinux?
-
-			`should be rejected when no endpoints exist`,                // works locally, fails in CI. sig-network
+			`mount an API token into pods`,                                     // We add 6 secrets, not 1
+			`ServiceAccounts should ensure a single API token exists`,          // We create lots of secrets
+			`unchanging, static URL paths for kubernetes api services`,         // the test needs to exclude URLs that are not part of conformance (/logs)
+			"PersistentVolumes NFS when invoking the Recycle reclaim policy",   // failing for some reason
+			`Simple pod should handle in-cluster config`,                       // kubectl cp is not preserving executable bit
+			`Services should be able to up and down services`,                  // we don't have wget installed on nodes
+			`Network should set TCP CLOSE_WAIT timeout`,                        // possibly some difference between ubuntu and fedora
+			`Services should be able to create a functioning NodePort service`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711603
+			`\[NodeFeature:Sysctls\]`,                                          // needs SCC support
+			`should check kube-proxy urls`,                                     // previously this test was skipped b/c we reported -1 as the number of nodes, now we report proper number and test fails
+			`extremely long build/bc names are not problematic`,                // there's a problem in kubelet when creating log directory in vendor/k8s.io/kubernetes/pkg/kubelet/kuberuntime/helpers.go:181, this changed in https://github.com/kubernetes/kubernetes/pull/74441
+			`SSH`, // TRIAGE
 			`should implement service.kubernetes.io/service-proxy-name`, // this is an optional test that requires SSH. sig-network
+			`should idle the service and DeploymentConfig properly`,     // idling with a single service and DeploymentConfig [Conformance]
+			`\[Driver: rbd\]`,        // https://bugzilla.redhat.com/show_bug.cgi?id=1711599, RBD drivers are not available in controllers?
+			`\[Driver: csi-hostpath`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711607
+			`should answer endpoint and wildcard queries for the cluster`,                // currently not supported by dns operator https://github.com/openshift/cluster-dns-operator/issues/43
+			`should propagate mounts to the host`,                                        // requires SSH, https://bugzilla.redhat.com/show_bug.cgi?id=1711600
+			`should allow ingress access on one named port`,                              // https://bugzilla.redhat.com/show_bug.cgi?id=1711602
+			`ClusterDns \[Feature:Example\] should create pod that uses dns`,             // https://bugzilla.redhat.com/show_bug.cgi?id=1711601
+			`should be rejected when no endpoints exist`,                                 // https://bugzilla.redhat.com/show_bug.cgi?id=1711605
+			`PreemptionExecutionPath runs ReplicaSets to verify preemption running path`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711606
+			`TaintBasedEvictions`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711608
 
-			`should support inline execution and attach`, // https://bugzilla.redhat.com/show_bug.cgi?id=1624041
+			`\[Driver: iscsi\]`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711627
+			`\[Driver: ceph\]\[Feature:Volumes\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should verify container cannot write to subpath`,
 
-			`should idle the service and DeploymentConfig properly`, // idling with a single service and DeploymentConfig [Conformance]
-
-			// requires a 1.14 kubelet
-			"when the NodeLease feature is enabled",
-			"RuntimeClass should reject",
-
-			`\[Feature:Volumes\]`,    // storage team to investigate it post-rebase
-			`\[Driver: csi-hostpath`, // storage team to investigate it post-rebase. @hekumar
-			`TaintBasedEvictions`,    // scheduler tests failing serial. sig-pod/@ravig
-			// BlockVolume tests that need kubelet 1.13
-			`\[Driver: nfs\] \[Testpattern: Pre-provisioned PV \(block volmode\)\] volumeMode should fail to create pod by failing to mount volume`,
-			`\[Driver: aws\] \[Testpattern: Dynamic PV \(block volmode\)\] volumeMode should create sc, pod, pv, and pvc, read/write to the pv, and delete all created resources`,
-
-			// TODO: the following list of tests is disabled temporarily due to the fact
-			// that we're running kubelet 1.11 and these require 1.12. We will remove them
-			// post-rebase
-			`\[Feature:NodeAuthenticator\]`,
-			`PreemptionExecutionPath`,
-			`\[Volume type: blockfswithoutformat\]`,
-			`CSI Volumes CSI attach test using HostPath driver`,
-			`CSI Volumes CSI plugin test using CSI driver: hostPath`,
-			`Volume metrics should create volume metrics in Volume Manager`,
-			// TODO: Enable the following tests once resource quota is enabled in
-			`\[Feature:ScopeSelectors\]`, // @ravig - sig-pod
-			`\[Feature:PodPriority\]`,    // @ravig - sig-pod
-
-			`provisioning should access volume from different nodes`, // has bad assumptions about hostname labels.  sig-storage/@wongma7
+			`\[Driver: aws\] \[Testpattern: Dynamic PV \(default fs\)\] provisioning should access volume from different nodes`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711688
+			`\[Driver: nfs\] \[Testpattern: Dynamic PV \(default fs\)\] provisioning should access volume from different nodes`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711688
 
 			`Probing container should \*not\* be restarted with a non-local redirect http liveness probe`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711687
+
+			// requires a 1.14 kubelet, enable when rhcos is built for 4.2
+			"when the NodeLease feature is enabled",
+			"RuntimeClass should reject",
 		},
 		// tests too slow to be part of conformance
 		"[Slow]": {
@@ -446,19 +411,12 @@ var (
 
 			`should ensure that critical pod is scheduled in case there is no resources available`, // should be tagged disruptive, consumes 100% of cluster CPU
 
-			"Pod should avoid to schedule to node that have avoidPod annotation",
-			"Pod should be schedule to node that satisify the PodAffinity",
-			"Pod should be prefer scheduled to node that satisify the NodeAffinity",
-			"Pod should be schedule to node that don't match the PodAntiAffinity terms", // 2m
-
 			`validates that there exists conflict between pods with same hostPort and protocol but one using 0\.0\.0\.0 hostIP`, // 5m, really?
 		},
 		// tests that are known flaky
 		"[Flaky]": {
 			`Job should run a job to completion when tasks sometimes fail and are not locally restarted`, // seems flaky, also may require too many resources
 			`openshift mongodb replication creating from a template`,                                     // flaking on deployment
-			`should use be able to process many pods and reuse local volumes`,                            // https://bugzilla.redhat.com/show_bug.cgi?id=1635893
-
 		},
 		// tests that must be run without competition
 		"[Serial]": {
