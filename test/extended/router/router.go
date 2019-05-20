@@ -143,25 +143,28 @@ func waitForNamedRouterServiceIP(oc *exutil.CLI, name string) (string, error) {
 	}
 
 	// wait for the service to show up
-	var host string
+	var endpoint string
 	err = wait.PollImmediate(2*time.Second, 60*time.Second, func() (bool, error) {
 		svc, err := oc.AdminKubeClient().CoreV1().Services(ns).Get(name, metav1.GetOptions{})
 		if kapierrs.IsNotFound(err) {
-			// see if an older service named 'router' exists.
-			svc, err = oc.AdminKubeClient().CoreV1().Services(ns).Get("router", metav1.GetOptions{})
-			if kapierrs.IsNotFound(err) {
-				return false, nil
-			}
+			return false, nil
 		}
 		o.Expect(err).NotTo(o.HaveOccurred())
-		host = svc.Spec.ClusterIP
 		if svc.Spec.Type == corev1.ServiceTypeLoadBalancer {
-			if len(svc.Status.LoadBalancer.Ingress) == 0 || len(svc.Status.LoadBalancer.Ingress[0].Hostname) == 0 {
-				return false, nil
+			if len(svc.Status.LoadBalancer.Ingress) != 0 {
+				if len(svc.Status.LoadBalancer.Ingress[0].IP) != 0 {
+					endpoint = svc.Status.LoadBalancer.Ingress[0].IP
+					return true, nil
+				}
+				if len(svc.Status.LoadBalancer.Ingress[0].Hostname) != 0 {
+					endpoint = svc.Status.LoadBalancer.Ingress[0].Hostname
+					return true, nil
+				}
 			}
-			host = svc.Status.LoadBalancer.Ingress[0].Hostname
+			return false, nil
 		}
+		endpoint = svc.Spec.ClusterIP
 		return true, nil
 	})
-	return host, err
+	return endpoint, err
 }
