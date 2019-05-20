@@ -143,7 +143,8 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 				// This is too familiar, create pods
 				for _, pod := range p.Pods {
 					// Parse Pod file into struct
-					config := ParsePods(mkPath(pod.File))
+					config, err := ParsePods(mkPath(pod.File))
+					o.Expect(err).NotTo(o.HaveOccurred())
 					// Check if environment variables are defined in CL config
 					if pod.Parameters == nil {
 						e2e.Logf("Pod environment variables will not be modified.")
@@ -157,7 +158,7 @@ var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 					}
 					// TODO sjug: pass label via config
 					labels := map[string]string{"purpose": "test"}
-					err := CreatePods(c, pod.Basename, nsName, labels, config.Spec, pod.Number, tuning, &pod.Sync)
+					err = CreatePods(c, pod.Basename, nsName, labels, config.Spec, pod.Number, tuning, &pod.Sync)
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 			}
