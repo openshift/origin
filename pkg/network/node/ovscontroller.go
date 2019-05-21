@@ -607,6 +607,8 @@ func generateBaseAddServiceRule(IP string, protocol corev1.Protocol, port int) (
 		dst = fmt.Sprintf(", udp, udp_dst=%d", port)
 	} else if protocol == corev1.ProtocolTCP {
 		dst = fmt.Sprintf(", tcp, tcp_dst=%d", port)
+	} else if protocol == corev1.ProtocolSCTP {
+		dst = fmt.Sprintf(", sctp, sctp_dst=%d", port)
 	} else {
 		return "", fmt.Errorf("unhandled protocol %v", protocol)
 	}

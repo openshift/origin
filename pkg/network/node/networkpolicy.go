@@ -412,7 +412,7 @@ func (np *networkPolicyPlugin) parseNetworkPolicy(npns *npNamespace, policy *net
 			var protocol string
 			if port.Protocol == nil {
 				protocol = "tcp"
-			} else if *port.Protocol == corev1.ProtocolTCP || *port.Protocol == corev1.ProtocolUDP {
+			} else if *port.Protocol == corev1.ProtocolTCP || *port.Protocol == corev1.ProtocolUDP || *port.Protocol == corev1.ProtocolSCTP {
 				protocol = strings.ToLower(string(*port.Protocol))
 			} else {
 				// FIXME: validation should catch this
