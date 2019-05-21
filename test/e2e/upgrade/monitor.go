@@ -26,32 +26,36 @@ type versionMonitor struct {
 	oldVersion string
 }
 
-func (m *versionMonitor) Check(initialGeneration int64, desired configv1.Update) (*configv1.ClusterVersion, error) {
+// Check returns the current ClusterVersion and a string summarizing the status.
+func (m *versionMonitor) Check(initialGeneration int64, desired configv1.Update) (*configv1.ClusterVersion, string, error) {
 	cv, err := m.client.ConfigV1().ClusterVersions().Get("version", metav1.GetOptions{})
 	if err != nil {
-		framework.Logf("unable to retrieve cluster version during upgrade: %v", err)
-		return nil, nil
+		msg := fmt.Sprintf("unable to retrieve cluster version during upgrade: %v", err)
+		framework.Logf(msg)
+		return nil, msg, nil
 	}
 	m.lastCV = cv
 
 	if cv.Status.ObservedGeneration > initialGeneration {
 		if cv.Spec.DesiredUpdate == nil || desired != *cv.Spec.DesiredUpdate {
-			return nil, fmt.Errorf("desired cluster version was changed by someone else: %v", cv.Spec.DesiredUpdate)
+			return nil, "", fmt.Errorf("desired cluster version was changed by someone else: %v", cv.Spec.DesiredUpdate)
 		}
 	}
 
-	if c := findCondition(cv.Status.Conditions, configv1.OperatorDegraded); c != nil {
-		if c.Status == configv1.ConditionTrue {
-			framework.Logf("cluster upgrade is degraded: %v", c.Message)
+	var msg string
+	for _, condition := range []configv1.ClusterStatusConditionType{
+		configv1.OperatorProgressing,
+		configv1.OperatorDegraded,
+		configv1.ClusterStatusConditionType("Failing"),
+	} {
+		if c := findCondition(cv.Status.Conditions, condition); c != nil {
+			if c.Status == configv1.ConditionTrue {
+				msg = c.Message
+				framework.Logf("cluster upgrade is %s: %v", condition, c.Message)
+			}
 		}
 	}
-
-	if c := findCondition(cv.Status.Conditions, configv1.ClusterStatusConditionType("Failing")); c != nil {
-		if c.Status == configv1.ConditionTrue {
-			framework.Logf("cluster upgrade is failing: %v", c.Message)
-		}
-	}
-	return cv, nil
+	return cv, msg, nil
 }
 
 func (m *versionMonitor) Reached(cv *configv1.ClusterVersion, desired configv1.Update) (bool, error) {
