@@ -66,10 +66,10 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router]", func() {
 			}
 		}
 
-		host, err = waitForRouterInternalIP(oc)
+		host, err = exutil.WaitForRouterInternalIP(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		serviceIP, err = waitForRouterServiceIP(oc)
+		serviceIP, err = exutil.WaitForRouterServiceIP(oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		bearerToken, err = findMetricsBearerToken(oc)
