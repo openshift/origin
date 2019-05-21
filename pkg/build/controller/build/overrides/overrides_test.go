@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apiserver/pkg/admission"
 
 	buildv1 "github.com/openshift/api/build/v1"
@@ -215,6 +215,18 @@ func TestBuildOverrideNodeSelector(t *testing.T) {
 			build:     testutil.Build().WithNodeSelector(map[string]string{"key1": "value1"}).AsBuild(),
 			overrides: map[string]string{"key2": "override2"},
 			expected:  map[string]string{"key1": "value1", "key2": "override2"},
+		},
+		{
+			name:      "build - non empty linux node only",
+			build:     testutil.Build().WithNodeSelector(map[string]string{v1.LabelOSStable: "linux"}).AsBuild(),
+			overrides: map[string]string{"key1": "default1"},
+			expected:  map[string]string{"key1": "default1", v1.LabelOSStable: "linux"},
+		},
+		{
+			name:      "build - try to change linux node only",
+			build:     testutil.Build().WithNodeSelector(map[string]string{v1.LabelOSStable: "linux"}).AsBuild(),
+			overrides: map[string]string{v1.LabelOSStable: "windows"},
+			expected:  map[string]string{v1.LabelOSStable: "linux"},
 		},
 	}
 

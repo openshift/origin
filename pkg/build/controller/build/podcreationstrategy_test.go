@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 
 	buildv1 "github.com/openshift/api/build/v1"
 )
@@ -110,6 +110,10 @@ func TestStrategyCreateBuildPod(t *testing.T) {
 		}
 		if pod != test.expectedPod {
 			t.Errorf("did not get expected pod with build %#v", test.build)
+		}
+		osType, _ := pod.Spec.NodeSelector[v1.LabelOSStable]
+		if osType != "linux" {
+			t.Errorf("did not get expected node selector in pod %#v", test.build)
 		}
 	}
 }
