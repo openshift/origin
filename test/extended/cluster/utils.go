@@ -7,11 +7,13 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 	"unicode"
 
+	"github.com/ghodss/yaml"
 	kapiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -26,20 +28,31 @@ import (
 // The number of times we re-try to create a pod
 const maxRetries = 4
 
-// ParsePods unmarshalls the json file defined in the CL config into a struct
-func ParsePods(jsonFile string) (configStruct kapiv1.Pod) {
-	configFile, err := ioutil.ReadFile(jsonFile)
+// ParsePods unmarshalls the pod spec file defined in the CL config into a struct
+func ParsePods(file string) (kapiv1.Pod, error) {
+	var configStruct kapiv1.Pod
+
+	configFile, err := ioutil.ReadFile(file)
 	if err != nil {
-		framework.Failf("Cant read pod config file. Error: %v", err)
+		return configStruct, err
 	}
 
-	err = json.Unmarshal(configFile, &configStruct)
-	if err != nil {
-		e2e.Failf("Unable to unmarshal pod config. Error: %v", err)
+	switch filepath.Ext(file) {
+	case ".yaml", ".yml":
+		err = yaml.Unmarshal(configFile, &configStruct)
+		if err != nil {
+			return configStruct, err
+		}
+	case ".json":
+		err = json.Unmarshal(configFile, &configStruct)
+		if err != nil {
+			return configStruct, err
+		}
+	default:
+		return configStruct, fmt.Errorf("Unknown config file extension")
 	}
 
-	e2e.Logf("The loaded config file is: %+v", configStruct.Spec.Containers)
-	return
+	return configStruct, nil
 }
 
 // SyncPods waits for pods to enter a state
