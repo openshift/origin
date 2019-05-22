@@ -457,16 +457,8 @@ func PVMultiNodeCheck(client clientset.Interface, claim *v1.PersistentVolumeClai
 	}
 	secondNode.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms = append(secondNode.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms,
 		v1.NodeSelectorTerm{
-			// https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity warns
-			// that "the value of kubernetes.io/hostname may be the same as the Node name in some environments and a different value in other environments".
-			// So this might be cleaner:
-			// MatchFields: []v1.NodeSelectorRequirement{
-			// 	{Key: "name", Operator: v1.NodeSelectorOpNotIn, Values: []string{actualNodeName}},
-			// },
-			// However, "name", "Name", "ObjectMeta.Name" all got rejected with "not a valid field selector key".
-
-			MatchExpressions: []v1.NodeSelectorRequirement{
-				{Key: "kubernetes.io/hostname", Operator: v1.NodeSelectorOpNotIn, Values: []string{actualNodeName}},
+			MatchFields: []v1.NodeSelectorRequirement{
+				{Key: "metadata.name", Operator: v1.NodeSelectorOpNotIn, Values: []string{actualNodeName}},
 			},
 		})
 
