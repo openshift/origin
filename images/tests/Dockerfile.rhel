@@ -7,6 +7,7 @@ RUN make build WHAT=cmd/openshift-tests; \
 
 FROM registry.svc.ci.openshift.org/ocp/4.0:cli
 COPY --from=builder /tmp/build/openshift-tests /usr/bin/
+COPY --from=builder /go/src/github.com/openshift/origin/test/testdata /usr/local/share/testdata
 RUN yum install --setopt=tsflags=nodocs -y git gzip util-linux && yum clean all && rm -rf /var/cache/yum/* && \
     git config --system user.name test && \
     git config --system user.email test@test.com && \
