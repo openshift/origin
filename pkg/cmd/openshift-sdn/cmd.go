@@ -29,7 +29,9 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-const openshiftCNIFile string = "80-openshift-network.conf"
+const (
+	cniConfFile = "/etc/cni/net.d/80-openshift-network.conf"
+)
 
 // OpenShiftSDN stores the variables needed to initialize the real networking
 // processess from the command line.
@@ -37,10 +39,14 @@ type OpenShiftSDN struct {
 	ConfigFilePath            string
 	KubeConfigFilePath        string
 	URLOnlyKubeConfigFilePath string
-	cniConfFile               string
+	CNIConfigInPath           string
+	CNIConfigOutPath          string
 
 	NodeConfig  *configapi.NodeConfig
 	ProxyConfig *kubeproxyconfig.KubeProxyConfiguration
+
+	// The generated cni config to write
+	cniConfigText []byte
 
 	informers   *informers
 	OsdnNode    *sdnnode.OsdnNode
@@ -76,6 +82,8 @@ func NewOpenShiftSDNCommand(basename string, errout io.Writer) *cobra.Command {
 	flags.StringVar(&sdn.ConfigFilePath, "config", "", "Location of the node configuration file to run from (required)")
 	flags.StringVar(&sdn.KubeConfigFilePath, "kubeconfig", "", "Path to the kubeconfig file to use for requests to the Kubernetes API. Optional. When omitted, will use the in-cluster config")
 	flags.StringVar(&sdn.URLOnlyKubeConfigFilePath, "url-only-kubeconfig", "", "Path to a kubeconfig file to use, but only to determine the URL to the apiserver. The in-cluster credentials will be used. Cannot use with --kubeconfig.")
+	flags.StringVar(&sdn.CNIConfigInPath, "cni-config-file-in", "", "Path to the CNI configuration file to read. This will be written to cni-config-file-out when the network is ready.")
+	flags.StringVar(&sdn.CNIConfigOutPath, "cni-config-file-out", cniConfFile, "Path to the CNI configuration file to write when the network is ready.")
 
 	return cmd
 }
@@ -103,14 +111,20 @@ func (sdn *OpenShiftSDN) Run(c *cobra.Command, errout io.Writer, stopCh chan str
 	}
 
 	// Exit early if we can't create the CNI config file directory
-	if err := os.MkdirAll(filepath.Base(sdn.cniConfFile), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Base(sdn.CNIConfigOutPath), 0755); err != nil {
 		klog.Fatal(err)
 	}
 
-	// Set up a watch on our config file; if it changes, we should exit -
+	// Set up a watch on our config files; if they change, we should exit -
 	// (we don't have the ability to dynamically reload config changes).
 	if err := watchForChanges(sdn.ConfigFilePath, stopCh); err != nil {
 		klog.Fatalf("unable to setup configuration watch: %v", err)
+	}
+
+	if sdn.CNIConfigInPath != "" {
+		if err := watchForChanges(sdn.CNIConfigInPath, stopCh); err != nil {
+			klog.Fatalf("unable to set up cni configuration file watch: %v", err)
+		}
 	}
 
 	// Build underlying network objects
@@ -174,11 +188,10 @@ func (sdn *OpenShiftSDN) ValidateAndParse() error {
 		return err
 	}
 
-	cniConfDir := "/etc/cni/net.d"
-	if val, ok := sdn.NodeConfig.KubeletArguments["cni-conf-dir"]; ok && len(val) == 1 {
-		cniConfDir = val[0]
+	// build CNI config
+	if err := sdn.prepareCNIConfig(); err != nil {
+		return err
 	}
-	sdn.cniConfFile = filepath.Join(cniConfDir, openshiftCNIFile)
 
 	return nil
 }

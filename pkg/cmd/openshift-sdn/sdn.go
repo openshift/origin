@@ -1,6 +1,7 @@
 package openshift_sdn
 
 import (
+	"fmt"
 	"io/ioutil"
 	"strings"
 
@@ -9,6 +10,7 @@ import (
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/record"
 
+	"github.com/containernetworking/cni/libcni"
 	sdnnode "github.com/openshift/origin/pkg/network/node"
 )
 
@@ -69,11 +71,36 @@ func (sdn *OpenShiftSDN) writeConfigFile() error {
 
 	// Write our CNI config file out to disk to signal to kubelet that
 	// our network plugin is ready
-	return ioutil.WriteFile(sdn.cniConfFile, []byte(`
-{
-  "cniVersion": "0.3.1",
-  "name": "openshift-sdn",
-  "type": "openshift-sdn"
+	return ioutil.WriteFile(sdn.CNIConfigOutPath, sdn.cniConfigText, 0644)
 }
-`), 0644)
+
+// prepareCNIConfig parses the CNI configuration template file and creates
+// the final contents.
+func (sdn *OpenShiftSDN) prepareCNIConfig() error {
+	// if no template is specified, it's easy
+	if sdn.CNIConfigInPath == "" {
+		sdn.cniConfigText = []byte(`
+{
+	"cniVersion": "0.3.1",
+	"name": "openshift",
+	"type": "openshift-sdn"
+}`)
+		return nil
+	}
+
+	var err error
+	sdn.cniConfigText, err = ioutil.ReadFile(sdn.CNIConfigInPath)
+	if err != nil {
+		return fmt.Errorf("could not read cni-config-file-in: %v", err)
+	}
+	if len(sdn.cniConfigText) == 0 {
+		return fmt.Errorf("cni-config-file-in is empty!")
+	}
+
+	_, err = libcni.ConfListFromBytes(sdn.cniConfigText)
+	if err != nil {
+		return fmt.Errorf("cni-config-file-in is invalid CNI config: %+v", err)
+	}
+
+	return nil
 }
