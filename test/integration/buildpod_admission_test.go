@@ -96,7 +96,7 @@ func TestBuildDefaultLabels(t *testing.T) {
 }
 
 func TestBuildDefaultNodeSelectors(t *testing.T) {
-	selectors := map[string]string{"KEY": "VALUE"}
+	selectors := map[string]string{"KEY": "VALUE", v1.LabelOSStable: "linux"}
 	oclient, kclientset, fn := setupBuildDefaultsAdmissionTest(t, &configapi.BuildDefaultsConfig{
 		NodeSelector: selectors,
 	})
@@ -205,7 +205,7 @@ func TestBuildOverrideLabels(t *testing.T) {
 }
 
 func TestBuildOverrideNodeSelectors(t *testing.T) {
-	selectors := map[string]string{"KEY": "VALUE"}
+	selectors := map[string]string{"KEY": "VALUE", v1.LabelOSStable: "linux"}
 	oclient, kclientset, fn := setupBuildOverridesAdmissionTest(t, &configapi.BuildOverridesConfig{
 		NodeSelector: selectors,
 	})

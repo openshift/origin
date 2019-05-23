@@ -517,6 +517,18 @@ func TestBuildDefaultsNodeSelector(t *testing.T) {
 			expected: map[string]string{"key1": "default1", "key2": "default2"},
 		},
 		{
+			name:     "build - non empty linux node only",
+			build:    testutil.Build().WithNodeSelector(map[string]string{corev1.LabelOSStable: "linux"}).AsBuild(),
+			defaults: map[string]string{"key1": "default1"},
+			expected: map[string]string{"key1": "default1", corev1.LabelOSStable: "linux"},
+		},
+		{
+			name:     "build - try to change linux node only",
+			build:    testutil.Build().WithNodeSelector(map[string]string{corev1.LabelOSStable: "linux"}).AsBuild(),
+			defaults: map[string]string{corev1.LabelOSStable: "windows"},
+			expected: map[string]string{corev1.LabelOSStable: "linux"},
+		},
+		{
 			name:     "build - ignored",
 			build:    testutil.Build().WithNodeSelector(map[string]string{"key1": "value1"}).AsBuild(),
 			defaults: map[string]string{"key1": "default1", "key2": "default2"},

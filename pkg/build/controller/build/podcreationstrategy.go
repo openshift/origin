@@ -42,6 +42,11 @@ func (f *typeBasedFactoryStrategy) CreateBuildPod(build *buildv1.Build, addition
 			pod.Annotations = map[string]string{}
 		}
 		pod.Annotations[buildutil.BuildAnnotation] = build.Name
+
+		if pod.Spec.NodeSelector == nil {
+			pod.Spec.NodeSelector = map[string]string{}
+		}
+		pod.Spec.NodeSelector[corev1.LabelOSStable] = "linux"
 	}
 	return pod, err
 }

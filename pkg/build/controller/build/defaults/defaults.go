@@ -1,6 +1,8 @@
 package defaults
 
 import (
+	"strings"
+
 	"k8s.io/klog"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
@@ -108,11 +110,24 @@ func (b BuildDefaults) applyPodProxyDefaults(pod *corev1.Pod, isCustomBuild bool
 }
 
 func (b BuildDefaults) applyPodDefaults(pod *corev1.Pod, isCustomBuild bool) {
-	if len(b.Config.NodeSelector) != 0 && pod.Spec.NodeSelector == nil {
+	nodeSelectorAppliable := pod.Spec.NodeSelector == nil
+	if !nodeSelectorAppliable && len(pod.Spec.NodeSelector) == 1 {
+		v, ok := pod.Spec.NodeSelector[corev1.LabelOSStable]
+		if ok && v == "linux" {
+			nodeSelectorAppliable = true
+		}
+	}
+	if len(b.Config.NodeSelector) != 0 && nodeSelectorAppliable {
 		// only apply nodeselector defaults if the pod has no nodeselector labels
 		// already.
-		pod.Spec.NodeSelector = map[string]string{}
+		if pod.Spec.NodeSelector == nil {
+			pod.Spec.NodeSelector = map[string]string{}
+		}
 		for k, v := range b.Config.NodeSelector {
+			// can't override kubernetes.io/os
+			if strings.TrimSpace(k) == corev1.LabelOSStable {
+				continue
+			}
 			addDefaultNodeSelector(k, v, pod.Spec.NodeSelector)
 		}
 	}

@@ -2,6 +2,7 @@ package overrides
 
 import (
 	"fmt"
+	"strings"
 
 	"k8s.io/klog"
 
@@ -64,6 +65,9 @@ func (b BuildOverrides) ApplyOverrides(pod *corev1.Pod) error {
 		pod.Spec.NodeSelector = map[string]string{}
 	}
 	for k, v := range b.Config.NodeSelector {
+		if strings.TrimSpace(k) == corev1.LabelOSStable {
+			continue
+		}
 		klog.V(5).Infof("Adding override nodeselector %s=%s to build pod %s/%s", k, v, pod.Namespace, pod.Name)
 		pod.Spec.NodeSelector[k] = v
 	}
