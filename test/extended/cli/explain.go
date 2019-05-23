@@ -111,8 +111,7 @@ var (
 
 		{Group: "quota.openshift.io", Version: "v1", Resource: "clusterresourcequotas"},
 
-		// FIXME
-		// {Group: "samples.operator.openshift.io", Version: "v1", Resource: "configs"},
+		{Group: "samples.operator.openshift.io", Version: "v1", Resource: "configs"},
 
 		{Group: "tuned.openshift.io", Version: "v1", Resource: "tuneds"},
 	}
