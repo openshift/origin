@@ -336,26 +336,21 @@ func updateIsEquivalent(a, b configv1.Update) bool {
 	}
 }
 
+// sortSemanticVersions sorts the input slice in increasing order.
 func sortSemanticVersions(versions []configv1.Update) {
 	sort.Slice(versions, func(i, j int) bool {
 		a, errA := semver.Parse(versions[i].Version)
 		b, errB := semver.Parse(versions[j].Version)
 		if errA == nil && errB != nil {
-			return true
-		}
-		if errB == nil && errA == nil {
 			return false
+		}
+		if errB == nil && errA != nil {
+			return true
 		}
 		if errA != nil && errB != nil {
-			if versions[i].Version < versions[j].Version {
-				return true
-			}
-			return false
+			return versions[i].Version < versions[j].Version
 		}
-		if a.Compare(b) < 0 {
-			return true
-		}
-		return false
+		return a.LT(b)
 	})
 }
 
