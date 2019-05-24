@@ -6,7 +6,7 @@
 %global gopath      %{_datadir}/gocode
 %global import_path github.com/openshift/origin
 
-%global golang_version 1.11
+%global golang_version 1.12
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
