@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -356,9 +357,12 @@ func TestAttacherWithCSIDriver(t *testing.T) {
 				t.Log("plugin is not attachable")
 				return
 			}
-
+			var wg sync.WaitGroup
+			wg.Add(1)
 			go func(volSpec *volume.Spec, expectAttach bool) {
 				attachID, err := csiAttacher.Attach(volSpec, types.NodeName("node"))
+				defer wg.Done()
+
 				if err != nil {
 					t.Errorf("Attach() failed: %s", err)
 				}
@@ -377,6 +381,7 @@ func TestAttacherWithCSIDriver(t *testing.T) {
 				}
 				markVolumeAttached(t, csiAttacher.k8s, fakeWatcher, expectedAttachID, status)
 			}
+			wg.Wait()
 		})
 	}
 }
