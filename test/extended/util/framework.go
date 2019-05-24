@@ -158,7 +158,7 @@ func DumpImageStreams(oc *CLI) {
 }
 
 func DumpSampleOperator(oc *CLI) {
-	out, err := oc.AsAdmin().Run("get").Args("configs.samples.operator.openshift.io", "instance", "-n", "openshift-cluster-samples-operator", "-o", "yaml", "--config", KubeConfigPath()).Output()
+	out, err := oc.AsAdmin().Run("get").Args("configs.samples.operator.openshift.io", "cluster", "-o", "yaml", "--config", KubeConfigPath()).Output()
 	if err == nil {
 		e2e.Logf("\n  samples operator CR: \n%s\n", out)
 	} else {
