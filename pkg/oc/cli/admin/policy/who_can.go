@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -78,7 +79,7 @@ func (o *WhoCanOptions) complete(f kcmdutil.Factory, cmd *cobra.Command, args []
 		fallthrough
 	case 2:
 		o.verb = args[0]
-		o.resource = ResourceFor(mapper, args[1])
+		o.resource = ResourceFor(mapper, args[1], o.ErrOut)
 	default:
 		return errors.New("you must specify two or three arguments: verb, resource, and optional resourceName")
 	}
@@ -105,7 +106,7 @@ func (o *WhoCanOptions) complete(f kcmdutil.Factory, cmd *cobra.Command, args []
 	return nil
 }
 
-func ResourceFor(mapper meta.RESTMapper, resourceArg string) schema.GroupVersionResource {
+func ResourceFor(mapper meta.RESTMapper, resourceArg string, errOut io.Writer) schema.GroupVersionResource {
 	fullySpecifiedGVR, groupResource := schema.ParseResourceArg(strings.ToLower(resourceArg))
 	gvr := schema.GroupVersionResource{}
 	if fullySpecifiedGVR != nil {
@@ -115,6 +116,11 @@ func ResourceFor(mapper meta.RESTMapper, resourceArg string) schema.GroupVersion
 		var err error
 		gvr, err = mapper.ResourceFor(groupResource.WithVersion(""))
 		if err != nil {
+			if len(groupResource.Group) == 0 {
+				fmt.Fprintf(errOut, "Warning: the server doesn't have a resource type '%s'\n", groupResource.Resource)
+			} else {
+				fmt.Fprintf(errOut, "Warning: the server doesn't have a resource type '%s' in group '%s'\n", groupResource.Resource, groupResource.Group)
+			}
 			return schema.GroupVersionResource{Resource: resourceArg}
 		}
 	}
