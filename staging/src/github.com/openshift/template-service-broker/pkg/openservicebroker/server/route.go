@@ -14,8 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
 
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
+	templateapi "github.com/openshift/template-service-broker/apis/template"
+	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
 )
 
 // minimum supported client version

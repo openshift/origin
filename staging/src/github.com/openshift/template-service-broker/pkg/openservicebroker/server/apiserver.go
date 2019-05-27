@@ -18,7 +18,7 @@ import (
 	templateclientset "github.com/openshift/client-go/template/clientset/versioned"
 	templateinformer "github.com/openshift/client-go/template/informers/externalversions"
 
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templateapi "github.com/openshift/template-service-broker/apis/template"
 	"github.com/openshift/template-service-broker/pkg/servicebroker"
 )
 

@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
+	templatevalidation "github.com/openshift/template-service-broker/apis/template/validation"
 	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
 )
 

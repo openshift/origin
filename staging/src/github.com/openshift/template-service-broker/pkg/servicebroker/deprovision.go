@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templateapi "github.com/openshift/template-service-broker/apis/template"
 	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
 	"github.com/openshift/template-service-broker/pkg/util"
 )

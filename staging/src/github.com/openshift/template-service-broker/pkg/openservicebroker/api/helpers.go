@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/apiserver/pkg/authentication/user"
 
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templateapi "github.com/openshift/template-service-broker/apis/template"
 )
 
 func NewResponse(code int, body interface{}, err error) *Response {
