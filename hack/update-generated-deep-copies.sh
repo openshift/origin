@@ -11,6 +11,11 @@ function codegen::join() { local IFS="$1"; shift; echo "$*"; }
 
 # enumerate group versions
 ALL_FQ_APIS=(
+    github.com/openshift/origin/staging/src/github.com/openshift/template-service-broker/apis/config
+    github.com/openshift/origin/staging/src/github.com/openshift/template-service-broker/apis/config/v1
+    github.com/openshift/origin/staging/src/github.com/openshift/template-service-broker/apis/template
+    github.com/openshift/origin/staging/src/github.com/openshift/template-service-broker/apis/template/v1
+
     github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride
     github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride/v1
     github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration
@@ -29,8 +34,6 @@ ALL_FQ_APIS=(
     github.com/openshift/origin/pkg/network/admission/apis/externalipranger/v1
     github.com/openshift/origin/pkg/network/admission/apis/restrictedendpoints
     github.com/openshift/origin/pkg/network/admission/apis/restrictedendpoints/v1
-    github.com/openshift/origin/pkg/template/servicebroker/apis/config
-    github.com/openshift/origin/pkg/template/servicebroker/apis/config/v1
     github.com/openshift/origin/pkg/util/testing
     github.com/openshift/origin/pkg/apps/apis/apps
     github.com/openshift/origin/pkg/authorization/apis/authorization

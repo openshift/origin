@@ -4,11 +4,7 @@
       "github.com/openshift/origin/pkg"
     ],
     "ignoredSubTrees": [
-      "github.com/openshift/origin/pkg/templateservicebroker",
       "github.com/openshift/origin/pkg/cmd/server/start"
-    ],
-    "forbiddenImportPackageRoots": [
-      "github.com/openshift/origin/pkg/templateservicebroker"
     ],
     "allowedImportPackageRoots": [
       "vendor",
@@ -401,38 +397,6 @@
       "vendor/k8s.io/apimachinery"
     ],
     "allowedImportPackages": []
-  },
-
-  {
-    "checkedPackageRoots": [
-      "github.com/openshift/origin/pkg/templateservicebroker"
-    ],
-    "allowedImportPackageRoots": [
-      "vendor/k8s.io/apimachinery",
-      "vendor/k8s.io/apiserver",
-      "vendor/k8s.io/client-go",
-      "vendor/github.com/spf13/cobra",
-      "vendor/golang.org",
-      "vendor/github.com/openshift/api",
-      "vendor/github.com/openshift/client-go",
-      "github.com/openshift/origin/pkg/template/servicebroker"
-    ],
-    "allowedImportPackages": [
-      "vendor/k8s.io/klog",
-      "vendor/k8s.io/api/core/v1",
-      "vendor/k8s.io/api/authorization/v1",
-      "vendor/k8s.io/kubernetes/pkg/apis/core",
-      "vendor/k8s.io/kubernetes/pkg/apis/core/install",
-      "vendor/github.com/emicklei/go-restful",
-      "vendor/github.com/lestrrat/go-jsschema",
-      "vendor/k8s.io/kube-aggregator/pkg/apiserver",
-      "vendor/k8s.io/kubernetes/pkg/controller",
-      "vendor/k8s.io/kubernetes/pkg/kubectl/cmd/util",
-      "github.com/openshift/origin/pkg/api",
-      "github.com/openshift/origin/pkg/template/apis/template",
-      "github.com/openshift/origin/pkg/template/apis/template/validation",
-      "github.com/openshift/origin/pkg/api/legacy"
-    ]
   },
 
   {

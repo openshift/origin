@@ -20,4 +20,7 @@ os::cmd::expect_success "import-verifier ${OS_ROOT}/hack/import-restrictions.jso
 # quick and dirty check that nothing under vendored kubernetes imports something from origin
 os::cmd::expect_failure "egrep -r '\"github.com/openshift/origin/[^\"]+\"$' vendor/k8s.io/kubernetes"
 
+# quick and dirty check that nothing under origin staging imports from openshift/origin
+os::cmd::expect_failure "go list -deps -test ./staging/src/github.com/openshift/... | grep 'openshift/origin/pkg'"
+
 os::test::junit::declare_suite_end

@@ -24,8 +24,9 @@ import (
 	rbacapi "k8s.io/kubernetes/pkg/apis/rbac"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	authorization "github.com/openshift/api/authorization"
+	"github.com/openshift/api/authorization"
 	templatev1 "github.com/openshift/api/template/v1"
+
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client/templateprocessing"
@@ -33,9 +34,9 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatecontroller "github.com/openshift/origin/pkg/template/controller"
-	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
-	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"
 	exutil "github.com/openshift/origin/test/extended/util"
+	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
+	"github.com/openshift/template-service-broker/pkg/openservicebroker/client"
 )
 
 var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end test", func() {
