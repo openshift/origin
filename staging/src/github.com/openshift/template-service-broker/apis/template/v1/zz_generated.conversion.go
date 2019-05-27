@@ -8,7 +8,7 @@ import (
 	unsafe "unsafe"
 
 	v1 "github.com/openshift/api/template/v1"
-	template "github.com/openshift/origin/pkg/template/apis/template"
+	template "github.com/openshift/template-service-broker/apis/template"
 	apicorev1 "k8s.io/api/core/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
