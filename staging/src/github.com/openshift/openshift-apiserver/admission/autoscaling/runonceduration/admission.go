@@ -14,9 +14,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/utils/integer"
 
+	configlatest "github.com/openshift/openshift-apiserver/apis/config/latest"
 	"github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration"
 	"github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration/validation"
-	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 )
 

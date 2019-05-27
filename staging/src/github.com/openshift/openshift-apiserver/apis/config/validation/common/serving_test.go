@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/openshift-apiserver/apis/config"
 )
 
 func TestValidateServingInfo(t *testing.T) {

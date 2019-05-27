@@ -8,10 +8,10 @@ import (
 	auditv1alpha1 "k8s.io/apiserver/pkg/apis/audit/v1alpha1"
 	auditv1beta1 "k8s.io/apiserver/pkg/apis/audit/v1beta1"
 
+	configapi "github.com/openshift/openshift-apiserver/apis/config"
+	configapiv1 "github.com/openshift/openshift-apiserver/apis/config/v1"
 	clusterresourceoverrideinstall "github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride/install"
 	runoncedurationinstall "github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration/install"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configapiv1 "github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 	imagepolicyapiv1 "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 	externaliprangerinstall "github.com/openshift/origin/pkg/network/admission/apis/externalipranger/install"
 	restrictedendpointsinstall "github.com/openshift/origin/pkg/network/admission/apis/restrictedendpoints/install"

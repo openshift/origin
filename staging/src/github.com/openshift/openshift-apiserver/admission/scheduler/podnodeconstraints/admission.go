@@ -15,7 +15,7 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 
-	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	configlatest "github.com/openshift/openshift-apiserver/apis/config/latest"
 	"github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 )
 

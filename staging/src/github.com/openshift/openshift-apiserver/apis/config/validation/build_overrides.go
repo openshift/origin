@@ -4,8 +4,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
-	buildvalidation "github.com/openshift/origin/pkg/build/apis/build/validation"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapi "github.com/openshift/openshift-apiserver/apis/config"
+	buildvalidation "github.com/openshift/openshift-apiserver/pkg/build/apis/build/validation"
 )
 
 func ValidateBuildOverridesConfig(config *configapi.BuildOverridesConfig) field.ErrorList {

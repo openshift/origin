@@ -13,7 +13,7 @@ import (
 	utilvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	"github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/openshift-apiserver/apis/config"
 )
 
 func ValidateStringSource(s config.StringSource, fieldPath *field.Path) ValidationResults {

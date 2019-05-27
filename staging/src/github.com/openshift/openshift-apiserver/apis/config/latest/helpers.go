@@ -16,7 +16,7 @@ import (
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapi "github.com/openshift/openshift-apiserver/apis/config"
 )
 
 func ReadSessionSecrets(filename string) (*configapi.SessionSecrets, error) {

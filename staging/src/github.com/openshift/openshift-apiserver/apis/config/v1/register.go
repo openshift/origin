@@ -7,8 +7,8 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
-	buildinternalconversions "github.com/openshift/origin/pkg/build/apis/build/v1"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/openshift-apiserver/apis/config"
+	buildinternalconversions "github.com/openshift/openshift-apiserver/pkg/build/apis/build/v1"
 )
 
 var (

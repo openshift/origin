@@ -14,7 +14,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/openshift-apiserver/admission/externalipranger/apis/externalipranger"
-	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	configlatest "github.com/openshift/openshift-apiserver/apis/config/latest"
 )
 
 const ExternalIPPluginName = "network.openshift.io/ExternalIPRanger"

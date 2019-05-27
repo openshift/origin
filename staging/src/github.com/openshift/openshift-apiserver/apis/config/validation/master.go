@@ -22,8 +22,8 @@ import (
 	kcmoptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/common"
+	configapi "github.com/openshift/openshift-apiserver/apis/config"
+	"github.com/openshift/openshift-apiserver/apis/config/validation/common"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/cm"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"

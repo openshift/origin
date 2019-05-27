@@ -8,7 +8,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	crvalidation "github.com/openshift/openshift-apiserver/admission/customresourcevalidation"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/common"
+	"github.com/openshift/openshift-apiserver/apis/config/validation/common"
 )
 
 func ValidateOpenIDIdentityProvider(provider *configv1.OpenIDIdentityProvider, fieldPath *field.Path) field.ErrorList {

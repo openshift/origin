@@ -4,8 +4,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apiserverflag "k8s.io/component-base/cli/flag"
 
-	"github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/common"
+	"github.com/openshift/openshift-apiserver/apis/config"
+	"github.com/openshift/openshift-apiserver/apis/config/validation/common"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 )
 

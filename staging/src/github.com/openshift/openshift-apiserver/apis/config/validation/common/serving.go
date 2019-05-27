@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/openshift/library-go/pkg/crypto"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/openshift-apiserver/apis/config"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 

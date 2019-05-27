@@ -20,8 +20,8 @@ import (
 
 	api "github.com/openshift/openshift-apiserver/admission/autoscaling/clusterresourceoverride/apis/clusterresourceoverride"
 	"github.com/openshift/openshift-apiserver/admission/autoscaling/clusterresourceoverride/apis/clusterresourceoverride/validation"
+	configlatest "github.com/openshift/openshift-apiserver/apis/config/latest"
 	"github.com/openshift/openshift-apiserver/pkg/project/registry/projectrequest/delegated"
-	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 )
 
 const (

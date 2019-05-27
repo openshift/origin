@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

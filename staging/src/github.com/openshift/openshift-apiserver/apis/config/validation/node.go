@@ -9,8 +9,8 @@ import (
 	apiserverflag "k8s.io/component-base/cli/flag"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/common"
+	configapi "github.com/openshift/openshift-apiserver/apis/config"
+	"github.com/openshift/openshift-apiserver/apis/config/validation/common"
 )
 
 func ValidateNodeConfig(config *configapi.NodeConfig, fldPath *field.Path) common.ValidationResults {

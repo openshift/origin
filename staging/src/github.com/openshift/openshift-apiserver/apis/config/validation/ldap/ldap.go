@@ -8,8 +8,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/common"
+	configapi "github.com/openshift/openshift-apiserver/apis/config"
+	"github.com/openshift/openshift-apiserver/apis/config/validation/common"
 	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 )
 

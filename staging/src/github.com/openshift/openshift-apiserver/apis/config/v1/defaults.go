@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
-	internal "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	internal "github.com/openshift/openshift-apiserver/apis/config"
 )
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {

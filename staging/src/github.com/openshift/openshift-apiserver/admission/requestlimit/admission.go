@@ -26,9 +26,9 @@ import (
 	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
 	uservalidation "github.com/openshift/openshift-apiserver/pkg/user/apis/user/validation"
 
+	configlatest "github.com/openshift/openshift-apiserver/apis/config/latest"
 	"github.com/openshift/openshift-apiserver/apis/internalversion/legacy"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 )
 
 // allowedTerminatingProjects is the number of projects that are owned by a user, are in terminating state,

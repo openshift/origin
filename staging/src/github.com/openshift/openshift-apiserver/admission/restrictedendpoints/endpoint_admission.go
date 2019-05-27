@@ -14,7 +14,7 @@ import (
 
 	"github.com/openshift/openshift-apiserver/admission/restrictedendpoints/apis/restrictedendpoints"
 
-	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	configlatest "github.com/openshift/openshift-apiserver/apis/config/latest"
 )
 
 const RestrictedEndpointsPluginName = "network.openshift.io/RestrictedEndpointsAdmission"

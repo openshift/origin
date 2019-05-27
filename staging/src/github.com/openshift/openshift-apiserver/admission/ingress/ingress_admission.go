@@ -19,7 +19,7 @@ import (
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
 
 	"github.com/openshift/openshift-apiserver/admission/ingress/apis/ingressadmission"
-	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	configlatest "github.com/openshift/openshift-apiserver/apis/config/latest"
 )
 
 const (

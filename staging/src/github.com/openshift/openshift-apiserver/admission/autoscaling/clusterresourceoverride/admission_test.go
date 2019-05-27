@@ -18,7 +18,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
+	configapilatest "github.com/openshift/openshift-apiserver/apis/config/latest"
 
 	"github.com/openshift/openshift-apiserver/admission/autoscaling/clusterresourceoverride/apis/clusterresourceoverride"
 	"github.com/openshift/openshift-apiserver/admission/autoscaling/clusterresourceoverride/apis/clusterresourceoverride/validation"

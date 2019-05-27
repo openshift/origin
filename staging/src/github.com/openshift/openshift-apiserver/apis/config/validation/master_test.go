@@ -11,8 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
-	"github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	"github.com/openshift/openshift-apiserver/apis/config"
+	configapi "github.com/openshift/openshift-apiserver/apis/config"
 )
 
 func TestFailingAPIServerArgs(t *testing.T) {
