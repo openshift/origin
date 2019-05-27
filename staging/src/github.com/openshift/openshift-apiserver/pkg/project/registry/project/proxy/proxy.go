@@ -16,10 +16,10 @@ import (
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	"github.com/openshift/api/project"
+	"github.com/openshift/openshift-apiserver/apis/internalversion/apihelpers"
 	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
 	projectregistry "github.com/openshift/openshift-apiserver/pkg/project/apiserver/registry/project"
-	"github.com/openshift/origin/pkg/api/apihelpers"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	projectauth "github.com/openshift/origin/pkg/project/auth"

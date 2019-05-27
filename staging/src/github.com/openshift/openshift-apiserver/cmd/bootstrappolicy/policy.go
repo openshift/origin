@@ -38,8 +38,8 @@ import (
 	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 	templateapi "github.com/openshift/openshift-apiserver/pkg/template/apis/template"
 
-	oapi "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/api/legacy"
+	oapi "github.com/openshift/openshift-apiserver/apis/internalversion"
+	"github.com/openshift/openshift-apiserver/apis/internalversion/legacy"
 )
 
 var (

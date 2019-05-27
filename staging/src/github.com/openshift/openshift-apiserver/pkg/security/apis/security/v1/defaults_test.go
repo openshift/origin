@@ -9,8 +9,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	versioned "github.com/openshift/api/security/v1"
+	_ "github.com/openshift/openshift-apiserver/apis/internalversion/install"
 	conversionv1 "github.com/openshift/openshift-apiserver/pkg/security/apis/security/v1"
-	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {

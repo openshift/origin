@@ -6,8 +6,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	oapi "github.com/openshift/openshift-apiserver/apis/internalversion"
 	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
-	oapi "github.com/openshift/origin/pkg/api"
 )
 
 func TestValidateProject(t *testing.T) {

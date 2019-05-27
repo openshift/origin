@@ -27,7 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook/bitbucket"
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	"github.com/openshift/origin/pkg/build/webhook/gitlab"
-	// _ "github.com/openshift/origin/pkg/api/install"
+	// _ "github.com/openshift/openshift-apiserver/apis/internalversion/install"
 )
 
 type buildConfigInstantiator struct {

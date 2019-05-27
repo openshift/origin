@@ -19,7 +19,7 @@ import (
 	admissionttesting "github.com/openshift/openshift-apiserver/pkg/security/apiserver/admission/testing"
 	oscc "github.com/openshift/openshift-apiserver/pkg/security/apiserver/securitycontextconstraints"
 
-	_ "github.com/openshift/origin/pkg/api/install"
+	_ "github.com/openshift/openshift-apiserver/apis/internalversion/install"
 )
 
 func TestPodSecurityPolicySelfSubjectReview(t *testing.T) {

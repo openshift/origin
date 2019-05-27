@@ -17,7 +17,7 @@ import (
 	"github.com/openshift/openshift-apiserver/pkg/template/apis/template"
 
 	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
+	_ "github.com/openshift/openshift-apiserver/apis/internalversion/install"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )

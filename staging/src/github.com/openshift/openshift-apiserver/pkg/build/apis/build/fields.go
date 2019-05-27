@@ -3,7 +3,7 @@ package build
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/api/apihelpers"
+	"github.com/openshift/openshift-apiserver/apis/internalversion/apihelpers"
 	"k8s.io/apimachinery/pkg/fields"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )

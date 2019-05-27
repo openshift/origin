@@ -21,7 +21,7 @@ import (
 	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 	"k8s.io/apiserver/pkg/admission/initializer"
 
-	"github.com/openshift/origin/pkg/api/legacy"
+	"github.com/openshift/openshift-apiserver/apis/internalversion/legacy"
 	"github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/build/buildscheme"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"

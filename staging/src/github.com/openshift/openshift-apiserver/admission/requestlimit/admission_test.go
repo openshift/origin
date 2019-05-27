@@ -22,7 +22,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
+	_ "github.com/openshift/openshift-apiserver/apis/internalversion/install"
 )
 
 func TestReadConfig(t *testing.T) {

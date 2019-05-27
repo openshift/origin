@@ -22,9 +22,9 @@ import (
 
 	"github.com/openshift/api/apps"
 	appsapiv1 "github.com/openshift/api/apps/v1"
+	"github.com/openshift/openshift-apiserver/apis/internalversion/legacy"
 	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
 	"github.com/openshift/openshift-apiserver/pkg/apps/apiserver/registry/deployconfig"
-	"github.com/openshift/origin/pkg/api/legacy"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 )

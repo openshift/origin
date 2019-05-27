@@ -6,8 +6,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	v1 "github.com/openshift/api/user/v1"
+	"github.com/openshift/openshift-apiserver/apis/internalversion/apihelpers/apitesting"
 	userapi "github.com/openshift/openshift-apiserver/pkg/user/apis/user"
-	"github.com/openshift/origin/pkg/api/apihelpers/apitesting"
 )
 
 func TestFieldSelectorConversions(t *testing.T) {

@@ -26,7 +26,7 @@ import (
 	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
 	uservalidation "github.com/openshift/openshift-apiserver/pkg/user/apis/user/validation"
 
-	"github.com/openshift/origin/pkg/api/legacy"
+	"github.com/openshift/openshift-apiserver/apis/internalversion/legacy"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 )

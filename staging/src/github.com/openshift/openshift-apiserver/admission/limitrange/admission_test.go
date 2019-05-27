@@ -18,7 +18,7 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 
-	"github.com/openshift/origin/pkg/api/legacy"
+	"github.com/openshift/openshift-apiserver/apis/internalversion/legacy"
 	"github.com/openshift/origin/pkg/image/util/testutil"
 )
 

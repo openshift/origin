@@ -19,7 +19,7 @@ import (
 	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/image"
 
 	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
+	_ "github.com/openshift/openshift-apiserver/apis/internalversion/install"
 )
 
 func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {

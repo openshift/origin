@@ -18,7 +18,7 @@ import (
 	userapi "github.com/openshift/api/user/v1"
 	userapiinternal "github.com/openshift/openshift-apiserver/pkg/user/apis/user"
 
-	_ "github.com/openshift/origin/pkg/api/install"
+	_ "github.com/openshift/openshift-apiserver/apis/internalversion/install"
 )
 
 var sequence = 0

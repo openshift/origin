@@ -17,10 +17,10 @@ import (
 	api "k8s.io/kubernetes/pkg/apis/core"
 
 	securityapiv1 "github.com/openshift/api/security/v1"
+	"github.com/openshift/openshift-apiserver/apis/internalversion/install"
+	"github.com/openshift/openshift-apiserver/apis/internalversion/legacy"
 	"github.com/openshift/openshift-apiserver/cmd/admin"
 	"github.com/openshift/openshift-apiserver/cmd/bootstrappolicy"
-	"github.com/openshift/origin/pkg/api/install"
-	"github.com/openshift/origin/pkg/api/legacy"
 )
 
 var (

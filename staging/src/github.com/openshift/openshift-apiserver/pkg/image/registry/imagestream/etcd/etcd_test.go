@@ -22,7 +22,7 @@ import (
 	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registryhostname"
 
 	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
+	_ "github.com/openshift/openshift-apiserver/apis/internalversion/install"
 )
 
 const (

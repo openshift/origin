@@ -26,7 +26,7 @@ import (
 	imagestreametcd "github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/imagestream/etcd"
 	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registryhostname"
 
-	_ "github.com/openshift/origin/pkg/api/install"
+	_ "github.com/openshift/openshift-apiserver/apis/internalversion/install"
 )
 
 var testDefaultRegistry = func() (string, bool) { return "defaultregistry:5000", true }

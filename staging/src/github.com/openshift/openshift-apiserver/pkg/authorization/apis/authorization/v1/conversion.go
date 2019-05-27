@@ -7,8 +7,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/api/authorization/v1"
+	"github.com/openshift/openshift-apiserver/apis/internalversion/apihelpers"
 	newer "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/api/apihelpers"
 )
 
 func Convert_v1_SubjectAccessReview_To_authorization_SubjectAccessReview(in *v1.SubjectAccessReview, out *newer.SubjectAccessReview, s conversion.Scope) error {

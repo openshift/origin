@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 
-	oapi "github.com/openshift/origin/pkg/api"
+	oapi "github.com/openshift/openshift-apiserver/apis/internalversion"
 )
 
 func GetBootstrapServiceAccountProjectRoleBindings(namespace string) []rbacv1.RoleBinding {

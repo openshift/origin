@@ -22,7 +22,7 @@ import (
 	appstest "github.com/openshift/origin/pkg/apps/util/test"
 
 	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
+	_ "github.com/openshift/openshift-apiserver/apis/internalversion/install"
 )
 
 var testSelector = map[string]string{"test": "rest"}
