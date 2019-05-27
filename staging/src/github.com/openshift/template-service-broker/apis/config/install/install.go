@@ -4,8 +4,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
-	configapi "github.com/openshift/origin/pkg/template/servicebroker/apis/config"
-	configapiv1 "github.com/openshift/origin/pkg/template/servicebroker/apis/config/v1"
+	configapi "github.com/openshift/template-service-broker/apis/config"
+	configapiv1 "github.com/openshift/template-service-broker/apis/config/v1"
 )
 
 // Install registers the API group and adds types to a scheme
