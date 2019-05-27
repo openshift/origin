@@ -13,11 +13,11 @@ import (
 
 	internal "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/v1"
 	testtypes "github.com/openshift/origin/pkg/cmd/server/apis/config/v1/testing"
+	"github.com/openshift/origin/staging/src/github.com/openshift/openshift-apiserver/apis/config/v1"
 
 	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
+	_ "github.com/openshift/openshift-apiserver/apis/internalversion/install"
 	_ "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
 	_ "k8s.io/kubernetes/pkg/apis/core/install"
 )

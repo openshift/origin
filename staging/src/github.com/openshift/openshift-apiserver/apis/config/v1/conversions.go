@@ -2,7 +2,7 @@ package v1
 
 import (
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
-	"github.com/openshift/origin/pkg/api/apihelpers"
+	"github.com/openshift/openshift-apiserver/apis/internalversion/apihelpers"
 	internal "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
