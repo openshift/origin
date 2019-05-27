@@ -24,7 +24,7 @@ import (
 
 	configapi "github.com/openshift/openshift-apiserver/apis/config"
 	"github.com/openshift/openshift-apiserver/apis/config/validation/common"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/openshift-apiserver/cmd/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/cm"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	"github.com/openshift/origin/pkg/security/mcs"

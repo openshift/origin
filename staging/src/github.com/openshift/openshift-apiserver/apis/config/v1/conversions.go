@@ -1,15 +1,16 @@
 package v1
 
 import (
-	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
-	internal "github.com/openshift/openshift-apiserver/apis/config"
-	"github.com/openshift/openshift-apiserver/apis/internalversion/apihelpers"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
+	internalversion "github.com/openshift/openshift-apiserver/apis/config"
+	"github.com/openshift/openshift-apiserver/apis/internalversion/apihelpers"
 )
 
-func Convert_v1_ImagePolicyConfig_To_config_ImagePolicyConfig(in *legacyconfigv1.ImagePolicyConfig, out *internal.ImagePolicyConfig, s conversion.Scope) error {
+func Convert_v1_ImagePolicyConfig_To_config_ImagePolicyConfig(in *legacyconfigv1.ImagePolicyConfig, out *internalversion.ImagePolicyConfig, s conversion.Scope) error {
 	if err := autoConvert_v1_ImagePolicyConfig_To_config_ImagePolicyConfig(in, out, s); err != nil {
 		return err
 	}
@@ -18,7 +19,7 @@ func Convert_v1_ImagePolicyConfig_To_config_ImagePolicyConfig(in *legacyconfigv1
 	}
 	return nil
 }
-func Convert_config_ImagePolicyConfig_To_v1_ImagePolicyConfig(in *internal.ImagePolicyConfig, out *legacyconfigv1.ImagePolicyConfig, s conversion.Scope) error {
+func Convert_config_ImagePolicyConfig_To_v1_ImagePolicyConfig(in *internalversion.ImagePolicyConfig, out *legacyconfigv1.ImagePolicyConfig, s conversion.Scope) error {
 	if err := autoConvert_config_ImagePolicyConfig_To_v1_ImagePolicyConfig(in, out, s); err != nil {
 		return err
 	}
@@ -28,7 +29,7 @@ func Convert_config_ImagePolicyConfig_To_v1_ImagePolicyConfig(in *internal.Image
 	return nil
 }
 
-func Convert_v1_AuditConfig_To_config_AuditConfig(in *legacyconfigv1.AuditConfig, out *internal.AuditConfig, s conversion.Scope) error {
+func Convert_v1_AuditConfig_To_config_AuditConfig(in *legacyconfigv1.AuditConfig, out *internalversion.AuditConfig, s conversion.Scope) error {
 	if err := autoConvert_v1_AuditConfig_To_config_AuditConfig(in, out, s); err != nil {
 		return err
 	}
@@ -38,13 +39,13 @@ func Convert_v1_AuditConfig_To_config_AuditConfig(in *legacyconfigv1.AuditConfig
 	return nil
 }
 
-func Convert_config_AuditConfig_To_v1_AuditConfig(in *internal.AuditConfig, out *legacyconfigv1.AuditConfig, s conversion.Scope) error {
+func Convert_config_AuditConfig_To_v1_AuditConfig(in *internalversion.AuditConfig, out *legacyconfigv1.AuditConfig, s conversion.Scope) error {
 	if err := autoConvert_config_AuditConfig_To_v1_AuditConfig(in, out, s); err != nil {
 		return err
 	}
 	return nil
 }
-func Convert_v1_EtcdConnectionInfo_To_config_EtcdConnectionInfo(in *legacyconfigv1.EtcdConnectionInfo, out *internal.EtcdConnectionInfo, s conversion.Scope) error {
+func Convert_v1_EtcdConnectionInfo_To_config_EtcdConnectionInfo(in *legacyconfigv1.EtcdConnectionInfo, out *internalversion.EtcdConnectionInfo, s conversion.Scope) error {
 	out.URLs = in.URLs
 	out.CA = in.CA
 	out.ClientCert.CertFile = in.CertFile
@@ -52,7 +53,7 @@ func Convert_v1_EtcdConnectionInfo_To_config_EtcdConnectionInfo(in *legacyconfig
 	return nil
 }
 
-func Convert_config_EtcdConnectionInfo_To_v1_EtcdConnectionInfo(in *internal.EtcdConnectionInfo, out *legacyconfigv1.EtcdConnectionInfo, s conversion.Scope) error {
+func Convert_config_EtcdConnectionInfo_To_v1_EtcdConnectionInfo(in *internalversion.EtcdConnectionInfo, out *legacyconfigv1.EtcdConnectionInfo, s conversion.Scope) error {
 	out.URLs = in.URLs
 	out.CA = in.CA
 	out.CertFile = in.ClientCert.CertFile
@@ -60,7 +61,7 @@ func Convert_config_EtcdConnectionInfo_To_v1_EtcdConnectionInfo(in *internal.Etc
 	return nil
 }
 
-func Convert_v1_KubeletConnectionInfo_To_config_KubeletConnectionInfo(in *legacyconfigv1.KubeletConnectionInfo, out *internal.KubeletConnectionInfo, s conversion.Scope) error {
+func Convert_v1_KubeletConnectionInfo_To_config_KubeletConnectionInfo(in *legacyconfigv1.KubeletConnectionInfo, out *internalversion.KubeletConnectionInfo, s conversion.Scope) error {
 	out.Port = in.Port
 	out.CA = in.CA
 	out.ClientCert.CertFile = in.CertFile
@@ -68,7 +69,7 @@ func Convert_v1_KubeletConnectionInfo_To_config_KubeletConnectionInfo(in *legacy
 	return nil
 }
 
-func Convert_config_KubeletConnectionInfo_To_v1_KubeletConnectionInfo(in *internal.KubeletConnectionInfo, out *legacyconfigv1.KubeletConnectionInfo, s conversion.Scope) error {
+func Convert_config_KubeletConnectionInfo_To_v1_KubeletConnectionInfo(in *internalversion.KubeletConnectionInfo, out *legacyconfigv1.KubeletConnectionInfo, s conversion.Scope) error {
 	out.Port = in.Port
 	out.CA = in.CA
 	out.CertFile = in.ClientCert.CertFile
@@ -76,7 +77,7 @@ func Convert_config_KubeletConnectionInfo_To_v1_KubeletConnectionInfo(in *intern
 	return nil
 }
 
-func Convert_v1_KubernetesMasterConfig_To_config_KubernetesMasterConfig(in *legacyconfigv1.KubernetesMasterConfig, out *internal.KubernetesMasterConfig, s conversion.Scope) error {
+func Convert_v1_KubernetesMasterConfig_To_config_KubernetesMasterConfig(in *legacyconfigv1.KubernetesMasterConfig, out *internalversion.KubernetesMasterConfig, s conversion.Scope) error {
 	if err := autoConvert_v1_KubernetesMasterConfig_To_config_KubernetesMasterConfig(in, out, s); err != nil {
 		return err
 	}
@@ -85,12 +86,12 @@ func Convert_v1_KubernetesMasterConfig_To_config_KubernetesMasterConfig(in *lega
 		out.DisabledAPIGroupVersions = map[string][]string{}
 	}
 
-	// the APILevels (whitelist) needs to be converted into an internal blacklist
+	// the APILevels (whitelist) needs to be converted into an internalversion blacklist
 	if len(in.APILevels) == 0 {
-		out.DisabledAPIGroupVersions[internal.APIGroupKube] = []string{"*"}
+		out.DisabledAPIGroupVersions[internalversion.APIGroupKube] = []string{"*"}
 
 	} else {
-		availableLevels := internal.KubeAPIGroupsToAllowedVersions[internal.APIGroupKube]
+		availableLevels := internalversion.KubeAPIGroupsToAllowedVersions[internalversion.APIGroupKube]
 		whitelistedLevels := sets.NewString(in.APILevels...)
 		blacklistedLevels := []string{}
 
@@ -101,27 +102,27 @@ func Convert_v1_KubernetesMasterConfig_To_config_KubernetesMasterConfig(in *lega
 		}
 
 		if len(blacklistedLevels) > 0 {
-			out.DisabledAPIGroupVersions[internal.APIGroupKube] = blacklistedLevels
+			out.DisabledAPIGroupVersions[internalversion.APIGroupKube] = blacklistedLevels
 		}
 	}
 
 	return nil
 }
 
-func Convert_config_KubernetesMasterConfig_To_v1_KubernetesMasterConfig(in *internal.KubernetesMasterConfig, out *legacyconfigv1.KubernetesMasterConfig, s conversion.Scope) error {
-	// internal doesn't have all fields: APILevels
+func Convert_config_KubernetesMasterConfig_To_v1_KubernetesMasterConfig(in *internalversion.KubernetesMasterConfig, out *legacyconfigv1.KubernetesMasterConfig, s conversion.Scope) error {
+	// internalversion doesn't have all fields: APILevels
 	return autoConvert_config_KubernetesMasterConfig_To_v1_KubernetesMasterConfig(in, out, s)
 }
 
-func Convert_v1_NodeConfig_To_config_NodeConfig(in *legacyconfigv1.NodeConfig, out *internal.NodeConfig, s conversion.Scope) error {
+func Convert_v1_NodeConfig_To_config_NodeConfig(in *legacyconfigv1.NodeConfig, out *internalversion.NodeConfig, s conversion.Scope) error {
 	return autoConvert_v1_NodeConfig_To_config_NodeConfig(in, out, s)
 }
 
-func Convert_config_NodeConfig_To_v1_NodeConfig(in *internal.NodeConfig, out *legacyconfigv1.NodeConfig, s conversion.Scope) error {
+func Convert_config_NodeConfig_To_v1_NodeConfig(in *internalversion.NodeConfig, out *legacyconfigv1.NodeConfig, s conversion.Scope) error {
 	return autoConvert_config_NodeConfig_To_v1_NodeConfig(in, out, s)
 }
 
-func Convert_v1_RemoteConnectionInfo_To_config_RemoteConnectionInfo(in *legacyconfigv1.RemoteConnectionInfo, out *internal.RemoteConnectionInfo, s conversion.Scope) error {
+func Convert_v1_RemoteConnectionInfo_To_config_RemoteConnectionInfo(in *legacyconfigv1.RemoteConnectionInfo, out *internalversion.RemoteConnectionInfo, s conversion.Scope) error {
 	out.URL = in.URL
 	out.CA = in.CA
 	out.ClientCert.CertFile = in.CertFile
@@ -129,7 +130,7 @@ func Convert_v1_RemoteConnectionInfo_To_config_RemoteConnectionInfo(in *legacyco
 	return nil
 }
 
-func Convert_config_RemoteConnectionInfo_To_v1_RemoteConnectionInfo(in *internal.RemoteConnectionInfo, out *legacyconfigv1.RemoteConnectionInfo, s conversion.Scope) error {
+func Convert_config_RemoteConnectionInfo_To_v1_RemoteConnectionInfo(in *internalversion.RemoteConnectionInfo, out *legacyconfigv1.RemoteConnectionInfo, s conversion.Scope) error {
 	out.URL = in.URL
 	out.CA = in.CA
 	out.CertFile = in.ClientCert.CertFile
@@ -137,7 +138,7 @@ func Convert_config_RemoteConnectionInfo_To_v1_RemoteConnectionInfo(in *internal
 	return nil
 }
 
-func Convert_v1_ServingInfo_To_config_ServingInfo(in *legacyconfigv1.ServingInfo, out *internal.ServingInfo, s conversion.Scope) error {
+func Convert_v1_ServingInfo_To_config_ServingInfo(in *legacyconfigv1.ServingInfo, out *internalversion.ServingInfo, s conversion.Scope) error {
 	if err := autoConvert_v1_ServingInfo_To_config_ServingInfo(in, out, s); err != nil {
 		return err
 	}
@@ -146,7 +147,7 @@ func Convert_v1_ServingInfo_To_config_ServingInfo(in *legacyconfigv1.ServingInfo
 	return nil
 }
 
-func Convert_config_ServingInfo_To_v1_ServingInfo(in *internal.ServingInfo, out *legacyconfigv1.ServingInfo, s conversion.Scope) error {
+func Convert_config_ServingInfo_To_v1_ServingInfo(in *internalversion.ServingInfo, out *legacyconfigv1.ServingInfo, s conversion.Scope) error {
 	if err := autoConvert_config_ServingInfo_To_v1_ServingInfo(in, out, s); err != nil {
 		return err
 	}
@@ -155,24 +156,24 @@ func Convert_config_ServingInfo_To_v1_ServingInfo(in *internal.ServingInfo, out 
 	return nil
 }
 
-func Convert_v1_MasterVolumeConfig_To_config_MasterVolumeConfig(in *legacyconfigv1.MasterVolumeConfig, out *internal.MasterVolumeConfig, s conversion.Scope) error {
+func Convert_v1_MasterVolumeConfig_To_config_MasterVolumeConfig(in *legacyconfigv1.MasterVolumeConfig, out *internalversion.MasterVolumeConfig, s conversion.Scope) error {
 	out.DynamicProvisioningEnabled = (in.DynamicProvisioningEnabled == nil) || (*in.DynamicProvisioningEnabled)
 	return nil
 }
 
-func Convert_config_MasterVolumeConfig_To_v1_MasterVolumeConfig(in *internal.MasterVolumeConfig, out *legacyconfigv1.MasterVolumeConfig, s conversion.Scope) error {
+func Convert_config_MasterVolumeConfig_To_v1_MasterVolumeConfig(in *internalversion.MasterVolumeConfig, out *legacyconfigv1.MasterVolumeConfig, s conversion.Scope) error {
 	enabled := in.DynamicProvisioningEnabled
 	out.DynamicProvisioningEnabled = &enabled
 	return nil
 }
 
-func Convert_v1_MasterNetworkConfig_To_config_MasterNetworkConfig(in *legacyconfigv1.MasterNetworkConfig, out *internal.MasterNetworkConfig, s conversion.Scope) error {
+func Convert_v1_MasterNetworkConfig_To_config_MasterNetworkConfig(in *legacyconfigv1.MasterNetworkConfig, out *internalversion.MasterNetworkConfig, s conversion.Scope) error {
 	if err := autoConvert_v1_MasterNetworkConfig_To_config_MasterNetworkConfig(in, out, s); err != nil {
 		return err
 	}
 
 	if len(out.ClusterNetworks) == 0 {
-		out.ClusterNetworks = []internal.ClusterNetworkEntry{
+		out.ClusterNetworks = []internalversion.ClusterNetworkEntry{
 			{
 				CIDR:             in.DeprecatedClusterNetworkCIDR,
 				HostSubnetLength: in.DeprecatedHostSubnetLength,
@@ -186,7 +187,7 @@ func Convert_v1_MasterNetworkConfig_To_config_MasterNetworkConfig(in *legacyconf
 	return nil
 }
 
-func Convert_v1_AdmissionPluginConfig_To_config_AdmissionPluginConfig(in *legacyconfigv1.AdmissionPluginConfig, out *internal.AdmissionPluginConfig, s conversion.Scope) error {
+func Convert_v1_AdmissionPluginConfig_To_config_AdmissionPluginConfig(in *legacyconfigv1.AdmissionPluginConfig, out *internalversion.AdmissionPluginConfig, s conversion.Scope) error {
 	if err := autoConvert_v1_AdmissionPluginConfig_To_config_AdmissionPluginConfig(in, out, s); err != nil {
 		return err
 	}
@@ -202,7 +203,7 @@ func Convert_v1_AdmissionPluginConfig_To_config_AdmissionPluginConfig(in *legacy
 	return nil
 }
 
-func Convert_config_AdmissionPluginConfig_To_v1_AdmissionPluginConfig(in *internal.AdmissionPluginConfig, out *legacyconfigv1.AdmissionPluginConfig, s conversion.Scope) error {
+func Convert_config_AdmissionPluginConfig_To_v1_AdmissionPluginConfig(in *internalversion.AdmissionPluginConfig, out *legacyconfigv1.AdmissionPluginConfig, s conversion.Scope) error {
 	if err := autoConvert_config_AdmissionPluginConfig_To_v1_AdmissionPluginConfig(in, out, s); err != nil {
 		return err
 	}
@@ -220,7 +221,7 @@ func Convert_config_AdmissionPluginConfig_To_v1_AdmissionPluginConfig(in *intern
 }
 
 // Convert_v1_IdentityProvider_To_config_IdentityProvider is an autogenerated conversion function.
-func Convert_v1_IdentityProvider_To_config_IdentityProvider(in *legacyconfigv1.IdentityProvider, out *internal.IdentityProvider, s conversion.Scope) error {
+func Convert_v1_IdentityProvider_To_config_IdentityProvider(in *legacyconfigv1.IdentityProvider, out *internalversion.IdentityProvider, s conversion.Scope) error {
 	if err := autoConvert_v1_IdentityProvider_To_config_IdentityProvider(in, out, s); err != nil {
 		return err
 	}
@@ -236,7 +237,7 @@ func Convert_v1_IdentityProvider_To_config_IdentityProvider(in *legacyconfigv1.I
 	return nil
 }
 
-func Convert_config_IdentityProvider_To_v1_IdentityProvider(in *internal.IdentityProvider, out *legacyconfigv1.IdentityProvider, s conversion.Scope) error {
+func Convert_config_IdentityProvider_To_v1_IdentityProvider(in *internalversion.IdentityProvider, out *legacyconfigv1.IdentityProvider, s conversion.Scope) error {
 	if err := autoConvert_config_IdentityProvider_To_v1_IdentityProvider(in, out, s); err != nil {
 		return err
 	}
@@ -255,8 +256,8 @@ func Convert_config_IdentityProvider_To_v1_IdentityProvider(in *internal.Identit
 
 func addConversionFuncs(scheme *runtime.Scheme) error {
 	return scheme.AddConversionFuncs(
-		convert_runtime_Object_To_runtime_RawExtension, // convert between v1 and internal
-		convert_runtime_RawExtension_To_runtime_Object, // convert between v1 and internal
+		convert_runtime_Object_To_runtime_RawExtension, // convert between v1 and internalversion
+		convert_runtime_RawExtension_To_runtime_Object, // convert between v1 and internalversion
 	//Convert_v1_AuditConfig_To_config_AuditConfig,
 	//Convert_config_AuditConfig_To_v1_AuditConfig,
 	//Convert_v1_EtcdConnectionInfo_To_config_EtcdConnectionInfo,
@@ -281,11 +282,11 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 
 // convert_runtime_Object_To_runtime_RawExtension attempts to convert runtime.Objects to the appropriate target.
 func convert_runtime_Object_To_runtime_RawExtension(in *runtime.Object, out *runtime.RawExtension, s conversion.Scope) error {
-	return apihelpers.Convert_runtime_Object_To_runtime_RawExtension(internal.Scheme, in, out, s)
+	return apihelpers.Convert_runtime_Object_To_runtime_RawExtension(internalversion.Scheme, in, out, s)
 }
 
 // convert_runtime_RawExtension_To_runtime_Object attempts to convert an incoming object into the
 // appropriate output type.
 func convert_runtime_RawExtension_To_runtime_Object(in *runtime.RawExtension, out *runtime.Object, s conversion.Scope) error {
-	return apihelpers.Convert_runtime_RawExtension_To_runtime_Object(internal.Scheme, in, out, s)
+	return apihelpers.Convert_runtime_RawExtension_To_runtime_Object(internalversion.Scheme, in, out, s)
 }

@@ -16,13 +16,14 @@ import (
 	"github.com/openshift/openshift-apiserver/apis/config/latest"
 	"github.com/openshift/openshift-apiserver/apis/config/validation/common"
 	"github.com/openshift/openshift-apiserver/apis/config/validation/ldap"
-	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
+	oauthvalidation "github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth/validation"
+	"github.com/openshift/openshift-apiserver/pkg/user/apis/user/validation"
+
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/tokens"
 	"github.com/openshift/origin/pkg/oauthserver/server/errorpage"
 	"github.com/openshift/origin/pkg/oauthserver/server/login"
 	"github.com/openshift/origin/pkg/oauthserver/server/selectprovider"
 	"github.com/openshift/origin/pkg/oauthserver/userregistry/identitymapper"
-	"github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
 func ValidateOAuthConfig(config *configapi.OAuthConfig, fldPath *field.Path) common.ValidationResults {
