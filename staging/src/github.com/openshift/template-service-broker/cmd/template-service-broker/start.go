@@ -1,31 +1,38 @@
-package server
+package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"net"
+	"os"
+	"runtime"
 	"time"
-
-	"k8s.io/apiserver/pkg/util/webhook"
-
-	"k8s.io/client-go/kubernetes"
-
-	"k8s.io/client-go/informers"
-	"k8s.io/client-go/rest"
 
 	"github.com/spf13/cobra"
 
-	"k8s.io/apimachinery/pkg/runtime"
+	kruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericapiserveroptions "k8s.io/apiserver/pkg/server/options"
+	"k8s.io/apiserver/pkg/util/webhook"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/component-base/logs"
+	"k8s.io/klog"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/library-go/pkg/serviceability"
+
 	"github.com/openshift/origin/pkg/template/servicebroker/apis/config"
 	configinstall "github.com/openshift/origin/pkg/template/servicebroker/apis/config/install"
-	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/server"
+	"github.com/openshift/origin/pkg/version"
+
+	"github.com/openshift/template-service-broker/pkg/openservicebroker/server"
 )
 
 type TemplateServiceBrokerServerOptions struct {
@@ -107,7 +114,7 @@ func (o *TemplateServiceBrokerServerOptions) Complete(cmd *cobra.Command) error 
 		if err != nil {
 			return err
 		}
-		configObj, err := runtime.Decode(configCodecs.UniversalDecoder(), content)
+		configObj, err := kruntime.Decode(configCodecs.UniversalDecoder(), content)
 		if err != nil {
 			return err
 		}
@@ -193,10 +200,31 @@ func (o TemplateServiceBrokerServerOptions) RunTemplateServiceBrokerServer(stopC
 
 // these are used to set up for reading the config
 var (
-	configScheme = runtime.NewScheme()
+	configScheme = kruntime.NewScheme()
 	configCodecs = serializer.NewCodecFactory(configScheme)
 )
 
 func init() {
 	configinstall.Install(configScheme)
+}
+
+func main() {
+	stopCh := genericapiserver.SetupSignalHandler()
+	rand.Seed(time.Now().UTC().UnixNano())
+
+	logs.InitLogs()
+	defer logs.FlushLogs()
+
+	if len(os.Getenv("GOMAXPROCS")) == 0 {
+		runtime.GOMAXPROCS(runtime.NumCPU())
+	}
+
+	defer serviceability.BehaviorOnPanic(os.Getenv("OPENSHIFT_ON_PANIC"), version.Get())()
+	defer serviceability.Profile(os.Getenv("OPENSHIFT_PROFILE")).Stop()
+
+	cmd := NewCommandStartTemplateServiceBrokerServer(os.Stdout, os.Stderr, stopCh)
+	cmd.Flags().AddGoFlagSet(flag.CommandLine)
+	if err := cmd.Execute(); err != nil {
+		klog.Fatal(err)
+	}
 }
