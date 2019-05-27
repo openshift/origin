@@ -22,7 +22,6 @@ import (
 	userv1 "github.com/openshift/api/user/v1"
 	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
 	"github.com/openshift/origin/pkg/client/config"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/term"
 	"github.com/openshift/origin/pkg/oc/lib/errors"
 	cliconfig "github.com/openshift/origin/pkg/oc/lib/kubeconfig"
@@ -366,7 +365,7 @@ func (o *LoginOptions) SaveConfig() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	baseDir, err := cmdutil.MakeAbs(filepath.Dir(o.PathOptions.GetDefaultFilename()), cwd)
+	baseDir, err := kclientcmdapi.MakeAbs(filepath.Dir(o.PathOptions.GetDefaultFilename()), cwd)
 	if err != nil {
 		return false, err
 	}
