@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog"
 
 	authorizationv1 "k8s.io/api/authorization/v1"
@@ -24,10 +25,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/api/route"
-	"github.com/openshift/origin/pkg/api/legacy"
+
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
-	"github.com/openshift/origin/pkg/templateservicebroker/util"
+	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
+	"github.com/openshift/template-service-broker/pkg/util"
 )
 
 func evaluateJSONPathExpression(obj interface{}, annotation, expression string, base64encode bool) (string, error) {
@@ -203,8 +204,8 @@ func (b *Broker) Bind(u user.Info, instanceID, bindingID string, breq *api.BindR
 		case kapi.Kind("ConfigMap"),
 			kapi.Kind("Secret"),
 			kapi.Kind("Service"),
-			route.Kind("Route"),
-			legacy.Kind("Route"):
+			schema.GroupKind{Group: "", Kind: "Route"}, // TODO: Remove?
+			route.Kind("Route"):
 		default:
 			continue
 		}

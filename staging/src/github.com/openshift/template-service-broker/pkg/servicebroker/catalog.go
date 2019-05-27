@@ -10,9 +10,10 @@ import (
 	"k8s.io/klog"
 
 	templateapiv1 "github.com/openshift/api/template/v1"
+
 	oapi "github.com/openshift/origin/pkg/api"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
+	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
 )
 
 const (

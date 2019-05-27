@@ -14,8 +14,8 @@ import (
 	"k8s.io/client-go/util/retry"
 
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
-	"github.com/openshift/origin/pkg/templateservicebroker/util"
+	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
+	"github.com/openshift/template-service-broker/pkg/util"
 )
 
 // Unbind is the reverse of Bind.  Currently it simply removes the binding ID

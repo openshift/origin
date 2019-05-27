@@ -11,8 +11,8 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
-	"github.com/openshift/origin/pkg/templateservicebroker/util"
+	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
+	"github.com/openshift/template-service-broker/pkg/util"
 )
 
 // Deprovision is the reverse of Provision.  We clean up the TemplateInstance,

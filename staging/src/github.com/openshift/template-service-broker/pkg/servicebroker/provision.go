@@ -16,8 +16,9 @@ import (
 	"k8s.io/client-go/util/retry"
 
 	templateapiv1 "github.com/openshift/api/template/v1"
-	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
-	"github.com/openshift/origin/pkg/templateservicebroker/util"
+
+	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
+	"github.com/openshift/template-service-broker/pkg/util"
 )
 
 // ensureSecret ensures the existence of a Secret object containing the template

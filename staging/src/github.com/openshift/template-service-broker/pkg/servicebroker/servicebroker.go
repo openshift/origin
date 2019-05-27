@@ -17,7 +17,8 @@ import (
 	v1template "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
 	templateinformer "github.com/openshift/client-go/template/informers/externalversions/template/v1"
 	templatelister "github.com/openshift/client-go/template/listers/template/v1"
-	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
+
+	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
 )
 
 // Broker represents the template service broker.  It implements

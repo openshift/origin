@@ -13,16 +13,16 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
 
-	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
+	openservicebrokerapi "github.com/openshift/template-service-broker/pkg/openservicebroker/api"
 )
 
 type Client interface {
 	Client() *http.Client
 
-	Catalog(ctx context.Context) (*api.CatalogResponse, error)
-	Provision(ctx context.Context, u user.Info, instanceID string, preq *api.ProvisionRequest) (*api.ProvisionResponse, error)
+	Catalog(ctx context.Context) (*openservicebrokerapi.CatalogResponse, error)
+	Provision(ctx context.Context, u user.Info, instanceID string, preq *openservicebrokerapi.ProvisionRequest) (*openservicebrokerapi.ProvisionResponse, error)
 	Deprovision(ctx context.Context, u user.Info, instanceID string) error
-	Bind(ctx context.Context, u user.Info, instanceID, bindingID string, breq *api.BindRequest) (*api.BindResponse, error)
+	Bind(ctx context.Context, u user.Info, instanceID, bindingID string, breq *openservicebrokerapi.BindRequest) (*openservicebrokerapi.BindResponse, error)
 	Unbind(ctx context.Context, u user.Info, instanceID, bindingID string) error
 }
 
@@ -53,23 +53,23 @@ func (c *client) Client() *http.Client {
 }
 
 func OriginatingIdentityHeader(u user.Info) (string, error) {
-	templatereq := api.ConvertUserToTemplateInstanceRequester(u)
+	templatereq := openservicebrokerapi.ConvertUserToTemplateInstanceRequester(u)
 
 	b, err := json.Marshal(&templatereq)
 	if err != nil {
 		return "", err
 	}
 	encodeVal := base64.StdEncoding.EncodeToString(b)
-	return api.OriginatingIdentitySchemeKubernetes + " " + encodeVal, nil
+	return openservicebrokerapi.OriginatingIdentitySchemeKubernetes + " " + encodeVal, nil
 }
 
-func (c *client) Catalog(ctx context.Context) (*api.CatalogResponse, error) {
+func (c *client) Catalog(ctx context.Context) (*openservicebrokerapi.CatalogResponse, error) {
 	req, err := http.NewRequest(http.MethodGet, c.root+"/v2/catalog", nil)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Add(api.XBrokerAPIVersion, api.APIVersion)
+	req.Header.Add(openservicebrokerapi.XBrokerAPIVersion, openservicebrokerapi.APIVersion)
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -83,7 +83,7 @@ func (c *client) Catalog(ctx context.Context) (*api.CatalogResponse, error) {
 
 	d := json.NewDecoder(resp.Body)
 	if resp.StatusCode == http.StatusOK {
-		var r *api.CatalogResponse
+		var r *openservicebrokerapi.CatalogResponse
 		err = d.Decode(&r)
 		if err != nil {
 			return nil, err
@@ -91,7 +91,7 @@ func (c *client) Catalog(ctx context.Context) (*api.CatalogResponse, error) {
 		return r, nil
 	}
 
-	var r *api.ErrorResponse
+	var r *openservicebrokerapi.ErrorResponse
 	err = d.Decode(&r)
 	if err != nil {
 		return nil, err
@@ -99,8 +99,8 @@ func (c *client) Catalog(ctx context.Context) (*api.CatalogResponse, error) {
 	return nil, newServerError(resp.StatusCode, r.Description)
 }
 
-func (c *client) Provision(ctx context.Context, u user.Info, instanceID string, preq *api.ProvisionRequest) (*api.ProvisionResponse, error) {
-	if errs := api.ValidateUUID(field.NewPath("instanceID"), instanceID); len(errs) > 0 {
+func (c *client) Provision(ctx context.Context, u user.Info, instanceID string, preq *openservicebrokerapi.ProvisionRequest) (*openservicebrokerapi.ProvisionResponse, error) {
+	if errs := openservicebrokerapi.ValidateUUID(field.NewPath("instanceID"), instanceID); len(errs) > 0 {
 		return nil, errs.ToAggregate()
 	}
 
@@ -115,14 +115,14 @@ func (c *client) Provision(ctx context.Context, u user.Info, instanceID string, 
 		return nil, err
 	}
 
-	req.Header.Add(api.XBrokerAPIVersion, api.APIVersion)
+	req.Header.Add(openservicebrokerapi.XBrokerAPIVersion, openservicebrokerapi.APIVersion)
 	req.Header.Add("Content-Type", "application/json")
 
 	identity, err := OriginatingIdentityHeader(u)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Add(api.XBrokerAPIOriginatingIdentity, identity)
+	req.Header.Add(openservicebrokerapi.XBrokerAPIOriginatingIdentity, identity)
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -138,19 +138,19 @@ func (c *client) Provision(ctx context.Context, u user.Info, instanceID string, 
 	if resp.StatusCode == http.StatusCreated ||
 		resp.StatusCode == http.StatusOK ||
 		resp.StatusCode == http.StatusAccepted {
-		var r *api.ProvisionResponse
+		var r *openservicebrokerapi.ProvisionResponse
 		err = d.Decode(&r)
 		if err != nil {
 			return nil, err
 		}
 
 		if resp.StatusCode == http.StatusAccepted {
-			var state api.LastOperationState
+			var state openservicebrokerapi.LastOperationState
 			state, err = c.WaitForOperation(ctx, u, instanceID, r.Operation)
 			if err != nil {
 				return nil, err
 			}
-			if state != api.LastOperationStateSucceeded {
+			if state != openservicebrokerapi.LastOperationStateSucceeded {
 				return nil, fmt.Errorf("operation returned state %s", string(state))
 			}
 		}
@@ -158,7 +158,7 @@ func (c *client) Provision(ctx context.Context, u user.Info, instanceID string, 
 		return r, nil
 	}
 
-	var r *api.ErrorResponse
+	var r *openservicebrokerapi.ErrorResponse
 	err = d.Decode(&r)
 	if err != nil {
 		return nil, err
@@ -167,7 +167,7 @@ func (c *client) Provision(ctx context.Context, u user.Info, instanceID string, 
 }
 
 func (c *client) Deprovision(ctx context.Context, u user.Info, instanceID string) error {
-	if errs := api.ValidateUUID(field.NewPath("instanceID"), instanceID); len(errs) > 0 {
+	if errs := openservicebrokerapi.ValidateUUID(field.NewPath("instanceID"), instanceID); len(errs) > 0 {
 		return errs.ToAggregate()
 	}
 
@@ -176,13 +176,13 @@ func (c *client) Deprovision(ctx context.Context, u user.Info, instanceID string
 		return err
 	}
 
-	req.Header.Add(api.XBrokerAPIVersion, api.APIVersion)
+	req.Header.Add(openservicebrokerapi.XBrokerAPIVersion, openservicebrokerapi.APIVersion)
 
 	identity, err := OriginatingIdentityHeader(u)
 	if err != nil {
 		return err
 	}
-	req.Header.Add(api.XBrokerAPIOriginatingIdentity, identity)
+	req.Header.Add(openservicebrokerapi.XBrokerAPIOriginatingIdentity, identity)
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -198,19 +198,19 @@ func (c *client) Deprovision(ctx context.Context, u user.Info, instanceID string
 	if resp.StatusCode == http.StatusOK ||
 		resp.StatusCode == http.StatusAccepted ||
 		resp.StatusCode == http.StatusGone {
-		var r *api.DeprovisionResponse
+		var r *openservicebrokerapi.DeprovisionResponse
 		err = d.Decode(&r)
 		if err != nil {
 			return err
 		}
 
 		if resp.StatusCode == http.StatusAccepted {
-			var state api.LastOperationState
+			var state openservicebrokerapi.LastOperationState
 			state, err = c.WaitForOperation(ctx, u, instanceID, r.Operation)
 			if err != nil {
 				return err
 			}
-			if state != api.LastOperationStateSucceeded {
+			if state != openservicebrokerapi.LastOperationStateSucceeded {
 				return fmt.Errorf("operation returned state %s", string(state))
 			}
 		}
@@ -218,7 +218,7 @@ func (c *client) Deprovision(ctx context.Context, u user.Info, instanceID string
 		return nil
 	}
 
-	var r *api.ErrorResponse
+	var r *openservicebrokerapi.ErrorResponse
 	err = d.Decode(&r)
 	if err != nil {
 		return err
@@ -226,8 +226,8 @@ func (c *client) Deprovision(ctx context.Context, u user.Info, instanceID string
 	return newServerError(resp.StatusCode, r.Description)
 }
 
-func (c *client) LastOperation(ctx context.Context, u user.Info, instanceID string, operation api.Operation) (*api.LastOperationResponse, error) {
-	if errs := api.ValidateUUID(field.NewPath("instanceID"), instanceID); len(errs) > 0 {
+func (c *client) LastOperation(ctx context.Context, u user.Info, instanceID string, operation openservicebrokerapi.Operation) (*openservicebrokerapi.LastOperationResponse, error) {
+	if errs := openservicebrokerapi.ValidateUUID(field.NewPath("instanceID"), instanceID); len(errs) > 0 {
 		return nil, errs.ToAggregate()
 	}
 
@@ -236,13 +236,13 @@ func (c *client) LastOperation(ctx context.Context, u user.Info, instanceID stri
 		return nil, err
 	}
 
-	req.Header.Add(api.XBrokerAPIVersion, api.APIVersion)
+	req.Header.Add(openservicebrokerapi.XBrokerAPIVersion, openservicebrokerapi.APIVersion)
 
 	identity, err := OriginatingIdentityHeader(u)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Add(api.XBrokerAPIOriginatingIdentity, identity)
+	req.Header.Add(openservicebrokerapi.XBrokerAPIOriginatingIdentity, identity)
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -256,7 +256,7 @@ func (c *client) LastOperation(ctx context.Context, u user.Info, instanceID stri
 
 	d := json.NewDecoder(resp.Body)
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusGone {
-		var r *api.LastOperationResponse
+		var r *openservicebrokerapi.LastOperationResponse
 		err = d.Decode(&r)
 		if err != nil {
 			return nil, err
@@ -264,7 +264,7 @@ func (c *client) LastOperation(ctx context.Context, u user.Info, instanceID stri
 		return r, nil
 	}
 
-	var r *api.ErrorResponse
+	var r *openservicebrokerapi.ErrorResponse
 	err = d.Decode(&r)
 	if err != nil {
 		return nil, err
@@ -272,21 +272,21 @@ func (c *client) LastOperation(ctx context.Context, u user.Info, instanceID stri
 	return nil, newServerError(resp.StatusCode, r.Description)
 }
 
-func (c *client) WaitForOperation(ctx context.Context, u user.Info, instanceID string, operation api.Operation) (api.LastOperationState, error) {
+func (c *client) WaitForOperation(ctx context.Context, u user.Info, instanceID string, operation openservicebrokerapi.Operation) (openservicebrokerapi.LastOperationState, error) {
 	done := ctx.Done()
 	for {
 		op, err := c.LastOperation(ctx, u, instanceID, operation)
 		if err != nil {
-			return api.LastOperationStateFailed, err
+			return openservicebrokerapi.LastOperationStateFailed, err
 		}
 
-		if op.State != api.LastOperationStateInProgress {
+		if op.State != openservicebrokerapi.LastOperationStateInProgress {
 			return op.State, nil
 		}
 
 		select {
 		case <-done:
-			return api.LastOperationStateFailed, ctx.Err()
+			return openservicebrokerapi.LastOperationStateFailed, ctx.Err()
 		default:
 		}
 
@@ -294,12 +294,12 @@ func (c *client) WaitForOperation(ctx context.Context, u user.Info, instanceID s
 	}
 }
 
-func (c *client) Bind(ctx context.Context, u user.Info, instanceID, bindingID string, breq *api.BindRequest) (*api.BindResponse, error) {
-	if errs := api.ValidateUUID(field.NewPath("instanceID"), instanceID); len(errs) > 0 {
+func (c *client) Bind(ctx context.Context, u user.Info, instanceID, bindingID string, breq *openservicebrokerapi.BindRequest) (*openservicebrokerapi.BindResponse, error) {
+	if errs := openservicebrokerapi.ValidateUUID(field.NewPath("instanceID"), instanceID); len(errs) > 0 {
 		return nil, errs.ToAggregate()
 	}
 
-	if errs := api.ValidateUUID(field.NewPath("bindingID"), bindingID); len(errs) > 0 {
+	if errs := openservicebrokerapi.ValidateUUID(field.NewPath("bindingID"), bindingID); len(errs) > 0 {
 		return nil, errs.ToAggregate()
 	}
 
@@ -314,14 +314,14 @@ func (c *client) Bind(ctx context.Context, u user.Info, instanceID, bindingID st
 		return nil, err
 	}
 
-	req.Header.Add(api.XBrokerAPIVersion, api.APIVersion)
+	req.Header.Add(openservicebrokerapi.XBrokerAPIVersion, openservicebrokerapi.APIVersion)
 	req.Header.Add("Content-Type", "application/json")
 
 	identity, err := OriginatingIdentityHeader(u)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Add(api.XBrokerAPIOriginatingIdentity, identity)
+	req.Header.Add(openservicebrokerapi.XBrokerAPIOriginatingIdentity, identity)
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -335,7 +335,7 @@ func (c *client) Bind(ctx context.Context, u user.Info, instanceID, bindingID st
 
 	d := json.NewDecoder(resp.Body)
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
-		var r *api.BindResponse
+		var r *openservicebrokerapi.BindResponse
 		err = d.Decode(&r)
 		if err != nil {
 			return nil, err
@@ -343,7 +343,7 @@ func (c *client) Bind(ctx context.Context, u user.Info, instanceID, bindingID st
 		return r, nil
 	}
 
-	var r *api.ErrorResponse
+	var r *openservicebrokerapi.ErrorResponse
 	err = d.Decode(&r)
 	if err != nil {
 		return nil, err
@@ -352,11 +352,11 @@ func (c *client) Bind(ctx context.Context, u user.Info, instanceID, bindingID st
 }
 
 func (c *client) Unbind(ctx context.Context, u user.Info, instanceID, bindingID string) error {
-	if errs := api.ValidateUUID(field.NewPath("instanceID"), instanceID); len(errs) > 0 {
+	if errs := openservicebrokerapi.ValidateUUID(field.NewPath("instanceID"), instanceID); len(errs) > 0 {
 		return errs.ToAggregate()
 	}
 
-	if errs := api.ValidateUUID(field.NewPath("bindingID"), bindingID); len(errs) > 0 {
+	if errs := openservicebrokerapi.ValidateUUID(field.NewPath("bindingID"), bindingID); len(errs) > 0 {
 		return errs.ToAggregate()
 	}
 
@@ -365,13 +365,13 @@ func (c *client) Unbind(ctx context.Context, u user.Info, instanceID, bindingID 
 		return err
 	}
 
-	req.Header.Add(api.XBrokerAPIVersion, api.APIVersion)
+	req.Header.Add(openservicebrokerapi.XBrokerAPIVersion, openservicebrokerapi.APIVersion)
 
 	identity, err := OriginatingIdentityHeader(u)
 	if err != nil {
 		return err
 	}
-	req.Header.Add(api.XBrokerAPIOriginatingIdentity, identity)
+	req.Header.Add(openservicebrokerapi.XBrokerAPIOriginatingIdentity, identity)
 
 	resp, err := c.cli.Do(req)
 	if err != nil {
@@ -385,7 +385,7 @@ func (c *client) Unbind(ctx context.Context, u user.Info, instanceID, bindingID 
 
 	d := json.NewDecoder(resp.Body)
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusGone {
-		var r *api.UnbindResponse
+		var r *openservicebrokerapi.UnbindResponse
 		err = d.Decode(&r)
 		if err != nil {
 			return err
@@ -393,7 +393,7 @@ func (c *client) Unbind(ctx context.Context, u user.Info, instanceID, bindingID 
 		return nil
 	}
 
-	var r *api.ErrorResponse
+	var r *openservicebrokerapi.ErrorResponse
 	err = d.Decode(&r)
 	if err != nil {
 		return err

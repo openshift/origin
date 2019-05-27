@@ -9,7 +9,8 @@ import (
 	templatev1 "github.com/openshift/api/template/v1"
 	faketemplatev1 "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1/fake"
 	templatelister "github.com/openshift/client-go/template/listers/template/v1"
-	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
+
+	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
 
 	authorizationv1 "k8s.io/api/authorization/v1"
 	"k8s.io/apimachinery/pkg/api/errors"

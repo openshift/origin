@@ -10,49 +10,49 @@ import (
 	"strings"
 	"testing"
 
-	restful "github.com/emicklei/go-restful"
+	"github.com/emicklei/go-restful"
 
 	"k8s.io/apiserver/pkg/authentication/user"
 
-	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
-	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"
+	openservicebrokerapi "github.com/openshift/template-service-broker/pkg/openservicebroker/api"
+	client2 "github.com/openshift/template-service-broker/pkg/openservicebroker/client"
 )
 
 const validUUID = "decd59a9-1dd2-453e-942e-2deba96bfa96"
 
-type fakeBroker api.Response
+type fakeBroker openservicebrokerapi.Response
 
-func (b *fakeBroker) Catalog() *api.Response {
-	r := api.Response(*b)
+func (b *fakeBroker) Catalog() *openservicebrokerapi.Response {
+	r := openservicebrokerapi.Response(*b)
 	return &r
 }
 
-func (b *fakeBroker) Provision(u user.Info, instanceID string, preq *api.ProvisionRequest) *api.Response {
-	r := api.Response(*b)
+func (b *fakeBroker) Provision(u user.Info, instanceID string, preq *openservicebrokerapi.ProvisionRequest) *openservicebrokerapi.Response {
+	r := openservicebrokerapi.Response(*b)
 	return &r
 }
 
-func (b *fakeBroker) Deprovision(u user.Info, instanceID string) *api.Response {
-	r := api.Response(*b)
+func (b *fakeBroker) Deprovision(u user.Info, instanceID string) *openservicebrokerapi.Response {
+	r := openservicebrokerapi.Response(*b)
 	return &r
 }
 
-func (b *fakeBroker) Bind(u user.Info, instanceID string, bindingID string, breq *api.BindRequest) *api.Response {
-	r := api.Response(*b)
+func (b *fakeBroker) Bind(u user.Info, instanceID string, bindingID string, breq *openservicebrokerapi.BindRequest) *openservicebrokerapi.Response {
+	r := openservicebrokerapi.Response(*b)
 	return &r
 }
 
-func (b *fakeBroker) Unbind(u user.Info, instanceID string, bindingID string) *api.Response {
-	r := api.Response(*b)
+func (b *fakeBroker) Unbind(u user.Info, instanceID string, bindingID string) *openservicebrokerapi.Response {
+	r := openservicebrokerapi.Response(*b)
 	return &r
 }
 
-func (b *fakeBroker) LastOperation(u user.Info, instanceID string, operation api.Operation) *api.Response {
-	r := api.Response(*b)
+func (b *fakeBroker) LastOperation(u user.Info, instanceID string, operation openservicebrokerapi.Operation) *openservicebrokerapi.Response {
+	r := openservicebrokerapi.Response(*b)
 	return &r
 }
 
-var _ api.Broker = &fakeBroker{}
+var _ openservicebrokerapi.Broker = &fakeBroker{}
 
 type fakeResponseWriter struct {
 	h    http.Header
@@ -86,7 +86,7 @@ var defaultOriginatingIdentityHeader string
 
 func init() {
 	var err error
-	defaultOriginatingIdentityHeader, err = client.OriginatingIdentityHeader(&user.DefaultInfo{})
+	defaultOriginatingIdentityHeader, err = client2.OriginatingIdentityHeader(&user.DefaultInfo{})
 	if err != nil {
 		panic(err)
 	}
@@ -102,8 +102,8 @@ func parseUrl(t *testing.T, s string) *url.URL {
 
 func checkResponseWriter(t *testing.T, rw *fakeResponseWriter) {
 	expectedHeaders := map[string]string{
-		restful.HEADER_ContentType: restful.MIME_JSON,
-		api.XBrokerAPIVersion:      api.APIVersion,
+		restful.HEADER_ContentType:             restful.MIME_JSON,
+		openservicebrokerapi.XBrokerAPIVersion: openservicebrokerapi.APIVersion,
 	}
 	for k, v := range expectedHeaders {
 		if rw.h.Get(k) != v {
@@ -119,7 +119,7 @@ func checkResponseWriter(t *testing.T, rw *fakeResponseWriter) {
 
 func TestRequiresXBrokerAPIVersionHeader(t *testing.T) {
 	c := restful.NewContainer()
-	fb := fakeBroker(*api.NewResponse(http.StatusOK, map[string]interface{}{}, nil))
+	fb := fakeBroker(*openservicebrokerapi.NewResponse(http.StatusOK, map[string]interface{}{}, nil))
 	Route(c, "", &fb)
 
 	rw := newFakeResponseWriter()
@@ -139,7 +139,7 @@ func TestRequiresXBrokerAPIVersionHeader(t *testing.T) {
 
 func TestRequiresContentTypeHeader(t *testing.T) {
 	c := restful.NewContainer()
-	fb := fakeBroker(*api.NewResponse(http.StatusOK, map[string]interface{}{}, nil))
+	fb := fakeBroker(*openservicebrokerapi.NewResponse(http.StatusOK, map[string]interface{}{}, nil))
 	Route(c, "", &fb)
 
 	rw := newFakeResponseWriter()
@@ -147,7 +147,7 @@ func TestRequiresContentTypeHeader(t *testing.T) {
 		Method: http.MethodPut,
 		URL:    parseUrl(t, "/v2/service_instances/"+validUUID),
 		Header: http.Header{
-			api.XBrokerAPIVersion: []string{api.APIVersion},
+			openservicebrokerapi.XBrokerAPIVersion: []string{openservicebrokerapi.APIVersion},
 		},
 		Body: ioutil.NopCloser(bytes.NewBufferString("{}")),
 	})
@@ -163,14 +163,14 @@ func TestRequiresContentTypeHeader(t *testing.T) {
 
 func TestInternalServerError(t *testing.T) {
 	c := restful.NewContainer()
-	fb := fakeBroker(*api.InternalServerError(errors.New("test error")))
+	fb := fakeBroker(*openservicebrokerapi.InternalServerError(errors.New("test error")))
 	Route(c, "", &fb)
 
 	rw := newFakeResponseWriter()
 	c.ServeHTTP(rw, &http.Request{
 		Method: http.MethodGet,
 		URL:    parseUrl(t, "/v2/catalog"),
-		Header: http.Header{api.XBrokerAPIVersion: []string{api.APIVersion}},
+		Header: http.Header{openservicebrokerapi.XBrokerAPIVersion: []string{openservicebrokerapi.APIVersion}},
 	})
 	checkResponseWriter(t, rw)
 
@@ -184,14 +184,14 @@ func TestInternalServerError(t *testing.T) {
 
 func TestBadRequestError(t *testing.T) {
 	c := restful.NewContainer()
-	fb := fakeBroker(*api.BadRequest(errors.New("test error")))
+	fb := fakeBroker(*openservicebrokerapi.BadRequest(errors.New("test error")))
 	Route(c, "", &fb)
 
 	rw := newFakeResponseWriter()
 	c.ServeHTTP(rw, &http.Request{
 		Method: http.MethodGet,
 		URL:    parseUrl(t, "/v2/catalog"),
-		Header: http.Header{api.XBrokerAPIVersion: []string{api.APIVersion}},
+		Header: http.Header{openservicebrokerapi.XBrokerAPIVersion: []string{openservicebrokerapi.APIVersion}},
 	})
 	checkResponseWriter(t, rw)
 
@@ -205,13 +205,13 @@ func TestBadRequestError(t *testing.T) {
 
 func TestProvision(t *testing.T) {
 	c := restful.NewContainer()
-	fb := fakeBroker(*api.NewResponse(http.StatusOK, map[string]interface{}{}, nil))
+	fb := fakeBroker(*openservicebrokerapi.NewResponse(http.StatusOK, map[string]interface{}{}, nil))
 	Route(c, "", &fb)
 
 	tests := []struct {
 		name        string
 		req         http.Request
-		body        *api.ProvisionRequest
+		body        *openservicebrokerapi.ProvisionRequest
 		expectCode  int
 		expectError string
 	}{
@@ -243,7 +243,7 @@ func TestProvision(t *testing.T) {
 			req: http.Request{
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID),
 			},
-			body:        &api.ProvisionRequest{},
+			body:        &openservicebrokerapi.ProvisionRequest{},
 			expectError: `service_id: Invalid value: "": must be a valid UUID`,
 		},
 		{
@@ -251,11 +251,11 @@ func TestProvision(t *testing.T) {
 			req: http.Request{
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID),
 			},
-			body: &api.ProvisionRequest{
+			body: &openservicebrokerapi.ProvisionRequest{
 				ServiceID: validUUID,
 				PlanID:    validUUID,
-				Context: api.KubernetesContext{
-					Platform:  api.ContextPlatformKubernetes,
+				Context: openservicebrokerapi.KubernetesContext{
+					Platform:  openservicebrokerapi.ContextPlatformKubernetes,
 					Namespace: "test",
 				},
 			},
@@ -267,11 +267,11 @@ func TestProvision(t *testing.T) {
 			req: http.Request{
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"?accepts_incomplete=true"),
 			},
-			body: &api.ProvisionRequest{
+			body: &openservicebrokerapi.ProvisionRequest{
 				ServiceID: validUUID,
 				PlanID:    validUUID,
-				Context: api.KubernetesContext{
-					Platform:  api.ContextPlatformKubernetes,
+				Context: openservicebrokerapi.KubernetesContext{
+					Platform:  openservicebrokerapi.ContextPlatformKubernetes,
 					Namespace: "test",
 				},
 			},
@@ -283,14 +283,14 @@ func TestProvision(t *testing.T) {
 			req: http.Request{
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"?accepts_incomplete=true"),
 				Header: http.Header{
-					http.CanonicalHeaderKey(api.XBrokerAPIOriginatingIdentity): []string{defaultOriginatingIdentityHeader},
+					http.CanonicalHeaderKey(openservicebrokerapi.XBrokerAPIOriginatingIdentity): []string{defaultOriginatingIdentityHeader},
 				},
 			},
-			body: &api.ProvisionRequest{
+			body: &openservicebrokerapi.ProvisionRequest{
 				ServiceID: validUUID,
 				PlanID:    validUUID,
-				Context: api.KubernetesContext{
-					Platform:  api.ContextPlatformKubernetes,
+				Context: openservicebrokerapi.KubernetesContext{
+					Platform:  openservicebrokerapi.ContextPlatformKubernetes,
 					Namespace: "test",
 				},
 			},
@@ -305,7 +305,7 @@ func TestProvision(t *testing.T) {
 		if test.req.Header == nil {
 			test.req.Header = make(http.Header)
 		}
-		test.req.Header.Set(api.XBrokerAPIVersion, api.APIVersion)
+		test.req.Header.Set(openservicebrokerapi.XBrokerAPIVersion, openservicebrokerapi.APIVersion)
 		test.req.Header.Set(restful.HEADER_ContentType, restful.MIME_JSON)
 		if test.expectCode == 0 {
 			test.expectCode = http.StatusBadRequest
@@ -339,7 +339,7 @@ func TestProvision(t *testing.T) {
 
 func TestDeprovision(t *testing.T) {
 	c := restful.NewContainer()
-	fb := fakeBroker(*api.NewResponse(http.StatusOK, map[string]interface{}{}, nil))
+	fb := fakeBroker(*openservicebrokerapi.NewResponse(http.StatusOK, map[string]interface{}{}, nil))
 	Route(c, "", &fb)
 
 	tests := []struct {
@@ -376,7 +376,7 @@ func TestDeprovision(t *testing.T) {
 			req: http.Request{
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"?accepts_incomplete=true"),
 				Header: http.Header{
-					http.CanonicalHeaderKey(api.XBrokerAPIOriginatingIdentity): []string{defaultOriginatingIdentityHeader},
+					http.CanonicalHeaderKey(openservicebrokerapi.XBrokerAPIOriginatingIdentity): []string{defaultOriginatingIdentityHeader},
 				},
 			},
 			expectCode: http.StatusOK,
@@ -390,7 +390,7 @@ func TestDeprovision(t *testing.T) {
 		if test.req.Header == nil {
 			test.req.Header = make(http.Header)
 		}
-		test.req.Header.Set(api.XBrokerAPIVersion, api.APIVersion)
+		test.req.Header.Set(openservicebrokerapi.XBrokerAPIVersion, openservicebrokerapi.APIVersion)
 		if test.expectCode == 0 {
 			test.expectCode = http.StatusBadRequest
 		}
@@ -415,7 +415,7 @@ func TestDeprovision(t *testing.T) {
 
 func TestLastOperation(t *testing.T) {
 	c := restful.NewContainer()
-	fb := fakeBroker(*api.NewResponse(http.StatusOK, map[string]interface{}{}, nil))
+	fb := fakeBroker(*openservicebrokerapi.NewResponse(http.StatusOK, map[string]interface{}{}, nil))
 	Route(c, "", &fb)
 
 	tests := []struct {
@@ -451,7 +451,7 @@ func TestLastOperation(t *testing.T) {
 			req: http.Request{
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"/last_operation?operation=provisioning"),
 				Header: http.Header{
-					http.CanonicalHeaderKey(api.XBrokerAPIOriginatingIdentity): []string{defaultOriginatingIdentityHeader},
+					http.CanonicalHeaderKey(openservicebrokerapi.XBrokerAPIOriginatingIdentity): []string{defaultOriginatingIdentityHeader},
 				},
 			},
 			expectCode: http.StatusOK,
@@ -465,7 +465,7 @@ func TestLastOperation(t *testing.T) {
 		if test.req.Header == nil {
 			test.req.Header = make(http.Header)
 		}
-		test.req.Header.Set(api.XBrokerAPIVersion, api.APIVersion)
+		test.req.Header.Set(openservicebrokerapi.XBrokerAPIVersion, openservicebrokerapi.APIVersion)
 		if test.expectCode == 0 {
 			test.expectCode = http.StatusBadRequest
 		}
@@ -490,13 +490,13 @@ func TestLastOperation(t *testing.T) {
 
 func TestBind(t *testing.T) {
 	c := restful.NewContainer()
-	fb := fakeBroker(*api.NewResponse(http.StatusOK, map[string]interface{}{}, nil))
+	fb := fakeBroker(*openservicebrokerapi.NewResponse(http.StatusOK, map[string]interface{}{}, nil))
 	Route(c, "", &fb)
 
 	tests := []struct {
 		name        string
 		req         http.Request
-		body        *api.BindRequest
+		body        *openservicebrokerapi.BindRequest
 		expectCode  int
 		expectError string
 	}{
@@ -535,7 +535,7 @@ func TestBind(t *testing.T) {
 			req: http.Request{
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"/service_bindings/"+validUUID),
 			},
-			body:        &api.BindRequest{},
+			body:        &openservicebrokerapi.BindRequest{},
 			expectError: `service_id: Invalid value: "": must be a valid UUID`,
 		},
 		{
@@ -543,7 +543,7 @@ func TestBind(t *testing.T) {
 			req: http.Request{
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"/service_bindings/"+validUUID),
 			},
-			body: &api.BindRequest{
+			body: &openservicebrokerapi.BindRequest{
 				ServiceID: validUUID,
 				PlanID:    validUUID,
 			},
@@ -555,10 +555,10 @@ func TestBind(t *testing.T) {
 			req: http.Request{
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"/service_bindings/"+validUUID),
 				Header: http.Header{
-					http.CanonicalHeaderKey(api.XBrokerAPIOriginatingIdentity): []string{defaultOriginatingIdentityHeader},
+					http.CanonicalHeaderKey(openservicebrokerapi.XBrokerAPIOriginatingIdentity): []string{defaultOriginatingIdentityHeader},
 				},
 			},
-			body: &api.BindRequest{
+			body: &openservicebrokerapi.BindRequest{
 				ServiceID: validUUID,
 				PlanID:    validUUID,
 			},
@@ -573,7 +573,7 @@ func TestBind(t *testing.T) {
 		if test.req.Header == nil {
 			test.req.Header = make(http.Header)
 		}
-		test.req.Header.Set(api.XBrokerAPIVersion, api.APIVersion)
+		test.req.Header.Set(openservicebrokerapi.XBrokerAPIVersion, openservicebrokerapi.APIVersion)
 		test.req.Header.Set(restful.HEADER_ContentType, restful.MIME_JSON)
 		if test.expectCode == 0 {
 			test.expectCode = http.StatusBadRequest
@@ -607,7 +607,7 @@ func TestBind(t *testing.T) {
 
 func TestUnbind(t *testing.T) {
 	c := restful.NewContainer()
-	fb := fakeBroker(*api.NewResponse(http.StatusOK, map[string]interface{}{}, nil))
+	fb := fakeBroker(*openservicebrokerapi.NewResponse(http.StatusOK, map[string]interface{}{}, nil))
 	Route(c, "", &fb)
 
 	tests := []struct {
@@ -643,7 +643,7 @@ func TestUnbind(t *testing.T) {
 			req: http.Request{
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"/service_bindings/"+validUUID),
 				Header: http.Header{
-					http.CanonicalHeaderKey(api.XBrokerAPIOriginatingIdentity): []string{defaultOriginatingIdentityHeader},
+					http.CanonicalHeaderKey(openservicebrokerapi.XBrokerAPIOriginatingIdentity): []string{defaultOriginatingIdentityHeader},
 				},
 			},
 			expectCode: http.StatusOK,
@@ -657,7 +657,7 @@ func TestUnbind(t *testing.T) {
 		if test.req.Header == nil {
 			test.req.Header = make(http.Header)
 		}
-		test.req.Header.Set(api.XBrokerAPIVersion, api.APIVersion)
+		test.req.Header.Set(openservicebrokerapi.XBrokerAPIVersion, openservicebrokerapi.APIVersion)
 		test.req.Header.Set(restful.HEADER_ContentType, restful.MIME_JSON)
 		if test.expectCode == 0 {
 			test.expectCode = http.StatusBadRequest

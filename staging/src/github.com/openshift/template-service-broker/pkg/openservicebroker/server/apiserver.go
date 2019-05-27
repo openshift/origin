@@ -17,8 +17,9 @@ import (
 	templateapiv1 "github.com/openshift/api/template/v1"
 	templateclientset "github.com/openshift/client-go/template/clientset/versioned"
 	templateinformer "github.com/openshift/client-go/template/informers/externalversions"
+
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templateservicebroker "github.com/openshift/origin/pkg/templateservicebroker/servicebroker"
+	"github.com/openshift/template-service-broker/pkg/servicebroker"
 )
 
 // TODO: this file breaks the layering of pkg/openservicebroker and
@@ -103,7 +104,7 @@ func (c completedTemplateServiceBrokerConfig) New(delegationTarget genericapiser
 		},
 	})
 
-	broker, err := templateservicebroker.NewBroker(
+	broker, err := servicebroker.NewBroker(
 		clientConfig,
 		templateInformers.Template().V1().Templates(),
 		c.ExtraConfig.TemplateNamespaces,
