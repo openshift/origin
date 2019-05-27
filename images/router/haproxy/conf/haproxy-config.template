@@ -180,6 +180,9 @@ frontend public
 # determined by the next backend in the chain which may be an app backend (passthrough termination) or a backend
 # that terminates encryption in this router (edge)
 frontend public_ssl
+    {{- if ne (env "ROUTER_SYSLOG_ADDRESS") ""}}
+  option tcplog
+    {{- end }}
     {{ if eq "v4v6" $router_ip_v4_v6_mode }}
   bind :::{{env "ROUTER_SERVICE_HTTPS_PORT" "443"}} v4v6
     {{- else if eq "v6" $router_ip_v4_v6_mode }}
