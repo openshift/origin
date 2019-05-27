@@ -21,13 +21,13 @@ import (
 
 	userv1 "github.com/openshift/api/user/v1"
 	projectv1typedclient "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
+	"github.com/openshift/oc/pkg/helpers/errors"
+	cliconfig "github.com/openshift/oc/pkg/helpers/kubeconfig"
+	"github.com/openshift/oc/pkg/helpers/project"
+	loginutil "github.com/openshift/oc/pkg/helpers/project"
+	"github.com/openshift/oc/pkg/helpers/term"
 	"github.com/openshift/origin/pkg/client/config"
-	"github.com/openshift/origin/pkg/cmd/util/term"
-	"github.com/openshift/origin/pkg/oc/lib/errors"
-	cliconfig "github.com/openshift/origin/pkg/oc/lib/kubeconfig"
 	"github.com/openshift/origin/pkg/oc/lib/tokencmd"
-	"github.com/openshift/origin/pkg/oc/util/project"
-	loginutil "github.com/openshift/origin/pkg/oc/util/project"
 )
 
 const defaultClusterURL = "https://localhost:8443"

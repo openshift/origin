@@ -1,4 +1,4 @@
-package buildapihelpers
+package build
 
 import (
 	"sort"

@@ -11,7 +11,7 @@ import (
 
 	"k8s.io/klog"
 
-	"github.com/openshift/origin/pkg/cmd/util/term"
+	"github.com/openshift/oc/pkg/helpers/term"
 )
 
 type BasicChallengeHandler struct {

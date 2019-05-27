@@ -32,6 +32,8 @@ import (
 	routev1typedclient "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	templatev1typedclient "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
+	"github.com/openshift/oc/pkg/helpers/env"
+	utilenv "github.com/openshift/oc/pkg/helpers/env"
 	ometa "github.com/openshift/origin/pkg/api/imagereferencemutators"
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -42,8 +44,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/lib/newapp/dockerfile"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/jenkinsfile"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/source"
-	"github.com/openshift/origin/pkg/oc/util/env"
-	utilenv "github.com/openshift/origin/pkg/oc/util/env"
 	templateclientv1 "github.com/openshift/origin/pkg/template/client/v1"
 	outil "github.com/openshift/origin/pkg/util"
 )

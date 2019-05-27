@@ -15,7 +15,7 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
-	utilenv "github.com/openshift/origin/pkg/oc/util/env"
+	utilenv "github.com/openshift/oc/pkg/helpers/env"
 )
 
 const ImageStreamTagRecommendedName = "imagestreamtag"

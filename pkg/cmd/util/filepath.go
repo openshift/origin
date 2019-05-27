@@ -2,7 +2,6 @@ package util
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 )

@@ -14,7 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 	sautil "k8s.io/kubernetes/pkg/serviceaccount"
 
-	"github.com/openshift/origin/pkg/cmd/util/term"
+	"github.com/openshift/oc/pkg/helpers/term"
 )
 
 const (

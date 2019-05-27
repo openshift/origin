@@ -1,4 +1,4 @@
-package buildapihelpers
+package build
 
 import (
 	buildv1 "github.com/openshift/api/build/v1"
