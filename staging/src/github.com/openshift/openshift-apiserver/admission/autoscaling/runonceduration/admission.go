@@ -11,13 +11,13 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/client-go/informers"
+	corev1listers "k8s.io/client-go/listers/core/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/utils/integer"
 
+	"github.com/openshift/openshift-apiserver/admission/autoscaling/runonceduration/apis/runonceduration"
+	"github.com/openshift/openshift-apiserver/admission/autoscaling/runonceduration/apis/runonceduration/validation"
 	configlatest "github.com/openshift/openshift-apiserver/apis/config/latest"
-	"github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration"
-	"github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration/validation"
-	corev1listers "k8s.io/client-go/listers/core/v1"
 )
 
 func Register(plugins *admission.Plugins) {

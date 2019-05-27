@@ -9,8 +9,8 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	crvalidation "github.com/openshift/openshift-apiserver/admission/customresourcevalidation"
-	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
-	userapivalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
+	oauthvalidation "github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth/validation"
+	userapivalidation "github.com/openshift/openshift-apiserver/pkg/user/apis/user/validation"
 )
 
 var validMappingMethods = sets.NewString(

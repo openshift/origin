@@ -15,8 +15,8 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 
+	"github.com/openshift/openshift-apiserver/admission/scheduler/podnodeconstraints/apis/podnodeconstraints"
 	configlatest "github.com/openshift/openshift-apiserver/apis/config/latest"
-	"github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 )
 
 const PluginName = "scheduling.openshift.io/PodNodeConstraints"

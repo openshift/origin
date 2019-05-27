@@ -13,7 +13,7 @@ import (
 	coreapiv1conversions "k8s.io/kubernetes/pkg/apis/core/v1"
 
 	securityv1informers "github.com/openshift/client-go/security/informers/externalversions/security/v1"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	oadmission "github.com/openshift/openshift-apiserver/cmd/admission"
 )
 
 func RegisterSCCExecRestrictions(plugins *admission.Plugins) {

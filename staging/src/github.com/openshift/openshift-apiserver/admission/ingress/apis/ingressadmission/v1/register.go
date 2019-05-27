@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/openshift/origin/pkg/route/apiserver/admission/apis/ingressadmission"
+	"github.com/openshift/openshift-apiserver/admission/ingress/apis/ingressadmission"
 )
 
 func (obj *IngressAdmissionConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }

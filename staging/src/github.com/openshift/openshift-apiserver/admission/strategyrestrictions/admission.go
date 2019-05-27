@@ -22,10 +22,10 @@ import (
 	"k8s.io/apiserver/pkg/admission/initializer"
 
 	"github.com/openshift/openshift-apiserver/apis/internalversion/legacy"
+	"github.com/openshift/openshift-apiserver/cmd/bootstrappolicy"
 	"github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/build/buildscheme"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 func Register(plugins *admission.Plugins) {
