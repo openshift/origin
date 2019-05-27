@@ -18,13 +18,14 @@ import (
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
 
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
-	"github.com/openshift/origin/pkg/cmd/flagtypes"
-	"github.com/openshift/origin/pkg/cmd/server/admin"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/server/start/options"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	configapi "github.com/openshift/openshift-apiserver/apis/config"
+	"github.com/openshift/openshift-apiserver/cmd/admin"
+	"github.com/openshift/openshift-apiserver/cmd/bootstrappolicy"
+	"github.com/openshift/openshift-apiserver/cmd/start/options"
 	"github.com/spf13/cobra"
+
+	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 // MasterArgs is a struct that the command stores flag values into.  It holds a partially complete set of parameters for starting the master

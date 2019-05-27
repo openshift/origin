@@ -7,8 +7,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	securityapiv1 "github.com/openshift/api/security/v1"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	securityapiinstall "github.com/openshift/origin/pkg/security/apis/security/install"
+	securityapi "github.com/openshift/openshift-apiserver/pkg/security/apis/security"
+	securityapiinstall "github.com/openshift/openshift-apiserver/pkg/security/apis/security/install"
 )
 
 const (

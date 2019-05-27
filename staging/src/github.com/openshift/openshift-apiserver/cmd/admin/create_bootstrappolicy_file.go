@@ -18,7 +18,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/openshift-apiserver/cmd/bootstrappolicy"
 )
 
 const (

@@ -34,11 +34,12 @@ import (
 	"github.com/openshift/api/security"
 	"github.com/openshift/api/template"
 	"github.com/openshift/api/user"
+	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
+	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
+	templateapi "github.com/openshift/openshift-apiserver/pkg/template/apis/template"
+
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/legacy"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 var (

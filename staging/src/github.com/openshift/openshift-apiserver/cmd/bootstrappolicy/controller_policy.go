@@ -10,7 +10,7 @@ import (
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 
 	// we need the conversions registered for our init block
-	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
+	_ "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization/install"
 )
 
 const saRolePrefix = "system:openshift:controller:"

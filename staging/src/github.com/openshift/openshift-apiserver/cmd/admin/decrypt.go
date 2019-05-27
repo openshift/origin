@@ -15,7 +15,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
+	configapi "github.com/openshift/openshift-apiserver/apis/config"
 	pemutil "github.com/openshift/origin/pkg/cmd/util/pem"
 )
 
