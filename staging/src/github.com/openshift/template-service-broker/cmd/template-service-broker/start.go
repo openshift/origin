@@ -28,11 +28,10 @@ import (
 
 	"github.com/openshift/library-go/pkg/serviceability"
 
-	"github.com/openshift/origin/pkg/template/servicebroker/apis/config"
-	configinstall "github.com/openshift/origin/pkg/template/servicebroker/apis/config/install"
-	"github.com/openshift/origin/pkg/version"
-
+	"github.com/openshift/template-service-broker/apis/config"
+	configinstall "github.com/openshift/template-service-broker/apis/config/install"
 	"github.com/openshift/template-service-broker/pkg/openservicebroker/server"
+	"github.com/openshift/template-service-broker/pkg/version"
 )
 
 type TemplateServiceBrokerServerOptions struct {
