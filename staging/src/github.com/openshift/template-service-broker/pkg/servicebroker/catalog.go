@@ -4,15 +4,16 @@ import (
 	"net/http"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/labels"
-
 	jsschema "github.com/lestrrat/go-jsschema"
+
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/klog"
 
+	"github.com/openshift/api/annotations"
 	templateapiv1 "github.com/openshift/api/template/v1"
 
-	oapi "github.com/openshift/origin/pkg/api"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+
 	"github.com/openshift/template-service-broker/pkg/openservicebroker/api"
 )
 
@@ -23,12 +24,12 @@ const (
 // Map OpenShift template annotations to open service broker metadata field
 // community standards.
 var annotationMap = map[string]string{
-	oapi.OpenShiftDisplayName:                   api.ServiceMetadataDisplayName,
-	oapi.OpenShiftLongDescriptionAnnotation:     api.ServiceMetadataLongDescription,
-	oapi.OpenShiftProviderDisplayNameAnnotation: api.ServiceMetadataProviderDisplayName,
-	oapi.OpenShiftDocumentationURLAnnotation:    api.ServiceMetadataDocumentationURL,
-	oapi.OpenShiftSupportURLAnnotation:          api.ServiceMetadataSupportURL,
-	templateapi.IconClassAnnotation:             templateapi.ServiceMetadataIconClass,
+	annotations.OpenShiftDisplayName:                   api.ServiceMetadataDisplayName,
+	annotations.OpenShiftLongDescriptionAnnotation:     api.ServiceMetadataLongDescription,
+	annotations.OpenShiftProviderDisplayNameAnnotation: api.ServiceMetadataProviderDisplayName,
+	annotations.OpenShiftDocumentationURLAnnotation:    api.ServiceMetadataDocumentationURL,
+	annotations.OpenShiftSupportURLAnnotation:          api.ServiceMetadataSupportURL,
+	templateapi.IconClassAnnotation:                    templateapi.ServiceMetadataIconClass,
 }
 
 // serviceFromTemplate populates an open service broker service response from

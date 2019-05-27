@@ -1,5 +1,5 @@
 // +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=github.com/openshift/origin/pkg/template/servicebroker/apis/config
+// +k8s:conversion-gen=github.com/openshift/template-service-broker/apis/config
 // +k8s:defaulter-gen=TypeMeta
 
 // +groupName=config.templateservicebroker.openshift.io
