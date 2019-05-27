@@ -11,7 +11,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
 	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/user/apis/user/validation"
+	"github.com/openshift/openshift-apiserver/pkg/user/apis/user/validation"
 )
 
 var (

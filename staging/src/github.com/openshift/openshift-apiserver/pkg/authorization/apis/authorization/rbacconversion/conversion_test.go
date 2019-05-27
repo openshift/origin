@@ -20,7 +20,7 @@ import (
 	fuzz "github.com/google/gofuzz"
 	"github.com/openshift/api"
 	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
-	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
+	uservalidation "github.com/openshift/openshift-apiserver/pkg/user/apis/user/validation"
 )
 
 func init() {

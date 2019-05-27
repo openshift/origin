@@ -34,12 +34,12 @@ import (
 	templatev1 "github.com/openshift/api/template/v1"
 	templateclient "github.com/openshift/client-go/template/clientset/versioned"
 	"github.com/openshift/openshift-apiserver/apis/internalversion/legacy"
+	"github.com/openshift/openshift-apiserver/cmd/bootstrappolicy"
 	osauthorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
 	projectrequestregistry "github.com/openshift/openshift-apiserver/pkg/project/apiserver/registry/projectrequest"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/client/templateprocessing"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 )
 

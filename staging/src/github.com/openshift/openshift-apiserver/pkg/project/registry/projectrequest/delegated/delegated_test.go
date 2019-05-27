@@ -11,7 +11,7 @@ import (
 	rbacv1listers "k8s.io/client-go/listers/rbac/v1"
 
 	"github.com/go-openapi/errors"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/openshift-apiserver/cmd/bootstrappolicy"
 )
 
 func TestDelegatedWait(t *testing.T) {

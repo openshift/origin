@@ -14,7 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
 	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
-	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
+	uservalidation "github.com/openshift/openshift-apiserver/pkg/user/apis/user/validation"
 )
 
 func ValidateSelfSubjectRulesReview(review *authorizationapi.SelfSubjectRulesReview) field.ErrorList {

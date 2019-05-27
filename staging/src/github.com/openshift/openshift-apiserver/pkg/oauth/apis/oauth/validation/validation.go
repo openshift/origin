@@ -14,9 +14,10 @@ import (
 
 	routev1 "github.com/openshift/api/route/v1"
 	oauthapi "github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth"
-	authorizerscopes "github.com/openshift/origin/pkg/authorization/authorizer/scope"
+	uservalidation "github.com/openshift/openshift-apiserver/pkg/user/apis/user/validation"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
-	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
+
+	authorizerscopes "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 )
 
 const (
