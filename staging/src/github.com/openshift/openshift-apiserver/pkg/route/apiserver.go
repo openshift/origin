@@ -13,7 +13,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 
 	routeapiv1 "github.com/openshift/api/route/v1"
-	routeetcd "github.com/openshift/origin/pkg/route/apiserver/registry/route/etcd"
+	routeetcd "github.com/openshift/openshift-apiserver/pkg/route/apiserver/registry/route/etcd"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 )
 

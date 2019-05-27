@@ -3,7 +3,7 @@ package validation
 import (
 	"testing"
 
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userapi "github.com/openshift/openshift-apiserver/pkg/user/apis/user"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 )

@@ -14,7 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	imagev1 "github.com/openshift/api/image/v1"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 )
 
 // ImageLayerIndex is a cache of image digests to the layers they contain.

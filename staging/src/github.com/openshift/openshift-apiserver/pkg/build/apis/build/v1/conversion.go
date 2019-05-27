@@ -5,9 +5,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/openshift/api/build/v1"
-	newer "github.com/openshift/origin/pkg/build/apis/build"
-	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	newer "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
+	buildinternalhelpers "github.com/openshift/openshift-apiserver/pkg/build/apis/build/internal_helpers"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 )
 
 func Convert_v1_BuildConfig_To_build_BuildConfig(in *v1.BuildConfig, out *newer.BuildConfig, s conversion.Scope) error {

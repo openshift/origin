@@ -8,7 +8,7 @@ import (
 	kapiv1 "k8s.io/kubernetes/pkg/apis/core/v1"
 
 	"github.com/openshift/api/quota/v1"
-	internal "github.com/openshift/origin/pkg/quota/apis/quota"
+	internal "github.com/openshift/openshift-apiserver/pkg/quota/apis/quota"
 )
 
 func Convert_v1_ResourceQuotasStatusByNamespace_To_quota_ResourceQuotasStatusByNamespace(in *v1.ResourceQuotasStatusByNamespace, out *internal.ResourceQuotasStatusByNamespace, s conversion.Scope) error {

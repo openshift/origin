@@ -4,7 +4,7 @@ import (
 	rest "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
 )
 
 type RolloutLogInterface interface {

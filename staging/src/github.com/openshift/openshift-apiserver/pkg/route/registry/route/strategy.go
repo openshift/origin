@@ -13,10 +13,10 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 
+	routeapi "github.com/openshift/openshift-apiserver/pkg/route/apis/route"
+	"github.com/openshift/openshift-apiserver/pkg/route/apis/route/validation"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/route"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	"github.com/openshift/origin/pkg/route/apis/route/validation"
 )
 
 // HostGeneratedAnnotationKey is the key for an annotation set to "true" if the route's host was generated

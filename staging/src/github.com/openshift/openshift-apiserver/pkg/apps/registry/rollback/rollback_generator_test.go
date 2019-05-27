@@ -7,8 +7,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
+	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
+	appstest "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps/internaltest"
 )
 
 func TestGeneration(t *testing.T) {

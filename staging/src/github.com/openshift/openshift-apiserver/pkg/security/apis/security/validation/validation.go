@@ -11,7 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapivalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityapi "github.com/openshift/openshift-apiserver/pkg/security/apis/security"
 )
 
 // ValidateSecurityContextConstraintsName can be used to check whether the given

@@ -7,8 +7,8 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	v1 "github.com/openshift/api/route/v1"
+	"github.com/openshift/openshift-apiserver/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/api/apihelpers/apitesting"
-	"github.com/openshift/origin/pkg/route/apis/route"
 )
 
 func TestFieldSelectorConversions(t *testing.T) {

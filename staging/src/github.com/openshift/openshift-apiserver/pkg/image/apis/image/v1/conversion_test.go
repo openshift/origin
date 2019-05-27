@@ -11,8 +11,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	v1 "github.com/openshift/api/image/v1"
+	internal "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/api/apihelpers/apitesting"
-	internal "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func TestRoundTripVersionedObject(t *testing.T) {

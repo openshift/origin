@@ -6,7 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routeapi "github.com/openshift/openshift-apiserver/pkg/route/apis/route"
 )
 
 const (

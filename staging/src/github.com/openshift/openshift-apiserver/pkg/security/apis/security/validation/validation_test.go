@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityapi "github.com/openshift/openshift-apiserver/pkg/security/apis/security"
 )
 
 func TestValidateSecurityContextConstraints(t *testing.T) {

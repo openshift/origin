@@ -17,8 +17,8 @@ import (
 	"github.com/openshift/api/apps"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	appsclienttyped "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
+	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
+	"github.com/openshift/openshift-apiserver/pkg/apps/apis/apps/validation"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 

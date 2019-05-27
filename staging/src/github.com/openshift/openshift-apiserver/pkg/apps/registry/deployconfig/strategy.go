@@ -11,8 +11,8 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
+	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
+	"github.com/openshift/openshift-apiserver/pkg/apps/apis/apps/validation"
 )
 
 // strategy implements behavior for DeploymentConfig objects

@@ -7,8 +7,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	securityapi "github.com/openshift/openshift-apiserver/pkg/security/apis/security"
 	allocator "github.com/openshift/origin/pkg/security"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	"github.com/openshift/origin/pkg/security/uid"
 )
 

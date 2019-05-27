@@ -18,9 +18,9 @@ import (
 
 	projectapiv1 "github.com/openshift/api/project/v1"
 	templateclient "github.com/openshift/client-go/template/clientset/versioned"
+	projectproxy "github.com/openshift/openshift-apiserver/pkg/project/apiserver/registry/project/proxy"
+	projectrequeststorage "github.com/openshift/openshift-apiserver/pkg/project/apiserver/registry/projectrequest/delegated"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	projectproxy "github.com/openshift/origin/pkg/project/apiserver/registry/project/proxy"
-	projectrequeststorage "github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"

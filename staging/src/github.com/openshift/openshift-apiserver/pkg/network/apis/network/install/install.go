@@ -6,7 +6,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	networkv1 "github.com/openshift/api/network/v1"
-	sdnapiv1 "github.com/openshift/origin/pkg/network/apis/network/v1"
+	sdnapiv1 "github.com/openshift/openshift-apiserver/pkg/network/apis/network/v1"
 )
 
 func init() {

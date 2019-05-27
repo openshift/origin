@@ -9,9 +9,9 @@ import (
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	templategroup "github.com/openshift/api/template"
+	templateapi "github.com/openshift/openshift-apiserver/pkg/template/apis/template"
+	"github.com/openshift/openshift-apiserver/pkg/template/apiserver/registry/template"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	"github.com/openshift/origin/pkg/template/apiserver/registry/template"
 )
 
 // REST implements a RESTStorage for templates against etcd

@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	"github.com/openshift/origin/pkg/authorization/apis/authorization/internal/serviceaccount"
+	"github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization/internal/serviceaccount"
 )
 
 func (r PolicyRule) String() string {

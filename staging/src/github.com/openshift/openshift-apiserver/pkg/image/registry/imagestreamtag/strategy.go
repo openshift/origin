@@ -12,9 +12,9 @@ import (
 	kstorage "k8s.io/apiserver/pkg/storage"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/apis/image/validation"
-	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
+	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation"
+	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation/whitelist"
 )
 
 // Strategy implements behavior for ImageStreamTags.

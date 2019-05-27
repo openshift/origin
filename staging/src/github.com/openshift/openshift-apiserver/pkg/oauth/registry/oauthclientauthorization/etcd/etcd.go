@@ -10,9 +10,9 @@ import (
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	"github.com/openshift/api/oauth"
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	"github.com/openshift/origin/pkg/oauth/apiserver/registry/oauthclient"
-	"github.com/openshift/origin/pkg/oauth/apiserver/registry/oauthclientauthorization"
+	oauthapi "github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth"
+	"github.com/openshift/openshift-apiserver/pkg/oauth/apiserver/registry/oauthclient"
+	"github.com/openshift/openshift-apiserver/pkg/oauth/apiserver/registry/oauthclientauthorization"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 )
 

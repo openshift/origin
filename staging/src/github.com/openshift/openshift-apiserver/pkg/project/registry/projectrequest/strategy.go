@@ -7,8 +7,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	projectvalidation "github.com/openshift/origin/pkg/project/apis/project/validation"
+	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
+	projectvalidation "github.com/openshift/openshift-apiserver/pkg/project/apis/project/validation"
 )
 
 // strategy implements behavior for OAuthClient objects

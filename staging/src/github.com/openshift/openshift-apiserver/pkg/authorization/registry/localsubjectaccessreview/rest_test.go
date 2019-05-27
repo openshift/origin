@@ -13,9 +13,9 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	apiserverrest "k8s.io/apiserver/pkg/registry/rest"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/authorization/apiserver/registry/subjectaccessreview"
-	"github.com/openshift/origin/pkg/authorization/apiserver/registry/util"
+	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
+	"github.com/openshift/openshift-apiserver/pkg/authorization/apiserver/registry/subjectaccessreview"
+	"github.com/openshift/openshift-apiserver/pkg/authorization/apiserver/registry/util"
 )
 
 type subjectAccessTest struct {

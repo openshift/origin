@@ -9,7 +9,7 @@ import (
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
-	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
+	quotaapi "github.com/openshift/openshift-apiserver/pkg/quota/apis/quota"
 )
 
 func spec(scopes ...api.ResourceQuotaScope) api.ResourceQuotaSpec {

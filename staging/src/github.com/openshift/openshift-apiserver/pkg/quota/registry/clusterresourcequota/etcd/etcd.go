@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/rest"
 
-	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
+	quotaapi "github.com/openshift/openshift-apiserver/pkg/quota/apis/quota"
 )
 
 type REST struct {

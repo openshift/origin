@@ -9,8 +9,8 @@ import (
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	"github.com/openshift/api/network"
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
-	"github.com/openshift/origin/pkg/network/apiserver/registry/clusternetwork"
+	networkapi "github.com/openshift/openshift-apiserver/pkg/network/apis/network"
+	"github.com/openshift/openshift-apiserver/pkg/network/apiserver/registry/clusternetwork"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 )
 

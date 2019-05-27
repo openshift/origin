@@ -1,8 +1,8 @@
 package fake
 
 import (
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
+	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation/whitelist"
 )
 
 type RegistryWhitelister struct{}

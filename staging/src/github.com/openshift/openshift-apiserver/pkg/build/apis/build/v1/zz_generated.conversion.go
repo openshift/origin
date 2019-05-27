@@ -9,7 +9,7 @@ import (
 	unsafe "unsafe"
 
 	v1 "github.com/openshift/api/build/v1"
-	build "github.com/openshift/origin/pkg/build/apis/build"
+	build "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"

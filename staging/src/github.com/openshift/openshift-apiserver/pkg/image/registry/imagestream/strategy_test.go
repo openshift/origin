@@ -24,12 +24,12 @@ import (
 
 	"github.com/openshift/api/image"
 	imagev1 "github.com/openshift/api/image/v1"
-	oauthorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/apis/image/validation/fake"
-	admfake "github.com/openshift/origin/pkg/image/apiserver/admission/fake"
-	"github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
-	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
+	oauthorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
+	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation/fake"
+	admfake "github.com/openshift/openshift-apiserver/pkg/image/apiserver/admission/fake"
+	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/admission/limitrange"
+	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registryhostname"
 	"github.com/openshift/origin/pkg/image/util/testutil"
 )
 

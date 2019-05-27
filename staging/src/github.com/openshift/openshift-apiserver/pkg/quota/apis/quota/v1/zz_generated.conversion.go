@@ -8,7 +8,7 @@ import (
 	unsafe "unsafe"
 
 	v1 "github.com/openshift/api/quota/v1"
-	quota "github.com/openshift/origin/pkg/quota/apis/quota"
+	quota "github.com/openshift/openshift-apiserver/pkg/quota/apis/quota"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"

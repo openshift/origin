@@ -6,7 +6,7 @@ import (
 	rbacv1conversions "k8s.io/kubernetes/pkg/apis/rbac/v1"
 
 	"github.com/openshift/api/authorization/v1"
-	"github.com/openshift/origin/pkg/authorization/apis/authorization"
+	"github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 )
 
 var (

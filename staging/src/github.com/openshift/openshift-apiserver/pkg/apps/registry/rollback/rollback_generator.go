@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
 )
 
 // RollbackGenerator generates a new deployment config by merging a pair of deployment

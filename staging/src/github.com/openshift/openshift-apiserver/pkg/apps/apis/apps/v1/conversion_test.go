@@ -12,7 +12,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/openshift/api/apps/v1"
-	newer "github.com/openshift/origin/pkg/apps/apis/apps"
+	newer "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
 )
 
 var scheme = runtime.NewScheme()

@@ -17,7 +17,7 @@ import (
 	"k8s.io/client-go/util/cert"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routeapi "github.com/openshift/openshift-apiserver/pkg/route/apis/route"
 )
 
 var ValidateRouteName = apimachineryvalidation.NameIsDNSSubdomain

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityapi "github.com/openshift/openshift-apiserver/pkg/security/apis/security"
 	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"

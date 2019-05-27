@@ -7,9 +7,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/apis/image/validation"
-	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
+	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation"
+	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation/whitelist"
 )
 
 // strategy implements behavior for ImageStreamImports.

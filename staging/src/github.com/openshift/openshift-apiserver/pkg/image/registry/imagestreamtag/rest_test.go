@@ -23,14 +23,14 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imagev1 "github.com/openshift/api/image/v1"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/apis/image/validation/fake"
-	admfake "github.com/openshift/origin/pkg/image/apiserver/admission/fake"
-	"github.com/openshift/origin/pkg/image/apiserver/registry/image"
-	imageetcd "github.com/openshift/origin/pkg/image/apiserver/registry/image/etcd"
-	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
-	imagestreametcd "github.com/openshift/origin/pkg/image/apiserver/registry/imagestream/etcd"
-	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
+	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation/fake"
+	admfake "github.com/openshift/openshift-apiserver/pkg/image/apiserver/admission/fake"
+	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/image"
+	imageetcd "github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/image/etcd"
+	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/imagestream"
+	imagestreametcd "github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/imagestream/etcd"
+	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registryhostname"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )

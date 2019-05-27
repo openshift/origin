@@ -6,7 +6,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	routev1 "github.com/openshift/api/route/v1"
-	routeapiv1 "github.com/openshift/origin/pkg/route/apis/route/v1"
+	routeapiv1 "github.com/openshift/openshift-apiserver/pkg/route/apis/route/v1"
 )
 
 func init() {

@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/openshift/api/network/v1"
-	"github.com/openshift/origin/pkg/network/apis/network"
+	"github.com/openshift/openshift-apiserver/pkg/network/apis/network"
 )
 
 var (

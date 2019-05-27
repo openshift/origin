@@ -12,8 +12,8 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	_ "github.com/openshift/origin/pkg/build/apis/build/install"
+	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
+	_ "github.com/openshift/openshift-apiserver/pkg/build/apis/build/install"
 	"github.com/openshift/origin/pkg/build/generator"
 	mocks "github.com/openshift/origin/pkg/build/generator/test"
 )

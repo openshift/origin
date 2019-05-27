@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
+	quotaapi "github.com/openshift/openshift-apiserver/pkg/quota/apis/quota"
 )
 
 func TestDeepCopy(t *testing.T) {

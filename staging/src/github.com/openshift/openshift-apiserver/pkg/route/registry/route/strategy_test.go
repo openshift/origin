@@ -11,7 +11,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routeapi "github.com/openshift/openshift-apiserver/pkg/route/apis/route"
 )
 
 type testAllocator struct {

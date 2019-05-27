@@ -2,7 +2,7 @@ package v1
 
 import (
 	"github.com/openshift/api/authorization/v1"
-	internal "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	internal "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 	"k8s.io/apimachinery/pkg/api/equality"
 )
 

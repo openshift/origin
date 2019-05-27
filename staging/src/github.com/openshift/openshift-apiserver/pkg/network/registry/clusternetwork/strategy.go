@@ -8,8 +8,8 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
-	"github.com/openshift/origin/pkg/network/apis/network/validation"
+	networkapi "github.com/openshift/openshift-apiserver/pkg/network/apis/network"
+	"github.com/openshift/openshift-apiserver/pkg/network/apis/network/validation"
 )
 
 // sdnStrategy implements behavior for ClusterNetworks

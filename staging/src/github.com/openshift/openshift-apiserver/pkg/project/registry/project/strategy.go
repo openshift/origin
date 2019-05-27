@@ -9,8 +9,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	"github.com/openshift/origin/pkg/project/apis/project/validation"
+	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
+	"github.com/openshift/openshift-apiserver/pkg/project/apis/project/validation"
 )
 
 // projectStrategy implements behavior for projects

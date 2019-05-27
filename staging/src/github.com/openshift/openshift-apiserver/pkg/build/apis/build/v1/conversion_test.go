@@ -11,8 +11,8 @@ import (
 	kinternal "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/api/build/v1"
+	internal "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/api/apihelpers/apitesting"
-	internal "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 var scheme = runtime.NewScheme()

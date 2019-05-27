@@ -15,10 +15,10 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	securityvalidation "github.com/openshift/origin/pkg/security/apis/security/validation"
-	podsecuritypolicysubjectreview "github.com/openshift/origin/pkg/security/apiserver/registry/podsecuritypolicysubjectreview"
-	scc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
+	securityapi "github.com/openshift/openshift-apiserver/pkg/security/apis/security"
+	securityvalidation "github.com/openshift/openshift-apiserver/pkg/security/apis/security/validation"
+	podsecuritypolicysubjectreview "github.com/openshift/openshift-apiserver/pkg/security/apiserver/registry/podsecuritypolicysubjectreview"
+	scc "github.com/openshift/openshift-apiserver/pkg/security/apiserver/securitycontextconstraints"
 	"k8s.io/klog"
 )
 

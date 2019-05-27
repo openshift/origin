@@ -12,10 +12,10 @@ import (
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
-	deployconfigetcd "github.com/openshift/origin/pkg/apps/apiserver/registry/deployconfig/etcd"
-	deploylogregistry "github.com/openshift/origin/pkg/apps/apiserver/registry/deploylog"
-	deployconfiginstantiate "github.com/openshift/origin/pkg/apps/apiserver/registry/instantiate"
-	deployrollback "github.com/openshift/origin/pkg/apps/apiserver/registry/rollback"
+	deployconfigetcd "github.com/openshift/openshift-apiserver/pkg/apps/apiserver/registry/deployconfig/etcd"
+	deploylogregistry "github.com/openshift/openshift-apiserver/pkg/apps/apiserver/registry/deploylog"
+	deployconfiginstantiate "github.com/openshift/openshift-apiserver/pkg/apps/apiserver/registry/instantiate"
+	deployrollback "github.com/openshift/openshift-apiserver/pkg/apps/apiserver/registry/rollback"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 )
 

@@ -10,9 +10,9 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
-	"github.com/openshift/origin/pkg/build/apis/build/validation"
+	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
+	buildinternalhelpers "github.com/openshift/openshift-apiserver/pkg/build/apis/build/internal_helpers"
+	"github.com/openshift/openshift-apiserver/pkg/build/apis/build/validation"
 )
 
 // strategy implements behavior for Build objects

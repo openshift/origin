@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 )
 
 func mkAllowed(insecure bool, regs ...string) openshiftcontrolplanev1.AllowedRegistries {

@@ -17,8 +17,8 @@ import (
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/authorization/apis/authorization/rbacconversion"
+	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
+	"github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization/rbacconversion"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 )
 

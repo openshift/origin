@@ -4,7 +4,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openshift/api/image/docker10"
-	public "github.com/openshift/origin/pkg/image/apis/image/docker10"
+	public "github.com/openshift/openshift-apiserver/pkg/image/apis/image/docker10"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

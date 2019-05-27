@@ -19,7 +19,7 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildfakeclient "github.com/openshift/client-go/build/clientset/versioned/fake"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 )
 
 func newPodClient() *fake.Clientset {

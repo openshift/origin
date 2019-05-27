@@ -3,7 +3,7 @@ package rangeallocations
 import (
 	"context"
 
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityapi "github.com/openshift/openshift-apiserver/pkg/security/apis/security"
 	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"

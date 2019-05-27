@@ -5,7 +5,7 @@ import (
 	corev1conversions "k8s.io/kubernetes/pkg/apis/core/v1"
 
 	"github.com/openshift/api/build/v1"
-	"github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 )
 
 var (

@@ -7,7 +7,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 
 	v1 "github.com/openshift/api/authorization/v1"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 )
 
 var scheme = runtime.NewScheme()

@@ -7,8 +7,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildvalidation "github.com/openshift/origin/pkg/build/apis/build/validation"
+	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
+	buildvalidation "github.com/openshift/openshift-apiserver/pkg/build/apis/build/validation"
 )
 
 type strategy struct {

@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	corev1informers "k8s.io/client-go/informers/core/v1"
 
-	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
+	imageadmission "github.com/openshift/openshift-apiserver/pkg/image/apiserver/admission/limitrange"
 )
 
 func ImageLimitVerifier(limitRangeInformer corev1informers.LimitRangeInformer) imageadmission.LimitVerifier {

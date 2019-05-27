@@ -8,8 +8,8 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
-	"github.com/openshift/origin/pkg/quota/apis/quota/validation"
+	quotaapi "github.com/openshift/openshift-apiserver/pkg/quota/apis/quota"
+	"github.com/openshift/openshift-apiserver/pkg/quota/apis/quota/validation"
 )
 
 type strategy struct {

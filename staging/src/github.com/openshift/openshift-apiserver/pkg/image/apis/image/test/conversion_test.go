@@ -8,9 +8,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/api/image/v1"
-	newer "github.com/openshift/origin/pkg/image/apis/image"
+	newer "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 
-	_ "github.com/openshift/origin/pkg/image/apis/image/install"
+	_ "github.com/openshift/openshift-apiserver/pkg/image/apis/image/install"
 )
 
 func TestImageStreamStatusConversionPreservesTags(t *testing.T) {

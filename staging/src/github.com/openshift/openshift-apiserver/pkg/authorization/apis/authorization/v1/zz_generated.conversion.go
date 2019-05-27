@@ -8,7 +8,7 @@ import (
 	unsafe "unsafe"
 
 	v1 "github.com/openshift/api/authorization/v1"
-	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorization "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 	apicorev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -6,9 +6,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	authorizationv1 "github.com/openshift/api/authorization/v1"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/authorization/apis/authorization/rbacconversion"
-	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
+	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
+	"github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization/rbacconversion"
+	authorizationapiv1 "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization/v1"
 )
 
 func init() {

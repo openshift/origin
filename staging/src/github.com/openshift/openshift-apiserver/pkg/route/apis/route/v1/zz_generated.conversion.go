@@ -8,7 +8,7 @@ import (
 	unsafe "unsafe"
 
 	v1 "github.com/openshift/api/route/v1"
-	route "github.com/openshift/origin/pkg/route/apis/route"
+	route "github.com/openshift/openshift-apiserver/pkg/route/apis/route"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"

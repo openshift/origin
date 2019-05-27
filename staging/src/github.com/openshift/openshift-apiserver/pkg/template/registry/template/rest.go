@@ -14,8 +14,8 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 
 	"github.com/openshift/api/template"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
+	templateapi "github.com/openshift/openshift-apiserver/pkg/template/apis/template"
+	templatevalidation "github.com/openshift/openshift-apiserver/pkg/template/apis/template/validation"
 	"github.com/openshift/origin/pkg/template/generator"
 	"github.com/openshift/origin/pkg/template/templateprocessing"
 )

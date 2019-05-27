@@ -20,12 +20,12 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
+	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation"
+	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation/whitelist"
+	imageadmission "github.com/openshift/openshift-apiserver/pkg/image/apiserver/admission/limitrange"
+	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registryhostname"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/apis/image/validation"
-	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"
-	imageadmission "github.com/openshift/origin/pkg/image/apiserver/admission/limitrange"
-	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
 )
 
 type ResourceGetter interface {

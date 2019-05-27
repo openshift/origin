@@ -13,8 +13,8 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/client-go/kubernetes/fake"
 
+	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
 	oapi "github.com/openshift/origin/pkg/api"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 )
 
 // mockLister returns the namespaces in the list

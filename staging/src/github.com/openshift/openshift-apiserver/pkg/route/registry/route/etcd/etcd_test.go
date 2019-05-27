@@ -15,10 +15,10 @@ import (
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	routeapi "github.com/openshift/openshift-apiserver/pkg/route/apis/route"
+	_ "github.com/openshift/openshift-apiserver/pkg/route/apis/route/install"
+	"github.com/openshift/openshift-apiserver/pkg/route/apiserver/registry/route"
 	routetypes "github.com/openshift/origin/pkg/route"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	_ "github.com/openshift/origin/pkg/route/apis/route/install"
-	"github.com/openshift/origin/pkg/route/apiserver/registry/route"
 	"k8s.io/apiserver/pkg/registry/generic"
 )
 

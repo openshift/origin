@@ -14,9 +14,9 @@ import (
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/authorization/apis/authorization/rbacconversion"
-	"github.com/openshift/origin/pkg/authorization/apiserver/registry/subjectrulesreview"
+	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
+	"github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization/rbacconversion"
+	"github.com/openshift/openshift-apiserver/pkg/authorization/apiserver/registry/subjectrulesreview"
 )
 
 type REST struct {

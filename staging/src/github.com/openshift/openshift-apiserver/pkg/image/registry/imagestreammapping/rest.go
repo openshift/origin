@@ -15,10 +15,10 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	imagegroup "github.com/openshift/api/image"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/apiserver/registry/image"
-	"github.com/openshift/origin/pkg/image/apiserver/registry/imagestream"
-	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
+	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/image"
+	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/imagestream"
+	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registryhostname"
 )
 
 // maxRetriesOnConflict is the maximum retry count for Create calls which

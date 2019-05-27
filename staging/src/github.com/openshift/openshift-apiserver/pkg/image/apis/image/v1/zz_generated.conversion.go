@@ -8,7 +8,7 @@ import (
 	unsafe "unsafe"
 
 	v1 "github.com/openshift/api/image/v1"
-	image "github.com/openshift/origin/pkg/image/apis/image"
+	image "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 	apicorev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
@@ -1001,7 +1001,7 @@ func autoConvert_v1_ImageStreamSpec_To_image_ImageStreamSpec(in *v1.ImageStreamS
 		return err
 	}
 	out.DockerImageRepository = in.DockerImageRepository
-	// WARNING: in.Tags requires manual conversion: inconvertible types ([]github.com/openshift/api/image/v1.TagReference vs map[string]github.com/openshift/origin/pkg/image/apis/image.TagReference)
+	// WARNING: in.Tags requires manual conversion: inconvertible types ([]github.com/openshift/api/image/v1.TagReference vs map[string]github.com/openshift/openshift-apiserver/pkg/image/apis/image.TagReference)
 	return nil
 }
 
@@ -1010,21 +1010,21 @@ func autoConvert_image_ImageStreamSpec_To_v1_ImageStreamSpec(in *image.ImageStre
 		return err
 	}
 	out.DockerImageRepository = in.DockerImageRepository
-	// WARNING: in.Tags requires manual conversion: inconvertible types (map[string]github.com/openshift/origin/pkg/image/apis/image.TagReference vs []github.com/openshift/api/image/v1.TagReference)
+	// WARNING: in.Tags requires manual conversion: inconvertible types (map[string]github.com/openshift/openshift-apiserver/pkg/image/apis/image.TagReference vs []github.com/openshift/api/image/v1.TagReference)
 	return nil
 }
 
 func autoConvert_v1_ImageStreamStatus_To_image_ImageStreamStatus(in *v1.ImageStreamStatus, out *image.ImageStreamStatus, s conversion.Scope) error {
 	out.DockerImageRepository = in.DockerImageRepository
 	out.PublicDockerImageRepository = in.PublicDockerImageRepository
-	// WARNING: in.Tags requires manual conversion: inconvertible types ([]github.com/openshift/api/image/v1.NamedTagEventList vs map[string]github.com/openshift/origin/pkg/image/apis/image.TagEventList)
+	// WARNING: in.Tags requires manual conversion: inconvertible types ([]github.com/openshift/api/image/v1.NamedTagEventList vs map[string]github.com/openshift/openshift-apiserver/pkg/image/apis/image.TagEventList)
 	return nil
 }
 
 func autoConvert_image_ImageStreamStatus_To_v1_ImageStreamStatus(in *image.ImageStreamStatus, out *v1.ImageStreamStatus, s conversion.Scope) error {
 	out.DockerImageRepository = in.DockerImageRepository
 	out.PublicDockerImageRepository = in.PublicDockerImageRepository
-	// WARNING: in.Tags requires manual conversion: inconvertible types (map[string]github.com/openshift/origin/pkg/image/apis/image.TagEventList vs []github.com/openshift/api/image/v1.NamedTagEventList)
+	// WARNING: in.Tags requires manual conversion: inconvertible types (map[string]github.com/openshift/openshift-apiserver/pkg/image/apis/image.TagEventList vs []github.com/openshift/api/image/v1.NamedTagEventList)
 	return nil
 }
 

@@ -4,7 +4,7 @@ import (
 	"k8s.io/api/core/v1"
 
 	imagev1 "github.com/openshift/api/image/v1"
-	newer "github.com/openshift/origin/pkg/image/apis/image"
+	newer "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 )
 
 func SetDefaults_ImageImportSpec(obj *imagev1.ImageImportSpec) {

@@ -6,7 +6,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	imagev1 "github.com/openshift/api/image/v1"
-	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
+	imageapiv1 "github.com/openshift/openshift-apiserver/pkg/image/apis/image/v1"
 )
 
 func init() {

@@ -3,8 +3,8 @@ package oauthclient
 import (
 	"context"
 
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	"github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
+	oauthapi "github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth"
+	"github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth/validation"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/registry/rest"

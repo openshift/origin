@@ -13,7 +13,7 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	corev1conversion "k8s.io/kubernetes/pkg/apis/core/v1"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 )
 
 // REST implements the RESTStorage interface for ImageStreamImport

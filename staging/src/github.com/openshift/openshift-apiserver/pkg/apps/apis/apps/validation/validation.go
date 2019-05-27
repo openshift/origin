@@ -16,9 +16,9 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 	kapivalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageval "github.com/openshift/origin/pkg/image/apis/image/validation"
+	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
+	imageval "github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation"
 )
 
 func ValidateDeploymentConfig(config *appsapi.DeploymentConfig) field.ErrorList {

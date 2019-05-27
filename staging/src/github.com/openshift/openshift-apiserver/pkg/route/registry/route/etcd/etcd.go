@@ -14,10 +14,10 @@ import (
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	routegroup "github.com/openshift/api/route"
+	routeapi "github.com/openshift/openshift-apiserver/pkg/route/apis/route"
+	routeregistry "github.com/openshift/openshift-apiserver/pkg/route/apiserver/registry/route"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	"github.com/openshift/origin/pkg/route"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	routeregistry "github.com/openshift/origin/pkg/route/apiserver/registry/route"
 )
 
 type REST struct {

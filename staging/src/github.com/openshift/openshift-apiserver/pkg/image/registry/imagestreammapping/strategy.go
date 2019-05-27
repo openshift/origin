@@ -8,9 +8,9 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/apis/image/validation"
-	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
+	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation"
+	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registryhostname"
 )
 
 // Strategy implements behavior for image stream mappings.

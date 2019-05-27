@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/openshift/api/security/v1"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	securityapi "github.com/openshift/openshift-apiserver/pkg/security/apis/security"
 )
 
 func AddConversionFuncs(scheme *runtime.Scheme) error {

@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
-	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
+	quotaapi "github.com/openshift/openshift-apiserver/pkg/quota/apis/quota"
 )
 
 func ValidateClusterResourceQuota(clusterquota *quotaapi.ClusterResourceQuota) field.ErrorList {

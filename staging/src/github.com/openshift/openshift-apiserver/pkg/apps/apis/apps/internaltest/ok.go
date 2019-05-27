@@ -10,9 +10,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsv1 "github.com/openshift/api/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsv1conversions "github.com/openshift/origin/pkg/apps/apis/apps/v1"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
+	appsv1conversions "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps/v1"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 

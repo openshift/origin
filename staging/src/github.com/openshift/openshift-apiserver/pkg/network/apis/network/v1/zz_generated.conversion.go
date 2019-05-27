@@ -8,7 +8,7 @@ import (
 	unsafe "unsafe"
 
 	v1 "github.com/openshift/api/network/v1"
-	network "github.com/openshift/origin/pkg/network/apis/network"
+	network "github.com/openshift/openshift-apiserver/pkg/network/apis/network"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )

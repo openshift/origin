@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/rest"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/generator"
 )
 

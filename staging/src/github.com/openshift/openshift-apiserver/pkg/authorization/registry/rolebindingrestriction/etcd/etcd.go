@@ -13,7 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/rest"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 )
 
 type REST struct {

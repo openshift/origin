@@ -16,7 +16,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	userapi "github.com/openshift/api/user/v1"
-	userapiinternal "github.com/openshift/origin/pkg/user/apis/user"
+	userapiinternal "github.com/openshift/openshift-apiserver/pkg/user/apis/user"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )

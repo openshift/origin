@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/openshift/api/oauth/v1"
-	"github.com/openshift/origin/pkg/oauth/apis/oauth"
+	"github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth"
 )
 
 var (

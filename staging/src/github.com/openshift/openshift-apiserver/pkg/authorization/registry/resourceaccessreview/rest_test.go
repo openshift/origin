@@ -15,8 +15,8 @@ import (
 	apiserverrest "k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/authorization/apiserver/registry/util"
+	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
+	"github.com/openshift/openshift-apiserver/pkg/authorization/apiserver/registry/util"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 )
 

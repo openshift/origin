@@ -5,7 +5,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	networkapi "github.com/openshift/openshift-apiserver/pkg/network/apis/network"
 )
 
 // TestValidateClusterNetwork ensures not specifying a required field results in error and a fully specified

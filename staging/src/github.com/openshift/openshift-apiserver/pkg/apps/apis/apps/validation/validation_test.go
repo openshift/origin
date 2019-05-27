@@ -8,8 +8,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
+	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
+	appstest "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps/internaltest"
 )
 
 // Convenience methods

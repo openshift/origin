@@ -12,7 +12,7 @@ import (
 	"github.com/openshift/api/image/docker10"
 	"github.com/openshift/api/image/dockerpre012"
 	"github.com/openshift/api/image/v1"
-	newer "github.com/openshift/origin/pkg/image/apis/image"
+	newer "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 )
 
 var (

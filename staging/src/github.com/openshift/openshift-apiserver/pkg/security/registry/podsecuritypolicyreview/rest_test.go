@@ -16,9 +16,9 @@ import (
 
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	admissionttesting "github.com/openshift/origin/pkg/security/apiserver/admission/testing"
-	scc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
+	securityapi "github.com/openshift/openshift-apiserver/pkg/security/apis/security"
+	admissionttesting "github.com/openshift/openshift-apiserver/pkg/security/apiserver/admission/testing"
+	scc "github.com/openshift/openshift-apiserver/pkg/security/apiserver/securitycontextconstraints"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )

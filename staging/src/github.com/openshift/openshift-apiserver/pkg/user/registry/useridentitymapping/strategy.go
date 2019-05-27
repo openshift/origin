@@ -7,7 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userapi "github.com/openshift/openshift-apiserver/pkg/user/apis/user"
 	"github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 

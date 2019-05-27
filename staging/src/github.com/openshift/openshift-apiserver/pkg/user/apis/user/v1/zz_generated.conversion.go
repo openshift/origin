@@ -8,7 +8,7 @@ import (
 	unsafe "unsafe"
 
 	v1 "github.com/openshift/api/user/v1"
-	user "github.com/openshift/origin/pkg/user/apis/user"
+	user "github.com/openshift/openshift-apiserver/pkg/user/apis/user"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	corev1 "k8s.io/kubernetes/pkg/apis/core/v1"

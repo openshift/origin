@@ -18,8 +18,8 @@ import (
 	"github.com/openshift/api/apps"
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsfake "github.com/openshift/client-go/apps/clientset/versioned/fake"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
+	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
+	_ "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps/install"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	appstest "github.com/openshift/origin/pkg/apps/util/test"
 )

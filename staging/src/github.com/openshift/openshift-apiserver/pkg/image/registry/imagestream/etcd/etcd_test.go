@@ -16,10 +16,11 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/image/apis/image/validation/fake"
-	admfake "github.com/openshift/origin/pkg/image/apiserver/admission/fake"
-	"github.com/openshift/origin/pkg/image/apiserver/registryhostname"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
+	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation/fake"
+	admfake "github.com/openshift/openshift-apiserver/pkg/image/apiserver/admission/fake"
+	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registryhostname"
+
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
 )

@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userapi "github.com/openshift/openshift-apiserver/pkg/user/apis/user"
 )
 
 func ValidateUserName(name string, _ bool) []string {

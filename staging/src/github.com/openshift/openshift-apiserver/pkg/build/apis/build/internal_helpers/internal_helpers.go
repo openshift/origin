@@ -3,8 +3,8 @@ package internal_helpers
 import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/api/apihelpers"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 // NOTE: These helpers are used by apiserver only as the apiserver use the internal types.

@@ -14,9 +14,9 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 
 	authorization "github.com/openshift/api/authorization"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	authorizationvalidation "github.com/openshift/origin/pkg/authorization/apis/authorization/validation"
-	"github.com/openshift/origin/pkg/authorization/apiserver/registry/util"
+	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
+	authorizationvalidation "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization/validation"
+	"github.com/openshift/openshift-apiserver/pkg/authorization/apiserver/registry/util"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 )
 

@@ -1,4 +1,4 @@
-// +k8s:conversion-gen=github.com/openshift/origin/pkg/network/apis/network
+// +k8s:conversion-gen=github.com/openshift/openshift-apiserver/pkg/network/apis/network
 // +k8s:conversion-gen-external-types=github.com/openshift/api/network/v1
 // +k8s:defaulter-gen=TypeMeta
 // +k8s:defaulter-gen-input=../../../../../../../../github.com/openshift/api/network/v1

@@ -6,7 +6,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	oauthv1 "github.com/openshift/api/oauth/v1"
-	oauthapiv1 "github.com/openshift/origin/pkg/oauth/apis/oauth/v1"
+	oauthapiv1 "github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth/v1"
 )
 
 func init() {

@@ -6,7 +6,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 )
 
 // ToDefaultAuthorizationAttributes coerces Action to authorizer.Attributes.

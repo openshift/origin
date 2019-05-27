@@ -10,8 +10,8 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appstest "github.com/openshift/origin/pkg/apps/apis/apps/internaltest"
+	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
+	appstest "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps/internaltest"
 )
 
 var (

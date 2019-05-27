@@ -13,8 +13,8 @@ import (
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	"github.com/openshift/api/build"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildregistry "github.com/openshift/origin/pkg/build/apiserver/registry/build"
+	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
+	buildregistry "github.com/openshift/openshift-apiserver/pkg/build/apiserver/registry/build"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 )
 

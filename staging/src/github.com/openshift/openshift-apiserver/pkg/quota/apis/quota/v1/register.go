@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/openshift/api/quota/v1"
-	"github.com/openshift/origin/pkg/quota/apis/quota"
+	"github.com/openshift/openshift-apiserver/pkg/quota/apis/quota"
 )
 
 var (

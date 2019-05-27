@@ -17,7 +17,7 @@ import (
 	"github.com/openshift/api/user"
 	userapi "github.com/openshift/api/user/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	userinternal "github.com/openshift/origin/pkg/user/apis/user"
+	userinternal "github.com/openshift/openshift-apiserver/pkg/user/apis/user"
 )
 
 // REST implements the RESTStorage interface in terms of an image registry and

@@ -9,8 +9,8 @@ import (
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	"github.com/openshift/api/security"
+	securityapi "github.com/openshift/openshift-apiserver/pkg/security/apis/security"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
 type REST struct {

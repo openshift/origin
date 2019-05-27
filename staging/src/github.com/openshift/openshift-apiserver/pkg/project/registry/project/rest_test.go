@@ -6,7 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
 )
 
 func TestProjectStrategy(t *testing.T) {

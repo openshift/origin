@@ -6,7 +6,7 @@ import (
 	extensionsv1beta1conversions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 
 	"github.com/openshift/api/apps/v1"
-	"github.com/openshift/origin/pkg/apps/apis/apps"
+	"github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
 )
 
 var (

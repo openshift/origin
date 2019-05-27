@@ -6,7 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	oauthapi "github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth"
 )
 
 func TestValidateRedirectURI(t *testing.T) {

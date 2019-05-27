@@ -8,9 +8,9 @@ import (
 
 	projectapiv1 "github.com/openshift/api/project/v1"
 	templateapi "github.com/openshift/api/template/v1"
+	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
 	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 )
 
 const (

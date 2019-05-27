@@ -3,7 +3,7 @@ package resourceaccessreview
 import (
 	"context"
 
-	api "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	api "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/rest"

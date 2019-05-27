@@ -6,8 +6,8 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 
 	v1 "github.com/openshift/api/oauth/v1"
+	oauthapi "github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth"
 	"github.com/openshift/origin/pkg/api/apihelpers/apitesting"
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 )
 
 func TestFieldSelectorConversions(t *testing.T) {

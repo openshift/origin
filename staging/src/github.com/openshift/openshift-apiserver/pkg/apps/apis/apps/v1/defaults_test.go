@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/openshift/api/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
 )
 
 func TestDefaults(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/openshift/api/apps/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
 )
 
 // Keep this in sync with pkg/api/serialization_test.go#defaultHookContainerName
