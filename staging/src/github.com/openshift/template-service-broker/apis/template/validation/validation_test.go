@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templateapi "github.com/openshift/template-service-broker/apis/template"
 )
 
 const (

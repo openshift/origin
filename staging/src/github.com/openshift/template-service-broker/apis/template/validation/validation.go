@@ -10,7 +10,7 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templateapi "github.com/openshift/template-service-broker/apis/template"
 )
 
 var ParameterNameRegexp = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
