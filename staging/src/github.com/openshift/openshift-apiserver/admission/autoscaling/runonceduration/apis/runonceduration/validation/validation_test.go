@@ -3,7 +3,7 @@ package validation
 import (
 	"testing"
 
-	"github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration"
+	"github.com/openshift/openshift-apiserver/admission/autoscaling/runonceduration/apis/runonceduration"
 )
 
 func TestRunOnceDurationConfigValidation(t *testing.T) {

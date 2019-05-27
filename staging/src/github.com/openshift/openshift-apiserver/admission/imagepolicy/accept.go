@@ -12,10 +12,10 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imagepolicy "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
-	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/internalimagereferencemutators"
-	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/rules"
+	imagepolicy "github.com/openshift/openshift-apiserver/admission/imagepolicy/apis/imagepolicy/v1"
+	"github.com/openshift/openshift-apiserver/admission/imagepolicy/internalimagereferencemutators"
+	"github.com/openshift/openshift-apiserver/admission/imagepolicy/rules"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 )
 
 var errRejectByPolicy = fmt.Errorf("this image is prohibited by policy")

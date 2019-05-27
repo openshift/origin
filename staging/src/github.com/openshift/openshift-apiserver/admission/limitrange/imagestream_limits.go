@@ -7,7 +7,7 @@ import (
 
 	"github.com/openshift/api/image"
 	imagev1 "github.com/openshift/api/image/v1"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 )
 
 type LimitVerifier interface {

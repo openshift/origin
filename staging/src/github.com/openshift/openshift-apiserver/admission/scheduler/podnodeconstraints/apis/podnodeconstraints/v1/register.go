@@ -1,9 +1,10 @@
 package v1
 
 import (
-	"github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/openshift/openshift-apiserver/admission/scheduler/podnodeconstraints/apis/podnodeconstraints"
 )
 
 func (obj *PodNodeConstraintsConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }

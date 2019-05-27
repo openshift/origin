@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride"
+	"github.com/openshift/openshift-apiserver/admission/autoscaling/clusterresourceoverride/apis/clusterresourceoverride"
 )
 
 func (obj *ClusterResourceOverrideConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }

@@ -8,13 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/client-go/informers"
-
-	"k8s.io/apiserver/pkg/admission/initializer"
-
 	"github.com/hashicorp/golang-lru"
-	"k8s.io/klog"
-
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -24,17 +18,21 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission/initializer"
+	"k8s.io/client-go/informers"
 	corev1listers "k8s.io/client-go/listers/core/v1"
+	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imagepolicy "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
-	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/validation"
-	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/internalimagereferencemutators"
-	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/rules"
+	imagepolicy "github.com/openshift/openshift-apiserver/admission/imagepolicy/apis/imagepolicy/v1"
+	"github.com/openshift/openshift-apiserver/admission/imagepolicy/apis/imagepolicy/validation"
+	"github.com/openshift/openshift-apiserver/admission/imagepolicy/internalimagereferencemutators"
+	"github.com/openshift/openshift-apiserver/admission/imagepolicy/rules"
+	oadmission "github.com/openshift/openshift-apiserver/cmd/admission"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
+
 	imageinternalclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
-	"k8s.io/client-go/rest"
 )
 
 func Register(plugins *admission.Plugins) {

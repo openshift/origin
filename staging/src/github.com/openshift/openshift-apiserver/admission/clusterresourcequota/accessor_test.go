@@ -19,7 +19,7 @@ import (
 	quotav1 "github.com/openshift/api/quota/v1"
 	fakequotaclient "github.com/openshift/client-go/quota/clientset/versioned/fake"
 	quotalister "github.com/openshift/client-go/quota/listers/quota/v1"
-	quotav1conversions "github.com/openshift/origin/pkg/quota/apis/quota/v1"
+	quotav1conversions "github.com/openshift/openshift-apiserver/pkg/quota/apis/quota/v1"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 )
 

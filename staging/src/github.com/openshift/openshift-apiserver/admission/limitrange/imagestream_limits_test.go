@@ -10,7 +10,7 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imagev1 "github.com/openshift/api/image/v1"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 	imagetest "github.com/openshift/origin/pkg/image/util/testutil"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 )

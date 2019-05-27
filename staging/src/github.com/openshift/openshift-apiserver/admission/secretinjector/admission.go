@@ -14,7 +14,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	api "k8s.io/kubernetes/pkg/apis/core"
 
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 	authclient "github.com/openshift/origin/pkg/client/impersonatingclient"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/util/urlpattern"

@@ -17,8 +17,8 @@ import (
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
 	securityapiv1 "github.com/openshift/api/security/v1"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
+	securityapi "github.com/openshift/openshift-apiserver/pkg/security/apis/security"
 )
 
 type ContainerMutator interface {

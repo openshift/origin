@@ -1,9 +1,10 @@
 package v1
 
 import (
-	"github.com/openshift/origin/pkg/network/admission/apis/restrictedendpoints"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/openshift/openshift-apiserver/admission/restrictedendpoints/apis/restrictedendpoints"
 )
 
 var GroupVersion = schema.GroupVersion{Group: "network.openshift.io", Version: "v1"}

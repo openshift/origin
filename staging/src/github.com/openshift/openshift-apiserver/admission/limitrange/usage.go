@@ -13,7 +13,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imagev1 "github.com/openshift/api/image/v1"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 )
 
 // InternalImageReferenceHandler is a function passed to the computer when processing images that allows a

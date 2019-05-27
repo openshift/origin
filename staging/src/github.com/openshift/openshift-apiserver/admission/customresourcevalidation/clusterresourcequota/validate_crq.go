@@ -12,8 +12,8 @@ import (
 
 	quotav1 "github.com/openshift/api/quota/v1"
 
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation"
-	quotavalidation "github.com/openshift/origin/pkg/admission/customresourcevalidation/clusterresourcequota/validation"
+	"github.com/openshift/openshift-apiserver/admission/customresourcevalidation"
+	quotavalidation "github.com/openshift/openshift-apiserver/admission/customresourcevalidation/clusterresourcequota/validation"
 )
 
 const PluginName = "quota.openshift.io/ValidateClusterResourceQuota"

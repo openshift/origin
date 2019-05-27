@@ -13,8 +13,8 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 
 	securityv1 "github.com/openshift/api/security/v1"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
+	securityapi "github.com/openshift/openshift-apiserver/pkg/security/apis/security"
+	securityapiv1 "github.com/openshift/openshift-apiserver/pkg/security/apis/security/v1"
 )
 
 const DefaultingPluginName = "security.openshift.io/DefaultSecurityContextConstraints"

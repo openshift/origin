@@ -7,15 +7,14 @@ import (
 	"reflect"
 	"strings"
 
-	"k8s.io/klog"
-
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	admission "k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/klog"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	"github.com/openshift/openshift-apiserver/admission/externalipranger/apis/externalipranger"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	"github.com/openshift/origin/pkg/network/admission/apis/externalipranger"
 )
 
 const ExternalIPPluginName = "network.openshift.io/ExternalIPRanger"

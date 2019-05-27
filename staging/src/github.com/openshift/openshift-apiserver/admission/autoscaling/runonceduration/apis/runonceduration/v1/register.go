@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration"
+	"github.com/openshift/openshift-apiserver/admission/autoscaling/runonceduration/apis/runonceduration"
 )
 
 func (obj *RunOnceDurationConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }

@@ -9,7 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
-	admission "k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -17,8 +17,9 @@ import (
 
 	"github.com/openshift/api/image"
 	imagev1 "github.com/openshift/api/image/v1"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
+
 	"github.com/openshift/origin/pkg/api/legacy"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/util"
 )
 

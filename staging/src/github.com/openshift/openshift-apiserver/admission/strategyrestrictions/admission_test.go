@@ -16,10 +16,10 @@ import (
 
 	buildapiv1 "github.com/openshift/api/build/v1"
 	fakebuildclient "github.com/openshift/client-go/build/clientset/versioned/fake"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 
 	"github.com/openshift/api/build"
-	_ "github.com/openshift/origin/pkg/build/apis/build/install"
+	_ "github.com/openshift/openshift-apiserver/pkg/build/apis/build/install"
 )
 
 func TestBuildAdmission(t *testing.T) {

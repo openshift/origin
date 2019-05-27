@@ -16,8 +16,8 @@ import (
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
+	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 	_ "github.com/openshift/origin/pkg/api/install"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 )
 

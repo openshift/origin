@@ -6,8 +6,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imagepolicy "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
+	imagepolicy "github.com/openshift/openshift-apiserver/admission/imagepolicy/apis/imagepolicy/v1"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 )
 
 func imageref(name string) imageapi.DockerImageReference {

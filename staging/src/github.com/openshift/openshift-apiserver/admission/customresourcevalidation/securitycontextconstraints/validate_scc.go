@@ -11,8 +11,8 @@ import (
 
 	securityv1 "github.com/openshift/api/security/v1"
 
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation"
-	sccvalidation "github.com/openshift/origin/pkg/admission/customresourcevalidation/securitycontextconstraints/validation"
+	"github.com/openshift/openshift-apiserver/admission/customresourcevalidation"
+	sccvalidation "github.com/openshift/openshift-apiserver/admission/customresourcevalidation/securitycontextconstraints/validation"
 )
 
 const PluginName = "security.openshift.io/ValidateSecurityContextConstraints"

@@ -4,7 +4,7 @@ import (
 	unversionedvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	"github.com/openshift/origin/pkg/project/apiserver/admission/apis/requestlimit"
+	"github.com/openshift/openshift-apiserver/admission/requestlimit/apis/requestlimit"
 )
 
 func ValidateProjectRequestLimitConfig(config *requestlimit.ProjectRequestLimitConfig) field.ErrorList {

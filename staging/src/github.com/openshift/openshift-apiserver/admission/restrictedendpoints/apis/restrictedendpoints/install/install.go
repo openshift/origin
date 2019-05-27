@@ -4,8 +4,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
-	"github.com/openshift/origin/pkg/network/admission/apis/restrictedendpoints"
-	"github.com/openshift/origin/pkg/network/admission/apis/restrictedendpoints/v1"
+	"github.com/openshift/openshift-apiserver/admission/restrictedendpoints/apis/restrictedendpoints"
+	"github.com/openshift/openshift-apiserver/admission/restrictedendpoints/apis/restrictedendpoints/v1"
 )
 
 func InstallInternal(scheme *runtime.Scheme) {

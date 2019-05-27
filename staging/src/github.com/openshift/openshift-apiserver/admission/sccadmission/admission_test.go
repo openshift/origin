@@ -19,10 +19,11 @@ import (
 
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
+	admissiontesting "github.com/openshift/openshift-apiserver/admission/sccadmission/testing"
+	securityapi "github.com/openshift/openshift-apiserver/pkg/security/apis/security"
+	oscc "github.com/openshift/openshift-apiserver/pkg/security/securitycontextconstraints"
+
 	allocator "github.com/openshift/origin/pkg/security"
-	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	admissiontesting "github.com/openshift/origin/pkg/security/apiserver/admission/testing"
-	oscc "github.com/openshift/origin/pkg/security/apiserver/securitycontextconstraints"
 	sccsort "github.com/openshift/origin/pkg/security/securitycontextconstraints/util/sort"
 )
 

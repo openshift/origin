@@ -9,14 +9,15 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	etcd "k8s.io/apiserver/pkg/storage/etcd"
+	"k8s.io/apiserver/pkg/storage/etcd"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 	utilquota "k8s.io/kubernetes/pkg/quota/v1"
 
 	quotav1 "github.com/openshift/api/quota/v1"
 	quotatypedclient "github.com/openshift/client-go/quota/clientset/versioned/typed/quota/v1"
 	quotalister "github.com/openshift/client-go/quota/listers/quota/v1"
-	quotav1conversions "github.com/openshift/origin/pkg/quota/apis/quota/v1"
+	quotav1conversions "github.com/openshift/openshift-apiserver/pkg/quota/apis/quota/v1"
+
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 )
 

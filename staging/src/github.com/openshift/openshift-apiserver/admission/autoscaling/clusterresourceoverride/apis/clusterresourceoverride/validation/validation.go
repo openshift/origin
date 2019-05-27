@@ -3,7 +3,7 @@ package validation
 import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	"github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride"
+	"github.com/openshift/openshift-apiserver/admission/autoscaling/clusterresourceoverride/apis/clusterresourceoverride"
 )
 
 func Validate(config *clusterresourceoverride.ClusterResourceOverrideConfig) field.ErrorList {

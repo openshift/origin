@@ -11,7 +11,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 
 	configv1 "github.com/openshift/api/config/v1"
-	crvalidation "github.com/openshift/origin/pkg/admission/customresourcevalidation"
+	crvalidation "github.com/openshift/openshift-apiserver/admission/customresourcevalidation"
 )
 
 const PluginName = "config.openshift.io/ValidateAuthentication"

@@ -4,7 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	internal "github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration"
+	internal "github.com/openshift/openshift-apiserver/admission/autoscaling/runonceduration/apis/runonceduration"
 )
 
 func addConversionFuncs(scheme *runtime.Scheme) error {

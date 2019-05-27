@@ -5,13 +5,10 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/util/diff"
-
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	"k8s.io/apiserver/pkg/admission"
-
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apiserver/pkg/admission"
 )
 
 func TestDefaultingHappens(t *testing.T) {

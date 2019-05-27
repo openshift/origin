@@ -25,13 +25,14 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/api/image"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configinstall "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imagepolicy "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
-	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/validation"
-	"github.com/openshift/origin/pkg/image/apiserver/admission/imagepolicy/rules"
+	imagepolicy "github.com/openshift/openshift-apiserver/admission/imagepolicy/apis/imagepolicy/v1"
+	"github.com/openshift/openshift-apiserver/admission/imagepolicy/apis/imagepolicy/validation"
+	"github.com/openshift/openshift-apiserver/admission/imagepolicy/rules"
+	configapi "github.com/openshift/openshift-apiserver/apis/config"
+	configinstall "github.com/openshift/openshift-apiserver/apis/config/install"
+	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
+
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 )
 

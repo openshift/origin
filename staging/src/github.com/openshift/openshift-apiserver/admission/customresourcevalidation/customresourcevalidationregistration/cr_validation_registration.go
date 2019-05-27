@@ -3,17 +3,17 @@ package customresourcevalidationregistration
 import (
 	"k8s.io/apiserver/pkg/admission"
 
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation/authentication"
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation/clusterresourcequota"
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation/config"
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation/console"
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation/features"
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation/image"
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation/oauth"
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation/project"
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation/rolebindingrestriction"
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation/scheduler"
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation/securitycontextconstraints"
+	"github.com/openshift/openshift-apiserver/admission/customresourcevalidation/authentication"
+	"github.com/openshift/openshift-apiserver/admission/customresourcevalidation/clusterresourcequota"
+	"github.com/openshift/openshift-apiserver/admission/customresourcevalidation/config"
+	"github.com/openshift/openshift-apiserver/admission/customresourcevalidation/console"
+	"github.com/openshift/openshift-apiserver/admission/customresourcevalidation/features"
+	"github.com/openshift/openshift-apiserver/admission/customresourcevalidation/image"
+	"github.com/openshift/openshift-apiserver/admission/customresourcevalidation/oauth"
+	"github.com/openshift/openshift-apiserver/admission/customresourcevalidation/project"
+	"github.com/openshift/openshift-apiserver/admission/customresourcevalidation/rolebindingrestriction"
+	"github.com/openshift/openshift-apiserver/admission/customresourcevalidation/scheduler"
+	"github.com/openshift/openshift-apiserver/admission/customresourcevalidation/securitycontextconstraints"
 )
 
 // AllCustomResourceValidators are the names of all custom resource validators that should be registered

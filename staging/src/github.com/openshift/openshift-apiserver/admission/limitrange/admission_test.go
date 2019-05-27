@@ -16,8 +16,9 @@ import (
 
 	"github.com/openshift/api/image"
 	imagev1 "github.com/openshift/api/image/v1"
+	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
+
 	"github.com/openshift/origin/pkg/api/legacy"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/util/testutil"
 )
 

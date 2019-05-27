@@ -12,7 +12,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 
 	configv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/origin/pkg/admission/customresourcevalidation"
+	"github.com/openshift/openshift-apiserver/admission/customresourcevalidation"
 )
 
 const PluginName = "config.openshift.io/ValidateProject"

@@ -18,10 +18,10 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 
-	api "github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride"
-	"github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride/validation"
+	api "github.com/openshift/openshift-apiserver/admission/autoscaling/clusterresourceoverride/apis/clusterresourceoverride"
+	"github.com/openshift/openshift-apiserver/admission/autoscaling/clusterresourceoverride/apis/clusterresourceoverride/validation"
+	"github.com/openshift/openshift-apiserver/pkg/project/registry/projectrequest/delegated"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	"github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated"
 )
 
 const (
