@@ -1,10 +1,9 @@
-package buildapihelpers
+package build
 
 import (
 	"fmt"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 // PredicateFunc is testing an argument and decides does it meet some criteria or not.
@@ -29,8 +28,8 @@ func FilterBuilds(builds []buildv1.Build, predicate PredicateFunc) []buildv1.Bui
 // ByBuildConfigPredicate matches all builds that have build config annotation or label with specified value.
 func ByBuildConfigPredicate(labelValue string) PredicateFunc {
 	return func(arg interface{}) bool {
-		return hasBuildConfigAnnotation(arg.(buildv1.Build), buildapi.BuildConfigAnnotation, labelValue) ||
-			hasBuildConfigLabel(arg.(buildv1.Build), buildapi.BuildConfigLabel, labelValue)
+		return hasBuildConfigAnnotation(arg.(buildv1.Build), BuildConfigAnnotation, labelValue) ||
+			hasBuildConfigLabel(arg.(buildv1.Build), BuildConfigLabel, labelValue)
 	}
 }
 

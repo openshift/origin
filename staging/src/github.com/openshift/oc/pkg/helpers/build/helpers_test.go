@@ -1,4 +1,4 @@
-package buildapihelpers
+package build
 
 import (
 	"reflect"
@@ -8,7 +8,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 func TestFilterBuilds_withEmptyArray(t *testing.T) {
@@ -72,7 +71,7 @@ func TestByBuildConfigPredicate_withBuildConfigAnnotation(t *testing.T) {
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        "build1-abc",
-				Annotations: map[string]string{buildapi.BuildConfigAnnotation: "foo"},
+				Annotations: map[string]string{BuildConfigAnnotation: "foo"},
 			},
 		},
 		{
@@ -97,7 +96,7 @@ func TestByBuildConfigPredicate_withBuildConfigLabel(t *testing.T) {
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   "build1-abc",
-				Labels: map[string]string{buildapi.BuildConfigLabel: "foo"},
+				Labels: map[string]string{BuildConfigLabel: "foo"},
 			},
 		},
 		{
@@ -122,7 +121,7 @@ func TestByBuildConfigPredicate_withBothBuildConfigLabels(t *testing.T) {
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:   "build1-abc",
-				Labels: map[string]string{buildapi.BuildConfigLabel: "foo"},
+				Labels: map[string]string{BuildConfigLabel: "foo"},
 			},
 		},
 		{

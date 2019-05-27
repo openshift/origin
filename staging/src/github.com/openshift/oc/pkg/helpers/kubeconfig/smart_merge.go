@@ -1,20 +1,30 @@
 package kubeconfig
 
 import (
+	"net/url"
 	"reflect"
+	"strings"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/third_party/forked/golang/netutil"
 	restclient "k8s.io/client-go/rest"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	"github.com/openshift/origin/pkg/client/config"
 )
 
 // getClusterNicknameFromConfig returns host:port of the clientConfig.Host, with .'s replaced by -'s
+// TODO this is copied from pkg/client/config/smart_merge.go, looks like a good library-go candidate
 func getClusterNicknameFromConfig(clientCfg *restclient.Config) (string, error) {
-	return config.GetClusterNicknameFromURL(clientCfg.Host)
+	u, err := url.Parse(clientCfg.Host)
+	if err != nil {
+		return "", err
+	}
+	hostPort := netutil.CanonicalAddr(u)
+
+	// we need a character other than "." to avoid conflicts with.  replace with '-'
+	return strings.Replace(hostPort, ".", "-", -1), nil
 }
 
 // getUserNicknameFromConfig returns "username(as known by the server)/getClusterNicknameFromConfig".  This allows tab completion for switching users to
