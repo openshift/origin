@@ -7,7 +7,7 @@ package v1
 import (
 	unsafe "unsafe"
 
-	config "github.com/openshift/origin/pkg/template/servicebroker/apis/config"
+	config "github.com/openshift/template-service-broker/apis/config"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
