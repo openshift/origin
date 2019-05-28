@@ -4,53 +4,6 @@ import (
 	"html/template"
 )
 
-// ErrorPageTemplateExample is a basic template for customizing the error page.
-const ErrorPageTemplateExample = `<!DOCTYPE html>
-<!--
-
-This template can be modified and used to customize the error page. To replace
-the error page, set master configuration option oauthConfig.templates.error to
-the path of the template file.
-
-oauthConfig:
-  templates:
-    error: templates/error-template.html
-
-The Error field contains an error message, which is human readable, and subject to change.
-Default error messages are intentionally generic to avoid leaking information about authentication errors.
-
-The ErrorCode field contains a programmatic error code, which may be (but is not limited to):
-- mapping_claim_error
-- mapping_lookup_error
-- authentication_error
-- grant_error
--->
-<html>
-  <head>
-    <title>Error</title>
-    <style type="text/css">
-      body {
-        font-family: "Open Sans", Helvetica, Arial, sans-serif;
-        font-size: 14px;
-        margin: 15px;
-      }
-    </style>
-  </head>
-  <body>
-
-    <div>
-		<!-- example of handling a particular error code in a special way -->
-		{{ if eq .ErrorCode "mapping_claim_error" }}
-			Could not create your user. Contact your administrator to resolve this issue.
-		{{ else }}
-			{{ .Error }}
-		{{ end }}
-		</div>
-
-  </body>
-</html>
-`
-
 var defaultErrorPageTemplate = template.Must(template.New("defaultErrorPageTemplate").Parse(defaultErrorPageTemplateString))
 
 const defaultErrorPageTemplateString = `<!DOCTYPE html>

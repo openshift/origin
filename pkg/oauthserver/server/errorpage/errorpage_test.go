@@ -78,10 +78,6 @@ func TestValidateErrorPageTemplate(t *testing.T) {
 			Template:      defaultErrorPageTemplateString,
 			TemplateValid: true,
 		},
-		"template example": {
-			Template:      ErrorPageTemplateExample,
-			TemplateValid: true,
-		},
 		"original template example": {
 			Template:      originalErrorPageTemplateExample,
 			TemplateValid: true,
