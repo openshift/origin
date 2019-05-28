@@ -28,8 +28,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 	utilenv "github.com/openshift/oc/pkg/helpers/env"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/pod/envresolve"
 )
 

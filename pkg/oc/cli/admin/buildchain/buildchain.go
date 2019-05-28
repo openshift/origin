@@ -18,7 +18,7 @@ import (
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
-	osutil "github.com/openshift/origin/pkg/cmd/util"
+	osutil "github.com/openshift/oc/pkg/helpers/cmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"

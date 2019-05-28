@@ -41,7 +41,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
-	"github.com/openshift/origin/pkg/util/proc"
+	"github.com/openshift/oc/pkg/helpers/proc"
 )
 
 var (

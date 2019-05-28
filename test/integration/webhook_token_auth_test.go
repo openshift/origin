@@ -21,10 +21,10 @@ import (
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	"github.com/openshift/oc/pkg/cli/whoami"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
-	"github.com/openshift/origin/pkg/oc/cli/whoami"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

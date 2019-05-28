@@ -30,7 +30,7 @@ import (
 	octemplateapi "github.com/openshift/api/template"
 	templatev1 "github.com/openshift/api/template/v1"
 	templatev1client "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"

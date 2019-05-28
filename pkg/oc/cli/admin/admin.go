@@ -13,9 +13,10 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	"github.com/openshift/oc/pkg/cli/options"
+	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/admin/buildchain"
 	"github.com/openshift/origin/pkg/oc/cli/admin/cert"
 	"github.com/openshift/origin/pkg/oc/cli/admin/createbootstrapprojecttemplate"
@@ -40,7 +41,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/admin/upgrade"
 	"github.com/openshift/origin/pkg/oc/cli/admin/verifyimagesignature"
 	"github.com/openshift/origin/pkg/oc/cli/kubectlwrappers"
-	"github.com/openshift/origin/pkg/oc/cli/options"
 )
 
 var adminLong = ktemplates.LongDesc(`

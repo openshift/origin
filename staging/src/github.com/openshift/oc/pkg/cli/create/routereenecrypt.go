@@ -10,8 +10,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	routev1 "github.com/openshift/api/route/v1"
-	"github.com/openshift/origin/pkg/oc/cli/create/route"
-	fileutil "github.com/openshift/origin/pkg/util/file"
+	"github.com/openshift/oc/pkg/cli/create/route"
+	fileutil "github.com/openshift/oc/pkg/helpers/file"
 )
 
 var (

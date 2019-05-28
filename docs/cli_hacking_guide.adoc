@@ -223,7 +223,7 @@ There are a number of helper functions available in `cmdutil` and `kcmdutil`. Im
 import (
   // other imports...
   kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
-  cmdutil "github.com/openshift/origin/pkg/cmd/util"
+  cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 )
 ----
 ====

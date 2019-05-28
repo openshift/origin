@@ -8,7 +8,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 )
 
 const (
