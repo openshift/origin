@@ -25,7 +25,6 @@ import (
 	"github.com/openshift/origin/pkg/apps/strategy/recreate"
 	"github.com/openshift/origin/pkg/apps/strategy/rolling"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/cmd/util"
 	cmdversion "github.com/openshift/origin/pkg/cmd/version"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -86,8 +85,8 @@ func NewCommandDeployer(name string) *cobra.Command {
 	cmd.AddCommand(cmdversion.NewCmdVersion(name, version.Get(), os.Stdout))
 
 	flag := cmd.Flags()
-	flag.StringVar(&cfg.rcName, "deployment", util.Env("OPENSHIFT_DEPLOYMENT_NAME", ""), "The deployment name to start")
-	flag.StringVar(&cfg.Namespace, "namespace", util.Env("OPENSHIFT_DEPLOYMENT_NAMESPACE", ""), "The deployment namespace")
+	flag.StringVar(&cfg.rcName, "deployment", os.Getenv("OPENSHIFT_DEPLOYMENT_NAME"), "The deployment name to start")
+	flag.StringVar(&cfg.Namespace, "namespace", os.Getenv("OPENSHIFT_DEPLOYMENT_NAMESPACE"), "The deployment namespace")
 	flag.StringVar(&cfg.Until, "until", "", "Exit the deployment when this condition is met. See help for more details")
 
 	return cmd

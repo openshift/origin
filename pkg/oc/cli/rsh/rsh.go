@@ -2,6 +2,7 @@ package rsh
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"time"
 
@@ -182,7 +183,11 @@ func (o *RshOptions) Validate() error {
 func (o *RshOptions) Run() error {
 	// Insert the TERM into the command to be run
 	if len(o.Command) == 1 && o.Command[0] == DefaultShell {
-		termsh := fmt.Sprintf("TERM=%q %s", util.Env("TERM", "xterm"), DefaultShell)
+		term := os.Getenv("TERM")
+		if len(term) == 0 {
+			term = "xterm"
+		}
+		termsh := fmt.Sprintf("TERM=%q %s", term, DefaultShell)
 		o.Command = append(o.Command, "-c", termsh)
 	}
 	return o.ExecOptions.Run()

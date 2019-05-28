@@ -28,7 +28,6 @@ import (
 	sautil "k8s.io/kubernetes/pkg/serviceaccount"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -37,7 +36,11 @@ import (
 
 // GetBaseDir returns the base directory used for test.
 func GetBaseDir() string {
-	return cmdutil.Env("BASETMPDIR", path.Join(os.TempDir(), "openshift-"+Namespace()))
+	baseDir := os.Getenv("BASETMPDIR")
+	if len(baseDir) == 0 {
+		return path.Join(os.TempDir(), "openshift-"+Namespace())
+	}
+	return baseDir
 }
 
 func KubeConfigPath() string {
