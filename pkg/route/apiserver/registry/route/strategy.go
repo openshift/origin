@@ -13,7 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 
-	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
+	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
 	"github.com/openshift/origin/pkg/route"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/route/apis/route/validation"

@@ -22,7 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
+	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
 )
 
 const (

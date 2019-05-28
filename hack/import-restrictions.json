@@ -417,6 +417,7 @@
       "vendor/github.com/prometheus/client_golang/prometheus",
       "vendor/github.com/openshift/api",
       "vendor/github.com/openshift/client-go",
+      "vendor/github.com/openshift/library-go",
 
       "github.com/openshift/origin/pkg/oauthserver"
     ],
@@ -430,8 +431,7 @@
       "github.com/openshift/origin/pkg/cmd/server/apis/config",
       "github.com/openshift/origin/pkg/cmd/server/apis/config/install",
       "github.com/openshift/origin/pkg/cmd/server/apis/config/latest",
-      "github.com/openshift/origin/pkg/serviceaccounts/oauthclient",
-      "github.com/openshift/origin/pkg/util/httprequest"
+      "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
     ]
   },
 
@@ -484,7 +484,6 @@
       "github.com/openshift/origin/pkg/image/generated",
       "github.com/openshift/origin/pkg/image/util",
       "github.com/openshift/origin/pkg/oauth/generated",
-      "github.com/openshift/origin/pkg/pod/envresolve",
       "github.com/openshift/origin/pkg/project/generated",
       "github.com/openshift/origin/pkg/route/apis/route/v1",
       "github.com/openshift/origin/pkg/route/generated",
@@ -493,6 +492,8 @@
       "github.com/openshift/origin/pkg/user/generated",
       "github.com/openshift/origin/pkg/security/generated",
       "github.com/openshift/origin/pkg/template/generated",
+
+      "vendor/github.com/openshift/library-go",
 
       "vendor/github.com/openshift/oc"
     ],
@@ -510,7 +511,6 @@
       "github.com/openshift/origin/pkg/apps/util",
       "github.com/openshift/origin/pkg/authorization/apis/authorization",
       "github.com/openshift/origin/pkg/authorization/apis/authorization/install",
-      "github.com/openshift/origin/pkg/authorization/util",
       "github.com/openshift/origin/pkg/build/apis/build",
       "github.com/openshift/origin/pkg/build/apis/build/install",
       "github.com/openshift/origin/pkg/build/buildapihelpers",
@@ -541,9 +541,6 @@
       "github.com/openshift/origin/pkg/image/trigger/annotations",
       "github.com/openshift/origin/pkg/network",
       "github.com/openshift/origin/pkg/oauth/apis/oauth",
-      "github.com/openshift/origin/pkg/oauthserver/ldaputil",
-      "github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient",
-      "github.com/openshift/origin/pkg/oauthserver/ldaputil/testclient",
       "github.com/openshift/origin/pkg/oauthserver/server/errorpage",
       "github.com/openshift/origin/pkg/oauthserver/server/login",
       "github.com/openshift/origin/pkg/oauthserver/server/selectprovider",
@@ -569,9 +566,6 @@
       "github.com/openshift/origin/pkg/util/netutils",
       "github.com/openshift/origin/pkg/util/parallel",
       "github.com/openshift/origin/pkg/version",
-
-      "vendor/github.com/openshift/library-go/pkg/image/reference",
-      "vendor/github.com/openshift/library-go/pkg/network/networkapihelpers",
 
       "vendor/github.com/coreos/etcd/clientv3",
       "vendor/github.com/coreos/etcd/pkg/transport",

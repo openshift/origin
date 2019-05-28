@@ -17,7 +17,7 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 
-	"github.com/openshift/origin/pkg/authorization/util"
+	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/template/apis/template/validation"
 )
@@ -146,7 +146,7 @@ func (s *templateInstanceStrategy) validateImpersonation(templateInstance *templ
 	}
 
 	if templateInstance.Spec.Requester.Username != userinfo.GetName() {
-		if err := util.Authorize(s.authorizationClient.SubjectAccessReviews(), userinfo, &authorizationv1.ResourceAttributes{
+		if err := authorizationutil.Authorize(s.authorizationClient.SubjectAccessReviews(), userinfo, &authorizationv1.ResourceAttributes{
 			Namespace: templateInstance.Namespace,
 			Verb:      "assign",
 			Group:     templateapi.GroupName,

@@ -4,7 +4,7 @@ import (
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
-	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
+	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
 )
 
 // Review is a list of users and groups that can access a resource

@@ -16,10 +16,10 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
 	authorization "github.com/openshift/api/authorization"
+	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationvalidation "github.com/openshift/origin/pkg/authorization/apis/authorization/validation"
 	"github.com/openshift/origin/pkg/authorization/apiserver/registry/util"
-	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.

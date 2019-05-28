@@ -33,7 +33,7 @@ import (
 	templatev1clienttyped "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
 	templatev1informer "github.com/openshift/client-go/template/informers/externalversions/template/v1"
 	templatelister "github.com/openshift/client-go/template/listers/template/v1"
-	"github.com/openshift/origin/pkg/authorization/util"
+	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
 	"github.com/openshift/origin/pkg/client/templateprocessing"
 )
 
@@ -237,7 +237,7 @@ func (c *TemplateInstanceController) checkReadiness(templateInstance *templatev1
 			return false, err
 		}
 
-		if err = util.Authorize(c.sarClient.SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+		if err = authorizationutil.Authorize(c.sarClient.SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 			Namespace: object.Ref.Namespace,
 			Verb:      "get",
 			Group:     mapping.Resource.Group,
@@ -367,7 +367,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templatev1.Te
 
 	var secret *corev1.Secret
 	if templateInstance.Spec.Secret != nil {
-		if err := util.Authorize(c.sarClient.SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+		if err := authorizationutil.Authorize(c.sarClient.SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 			Namespace: templateInstance.Namespace,
 			Verb:      "get",
 			Group:     corev1.GroupName,
@@ -396,7 +396,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templatev1.Te
 		}
 	}
 
-	if err := util.Authorize(c.sarClient.SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+	if err := authorizationutil.Authorize(c.sarClient.SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 		Namespace: templateInstance.Namespace,
 		Verb:      "create",
 		Group:     templatev1.GroupName,
@@ -446,7 +446,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templatev1.Te
 			continue
 		}
 
-		if err := util.Authorize(c.sarClient.SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
+		if err := authorizationutil.Authorize(c.sarClient.SubjectAccessReviews(), u, &authorizationv1.ResourceAttributes{
 			Namespace: namespace,
 			Verb:      "create",
 			Group:     restMapping.Resource.Group,
