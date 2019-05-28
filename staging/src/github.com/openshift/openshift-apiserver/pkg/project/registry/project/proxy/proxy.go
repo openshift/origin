@@ -18,11 +18,11 @@ import (
 	"github.com/openshift/api/project"
 	"github.com/openshift/library-go-staging/apihelpers"
 	projectcache "github.com/openshift/library-go-staging/cache/project"
+	"github.com/openshift/openshift-apiserver/cmd/authorizer/scope"
 	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
 	projectregistry "github.com/openshift/openshift-apiserver/pkg/project/registry/project"
 	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
-	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectutil "github.com/openshift/origin/pkg/project/util"
 )

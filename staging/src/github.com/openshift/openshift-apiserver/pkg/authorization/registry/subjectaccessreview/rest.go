@@ -14,10 +14,10 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 
 	authorization "github.com/openshift/api/authorization"
+	"github.com/openshift/openshift-apiserver/cmd/authorizer"
 	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 	authorizationvalidation "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization/validation"
 	"github.com/openshift/openshift-apiserver/pkg/authorization/registry/util"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.

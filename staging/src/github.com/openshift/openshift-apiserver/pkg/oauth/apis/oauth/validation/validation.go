@@ -17,7 +17,7 @@ import (
 	uservalidation "github.com/openshift/openshift-apiserver/pkg/user/apis/user/validation"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
 
-	authorizerscopes "github.com/openshift/origin/pkg/authorization/authorizer/scope"
+	authorizerscopes "github.com/openshift/openshift-apiserver/cmd/authorizer/scope"
 )
 
 const (

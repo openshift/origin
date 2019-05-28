@@ -9,10 +9,10 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
+	scopeauthorizer "github.com/openshift/openshift-apiserver/cmd/authorizer/scope"
 	oauthapi "github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth"
 	"github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth/validation"
 	"github.com/openshift/openshift-apiserver/pkg/oauth/registry/oauthclient"
-	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 )
 
 // strategy implements behavior for OAuthAuthorizeTokens

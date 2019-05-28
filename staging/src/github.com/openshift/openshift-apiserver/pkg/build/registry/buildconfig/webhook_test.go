@@ -23,10 +23,10 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	buildfake "github.com/openshift/client-go/build/clientset/versioned/fake"
 	buildutil "github.com/openshift/library-go-staging/build/util"
-	"github.com/openshift/origin/pkg/build/webhook"
-	"github.com/openshift/origin/pkg/build/webhook/bitbucket"
-	"github.com/openshift/origin/pkg/build/webhook/github"
-	"github.com/openshift/origin/pkg/build/webhook/gitlab"
+	"github.com/openshift/openshift-apiserver/pkg/build/webhook"
+	"github.com/openshift/openshift-apiserver/pkg/build/webhook/bitbucket"
+	"github.com/openshift/openshift-apiserver/pkg/build/webhook/github"
+	"github.com/openshift/openshift-apiserver/pkg/build/webhook/gitlab"
 	// _ "github.com/openshift/openshift-apiserver/apis/internalversion/install"
 )
 
