@@ -12,8 +12,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
+	stringsutil "github.com/openshift/library-go-staging/strings"
 	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
-	stringsutil "github.com/openshift/origin/pkg/util/strings"
 )
 
 // WhitelistTransport says whether the associated registry host shall be treated as secure or insecure.

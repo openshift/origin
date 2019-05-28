@@ -17,8 +17,8 @@ import (
 	"k8s.io/klog"
 
 	"github.com/openshift/api/image"
+	"github.com/openshift/library-go-staging/image/digest"
 	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/reference"
-	"github.com/openshift/origin/pkg/image/internal/digest"
 )
 
 const (
