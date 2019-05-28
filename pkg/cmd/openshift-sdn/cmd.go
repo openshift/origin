@@ -23,7 +23,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	_ "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	networkvalidation "github.com/openshift/origin/pkg/cmd/server/apis/config/validation/network"
+	"github.com/openshift/origin/pkg/network/common/networkvalidation"
 	sdnnode "github.com/openshift/origin/pkg/network/node"
 	sdnproxy "github.com/openshift/origin/pkg/network/proxy"
 	"github.com/openshift/origin/pkg/version"

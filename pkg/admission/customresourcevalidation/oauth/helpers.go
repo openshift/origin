@@ -7,8 +7,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/library-go/pkg/config/validation"
 	crvalidation "github.com/openshift/origin/pkg/admission/customresourcevalidation"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/common"
 )
 
 func isValidHostname(hostname string) bool {
@@ -21,7 +21,7 @@ func ValidateRemoteConnectionInfo(remoteConnectionInfo configv1.OAuthRemoteConne
 	if len(remoteConnectionInfo.URL) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("url"), ""))
 	} else {
-		_, urlErrs := common.ValidateSecureURL(remoteConnectionInfo.URL, fldPath.Child("url"))
+		_, urlErrs := validation.ValidateSecureURL(remoteConnectionInfo.URL, fldPath.Child("url"))
 		allErrs = append(allErrs, urlErrs...)
 	}
 

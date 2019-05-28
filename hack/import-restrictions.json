@@ -525,7 +525,6 @@
       "github.com/openshift/origin/pkg/cmd/server/apis/config",
       "github.com/openshift/origin/pkg/cmd/server/apis/config/install",
       "github.com/openshift/origin/pkg/cmd/server/apis/config/latest",
-      "github.com/openshift/origin/pkg/cmd/server/apis/config/validation/ldap",
       "github.com/openshift/origin/pkg/cmd/server/bootstrappolicy",
       "github.com/openshift/origin/pkg/cmd/templates",
       "github.com/openshift/origin/pkg/image/apis/image",

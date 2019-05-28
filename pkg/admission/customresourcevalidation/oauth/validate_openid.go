@@ -7,8 +7,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/library-go/pkg/config/validation"
 	crvalidation "github.com/openshift/origin/pkg/admission/customresourcevalidation"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/common"
 )
 
 func ValidateOpenIDIdentityProvider(provider *configv1.OpenIDIdentityProvider, fieldPath *field.Path) field.ErrorList {
@@ -28,7 +28,7 @@ func ValidateOpenIDIdentityProvider(provider *configv1.OpenIDIdentityProvider, f
 	// schema, but they do require (MUST) TLS support for the discovery and we do
 	// require this in out API description
 	// https://openid.net/specs/openid-connect-discovery-1_0.html#TLSRequirements
-	url, issuerErrs := common.ValidateSecureURL(provider.Issuer, fieldPath.Child("issuer"))
+	url, issuerErrs := validation.ValidateSecureURL(provider.Issuer, fieldPath.Child("issuer"))
 	allErrs = append(allErrs, issuerErrs...)
 	if len(url.RawQuery) > 0 || len(url.Fragment) > 0 {
 		allErrs = append(allErrs, field.Invalid(fieldPath.Child("issuer"), provider.Issuer, "must not specify query or fragment component"))
