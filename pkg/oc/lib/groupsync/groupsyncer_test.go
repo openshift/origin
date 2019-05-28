@@ -16,7 +16,7 @@ import (
 	userv1 "github.com/openshift/api/user/v1"
 	fakeuserclient "github.com/openshift/client-go/user/clientset/versioned/fake"
 	fakeuserv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1/fake"
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
+	"github.com/openshift/library-go/pkg/security/ldaputil"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
 )
 

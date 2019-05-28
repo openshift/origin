@@ -13,10 +13,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	"github.com/openshift/library-go/pkg/security/ldapclient"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/ldap"
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync"
 )
 
@@ -152,7 +151,7 @@ func (o *PruneOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	clientConfig, err := ldaputil.NewLDAPClientConfig(o.Config.URL, o.Config.BindDN, bindPassword, o.Config.CA, o.Config.Insecure)
+	clientConfig, err := ldapclient.NewLDAPClientConfig(o.Config.URL, o.Config.BindDN, bindPassword, o.Config.CA, o.Config.Insecure)
 	if err != nil {
 		return fmt.Errorf("could not determine LDAP client configuration: %v", err)
 	}

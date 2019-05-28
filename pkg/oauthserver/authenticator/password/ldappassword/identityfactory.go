@@ -8,8 +8,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	osinv1 "github.com/openshift/api/osin/v1"
+	"github.com/openshift/library-go/pkg/security/ldaputil"
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 )
 
 // LDAPUserIdentityFactory creates Identites for LDAP user entries.

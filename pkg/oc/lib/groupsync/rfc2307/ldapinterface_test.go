@@ -9,15 +9,16 @@ import (
 
 	"gopkg.in/ldap.v2"
 
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil/testclient"
+	ldapquery "github.com/openshift/library-go/pkg/security/ldapquery"
+	"github.com/openshift/library-go/pkg/security/ldaptestclient"
+	"github.com/openshift/library-go/pkg/security/ldaputil"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/syncerror"
 )
 
 func newTestLDAPInterface(client ldap.Client) *LDAPInterface {
 	// below are common test implementations of LDAPInterface fields
-	groupQuery := ldaputil.LDAPQueryOnAttribute{
-		LDAPQuery: ldaputil.LDAPQuery{
+	groupQuery := ldapquery.LDAPQueryOnAttribute{
+		LDAPQuery: ldapquery.LDAPQuery{
 			BaseDN:       "ou=groups,dc=example,dc=com",
 			Scope:        ldaputil.ScopeWholeSubtree,
 			DerefAliases: ldaputil.DerefAliasesAlways,
@@ -28,8 +29,8 @@ func newTestLDAPInterface(client ldap.Client) *LDAPInterface {
 	}
 	groupNameAttributes := []string{"cn"}
 	groupMembershipAttributes := []string{"member"}
-	userQuery := ldaputil.LDAPQueryOnAttribute{
-		LDAPQuery: ldaputil.LDAPQuery{
+	userQuery := ldapquery.LDAPQueryOnAttribute{
+		LDAPQuery: ldapquery.LDAPQuery{
 			BaseDN:       "ou=users,dc=example,dc=com",
 			Scope:        ldaputil.ScopeWholeSubtree,
 			DerefAliases: ldaputil.DerefAliasesAlways,
@@ -45,7 +46,7 @@ func newTestLDAPInterface(client ldap.Client) *LDAPInterface {
 		syncerror.NewMemberLookupMemberNotFoundSuppressor(ioutil.Discard),
 	)
 
-	return NewLDAPInterface(testclient.NewConfig(client),
+	return NewLDAPInterface(ldaptestclient.NewConfig(client),
 		groupQuery,
 		groupNameAttributes,
 		groupMembershipAttributes,
@@ -79,8 +80,8 @@ func TestExtractMembers(t *testing.T) {
 	}{
 		{
 			name: "group lookup errors",
-			client: testclient.NewMatchingSearchErrorClient(
-				testclient.New(),
+			client: ldaptestclient.NewMatchingSearchErrorClient(
+				ldaptestclient.New(),
 				"cn=testGroup,ou=groups,dc=example,dc=com",
 				errors.New("generic search error"),
 			),
@@ -92,9 +93,9 @@ func TestExtractMembers(t *testing.T) {
 			// this is a nested test client, the first nest tries to error on the user DN
 			// the second nest attempts to give back from the DN mapping
 			// the third nest is the default "safe" impl from ldaputil
-			client: testclient.NewMatchingSearchErrorClient(
-				testclient.NewDNMappingClient(
-					testclient.New(),
+			client: ldaptestclient.NewMatchingSearchErrorClient(
+				ldaptestclient.NewDNMappingClient(
+					ldaptestclient.New(),
 					map[string][]*ldap.Entry{
 						"cn=testGroup,ou=groups,dc=example,dc=com": {newTestGroup("testGroup", "cn=testUser,ou=users,dc=example,dc=com")},
 					},
@@ -107,53 +108,53 @@ func TestExtractMembers(t *testing.T) {
 		},
 		{
 			name: "out of scope member lookup suppressed",
-			client: testclient.NewMatchingSearchErrorClient(
-				testclient.NewDNMappingClient(
-					testclient.New(),
+			client: ldaptestclient.NewMatchingSearchErrorClient(
+				ldaptestclient.NewDNMappingClient(
+					ldaptestclient.New(),
 					map[string][]*ldap.Entry{
 						"cn=testGroup,ou=groups,dc=example,dc=com": {newTestGroup("testGroup", "cn=testUser,ou=users,dc=other-example,dc=com")},
 					},
 				),
 				"cn=testUser,ou=users,dc=other-example,dc=com",
-				ldaputil.NewQueryOutOfBoundsError("cn=testUser,ou=users,dc=other-example,dc=com", "cn=testGroup,ou=groups,dc=example,dc=com"),
+				ldapquery.NewQueryOutOfBoundsError("cn=testUser,ou=users,dc=other-example,dc=com", "cn=testGroup,ou=groups,dc=example,dc=com"),
 			),
 			expectedError:   nil,
 			expectedMembers: []*ldap.Entry{},
 		},
 		{
 			name: "no such object member lookup error suppressed",
-			client: testclient.NewMatchingSearchErrorClient(
-				testclient.NewDNMappingClient(
-					testclient.New(),
+			client: ldaptestclient.NewMatchingSearchErrorClient(
+				ldaptestclient.NewDNMappingClient(
+					ldaptestclient.New(),
 					map[string][]*ldap.Entry{
 						"cn=testGroup,ou=groups,dc=example,dc=com": {newTestGroup("testGroup", "cn=testUser,ou=users,dc=other-example,dc=com")},
 					},
 				),
 				"cn=testUser,ou=users,dc=other-example,dc=com",
-				ldaputil.NewNoSuchObjectError("cn=testUser,ou=users,dc=other-example,dc=com"),
+				ldapquery.NewNoSuchObjectError("cn=testUser,ou=users,dc=other-example,dc=com"),
 			),
 			expectedError:   nil,
 			expectedMembers: []*ldap.Entry{},
 		},
 		{
 			name: "member not found member lookup error suppressed",
-			client: testclient.NewMatchingSearchErrorClient(
-				testclient.NewDNMappingClient(
-					testclient.New(),
+			client: ldaptestclient.NewMatchingSearchErrorClient(
+				ldaptestclient.NewDNMappingClient(
+					ldaptestclient.New(),
 					map[string][]*ldap.Entry{
 						"cn=testGroup,ou=groups,dc=example,dc=com": {newTestGroup("testGroup", "cn=testUser,ou=users,dc=other-example,dc=com")},
 					},
 				),
 				"cn=testUser,ou=users,dc=other-example,dc=com",
-				ldaputil.NewEntryNotFoundError("cn=testUser,ou=users,dc=other-example,dc=com", "objectClass=groupOfNames"),
+				ldapquery.NewEntryNotFoundError("cn=testUser,ou=users,dc=other-example,dc=com", "objectClass=groupOfNames"),
 			),
 			expectedError:   nil,
 			expectedMembers: []*ldap.Entry{},
 		},
 		{
 			name: "no errors",
-			client: testclient.NewDNMappingClient(
-				testclient.New(),
+			client: ldaptestclient.NewDNMappingClient(
+				ldaptestclient.New(),
 				map[string][]*ldap.Entry{
 					"cn=testGroup,ou=groups,dc=example,dc=com": {newTestGroup("testGroup", "cn=testUser,ou=users,dc=example,dc=com")},
 					"cn=testUser,ou=users,dc=example,dc=com":   {newTestUser("testUser")},
@@ -193,13 +194,13 @@ func TestGroupEntryFor(t *testing.T) {
 		{
 			name:                "search request failure",
 			queryBaseDNOverride: "dc=foo",
-			expectedError:       ldaputil.NewQueryOutOfBoundsError("cn=testGroup,ou=groups,dc=example,dc=com", "dc=foo"),
+			expectedError:       ldapquery.NewQueryOutOfBoundsError("cn=testGroup,ou=groups,dc=example,dc=com", "dc=foo"),
 			expectedEntry:       nil,
 		},
 		{
 			name: "query failure",
-			client: testclient.NewMatchingSearchErrorClient(
-				testclient.New(),
+			client: ldaptestclient.NewMatchingSearchErrorClient(
+				ldaptestclient.New(),
 				"cn=testGroup,ou=groups,dc=example,dc=com",
 				errors.New("generic search error"),
 			),
@@ -208,8 +209,8 @@ func TestGroupEntryFor(t *testing.T) {
 		},
 		{
 			name: "no errors",
-			client: testclient.NewDNMappingClient(
-				testclient.New(),
+			client: ldaptestclient.NewDNMappingClient(
+				ldaptestclient.New(),
 				map[string][]*ldap.Entry{
 					"cn=testGroup,ou=groups,dc=example,dc=com": {newTestGroup("testGroup", "cn=testUser,ou=users,dc=example,dc=com")},
 				},
@@ -246,8 +247,8 @@ func TestListGroups(t *testing.T) {
 	}{
 		{
 			name: "query errors",
-			client: testclient.NewMatchingSearchErrorClient(
-				testclient.New(),
+			client: ldaptestclient.NewMatchingSearchErrorClient(
+				ldaptestclient.New(),
 				"ou=groups,dc=example,dc=com",
 				errors.New("generic search error"),
 			),
@@ -256,8 +257,8 @@ func TestListGroups(t *testing.T) {
 		},
 		{
 			name: "no UID on entry",
-			client: testclient.NewDNMappingClient(
-				testclient.New(),
+			client: ldaptestclient.NewDNMappingClient(
+				ldaptestclient.New(),
 				map[string][]*ldap.Entry{
 					"ou=groups,dc=example,dc=com": {newTestGroup("", "cn=testUser,ou=users,dc=example,dc=com")},
 				},
@@ -268,8 +269,8 @@ func TestListGroups(t *testing.T) {
 		},
 		{
 			name: "no error",
-			client: testclient.NewDNMappingClient(
-				testclient.New(),
+			client: ldaptestclient.NewDNMappingClient(
+				ldaptestclient.New(),
 				map[string][]*ldap.Entry{
 					"ou=groups,dc=example,dc=com": {newTestGroup("testGroup", "cn=testUser,ou=users,dc=example,dc=com")},
 				},
@@ -313,13 +314,13 @@ func TestUserEntryFor(t *testing.T) {
 		{
 			name:                "search request failure",
 			queryBaseDNOverride: "dc=foo",
-			expectedError:       ldaputil.NewQueryOutOfBoundsError("cn=testUser,ou=users,dc=example,dc=com", "dc=foo"),
+			expectedError:       ldapquery.NewQueryOutOfBoundsError("cn=testUser,ou=users,dc=example,dc=com", "dc=foo"),
 			expectedEntry:       nil,
 		},
 		{
 			name: "query failure",
-			client: testclient.NewMatchingSearchErrorClient(
-				testclient.New(),
+			client: ldaptestclient.NewMatchingSearchErrorClient(
+				ldaptestclient.New(),
 				"cn=testUser,ou=users,dc=example,dc=com",
 				errors.New("generic search error"),
 			),
@@ -328,8 +329,8 @@ func TestUserEntryFor(t *testing.T) {
 		},
 		{
 			name: "no errors",
-			client: testclient.NewDNMappingClient(
-				testclient.New(),
+			client: ldaptestclient.NewDNMappingClient(
+				ldaptestclient.New(),
 				map[string][]*ldap.Entry{
 					"cn=testUser,ou=users,dc=example,dc=com": {newTestUser("testUser")},
 				},

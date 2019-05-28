@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
+	ldapquery "github.com/openshift/library-go/pkg/security/ldapquery"
 )
 
 func TestSuppressMemberLookupErrorOutOfBounds(t *testing.T) {
@@ -36,7 +36,7 @@ func TestSuppressMemberLookupErrorOutOfBounds(t *testing.T) {
 		},
 		{
 			name:               "out-of-bounds member lookup error",
-			err:                NewMemberLookupError("", "", ldaputil.NewQueryOutOfBoundsError("", "")),
+			err:                NewMemberLookupError("", "", ldapquery.NewQueryOutOfBoundsError("", "")),
 			expectedHandled:    true,
 			expectedFatalError: nil,
 		},
@@ -83,13 +83,13 @@ func TestSuppressMemberLookupErrorMemberNotFound(t *testing.T) {
 		},
 		{
 			name:               "no such object member lookup error",
-			err:                NewMemberLookupError("", "", ldaputil.NewNoSuchObjectError("")),
+			err:                NewMemberLookupError("", "", ldapquery.NewNoSuchObjectError("")),
 			expectedHandled:    true,
 			expectedFatalError: nil,
 		},
 		{
 			name:               "member not found member lookup error",
-			err:                NewMemberLookupError("", "", ldaputil.NewEntryNotFoundError("", "")),
+			err:                NewMemberLookupError("", "", ldapquery.NewEntryNotFoundError("", "")),
 			expectedHandled:    true,
 			expectedFatalError: nil,
 		},

@@ -1,9 +1,9 @@
 package sync
 
 import (
+	"github.com/openshift/library-go/pkg/security/ldapclient"
+	ldapquery "github.com/openshift/library-go/pkg/security/ldapquery"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/rfc2307"
@@ -51,11 +51,11 @@ func (b *RFC2307Builder) getRFC2307LDAPInterface() (*rfc2307.LDAPInterface, erro
 		return b.rfc2307LDAPInterface, nil
 	}
 
-	groupQuery, err := ldaputil.NewLDAPQueryOnAttribute(b.Config.AllGroupsQuery, b.Config.GroupUIDAttribute)
+	groupQuery, err := ldapquery.NewLDAPQueryOnAttribute(ToLDAPQuery(b.Config.AllGroupsQuery), b.Config.GroupUIDAttribute)
 	if err != nil {
 		return nil, err
 	}
-	userQuery, err := ldaputil.NewLDAPQueryOnAttribute(b.Config.AllUsersQuery, b.Config.UserUIDAttribute)
+	userQuery, err := ldapquery.NewLDAPQueryOnAttribute(ToLDAPQuery(b.Config.AllUsersQuery), b.Config.UserUIDAttribute)
 	if err != nil {
 		return nil, err
 	}

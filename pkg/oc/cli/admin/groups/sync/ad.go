@@ -1,9 +1,9 @@
 package sync
 
 import (
+	"github.com/openshift/library-go/pkg/security/ldapclient"
+	ldapquery "github.com/openshift/library-go/pkg/security/ldapquery"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/ad"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
@@ -40,7 +40,7 @@ func (b *ADBuilder) getADLDAPInterface() (*ad.ADLDAPInterface, error) {
 		return b.adLDAPInterface, nil
 	}
 
-	userQuery, err := ldaputil.NewLDAPQuery(b.Config.AllUsersQuery)
+	userQuery, err := ldapquery.NewLDAPQuery(ToLDAPQuery(b.Config.AllUsersQuery))
 	if err != nil {
 		return nil, err
 	}

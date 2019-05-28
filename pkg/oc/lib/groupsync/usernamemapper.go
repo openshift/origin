@@ -5,7 +5,7 @@ import (
 
 	"gopkg.in/ldap.v2"
 
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
+	"github.com/openshift/library-go/pkg/security/ldaputil"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
 )
 

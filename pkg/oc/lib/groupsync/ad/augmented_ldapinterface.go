@@ -5,18 +5,18 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
+	"github.com/openshift/library-go/pkg/security/ldapclient"
+	ldapquery "github.com/openshift/library-go/pkg/security/ldapquery"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/groupdetector"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
 )
 
 // NewLDAPInterface builds a new LDAPInterface using a schema-appropriate config
 func NewAugmentedADLDAPInterface(clientConfig ldapclient.Config,
-	userQuery ldaputil.LDAPQuery,
+	userQuery ldapquery.LDAPQuery,
 	groupMembershipAttributes []string,
 	userNameAttributes []string,
-	groupQuery ldaputil.LDAPQueryOnAttribute,
+	groupQuery ldapquery.LDAPQueryOnAttribute,
 	groupNameAttributes []string) *AugmentedADLDAPInterface {
 
 	return &AugmentedADLDAPInterface{
@@ -34,7 +34,7 @@ type AugmentedADLDAPInterface struct {
 
 	// groupQuery holds the information necessary to make an LDAP query for a specific
 	// first-class group entry on the LDAP server
-	groupQuery ldaputil.LDAPQueryOnAttribute
+	groupQuery ldapquery.LDAPQueryOnAttribute
 	// groupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its name to use for an OpenShift group
 	groupNameAttributes []string
 
@@ -61,7 +61,7 @@ func (e *AugmentedADLDAPInterface) GroupEntryFor(ldapGroupUID string) (*ldap.Ent
 		return nil, err
 	}
 
-	group, err = ldaputil.QueryForUniqueEntry(e.clientConfig, searchRequest)
+	group, err = ldapquery.QueryForUniqueEntry(e.clientConfig, searchRequest)
 	if err != nil {
 		return nil, err
 	}
