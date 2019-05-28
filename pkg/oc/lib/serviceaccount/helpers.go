@@ -9,10 +9,6 @@ const (
 	maxSecretPrefixNameLength = maxNameLength - randomLength
 )
 
-func GetDockercfgSecretNamePrefix(serviceAccountName string) string {
-	return apihelpers.GetName(serviceAccountName, "dockercfg-", maxSecretPrefixNameLength)
-}
-
 // GetTokenSecretNamePrefix creates the prefix used for the generated SA token secret. This is compatible with kube up until
 // long names, at which point we hash the SA name and leave the "token-" intact.  Upstream clips the value and generates a random
 // string.
