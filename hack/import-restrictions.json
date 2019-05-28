@@ -463,7 +463,6 @@
       "vendor/github.com/openshift/client-go",
       "vendor/github.com/openshift/library-go",
       "vendor/github.com/openshift/source-to-image",
-      "vendor/github.com/prometheus/client_golang",
       "vendor/github.com/RangelReale/osincli",
       "vendor/github.com/spf13/cobra",
       "vendor/github.com/spf13/pflag",
@@ -531,7 +530,6 @@
       "github.com/openshift/origin/pkg/cmd/server/apis/config/validation/ldap",
       "github.com/openshift/origin/pkg/cmd/server/bootstrappolicy",
       "github.com/openshift/origin/pkg/cmd/templates",
-      "github.com/openshift/origin/pkg/cmd/util",
       "github.com/openshift/origin/pkg/image/apis/image",
       "github.com/openshift/origin/pkg/image/apis/image/v1/trigger",
       "github.com/openshift/origin/pkg/image/apis/image/docker10",
@@ -571,12 +569,10 @@
       "github.com/openshift/origin/pkg/util/docker/dockerfile",
       "github.com/openshift/origin/pkg/util/dot",
       "github.com/openshift/origin/pkg/util/errors",
-      "github.com/openshift/origin/pkg/util/file",
       "github.com/openshift/origin/pkg/util/fsnotification",
       "github.com/openshift/origin/pkg/util/netutils",
       "github.com/openshift/origin/pkg/util/parallel",
       "github.com/openshift/origin/pkg/util/portutils",
-      "github.com/openshift/origin/pkg/util/proc",
       "github.com/openshift/origin/pkg/version",
 
       "vendor/github.com/openshift/library-go/pkg/image/reference",
@@ -590,7 +586,6 @@
       "vendor/k8s.io/kubernetes/pkg/controller",
       "vendor/k8s.io/kubernetes/pkg/controller/deployment/util",
       "vendor/k8s.io/kubernetes/pkg/credentialprovider",
-      "vendor/k8s.io/kubernetes/pkg/serviceaccount",
 
       "vendor/github.com/openshift/library-go/pkg/git"
     ]
