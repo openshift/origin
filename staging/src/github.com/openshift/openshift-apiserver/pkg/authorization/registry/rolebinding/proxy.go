@@ -16,9 +16,9 @@ import (
 
 	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 	"github.com/openshift/openshift-apiserver/pkg/authorization/apiserver/registry/util"
+	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 	utilregistry "github.com/openshift/openshift-library-go/registry"
 	authclient "github.com/openshift/origin/pkg/client/impersonatingclient"
-	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 )
 
 type REST struct {

@@ -24,7 +24,7 @@ import (
 	imageadmission "github.com/openshift/openshift-apiserver/pkg/image/apiserver/admission/limitrange"
 	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/imagestream"
 	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registryhostname"
-	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
+	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 
 // REST implements a RESTStorage for image streams against etcd.

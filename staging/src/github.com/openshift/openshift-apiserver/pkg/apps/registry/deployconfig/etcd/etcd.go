@@ -26,7 +26,7 @@ import (
 	"github.com/openshift/openshift-apiserver/apis/internalversion/legacy"
 	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
 	"github.com/openshift/openshift-apiserver/pkg/apps/apiserver/registry/deployconfig"
-	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
+	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 
 // REST contains the REST storage for DeploymentConfig objects.

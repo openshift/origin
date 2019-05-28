@@ -21,7 +21,7 @@ import (
 	usergroup "github.com/openshift/api/user"
 	userapi "github.com/openshift/openshift-apiserver/pkg/user/apis/user"
 	"github.com/openshift/openshift-apiserver/pkg/user/apis/user/validation"
-	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
+	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 	"github.com/openshift/origin/pkg/user/apiserver/registry/user"
 )
 

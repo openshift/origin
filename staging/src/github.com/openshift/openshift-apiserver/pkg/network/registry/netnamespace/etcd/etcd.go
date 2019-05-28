@@ -11,7 +11,7 @@ import (
 	"github.com/openshift/api/network"
 	networkapi "github.com/openshift/openshift-apiserver/pkg/network/apis/network"
 	"github.com/openshift/openshift-apiserver/pkg/network/apiserver/registry/netnamespace"
-	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
+	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 
 // rest implements a RESTStorage for sdn against etcd

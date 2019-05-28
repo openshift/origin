@@ -10,7 +10,7 @@ import (
 
 	"github.com/openshift/api/security"
 	securityapi "github.com/openshift/openshift-apiserver/pkg/security/apis/security"
-	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
+	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 
 type REST struct {

@@ -16,7 +16,7 @@ import (
 	routegroup "github.com/openshift/api/route"
 	routeapi "github.com/openshift/openshift-apiserver/pkg/route/apis/route"
 	routeregistry "github.com/openshift/openshift-apiserver/pkg/route/apiserver/registry/route"
-	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
+	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 	"github.com/openshift/origin/pkg/route"
 )
 

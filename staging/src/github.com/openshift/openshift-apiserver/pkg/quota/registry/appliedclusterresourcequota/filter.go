@@ -23,7 +23,7 @@ import (
 	quotaapi "github.com/openshift/openshift-apiserver/pkg/quota/apis/quota"
 	quotav1conversions "github.com/openshift/openshift-apiserver/pkg/quota/apis/quota/v1"
 
-	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
+	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 
 type AppliedClusterResourceQuotaREST struct {

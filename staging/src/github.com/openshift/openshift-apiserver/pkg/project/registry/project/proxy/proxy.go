@@ -21,8 +21,8 @@ import (
 	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
 	projectregistry "github.com/openshift/openshift-apiserver/pkg/project/apiserver/registry/project"
+	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectutil "github.com/openshift/origin/pkg/project/util"
 )

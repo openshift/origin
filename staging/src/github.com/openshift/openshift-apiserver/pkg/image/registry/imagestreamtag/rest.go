@@ -22,7 +22,7 @@ import (
 	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/image"
 	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/imagestream"
 	util "github.com/openshift/openshift-apiserver/pkg/image/imageutil"
-	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
+	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 
 // REST implements the RESTStorage interface for ImageStreamTag

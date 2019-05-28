@@ -11,7 +11,7 @@ import (
 	"github.com/openshift/api/image"
 	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 	imageregistry "github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/image"
-	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
+	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 
 // REST implements a RESTStorage for images against etcd.

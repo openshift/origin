@@ -13,7 +13,7 @@ import (
 	oauthapi "github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth"
 	"github.com/openshift/openshift-apiserver/pkg/oauth/apiserver/registry/oauthclient"
 	"github.com/openshift/openshift-apiserver/pkg/oauth/apiserver/registry/oauthclientauthorization"
-	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
+	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 
 // rest implements a RESTStorage for oauth client authorizations against etcd

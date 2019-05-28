@@ -15,7 +15,7 @@ import (
 	"github.com/openshift/api/template"
 	templateapi "github.com/openshift/openshift-apiserver/pkg/template/apis/template"
 	"github.com/openshift/openshift-apiserver/pkg/template/apiserver/registry/templateinstance"
-	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
+	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 
 // REST implements a RESTStorage for templateinstances against etcd

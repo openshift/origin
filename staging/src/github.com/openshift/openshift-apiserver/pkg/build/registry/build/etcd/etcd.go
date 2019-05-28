@@ -15,7 +15,7 @@ import (
 	"github.com/openshift/api/build"
 	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 	buildregistry "github.com/openshift/openshift-apiserver/pkg/build/apiserver/registry/build"
-	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
+	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 
 type REST struct {
