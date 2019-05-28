@@ -19,15 +19,16 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
+
 	buildv1 "github.com/openshift/api/build/v1"
 	buildutil "github.com/openshift/library-go-staging/build/util"
 	"github.com/openshift/library-go-staging/labelselector"
 	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
+	"github.com/openshift/openshift-apiserver/pkg/build/apis/build/buildscheme"
 	buildinternalhelpers "github.com/openshift/openshift-apiserver/pkg/build/apis/build/internal_helpers"
 	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 	imageapivalidation "github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation"
-	"github.com/openshift/origin/pkg/build/buildscheme"
-	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
 
 // ValidateBuild tests required fields for a Build.

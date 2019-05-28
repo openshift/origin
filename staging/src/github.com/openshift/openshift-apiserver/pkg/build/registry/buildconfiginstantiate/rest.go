@@ -25,9 +25,8 @@ import (
 	buildutil "github.com/openshift/library-go-staging/build/util"
 	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 	buildinternalhelpers "github.com/openshift/openshift-apiserver/pkg/build/apis/build/internal_helpers"
+	"github.com/openshift/openshift-apiserver/pkg/build/generator"
 	buildwait "github.com/openshift/openshift-apiserver/pkg/build/registry/wait"
-	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
-	"github.com/openshift/origin/pkg/build/generator"
 )
 
 var (
@@ -255,12 +254,12 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	buildPodName := buildinternalhelpers.GetBuildPodName(build)
 	opts := &kapi.PodAttachOptions{
 		Stdin:     true,
-		Container: buildstrategy.GitCloneContainer,
+		Container: "git-clone", // TODO: Copied from controller strategy -> move to library-go
 	}
 	// Custom builds don't have a gitclone container, so we inject the source
 	// directly into the main container.
 	if build.Spec.Strategy.CustomStrategy != nil {
-		opts.Container = buildstrategy.CustomBuild
+		opts.Container = "custom-build" // TODO: Copied from controller strategy -> move to library-go
 	}
 
 	restClient, err := restclient.RESTClientFor(h.r.ClientConfig)

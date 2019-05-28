@@ -14,8 +14,8 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 	_ "github.com/openshift/openshift-apiserver/pkg/build/apis/build/install"
-	"github.com/openshift/origin/pkg/build/generator"
-	mocks "github.com/openshift/origin/pkg/build/generator/test"
+	"github.com/openshift/openshift-apiserver/pkg/build/generator"
+	mocks "github.com/openshift/openshift-apiserver/pkg/build/generator/test"
 )
 
 func TestCreateInstantiate(t *testing.T) {

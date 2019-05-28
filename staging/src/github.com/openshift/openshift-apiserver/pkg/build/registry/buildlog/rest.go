@@ -24,14 +24,22 @@ import (
 	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
 	buildtypedclient "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	apiserverrest "github.com/openshift/library-go-staging/apiserver/rest"
 	buildutil "github.com/openshift/library-go-staging/build/util"
 	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 	buildinternalhelpers "github.com/openshift/openshift-apiserver/pkg/build/apis/build/internal_helpers"
 	"github.com/openshift/openshift-apiserver/pkg/build/apis/build/validation"
 	buildwait "github.com/openshift/openshift-apiserver/pkg/build/registry/wait"
-	apiserverrest "github.com/openshift/origin/pkg/apiserver/rest"
-	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 )
+
+// TODO: FIXME: Copied from build controller strategy -> MUST BE IN library-go
+const (
+	CustomBuild = "custom-build"
+	DockerBuild = "docker-build"
+	StiBuild    = "sti-build"
+)
+
+var BuildContainerNames = []string{CustomBuild, StiBuild, DockerBuild}
 
 // REST is an implementation of RESTStorage for the api server.
 type REST struct {
@@ -347,7 +355,7 @@ func podLogOptionsToV1(options *kapi.PodLogOptions) *corev1.PodLogOptions {
 // the build pod. We are interested in logs from the build container only
 func selectBuilderContainer(containers []corev1.Container) string {
 	for _, c := range containers {
-		for _, bcName := range buildstrategy.BuildContainerNames {
+		for _, bcName := range BuildContainerNames {
 			if c.Name == bcName {
 				return bcName
 			}

@@ -14,19 +14,18 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned"
+	buildgenerator "github.com/openshift/openshift-apiserver/pkg/build/generator"
 	buildetcd "github.com/openshift/openshift-apiserver/pkg/build/registry/build/etcd"
 	"github.com/openshift/openshift-apiserver/pkg/build/registry/buildclone"
 	buildconfigregistry "github.com/openshift/openshift-apiserver/pkg/build/registry/buildconfig"
 	buildconfigetcd "github.com/openshift/openshift-apiserver/pkg/build/registry/buildconfig/etcd"
 	"github.com/openshift/openshift-apiserver/pkg/build/registry/buildconfiginstantiate"
 	buildlogregistry "github.com/openshift/openshift-apiserver/pkg/build/registry/buildlog"
-
 	"github.com/openshift/openshift-apiserver/pkg/build/webhook"
 	"github.com/openshift/openshift-apiserver/pkg/build/webhook/bitbucket"
 	"github.com/openshift/openshift-apiserver/pkg/build/webhook/generic"
 	"github.com/openshift/openshift-apiserver/pkg/build/webhook/github"
 	"github.com/openshift/openshift-apiserver/pkg/build/webhook/gitlab"
-	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 )
 
 type ExtraConfig struct {

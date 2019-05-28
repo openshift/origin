@@ -8,7 +8,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 
 	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/build/generator"
+	"github.com/openshift/openshift-apiserver/pkg/build/generator"
 )
 
 // NewStorage creates a new storage object for build generation

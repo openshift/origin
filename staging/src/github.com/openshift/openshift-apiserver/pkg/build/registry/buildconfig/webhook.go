@@ -25,7 +25,7 @@ import (
 	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 	buildv1helpers "github.com/openshift/openshift-apiserver/pkg/build/apis/build/v1"
 	"github.com/openshift/openshift-apiserver/pkg/build/webhook"
-	"github.com/openshift/origin/pkg/build/client"
+	"github.com/openshift/library-go-staging/build/client"
 )
 
 var (
