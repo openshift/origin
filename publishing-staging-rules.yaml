@@ -1,0 +1,9 @@
+skip-godeps: true
+skip-gomod: true
+rules:
+- destination: template-service-broker
+  branches:
+    - name: master
+      source:
+        branch: release-4.2
+        dir: staging/github.com/openshift/template-service-broker
