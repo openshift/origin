@@ -459,6 +459,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/operator/v1.KubeSchedulerList":                                                      schema_openshift_api_operator_v1_KubeSchedulerList(ref),
 		"github.com/openshift/api/operator/v1.KubeSchedulerSpec":                                                      schema_openshift_api_operator_v1_KubeSchedulerSpec(ref),
 		"github.com/openshift/api/operator/v1.KubeSchedulerStatus":                                                    schema_openshift_api_operator_v1_KubeSchedulerStatus(ref),
+		"github.com/openshift/api/operator/v1.KuryrConfig":                                                            schema_openshift_api_operator_v1_KuryrConfig(ref),
 		"github.com/openshift/api/operator/v1.MyOperatorResource":                                                     schema_openshift_api_operator_v1_MyOperatorResource(ref),
 		"github.com/openshift/api/operator/v1.MyOperatorResourceSpec":                                                 schema_openshift_api_operator_v1_MyOperatorResourceSpec(ref),
 		"github.com/openshift/api/operator/v1.MyOperatorResourceStatus":                                               schema_openshift_api_operator_v1_MyOperatorResourceStatus(ref),
@@ -11335,7 +11336,7 @@ func schema_openshift_api_config_v1_RegistrySources(ref common.ReferenceCallback
 				Properties: map[string]spec.Schema{
 					"insecureRegistries": {
 						SchemaProps: spec.SchemaProps{
-							Description: "InsecureRegistries are registries which do not have a valid SSL certificate or only support HTTP connections.",
+							Description: "InsecureRegistries are registries which do not have a valid TLS certificates or only support HTTP connections.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -21495,9 +21496,24 @@ func schema_openshift_api_operator_v1_ConsoleCustomization(ref common.ReferenceC
 							Format:      "",
 						},
 					},
+					"customProductName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "customProductName is the name that will be displayed in page titles, logo alt text, and the about dialog instead of the normal OpenShift product name.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"customLogoFile": {
+						SchemaProps: spec.SchemaProps{
+							Description: "customLogoFile replaces the default OpenShift logo in the masthead and about dialog. It is a reference to a ConfigMap in the openshift-config namespace. This can be created with a command like 'oc create configmap custom-logo --from-file=/path/to/file -n openshift-config'. Image size must be less than 1 MB due to constraints on the ConfigMap size. The ConfigMap key should include a file extension so that the console serves the file with the correct MIME type. Recommended logo specifications: Dimensions: Max height of 68px and max width of 200px SVG format preferred",
+							Ref:         ref("github.com/openshift/api/config/v1.ConfigMapFileReference"),
+						},
+					},
 				},
 			},
 		},
+		Dependencies: []string{
+			"github.com/openshift/api/config/v1.ConfigMapFileReference"},
 	}
 }
 
@@ -21842,12 +21858,18 @@ func schema_openshift_api_operator_v1_DefaultNetworkDefinition(ref common.Refere
 							Ref:         ref("github.com/openshift/api/operator/v1.OVNKubernetesConfig"),
 						},
 					},
+					"kuryrConfig": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KuryrConfig configures the kuryr plugin",
+							Ref:         ref("github.com/openshift/api/operator/v1.KuryrConfig"),
+						},
+					},
 				},
 				Required: []string{"type"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.OVNKubernetesConfig", "github.com/openshift/api/operator/v1.OpenShiftSDNConfig"},
+			"github.com/openshift/api/operator/v1.KuryrConfig", "github.com/openshift/api/operator/v1.OVNKubernetesConfig", "github.com/openshift/api/operator/v1.OpenShiftSDNConfig"},
 	}
 }
 
@@ -23141,6 +23163,33 @@ func schema_openshift_api_operator_v1_KubeSchedulerStatus(ref common.ReferenceCa
 		},
 		Dependencies: []string{
 			"github.com/openshift/api/operator/v1.GenerationStatus", "github.com/openshift/api/operator/v1.NodeStatus", "github.com/openshift/api/operator/v1.OperatorCondition"},
+	}
+}
+
+func schema_openshift_api_operator_v1_KuryrConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "KuryrConfig configures the Kuryr-Kubernetes SDN",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"daemonProbesPort": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The port kuryr-daemon will listen for readiness and liveness requests.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"controllerProbesPort": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The port kuryr-controller will listen for readiness and liveness requests.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
