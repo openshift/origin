@@ -1,4 +1,4 @@
-package stringreplace
+package templateprocessing
 
 import (
 	"encoding/json"

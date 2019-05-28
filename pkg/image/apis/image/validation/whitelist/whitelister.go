@@ -13,7 +13,6 @@ import (
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	stringsutil "github.com/openshift/origin/pkg/util/strings"
 )
 
 // WhitelistTransport says whether the associated registry host shall be treated as secure or insecure.
@@ -157,7 +156,7 @@ func (rw *registryWhitelister) AdmitDockerImageReference(ref *imageapi.DockerIma
 
 	matchHost := func(h string) bool {
 		for _, hp := range rw.whitelist {
-			if stringsutil.IsWildcardMatch(h, hp.host) {
+			if IsWildcardMatch(h, hp.host) {
 				if len(port) == 0 {
 					switch hp.port {
 					case "80", "443", "*":
@@ -166,7 +165,7 @@ func (rw *registryWhitelister) AdmitDockerImageReference(ref *imageapi.DockerIma
 						continue
 					}
 				}
-				if stringsutil.IsWildcardMatch(port, hp.port) {
+				if IsWildcardMatch(port, hp.port) {
 					return true
 				}
 			}

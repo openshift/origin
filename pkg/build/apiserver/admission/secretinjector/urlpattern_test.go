@@ -1,4 +1,4 @@
-package urlpattern
+package secretinjector
 
 import (
 	"net/url"

@@ -1,4 +1,4 @@
-package strings
+package whitelist
 
 // IsWildcardMatch matches the given input string against the provided pattern. The
 // pattern might contain '?' and '*' wildcards.

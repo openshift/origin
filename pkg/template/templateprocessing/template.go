@@ -15,7 +15,6 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	. "github.com/openshift/origin/pkg/template/generator"
 	"github.com/openshift/origin/pkg/util"
-	"github.com/openshift/origin/pkg/util/stringreplace"
 )
 
 // match ${KEY}, KEY will be grouped
@@ -197,7 +196,7 @@ func (p *Processor) EvaluateParameterSubstitution(params map[string]templateapi.
 //   - ${PARAMETER_NAME}
 //
 func (p *Processor) SubstituteParameters(params map[string]templateapi.Parameter, item runtime.Object) (runtime.Object, error) {
-	stringreplace.VisitObjectStrings(item, func(in string) (string, bool) {
+	VisitObjectStrings(item, func(in string) (string, bool) {
 		return p.EvaluateParameterSubstitution(params, in)
 	})
 	return item, nil
