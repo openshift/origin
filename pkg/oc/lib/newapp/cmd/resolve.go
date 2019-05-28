@@ -11,7 +11,7 @@ import (
 	"github.com/openshift/library-go/pkg/git"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
-	dockerfileutil "github.com/openshift/origin/pkg/util/docker/dockerfile"
+	dockerfileutil "github.com/openshift/origin/pkg/oc/lib/newapp/docker/dockerfile"
 )
 
 // Resolvers are used to identify source repositories, images, or templates in different contexts

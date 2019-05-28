@@ -17,7 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
-	"github.com/openshift/origin/pkg/util/portutils"
+	"github.com/openshift/origin/pkg/oc/lib/newapp/portutils"
 )
 
 func displayName(meta metav1.ObjectMeta) string {

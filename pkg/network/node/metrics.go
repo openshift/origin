@@ -12,10 +12,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openshift/origin/pkg/util/ovs"
 	"github.com/prometheus/client_golang/prometheus"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+
+	"github.com/openshift/origin/pkg/network/node/ovs"
 )
 
 const (

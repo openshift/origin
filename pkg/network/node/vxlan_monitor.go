@@ -15,7 +15,7 @@ import (
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/openshift/origin/pkg/network/common"
-	"github.com/openshift/origin/pkg/util/ovs"
+	"github.com/openshift/origin/pkg/network/node/ovs"
 )
 
 // egressVXLANMonitor monitors the health of automatic egress IPs by periodically checking

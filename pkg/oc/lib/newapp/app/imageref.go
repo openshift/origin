@@ -20,8 +20,8 @@ import (
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutil "github.com/openshift/origin/pkg/image/util"
-	"github.com/openshift/origin/pkg/util/docker/dockerfile"
-	"github.com/openshift/origin/pkg/util/portutils"
+	"github.com/openshift/origin/pkg/oc/lib/newapp/docker/dockerfile"
+	"github.com/openshift/origin/pkg/oc/lib/newapp/portutils"
 )
 
 // ImageRefGenerator is an interface for generating ImageRefs

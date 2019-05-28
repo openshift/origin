@@ -40,8 +40,8 @@ import (
 	"github.com/openshift/origin/pkg/network"
 	"github.com/openshift/origin/pkg/network/common"
 	"github.com/openshift/origin/pkg/network/node/cniserver"
+	"github.com/openshift/origin/pkg/network/node/ovs"
 	"github.com/openshift/origin/pkg/util/netutils"
-	"github.com/openshift/origin/pkg/util/ovs"
 )
 
 const hostLocalDataDir = "/var/lib/cni/networks"

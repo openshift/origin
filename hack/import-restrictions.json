@@ -431,7 +431,6 @@
       "github.com/openshift/origin/pkg/cmd/server/apis/config/install",
       "github.com/openshift/origin/pkg/cmd/server/apis/config/latest",
       "github.com/openshift/origin/pkg/serviceaccounts/oauthclient",
-      "github.com/openshift/origin/pkg/util/http/links",
       "github.com/openshift/origin/pkg/util/httprequest"
     ]
   },
@@ -566,13 +565,9 @@
       "github.com/openshift/origin/pkg/unidling/util",
       "github.com/openshift/origin/pkg/user/apis/user/install",
       "github.com/openshift/origin/pkg/util",
-      "github.com/openshift/origin/pkg/util/docker/dockerfile",
-      "github.com/openshift/origin/pkg/util/dot",
       "github.com/openshift/origin/pkg/util/errors",
-      "github.com/openshift/origin/pkg/util/fsnotification",
       "github.com/openshift/origin/pkg/util/netutils",
       "github.com/openshift/origin/pkg/util/parallel",
-      "github.com/openshift/origin/pkg/util/portutils",
       "github.com/openshift/origin/pkg/version",
 
       "vendor/github.com/openshift/library-go/pkg/image/reference",
@@ -586,6 +581,7 @@
       "vendor/k8s.io/kubernetes/pkg/controller",
       "vendor/k8s.io/kubernetes/pkg/controller/deployment/util",
       "vendor/k8s.io/kubernetes/pkg/credentialprovider",
+      "vendor/github.com/pkg/errors",
 
       "vendor/github.com/openshift/library-go/pkg/git"
     ]

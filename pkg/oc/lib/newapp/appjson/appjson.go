@@ -21,7 +21,7 @@ import (
 	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
-	"github.com/openshift/origin/pkg/util/docker/dockerfile"
+	"github.com/openshift/origin/pkg/oc/lib/newapp/docker/dockerfile"
 )
 
 type EnvVarOrString struct {
