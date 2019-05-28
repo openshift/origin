@@ -79,8 +79,9 @@ import:
   version: 4d6e6720a7c885c37b4cb083c0d372dda3425120
   subpackages:
   - libcontainer/user
+# needed to provide API used by the version of docker that we're using
 - package: github.com/pkg/errors
-  version: a22138067af1c4942683050411a841ade67fe1eb
+  version: 839d9e913e063e28dfd0e6c7b7512793e0a48be9
 - package: github.com/sirupsen/logrus
   version: 89742aefa4b206dcf400792f3bd35b542998eb3b
 - package: github.com/spf13/cobra
@@ -102,3 +103,7 @@ import:
   subpackages:
   - unix
   - windows
+# needed to resolve dependencies with the version of docker we're using
+- package: github.com/moby/buildkit
+  version: da2b9dc7dab99e824b2b1067ad7d0523e32dd2d9
+  repo: https://github.com/dmcgowan/buildkit.git

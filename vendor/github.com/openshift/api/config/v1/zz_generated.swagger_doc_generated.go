@@ -690,7 +690,7 @@ func (RegistryLocation) SwaggerDoc() map[string]string {
 
 var map_RegistrySources = map[string]string{
 	"":                   "RegistrySources holds cluster-wide information about how to handle the registries config.",
-	"insecureRegistries": "InsecureRegistries are registries which do not have a valid SSL certificate or only support HTTP connections.",
+	"insecureRegistries": "InsecureRegistries are registries which do not have a valid TLS certificates or only support HTTP connections.",
 	"blockedRegistries":  "BlockedRegistries are blacklisted from image pull/push. All other registries are allowed.\n\nOnly one of BlockedRegistries or AllowedRegistries may be set.",
 	"allowedRegistries":  "AllowedRegistries are whitelisted for image pull/push. All other registries are blocked.\n\nOnly one of BlockedRegistries or AllowedRegistries may be set.",
 }

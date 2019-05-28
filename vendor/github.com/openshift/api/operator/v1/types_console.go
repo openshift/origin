@@ -1,6 +1,10 @@
 package v1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/openshift/api/config/v1"
+)
 
 // +genclient
 // +genclient:nonNamespaced
@@ -39,6 +43,21 @@ type ConsoleCustomization struct {
 	// documentation URL.
 	// Invalid value will prevent a console rollout.
 	DocumentationBaseURL string `json:"documentationBaseURL,omitempty"`
+	// customProductName is the name that will be displayed in page titles, logo alt text, and the about dialog
+	// instead of the normal OpenShift product name.
+	// +optional
+	CustomProductName string `json:"customProductName,omitempty"`
+	// customLogoFile replaces the default OpenShift logo in the masthead and about dialog. It is a reference to a
+	// ConfigMap in the openshift-config namespace. This can be created with a command like
+	// 'oc create configmap custom-logo --from-file=/path/to/file -n openshift-config'.
+	// Image size must be less than 1 MB due to constraints on the ConfigMap size.
+	// The ConfigMap key should include a file extension so that the console serves the file
+	// with the correct MIME type.
+	// Recommended logo specifications:
+	// Dimensions: Max height of 68px and max width of 200px
+	// SVG format preferred
+	// +optional
+	CustomLogoFile v1.ConfigMapFileReference `json:"customLogoFile,omitempty"`
 }
 
 // Brand is a specific supported brand within the console
