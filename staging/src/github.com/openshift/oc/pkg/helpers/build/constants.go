@@ -7,4 +7,6 @@ const (
 	// on which the Build is based. NOTE: The value for this label may not contain the entire
 	// BuildConfig name because it will be truncated to maximum label length.
 	BuildConfigLabel = "openshift.io/build-config.name"
+	// BuildJenkinsBlueOceanLogURLAnnotation is an annotation holding a link to the Jenkins build console log via the Jenkins BlueOcean UI Plugin
+	BuildJenkinsBlueOceanLogURLAnnotation = "openshift.io/jenkins-blueocean-log-url"
 )
