@@ -3,7 +3,7 @@ skip-gomod: true
 rules:
 - destination: template-service-broker
   branches:
-    - name: master
+    - name: release-4.2
       source:
-        branch: release-4.2
+        branch: master
         dir: staging/github.com/openshift/template-service-broker
