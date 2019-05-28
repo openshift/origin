@@ -1,6 +1,8 @@
 package builds
 
 import (
+	"fmt"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
@@ -13,6 +15,7 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Dockerfile input", fun
 	defer g.GinkgoRecover()
 	var (
 		oc             = exutil.NewCLI("build-dockerfile-env", exutil.KubeConfigPath())
+		dockerfileAdd  = exutil.FixturePath("testdata", "builds", "docker-add")
 		testDockerfile = `
 FROM library/busybox
 USER 1001
@@ -119,6 +122,20 @@ USER 1001
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 			})
+
+			g.It("testing build image with invalid dockerfile content", func() {
+				// https://bugzilla.redhat.com/show_bug.cgi?id=1694867
+				g.By("creating a build")
+				err := oc.Run("new-build").Args("--binary", "--strategy=docker", "--name=centos").Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br, err := exutil.StartBuildAndWait(oc, "centos", fmt.Sprintf("--from-dir=%s", dockerfileAdd))
+				br.AssertFailure()
+				g.By("build log should have error about no file or directory")
+				logs, err := br.Logs()
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(logs).To(o.ContainSubstring("no such file or directory"))
+			})
+
 		})
 	})
 })
