@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 )
 
 // rsyncStrategy implements the rsync copy strategy

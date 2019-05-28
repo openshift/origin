@@ -43,8 +43,8 @@ import (
 	kwait "k8s.io/kubernetes/pkg/kubectl/cmd/wait"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/oc/cli/create"
+	"github.com/openshift/oc/pkg/cli/create"
+	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 )
 
 func adjustCmdExamples(cmd *cobra.Command, fullName string, name string) {

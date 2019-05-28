@@ -5,33 +5,35 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	routev1 "github.com/openshift/api/route/v1"
-	"github.com/openshift/origin/pkg/oc/cli/create/route"
-	fileutil "github.com/openshift/origin/pkg/util/file"
+	"github.com/openshift/oc/pkg/cli/create/route"
+	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
+	fileutil "github.com/openshift/oc/pkg/helpers/file"
 )
 
 var (
-	reencryptRouteLong = templates.LongDesc(`
-		Create a route that uses reencrypt TLS termination
+	edgeRouteLong = templates.LongDesc(`
+		Create a route that uses edge TLS termination
 
 		Specify the service (either just its name or using type/name syntax) that the
-		generated route should expose via the --service flag. A destination CA certificate
-		is needed for reencrypt routes, specify one with the --dest-ca-cert flag.`)
+		generated route should expose via the --service flag.`)
 
-	reencryptRouteExample = templates.Examples(`
-		# Create a route named "my-route" that exposes the frontend service.
-	  %[1]s create route reencrypt my-route --service=frontend --dest-ca-cert cert.cert
+	edgeRouteExample = templates.Examples(`
+		# Create an edge route named "my-route" that exposes frontend service.
+	  %[1]s create route edge my-route --service=frontend
 
-	  # Create a reencrypt route that exposes the frontend service and re-use
-	  # the service name as the route name.
-	  %[1]s create route reencrypt --service=frontend --dest-ca-cert cert.cert`)
+	  # Create an edge route that exposes the frontend service and specify a path.
+	  # If the route name is omitted, the service name will be re-used.
+	  %[1]s create route edge --service=frontend --path /assets`)
 )
 
-type CreateReencryptRouteOptions struct {
+type CreateEdgeRouteOptions struct {
 	CreateRouteSubcommandOptions *CreateRouteSubcommandOptions
 
 	Hostname       string
@@ -42,20 +44,19 @@ type CreateReencryptRouteOptions struct {
 	Cert           string
 	Key            string
 	CACert         string
-	DestCACert     string
 	WildcardPolicy string
 }
 
-// NewCmdCreateReencryptRoute is a macro command to create a reencrypt route.
-func NewCmdCreateReencryptRoute(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
-	o := &CreateReencryptRouteOptions{
+// NewCmdCreateEdgeRoute is a macro command to create an edge route.
+func NewCmdCreateEdgeRoute(fullName string, f kcmdutil.Factory, streams genericclioptions.IOStreams) *cobra.Command {
+	o := &CreateEdgeRouteOptions{
 		CreateRouteSubcommandOptions: NewCreateRouteSubcommandOptions(streams),
 	}
 	cmd := &cobra.Command{
-		Use:     "reencrypt [NAME] --dest-ca-cert=FILENAME --service=SERVICE",
-		Short:   "Create a route that uses reencrypt TLS termination",
-		Long:    reencryptRouteLong,
-		Example: fmt.Sprintf(reencryptRouteExample, fullName),
+		Use:     "edge [NAME] --service=SERVICE",
+		Short:   "Create a route that uses edge TLS termination",
+		Long:    edgeRouteLong,
+		Example: fmt.Sprintf(edgeRouteExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
 			kcmdutil.CheckErr(o.Run())
@@ -74,8 +75,6 @@ func NewCmdCreateReencryptRoute(fullName string, f kcmdutil.Factory, streams gen
 	cmd.MarkFlagFilename("key")
 	cmd.Flags().StringVar(&o.CACert, "ca-cert", o.CACert, "Path to a CA certificate file.")
 	cmd.MarkFlagFilename("ca-cert")
-	cmd.Flags().StringVar(&o.DestCACert, "dest-ca-cert", o.DestCACert, "Path to a CA certificate file, used for securing the connection from the router to the destination.")
-	cmd.MarkFlagFilename("dest-ca-cert")
 	cmd.Flags().StringVar(&o.WildcardPolicy, "wildcard-policy", o.WildcardPolicy, "Sets the WilcardPolicy for the hostname, the default is \"None\". valid values are \"None\" and \"Subdomain\"")
 
 	kcmdutil.AddValidateFlags(cmd)
@@ -85,11 +84,11 @@ func NewCmdCreateReencryptRoute(fullName string, f kcmdutil.Factory, streams gen
 	return cmd
 }
 
-func (o *CreateReencryptRouteOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
+func (o *CreateEdgeRouteOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, args []string) error {
 	return o.CreateRouteSubcommandOptions.Complete(f, cmd, args)
 }
 
-func (o *CreateReencryptRouteOptions) Run() error {
+func (o *CreateEdgeRouteOptions) Run() error {
 	serviceName, err := resolveServiceName(o.CreateRouteSubcommandOptions.Mapper, o.Service)
 	if err != nil {
 		return err
@@ -107,8 +106,7 @@ func (o *CreateReencryptRouteOptions) Run() error {
 	route.Spec.Path = o.Path
 
 	route.Spec.TLS = new(routev1.TLSConfig)
-	route.Spec.TLS.Termination = routev1.TLSTerminationReencrypt
-
+	route.Spec.TLS.Termination = routev1.TLSTerminationEdge
 	cert, err := fileutil.LoadData(o.Cert)
 	if err != nil {
 		return err
@@ -124,11 +122,6 @@ func (o *CreateReencryptRouteOptions) Run() error {
 		return err
 	}
 	route.Spec.TLS.CACertificate = string(caCert)
-	destCACert, err := fileutil.LoadData(o.DestCACert)
-	if err != nil {
-		return err
-	}
-	route.Spec.TLS.DestinationCACertificate = string(destCACert)
 
 	if len(o.InsecurePolicy) > 0 {
 		route.Spec.TLS.InsecureEdgeTerminationPolicy = routev1.InsecureEdgeTerminationPolicyType(o.InsecurePolicy)
@@ -142,4 +135,18 @@ func (o *CreateReencryptRouteOptions) Run() error {
 	}
 
 	return o.CreateRouteSubcommandOptions.Printer.PrintObj(route, o.CreateRouteSubcommandOptions.Out)
+}
+
+func resolveServiceName(mapper meta.RESTMapper, resource string) (string, error) {
+	if len(resource) == 0 {
+		return "", fmt.Errorf("you need to provide a service name via --service")
+	}
+	rType, name, err := cmdutil.ResolveResource(kapi.Resource("services"), resource, mapper)
+	if err != nil {
+		return "", err
+	}
+	if rType != kapi.Resource("services") {
+		return "", fmt.Errorf("cannot expose %v as routes", rType)
+	}
+	return name, nil
 }

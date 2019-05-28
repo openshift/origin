@@ -2,6 +2,7 @@ package rsh
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"time"
 
@@ -26,8 +27,8 @@ import (
 
 	oapps "github.com/openshift/api/apps"
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/cmd/util"
 )
 
 const (
@@ -182,7 +183,11 @@ func (o *RshOptions) Validate() error {
 func (o *RshOptions) Run() error {
 	// Insert the TERM into the command to be run
 	if len(o.Command) == 1 && o.Command[0] == DefaultShell {
-		termsh := fmt.Sprintf("TERM=%q %s", util.Env("TERM", "xterm"), DefaultShell)
+		term := os.Getenv("TERM")
+		if len(term) == 0 {
+			term = "xterm"
+		}
+		termsh := fmt.Sprintf("TERM=%q %s", term, DefaultShell)
 		o.Command = append(o.Command, "-c", termsh)
 	}
 	return o.ExecOptions.Run()
@@ -198,7 +203,7 @@ func podForResource(f kcmdutil.Factory, resource string, timeout time.Duration) 
 	if err != nil {
 		return "", err
 	}
-	resourceType, name, err := util.ResolveResource(corev1.Resource("pods"), resource, mapper)
+	resourceType, name, err := cmdutil.ResolveResource(corev1.Resource("pods"), resource, mapper)
 	if err != nil {
 		return "", err
 	}

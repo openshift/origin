@@ -20,8 +20,8 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	buildhelpers "github.com/openshift/oc/pkg/helpers/build"
 	ocbuildapihelpers "github.com/openshift/oc/pkg/helpers/build"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
 
 // LogsRecommendedCommandName is the recommended command name
@@ -269,7 +269,7 @@ func (o *LogsOptions) runLogPipeline() error {
 		}
 		fallthrough
 	case isBld:
-		urlString, _ := build.Annotations[buildapi.BuildJenkinsBlueOceanLogURLAnnotation]
+		urlString, _ := build.Annotations[buildhelpers.BuildJenkinsBlueOceanLogURLAnnotation]
 		if len(urlString) == 0 {
 			return fmt.Errorf("the pipeline strategy build %s does not yet contain the log URL; wait a few moments, then try again", build.Name)
 		}

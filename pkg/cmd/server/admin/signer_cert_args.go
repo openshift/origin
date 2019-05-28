@@ -3,13 +3,13 @@ package admin
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
 	"github.com/openshift/library-go/pkg/crypto"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 type SignerCertOptions struct {
@@ -43,14 +43,14 @@ func NewDefaultSignerCertOptions() *SignerCertOptions {
 
 func (o *SignerCertOptions) Validate() error {
 	if _, err := os.Stat(o.CertFile); len(o.CertFile) == 0 || err != nil {
-		return fmt.Errorf("--signer-cert, %q must be a valid certificate file", cmdutil.GetDisplayFilename(o.CertFile))
+		return fmt.Errorf("--signer-cert, %q must be a valid certificate file", getDisplayFilename(o.CertFile))
 	}
 	if _, err := os.Stat(o.KeyFile); len(o.KeyFile) == 0 || err != nil {
-		return fmt.Errorf("--signer-key, %q must be a valid key file", cmdutil.GetDisplayFilename(o.KeyFile))
+		return fmt.Errorf("--signer-key, %q must be a valid key file", getDisplayFilename(o.KeyFile))
 	}
 	if len(o.SerialFile) > 0 {
 		if _, err := os.Stat(o.SerialFile); err != nil {
-			return fmt.Errorf("--signer-serial, %q must be a valid file", cmdutil.GetDisplayFilename(o.SerialFile))
+			return fmt.Errorf("--signer-serial, %q must be a valid file", getDisplayFilename(o.SerialFile))
 		}
 	}
 
@@ -69,4 +69,13 @@ func (o *SignerCertOptions) CA() (*crypto.CA, error) {
 	}
 	o.ca = ca
 	return ca, nil
+}
+
+// getDisplayFilename returns the absolute path of the filename as long as there was no error, otherwise it returns the filename as-is
+func getDisplayFilename(filename string) string {
+	if absName, err := filepath.Abs(filename); err == nil {
+		return absName
+	}
+
+	return filename
 }

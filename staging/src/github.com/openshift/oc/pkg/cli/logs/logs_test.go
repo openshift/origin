@@ -12,10 +12,10 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/logs"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	buildfake "github.com/openshift/client-go/build/clientset/versioned/fake"
-	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildhelpers "github.com/openshift/oc/pkg/helpers/build"
 )
 
 // TestLogsFlagParity makes sure that our copied flags don't slip during rebases
@@ -51,7 +51,7 @@ func TestRunLogForPipelineStrategy(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "foo-0",
 			Namespace:   "foo",
-			Annotations: map[string]string{buildapi.BuildJenkinsBlueOceanLogURLAnnotation: "https://foo"},
+			Annotations: map[string]string{buildhelpers.BuildJenkinsBlueOceanLogURLAnnotation: "https://foo"},
 		},
 		Spec: buildv1.BuildSpec{
 			CommonSpec: buildv1.CommonSpec{
@@ -162,7 +162,7 @@ func TestIsPipelineBuild(t *testing.T) {
 			isPipeline: false,
 		},
 		{
-			o:          &appsapi.DeploymentConfig{},
+			o:          &appsv1.DeploymentConfig{},
 			isPipeline: false,
 		},
 	}

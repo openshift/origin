@@ -1,10 +1,9 @@
-package util
+package cmd
 
 import (
 	"errors"
 	"fmt"
 	"io"
-	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -25,15 +24,6 @@ func ReplaceCommandName(from, to string, c *cobra.Command) *cobra.Command {
 		ReplaceCommandName(from, to, sub)
 	}
 	return c
-}
-
-// GetDisplayFilename returns the absolute path of the filename as long as there was no error, otherwise it returns the filename as-is
-func GetDisplayFilename(filename string) string {
-	if absName, err := filepath.Abs(filename); err == nil {
-		return absName
-	}
-
-	return filename
 }
 
 // ResolveResource returns the resource type and name of the resourceString.

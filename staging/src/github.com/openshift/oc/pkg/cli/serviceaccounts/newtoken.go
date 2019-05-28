@@ -22,7 +22,6 @@ import (
 	sautil "k8s.io/kubernetes/pkg/serviceaccount"
 
 	"github.com/openshift/oc/pkg/helpers/term"
-	osautil "github.com/openshift/origin/pkg/oc/lib/serviceaccount"
 )
 
 const (
@@ -155,7 +154,7 @@ func (o *ServiceAccountTokenOptions) Run() error {
 
 	tokenSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: osautil.GetTokenSecretNamePrefix(serviceAccount.Name),
+			GenerateName: GetTokenSecretNamePrefix(serviceAccount.Name),
 			Namespace:    serviceAccount.Namespace,
 			Labels:       o.Labels,
 			Annotations: map[string]string{

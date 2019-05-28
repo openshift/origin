@@ -14,7 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
-	"github.com/openshift/origin/pkg/oc/cli/create/route"
+	"github.com/openshift/oc/pkg/cli/create/route"
 )
 
 var (
