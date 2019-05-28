@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/openshift/openshift-apiserver/apis/internalversion/apihelpersapihelpers/apitesting"
+	"github.com/openshift/library-go-staging/apihelpersapihelpers/apitesting"
 	"github.com/openshift/openshift-apiserver/pkg/route/apis/route"
 )
 

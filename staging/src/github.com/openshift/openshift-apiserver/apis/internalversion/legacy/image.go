@@ -12,7 +12,7 @@ import (
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 	imagev1helpers "github.com/openshift/openshift-apiserver/pkg/image/apis/image/v1"
-	"github.com/openshift/origin/staging/src/github.com/openshift/openshift-apiserver/apis/internalversion/apihelpers"
+	"github.com/openshift/origin/staging/src/github.com/openshift/library-go-staging/apihelpers"
 )
 
 // InstallLegacyImage this looks like a lot of duplication, but the code in the individual versions is living and may

@@ -24,13 +24,13 @@ import (
 	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
 	buildtypedclient "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	buildutil "github.com/openshift/library-go-staging/build/util"
 	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 	buildinternalhelpers "github.com/openshift/openshift-apiserver/pkg/build/apis/build/internal_helpers"
 	"github.com/openshift/openshift-apiserver/pkg/build/apis/build/validation"
 	buildwait "github.com/openshift/openshift-apiserver/pkg/build/apiserver/registry/wait"
 	apiserverrest "github.com/openshift/origin/pkg/apiserver/rest"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 // REST is an implementation of RESTStorage for the api server.

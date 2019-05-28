@@ -14,10 +14,10 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	apiserverrest "k8s.io/apiserver/pkg/registry/rest"
 
+	authorizationutil "github.com/openshift/library-go-staging/authorization"
 	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 	"github.com/openshift/openshift-apiserver/pkg/authorization/apiserver/registry/resourceaccessreview"
 	"github.com/openshift/openshift-apiserver/pkg/authorization/apiserver/registry/util"
-	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 )
 
 type resourceAccessTest struct {

@@ -15,8 +15,8 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	pemutil "github.com/openshift/library-go-staging/cmdutil/pem"
 	configapi "github.com/openshift/openshift-apiserver/apis/config"
-	pemutil "github.com/openshift/origin/pkg/cmd/util/pem"
 )
 
 const DecryptCommandName = "decrypt"

@@ -6,8 +6,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
+	"github.com/openshift/library-go-staging/apihelpers"
 	internalversion "github.com/openshift/openshift-apiserver/apis/config"
-	"github.com/openshift/openshift-apiserver/apis/internalversion/apihelpers"
 )
 
 func Convert_v1_ImagePolicyConfig_To_config_ImagePolicyConfig(in *legacyconfigv1.ImagePolicyConfig, out *internalversion.ImagePolicyConfig, s conversion.Scope) error {

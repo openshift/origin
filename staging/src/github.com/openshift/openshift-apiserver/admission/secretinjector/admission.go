@@ -14,10 +14,10 @@ import (
 	restclient "k8s.io/client-go/rest"
 	api "k8s.io/kubernetes/pkg/apis/core"
 
+	"github.com/openshift/library-go-staging/urlpattern"
+	oadmission "github.com/openshift/openshift-apiserver/cmd/admission"
 	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 	authclient "github.com/openshift/origin/pkg/client/impersonatingclient"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	"github.com/openshift/origin/pkg/util/urlpattern"
 )
 
 func Register(plugins *admission.Plugins) {

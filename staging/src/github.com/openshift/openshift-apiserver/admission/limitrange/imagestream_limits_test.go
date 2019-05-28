@@ -10,9 +10,8 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imagev1 "github.com/openshift/api/image/v1"
+	imagetest "github.com/openshift/openshift-apiserver/admission/limitrange/testutil"
 	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
-	imagetest "github.com/openshift/origin/pkg/image/util/testutil"
-	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
 func TestGetMaxLimits(t *testing.T) {
@@ -409,7 +408,7 @@ func TestVerifyLimits(t *testing.T) {
 			if !strings.Contains(err.Error(), string(r)) {
 				t.Errorf("[%s] expected resource %q not found in error message: %v", tc.name, r, err)
 			}
-			if !quotautil.IsErrorQuotaExceeded(err) {
+			if !IsErrorQuotaExceeded(err) {
 				t.Errorf("[%s] error %q not matched by IsErrorQuotaExceeded", tc.name, err)
 			}
 		}

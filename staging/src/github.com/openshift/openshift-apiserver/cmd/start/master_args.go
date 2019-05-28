@@ -24,8 +24,8 @@ import (
 	"github.com/openshift/openshift-apiserver/cmd/start/options"
 	"github.com/spf13/cobra"
 
-	"github.com/openshift/origin/pkg/cmd/flagtypes"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	cmdutil "github.com/openshift/library-go-staging/cmdutil"
+	"github.com/openshift/library-go-staging/cmdutil/flagtypes"
 )
 
 // MasterArgs is a struct that the command stores flag values into.  It holds a partially complete set of parameters for starting the master

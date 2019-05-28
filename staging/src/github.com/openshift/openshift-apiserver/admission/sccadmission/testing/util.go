@@ -5,7 +5,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	securityv1 "github.com/openshift/api/security/v1"
-	allocator "github.com/openshift/origin/pkg/security"
+	allocator "github.com/openshift/library-go-staging/security/util"
 )
 
 // CreateSAForTest Build and Initializes a ServiceAccount for tests

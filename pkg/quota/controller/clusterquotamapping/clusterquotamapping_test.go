@@ -20,7 +20,6 @@ import (
 	quotav1 "github.com/openshift/api/quota/v1"
 	quotaclient "github.com/openshift/client-go/quota/clientset/versioned/fake"
 	quotainformer "github.com/openshift/client-go/quota/informers/externalversions"
-	quotav1conversions "github.com/openshift/origin/pkg/quota/apis/quota/v1"
 )
 
 var (
@@ -192,7 +191,7 @@ func checkState(controller *ClusterQuotaMappingController, finalNamespaces map[s
 		namespacesToQuota[namespaceName] = sets.String{}
 	}
 	for _, quota := range finalQuotas {
-		matcherFunc, err := quotav1conversions.GetMatcher(quota.Spec.Selector)
+		matcherFunc, err := GetMatcher(quota.Spec.Selector)
 		if err != nil {
 			t.Fatal(err)
 		}

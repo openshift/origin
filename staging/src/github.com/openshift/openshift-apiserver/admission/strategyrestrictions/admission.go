@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/client-go/kubernetes"
 	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1"
 	"k8s.io/client-go/rest"
@@ -18,14 +19,12 @@ import (
 
 	"github.com/openshift/api/build"
 	buildclient "github.com/openshift/client-go/build/clientset/versioned"
-	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
-	"k8s.io/apiserver/pkg/admission/initializer"
-
+	"github.com/openshift/library-go-staging/authorization"
+	"github.com/openshift/openshift-apiserver/admission/strategyrestrictions/buildscheme"
 	"github.com/openshift/openshift-apiserver/apis/internalversion/legacy"
+	oadmission "github.com/openshift/openshift-apiserver/cmd/admission"
 	"github.com/openshift/openshift-apiserver/cmd/bootstrappolicy"
-	"github.com/openshift/origin/pkg/authorization/util"
-	"github.com/openshift/origin/pkg/build/buildscheme"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 )
 
 func Register(plugins *admission.Plugins) {

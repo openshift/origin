@@ -8,7 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	userapi "github.com/openshift/openshift-apiserver/pkg/user/apis/user"
-	"github.com/openshift/origin/pkg/user/apis/user/validation"
+	"github.com/openshift/openshift-apiserver/pkg/user/apis/user/validation"
 )
 
 // userIdentityMappingStrategy implements behavior for image repository mappings.

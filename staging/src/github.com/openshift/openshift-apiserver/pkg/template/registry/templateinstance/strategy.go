@@ -17,9 +17,9 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 
+	"github.com/openshift/library-go-staging/authorization"
 	templateapi "github.com/openshift/openshift-apiserver/pkg/template/apis/template"
 	"github.com/openshift/openshift-apiserver/pkg/template/apis/template/validation"
-	"github.com/openshift/origin/pkg/authorization/util"
 )
 
 // templateInstanceStrategy implements behavior for TemplateInstances

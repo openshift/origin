@@ -9,7 +9,7 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 	buildv1helpers "github.com/openshift/openshift-apiserver/pkg/build/apis/build/v1"
-	"github.com/openshift/origin/staging/src/github.com/openshift/openshift-apiserver/apis/internalversion/apihelpers"
+	"github.com/openshift/origin/staging/src/github.com/openshift/library-go-staging/apihelpers"
 )
 
 // InstallLegacyBuild this looks like a lot of duplication, but the code in the individual versions is living and may

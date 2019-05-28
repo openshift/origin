@@ -6,7 +6,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 
 	v1 "github.com/openshift/api/oauth/v1"
-	"github.com/openshift/openshift-apiserver/apis/internalversion/apihelpers/apitesting"
+	"github.com/openshift/library-go-staging/apihelpers/apitesting"
 	oauthapi "github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth"
 )
 

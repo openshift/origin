@@ -3,7 +3,7 @@ package internal_helpers
 import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	"github.com/openshift/openshift-apiserver/apis/internalversion/apihelpers"
+	"github.com/openshift/library-go-staging/apihelpers"
 	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 )
 

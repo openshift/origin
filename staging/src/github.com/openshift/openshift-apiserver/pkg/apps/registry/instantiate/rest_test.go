@@ -15,11 +15,11 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/api/image"
+	appsutil "github.com/openshift/library-go-staging/apps/util"
 	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
 	_ "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps/install"
 	appstest "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps/internaltest"
 	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 )
 

@@ -3,7 +3,7 @@ package legacy
 import (
 	"testing"
 
-	"github.com/openshift/openshift-apiserver/apis/internalversion/apihelpersapihelpers/apitesting"
+	"github.com/openshift/library-go-staging/apihelpersapihelpers/apitesting"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	internal "github.com/openshift/openshift-apiserver/pkg/build/apis/build"

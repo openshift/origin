@@ -4,9 +4,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apiserverflag "k8s.io/component-base/cli/flag"
 
+	cmdflags "github.com/openshift/library-go-staging/cmdutil/flags"
 	"github.com/openshift/openshift-apiserver/apis/config"
 	"github.com/openshift/openshift-apiserver/apis/config/validation/common"
-	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 )
 
 func ValidateHTTPServingInfo(info config.HTTPServingInfo, fldPath *field.Path) common.ValidationResults {

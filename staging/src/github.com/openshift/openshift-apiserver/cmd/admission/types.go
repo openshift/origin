@@ -8,8 +8,9 @@ import (
 	quotainformer "github.com/openshift/client-go/quota/informers/externalversions/quota/v1"
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions/security/v1"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
-	"github.com/openshift/origin/pkg/project/cache"
-	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+
+	cache "github.com/openshift/library-go-staging/cache/project"
+	"github.com/openshift/library-go-staging/clusterquotamapping"
 )
 
 // WantsProjectCache should be implemented by admission plugins that need a

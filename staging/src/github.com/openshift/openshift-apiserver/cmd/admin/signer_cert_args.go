@@ -8,8 +8,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	cmdutil "github.com/openshift/library-go-staging/cmdutil"
 	"github.com/openshift/library-go/pkg/crypto"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 type SignerCertOptions struct {

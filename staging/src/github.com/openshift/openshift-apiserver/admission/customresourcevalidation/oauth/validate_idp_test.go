@@ -9,7 +9,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 
-	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
+	oauthvalidation "github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth/validation"
 )
 
 const wrongConfigMapSecretErrMsg string = "a DNS-1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character (e.g. 'example.com', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')"

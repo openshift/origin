@@ -11,7 +11,7 @@ import (
 	kinternal "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/api/build/v1"
-	"github.com/openshift/openshift-apiserver/apis/internalversion/apihelpers/apitesting"
+	"github.com/openshift/library-go-staging/apihelpers/apitesting"
 	internal "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 )
 

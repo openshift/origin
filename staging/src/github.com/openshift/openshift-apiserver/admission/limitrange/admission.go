@@ -20,7 +20,6 @@ import (
 	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 
 	"github.com/openshift/openshift-apiserver/apis/internalversion/legacy"
-	"github.com/openshift/origin/pkg/image/util"
 )
 
 const (
@@ -140,7 +139,7 @@ func (a *imageLimitRangerPlugin) ValidateLimit(limitRange *corev1.LimitRange, ki
 	}
 
 	image := &isObj.Image
-	if err := util.InternalImageWithMetadata(image); err != nil {
+	if err := internalImageWithMetadata(image); err != nil {
 		return err
 	}
 

@@ -16,7 +16,7 @@ import (
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	imagegroup "github.com/openshift/api/image"
-	"github.com/openshift/openshift-apiserver/apis/internalversion/apihelpers"
+	"github.com/openshift/library-go-staging/apihelpers"
 	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation/whitelist"
 	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/image"

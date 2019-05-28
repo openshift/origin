@@ -11,7 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	v1 "github.com/openshift/api/image/v1"
-	"github.com/openshift/openshift-apiserver/apis/internalversion/apihelpers/apitesting"
+	"github.com/openshift/library-go-staging/apihelpers/apitesting"
 	internal "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 )
 

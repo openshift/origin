@@ -12,9 +12,9 @@ import (
 
 	quotaapiv1 "github.com/openshift/api/quota/v1"
 	quotainformer "github.com/openshift/client-go/quota/informers/externalversions"
-	appliedclusterresourcequotaregistry "github.com/openshift/openshift-apiserver/pkg/quota/apiserver/registry/appliedclusterresourcequota"
-	clusterresourcequotaetcd "github.com/openshift/openshift-apiserver/pkg/quota/apiserver/registry/clusterresourcequota/etcd"
-	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+	"github.com/openshift/library-go-staging/clusterquotamapping"
+	appliedclusterresourcequotaregistry "github.com/openshift/openshift-apiserver/pkg/quota/registry/appliedclusterresourcequota"
+	clusterresourcequotaetcd "github.com/openshift/openshift-apiserver/pkg/quota/registry/clusterresourcequota/etcd"
 )
 
 type ExtraConfig struct {

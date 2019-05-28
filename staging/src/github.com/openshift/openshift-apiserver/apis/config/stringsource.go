@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	pemutil "github.com/openshift/origin/pkg/cmd/util/pem"
+	pemutil "github.com/openshift/library-go-staging/cmdutil/pem"
 )
 
 func GetStringSourceFileReferences(s *StringSource) []*string {

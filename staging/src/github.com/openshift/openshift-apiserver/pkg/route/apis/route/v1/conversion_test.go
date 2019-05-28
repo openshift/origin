@@ -7,7 +7,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	v1 "github.com/openshift/api/route/v1"
-	"github.com/openshift/openshift-apiserver/apis/internalversion/apihelpers/apitesting"
+	"github.com/openshift/library-go-staging/apihelpers/apitesting"
 	"github.com/openshift/openshift-apiserver/pkg/route/apis/route"
 )
 

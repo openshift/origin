@@ -11,9 +11,9 @@ import (
 	utilvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	cmdutil "github.com/openshift/library-go-staging/cmdutil"
 	"github.com/openshift/library-go/pkg/crypto"
 	"github.com/openshift/openshift-apiserver/apis/config"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 func ValidateServingInfo(info config.ServingInfo, certificatesRequired bool, fldPath *field.Path) ValidationResults {

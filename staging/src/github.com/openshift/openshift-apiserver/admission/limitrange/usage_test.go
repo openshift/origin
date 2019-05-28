@@ -10,8 +10,8 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imagev1 "github.com/openshift/api/image/v1"
+	imagetest "github.com/openshift/openshift-apiserver/admission/limitrange/testutil"
 	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
-	imagetest "github.com/openshift/origin/pkg/image/util/testutil"
 )
 
 func TestGetImageReferenceForObjectReference(t *testing.T) {

@@ -16,9 +16,8 @@ import (
 	quotav1 "github.com/openshift/api/quota/v1"
 	quotatypedclient "github.com/openshift/client-go/quota/clientset/versioned/typed/quota/v1"
 	quotalister "github.com/openshift/client-go/quota/listers/quota/v1"
+	"github.com/openshift/library-go-staging/clusterquotamapping"
 	quotav1conversions "github.com/openshift/openshift-apiserver/pkg/quota/apis/quota/v1"
-
-	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 )
 
 type clusterQuotaAccessor struct {

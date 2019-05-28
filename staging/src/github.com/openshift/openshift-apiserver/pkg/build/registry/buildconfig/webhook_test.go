@@ -22,7 +22,7 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildfake "github.com/openshift/client-go/build/clientset/versioned/fake"
-	buildutil "github.com/openshift/origin/pkg/build/util"
+	buildutil "github.com/openshift/library-go-staging/build/util"
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/bitbucket"
 	"github.com/openshift/origin/pkg/build/webhook/github"

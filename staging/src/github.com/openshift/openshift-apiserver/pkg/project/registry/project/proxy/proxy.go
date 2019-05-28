@@ -16,14 +16,14 @@ import (
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	"github.com/openshift/api/project"
-	"github.com/openshift/openshift-apiserver/apis/internalversion/apihelpers"
+	"github.com/openshift/library-go-staging/apihelpers"
+	projectcache "github.com/openshift/library-go-staging/cache/project"
 	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
 	projectregistry "github.com/openshift/openshift-apiserver/pkg/project/apiserver/registry/project"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
-	projectcache "github.com/openshift/origin/pkg/project/cache"
 	projectutil "github.com/openshift/origin/pkg/project/util"
 )
 

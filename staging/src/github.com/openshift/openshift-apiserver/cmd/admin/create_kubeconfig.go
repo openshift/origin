@@ -8,18 +8,18 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-	"k8s.io/klog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/client-go/util/cert"
+	"k8s.io/klog"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	"github.com/openshift/library-go-staging/client/config"
 	"github.com/openshift/library-go/pkg/crypto"
-	"github.com/openshift/origin/pkg/client/config"
-	"k8s.io/client-go/tools/clientcmd"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 const CreateKubeConfigCommandName = "create-kubeconfig"

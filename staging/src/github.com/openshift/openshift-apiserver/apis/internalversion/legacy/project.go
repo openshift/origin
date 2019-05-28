@@ -7,7 +7,7 @@ import (
 	projectv1 "github.com/openshift/api/project/v1"
 	"github.com/openshift/openshift-apiserver/pkg/project/apis/project"
 	projectv1helpers "github.com/openshift/openshift-apiserver/pkg/project/apis/project/v1"
-	"github.com/openshift/origin/staging/src/github.com/openshift/openshift-apiserver/apis/internalversion/apihelpers"
+	"github.com/openshift/origin/staging/src/github.com/openshift/library-go-staging/apihelpers"
 )
 
 // InstallLegacyProject this looks like a lot of duplication, but the code in the individual versions is living and may

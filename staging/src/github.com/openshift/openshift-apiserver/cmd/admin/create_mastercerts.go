@@ -18,8 +18,8 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	"github.com/openshift/library-go-staging/parallel"
 	"github.com/openshift/library-go/pkg/crypto"
-	"github.com/openshift/origin/pkg/util/parallel"
 )
 
 const CreateMasterCertsCommandName = "create-master-certs"

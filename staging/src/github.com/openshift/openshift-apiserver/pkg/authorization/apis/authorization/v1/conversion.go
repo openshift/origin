@@ -7,7 +7,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	"github.com/openshift/api/authorization/v1"
-	"github.com/openshift/openshift-apiserver/apis/internalversion/apihelpers"
+	"github.com/openshift/library-go-staging/apihelpers"
 	newer "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 )
 

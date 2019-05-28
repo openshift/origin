@@ -22,7 +22,6 @@ import (
 	quotav1 "github.com/openshift/api/quota/v1"
 	quotainformer "github.com/openshift/client-go/quota/informers/externalversions/quota/v1"
 	quotalister "github.com/openshift/client-go/quota/listers/quota/v1"
-	quotav1conversions "github.com/openshift/origin/pkg/quota/apis/quota/v1"
 )
 
 // Look out, here there be dragons!
@@ -145,7 +144,7 @@ func (c *ClusterQuotaMappingController) Run(workers int, stopCh <-chan struct{})
 }
 
 func (c *ClusterQuotaMappingController) syncQuota(quota *quotav1.ClusterResourceQuota) error {
-	matcherFunc, err := quotav1conversions.GetObjectMatcher(quota.Spec.Selector)
+	matcherFunc, err := GetObjectMatcher(quota.Spec.Selector)
 	if err != nil {
 		return err
 	}
@@ -199,7 +198,7 @@ func (c *ClusterQuotaMappingController) syncNamespace(namespace metav1.Object) e
 		quota := allQuotas[i]
 
 		for {
-			matcherFunc, err := quotav1conversions.GetObjectMatcher(quota.Spec.Selector)
+			matcherFunc, err := GetObjectMatcher(quota.Spec.Selector)
 			if err != nil {
 				utilruntime.HandleError(err)
 				break

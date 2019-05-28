@@ -18,10 +18,10 @@ import (
 	"github.com/openshift/api/apps"
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsfake "github.com/openshift/client-go/apps/clientset/versioned/fake"
+	appsutil "github.com/openshift/library-go-staging/apps/util"
+	appstest "github.com/openshift/library-go-staging/apps/util/test"
 	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
 	_ "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps/install"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
-	appstest "github.com/openshift/origin/pkg/apps/util/test"
 )
 
 type terribleGenerator struct{}

@@ -16,7 +16,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	cmdutil "github.com/openshift/library-go-staging/cmdutil"
 )
 
 // ParseNamespaceAndName returns back the namespace and name (empty if something goes wrong), for a given string.
@@ -32,10 +32,6 @@ func ParseNamespaceAndName(in string) (string, string, error) {
 	}
 
 	return tokens[0], tokens[1], nil
-}
-
-func RelativizeMasterConfigPaths(config *MasterConfig, base string) error {
-	return cmdutil.RelativizePathWithNoBacksteps(GetMasterFileReferences(config), base)
 }
 
 func ResolveMasterConfigPaths(config *MasterConfig, base string) error {

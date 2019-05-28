@@ -3,7 +3,7 @@ package options
 import (
 	"github.com/spf13/pflag"
 
-	"github.com/openshift/origin/pkg/cmd/util/variable"
+	"github.com/openshift/library-go-staging/cmdutil/variable"
 )
 
 // ImageFormatArgs is a struct that the command stores flag values into.

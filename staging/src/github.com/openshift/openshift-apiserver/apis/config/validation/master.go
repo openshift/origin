@@ -22,6 +22,7 @@ import (
 	kcmoptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 
+	"github.com/openshift/library-go-staging/labelselector"
 	configapi "github.com/openshift/openshift-apiserver/apis/config"
 	"github.com/openshift/openshift-apiserver/apis/config/validation/common"
 	"github.com/openshift/openshift-apiserver/cmd/bootstrappolicy"
@@ -29,7 +30,6 @@ import (
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	"github.com/openshift/origin/pkg/security/mcs"
 	"github.com/openshift/origin/pkg/security/uid"
-	"github.com/openshift/origin/pkg/util/labelselector"
 )
 
 func ValidateMasterConfig(config *configapi.MasterConfig, fldPath *field.Path) common.ValidationResults {

@@ -6,7 +6,8 @@ import (
 
 	configapi "github.com/openshift/openshift-apiserver/apis/config"
 	buildvalidation "github.com/openshift/openshift-apiserver/pkg/build/apis/build/validation"
-	"github.com/openshift/origin/pkg/build/util"
+
+	"github.com/openshift/library-go-staging/build/util"
 )
 
 // ValidateBuildDefaultsConfig tests required fields for a Build.

@@ -6,8 +6,8 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	"github.com/openshift/origin/pkg/api/legacy"
-	buildv1helpers "github.com/openshift/origin/pkg/build/apis/build/v1"
+	"github.com/openshift/openshift-apiserver/apis/internalversion/legacy"
+	buildv1helpers "github.com/openshift/openshift-apiserver/pkg/build/apis/build/v1"
 )
 
 var (

@@ -23,10 +23,9 @@ import (
 
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions/security/v1"
 	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
+	allocator "github.com/openshift/library-go-staging/security/util"
 	oadmission "github.com/openshift/openshift-apiserver/cmd/admission"
 	scc "github.com/openshift/openshift-apiserver/pkg/security/securitycontextconstraints"
-
-	allocator "github.com/openshift/origin/pkg/security"
 )
 
 const PluginName = "security.openshift.io/SecurityContextConstraint"

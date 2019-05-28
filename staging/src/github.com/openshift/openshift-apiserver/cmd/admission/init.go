@@ -10,7 +10,7 @@ import (
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
 	"github.com/openshift/openshift-apiserver/pkg/image/registryhostname"
 
-	"github.com/openshift/origin/pkg/project/cache"
+	cache "github.com/openshift/library-go-staging/cache/project"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 )
 

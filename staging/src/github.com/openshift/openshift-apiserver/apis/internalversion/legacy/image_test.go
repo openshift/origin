@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	"github.com/openshift/openshift-apiserver/apis/internalversion/apihelpersapihelpers/apitesting"
+	"github.com/openshift/library-go-staging/apihelpersapihelpers/apitesting"
 	internal "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 )
 

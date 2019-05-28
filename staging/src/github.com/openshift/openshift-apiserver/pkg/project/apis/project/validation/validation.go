@@ -8,9 +8,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
+	"github.com/openshift/library-go-staging/labelselector"
 	oapi "github.com/openshift/openshift-apiserver/apis/internalversion"
 	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
-	"github.com/openshift/origin/pkg/util/labelselector"
 )
 
 func ValidateProjectName(name string, prefix bool) []string {

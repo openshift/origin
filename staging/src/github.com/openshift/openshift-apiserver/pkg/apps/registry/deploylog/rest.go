@@ -29,10 +29,10 @@ import (
 	"github.com/openshift/api/apps"
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+	appsutil "github.com/openshift/library-go-staging/apps/util"
 	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
 	"github.com/openshift/openshift-apiserver/pkg/apps/apis/apps/validation"
 	apiserverrest "github.com/openshift/origin/pkg/apiserver/rest"
-	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 const (

@@ -22,12 +22,12 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildtypedclient "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	buildutil "github.com/openshift/library-go-staging/build/util"
 	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
 	buildinternalhelpers "github.com/openshift/openshift-apiserver/pkg/build/apis/build/internal_helpers"
 	buildwait "github.com/openshift/openshift-apiserver/pkg/build/apiserver/registry/wait"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	"github.com/openshift/origin/pkg/build/generator"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 var (

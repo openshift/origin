@@ -23,12 +23,11 @@ import (
 	usertypedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	requestlimitapi "github.com/openshift/openshift-apiserver/admission/requestlimit/apis/requestlimit"
 	requestlimitapivalidation "github.com/openshift/openshift-apiserver/admission/requestlimit/apis/requestlimit/validation"
-	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
-	uservalidation "github.com/openshift/openshift-apiserver/pkg/user/apis/user/validation"
-
 	configlatest "github.com/openshift/openshift-apiserver/apis/config/latest"
 	"github.com/openshift/openshift-apiserver/apis/internalversion/legacy"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	oadmission "github.com/openshift/openshift-apiserver/cmd/admission"
+	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
+	uservalidation "github.com/openshift/openshift-apiserver/pkg/user/apis/user/validation"
 )
 
 // allowedTerminatingProjects is the number of projects that are owned by a user, are in terminating state,

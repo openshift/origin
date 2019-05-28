@@ -22,8 +22,8 @@ import (
 	authorizationtypedclient "github.com/openshift/client-go/authorization/clientset/versioned/typed/authorization/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	usercache "github.com/openshift/origin/pkg/user/cache"
+	usercache "github.com/openshift/library-go-staging/cache/users"
+	oadmission "github.com/openshift/openshift-apiserver/cmd/admission"
 )
 
 func Register(plugins *admission.Plugins) {

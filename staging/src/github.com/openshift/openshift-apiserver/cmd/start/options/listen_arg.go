@@ -3,7 +3,7 @@ package options
 import (
 	"github.com/spf13/pflag"
 
-	"github.com/openshift/origin/pkg/cmd/flagtypes"
+	"github.com/openshift/library-go-staging/cmdutil/flagtypes"
 )
 
 // ListenArg is a struct that the command stores flag values into.
