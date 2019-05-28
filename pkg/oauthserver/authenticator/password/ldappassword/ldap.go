@@ -29,7 +29,7 @@ type Options struct {
 	// by using a deterministic mapping of LDAP entry attributes to OpenShift Identity fields. The first
 	// attribute with a non-empty value is used for all but the latter identity field. If no LDAP attributes
 	// are given for the ID address, login fails.
-	UserAttributeDefiner ldaputil.LDAPUserAttributeDefiner
+	UserAttributeDefiner LDAPUserAttributeDefiner
 }
 
 // Authenticator validates username/passwords against an LDAP v3 server
@@ -37,7 +37,7 @@ type Authenticator struct {
 	providerName    string
 	options         Options
 	mapper          authapi.UserIdentityMapper
-	identityFactory ldaputil.LDAPUserIdentityFactory
+	identityFactory LDAPUserIdentityFactory
 }
 
 // New returns an authenticator which will validate usernames/passwords using LDAP.
@@ -46,7 +46,7 @@ func New(providerName string, options Options, mapper authapi.UserIdentityMapper
 		providerName: providerName,
 		options:      options,
 		mapper:       mapper,
-		identityFactory: &ldaputil.DefaultLDAPUserIdentityFactory{
+		identityFactory: &DefaultLDAPUserIdentityFactory{
 			ProviderName: providerName,
 			Definer:      options.UserAttributeDefiner,
 		},
