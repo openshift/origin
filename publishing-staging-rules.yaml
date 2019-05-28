@@ -2,6 +2,12 @@ skip-godeps: true
 skip-gomod: true
 skip-tags: true
 rules:
+- destination: openshift-apiserver
+  branches:
+    - name: release-4.2
+      source:
+        branch: master
+        dir: staging/src/github.com/openshift/openshift-apiserver
 - destination: oc
   branches:
     - name: release-4.2
