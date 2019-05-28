@@ -1,6 +1,13 @@
 skip-godeps: true
 skip-gomod: true
+skip-tags: true
 rules:
+- destination: oc
+  branches:
+    - name: release-4.2
+      source:
+        branch: master
+        dir: staging/src/github.com/openshift/oc
 - destination: template-service-broker
   branches:
     - name: release-4.2
