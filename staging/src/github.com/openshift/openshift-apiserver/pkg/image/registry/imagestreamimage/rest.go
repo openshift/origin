@@ -13,9 +13,9 @@ import (
 
 	imagegroup "github.com/openshift/api/image"
 	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
-	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/image"
-	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/imagestream"
 	util "github.com/openshift/openshift-apiserver/pkg/image/imageutil"
+	"github.com/openshift/openshift-apiserver/pkg/image/registry/image"
+	"github.com/openshift/openshift-apiserver/pkg/image/registry/imagestream"
 	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 

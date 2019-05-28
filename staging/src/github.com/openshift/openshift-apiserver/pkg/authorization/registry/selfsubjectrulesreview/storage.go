@@ -16,7 +16,7 @@ import (
 
 	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 	"github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization/rbacconversion"
-	"github.com/openshift/openshift-apiserver/pkg/authorization/apiserver/registry/subjectrulesreview"
+	"github.com/openshift/openshift-apiserver/pkg/authorization/registry/subjectrulesreview"
 )
 
 type REST struct {

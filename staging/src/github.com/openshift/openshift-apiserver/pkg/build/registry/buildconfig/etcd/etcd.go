@@ -10,7 +10,7 @@ import (
 
 	"github.com/openshift/api/build"
 	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
-	"github.com/openshift/openshift-apiserver/pkg/build/apiserver/registry/buildconfig"
+	"github.com/openshift/openshift-apiserver/pkg/build/registry/buildconfig"
 	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 

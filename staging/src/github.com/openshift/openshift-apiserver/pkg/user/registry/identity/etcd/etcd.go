@@ -12,7 +12,7 @@ import (
 	"github.com/openshift/api/user"
 	userapi "github.com/openshift/openshift-apiserver/pkg/user/apis/user"
 	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
-	"github.com/openshift/origin/pkg/user/apiserver/registry/identity"
+	"github.com/openshift/origin/pkg/user/registry/identity"
 )
 
 // REST implements a RESTStorage for identites against etcd

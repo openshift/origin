@@ -10,7 +10,7 @@ import (
 
 	templategroup "github.com/openshift/api/template"
 	templateapi "github.com/openshift/openshift-apiserver/pkg/template/apis/template"
-	"github.com/openshift/openshift-apiserver/pkg/template/apiserver/registry/template"
+	"github.com/openshift/openshift-apiserver/pkg/template/registry/template"
 	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 

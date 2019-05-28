@@ -10,7 +10,7 @@ import (
 
 	"github.com/openshift/api/network"
 	networkapi "github.com/openshift/openshift-apiserver/pkg/network/apis/network"
-	"github.com/openshift/openshift-apiserver/pkg/network/apiserver/registry/netnamespace"
+	"github.com/openshift/openshift-apiserver/pkg/network/registry/netnamespace"
 	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 

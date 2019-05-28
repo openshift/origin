@@ -12,10 +12,10 @@ import (
 	"k8s.io/kubernetes/pkg/printers"
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
+	utilregistry "github.com/openshift/library-go-staging/registry"
 	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
-	"github.com/openshift/openshift-apiserver/pkg/authorization/apiserver/registry/util"
+	"github.com/openshift/openshift-apiserver/pkg/authorization/registry/util"
 	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
-	utilregistry "github.com/openshift/openshift-library-go/registry"
 	authclient "github.com/openshift/origin/pkg/client/impersonatingclient"
 )
 

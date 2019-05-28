@@ -10,7 +10,7 @@ import (
 
 	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation"
-	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registryhostname"
+	"github.com/openshift/openshift-apiserver/pkg/image/registryhostname"
 )
 
 // Strategy implements behavior for image stream mappings.

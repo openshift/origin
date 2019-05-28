@@ -15,7 +15,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
-	"github.com/openshift/openshift-apiserver/pkg/authorization/apiserver/registry/util"
+	"github.com/openshift/openshift-apiserver/pkg/authorization/registry/util"
 )
 
 type subjectAccessTest struct {

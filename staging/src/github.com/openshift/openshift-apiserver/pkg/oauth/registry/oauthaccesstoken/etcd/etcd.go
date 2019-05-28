@@ -11,8 +11,8 @@ import (
 
 	"github.com/openshift/api/oauth"
 	oauthapi "github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth"
-	"github.com/openshift/openshift-apiserver/pkg/oauth/apiserver/registry/oauthaccesstoken"
-	"github.com/openshift/openshift-apiserver/pkg/oauth/apiserver/registry/oauthclient"
+	"github.com/openshift/openshift-apiserver/pkg/oauth/registry/oauthaccesstoken"
+	"github.com/openshift/openshift-apiserver/pkg/oauth/registry/oauthclient"
 	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 

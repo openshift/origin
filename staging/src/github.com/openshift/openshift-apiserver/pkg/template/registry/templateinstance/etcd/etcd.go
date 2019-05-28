@@ -14,7 +14,7 @@ import (
 
 	"github.com/openshift/api/template"
 	templateapi "github.com/openshift/openshift-apiserver/pkg/template/apis/template"
-	"github.com/openshift/openshift-apiserver/pkg/template/apiserver/registry/templateinstance"
+	"github.com/openshift/openshift-apiserver/pkg/template/registry/templateinstance"
 	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 

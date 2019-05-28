@@ -15,12 +15,12 @@ import (
 
 	securityapiv1 "github.com/openshift/api/security/v1"
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions"
-	"github.com/openshift/openshift-apiserver/pkg/security/apiserver/registry/podsecuritypolicyreview"
-	"github.com/openshift/openshift-apiserver/pkg/security/apiserver/registry/podsecuritypolicyselfsubjectreview"
-	"github.com/openshift/openshift-apiserver/pkg/security/apiserver/registry/podsecuritypolicysubjectreview"
-	"github.com/openshift/openshift-apiserver/pkg/security/apiserver/registry/rangeallocations"
-	sccstorage "github.com/openshift/openshift-apiserver/pkg/security/apiserver/registry/securitycontextconstraints/etcd"
 	oscc "github.com/openshift/openshift-apiserver/pkg/security/apiserver/securitycontextconstraints"
+	"github.com/openshift/openshift-apiserver/pkg/security/registry/podsecuritypolicyreview"
+	"github.com/openshift/openshift-apiserver/pkg/security/registry/podsecuritypolicyselfsubjectreview"
+	"github.com/openshift/openshift-apiserver/pkg/security/registry/podsecuritypolicysubjectreview"
+	"github.com/openshift/openshift-apiserver/pkg/security/registry/rangeallocations"
+	sccstorage "github.com/openshift/openshift-apiserver/pkg/security/registry/securitycontextconstraints/etcd"
 )
 
 type ExtraConfig struct {

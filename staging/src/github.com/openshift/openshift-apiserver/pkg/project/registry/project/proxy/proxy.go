@@ -20,7 +20,7 @@ import (
 	projectcache "github.com/openshift/library-go-staging/cache/project"
 	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 	projectapi "github.com/openshift/openshift-apiserver/pkg/project/apis/project"
-	projectregistry "github.com/openshift/openshift-apiserver/pkg/project/apiserver/registry/project"
+	projectregistry "github.com/openshift/openshift-apiserver/pkg/project/registry/project"
 	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	projectauth "github.com/openshift/origin/pkg/project/auth"

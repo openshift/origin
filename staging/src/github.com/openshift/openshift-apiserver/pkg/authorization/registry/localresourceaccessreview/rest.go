@@ -14,7 +14,7 @@ import (
 	authorization "github.com/openshift/api/authorization"
 	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 	authorizationvalidation "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization/validation"
-	"github.com/openshift/openshift-apiserver/pkg/authorization/apiserver/registry/resourceaccessreview"
+	"github.com/openshift/openshift-apiserver/pkg/authorization/registry/resourceaccessreview"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.

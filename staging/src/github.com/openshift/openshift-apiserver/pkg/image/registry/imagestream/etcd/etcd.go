@@ -22,8 +22,8 @@ import (
 	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation/whitelist"
 	imageadmission "github.com/openshift/openshift-apiserver/pkg/image/apiserver/admission/limitrange"
-	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/imagestream"
-	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registryhostname"
+	"github.com/openshift/openshift-apiserver/pkg/image/registry/imagestream"
+	"github.com/openshift/openshift-apiserver/pkg/image/registryhostname"
 	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 

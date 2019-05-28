@@ -16,9 +16,9 @@ import (
 
 	imagegroup "github.com/openshift/api/image"
 	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
-	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/image"
-	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/imagestream"
-	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registryhostname"
+	"github.com/openshift/openshift-apiserver/pkg/image/registry/image"
+	"github.com/openshift/openshift-apiserver/pkg/image/registry/imagestream"
+	"github.com/openshift/openshift-apiserver/pkg/image/registryhostname"
 )
 
 // maxRetriesOnConflict is the maximum retry count for Create calls which

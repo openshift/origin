@@ -16,7 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
-	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/image"
+	"github.com/openshift/openshift-apiserver/pkg/image/registry/image"
 
 	// install all APIs
 	_ "github.com/openshift/openshift-apiserver/apis/internalversion/install"

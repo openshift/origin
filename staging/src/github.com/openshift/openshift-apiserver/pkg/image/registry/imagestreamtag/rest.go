@@ -19,9 +19,9 @@ import (
 	"github.com/openshift/library-go-staging/apihelpers"
 	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation/whitelist"
-	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/image"
-	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/imagestream"
 	util "github.com/openshift/openshift-apiserver/pkg/image/imageutil"
+	"github.com/openshift/openshift-apiserver/pkg/image/registry/image"
+	"github.com/openshift/openshift-apiserver/pkg/image/registry/imagestream"
 	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 

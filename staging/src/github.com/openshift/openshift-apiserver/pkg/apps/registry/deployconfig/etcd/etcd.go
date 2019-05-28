@@ -25,7 +25,7 @@ import (
 	appsutil "github.com/openshift/library-go-staging/apps/util"
 	"github.com/openshift/openshift-apiserver/apis/internalversion/legacy"
 	appsapi "github.com/openshift/openshift-apiserver/pkg/apps/apis/apps"
-	"github.com/openshift/openshift-apiserver/pkg/apps/apiserver/registry/deployconfig"
+	"github.com/openshift/openshift-apiserver/pkg/apps/registry/deployconfig"
 	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 

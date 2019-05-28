@@ -29,8 +29,8 @@ import (
 	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation/fake"
 	admfake "github.com/openshift/openshift-apiserver/pkg/image/apiserver/admission/fake"
 	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/admission/limitrange"
-	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registryhostname"
 	"github.com/openshift/openshift-apiserver/pkg/image/imageutil/testutil"
+	"github.com/openshift/openshift-apiserver/pkg/image/registryhostname"
 )
 
 type fakeUser struct {

@@ -12,10 +12,10 @@ import (
 	restclient "k8s.io/client-go/rest"
 
 	templateapiv1 "github.com/openshift/api/template/v1"
-	brokertemplateinstanceetcd "github.com/openshift/openshift-apiserver/pkg/template/apiserver/registry/brokertemplateinstance/etcd"
-	templateregistry "github.com/openshift/openshift-apiserver/pkg/template/apiserver/registry/template"
-	templateetcd "github.com/openshift/openshift-apiserver/pkg/template/apiserver/registry/template/etcd"
-	templateinstanceetcd "github.com/openshift/openshift-apiserver/pkg/template/apiserver/registry/templateinstance/etcd"
+	brokertemplateinstanceetcd "github.com/openshift/openshift-apiserver/pkg/template/registry/brokertemplateinstance/etcd"
+	templateregistry "github.com/openshift/openshift-apiserver/pkg/template/registry/template"
+	templateetcd "github.com/openshift/openshift-apiserver/pkg/template/registry/template/etcd"
+	templateinstanceetcd "github.com/openshift/openshift-apiserver/pkg/template/registry/templateinstance/etcd"
 )
 
 type ExtraConfig struct {

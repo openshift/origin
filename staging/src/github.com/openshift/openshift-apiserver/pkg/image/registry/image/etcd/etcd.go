@@ -10,7 +10,7 @@ import (
 
 	"github.com/openshift/api/image"
 	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
-	imageregistry "github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/image"
+	imageregistry "github.com/openshift/openshift-apiserver/pkg/image/registry/image"
 	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 

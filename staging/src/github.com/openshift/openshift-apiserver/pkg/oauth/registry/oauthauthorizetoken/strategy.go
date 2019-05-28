@@ -11,7 +11,7 @@ import (
 
 	oauthapi "github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth"
 	"github.com/openshift/openshift-apiserver/pkg/oauth/apis/oauth/validation"
-	"github.com/openshift/openshift-apiserver/pkg/oauth/apiserver/registry/oauthclient"
+	"github.com/openshift/openshift-apiserver/pkg/oauth/registry/oauthclient"
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 )
 

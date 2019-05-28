@@ -14,7 +14,7 @@ import (
 
 	"github.com/openshift/api/build"
 	buildapi "github.com/openshift/openshift-apiserver/pkg/build/apis/build"
-	buildregistry "github.com/openshift/openshift-apiserver/pkg/build/apiserver/registry/build"
+	buildregistry "github.com/openshift/openshift-apiserver/pkg/build/registry/build"
 	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
 )
 

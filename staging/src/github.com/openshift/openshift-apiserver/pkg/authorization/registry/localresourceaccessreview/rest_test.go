@@ -16,8 +16,8 @@ import (
 
 	authorizationutil "github.com/openshift/library-go-staging/authorization"
 	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
-	"github.com/openshift/openshift-apiserver/pkg/authorization/apiserver/registry/resourceaccessreview"
-	"github.com/openshift/openshift-apiserver/pkg/authorization/apiserver/registry/util"
+	"github.com/openshift/openshift-apiserver/pkg/authorization/registry/resourceaccessreview"
+	"github.com/openshift/openshift-apiserver/pkg/authorization/registry/util"
 )
 
 type resourceAccessTest struct {

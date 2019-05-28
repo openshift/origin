@@ -20,11 +20,11 @@ import (
 	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation/fake"
 	admfake "github.com/openshift/openshift-apiserver/pkg/image/apiserver/admission/fake"
-	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/image"
-	imageetcd "github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/image/etcd"
-	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/imagestream"
-	imagestreametcd "github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/imagestream/etcd"
-	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registryhostname"
+	"github.com/openshift/openshift-apiserver/pkg/image/registry/image"
+	imageetcd "github.com/openshift/openshift-apiserver/pkg/image/registry/image/etcd"
+	"github.com/openshift/openshift-apiserver/pkg/image/registry/imagestream"
+	imagestreametcd "github.com/openshift/openshift-apiserver/pkg/image/registry/imagestream/etcd"
+	"github.com/openshift/openshift-apiserver/pkg/image/registryhostname"
 
 	_ "github.com/openshift/openshift-apiserver/apis/internalversion/install"
 )

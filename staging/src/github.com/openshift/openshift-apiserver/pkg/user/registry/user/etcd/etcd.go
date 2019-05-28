@@ -21,8 +21,8 @@ import (
 	usergroup "github.com/openshift/api/user"
 	userapi "github.com/openshift/openshift-apiserver/pkg/user/apis/user"
 	"github.com/openshift/openshift-apiserver/pkg/user/apis/user/validation"
+	"github.com/openshift/openshift-apiserver/pkg/user/registry/user"
 	printersinternal "github.com/openshift/openshift-apiserver/printers/internalversion"
-	"github.com/openshift/origin/pkg/user/apiserver/registry/user"
 )
 
 // rest implements a RESTStorage for users against etcd

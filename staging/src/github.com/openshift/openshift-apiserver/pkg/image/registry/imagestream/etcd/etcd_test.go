@@ -19,7 +19,7 @@ import (
 	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation/fake"
 	admfake "github.com/openshift/openshift-apiserver/pkg/image/apiserver/admission/fake"
-	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registryhostname"
+	"github.com/openshift/openshift-apiserver/pkg/image/registryhostname"
 
 	// install all APIs
 	_ "github.com/openshift/openshift-apiserver/apis/internalversion/install"

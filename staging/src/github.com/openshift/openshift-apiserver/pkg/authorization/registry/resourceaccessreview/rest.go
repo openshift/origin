@@ -19,7 +19,7 @@ import (
 	authorizationutil "github.com/openshift/library-go-staging/authorization"
 	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
 	authorizationvalidation "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization/validation"
-	"github.com/openshift/openshift-apiserver/pkg/authorization/apiserver/registry/util"
+	"github.com/openshift/openshift-apiserver/pkg/authorization/registry/util"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.

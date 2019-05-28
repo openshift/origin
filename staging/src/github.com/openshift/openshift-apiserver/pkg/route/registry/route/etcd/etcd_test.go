@@ -17,7 +17,7 @@ import (
 
 	routeapi "github.com/openshift/openshift-apiserver/pkg/route/apis/route"
 	_ "github.com/openshift/openshift-apiserver/pkg/route/apis/route/install"
-	"github.com/openshift/openshift-apiserver/pkg/route/apiserver/registry/route"
+	"github.com/openshift/openshift-apiserver/pkg/route/registry/route"
 	routetypes "github.com/openshift/origin/pkg/route"
 	"k8s.io/apiserver/pkg/registry/generic"
 )
