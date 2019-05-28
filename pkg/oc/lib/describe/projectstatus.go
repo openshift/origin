@@ -12,6 +12,7 @@ import (
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -57,7 +58,6 @@ import (
 	routeedges "github.com/openshift/origin/pkg/oc/lib/graph/routegraph"
 	routeanalysis "github.com/openshift/origin/pkg/oc/lib/graph/routegraph/analysis"
 	routegraph "github.com/openshift/origin/pkg/oc/lib/graph/routegraph/nodes"
-	"github.com/openshift/origin/pkg/util/errors"
 	"github.com/openshift/origin/pkg/util/parallel"
 )
 
@@ -1983,8 +1983,8 @@ type bcLoader struct {
 
 func (l *bcLoader) Load() error {
 	list, err := l.lister.BuildConfigs(l.namespace).List(metav1.ListOptions{})
-	if err != nil {
-		return errors.TolerateNotFoundError(err)
+	if err != nil && !errors.IsNotFound(err) {
+		return err
 	}
 
 	l.items = list.Items
@@ -2008,7 +2008,10 @@ type buildLoader struct {
 func (l *buildLoader) Load() error {
 	list, err := l.lister.Builds(l.namespace).List(metav1.ListOptions{})
 	if err != nil {
-		return errors.TolerateNotFoundError(err)
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
 	}
 
 	l.items = list.Items

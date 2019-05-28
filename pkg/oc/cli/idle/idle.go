@@ -10,9 +10,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	utilerrors "github.com/openshift/origin/pkg/util/errors"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -391,7 +391,7 @@ func findScalableResourcesForEndpoints(endpoints *corev1.Endpoints, getPod func(
 		for _, addr := range subset.Addresses {
 			if addr.TargetRef != nil && addr.TargetRef.Kind == "Pod" {
 				pod, err := getPod(*addr.TargetRef)
-				if utilerrors.TolerateNotFoundError(err) != nil {
+				if err != nil && !errors.IsNotFound(err) {
 					return nil, fmt.Errorf("unable to find controller for pod %s/%s: %v", addr.TargetRef.Namespace, addr.TargetRef.Name, err)
 				}
 
@@ -417,7 +417,7 @@ func findScalableResourcesForEndpoints(endpoints *corev1.Endpoints, getPod func(
 	controllerRefs := make(map[namespacedCrossGroupObjectReference]struct{})
 	for controllerRef := range immediateControllerRefs {
 		controller, err := getController(controllerRef)
-		if utilerrors.TolerateNotFoundError(err) != nil {
+		if err != nil && errors.IsNotFound(err) {
 			return nil, fmt.Errorf("unable to load %s %q: %v", controllerRef.Kind, controllerRef.Name, err)
 		}
 
