@@ -47,21 +47,21 @@ func TestMakeOpenShiftGroup(t *testing.T) {
 			ldapGroupUID: "alfa",
 			usernames:    []string{"valerie"},
 			expectedGroup: &userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "zulu",
-				Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port", ldaputil.LDAPUIDAnnotation: "alfa"},
-				Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}},
+				Annotations: map[string]string{LDAPURLAnnotation: "test-host:port", LDAPUIDAnnotation: "alfa"},
+				Labels:      map[string]string{LDAPHostLabel: "test-host"}},
 				Users: []string{"valerie"}},
 		},
 		"replaced good": {
 			ldapGroupUID: "alfa",
 			usernames:    []string{"valerie"},
 			expectedGroup: &userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "zulu",
-				Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port", ldaputil.LDAPUIDAnnotation: "alfa"},
-				Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}},
+				Annotations: map[string]string{LDAPURLAnnotation: "test-host:port", LDAPUIDAnnotation: "alfa"},
+				Labels:      map[string]string{LDAPHostLabel: "test-host"}},
 				Users: []string{"valerie"}},
 			startingGroups: []runtime.Object{
 				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "zulu",
-					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port", ldaputil.LDAPUIDAnnotation: "alfa"},
-					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}},
+					Annotations: map[string]string{LDAPURLAnnotation: "test-host:port", LDAPUIDAnnotation: "alfa"},
+					Labels:      map[string]string{LDAPHostLabel: "test-host"}},
 					Users: []string{"other-user"}},
 			},
 		},
@@ -70,8 +70,8 @@ func TestMakeOpenShiftGroup(t *testing.T) {
 			usernames:    []string{"valerie"},
 			startingGroups: []runtime.Object{
 				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "zulu",
-					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port", ldaputil.LDAPUIDAnnotation: "bravo"},
-					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}},
+					Annotations: map[string]string{LDAPURLAnnotation: "test-host:port", LDAPUIDAnnotation: "bravo"},
+					Labels:      map[string]string{LDAPHostLabel: "test-host"}},
 					Users: []string{"other-user"}},
 			},
 			expectedErr: `group "zulu": openshift.io/ldap.uid annotation did not match LDAP UID: wanted alfa, got bravo`,
@@ -81,8 +81,8 @@ func TestMakeOpenShiftGroup(t *testing.T) {
 			usernames:    []string{"valerie"},
 			startingGroups: []runtime.Object{
 				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "zulu",
-					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "bad-host:port", ldaputil.LDAPUIDAnnotation: "alfa"},
-					Labels:      map[string]string{ldaputil.LDAPHostLabel: "bad-host"}},
+					Annotations: map[string]string{LDAPURLAnnotation: "bad-host:port", LDAPUIDAnnotation: "alfa"},
+					Labels:      map[string]string{LDAPHostLabel: "bad-host"}},
 					Users: []string{"other-user"}},
 			},
 			expectedErr: `group "zulu": openshift.io/ldap.host label did not match sync host: wanted test-host, got bad-host`,
@@ -92,8 +92,8 @@ func TestMakeOpenShiftGroup(t *testing.T) {
 			usernames:    []string{"valerie"},
 			startingGroups: []runtime.Object{
 				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "zulu",
-					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port2", ldaputil.LDAPUIDAnnotation: "alfa"},
-					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}},
+					Annotations: map[string]string{LDAPURLAnnotation: "test-host:port2", LDAPUIDAnnotation: "alfa"},
+					Labels:      map[string]string{LDAPHostLabel: "test-host"}},
 					Users: []string{"other-user"}},
 			},
 			expectedErr: `group "zulu": openshift.io/ldap.url annotation did not match sync host: wanted test-host:port, got test-host:port2`,
@@ -118,7 +118,7 @@ func TestMakeOpenShiftGroup(t *testing.T) {
 		}
 
 		if actualGroup != nil {
-			delete(actualGroup.Annotations, ldaputil.LDAPSyncTimeAnnotation)
+			delete(actualGroup.Annotations, LDAPSyncTimeAnnotation)
 		}
 
 		if !reflect.DeepEqual(tc.expectedGroup, actualGroup) {
@@ -244,7 +244,7 @@ func checkClientForGroups(tc *fakeuserv1client.FakeUserV1, expectedGroups []*use
 func groupExists(haystack []*userv1.Group, needle *userv1.Group) bool {
 	for _, actual := range haystack {
 		actualGroup := actual.DeepCopy()
-		delete(actualGroup.Annotations, ldaputil.LDAPSyncTimeAnnotation)
+		delete(actualGroup.Annotations, LDAPSyncTimeAnnotation)
 
 		if reflect.DeepEqual(needle, actualGroup) {
 			return true
@@ -274,11 +274,11 @@ func newDefaultOpenShiftGroups(host string) []*userv1.Group {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "os" + Group1UID,
 				Annotations: map[string]string{
-					ldaputil.LDAPURLAnnotation: host,
-					ldaputil.LDAPUIDAnnotation: Group1UID,
+					LDAPURLAnnotation: host,
+					LDAPUIDAnnotation: Group1UID,
 				},
 				Labels: map[string]string{
-					ldaputil.LDAPHostLabel: strings.Split(host, ":")[0],
+					LDAPHostLabel: strings.Split(host, ":")[0],
 				},
 			},
 			Users: []string{Member1UID, Member2UID},
@@ -287,11 +287,11 @@ func newDefaultOpenShiftGroups(host string) []*userv1.Group {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "os" + Group2UID,
 				Annotations: map[string]string{
-					ldaputil.LDAPURLAnnotation: host,
-					ldaputil.LDAPUIDAnnotation: Group2UID,
+					LDAPURLAnnotation: host,
+					LDAPUIDAnnotation: Group2UID,
 				},
 				Labels: map[string]string{
-					ldaputil.LDAPHostLabel: strings.Split(host, ":")[0],
+					LDAPHostLabel: strings.Split(host, ":")[0],
 				},
 			},
 			Users: []string{Member2UID, Member3UID},
@@ -300,11 +300,11 @@ func newDefaultOpenShiftGroups(host string) []*userv1.Group {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "os" + Group3UID,
 				Annotations: map[string]string{
-					ldaputil.LDAPURLAnnotation: host,
-					ldaputil.LDAPUIDAnnotation: Group3UID,
+					LDAPURLAnnotation: host,
+					LDAPUIDAnnotation: Group3UID,
 				},
 				Labels: map[string]string{
-					ldaputil.LDAPHostLabel: strings.Split(host, ":")[0],
+					LDAPHostLabel: strings.Split(host, ":")[0],
 				},
 			},
 			Users: []string{Member3UID, Member4UID},

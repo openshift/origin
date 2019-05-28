@@ -10,7 +10,6 @@ import (
 
 	userv1 "github.com/openshift/api/user/v1"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
 )
 
@@ -40,7 +39,7 @@ func (l *allOpenShiftGroupLister) ListGroups() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	hostSelector := labels.Set(map[string]string{ldaputil.LDAPHostLabel: host}).AsSelector()
+	hostSelector := labels.Set(map[string]string{LDAPHostLabel: host}).AsSelector()
 	allGroups, err := l.client.List(metav1.ListOptions{LabelSelector: hostSelector.String()})
 	if err != nil {
 		return nil, err
@@ -60,7 +59,7 @@ func (l *allOpenShiftGroupLister) ListGroups() ([]string, error) {
 			continue
 		}
 
-		ldapGroupUID := group.Annotations[ldaputil.LDAPUIDAnnotation]
+		ldapGroupUID := group.Annotations[LDAPUIDAnnotation]
 		l.ldapGroupUIDToOpenShiftGroupName[ldapGroupUID] = group.Name
 		ldapGroupUIDs = append(ldapGroupUIDs, ldapGroupUID)
 	}
@@ -86,15 +85,15 @@ func (l *allOpenShiftGroupLister) GroupNameFor(ldapGroupUID string) (string, err
 
 // validateGroupAnnotations determines if the group matches and errors if the annotations are missing
 func validateGroupAnnotations(ldapURL string, group userv1.Group) (bool, error) {
-	if actualURL, exists := group.Annotations[ldaputil.LDAPURLAnnotation]; !exists {
-		return false, fmt.Errorf("group %q marked as having been synced did not have an %s annotation", group.Name, ldaputil.LDAPURLAnnotation)
+	if actualURL, exists := group.Annotations[LDAPURLAnnotation]; !exists {
+		return false, fmt.Errorf("group %q marked as having been synced did not have an %s annotation", group.Name, LDAPURLAnnotation)
 
 	} else if actualURL != ldapURL {
 		return false, nil
 	}
 
-	if _, exists := group.Annotations[ldaputil.LDAPUIDAnnotation]; !exists {
-		return false, fmt.Errorf("group %q marked as having been synced did not have an %s annotation", group.Name, ldaputil.LDAPUIDAnnotation)
+	if _, exists := group.Annotations[LDAPUIDAnnotation]; !exists {
+		return false, fmt.Errorf("group %q marked as having been synced did not have an %s annotation", group.Name, LDAPUIDAnnotation)
 	}
 
 	return true, nil
@@ -148,7 +147,7 @@ func (l *openshiftGroupLister) ListGroups() ([]string, error) {
 			return nil, fmt.Errorf("group %q was not synchronized from: %s", group.Name, l.ldapURL)
 		}
 
-		ldapGroupUID := group.Annotations[ldaputil.LDAPUIDAnnotation]
+		ldapGroupUID := group.Annotations[LDAPUIDAnnotation]
 		l.ldapGroupUIDToOpenShiftGroupName[ldapGroupUID] = group.Name
 		ldapGroupUIDs = append(ldapGroupUIDs, ldapGroupUID)
 	}

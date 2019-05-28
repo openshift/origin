@@ -1,4 +1,4 @@
-package ldaputil
+package syncgroups
 
 // These constants contain values for annotations and labels affixed to Groups by the LDAP sync job
 const (

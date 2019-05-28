@@ -586,7 +586,7 @@ func (c *OAuthServerConfig) getPasswordAuthenticator(identityProvider osinv1.Ide
 		opts := ldappassword.Options{
 			URL:                  url,
 			ClientConfig:         clientConfig,
-			UserAttributeDefiner: ldaputil.NewLDAPUserAttributeDefiner(provider.Attributes),
+			UserAttributeDefiner: ldappassword.NewLDAPUserAttributeDefiner(provider.Attributes),
 		}
 		return ldappassword.New(identityProvider.Name, opts, identityMapper)
 
