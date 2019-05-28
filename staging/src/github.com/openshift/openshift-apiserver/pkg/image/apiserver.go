@@ -40,10 +40,10 @@ import (
 	"github.com/openshift/openshift-apiserver/pkg/image/registry/imagestreamtag"
 	"github.com/openshift/openshift-apiserver/pkg/image/registryhostname"
 
+	"github.com/openshift/openshift-apiserver/pkg/image/importer"
+	imageimporter "github.com/openshift/openshift-apiserver/pkg/image/importer"
+	"github.com/openshift/openshift-apiserver/pkg/image/importer/dockerv1client"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	"github.com/openshift/origin/pkg/image/importer"
-	imageimporter "github.com/openshift/origin/pkg/image/importer"
-	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
 )
 
 type ExtraConfig struct {
