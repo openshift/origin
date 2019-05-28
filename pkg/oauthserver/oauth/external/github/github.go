@@ -14,7 +14,7 @@ import (
 
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/external"
-	"github.com/openshift/origin/pkg/util/http/links"
+	"github.com/openshift/origin/pkg/oauthserver/oauth/external/github/links"
 )
 
 const (

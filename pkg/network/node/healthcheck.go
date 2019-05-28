@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/klog"
-
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog"
 
-	"github.com/openshift/origin/pkg/util/ovs/ovsclient"
+	"github.com/openshift/origin/pkg/network/node/ovs/ovsclient"
 )
 
 const (

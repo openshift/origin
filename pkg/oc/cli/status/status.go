@@ -20,7 +20,7 @@ import (
 	routev1client "github.com/openshift/client-go/route/clientset/versioned/typed/route/v1"
 	loginutil "github.com/openshift/oc/pkg/helpers/project"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
-	dotutil "github.com/openshift/origin/pkg/util/dot"
+	dotutil "github.com/openshift/origin/pkg/oc/lib/dot"
 )
 
 // StatusRecommendedName is the recommended command name.

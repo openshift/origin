@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	networkapi "github.com/openshift/api/network/v1"
-	"github.com/openshift/origin/pkg/util/ovs"
+	"github.com/openshift/origin/pkg/network/node/ovs"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

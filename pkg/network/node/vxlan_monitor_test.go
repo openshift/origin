@@ -5,7 +5,7 @@ package node
 import (
 	"testing"
 
-	"github.com/openshift/origin/pkg/util/ovs"
+	"github.com/openshift/origin/pkg/network/node/ovs"
 )
 
 func packetsIn(ovsif ovs.Interface, counts map[string]int, nodeIP string) {

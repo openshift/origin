@@ -29,8 +29,8 @@ import (
 	"github.com/openshift/origin/pkg/api/legacy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/oc/lib/newapp"
+	"github.com/openshift/origin/pkg/oc/lib/newapp/docker/dockerfile"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	"github.com/openshift/origin/pkg/util/docker/dockerfile"
 )
 
 // A PipelineBuilder creates Pipeline instances.

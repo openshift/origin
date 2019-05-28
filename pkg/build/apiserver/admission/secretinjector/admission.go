@@ -14,10 +14,9 @@ import (
 	restclient "k8s.io/client-go/rest"
 	api "k8s.io/kubernetes/pkg/apis/core"
 
+	authclient "github.com/openshift/openshift-apiserver/pkg/client/impersonatingclient"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	authclient "github.com/openshift/origin/pkg/client/impersonatingclient"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	"github.com/openshift/origin/pkg/util/urlpattern"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -76,7 +75,7 @@ func (si *secretInjector) admit(attr admission.Attributes, mutationAllowed bool)
 		return nil
 	}
 
-	patterns := []*urlpattern.URLPattern{}
+	patterns := []*URLPattern{}
 	for _, secret := range secrets.Items {
 		if secret.Type == corev1.SecretTypeBasicAuth && url.Scheme == "ssh" ||
 			secret.Type == corev1.SecretTypeSSHAuth && url.Scheme != "ssh" {
@@ -90,7 +89,7 @@ func (si *secretInjector) admit(attr admission.Attributes, mutationAllowed bool)
 					continue
 				}
 
-				pattern, err := urlpattern.NewURLPattern(v)
+				pattern, err := NewURLPattern(v)
 				if err != nil {
 					klog.V(2).Infof(`secretinjector: buildconfig "%s/%s": unparseable annotation %q: %v`, namespace, bc.GetName(), k, err)
 					continue
@@ -102,7 +101,7 @@ func (si *secretInjector) admit(attr admission.Attributes, mutationAllowed bool)
 		}
 	}
 
-	if match := urlpattern.Match(patterns, url); match != nil {
+	if match := Match(patterns, url); match != nil {
 		secretName := match.Cookie.(string)
 		klog.V(4).Infof(`secretinjector: matched secret "%s/%s" to buildconfig "%s"`, namespace, secretName, bc.GetName())
 		if mutationAllowed {

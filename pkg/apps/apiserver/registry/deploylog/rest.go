@@ -29,7 +29,7 @@ import (
 	"github.com/openshift/api/apps"
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
-	apiserverrest "github.com/openshift/origin/pkg/apiserver/rest"
+	apiserverrest "github.com/openshift/openshift-apiserver/pkg/apiserver/rest"
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
