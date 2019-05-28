@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift/api/security/v1"
-	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
+	sccutil "github.com/openshift/openshift-apiserver/pkg/security/securitycontextconstraints"
 )
 
 func AddDefaultingFuncs(scheme *runtime.Scheme) error {

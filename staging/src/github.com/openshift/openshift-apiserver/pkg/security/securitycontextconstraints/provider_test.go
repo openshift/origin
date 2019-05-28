@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	securityapi "github.com/openshift/openshift-apiserver/pkg/security/apis/security"
-	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
+	sccutil "github.com/openshift/openshift-apiserver/pkg/security/securitycontextconstraints"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/validation/field"

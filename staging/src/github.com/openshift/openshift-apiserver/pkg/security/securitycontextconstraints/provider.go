@@ -3,12 +3,6 @@ package securitycontextconstraints
 import (
 	"fmt"
 
-	"github.com/openshift/origin/pkg/security/securitycontextconstraints/capabilities"
-	"github.com/openshift/origin/pkg/security/securitycontextconstraints/group"
-	"github.com/openshift/origin/pkg/security/securitycontextconstraints/seccomp"
-	"github.com/openshift/origin/pkg/security/securitycontextconstraints/selinux"
-	"github.com/openshift/origin/pkg/security/securitycontextconstraints/user"
-	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	api "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/security/podsecuritypolicy/sysctl"
@@ -16,6 +10,12 @@ import (
 	"k8s.io/kubernetes/pkg/util/maps"
 
 	securityapi "github.com/openshift/openshift-apiserver/pkg/security/apis/security"
+	sccutil "github.com/openshift/openshift-apiserver/pkg/security/securitycontextconstraints"
+	"github.com/openshift/openshift-apiserver/pkg/security/securitycontextconstraints/capabilities"
+	"github.com/openshift/openshift-apiserver/pkg/security/securitycontextconstraints/group"
+	"github.com/openshift/openshift-apiserver/pkg/security/securitycontextconstraints/seccomp"
+	"github.com/openshift/openshift-apiserver/pkg/security/securitycontextconstraints/selinux"
+	"github.com/openshift/openshift-apiserver/pkg/security/securitycontextconstraints/user"
 )
 
 // used to pass in the field being validated for reusable group strategies so they

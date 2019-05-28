@@ -19,11 +19,11 @@ import (
 	"github.com/openshift/api/security"
 	securityv1 "github.com/openshift/api/security/v1"
 	securityv1listers "github.com/openshift/client-go/security/listers/security/v1"
+	"github.com/openshift/library-go-staging/security/uid"
+	allocator "github.com/openshift/library-go-staging/security/util"
+	sccsort "github.com/openshift/library-go-staging/security/util/sort"
 	securityapi "github.com/openshift/openshift-apiserver/pkg/security/apis/security"
 	securityapiv1 "github.com/openshift/openshift-apiserver/pkg/security/apis/security/v1"
-	allocator "github.com/openshift/origin/pkg/security"
-	sccsort "github.com/openshift/origin/pkg/security/securitycontextconstraints/util/sort"
-	"github.com/openshift/origin/pkg/security/uid"
 )
 
 type SCCMatcher interface {

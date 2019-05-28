@@ -4,13 +4,14 @@ import (
 	"reflect"
 	"testing"
 
-	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	versioned "github.com/openshift/api/security/v1"
 	_ "github.com/openshift/openshift-apiserver/apis/internalversion/install"
+
+	versioned "github.com/openshift/api/security/v1"
 	conversionv1 "github.com/openshift/openshift-apiserver/pkg/security/apis/security/v1"
+	sccutil "github.com/openshift/openshift-apiserver/pkg/security/securitycontextconstraints"
 )
 
 func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
