@@ -494,7 +494,9 @@
       "github.com/openshift/origin/pkg/template/client/v1",
       "github.com/openshift/origin/pkg/user/generated",
       "github.com/openshift/origin/pkg/security/generated",
-      "github.com/openshift/origin/pkg/template/generated"
+      "github.com/openshift/origin/pkg/template/generated",
+
+      "vendor/github.com/openshift/oc"
     ],
     "allowedImportPackages": [
       "github.com/openshift/origin/pkg/api/legacy",
@@ -530,7 +532,6 @@
       "github.com/openshift/origin/pkg/cmd/server/bootstrappolicy",
       "github.com/openshift/origin/pkg/cmd/templates",
       "github.com/openshift/origin/pkg/cmd/util",
-      "github.com/openshift/origin/pkg/cmd/util/term",
       "github.com/openshift/origin/pkg/image/apis/image",
       "github.com/openshift/origin/pkg/image/apis/image/v1/trigger",
       "github.com/openshift/origin/pkg/image/apis/image/docker10",

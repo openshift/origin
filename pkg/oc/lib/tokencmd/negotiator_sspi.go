@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/runtime"
 
-	"github.com/openshift/origin/pkg/cmd/util/term"
+	"github.com/openshift/oc/pkg/helpers/term"
 
 	"github.com/alexbrainman/sspi"
 	"github.com/alexbrainman/sspi/negotiate"

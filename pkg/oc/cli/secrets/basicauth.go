@@ -16,7 +16,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 	kterm "k8s.io/kubernetes/pkg/kubectl/util/term"
 
-	"github.com/openshift/origin/pkg/cmd/util/term"
+	"github.com/openshift/oc/pkg/helpers/term"
 )
 
 // CreateBasicAuthSecretRecommendedCommandName represents name of subcommand for `oc secrets` command

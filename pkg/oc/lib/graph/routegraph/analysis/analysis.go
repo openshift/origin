@@ -9,11 +9,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	routev1 "github.com/openshift/api/route/v1"
+	routedisplayhelpers "github.com/openshift/oc/pkg/helpers/route"
 	osgraph "github.com/openshift/origin/pkg/oc/lib/graph/genericgraph"
 	kubegraph "github.com/openshift/origin/pkg/oc/lib/graph/kubegraph/nodes"
 	routeedges "github.com/openshift/origin/pkg/oc/lib/graph/routegraph"
 	routegraph "github.com/openshift/origin/pkg/oc/lib/graph/routegraph/nodes"
-	"github.com/openshift/origin/pkg/oc/lib/routedisplayhelpers"
 )
 
 const (

@@ -15,7 +15,7 @@ import (
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kterm "k8s.io/kubernetes/pkg/kubectl/util/term"
 
-	"github.com/openshift/origin/pkg/cmd/util/term"
+	"github.com/openshift/oc/pkg/helpers/term"
 )
 
 // getMatchingClusters examines the kubeconfig for all clusters that point to the same server

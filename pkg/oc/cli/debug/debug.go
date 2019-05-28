@@ -47,12 +47,12 @@ import (
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
+	"github.com/openshift/oc/pkg/helpers/conditions"
+	utilenv "github.com/openshift/oc/pkg/helpers/env"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutil "github.com/openshift/origin/pkg/image/util"
-	"github.com/openshift/origin/pkg/oc/lib/conditions"
 	generateapp "github.com/openshift/origin/pkg/oc/lib/newapp/app"
-	utilenv "github.com/openshift/origin/pkg/oc/util/env"
 )
 
 const (

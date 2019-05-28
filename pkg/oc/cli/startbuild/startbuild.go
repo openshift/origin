@@ -40,11 +40,11 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	"github.com/openshift/library-go/pkg/git"
+	utilenv "github.com/openshift/oc/pkg/helpers/env"
+	ocerrors "github.com/openshift/oc/pkg/helpers/errors"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclientmanual "github.com/openshift/origin/pkg/build/client/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	ocerrors "github.com/openshift/origin/pkg/oc/lib/errors"
-	utilenv "github.com/openshift/origin/pkg/oc/util/env"
 )
 
 var (

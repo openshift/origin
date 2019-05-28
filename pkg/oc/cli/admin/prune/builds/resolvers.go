@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	buildv1 "github.com/openshift/api/build/v1"
-	"github.com/openshift/origin/pkg/oc/lib/buildapihelpers"
+	buildapihelpers "github.com/openshift/oc/pkg/helpers/build"
 )
 
 // Resolver knows how to resolve the set of candidate objects to prune

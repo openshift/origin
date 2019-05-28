@@ -20,8 +20,8 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+	ocbuildapihelpers "github.com/openshift/oc/pkg/helpers/build"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	ocbuildapihelpers "github.com/openshift/origin/pkg/oc/lib/buildapihelpers"
 )
 
 // LogsRecommendedCommandName is the recommended command name

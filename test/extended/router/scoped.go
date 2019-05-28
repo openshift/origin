@@ -17,7 +17,7 @@ import (
 
 	routev1 "github.com/openshift/api/route/v1"
 	routeclientset "github.com/openshift/client-go/route/clientset/versioned"
-	"github.com/openshift/origin/pkg/oc/lib/routedisplayhelpers"
+	routedisplayhelpers "github.com/openshift/oc/pkg/helpers/route"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routev1conversions "github.com/openshift/origin/pkg/route/apis/route/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
