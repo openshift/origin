@@ -6,4 +6,4 @@ rules:
     - name: release-4.2
       source:
         branch: master
-        dir: staging/github.com/openshift/template-service-broker
+        dir: staging/src/github.com/openshift/template-service-broker
