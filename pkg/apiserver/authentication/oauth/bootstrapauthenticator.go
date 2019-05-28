@@ -10,9 +10,9 @@ import (
 
 	userapi "github.com/openshift/api/user/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	bootstrap "github.com/openshift/library-go/pkg/authentication/bootstrapauthenticator"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
 )
 
 type bootstrapAuthenticator struct {

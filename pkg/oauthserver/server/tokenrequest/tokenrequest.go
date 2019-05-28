@@ -15,9 +15,9 @@ import (
 	"k8s.io/klog"
 
 	"github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	bootstrap "github.com/openshift/library-go/pkg/authentication/bootstrapauthenticator"
 	"github.com/openshift/origin/pkg/oauth/urls"
 	"github.com/openshift/origin/pkg/oauthserver"
-	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
 	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
 )
 

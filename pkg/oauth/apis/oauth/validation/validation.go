@@ -13,9 +13,9 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 
 	routev1 "github.com/openshift/api/route/v1"
+	bootstrap "github.com/openshift/library-go/pkg/authentication/bootstrapauthenticator"
 	authorizerscopes "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
