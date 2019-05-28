@@ -8,9 +8,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	"github.com/openshift/library-go-staging/ldaputil"
 	configapi "github.com/openshift/openshift-apiserver/apis/config"
 	"github.com/openshift/openshift-apiserver/apis/config/validation/common"
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 )
 
 func ValidateLDAPSyncConfig(config *configapi.LDAPSyncConfig) common.ValidationResults {

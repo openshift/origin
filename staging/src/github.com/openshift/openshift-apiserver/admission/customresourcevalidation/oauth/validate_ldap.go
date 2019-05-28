@@ -6,8 +6,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/library-go-staging/ldaputil"
 	crvalidation "github.com/openshift/openshift-apiserver/admission/customresourcevalidation"
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 )
 
 func ValidateLDAPIdentityProvider(provider *configv1.LDAPIdentityProvider, fldPath *field.Path) field.ErrorList {

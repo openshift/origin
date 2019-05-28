@@ -8,10 +8,9 @@ import (
 	quotainformer "github.com/openshift/client-go/quota/informers/externalversions/quota/v1"
 	securityv1informer "github.com/openshift/client-go/security/informers/externalversions/security/v1"
 	userinformer "github.com/openshift/client-go/user/informers/externalversions"
-	"github.com/openshift/openshift-apiserver/pkg/image/registryhostname"
-
 	cache "github.com/openshift/library-go-staging/cache/project"
-	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+	"github.com/openshift/library-go-staging/clusterquotamapping"
+	"github.com/openshift/openshift-apiserver/pkg/image/registryhostname"
 )
 
 type PluginInitializer struct {

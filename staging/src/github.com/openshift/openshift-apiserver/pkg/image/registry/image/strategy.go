@@ -13,7 +13,7 @@ import (
 
 	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation"
-	"github.com/openshift/origin/pkg/image/util"
+	util "github.com/openshift/openshift-apiserver/pkg/image/imageutil"
 )
 
 // managedSignatureAnnotation used to be set by image signature import controller as a signature annotation.

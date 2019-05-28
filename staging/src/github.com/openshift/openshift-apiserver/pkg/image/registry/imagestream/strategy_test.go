@@ -30,7 +30,7 @@ import (
 	admfake "github.com/openshift/openshift-apiserver/pkg/image/apiserver/admission/fake"
 	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/admission/limitrange"
 	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registryhostname"
-	"github.com/openshift/origin/pkg/image/util/testutil"
+	"github.com/openshift/openshift-apiserver/pkg/image/imageutil/testutil"
 )
 
 type fakeUser struct {

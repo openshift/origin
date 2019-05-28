@@ -23,13 +23,13 @@ import (
 	kvalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 
 	"github.com/openshift/library-go-staging/labelselector"
+	"github.com/openshift/library-go-staging/security/mcs"
+	"github.com/openshift/library-go-staging/security/uid"
 	configapi "github.com/openshift/openshift-apiserver/apis/config"
 	"github.com/openshift/openshift-apiserver/apis/config/validation/common"
+	oauthutil "github.com/openshift/openshift-apiserver/apis/config/validation/oauthutil"
 	"github.com/openshift/openshift-apiserver/cmd/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/server/cm"
-	oauthutil "github.com/openshift/origin/pkg/oauth/util"
-	"github.com/openshift/origin/pkg/security/mcs"
-	"github.com/openshift/origin/pkg/security/uid"
+	"github.com/openshift/openshift-apiserver/cmd/cm"
 )
 
 func ValidateMasterConfig(config *configapi.MasterConfig, fldPath *field.Path) common.ValidationResults {

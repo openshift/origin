@@ -15,10 +15,11 @@ import (
 	printerstorage "k8s.io/kubernetes/pkg/printers/storage"
 
 	authorizationapi "github.com/openshift/openshift-apiserver/pkg/authorization/apis/authorization"
-	"github.com/openshift/openshift-apiserver/pkg/authorization/apiserver/registry/util"
+	"github.com/openshift/openshift-apiserver/pkg/authorization/registry/util"
+
+	utilregistry "github.com/openshift/openshift-library-go/registry"
 	authclient "github.com/openshift/origin/pkg/client/impersonatingclient"
 	printersinternal "github.com/openshift/origin/pkg/printers/internalversion"
-	utilregistry "github.com/openshift/origin/pkg/util/registry"
 )
 
 type REST struct {

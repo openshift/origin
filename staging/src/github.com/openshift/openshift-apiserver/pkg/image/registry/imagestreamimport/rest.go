@@ -31,10 +31,10 @@ import (
 	imageapi "github.com/openshift/openshift-apiserver/pkg/image/apis/image"
 	"github.com/openshift/openshift-apiserver/pkg/image/apis/image/validation/whitelist"
 	"github.com/openshift/openshift-apiserver/pkg/image/apiserver/registry/imagestream"
+	util "github.com/openshift/openshift-apiserver/pkg/image/imageutil"
 	"github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	"github.com/openshift/origin/pkg/image/registryclient"
-	"github.com/openshift/origin/pkg/image/util"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
