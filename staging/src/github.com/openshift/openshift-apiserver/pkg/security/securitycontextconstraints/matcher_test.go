@@ -7,9 +7,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
+	"github.com/openshift/library-go-staging/security/uid"
+	allocator "github.com/openshift/library-go-staging/security/util"
 	securityapi "github.com/openshift/openshift-apiserver/pkg/security/apis/security"
-	allocator "github.com/openshift/origin/pkg/security"
-	"github.com/openshift/origin/pkg/security/uid"
 )
 
 func TestAssignSecurityContext(t *testing.T) {
