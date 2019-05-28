@@ -16,12 +16,12 @@ import (
 
 	oapi "github.com/openshift/api/oauth/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	"github.com/openshift/oauth-server/pkg/api"
+	"github.com/openshift/oauth-server/pkg/server/csrf"
+	"github.com/openshift/oauth-server/pkg/server/redirect"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scopelibrary"
 	"github.com/openshift/origin/pkg/oauthserver"
-	"github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/scopecovers"
-	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
-	"github.com/openshift/origin/pkg/oauthserver/server/redirect"
 )
 
 const (

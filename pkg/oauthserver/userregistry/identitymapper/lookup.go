@@ -7,7 +7,7 @@ import (
 	kuser "k8s.io/apiserver/pkg/authentication/user"
 
 	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	authapi "github.com/openshift/origin/pkg/oauthserver/api"
+	authapi "github.com/openshift/oauth-server/pkg/api"
 )
 
 var _ = authapi.UserIdentityMapper(&lookupIdentityMapper{})

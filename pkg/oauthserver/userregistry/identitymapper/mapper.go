@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	authapi "github.com/openshift/origin/pkg/oauthserver/api"
+	authapi "github.com/openshift/oauth-server/pkg/api"
 )
 
 type MappingMethodType string

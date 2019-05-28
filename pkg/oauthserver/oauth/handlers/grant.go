@@ -15,8 +15,8 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 
 	oauthapi "github.com/openshift/api/oauth/v1"
+	"github.com/openshift/oauth-server/pkg/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scopelibrary"
-	"github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/osinserver"
 	"github.com/openshift/origin/pkg/oauthserver/scopecovers"
 )

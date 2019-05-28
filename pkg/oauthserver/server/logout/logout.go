@@ -8,8 +8,8 @@ import (
 
 	"k8s.io/apiserver/pkg/authentication/user"
 
+	"github.com/openshift/oauth-server/pkg/server/redirect"
 	"github.com/openshift/origin/pkg/oauthserver"
-	"github.com/openshift/origin/pkg/oauthserver/server/redirect"
 	"github.com/openshift/origin/pkg/oauthserver/server/session"
 )
 

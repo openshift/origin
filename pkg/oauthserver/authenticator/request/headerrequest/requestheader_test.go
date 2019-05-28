@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/openshift/origin/pkg/oauthserver/api"
+	"github.com/openshift/oauth-server/pkg/api"
 	"k8s.io/apiserver/pkg/authentication/user"
 )
 

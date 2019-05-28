@@ -5,7 +5,7 @@ import (
 
 	"github.com/RangelReale/osin"
 
-	"github.com/openshift/origin/pkg/oauthserver/server/crypto"
+	"github.com/openshift/oauth-server/pkg/server/crypto"
 )
 
 var (

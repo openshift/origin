@@ -6,11 +6,10 @@ import (
 	"net/http"
 	"strings"
 
+	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/klog"
 
-	"k8s.io/apiserver/pkg/authentication/authenticator"
-
-	"github.com/openshift/origin/pkg/oauthserver/prometheus"
+	metrics "github.com/openshift/oauth-server/pkg/prometheus"
 )
 
 type basicAuthRequestHandler struct {

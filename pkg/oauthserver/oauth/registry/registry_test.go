@@ -15,7 +15,7 @@ import (
 
 	oauthv1 "github.com/openshift/api/oauth/v1"
 	oauthfake "github.com/openshift/client-go/oauth/clientset/versioned/fake"
-	"github.com/openshift/origin/pkg/oauthserver/api"
+	"github.com/openshift/oauth-server/pkg/api"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
 	"github.com/openshift/origin/pkg/oauthserver/osinserver"
 	"github.com/openshift/origin/pkg/oauthserver/osinserver/registrystorage"

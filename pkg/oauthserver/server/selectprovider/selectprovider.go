@@ -9,7 +9,7 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
-	"github.com/openshift/origin/pkg/oauthserver/api"
+	"github.com/openshift/oauth-server/pkg/api"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
 )
 
