@@ -146,7 +146,7 @@ func (t *volumesTestSuite) defineTests(driver TestDriver, pattern testpatterns.T
 				Volume: *l.resource.volSource,
 				File:   "index.html",
 				// Must match content
-				ExpectedContent: fmt.Sprintf("Hello from %s from namespace %s",
+				ExpectedContent: fmt.Sprintf("Hello from: %s from namespace %s",
 					dInfo.Name, f.Namespace.Name),
 			},
 		}
@@ -160,6 +160,7 @@ func (t *volumesTestSuite) defineTests(driver TestDriver, pattern testpatterns.T
 		// local), plugin skips setting fsGroup if volume is already mounted
 		// and we don't have reliable way to detect volumes are unmounted or
 		// not before starting the second pod.
+		By(fmt.Sprintf("Injecting html content: %s", tests[0].ExpectedContent))
 		framework.InjectHtml(f.ClientSet, config, fsGroup, tests[0].Volume, tests[0].ExpectedContent)
 		framework.TestVolumeClient(f.ClientSet, config, fsGroup, pattern.FsType, tests)
 	})
@@ -169,7 +170,7 @@ func (t *volumesTestSuite) defineTests(driver TestDriver, pattern testpatterns.T
 		init()
 		defer cleanup()
 
-		testScriptInPod(f, l.resource.volType, l.resource.volSource, l.config.ClientNodeSelector)
+		testScriptInPod(f, l.resource.volType, l.resource.volSource, l.config)
 	})
 }
 
@@ -177,7 +178,7 @@ func testScriptInPod(
 	f *framework.Framework,
 	volumeType string,
 	source *v1.VolumeSource,
-	nodeSelector map[string]string) {
+	config *PerTestConfig) {
 
 	const (
 		volPath = "/vol1"
@@ -218,7 +219,8 @@ func testScriptInPod(
 				},
 			},
 			RestartPolicy: v1.RestartPolicyNever,
-			NodeSelector:  nodeSelector,
+			NodeSelector:  config.ClientNodeSelector,
+			NodeName:      config.ClientNodeName,
 		},
 	}
 	By(fmt.Sprintf("Creating pod %s", pod.Name))

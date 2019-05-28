@@ -73,6 +73,9 @@ const (
 	// Waiting period for pod to be cleaned up and unmount its volumes so we
 	// don't tear down containers with NFS/Ceph/Gluster server too early.
 	PodCleanupTimeout = 20 * time.Second
+
+	// Template for iSCSI IQN.
+	iSCSIIQNTemplate = "iqn.2003-01.io.k8s:e2e.%s"
 )
 
 // Configuration of one tests. The test consist of:
@@ -96,6 +99,8 @@ type VolumeTestConfig struct {
 	ServerVolumes map[string]string
 	// Message to wait for before starting clients
 	ServerReadyMessage string
+	// Use HostNetwork for the server
+	ServerHostNetwork bool
 	// Wait for the pod to terminate successfully
 	// False indicates that the pod is long running
 	WaitForCompletion bool
@@ -175,20 +180,30 @@ func NewGlusterfsServer(cs clientset.Interface, namespace string) (config Volume
 }
 
 // iSCSI-specific wrapper for CreateStorageServer.
-func NewISCSIServer(cs clientset.Interface, namespace string) (config VolumeTestConfig, pod *v1.Pod, ip string) {
+func NewISCSIServer(cs clientset.Interface, namespace string) (config VolumeTestConfig, pod *v1.Pod, ip, iqn string) {
+	// Generate cluster-wide unique IQN
+	iqn = fmt.Sprintf(iSCSIIQNTemplate, namespace)
+
 	config = VolumeTestConfig{
 		Namespace:   namespace,
 		Prefix:      "iscsi",
 		ServerImage: imageutils.GetE2EImage(imageutils.VolumeISCSIServer),
-		ServerPorts: []int{3260},
+		ServerArgs:  []string{iqn},
 		ServerVolumes: map[string]string{
 			// iSCSI container needs to insert modules from the host
 			"/lib/modules": "/lib/modules",
+			// iSCSI container needs to configure kernel
+			"/sys/kernel": "/sys/kernel",
+			// iSCSI source "block devices" must be available on the host
+			"/srv/iscsi": "/srv/iscsi",
 		},
-		ServerReadyMessage: "Configuration restored from /etc/target/saveconfig.json",
+		ServerReadyMessage: "iscsi target started",
+		ServerHostNetwork:  true,
 	}
 	pod, ip = CreateStorageServer(cs, config)
-	return config, pod, ip
+	// Make sure the client runs on the same node as server so we don't need to open any firewalls.
+	config.ClientNodeName = pod.Spec.NodeName
+	return config, pod, ip, iqn
 }
 
 // CephRBD-specific wrapper for CreateStorageServer.
@@ -304,6 +319,7 @@ func StartVolumeServer(client clientset.Interface, config VolumeTestConfig) *v1.
 		},
 
 		Spec: v1.PodSpec{
+			HostNetwork: config.ServerHostNetwork,
 			Containers: []v1.Container{
 				{
 					Name:  serverPodName,
@@ -490,7 +506,7 @@ func TestVolumeClient(client clientset.Interface, config VolumeTestConfig, fsGro
 // starting and auxiliary pod which writes the file there.
 // The volume must be writable.
 func InjectHtml(client clientset.Interface, config VolumeTestConfig, fsGroup *int64, volume v1.VolumeSource, content string) {
-	By(fmt.Sprint("starting ", config.Prefix, " injector"))
+	By(fmt.Sprint("starting ", config.Prefix, " injector, injecting: ", content))
 	podClient := client.CoreV1().Pods(config.Namespace)
 	podName := fmt.Sprintf("%s-injector-%s", config.Prefix, rand.String(4))
 	volMountName := fmt.Sprintf("%s-volume-%s", config.Prefix, rand.String(4))
@@ -541,6 +557,7 @@ func InjectHtml(client clientset.Interface, config VolumeTestConfig, fsGroup *in
 		podClient.Delete(podName, nil)
 	}()
 
+	By(fmt.Sprint("Using command: ", injectPod.Spec.Containers[0].Command))
 	injectPod, err := podClient.Create(injectPod)
 	ExpectNoError(err, "Failed to create injector pod: %v", err)
 	err = WaitForPodSuccessInNamespace(client, injectPod.Name, injectPod.Namespace)
@@ -568,6 +585,7 @@ func GenerateScriptCmd(command string) []string {
 	} else {
 		commands = []string{"powershell", "/c", command}
 	}
+
 	return commands
 }
 
@@ -580,6 +598,7 @@ func GenerateWriteFileCmd(content, fullPath string) []string {
 	} else {
 		commands = []string{"powershell", "/c", "echo '" + content + "' > " + fullPath}
 	}
+	By(fmt.Sprint("Generated command argv: ", commands))
 	return commands
 }
 
