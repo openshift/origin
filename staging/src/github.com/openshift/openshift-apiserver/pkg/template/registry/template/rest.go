@@ -14,10 +14,10 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 
 	"github.com/openshift/api/template"
+	"github.com/openshift/library-go-staging/template/generator"
 	templateapi "github.com/openshift/openshift-apiserver/pkg/template/apis/template"
 	templatevalidation "github.com/openshift/openshift-apiserver/pkg/template/apis/template/validation"
-	"github.com/openshift/origin/pkg/template/generator"
-	"github.com/openshift/origin/pkg/template/templateprocessing"
+	"github.com/openshift/openshift-apiserver/pkg/template/templateprocessing"
 )
 
 // REST implements RESTStorage interface for processing Template objects.
