@@ -24,3 +24,67 @@ os::cmd::expect_failure "egrep -r '\"github.com/openshift/origin/[^\"]+\"$' vend
 os::cmd::expect_failure "go list -deps -test ./staging/src/github.com/openshift/... | grep 'openshift/origin/pkg'"
 
 os::test::junit::declare_suite_end
+
+
+function print_forbidden_imports () {
+    set -o errexit # this was unset by ||
+    local PACKAGE="$1"
+    shift
+    local RE=""
+    local SEP=""
+    for CLAUSE in "$@"; do
+        RE+="${SEP}${CLAUSE}"
+        SEP='\|'
+    done
+    local FORBIDDEN=$(
+        go list -f $'{{with $package := .ImportPath}}{{range $.Imports}}{{$package}} imports {{.}}\n{{end}}{{end}}' ./vendor/github.com/openshift/${PACKAGE}/... |
+        sed 's|^github.com/openshift/origin/vendor/||;s| github.com/openshift/origin/vendor/| |' |
+        grep -v " github.com/openshift/${PACKAGE}" |
+        grep -e "\( github.com/openshift/\| k8s.io/kubernetes\)" |
+        grep -v "imports github.com/openshift/api" |
+        grep -v "imports github.com/openshift/client-go" |
+        grep -v "imports github.com/openshift/library-go" |
+        grep -v -e "imports \(${RE}\)"
+    )
+    if [ -n "${FORBIDDEN}" ]; then
+        echo "${PACKAGE} has a forbidden dependency:"
+        echo
+        echo "${FORBIDDEN}" | sed 's/^/  /'
+        echo
+        return 1
+    fi
+    local TEST_FORBIDDEN=$(
+        go list -f $'{{with $package := .ImportPath}}{{range $.TestImports}}{{$package}} imports {{.}}\n{{end}}{{end}}' ./vendor/github.com/openshift/${PACKAGE}/... |
+        sed 's|^github.com/openshift/origin/vendor/||;s| github.com/openshift/origin/vendor/| |' |
+        grep -v " github.com/openshift/${PACKAGE}" |
+        grep -e "\( github.com/openshift/\| k8s.io/kubernetes\)" |
+        grep -v "imports github.com/openshift/api" |
+        grep -v "imports github.com/openshift/client-go" |
+        grep -v "imports github.com/openshift/library-go" |
+        grep -v -e "imports \(${RE}\)"
+    )
+    if [ -n "${TEST_FORBIDDEN}" ]; then
+        echo "${PACKAGE} has a forbidden dependency in test code:"
+        echo
+        echo "${TEST_FORBIDDEN}" | sed 's/^/  /'
+        echo
+        return 1
+    fi
+    return 0
+}
+
+# for some reason, if you specify nothing, then you never get an error.  Specify something, even if it never shows up
+RC=0
+print_forbidden_imports oc k8s.io/kubernetes/pkg || RC=1
+print_forbidden_imports openshift-apiserver k8s.io/kubernetes/pkg/apis || RC=1
+print_forbidden_imports template-service-broker k8s.io/kubernetes/pkg/apis k8s.io/kubernetes/pkg/api k8s.io/kubernetes/pkg/kubectl k8s.io/kubernetes/pkg/controller || RC=1
+if [ ${RC} != 0 ]; then
+    exit ${RC}
+fi
+
+if grep -rq '// import "github.com/openshift/origin/' 'staging/'; then
+	echo 'file has "// import "github.com/openshift/origin/"'
+	exit 1
+fi
+
+exit 0
