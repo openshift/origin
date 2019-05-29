@@ -753,7 +753,7 @@ func startOpenShiftControllers(masterConfig *configapi.MasterConfig) error {
 }
 
 func waitForServerHealthy(url *url.URL) error {
-	if err := cmdutil.WaitForSuccessfulDial(url.Scheme == "https", "tcp", url.Host, 100*time.Millisecond, 1*time.Second, 60); err != nil {
+	if err := waitForSuccessfulDial(url.Scheme == "https", "tcp", url.Host, 100*time.Millisecond, 1*time.Second, 60); err != nil {
 		return err
 	}
 	var healthzResponse string
@@ -767,6 +767,30 @@ func waitForServerHealthy(url *url.URL) error {
 	})
 	if err == wait.ErrWaitTimeout {
 		return fmt.Errorf("server did not become healthy: %v", healthzResponse)
+	}
+	return err
+}
+
+// waitForSuccessfulDial attempts to connect to the given address, closing and returning nil on the first successful connection.
+func waitForSuccessfulDial(https bool, network, address string, timeout, interval time.Duration, retries int) error {
+	var (
+		conn net.Conn
+		err  error
+	)
+	for i := 0; i <= retries; i++ {
+		dialer := net.Dialer{Timeout: timeout}
+		if https {
+			conn, err = tls.DialWithDialer(&dialer, network, address, &tls.Config{InsecureSkipVerify: true})
+		} else {
+			conn, err = dialer.Dial(network, address)
+		}
+		if err != nil {
+			klog.V(5).Infof("Got error %#v, trying again: %#v\n", err, address)
+			time.Sleep(interval)
+			continue
+		}
+		conn.Close()
+		return nil
 	}
 	return err
 }

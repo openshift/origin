@@ -6,13 +6,14 @@ import (
 	"path"
 	"testing"
 
+	"k8s.io/client-go/util/cert"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	restclient "k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
-	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/lib/tokencmd"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
@@ -74,7 +75,7 @@ func TestOAuthCertFallback(t *testing.T) {
 		t.Fatalf("Unexpected error: %v", err)
 	}
 	defer os.RemoveAll(fakecadir)
-	cacerts, err := util.CertificatesFromFile(masterOptions.ServingInfo.ClientCA)
+	cacerts, err := cert.CertsFromFile(masterOptions.ServingInfo.ClientCA)
 	if err != nil || len(cacerts) != 1 {
 		t.Fatalf("Unexpected error or number of certs: %v, %d", err, len(cacerts))
 	}

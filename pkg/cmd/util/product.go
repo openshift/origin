@@ -1,14 +1,5 @@
 package util
 
-const (
-	ProductOpenShift = `OpenShift`
-)
-
-// GetProductName chooses appropriate product for a binary name.
-func GetProductName(binaryName string) string {
-	return ProductOpenShift
-}
-
 // GetPlatformName returns an appropriate platform name for given binary name.
 // Platform name can be used as a headline in command's usage.
 func GetPlatformName(binaryName string) string {
