@@ -53,7 +53,7 @@ func TestVisitObjectStringsOnStruct(t *testing.T) {
 		},
 	}
 	for i := range samples {
-		VisitObjectStrings(&samples[i][0], func(in string) (string, bool) {
+		visitObjectStrings(&samples[i][0], func(in string) (string, bool) {
 			if len(in) == 0 {
 				return in, true
 			}
@@ -82,7 +82,7 @@ func TestVisitObjectStringsOnMap(t *testing.T) {
 	}
 
 	for i := range samples {
-		VisitObjectStrings(&samples[i][0], func(in string) (string, bool) {
+		visitObjectStrings(&samples[i][0], func(in string) (string, bool) {
 			return fmt.Sprintf("sample-%s", in), true
 		})
 		if !reflect.DeepEqual(samples[i][0], samples[i][1]) {
@@ -100,7 +100,7 @@ func TestVisitObjectStringsOnArray(t *testing.T) {
 	}
 
 	for i := range samples {
-		VisitObjectStrings(&samples[i][0], func(in string) (string, bool) {
+		visitObjectStrings(&samples[i][0], func(in string) (string, bool) {
 			return fmt.Sprintf("sample-%s", in), true
 		})
 		if !reflect.DeepEqual(samples[i][0], samples[i][1]) {

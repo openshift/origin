@@ -13,7 +13,6 @@ import (
 	templatev1 "github.com/openshift/api/template/v1"
 	. "github.com/openshift/library-go/pkg/template/generator"
 	"github.com/openshift/origin/pkg/api/legacygroupification"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/util"
 )
 
@@ -37,7 +36,7 @@ func NewProcessor(generators map[string]Generator) *Processor {
 // Parameter values using the defined set of generators first, and then it
 // substitutes all Parameter expression occurrences with their corresponding
 // values (currently in the containers' Environment variables only).
-func (p *Processor) Process(template *templateapi.Template) field.ErrorList {
+func (p *Processor) Process(template *templatev1.Template) field.ErrorList {
 	templateErrors := field.ErrorList{}
 
 	if errs := p.GenerateParameterValues(template); len(errs) > 0 {
@@ -45,7 +44,7 @@ func (p *Processor) Process(template *templateapi.Template) field.ErrorList {
 	}
 
 	// Place parameters into a map for efficient lookup
-	paramMap := make(map[string]templateapi.Parameter)
+	paramMap := make(map[string]templatev1.Parameter)
 	for _, param := range template.Parameters {
 		paramMap[param.Name] = param
 	}
@@ -69,38 +68,42 @@ func (p *Processor) Process(template *templateapi.Template) field.ErrorList {
 	itemPath := field.NewPath("item")
 	for i, item := range template.Objects {
 		idxPath := itemPath.Index(i)
-		if obj, ok := item.(*runtime.Unknown); ok {
+		var currObj runtime.Object
+
+		if len(item.Raw) > 0 {
 			// TODO: use runtime.DecodeList when it returns ValidationErrorList
-			decodedObj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, obj.Raw)
+			decodedObj, err := runtime.Decode(unstructured.UnstructuredJSONScheme, item.Raw)
 			if err != nil {
-				templateErrors = append(templateErrors, field.Invalid(idxPath.Child("objects"), obj, fmt.Sprintf("unable to handle object: %v", err)))
+				templateErrors = append(templateErrors, field.Invalid(idxPath.Child("objects"), item, fmt.Sprintf("unable to handle object: %v", err)))
 				continue
 			}
-			item = decodedObj
+			currObj = decodedObj
+		} else {
+			currObj = item.Object.DeepCopyObject()
 		}
 
 		// If an object definition's metadata includes a hardcoded namespace field, the field will be stripped out of
 		// the definition during template instantiation.  Namespace fields that contain a ${PARAMETER_REFERENCE}
 		// will be left in place, resolved during parameter substition, and the object will be created in the
 		// referenced namespace.
-		stripNamespace(item)
+		stripNamespace(currObj)
 
-		newItem, err := p.SubstituteParameters(paramMap, item)
+		newItem, err := p.SubstituteParameters(paramMap, currObj)
 		if err != nil {
 			templateErrors = append(templateErrors, field.Invalid(idxPath.Child("parameters"), template.Parameters, err.Error()))
 		}
 
 		// this changes oapi GVKs to groupified GVKs so they can be submitted to modern, aggregated servers
 		// It is done after substitution in case someone substitutes a kind.
-		gvk := item.GetObjectKind().GroupVersionKind()
+		gvk := currObj.GetObjectKind().GroupVersionKind()
 		legacygroupification.OAPIToGroupifiedGVK(&gvk)
-		item.GetObjectKind().SetGroupVersionKind(gvk)
+		newItem.GetObjectKind().SetGroupVersionKind(gvk)
 
 		if err := util.AddObjectLabels(newItem, template.ObjectLabels); err != nil {
 			templateErrors = append(templateErrors, field.Invalid(idxPath.Child("labels"),
 				template.ObjectLabels, fmt.Sprintf("label could not be applied: %v", err)))
 		}
-		template.Objects[i] = newItem
+		template.Objects[i] = runtime.RawExtension{Object: newItem}
 	}
 
 	return templateErrors
@@ -133,18 +136,6 @@ func stripNamespace(obj runtime.Object) {
 	}
 }
 
-// TODO: remove once consumers are switched to deal with external versions
-// DeprecatedGetParameterByNameInternal searches for a Parameter in the Template
-// based on its name.
-func DeprecatedGetParameterByNameInternal(t *templateapi.Template, name string) *templateapi.Parameter {
-	for i, param := range t.Parameters {
-		if param.Name == name {
-			return &(t.Parameters[i])
-		}
-	}
-	return nil
-}
-
 // GetParameterByName searches for a Parameter in the Template
 // based on its name.
 func GetParameterByName(t *templatev1.Template, name string) *templatev1.Parameter {
@@ -160,7 +151,7 @@ func GetParameterByName(t *templatev1.Template, name string) *templatev1.Paramet
 // provided map.  Returns the substituted value (if any substitution applied) and a boolean
 // indicating if the resulting value should be treated as a string(true) or a non-string
 // value(false) for purposes of json encoding.
-func (p *Processor) EvaluateParameterSubstitution(params map[string]templateapi.Parameter, in string) (string, bool) {
+func (p *Processor) EvaluateParameterSubstitution(params map[string]templatev1.Parameter, in string) (string, bool) {
 	out := in
 	// First check if the value matches the "${{KEY}}" substitution syntax, which
 	// means replace and drop the quotes because the parameter value is to be used
@@ -195,8 +186,8 @@ func (p *Processor) EvaluateParameterSubstitution(params map[string]templateapi.
 // Example of Parameter expression:
 //   - ${PARAMETER_NAME}
 //
-func (p *Processor) SubstituteParameters(params map[string]templateapi.Parameter, item runtime.Object) (runtime.Object, error) {
-	VisitObjectStrings(item, func(in string) (string, bool) {
+func (p *Processor) SubstituteParameters(params map[string]templatev1.Parameter, item runtime.Object) (runtime.Object, error) {
+	visitObjectStrings(item, func(in string) (string, bool) {
 		return p.EvaluateParameterSubstitution(params, in)
 	})
 	return item, nil
@@ -215,7 +206,7 @@ func (p *Processor) SubstituteParameters(params map[string]templateapi.Parameter
 // "0x[A-F0-9]{4}"  | "0xB3AF"
 // "[a-zA-Z0-9]{8}" | "hW4yQU5i"
 // If an error occurs, the parameter that caused the error is returned along with the error message.
-func (p *Processor) GenerateParameterValues(t *templateapi.Template) field.ErrorList {
+func (p *Processor) GenerateParameterValues(t *templatev1.Template) field.ErrorList {
 	var errs field.ErrorList
 
 	for i := range t.Parameters {

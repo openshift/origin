@@ -8,10 +8,10 @@ import (
 	"k8s.io/klog"
 )
 
-// VisitObjectStrings recursively visits all string fields in the object and calls the
+// visitObjectStrings recursively visits all string fields in the object and calls the
 // visitor function on them. The visitor function can be used to modify the
 // value of the string fields.
-func VisitObjectStrings(obj interface{}, visitor func(string) (string, bool)) error {
+func visitObjectStrings(obj interface{}, visitor func(string) (string, bool)) error {
 	return visitValue(reflect.ValueOf(obj), visitor)
 }
 
