@@ -28,7 +28,6 @@ import (
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	strategyutil "github.com/openshift/origin/pkg/apps/strategy/util"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/util"
 )
 
 const (
@@ -470,8 +469,19 @@ func createHookPodManifest(hook *appsv1.LifecycleHook, rc *corev1.ReplicationCon
 		},
 	}
 
-	util.MergeInto(pod.Labels, strategy.Labels, 0)
-	util.MergeInto(pod.Annotations, strategy.Annotations, 0)
+	// add in DC specified labels and annotations
+	for k, v := range strategy.Labels {
+		if _, ok := pod.Labels[k]; ok {
+			continue
+		}
+		pod.Labels[k] = v
+	}
+	for k, v := range strategy.Annotations {
+		if _, ok := pod.Annotations[k]; ok {
+			continue
+		}
+		pod.Annotations[k] = v
+	}
 
 	return pod, nil
 }

@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 	"k8s.io/kubernetes/pkg/kubectl/scheme"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	authv1 "github.com/openshift/api/authorization/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
@@ -45,7 +46,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/lib/newapp/jenkinsfile"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/source"
 	templateclientv1 "github.com/openshift/origin/pkg/template/client/v1"
-	outil "github.com/openshift/origin/pkg/util"
 )
 
 const (
@@ -674,7 +674,7 @@ func (c *AppConfig) installComponents(components app.ComponentReferences, env ap
 		objects = append(objects, secret)
 	}
 	for i := range objects {
-		outil.AddObjectAnnotations(objects[i], map[string]string{
+		AddObjectAnnotations(objects[i], map[string]string{
 			GeneratedForJob:    "true",
 			GeneratedForJobFor: input.String(),
 		})
@@ -1420,4 +1420,47 @@ func setBuildConfigEnv(buildConfig *buildv1.BuildConfig, env []corev1.EnvVar) {
 		return
 	}
 	*oldEnv = env
+}
+
+// AddObjectAnnotations adds new annotation(s) to a single runtime.Object
+func AddObjectAnnotations(obj runtime.Object, annotations map[string]string) error {
+	if len(annotations) == 0 {
+		return nil
+	}
+
+	accessor, err := meta.Accessor(obj)
+	if err != nil {
+		return err
+	}
+
+	metaAnnotations := accessor.GetAnnotations()
+	if metaAnnotations == nil {
+		metaAnnotations = make(map[string]string)
+	}
+	for k, v := range annotations {
+		metaAnnotations[k] = v
+	}
+	accessor.SetAnnotations(metaAnnotations)
+
+	switch objType := obj.(type) {
+	case *appsv1.DeploymentConfig:
+		if err := addDeploymentConfigNestedAnnotations(objType, annotations); err != nil {
+			return fmt.Errorf("unable to add nested annotations to %s/%s: %v", obj.GetObjectKind().GroupVersionKind(), accessor.GetName(), err)
+		}
+	}
+
+	return nil
+}
+
+func addDeploymentConfigNestedAnnotations(obj *appsv1.DeploymentConfig, annotations map[string]string) error {
+	if obj.Spec.Template == nil {
+		return nil
+	}
+	if obj.Spec.Template.Annotations == nil {
+		obj.Spec.Template.Annotations = make(map[string]string)
+	}
+	for k, v := range annotations {
+		obj.Spec.Template.Annotations[k] = v
+	}
+	return nil
 }

@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/origin/pkg/template/templateprocessing"
+
 	"k8s.io/kubernetes/pkg/kubectl/cmd/logs"
 
 	"github.com/MakeNowJust/heredoc"
@@ -18,6 +20,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,6 +40,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
+	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
@@ -55,7 +59,6 @@ import (
 	newcmd "github.com/openshift/origin/pkg/oc/lib/newapp/cmd"
 	dockerutil "github.com/openshift/origin/pkg/oc/lib/newapp/docker"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	"github.com/openshift/origin/pkg/util"
 )
 
 // NewAppRecommendedCommandName is the recommended command name.
@@ -752,7 +755,7 @@ func CompleteAppConfig(config *newcmd.AppConfig, f kcmdutil.Factory, c *cobra.Co
 
 func SetAnnotations(annotations map[string]string, result *newcmd.AppResult) error {
 	for _, object := range result.List.Items {
-		err := util.AddObjectAnnotations(object, annotations)
+		err := newcmd.AddObjectAnnotations(object, annotations)
 		if err != nil {
 			return fmt.Errorf("failed to add annotation to object of type %q, this resource type is probably unsupported by your client version.", object.GetObjectKind().GroupVersionKind())
 		}
@@ -762,7 +765,7 @@ func SetAnnotations(annotations map[string]string, result *newcmd.AppResult) err
 
 func SetLabels(labels map[string]string, result *newcmd.AppResult) error {
 	for _, object := range result.List.Items {
-		err := util.AddObjectLabels(object, labels)
+		err := templateprocessing.AddObjectLabels(object, labels)
 		if err != nil {
 			return fmt.Errorf("failed to add annotation to object of type %q, this resource type is probably unsupported by your client version.", object.GetObjectKind().GroupVersionKind())
 		}
@@ -772,8 +775,26 @@ func SetLabels(labels map[string]string, result *newcmd.AppResult) error {
 
 func hasLabel(labels map[string]string, result *newcmd.AppResult) (bool, error) {
 	for _, obj := range result.List.Items {
-		if err := util.AddObjectLabelsWithFlags(obj.DeepCopyObject(), labels, util.ErrorOnExistingDstKey); err != nil {
-			return true, nil
+		accessor, err := meta.Accessor(obj)
+		if err != nil {
+			return false, err
+		}
+		for k := range accessor.GetLabels() {
+			if _, ok := labels[k]; ok {
+				return true, nil
+			}
+		}
+
+		switch objType := obj.(type) {
+		case *appsv1.DeploymentConfig:
+			if objType.Spec.Template == nil {
+				continue
+			}
+			for k := range objType.Spec.Template.Labels {
+				if _, ok := labels[k]; ok {
+					return true, nil
+				}
+			}
 		}
 	}
 	return false, nil
