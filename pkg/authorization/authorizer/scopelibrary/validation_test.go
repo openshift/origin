@@ -1,4 +1,4 @@
-package scope
+package scopelibrary
 
 import (
 	"strings"
@@ -48,7 +48,7 @@ func TestValidateScopeRestrictions(t *testing.T) {
 		},
 		{
 			name:   "cluster role name must match",
-			scopes: []string{ClusterRoleIndicator + "three:alfa"},
+			scopes: []string{clusterRoleIndicator + "three:alfa"},
 			client: &oauthv1.OAuthClient{
 				ScopeRestrictions: []oauthv1.ScopeRestriction{{ClusterRole: &oauthv1.ClusterRoleScopeRestriction{
 					RoleNames:       []string{"one", "two"},
@@ -60,7 +60,7 @@ func TestValidateScopeRestrictions(t *testing.T) {
 		},
 		{
 			name:   "cluster role namespace must match",
-			scopes: []string{ClusterRoleIndicator + "two:charlie"},
+			scopes: []string{clusterRoleIndicator + "two:charlie"},
 			client: &oauthv1.OAuthClient{
 				ScopeRestrictions: []oauthv1.ScopeRestriction{{ClusterRole: &oauthv1.ClusterRoleScopeRestriction{
 					RoleNames:       []string{"one", "two"},
@@ -72,7 +72,7 @@ func TestValidateScopeRestrictions(t *testing.T) {
 		},
 		{
 			name:   "cluster role escalation must match",
-			scopes: []string{ClusterRoleIndicator + "two:bravo:!"},
+			scopes: []string{clusterRoleIndicator + "two:bravo:!"},
 			client: &oauthv1.OAuthClient{
 				ScopeRestrictions: []oauthv1.ScopeRestriction{{ClusterRole: &oauthv1.ClusterRoleScopeRestriction{
 					RoleNames:       []string{"one", "two"},
@@ -84,7 +84,7 @@ func TestValidateScopeRestrictions(t *testing.T) {
 		},
 		{
 			name:   "cluster role matches",
-			scopes: []string{ClusterRoleIndicator + "two:bravo:!"},
+			scopes: []string{clusterRoleIndicator + "two:bravo:!"},
 			client: &oauthv1.OAuthClient{
 				ScopeRestrictions: []oauthv1.ScopeRestriction{{ClusterRole: &oauthv1.ClusterRoleScopeRestriction{
 					RoleNames:       []string{"one", "two"},
@@ -95,7 +95,7 @@ func TestValidateScopeRestrictions(t *testing.T) {
 		},
 		{
 			name:   "cluster role matches 2",
-			scopes: []string{ClusterRoleIndicator + "two:bravo"},
+			scopes: []string{clusterRoleIndicator + "two:bravo"},
 			client: &oauthv1.OAuthClient{
 				ScopeRestrictions: []oauthv1.ScopeRestriction{{ClusterRole: &oauthv1.ClusterRoleScopeRestriction{
 					RoleNames:       []string{"one", "two"},
@@ -106,7 +106,7 @@ func TestValidateScopeRestrictions(t *testing.T) {
 		},
 		{
 			name:   "cluster role star matches",
-			scopes: []string{ClusterRoleIndicator + "two:bravo"},
+			scopes: []string{clusterRoleIndicator + "two:bravo"},
 			client: &oauthv1.OAuthClient{
 				ScopeRestrictions: []oauthv1.ScopeRestriction{{ClusterRole: &oauthv1.ClusterRoleScopeRestriction{
 					RoleNames:       []string{"one", "two", "*"},

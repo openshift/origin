@@ -11,7 +11,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
+	"github.com/openshift/origin/pkg/authorization/authorizer/scopelibrary"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	"github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
 	"github.com/openshift/origin/pkg/oauth/apiserver/registry/oauthclient"
@@ -68,7 +68,7 @@ func (s strategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorL
 	if err != nil {
 		return append(validationErrors, field.InternalError(field.NewPath("clientName"), err))
 	}
-	if err := scopeauthorizer.ValidateScopeRestrictions(client, auth.Scopes...); err != nil {
+	if err := scopelibrary.ValidateScopeRestrictions(client, auth.Scopes...); err != nil {
 		return append(validationErrors, field.InternalError(field.NewPath("clientName"), err))
 	}
 
@@ -87,7 +87,7 @@ func (s strategy) ValidateUpdate(ctx context.Context, obj runtime.Object, old ru
 		if err != nil {
 			return append(validationErrors, field.InternalError(field.NewPath("clientName"), err))
 		}
-		if err := scopeauthorizer.ValidateScopeRestrictions(client, clientAuth.Scopes...); err != nil {
+		if err := scopelibrary.ValidateScopeRestrictions(client, clientAuth.Scopes...); err != nil {
 			return append(validationErrors, field.InternalError(field.NewPath("clientName"), err))
 		}
 	}

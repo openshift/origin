@@ -422,7 +422,7 @@
     "allowedImportPackages": [
       "vendor/k8s.io/klog",
       "vendor/github.com/davecgh/go-spew/spew",
-      "github.com/openshift/origin/pkg/authorization/authorizer/scope",
+      "github.com/openshift/origin/pkg/authorization/authorizer/scopelibrary",
       "github.com/openshift/origin/pkg/oauth/apis/oauth/validation",
       "github.com/openshift/origin/pkg/oauth/scope",
       "github.com/openshift/origin/pkg/cmd/server/apis/config",

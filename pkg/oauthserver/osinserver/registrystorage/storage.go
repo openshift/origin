@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/openshift/origin/pkg/authorization/authorizer/scopelibrary"
+
 	"github.com/RangelReale/osin"
 	"k8s.io/klog"
 
@@ -14,7 +16,6 @@ import (
 
 	oauthapi "github.com/openshift/api/oauth/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
-	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/oauth/scope"
 	"github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
@@ -215,7 +216,7 @@ func (s *storage) convertFromAuthorizeToken(authorize *oauthapi.OAuthAuthorizeTo
 	if err != nil {
 		return nil, err
 	}
-	if err := scopeauthorizer.ValidateScopeRestrictions(client, authorize.Scopes...); err != nil {
+	if err := scopelibrary.ValidateScopeRestrictions(client, authorize.Scopes...); err != nil {
 		return nil, err
 	}
 
@@ -274,7 +275,7 @@ func (s *storage) convertFromAccessToken(access *oauthapi.OAuthAccessToken) (*os
 	if err != nil {
 		return nil, err
 	}
-	if err := scopeauthorizer.ValidateScopeRestrictions(client, access.Scopes...); err != nil {
+	if err := scopelibrary.ValidateScopeRestrictions(client, access.Scopes...); err != nil {
 		return nil, err
 	}
 

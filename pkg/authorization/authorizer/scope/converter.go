@@ -2,7 +2,8 @@ package scope
 
 import (
 	"fmt"
-	"strings"
+
+	"github.com/openshift/origin/pkg/authorization/authorizer/scopelibrary"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -13,8 +14,6 @@ import (
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
 	rbacv1helpers "k8s.io/kubernetes/pkg/apis/rbac/v1"
 	authorizerrbac "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
-
-	oauthv1 "github.com/openshift/api/oauth/v1"
 )
 
 const (
@@ -190,33 +189,8 @@ func DescribeScopes(scopes []string) map[string]string {
 }
 
 // user:<scope name>
-type userEvaluator struct{}
-
-func (userEvaluator) Handles(scope string) bool {
-	switch scope {
-	case UserFull, UserInfo, UserAccessCheck, UserListScopedProjects, UserListAllProjects:
-		return true
-	}
-	return false
-}
-
-func (e userEvaluator) Validate(scope string) error {
-	if e.Handles(scope) {
-		return nil
-	}
-
-	return fmt.Errorf("unrecognized scope: %v", scope)
-}
-
-func (userEvaluator) Describe(scope string) (string, string, error) {
-	switch scope {
-	case UserInfo, UserAccessCheck, UserListScopedProjects, UserListAllProjects:
-		return defaultSupportedScopesMap[scope], "", nil
-	case UserFull:
-		return defaultSupportedScopesMap[scope], `Includes any access you have to escalating resources like secrets`, nil
-	default:
-		return "", "", fmt.Errorf("unrecognized scope: %v", scope)
-	}
+type userEvaluator struct {
+	scopelibrary.UserEvaluator
 }
 
 func (userEvaluator) ResolveRules(scope, namespace string, _ rbaclisters.ClusterRoleLister) ([]rbacv1.PolicyRule, error) {
@@ -303,82 +277,14 @@ var escalatingScopeResources = []schema.GroupResource{
 }
 
 // role:<clusterrole name>:<namespace to allow the cluster role, * means all>
-type clusterRoleEvaluator struct{}
+type clusterRoleEvaluator struct {
+	scopelibrary.ClusterRoleEvaluator
+}
 
 var clusterRoleEvaluatorInstance = clusterRoleEvaluator{}
 
-func (clusterRoleEvaluator) Handles(scope string) bool {
-	return strings.HasPrefix(scope, ClusterRoleIndicator)
-}
-
-func (e clusterRoleEvaluator) Validate(scope string) error {
-	_, _, _, err := e.parseScope(scope)
-	return err
-}
-
-// parseScope parses the requested scope, determining the requested role name, namespace, and if
-// access to escalating objects is required.  It will return an error if it doesn't parse cleanly
-func (e clusterRoleEvaluator) parseScope(scope string) (string /*role name*/, string /*namespace*/, bool /*escalating*/, error) {
-	if !e.Handles(scope) {
-		return "", "", false, fmt.Errorf("bad format for scope %v", scope)
-	}
-	return ParseClusterRoleScope(scope)
-}
-func ParseClusterRoleScope(scope string) (string /*role name*/, string /*namespace*/, bool /*escalating*/, error) {
-	if !strings.HasPrefix(scope, ClusterRoleIndicator) {
-		return "", "", false, fmt.Errorf("bad format for scope %v", scope)
-	}
-	escalating := false
-	if strings.HasSuffix(scope, ":!") {
-		escalating = true
-		// clip that last segment before parsing the rest
-		scope = scope[:strings.LastIndex(scope, ":")]
-	}
-
-	tokens := strings.SplitN(scope, ":", 2)
-	if len(tokens) != 2 {
-		return "", "", false, fmt.Errorf("bad format for scope %v", scope)
-	}
-
-	// namespaces can't have colons, but roles can.  pick last.
-	lastColonIndex := strings.LastIndex(tokens[1], ":")
-	if lastColonIndex <= 0 || lastColonIndex == (len(tokens[1])-1) {
-		return "", "", false, fmt.Errorf("bad format for scope %v", scope)
-	}
-
-	return tokens[1][0:lastColonIndex], tokens[1][lastColonIndex+1:], escalating, nil
-}
-
-func (e clusterRoleEvaluator) Describe(scope string) (string, string, error) {
-	roleName, scopeNamespace, escalating, err := e.parseScope(scope)
-	if err != nil {
-		return "", "", err
-	}
-
-	// Anything you can do [in project "foo" | server-wide] that is also allowed by the "admin" role[, except access escalating resources like secrets]
-
-	scopePhrase := ""
-	if scopeNamespace == scopesAllNamespaces {
-		scopePhrase = "server-wide"
-	} else {
-		scopePhrase = fmt.Sprintf("in project %q", scopeNamespace)
-	}
-
-	warning := ""
-	escalatingPhrase := ""
-	if escalating {
-		warning = fmt.Sprintf("Includes access to escalating resources like secrets")
-	} else {
-		escalatingPhrase = ", except access escalating resources like secrets"
-	}
-
-	description := fmt.Sprintf("Anything you can do %s that is also allowed by the %q role%s", scopePhrase, roleName, escalatingPhrase)
-
-	return description, warning, nil
-}
-
 func (e clusterRoleEvaluator) ResolveRules(scope, namespace string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbacv1.PolicyRule, error) {
-	_, scopeNamespace, _, err := e.parseScope(scope)
+	_, scopeNamespace, _, err := scopelibrary.ClusterRoleEvaluatorParseScope(scope)
 	if err != nil {
 		return nil, err
 	}
@@ -402,7 +308,7 @@ func has(set []string, value string) bool {
 
 // resolveRules doesn't enforce namespace checks
 func (e clusterRoleEvaluator) resolveRules(scope string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbacv1.PolicyRule, error) {
-	roleName, _, escalating, err := e.parseScope(scope)
+	roleName, _, escalating, err := scopelibrary.ClusterRoleEvaluatorParseScope(scope)
 	if err != nil {
 		return nil, err
 	}
@@ -437,7 +343,7 @@ func (e clusterRoleEvaluator) resolveRules(scope string, clusterRoleGetter rbacl
 }
 
 func (e clusterRoleEvaluator) ResolveGettableNamespaces(scope string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]string, error) {
-	_, scopeNamespace, _, err := e.parseScope(scope)
+	_, scopeNamespace, _, err := scopelibrary.ClusterRoleEvaluatorParseScope(scope)
 	if err != nil {
 		return nil, err
 	}
@@ -496,100 +402,4 @@ func removeEscalatingResources(in rbacv1.PolicyRule) rbacv1.PolicyRule {
 	}
 
 	return in
-}
-
-func ValidateScopeRestrictions(client *oauthv1.OAuthClient, scopes ...string) error {
-	if len(scopes) == 0 {
-		return fmt.Errorf("%s may not request unscoped tokens", client.Name)
-	}
-
-	if len(client.ScopeRestrictions) == 0 {
-		return nil
-	}
-
-	errs := []error{}
-	for _, scope := range scopes {
-		if err := validateScopeRestrictions(client, scope); err != nil {
-			errs = append(errs, err)
-		}
-	}
-
-	return kutilerrors.NewAggregate(errs)
-}
-
-func validateScopeRestrictions(client *oauthv1.OAuthClient, scope string) error {
-	errs := []error{}
-
-	for _, restriction := range client.ScopeRestrictions {
-		if len(restriction.ExactValues) > 0 {
-			if err := validateLiteralScopeRestrictions(scope, restriction.ExactValues); err != nil {
-				errs = append(errs, err)
-				continue
-			}
-			return nil
-		}
-
-		if restriction.ClusterRole != nil {
-			if !clusterRoleEvaluatorInstance.Handles(scope) {
-				continue
-			}
-			if err := validateClusterRoleScopeRestrictions(scope, *restriction.ClusterRole); err != nil {
-				errs = append(errs, err)
-				continue
-			}
-			return nil
-		}
-	}
-
-	// if we got here, then nothing matched.   If we already have errors, do nothing, otherwise add one to make it report failed.
-	if len(errs) == 0 {
-		errs = append(errs, fmt.Errorf("%v did not match any scope restriction", scope))
-	}
-
-	return kutilerrors.NewAggregate(errs)
-}
-
-func validateLiteralScopeRestrictions(scope string, literals []string) error {
-	for _, literal := range literals {
-		if literal == scope {
-			return nil
-		}
-	}
-
-	return fmt.Errorf("%v not found in %v", scope, literals)
-}
-
-func validateClusterRoleScopeRestrictions(scope string, restriction oauthv1.ClusterRoleScopeRestriction) error {
-	role, namespace, escalating, err := clusterRoleEvaluatorInstance.parseScope(scope)
-	if err != nil {
-		return err
-	}
-
-	foundName := false
-	for _, restrictedRoleName := range restriction.RoleNames {
-		if restrictedRoleName == "*" || restrictedRoleName == role {
-			foundName = true
-			break
-		}
-	}
-	if !foundName {
-		return fmt.Errorf("%v does not use an approved name", scope)
-	}
-
-	foundNamespace := false
-	for _, restrictedNamespace := range restriction.Namespaces {
-		if restrictedNamespace == "*" || restrictedNamespace == namespace {
-			foundNamespace = true
-			break
-		}
-	}
-	if !foundNamespace {
-		return fmt.Errorf("%v does not use an approved namespace", scope)
-	}
-
-	if escalating && !restriction.AllowEscalation {
-		return fmt.Errorf("%v is not allowed to escalate", scope)
-	}
-
-	return nil
 }

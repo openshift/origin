@@ -16,7 +16,7 @@ import (
 
 	oapi "github.com/openshift/api/oauth/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
-	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
+	"github.com/openshift/origin/pkg/authorization/authorizer/scopelibrary"
 	"github.com/openshift/origin/pkg/oauth/scope"
 	"github.com/openshift/origin/pkg/oauthserver"
 	"github.com/openshift/origin/pkg/oauthserver/api"
@@ -130,7 +130,7 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	if err := scopeauthorizer.ValidateScopeRestrictions(client, scopes...); err != nil {
+	if err := scopelibrary.ValidateScopeRestrictions(client, scopes...); err != nil {
 		failure := fmt.Sprintf("%v requested illegal scopes (%v): %v", client.Name, scopes, err)
 		l.failed(failure, w, req)
 		return
@@ -226,7 +226,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 		l.failed("Could not find client for client_id", w, req)
 		return
 	}
-	if err := scopeauthorizer.ValidateScopeRestrictions(client, scope.Split(scopes)...); err != nil {
+	if err := scopelibrary.ValidateScopeRestrictions(client, scope.Split(scopes)...); err != nil {
 		failure := fmt.Sprintf("%v requested illegal scopes (%v): %v", client.Name, scopes, err)
 		l.failed(failure, w, req)
 		return
@@ -297,7 +297,7 @@ func getScopeData(scopeName string, grantedScopeNames []string) Scope {
 		Error:   fmt.Sprintf("Unknown scope"),
 		Granted: scope.Covers(grantedScopeNames, []string{scopeName}),
 	}
-	for _, evaluator := range scopeauthorizer.ScopeEvaluators {
+	for _, evaluator := range scopelibrary.ScopeDescribers {
 		if !evaluator.Handles(scopeName) {
 			continue
 		}
