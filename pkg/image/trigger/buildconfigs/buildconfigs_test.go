@@ -6,11 +6,15 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/watch"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
 	buildv1 "github.com/openshift/api/build/v1"
+
+	v1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 )
 
 type fakeTagResponse struct {
@@ -74,6 +78,55 @@ func (i *instantiator) Instantiate(namespace string, request *buildv1.BuildReque
 	i.ns = namespace
 	i.request = request
 	return i.build, i.err
+}
+
+type fakeBuildConfigInterface struct {
+	inst      *instantiator
+	namespace string
+}
+
+func (fakeBuildConfigInterface) Create(*buildv1.BuildConfig) (*buildv1.BuildConfig, error) {
+	panic("implement me")
+}
+
+func (fakeBuildConfigInterface) Update(*buildv1.BuildConfig) (*buildv1.BuildConfig, error) {
+	panic("implement me")
+}
+
+func (fakeBuildConfigInterface) UpdateStatus(*buildv1.BuildConfig) (*buildv1.BuildConfig, error) {
+	panic("implement me")
+}
+
+func (fakeBuildConfigInterface) Delete(name string, options *metav1.DeleteOptions) error {
+	panic("implement me")
+}
+
+func (fakeBuildConfigInterface) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	panic("implement me")
+}
+
+func (fakeBuildConfigInterface) Get(name string, options metav1.GetOptions) (*buildv1.BuildConfig, error) {
+	panic("implement me")
+}
+
+func (fakeBuildConfigInterface) List(opts metav1.ListOptions) (*buildv1.BuildConfigList, error) {
+	panic("implement me")
+}
+
+func (fakeBuildConfigInterface) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	panic("implement me")
+}
+
+func (fakeBuildConfigInterface) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *buildv1.BuildConfig, err error) {
+	panic("implement me")
+}
+
+func (f *fakeBuildConfigInterface) Instantiate(buildConfigName string, buildRequest *buildv1.BuildRequest) (*buildv1.Build, error) {
+	return f.inst.Instantiate(f.namespace, buildRequest)
+}
+
+func (i *instantiator) BuildConfigs(namespace string) v1.BuildConfigInterface {
+	return &fakeBuildConfigInterface{inst: i, namespace: namespace}
 }
 
 func TestBuildConfigReactor(t *testing.T) {

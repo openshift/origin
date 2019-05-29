@@ -1,71 +1,55 @@
 package policy
 
 import (
-	"errors"
 	"strings"
 	"testing"
 
-	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/client-go/build/clientset/versioned/fake"
+	v1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildlister "github.com/openshift/client-go/build/listers/build/v1"
+
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
-type fakeBuildClient struct {
-	builds         *buildv1.BuildList
-	updateErrCount int
-}
-
-func newTestClient(builds []buildv1.Build) *fakeBuildClient {
-	return &fakeBuildClient{builds: &buildv1.BuildList{Items: builds}}
-}
-
-func (f *fakeBuildClient) List(namespace string, opts metav1.ListOptions) (*buildv1.BuildList, error) {
-	return f.builds, nil
-}
-
-func (f *fakeBuildClient) Update(namespace string, build *buildv1.Build) error {
-	// Make sure every update fails at least once with conflict to ensure build updates are
-	// retried.
-	if f.updateErrCount == 0 {
-		f.updateErrCount = 1
-		return kerrors.NewConflict(corev1.Resource("builds"), build.Name, errors.New("confict"))
-	} else {
-		f.updateErrCount = 0
+func newTestClient(builds ...buildv1.Build) v1.BuildsGetter {
+	startingObjects := []runtime.Object{}
+	for i := range builds {
+		startingObjects = append(startingObjects, &builds[i])
 	}
-	for i, item := range f.builds.Items {
-		if build.Name == item.Name {
-			f.builds.Items[i] = *build
-		}
-	}
-	return nil
-}
-
-func (f *fakeBuildClient) Lister() buildlister.BuildLister {
-	return &fakeBuildLister{f: f}
+	return fake.NewSimpleClientset(startingObjects...).BuildV1()
 }
 
 type fakeBuildLister struct {
-	f *fakeBuildClient
+	f v1.BuildsGetter
 }
 
 func (f *fakeBuildLister) List(label labels.Selector) ([]*buildv1.Build, error) {
 	var items []*buildv1.Build
-	for i := range f.f.builds.Items {
-		items = append(items, &f.f.builds.Items[i])
+	builds, err := f.f.Builds("test").List(metav1.ListOptions{LabelSelector: label.String()})
+	if err != nil {
+		return nil, err
+	}
+	for i := range builds.Items {
+		items = append(items, &builds.Items[i])
 	}
 	return items, nil
 }
 
 func (f *fakeBuildLister) Get(name string) (*buildv1.Build, error) {
-	for i := range f.f.builds.Items {
-		if f.f.builds.Items[i].Name == name {
-			return &f.f.builds.Items[i], nil
+	builds, err := f.List(labels.Everything())
+	if err != nil {
+		return nil, err
+	}
+	for i := range builds {
+		if builds[i].Name == name {
+			return builds[i], nil
 		}
 	}
 	return nil, kerrors.NewNotFound(schema.GroupResource{Resource: "builds"}, name)
@@ -100,8 +84,10 @@ func TestForBuild(t *testing.T) {
 		addBuild("build-2", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicySerial),
 		addBuild("build-3", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicySerialLatestOnly),
 	}
-	client := newTestClient(builds)
-	policies := GetAllRunPolicies(client.Lister(), client)
+	client := newTestClient(builds...)
+	lister := &fakeBuildLister{f: client}
+
+	policies := GetAllRunPolicies(lister, client)
 
 	if policy := ForBuild(&builds[0], policies); policy != nil {
 		if _, ok := policy.(*ParallelPolicy); !ok {
@@ -134,10 +120,10 @@ func TestGetNextConfigBuildSerial(t *testing.T) {
 		addBuild("build-2", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicySerial),
 		addBuild("build-3", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicySerial),
 	}
+	client := newTestClient(builds...)
+	lister := &fakeBuildLister{f: client}
 
-	client := newTestClient(builds)
-
-	resultBuilds, isRunning, err := GetNextConfigBuild(client.Lister(), "namespace", "bc")
+	resultBuilds, isRunning, err := GetNextConfigBuild(lister, "test", "sample-bc")
 	if err != nil {
 		t.Errorf("unexpected error %v", err)
 	}
@@ -163,9 +149,10 @@ func TestGetNextConfigBuildParallel(t *testing.T) {
 		addBuild("build-3", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicyParallel),
 	}
 
-	client := newTestClient(builds)
+	client := newTestClient(builds...)
+	lister := &fakeBuildLister{f: client}
 
-	resultBuilds, running, err := GetNextConfigBuild(client.Lister(), "namespace", "bc")
+	resultBuilds, running, err := GetNextConfigBuild(lister, "test", "sample-bc")
 	if err != nil {
 		t.Errorf("unexpected error %v", err)
 	}

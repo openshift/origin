@@ -12,8 +12,8 @@ func TestSerialIsRunnableNewBuilds(t *testing.T) {
 		addBuild("build-2", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicySerial),
 		addBuild("build-3", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicySerial),
 	}
-	client := newTestClient(allNewBuilds)
-	policy := SerialPolicy{BuildLister: client.Lister(), BuildUpdater: client}
+	client := newTestClient(allNewBuilds...)
+	policy := SerialPolicy{BuildLister: &fakeBuildLister{client}}
 	runnableBuilds := []string{
 		"build-1",
 	}

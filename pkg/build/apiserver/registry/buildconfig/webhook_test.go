@@ -15,6 +15,8 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	clientesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
@@ -22,6 +24,8 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildfake "github.com/openshift/client-go/build/clientset/versioned/fake"
+	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/build/webhook/bitbucket"
@@ -29,6 +33,75 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook/gitlab"
 	// _ "github.com/openshift/origin/pkg/api/install"
 )
+
+type fakeInstantiator interface {
+	Instantiate(buildConfigName string, buildRequest *buildv1.BuildRequest) (*buildv1.Build, error)
+}
+
+type fakeBuildConfigInterface struct {
+	inst      fakeInstantiator
+	client    buildclientv1.BuildConfigInterface
+	namespace string
+}
+
+func (f *fakeBuildConfigInterface) Create(build *buildv1.BuildConfig) (*buildv1.BuildConfig, error) {
+	return f.client.Create(build)
+}
+
+func (f *fakeBuildConfigInterface) Update(build *buildv1.BuildConfig) (*buildv1.BuildConfig, error) {
+	return f.client.Update(build)
+}
+
+func (f *fakeBuildConfigInterface) UpdateStatus(build *buildv1.BuildConfig) (*buildv1.BuildConfig, error) {
+	return f.client.UpdateStatus(build)
+}
+
+func (f *fakeBuildConfigInterface) Delete(name string, options *metav1.DeleteOptions) error {
+	return f.client.Delete(name, options)
+}
+
+func (f *fakeBuildConfigInterface) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	panic("implement me")
+}
+
+func (f *fakeBuildConfigInterface) Get(name string, options metav1.GetOptions) (*buildv1.BuildConfig, error) {
+	return f.client.Get(name, options)
+}
+
+func (f *fakeBuildConfigInterface) List(opts metav1.ListOptions) (*buildv1.BuildConfigList, error) {
+	return f.client.List(opts)
+}
+
+func (f *fakeBuildConfigInterface) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	return f.client.Watch(opts)
+}
+
+func (f *fakeBuildConfigInterface) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *buildv1.BuildConfig, err error) {
+	return f.client.Patch(name, pt, data, subresources...)
+}
+
+func (f *fakeBuildConfigInterface) Instantiate(buildConfigName string, buildRequest *buildv1.BuildRequest) (*buildv1.Build, error) {
+	return f.inst.Instantiate(f.namespace, buildRequest)
+}
+
+type fakeBuildConfigClient struct {
+	inst       fakeInstantiator
+	client     buildclientv1.BuildConfigsGetter
+	fakeclient *buildfake.Clientset
+}
+
+func (i *fakeBuildConfigClient) BuildConfigs(namespace string) buildclientv1.BuildConfigInterface {
+	return &fakeBuildConfigInterface{inst: i.inst, client: i.client.BuildConfigs(namespace)}
+}
+
+func newBuildConfigClient(inst fakeInstantiator, objs ...runtime.Object) buildclientv1.BuildConfigsGetter {
+	client := buildfake.NewSimpleClientset(objs...)
+	return &fakeBuildConfigClient{
+		inst:       inst,
+		fakeclient: client,
+		client:     client.BuildV1(),
+	}
+}
 
 type buildConfigInstantiator struct {
 	Build   *buildv1.Build
@@ -68,8 +141,8 @@ func (p *plugin) GetTriggers(buildConfig *buildv1.BuildConfig) ([]*buildv1.WebHo
 	return []*buildv1.WebHookTrigger{trigger}, nil
 }
 func newStorage() (*WebHook, *buildConfigInstantiator, *buildfake.Clientset) {
-	fakeBuildClient := buildfake.NewSimpleClientset()
 	bci := &buildConfigInstantiator{}
+	fakeBuildClient := newBuildConfigClient(bci)
 	plugins := map[string]webhook.Plugin{
 		"ok": &plugin{Proceed: true},
 		"okenv": &plugin{
@@ -85,9 +158,9 @@ func newStorage() (*WebHook, *buildConfigInstantiator, *buildfake.Clientset) {
 		"errhook":   &plugin{Err: webhook.ErrHookNotEnabled},
 		"err":       &plugin{Err: fmt.Errorf("test error")},
 	}
-	hook := newWebHookREST(fakeBuildClient.BuildV1(), nil, bci, buildv1.SchemeGroupVersion, plugins)
+	hook := newWebHookREST(fakeBuildClient, nil, buildv1.SchemeGroupVersion, plugins)
 
-	return hook, bci, fakeBuildClient
+	return hook, bci, fakeBuildClient.(*fakeBuildConfigClient).fakeclient
 }
 
 type fakeResponder struct {
@@ -165,7 +238,7 @@ func TestConnectWebHook(t *testing.T) {
 				body, _ := ioutil.ReadAll(w.Body)
 				// We want to make sure that we return the created build in the body.
 				if w.Code == http.StatusOK && len(body) > 0 {
-					// The returned json needs to be a v1 Build specifically
+					// The returned json needs to be a buildclientv1 Build specifically
 					newBuild := &buildv1.Build{}
 					err := json.Unmarshal(body, newBuild)
 					if err == nil {
@@ -340,8 +413,8 @@ var mockBuildStrategy = buildv1.BuildStrategy{
 
 func TestParseUrlError(t *testing.T) {
 	responder := &fakeResponder{}
-	handler, _ := newWebHookREST(buildfake.NewSimpleClientset(testBuildConfig).BuildV1(), nil, &okBuildConfigInstantiator{},
-		buildv1.SchemeGroupVersion,
+	client := newBuildConfigClient(&okBuildConfigInstantiator{})
+	handler, _ := newWebHookREST(client, nil, buildv1.SchemeGroupVersion,
 		map[string]webhook.Plugin{"github": github.New(), "gitlab": gitlab.New(), "bitbucket": bitbucket.New()}).
 		Connect(apirequest.WithNamespace(apirequest.NewDefaultContext(), testBuildConfig.Namespace), "build100", &kapi.PodProxyOptions{Path: ""}, responder)
 	server := httptest.NewServer(handler)
@@ -359,8 +432,8 @@ func TestParseUrlError(t *testing.T) {
 
 func TestParseUrlOK(t *testing.T) {
 	responder := &fakeResponder{}
-	handler, _ := newWebHookREST(buildfake.NewSimpleClientset(testBuildConfig).BuildV1(), nil, &okBuildConfigInstantiator{}, buildv1.SchemeGroupVersion,
-		map[string]webhook.Plugin{"pathplugin": &pathPlugin{}}).
+	client := newBuildConfigClient(&okBuildConfigInstantiator{}, testBuildConfig)
+	handler, _ := newWebHookREST(client, nil, buildv1.SchemeGroupVersion, map[string]webhook.Plugin{"pathplugin": &pathPlugin{}}).
 		Connect(apirequest.WithNamespace(apirequest.NewDefaultContext(), testBuildConfig.Namespace), "build100", &kapi.PodProxyOptions{Path: "secret101/pathplugin"}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -377,8 +450,8 @@ func TestParseUrlOK(t *testing.T) {
 func TestParseUrlLong(t *testing.T) {
 	plugin := &pathPlugin{}
 	responder := &fakeResponder{}
-	handler, _ := newWebHookREST(buildfake.NewSimpleClientset(testBuildConfig).BuildV1(), nil, &okBuildConfigInstantiator{},
-		buildv1.SchemeGroupVersion, map[string]webhook.Plugin{"pathplugin": plugin}).
+	client := newBuildConfigClient(&okBuildConfigInstantiator{}, testBuildConfig)
+	handler, _ := newWebHookREST(client, nil, buildv1.SchemeGroupVersion, map[string]webhook.Plugin{"pathplugin": plugin}).
 		Connect(apirequest.WithNamespace(apirequest.NewDefaultContext(), testBuildConfig.Namespace), "build100", &kapi.PodProxyOptions{Path: "secret101/pathplugin/some/more/args"}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -395,8 +468,9 @@ func TestParseUrlLong(t *testing.T) {
 
 func TestInvokeWebhookMissingPlugin(t *testing.T) {
 	responder := &fakeResponder{}
-	handler, _ := newWebHookREST(buildfake.NewSimpleClientset(testBuildConfig).BuildV1(), nil, &okBuildConfigInstantiator{}, buildv1.SchemeGroupVersion, map[string]webhook.Plugin{"pathplugin": &pathPlugin{}}).
-		Connect(apirequest.WithNamespace(apirequest.NewDefaultContext(), testBuildConfig.Namespace), "build100", &kapi.PodProxyOptions{Path: "secret101/missingplugin"}, responder)
+	client := newBuildConfigClient(&okBuildConfigInstantiator{}, testBuildConfig)
+	handler, _ := newWebHookREST(client, nil, buildv1.SchemeGroupVersion, map[string]webhook.Plugin{"pathplugin": &pathPlugin{}}).Connect(apirequest.WithNamespace(apirequest.NewDefaultContext(),
+		testBuildConfig.Namespace), "build100", &kapi.PodProxyOptions{Path: "secret101/missingplugin"}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -412,7 +486,8 @@ func TestInvokeWebhookMissingPlugin(t *testing.T) {
 
 func TestInvokeWebhookErrorBuildConfigInstantiate(t *testing.T) {
 	responder := &fakeResponder{}
-	handler, _ := newWebHookREST(buildfake.NewSimpleClientset(testBuildConfig).BuildV1(), nil, &errorBuildConfigInstantiator{}, buildv1.SchemeGroupVersion, map[string]webhook.Plugin{"pathplugin": &pathPlugin{}}).
+	client := newBuildConfigClient(&errorBuildConfigInstantiator{}, testBuildConfig)
+	handler, _ := newWebHookREST(client, nil, buildv1.SchemeGroupVersion, map[string]webhook.Plugin{"pathplugin": &pathPlugin{}}).
 		Connect(apirequest.WithNamespace(apirequest.NewDefaultContext(), testBuildConfig.Namespace), "build100", &kapi.PodProxyOptions{Path: "secret101/pathplugin"}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -429,7 +504,8 @@ func TestInvokeWebhookErrorBuildConfigInstantiate(t *testing.T) {
 
 func TestInvokeWebhookErrorGetConfig(t *testing.T) {
 	responder := &fakeResponder{}
-	handler, _ := newWebHookREST(buildfake.NewSimpleClientset(testBuildConfig).BuildV1(), nil, &okBuildConfigInstantiator{}, buildv1.SchemeGroupVersion, map[string]webhook.Plugin{"pathplugin": &pathPlugin{}}).
+	client := newBuildConfigClient(&okBuildConfigInstantiator{}, testBuildConfig)
+	handler, _ := newWebHookREST(client, nil, buildv1.SchemeGroupVersion, map[string]webhook.Plugin{"pathplugin": &pathPlugin{}}).
 		Connect(apirequest.WithNamespace(apirequest.NewDefaultContext(), testBuildConfig.Namespace), "badbuild100", &kapi.PodProxyOptions{Path: "secret101/pathplugin"}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()
@@ -448,7 +524,8 @@ func TestInvokeWebhookErrorGetConfig(t *testing.T) {
 
 func TestInvokeWebhookErrorCreateBuild(t *testing.T) {
 	responder := &fakeResponder{}
-	handler, _ := newWebHookREST(buildfake.NewSimpleClientset(testBuildConfig).BuildV1(), nil, &okBuildConfigInstantiator{}, buildv1.SchemeGroupVersion, map[string]webhook.Plugin{"errPlugin": &errPlugin{}}).
+	client := newBuildConfigClient(&okBuildConfigInstantiator{}, testBuildConfig)
+	handler, _ := newWebHookREST(client, nil, buildv1.SchemeGroupVersion, map[string]webhook.Plugin{"errPlugin": &errPlugin{}}).
 		Connect(apirequest.WithNamespace(apirequest.NewDefaultContext(), testBuildConfig.Namespace), "build100", &kapi.PodProxyOptions{Path: "secret101/errPlugin"}, responder)
 	server := httptest.NewServer(handler)
 	defer server.Close()
