@@ -15,7 +15,3 @@ rules:
     source:
       branch: release-3.10
       dir: vendor/k8s.io/kubernetes
-  - name: release-1.9.1
-    source:
-      branch: release-3.9
-      dir: vendor/k8s.io/kubernetes
