@@ -11,11 +11,11 @@ import (
 	"k8s.io/client-go/rest"
 
 	projectv1client "github.com/openshift/client-go/project/clientset/versioned/typed/project/v1"
+	"github.com/openshift/oc/pkg/helpers/tokencmd"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/cli/requestproject"
-	"github.com/openshift/origin/pkg/oc/lib/tokencmd"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
