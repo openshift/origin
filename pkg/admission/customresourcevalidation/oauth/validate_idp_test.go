@@ -122,7 +122,7 @@ func TestValidateOAuthSpec(t *testing.T) {
 				},
 			},
 			want: field.ErrorList{
-				field.Invalid(field.NewPath("spec", "identityProvider").Index(2).Child("name"), "aname", "must have a unique name"),
+				field.Invalid(field.NewPath("spec", "identityProviders").Index(2).Child("name"), "aname", "must have a unique name"),
 			},
 		},
 		{

@@ -41,7 +41,7 @@ func validateOAuthSpec(spec configv1.OAuthSpec) field.ErrorList {
 			}
 		}
 
-		identityProviderPath := specPath.Child("identityProvider").Index(i)
+		identityProviderPath := specPath.Child("identityProviders").Index(i)
 		errs = append(errs, ValidateIdentityProvider(identityProvider, identityProviderPath)...)
 
 		if len(identityProvider.Name) > 0 {
