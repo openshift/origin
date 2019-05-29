@@ -3,8 +3,9 @@ package podnodeconstraints
 import (
 	"fmt"
 	"io"
-	"reflect"
 
+	"github.com/openshift/library-go/pkg/config/helpers"
+	v1 "github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints/v1"
 	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -15,7 +16,6 @@ import (
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 
-	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/scheduler/admission/apis/podnodeconstraints"
 )
 
@@ -79,10 +79,7 @@ var resourcesToCheck = map[schema.GroupResource]schema.GroupKind{
 }
 
 func readConfig(reader io.Reader) (*podnodeconstraints.PodNodeConstraintsConfig, error) {
-	if reader == nil || reflect.ValueOf(reader).IsNil() {
-		return nil, nil
-	}
-	obj, err := configlatest.ReadYAML(reader)
+	obj, err := helpers.ReadYAMLToInternal(reader, podnodeconstraints.Install, v1.Install)
 	if err != nil {
 		return nil, err
 	}
