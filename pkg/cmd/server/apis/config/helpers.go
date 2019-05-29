@@ -1,7 +1,6 @@
 package config
 
 import (
-	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -16,7 +15,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/library-go/pkg/config/helpers"
 )
 
 // ParseNamespaceAndName returns back the namespace and name (empty if something goes wrong), for a given string.
@@ -34,12 +33,8 @@ func ParseNamespaceAndName(in string) (string, string, error) {
 	return tokens[0], tokens[1], nil
 }
 
-func RelativizeMasterConfigPaths(config *MasterConfig, base string) error {
-	return cmdutil.RelativizePathWithNoBacksteps(GetMasterFileReferences(config), base)
-}
-
 func ResolveMasterConfigPaths(config *MasterConfig, base string) error {
-	return cmdutil.ResolvePaths(GetMasterFileReferences(config), base)
+	return helpers.ResolvePaths(GetMasterFileReferences(config), base)
 }
 
 func GetMasterFileReferences(config *MasterConfig) []*string {
@@ -201,12 +196,8 @@ func appendFlagsWithFileExtensions(refs []*string, args ExtendedArguments) []*st
 	return refs
 }
 
-func RelativizeNodeConfigPaths(config *NodeConfig, base string) error {
-	return cmdutil.RelativizePathWithNoBacksteps(GetNodeFileReferences(config), base)
-}
-
 func ResolveNodeConfigPaths(config *NodeConfig, base string) error {
-	return cmdutil.ResolvePaths(GetNodeFileReferences(config), base)
+	return helpers.ResolvePaths(GetNodeFileReferences(config), base)
 }
 
 func GetNodeFileReferences(config *NodeConfig) []*string {
@@ -310,30 +301,6 @@ func DefaultClientTransport(rt http.RoundTripper) http.RoundTripper {
 	// TODO: this should be configured by the caller, not in this method.
 	transport.MaxIdleConnsPerHost = 100
 	return transport
-}
-
-func GetOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
-	allCerts := []*x509.Certificate{}
-
-	if options.OAuthConfig != nil {
-		for _, identityProvider := range options.OAuthConfig.IdentityProviders {
-
-			switch provider := identityProvider.Provider.(type) {
-			case *RequestHeaderIdentityProvider:
-				caFile := provider.ClientCA
-				if len(caFile) == 0 {
-					continue
-				}
-				certs, err := cmdutil.CertificatesFromFile(caFile)
-				if err != nil {
-					return nil, fmt.Errorf("Error reading %s: %s", caFile, err)
-				}
-				allCerts = append(allCerts, certs...)
-			}
-		}
-	}
-
-	return allCerts, nil
 }
 
 func IsPasswordAuthenticator(provider IdentityProvider) bool {

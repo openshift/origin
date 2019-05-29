@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"k8s.io/client-go/util/cert"
+
 	"k8s.io/klog"
 
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
@@ -21,7 +23,6 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/library-go/pkg/crypto"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
 // TODO make this an actual API server built on the genericapiserver
@@ -111,11 +112,11 @@ func serveControllers(servingInfo configv1.HTTPServingInfo, handler http.Handler
 			ClientAuth: tls.RequestClientCert,
 			ClientCAs:  clientCAs,
 			// Set SNI certificate func
-			GetCertificate: cmdutil.GetCertificateFunc(extraCerts),
+			GetCertificate: GetCertificateFunc(extraCerts),
 			MinVersion:     crypto.TLSVersionOrDie(servingInfo.MinTLSVersion),
 			CipherSuites:   crypto.CipherSuitesOrDie(servingInfo.CipherSuites),
 		})
-		klog.Fatal(cmdutil.ListenAndServeTLS(server, servingInfo.BindNetwork, servingInfo.CertFile, servingInfo.KeyFile))
+		klog.Fatal(ListenAndServeTLS(server, servingInfo.BindNetwork, servingInfo.CertFile, servingInfo.KeyFile))
 	}, 0)
 
 	return nil
@@ -124,7 +125,7 @@ func serveControllers(servingInfo configv1.HTTPServingInfo, handler http.Handler
 func getClientCertCAPool(servingInfo configv1.HTTPServingInfo) (*x509.CertPool, error) {
 	roots := x509.NewCertPool()
 	// Add CAs for API
-	certs, err := cmdutil.CertificatesFromFile(servingInfo.ClientCA)
+	certs, err := cert.CertsFromFile(servingInfo.ClientCA)
 	if err != nil {
 		return nil, err
 	}

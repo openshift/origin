@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/client-go/util/cert"
+
 	"github.com/openshift/library-go/pkg/crypto"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/util"
@@ -141,7 +143,7 @@ func TestOAuthBasicAuthPassword(t *testing.T) {
 	certNames[basicAuthClientKey] = filepath.Join(certDir, basicAuthClientKey)
 
 	// Build client cert pool
-	clientCAs, err := util.CertPoolFromFile(certNames[basicAuthRemoteCACert])
+	clientCAs, err := cert.NewPool(certNames[basicAuthRemoteCACert])
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
