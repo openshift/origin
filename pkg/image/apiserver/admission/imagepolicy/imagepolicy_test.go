@@ -26,8 +26,6 @@ import (
 
 	"github.com/openshift/api/image"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configinstall "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagepolicy "github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/v1"
 	"github.com/openshift/origin/pkg/image/apiserver/admission/apis/imagepolicy/validation"
@@ -47,10 +45,6 @@ var (
 	buildConfigGroupVersionResource = schema.GroupVersionResource{Group: "build.openshift.io", Version: "v1", Resource: "buildconfigs"}
 	buildConfigGroupVersionKind     = schema.GroupVersionKind{Group: "build.openshift.io", Version: "v1", Kind: "BuildConfig"}
 )
-
-func init() {
-	configinstall.InstallLegacyInternal(configapi.Scheme)
-}
 
 type resolveFunc func(ref *kapi.ObjectReference, defaultNamespace string, forceLocalResolve bool) (*rules.ImagePolicyAttributes, error)
 

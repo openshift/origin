@@ -5,8 +5,9 @@ package admission
 import (
 	"fmt"
 	"io"
-	"reflect"
 
+	"github.com/openshift/library-go/pkg/config/helpers"
+	v1 "github.com/openshift/origin/pkg/route/apiserver/admission/apis/ingressadmission/v1"
 	"k8s.io/kubernetes/pkg/apis/networking"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -18,7 +19,6 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
 
-	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/route/apiserver/admission/apis/ingressadmission"
 )
 
@@ -54,10 +54,7 @@ func NewIngressAdmission(config *ingressadmission.IngressAdmissionConfig) *ingre
 }
 
 func readConfig(reader io.Reader) (*ingressadmission.IngressAdmissionConfig, error) {
-	if reader == nil || reflect.ValueOf(reader).IsNil() {
-		return nil, nil
-	}
-	obj, err := configlatest.ReadYAML(reader)
+	obj, err := helpers.ReadYAMLToInternal(reader, ingressadmission.Install, v1.Install)
 	if err != nil {
 		return nil, err
 	}

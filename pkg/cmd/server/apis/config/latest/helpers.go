@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"path"
-	"reflect"
 
 	"github.com/ghodss/yaml"
 	"k8s.io/klog"
@@ -25,27 +23,6 @@ func ReadSessionSecrets(filename string) (*configapi.SessionSecrets, error) {
 		return nil, err
 	}
 	return config, nil
-}
-
-func ReadMasterConfig(filename string) (*configapi.MasterConfig, error) {
-	config := &configapi.MasterConfig{}
-	if err := ReadYAMLFileInto(filename, config); err != nil {
-		return nil, err
-	}
-	return config, nil
-}
-
-func ReadAndResolveMasterConfig(filename string) (*configapi.MasterConfig, error) {
-	masterConfig, err := ReadMasterConfig(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := configapi.ResolveMasterConfigPaths(masterConfig, path.Dir(filename)); err != nil {
-		return nil, err
-	}
-
-	return masterConfig, nil
 }
 
 func ReadNodeConfig(filename string) (*configapi.NodeConfig, error) {
@@ -81,29 +58,6 @@ func WriteYAML(obj runtime.Object) ([]byte, error) {
 		return nil, err
 	}
 	return content, err
-}
-
-func ReadYAML(reader io.Reader) (runtime.Object, error) {
-	if reader == nil || reflect.ValueOf(reader).IsNil() {
-		return nil, nil
-	}
-	data, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return nil, err
-	}
-	jsonData, err := kyaml.ToJSON(data)
-	if err != nil {
-		return nil, err
-	}
-	obj, err := runtime.Decode(Codec, jsonData)
-	if err != nil {
-		return nil, captureSurroundingJSONForError("error reading config: ", jsonData, err)
-	}
-	// make sure there are no extra fields in jsonData
-	if err := strictDecodeCheck(jsonData, obj); err != nil {
-		return nil, err
-	}
-	return obj, nil
 }
 
 // TODO: Remove this when a YAML serializer is available from upstream
@@ -181,25 +135,4 @@ func captureSurroundingJSONForError(prefix string, data []byte, err error) error
 		return fmt.Errorf("%s%v", prefix, err)
 	}
 	return err
-}
-
-// IsAdmissionPluginActivated returns true if the admission plugin is activated using configapi.DefaultAdmissionConfig
-// otherwise it returns a default value
-func IsAdmissionPluginActivated(reader io.Reader, defaultValue bool) (bool, error) {
-	obj, err := ReadYAML(reader)
-	if err != nil {
-		return false, err
-	}
-	if obj == nil {
-		return defaultValue, nil
-	}
-	activationConfig, ok := obj.(*configapi.DefaultAdmissionConfig)
-	if !ok {
-		// if we failed the cast, then we've got a config object specified for this admission plugin
-		// that means that this must be enabled and all additional validation is up to the
-		// admission plugin itself
-		return true, nil
-	}
-
-	return !activationConfig.Disable, nil
 }

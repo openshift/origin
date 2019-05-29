@@ -5,6 +5,9 @@ import (
 	"io"
 	"strings"
 
+	"github.com/openshift/library-go/pkg/config/helpers"
+	v1 "github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride/v1"
+
 	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
@@ -20,7 +23,6 @@ import (
 
 	api "github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride"
 	"github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride/validation"
-	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated"
 )
 
@@ -103,7 +105,7 @@ func (d *clusterResourceOverridePlugin) SetExternalKubeInformerFactory(kubeInfor
 }
 
 func ReadConfig(configFile io.Reader) (*api.ClusterResourceOverrideConfig, error) {
-	obj, err := configlatest.ReadYAML(configFile)
+	obj, err := helpers.ReadYAMLToInternal(configFile, api.Install, v1.Install)
 	if err != nil {
 		klog.V(5).Infof("%s error reading config: %v", api.PluginName, err)
 		return nil, err
