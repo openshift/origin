@@ -10,8 +10,8 @@ import (
 
 	oauth "github.com/openshift/api/oauth/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
-	"github.com/openshift/origin/pkg/oauth/scope"
 	"github.com/openshift/origin/pkg/oauthserver/api"
+	"github.com/openshift/origin/pkg/oauthserver/scopecovers"
 
 	"k8s.io/klog"
 )
@@ -49,7 +49,7 @@ func (c *ClientAuthorizationGrantChecker) HasAuthorizedClient(user kuser.Info, g
 	}
 
 	// TODO: improve this to allow the scope implementation to determine overlap
-	if authorization == nil || !scope.Covers(authorization.Scopes, scope.Split(grant.Scope)) {
+	if authorization == nil || !scopecovers.Covers(authorization.Scopes, scopecovers.Split(grant.Scope)) {
 		return false, nil
 	}
 

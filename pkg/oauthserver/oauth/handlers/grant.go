@@ -16,9 +16,9 @@ import (
 
 	oauthapi "github.com/openshift/api/oauth/v1"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scopelibrary"
-	"github.com/openshift/origin/pkg/oauth/scope"
 	"github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/osinserver"
+	"github.com/openshift/origin/pkg/oauthserver/scopecovers"
 )
 
 // GrantCheck implements osinserver.AuthorizeHandler to ensure requested scopes have been authorized
@@ -64,11 +64,11 @@ func (h *GrantCheck) HandleAuthorize(ar *osin.AuthorizeRequest, resp *osin.Respo
 	}
 
 	// Normalize the scope request, and ensure all tokens contain a scope
-	scopes := scope.Split(ar.Scope)
+	scopes := scopecovers.Split(ar.Scope)
 	if len(scopes) == 0 {
 		scopes = append(scopes, "user:full")
 	}
-	ar.Scope = scope.Join(scopes)
+	ar.Scope = scopecovers.Join(scopes)
 
 	// Validate the requested scopes
 	if scopeErrors := scopelibrary.ValidateScopes(scopes, nil); len(scopeErrors) > 0 {

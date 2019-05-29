@@ -16,9 +16,9 @@ import (
 
 	oauthapi "github.com/openshift/api/oauth/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
-	"github.com/openshift/origin/pkg/oauth/scope"
 	"github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
+	"github.com/openshift/origin/pkg/oauthserver/scopecovers"
 )
 
 type storage struct {
@@ -196,7 +196,7 @@ func (s *storage) convertToAuthorizeToken(data *osin.AuthorizeData) (*oauthapi.O
 		CodeChallengeMethod: data.CodeChallengeMethod,
 		ClientName:          data.Client.GetId(),
 		ExpiresIn:           int64(data.ExpiresIn),
-		Scopes:              scope.Split(data.Scope),
+		Scopes:              scopecovers.Split(data.Scope),
 		RedirectURI:         data.RedirectUri,
 		State:               data.State,
 	}
@@ -226,7 +226,7 @@ func (s *storage) convertFromAuthorizeToken(authorize *oauthapi.OAuthAuthorizeTo
 		CodeChallengeMethod: authorize.CodeChallengeMethod,
 		Client:              &clientWrapper{authorize.ClientName, client},
 		ExpiresIn:           int32(authorize.ExpiresIn),
-		Scope:               scope.Join(authorize.Scopes),
+		Scope:               scopecovers.Join(authorize.Scopes),
 		RedirectUri:         authorize.RedirectURI,
 		State:               authorize.State,
 		CreatedAt:           authorize.CreationTimestamp.Time,
@@ -244,7 +244,7 @@ func (s *storage) convertToAccessToken(data *osin.AccessData) (*oauthapi.OAuthAc
 		ExpiresIn:    int64(data.ExpiresIn),
 		RefreshToken: data.RefreshToken,
 		ClientName:   data.Client.GetId(),
-		Scopes:       scope.Split(data.Scope),
+		Scopes:       scopecovers.Split(data.Scope),
 		RedirectURI:  data.RedirectUri,
 	}
 	if data.AuthorizeData != nil {
@@ -284,7 +284,7 @@ func (s *storage) convertFromAccessToken(access *oauthapi.OAuthAccessToken) (*os
 		RefreshToken: access.RefreshToken,
 		Client:       &clientWrapper{access.ClientName, client},
 		ExpiresIn:    int32(access.ExpiresIn),
-		Scope:        scope.Join(access.Scopes),
+		Scope:        scopecovers.Join(access.Scopes),
 		RedirectUri:  access.RedirectURI,
 		CreatedAt:    access.CreationTimestamp.Time,
 		UserData:     user,
