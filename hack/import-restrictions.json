@@ -552,7 +552,6 @@
       "github.com/openshift/origin/pkg/template/templateprocessing",
       "github.com/openshift/origin/pkg/unidling/api",
       "github.com/openshift/origin/pkg/unidling/util",
-      "github.com/openshift/origin/pkg/user/apis/user/install",
       "github.com/openshift/origin/pkg/util/netutils",
       "github.com/openshift/origin/pkg/util/parallel",
       "github.com/openshift/origin/pkg/version",
