@@ -91,14 +91,7 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 			if len(j.APIGroups) == 0 {
 				j.APIGroups = []string{""}
 			}
-			switch c.Intn(3) {
-			case 0:
-				j.AttributeRestrictions = &authorizationapi.IsPersonalSubjectAccessReview{}
-			case 1:
-				j.AttributeRestrictions = &runtime.Unknown{TypeMeta: runtime.TypeMeta{Kind: "Type", APIVersion: "other"}, ContentType: "application/json", Raw: []byte(`{"apiVersion":"other","kind":"Type"}`)}
-			default:
-				j.AttributeRestrictions = nil
-			}
+			j.AttributeRestrictions = nil
 		},
 		func(j *authorizationapi.ClusterRoleBinding, c fuzz.Continue) {
 			c.FuzzNoCustom(j)

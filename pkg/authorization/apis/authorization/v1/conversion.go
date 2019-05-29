@@ -1,14 +1,11 @@
 package v1
 
 import (
+	"github.com/openshift/api/authorization/v1"
+	newer "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
-
-	"github.com/openshift/api/authorization/v1"
-	"github.com/openshift/origin/pkg/api/apihelpers"
-	newer "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
 
 func Convert_v1_SubjectAccessReview_To_authorization_SubjectAccessReview(in *v1.SubjectAccessReview, out *newer.SubjectAccessReview, s conversion.Scope) error {
@@ -91,9 +88,6 @@ func Convert_authorization_ResourceAccessReviewResponse_To_v1_ResourceAccessRevi
 
 func Convert_v1_PolicyRule_To_authorization_PolicyRule(in *v1.PolicyRule, out *newer.PolicyRule, s conversion.Scope) error {
 	SetDefaults_PolicyRule(in)
-	if err := apihelpers.Convert_runtime_RawExtension_To_runtime_Object(legacyscheme.Scheme, &in.AttributeRestrictions, &out.AttributeRestrictions, s); err != nil {
-		return err
-	}
 
 	out.APIGroups = in.APIGroups
 
@@ -111,10 +105,6 @@ func Convert_v1_PolicyRule_To_authorization_PolicyRule(in *v1.PolicyRule, out *n
 }
 
 func Convert_authorization_PolicyRule_To_v1_PolicyRule(in *newer.PolicyRule, out *v1.PolicyRule, s conversion.Scope) error {
-	if err := apihelpers.Convert_runtime_Object_To_runtime_RawExtension(legacyscheme.Scheme, &in.AttributeRestrictions, &out.AttributeRestrictions, s); err != nil {
-		return err
-	}
-
 	out.APIGroups = in.APIGroups
 
 	out.Resources = []string{}
