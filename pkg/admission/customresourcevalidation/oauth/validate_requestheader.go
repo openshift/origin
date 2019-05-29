@@ -9,8 +9,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/library-go/pkg/config/validation"
 	crvalidation "github.com/openshift/origin/pkg/admission/customresourcevalidation"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/common"
 )
 
 const (
@@ -41,7 +41,7 @@ func ValidateRequestHeaderIdentityProvider(provider *configv1.RequestHeaderIdent
 	}
 
 	if len(provider.ChallengeURL) > 0 {
-		u, urlErrs := common.ValidateURL(provider.ChallengeURL, fieldPath.Child("challengeURL"))
+		u, urlErrs := validation.ValidateURL(provider.ChallengeURL, fieldPath.Child("challengeURL"))
 		errs = append(errs, urlErrs...)
 		if len(urlErrs) == 0 {
 			if !hasParamToken(u) {
@@ -54,7 +54,7 @@ func ValidateRequestHeaderIdentityProvider(provider *configv1.RequestHeaderIdent
 	}
 
 	if len(provider.LoginURL) > 0 {
-		u, urlErrs := common.ValidateURL(provider.LoginURL, fieldPath.Child("loginURL"))
+		u, urlErrs := validation.ValidateURL(provider.LoginURL, fieldPath.Child("loginURL"))
 		errs = append(errs, urlErrs...)
 		if len(urlErrs) == 0 {
 			if !hasParamToken(u) {

@@ -4,8 +4,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/library-go/pkg/config/validation"
 	crvalidation "github.com/openshift/origin/pkg/admission/customresourcevalidation"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/common"
 )
 
 func ValidateGitLabIdentityProvider(provider *configv1.GitLabIdentityProvider, fieldPath *field.Path) field.ErrorList {
@@ -17,7 +17,7 @@ func ValidateGitLabIdentityProvider(provider *configv1.GitLabIdentityProvider, f
 
 	allErrs = append(allErrs, ValidateOAuthIdentityProvider(provider.ClientID, provider.ClientSecret, fieldPath)...)
 
-	_, urlErrs := common.ValidateSecureURL(provider.URL, fieldPath.Child("url"))
+	_, urlErrs := validation.ValidateSecureURL(provider.URL, fieldPath.Child("url"))
 	allErrs = append(allErrs, urlErrs...)
 
 	allErrs = append(allErrs, crvalidation.ValidateConfigMapReference(fieldPath.Child("ca"), provider.CA, false)...)

@@ -10,7 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	_ "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/ldap"
+	"github.com/openshift/origin/pkg/oc/lib/groupsync/ldap"
 )
 
 func TestLDAPSyncConfigFixtures(t *testing.T) {

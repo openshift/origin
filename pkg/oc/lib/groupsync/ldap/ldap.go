@@ -2,21 +2,24 @@ package ldap
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"gopkg.in/ldap.v2"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
+	"github.com/openshift/library-go/pkg/config/validation"
 	"github.com/openshift/library-go/pkg/security/ldaputil"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/common"
 )
 
-func ValidateLDAPSyncConfig(config *configapi.LDAPSyncConfig) common.ValidationResults {
-	validationResults := common.ValidationResults{}
+func ValidateLDAPSyncConfig(config *configapi.LDAPSyncConfig) validation.ValidationResults {
+	validationResults := validation.ValidationResults{}
 
-	validationResults.Append(common.ValidateStringSource(config.BindPassword, field.NewPath("bindPassword")))
+	validationResults.Append(ValidateStringSource(config.BindPassword, field.NewPath("bindPassword")))
 	bindPassword, _ := configapi.ResolveStringValue(config.BindPassword)
 	validationResults.Append(ValidateLDAPClientConfig(config.URL, config.BindDN, bindPassword, config.CA, config.Insecure, nil))
 
@@ -57,8 +60,8 @@ func ValidateLDAPSyncConfig(config *configapi.LDAPSyncConfig) common.ValidationR
 	return validationResults
 }
 
-func ValidateLDAPClientConfig(url, bindDN, bindPassword, CA string, insecure bool, fldPath *field.Path) common.ValidationResults {
-	validationResults := common.ValidationResults{}
+func ValidateLDAPClientConfig(url, bindDN, bindPassword, CA string, insecure bool, fldPath *field.Path) validation.ValidationResults {
+	validationResults := validation.ValidationResults{}
 
 	if len(url) == 0 {
 		validationResults.AddErrors(field.Required(fldPath.Child("url"), ""))
@@ -92,7 +95,7 @@ func ValidateLDAPClientConfig(url, bindDN, bindPassword, CA string, insecure boo
 		}
 	} else {
 		if len(CA) > 0 {
-			validationResults.AddErrors(common.ValidateFile(CA, fldPath.Child("ca"))...)
+			validationResults.AddErrors(validation.ValidateFile(CA, fldPath.Child("ca"))...)
 		}
 	}
 
@@ -105,8 +108,8 @@ func ValidateLDAPClientConfig(url, bindDN, bindPassword, CA string, insecure boo
 	return validationResults
 }
 
-func ValidateRFC2307Config(config *configapi.RFC2307Config) common.ValidationResults {
-	validationResults := common.ValidationResults{}
+func ValidateRFC2307Config(config *configapi.RFC2307Config) validation.ValidationResults {
+	validationResults := validation.ValidationResults{}
 
 	validationResults.Append(ValidateLDAPQuery(config.AllGroupsQuery, field.NewPath("groupsQuery")))
 	if len(config.GroupUIDAttribute) == 0 {
@@ -131,8 +134,8 @@ func ValidateRFC2307Config(config *configapi.RFC2307Config) common.ValidationRes
 	return validationResults
 }
 
-func ValidateActiveDirectoryConfig(config *configapi.ActiveDirectoryConfig) common.ValidationResults {
-	validationResults := common.ValidationResults{}
+func ValidateActiveDirectoryConfig(config *configapi.ActiveDirectoryConfig) validation.ValidationResults {
+	validationResults := validation.ValidationResults{}
 
 	validationResults.Append(ValidateLDAPQuery(config.AllUsersQuery, field.NewPath("usersQuery")))
 	if len(config.UserNameAttributes) == 0 {
@@ -145,8 +148,8 @@ func ValidateActiveDirectoryConfig(config *configapi.ActiveDirectoryConfig) comm
 	return validationResults
 }
 
-func ValidateAugmentedActiveDirectoryConfig(config *configapi.AugmentedActiveDirectoryConfig) common.ValidationResults {
-	validationResults := common.ValidationResults{}
+func ValidateAugmentedActiveDirectoryConfig(config *configapi.AugmentedActiveDirectoryConfig) validation.ValidationResults {
+	validationResults := validation.ValidationResults{}
 
 	validationResults.Append(ValidateLDAPQuery(config.AllUsersQuery, field.NewPath("usersQuery")))
 	if len(config.UserNameAttributes) == 0 {
@@ -168,11 +171,11 @@ func ValidateAugmentedActiveDirectoryConfig(config *configapi.AugmentedActiveDir
 	return validationResults
 }
 
-func ValidateLDAPQuery(query configapi.LDAPQuery, fldPath *field.Path) common.ValidationResults {
+func ValidateLDAPQuery(query configapi.LDAPQuery, fldPath *field.Path) validation.ValidationResults {
 	return validateLDAPQuery(query, fldPath, false)
 }
-func validateLDAPQuery(query configapi.LDAPQuery, fldPath *field.Path, isDNOnly bool) common.ValidationResults {
-	validationResults := common.ValidationResults{}
+func validateLDAPQuery(query configapi.LDAPQuery, fldPath *field.Path, isDNOnly bool) validation.ValidationResults {
+	validationResults := validation.ValidationResults{}
 
 	if _, err := ldap.ParseDN(query.BaseDN); err != nil {
 		validationResults.AddErrors(field.Invalid(fldPath.Child("baseDN"), query.BaseDN,
@@ -208,6 +211,43 @@ func validateLDAPQuery(query configapi.LDAPQuery, fldPath *field.Path, isDNOnly 
 	if _, err := ldap.CompileFilter(query.Filter); err != nil {
 		validationResults.AddErrors(field.Invalid(fldPath.Child("filter"), query.Filter,
 			fmt.Sprintf("invalid query filter: %v", err)))
+	}
+
+	return validationResults
+}
+
+func ValidateStringSource(s configapi.StringSource, fieldPath *field.Path) validation.ValidationResults {
+	validationResults := validation.ValidationResults{}
+	methods := 0
+	if len(s.Value) > 0 {
+		methods++
+	}
+	if len(s.File) > 0 {
+		methods++
+		fileErrors := validation.ValidateFile(s.File, fieldPath.Child("file"))
+		validationResults.AddErrors(fileErrors...)
+
+		// If the file was otherwise ok, and its value will be used verbatim, warn about trailing whitespace
+		if len(fileErrors) == 0 && len(s.KeyFile) == 0 {
+			if data, err := ioutil.ReadFile(s.File); err != nil {
+				validationResults.AddErrors(field.Invalid(fieldPath.Child("file"), s.File, fmt.Sprintf("could not read file: %v", err)))
+			} else if len(data) > 0 {
+				r, _ := utf8.DecodeLastRune(data)
+				if unicode.IsSpace(r) {
+					validationResults.AddWarnings(field.Invalid(fieldPath.Child("file"), s.File, "contains trailing whitespace which will be included in the value"))
+				}
+			}
+		}
+	}
+	if len(s.Env) > 0 {
+		methods++
+	}
+	if methods > 1 {
+		validationResults.AddErrors(field.Invalid(fieldPath, "", "only one of value, file, and env can be specified"))
+	}
+
+	if len(s.KeyFile) > 0 {
+		validationResults.AddErrors(validation.ValidateFile(s.KeyFile, fieldPath.Child("keyFile"))...)
 	}
 
 	return validationResults

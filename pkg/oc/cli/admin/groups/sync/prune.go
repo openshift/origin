@@ -15,8 +15,8 @@ import (
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/library-go/pkg/security/ldapclient"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation/ldap"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync"
+	"github.com/openshift/origin/pkg/oc/lib/groupsync/ldap"
 )
 
 const PruneRecommendedName = "prune"
