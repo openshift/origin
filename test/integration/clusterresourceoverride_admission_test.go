@@ -10,16 +10,10 @@ import (
 
 	overrideapi "github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configinstall "github.com/openshift/origin/pkg/cmd/server/apis/config/install"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
-
-func init() {
-	configinstall.InstallLegacyInternal(configapi.Scheme)
-}
 
 func TestClusterResourceOverridePluginWithNoLimits(t *testing.T) {
 	config := &overrideapi.ClusterResourceOverrideConfig{

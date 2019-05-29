@@ -6,6 +6,9 @@ import (
 	"io"
 	"strconv"
 
+	"github.com/openshift/library-go/pkg/config/helpers"
+	v1 "github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration/v1"
+
 	"k8s.io/klog"
 
 	"k8s.io/apiserver/pkg/admission"
@@ -16,7 +19,6 @@ import (
 
 	"github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration"
 	"github.com/openshift/origin/pkg/autoscaling/admission/apis/runonceduration/validation"
-	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	corev1listers "k8s.io/client-go/listers/core/v1"
 )
 
@@ -36,7 +38,7 @@ func Register(plugins *admission.Plugins) {
 }
 
 func readConfig(reader io.Reader) (*runonceduration.RunOnceDurationConfig, error) {
-	obj, err := configlatest.ReadYAML(reader)
+	obj, err := helpers.ReadYAMLToInternal(reader, runonceduration.Install, v1.Install)
 	if err != nil {
 		return nil, err
 	}
