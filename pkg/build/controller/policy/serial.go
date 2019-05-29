@@ -3,7 +3,7 @@ package policy
 import (
 	buildv1 "github.com/openshift/api/build/v1"
 	buildlister "github.com/openshift/client-go/build/listers/build/v1"
-	buildclient "github.com/openshift/origin/pkg/build/client"
+
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
@@ -13,8 +13,7 @@ import (
 // created. This will produce consistent results, but block the build execution until the
 // previous builds are complete.
 type SerialPolicy struct {
-	BuildLister  buildlister.BuildLister
-	BuildUpdater buildclient.BuildUpdater
+	BuildLister buildlister.BuildLister
 }
 
 // IsRunnable implements the RunPolicy interface.

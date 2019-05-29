@@ -16,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kclientsetexternal "k8s.io/client-go/kubernetes"
 
-	buildclient "github.com/openshift/origin/pkg/build/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imagecontroller "github.com/openshift/origin/pkg/image/controller"
 	imagesignaturecontroller "github.com/openshift/origin/pkg/image/controller/signature"
@@ -41,7 +40,6 @@ func RunImageTriggerController(ctx *ControllerContext) (bool, error) {
 	kclient := ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
 
 	updater := podSpecUpdater{kclient}
-	bcInstantiator := buildclient.NewClientBuildConfigInstantiatorClient(buildClient)
 	broadcaster := imagetriggercontroller.NewTriggerEventBroadcaster(kclient.CoreV1())
 
 	sources := []imagetriggercontroller.TriggerSource{
@@ -58,7 +56,7 @@ func RunImageTriggerController(ctx *ControllerContext) (bool, error) {
 		Informer:  ctx.BuildInformers.Build().V1().BuildConfigs().Informer(),
 		Store:     ctx.BuildInformers.Build().V1().BuildConfigs().Informer().GetIndexer(),
 		TriggerFn: triggerbuildconfigs.NewBuildConfigTriggerIndexer,
-		Reactor:   triggerbuildconfigs.NewBuildConfigReactor(bcInstantiator, kclient.CoreV1().RESTClient()),
+		Reactor:   triggerbuildconfigs.NewBuildConfigReactor(buildClient.BuildV1(), kclient.CoreV1().RESTClient()),
 	})
 	sources = append(sources, imagetriggercontroller.TriggerSource{
 		Resource:  schema.GroupResource{Group: "apps", Resource: "deployments"},

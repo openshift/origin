@@ -7,8 +7,9 @@ import (
 	"k8s.io/klog"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	v1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildlister "github.com/openshift/client-go/build/listers/build/v1"
-	buildclient "github.com/openshift/origin/pkg/build/client"
+
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
@@ -23,10 +24,10 @@ type RunPolicy interface {
 }
 
 // GetAllRunPolicies returns a set of all run policies.
-func GetAllRunPolicies(lister buildlister.BuildLister, updater buildclient.BuildUpdater) []RunPolicy {
+func GetAllRunPolicies(lister buildlister.BuildLister, updater v1.BuildsGetter) []RunPolicy {
 	return []RunPolicy{
-		&ParallelPolicy{BuildLister: lister, BuildUpdater: updater},
-		&SerialPolicy{BuildLister: lister, BuildUpdater: updater},
+		&ParallelPolicy{BuildLister: lister},
+		&SerialPolicy{BuildLister: lister},
 		&SerialLatestOnlyPolicy{BuildLister: lister, BuildUpdater: updater},
 	}
 }

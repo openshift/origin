@@ -22,9 +22,9 @@ import (
 	"github.com/openshift/api/build"
 	buildv1 "github.com/openshift/api/build/v1"
 	buildclienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildv1helpers "github.com/openshift/origin/pkg/build/apis/build/v1"
-	"github.com/openshift/origin/pkg/build/client"
 	"github.com/openshift/origin/pkg/build/webhook"
 )
 
@@ -41,24 +41,25 @@ func init() {
 
 type WebHook struct {
 	groupVersion      schema.GroupVersion
-	buildConfigClient buildclienttyped.BuildV1Interface
+	buildConfigClient buildclienttyped.BuildConfigsGetter
 	secretsClient     kubetypedclient.SecretsGetter
-	instantiator      client.BuildConfigInstantiator
+	instantiator      buildclienttyped.BuildConfigsGetter
 	plugins           map[string]webhook.Plugin
 }
 
 // NewWebHookREST returns the webhook handler
 func NewWebHookREST(buildConfigClient buildclienttyped.BuildV1Interface, secretsClient kubetypedclient.SecretsGetter, groupVersion schema.GroupVersion, plugins map[string]webhook.Plugin) *WebHook {
-	return newWebHookREST(buildConfigClient, secretsClient, client.BuildConfigInstantiatorClient{Client: buildConfigClient}, groupVersion, plugins)
+	return newWebHookREST(buildConfigClient, secretsClient, groupVersion, plugins)
 }
 
 // this supports simple unit testing
-func newWebHookREST(buildConfigClient buildclienttyped.BuildV1Interface, secretsClient kubetypedclient.SecretsGetter, instantiator client.BuildConfigInstantiator, groupVersion schema.GroupVersion, plugins map[string]webhook.Plugin) *WebHook {
+func newWebHookREST(buildConfigClient buildclienttyped.BuildConfigsGetter, secretsClient kubetypedclient.SecretsGetter, groupVersion schema.GroupVersion,
+	plugins map[string]webhook.Plugin) *WebHook {
 	return &WebHook{
 		groupVersion:      groupVersion,
 		buildConfigClient: buildConfigClient,
+		instantiator:      buildConfigClient,
 		secretsClient:     secretsClient,
-		instantiator:      instantiator,
 		plugins:           plugins,
 	}
 }
@@ -101,9 +102,9 @@ type WebHookHandler struct {
 	responder         rest.Responder
 	groupVersion      schema.GroupVersion
 	plugins           map[string]webhook.Plugin
-	buildConfigClient buildclienttyped.BuildV1Interface
+	buildConfigClient buildclienttyped.BuildConfigsGetter
 	secretsClient     kubetypedclient.SecretsGetter
-	instantiator      client.BuildConfigInstantiator
+	instantiator      buildclienttyped.BuildConfigsGetter
 }
 
 // ServeHTTP implements the standard http.Handler
@@ -171,7 +172,7 @@ func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Re
 		DockerStrategyOptions: dockerStrategyOptions,
 	}
 
-	newBuild, err := w.instantiator.Instantiate(config.Namespace, request)
+	newBuild, err := w.instantiator.BuildConfigs(config.Namespace).Instantiate(config.Namespace, request)
 	if err != nil {
 		return errors.NewInternalError(fmt.Errorf("could not generate a build: %v", err))
 	}

@@ -13,12 +13,11 @@ import (
 	toml "github.com/pelletier/go-toml"
 	"k8s.io/klog"
 
-	"github.com/openshift/origin/pkg/build/buildapihelpers"
-	metrics "github.com/openshift/origin/pkg/build/metrics/prometheus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
@@ -36,20 +35,23 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned"
+	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildv1informer "github.com/openshift/client-go/build/informers/externalversions/build/v1"
 	buildv1lister "github.com/openshift/client-go/build/listers/build/v1"
 	configv1informer "github.com/openshift/client-go/config/informers/externalversions/config/v1"
 	configv1lister "github.com/openshift/client-go/config/listers/config/v1"
 	imagev1informer "github.com/openshift/client-go/image/informers/externalversions/image/v1"
 	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
+
 	"github.com/openshift/origin/pkg/api/imagereferencemutators"
+	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	"github.com/openshift/origin/pkg/build/buildscheme"
-	buildmanualclient "github.com/openshift/origin/pkg/build/client"
 	builddefaults "github.com/openshift/origin/pkg/build/controller/build/defaults"
 	buildoverrides "github.com/openshift/origin/pkg/build/controller/build/overrides"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	"github.com/openshift/origin/pkg/build/controller/policy"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
+	metrics "github.com/openshift/origin/pkg/build/metrics/prometheus"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutil "github.com/openshift/origin/pkg/image/util"
@@ -142,10 +144,10 @@ type tomlConfig struct {
 // a secret or make it usable by a build - but this is identical to our existing model
 // where a service account determines access to secrets used in pods.
 type BuildController struct {
-	buildPatcher                buildmanualclient.BuildPatcher
+	buildPatcher                buildclientv1.BuildsGetter
 	buildLister                 buildv1lister.BuildLister
 	buildConfigGetter           buildv1lister.BuildConfigLister
-	buildDeleter                buildmanualclient.BuildDeleter
+	buildDeleter                buildclientv1.BuildsGetter
 	buildControllerConfigLister configv1lister.BuildLister
 	imageConfigLister           configv1lister.ImageLister
 	podClient                   ktypedclient.PodsGetter
@@ -219,14 +221,13 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&ktypedclient.EventSinkImpl{Interface: params.KubeClient.CoreV1().Events("")})
 
-	buildClient := buildmanualclient.NewClientBuildClient(params.BuildClient)
 	buildLister := params.BuildInformer.Lister()
 	buildConfigGetter := params.BuildConfigInformer.Lister()
 	c := &BuildController{
-		buildPatcher:                    buildClient,
+		buildPatcher:                    params.BuildClient.BuildV1(),
 		buildLister:                     buildLister,
 		buildConfigGetter:               buildConfigGetter,
-		buildDeleter:                    buildClient,
+		buildDeleter:                    params.BuildClient.BuildV1(),
 		buildControllerConfigLister:     params.BuildControllerConfigInformer.Lister(),
 		imageConfigLister:               params.ImageConfigInformer.Lister(),
 		secretStore:                     params.SecretInformer.Lister(),
@@ -256,7 +257,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 		controllerConfigQueue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 
 		recorder:    eventBroadcaster.NewRecorder(buildscheme.EncoderScheme, corev1.EventSource{Component: "build-controller"}),
-		runPolicies: policy.GetAllRunPolicies(buildLister, buildClient),
+		runPolicies: policy.GetAllRunPolicies(buildLister, params.BuildClient.BuildV1()),
 	}
 
 	c.podInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -1434,7 +1435,7 @@ func (bc *BuildController) patchBuild(build *buildv1.Build, update *buildUpdate)
 	}
 
 	klog.V(5).Infof("Patching build %s with %v", buildDesc(build), update)
-	return bc.buildPatcher.Patch(build.Namespace, build.Name, patch)
+	return bc.buildPatcher.Builds(build.Namespace).Patch(build.Name, types.StrategicMergePatchType, patch)
 }
 
 // findMissingPod uses the REST client directly to determine if a pod exists or not.

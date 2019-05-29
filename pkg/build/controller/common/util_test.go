@@ -15,6 +15,7 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildfake "github.com/openshift/client-go/build/clientset/versioned/fake"
+
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
@@ -106,7 +107,6 @@ func TestHandleBuildPruning(t *testing.T) {
 
 	buildLister := buildclient.NewClientBuildLister(buildClient.BuildV1())
 	buildConfigGetter := buildclient.NewClientBuildConfigLister(buildClient.BuildV1())
-	buildDeleter := buildclient.NewClientBuildClient(buildClient)
 
 	bcName := buildutil.ConfigNameForBuild(build)
 	successfulStartingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build *buildv1.Build) bool { return build.Status.Phase == buildv1.BuildPhaseComplete })
@@ -121,7 +121,7 @@ func TestHandleBuildPruning(t *testing.T) {
 		t.Errorf("should start with 16 builds, but started with %v instead", len(successfulStartingBuilds)+len(failedStartingBuilds))
 	}
 
-	if err := HandleBuildPruning(bcName, build.Namespace, buildLister, buildConfigGetter, buildDeleter); err != nil {
+	if err := HandleBuildPruning(bcName, build.Namespace, buildLister, buildConfigGetter, buildClient.BuildV1()); err != nil {
 		t.Errorf("error pruning builds: %v", err)
 	}
 

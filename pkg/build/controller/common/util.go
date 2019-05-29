@@ -7,15 +7,17 @@ import (
 	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/third_party/forked/golang/expansion"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildlister "github.com/openshift/client-go/build/listers/build/v1"
 	"github.com/openshift/library-go/pkg/build/envresolve"
-	buildclient "github.com/openshift/origin/pkg/build/client"
+
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
@@ -35,7 +37,7 @@ func (b ByCreationTimestamp) Less(i, j int) bool {
 
 // HandleBuildPruning handles the deletion of old successful and failed builds
 // based on settings in the BuildConfig.
-func HandleBuildPruning(buildConfigName string, namespace string, buildLister buildlister.BuildLister, buildConfigGetter buildlister.BuildConfigLister, buildDeleter buildclient.BuildDeleter) error {
+func HandleBuildPruning(buildConfigName string, namespace string, buildLister buildlister.BuildLister, buildConfigGetter buildlister.BuildConfigLister, buildDeleter buildclientv1.BuildsGetter) error {
 	klog.V(4).Infof("Handling build pruning for %s/%s", namespace, buildConfigName)
 
 	buildConfig, err := buildConfigGetter.BuildConfigs(namespace).Get(buildConfigName)
@@ -80,7 +82,7 @@ func HandleBuildPruning(buildConfigName string, namespace string, buildLister bu
 
 	for i, b := range buildsToDelete {
 		klog.V(4).Infof("Pruning build: %s/%s", b.Namespace, b.Name)
-		if err := buildDeleter.DeleteBuild(buildsToDelete[i]); err != nil {
+		if err := buildDeleter.Builds(b.Namespace).Delete(buildsToDelete[i].Name, &metav1.DeleteOptions{}); err != nil {
 			errList = append(errList, err)
 		}
 	}
