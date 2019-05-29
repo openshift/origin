@@ -14,7 +14,6 @@ import (
 var (
 	recyclerLong = templates.LongDesc(`
 		Recycle a volume
-
 		This command will recycle a single volume provided as an argument.`)
 )
 
