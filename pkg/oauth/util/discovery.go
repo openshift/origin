@@ -12,7 +12,6 @@ import (
 	osinv1 "github.com/openshift/api/osin/v1"
 	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
 )
 
@@ -115,23 +114,6 @@ func PrepOauthMetadata(oauthConfig *osinv1.OAuthConfig, oauthMetadataFile string
 			return nil, nil, err
 		}
 		return metadata, &metadataStruct, nil
-	}
-	return nil, nil, nil
-}
-
-// Deprecated
-func DeprecatedPrepOauthMetadata(oauthConfig *configapi.OAuthConfig, oauthMetadataFile string) ([]byte, *OauthAuthorizationServerMetadata, error) {
-	if oauthConfig != nil {
-		metadataStruct := getOauthMetadata(oauthConfig.MasterPublicURL)
-		metadata, err := json.MarshalIndent(metadataStruct, "", "  ")
-		if err != nil {
-			klog.Errorf("Unable to initialize OAuth authorization server metadata route: %v", err)
-			return nil, nil, err
-		}
-		return metadata, &metadataStruct, nil
-	}
-	if len(oauthMetadataFile) > 0 {
-		return LoadOAuthMetadataFile(oauthMetadataFile)
 	}
 	return nil, nil, nil
 }
