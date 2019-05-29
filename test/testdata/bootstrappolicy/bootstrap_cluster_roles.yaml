@@ -2474,17 +2474,11 @@ items:
     name: system:openshift:controller:template-instance-controller
   rules:
   - apiGroups:
-    - authorization.k8s.io
+    - '*'
     resources:
-    - subjectaccessreviews
+    - '*'
     verbs:
-    - create
-  - apiGroups:
-    - template.openshift.io
-    resources:
-    - templateinstances/status
-    verbs:
-    - update
+    - '*'
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:
@@ -2494,11 +2488,11 @@ items:
     name: system:openshift:controller:template-instance-finalizer-controller
   rules:
   - apiGroups:
-    - template.openshift.io
+    - '*'
     resources:
-    - templateinstances/status
+    - '*'
     verbs:
-    - update
+    - '*'
 - apiVersion: rbac.authorization.k8s.io/v1
   kind: ClusterRole
   metadata:

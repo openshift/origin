@@ -157,33 +157,28 @@ func init() {
 	})
 
 	// template-instance-controller
+	// we don't use cluster-admin, nor the cluster role OLM defines, but starting with 4.2 this controller needs to
+	// have the same authority as OLM for processing templates from the OpenShift console
+	// see https://github.com/operator-framework/operator-lifecycle-manager/blob/master/manifests/0000_50_olm_01-olm-operator.serviceaccount.yaml
+	// for what this change in role was based off of
 	addControllerRole(rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraTemplateInstanceControllerServiceAccountName},
 		Rules: []rbacv1.PolicyRule{
-			rbacv1helpers.NewRule("create").Groups(kAuthzGroup).Resources("subjectaccessreviews").RuleOrDie(),
-			rbacv1helpers.NewRule("update").Groups(templateGroup).Resources("templateinstances/status").RuleOrDie(),
+			rbacv1helpers.NewRule("*").Groups("*").Resources("*").RuleOrDie(),
 		},
 	})
 
-	// template-instance-controller
-	templateInstanceController := rbacv1helpers.NewClusterBinding(AdminRoleName).SAs(DefaultOpenShiftInfraNamespace, InfraTemplateInstanceControllerServiceAccountName).BindingOrDie()
-	templateInstanceController.Name = "system:openshift:controller:" + InfraTemplateInstanceControllerServiceAccountName + ":admin"
-	addDefaultMetadata(&templateInstanceController)
-	controllerRoleBindings = append(controllerRoleBindings, templateInstanceController)
-
 	// template-instance-finalizer-controller
+	// we don't use cluster-admin, nor the cluster role OLM defines, but starting with 4.2 this controller needs to
+	// have the same authority as OLM for processing templates from the OpenShift console
+	// see https://github.com/operator-framework/operator-lifecycle-manager/blob/master/manifests/0000_50_olm_01-olm-operator.serviceaccount.yaml
+	// for what this change in role was based off of
 	addControllerRole(rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraTemplateInstanceFinalizerControllerServiceAccountName},
 		Rules: []rbacv1.PolicyRule{
-			rbacv1helpers.NewRule("update").Groups(templateGroup).Resources("templateinstances/status").RuleOrDie(),
+			rbacv1helpers.NewRule("*").Groups("*").Resources("*").RuleOrDie(),
 		},
 	})
-
-	// template-instance-finalizer-controller
-	templateInstanceFinalizerController := rbacv1helpers.NewClusterBinding(AdminRoleName).SAs(DefaultOpenShiftInfraNamespace, InfraTemplateInstanceFinalizerControllerServiceAccountName).BindingOrDie()
-	templateInstanceFinalizerController.Name = "system:openshift:controller:" + InfraTemplateInstanceFinalizerControllerServiceAccountName + ":admin"
-	addDefaultMetadata(&templateInstanceFinalizerController)
-	controllerRoleBindings = append(controllerRoleBindings, templateInstanceFinalizerController)
 
 	// origin-namespace-controller
 	addControllerRole(rbacv1.ClusterRole{

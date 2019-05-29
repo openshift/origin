@@ -488,8 +488,6 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 		}
 		test.response.Users.Insert(globalClusterReaderUsers.List()...)
 		test.response.Users.Insert(globalDeploymentConfigGetterUsers.List()...)
-		test.response.Users.Delete("system:serviceaccount:openshift-infra:template-instance-controller")
-		test.response.Users.Delete("system:serviceaccount:openshift-infra:template-instance-finalizer-controller")
 		test.response.Groups.Insert(globalClusterReaderGroups.List()...)
 		test.run(t)
 	}

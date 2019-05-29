@@ -35,8 +35,8 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 	var (
 		cli = exutil.NewCLI("templates", exutil.KubeConfigPath())
 
-		adminuser, edituser, editbygroupuser *userapi.User
-		editgroup                            *userapi.Group
+		clusteradminuser, adminuser, edituser, editbygroupuser *userapi.User
+		editgroup                                              *userapi.Group
 
 		dummyroute = &routeapi.Route{
 			ObjectMeta: metav1.ObjectMeta{
@@ -70,6 +70,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 
 	g.Context("", func() {
 		g.BeforeEach(func() {
+			clusteradminuser = createUser(cli, "clusteradminuser", bootstrappolicy.ClusterAdminRoleName)
 			adminuser = createUser(cli, "adminuser", bootstrappolicy.AdminRoleName)
 			edituser = createUser(cli, "edituser", bootstrappolicy.EditRoleName)
 			editbygroupuser = createUser(cli, "editbygroupuser", "")
@@ -81,7 +82,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 			// new group membership made above.  Wait until all it looks like
 			// all the users above have access to the namespace as expected.
 			err := wait.PollImmediate(time.Second, 30*time.Second, func() (done bool, err error) {
-				for _, user := range []*userapi.User{adminuser, edituser, editbygroupuser} {
+				for _, user := range []*userapi.User{clusteradminuser, adminuser, edituser, editbygroupuser} {
 					cli.ChangeUser(user.Name)
 					sar, err := cli.AuthorizationClient().Authorization().LocalSubjectAccessReviews(cli.Namespace()).Create(&authorizationapi.LocalSubjectAccessReview{
 						Action: authorizationapi.Action{
@@ -109,6 +110,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 				}
 			}
 
+			deleteUser(cli, clusteradminuser)
 			deleteUser(cli, adminuser)
 			deleteUser(cli, edituser)
 			deleteUser(cli, editbygroupuser)
@@ -211,6 +213,17 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 					checkOK: func(namespace string) bool {
 						_, err := cli.AdminKubeClient().StorageV1().StorageClasses().Get(storageclass.Name, metav1.GetOptions{})
 						return err != nil && kerrors.IsNotFound(err)
+					},
+				},
+				{
+					by:              "checking clusteradminuser can create an object that requires clusteradmin",
+					user:            clusteradminuser,
+					namespace:       cli.Namespace(),
+					objects:         []runtime.Object{dummyrolebinding},
+					expectCondition: templatev1.TemplateInstanceReady,
+					checkOK: func(namespace string) bool {
+						_, err := cli.AdminAuthorizationClient().Authorization().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
+						return err == nil
 					},
 				},
 			}
