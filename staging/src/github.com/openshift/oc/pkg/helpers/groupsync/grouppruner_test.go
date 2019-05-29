@@ -11,7 +11,7 @@ import (
 	clienttesting "k8s.io/client-go/testing"
 
 	fakeuserv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1/fake"
-	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
+	"github.com/openshift/oc/pkg/helpers/groupsync/interfaces"
 )
 
 func TestGoodPrune(t *testing.T) {

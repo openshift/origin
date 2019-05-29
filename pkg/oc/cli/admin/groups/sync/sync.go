@@ -22,12 +22,12 @@ import (
 
 	userv1typedclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	"github.com/openshift/library-go/pkg/security/ldapclient"
+	"github.com/openshift/oc/pkg/helpers/groupsync"
+	"github.com/openshift/oc/pkg/helpers/groupsync/interfaces"
+	"github.com/openshift/oc/pkg/helpers/groupsync/syncerror"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	"github.com/openshift/origin/pkg/oc/lib/groupsync"
-	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/ldap"
-	"github.com/openshift/origin/pkg/oc/lib/groupsync/syncerror"
 )
 
 const SyncRecommendedName = "sync"

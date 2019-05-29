@@ -12,7 +12,7 @@ import (
 	ldapquery "github.com/openshift/library-go/pkg/security/ldapquery"
 	"github.com/openshift/library-go/pkg/security/ldaptestclient"
 	"github.com/openshift/library-go/pkg/security/ldaputil"
-	"github.com/openshift/origin/pkg/oc/lib/groupsync/syncerror"
+	"github.com/openshift/oc/pkg/helpers/groupsync/syncerror"
 )
 
 func newTestLDAPInterface(client ldap.Client) *LDAPInterface {

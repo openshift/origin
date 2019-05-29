@@ -3,8 +3,8 @@ package sync
 import (
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
 	ldapquery "github.com/openshift/library-go/pkg/security/ldapquery"
+	"github.com/openshift/oc/pkg/helpers/groupsync/interfaces"
 	"github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
 )
 
 // SyncBuilder describes an object that can build all the schema-specific parts of an LDAPGroupSyncer

@@ -7,8 +7,8 @@ import (
 
 	"github.com/openshift/library-go/pkg/security/ldapclient"
 	ldapquery "github.com/openshift/library-go/pkg/security/ldapquery"
-	"github.com/openshift/origin/pkg/oc/lib/groupsync/groupdetector"
-	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
+	"github.com/openshift/oc/pkg/helpers/groupsync/groupdetector"
+	"github.com/openshift/oc/pkg/helpers/groupsync/interfaces"
 )
 
 // NewLDAPInterface builds a new LDAPInterface using a schema-appropriate config
