@@ -42,3 +42,9 @@ for pkg in vendor/k8s.io/kubernetes/staging/src/k8s.io/*; do
   rm -rf vendor/k8s.io/$dir
   ln -s kubernetes/staging/src/k8s.io/$dir vendor/k8s.io/$dir
 done
+
+for pkg in staging/src/github.com/openshift/*; do
+  dir=$(basename $pkg)
+  rm -rf vendor/github.com/openshift/$dir
+  ln -s ../../../staging/src/github.com/openshift/$dir vendor/github.com/openshift/$dir
+done

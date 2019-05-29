@@ -2,6 +2,7 @@ package certrotation
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -64,7 +65,7 @@ func NewCertRotationController(
 		TargetRotation:   targetRotation,
 		OperatorClient:   operatorClient,
 
-		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), name),
+		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), strings.Replace(name, "-", "_", -1)),
 	}
 
 	signingRotation.Informer.Informer().AddEventHandler(c.eventHandler())

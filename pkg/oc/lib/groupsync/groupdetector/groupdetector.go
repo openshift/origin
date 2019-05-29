@@ -1,7 +1,7 @@
 package groupdetector
 
 import (
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
+	ldapquery "github.com/openshift/library-go/pkg/security/ldapquery"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
 )
 
@@ -19,7 +19,7 @@ type GroupBasedDetector struct {
 
 func (l *GroupBasedDetector) Exists(ldapGroupUID string) (bool, error) {
 	group, err := l.groupGetter.GroupEntryFor(ldapGroupUID)
-	if ldaputil.IsQueryOutOfBoundsError(err) || ldaputil.IsEntryNotFoundError(err) || ldaputil.IsNoSuchObjectError(err) {
+	if ldapquery.IsQueryOutOfBoundsError(err) || ldapquery.IsEntryNotFoundError(err) || ldapquery.IsNoSuchObjectError(err) {
 		return false, nil
 	}
 	if err != nil {
@@ -47,7 +47,7 @@ type MemberBasedDetector struct {
 
 func (l *MemberBasedDetector) Exists(ldapGrouUID string) (bool, error) {
 	members, err := l.memberExtractor.ExtractMembers(ldapGrouUID)
-	if ldaputil.IsQueryOutOfBoundsError(err) || ldaputil.IsEntryNotFoundError(err) || ldaputil.IsNoSuchObjectError(err) {
+	if ldapquery.IsQueryOutOfBoundsError(err) || ldapquery.IsEntryNotFoundError(err) || ldapquery.IsNoSuchObjectError(err) {
 		return false, nil
 	}
 	if err != nil {

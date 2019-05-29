@@ -2,6 +2,7 @@ package management
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"k8s.io/klog"
@@ -44,7 +45,7 @@ func NewOperatorManagementStateController(
 		operatorClient: operatorClient,
 		eventRecorder:  recorder,
 
-		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ManagementStateController-"+name),
+		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "ManagementStateController_"+strings.Replace(name, "-", "_", -1)),
 	}
 
 	operatorClient.Informer().AddEventHandler(c.eventHandler())

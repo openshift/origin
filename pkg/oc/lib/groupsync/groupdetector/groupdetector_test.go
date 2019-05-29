@@ -7,7 +7,7 @@ import (
 
 	"gopkg.in/ldap.v2"
 
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
+	ldapquery "github.com/openshift/library-go/pkg/security/ldapquery"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
 )
 
@@ -222,9 +222,9 @@ func (g *puppetGetterExtractor) ExtractMembers(ldapGroupUID string) ([]*ldap.Ent
 // the following generators are both GroupGetters and MemberExtractors that generate specific errors
 // whenever their corresponding methods are called. They are used for the tests for this package
 
-var outOfBoundsError error = ldaputil.NewQueryOutOfBoundsError("baseDN", "queryDN")
-var entryNotFoundError error = ldaputil.NewEntryNotFoundError("baseDN", "filter")
-var noSuchObjectError error = ldaputil.NewNoSuchObjectError("baseDN")
+var outOfBoundsError error = ldapquery.NewQueryOutOfBoundsError("baseDN", "queryDN")
+var entryNotFoundError error = ldapquery.NewEntryNotFoundError("baseDN", "filter")
+var noSuchObjectError error = ldapquery.NewNoSuchObjectError("baseDN")
 var genericError error = errors.New("generic error")
 
 type errOutOfBoundsGetterExtractor struct{}

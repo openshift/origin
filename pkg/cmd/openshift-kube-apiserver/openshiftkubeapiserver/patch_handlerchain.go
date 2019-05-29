@@ -10,10 +10,10 @@ import (
 
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
+	"github.com/openshift/library-go/pkg/apiserver/httprequest"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
 	"github.com/openshift/origin/pkg/oauth/urls"
 	"github.com/openshift/origin/pkg/oauth/util"
-	"github.com/openshift/origin/pkg/util/httprequest"
 )
 
 const (

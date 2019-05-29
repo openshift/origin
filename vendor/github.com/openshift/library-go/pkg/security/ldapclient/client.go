@@ -1,19 +1,19 @@
-package ldaputil
+package ldapclient
 
 import (
 	"crypto/tls"
 	"fmt"
 	"net"
 
+	"github.com/openshift/library-go/pkg/security/ldaputil"
 	"k8s.io/client-go/util/cert"
 
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
 	"gopkg.in/ldap.v2"
 )
 
 // NewLDAPClientConfig returns a new LDAP client config
-func NewLDAPClientConfig(URL, bindDN, bindPassword, CA string, insecure bool) (ldapclient.Config, error) {
-	url, err := ParseURL(URL)
+func NewLDAPClientConfig(URL, bindDN, bindPassword, CA string, insecure bool) (Config, error) {
+	url, err := ldaputil.ParseURL(URL)
 	if err != nil {
 		return nil, fmt.Errorf("Error parsing URL: %v", err)
 	}
@@ -40,7 +40,7 @@ func NewLDAPClientConfig(URL, bindDN, bindPassword, CA string, insecure bool) (l
 // ldapClientConfig holds information for connecting to an LDAP server
 type ldapClientConfig struct {
 	// scheme is the LDAP connection scheme, either ldap or ldaps
-	scheme Scheme
+	scheme ldaputil.Scheme
 	// host is the host:port of the LDAP server
 	host string
 	// bindDN is an optional DN to bind with during the search phase.
@@ -54,8 +54,8 @@ type ldapClientConfig struct {
 	tlsConfig *tls.Config
 }
 
-// ldapClientConfig is an ldapclient.Config
-var _ ldapclient.Config = &ldapClientConfig{}
+// ldapClientConfig is an Config
+var _ Config = &ldapClientConfig{}
 
 // Connect returns an established LDAP connection, or an error if the connection could not
 // be made (or successfully upgraded to TLS). If no error is returned, the caller is responsible for
@@ -76,7 +76,7 @@ func (l *ldapClientConfig) Connect() (ldap.Client, error) {
 	}
 
 	switch l.scheme {
-	case SchemeLDAP:
+	case ldaputil.SchemeLDAP:
 		con, err := ldap.Dial("tcp", l.host)
 		if err != nil {
 			return nil, err
@@ -97,7 +97,7 @@ func (l *ldapClientConfig) Connect() (ldap.Client, error) {
 
 		return con, nil
 
-	case SchemeLDAPS:
+	case ldaputil.SchemeLDAPS:
 		return ldap.DialTLS("tcp", l.host, tlsConfig)
 
 	default:

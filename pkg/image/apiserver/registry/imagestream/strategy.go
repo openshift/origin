@@ -20,7 +20,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kapihelper "k8s.io/kubernetes/pkg/apis/core/helper"
 
-	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
+	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation"
 	"github.com/openshift/origin/pkg/image/apis/image/validation/whitelist"

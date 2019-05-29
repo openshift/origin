@@ -8,13 +8,14 @@ import (
 
 	"gopkg.in/ldap.v2"
 
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil/testclient"
+	ldapquery "github.com/openshift/library-go/pkg/security/ldapquery"
+	"github.com/openshift/library-go/pkg/security/ldaptestclient"
+	"github.com/openshift/library-go/pkg/security/ldaputil"
 )
 
 func newTestADLDAPInterface(client ldap.Client) *ADLDAPInterface {
 	// below are common test implementations of LDAPInterface fields
-	userQuery := ldaputil.LDAPQuery{
+	userQuery := ldapquery.LDAPQuery{
 		BaseDN:       "ou=users,dc=example,dc=com",
 		Scope:        ldaputil.ScopeWholeSubtree,
 		DerefAliases: ldaputil.DerefAliasesAlways,
@@ -24,7 +25,7 @@ func newTestADLDAPInterface(client ldap.Client) *ADLDAPInterface {
 	groupMembershipAttributes := []string{"memberOf"}
 	userNameAttributes := []string{"cn"}
 
-	return NewADLDAPInterface(testclient.NewConfig(client),
+	return NewADLDAPInterface(ldaptestclient.NewConfig(client),
 		userQuery,
 		groupMembershipAttributes,
 		userNameAttributes)
@@ -56,8 +57,8 @@ func TestExtractMembers(t *testing.T) {
 		},
 		{
 			name: "user query error",
-			client: testclient.NewMatchingSearchErrorClient(
-				testclient.New(),
+			client: ldaptestclient.NewMatchingSearchErrorClient(
+				ldaptestclient.New(),
 				"ou=users,dc=example,dc=com",
 				errors.New("generic search error"),
 			),
@@ -66,8 +67,8 @@ func TestExtractMembers(t *testing.T) {
 		},
 		{
 			name: "no errors",
-			client: testclient.NewDNMappingClient(
-				testclient.New(),
+			client: ldaptestclient.NewDNMappingClient(
+				ldaptestclient.New(),
 				map[string][]*ldap.Entry{
 					"ou=users,dc=example,dc=com": {newTestUser("testUser", "testGroup")},
 				},
@@ -92,8 +93,8 @@ func TestExtractMembers(t *testing.T) {
 }
 
 func TestListGroups(t *testing.T) {
-	client := testclient.NewDNMappingClient(
-		testclient.New(),
+	client := ldaptestclient.NewDNMappingClient(
+		ldaptestclient.New(),
 		map[string][]*ldap.Entry{
 			"ou=users,dc=example,dc=com": {newTestUser("testUser", "testGroup")},
 		},
@@ -129,8 +130,8 @@ func TestPopulateCache(t *testing.T) {
 		},
 		{
 			name: "user query error",
-			client: testclient.NewMatchingSearchErrorClient(
-				testclient.New(),
+			client: ldaptestclient.NewMatchingSearchErrorClient(
+				ldaptestclient.New(),
 				"ou=users,dc=example,dc=com",
 				errors.New("generic search error"),
 			),
@@ -139,8 +140,8 @@ func TestPopulateCache(t *testing.T) {
 		},
 		{
 			name: "cache populated correctly",
-			client: testclient.NewDNMappingClient(
-				testclient.New(),
+			client: ldaptestclient.NewDNMappingClient(
+				ldaptestclient.New(),
 				map[string][]*ldap.Entry{
 					"ou=users,dc=example,dc=com": {newTestUser("testUser", "testGroup")},
 				},
@@ -170,8 +171,8 @@ func TestPopulateCache(t *testing.T) {
 // TestPopulateCacheAfterExtractMembers ensures that the cache is only listed as fully populated after a
 // populateCache call and not after a partial fill from an ExtractMembers call
 func TestPopulateCacheAfterExtractMembers(t *testing.T) {
-	client := testclient.NewDNMappingClient(
-		testclient.New(),
+	client := ldaptestclient.NewDNMappingClient(
+		ldaptestclient.New(),
 		map[string][]*ldap.Entry{
 			"ou=users,dc=example,dc=com": {newTestUser("testUser", "testGroup")},
 		},
@@ -183,7 +184,7 @@ func TestPopulateCacheAfterExtractMembers(t *testing.T) {
 	}
 
 	// both queries use the same BaseDN so we change what the client returns to simulate not applying the group-specific filter
-	client.(*testclient.DNMappingClient).DNMapping["ou=users,dc=example,dc=com"] = []*ldap.Entry{
+	client.(*ldaptestclient.DNMappingClient).DNMapping["ou=users,dc=example,dc=com"] = []*ldap.Entry{
 		newTestUser("testUser", "testGroup"),
 		newTestUser("testUser2", "testGroup2")}
 

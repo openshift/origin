@@ -1,4 +1,4 @@
-package testclient
+package ldaptestclient
 
 import (
 	"crypto/tls"

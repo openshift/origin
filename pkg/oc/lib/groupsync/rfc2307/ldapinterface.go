@@ -7,8 +7,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
+	"github.com/openshift/library-go/pkg/security/ldapclient"
+	ldapquery "github.com/openshift/library-go/pkg/security/ldapquery"
+	"github.com/openshift/library-go/pkg/security/ldaputil"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/groupdetector"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/syncerror"
@@ -16,10 +17,10 @@ import (
 
 // NewLDAPInterface builds a new LDAPInterface using a schema-appropriate config
 func NewLDAPInterface(clientConfig ldapclient.Config,
-	groupQuery ldaputil.LDAPQueryOnAttribute,
+	groupQuery ldapquery.LDAPQueryOnAttribute,
 	groupNameAttributes []string,
 	groupMembershipAttributes []string,
-	userQuery ldaputil.LDAPQueryOnAttribute,
+	userQuery ldapquery.LDAPQueryOnAttribute,
 	userNameAttributes []string,
 	errorHandler syncerror.Handler) *LDAPInterface {
 
@@ -43,14 +44,14 @@ type LDAPInterface struct {
 	clientConfig ldapclient.Config
 
 	// groupQuery holds the information necessary to make an LDAP query for a specific first-class group entry on the LDAP server
-	groupQuery ldaputil.LDAPQueryOnAttribute
+	groupQuery ldapquery.LDAPQueryOnAttribute
 	// groupNameAttributes defines which attributes on an LDAP group entry will be interpreted as its name to use for an OpenShift group
 	groupNameAttributes []string
 	// groupMembershipAttributes defines which attributes on an LDAP group entry will be interpreted as its members ldapUserUID
 	groupMembershipAttributes []string
 
 	// userQuery holds the information necessary to make an LDAP query for a specific first-class user entry on the LDAP server
-	userQuery ldaputil.LDAPQueryOnAttribute
+	userQuery ldapquery.LDAPQueryOnAttribute
 	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its' name
 	userNameAttributes []string
 
@@ -121,7 +122,7 @@ func (e *LDAPInterface) GroupEntryFor(ldapGroupUID string) (*ldap.Entry, error) 
 		return nil, err
 	}
 
-	group, err = ldaputil.QueryForUniqueEntry(e.clientConfig, searchRequest)
+	group, err = ldapquery.QueryForUniqueEntry(e.clientConfig, searchRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +134,7 @@ func (e *LDAPInterface) GroupEntryFor(ldapGroupUID string) (*ldap.Entry, error) 
 // LDAP group UIDs. This also satisfies the LDAPGroupLister interface
 func (e *LDAPInterface) ListGroups() ([]string, error) {
 	searchRequest := e.groupQuery.LDAPQuery.NewSearchRequest(e.requiredGroupAttributes())
-	groups, err := ldaputil.QueryForEntries(e.clientConfig, searchRequest)
+	groups, err := ldapquery.QueryForEntries(e.clientConfig, searchRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +172,7 @@ func (e *LDAPInterface) userEntryFor(ldapUserUID string) (user *ldap.Entry, err 
 		return nil, err
 	}
 
-	user, err = ldaputil.QueryForUniqueEntry(e.clientConfig, searchRequest)
+	user, err = ldapquery.QueryForUniqueEntry(e.clientConfig, searchRequest)
 	if err != nil {
 		return nil, err
 	}

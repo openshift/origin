@@ -1,7 +1,7 @@
-package testclient
+package ldaptestclient
 
 import (
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
+	"github.com/openshift/library-go/pkg/security/ldapclient"
 	"gopkg.in/ldap.v2"
 )
 

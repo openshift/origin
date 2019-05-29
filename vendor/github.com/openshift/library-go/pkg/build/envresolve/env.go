@@ -7,8 +7,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/kubernetes/pkg/api/v1/resource"
-	"k8s.io/kubernetes/pkg/fieldpath"
 )
 
 // ResourceStore defines a new resource store data structure
@@ -62,12 +60,12 @@ func getConfigMapRefValue(client kubernetes.Interface, namespace string, store *
 
 // getFieldRef returns the value of the supplied path in the given object
 func getFieldRef(obj runtime.Object, from *corev1.EnvVarSource) (string, error) {
-	return fieldpath.ExtractFieldPathAsString(obj, from.FieldRef.FieldPath)
+	return ExtractFieldPathAsString(obj, from.FieldRef.FieldPath)
 }
 
 // getResourceFieldRef returns the value of a resource in the given container
 func getResourceFieldRef(from *corev1.EnvVarSource, c *corev1.Container) (string, error) {
-	return resource.ExtractContainerResourceValue(from.ResourceFieldRef, c)
+	return ExtractContainerResourceValue(from.ResourceFieldRef, c)
 }
 
 // GenEnvVarRefValue returns the value referenced by the supplied EnvVarSource given the other supplied information

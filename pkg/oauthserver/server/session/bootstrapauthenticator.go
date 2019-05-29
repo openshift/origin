@@ -7,7 +7,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/user"
 
-	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
+	bootstrap "github.com/openshift/library-go/pkg/authentication/bootstrapauthenticator"
 )
 
 func NewBootstrapAuthenticator(delegate SessionAuthenticator, getter bootstrap.BootstrapUserDataGetter, store Store) SessionAuthenticator {

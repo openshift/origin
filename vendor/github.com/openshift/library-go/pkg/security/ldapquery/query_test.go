@@ -6,19 +6,20 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil/testclient"
+	"github.com/openshift/library-go/pkg/security/ldaptestclient"
+	"github.com/openshift/library-go/pkg/security/ldaputil"
 	"gopkg.in/ldap.v2"
 )
 
 const (
-	DefaultBaseDN         string       = "dc=example,dc=com"
-	DefaultScope          Scope        = ScopeWholeSubtree
-	DefaultDerefAliases   DerefAliases = DerefAliasesAlways
-	DefaultSizeLimit      int          = 0
-	DefaultTimeLimit      int          = 0
-	DefaultTypesOnly      bool         = false
-	DefaultFilter         string       = "objectClass=groupOfNames"
-	DefaultQueryAttribute string       = "uid"
+	DefaultBaseDN         string                = "dc=example,dc=com"
+	DefaultScope          ldaputil.Scope        = ldaputil.ScopeWholeSubtree
+	DefaultDerefAliases   ldaputil.DerefAliases = ldaputil.DerefAliasesAlways
+	DefaultSizeLimit      int                   = 0
+	DefaultTimeLimit      int                   = 0
+	DefaultTypesOnly      bool                  = false
+	DefaultFilter         string                = "objectClass=groupOfNames"
+	DefaultQueryAttribute string                = "uid"
 )
 
 var DefaultAttributes = []string{"dn", "cn", "uid"}
@@ -249,11 +250,11 @@ func TestErrNoSuchObject(t *testing.T) {
 		},
 	}
 	for _, testCase := range testCases {
-		testClient := testclient.NewMatchingSearchErrorClient(testclient.New(),
+		testClient := ldaptestclient.NewMatchingSearchErrorClient(ldaptestclient.New(),
 			"ou=groups,dc=example,dc=com",
 			ldap.NewError(ldap.LDAPResultNoSuchObject, errors.New("")),
 		)
-		testConfig := testclient.NewConfig(testClient)
+		testConfig := ldaptestclient.NewConfig(testClient)
 		if _, err := QueryForEntries(testConfig, testCase.searchRequest); !reflect.DeepEqual(err, testCase.expectedError) {
 			t.Errorf("%s: error did not match:\n\texpected:\n\t%v\n\tgot:\n\t%v", testCase.name, testCase.expectedError, err)
 		}
@@ -262,7 +263,7 @@ func TestErrNoSuchObject(t *testing.T) {
 
 // TestErrEntryNotFound checks that we wrap a zero-length list of results correctly if we search for a unique entry
 func TestErrEntryNotFound(t *testing.T) {
-	testConfig := testclient.NewConfig(testclient.New())
+	testConfig := ldaptestclient.NewConfig(ldaptestclient.New())
 	testSearchRequest := &ldap.SearchRequest{
 		BaseDN:       "dc=example,dc=com",
 		Scope:        ldap.ScopeWholeSubtree,
@@ -293,7 +294,7 @@ func TestQueryWithPaging(t *testing.T) {
 		Entries: []*ldap.Entry{ldap.NewEntry("cn=paging,ou=paging,dc=paging,dc=com", map[string][]string{"paging": {"true"}})},
 	}
 
-	testConfig := testclient.NewConfig(testclient.NewPagingOnlyClient(testclient.New(),
+	testConfig := ldaptestclient.NewConfig(ldaptestclient.NewPagingOnlyClient(ldaptestclient.New(),
 		expectedResult,
 	))
 	testSearchRequest := &ldap.SearchRequest{

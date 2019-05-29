@@ -7,18 +7,18 @@ import (
 	"gopkg.in/ldap.v2"
 	"k8s.io/klog"
 
-	"github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
+	"github.com/openshift/library-go/pkg/security/ldapclient"
+	"github.com/openshift/library-go/pkg/security/ldaputil"
 )
 
 // NewLDAPQuery converts a user-provided LDAPQuery into a version we can use
-func NewLDAPQuery(config config.LDAPQuery) (LDAPQuery, error) {
-	scope, err := DetermineLDAPScope(config.Scope)
+func NewLDAPQuery(config SerializeableLDAPQuery) (LDAPQuery, error) {
+	scope, err := ldaputil.DetermineLDAPScope(config.Scope)
 	if err != nil {
 		return LDAPQuery{}, err
 	}
 
-	derefAliases, err := DetermineDerefAliasesBehavior(config.DerefAliases)
+	derefAliases, err := ldaputil.DetermineDerefAliasesBehavior(config.DerefAliases)
 	if err != nil {
 		return LDAPQuery{}, err
 	}
@@ -39,11 +39,11 @@ type LDAPQuery struct {
 	BaseDN string
 
 	// The (optional) scope of the search. Defaults to the entire subtree if not set
-	Scope Scope
+	Scope ldaputil.Scope
 
 	// The (optional) behavior of the search with regards to alisases. Defaults to always
 	// dereferencing if not set
-	DerefAliases DerefAliases
+	DerefAliases ldaputil.DerefAliases
 
 	// TimeLimit holds the limit of time in seconds that any request to the server can remain outstanding
 	// before the wait for a response is given up. If this is 0, no client-side limit is imposed
@@ -77,7 +77,7 @@ func (q *LDAPQuery) NewSearchRequest(additionalAttributes []string) *ldap.Search
 
 // NewLDAPQueryOnAttribute converts a user-provided LDAPQuery into a version we can use by parsing
 // the input and combining it with a set of name attributes
-func NewLDAPQueryOnAttribute(config config.LDAPQuery, attribute string) (LDAPQueryOnAttribute, error) {
+func NewLDAPQueryOnAttribute(config SerializeableLDAPQuery, attribute string) (LDAPQueryOnAttribute, error) {
 	ldapQuery, err := NewLDAPQuery(config)
 	if err != nil {
 		return LDAPQueryOnAttribute{}, err

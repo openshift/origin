@@ -14,9 +14,9 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildlister "github.com/openshift/client-go/build/listers/build/v1"
+	"github.com/openshift/library-go/pkg/build/envresolve"
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/pod/envresolve"
 )
 
 type ByCreationTimestamp []*buildv1.Build

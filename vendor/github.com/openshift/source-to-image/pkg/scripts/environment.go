@@ -54,11 +54,24 @@ func ConvertEnvironmentList(env api.EnvironmentList) (result []string) {
 func ConvertEnvironmentToDocker(env api.EnvironmentList) (result string) {
 	for i, e := range env {
 		if i == 0 {
-			result += fmt.Sprintf("ENV %s=\"%s\"", e.Name, e.Value)
+			result += fmt.Sprintf("ENV %s=\"%s\"", e.Name, escape(e.Value))
 		} else {
-			result += fmt.Sprintf(" \\\n    %s=\"%s\"", e.Name, e.Value)
+			result += fmt.Sprintf(" \\\n    %s=\"%s\"", e.Name, escape(e.Value))
 		}
 	}
 	result += "\n"
 	return
+}
+
+// escape returns the passed-in value, escaped so that it will not undergo
+// expansion in an ENV instruction.
+func escape(value string) string {
+	result := ""
+	for _, ch := range value {
+		if strings.ContainsRune(`$"\`, ch) {
+			result += `\`
+		}
+		result += string(ch)
+	}
+	return result
 }

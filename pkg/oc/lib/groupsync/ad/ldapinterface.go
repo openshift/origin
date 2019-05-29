@@ -5,15 +5,15 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil/ldapclient"
+	"github.com/openshift/library-go/pkg/security/ldapclient"
+	ldapquery "github.com/openshift/library-go/pkg/security/ldapquery"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/groupdetector"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
 )
 
 // NewADLDAPInterface builds a new ADLDAPInterface using a schema-appropriate config
 func NewADLDAPInterface(clientConfig ldapclient.Config,
-	userQuery ldaputil.LDAPQuery,
+	userQuery ldapquery.LDAPQuery,
 	groupMembershipAttributes []string,
 	userNameAttributes []string) *ADLDAPInterface {
 
@@ -33,7 +33,7 @@ type ADLDAPInterface struct {
 	clientConfig ldapclient.Config
 
 	// userQuery holds the information necessary to make an LDAP query for all first-class user entries on the LDAP server
-	userQuery ldaputil.LDAPQuery
+	userQuery ldapquery.LDAPQuery
 	// groupMembershipAttributes defines which attributes on an LDAP user entry will be interpreted as its ldapGroupUID
 	groupMembershipAttributes []string
 	// UserNameAttributes defines which attributes on an LDAP user entry will be interpreted as its name
@@ -63,14 +63,14 @@ func (e *ADLDAPInterface) ExtractMembers(ldapGroupUID string) ([]*ldap.Entry, er
 
 	// check for all users with ldapGroupUID in any of the allowed member attributes
 	for _, currAttribute := range e.groupMembershipAttributes {
-		currQuery := ldaputil.LDAPQueryOnAttribute{LDAPQuery: e.userQuery, QueryAttribute: currAttribute}
+		currQuery := ldapquery.LDAPQueryOnAttribute{LDAPQuery: e.userQuery, QueryAttribute: currAttribute}
 
 		searchRequest, err := currQuery.NewSearchRequest(ldapGroupUID, e.requiredUserAttributes())
 		if err != nil {
 			return nil, err
 		}
 
-		currEntries, err := ldaputil.QueryForEntries(e.clientConfig, searchRequest)
+		currEntries, err := ldapquery.QueryForEntries(e.clientConfig, searchRequest)
 		if err != nil {
 			return nil, err
 		}
@@ -106,7 +106,7 @@ func (e *ADLDAPInterface) populateCache() error {
 
 	searchRequest := e.userQuery.NewSearchRequest(e.requiredUserAttributes())
 
-	userEntries, err := ldaputil.QueryForEntries(e.clientConfig, searchRequest)
+	userEntries, err := ldapquery.QueryForEntries(e.clientConfig, searchRequest)
 	if err != nil {
 		return err
 	}

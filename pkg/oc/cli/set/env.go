@@ -28,9 +28,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	"github.com/openshift/library-go/pkg/build/envresolve"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 	utilenv "github.com/openshift/oc/pkg/helpers/env"
-	"github.com/openshift/origin/pkg/pod/envresolve"
 )
 
 var (

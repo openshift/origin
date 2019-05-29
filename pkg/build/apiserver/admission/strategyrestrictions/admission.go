@@ -18,8 +18,8 @@ import (
 
 	"github.com/openshift/api/build"
 	buildclient "github.com/openshift/client-go/build/clientset/versioned"
+	authorizationutil "github.com/openshift/library-go/pkg/authorization/authorizationutil"
 	"github.com/openshift/origin/pkg/api/legacy"
-	"github.com/openshift/origin/pkg/authorization/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/buildscheme"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -147,7 +147,7 @@ func (a *buildByStrategy) checkBuildAuthorization(build *buildapi.Build, attr ad
 		subresource = tokens[1]
 	}
 
-	sar := util.AddUserToSAR(attr.GetUserInfo(), &authorizationv1.SubjectAccessReview{
+	sar := authorizationutil.AddUserToSAR(attr.GetUserInfo(), &authorizationv1.SubjectAccessReview{
 		Spec: authorizationv1.SubjectAccessReviewSpec{
 			ResourceAttributes: &authorizationv1.ResourceAttributes{
 				Namespace:   attr.GetNamespace(),
@@ -175,7 +175,7 @@ func (a *buildByStrategy) checkBuildConfigAuthorization(buildConfig *buildapi.Bu
 		subresource = tokens[1]
 	}
 
-	sar := util.AddUserToSAR(attr.GetUserInfo(), &authorizationv1.SubjectAccessReview{
+	sar := authorizationutil.AddUserToSAR(attr.GetUserInfo(), &authorizationv1.SubjectAccessReview{
 		Spec: authorizationv1.SubjectAccessReviewSpec{
 			ResourceAttributes: &authorizationv1.ResourceAttributes{
 				Namespace:   attr.GetNamespace(),

@@ -120,6 +120,8 @@ func (AuthenticationList) SwaggerDoc() map[string]string {
 var map_ConsoleCustomization = map[string]string{
 	"brand":                "brand is the default branding of the web console which can be overridden by providing the brand field.  There is a limited set of specific brand options. This field controls elements of the console such as the logo. Invalid value will prevent a console rollout.",
 	"documentationBaseURL": "documentationBaseURL links to external documentation are shown in various sections of the web console.  Providing documentationBaseURL will override the default documentation URL. Invalid value will prevent a console rollout.",
+	"customProductName":    "customProductName is the name that will be displayed in page titles, logo alt text, and the about dialog instead of the normal OpenShift product name.",
+	"customLogoFile":       "customLogoFile replaces the default OpenShift logo in the masthead and about dialog. It is a reference to a ConfigMap in the openshift-config namespace. This can be created with a command like 'oc create configmap custom-logo --from-file=/path/to/file -n openshift-config'. Image size must be less than 1 MB due to constraints on the ConfigMap size. The ConfigMap key should include a file extension so that the console serves the file with the correct MIME type. Recommended logo specifications: Dimensions: Max height of 68px and max width of 200px SVG format preferred",
 }
 
 func (ConsoleCustomization) SwaggerDoc() map[string]string {
@@ -315,10 +317,21 @@ var map_DefaultNetworkDefinition = map[string]string{
 	"type":                "type is the type of network All NetworkTypes are supported except for NetworkTypeRaw",
 	"openshiftSDNConfig":  "openShiftSDNConfig configures the openshift-sdn plugin",
 	"ovnKubernetesConfig": "oVNKubernetesConfig configures the ovn-kubernetes plugin. This is currently not implemented.",
+	"kuryrConfig":         "KuryrConfig configures the kuryr plugin",
 }
 
 func (DefaultNetworkDefinition) SwaggerDoc() map[string]string {
 	return map_DefaultNetworkDefinition
+}
+
+var map_KuryrConfig = map[string]string{
+	"":                     "KuryrConfig configures the Kuryr-Kubernetes SDN",
+	"daemonProbesPort":     "The port kuryr-daemon will listen for readiness and liveness requests.",
+	"controllerProbesPort": "The port kuryr-controller will listen for readiness and liveness requests.",
+}
+
+func (KuryrConfig) SwaggerDoc() map[string]string {
+	return map_KuryrConfig
 }
 
 var map_Network = map[string]string{

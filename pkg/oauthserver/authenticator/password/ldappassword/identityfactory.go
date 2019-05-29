@@ -1,15 +1,14 @@
-package ldaputil
+package ldappassword
 
 import (
-	"encoding/base64"
 	"fmt"
-	"strings"
 
 	"gopkg.in/ldap.v2"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	osinv1 "github.com/openshift/api/osin/v1"
+	"github.com/openshift/library-go/pkg/security/ldaputil"
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
 )
 
@@ -73,60 +72,21 @@ func (d *LDAPUserAttributeDefiner) AllAttributes() sets.String {
 
 // Email extracts the email value from an LDAP user entry
 func (d *LDAPUserAttributeDefiner) Email(user *ldap.Entry) string {
-	return GetAttributeValue(user, d.attributeMapping.Email)
+	return ldaputil.GetAttributeValue(user, d.attributeMapping.Email)
 }
 
 // Name extracts the name value from an LDAP user entry
 func (d *LDAPUserAttributeDefiner) Name(user *ldap.Entry) string {
-	return GetAttributeValue(user, d.attributeMapping.Name)
+	return ldaputil.GetAttributeValue(user, d.attributeMapping.Name)
 }
 
 // PreferredUsername extracts the preferred username value from an LDAP user entry
 func (d *LDAPUserAttributeDefiner) PreferredUsername(user *ldap.Entry) string {
-	return GetAttributeValue(user, d.attributeMapping.PreferredUsername)
+	return ldaputil.GetAttributeValue(user, d.attributeMapping.PreferredUsername)
 }
 
 // ID extracts the ID value from an LDAP user entry
 func (d *LDAPUserAttributeDefiner) ID(user *ldap.Entry) string {
 	// support binary ID fields as those the only stable identifiers in some environments
-	return GetRawAttributeValue(user, d.attributeMapping.ID)
-}
-
-// GetAttributeValue finds the first attribute of those given that the LDAP entry has, and
-// returns it. GetAttributeValue is able to query the DN as well as Attributes of the LDAP entry.
-// If no value is found, the empty string is returned.
-func GetAttributeValue(entry *ldap.Entry, attributes []string) string {
-	for _, k := range attributes {
-		// Ignore empty attributes
-		if len(k) == 0 {
-			continue
-		}
-		// Special-case DN, since it's not an attribute
-		if strings.ToLower(k) == "dn" {
-			return entry.DN
-		}
-		// Otherwise get an attribute and return it if present
-		if v := entry.GetAttributeValue(k); len(v) > 0 {
-			return v
-		}
-	}
-	return ""
-}
-
-func GetRawAttributeValue(entry *ldap.Entry, attributes []string) string {
-	for _, k := range attributes {
-		// Ignore empty attributes
-		if len(k) == 0 {
-			continue
-		}
-		// Special-case DN, since it's not an attribute
-		if strings.ToLower(k) == "dn" {
-			return base64.RawURLEncoding.EncodeToString([]byte(entry.DN))
-		}
-		// Otherwise get an attribute and return it if present
-		if v := entry.GetRawAttributeValue(k); len(v) > 0 {
-			return base64.RawURLEncoding.EncodeToString(v)
-		}
-	}
-	return ""
+	return ldaputil.GetRawAttributeValue(user, d.attributeMapping.ID)
 }

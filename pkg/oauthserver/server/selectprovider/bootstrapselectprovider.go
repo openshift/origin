@@ -3,8 +3,8 @@ package selectprovider
 import (
 	"net/http"
 
+	bootstrap "github.com/openshift/library-go/pkg/authentication/bootstrapauthenticator"
 	"github.com/openshift/origin/pkg/oauthserver/api"
-	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/handlers"
 )
 

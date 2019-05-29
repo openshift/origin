@@ -2,6 +2,8 @@ package sync
 
 import (
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
+	ldapquery "github.com/openshift/library-go/pkg/security/ldapquery"
+	"github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
 )
 
@@ -36,4 +38,15 @@ type OpenShiftGroupNameRestrictions interface {
 // MappedNameRestrictions describes an object that holds user name mappings for a group sync job
 type MappedNameRestrictions interface {
 	GetGroupNameMappings() map[string]string
+}
+
+func ToLDAPQuery(in config.LDAPQuery) ldapquery.SerializeableLDAPQuery {
+	return ldapquery.SerializeableLDAPQuery{
+		BaseDN:       in.BaseDN,
+		Scope:        in.Scope,
+		DerefAliases: in.DerefAliases,
+		TimeLimit:    in.TimeLimit,
+		Filter:       in.Filter,
+		PageSize:     in.PageSize,
+	}
 }

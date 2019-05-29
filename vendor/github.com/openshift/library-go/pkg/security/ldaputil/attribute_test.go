@@ -7,7 +7,6 @@ import (
 )
 
 func TestGetAttributeValue(t *testing.T) {
-
 	testcases := map[string]struct {
 		Entry         *ldap.Entry
 		Attributes    []string

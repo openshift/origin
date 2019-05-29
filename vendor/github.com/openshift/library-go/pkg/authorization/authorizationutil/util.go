@@ -1,4 +1,4 @@
-package util
+package authorizationutil
 
 import (
 	"errors"

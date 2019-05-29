@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
+	ldapquery "github.com/openshift/library-go/pkg/security/ldapquery"
 )
 
 // Handler knows how to handle errors
@@ -53,7 +53,7 @@ func (h *memberLookupOutOfBoundsSuppressor) HandleError(err error) (bool, error)
 		return false, nil
 	}
 
-	if ldaputil.IsQueryOutOfBoundsError(memberLookupError.causedBy) {
+	if ldapquery.IsQueryOutOfBoundsError(memberLookupError.causedBy) {
 		fmt.Fprintf(h.err, "For group %q, ignoring member %q: %v\n", memberLookupError.ldapGroupUID, memberLookupError.ldapUserUID, memberLookupError.causedBy)
 		return true, nil
 	}
@@ -81,7 +81,7 @@ func (h *memberLookupMemberNotFoundSuppressor) HandleError(err error) (bool, err
 		return false, nil
 	}
 
-	if ldaputil.IsEntryNotFoundError(memberLookupError.causedBy) || ldaputil.IsNoSuchObjectError(memberLookupError.causedBy) {
+	if ldapquery.IsEntryNotFoundError(memberLookupError.causedBy) || ldapquery.IsNoSuchObjectError(memberLookupError.causedBy) {
 		fmt.Fprintf(h.err, "For group %q, ignoring member %q: %v\n", memberLookupError.ldapGroupUID, memberLookupError.ldapUserUID, memberLookupError.causedBy)
 		return true, nil
 	}

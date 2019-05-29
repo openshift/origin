@@ -14,7 +14,6 @@ import (
 
 	userv1 "github.com/openshift/api/user/v1"
 	userv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 	"github.com/openshift/origin/pkg/oc/lib/groupsync/interfaces"
 )
 
@@ -146,11 +145,11 @@ func (s *LDAPGroupSyncer) makeOpenShiftGroup(ldapGroupUID string, usernames []st
 		group = &userv1.Group{}
 		group.Name = groupName
 		group.Annotations = map[string]string{
-			ldaputil.LDAPURLAnnotation: s.Host,
-			ldaputil.LDAPUIDAnnotation: ldapGroupUID,
+			LDAPURLAnnotation: s.Host,
+			LDAPUIDAnnotation: ldapGroupUID,
 		}
 		group.Labels = map[string]string{
-			ldaputil.LDAPHostLabel: hostIP,
+			LDAPHostLabel: hostIP,
 		}
 
 	} else if err != nil {
@@ -158,22 +157,22 @@ func (s *LDAPGroupSyncer) makeOpenShiftGroup(ldapGroupUID string, usernames []st
 	}
 
 	// make sure we aren't taking over an OpenShift group that is already related to a different LDAP group
-	if host, exists := group.Labels[ldaputil.LDAPHostLabel]; !exists || (host != hostIP) {
+	if host, exists := group.Labels[LDAPHostLabel]; !exists || (host != hostIP) {
 		return nil, fmt.Errorf("group %q: %s label did not match sync host: wanted %s, got %s",
-			group.Name, ldaputil.LDAPHostLabel, hostIP, host)
+			group.Name, LDAPHostLabel, hostIP, host)
 	}
-	if url, exists := group.Annotations[ldaputil.LDAPURLAnnotation]; !exists || (url != s.Host) {
+	if url, exists := group.Annotations[LDAPURLAnnotation]; !exists || (url != s.Host) {
 		return nil, fmt.Errorf("group %q: %s annotation did not match sync host: wanted %s, got %s",
-			group.Name, ldaputil.LDAPURLAnnotation, s.Host, url)
+			group.Name, LDAPURLAnnotation, s.Host, url)
 	}
-	if uid, exists := group.Annotations[ldaputil.LDAPUIDAnnotation]; !exists || (uid != ldapGroupUID) {
+	if uid, exists := group.Annotations[LDAPUIDAnnotation]; !exists || (uid != ldapGroupUID) {
 		return nil, fmt.Errorf("group %q: %s annotation did not match LDAP UID: wanted %s, got %s",
-			group.Name, ldaputil.LDAPUIDAnnotation, ldapGroupUID, uid)
+			group.Name, LDAPUIDAnnotation, ldapGroupUID, uid)
 	}
 
 	// overwrite Group Users data
 	group.Users = usernames
-	group.Annotations[ldaputil.LDAPSyncTimeAnnotation] = ISO8601(time.Now())
+	group.Annotations[LDAPSyncTimeAnnotation] = ISO8601(time.Now())
 
 	return group, nil
 }

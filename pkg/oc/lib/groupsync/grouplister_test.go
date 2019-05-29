@@ -12,7 +12,6 @@ import (
 	userv1 "github.com/openshift/api/user/v1"
 	fakeuserclient "github.com/openshift/client-go/user/clientset/versioned/fake"
 	fakeuserv1client "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1/fake"
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 	_ "github.com/openshift/origin/pkg/user/apis/user/install"
 )
 
@@ -27,26 +26,26 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 			startingGroups: []runtime.Object{
 				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
-						ldaputil.LDAPURLAnnotation: "test-host:port",
-						ldaputil.LDAPUIDAnnotation: "alpha-uid",
+						LDAPURLAnnotation: "test-host:port",
+						LDAPUIDAnnotation: "alpha-uid",
 					},
-					Labels: map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
+					Labels: map[string]string{LDAPHostLabel: "test-host"}}},
 			},
 			expectedName: "alpha-uid",
 		},
 		"no url annotation": {
 			startingGroups: []runtime.Object{
 				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
-					Annotations: map[string]string{ldaputil.LDAPUIDAnnotation: "alpha-uid"},
-					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
+					Annotations: map[string]string{LDAPUIDAnnotation: "alpha-uid"},
+					Labels:      map[string]string{LDAPHostLabel: "test-host"}}},
 			},
 			expectedErr: `group "alpha" marked as having been synced did not have an openshift.io/ldap.url annotation`,
 		},
 		"no uid annotation": {
 			startingGroups: []runtime.Object{
 				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
-					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port"},
-					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
+					Annotations: map[string]string{LDAPURLAnnotation: "test-host:port"},
+					Labels:      map[string]string{LDAPHostLabel: "test-host"}}},
 			},
 			expectedErr: `group "alpha" marked as having been synced did not have an openshift.io/ldap.uid annotation`,
 		},
@@ -54,16 +53,16 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 			startingGroups: []runtime.Object{
 				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
-						ldaputil.LDAPURLAnnotation: "test-host:port2",
-						ldaputil.LDAPUIDAnnotation: "alpha-uid",
+						LDAPURLAnnotation: "test-host:port2",
+						LDAPUIDAnnotation: "alpha-uid",
 					},
-					Labels: map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
+					Labels: map[string]string{LDAPHostLabel: "test-host"}}},
 				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "beta",
 					Annotations: map[string]string{
-						ldaputil.LDAPURLAnnotation: "test-host:port",
-						ldaputil.LDAPUIDAnnotation: "beta-uid",
+						LDAPURLAnnotation: "test-host:port",
+						LDAPUIDAnnotation: "beta-uid",
 					},
-					Labels: map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
+					Labels: map[string]string{LDAPHostLabel: "test-host"}}},
 			},
 			expectedName: "beta-uid",
 		},
@@ -71,16 +70,16 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 			startingGroups: []runtime.Object{
 				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
-						ldaputil.LDAPURLAnnotation: "test-host:port",
-						ldaputil.LDAPUIDAnnotation: "alpha-uid",
+						LDAPURLAnnotation: "test-host:port",
+						LDAPUIDAnnotation: "alpha-uid",
 					},
-					Labels: map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
+					Labels: map[string]string{LDAPHostLabel: "test-host"}}},
 				&userv1.Group{ObjectMeta: metav1.ObjectMeta{Name: "beta",
 					Annotations: map[string]string{
-						ldaputil.LDAPURLAnnotation: "test-host:port",
-						ldaputil.LDAPUIDAnnotation: "beta-uid",
+						LDAPURLAnnotation: "test-host:port",
+						LDAPUIDAnnotation: "beta-uid",
 					},
-					Labels: map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
+					Labels: map[string]string{LDAPHostLabel: "test-host"}}},
 			},
 			blacklist:    []string{"alpha"},
 			expectedName: "beta-uid",
@@ -142,10 +141,10 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 			startingGroups: []*userv1.Group{
 				{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
-						ldaputil.LDAPURLAnnotation: "test-host:port",
-						ldaputil.LDAPUIDAnnotation: "alpha-uid",
+						LDAPURLAnnotation: "test-host:port",
+						LDAPUIDAnnotation: "alpha-uid",
 					},
-					Labels: map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
+					Labels: map[string]string{LDAPHostLabel: "test-host"}}},
 			},
 			whitelist:    []string{"alpha"},
 			expectedName: "alpha-uid",
@@ -153,8 +152,8 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 		"no url annotation": {
 			startingGroups: []*userv1.Group{
 				{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
-					Annotations: map[string]string{ldaputil.LDAPUIDAnnotation: "alpha-uid"},
-					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
+					Annotations: map[string]string{LDAPUIDAnnotation: "alpha-uid"},
+					Labels:      map[string]string{LDAPHostLabel: "test-host"}}},
 			},
 			whitelist:   []string{"alpha"},
 			expectedErr: `group "alpha" marked as having been synced did not have an openshift.io/ldap.url annotation`,
@@ -162,8 +161,8 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 		"no uid annotation": {
 			startingGroups: []*userv1.Group{
 				{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
-					Annotations: map[string]string{ldaputil.LDAPURLAnnotation: "test-host:port"},
-					Labels:      map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
+					Annotations: map[string]string{LDAPURLAnnotation: "test-host:port"},
+					Labels:      map[string]string{LDAPHostLabel: "test-host"}}},
 			},
 			whitelist:   []string{"alpha"},
 			expectedErr: `group "alpha" marked as having been synced did not have an openshift.io/ldap.uid annotation`,
@@ -172,10 +171,10 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 			startingGroups: []*userv1.Group{
 				{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
-						ldaputil.LDAPURLAnnotation: "test-host:port2",
-						ldaputil.LDAPUIDAnnotation: "alpha-uid",
+						LDAPURLAnnotation: "test-host:port2",
+						LDAPUIDAnnotation: "alpha-uid",
 					},
-					Labels: map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
+					Labels: map[string]string{LDAPHostLabel: "test-host"}}},
 			},
 			whitelist:   []string{"alpha"},
 			expectedErr: `group "alpha" was not synchronized from: test-host:port`,
@@ -184,16 +183,16 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 			startingGroups: []*userv1.Group{
 				{ObjectMeta: metav1.ObjectMeta{Name: "alpha",
 					Annotations: map[string]string{
-						ldaputil.LDAPURLAnnotation: "test-host:port",
-						ldaputil.LDAPUIDAnnotation: "alpha-uid",
+						LDAPURLAnnotation: "test-host:port",
+						LDAPUIDAnnotation: "alpha-uid",
 					},
-					Labels: map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
+					Labels: map[string]string{LDAPHostLabel: "test-host"}}},
 				{ObjectMeta: metav1.ObjectMeta{Name: "beta",
 					Annotations: map[string]string{
-						ldaputil.LDAPURLAnnotation: "test-host:port",
-						ldaputil.LDAPUIDAnnotation: "beta-uid",
+						LDAPURLAnnotation: "test-host:port",
+						LDAPUIDAnnotation: "beta-uid",
 					},
-					Labels: map[string]string{ldaputil.LDAPHostLabel: "test-host"}}},
+					Labels: map[string]string{LDAPHostLabel: "test-host"}}},
 			},
 			whitelist:    []string{"alpha", "beta"},
 			blacklist:    []string{"alpha"},

@@ -29,6 +29,9 @@ import (
 	oauthapi "github.com/openshift/api/oauth/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
 	oauthclient "github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
+	bootstrap "github.com/openshift/library-go/pkg/authentication/bootstrapauthenticator"
+	"github.com/openshift/library-go/pkg/security/ldapclient"
+	"github.com/openshift/library-go/pkg/security/ldaputil"
 	"github.com/openshift/origin/pkg/oauth/urls"
 	"github.com/openshift/origin/pkg/oauthserver"
 	"github.com/openshift/origin/pkg/oauthserver/api"
@@ -36,7 +39,6 @@ import (
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/challenger/placeholderchallenger"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/allowanypassword"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/basicauthpassword"
-	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/bootstrap"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/denypassword"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/htpasswd"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/password/keystonepassword"
@@ -45,7 +47,6 @@ import (
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/request/basicauthrequest"
 	"github.com/openshift/origin/pkg/oauthserver/authenticator/request/headerrequest"
 	"github.com/openshift/origin/pkg/oauthserver/config"
-	"github.com/openshift/origin/pkg/oauthserver/ldaputil"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/external"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/external/github"
 	"github.com/openshift/origin/pkg/oauthserver/oauth/external/gitlab"
@@ -574,7 +575,7 @@ func (c *OAuthServerConfig) getPasswordAuthenticator(identityProvider osinv1.Ide
 		if err != nil {
 			return nil, err
 		}
-		clientConfig, err := ldaputil.NewLDAPClientConfig(provider.URL,
+		clientConfig, err := ldapclient.NewLDAPClientConfig(provider.URL,
 			provider.BindDN,
 			bindPassword,
 			provider.CA,
@@ -586,7 +587,7 @@ func (c *OAuthServerConfig) getPasswordAuthenticator(identityProvider osinv1.Ide
 		opts := ldappassword.Options{
 			URL:                  url,
 			ClientConfig:         clientConfig,
-			UserAttributeDefiner: ldaputil.NewLDAPUserAttributeDefiner(provider.Attributes),
+			UserAttributeDefiner: ldappassword.NewLDAPUserAttributeDefiner(provider.Attributes),
 		}
 		return ldappassword.New(identityProvider.Name, opts, identityMapper)
 
