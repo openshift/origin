@@ -11,8 +11,8 @@ import (
 	kubecontrolplanev1 "github.com/openshift/api/kubecontrolplane/v1"
 	osinv1 "github.com/openshift/api/osin/v1"
 	"github.com/openshift/library-go/pkg/apiserver/httprequest"
+	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver/configprocessing"
-	"github.com/openshift/origin/pkg/oauth/urls"
 	"github.com/openshift/origin/pkg/oauth/util"
 )
 
@@ -79,7 +79,7 @@ func withOAuthRedirection(oauthConfig *osinv1.OAuthConfig, handler, oauthServerH
 		return handler
 	}
 
-	klog.Infof("Starting OAuth2 API at %s", urls.OpenShiftOAuthAPIPrefix)
+	klog.Infof("Starting OAuth2 API at %s", oauthdiscovery.OpenShiftOAuthAPIPrefix)
 	return WithPatternPrefixHandler(handler, oauthServerHandler, openShiftOAuthAPIPrefix, openShiftLoginPrefix, openShiftLogoutPrefix, openShiftOAuthCallbackPrefix)
 }
 

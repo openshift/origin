@@ -10,10 +10,10 @@ import (
 	"k8s.io/klog"
 
 	osinv1 "github.com/openshift/api/osin/v1"
+	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
-	"github.com/openshift/origin/pkg/oauth/urls"
 )
 
 // OauthAuthorizationServerMetadata holds OAuth 2.0 Authorization Server Metadata used for discovery
@@ -53,8 +53,8 @@ type OauthAuthorizationServerMetadata struct {
 func getOauthMetadata(masterPublicURL string) OauthAuthorizationServerMetadata {
 	return OauthAuthorizationServerMetadata{
 		Issuer:                masterPublicURL,
-		AuthorizationEndpoint: urls.OpenShiftOAuthAuthorizeURL(masterPublicURL),
-		TokenEndpoint:         urls.OpenShiftOAuthTokenURL(masterPublicURL),
+		AuthorizationEndpoint: oauthdiscovery.OpenShiftOAuthAuthorizeURL(masterPublicURL),
+		TokenEndpoint:         oauthdiscovery.OpenShiftOAuthTokenURL(masterPublicURL),
 		// Note: this list is incomplete, which is allowed per the draft spec
 		ScopesSupported:               scope.DefaultSupportedScopes(),
 		ResponseTypesSupported:        osin.AllowedAuthorizeType{osin.CODE, osin.TOKEN},

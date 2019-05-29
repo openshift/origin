@@ -16,7 +16,7 @@ import (
 
 	"github.com/openshift/client-go/oauth/clientset/versioned/typed/oauth/v1"
 	bootstrap "github.com/openshift/library-go/pkg/authentication/bootstrapauthenticator"
-	"github.com/openshift/origin/pkg/oauth/urls"
+	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
 	"github.com/openshift/origin/pkg/oauthserver"
 	"github.com/openshift/origin/pkg/oauthserver/server/csrf"
 )
@@ -47,9 +47,9 @@ func NewTokenRequest(publicMasterURL, openShiftLogoutPrefix string, osinOAuthCli
 }
 
 func (t *tokenRequest) Install(mux oauthserver.Mux, prefix string) {
-	mux.HandleFunc(path.Join(prefix, urls.RequestTokenEndpoint), t.oauthClientHandler(t.requestToken))
-	mux.HandleFunc(path.Join(prefix, urls.DisplayTokenEndpoint), t.oauthClientHandler(t.displayToken))
-	mux.HandleFunc(path.Join(prefix, urls.ImplicitTokenEndpoint), t.implicitToken)
+	mux.HandleFunc(path.Join(prefix, oauthdiscovery.RequestTokenEndpoint), t.oauthClientHandler(t.requestToken))
+	mux.HandleFunc(path.Join(prefix, oauthdiscovery.DisplayTokenEndpoint), t.oauthClientHandler(t.displayToken))
+	mux.HandleFunc(path.Join(prefix, oauthdiscovery.ImplicitTokenEndpoint), t.implicitToken)
 }
 
 func (t *tokenRequest) oauthClientHandler(delegate func(*osincli.Client, http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
@@ -147,8 +147,8 @@ func (t *tokenRequest) displayTokenPost(osinOAuthClient *osincli.Client, w http.
 func displayTokenStart(osinOAuthClient *osincli.Client, w http.ResponseWriter, req *http.Request, data *sharedData) (*osincli.AuthorizeData, bool) {
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 
-	requestURL := urls.OpenShiftOAuthTokenRequestURL("") // relative url to token request endpoint
-	data.RequestURL = requestURL                         // always set this field even on error cases
+	requestURL := oauthdiscovery.OpenShiftOAuthTokenRequestURL("") // relative url to token request endpoint
+	data.RequestURL = requestURL                                   // always set this field even on error cases
 
 	authorizeReq := osinOAuthClient.NewAuthorizeRequest(osincli.CODE)
 	authorizeData, err := authorizeReq.HandleRequest(req)
