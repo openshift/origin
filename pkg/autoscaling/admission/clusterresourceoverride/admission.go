@@ -5,8 +5,6 @@ import (
 	"io"
 	"strings"
 
-	"k8s.io/klog"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/labels"
@@ -15,12 +13,13 @@ import (
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	corev1listers "k8s.io/client-go/listers/core/v1"
+	"k8s.io/klog"
 	coreapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 
 	api "github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride"
+	v1 "github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride/v1"
 	"github.com/openshift/origin/pkg/autoscaling/admission/apis/clusterresourceoverride/validation"
-	configlatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
 	"github.com/openshift/origin/pkg/project/apiserver/registry/projectrequest/delegated"
 )
 
@@ -103,7 +102,7 @@ func (d *clusterResourceOverridePlugin) SetExternalKubeInformerFactory(kubeInfor
 }
 
 func ReadConfig(configFile io.Reader) (*api.ClusterResourceOverrideConfig, error) {
-	obj, err := configlatest.ReadYAML(configFile)
+	obj, err := ReadYAML(configFile, api.Install, v1.Install)
 	if err != nil {
 		klog.V(5).Infof("%s error reading config: %v", api.PluginName, err)
 		return nil, err
