@@ -11,9 +11,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	templatev1 "github.com/openshift/api/template/v1"
+	. "github.com/openshift/library-go/pkg/template/generator"
 	"github.com/openshift/origin/pkg/api/legacygroupification"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	. "github.com/openshift/origin/pkg/template/generator"
 	"github.com/openshift/origin/pkg/util"
 )
 
