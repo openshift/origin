@@ -201,15 +201,13 @@
     "allowedImportPackageRoots": [
       "vendor/k8s.io/apimachinery",
       "vendor/k8s.io/api",
-      "vendor/github.com/openshift/api",
-      "github.com/openshift/origin/pkg/api/apihelpers"
+      "vendor/github.com/openshift/api"
     ],
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/apis/core",
       "vendor/k8s.io/kubernetes/pkg/apis/core/v1",
       "vendor/k8s.io/kubernetes/pkg/apis/rbac",
-      "vendor/k8s.io/kubernetes/pkg/apis/rbac/v1",
-      "vendor/k8s.io/kubernetes/pkg/api/legacyscheme"
+      "vendor/k8s.io/kubernetes/pkg/apis/rbac/v1"
     ]
   },
 
