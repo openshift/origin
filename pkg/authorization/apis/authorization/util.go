@@ -1,4 +1,4 @@
-package serviceaccount
+package authorization
 
 import (
 	"fmt"
@@ -10,8 +10,6 @@ import (
 const (
 	ServiceAccountUsernamePrefix    = "system:serviceaccount:"
 	ServiceAccountUsernameSeparator = ":"
-	ServiceAccountGroupPrefix       = "system:serviceaccounts:"
-	AllServiceAccountsGroup         = "system:serviceaccounts"
 )
 
 // MakeUsername generates a username from the given namespace and ServiceAccount name.
@@ -41,17 +39,4 @@ func SplitUsername(username string) (string, string, error) {
 		return "", "", invalidUsernameErr
 	}
 	return namespace, name, nil
-}
-
-// MakeGroupNames generates service account group names for the given namespace and ServiceAccount name
-func MakeGroupNames(namespace, name string) []string {
-	return []string{
-		AllServiceAccountsGroup,
-		MakeNamespaceGroupName(namespace),
-	}
-}
-
-// MakeNamespaceGroupName returns the name of the group all service accounts in the namespace are included in
-func MakeNamespaceGroupName(namespace string) string {
-	return ServiceAccountGroupPrefix + namespace
 }

@@ -7,8 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/validation/path"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
-
-	"github.com/openshift/origin/pkg/authorization/apis/authorization/internal/serviceaccount"
 )
 
 func (r PolicyRule) String() string {
@@ -51,7 +49,7 @@ func BuildSubjects(users, groups []string) []kapi.ObjectReference {
 	subjects := []kapi.ObjectReference{}
 
 	for _, user := range users {
-		saNamespace, saName, err := serviceaccount.SplitUsername(user)
+		saNamespace, saName, err := SplitUsername(user)
 		if err == nil {
 			subjects = append(subjects, kapi.ObjectReference{Kind: ServiceAccountKind, Namespace: saNamespace, Name: saName})
 			continue
@@ -131,7 +129,7 @@ func StringSubjectsFor(currentNamespace string, subjects []kapi.ObjectReference)
 				namespace = subject.Namespace
 			}
 			if len(namespace) > 0 {
-				users = append(users, serviceaccount.MakeUsername(namespace, subject.Name))
+				users = append(users, MakeUsername(namespace, subject.Name))
 			}
 
 		case UserKind, SystemUserKind:
