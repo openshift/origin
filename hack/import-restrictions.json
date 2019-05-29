@@ -498,7 +498,6 @@
       "github.com/openshift/origin/pkg/api",
       "github.com/openshift/origin/pkg/api/imagereferencemutators",
       "github.com/openshift/origin/pkg/api/install",
-      "github.com/openshift/origin/pkg/api/legacygroupification",
       "github.com/openshift/origin/pkg/apps/apis/apps",
       "github.com/openshift/origin/pkg/apps/apis/apps/install",
       "github.com/openshift/origin/pkg/apps/util/test",

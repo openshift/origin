@@ -10,8 +10,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/generate/versioned"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
 
+	"github.com/openshift/library-go/pkg/legacyapi/legacygroupification"
 	"github.com/openshift/oc/pkg/helpers/clientcmd"
-	"github.com/openshift/origin/pkg/api/legacygroupification"
 	"github.com/openshift/origin/pkg/oc/originpolymorphichelpers"
 	oversion "github.com/openshift/origin/pkg/version"
 )
