@@ -262,35 +262,12 @@ in detail. The project
 examples should be driven by e2e tests. e2e tests can also test external
 components working together.
 
-The end-to-end suite is currently implemented primarily in Bash, but will be
-folded into the extended suite (located in test/extended) over time.
-The extended suite is closer to the upstream Kubernetes e2e suite and
-tests the full behavior of a running system.
+All e2e tests are compiled into the `openshift-tests` binary.
+To build the test binary, run `make build-extended-test`.
 
-Run the end to end tests with:
-
-    $ hack/test-end-to-end.sh
-
-Run the extended tests with:
-
-    $ test/extended/core.sh
-
-This suite comprises many smaller suites, which are found under `test/extended`
-and can be run individually by specifying `--ginkgo.focus` and a regex filter:
-
-    $ test/extended/core.sh --ginkgo.focus=<regex>
-
-In addition, the extended tests can be run against an existing OpenShift
-cluster:
-
-    $ KUBECONFIG=/path/to/admin.kubeconfig TEST_ONLY=true test/extended/core.sh --ginkgo.focus=<regex>
-
-Extended tests should be Go tests in the `test/extended` directory that use
-the Ginkgo library. They must be able to be run remotely, and cannot depend on
-any local interaction with the filesystem or Docker.
-
-More information about running extended tests can be found in
-[test/extended/README](https://github.com/openshift/origin/blob/master/test/extended/README.md).
+To run a specific test, or an entire suite of tests, read 
+[test/extended/README](https://github.com/openshift/origin/blob/master/test/extended/README.md)
+for more information.
 
 ## Changing API
 
