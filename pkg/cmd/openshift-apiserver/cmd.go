@@ -22,16 +22,12 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	configv1 "github.com/openshift/api/config/v1"
-	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/library-go/pkg/serviceability"
 
 	"github.com/openshift/origin/pkg/api/legacy"
 	"github.com/openshift/origin/pkg/cmd/openshift-kube-apiserver/configdefault"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
 	"github.com/openshift/origin/pkg/configconversion"
 )
 
@@ -110,57 +106,22 @@ func (o *OpenShiftAPIServer) RunAPIServer(stopCh <-chan struct{}) error {
 	utilruntime.Must(openshiftcontrolplanev1.Install(scheme))
 	codecs := serializer.NewCodecFactory(scheme)
 	obj, err := runtime.Decode(codecs.UniversalDecoder(openshiftcontrolplanev1.GroupVersion, configv1.GroupVersion), configContent)
-	switch {
-	case runtime.IsMissingVersion(err): // fall through to legacy master config
-	case runtime.IsMissingKind(err): // fall through to legacy master config
-	case runtime.IsNotRegisteredError(err): // fall through to legacy master config
-	case err != nil:
-		return err
-	case err == nil:
-		// Resolve relative to CWD
-		absoluteConfigFile, err := api.MakeAbs(o.ConfigFile, "")
-		if err != nil {
-			return err
-		}
-		configFileLocation := path.Dir(absoluteConfigFile)
-
-		config := obj.(*openshiftcontrolplanev1.OpenShiftAPIServerConfig)
-		if err := helpers.ResolvePaths(configconversion.GetOpenShiftAPIServerConfigFileReferences(config), configFileLocation); err != nil {
-			return err
-		}
-		configdefault.SetRecommendedOpenShiftAPIServerConfigDefaults(config)
-
-		return RunOpenShiftAPIServer(config, stopCh)
-	}
-
-	// TODO this code disappears once the kube-core operator switches to external types
-	// TODO we will simply run some defaulting code and convert
-	// reading internal gives us defaulting that we need for now
-
-	masterConfig, err := configapilatest.ReadAndResolveMasterConfig(o.ConfigFile)
-	if err != nil {
-		return err
-	}
-	validationResults := validation.ValidateMasterConfig(masterConfig, nil)
-	if len(validationResults.Warnings) != 0 {
-		for _, warning := range validationResults.Warnings {
-			klog.Warningf("%v", warning)
-		}
-	}
-	if len(validationResults.Errors) != 0 {
-		return kerrors.NewInvalid(configapi.Kind("MasterConfig"), "master-config.yaml", validationResults.Errors)
-	}
-	// round trip to external
-	externalMasterConfig, err := configapi.Scheme.ConvertToVersion(masterConfig, legacyconfigv1.LegacySchemeGroupVersion)
-	if err != nil {
-		return err
-	}
-	openshiftAPIServerConfig, err := configconversion.ConvertMasterConfigToOpenShiftAPIServerConfig(externalMasterConfig.(*legacyconfigv1.MasterConfig))
 	if err != nil {
 		return err
 	}
 
-	configdefault.SetRecommendedOpenShiftAPIServerConfigDefaults(openshiftAPIServerConfig)
+	// Resolve relative to CWD
+	absoluteConfigFile, err := api.MakeAbs(o.ConfigFile, "")
+	if err != nil {
+		return err
+	}
+	configFileLocation := path.Dir(absoluteConfigFile)
 
-	return RunOpenShiftAPIServer(openshiftAPIServerConfig, stopCh)
+	config := obj.(*openshiftcontrolplanev1.OpenShiftAPIServerConfig)
+	if err := helpers.ResolvePaths(configconversion.GetOpenShiftAPIServerConfigFileReferences(config), configFileLocation); err != nil {
+		return err
+	}
+	configdefault.SetRecommendedOpenShiftAPIServerConfigDefaults(config)
+
+	return RunOpenShiftAPIServer(config, stopCh)
 }

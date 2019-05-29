@@ -22,14 +22,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
 
 	configv1 "github.com/openshift/api/config/v1"
-	legacyconfigv1 "github.com/openshift/api/legacyconfig/v1"
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/library-go/pkg/serviceability"
 	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager/configdefault"
-	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	configapilatest "github.com/openshift/origin/pkg/cmd/server/apis/config/latest"
-	"github.com/openshift/origin/pkg/cmd/server/apis/config/validation"
 	"github.com/openshift/origin/pkg/configconversion"
 )
 
@@ -110,63 +106,31 @@ func (o *OpenShiftControllerManager) RunControllerManager() error {
 	utilruntime.Must(openshiftcontrolplanev1.Install(scheme))
 	codecs := serializer.NewCodecFactory(scheme)
 	obj, err := runtime.Decode(codecs.UniversalDecoder(openshiftcontrolplanev1.GroupVersion, configv1.GroupVersion), configContent)
-	switch {
-	case runtime.IsMissingVersion(err): // fall through to legacy master config
-	case runtime.IsMissingKind(err): // fall through to legacy master config
-	case runtime.IsNotRegisteredError(err): // fall through to legacy master config
-	case err != nil:
-		return err
-	case err == nil:
-		// Resolve relative to CWD
-		absoluteConfigFile, err := api.MakeAbs(o.ConfigFilePath, "")
-		if err != nil {
-			return err
-		}
-		configFileLocation := path.Dir(absoluteConfigFile)
-
-		config := obj.(*openshiftcontrolplanev1.OpenShiftControllerManagerConfig)
-		/// this isn't allowed to be nil when by itself.
-		// TODO remove this when the old path is gone.
-		if config.ServingInfo == nil {
-			config.ServingInfo = &configv1.HTTPServingInfo{}
-		}
-		if err := helpers.ResolvePaths(configconversion.GetOpenShiftControllerConfigFileReferences(config), configFileLocation); err != nil {
-			return err
-		}
-		configdefault.SetRecommendedOpenShiftControllerConfigDefaults(config)
-
-		clientConfig, err := helpers.GetKubeClientConfig(config.KubeClientConfig)
-		if err != nil {
-			return err
-		}
-		return RunOpenShiftControllerManager(config, clientConfig)
-	}
-
-	masterConfig, err := configapilatest.ReadAndResolveMasterConfig(o.ConfigFilePath)
 	if err != nil {
 		return err
 	}
 
-	validationResults := validation.ValidateMasterConfig(masterConfig, nil)
-	if len(validationResults.Warnings) != 0 {
-		for _, warning := range validationResults.Warnings {
-			klog.Warningf("%v", warning)
-		}
-	}
-	if len(validationResults.Errors) != 0 {
-		return kerrors.NewInvalid(configapi.Kind("MasterConfig"), "master-config.yaml", validationResults.Errors)
-	}
-
-	// round trip to external
-	externalMasterConfig, err := configapi.Scheme.ConvertToVersion(masterConfig, legacyconfigv1.LegacySchemeGroupVersion)
+	// Resolve relative to CWD
+	absoluteConfigFile, err := api.MakeAbs(o.ConfigFilePath, "")
 	if err != nil {
 		return err
 	}
-	config := ConvertMasterConfigToOpenshiftControllerConfig(externalMasterConfig.(*legacyconfigv1.MasterConfig))
+	configFileLocation := path.Dir(absoluteConfigFile)
+
+	config := obj.(*openshiftcontrolplanev1.OpenShiftControllerManagerConfig)
+	/// this isn't allowed to be nil when by itself.
+	// TODO remove this when the old path is gone.
+	if config.ServingInfo == nil {
+		config.ServingInfo = &configv1.HTTPServingInfo{}
+	}
+	if err := helpers.ResolvePaths(configconversion.GetOpenShiftControllerConfigFileReferences(config), configFileLocation); err != nil {
+		return err
+	}
+	configdefault.SetRecommendedOpenShiftControllerConfigDefaults(config)
+
 	clientConfig, err := helpers.GetKubeClientConfig(config.KubeClientConfig)
 	if err != nil {
 		return err
 	}
-
 	return RunOpenShiftControllerManager(config, clientConfig)
 }
