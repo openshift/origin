@@ -1,97 +1,12 @@
 package client
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/types"
-
 	buildv1 "github.com/openshift/api/build/v1"
-	buildclient "github.com/openshift/client-go/build/clientset/versioned"
 	buildclienttyped "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildlister "github.com/openshift/client-go/build/listers/build/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
-
-// BuildConfigGetter provides methods for getting BuildConfigs
-type BuildConfigGetter interface {
-	Get(namespace, name string, options metav1.GetOptions) (*buildv1.BuildConfig, error)
-}
-
-// BuildConfigUpdater provides methods for updating BuildConfigs
-type BuildConfigUpdater interface {
-	Update(buildConfig *buildv1.BuildConfig) error
-}
-
-// ClientBuildConfigClient delegates get and update operations to the OpenShift client interface
-type ClientBuildConfigClient struct {
-	Client buildclient.Interface
-}
-
-// NewClientBuildConfigClient creates a new build config client that uses an openshift client to create and get BuildConfigs
-func NewClientBuildConfigClient(client buildclient.Interface) *ClientBuildConfigClient {
-	return &ClientBuildConfigClient{Client: client}
-}
-
-// Get returns a BuildConfig using the OpenShift client.
-func (c ClientBuildConfigClient) Get(namespace, name string, options metav1.GetOptions) (*buildv1.BuildConfig, error) {
-	return c.Client.BuildV1().BuildConfigs(namespace).Get(name, options)
-}
-
-// Update updates a BuildConfig using the OpenShift client.
-func (c ClientBuildConfigClient) Update(buildConfig *buildv1.BuildConfig) error {
-	_, err := c.Client.BuildV1().BuildConfigs(buildConfig.Namespace).Update(buildConfig)
-	return err
-}
-
-// BuildUpdater provides methods for updating existing Builds.
-type BuildUpdater interface {
-	Update(namespace string, build *buildv1.Build) error
-}
-
-type BuildPatcher interface {
-	Patch(namespace, name string, patch []byte) (*buildv1.Build, error)
-}
-
-// BuildLister provides methods for listing the Builds.
-type BuildLister interface {
-	List(namespace string, opts metav1.ListOptions) (*buildv1.BuildList, error)
-}
-
-// BuildDeleter knows how to delete buildclient from OpenShift.
-type BuildDeleter interface {
-	// DeleteBuild removes the build from OpenShift's storage.
-	DeleteBuild(build *buildv1.Build) error
-}
-
-// ClientBuildClient delegates build create and update operations to the OpenShift client interface
-type ClientBuildClient struct {
-	Client buildclient.Interface
-}
-
-// NewClientBuildClient creates a new build client that uses an openshift client to update buildclient
-func NewClientBuildClient(client buildclient.Interface) *ClientBuildClient {
-	return &ClientBuildClient{Client: client}
-}
-
-// Update updates buildclient using the OpenShift client.
-func (c ClientBuildClient) Update(namespace string, build *buildv1.Build) error {
-	_, e := c.Client.BuildV1().Builds(namespace).Update(build)
-	return e
-}
-
-// Patch patches buildclient using the OpenShift client.
-func (c ClientBuildClient) Patch(namespace, name string, patch []byte) (*buildv1.Build, error) {
-	return c.Client.BuildV1().Builds(namespace).Patch(name, types.StrategicMergePatchType, patch)
-}
-
-// List lists the buildclient using the OpenShift client.
-func (c ClientBuildClient) List(namespace string, opts metav1.ListOptions) (*buildv1.BuildList, error) {
-	return c.Client.BuildV1().Builds(namespace).List(opts)
-}
-
-// DeleteBuild deletes a build from OpenShift.
-func (c ClientBuildClient) DeleteBuild(build *buildv1.Build) error {
-	return c.Client.BuildV1().Builds(build.Namespace).Delete(build.Name, &metav1.DeleteOptions{})
-}
 
 // ClientBuildLister implements the build lister interface over a client
 type ClientBuildLister struct {
@@ -185,53 +100,4 @@ func buildConfigListToPointerArray(list *buildv1.BuildConfigList) []*buildv1.Bui
 		result[i] = &list.Items[i]
 	}
 	return result
-}
-
-// BuildCloner provides methods for cloning buildclient
-type BuildCloner interface {
-	Clone(namespace string, request *buildv1.BuildRequest) (*buildv1.Build, error)
-}
-
-// OSClientBuildClonerClient creates a new build client that uses an openshift client to clone buildclient
-type ClientBuildClonerClient struct {
-	Client buildclient.Interface
-}
-
-// NewOSClientBuildClonerClient creates a new build client that uses an openshift client to clone buildclient
-func NewClientBuildClonerClient(client buildclient.Interface) *ClientBuildClonerClient {
-	return &ClientBuildClonerClient{Client: client}
-}
-
-// Clone generates new build for given build name
-func (c ClientBuildClonerClient) Clone(namespace string, request *buildv1.BuildRequest) (*buildv1.Build, error) {
-	return c.Client.BuildV1().Builds(namespace).Clone(request.Name, request)
-}
-
-// BuildConfigInstantiator provides methods for instantiating buildclient from build configs
-type BuildConfigInstantiator interface {
-	Instantiate(namespace string, request *buildv1.BuildRequest) (*buildv1.Build, error)
-}
-
-// ClientBuildConfigInstantiatorClient creates a new build client that uses an openshift client to create buildclient
-type ClientBuildConfigInstantiatorClient struct {
-	Client buildclient.Interface
-}
-
-// NewClientBuildConfigInstantiatorClient creates a new build client that uses an openshift client to create buildclient
-func NewClientBuildConfigInstantiatorClient(client buildclient.Interface) *ClientBuildConfigInstantiatorClient {
-	return &ClientBuildConfigInstantiatorClient{Client: client}
-}
-
-// Instantiate generates new build for given buildConfig
-func (c ClientBuildConfigInstantiatorClient) Instantiate(namespace string, request *buildv1.BuildRequest) (*buildv1.Build, error) {
-	return c.Client.BuildV1().BuildConfigs(namespace).Instantiate(request.Name, request)
-}
-
-// TODO: Why we need this, seems like an copy of the client above
-type BuildConfigInstantiatorClient struct {
-	Client buildclienttyped.BuildV1Interface
-}
-
-func (c BuildConfigInstantiatorClient) Instantiate(namespace string, request *buildv1.BuildRequest) (*buildv1.Build, error) {
-	return c.Client.BuildConfigs(namespace).Instantiate(request.Name, request)
 }
