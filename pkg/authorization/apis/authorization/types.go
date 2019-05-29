@@ -24,8 +24,7 @@ const (
 	VerbAll        = "*"
 	NonResourceAll = "*"
 
-	ScopesKey           = "scopes.authorization.openshift.io"
-	ScopesAllNamespaces = "*"
+	ScopesKey = "scopes.authorization.openshift.io"
 
 	UserKind           = "User"
 	GroupKind          = "Group"
@@ -33,11 +32,10 @@ const (
 	SystemUserKind     = "SystemUser"
 	SystemGroupKind    = "SystemGroup"
 
-	UserResource           = "users"
-	GroupResource          = "groups"
-	ServiceAccountResource = "serviceaccounts"
-	SystemUserResource     = "systemusers"
-	SystemGroupResource    = "systemgroups"
+	UserResource        = "users"
+	GroupResource       = "groups"
+	SystemUserResource  = "systemusers"
+	SystemGroupResource = "systemgroups"
 )
 
 // DiscoveryRule is a rule that allows a client to discover the API resources available on this server

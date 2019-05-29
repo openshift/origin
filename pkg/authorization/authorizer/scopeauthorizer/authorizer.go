@@ -1,4 +1,4 @@
-package scope
+package scopeauthorizer
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 	authorizerrbac "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 )
 
 type scopeAuthorizer struct {
@@ -32,7 +33,7 @@ func (a *scopeAuthorizer) Authorize(attributes authorizer.Attributes) (authorize
 	nonFatalErrors := ""
 
 	// scopeResolutionErrors aren't fatal.  If any of the scopes we find allow this, then the overall scope limits allow it
-	rules, err := ScopesToRules(scopes, attributes.GetNamespace(), a.clusterRoleGetter)
+	rules, err := scope.ScopesToRules(scopes, attributes.GetNamespace(), a.clusterRoleGetter)
 	if err != nil {
 		nonFatalErrors = fmt.Sprintf(", additionally the following non-fatal errors were reported: %v", err)
 	}

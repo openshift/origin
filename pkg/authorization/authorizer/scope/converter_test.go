@@ -9,8 +9,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
 
 func TestUserEvaluator(t *testing.T) {
@@ -222,7 +220,7 @@ func TestEscalationProtection(t *testing.T) {
 					Rules:      []rbacv1.PolicyRule{{APIGroups: []string{""}, Resources: []string{"pods", "secrets"}}},
 				},
 			},
-			expectedRules: []rbacv1.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{""}, Resources: []string{"pods"}}},
+			expectedRules: []rbacv1.PolicyRule{scopeDiscoveryRule, {APIGroups: []string{""}, Resources: []string{"pods"}}},
 			scopes:        []string{ClusterRoleIndicator + "admin:*"},
 		},
 		{
@@ -233,7 +231,7 @@ func TestEscalationProtection(t *testing.T) {
 					Rules:      []rbacv1.PolicyRule{{APIGroups: []string{}, Resources: []string{"pods", "secrets"}}},
 				},
 			},
-			expectedRules: []rbacv1.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{}, Resources: []string{"pods", "secrets"}}},
+			expectedRules: []rbacv1.PolicyRule{scopeDiscoveryRule, {APIGroups: []string{}, Resources: []string{"pods", "secrets"}}},
 			scopes:        []string{ClusterRoleIndicator + "admin:*"},
 		},
 		{
@@ -244,7 +242,7 @@ func TestEscalationProtection(t *testing.T) {
 					Rules:      []rbacv1.PolicyRule{{APIGroups: []string{"foo"}, Resources: []string{"pods", "secrets"}}},
 				},
 			},
-			expectedRules: []rbacv1.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{"foo"}, Resources: []string{"pods", "secrets"}}},
+			expectedRules: []rbacv1.PolicyRule{scopeDiscoveryRule, {APIGroups: []string{"foo"}, Resources: []string{"pods", "secrets"}}},
 			scopes:        []string{ClusterRoleIndicator + "admin:*"},
 		},
 		{
@@ -255,7 +253,7 @@ func TestEscalationProtection(t *testing.T) {
 					Rules:      []rbacv1.PolicyRule{{APIGroups: []string{"", "and-foo"}, Resources: []string{"pods", "oauthaccesstokens"}}},
 				},
 			},
-			expectedRules: []rbacv1.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{"", "and-foo"}, Resources: []string{"pods"}}},
+			expectedRules: []rbacv1.PolicyRule{scopeDiscoveryRule, {APIGroups: []string{"", "and-foo"}, Resources: []string{"pods"}}},
 			scopes:        []string{ClusterRoleIndicator + "admin:*"},
 		},
 		{
@@ -266,7 +264,7 @@ func TestEscalationProtection(t *testing.T) {
 					Rules:      []rbacv1.PolicyRule{{APIGroups: []string{""}, Resources: []string{"pods", "secrets"}}},
 				},
 			},
-			expectedRules: []rbacv1.PolicyRule{authorizationapi.DiscoveryRule, {APIGroups: []string{""}, Resources: []string{"pods", "secrets"}}},
+			expectedRules: []rbacv1.PolicyRule{scopeDiscoveryRule, {APIGroups: []string{""}, Resources: []string{"pods", "secrets"}}},
 			scopes:        []string{ClusterRoleIndicator + "admin:*:!"},
 		},
 	}

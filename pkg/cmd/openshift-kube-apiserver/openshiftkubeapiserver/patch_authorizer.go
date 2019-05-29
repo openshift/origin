@@ -1,6 +1,7 @@
 package openshiftkubeapiserver
 
 import (
+	"github.com/openshift/origin/pkg/authorization/authorizer/scopeauthorizer"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
@@ -12,13 +13,12 @@ import (
 	kbootstrappolicy "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 
 	"github.com/openshift/origin/pkg/authorization/authorizer/browsersafe"
-	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 )
 
 func NewAuthorizer(versionedInformers informers.SharedInformerFactory) authorizer.Authorizer {
 	rbacInformers := versionedInformers.Rbac().V1()
 
-	scopeLimitedAuthorizer := scope.NewAuthorizer(rbacInformers.ClusterRoles().Lister())
+	scopeLimitedAuthorizer := scopeauthorizer.NewAuthorizer(rbacInformers.ClusterRoles().Lister())
 
 	kubeAuthorizer := rbacauthorizer.New(
 		&rbacauthorizer.RoleGetter{Lister: rbacInformers.Roles().Lister()},
