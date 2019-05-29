@@ -267,10 +267,6 @@ func TestValidateLoginTemplate(t *testing.T) {
 			Template:      defaultLoginTemplateString,
 			TemplateValid: true,
 		},
-		"login template example": {
-			Template:      LoginTemplateExample,
-			TemplateValid: true,
-		},
 		"original login template example": {
 			Template:      originalLoginTemplateExample,
 			TemplateValid: true,

@@ -9,8 +9,6 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/util/templates"
-
-	"github.com/openshift/origin/pkg/oauthserver/server/selectprovider"
 )
 
 const CreateProviderSelectionTemplateCommand = "create-provider-selection-template"
@@ -65,6 +63,49 @@ func (o CreateProviderSelectionTemplateOptions) Validate(args []string) error {
 }
 
 func (o *CreateProviderSelectionTemplateOptions) Run() error {
-	_, err := io.WriteString(o.Out, selectprovider.SelectProviderTemplateExample)
+	_, err := io.WriteString(o.Out, SelectProviderTemplateExample)
 	return err
 }
+
+// SelectProviderTemplateExample is a basic template for customizing the provider selection page.
+const SelectProviderTemplateExample = `<!DOCTYPE html>
+<!--
+
+This template can be modified and used to customize the provider selection page. To replace
+the provider selection page, set master configuration option oauthConfig.templates.providerSelection to
+the path of the template file. Don't remove parameters in curly braces below.
+
+oauthConfig:
+  templates:
+    providerSelection: templates/select-provider-template.html
+
+The Name is unique for each provider and can be used for provider specific customizations like
+the example below.  The Name matches the name of an identity provider in the master configuration.
+-->
+<html>
+  <head>
+    <title>Login</title>
+    <style type="text/css">
+      body {
+        font-family: "Open Sans", Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        margin: 15px;
+      }
+    </style>
+  </head>
+  <body>
+
+    {{ range $provider := .Providers }}
+      <div>
+        <!-- This is an example of customizing display for a particular provider based on its Name -->
+        {{ if eq $provider.Name "anypassword" }}
+          <a href="{{$provider.URL}}">Log in</a> with any username and password
+        {{ else }}
+          <a href="{{$provider.URL}}">{{$provider.Name}}</a>
+        {{ end }}
+      </div>
+    {{ end }}
+
+  </body>
+</html>
+`
