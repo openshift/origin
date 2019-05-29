@@ -4,8 +4,6 @@ import (
 	"errors"
 	"net/url"
 
-	"github.com/spf13/pflag"
-
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
@@ -22,13 +20,6 @@ type KubeConnectionArgs struct {
 	// ClientConfigLoadingRules is the ruleset used to load the client config.
 	// Only the CommandLinePath is expected to be used.
 	ClientConfigLoadingRules clientcmd.ClientConfigLoadingRules
-}
-
-// BindKubeConnectionArgs binds values to the given arguments by using flags
-func BindKubeConnectionArgs(args *KubeConnectionArgs, flags *pflag.FlagSet, prefix string) {
-	// TODO remove entirely
-	flags.Var(&args.KubernetesAddr, prefix+"kubernetes", "removed in favor of --"+prefix+"kubeconfig")
-	flags.StringVar(&args.ClientConfigLoadingRules.ExplicitPath, prefix+"kubeconfig", "", "Path to the kubeconfig file to use for requests to the Kubernetes API.")
 }
 
 // NewDefaultKubeConnectionArgs returns a new set of default connection

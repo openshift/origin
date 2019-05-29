@@ -16,11 +16,11 @@ import (
 
 	userapi "github.com/openshift/api/user/v1"
 	userclient "github.com/openshift/client-go/user/clientset/versioned/typed/user/v1"
-	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	authapi "github.com/openshift/origin/pkg/oauthserver/api"
 	"github.com/openshift/origin/pkg/oauthserver/userregistry/identitymapper"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/etcd"
 )
 
 func makeIdentityInfo(providerName, providerUserName string, extra map[string]string) authapi.UserIdentityInfo {

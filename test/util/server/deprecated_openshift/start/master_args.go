@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/spf13/pflag"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/start/options"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -22,9 +22,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/server/start/options"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/spf13/cobra"
 )
 
 // MasterArgs is a struct that the command stores flag values into.  It holds a partially complete set of parameters for starting the master
@@ -75,24 +73,6 @@ type MasterArgs struct {
 	NetworkArgs *options.NetworkArgs
 
 	OverrideConfig func(config *configapi.MasterConfig) error
-}
-
-// BindMasterArgs binds the options to the flags with prefix + default flag names
-func BindMasterArgs(args *MasterArgs, flags *pflag.FlagSet, prefix string) {
-	flags.Var(&args.MasterAddr, prefix+"master", "The master address for use by OpenShift components (host, host:port, or URL). Scheme and port default to the --listen scheme and port. When unset, attempt to use the first public IPv4 non-loopback address registered on this host.")
-	flags.Var(&args.MasterPublicAddr, prefix+"public-master", "The master address for use by public clients, if different (host, host:port, or URL). Defaults to same as --master.")
-	flags.Var(&args.EtcdAddr, prefix+"etcd", "The address of the etcd server (host, host:port, or URL). If specified, no built-in etcd will be started.")
-	flags.Var(&args.DNSBindAddr, prefix+"dns", "The address to listen for DNS requests on.")
-
-	flags.StringVar(&args.EtcdDir, prefix+"etcd-dir", "openshift.local.etcd", "The etcd data directory.")
-
-	flags.StringSliceVar(&args.APIServerCAFiles, prefix+"certificate-authority", args.APIServerCAFiles, "Optional files containing signing authorities to use (in addition to the generated signer) to verify the API server's serving certificate.")
-
-	flags.StringSliceVar(&args.CORSAllowedOrigins, prefix+"cors-allowed-origins", []string{}, "List of allowed origins for CORS, comma separated.  An allowed origin can be a regular expression to support subdomain matching.  CORS is enabled for localhost, 127.0.0.1, and the asset server by default.")
-
-	// autocompletion hints
-	cobra.MarkFlagFilename(flags, prefix+"etcd-dir")
-	cobra.MarkFlagFilename(flags, prefix+"certificate-authority")
 }
 
 // NewDefaultMasterArgs creates MasterArgs with sub-objects created and default values set.
