@@ -47,7 +47,6 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/oc/cli/admin/prune/imageprune"
 	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
-	oserrors "github.com/openshift/origin/pkg/util/errors"
 	"github.com/openshift/origin/pkg/util/netutils"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -289,15 +288,13 @@ func (o PruneImagesOptions) Run() error {
 
 	allBCs, err := o.BuildClient.BuildConfigs(o.Namespace).List(metav1.ListOptions{})
 	// We need to tolerate 'not found' errors for buildConfigs since they may be disabled in Atomic
-	err = oserrors.TolerateNotFoundError(err)
-	if err != nil {
+	if err != nil && !kerrors.IsNotFound(err) {
 		return err
 	}
 
 	allBuilds, err := o.BuildClient.Builds(o.Namespace).List(metav1.ListOptions{})
 	// We need to tolerate 'not found' errors for builds since they may be disabled in Atomic
-	err = oserrors.TolerateNotFoundError(err)
-	if err != nil {
+	if err != nil && !kerrors.IsNotFound(err) {
 		return err
 	}
 
