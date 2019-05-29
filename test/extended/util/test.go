@@ -406,8 +406,6 @@ var (
 			`\[Driver: iscsi\]`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711627
 			`\[Driver: ceph\]\[Feature:Volumes\] \[Testpattern: Pre-provisioned PV \(default fs\)\] subPath should verify container cannot write to subpath`,
 
-			`\[Driver: nfs\] \[Testpattern: Dynamic PV \(default fs\)\] provisioning should access volume from different nodes`, // https://bugzilla.redhat.com/show_bug.cgi?id=1711688
-
 			// requires a 1.14 kubelet, enable when rhcos is built for 4.2
 			"when the NodeLease feature is enabled",
 			"RuntimeClass should reject",
