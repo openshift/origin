@@ -14,8 +14,10 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 
 	"github.com/openshift/api/template"
+	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/library-go/pkg/template/generator"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templatev1conversion "github.com/openshift/origin/pkg/template/apis/template/v1"
 	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
 	"github.com/openshift/origin/pkg/template/templateprocessing"
 )
@@ -55,11 +57,16 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 		return nil, errors.NewInvalid(template.Kind("Template"), tpl.Name, errs)
 	}
 
+	externalTemplate := &templatev1.Template{}
+	if err := templatev1conversion.Convert_template_Template_To_v1_Template(tpl, externalTemplate, nil); err != nil {
+		return nil, err
+	}
+
 	generators := map[string]generator.Generator{
 		"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(time.Now().UnixNano()))),
 	}
 	processor := templateprocessing.NewProcessor(generators)
-	if errs := processor.Process(tpl); len(errs) > 0 {
+	if errs := processor.Process(externalTemplate); len(errs) > 0 {
 		klog.V(1).Infof(errs.ToAggregate().Error())
 		return nil, errors.NewInvalid(template.Kind("Template"), tpl.Name, errs)
 	}
@@ -67,9 +74,14 @@ func (s *REST) Create(ctx context.Context, obj runtime.Object, _ rest.ValidateOb
 	// we know that we get back runtime.Unstructured objects from the Process call.  We need to encode those
 	// objects using the unstructured codec BEFORE the REST layers gets its shot at encoding to avoid a layered
 	// encode being done.
-	for i := range tpl.Objects {
-		tpl.Objects[i] = runtime.NewEncodable(unstructured.UnstructuredJSONScheme, tpl.Objects[i])
+	for i := range externalTemplate.Objects {
+		externalTemplate.Objects[i].Object = runtime.NewEncodable(unstructured.UnstructuredJSONScheme, externalTemplate.Objects[i].Object)
+		externalTemplate.Objects[i].Raw = nil
 	}
 
-	return tpl, nil
+	internalTemplate := &templateapi.Template{}
+	if err := templatev1conversion.Convert_v1_Template_To_template_Template(externalTemplate, internalTemplate, nil); err != nil {
+		return nil, err
+	}
+	return internalTemplate, nil
 }

@@ -8,20 +8,24 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/apitesting"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
-	templateapiv1 "github.com/openshift/api/template/v1"
+	templatev1 "github.com/openshift/api/template/v1"
 	"github.com/openshift/library-go/pkg/template/generator"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-
-	_ "github.com/openshift/origin/pkg/api/install"
 )
 
-func makeParameter(name, value, generate string, required bool) templateapi.Parameter {
-	return templateapi.Parameter{
+var codecFactory = serializer.CodecFactory{}
+
+func init() {
+	_, codecFactory = apitesting.SchemeForOrDie(templatev1.Install)
+}
+
+func makeParameter(name, value, generate string, required bool) templatev1.Parameter {
+	return templatev1.Parameter{
 		Name:     name,
 		Value:    value,
 		Generate: generate,
@@ -59,10 +63,10 @@ func (g EmptyGenerator) GenerateValue(expression string) (interface{}, error) {
 
 func TestParameterGenerators(t *testing.T) {
 	tests := []struct {
-		parameter  templateapi.Parameter
+		parameter  templatev1.Parameter
 		generators map[string]generator.Generator
 		shouldPass bool
-		expected   templateapi.Parameter
+		expected   templatev1.Parameter
 		errType    field.ErrorType
 		fieldPath  string
 	}{
@@ -134,7 +138,7 @@ func TestParameterGenerators(t *testing.T) {
 
 	for i, test := range tests {
 		processor := NewProcessor(test.generators)
-		template := templateapi.Template{Parameters: []templateapi.Parameter{test.parameter}}
+		template := templatev1.Template{Parameters: []templatev1.Parameter{test.parameter}}
 		errs := processor.GenerateParameterValues(&template)
 		if errs != nil && test.shouldPass {
 			t.Errorf("test[%v]: Unexpected error %v", i, errs)
@@ -159,8 +163,8 @@ func TestParameterGenerators(t *testing.T) {
 }
 
 func TestProcessValue(t *testing.T) {
-	var template templateapi.Template
-	if err := runtime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), []byte(`{
+	var template templatev1.Template
+	if err := runtime.DecodeInto(codecFactory.UniversalDecoder(), []byte(`{
 		"kind":"Template", "apiVersion":"template.openshift.io/v1",
 		"objects": [
 			{
@@ -209,7 +213,7 @@ func TestProcessValue(t *testing.T) {
 	if len(errs) > 0 {
 		t.Fatalf("unexpected error: %v", errs)
 	}
-	result, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(templateapiv1.SchemeGroupVersion), &template)
+	result, err := runtime.Encode(codecFactory.LegacyCodec(templatev1.GroupVersion), &template)
 	if err != nil {
 		t.Fatalf("unexpected error during encoding Config: %#v", err)
 	}
@@ -365,8 +369,8 @@ func TestEvaluateLabels(t *testing.T) {
 	}
 
 	for k, testCase := range testCases {
-		var template templateapi.Template
-		if err := runtime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), []byte(testCase.Input), &template); err != nil {
+		var template templatev1.Template
+		if err := runtime.DecodeInto(codecFactory.UniversalDecoder(), []byte(testCase.Input), &template); err != nil {
 			t.Errorf("%s: unexpected error: %v", k, err)
 			continue
 		}
@@ -384,7 +388,7 @@ func TestEvaluateLabels(t *testing.T) {
 			t.Errorf("%s: unexpected error: %v", k, errs)
 			continue
 		}
-		result, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(templateapiv1.SchemeGroupVersion), &template)
+		result, err := runtime.Encode(codecFactory.LegacyCodec(templatev1.GroupVersion), &template)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", k, err)
 			continue
@@ -400,14 +404,14 @@ func TestEvaluateLabels(t *testing.T) {
 }
 
 func TestProcessTemplateParameters(t *testing.T) {
-	var template, expectedTemplate templateapi.Template
+	var template, expectedTemplate templatev1.Template
 	jsonData, _ := ioutil.ReadFile("../../../test/templates/testdata/guestbook.json")
-	if err := runtime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), jsonData, &template); err != nil {
+	if err := runtime.DecodeInto(codecFactory.UniversalDecoder(), jsonData, &template); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	expectedData, _ := ioutil.ReadFile("../../../test/templates/testdata/guestbook_list.json")
-	if err := runtime.DecodeInto(legacyscheme.Codecs.UniversalDecoder(), expectedData, &expectedTemplate); err != nil {
+	if err := runtime.DecodeInto(codecFactory.UniversalDecoder(), expectedData, &expectedTemplate); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -424,11 +428,11 @@ func TestProcessTemplateParameters(t *testing.T) {
 	if len(errs) > 0 {
 		t.Fatalf("unexpected error: %v", errs)
 	}
-	result, err := runtime.Encode(legacyscheme.Codecs.LegacyCodec(templateapiv1.SchemeGroupVersion), &template)
+	result, err := runtime.Encode(codecFactory.LegacyCodec(templatev1.GroupVersion), &template)
 	if err != nil {
 		t.Fatalf("unexpected error during encoding Config: %#v", err)
 	}
-	exp, _ := runtime.Encode(legacyscheme.Codecs.LegacyCodec(templateapiv1.SchemeGroupVersion), &expectedTemplate)
+	exp, _ := runtime.Encode(codecFactory.LegacyCodec(templatev1.GroupVersion), &expectedTemplate)
 
 	if string(result) != string(exp) {
 		t.Errorf("unexpected output: %s", diff.StringDiff(string(exp), string(result)))
@@ -437,8 +441,8 @@ func TestProcessTemplateParameters(t *testing.T) {
 
 // addParameter adds new custom parameter to the Template. It overrides
 // the existing parameter, if already defined.
-func addParameter(t *templateapi.Template, param templateapi.Parameter) {
-	if existing := DeprecatedGetParameterByNameInternal(t, param.Name); existing != nil {
+func addParameter(t *templatev1.Template, param templatev1.Parameter) {
+	if existing := GetParameterByName(t, param.Name); existing != nil {
 		*existing = param
 	} else {
 		t.Parameters = append(t.Parameters, param)

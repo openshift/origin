@@ -36,7 +36,6 @@ import (
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
-	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
 	templateclientv1 "github.com/openshift/origin/pkg/template/client/v1"
 	"github.com/openshift/origin/pkg/template/templateprocessing"
 )
@@ -488,31 +487,14 @@ func injectUserVars(values app.Environment, t *templatev1.Template, ignoreUnknow
 // processTemplateLocally applies the same logic that a remote call would make but makes no
 // connection to the server.
 func processTemplateLocally(tpl *templatev1.Template) (*templatev1.Template, error) {
-	// TODO: Create validation helpers unique to the client
-	// We shouldn't be using api helpers anyway
-	internalTemplate := &templateapi.Template{}
-	if err := templateapiv1.Convert_v1_Template_To_template_Template(tpl, internalTemplate, nil); err != nil {
-		return nil, err
-	}
-
-	if errs := templatevalidation.ValidateProcessedTemplate(internalTemplate); len(errs) > 0 {
-		return nil, errors.NewInvalid(octemplateapi.Kind("Template"), tpl.Name, errs)
-	}
 	processor := templateprocessing.NewProcessor(map[string]generator.Generator{
 		"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(time.Now().UnixNano()))),
 	})
-	if errs := processor.Process(internalTemplate); len(errs) > 0 {
+	if errs := processor.Process(tpl); len(errs) > 0 {
 		return nil, errors.NewInvalid(octemplateapi.Kind("Template"), tpl.Name, errs)
 	}
 
-	// TODO: remove once we stop using api helpers for
-	// processing templates locally
-	externalTemplate := &templatev1.Template{}
-	if err := templateapiv1.Convert_template_Template_To_v1_Template(internalTemplate, externalTemplate, nil); err != nil {
-		return nil, err
-	}
-
-	return externalTemplate, nil
+	return tpl, nil
 }
 
 // parseNamespaceResourceName parses the value and returns namespace, resource and the
