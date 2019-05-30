@@ -7,6 +7,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	appstest "github.com/openshift/origin/pkg/apps/util/test"
 )
@@ -95,7 +96,7 @@ func TestRollbackOptions_findTargetDeployment(t *testing.T) {
 			}
 			continue
 		} else {
-			if test.errorExpected && err == nil {
+			if test.errorExpected {
 				t.Fatalf("expected an error")
 			}
 		}

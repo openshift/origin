@@ -16,10 +16,12 @@ import (
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	imageclienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+
 	strat "github.com/openshift/origin/pkg/apps/strategy"
 	stratsupport "github.com/openshift/origin/pkg/apps/strategy/support"
 	stratutil "github.com/openshift/origin/pkg/apps/strategy/util"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/origin/pkg/apps/util/appsserialization"
 )
 
 const (
@@ -107,7 +109,7 @@ func NewRollingDeploymentStrategy(namespace string, kubeClient kubernetes.Interf
 
 func (s *RollingDeploymentStrategy) Deploy(from *corev1.ReplicationController, to *corev1.ReplicationController, desiredReplicas int) error {
 	// TODO: This should move to external once we are sure there are no replication controller left with internal version
-	config, err := appsutil.DecodeDeploymentConfig(to)
+	config, err := appsserialization.DecodeDeploymentConfig(to)
 	if err != nil {
 		return fmt.Errorf("couldn't decode DeploymentConfig from deployment %s: %v", appsutil.LabelForDeployment(to), err)
 	}

@@ -11,6 +11,7 @@ import (
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsfake "github.com/openshift/client-go/apps/clientset/versioned/fake"
+
 	appsutil "github.com/openshift/origin/pkg/apps/util"
 	appsapitest "github.com/openshift/origin/pkg/apps/util/test"
 )

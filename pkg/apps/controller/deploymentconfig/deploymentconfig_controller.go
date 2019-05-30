@@ -25,7 +25,9 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	appsv1lister "github.com/openshift/client-go/apps/listers/apps/v1"
+
 	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/origin/pkg/apps/util/appsserialization"
 )
 
 const (
@@ -606,7 +608,7 @@ func triggerActivated(config *appsv1.DeploymentConfig, latestExists bool, latest
 	}
 
 	if configTrigger {
-		isLatest, changes, err := appsutil.HasLatestPodTemplate(config, latestDeployment)
+		isLatest, changes, err := appsserialization.HasLatestPodTemplate(config, latestDeployment)
 		if err != nil {
 			return false, false, fmt.Errorf("error while checking for latest pod template in replication controller: %v", err)
 		}

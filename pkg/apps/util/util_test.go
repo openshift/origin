@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+
 	appstest "github.com/openshift/origin/pkg/apps/util/test"
 )
 

@@ -26,8 +26,10 @@ import (
 	imageapiv1 "github.com/openshift/api/image/v1"
 	imageclienttyped "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/openshift/library-go/pkg/build/naming"
+
 	strategyutil "github.com/openshift/origin/pkg/apps/strategy/util"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/origin/pkg/apps/util/appsserialization"
 )
 
 const (
@@ -182,7 +184,7 @@ func (e *hookExecutor) tagImages(hook *appsv1.LifecycleHook, rc *corev1.Replicat
 //   * Working directory
 //   * Resources
 func (e *hookExecutor) executeExecNewPod(hook *appsv1.LifecycleHook, rc *corev1.ReplicationController, suffix, label string) error {
-	config, err := appsutil.DecodeDeploymentConfig(rc)
+	config, err := appsserialization.DecodeDeploymentConfig(rc)
 	if err != nil {
 		return err
 	}

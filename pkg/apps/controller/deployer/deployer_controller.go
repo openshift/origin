@@ -22,7 +22,9 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	appsv1 "github.com/openshift/api/apps/v1"
+
 	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/origin/pkg/apps/util/appsserialization"
 )
 
 // maxRetryCount is the maximum number of times the controller will retry errors.
@@ -131,7 +133,7 @@ func (c *DeploymentController) handle(deployment *corev1.ReplicationController, 
 		// deployer pod (quota, etc..) we should respect the timeoutSeconds in the
 		// config strategy and transition the rollout to failed instead of waiting for
 		// the deployment pod forever.
-		config, err := appsutil.DecodeDeploymentConfig(deployment)
+		config, err := appsserialization.DecodeDeploymentConfig(deployment)
 		if err != nil {
 			return err
 		}
@@ -274,7 +276,7 @@ func (c *DeploymentController) handle(deployment *corev1.ReplicationController, 
 		// If we are going to transition to failed or complete and scale is non-zero, we'll check one more
 		// time to see if we are a test deployment to guarantee that we maintain the test invariant.
 		if *deploymentCopy.Spec.Replicas != 0 && appsutil.IsTerminatedDeployment(deploymentCopy) {
-			if config, err := appsutil.DecodeDeploymentConfig(deploymentCopy); err == nil && config.Spec.Test {
+			if config, err := appsserialization.DecodeDeploymentConfig(deploymentCopy); err == nil && config.Spec.Test {
 				zero := int32(0)
 				deploymentCopy.Spec.Replicas = &zero
 			}
@@ -349,7 +351,7 @@ func nextStatusComp(fromDeployer, fromPath appsv1.DeploymentStatus) appsv1.Deplo
 // makeDeployerPod creates a pod which implements deployment behavior. The pod is correlated to
 // the deployment with an annotation.
 func (c *DeploymentController) makeDeployerPod(deployment *corev1.ReplicationController) (*corev1.Pod, error) {
-	deploymentConfig, err := appsutil.DecodeDeploymentConfig(deployment)
+	deploymentConfig, err := appsserialization.DecodeDeploymentConfig(deployment)
 	if err != nil {
 		return nil, err
 	}
@@ -561,7 +563,7 @@ func (c *DeploymentController) cleanupDeployerPods(deployment *corev1.Replicatio
 }
 
 func (c *DeploymentController) emitDeploymentEvent(deployment *corev1.ReplicationController, eventType, title, message string) {
-	if config, _ := appsutil.DecodeDeploymentConfig(deployment); config != nil {
+	if config, _ := appsserialization.DecodeDeploymentConfig(deployment); config != nil {
 		c.recorder.Eventf(config, eventType, title, message)
 	} else {
 		c.recorder.Eventf(deployment, eventType, title, message)

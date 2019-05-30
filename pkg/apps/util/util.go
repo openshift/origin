@@ -15,12 +15,35 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/utils/diff"
 
 	appsv1 "github.com/openshift/api/apps/v1"
 	"github.com/openshift/library-go/pkg/build/naming"
 
-	"github.com/openshift/origin/pkg/apps/util/appserialization"
+	"github.com/openshift/origin/pkg/apps/util/appsserialization"
 )
+
+// HasLatestPodTemplate checks for differences between current deployment config
+// template and deployment config template encoded in the latest replication
+// controller. If they are different it will return an string diff containing
+// the change.
+func HasLatestPodTemplate(currentConfig *appsv1.DeploymentConfig, rc *v1.ReplicationController) (bool, string, error) {
+	latestConfig, err := appsserialization.DecodeDeploymentConfig(rc)
+	if err != nil {
+		return true, "", err
+	}
+	// The latestConfig represents an encoded DC in the latest deployment (RC).
+	// TODO: This diverges from the upstream behavior where we compare deployment
+	// template vs. replicaset template. Doing that will disallow any
+	// modifications to the RC the deployment config controller create and manage
+	// as a change to the RC will cause the DC to be reconciled and ultimately
+	// trigger a new rollout because of skew between latest RC template and DC
+	// template.
+	if reflect.DeepEqual(currentConfig.Spec.Template, latestConfig.Spec.Template) {
+		return true, "", nil
+	}
+	return false, diff.ObjectReflectDiff(currentConfig.Spec.Template, latestConfig.Spec.Template), nil
+}
 
 // RolloutExceededTimeoutSeconds returns true if the current deployment exceeded
 // the timeoutSeconds defined for its strategy.
@@ -81,7 +104,7 @@ func newControllerRef(config *appsv1.DeploymentConfig) *metav1.OwnerReference {
 // The controller replica count will be zero.
 func MakeDeployment(config *appsv1.DeploymentConfig) (*v1.ReplicationController, error) {
 	// EncodeDeploymentConfig encodes config as a string using codec.
-	encodedConfig, err := appserialization.EncodeDeploymentConfig(config)
+	encodedConfig, err := appsserialization.EncodeDeploymentConfig(config)
 	if err != nil {
 		return nil, err
 	}

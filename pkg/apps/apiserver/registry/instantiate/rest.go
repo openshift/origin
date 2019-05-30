@@ -24,9 +24,11 @@ import (
 
 	"github.com/openshift/api/apps"
 	appsv1 "github.com/openshift/api/apps/v1"
+
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/origin/pkg/apps/util/appsserialization"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	images "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
@@ -321,7 +323,7 @@ func decodeFromLatestDeployment(config *appsapi.DeploymentConfig, rn corev1clien
 		// to make the deployment for the config, so return early.
 		return nil, err
 	}
-	decoded, err := appsutil.DecodeDeploymentConfig(deployment)
+	decoded, err := appsserialization.DecodeDeploymentConfig(deployment)
 	if err != nil {
 		return nil, errors.NewInternalError(err)
 	}

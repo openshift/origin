@@ -17,9 +17,11 @@ import (
 	"github.com/openshift/api/apps"
 	appsclient "github.com/openshift/client-go/apps/clientset/versioned"
 	appsclienttyped "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
+
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/apis/apps/validation"
 	appsutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/origin/pkg/apps/util/appsserialization"
 )
 
 // REST provides a rollback generation endpoint. Only the Create method is implemented.
@@ -89,7 +91,7 @@ func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation 
 		return nil, newInvalidError(rollback, err.Error())
 	}
 
-	to, err := appsutil.DecodeDeploymentConfig(targetDeployment)
+	to, err := appsserialization.DecodeDeploymentConfig(targetDeployment)
 	if err != nil {
 		return nil, newInvalidError(rollback, fmt.Sprintf("couldn't decode deployment config from deployment: %v", err))
 	}
