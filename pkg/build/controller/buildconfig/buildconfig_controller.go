@@ -21,11 +21,12 @@ import (
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildclient "github.com/openshift/client-go/build/clientset/versioned"
+	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildinformer "github.com/openshift/client-go/build/informers/externalversions/build/v1"
 	buildlister "github.com/openshift/client-go/build/listers/build/v1"
+
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	"github.com/openshift/origin/pkg/build/buildscheme"
-	buildmanualclient "github.com/openshift/origin/pkg/build/client"
 	buildcommon "github.com/openshift/origin/pkg/build/controller/common"
 	"github.com/openshift/origin/pkg/build/util"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -54,10 +55,10 @@ func IsFatal(err error) bool {
 }
 
 type BuildConfigController struct {
-	buildConfigInstantiator buildmanualclient.BuildConfigInstantiator
-	buildConfigGetter       buildlister.BuildConfigLister
 	buildLister             buildlister.BuildLister
-	buildDeleter            buildmanualclient.BuildDeleter
+	buildDeleter            buildclientv1.BuildsGetter
+	buildConfigInstantiator buildclientv1.BuildConfigsGetter
+	buildConfigGetter       buildlister.BuildConfigLister
 
 	buildConfigInformer cache.SharedIndexInformer
 
@@ -68,20 +69,18 @@ type BuildConfigController struct {
 	recorder record.EventRecorder
 }
 
-func NewBuildConfigController(buildInternalClient buildclient.Interface, kubeExternalClient kubernetes.Interface, buildConfigInformer buildinformer.BuildConfigInformer, buildInformer buildinformer.BuildInformer) *BuildConfigController {
+func NewBuildConfigController(buildClient buildclient.Interface, kubeExternalClient kubernetes.Interface, buildConfigInformer buildinformer.BuildConfigInformer, buildInformer buildinformer.BuildInformer) *BuildConfigController {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: kubeExternalClient.CoreV1().Events("")})
 
-	buildClient := buildmanualclient.NewClientBuildClient(buildInternalClient)
 	buildConfigGetter := buildConfigInformer.Lister()
-	buildConfigInstantiator := buildmanualclient.NewClientBuildConfigInstantiatorClient(buildInternalClient)
 	buildLister := buildInformer.Lister()
 
 	c := &BuildConfigController{
 		buildConfigGetter:       buildConfigGetter,
 		buildLister:             buildLister,
-		buildDeleter:            buildClient,
-		buildConfigInstantiator: buildConfigInstantiator,
+		buildDeleter:            buildClient.BuildV1(),
+		buildConfigInstantiator: buildClient.BuildV1(),
 
 		buildConfigInformer: buildConfigInformer.Informer(),
 
@@ -131,7 +130,7 @@ func (c *BuildConfigController) handleBuildConfig(bc *buildv1.BuildConfig) error
 		},
 		LastVersion: &lastVersion,
 	}
-	if _, err := c.buildConfigInstantiator.Instantiate(bc.Namespace, request); err != nil {
+	if _, err := c.buildConfigInstantiator.BuildConfigs(bc.Namespace).Instantiate(bc.Namespace, request); err != nil {
 		var instantiateErr error
 		if kerrors.IsConflict(err) {
 			instantiateErr = fmt.Errorf("unable to instantiate Build for BuildConfig %s due to a conflicting update: %v", bcDesc(bc), err)

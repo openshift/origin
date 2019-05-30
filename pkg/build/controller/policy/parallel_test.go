@@ -12,8 +12,8 @@ func TestParallelIsRunnableNewBuilds(t *testing.T) {
 		addBuild("build-2", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicyParallel),
 		addBuild("build-3", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicyParallel),
 	}
-	client := newTestClient(allNewBuilds)
-	policy := ParallelPolicy{BuildLister: client.Lister(), BuildUpdater: client}
+	client := newTestClient(allNewBuilds...)
+	policy := ParallelPolicy{BuildLister: &fakeBuildLister{client}}
 	for _, build := range allNewBuilds {
 		runnable, err := policy.IsRunnable(&build)
 		if err != nil {
@@ -31,8 +31,8 @@ func TestParallelIsRunnableMixedBuilds(t *testing.T) {
 		addBuild("build-6", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicyParallel),
 		addBuild("build-5", "sample-bc", buildv1.BuildPhasePending, buildv1.BuildRunPolicyParallel),
 	}
-	client := newTestClient(mixedBuilds)
-	policy := ParallelPolicy{BuildLister: client.Lister(), BuildUpdater: client}
+	client := newTestClient(mixedBuilds...)
+	policy := ParallelPolicy{BuildLister: &fakeBuildLister{client}}
 	for _, build := range mixedBuilds {
 		runnable, err := policy.IsRunnable(&build)
 		if err != nil {
@@ -50,8 +50,8 @@ func TestParallelIsRunnableWithSerialRunning(t *testing.T) {
 		addBuild("build-8", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicyParallel),
 		addBuild("build-9", "sample-bc", buildv1.BuildPhaseNew, buildv1.BuildRunPolicyParallel),
 	}
-	client := newTestClient(mixedBuilds)
-	policy := ParallelPolicy{BuildLister: client.Lister(), BuildUpdater: client}
+	client := newTestClient(mixedBuilds...)
+	policy := ParallelPolicy{BuildLister: &fakeBuildLister{client}}
 	for _, build := range mixedBuilds {
 		runnable, err := policy.IsRunnable(&build)
 		if err != nil {

@@ -10,8 +10,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	buildlister "github.com/openshift/client-go/build/listers/build/v1"
-	buildclient "github.com/openshift/origin/pkg/build/client"
+
 	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
@@ -22,7 +23,7 @@ import (
 // will produce consistent results, but might not suit the CI/CD flow where user
 // expect that every commit is built.
 type SerialLatestOnlyPolicy struct {
-	BuildUpdater buildclient.BuildUpdater
+	BuildUpdater buildclientv1.BuildsGetter
 	BuildLister  buildlister.BuildLister
 }
 
@@ -82,7 +83,7 @@ func (s *SerialLatestOnlyPolicy) cancelPreviousBuilds(build *buildv1.Build) []er
 		err := wait.Poll(500*time.Millisecond, 5*time.Second, func() (bool, error) {
 			b = b.DeepCopy()
 			b.Status.Cancelled = true
-			err := s.BuildUpdater.Update(b.Namespace, b)
+			_, err := s.BuildUpdater.Builds(b.Namespace).Update(b)
 			if err != nil && errors.IsConflict(err) {
 				klog.V(5).Infof("Error cancelling build %s/%s: %v (will retry)", b.Namespace, b.Name, err)
 				return false, nil

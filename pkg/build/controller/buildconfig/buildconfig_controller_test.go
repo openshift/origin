@@ -5,10 +5,14 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	ktesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/record"
 
 	buildv1 "github.com/openshift/api/build/v1"
 	buildlister "github.com/openshift/client-go/build/listers/build/v1"
+
+	"github.com/openshift/client-go/build/clientset/versioned/fake"
 )
 
 func TestHandleBuildConfig(t *testing.T) {
@@ -43,13 +47,40 @@ func TestHandleBuildConfig(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		instantiator := &testInstantiator{
-			err: tc.instantiatorError,
+		buildClient := fake.NewSimpleClientset(tc.bc)
+		instantiateRequestName := ""
+
+		if tc.instantiatorError {
+			buildClient.PrependReactor("create", "buildconfigs", func(action ktesting.Action) (handled bool, ret runtime.Object, err error) {
+				a, ok := action.(ktesting.CreateAction)
+				if !ok {
+					panic("unexpected action")
+				}
+				request := a.GetObject().(*buildv1.BuildRequest)
+				instantiateRequestName = request.Name
+				if tc.expectErr {
+					return true, nil, fmt.Errorf("error")
+				}
+				return true, &buildv1.Build{}, nil
+			})
+		} else {
+			buildClient.PrependReactor("create", "buildconfigs", func(action ktesting.Action) (handled bool, ret runtime.Object, err error) {
+				a, ok := action.(ktesting.CreateAction)
+				if !ok {
+					panic("unexpected action")
+				}
+				if a.GetSubresource() != "instantiate" {
+					return false, nil, nil
+				}
+				request := a.GetObject().(*buildv1.BuildRequest)
+				instantiateRequestName = request.Name
+				return true, &buildv1.Build{}, nil
+			})
 		}
 		controller := &BuildConfigController{
-			buildConfigInstantiator: instantiator,
 			buildLister:             &okBuildLister{},
-			buildDeleter:            &okBuildDeleter{},
+			buildConfigInstantiator: buildClient.BuildV1(),
+			buildDeleter:            buildClient.BuildV1(),
 			buildConfigGetter:       &okBuildConfigGetter{BuildConfig: tc.bc},
 			recorder:                &record.FakeRecorder{},
 		}
@@ -60,31 +91,18 @@ func TestHandleBuildConfig(t *testing.T) {
 			}
 			continue
 		}
-		if err == nil && tc.expectErr {
+		if tc.expectErr {
 			t.Errorf("%s: expected error, but got none", tc.name)
 			continue
 		}
-		if tc.expectBuild && len(instantiator.requestName) == 0 {
+		if tc.expectBuild && len(instantiateRequestName) == 0 {
 			t.Errorf("%s: expected a build to be started.", tc.name)
 		}
-		if !tc.expectBuild && len(instantiator.requestName) > 0 {
+		if !tc.expectBuild && len(instantiateRequestName) > 0 {
 			t.Errorf("%s: did not expect a build to be started.", tc.name)
 		}
 	}
 
-}
-
-type testInstantiator struct {
-	requestName string
-	err         bool
-}
-
-func (i *testInstantiator) Instantiate(namespace string, request *buildv1.BuildRequest) (*buildv1.Build, error) {
-	i.requestName = request.Name
-	if i.err {
-		return nil, fmt.Errorf("error")
-	}
-	return &buildv1.Build{}, nil
 }
 
 func baseBuildConfig() *buildv1.BuildConfig {
@@ -122,12 +140,6 @@ func (okc *okBuildLister) Builds(ns string) buildlister.BuildNamespaceLister {
 
 func (okc *okBuildLister) Get(name string) (*buildv1.Build, error) {
 	return nil, nil
-}
-
-type okBuildDeleter struct{}
-
-func (okc *okBuildDeleter) DeleteBuild(*buildv1.Build) error {
-	return nil
 }
 
 type okBuildConfigGetter struct {

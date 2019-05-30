@@ -18,6 +18,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	buildv1 "github.com/openshift/api/build/v1"
+	buildclientv1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
+
 	"github.com/openshift/origin/pkg/build/buildapihelpers"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
@@ -121,12 +123,12 @@ type BuildConfigInstantiator interface {
 // buildConfigReactor converts trigger changes into new builds. It will request a build if
 // at least one image is out of date.
 type buildConfigReactor struct {
-	instantiator  BuildConfigInstantiator
+	instantiator  buildclientv1.BuildConfigsGetter
 	eventRecorder record.EventRecorder
 }
 
 // NewBuildConfigReactor creates a new buildConfigReactor
-func NewBuildConfigReactor(instantiator BuildConfigInstantiator, restclient rest.Interface) trigger.ImageReactor {
+func NewBuildConfigReactor(instantiator buildclientv1.BuildConfigsGetter, restclient rest.Interface) trigger.ImageReactor {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(restclient).Events("")})
 	eventRecorder := eventBroadcaster.NewRecorder(legacyscheme.Scheme, clientv1.EventSource{Component: "buildconfig-controller"})
@@ -218,7 +220,7 @@ func (r *buildConfigReactor) ImageChanged(obj runtime.Object, tagRetriever trigg
 
 	// instantiate new build
 	klog.V(4).Infof("Requesting build for BuildConfig based on image triggers %s/%s: %#v", bc.Namespace, bc.Name, request)
-	_, err := r.instantiator.Instantiate(bc.Namespace, request)
+	_, err := r.instantiator.BuildConfigs(bc.Namespace).Instantiate(bc.Namespace, request)
 	if err != nil {
 		instantiateErr := fmt.Errorf("error triggering Build for BuildConfig %s/%s: %v", bc.Namespace, bc.Name, err)
 		utilruntime.HandleError(instantiateErr)

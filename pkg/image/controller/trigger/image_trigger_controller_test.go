@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/watch"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -29,6 +30,7 @@ import (
 	appsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
+	v1 "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	imagev1lister "github.com/openshift/client-go/image/listers/image/v1"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -151,6 +153,55 @@ type fakeInstantiator struct {
 	buildConfigUpdater *fakeBuildConfigUpdater
 }
 
+type fakeBuildConfigInterface struct {
+	inst      *fakeInstantiator
+	namespace string
+}
+
+func (fakeBuildConfigInterface) Create(*buildv1.BuildConfig) (*buildv1.BuildConfig, error) {
+	panic("implement me")
+}
+
+func (fakeBuildConfigInterface) Update(*buildv1.BuildConfig) (*buildv1.BuildConfig, error) {
+	panic("implement me")
+}
+
+func (fakeBuildConfigInterface) UpdateStatus(*buildv1.BuildConfig) (*buildv1.BuildConfig, error) {
+	panic("implement me")
+}
+
+func (fakeBuildConfigInterface) Delete(name string, options *metav1.DeleteOptions) error {
+	panic("implement me")
+}
+
+func (fakeBuildConfigInterface) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	panic("implement me")
+}
+
+func (fakeBuildConfigInterface) Get(name string, options metav1.GetOptions) (*buildv1.BuildConfig, error) {
+	panic("implement me")
+}
+
+func (fakeBuildConfigInterface) List(opts metav1.ListOptions) (*buildv1.BuildConfigList, error) {
+	panic("implement me")
+}
+
+func (fakeBuildConfigInterface) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	panic("implement me")
+}
+
+func (fakeBuildConfigInterface) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *buildv1.BuildConfig, err error) {
+	panic("implement me")
+}
+
+func (f *fakeBuildConfigInterface) Instantiate(buildConfigName string, buildRequest *buildv1.BuildRequest) (*buildv1.Build, error) {
+	return f.inst.Instantiate(f.namespace, buildRequest)
+}
+
+func (i *fakeInstantiator) BuildConfigs(namespace string) v1.BuildConfigInterface {
+	return &fakeBuildConfigInterface{inst: i, namespace: namespace}
+}
+
 func (i *fakeInstantiator) Instantiate(namespace string, req *buildv1.BuildRequest) (*buildv1.Build, error) {
 	if i.err != nil {
 		return nil, i.err
@@ -174,7 +225,7 @@ func (m *fakeBuildConfigUpdater) Update(buildcfg *buildv1.BuildConfig) error {
 	return m.err
 }
 
-func fakeBuildConfigInstantiator(buildcfg *buildv1.BuildConfig, imageStream *imagev1.ImageStream) *fakeInstantiator {
+func fakeBuildConfigInstantiator(buildcfg *buildv1.BuildConfig, imageStream *imagev1.ImageStream) v1.BuildConfigsGetter {
 	builderAccount := corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{Name: bootstrappolicy.BuilderServiceAccountName, Namespace: buildcfg.Namespace},
 		Secrets:    []corev1.ObjectReference{},
@@ -301,7 +352,8 @@ func TestTriggerControllerSyncBuildConfigResource(t *testing.T) {
 				return test.bc, true, nil
 			},
 		}
-		inst := fakeBuildConfigInstantiator(test.bc, test.is)
+		buildClient := fakeBuildConfigInstantiator(test.bc, test.is)
+		inst := buildClient.(*fakeInstantiator)
 		reaction := buildconfigs.NewBuildConfigReactor(inst, nil)
 		controller := TriggerController{
 			triggerCache: NewTriggerCache(),
@@ -397,7 +449,8 @@ func TestTriggerControllerSyncBuildConfigResourceErrorHandling(t *testing.T) {
 				return test.bc, true, nil
 			},
 		}
-		inst := fakeBuildConfigInstantiator(test.bc, nil)
+		client := fakeBuildConfigInstantiator(test.bc, nil)
+		inst := client.(*fakeInstantiator)
 		if test.err != nil {
 			inst.err = test.err
 		}
