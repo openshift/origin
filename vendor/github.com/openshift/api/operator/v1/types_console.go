@@ -26,10 +26,24 @@ type ConsoleSpec struct {
 	// customization options to the web console.
 	// +optional
 	Customization ConsoleCustomization `json:"customization"`
+	// providers contains configuration for using specific service providers.
+	Providers ConsoleProviders `json:"providers"`
 }
 
 type ConsoleStatus struct {
 	OperatorStatus `json:",inline"`
+}
+
+type ConsoleProviders struct {
+	// statuspage contains ID for statuspage.io page that provides status info about.
+	// +optional
+	Statuspage *StatuspageProvider `json:"statuspage,omitempty"`
+}
+
+// StatuspageProvider provides identity for statuspage account.
+type StatuspageProvider struct {
+	// pageID is the unique ID assigned by Statuspage for your page. This must be a public page.
+	PageID string `json:"pageID"`
 }
 
 type ConsoleCustomization struct {

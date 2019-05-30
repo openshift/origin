@@ -1,4 +1,4 @@
-package ldaputil
+package ldapquery
 
 type SerializeableLDAPQuery struct {
 	// The DN of the branch of the directory where all searches should start from
