@@ -17,7 +17,6 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	cmdversion "github.com/openshift/origin/pkg/cmd/version"
 	osversion "github.com/openshift/origin/pkg/version"
 )
@@ -58,7 +57,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	root := &cobra.Command{
 		Use:   name,
 		Short: "Build, deploy, and manage your cloud applications",
-		Long:  fmt.Sprintf(openshiftLong, name, cmdutil.GetPlatformName(name), cmdutil.GetDistributionName(name)),
+		Long:  fmt.Sprintf(openshiftLong, name, GetPlatformName(name), GetDistributionName(name)),
 		Run:   kcmdutil.DefaultSubCommandRun(os.Stderr),
 	}
 

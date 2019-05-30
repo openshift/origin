@@ -1,4 +1,4 @@
-package util
+package openshift
 
 // GetPlatformName returns an appropriate platform name for given binary name.
 // Platform name can be used as a headline in command's usage.

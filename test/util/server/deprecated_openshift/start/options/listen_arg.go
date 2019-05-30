@@ -1,8 +1,6 @@
 package options
 
 import (
-	"github.com/spf13/pflag"
-
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 )
 
@@ -10,11 +8,6 @@ import (
 type ListenArg struct {
 	// ListenAddr is the address to listen for connections on (scheme://host:port).
 	ListenAddr flagtypes.Addr
-}
-
-// BindListenArg binds values to the given arguments by using flags
-func BindListenArg(args *ListenArg, flags *pflag.FlagSet, prefix string) {
-	flags.Var(&args.ListenAddr, prefix+"listen", "The address to listen for connections on (scheme://host:port).")
 }
 
 // NewDefaultListenArg returns a new address to listen for connections

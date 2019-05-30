@@ -29,9 +29,9 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	etcddata "k8s.io/kubernetes/test/integration/etcd"
 
-	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/etcd"
 
 	// install all APIs
 	etcdv3 "github.com/coreos/etcd/clientv3"
