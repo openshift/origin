@@ -9,10 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/origin/pkg/template/templateprocessing"
-
-	"k8s.io/kubernetes/pkg/kubectl/cmd/logs"
-
 	"github.com/MakeNowJust/heredoc"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/spf13/cobra"
@@ -23,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/errors"
@@ -35,6 +32,7 @@ import (
 	corev1typedclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/logs"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/generate"
 	"k8s.io/kubernetes/pkg/kubectl/polymorphichelpers"
@@ -50,6 +48,7 @@ import (
 	templatev1typedclient "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
 	"github.com/openshift/library-go/pkg/git"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
+
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/bulk"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -763,9 +762,52 @@ func SetAnnotations(annotations map[string]string, result *newcmd.AppResult) err
 	return nil
 }
 
+// addDeploymentConfigNestedLabels adds new label(s) to a nested labels of a single DeploymentConfig object
+func addDeploymentConfigNestedLabels(obj *appsv1.DeploymentConfig, labels labels.Set) error {
+	if obj.Spec.Template == nil {
+		return nil
+	}
+	if obj.Spec.Template.Labels == nil {
+		obj.Spec.Template.Labels = make(map[string]string)
+	}
+	for k, v := range labels {
+		obj.Spec.Template.Labels[k] = v
+	}
+	return nil
+}
+
+func addObjectLabels(obj runtime.Object, labels labels.Set) error {
+	if labels == nil {
+		return nil
+	}
+
+	accessor, err := meta.Accessor(obj)
+	if err != nil {
+		return err
+	}
+
+	metaLabels := accessor.GetLabels()
+	if metaLabels == nil {
+		metaLabels = make(map[string]string)
+	}
+	for k, v := range labels {
+		metaLabels[k] = v
+	}
+	accessor.SetLabels(metaLabels)
+
+	switch objType := obj.(type) {
+	case *appsv1.DeploymentConfig:
+		if err := addDeploymentConfigNestedLabels(objType, labels); err != nil {
+			return fmt.Errorf("unable to add nested labels to %s/%s: %v", obj.GetObjectKind().GroupVersionKind(), accessor.GetName(), err)
+		}
+	}
+
+	return nil
+}
+
 func SetLabels(labels map[string]string, result *newcmd.AppResult) error {
 	for _, object := range result.List.Items {
-		err := templateprocessing.AddObjectLabels(object, labels)
+		err := addObjectLabels(object, labels)
 		if err != nil {
 			return fmt.Errorf("failed to add annotation to object of type %q, this resource type is probably unsupported by your client version.", object.GetObjectKind().GroupVersionKind())
 		}
