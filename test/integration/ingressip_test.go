@@ -17,8 +17,8 @@ import (
 	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/openshift/openshift-controller-manager/pkg/route/ingressip"
 	configapi "github.com/openshift/origin/pkg/cmd/server/apis/config"
-	"github.com/openshift/origin/pkg/route/controller/ingressip"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 

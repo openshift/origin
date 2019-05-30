@@ -22,12 +22,12 @@ import (
 	buildv1 "github.com/openshift/api/build/v1"
 	"github.com/openshift/library-go/pkg/image/imageutil"
 	imageref "github.com/openshift/library-go/pkg/image/reference"
+	"github.com/openshift/openshift-apiserver/pkg/apiserver/labelselector"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildinternalhelpers "github.com/openshift/origin/pkg/build/apis/build/internal_helpers"
 	"github.com/openshift/origin/pkg/build/buildscheme"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapivalidation "github.com/openshift/origin/pkg/image/apis/image/validation"
-	"github.com/openshift/origin/pkg/util/labelselector"
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
 

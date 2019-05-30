@@ -13,8 +13,8 @@ import (
 	o "github.com/onsi/gomega"
 
 	"github.com/openshift/library-go/pkg/image/reference"
+	quotautil "github.com/openshift/openshift-apiserver/pkg/quota/quotautil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	quotautil "github.com/openshift/origin/pkg/quota/util"
 	imagesutil "github.com/openshift/origin/test/extended/images"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
