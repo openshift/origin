@@ -20,3 +20,15 @@ rules:
       source:
         branch: master
         dir: staging/src/github.com/openshift/template-service-broker
+- destination: openshift-controller-manager
+  branches:
+    - name: release-4.2
+      source:
+        branch: master
+        dir: staging/src/github.com/openshift/openshift-controller-manager
+- destination: oauth-server
+  branches:
+    - name: release-4.2
+      source:
+        branch: master
+        dir: staging/src/github.com/openshift/oauth-server
