@@ -6,6 +6,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	pointerutil "k8s.io/utils/pointer"
 
 	configv1 "github.com/openshift/api/config/v1"
 	crvalidation "github.com/openshift/origin/pkg/admission/customresourcevalidation"
@@ -41,7 +42,7 @@ func validateOAuthSpec(spec configv1.OAuthSpec) field.ErrorList {
 			}
 		}
 
-		identityProviderPath := specPath.Child("identityProvider").Index(i)
+		identityProviderPath := specPath.Child("identityProviders").Index(i)
 		errs = append(errs, ValidateIdentityProvider(identityProvider, identityProviderPath)...)
 
 		if len(identityProvider.Name) > 0 {
@@ -98,12 +99,15 @@ func ValidateIdentityProvider(identityProvider configv1.IdentityProvider, fldPat
 	}
 
 	provider := identityProvider.IdentityProviderConfig
+	// create a copy of the provider to simplify checking that only one IdPs is set
+	providerCopy := provider.DeepCopy()
 	switch provider.Type {
 	case "":
 		errs = append(errs, field.Required(fldPath.Child("type"), ""))
 
 	case configv1.IdentityProviderTypeRequestHeader:
 		errs = append(errs, ValidateRequestHeaderIdentityProvider(provider.RequestHeader, fldPath)...)
+		providerCopy.RequestHeader = nil
 
 	case configv1.IdentityProviderTypeBasicAuth:
 		// TODO move to ValidateBasicAuthIdentityProvider for consistency
@@ -112,6 +116,7 @@ func ValidateIdentityProvider(identityProvider configv1.IdentityProvider, fldPat
 		} else {
 			errs = append(errs, ValidateRemoteConnectionInfo(provider.BasicAuth.OAuthRemoteConnectionInfo, fldPath.Child("basicAuth"))...)
 		}
+		providerCopy.BasicAuth = nil
 
 	case configv1.IdentityProviderTypeHTPasswd:
 		// TODO move to ValidateHTPasswdIdentityProvider for consistency
@@ -120,27 +125,38 @@ func ValidateIdentityProvider(identityProvider configv1.IdentityProvider, fldPat
 		} else {
 			errs = append(errs, crvalidation.ValidateSecretReference(fldPath.Child("htpasswd", "fileData"), provider.HTPasswd.FileData, true)...)
 		}
+		providerCopy.HTPasswd = nil
 
 	case configv1.IdentityProviderTypeLDAP:
 		errs = append(errs, ValidateLDAPIdentityProvider(provider.LDAP, fldPath.Child("ldap"))...)
+		providerCopy.LDAP = nil
 
 	case configv1.IdentityProviderTypeKeystone:
 		errs = append(errs, ValidateKeystoneIdentityProvider(provider.Keystone, fldPath.Child("keystone"))...)
+		providerCopy.Keystone = nil
 
 	case configv1.IdentityProviderTypeGitHub:
 		errs = append(errs, ValidateGitHubIdentityProvider(provider.GitHub, identityProvider.MappingMethod, fldPath.Child("github"))...)
+		providerCopy.GitHub = nil
 
 	case configv1.IdentityProviderTypeGitLab:
 		errs = append(errs, ValidateGitLabIdentityProvider(provider.GitLab, fldPath.Child("gitlab"))...)
+		providerCopy.GitLab = nil
 
 	case configv1.IdentityProviderTypeGoogle:
 		errs = append(errs, ValidateGoogleIdentityProvider(provider.Google, identityProvider.MappingMethod, fldPath.Child("google"))...)
+		providerCopy.Google = nil
 
 	case configv1.IdentityProviderTypeOpenID:
 		errs = append(errs, ValidateOpenIDIdentityProvider(provider.OpenID, fldPath.Child("openID"))...)
+		providerCopy.OpenID = nil
 
 	default:
 		errs = append(errs, field.Invalid(fldPath.Child("type"), identityProvider.Type, "not a valid provider type"))
+	}
+
+	if !pointerutil.AllPtrFieldsNil(providerCopy) {
+		errs = append(errs, field.Invalid(fldPath, identityProvider.IdentityProviderConfig, "only one identity provider can be configured in single object"))
 	}
 
 	return errs

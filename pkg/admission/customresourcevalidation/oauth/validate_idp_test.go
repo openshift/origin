@@ -26,6 +26,21 @@ func htpasswdIDP() configv1.IdentityProviderConfig {
 }
 
 func TestValidateOAuthSpec(t *testing.T) {
+	doubledIdPs := configv1.IdentityProviderConfig{
+		Type: configv1.IdentityProviderTypeHTPasswd,
+		HTPasswd: &configv1.HTPasswdIdentityProvider{
+			FileData: configv1.SecretNameReference{
+				Name: "innocent.llama",
+			},
+		},
+		GitLab: &configv1.GitLabIdentityProvider{
+			ClientID:     "masterOfInstances",
+			ClientSecret: configv1.SecretNameReference{Name: "secret-gitlab-secret"},
+			URL:          "https://thisgitlabinstancerighthere.com",
+			CA:           configv1.ConfigMapNameReference{Name: "letsencrypt-for-gitlab.instance"},
+		},
+	}
+
 	type args struct {
 		spec configv1.OAuthSpec
 	}
@@ -122,7 +137,7 @@ func TestValidateOAuthSpec(t *testing.T) {
 				},
 			},
 			want: field.ErrorList{
-				field.Invalid(field.NewPath("spec", "identityProvider").Index(2).Child("name"), "aname", "must have a unique name"),
+				field.Invalid(field.NewPath("spec", "identityProviders").Index(2).Child("name"), "aname", "must have a unique name"),
 			},
 		},
 		{
@@ -242,6 +257,25 @@ func TestValidateOAuthSpec(t *testing.T) {
 						Error:             configv1.SecretNameReference{Name: "a.template-with-error"},
 					},
 				},
+			},
+		},
+		{
+			name: "two different IdPs in one object",
+			args: args{
+				spec: configv1.OAuthSpec{
+					IdentityProviders: []configv1.IdentityProvider{
+						{
+							Name:                   "bad_bad_config",
+							IdentityProviderConfig: doubledIdPs,
+						},
+					},
+					TokenConfig: configv1.TokenConfig{
+						AccessTokenMaxAgeSeconds: 216000,
+					},
+				},
+			},
+			want: field.ErrorList{
+				field.Invalid(field.NewPath("spec", "identityProviders").Index(0), doubledIdPs, "only one identity provider can be configured in single object"),
 			},
 		},
 	}
