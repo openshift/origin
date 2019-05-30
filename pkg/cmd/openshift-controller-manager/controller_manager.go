@@ -7,6 +7,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/openshift/library-go/pkg/serviceability"
+
 	"k8s.io/klog"
 
 	"k8s.io/api/core/v1"
@@ -21,7 +23,6 @@ import (
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/openshift-controller-manager/controller"
-	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/version"
 
@@ -30,7 +31,7 @@ import (
 )
 
 func RunOpenShiftControllerManager(config *openshiftcontrolplanev1.OpenShiftControllerManagerConfig, clientConfig *rest.Config) error {
-	util.InitLogrus()
+	serviceability.InitLogrusFromKlog()
 	kubeClient, err := kubernetes.NewForConfig(clientConfig)
 	if err != nil {
 		return err

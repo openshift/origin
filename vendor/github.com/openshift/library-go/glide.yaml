@@ -30,7 +30,7 @@ import:
   version: c87b6cf5033d2c6486046f045eeebdc3d910fd38
 # sig-master
 - package: github.com/getsentry/raven-go
-  version: 32a13797442ccb601b11761d74232773c1402d14
+  version: c977f96e109525a5d8fa10a19165341f601f38b0
 # sig-master - transitive through raven-go, this matches the kube level
 - package: github.com/pkg/errors
   version: v0.8.0

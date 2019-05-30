@@ -550,7 +550,6 @@
       "github.com/openshift/origin/pkg/security/securitycontextconstraints/util",
       "github.com/openshift/origin/pkg/template/apis/template",
       "github.com/openshift/origin/pkg/template/apis/template/validation",
-      "github.com/openshift/origin/pkg/template/generator",
       "github.com/openshift/origin/pkg/template/templateprocessing",
       "github.com/openshift/origin/pkg/unidling/api",
       "github.com/openshift/origin/pkg/unidling/util",

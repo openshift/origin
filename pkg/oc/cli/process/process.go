@@ -30,6 +30,7 @@ import (
 	octemplateapi "github.com/openshift/api/template"
 	templatev1 "github.com/openshift/api/template/v1"
 	templatev1client "github.com/openshift/client-go/template/clientset/versioned/typed/template/v1"
+	"github.com/openshift/library-go/pkg/template/generator"
 	cmdutil "github.com/openshift/oc/pkg/helpers/cmd"
 	"github.com/openshift/origin/pkg/oc/lib/describe"
 	"github.com/openshift/origin/pkg/oc/lib/newapp/app"
@@ -37,7 +38,6 @@ import (
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
 	templateclientv1 "github.com/openshift/origin/pkg/template/client/v1"
-	"github.com/openshift/origin/pkg/template/generator"
 	"github.com/openshift/origin/pkg/template/templateprocessing"
 )
 

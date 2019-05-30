@@ -1,6 +1,7 @@
 package openshift_apiserver
 
 import (
+	"github.com/openshift/library-go/pkg/serviceability"
 	"k8s.io/klog"
 
 	genericapiserver "k8s.io/apiserver/pkg/server"
@@ -10,8 +11,6 @@ import (
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/origin/pkg/cmd/openshift-apiserver/openshiftapiserver"
-	"github.com/openshift/origin/pkg/cmd/util"
-
 	_ "k8s.io/kubernetes/pkg/client/metrics/prometheus" // for client metric registration
 	_ "k8s.io/kubernetes/pkg/util/reflector/prometheus" // for reflector metric registration
 	_ "k8s.io/kubernetes/pkg/util/workqueue/prometheus" // for workqueue metric registration
@@ -21,7 +20,7 @@ import (
 var featureKeepRemovedNetworkingAPI = true
 
 func RunOpenShiftAPIServer(serverConfig *openshiftcontrolplanev1.OpenShiftAPIServerConfig, stopCh <-chan struct{}) error {
-	util.InitLogrus()
+	serviceability.InitLogrusFromKlog()
 	// Allow privileged containers
 	capabilities.Initialize(capabilities.Capabilities{
 		AllowPrivileged: true,

@@ -4,8 +4,22 @@ import (
 	"os"
 	"strings"
 
+	"k8s.io/klog"
+
 	"github.com/sirupsen/logrus"
 )
+
+// InitLogrusFromKlog sets the logrus trace level based on the klog trace level.
+func InitLogrusFromKlog() {
+	switch {
+	case bool(klog.V(4)):
+		InitLogrus("DEBUG")
+	case bool(klog.V(2)):
+		InitLogrus("INFO")
+	case bool(klog.V(0)):
+		InitLogrus("WARN")
+	}
+}
 
 // InitLogrus initializes logrus by setting a loglevel for it.
 func InitLogrus(level string) {

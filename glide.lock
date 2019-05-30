@@ -1,5 +1,5 @@
 hash: 7a9743a1ddd4422e2fb49715f7f2ad907ae072d0f192ba710fee09f515770c9b
-updated: 2019-05-28T15:02:33.558309651-04:00
+updated: 2019-05-29T10:31:34.665483896-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -1103,11 +1103,12 @@ imports:
   - user/informers/externalversions/user/v1
   - user/listers/user/v1
 - name: github.com/openshift/library-go
-  version: d81dfe0313b114a39575a68d03cf55e64808ffe8
+  version: 68e7d1ee9f1c1bad3ab36217bde754127281d365
   subpackages:
   - pkg/apiserver/httprequest
   - pkg/assets
   - pkg/assets/create
+  - pkg/authentication/bootstrapauthenticator
   - pkg/authorization/authorizationutil
   - pkg/build/envresolve
   - pkg/config/client
@@ -1155,6 +1156,11 @@ imports:
   - pkg/helpers/project
   - pkg/helpers/route
   - pkg/helpers/term
+- name: github.com/openshift/openshift-apiserver
+  version: 7639c7ba7e5f70f7f1d09420a5fb887651ef61c8
+  subpackages:
+  - pkg/apiserver/rest
+  - pkg/client/impersonatingclient
 - name: github.com/openshift/source-to-image
   version: dd167bbb4ee85924d9b864a424c43d598f5d4f30
   subpackages:
@@ -1652,7 +1658,7 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: 24a12c96ddf6b6d588163d93fd164371425d35f2
+  version: b146dc0b36ca23726a14389af9d690bc1d5c4d21
   repo: https://github.com/openshift/kubernetes-apiextensions-apiserver.git
   subpackages:
   - pkg/apis/apiextensions
@@ -1761,7 +1767,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/apiserver
-  version: 7595c46de8b11959352e9c20a3d45324805d6589
+  version: d8002995f662df6c216b192ead7355eb9f9f63ba
   repo: https://github.com/openshift/kubernetes-apiserver.git
   subpackages:
   - pkg/admission
@@ -1884,7 +1890,7 @@ imports:
   - plugin/pkg/authenticator/token/webhook
   - plugin/pkg/authorizer/webhook
 - name: k8s.io/cli-runtime
-  version: 6b345c1bbbead039802acd86149a3a633a66a511
+  version: a9444fab08246283f19c8ab752bf8cc10bf0fd18
   repo: https://github.com/openshift/kubernetes-cli-runtime.git
   subpackages:
   - pkg/genericclioptions
@@ -2230,7 +2236,7 @@ imports:
   subpackages:
   - config/v1beta1
 - name: k8s.io/kubernetes
-  version: 8035dfe056cb74d279209fbacaf8356c8aff65b9
+  version: f3bee9f10d65463efa3738c2cc63014dd88a0cee
   repo: https://github.com/openshift/kubernetes.git
   subpackages:
   - cmd/cloud-controller-manager/app/apis/config
