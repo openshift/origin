@@ -19,8 +19,8 @@ import (
 
 	imagev1 "github.com/openshift/api/image/v1"
 	"github.com/openshift/library-go/pkg/image/reference"
+	"github.com/openshift/library-go/pkg/network/networkutils"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/util/netutils"
 )
 
 // order younger images before older
@@ -175,7 +175,7 @@ func TryProtocolsWithRegistryURL(registry string, allowInsecure bool, action fun
 	switch {
 	case len(url.Scheme) > 0 && url.Scheme != "unset":
 		protos = []string{url.Scheme}
-	case allowInsecure || netutils.IsPrivateAddress(registry):
+	case allowInsecure || networkutils.IsPrivateAddress(registry):
 		protos = []string{"https", "http"}
 	default:
 		protos = []string{"https"}

@@ -24,7 +24,6 @@ import (
 	networkinformers "github.com/openshift/client-go/network/informers/externalversions/network/v1"
 	"github.com/openshift/origin/pkg/network"
 	"github.com/openshift/origin/pkg/network/common"
-	"github.com/openshift/origin/pkg/util/netutils"
 )
 
 const (
@@ -198,7 +197,7 @@ func (master *OsdnMaster) startSubSystems(pluginName string) {
 }
 
 func (master *OsdnMaster) checkClusterNetworkAgainstLocalNetworks() error {
-	hostIPNets, _, err := netutils.GetHostIPNetworks([]string{tun0})
+	hostIPNets, _, err := common.GetHostIPNetworks([]string{tun0})
 	if err != nil {
 		return err
 	}

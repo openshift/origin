@@ -17,7 +17,6 @@ import (
 
 	networkapi "github.com/openshift/api/network/v1"
 	networkinformers "github.com/openshift/client-go/network/informers/externalversions/network/v1"
-	"github.com/openshift/origin/pkg/util/netutils"
 )
 
 type nodeEgress struct {
@@ -188,7 +187,7 @@ func (eit *EgressIPTracker) UpdateHostSubnetEgress(hs *networkapi.HostSubnet) {
 		if err != nil {
 			utilruntime.HandleError(fmt.Errorf("could not parse HostSubnet %q CIDR: %v", hs.Name, err))
 		}
-		sdnIP = netutils.GenerateDefaultGateway(cidr).String()
+		sdnIP = GenerateDefaultGateway(cidr).String()
 	}
 
 	node := eit.nodes[hs.UID]

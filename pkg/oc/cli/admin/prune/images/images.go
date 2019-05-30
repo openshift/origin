@@ -43,11 +43,11 @@ import (
 	appsv1client "github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	buildv1client "github.com/openshift/client-go/build/clientset/versioned/typed/build/v1"
 	imagev1client "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"github.com/openshift/library-go/pkg/network/networkutils"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/oc/cli/admin/prune/imageprune"
 	imagegraph "github.com/openshift/origin/pkg/oc/lib/graph/imagegraph/nodes"
-	"github.com/openshift/origin/pkg/util/netutils"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -397,7 +397,7 @@ func (o PruneImagesOptions) Run() error {
 
 		insecure := o.ForceInsecure
 		if !insecure && len(o.CABundle) == 0 {
-			insecure = o.ClientConfig.TLSClientConfig.Insecure || netutils.IsPrivateAddress(registryHost) ||
+			insecure = o.ClientConfig.TLSClientConfig.Insecure || networkutils.IsPrivateAddress(registryHost) ||
 				strings.HasPrefix(registryHost, "http://")
 		}
 

@@ -15,8 +15,6 @@ import (
 	networkv1 "github.com/openshift/api/network/v1"
 	"github.com/openshift/origin/pkg/network/common"
 	"github.com/openshift/origin/pkg/network/node/cniserver"
-	"github.com/openshift/origin/pkg/util/netutils"
-
 	"k8s.io/klog"
 
 	corev1 "k8s.io/api/core/v1"
@@ -136,7 +134,7 @@ func getIPAMConfig(clusterNetworks []common.ClusterNetwork, localSubnet string) 
 				IP:   net.IPv4zero,
 				Mask: net.IPMask(net.IPv4zero),
 			},
-			GW: netutils.GenerateDefaultGateway(nodeNet),
+			GW: common.GenerateDefaultGateway(nodeNet),
 		},
 		{
 			//Multicast

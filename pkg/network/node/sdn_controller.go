@@ -10,7 +10,7 @@ import (
 
 	"k8s.io/klog"
 
-	"github.com/openshift/origin/pkg/util/netutils"
+	"github.com/openshift/origin/pkg/network/common"
 
 	corev1 "k8s.io/api/core/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -122,7 +122,7 @@ func (plugin *OsdnNode) SetupSDN() (bool, map[string]podNetworkInfo, error) {
 		return false, nil, fmt.Errorf("invalid local subnet CIDR: %v", err)
 	}
 	localSubnetMaskLength, _ := ipnet.Mask.Size()
-	localSubnetGateway := netutils.GenerateDefaultGateway(ipnet).String()
+	localSubnetGateway := common.GenerateDefaultGateway(ipnet).String()
 
 	klog.V(5).Infof("[SDN setup] node pod subnet %s gateway %s", ipnet.String(), localSubnetGateway)
 
