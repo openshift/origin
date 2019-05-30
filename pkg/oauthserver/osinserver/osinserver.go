@@ -10,7 +10,7 @@ import (
 
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
-	"github.com/openshift/origin/pkg/oauth/urls"
+	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
 	"github.com/openshift/origin/pkg/oauthserver"
 )
 
@@ -49,9 +49,9 @@ func New(config *osin.ServerConfig, storage osin.Storage, authorize AuthorizeHan
 }
 
 func (s *osinServer) Install(mux oauthserver.Mux, prefix string) {
-	mux.HandleFunc(path.Join(prefix, urls.AuthorizePath), s.handleAuthorize)
-	mux.HandleFunc(path.Join(prefix, urls.TokenPath), s.handleToken)
-	mux.HandleFunc(path.Join(prefix, urls.InfoPath), s.handleInfo)
+	mux.HandleFunc(path.Join(prefix, oauthdiscovery.AuthorizePath), s.handleAuthorize)
+	mux.HandleFunc(path.Join(prefix, oauthdiscovery.TokenPath), s.handleToken)
+	mux.HandleFunc(path.Join(prefix, oauthdiscovery.InfoPath), s.handleInfo)
 }
 
 func (s *osinServer) handleAuthorize(w http.ResponseWriter, r *http.Request) {

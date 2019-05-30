@@ -13,15 +13,14 @@ import (
 	"strings"
 
 	"github.com/RangelReale/osincli"
-	"k8s.io/klog"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/klog"
 
-	"github.com/openshift/origin/pkg/oauth/urls"
-	"github.com/openshift/origin/pkg/oauth/util"
+	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
 )
 
 const (
@@ -134,7 +133,7 @@ func (o *RequestTokenOptions) SetDefaultOsinConfig() error {
 		return fmt.Errorf("couldn't get %v: unexpected response status %v", requestURL, resp.StatusCode)
 	}
 
-	metadata := &util.OauthAuthorizationServerMetadata{}
+	metadata := &oauthdiscovery.OauthAuthorizationServerMetadata{}
 	if err := json.NewDecoder(resp.Body).Decode(metadata); err != nil {
 		return err
 	}
@@ -144,7 +143,7 @@ func (o *RequestTokenOptions) SetDefaultOsinConfig() error {
 		ClientId:     openShiftCLIClientID,
 		AuthorizeUrl: metadata.AuthorizationEndpoint,
 		TokenUrl:     metadata.TokenEndpoint,
-		RedirectUrl:  urls.OpenShiftOAuthTokenImplicitURL(metadata.Issuer),
+		RedirectUrl:  oauthdiscovery.OpenShiftOAuthTokenImplicitURL(metadata.Issuer),
 	}
 	if !o.TokenFlow && sets.NewString(metadata.CodeChallengeMethodsSupported...).Has(pkce_s256) {
 		if err := osincli.PopulatePKCE(config); err != nil {

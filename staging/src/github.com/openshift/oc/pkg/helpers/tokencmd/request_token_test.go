@@ -10,13 +10,12 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/RangelReale/osincli"
+
 	"k8s.io/apimachinery/pkg/util/diff"
 	restclient "k8s.io/client-go/rest"
 
-	"github.com/openshift/origin/pkg/oauth/urls"
-	"github.com/openshift/origin/pkg/oauth/util"
-
-	"github.com/RangelReale/osincli"
+	"github.com/openshift/library-go/pkg/oauth/oauthdiscovery"
 )
 
 type unloadableNegotiator struct {
@@ -485,9 +484,9 @@ func TestRequestToken(t *testing.T) {
 			Handler:      tc.Handler,
 			OsinConfig: &osincli.ClientConfig{
 				ClientId:     openShiftCLIClientID,
-				AuthorizeUrl: urls.OpenShiftOAuthAuthorizeURL(s.URL),
-				TokenUrl:     urls.OpenShiftOAuthTokenURL(s.URL),
-				RedirectUrl:  urls.OpenShiftOAuthTokenImplicitURL(s.URL),
+				AuthorizeUrl: oauthdiscovery.OpenShiftOAuthAuthorizeURL(s.URL),
+				TokenUrl:     oauthdiscovery.OpenShiftOAuthTokenURL(s.URL),
+				RedirectUrl:  oauthdiscovery.OpenShiftOAuthTokenImplicitURL(s.URL),
 			},
 			Issuer:    s.URL,
 			TokenFlow: true,
@@ -514,7 +513,7 @@ func TestSetDefaultOsinConfig(t *testing.T) {
 	noHostChange := func(host string) string { return host }
 	for _, tc := range []struct {
 		name        string
-		metadata    *util.OauthAuthorizationServerMetadata
+		metadata    *oauthdiscovery.OauthAuthorizationServerMetadata
 		hostWrapper func(host string) (newHost string)
 		tokenFlow   bool
 
@@ -523,7 +522,7 @@ func TestSetDefaultOsinConfig(t *testing.T) {
 	}{
 		{
 			name: "code with PKCE support from server",
-			metadata: &util.OauthAuthorizationServerMetadata{
+			metadata: &oauthdiscovery.OauthAuthorizationServerMetadata{
 				Issuer:                        "a",
 				AuthorizationEndpoint:         "b",
 				TokenEndpoint:                 "c",
@@ -543,7 +542,7 @@ func TestSetDefaultOsinConfig(t *testing.T) {
 		},
 		{
 			name: "code without PKCE support from server",
-			metadata: &util.OauthAuthorizationServerMetadata{
+			metadata: &oauthdiscovery.OauthAuthorizationServerMetadata{
 				Issuer:                        "a",
 				AuthorizationEndpoint:         "b",
 				TokenEndpoint:                 "c",
@@ -562,7 +561,7 @@ func TestSetDefaultOsinConfig(t *testing.T) {
 		},
 		{
 			name: "token with PKCE support from server",
-			metadata: &util.OauthAuthorizationServerMetadata{
+			metadata: &oauthdiscovery.OauthAuthorizationServerMetadata{
 				Issuer:                        "a",
 				AuthorizationEndpoint:         "b",
 				TokenEndpoint:                 "c",
@@ -581,7 +580,7 @@ func TestSetDefaultOsinConfig(t *testing.T) {
 		},
 		{
 			name: "code with PKCE support from server, but wrong case",
-			metadata: &util.OauthAuthorizationServerMetadata{
+			metadata: &oauthdiscovery.OauthAuthorizationServerMetadata{
 				Issuer:                        "a",
 				AuthorizationEndpoint:         "b",
 				TokenEndpoint:                 "c",
@@ -600,7 +599,7 @@ func TestSetDefaultOsinConfig(t *testing.T) {
 		},
 		{
 			name: "token without PKCE support from server",
-			metadata: &util.OauthAuthorizationServerMetadata{
+			metadata: &oauthdiscovery.OauthAuthorizationServerMetadata{
 				Issuer:                        "a",
 				AuthorizationEndpoint:         "b",
 				TokenEndpoint:                 "c",
@@ -619,7 +618,7 @@ func TestSetDefaultOsinConfig(t *testing.T) {
 		},
 		{
 			name: "host with extra slashes",
-			metadata: &util.OauthAuthorizationServerMetadata{
+			metadata: &oauthdiscovery.OauthAuthorizationServerMetadata{
 				Issuer:                        "a",
 				AuthorizationEndpoint:         "b",
 				TokenEndpoint:                 "c",
@@ -639,7 +638,7 @@ func TestSetDefaultOsinConfig(t *testing.T) {
 		},
 		{
 			name: "issuer with extra slashes",
-			metadata: &util.OauthAuthorizationServerMetadata{
+			metadata: &oauthdiscovery.OauthAuthorizationServerMetadata{
 				Issuer:                        "a/////",
 				AuthorizationEndpoint:         "b",
 				TokenEndpoint:                 "c",
@@ -659,7 +658,7 @@ func TestSetDefaultOsinConfig(t *testing.T) {
 		},
 		{
 			name: "code with PKCE support from server, more complex JSON",
-			metadata: &util.OauthAuthorizationServerMetadata{
+			metadata: &oauthdiscovery.OauthAuthorizationServerMetadata{
 				Issuer:                        "arandomissuerthatisfun123!!!///",
 				AuthorizationEndpoint:         "44authzisanawesomeendpoint",
 				TokenEndpoint:                 "&&buttokenendpointisprettygoodtoo",

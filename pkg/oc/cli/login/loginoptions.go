@@ -26,8 +26,8 @@ import (
 	"github.com/openshift/oc/pkg/helpers/project"
 	loginutil "github.com/openshift/oc/pkg/helpers/project"
 	"github.com/openshift/oc/pkg/helpers/term"
+	"github.com/openshift/oc/pkg/helpers/tokencmd"
 	"github.com/openshift/origin/pkg/client/config"
-	"github.com/openshift/origin/pkg/oc/lib/tokencmd"
 )
 
 const defaultClusterURL = "https://localhost:8443"

@@ -43,7 +43,7 @@ func TestOAuthStorage(t *testing.T) {
 		testClientSecret1  = "secret1"
 		testClientRedirect = "/assert"
 
-		// The OAuth endpoints we use, see github.com/openshift/origin/pkg/oauth/urls
+		// The OAuth endpoints we use, see github.com/openshift/library-go/pkg/oauth/oauthdiscovery
 		authorizePath = "/authorize"
 		tokenPath     = "/token"
 	)
