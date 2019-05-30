@@ -1,11 +1,12 @@
-package configdefault
+package openshift_apiserver
 
 import (
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/configdefaults"
+	"github.com/openshift/library-go/pkg/config/helpers"
 )
 
-func SetRecommendedOpenShiftAPIServerConfigDefaults(config *openshiftcontrolplanev1.OpenShiftAPIServerConfig) {
+func setRecommendedOpenShiftAPIServerConfigDefaults(config *openshiftcontrolplanev1.OpenShiftAPIServerConfig) {
 	configdefaults.DefaultString(&config.GenericAPIServerConfig.StorageConfig.StoragePrefix, "openshift.io")
 
 	configdefaults.SetRecommendedGenericAPIServerConfigDefaults(&config.GenericAPIServerConfig)
@@ -21,4 +22,17 @@ func SetRecommendedOpenShiftAPIServerConfigDefaults(config *openshiftcontrolplan
 	if config.ImagePolicyConfig.MaxImagesBulkImportedPerRepository == 0 {
 		config.ImagePolicyConfig.MaxImagesBulkImportedPerRepository = 50
 	}
+}
+
+func getOpenShiftAPIServerConfigFileReferences(config *openshiftcontrolplanev1.OpenShiftAPIServerConfig) []*string {
+	if config == nil {
+		return []*string{}
+	}
+
+	refs := []*string{}
+
+	refs = append(refs, helpers.GetGenericAPIServerConfigFileReferences(&config.GenericAPIServerConfig)...)
+	refs = append(refs, &config.ImagePolicyConfig.AdditionalTrustedCA)
+
+	return refs
 }

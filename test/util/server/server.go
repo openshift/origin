@@ -16,6 +16,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/openshift/origin/test/util/server/deprecated_openshift/openshift-controller-manager"
+
 	etcdclientv3 "github.com/coreos/etcd/clientv3"
 	"github.com/openshift/library-go/pkg/assets/create"
 	"k8s.io/klog"
@@ -728,7 +730,7 @@ func startOpenShiftControllers(masterConfig *configapi.MasterConfig) error {
 		return err
 	}
 
-	openshiftControllerConfig := openshiftcontrollermanager.ConvertMasterConfigToOpenshiftControllerConfig(externalMasterConfig)
+	openshiftControllerConfig := openshift_controller_manager.ConvertMasterConfigToOpenshiftControllerConfig(externalMasterConfig)
 	openshiftAddrStr, err := FindAvailableBindAddress(10000, 29999)
 	if err != nil {
 		return fmt.Errorf("couldn't find free address for OpenShift controller-manager: %v", err)

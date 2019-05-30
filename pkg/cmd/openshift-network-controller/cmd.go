@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/openshift/origin/pkg/cmd/openshift-controller-manager/configdefault"
 	"k8s.io/client-go/rest"
 
 	"github.com/coreos/go-systemd/daemon"
@@ -27,7 +26,6 @@ import (
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/helpers"
 	"github.com/openshift/library-go/pkg/serviceability"
-	"github.com/openshift/origin/pkg/configconversion"
 )
 
 const RecommendedStartNetworkControllerName = "openshift-network-controller"
@@ -124,10 +122,10 @@ func (o *OpenShiftNetworkController) RunNetworkController() error {
 	if config.ServingInfo == nil {
 		config.ServingInfo = &configv1.HTTPServingInfo{}
 	}
-	if err := helpers.ResolvePaths(configconversion.GetOpenShiftControllerConfigFileReferences(config), configFileLocation); err != nil {
+	if err := helpers.ResolvePaths(getOpenShiftControllerConfigFileReferences(config), configFileLocation); err != nil {
 		return err
 	}
-	configdefault.SetRecommendedOpenShiftControllerConfigDefaults(config)
+	setRecommendedOpenShiftControllerConfigDefaults(config)
 
 	clientConfig, err := helpers.GetKubeClientConfig(config.KubeClientConfig)
 	if err != nil {

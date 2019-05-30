@@ -1,14 +1,15 @@
-package configdefault
+package openshift_controller_manager
 
 import (
 	"time"
 
 	openshiftcontrolplanev1 "github.com/openshift/api/openshiftcontrolplane/v1"
 	"github.com/openshift/library-go/pkg/config/configdefaults"
+	"github.com/openshift/library-go/pkg/config/helpers"
 	leaderelectionconverter "github.com/openshift/library-go/pkg/config/leaderelection"
 )
 
-func SetRecommendedOpenShiftControllerConfigDefaults(config *openshiftcontrolplanev1.OpenShiftControllerManagerConfig) {
+func setRecommendedOpenShiftControllerConfigDefaults(config *openshiftcontrolplanev1.OpenShiftControllerManagerConfig) {
 	configdefaults.SetRecommendedHTTPServingInfoDefaults(config.ServingInfo)
 	configdefaults.SetRecommendedKubeClientConfigDefaults(&config.KubeClientConfig)
 	config.LeaderElection = leaderelectionconverter.LeaderElectionDefaulting(config.LeaderElection, "kube-system", "openshift-master-controllers")
@@ -54,4 +55,17 @@ func SetRecommendedOpenShiftControllerConfigDefaults(config *openshiftcontrolpla
 
 	// TODO this default is WRONG, but it appears to work
 	configdefaults.DefaultString(&config.Build.ImageTemplateFormat.Format, "quay.io/openshift/origin-${component}:${version}")
+}
+
+func getOpenShiftControllerConfigFileReferences(config *openshiftcontrolplanev1.OpenShiftControllerManagerConfig) []*string {
+	if config == nil {
+		return []*string{}
+	}
+
+	refs := []*string{}
+
+	refs = append(refs, helpers.GetHTTPServingInfoFileReferences(config.ServingInfo)...)
+	refs = append(refs, helpers.GetKubeClientConfigFileReferences(&config.KubeClientConfig)...)
+
+	return refs
 }
