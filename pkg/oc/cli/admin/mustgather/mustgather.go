@@ -103,20 +103,12 @@ func (o *MustGatherOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 		o.DestDir = fmt.Sprintf("must-gather.local.%06d", rand.Int63())
 	}
 	if len(o.Image) == 0 {
-		imageClient, err := v1.NewForConfig(o.Config)
-		if err != nil {
-			return err
-		}
-		imageStream, err := imageClient.ImageStreams("openshift").Get("must-gather", metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-		var ok bool
-		if o.Image, ok = util.ResolveLatestTaggedImage(imageStream, "latest"); !ok {
+		if o.Image, err = o.resolveMustGatherImage(); err != nil {
 			o.Image = "quay.io/openshift/origin-must-gather:latest"
-			fmt.Fprintf(o.Out, "Unable to resolve the openshift imagestream tag must-gather:latest; Using %s image instead.", o.Image)
+			fmt.Fprintf(o.Out, "%v\n", err)
 		}
 	}
+	fmt.Fprintf(o.Out, "Using image: %s\n", o.Image)
 	o.PrinterCreated, err = printers.NewTypeSetter(scheme.Scheme).WrapToPrinter(&printers.NamePrinter{Operation: "created"}, nil)
 	if err != nil {
 		return err
@@ -127,6 +119,23 @@ func (o *MustGatherOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 	}
 	o.RsyncRshCmd = rsync.DefaultRsyncRemoteShellToUse(cmd.Parent())
 	return nil
+}
+
+func (o *MustGatherOptions) resolveMustGatherImage() (string, error) {
+	imageClient, err := v1.NewForConfig(o.Config)
+	if err != nil {
+		return "", err
+	}
+	imageStream, err := imageClient.ImageStreams("openshift").Get("must-gather", metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	var image string
+	var ok bool
+	if image, ok = util.ResolveLatestTaggedImage(imageStream, "latest"); !ok {
+		return "", fmt.Errorf("unable to resolve the openshift imagestream tag must-gather:latest")
+	}
+	return image, nil
 }
 
 type MustGatherOptions struct {
