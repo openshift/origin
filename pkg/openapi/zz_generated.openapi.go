@@ -430,6 +430,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/operator/v1.Console":                                                                schema_openshift_api_operator_v1_Console(ref),
 		"github.com/openshift/api/operator/v1.ConsoleCustomization":                                                   schema_openshift_api_operator_v1_ConsoleCustomization(ref),
 		"github.com/openshift/api/operator/v1.ConsoleList":                                                            schema_openshift_api_operator_v1_ConsoleList(ref),
+		"github.com/openshift/api/operator/v1.ConsoleProviders":                                                       schema_openshift_api_operator_v1_ConsoleProviders(ref),
 		"github.com/openshift/api/operator/v1.ConsoleSpec":                                                            schema_openshift_api_operator_v1_ConsoleSpec(ref),
 		"github.com/openshift/api/operator/v1.ConsoleStatus":                                                          schema_openshift_api_operator_v1_ConsoleStatus(ref),
 		"github.com/openshift/api/operator/v1.DNS":                                                                    schema_openshift_api_operator_v1_DNS(ref),
@@ -497,6 +498,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/operator/v1.ServiceCatalogControllerManagerStatus":                                  schema_openshift_api_operator_v1_ServiceCatalogControllerManagerStatus(ref),
 		"github.com/openshift/api/operator/v1.StaticPodOperatorSpec":                                                  schema_openshift_api_operator_v1_StaticPodOperatorSpec(ref),
 		"github.com/openshift/api/operator/v1.StaticPodOperatorStatus":                                                schema_openshift_api_operator_v1_StaticPodOperatorStatus(ref),
+		"github.com/openshift/api/operator/v1.StatuspageProvider":                                                     schema_openshift_api_operator_v1_StatuspageProvider(ref),
 		"github.com/openshift/api/operator/v1alpha1.DelegatedAuthentication":                                          schema_openshift_api_operator_v1alpha1_DelegatedAuthentication(ref),
 		"github.com/openshift/api/operator/v1alpha1.DelegatedAuthorization":                                           schema_openshift_api_operator_v1alpha1_DelegatedAuthorization(ref),
 		"github.com/openshift/api/operator/v1alpha1.GenerationHistory":                                                schema_openshift_api_operator_v1alpha1_GenerationHistory(ref),
@@ -528,6 +530,8 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/openshift/api/osin/v1.OsinServerConfig":                                                           schema_openshift_api_osin_v1_OsinServerConfig(ref),
 		"github.com/openshift/api/osin/v1.RequestHeaderIdentityProvider":                                              schema_openshift_api_osin_v1_RequestHeaderIdentityProvider(ref),
 		"github.com/openshift/api/osin/v1.SessionConfig":                                                              schema_openshift_api_osin_v1_SessionConfig(ref),
+		"github.com/openshift/api/osin/v1.SessionSecret":                                                              schema_openshift_api_osin_v1_SessionSecret(ref),
+		"github.com/openshift/api/osin/v1.SessionSecrets":                                                             schema_openshift_api_osin_v1_SessionSecrets(ref),
 		"github.com/openshift/api/osin/v1.TokenConfig":                                                                schema_openshift_api_osin_v1_TokenConfig(ref),
 		"github.com/openshift/api/project/v1.Project":                                                                 schema_openshift_api_project_v1_Project(ref),
 		"github.com/openshift/api/project/v1.ProjectList":                                                             schema_openshift_api_project_v1_ProjectList(ref),
@@ -21563,6 +21567,26 @@ func schema_openshift_api_operator_v1_ConsoleList(ref common.ReferenceCallback) 
 	}
 }
 
+func schema_openshift_api_operator_v1_ConsoleProviders(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"statuspage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "statuspage contains ID for statuspage.io page that provides status info about.",
+							Ref:         ref("github.com/openshift/api/operator/v1.StatuspageProvider"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/operator/v1.StatuspageProvider"},
+	}
+}
+
 func schema_openshift_api_operator_v1_ConsoleSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -21608,12 +21632,18 @@ func schema_openshift_api_operator_v1_ConsoleSpec(ref common.ReferenceCallback) 
 							Ref:         ref("github.com/openshift/api/operator/v1.ConsoleCustomization"),
 						},
 					},
+					"providers": {
+						SchemaProps: spec.SchemaProps{
+							Description: "providers contains configuration for using specific service providers.",
+							Ref:         ref("github.com/openshift/api/operator/v1.ConsoleProviders"),
+						},
+					},
 				},
-				Required: []string{"managementState"},
+				Required: []string{"managementState", "providers"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/openshift/api/operator/v1.ConsoleCustomization", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"github.com/openshift/api/operator/v1.ConsoleCustomization", "github.com/openshift/api/operator/v1.ConsoleProviders", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -25071,6 +25101,27 @@ func schema_openshift_api_operator_v1_StaticPodOperatorStatus(ref common.Referen
 	}
 }
 
+func schema_openshift_api_operator_v1_StatuspageProvider(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "StatuspageProvider provides identity for statuspage account.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"pageID": {
+						SchemaProps: spec.SchemaProps{
+							Description: "pageID is the unique ID assigned by Statuspage for your page. This must be a public page.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"pageID"},
+			},
+		},
+	}
+}
+
 func schema_openshift_api_operator_v1alpha1_DelegatedAuthentication(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -26786,6 +26837,77 @@ func schema_openshift_api_osin_v1_SessionConfig(ref common.ReferenceCallback) co
 				Required: []string{"sessionSecretsFile", "sessionMaxAgeSeconds", "sessionName"},
 			},
 		},
+	}
+}
+
+func schema_openshift_api_osin_v1_SessionSecret(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "SessionSecret is a secret used to authenticate/decrypt cookie-based sessions",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"authentication": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Authentication is used to authenticate sessions using HMAC. Recommended to use a secret with 32 or 64 bytes.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"encryption": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Encryption is used to encrypt sessions. Must be 16, 24, or 32 characters long, to select AES-128, AES-",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"authentication", "encryption"},
+			},
+		},
+	}
+}
+
+func schema_openshift_api_osin_v1_SessionSecrets(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "SessionSecrets list the secrets to use to sign/encrypt and authenticate/decrypt created sessions.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"secrets": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Secrets is a list of secrets New sessions are signed and encrypted using the first secret. Existing sessions are decrypted/authenticated by each secret until one succeeds. This allows rotating secrets.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/openshift/api/osin/v1.SessionSecret"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"secrets"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/openshift/api/osin/v1.SessionSecret"},
 	}
 }
 
